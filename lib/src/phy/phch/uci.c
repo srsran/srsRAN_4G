@@ -551,13 +551,35 @@ static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t *cfg,
   return Q_prime; 
 }
 
-static void encode_ri_ack(uint8_t data, srslte_uci_bit_type_t q_encoded_bits[6], uint8_t Qm) 
+static uint32_t encode_ri_ack(uint8_t data[2], uint32_t data_len, srslte_uci_bit_type_t q_encoded_bits[18], uint8_t Qm)
 {
-  q_encoded_bits[0] = data?UCI_BIT_1:UCI_BIT_0;
-  q_encoded_bits[1] = UCI_BIT_REPETITION; 
-  for (uint32_t i=2;i<Qm;i++) {
-    q_encoded_bits[i] = UCI_BIT_PLACEHOLDER;
+  uint32_t i = 0;
+
+  if (data_len == 1) {
+    q_encoded_bits[i++] = data[0] ? UCI_BIT_1 : UCI_BIT_0;
+    q_encoded_bits[i++] = UCI_BIT_REPETITION;
+    while(i < Qm) {
+      q_encoded_bits[i++] = UCI_BIT_PLACEHOLDER;
+    }
+  } else {
+    q_encoded_bits[i++] = data[0] ? UCI_BIT_1 : UCI_BIT_0;
+    q_encoded_bits[i++] = data[1] ? UCI_BIT_1 : UCI_BIT_0;
+    while(i<Qm) {
+      q_encoded_bits[i++] = UCI_BIT_PLACEHOLDER;
+    }
+    q_encoded_bits[i++] = (data[0]^data[1]) ? UCI_BIT_1 : UCI_BIT_0;
+    q_encoded_bits[i++] = data[0] ? UCI_BIT_1 : UCI_BIT_0;
+    while(i<Qm*2) {
+      q_encoded_bits[i++] = UCI_BIT_PLACEHOLDER;
+    }
+    q_encoded_bits[i++] = data[1] ? UCI_BIT_1 : UCI_BIT_0;
+    q_encoded_bits[i++] = (data[0]^data[1]) ? UCI_BIT_1 : UCI_BIT_0;
+    while(i<Qm*3) {
+      q_encoded_bits[i++] = UCI_BIT_PLACEHOLDER;
+    }
   }
+
+  return i;
 }
                        
 static void decode_ri_ack(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos, uint32_t Qm, int32_t data[2], uint32_t nof_data)
@@ -625,23 +647,23 @@ int srslte_uci_decode_ack(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_s
 /* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit HARQ
  */
-int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg, uint8_t data, 
+int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg, uint8_t acks[2], uint32_t nof_acks,
                           uint32_t O_cqi, float beta, uint32_t H_prime_total, 
                           srslte_uci_bit_t *ack_bits)
-{  
+{
   if (beta < 0) {
     fprintf(stderr, "Error beta is reserved\n");
     return -1; 
   }
 
-  uint32_t Qprime = Q_prime_ri_ack(cfg, 1, O_cqi, beta);
-  srslte_uci_bit_type_t q_encoded_bits[6];
+  uint32_t Qprime = Q_prime_ri_ack(cfg, nof_acks, O_cqi, beta);
+  srslte_uci_bit_type_t q_encoded_bits[18];
 
-  encode_ri_ack(data, q_encoded_bits, cfg->grant.Qm);
+  uint32_t nof_encoded_bits = encode_ri_ack(acks, nof_acks, q_encoded_bits, cfg->grant.Qm);
   
   for (uint32_t i=0;i<Qprime;i++) {
     uci_ulsch_interleave_ack_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ack_bits[cfg->grant.Qm*i]);
-    uci_ulsch_interleave_put(q_encoded_bits, cfg->grant.Qm, &ack_bits[cfg->grant.Qm*i]);
+    uci_ulsch_interleave_put(&q_encoded_bits[(i*cfg->grant.Qm)%nof_encoded_bits], cfg->grant.Qm, &ack_bits[cfg->grant.Qm*i]);
   }
   
   return (int) Qprime;
@@ -681,22 +703,24 @@ int srslte_uci_decode_ri(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_se
  *  Currently only supporting 1-bit RI
  */
 int srslte_uci_encode_ri(srslte_pusch_cfg_t *cfg,
-                         uint8_t data, 
+                         uint8_t ri,
                          uint32_t O_cqi, float beta, uint32_t H_prime_total, 
                          srslte_uci_bit_t *ri_bits)
 {
+  // FIXME: It supports RI of 1 bit only
+  uint8_t data[2] = {ri, 0};
   if (beta < 0) {
     fprintf(stderr, "Error beta is reserved\n");
     return -1; 
   }
   uint32_t Qprime = Q_prime_ri_ack(cfg, 1, O_cqi, beta);
-  srslte_uci_bit_type_t q_encoded_bits[6];
+  srslte_uci_bit_type_t q_encoded_bits[18];
 
-  encode_ri_ack(data, q_encoded_bits, cfg->grant.Qm);
+  uint32_t nof_encoded_bits = encode_ri_ack(data, 1, q_encoded_bits, cfg->grant.Qm);
   
   for (uint32_t i=0;i<Qprime;i++) {
     uci_ulsch_interleave_ri_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ri_bits[cfg->grant.Qm*i]);
-    uci_ulsch_interleave_put(q_encoded_bits, cfg->grant.Qm, &ri_bits[cfg->grant.Qm*i]);
+    uci_ulsch_interleave_put(&q_encoded_bits[(i*cfg->grant.Qm)%nof_encoded_bits], cfg->grant.Qm, &ri_bits[cfg->grant.Qm*i]);
   }
   
   return (int) Qprime;

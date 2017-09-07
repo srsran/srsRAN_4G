@@ -808,11 +808,13 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   
   // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
+    uint8_t acks [2] = {uci_data.uci_ack, uci_data.uci_ack_2};
     float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ack(cfg, uci_data.uci_ack, uci_data.uci_cqi_len, beta, nb_q/Qm, &q->ack_ri_bits[Q_prime_ri*Qm]);
+    ret = srslte_uci_encode_ack(cfg, acks, uci_data.uci_ack_len, uci_data.uci_cqi_len,
+                                beta, nb_q / Qm, &q->ack_ri_bits[Q_prime_ri * Qm]);
     if (ret < 0) {
       return ret; 
     }
