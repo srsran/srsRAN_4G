@@ -252,6 +252,14 @@ void phch_worker::work_imp()
       if (dl_action.generate_ack) {
         set_uci_ack(dl_ack, dl_mac_grant.tb_en);
       }
+
+      /* Select Rank Indicator by computing Condition Number */
+      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+          phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+        float cn = 0.0f;
+        srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
+        uci_data.uci_ri_len = 1;
+      }
     }
   }
   
@@ -556,9 +564,9 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   #endif
 
         Info(
-            "PDSCH: l_crb=%2d, harq=%d, tb_en={%s, %s}, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d%s\n",
-            grant->nof_prb, harq_pid, grant->tb_en[0] ? "on" : "off", grant->tb_en[1] ? "on" : "off",
-            grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx,
+            "PDSCH: l_crb=%2d, harq=%d, scheme=%s, tb_en={%s, %s}, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d, %s\n",
+            grant->nof_prb, harq_pid, srslte_mimotype2str(mimo_type), grant->tb_en[0] ? "on" : "off",
+            grant->tb_en[1] ? "on" : "off", grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx,
             grant->mcs[1].idx, rv[0], rv[1], acks[0] ? "OK" : "KO", acks[1] ? "OK" : "KO",
             10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
             srslte_pdsch_last_noi(&ue_dl.pdsch),
@@ -847,11 +855,12 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   snprintf(timestr, 64, ", total_time=%4d us", (int) logtime_start[0].tv_usec);
 #endif
 
-  Info("PUSCH: tti_tx=%d, n_prb=%d, rb_start=%d, tbs=%d, mod=%d, mcs=%d, rv_idx=%d, ack=%s, cfo=%.1f Hz%s\n", 
+  Info("PUSCH: tti_tx=%d, n_prb=%d, rb_start=%d, tbs=%d, mod=%d, mcs=%d, rv_idx=%d, ack=%s, ri=%s, cfo=%.1f Hz%s\n",
          (tti+4)%10240,
          grant->L_prb, grant->n_prb[0], 
          grant->mcs.tbs/8, grant->mcs.mod, grant->mcs.idx, rv,
          uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
+         uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
          cfo*15000, timestr);
 
   // Store metrics
