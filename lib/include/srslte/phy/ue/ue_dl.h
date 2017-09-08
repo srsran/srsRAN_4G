@@ -185,8 +185,8 @@ SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
                                         bool acks[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q,
-                                          uint32_t *ri,
-                                          uint32_t *pmi,
+                                          uint8_t *ri,
+                                          uint8_t *pmi,
                                           float *current_sinr);
 
 SRSLTE_API int srslte_ue_dl_ri_select(srslte_ue_dl_t *q,

@@ -64,6 +64,10 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   uint8_t  uci_cqi[SRSLTE_CQI_MAX_BITS];
   uint32_t uci_cqi_len;
+  uint8_t  uci_dif_cqi[SRSLTE_DIF_CQI_MAX_BITS];
+  uint32_t uci_dif_cqi_len;
+  uint8_t  uci_pmi[SRSLTE_PMI_MAX_BITS];
+  uint8_t  uci_pmi_len;
   uint8_t  uci_ri;  // Only 1-bit supported for RI
   uint32_t uci_ri_len;
   uint8_t  uci_ack;   // 1st codeword bit for HARQ-ACK

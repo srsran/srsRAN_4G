@@ -254,11 +254,23 @@ void phch_worker::work_imp()
       }
 
       /* Select Rank Indicator by computing Condition Number */
-      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
-          phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
         float cn = 0.0f;
         srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
         uci_data.uci_ri_len = 1;
+      } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4){
+        float sinr = 0.0f;
+        uint8 packed_pmi = 0;
+        srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
+        srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, 2);
+        uci_data.uci_ri_len = 1;
+        if (uci_data.uci_ri == 0) {
+          uci_data.uci_pmi_len = 2;
+          uci_data.uci_dif_cqi_len = 0;
+        } else {
+          uci_data.uci_pmi_len = 1;
+          uci_data.uci_dif_cqi_len = 3;
+        }
       }
     }
   }
@@ -740,7 +752,16 @@ void phch_worker::set_uci_periodic_cqi()
   int cqi_max       = phy->args->cqi_max;
   
   if (period_cqi.configured && rnti_is_set) {
-    if (srslte_cqi_send(period_cqi.pmi_idx, (tti+4)%10240)) {
+    if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, (tti+4)%10240)) {
+      if (uci_data.uci_ri_len) {
+        uci_data.uci_cqi[0] = uci_data.uci_ri;
+        uci_data.uci_cqi_len = uci_data.uci_ri_len;
+        uci_data.uci_ri_len = 0;
+        uci_data.uci_dif_cqi_len = 0;
+        uci_data.uci_pmi_len = 0;
+        Info("PUCCH: Periodic RI=%d\n", uci_data.uci_cqi[0]);
+      }
+    } else if (srslte_cqi_send(period_cqi.pmi_idx, (tti+4)%10240)) {
       srslte_cqi_value_t cqi_report;
       if (period_cqi.format_is_subband) {
         // TODO: Implement subband periodic reports
@@ -902,11 +923,12 @@ void phch_worker::encode_pucch()
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
   
-  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, sr=%s, cfo=%.1f Hz%s\n",
+  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, sr=%s, cfo=%.1f Hz%s\n",
          tx_power, (tti+4)%10240, 
          last_dl_pdcch_ncce, ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb, 
        uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
        uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",
+       uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
        uci_data.scheduling_request?"yes":"no",
          cfo*15000, timestr);        
   }   
@@ -1037,12 +1059,19 @@ void phch_worker::set_ul_params(bool pregen_disabled)
   /* CQI configuration */
   bzero(&period_cqi, sizeof(srslte_cqi_periodic_cfg_t));
   period_cqi.configured        = dedicated->cqi_report_cnfg.report_periodic_setup_present;
-  period_cqi.pmi_idx           = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx; 
+  period_cqi.pmi_idx           = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
   period_cqi.simul_cqi_ack     = dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi;
   period_cqi.format_is_subband = dedicated->cqi_report_cnfg.report_periodic.format_ind_periodic ==
                                  LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_SUBBAND_CQI;
   period_cqi.subband_size      = dedicated->cqi_report_cnfg.report_periodic.format_ind_periodic_subband_k;
-  
+
+  if (dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present) {
+    period_cqi.ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
+    period_cqi.ri_idx_present = true;
+  } else {
+    period_cqi.ri_idx_present = false;
+  }
+
   /* SR configuration */
   I_sr                         = dedicated->sched_request_cnfg.sr_cnfg_idx;
   
