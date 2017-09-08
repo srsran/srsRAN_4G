@@ -454,10 +454,10 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
 
 /* Compute the Rank Indicator (RI) and Precoder Matrix Indicator (PMI) by computing the Signal to Interference plus
  * Noise Ratio (SINR), valid for TM4 */
-int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, float *current_sinr) {
+int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint8_t *ri, uint8_t *pmi, float *current_sinr) {
   float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
   float best_sinr = -INFINITY;
-  uint32_t best_pmi = 0, best_ri = 0;
+  uint8_t best_pmi = 0, best_ri = 0;
 
   if (q->cell.nof_ports < 2 || q->nof_rx_antennas < 2) {
     /* Do nothing */
@@ -471,11 +471,11 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
 
     /* Select the best Rank indicator (RI) and Precoding Matrix Indicator (PMI) */
     for (uint32_t nof_layers = 1; nof_layers <= 2; nof_layers++) {
-      float _sinr = q->sinr[nof_layers - 1][q->pmi[nof_layers - 1]] * nof_layers;
+      float _sinr = q->sinr[nof_layers - 1][q->pmi[nof_layers - 1]] * nof_layers * nof_layers;
       if (_sinr > best_sinr + 0.1) {
         best_sinr = _sinr;
-        best_pmi = q->pmi[nof_layers - 1];
-        best_ri = nof_layers;
+        best_pmi = (uint8_t) q->pmi[nof_layers - 1];
+        best_ri = (uint8_t) (nof_layers - 1);
       }
     }
 

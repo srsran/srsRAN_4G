@@ -518,7 +518,7 @@ int main(int argc, char **argv) {
     
   // Variables for measurements 
   uint32_t nframes=0;
-  uint32_t ri = 0, pmi = 0;
+  uint8_t ri = 0, pmi = 0;
   float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0,
       sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS], cn = 0.0;
   bool decode_pdsch = false; 
