@@ -516,7 +516,7 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
 
 
 /* Compute the Rank Indicator (RI) by computing the condition number, valid for TM3 */
-int srslte_ue_dl_ri_select(srslte_ue_dl_t *q, uint32_t *ri, float *cn) {
+int srslte_ue_dl_ri_select(srslte_ue_dl_t *q, uint8_t *ri, float *cn) {
   float _cn;
   int ret = srslte_pdsch_cn_compute(&q->pdsch, q->ce_m, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp), &_cn);
 
@@ -527,7 +527,7 @@ int srslte_ue_dl_ri_select(srslte_ue_dl_t *q, uint32_t *ri, float *cn) {
 
   /* Set rank indicator */
   if (!ret && ri) {
-    *ri = (_cn > 3.0f)? 1:0;
+    *ri = (uint8_t)((_cn < 17.0f)? 1:0);
   }
 
   return ret;
