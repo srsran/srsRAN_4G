@@ -814,7 +814,7 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   uint32_t max_Qm  = is_ul?4:6; // Allow 16-QAM in PUSCH Only
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  if (has_pucch) {
+  if (has_pucch && is_ul) {
     cqi-=2;
   }
 
