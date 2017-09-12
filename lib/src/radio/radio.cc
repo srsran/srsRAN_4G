@@ -250,11 +250,11 @@ void radio::save_trace(uint32_t is_eob, srslte_timestamp_t *tx_time) {
   }
 }
 
-void radio::set_freq_offset(float freq) {
+void radio::set_freq_offset(double freq) {
   freq_offset = freq;
 }
 
-void radio::set_rx_freq(float freq)
+void radio::set_rx_freq(double freq)
 {
   rx_freq = srslte_rf_set_rx_freq(&rf_device, freq+freq_offset);
 }
@@ -269,17 +269,17 @@ double radio::set_rx_gain_th(float gain)
   return srslte_rf_set_rx_gain_th(&rf_device, gain);
 }
 
-void radio::set_master_clock_rate(float rate)
+void radio::set_master_clock_rate(double rate)
 {
   srslte_rf_set_master_clock_rate(&rf_device, rate);
 }
 
-void radio::set_rx_srate(float srate)
+void radio::set_rx_srate(double srate)
 {
   srslte_rf_set_rx_srate(&rf_device, srate);
 }
 
-void radio::set_tx_freq(float freq)
+void radio::set_tx_freq(double freq)
 {
   tx_freq = srslte_rf_set_tx_freq(&rf_device, freq+freq_offset);
 }
@@ -289,12 +289,12 @@ void radio::set_tx_gain(float gain)
   srslte_rf_set_tx_gain(&rf_device, gain);
 }
 
-float radio::get_rx_freq()
+double radio::get_rx_freq()
 {
   return rx_freq;
 }
 
-float radio::get_tx_freq()
+double radio::get_tx_freq()
 {
   return tx_freq; 
 }
@@ -309,7 +309,7 @@ float radio::get_rx_gain()
   return srslte_rf_get_rx_gain(&rf_device);
 }
 
-void radio::set_tx_srate(float srate)
+void radio::set_tx_srate(double srate)
 {
   cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
   burst_preamble_samples = (uint32_t) (cur_tx_srate * burst_preamble_sec);
