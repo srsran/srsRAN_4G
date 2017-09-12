@@ -617,8 +617,6 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
 }
 
 void srslte_sync_reset(srslte_sync_t *q) {
-  q->mean_cfo2_isunset = true;
-  q->mean_cfo_isunset  = true;
   q->M_ext_avg  = 0;
   q->M_norm_avg = 0; 
   srslte_pss_synch_reset(&q->pss);
