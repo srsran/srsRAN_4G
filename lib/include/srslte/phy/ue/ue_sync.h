@@ -181,6 +181,9 @@ SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q,
 SRSLTE_API int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, 
                                              cf_t *input_buffer[SRSLTE_MAX_PORTS]);
 
+SRSLTE_API void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t *q,
+                                           float tol);
+
 SRSLTE_API void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, 
                                        float cfo); 
 

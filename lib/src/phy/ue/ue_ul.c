@@ -38,6 +38,8 @@
 
 #define MAX_SFLEN     SRSLTE_SF_LEN(srslte_symbol_sz(max_prb))
 
+#define DEFAULT_CFO_TOL   50.0 // Hz
+
 int srslte_ue_ul_init(srslte_ue_ul_t *q,
                       uint32_t max_prb)
 {
@@ -62,8 +64,8 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
       fprintf(stderr, "Error creating CFO object\n");
       goto clean_exit;
     }
-    
-    srslte_cfo_set_tol(&q->cfo, 0);
+
+    srslte_ue_ul_set_cfo_tol(q, DEFAULT_CFO_TOL);
 
     if (srslte_pusch_init_ue(&q->pusch, max_prb)) {
       fprintf(stderr, "Error creating PUSCH object\n");
@@ -155,7 +157,9 @@ int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
         fprintf(stderr, "Error resizing CFO object\n");
         return SRSLTE_ERROR;
       }
-      srslte_cfo_set_tol(&q->cfo, 50.0/(15000.0*srslte_symbol_sz(q->cell.nof_prb)));
+
+      srslte_ue_ul_set_cfo_tol(q, q->current_cfo_tol);
+
       if (srslte_pusch_set_cell(&q->pusch, q->cell)) {
         fprintf(stderr, "Error resizing PUSCH object\n");
         return SRSLTE_ERROR;
@@ -178,6 +182,10 @@ int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
   return ret;
 }
 
+void srslte_ue_ul_set_cfo_tol(srslte_ue_ul_t *q, float tol) {
+  q->current_cfo_tol = tol;
+  srslte_cfo_set_tol(&q->cfo, tol/(15000.0*srslte_symbol_sz(q->cell.nof_prb)));
+}
 
 void srslte_ue_ul_set_cfo(srslte_ue_ul_t *q, float cur_cfo) {
   q->current_cfo = cur_cfo; 

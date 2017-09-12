@@ -545,11 +545,12 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
 
-        Info("PDSCH: l_crb=%2d, harq=%d, nof_tb=%d, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d%s\n",
+        Info("PDSCH: l_crb=%2d, harq=%d, nof_tb=%d, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, cfo=%.1f Hzn_iter=%d%s\n",
              grant->nof_prb, harq_pid,
              grant->nof_tb, grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx, grant->mcs[1].idx,
              rv[0], rv[1], acks[0] ? "OK" : "KO", acks[1] ? "OK" : "KO",
              10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
+             cfo*15000,
              srslte_pdsch_last_noi(&ue_dl.pdsch),
              timestr);
 
