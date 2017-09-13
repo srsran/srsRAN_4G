@@ -169,9 +169,7 @@ void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
     srslte_ue_sync_cfo_i_detec_en(q, true);
   }
 
-  float cfo_tol = worker_com->args->cfo_correct_tol_hz;
-  srslte_cfo_set_tol(&q->strack.cfocorr, cfo_tol / (15000 * q->fft_size));
-  srslte_cfo_set_tol(&q->sfind.cfocorr, cfo_tol / (15000 * q->fft_size));
+  srslte_ue_sync_set_cfo_tol(q, worker_com->args->cfo_correct_tol_hz);
 
   int time_correct_period = worker_com->args->time_correct_period;
   if (time_correct_period > 0) {
@@ -499,8 +497,8 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
 bool phch_recv::set_frequency()
 {
-  float dl_freq = 1e6*srslte_band_fd(current_earfcn);
-  float ul_freq = 1e6*srslte_band_fu(srslte_band_ul_earfcn(current_earfcn));
+  double dl_freq = 1e6*srslte_band_fd(current_earfcn);
+  double ul_freq = 1e6*srslte_band_fu(srslte_band_ul_earfcn(current_earfcn));
   if (dl_freq > 0 && ul_freq > 0) {
     log_h->info("SYNC:  Set DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
                 current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
@@ -510,7 +508,7 @@ bool phch_recv::set_frequency()
 
     radio_h->set_rx_freq(dl_freq);
     radio_h->set_tx_freq(ul_freq);
-    ul_dl_factor = ul_freq / dl_freq;
+    ul_dl_factor = radio_h->get_tx_freq()/radio_h->get_rx_freq();
 
     srslte_ue_sync_reset(&ue_sync);
 

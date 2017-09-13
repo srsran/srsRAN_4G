@@ -87,6 +87,7 @@ typedef struct SRSLTE_API {
   uint32_t cp_len;
   srslte_cfo_t cfocorr;
   srslte_cfo_t cfocorr2;
+  float current_cfo_tol;
   sss_alg_t sss_alg; 
   bool detect_cp;
   bool sss_en;
@@ -146,6 +147,9 @@ SRSLTE_API srslte_cp_t srslte_sync_detect_cp(srslte_sync_t *q,
 /* Sets the threshold for peak comparison */
 SRSLTE_API void srslte_sync_set_threshold(srslte_sync_t *q, 
                                           float threshold);
+
+SRSLTE_API void srslte_sync_set_cfo_tol(srslte_sync_t *q,
+                                        float tol);
 
 /* Gets the subframe idx (0 or 5) */
 SRSLTE_API uint32_t srslte_sync_get_sf_idx(srslte_sync_t *q);

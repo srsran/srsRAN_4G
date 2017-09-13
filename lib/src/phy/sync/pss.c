@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <complex.h>
 #include <math.h>
+#include <srslte/phy/sync/pss.h>
 
 #include "srslte/phy/sync/pss.h"
 #include "srslte/phy/dft/dft.h"
@@ -95,9 +96,9 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
  */
 int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q,
                                            uint32_t max_frame_size, uint32_t max_fft_size,
-                                           int offset, int decimate) {
+                                           int offset, int decimate)
+{
 
-    
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL) {
   
@@ -121,7 +122,7 @@ int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q,
     q->frame_size = frame_size;
 
     buffer_size = fft_size + frame_size + 1;
-    
+
     if(q->decimate > 1) {
         int filter_order = 3;
         srslte_filt_decim_cc_init(&q->filter,q->decimate,filter_order);
@@ -183,16 +184,15 @@ int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q,
     #ifdef CONVOLUTION_FFT
 
 
-    for(N_id_2 = 0; N_id_2<3; N_id_2++)
+    for(N_id_2=0; N_id_2<3; N_id_2++)
     q->pss_signal_freq_full[N_id_2]   = srslte_vec_malloc(buffer_size * sizeof(cf_t));
 
     if (srslte_conv_fft_cc_init(&q->conv_fft, frame_size, fft_size)) {
       fprintf(stderr, "Error initiating convolution FFT\n");
       goto clean_and_exit;
     }
-    for(int i =0; i< 3; i++)
-    {
-        srslte_dft_run_c(&q->conv_fft.filter_plan, q->pss_signal_time[i], q->pss_signal_freq_full[i]);
+    for(int i=0; i<3; i++) {
+      srslte_dft_run_c(&q->conv_fft.filter_plan, q->pss_signal_time[i], q->pss_signal_freq_full[i]);
     }
     
     #endif

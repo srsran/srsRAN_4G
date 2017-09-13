@@ -585,6 +585,10 @@ int main(int argc, char **argv) {
       /* If a new line is detected set verbose level to Debug */
       if (fgets(input, sizeof(input), stdin)) {
         srslte_verbose = SRSLTE_VERBOSE_DEBUG;
+        ue_dl.pkt_errors = 0;
+        ue_dl.pkts_total = 0;
+        ue_dl.nof_detected = 0;
+        nof_trials = 0;
       }
     }
 
@@ -779,10 +783,12 @@ int main(int argc, char **argv) {
         if (sfn == 1024) {
           sfn = 0; 
           PRINT_LINE_ADVANCE_CURSOR();
+          /*
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0; 
           ue_dl.nof_detected = 0;           
-          nof_trials = 0; 
+          nof_trials = 0;
+          */
         } 
       }
       

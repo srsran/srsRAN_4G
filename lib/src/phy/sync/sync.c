@@ -38,8 +38,10 @@
 #include "srslte/phy/sync/cfo.h"
 
 #define MEANPEAK_EMA_ALPHA      0.1
-#define CFO_EMA_ALPHA           0.2
+#define CFO_EMA_ALPHA           0.1
 #define CP_EMA_ALPHA            0.1
+
+#define DEFAULT_CFO_TOL         50.0 // Hz
 
 static bool fft_size_isvalid(uint32_t fft_size) {
   if (fft_size >= SRSLTE_SYNC_FFT_SZ_MIN && fft_size <= SRSLTE_SYNC_FFT_SZ_MAX && (fft_size%64) == 0) {
@@ -94,9 +96,8 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
       goto clean_exit;
     }
     
-    // Set a CFO tolerance of approx 50 Hz
-    srslte_cfo_set_tol(&q->cfocorr, 50.0/(15000.0*q->fft_size));
-    srslte_cfo_set_tol(&q->cfocorr2, 50.0/(15000.0*q->fft_size));
+    // Set default CFO tolerance
+    srslte_sync_set_cfo_tol(q, DEFAULT_CFO_TOL);
 
     for (int i=0;i<2;i++) {
       q->cfo_i_corr[i] = srslte_vec_malloc(sizeof(cf_t)*q->frame_size);
@@ -114,10 +115,11 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     
     srslte_sync_set_cp(q, SRSLTE_CP_NORM);
     q->decimate = decimate;
-    if(!decimate)
+    if(!decimate) {
       decimate = 1;
+    }
 
-    if (srslte_pss_synch_init_fft_offset_decim(&q->pss, max_offset, fft_size,0,decimate)) {
+    if (srslte_pss_synch_init_fft_offset_decim(&q->pss, max_offset, fft_size, 0, decimate)) {
       fprintf(stderr, "Error initializing PSS object\n");
       goto clean_exit;
     }
@@ -220,9 +222,7 @@ int srslte_sync_resize(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offse
     }
 
     // Update CFO tolerance
-    srslte_cfo_set_tol(&q->cfocorr, 50.0/(15000.0*q->fft_size));
-    srslte_cfo_set_tol(&q->cfocorr2, 50.0/(15000.0*q->fft_size));
-
+    srslte_sync_set_cfo_tol(q, q->current_cfo_tol);
 
     DEBUG("SYNC init with frame_size=%d, max_offset=%d and fft_size=%d\n", frame_size, max_offset, fft_size);
 
@@ -234,6 +234,11 @@ int srslte_sync_resize(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offse
   return ret;
 }
 
+void srslte_sync_set_cfo_tol(srslte_sync_t *q, float tol) {
+  q->current_cfo_tol = tol;
+  srslte_cfo_set_tol(&q->cfocorr, tol/(15000.0*q->fft_size));
+  srslte_cfo_set_tol(&q->cfocorr2, tol/(15000.0*q->fft_size));
+}
 
 void srslte_sync_set_threshold(srslte_sync_t *q, float threshold) {
   q->threshold = threshold;
@@ -591,7 +596,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
         } else {
           q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
         }
-        
+
         ret = SRSLTE_SYNC_FOUND;
       } else {
         ret = SRSLTE_SYNC_FOUND_NOSPACE; 
@@ -612,8 +617,6 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
 }
 
 void srslte_sync_reset(srslte_sync_t *q) {
-  q->mean_cfo2_isunset = true;
-  q->mean_cfo_isunset  = true;
   q->M_ext_avg  = 0;
   q->M_norm_avg = 0; 
   srslte_pss_synch_reset(&q->pss);

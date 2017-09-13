@@ -210,7 +210,7 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
       if(srslte_sync_init(&q->strack, q->frame_len, TRACK_FRAME_SIZE, q->fft_size)) {
         fprintf(stderr, "Error initiating sync track\n");
         goto clean_exit;
-      }      
+      }
     } else {
       if(srslte_sync_init(&q->strack, q->frame_len, SRSLTE_CP_LEN_NORM(1,q->fft_size), q->fft_size)) {
         fprintf(stderr, "Error initiating sync track\n");
@@ -220,12 +220,12 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
 
     ret = SRSLTE_SUCCESS;
   }
-  
+
 clean_exit:
   if (ret == SRSLTE_ERROR) {
     srslte_ue_sync_free(q);
   }
-  return ret; 
+  return ret;
 }
 
 uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q) {
@@ -238,7 +238,7 @@ void srslte_ue_sync_free(srslte_ue_sync_t *q) {
   }
   if (!q->file_mode) {
     srslte_sync_free(&q->sfind);
-    srslte_sync_free(&q->strack);    
+    srslte_sync_free(&q->strack);
   } else {
     srslte_filesource_free(&q->file_source);
   }
@@ -379,6 +379,8 @@ void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, float cfo) {
   srslte_sync_set_cfo(&q->sfind, cfo/15000);
   srslte_sync_set_cfo(&q->strack, cfo/15000);
 }
+
+void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t *q, float cfo_tol) {}
 
 float srslte_ue_sync_get_sfo(srslte_ue_sync_t *q) {
   return q->mean_sfo/5e-3;
