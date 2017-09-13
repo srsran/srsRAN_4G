@@ -101,7 +101,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     nof_antennas = dims[2];
   }
   
-  if (srslte_pdsch_init_multi(&pdsch, cell, nof_antennas)) {
+  if (srslte_pdsch_init_rx_multi(&pdsch, cell, nof_antennas)) {
     mexErrMsgTxt("Error initiating PDSCH\n");
     return;
   }
@@ -202,11 +202,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       ce[i][j] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     }
   }
-  uint8_t *data_bytes = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
-  if (!data_bytes) {
+  uint8_t *data_bytes[SRSLTE_MAX_CODEWORDS];
+  data_bytes[0] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
+  if (!data_bytes[0]) {
     return;
   }
-  srslte_sch_set_max_noi(&pdsch.dl_sch, max_iterations);
+
+  data_bytes[1] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs2.tbs/8);
+  if (!data_bytes[1]) {
+    return;
+  }
+
+  srslte_pdsch_set_max_noi(&pdsch, max_iterations);
 
   bool input_fft_allocated = false; 
   int r=-1;
@@ -272,7 +279,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   uint8_t *data = malloc(grant.mcs.tbs);
-  srslte_bit_unpack_vector(data_bytes, data, grant.mcs.tbs);
+  srslte_bit_unpack_vector(data_bytes[0], data, grant.mcs.tbs);
   
   if (nlhs >= 1) { 
     plhs[0] = mxCreateLogicalScalar(r == 0);
@@ -284,10 +291,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(pdsch.symbols[0], &plhs[2], cfg.nbits.nof_re, 1);  
   }
   if (nlhs >= 4) {
-    mexutils_write_cf(pdsch.d, &plhs[3], cfg.nbits.nof_re, 1);  
+    mexutils_write_cf(pdsch.d[0], &plhs[3], cfg.nbits.nof_re, 1);
   }
   if (nlhs >= 5) {
-    mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
+    mexutils_write_s(pdsch.e[0], &plhs[4], cfg.nbits.nof_bits, 1);
   }
   if (nlhs >= 6) {
     uint32_t len = nof_antennas*cell.nof_ports*SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
@@ -323,7 +330,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
     }
   }
-  free(data_bytes);
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (data_bytes[i]) {
+      free(data_bytes[i]);
+    }
+  }
   free(data);
   
   return;

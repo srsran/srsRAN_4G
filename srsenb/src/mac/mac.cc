@@ -113,16 +113,6 @@ void mac::reset()
   /* Setup scheduler */
   scheduler.reset();
   
-  /* Setup SI-RNTI in PHY */
-  phy_h->add_rnti(SRSLTE_SIRNTI);
-
-  /* Setup P-RNTI in PHY */
-  phy_h->add_rnti(SRSLTE_PRNTI);
-
-  /* Setup RA-RNTI in PHY */
-  for (int i=0;i<10;i++) {
-    phy_h->add_rnti(1+i);
-  }    
 }
 
 uint32_t mac::get_unique_id()
@@ -329,6 +319,7 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 
   if (ue_db.count(rnti)) {         
     scheduler.dl_cqi_info(tti, rnti, cqi_value);
+    ue_db[rnti]->metrics_dl_cqi(cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     return -1;

@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <srslte/phy/phch/uci.h>
 
 #include "srslte/phy/phch/uci.h"
 #include "srslte/phy/fec/cbsegm.h"
@@ -109,11 +110,25 @@ void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t *q) {
     
   uint32_t nwords      = 16;
   for (uint32_t w=0;w<nwords;w++) {
-    uint8_t *ptr = word; 
+    q->cqi_table[w]   = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B*sizeof(int8_t));
+    q->cqi_table_s[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B*sizeof(int16_t));
+    uint8_t *ptr = word;
     srslte_bit_unpack(w, &ptr, 4);
     srslte_uci_encode_cqi_pucch(word, 4, q->cqi_table[w]);    
     for (int j=0;j<SRSLTE_UCI_CQI_CODED_PUCCH_B;j++) {
       q->cqi_table_s[w][j] = 2*q->cqi_table[w][j]-1;
+    }
+  }
+}
+
+void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q) {
+  uint32_t nwords      = 16;
+  for (uint32_t w=0;w<nwords;w++) {
+    if (q->cqi_table[w]) {
+      free(q->cqi_table[w]);
+    }
+    if (q->cqi_table_s[w]) {
+      free(q->cqi_table_s[w]);
     }
   }
 }

@@ -59,4 +59,9 @@ SRSLTE_API int srslte_filesink_write(srslte_filesink_t *q,
                                      void *buffer, 
                                      int nsamples);
 
+SRSLTE_API int srslte_filesink_write_multi(srslte_filesink_t *q,
+                                           void **buffer,
+                                           int nsamples,
+                                           int nchannels);
+
 #endif // FILESINK_

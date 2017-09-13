@@ -73,9 +73,9 @@ SRSLTE_API int srslte_rf_open(srslte_rf_t *h,
 
 SRSLTE_API int srslte_rf_open_multi(srslte_rf_t *h, 
                                     char *args, 
-                                    uint32_t nof_rx_antennas); 
+                                    uint32_t nof_rx_antennas);
 
-SRSLTE_API int srslte_rf_open_devname(srslte_rf_t *h, 
+SRSLTE_API int srslte_rf_open_devname(srslte_rf_t *h,
                                       char *devname, 
                                       char *args);
 
@@ -199,6 +199,22 @@ SRSLTE_API int srslte_rf_send_timed2(srslte_rf_t *h,
                               double frac_secs,                      
                               bool is_start_of_burst,
                               bool is_end_of_burst);
+
+SRSLTE_API int srslte_rf_send_timed_multi(srslte_rf_t *rf,
+                                          void *data[4],
+                                          int nsamples,
+                                          time_t secs,
+                                          double frac_secs,
+                                          bool blocking,
+                                          bool is_start_of_burst,
+                                          bool is_end_of_burst);
+
+SRSLTE_API int srslte_rf_send_multi(srslte_rf_t *rf,
+                                    void *data[4],
+                                    int nsamples,
+                                    bool blocking,
+                                    bool is_start_of_burst,
+                                    bool is_end_of_burst);
 
 #endif
 

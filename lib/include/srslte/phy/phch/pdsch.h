@@ -48,7 +48,7 @@
 #include "srslte/phy/phch/pdsch_cfg.h"
 
 typedef struct {
-  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
+  srslte_sequence_t seq[SRSLTE_MAX_CODEWORDS][SRSLTE_NSUBFRAMES_X_FRAME];
   bool sequence_generated;
 } srslte_pdsch_user_t;
 
@@ -62,11 +62,11 @@ typedef struct SRSLTE_API {
   
   /* buffers */
   // void buffers are shared for tx and rx
-  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  cf_t *symbols[SRSLTE_MAX_PORTS];
-  cf_t *x[SRSLTE_MAX_PORTS];
-  cf_t *d;
-  void *e;
+  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; /* Channel estimation (Rx only) */
+  cf_t *symbols[SRSLTE_MAX_PORTS];              /* PDSCH Encoded/Decoded Symbols */
+  cf_t *x[SRSLTE_MAX_LAYERS];                   /* Layer mapped */
+  cf_t *d[SRSLTE_MAX_CODEWORDS];                /* Modulated/Demodulated codewords */
+  void *e[SRSLTE_MAX_CODEWORDS];
 
   /* tx & rx objects */
   srslte_modem_table_t mod[4];
@@ -75,15 +75,15 @@ typedef struct SRSLTE_API {
   srslte_pdsch_user_t **users;
   
   srslte_sch_t dl_sch;
-  
+
 } srslte_pdsch_t;
 
-SRSLTE_API int srslte_pdsch_init(srslte_pdsch_t *q, 
-                                 srslte_cell_t cell);
+SRSLTE_API int srslte_pdsch_init_tx(srslte_pdsch_t *q,
+                                    srslte_cell_t cell);
 
-SRSLTE_API int srslte_pdsch_init_multi(srslte_pdsch_t *q, 
-                                       srslte_cell_t cell, 
-                                       uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_pdsch_init_rx(srslte_pdsch_t *q,
+                                    srslte_cell_t cell,
+                                    uint32_t nof_antennas);
 
 SRSLTE_API void srslte_pdsch_free(srslte_pdsch_t *q);
 
@@ -98,34 +98,50 @@ SRSLTE_API int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg,
                                 srslte_ra_dl_grant_t *grant, 
                                 uint32_t cfi, 
                                 uint32_t sf_idx, 
-                                uint32_t rvidx); 
+                                int rvidx);
+
+SRSLTE_API int srslte_pdsch_cfg_mimo(srslte_pdsch_cfg_t *cfg,
+                                     srslte_cell_t cell,
+                                     srslte_ra_dl_grant_t *grant,
+                                     uint32_t cfi,
+                                     uint32_t sf_idx,
+                                     int rvidx[SRSLTE_MAX_CODEWORDS],
+                                     srslte_mimo_type_t mimo_type,
+                                     uint32_t pmi);
 
 SRSLTE_API int srslte_pdsch_encode(srslte_pdsch_t *q,
-                                   srslte_pdsch_cfg_t *cfg,
-                                   srslte_softbuffer_tx_t *softbuffer,
-                                   uint8_t *data, 
-                                   uint16_t rnti,
-                                   cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
+                                         srslte_pdsch_cfg_t *cfg,
+                                         srslte_softbuffer_tx_t *softbuffers[SRSLTE_MAX_CODEWORDS],
+                                         uint8_t *data[SRSLTE_MAX_CODEWORDS],
+                                         uint16_t rnti,
+                                         cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API int srslte_pdsch_decode(srslte_pdsch_t *q, 
-                                   srslte_pdsch_cfg_t *cfg, 
-                                   srslte_softbuffer_rx_t *softbuffer,
-                                   cf_t *sf_symbols, 
-                                   cf_t *ce[SRSLTE_MAX_PORTS],
-                                   float noise_estimate, 
+                                   srslte_pdsch_cfg_t *cfg,
+                                   srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS],
+                                   cf_t *sf_symbols[SRSLTE_MAX_PORTS],
+                                   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                   float noise_estimate,
                                    uint16_t rnti,
-                                   uint8_t *data);
+                                   uint8_t *data[SRSLTE_MAX_CODEWORDS],
+                                   bool acks[SRSLTE_MAX_CODEWORDS]);
 
-SRSLTE_API int srslte_pdsch_decode_multi(srslte_pdsch_t *q, 
-                                         srslte_pdsch_cfg_t *cfg, 
-                                         srslte_softbuffer_rx_t *softbuffer,
-                                         cf_t *sf_symbols[SRSLTE_MAX_PORTS], 
-                                         cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                         float noise_estimate, 
-                                         uint16_t rnti,
-                                         uint8_t *data);
+SRSLTE_API int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
+                                       srslte_pdsch_cfg_t *cfg,
+                                       cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                       float noise_estimate,
+                                       uint32_t nof_ce,
+                                       uint32_t pmi[SRSLTE_MAX_LAYERS],
+                                       float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS]);
 
-SRSLTE_API float srslte_pdsch_average_noi(srslte_pdsch_t *q); 
+SRSLTE_API int srslte_pdsch_cn_compute(srslte_pdsch_t *q,
+                                       cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                       uint32_t nof_ce,
+                                       float *cn);
+
+SRSLTE_API void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, uint32_t max_iter);
+
+SRSLTE_API float srslte_pdsch_average_noi(srslte_pdsch_t *q);
 
 SRSLTE_API uint32_t srslte_pdsch_last_noi(srslte_pdsch_t *q); 
 

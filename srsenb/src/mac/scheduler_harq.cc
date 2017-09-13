@@ -100,7 +100,7 @@ void harq_proc::set_ack(bool ack_)
   ack = ack_;   
   ack_received = true;
   log_h->debug("ACK=%d received pid=%d, n_rtx=%d, max_retx=%d\n", ack_, id, n_rtx, max_retx);
-  if (n_rtx >= max_retx) {
+  if (n_rtx + 1 >= max_retx) {
     Warning("SCHED: discarting TB pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", id, tti, max_retx);
     active = false;      
   }

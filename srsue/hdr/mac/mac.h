@@ -65,7 +65,7 @@ public:
   void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action);
   void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action);
   void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action);
-  void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid);
+  void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid);
   void bch_decoded_ok(uint8_t *payload, uint32_t len);
   void pch_decoded_ok(uint32_t len);    
   void tti_clock(uint32_t tti);

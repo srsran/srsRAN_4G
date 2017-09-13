@@ -269,23 +269,23 @@ void ra_proc::step_pdcch_setup() {
 
 void ra_proc::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action) 
 {
-  if (grant.n_bytes < MAX_RAR_PDU_LEN) {
+  if (grant.n_bytes[0] < MAX_RAR_PDU_LEN) {
     rDebug("DL grant found RA-RNTI=%d\n", ra_rnti);        
     action->decode_enabled = true; 
     action->default_ack = false; 
     action->generate_ack = false; 
-    action->payload_ptr = rar_pdu_buffer; 
+    action->payload_ptr[0] = rar_pdu_buffer;
     action->rnti = grant.rnti; 
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
-    action->rv = grant.rv;
-    action->softbuffer = &softbuffer_rar;
-    rar_grant_nbytes = grant.n_bytes;
+    action->rv[0] = grant.rv[0];
+    action->softbuffers[0] = &softbuffer_rar;
+    rar_grant_nbytes = grant.n_bytes[0];
     rar_grant_tti    = grant.tti; 
-    if (action->rv == 0) {
+    if (action->rv[0] == 0) {
       srslte_softbuffer_rx_reset(&softbuffer_rar);
     }
   } else {
-    rError("Received RAR grant exceeds buffer length (%d>%d)\n", grant.n_bytes, MAX_RAR_PDU_LEN);
+    rError("Received RAR grant exceeds buffer length (%d>%d)\n", grant.n_bytes[0], MAX_RAR_PDU_LEN);
     action->decode_enabled = false; 
     state = RESPONSE_ERROR;
   }

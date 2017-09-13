@@ -12,6 +12,7 @@
 # mnc:            Mobile Network Code
 # mme_addr:       IP address of MME for S1 connnection
 # gtp_bind_addr:  Local IP address to bind for GTP connection
+# n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
 #
 #####################################################################
 [enb]
@@ -58,7 +59,7 @@ drb_config = drb.conf
 [rf]
 dl_earfcn = 3400
 tx_gain = 80
-rx_gain = 60
+rx_gain = 50
 
 #device_name = auto
 #device_args = auto

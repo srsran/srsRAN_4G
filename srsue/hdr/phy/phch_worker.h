@@ -76,8 +76,15 @@ private:
   /* ... for DL */
   bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);
   bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
-  bool decode_phich(bool *ack); 
-  bool decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload, srslte_softbuffer_rx_t* softbuffer, int rv, uint16_t rnti, uint32_t pid);
+  bool decode_phich(bool *ack);
+
+  int decode_pdsch(srslte_ra_dl_grant_t *grant,
+                   uint8_t *payload[SRSLTE_MAX_CODEWORDS],
+                   srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS],
+                   int rv[SRSLTE_MAX_CODEWORDS],
+                   uint16_t rnti,
+                   uint32_t pid,
+                   bool acks[SRSLTE_MAX_CODEWORDS]);
 
   /* ... for UL */
   void encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, uint32_t current_tx_nb, srslte_softbuffer_tx_t *softbuffer, 
@@ -88,7 +95,7 @@ private:
   void set_uci_sr();
   void set_uci_periodic_cqi();
   void set_uci_aperiodic_cqi();
-  void set_uci_ack(bool ack);
+  void set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb);
   bool srs_is_ready_to_send();
   float set_power(float tx_power);
   void setup_tx_gain();

@@ -110,7 +110,18 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
-  
+
+  /* Setup SI-RNTI in PHY */
+  add_rnti(SRSLTE_SIRNTI);
+
+  /* Setup P-RNTI in PHY */
+  add_rnti(SRSLTE_PRNTI);
+
+  /* Setup RA-RNTI in PHY */
+  for (int i=0;i<10;i++) {
+    add_rnti(1+i);
+  }
+
   srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
@@ -637,7 +648,7 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
       if (LOG_THIS(rnti)) { 
         uint8_t x = 0;
         uint8_t *ptr = grants[i].data;
-        uint32_t len = phy_grant.mcs.tbs/8;
+        uint32_t len = phy_grant.mcs[0].tbs / (uint32_t) 8;
         if (!ptr) {          
           ptr = &x;
           len = 1; 
@@ -645,17 +656,18 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
         log_h->info_hex(ptr, len,
                              "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n", 
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
-                             phy_grant.mcs.tbs/8, phy_grant.mcs.idx, grants[i].grant.rv_idx, tti_tx);
+                             phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, grants[i].softbuffer, rnti, grants[i].grant.rv_idx, sf_idx, 
-                                  grants[i].data)) 
+      srslte_softbuffer_tx_t *sb[SRSLTE_MAX_CODEWORDS] = {grants[i].softbuffer, NULL};
+      uint8_t *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, grants[i].grant.rv_idx, sf_idx, d))
       {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 
       }
 
       // Save metrics stats 
-      ue_db[rnti].metrics_dl(phy_grant.mcs.idx);
+      ue_db[rnti].metrics_dl(phy_grant.mcs[0].idx);
     }
   }
   return SRSLTE_SUCCESS; 

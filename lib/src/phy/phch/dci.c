@@ -1051,6 +1051,16 @@ int dci_format2AB_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   } else {
     *y++ = data->tb_cw_swap;
   }
+
+  /* Force MCS_idx and RV_idx in function of block enable according to 7.1.7 of 36.213 */
+  if (!data->tb_en[0]) {
+    data->mcs_idx = 0;
+    data->rv_idx= 1;
+  }
+  if (!data->tb_en[1]) {
+    data->mcs_idx_1 = 0;
+    data->rv_idx_1 = 1;
+  }
   
   /* pack TB1 */
   srslte_bit_unpack(data->mcs_idx, &y, 5);

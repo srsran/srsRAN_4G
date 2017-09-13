@@ -78,9 +78,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     x[i] = srslte_vec_malloc(sizeof(cf_t)*nof_symbols/nof_layers);
   }
   
-  output = srslte_vec_malloc(sizeof(cf_t)*nof_symbols*nof_tx_ports/nof_layers);
+  output = srslte_vec_malloc(sizeof(cf_t)*nof_symbols*nof_tx_ports);
   for (int i=0;i<nof_tx_ports;i++) {
-    y[i] = &output[i*nof_symbols/nof_layers];
+    y[i] = &output[i*nof_symbols];
   }
   
   char *txscheme = "Port0";
@@ -102,13 +102,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   int symbols_layers[SRSLTE_MAX_LAYERS];
   for (int i=0;i<nof_layers;i++) {
-    symbols_layers[i] = nof_symbols/nof_layers; 
+    symbols_layers[i] = nof_symbols;
   }
   srslte_layermap_type(d, x, nof_codewords, nof_layers, symbols_layers, type);
   srslte_precoding_type(x, y, nof_layers, nof_tx_ports, nof_symbols/nof_layers, type);
   
   if (nlhs >= 1) { 
-    mexutils_write_cf(output, &plhs[0], nof_symbols/nof_layers, nof_tx_ports);  
+    switch (type) {
+      case SRSLTE_MIMO_TYPE_CDD:
+        mexutils_write_cf(output, &plhs[0], nof_symbols/nof_layers, nof_tx_ports);
+        break;
+      case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
+      case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+      case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
+      default:
+        mexutils_write_cf(output, &plhs[0], (uint32_t) nof_symbols, nof_tx_ports);
+        break;
+    }
+  }
+
+  if (nlhs >= 2) {
+    mexutils_write_cf(x[0], &plhs[1], nof_symbols / nof_layers, 1);
+  }
+  if (nlhs >= 3) {
+    mexutils_write_cf(x[1], &plhs[2], nof_symbols / nof_layers, 1);
   }
   
   if (input) {
