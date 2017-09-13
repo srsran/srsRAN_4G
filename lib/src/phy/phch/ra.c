@@ -521,11 +521,10 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
       grant->mcs[1].tbs = 0;
     }
   }
-  grant->nof_tb = 0;
   for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    grant->tb_en[tb] = dci->tb_en[tb];
     if (dci->tb_en[tb]) {
       grant->Qm[tb] = srslte_mod_bits_x_symbol(grant->mcs[tb].mod);
-      grant->nof_tb++;
     }
   }
   grant->pinfo = dci->pinfo;
@@ -541,12 +540,14 @@ void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srsl
                                  srslte_ra_nbits_t nbits [SRSLTE_MAX_CODEWORDS])
 {
   // Compute number of RE 
-  for (int i = 0; i < grant->nof_tb; i++) {
-    /* Compute number of RE for first transport block */
-    nbits[i].nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb < 10 ? (cfi + 1) : cfi);
-    nbits[i].lstart = cell.nof_prb < 10 ? (cfi + 1) : cfi;
-    nbits[i].nof_symb = 2 * SRSLTE_CP_NSYMB(cell.cp) - nbits[0].lstart;
-    nbits[i].nof_bits = nbits[i].nof_re * grant->Qm[i];
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (grant->tb_en[i]) {
+      /* Compute number of RE for first transport block */
+      nbits[i].nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb < 10 ? (cfi + 1) : cfi);
+      nbits[i].lstart = cell.nof_prb < 10 ? (cfi + 1) : cfi;
+      nbits[i].nof_symb = 2 * SRSLTE_CP_NSYMB(cell.cp) - nbits[0].lstart;
+      nbits[i].nof_bits = nbits[i].nof_re * grant->Qm[i];
+    }
   }
 }
 
@@ -820,11 +821,13 @@ void srslte_ra_pdsch_fprint(FILE *f, srslte_ra_dl_dci_t *dci, uint32_t nof_prb) 
 void srslte_ra_dl_grant_fprint(FILE *f, srslte_ra_dl_grant_t *grant) {
   srslte_ra_prb_fprint(f, grant);
   fprintf(f, " - Number of PRBs:\t\t\t%d\n", grant->nof_prb);
-  fprintf(f, " - Number of TBs:\t\t\t%d\n", grant->nof_tb);
-  for (int i = 0; i < grant->nof_tb; i++) {
-    fprintf(f, "  - Transport block:\t\t\t%d\n", i);
-    fprintf(f, "   -> Modulation type:\t\t\t%s\n", srslte_mod_string(grant->mcs[i].mod));
-    fprintf(f, "   -> Transport block size:\t\t%d\n", grant->mcs[i].tbs);
+  fprintf(f, " - Number of TBs:\t\t\t%d\n", SRSLTE_RA_DL_GRANT_NOF_TB(grant));
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (grant->tb_en[i]) {
+      fprintf(f, "  - Transport block:\t\t\t%d\n", i);
+      fprintf(f, "   -> Modulation type:\t\t\t%s\n", srslte_mod_string(grant->mcs[i].mod));
+      fprintf(f, "   -> Transport block size:\t\t%d\n", grant->mcs[i].tbs);
+    }
   }
 }
 

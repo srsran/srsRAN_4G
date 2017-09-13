@@ -172,14 +172,15 @@ int main(int argc, char **argv) {
   bzero(&uci_data_tx, sizeof(srslte_uci_data_t));
   uci_data_tx.uci_cqi_len = 4; 
   uci_data_tx.uci_ri_len = 0; 
-  uci_data_tx.uci_ack_len = 0; 
+  uci_data_tx.uci_ack_len = 2;
   memcpy(&uci_data_rx, &uci_data_tx, sizeof(srslte_uci_data_t));
     
   for (uint32_t i=0;i<20;i++) {
     uci_data_tx.uci_cqi [i] = 1;
   }
-  uci_data_tx.uci_ri = 1; 
-  uci_data_tx.uci_ack = 1; 
+  uci_data_tx.uci_ri = 1;
+  uci_data_tx.uci_ack = 1;
+  uci_data_tx.uci_ack_2 = 1;
 
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
@@ -250,11 +251,19 @@ int main(int argc, char **argv) {
   if (uci_data_tx.uci_ack_len) {
     if (uci_data_tx.uci_ack != uci_data_rx.uci_ack) {
       printf("UCI ACK bit error: %d != %d\n", uci_data_tx.uci_ack, uci_data_rx.uci_ack);
+      ret = SRSLTE_ERROR;
+    }
+  }
+  if (uci_data_tx.uci_ack_len > 1) {
+    if (uci_data_tx.uci_ack_2 != uci_data_rx.uci_ack_2) {
+      printf("UCI ACK 2 bit error: %d != %d\n", uci_data_tx.uci_ack_2, uci_data_rx.uci_ack_2);
+      ret = SRSLTE_ERROR;
     }
   }
   if (uci_data_tx.uci_ri_len) {
     if (uci_data_tx.uci_ri != uci_data_rx.uci_ri) {
       printf("UCI RI bit error: %d != %d\n", uci_data_tx.uci_ri, uci_data_rx.uci_ri);
+      ret = SRSLTE_ERROR;
     }
   }
   if (uci_data_tx.uci_cqi_len) {

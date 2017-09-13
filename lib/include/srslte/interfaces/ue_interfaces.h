@@ -281,6 +281,8 @@ public:
     bool        last_ndi[SRSLTE_MAX_CODEWORDS];
     uint32_t    n_bytes[SRSLTE_MAX_CODEWORDS];
     int         rv[SRSLTE_MAX_CODEWORDS];
+    bool        tb_en[SRSLTE_MAX_CODEWORDS];
+    bool        tb_cw_swap;
     uint16_t    rnti; 
     bool        is_from_rar;
     bool        is_sps_release;

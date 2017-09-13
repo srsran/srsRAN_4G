@@ -166,8 +166,17 @@ private:
     }
 
     void new_grant_dl(Tgrant grant, Taction *action) {
-      for (uint32_t tb = 0; tb < grant.phy_grant.dl.nof_tb; tb++) {
-        subproc[tb].new_grant_dl(grant, action);
+      /* Fill action structure */
+      bzero(action, sizeof(Taction));
+      action->default_ack = false;
+      action->generate_ack = true;
+      action->decode_enabled = false;
+
+      /* For each subprocess... */
+      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        if (grant.tb_en[tb]) {
+          subproc[tb].new_grant_dl(grant, action);
+        }
       }
     }
 
@@ -235,12 +244,6 @@ private:
         grant.last_tti = cur_grant.tti;
         memcpy(&cur_grant, &grant, sizeof(Tgrant));
 
-        // Fill action structure
-        bzero(action, sizeof(Taction));
-        action->default_ack = ack;
-        action->generate_ack = true;
-        action->decode_enabled = false;
-
         // If data has not yet been successfully decoded
         if (!ack) {
 
@@ -262,6 +265,7 @@ private:
 
         } else {
           Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
+          action->phy_grant.dl.tb_en[tid] = false;
         }
 
         if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(TIME_ALIGNMENT)->is_expired()) {
@@ -295,20 +299,18 @@ private:
               harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.rnti, ack,
                                                 cur_grant.tti);
             }
-            if (ack) {
-              if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
-                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
-                      cur_grant.n_bytes[tid]);
-                harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid]);
-              } else {
-                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes[tid]);
-                harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
-                                                  cur_grant.tti);
+            if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
+              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
+                    cur_grant.n_bytes[tid]);
+              harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid]);
+            } else {
+              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes[tid]);
+              harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
+                                                cur_grant.tti);
 
-                // Compute average number of retransmissions per packet
-                harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx,
-                                                           harq_entity->nof_pkts++);
-              }
+              // Compute average number of retransmissions per packet
+              harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx,
+                                                         harq_entity->nof_pkts++);
             }
           }
         } else {
