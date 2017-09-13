@@ -416,37 +416,24 @@ void srslte_pucch_set_threshold(srslte_pucch_t *q, float format1_threshold) {
 }
 
 /** Initializes the PDCCH transmitter and receiver */
-int srslte_pucch_init(srslte_pucch_t *q, srslte_cell_t cell) {
+int srslte_pucch_init(srslte_pucch_t *q) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (q != NULL && srslte_cell_isvalid(&cell)) {
+  if (q != NULL) {
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_pucch_t));
-    
-    q->cell = cell; 
-    
-    srslte_pucch_cfg_default(&q->pucch_cfg);
     
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       return SRSLTE_ERROR;
     }
-    
-    // Precompute group hopping values u. 
-    if (srslte_group_hopping_f_gh(q->f_gh, q->cell.id)) {
-      return SRSLTE_ERROR;
-    }
-    
-    if (srslte_pucch_n_cs_cell(q->cell, q->n_cs_cell)) {
-      return SRSLTE_ERROR;
-    }
-    
+
     q->users = calloc(sizeof(srslte_pucch_user_t*), 1+SRSLTE_SIRNTI);
     if (!q->users) {
       perror("malloc");
-      return SRSLTE_ERROR;
+      goto clean_exit;
     }
     
     srslte_uci_cqi_pucch_init(&q->cqi);
-    
+
     q->z = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
     q->z_tmp = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
     q->ce = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
@@ -455,12 +442,16 @@ int srslte_pucch_init(srslte_pucch_t *q, srslte_cell_t cell) {
 
     ret = SRSLTE_SUCCESS;
   }
+clean_exit:
+  if (ret == SRSLTE_ERROR) {
+    srslte_pucch_free(q);
+  }
   return ret;
 }
 
 void srslte_pucch_free(srslte_pucch_t *q) {
   if (q->users) {
-    for (int rnti=0;rnti<SRSLTE_SIRNTI;rnti++) {      
+    for (int rnti=0;rnti<=SRSLTE_SIRNTI;rnti++) {
       srslte_pucch_clear_rnti(q, rnti);
     }
     free(q->users);
@@ -480,6 +471,31 @@ void srslte_pucch_free(srslte_pucch_t *q) {
   bzero(q, sizeof(srslte_pucch_t));
 }
 
+int srslte_pucch_set_cell(srslte_pucch_t *q, srslte_cell_t cell) {
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  if (q != NULL && srslte_cell_isvalid(&cell)) {
+
+    srslte_pucch_cfg_default(&q->pucch_cfg);
+
+    if (cell.id != q->cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+
+      // Precompute group hopping values u.
+      if (srslte_group_hopping_f_gh(q->f_gh, q->cell.id)) {
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pucch_n_cs_cell(q->cell, q->n_cs_cell)) {
+        return SRSLTE_ERROR;
+      }
+    }
+
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
+}
+
+
 void srslte_pucch_clear_rnti(srslte_pucch_t *q, uint16_t rnti) {
   if (q->users[rnti]) {
     for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
@@ -498,6 +514,7 @@ int srslte_pucch_set_crnti(srslte_pucch_t *q, uint16_t rnti) {
         // Precompute scrambling sequence for pucch format 2    
         if (srslte_sequence_pucch(&q->users[rnti]->seq_f2[sf_idx], rnti, 2*sf_idx, q->cell.id)) {
           fprintf(stderr, "Error computing PUCCH Format 2 scrambling sequence\n");
+          srslte_pucch_clear_rnti(q, rnti);
           return SRSLTE_ERROR; 
         }        
       }

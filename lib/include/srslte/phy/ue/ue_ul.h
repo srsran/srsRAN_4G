@@ -75,7 +75,8 @@ typedef struct SRSLTE_API {
   
   bool normalize_en; 
   bool cfo_en; 
-  
+
+  float current_cfo_tol;
   float current_cfo; 
   srslte_pucch_format_t last_pucch_format;
   
@@ -106,15 +107,21 @@ typedef struct SRSLTE_API {
 
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srslte_ue_ul_init(srslte_ue_ul_t *q, 
-                                 srslte_cell_t cell);
+SRSLTE_API int srslte_ue_ul_init(srslte_ue_ul_t *q,
+                                 uint32_t max_prb);
 
 SRSLTE_API void srslte_ue_ul_free(srslte_ue_ul_t *q);
 
-SRSLTE_API void srslte_ue_ul_set_cfo(srslte_ue_ul_t *q, 
+SRSLTE_API int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
+                                     srslte_cell_t cell);
+
+SRSLTE_API void srslte_ue_ul_set_cfo_tol(srslte_ue_ul_t *q,
+                                         float tol);
+
+SRSLTE_API void srslte_ue_ul_set_cfo(srslte_ue_ul_t *q,
                                      float cur_cfo); 
 
-SRSLTE_API void srslte_ue_ul_set_cfo_enable(srslte_ue_ul_t *q, 
+SRSLTE_API void srslte_ue_ul_set_cfo_enable(srslte_ue_ul_t *q,
                                             bool enabled); 
 
 SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, 

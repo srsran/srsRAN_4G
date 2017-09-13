@@ -380,9 +380,7 @@ int main(int argc, char *argv[])
   radio.set_tx_freq(prog_args.rf_tx_freq);
   
   // Instruct the PHY to configure PRACH parameters and sync to current cell 
-  my_phy.sync_start();
-  
-  while(!my_phy.status_is_sync()) {
+  while(!my_phy.sync_status()) {
     usleep(20000);
   }
 

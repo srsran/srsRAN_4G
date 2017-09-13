@@ -194,11 +194,9 @@ int main(int argc, char *argv[])
   // Set RX freq and gain
   radio.set_rx_freq(prog_args.rf_freq);
   
-  my_phy.sync_start();
-  
-  bool running = true; 
+  bool running = true;
   while(running) {
-    if (bch_decoded && my_phy.status_is_sync()) {
+    if (bch_decoded && my_phy.sync_status()) {
       uint32_t tti = my_phy.get_current_tti();
       
       // SIB1 is scheduled in subframe #5 of even frames, try to decode next frame SIB1
@@ -208,7 +206,7 @@ int main(int argc, char *argv[])
       total_pkts++;       
     }
     usleep(30000);    
-    if (bch_decoded && my_phy.status_is_sync() && total_pkts > 0) {
+    if (bch_decoded && my_phy.sync_status() && total_pkts > 0) {
       if (srslte_verbose == SRSLTE_VERBOSE_NONE && srsapps_verbose == 0) {
         float gain = prog_args.rf_gain; 
         if (gain < 0) {

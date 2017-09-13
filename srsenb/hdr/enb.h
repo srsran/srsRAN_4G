@@ -138,42 +138,53 @@ typedef struct {
   Main UE class
 *******************************************************************************/
 
+//#define LOG_STDOUT
+
 class enb
-    :public enb_metrics_interface
-{
+    :public enb_metrics_interface {
 public:
-  static enb* get_instance(void);
+  static enb *get_instance(void);
+
   static void cleanup(void);
 
   bool init(all_args_t *args_);
+
   void stop();
+
   void start_plot();
-  
+
   static void rf_msg(srslte_rf_error_t error);
+
   void handle_rf_msg(srslte_rf_error_t error);
 
   // eNodeB metrics interface
   bool get_metrics(enb_metrics_t &m);
 
   void pregenerate_signals(bool enable);
-  
+
 
 private:
   static enb *instance;
+
   enb();
+
   virtual ~enb();
 
-  srslte::radio      radio;
-  srsenb::phy        phy;
-  srsenb::mac        mac;
-  srslte::mac_pcap   mac_pcap;
-  srsenb::rlc        rlc;
-  srsenb::pdcp       pdcp;
-  srsenb::rrc        rrc;
-  srsenb::gtpu       gtpu;
-  srsenb::s1ap       s1ap;
+  srslte::radio radio;
+  srsenb::phy phy;
+  srsenb::mac mac;
+  srslte::mac_pcap mac_pcap;
+  srsenb::rlc rlc;
+  srsenb::pdcp pdcp;
+  srsenb::rrc rrc;
+  srsenb::gtpu gtpu;
+  srsenb::s1ap s1ap;
 
-  srslte::logger_file logger;
+#ifdef LOG_STDOUT
+    srslte::logger_stdout logger;
+#else
+    srslte::logger_file logger;
+#endif
   srslte::log_filter  rf_log;
   std::vector<void*>  phy_log;
   srslte::log_filter  mac_log;

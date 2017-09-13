@@ -46,7 +46,7 @@ class gw
 {
 public:
   gw();
-  void init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_, uint32_t lcid_);
+  void init(srsue::pdcp_interface_gw *pdcp_, srsue::ue_interface *ue_, log *gw_log_, uint32_t lcid_);
   void stop();
 
   void get_metrics(gw_metrics_t &m);
@@ -62,7 +62,6 @@ private:
   static const int GW_THREAD_PRIO = 7;
 
   srsue::pdcp_interface_gw  *pdcp;
-  srsue::rrc_interface_gw   *rrc;
   srsue::ue_interface       *ue;
 
   byte_buffer_pool   *pool;
@@ -74,6 +73,8 @@ private:
   int32               sock;
   bool                if_up;
   uint32_t            lcid;
+
+  uint32_t            current_ip_addr;
 
   long                ul_tput_bytes;
   long                dl_tput_bytes;

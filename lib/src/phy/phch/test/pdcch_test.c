@@ -204,13 +204,21 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_pdcch_init_tx(&pdcch_tx, &regs, cell)) {
+  if (srslte_pdcch_init_enb(&pdcch_tx, cell.nof_prb)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
+  if (srslte_pdcch_set_cell(&pdcch_tx, &regs, cell)) {
+    fprintf(stderr, "Error setting cell in PDCCH object\n");
+    exit(-1);
+  }
 
-  if (srslte_pdcch_init_rx(&pdcch_rx, &regs, cell, nof_rx_ant)) {
+  if (srslte_pdcch_init_ue(&pdcch_rx, cell.nof_prb, nof_rx_ant)) {
     fprintf(stderr, "Error creating PDCCH object\n");
+    exit(-1);
+  }
+  if (srslte_pdcch_set_cell(&pdcch_rx, &regs, cell)) {
+    fprintf(stderr, "Error setting cell in PDCCH object\n");
     exit(-1);
   }
 

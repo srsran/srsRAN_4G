@@ -46,6 +46,7 @@ typedef _Complex float cf_t;
 class phy
     : public phy_interface_mac
     , public phy_interface_rrc
+    , public thread
 {
 public:
   phy();
@@ -56,6 +57,9 @@ public:
             phy_args_t *args = NULL);
   
   void stop();
+
+  void wait_initialize();
+  bool is_initiated();
 
   void set_agc_enable(bool enabled);
 
@@ -69,18 +73,22 @@ public:
   void enable_pregen_signals(bool enable); 
   
   void start_trace();
-  void write_trace(std::string filename); 
-  
+  void write_trace(std::string filename);
+
+  void set_earfcn(std::vector<uint32_t> earfcns);
+
   /********** RRC INTERFACE ********************/
   void    reset();
-  bool    status_is_sync();
   void    configure_ul_params(bool pregen_disabled = false);
-  void    resync_sfn(); 
-  
+  void    resync_sfn();
+  void    cell_search_start();
+  void    cell_search_next();
+  bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
+
   /********** MAC INTERFACE ********************/
   /* Functions to synchronize with a cell */
-  void    sync_start(); 
-  void    sync_stop();
+  bool    sync_status(); // this is also RRC interface
+  bool    sync_stop();
 
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   void set_crnti(uint16_t rnti);
@@ -127,7 +135,10 @@ public:
   void    start_plot();
     
 private:
-    
+
+  void run_thread();
+
+  bool     initiated;
   uint32_t nof_workers; 
   
   const static int MAX_WORKERS         = 4;
@@ -136,8 +147,10 @@ private:
   const static int SF_RECV_THREAD_PRIO = 1;
   const static int WORKERS_THREAD_PRIO = 0; 
   
-  srslte::radio_multi   *radio_handler;
-  srslte::log           *log_h;
+  srslte::radio_multi      *radio_handler;
+  srslte::log              *log_h;
+  srsue::mac_interface_phy *mac;
+  srsue::rrc_interface_phy *rrc;
 
   srslte::thread_pool      workers_pool;
   std::vector<phch_worker> workers;

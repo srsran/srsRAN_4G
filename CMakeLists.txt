@@ -120,7 +120,7 @@ else(POLARSSL_FOUND)
     endif(BUILD_STATIC)
     add_definitions(-DHAVE_MBEDTLS)
   else(MBEDTLS_FOUND)
-    message(FATAL_ERROR "Either polarssl or mbedtls is required to compile srsLTE")
+    message(FATAL_ERROR "Either PolarSSL or mbedTLS are required to build srsLTE")
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 

@@ -83,12 +83,16 @@ bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, 
     reset();
 
     started = true; 
-  }    
+  }
+
   return started; 
 }
 
 void mac::stop()
 {
+  for (uint32_t i=0;i<ue_db.size();i++) {
+    delete ue_db[i];
+  }
   for (int i=0;i<NOF_BCCH_DLSCH_MSG;i++) {
     srslte_softbuffer_tx_free(&bcch_softbuffer_tx[i]);
   }  

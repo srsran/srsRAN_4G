@@ -197,6 +197,12 @@ private:
         bzero(&cur_grant, sizeof(Tgrant));
       }
 
+      ~dl_tb_process() {
+        if (is_initiated) {
+          srslte_softbuffer_rx_free(&softbuffer);
+        }
+      }
+
       bool init(uint32_t pid_, dl_harq_entity *parent, uint32_t tb_idx) {
         tid = tb_idx;
         if (srslte_softbuffer_rx_init(&softbuffer, 110)) {

@@ -57,6 +57,8 @@
 
 namespace srsue {
 
+//#define LOG_STDOUT
+
 /*******************************************************************************
   Main UE class
 *******************************************************************************/
@@ -71,7 +73,7 @@ public:
   void stop();
   bool is_attached();
   void start_plot();
-  
+
   static void rf_msg(srslte_rf_error_t error);
   void handle_rf_msg(srslte_rf_error_t error);
 
@@ -79,10 +81,10 @@ public:
   bool get_metrics(ue_metrics_t &m);
 
   void pregenerate_signals(bool enable);
-  
+
   // Testing
-  void test_con_restablishment(); 
-  
+  void test_con_restablishment();
+
 
 private:
   virtual ~ue();
@@ -98,7 +100,11 @@ private:
   srslte::gw         gw;
   srsue::usim        usim;
 
-  srslte::logger_file logger;
+#ifdef LOG_STDOUT
+    srslte::logger_stdout logger;
+#else
+    srslte::logger_file logger;
+#endif
   srslte::log_filter  rf_log;
   srslte::log_filter  phy_log;
   srslte::log_filter  mac_log;

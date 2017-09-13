@@ -16,6 +16,7 @@ FIND_LIBRARY(
     HINTS $ENV{UHD_DIR}/lib
     PATHS /usr/local/lib
           /usr/lib
+          /usr/lib/x86_64-linux-gnu
           /usr/local/lib64
           /usr/local/lib32
 )

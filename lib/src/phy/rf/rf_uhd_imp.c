@@ -117,6 +117,7 @@ static void* async_thread(void *h) {
       return NULL; 
     }
   }
+  uhd_async_metadata_free(&md);
   return NULL; 
 }
 
@@ -226,7 +227,7 @@ int rf_uhd_start_rx_stream(void *h)
         .stream_now = false
   };
   uhd_usrp_get_time_now(handler->usrp, 0, &stream_cmd.time_spec_full_secs, &stream_cmd.time_spec_frac_secs);
-  stream_cmd.time_spec_frac_secs += 0.5; 
+  stream_cmd.time_spec_frac_secs += 0.1;
   if (stream_cmd.time_spec_frac_secs > 1) {
     stream_cmd.time_spec_frac_secs -= 1;
     stream_cmd.time_spec_full_secs += 1; 
@@ -457,14 +458,17 @@ int rf_uhd_close(void *h)
   uhd_rx_metadata_free(&handler->rx_md_first);
   uhd_rx_metadata_free(&handler->rx_md);
   uhd_meta_range_free(&handler->rx_gain_range);
-  uhd_tx_streamer_free(&handler->tx_stream);
-  uhd_rx_streamer_free(&handler->rx_stream);
   if (handler->has_rssi) {
     uhd_sensor_value_free(&handler->rssi_value);
   }
   handler->async_thread_running = false; 
-  pthread_join(handler->async_thread, NULL); 
+  pthread_join(handler->async_thread, NULL);
+
+  uhd_tx_streamer_free(&handler->tx_stream);
+  uhd_rx_streamer_free(&handler->rx_stream);
   uhd_usrp_free(&handler->usrp);
+
+  free(handler);
   
   /** Something else to close the USRP?? */
   return 0;
@@ -488,8 +492,7 @@ double rf_uhd_set_rx_srate(void *h, double freq)
   for (int i=0;i<handler->nof_rx_channels;i++) {
     uhd_usrp_set_rx_rate(handler->usrp, freq, i);
   }
-  uhd_usrp_get_rx_rate(handler->usrp, 0, &freq);
-  return freq; 
+  return freq;
 }
 
 double rf_uhd_set_tx_srate(void *h, double freq)
@@ -498,7 +501,6 @@ double rf_uhd_set_tx_srate(void *h, double freq)
   for (int i=0;i<handler->nof_tx_channels;i++) {
     uhd_usrp_set_tx_rate(handler->usrp, freq, i);
   }
-  uhd_usrp_get_tx_rate(handler->usrp, 0, &freq);
   handler->tx_rate = freq;
   return freq; 
 }
@@ -509,7 +511,6 @@ double rf_uhd_set_rx_gain(void *h, double gain)
   for (int i=0;i<handler->nof_rx_channels;i++) {
     uhd_usrp_set_rx_gain(handler->usrp, gain, i, "");
   }
-  uhd_usrp_get_rx_gain(handler->usrp, 0, "", &gain);
   return gain;
 }
 
@@ -519,7 +520,6 @@ double rf_uhd_set_tx_gain(void *h, double gain)
   for (int i=0;i<handler->nof_tx_channels;i++) {
     uhd_usrp_set_tx_gain(handler->usrp, gain, i, "");
   }
-  uhd_usrp_get_tx_gain(handler->usrp, 0, "", &gain);
   return gain;
 }
 
@@ -551,7 +551,6 @@ double rf_uhd_set_rx_freq(void *h, double freq)
   for (int i=0;i<handler->nof_rx_channels;i++) {
     uhd_usrp_set_rx_freq(handler->usrp, &tune_request, i, &tune_result);
   }
-  uhd_usrp_get_rx_freq(handler->usrp, 0, &freq);
   return freq;
 }
 
@@ -567,7 +566,6 @@ double rf_uhd_set_tx_freq(void *h, double freq)
   for (int i=0;i<handler->nof_tx_channels;i++) {
     uhd_usrp_set_tx_freq(handler->usrp, &tune_request, i, &tune_result);
   }
-  uhd_usrp_get_tx_freq(handler->usrp, 0, &freq);
   return freq;
 }
 
@@ -629,7 +627,9 @@ int rf_uhd_recv_with_time_multi(void *h,
         log_overflow(handler);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND) {
         log_late(handler);
-      } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE) {
+      } else if (error_code == UHD_RX_METADATA_ERROR_CODE_TIMEOUT) {
+        fprintf(stderr, "Error timed out while receiving asynchronoous messages from UHD.\n");
+      } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE ) {
         fprintf(stderr, "Error code 0x%x was returned during streaming. Aborting.\n", error_code);
       }
       

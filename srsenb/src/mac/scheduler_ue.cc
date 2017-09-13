@@ -397,7 +397,7 @@ int sched_ue::generate_format1(dl_harq_proc *h,
     if (fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb);
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb)/8;
       mcs = fixed_mcs_dl; 
     }
 
@@ -468,7 +468,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(allocation.L, nof_re, req_bytes, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), allocation.L);
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), allocation.L)/8;
       mcs = fixed_mcs_ul;
     }
     
@@ -607,12 +607,12 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
   
   uint32_t nof_re = 0; 
   int tbs = 0; 
-  for (n=1;n<cell.nof_prb && nbytes < req_bytes;n++) {
+  for (n=1;n<=cell.nof_prb && nbytes < req_bytes;n++) {
     nof_re = srslte_ra_dl_approx_nof_re(cell, n, nof_ctrl_symbols);
     if (fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(n, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), n);
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), n)/8;
     }
     if (tbs > 0) {
       nbytes = tbs; 
@@ -635,13 +635,13 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
     return 0; 
   }
   
-  for (n=1;n<cell.nof_prb && nbytes < req_bytes + 4;n++) {
+  for (n=1;n<=cell.nof_prb && nbytes < req_bytes + 4;n++) {
     uint32_t nof_re = (2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs)*n*SRSLTE_NRE;
     int tbs = 0; 
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), n);
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), n)/8;
     }
     if (tbs > 0) {
       nbytes = tbs; 
@@ -814,7 +814,7 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   uint32_t max_Qm  = is_ul?4:6; // Allow 16-QAM in PUSCH Only
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  if (has_pucch) {
+  if (has_pucch && is_ul) {
     cqi-=2;
   }
 

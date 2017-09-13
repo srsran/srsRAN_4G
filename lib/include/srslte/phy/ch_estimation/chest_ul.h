@@ -77,9 +77,13 @@ typedef struct {
 
 
 SRSLTE_API int srslte_chest_ul_init(srslte_chest_ul_t *q, 
-                                    srslte_cell_t cell);
+                                    uint32_t max_prb);
 
-SRSLTE_API void srslte_chest_ul_free(srslte_chest_ul_t *q); 
+SRSLTE_API void srslte_chest_ul_free(srslte_chest_ul_t *q);
+
+SRSLTE_API int srslte_chest_ul_set_cell(srslte_chest_ul_t *q,
+                                        srslte_cell_t cell);
+
 
 SRSLTE_API void srslte_chest_ul_set_cfg(srslte_chest_ul_t *q, 
                                         srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,

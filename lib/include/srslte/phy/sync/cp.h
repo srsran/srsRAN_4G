@@ -35,12 +35,16 @@
 typedef struct {
   cf_t *corr;
   uint32_t symbol_sz;
+  uint32_t max_symbol_sz;
 } srslte_cp_synch_t;
 
 SRSLTE_API int srslte_cp_synch_init(srslte_cp_synch_t *q, 
                                     uint32_t symbol_sz);
 
 SRSLTE_API void srslte_cp_synch_free(srslte_cp_synch_t *q);
+
+SRSLTE_API int srslte_cp_synch_resize(srslte_cp_synch_t *q,
+                                      uint32_t symbol_sz);
 
 SRSLTE_API uint32_t srslte_cp_synch(srslte_cp_synch_t *q, 
                                     cf_t *input, 

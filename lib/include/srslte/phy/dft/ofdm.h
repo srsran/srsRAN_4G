@@ -47,6 +47,7 @@
 /* This is common for both directions */
 typedef struct SRSLTE_API{
   srslte_dft_plan_t fft_plan;
+  uint32_t max_prb;
   uint32_t nof_symbols;
   uint32_t symbol_sz;
   uint32_t nof_guards;
@@ -56,18 +57,27 @@ typedef struct SRSLTE_API{
   cf_t *tmp; // for removing zero padding
   
   bool freq_shift;
+  float freq_shift_f;
   cf_t *shift_buffer; 
 }srslte_ofdm_t;
 
 SRSLTE_API int srslte_ofdm_init_(srslte_ofdm_t *q, 
                                  srslte_cp_t cp, 
                                  int symbol_sz, 
-                                 int nof_prb, 
+                                 int max_prb,
                                  srslte_dft_dir_t dir); 
 
 SRSLTE_API int srslte_ofdm_rx_init(srslte_ofdm_t *q, 
                                srslte_cp_t cp_type, 
-                               uint32_t nof_prb);
+                               uint32_t max_prb);
+
+SRSLTE_API int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q,
+                                      srslte_cp_t cp,
+                                      uint32_t nof_prb);
+
+SRSLTE_API int srslte_ofdm_rx_set_prb(srslte_ofdm_t *q,
+                                      srslte_cp_t cp,
+                                      uint32_t nof_prb);
 
 SRSLTE_API void srslte_ofdm_rx_free(srslte_ofdm_t *q);
 

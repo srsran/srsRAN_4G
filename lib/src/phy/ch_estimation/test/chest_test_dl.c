@@ -29,6 +29,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include <complex.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/srslte.h"
 
@@ -128,10 +129,13 @@ int main(int argc, char **argv) {
     cid = cell.id;
     max_cid = cell.id;
   }
-
+  if (srslte_chest_dl_init(&est, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    goto do_exit;
+  }
   while(cid <= max_cid) {
     cell.id = cid; 
-    if (srslte_chest_dl_init(&est, cell)) {
+    if (srslte_chest_dl_set_cell(&est, cell)) {
       fprintf(stderr, "Error initializing equalizer\n");
       goto do_exit;
     }
@@ -214,10 +218,10 @@ int main(int argc, char **argv) {
         }
       }
     }
-    srslte_chest_dl_free(&est);
     cid+=10;
     INFO("cid=%d\n", cid);
   }
+  srslte_chest_dl_free(&est);
 
 
   ret = 0;

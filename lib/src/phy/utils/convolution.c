@@ -27,6 +27,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/dft/dft.h"
 #include "srslte/phy/utils/vector.h"
@@ -34,14 +35,17 @@
 
 
 int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {
+  bzero(q, sizeof(srslte_conv_fft_cc_t));
+
   q->input_len = input_len;
   q->filter_len = filter_len;
   q->output_len = input_len+filter_len;
+  q->max_filter_len = filter_len;
+  q->max_input_len  = input_len;
   q->input_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
   q->filter_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
   q->output_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
-  
-  
+
   if (!q->input_fft || !q->filter_fft || !q->output_fft) {
     return SRSLTE_ERROR;
   }
@@ -61,6 +65,34 @@ int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_
   srslte_dft_plan_set_norm(&q->filter_plan, true);
   srslte_dft_plan_set_norm(&q->output_plan, false);
   
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_conv_fft_cc_replan(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {
+  if (input_len > q->max_input_len || filter_len > q->max_filter_len) {
+    fprintf(stderr, "Error in conv_fft_cc_replan(): input_len and filter_len must be lower than initialized\n");
+    return -1;
+  }
+
+  q->input_len = input_len;
+  q->filter_len = filter_len;
+  q->output_len = input_len+filter_len;
+
+  if (!q->input_fft || !q->filter_fft || !q->output_fft) {
+    return SRSLTE_ERROR;
+  }
+  if (srslte_dft_replan(&q->input_plan,q->output_len)) {
+    fprintf(stderr, "Error initiating input plan\n");
+    return SRSLTE_ERROR;
+  }
+  if (srslte_dft_replan(&q->filter_plan,q->output_len)) {
+    fprintf(stderr, "Error initiating filter plan\n");
+    return SRSLTE_ERROR;
+  }
+  if (srslte_dft_replan(&q->output_plan,q->output_len)) {
+    fprintf(stderr, "Error initiating output plan\n");
+    return SRSLTE_ERROR;
+  }
   return SRSLTE_SUCCESS;
 }
 

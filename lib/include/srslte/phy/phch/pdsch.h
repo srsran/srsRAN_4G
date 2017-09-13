@@ -49,6 +49,7 @@
 
 typedef struct {
   srslte_sequence_t seq[SRSLTE_MAX_CODEWORDS][SRSLTE_NSUBFRAMES_X_FRAME];
+  uint32_t cell_id;
   bool sequence_generated;
 } srslte_pdsch_user_t;
 
@@ -59,7 +60,10 @@ typedef struct SRSLTE_API {
   uint32_t nof_rx_antennas;
   
   uint32_t max_re;
-  
+
+  uint16_t ue_rnti;
+  bool is_ue;
+
   /* buffers */
   // void buffers are shared for tx and rx
   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; /* Channel estimation (Rx only) */
@@ -73,21 +77,27 @@ typedef struct SRSLTE_API {
   
   // This is to generate the scrambling seq for multiple CRNTIs
   srslte_pdsch_user_t **users;
-  
+
+  srslte_sequence_t tmp_seq;
+
   srslte_sch_t dl_sch;
 
 } srslte_pdsch_t;
 
-SRSLTE_API int srslte_pdsch_init_tx(srslte_pdsch_t *q,
-                                    srslte_cell_t cell);
 
-SRSLTE_API int srslte_pdsch_init_rx(srslte_pdsch_t *q,
-                                    srslte_cell_t cell,
-                                    uint32_t nof_antennas);
+SRSLTE_API int srslte_pdsch_init_ue(srslte_pdsch_t *q,
+                                    uint32_t max_prb,
+                                    uint32_t nof_rx_antennas);
+
+SRSLTE_API int srslte_pdsch_init_enb(srslte_pdsch_t *q,
+                                     uint32_t max_prb);
 
 SRSLTE_API void srslte_pdsch_free(srslte_pdsch_t *q);
 
-SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q, 
+SRSLTE_API int srslte_pdsch_set_cell(srslte_pdsch_t *q,
+                                     srslte_cell_t cell);
+
+SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q,
                                      uint16_t rnti);
 
 SRSLTE_API void srslte_pdsch_free_rnti(srslte_pdsch_t *q, 

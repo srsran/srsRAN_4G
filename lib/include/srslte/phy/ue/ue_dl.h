@@ -119,13 +119,16 @@ typedef struct SRSLTE_API {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q,
-                                 srslte_cell_t cell,
+                                 uint32_t max_prb,
                                  uint32_t nof_rx_antennas);
 
 SRSLTE_API void srslte_ue_dl_free(srslte_ue_dl_t *q);
 
+SRSLTE_API int srslte_ue_dl_set_cell(srslte_ue_dl_t *q,
+                                          srslte_cell_t cell);
+
 SRSLTE_API int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q,
-                                                cf_t *input[SRSLTE_MAX_PORTS], 
+                                                cf_t *input[SRSLTE_MAX_PORTS],
                                                 uint32_t sf_idx, 
                                                 uint32_t *cfi); 
 

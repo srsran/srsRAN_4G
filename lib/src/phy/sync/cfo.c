@@ -27,6 +27,7 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <math.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/utils/cexptab.h"
 #include "srslte/phy/sync/cfo.h"
@@ -47,6 +48,7 @@ int srslte_cfo_init(srslte_cfo_t *h, uint32_t nsamples) {
   h->tol = SRSLTE_CFO_TOLERANCE;
   h->last_freq = 0;
   h->nsamples = nsamples;
+  h->max_samples = nsamples;
   srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
 
   ret = SRSLTE_SUCCESS;
@@ -69,15 +71,15 @@ void srslte_cfo_set_tol(srslte_cfo_t *h, float tol) {
   h->tol = tol;
 }
 
-int srslte_cfo_realloc(srslte_cfo_t *h, uint32_t samples) {
-  h->cur_cexp = realloc(h->cur_cexp, sizeof(cf_t) * samples); 
-  if (!h->cur_cexp) {
-    perror("realloc");
+int srslte_cfo_resize(srslte_cfo_t *h, uint32_t samples) {
+  if (samples <= h->max_samples) {
+    srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, samples);
+    h->nsamples = samples;
+  } else {
+    fprintf(stderr, "Error in cfo_resize(): nof_samples must be lower than initialized\n");
     return SRSLTE_ERROR;
   }
-  srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, samples);
-  h->nsamples = samples;
-  
+
   return SRSLTE_SUCCESS;
 }
 
