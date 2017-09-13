@@ -45,6 +45,7 @@ enb* enb::get_instance(void)
 void enb::cleanup(void)
 {
   srslte_dft_exit();
+  srslte::byte_buffer_pool::cleanup();
   boost::mutex::scoped_lock lock(enb_instance_mutex);
   if(NULL != instance) {
       delete instance;
@@ -61,14 +62,15 @@ enb::enb()
 
 enb::~enb()
 {
-  srslte::byte_buffer_pool::cleanup();
 }
 
 bool enb::init(all_args_t *args_)
 {
   args     = args_;
 
-  logger.init(args->log.filename);
+#ifndef LOG_STDOUT
+    logger.init(args->log.filename);
+#endif
   rf_log.init("RF  ", &logger);
   
   // Create array of pointers to phy_logs 
@@ -87,7 +89,9 @@ bool enb::init(all_args_t *args_)
   s1ap_log.init("S1AP", &logger);
 
   // Init logs
-  logger.log("\n\n");
+#ifndef LOG_STDOUT
+    logger.log("\n\n");
+#endif
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));

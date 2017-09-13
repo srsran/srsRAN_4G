@@ -188,6 +188,18 @@ int main(int argc, char **argv) {
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
   signal(SIGINT, sig_int_handler);
 
+  if (srslte_ue_cellsearch_init_multi(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
+    fprintf(stderr, "Error initiating UE cell detect\n");
+    exit(-1);
+  }
+
+  if (cell_detect_config.max_frames_pss) {
+    srslte_ue_cellsearch_set_nof_valid_frames(&cs, cell_detect_config.nof_valid_pss_frames);
+  }
+  if (cell_detect_config.init_agc) {
+    srslte_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);
+  }
+
   for (freq=0;freq<nof_freqs && !go_exit;freq++) {
   
     /* set rf_freq */
@@ -203,18 +215,6 @@ int main(int argc, char **argv) {
     }
       
     bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
-      
-    if (srslte_ue_cellsearch_init_multi(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
-      fprintf(stderr, "Error initiating UE cell detect\n");
-      exit(-1);
-    }
-    
-    if (cell_detect_config.max_frames_pss) {
-      srslte_ue_cellsearch_set_nof_valid_frames(&cs, cell_detect_config.nof_valid_pss_frames);
-    }
-    if (cell_detect_config.init_agc) {
-      srslte_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);    
-    }
 
     INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
     srslte_rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
@@ -222,7 +222,6 @@ int main(int argc, char **argv) {
     srslte_rf_start_rx_stream(&rf);
     
     n = srslte_ue_cellsearch_scan(&cs, found_cells, NULL); 
-    srslte_ue_cellsearch_free(&cs);
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
@@ -254,7 +253,7 @@ int main(int argc, char **argv) {
       }
     }    
   }
-  
+
   printf("\n\nFound %d cells\n", n_found_cells);
   for (int i=0;i<n_found_cells;i++) {
     printf("Found CELL %.1f MHz, EARFCN=%d, PHYID=%d, %d PRB, %d ports, PSS power=%.1f dBm\n", 
@@ -268,7 +267,8 @@ int main(int argc, char **argv) {
   }
   
   printf("\nBye\n");
-    
+
+  srslte_ue_cellsearch_free(&cs);
   srslte_rf_close(&rf);
   exit(0);
 }

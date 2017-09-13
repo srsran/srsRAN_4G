@@ -58,7 +58,8 @@ int srslte_sss_synch_init(srslte_sss_synch_t *q, uint32_t fft_size) {
     srslte_dft_plan_set_dc(&q->dftp_input, true);
 
     q->fft_size = fft_size; 
-    
+    q->max_fft_size = fft_size;
+
     generate_N_id_1_table(q->N_id_1_table);
     
     for (N_id_2=0;N_id_2<3;N_id_2++) {
@@ -71,19 +72,18 @@ int srslte_sss_synch_init(srslte_sss_synch_t *q, uint32_t fft_size) {
   return SRSLTE_ERROR_INVALID_INPUTS;
 }
 
-int srslte_sss_synch_realloc(srslte_sss_synch_t *q, uint32_t fft_size) {
+int srslte_sss_synch_resize(srslte_sss_synch_t *q, uint32_t fft_size) {
   if (q                 != NULL  &&
       fft_size          <= 2048)
   {
-    srslte_dft_plan_free(&q->dftp_input);
-    if (srslte_dft_plan(&q->dftp_input, fft_size, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
+    if (fft_size > q->max_fft_size) {
+      fprintf(stderr, "Error in sss_synch_resize(): fft_size must be lower than initialized\n");
+      return SRSLTE_ERROR;
+    }
+    if (srslte_dft_replan(&q->dftp_input, fft_size)) {
       srslte_sss_synch_free(q);
       return SRSLTE_ERROR;
     }
-    srslte_dft_plan_set_mirror(&q->dftp_input, true);
-    srslte_dft_plan_set_norm(&q->dftp_input, true);
-    srslte_dft_plan_set_dc(&q->dftp_input, true);
-    
     q->fft_size = fft_size;
     return SRSLTE_SUCCESS;
   }

@@ -57,38 +57,24 @@ bool srslte_pcfich_exists(int nframe, int nslot) {
   return true;
 }
 
-int srslte_pcfich_init(srslte_pcfich_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
-  return srslte_pcfich_init_multi(q, regs, cell, 1);  
-}
-
 /** Initializes the pcfich channel receiver. 
  * On error, returns -1 and frees the structrure 
  */
-int srslte_pcfich_init_multi(srslte_pcfich_t *q, srslte_regs_t *regs, srslte_cell_t cell, uint32_t nof_rx_antennas) {
+int srslte_pcfich_init(srslte_pcfich_t *q, uint32_t nof_rx_antennas) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
-  if (q                         != NULL &&
-      regs                      != NULL &&
-      srslte_cell_isvalid(&cell)) 
+  if (q != NULL)
   {   
     ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(srslte_pcfich_t));
-    q->cell = cell;
-    q->regs = regs;
+    q->nof_rx_antennas = nof_rx_antennas;
     q->nof_symbols = PCFICH_RE;
-    q->nof_rx_antennas = nof_rx_antennas; 
-    
+
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
     }
 
-    for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
-      if (srslte_sequence_pcfich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
-        goto clean;
-      }
-    }
-    
     /* convert cfi bit tables to floats for demodulation */
     for (int i=0;i<3;i++) {
       for (int j=0;j<PCFICH_CFI_LEN;j++) {
@@ -114,6 +100,28 @@ void srslte_pcfich_free(srslte_pcfich_t *q) {
 
   bzero(q, sizeof(srslte_pcfich_t));
 }
+
+int srslte_pcfich_set_cell(srslte_pcfich_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q                         != NULL &&
+      regs                      != NULL &&
+      srslte_cell_isvalid(&cell))
+  {
+    q->regs = regs;
+    if (cell.id != q->cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+      for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
+        if (srslte_sequence_pcfich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
+          return SRSLTE_ERROR;
+        }
+      }
+    }
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
+}
+
 
 /** Finds the CFI with minimum distance with the vector of received 32 bits.
  * Saves the CFI value in the cfi pointer and returns the distance.
@@ -197,7 +205,7 @@ int srslte_pcfich_decode_multi(srslte_pcfich_t *q, cf_t *sf_symbols[SRSLTE_MAX_P
       }
 
       q_symbols[j] = q->symbols[j];
-      
+
       /* extract channel estimates */
       for (i = 0; i < q->cell.nof_ports; i++) {
         if (q->nof_symbols != srslte_regs_pcfich_get(q->regs, ce[i][j], q->ce[i][j])) {

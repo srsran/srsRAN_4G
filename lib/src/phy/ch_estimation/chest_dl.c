@@ -32,6 +32,8 @@
 #include <string.h>
 #include <complex.h>
 #include <math.h>
+#include <srslte/phy/common/phy_common.h>
+#include <srslte/srslte.h>
 
 #include "srslte/config.h"
 
@@ -72,63 +74,56 @@ static void set_default_filter(srslte_chest_dl_t *q, int filter_len) {
  * 
  * This object depends on the srslte_refsignal_t object for creating the LTE CSR signal.  
 */
-
-int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell) 
+int srslte_chest_dl_init(srslte_chest_dl_t *q, uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (q                != NULL &&
-      srslte_cell_isvalid(&cell)) 
+  if (q                != NULL)
   {
     bzero(q, sizeof(srslte_chest_dl_t));
     
-    ret = srslte_refsignal_cs_init(&q->csr_signal, cell); 
+    ret = srslte_refsignal_cs_init(&q->csr_signal, max_prb);
     if (ret != SRSLTE_SUCCESS) {
       fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
       goto clean_exit;
     }
     
-    q->tmp_noise = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+    q->tmp_noise = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
     if (!q->tmp_noise) {
       perror("malloc");
       goto clean_exit;
     }
-    q->pilot_estimates = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+
+    q->pilot_estimates = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
     if (!q->pilot_estimates) {
       perror("malloc");
       goto clean_exit;
     }      
-    q->pilot_estimates_average = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+    q->pilot_estimates_average = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
     if (!q->pilot_estimates_average) {
       perror("malloc");
       goto clean_exit;
     }      
-    q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+    q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
     if (!q->pilot_recv_signal) {
       perror("malloc");
       goto clean_exit;
     }
     
-    if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, SRSLTE_NRE*cell.nof_prb)) {
+    if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, SRSLTE_NRE*max_prb)) {
       fprintf(stderr, "Error initializing vector interpolator\n");
       goto clean_exit; 
     }
 
-    if (srslte_interp_linear_init(&q->srslte_interp_lin, 2*cell.nof_prb, SRSLTE_NRE/2)) {
+    if (srslte_interp_linear_init(&q->srslte_interp_lin, 2*max_prb, SRSLTE_NRE/2)) {
       fprintf(stderr, "Error initializing interpolator\n");
       goto clean_exit; 
     }
     
-    if (srslte_pss_generate(q->pss_signal, cell.id%3)) {
-      fprintf(stderr, "Error initializing PSS signal for noise estimation\n");
-      goto clean_exit;
-    }
-    
-    q->noise_alg = SRSLTE_NOISE_ALG_REFS; 
+    q->noise_alg = SRSLTE_NOISE_ALG_REFS;
     
     q->smooth_filter_len = 3; 
     srslte_chest_dl_set_smooth_filter3_coeff(q, 0.1);
     
-    q->cell = cell; 
   }
   
   ret = SRSLTE_SUCCESS;
@@ -162,10 +157,45 @@ void srslte_chest_dl_free(srslte_chest_dl_t *q)
   bzero(q, sizeof(srslte_chest_dl_t));
 }
 
+int srslte_chest_dl_set_cell(srslte_chest_dl_t *q, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  if (q                != NULL &&
+      srslte_cell_isvalid(&cell))
+  {
+    if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+      ret = srslte_refsignal_cs_set_cell(&q->csr_signal, cell);
+      if (ret != SRSLTE_SUCCESS) {
+        fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
+        return SRSLTE_ERROR;
+      }
+      if (srslte_pss_generate(q->pss_signal, cell.id%3)) {
+        fprintf(stderr, "Error initializing PSS signal for noise estimation\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_interp_linear_vector_resize(&q->srslte_interp_linvec, SRSLTE_NRE*q->cell.nof_prb)) {
+        fprintf(stderr, "Error initializing vector interpolator\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_interp_linear_resize(&q->srslte_interp_lin, 2*q->cell.nof_prb, SRSLTE_NRE/2)) {
+        fprintf(stderr, "Error initializing interpolator\n");
+        return SRSLTE_ERROR;
+      }
+
+    }
+    ret = SRSLTE_SUCCESS;
+  }
+
+  return ret;
+}
+
 /* Uses the difference between the averaged and non-averaged pilot estimates */
 static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id) 
 {
   int nref=SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
+
   /* Substract noisy pilot estimates */
   srslte_vec_sub_ccc(q->pilot_estimates_average, q->pilot_estimates, q->tmp_noise, nref);  
   
@@ -318,7 +348,8 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   
   /* Use the known CSR signal to compute Least-squares estimates */
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->csr_signal.pilots[port_id/2][sf_idx], 
-              q->pilot_estimates, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
+              q->pilot_estimates, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
+
   if (ce != NULL) {
     
     /* Smooth estimates (if applicable) and interpolate */
@@ -370,7 +401,7 @@ int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, cf_t *input[SRSLTE_MAX_
 int srslte_chest_dl_estimate(srslte_chest_dl_t *q, cf_t *input, cf_t *ce[SRSLTE_MAX_PORTS], uint32_t sf_idx) 
 {
   uint32_t port_id; 
-  
+
   for (port_id=0;port_id<q->cell.nof_ports;port_id++) {
     if (srslte_chest_dl_estimate_port(q, input, ce[port_id], sf_idx, port_id, 0)) {
       return SRSLTE_ERROR;

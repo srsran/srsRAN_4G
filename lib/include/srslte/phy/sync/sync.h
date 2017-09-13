@@ -75,6 +75,8 @@ typedef struct SRSLTE_API {
   uint32_t frame_size;
   uint32_t max_offset;
   bool enable_cfo_corr;
+  bool mean_cfo2_isunset;
+  bool mean_cfo_isunset;
   float mean_cfo;
   float mean_cfo2; 
   int cfo_i;
@@ -85,6 +87,7 @@ typedef struct SRSLTE_API {
   uint32_t cp_len;
   srslte_cfo_t cfocorr;
   srslte_cfo_t cfocorr2;
+  float current_cfo_tol;
   sss_alg_t sss_alg; 
   bool detect_cp;
   bool sss_en;
@@ -96,6 +99,8 @@ typedef struct SRSLTE_API {
   float M_norm_avg; 
   float M_ext_avg; 
   cf_t  *temp;
+
+  uint32_t max_frame_size;
 
 }srslte_sync_t;
 
@@ -121,6 +126,11 @@ SRSLTE_API int srslte_sync_init_decim(srslte_sync_t *q,
 
 SRSLTE_API void srslte_sync_free(srslte_sync_t *q);
 
+SRSLTE_API int srslte_sync_resize(srslte_sync_t *q,
+                                  uint32_t frame_size,
+                                  uint32_t max_offset,
+                                  uint32_t fft_size);
+
 SRSLTE_API void srslte_sync_reset(srslte_sync_t *q); 
 
 /* Finds a correlation peak in the input signal around position find_offset */
@@ -137,6 +147,9 @@ SRSLTE_API srslte_cp_t srslte_sync_detect_cp(srslte_sync_t *q,
 /* Sets the threshold for peak comparison */
 SRSLTE_API void srslte_sync_set_threshold(srslte_sync_t *q, 
                                           float threshold);
+
+SRSLTE_API void srslte_sync_set_cfo_tol(srslte_sync_t *q,
+                                        float tol);
 
 /* Gets the subframe idx (0 or 5) */
 SRSLTE_API uint32_t srslte_sync_get_sf_idx(srslte_sync_t *q);

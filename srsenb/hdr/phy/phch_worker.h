@@ -42,7 +42,8 @@ public:
   
   phch_worker();
   void  init(phch_common *phy, srslte::log *log_h);
-  void  reset(); 
+  void  stop();
+  void  reset();
   
   cf_t *get_buffer_rx();
   void set_time(uint32_t tti, uint32_t tx_mutex_cnt, srslte_timestamp_t tx_time);
@@ -83,7 +84,9 @@ private:
   /* Common objects */  
   srslte::log    *log_h; 
   phch_common    *phy;
-  bool           initiated; 
+  bool           initiated;
+  bool           running;
+
   cf_t          *signal_buffer_rx; 
   cf_t          *signal_buffer_tx; 
   uint32_t       tti_rx, tti_tx, tti_sched_ul, sf_rx, sf_tx, sf_sched_ul, tx_mutex_cnt;

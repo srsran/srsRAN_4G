@@ -49,7 +49,6 @@ mac::mac() : ttisync(10240),
 {
   started = false;  
   pcap    = NULL;   
-  signals_pregenerated = false;  
   bzero(&metrics, sizeof(mac_metrics_t));
 }
   
@@ -87,6 +86,8 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
 
 void mac::stop()
 {
+  srslte_softbuffer_rx_free(&pch_softbuffer);
+
   started = false;   
   ttisync.increase();
   upper_timers_thread.thread_cancel();
@@ -132,32 +133,30 @@ void mac::reset()
   phy_h->pdcch_dl_search_reset();
   phy_h->pdcch_ul_search_reset();
   
-  signals_pregenerated = false; 
-  is_first_ul_grant = true;   
+  is_first_ul_grant = true;
   
   bzero(&uernti, sizeof(ue_rnti_t));
 }
 
 void mac::run_thread() {
   int cnt=0;
-  
-  Info("Waiting PHY to synchronize with cell\n");  
-  phy_h->sync_start();
-  while(!phy_h->get_current_tti() && started) {
-    usleep(50000);
-  }
-  Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
-  ttisync.set_producer_cntr(phy_h->get_current_tti());
-     
+
   while(started) {
 
-    /* Warning: Here order of invocation of procedures is important!! */
-    ttisync.wait();
-    tti = phy_h->get_current_tti();
-    
-    if (started) {
-      log_h->step(tti);
+    while (!phy_h->sync_status() && started) {
+      usleep(5000);
+      if (phy_h->sync_status()) {
+        Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
+        ttisync.set_producer_cntr(phy_h->get_current_tti());
+      }
+    }
 
+    if (started && phy_h->sync_status()) {
+      /* Warning: Here order of invocation of procedures is important!! */
+      ttisync.wait();
+      tti = phy_h->get_current_tti();
+
+      log_h->step(tti);
       timers_db.step_all();
       
       // Step all procedures 
@@ -181,18 +180,6 @@ void mac::run_thread() {
         ra_procedure.start_mac_order();
       }
       ra_procedure.step(tti);
-      
-      if (ra_procedure.is_successful() && !signals_pregenerated) {
-
-        // Configure PHY to look for UL C-RNTI grants
-        phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, uernti.crnti);
-        phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, uernti.crnti);
-        
-        // Pregenerate UL signals and C-RNTI scrambling sequences
-        Debug("Pre-computing C-RNTI scrambling sequences for C-RNTI=0x%x\n", uernti.crnti);
-        phy_h->set_crnti(uernti.crnti);
-        signals_pregenerated = true; 
-      }      
     }
   }  
 }
@@ -490,7 +477,7 @@ void mac::upper_timers::reset()
 /********************************************************
  *
  * Class that runs a thread to process DL MAC PDUs from
- * DEMU unit
+ * DEMUX unit
  *
  *******************************************************/
 mac::pdu_process::pdu_process(demux *demux_unit_)

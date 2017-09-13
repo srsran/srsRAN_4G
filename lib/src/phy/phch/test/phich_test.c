@@ -142,6 +142,10 @@ int main(int argc, char **argv) {
     cid = cell.id;
     max_cid = cell.id;
   }
+  if (srslte_phich_init(&phich, 1)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
   while(cid <= max_cid) {
     cell.id = cid;
     
@@ -152,7 +156,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    if (srslte_phich_init(&phich, &regs, cell)) {
+    if (srslte_phich_set_cell(&phich, &regs, cell)) {
       fprintf(stderr, "Error creating PBCH object\n");
       exit(-1);
     }
@@ -198,10 +202,10 @@ int main(int argc, char **argv) {
         }
       }
     }
-    srslte_phich_free(&phich);
     srslte_regs_free(&regs);
     cid++;
   }
+  srslte_phich_free(&phich);
 
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     free(ce[i]);

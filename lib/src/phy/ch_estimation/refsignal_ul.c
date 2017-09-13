@@ -29,6 +29,7 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <complex.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
@@ -138,8 +139,8 @@ static int generate_n_prs(srslte_refsignal_ul_t * q) {
       }
       q->n_prs_pusch[delta_ss][ns] = n_prs;
     }
-    srslte_sequence_free(&seq);
   }
+  srslte_sequence_free(&seq);
 
   return SRSLTE_SUCCESS; 
 }
@@ -160,9 +161,9 @@ static int generate_srslte_sequence_hopping_v(srslte_refsignal_ul_t *q) {
         return SRSLTE_ERROR;
       }
       q->v_pusch[ns][delta_ss] = seq.c[ns];    
-      srslte_sequence_free(&seq);
     }
   }
+  srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS;
 }
 
@@ -170,46 +171,24 @@ static int generate_srslte_sequence_hopping_v(srslte_refsignal_ul_t *q) {
 /** Initializes srslte_refsignal_ul_t object according to 3GPP 36.211 5.5
  *
  */
-int srslte_refsignal_ul_init(srslte_refsignal_ul_t * q, srslte_cell_t cell)
+int srslte_refsignal_ul_init(srslte_refsignal_ul_t * q, uint32_t max_prb)
 {
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q != NULL && srslte_cell_isvalid(&cell)) {
+  if (q != NULL) {
 
     ret = SRSLTE_ERROR; 
     
     bzero(q, sizeof(srslte_refsignal_ul_t));
-    q->cell = cell; 
-    
+
     // Allocate temporal buffer for computing signal argument
-    q->tmp_arg = srslte_vec_malloc(SRSLTE_NRE * q->cell.nof_prb * sizeof(cf_t)); 
+    q->tmp_arg = srslte_vec_malloc(SRSLTE_NRE * max_prb * sizeof(cf_t));
     if (!q->tmp_arg) {
       perror("malloc");
       goto free_and_exit;
     }
     
-    srslte_pucch_cfg_default(&q->pucch_cfg);
-    
-    // Precompute n_prs
-    if (generate_n_prs(q)) {
-      goto free_and_exit;
-    }
-    
-    // Precompute group hopping values u. 
-    if (srslte_group_hopping_f_gh(q->f_gh, q->cell.id)) {
-      goto free_and_exit;
-    }
-    
-    // Precompute sequence hopping values v. Uses f_ss_pusch
-    if (generate_srslte_sequence_hopping_v(q)) {
-      goto free_and_exit;
-    }
-
-    if (srslte_pucch_n_cs_cell(q->cell, q->n_cs_cell)) {
-      goto free_and_exit;
-    }
-
     ret = SRSLTE_SUCCESS;
   }
 free_and_exit:
@@ -224,6 +203,45 @@ void srslte_refsignal_ul_free(srslte_refsignal_ul_t * q) {
     free(q->tmp_arg);
   }
   bzero(q, sizeof(srslte_refsignal_ul_t));
+}
+
+/** Initializes srslte_refsignal_ul_t object according to 3GPP 36.211 5.5
+ *
+ */
+int srslte_refsignal_ul_set_cell(srslte_refsignal_ul_t * q, srslte_cell_t cell)
+{
+
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL && srslte_cell_isvalid(&cell)) {
+
+    if (cell.id != q->cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+
+      srslte_pucch_cfg_default(&q->pucch_cfg);
+
+      // Precompute n_prs
+      if (generate_n_prs(q)) {
+        return SRSLTE_ERROR;
+      }
+
+      // Precompute group hopping values u.
+      if (srslte_group_hopping_f_gh(q->f_gh, q->cell.id)) {
+        return SRSLTE_ERROR;
+      }
+
+      // Precompute sequence hopping values v. Uses f_ss_pusch
+      if (generate_srslte_sequence_hopping_v(q)) {
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pucch_n_cs_cell(q->cell, q->n_cs_cell)) {
+        return SRSLTE_ERROR;
+      }
+    }
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
 }
 
 void srslte_refsignal_ul_set_cfg(srslte_refsignal_ul_t *q, 
@@ -363,15 +381,38 @@ void compute_r(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t ns, uint32_t
 
 }
 
+int srslte_refsignal_dmrs_pusch_pregen_init(srslte_refsignal_ul_t *q, srslte_refsignal_ul_dmrs_pregen_t *pregen,
+                                            uint32_t max_prb)
+{
+  for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
+    for (uint32_t cs=0;cs<SRSLTE_NOF_CSHIFT;cs++) {
+      pregen->r[cs][sf_idx] = (cf_t**) calloc(sizeof(cf_t*), max_prb + 1);
+      if (pregen->r[cs][sf_idx]) {
+        for (uint32_t n=0;n<=max_prb;n++) {
+          if (srslte_dft_precoding_valid_prb(n)) {
+            pregen->r[cs][sf_idx][n] = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*n*2*SRSLTE_NRE);
+            if (pregen->r[cs][sf_idx][n]) {
+            } else {
+              return SRSLTE_ERROR;
+            }
+          }
+        }
+      } else {
+        return SRSLTE_ERROR;
+      }
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
+
 int srslte_refsignal_dmrs_pusch_pregen(srslte_refsignal_ul_t *q, srslte_refsignal_ul_dmrs_pregen_t *pregen)
 {
   for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
     for (uint32_t cs=0;cs<SRSLTE_NOF_CSHIFT;cs++) {
-      pregen->r[cs][sf_idx] = (cf_t**) calloc(sizeof(cf_t*), q->cell.nof_prb + 1);
       if (pregen->r[cs][sf_idx]) {
         for (uint32_t n=0;n<=q->cell.nof_prb;n++) {
           if (srslte_dft_precoding_valid_prb(n)) {
-            pregen->r[cs][sf_idx][n] = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*n*2*SRSLTE_NRE);
             if (pregen->r[cs][sf_idx][n]) {
               if (srslte_refsignal_dmrs_pusch_gen(q, n, sf_idx, cs, pregen->r[cs][sf_idx][n])) {
                 return SRSLTE_ERROR; 

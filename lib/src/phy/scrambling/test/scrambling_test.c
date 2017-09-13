@@ -84,8 +84,10 @@ void parse_args(int argc, char **argv) {
 
 int init_sequence(srslte_sequence_t *seq, char *name) {
   if (!strcmp(name, "PBCH")) {
+    bzero(seq, sizeof(srslte_sequence_t));
     return srslte_sequence_pbch(seq, cp, cell_id);
   } else if (!strcmp(name, "PDSCH")) {
+    bzero(seq, sizeof(srslte_sequence_t));
     return srslte_sequence_pdsch(seq, 1234, 0, 0, cell_id, nof_bits);
   } else {
     fprintf(stderr, "Unsupported sequence name %s\n", name);
@@ -109,18 +111,18 @@ int main(int argc, char **argv) {
   }
 
   if (!do_floats) {
-    input_b = malloc(sizeof(uint8_t) * seq.len);
+    input_b = malloc(sizeof(uint8_t) * seq.cur_len);
     if (!input_b) {
       perror("malloc");
       exit(-1);
     }
-    scrambled_b = malloc(sizeof(uint8_t) * seq.len);
+    scrambled_b = malloc(sizeof(uint8_t) * seq.cur_len);
     if (!scrambled_b) {
       perror("malloc");
       exit(-1);
     }
 
-    for (i=0;i<seq.len;i++) {
+    for (i=0;i<seq.cur_len;i++) {
       input_b[i] = rand()%2;
       scrambled_b[i] = input_b[i];
     }
@@ -131,9 +133,9 @@ int main(int argc, char **argv) {
     srslte_scrambling_b(&seq, scrambled_b);
 
     get_time_interval(t);
-    printf("Texec=%ld us for %d bits\n", t[0].tv_usec, seq.len);
+    printf("Texec=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
     
-    for (i=0;i<seq.len;i++) {
+    for (i=0;i<seq.cur_len;i++) {
       if (scrambled_b[i] != input_b[i]) {
         printf("Error in %d\n", i);
         exit(-1);
@@ -142,18 +144,18 @@ int main(int argc, char **argv) {
     free(input_b);
     free(scrambled_b);
   } else {
-    input_f = malloc(sizeof(float) * seq.len);
+    input_f = malloc(sizeof(float) * seq.cur_len);
     if (!input_f) {
       perror("malloc");
       exit(-1);
     }
-    scrambled_f = malloc(sizeof(float) * seq.len);
+    scrambled_f = malloc(sizeof(float) * seq.cur_len);
     if (!scrambled_f) {
       perror("malloc");
       exit(-1);
     }
 
-    for (i=0;i<seq.len;i++) {
+    for (i=0;i<seq.cur_len;i++) {
       input_f[i] = 100*(rand()/RAND_MAX);
       scrambled_f[i] = input_f[i];
     }
@@ -164,9 +166,9 @@ int main(int argc, char **argv) {
     srslte_scrambling_f(&seq, scrambled_f);
 
     get_time_interval(t);
-    printf("Texec=%ld us for %d bits\n", t[0].tv_usec, seq.len);
+    printf("Texec=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
 
-    for (i=0;i<seq.len;i++) {
+    for (i=0;i<seq.cur_len;i++) {
       if (scrambled_f[i] != input_f[i]) {
         printf("Error in %d\n", i);
         exit(-1);

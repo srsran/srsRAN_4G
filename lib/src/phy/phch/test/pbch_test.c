@@ -104,7 +104,11 @@ int main(int argc, char **argv) {
     }
 
   }
-  if (srslte_pbch_init(&pbch, cell)) {
+  if (srslte_pbch_init(&pbch)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
+  if (srslte_pbch_set_cell(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }

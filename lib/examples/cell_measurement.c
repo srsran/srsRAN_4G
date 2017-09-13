@@ -241,19 +241,31 @@ int main(int argc, char **argv) {
   srslte_rf_stop_rx_stream(&rf);
   srslte_rf_flush_buffer(&rf);
   
-  if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
+  if (srslte_ue_sync_init_multi(&ue_sync, cell.nof_prb, cell.id==1000, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
-  if (srslte_ue_dl_init(&ue_dl, cell, 1)) {
+  if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
+    fprintf(stderr, "Error initiating ue_sync\n");
+    return -1;
+  }
+  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, 1)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
-  if (srslte_ue_mib_init(&ue_mib, cell)) {
+  if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+    fprintf(stderr, "Error initiating UE downlink processing module\n");
+    return -1;
+  }
+  if (srslte_ue_mib_init(&ue_mib, cell.nof_prb)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     return -1;
   }
-  
+  if (srslte_ue_mib_set_cell(&ue_mib, cell)) {
+    fprintf(stderr, "Error initaiting UE MIB decoder\n");
+    return -1;
+  }
+
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
   srslte_ue_dl_set_rnti(&ue_dl, SRSLTE_SIRNTI); 
 
@@ -264,11 +276,15 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating FFT\n");
     return -1;
   }
-  if (srslte_chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
     fprintf(stderr, "Error initiating channel estimator\n");
     return -1;
   }
-  
+  if (srslte_chest_dl_set_cell(&chest, cell)) {
+    fprintf(stderr, "Error initiating channel estimator\n");
+    return -1;
+  }
+
   int sf_re = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
 
   cf_t *sf_symbols = srslte_vec_malloc(sf_re * sizeof(cf_t));

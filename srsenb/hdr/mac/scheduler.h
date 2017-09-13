@@ -80,7 +80,8 @@ public:
    ************************************************************/
   
   sched(); 
-  
+  ~sched();
+
   void init(rrc_interface_mac *rrc, srslte::log *log);
   void set_metric(metric_dl *dl_metric, metric_ul *ul_metric);
   int cell_cfg(cell_cfg_t *cell_cfg); 

@@ -45,14 +45,15 @@ namespace srsue {
       
       args              = NULL; 
       config            = NULL; 
-      initiated         = false; 
-      signal_buffer     = NULL; 
+      signal_buffer     = NULL;
       transmitted_tti   = 0; 
-      target_power_dbm  = 0; 
+      target_power_dbm  = 0;
+      mem_initiated     = false;
+      cell_initiated    = false;
     }
-    void           init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config, phy_args_t *args, srslte::log *log_h);
-    bool           init_cell(srslte_cell_t cell);
-    void           free_cell();
+    ~prach();
+    void           init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config, uint32_t max_prb, phy_args_t *args, srslte::log *log_h);
+    bool           set_cell(srslte_cell_t cell);
     bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
     bool           is_ready_to_send(uint32_t current_tti);
     int            tx_tti();
@@ -70,7 +71,8 @@ namespace srsue {
     srslte::log   *log_h;
     int            preamble_idx;  
     int            allowed_subframe; 
-    bool           initiated;   
+    bool           mem_initiated;
+    bool           cell_initiated;
     uint32_t       len; 
     cf_t          *buffer[64]; 
     srslte_prach_t prach_obj; 

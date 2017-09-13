@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   srslte_softbuffer_tx_t *softbuffers_tx[SRSLTE_MAX_CODEWORDS];
-  int M=10;
+  int M=1;
   bool acks[SRSLTE_MAX_CODEWORDS] = {false};
 
   parse_args(argc,argv);
@@ -212,8 +212,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error computing resource allocation\n");
     return ret;
   }
-
-
 
 #ifdef DO_OFDM
   srslte_ofdm_tx_init(&ofdm_tx, cell.cp, cell.nof_prb);
@@ -276,7 +274,11 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (srslte_pdsch_init_rx(&pdsch_rx, cell, nof_rx_antennas)) {
+  if (srslte_pdsch_init_ue(&pdsch_rx, cell.nof_prb, nof_rx_antennas)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
+    goto quit;
+  }
+  if (srslte_pdsch_set_cell(&pdsch_rx, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
@@ -333,9 +335,13 @@ int main(int argc, char **argv) {
     srslte_filesource_read(&fsrc, rx_slot_symbols[0], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
 #endif
     
-    srslte_chest_dl_t chest; 
-    if (srslte_chest_dl_init(&chest, cell)) {
+    srslte_chest_dl_t chest;
+    if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
       fprintf(stderr, "Error initializing equalizer\n");
+      exit(-1);
+    }
+    if (srslte_chest_dl_set_cell(&chest, cell)) {
+      printf("Error initializing equalizer\n");
       exit(-1);
     }
     srslte_chest_dl_estimate(&chest, rx_slot_symbols[0], ce[0], subframe);
@@ -344,7 +350,11 @@ int main(int argc, char **argv) {
     srslte_filesource_free(&fsrc);
   } else {
 
-    if (srslte_pdsch_init_tx(&pdsch_tx, cell)) {
+    if (srslte_pdsch_init_enb(&pdsch_tx, cell.nof_prb)) {
+      fprintf(stderr, "Error creating PDSCH object\n");
+      goto quit;
+    }
+    if (srslte_pdsch_set_cell(&pdsch_tx, cell)) {
       fprintf(stderr, "Error creating PDSCH object\n");
       goto quit;
     }
