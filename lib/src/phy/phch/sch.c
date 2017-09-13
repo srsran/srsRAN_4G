@@ -524,7 +524,7 @@ int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbu
                          int16_t *e_bits, uint8_t *data, int codeword_idx) {
   uint32_t Nl = 1;
 
-  if (cfg->nof_layers != cfg->grant.nof_tb) {
+  if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
@@ -553,7 +553,7 @@ int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbu
                               uint8_t *data, uint8_t *e_bits, int codeword_idx) {
   uint32_t Nl = 1;
 
-  if (cfg->nof_layers != cfg->grant.nof_tb) {
+  if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
@@ -657,14 +657,17 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
   
   // Deinterleave and decode HARQ bits
   if (uci_data->uci_ack_len > 0) {
+    uint8_t acks[2] = {0, 0};
     float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ack);
+    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, acks, uci_data->uci_ack_len);
     if (ret < 0) {
       return ret; 
     }
+    uci_data->uci_ack = acks[0];
+    uci_data->uci_ack_2 = acks[1];
     Q_prime_ack = (uint32_t) ret; 
 
     // Set zeros to HARQ bits
@@ -805,11 +808,13 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   
   // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
+    uint8_t acks [2] = {uci_data.uci_ack, uci_data.uci_ack_2};
     float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ack(cfg, uci_data.uci_ack, uci_data.uci_cqi_len, beta, nb_q/Qm, &q->ack_ri_bits[Q_prime_ri*Qm]);
+    ret = srslte_uci_encode_ack(cfg, acks, uci_data.uci_ack_len, uci_data.uci_cqi_len,
+                                beta, nb_q / Qm, &q->ack_ri_bits[Q_prime_ri * Qm]);
     if (ret < 0) {
       return ret; 
     }

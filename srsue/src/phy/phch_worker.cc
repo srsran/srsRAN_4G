@@ -216,17 +216,37 @@ void phch_worker::work_imp()
                       dl_mac_grant.pid, dl_ack);
       }
       if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
-
-        // NOTE: Currently hard-coded to 1st TB only
-        for (uint32_t tb = 0; tb < 1; tb++) {
-          phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
-          dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
-          Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack[tb]);
+        for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+          if (dl_mac_grant.tb_en[tb]) {
+            phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+            dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
+            Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack[tb]);
+          }
         }
       }
       Debug("dl_ack={%d, %d}, generate_ack=%d\n", dl_ack[0], dl_ack[1], dl_action.generate_ack);
       if (dl_action.generate_ack) {
-        set_uci_ack(dl_ack, dl_mac_grant.phy_grant.dl.nof_tb);
+        set_uci_ack(dl_ack, dl_mac_grant.tb_en);
+      }
+
+      /* Select Rank Indicator by computing Condition Number */
+      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+        float cn = 0.0f;
+        srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
+        uci_data.uci_ri_len = 1;
+      } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4){
+        float sinr = 0.0f;
+        uint8 packed_pmi = 0;
+        srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
+        srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, 2);
+        uci_data.uci_ri_len = 1;
+        if (uci_data.uci_ri == 0) {
+          uci_data.uci_pmi_len = 2;
+          uci_data.uci_dif_cqi_len = 0;
+        } else {
+          uci_data.uci_pmi_len = 1;
+          uci_data.uci_dif_cqi_len = 3;
+        }
       }
     }
   }
@@ -292,8 +312,10 @@ void phch_worker::work_imp()
     if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH) {
       phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
     } else {
-      for (uint32_t tb = 0; tb < dl_mac_grant.phy_grant.dl.nof_tb; tb++) {
-        phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        if (dl_mac_grant.tb_en[tb]) {
+          phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+        }
       }
     }
   }
@@ -405,7 +427,10 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     grant->rnti = dl_rnti;
     grant->rnti_type = type;
     grant->last_tti = 0;
-    
+    grant->tb_en[0] = dci_unpacked.tb_en[0];
+    grant->tb_en[1] = dci_unpacked.tb_en[1];
+    grant->tb_cw_swap = dci_unpacked.tb_cw_swap; // FIXME: tb_cw_swap not supported
+
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
     char hexstr[16];
@@ -432,8 +457,8 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
   int ret = SRSLTE_SUCCESS;
 
-  for (uint32_t tb = 0; tb < grant->nof_tb; tb++) {
-    if (rv[tb] < 0 || rv[tb] > 3) {
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    if (grant->tb_en[tb] && (rv[tb] < 0 || rv[tb] > 3)) {
       valid_config = false;
       Error("Wrong RV (%d) for TB index %d", rv[tb], tb);
     }
@@ -452,22 +477,22 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_3:
-      if (grant->nof_tb == 1) {
+      if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
         mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-      } else if (grant->nof_tb == 2) {
+      } else if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_CDD;
       } else {
-        Error("Wrong number of transport blocks (%d) for TM3\n", grant->nof_tb);
+        Error("Wrong number of transport blocks (%d) for TM3\n", SRSLTE_RA_DL_GRANT_NOF_TB(grant));
         valid_config = false;
       }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_4:
-      if (grant->nof_tb == 1) {
+      if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
         mimo_type = (grant->pinfo == 0) ? SRSLTE_MIMO_TYPE_TX_DIVERSITY : SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
-      } else if (grant->nof_tb == 2) {
+      } else if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
       } else {
-        Error("Wrong number of transport blocks (%d) for TM4\n", grant->nof_tb);
+        Error("Wrong number of transport blocks (%d) for TM4\n", SRSLTE_RA_DL_GRANT_NOF_TB(grant));
         valid_config = false;
       }
     break;
@@ -513,7 +538,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         ret = srslte_pdsch_decode(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffers, ue_dl.sf_symbols_m,
                                   ue_dl.ce_m, noise_estimate, rnti, payload, acks);
         if (ret) {
-          Error("Decoding PDSCH");
+          Error("ERROR: Decoding PDSCH\n");
         }
   #ifdef LOG_EXECTIME
         gettimeofday(&t[2], NULL);
@@ -521,13 +546,14 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
 
-        Info("PDSCH: l_crb=%2d, harq=%d, nof_tb=%d, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d%s\n",
-             grant->nof_prb, harq_pid,
-             grant->nof_tb, grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx, grant->mcs[1].idx,
-             rv[0], rv[1], acks[0] ? "OK" : "KO", acks[1] ? "OK" : "KO",
-             10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
-             srslte_pdsch_last_noi(&ue_dl.pdsch),
-             timestr);
+        Info(
+            "PDSCH: l_crb=%2d, harq=%d, scheme=%s, tb_en={%s, %s}, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d, %s\n",
+            grant->nof_prb, harq_pid, srslte_mimotype2str(mimo_type), grant->tb_en[0] ? "on" : "off",
+            grant->tb_en[1] ? "on" : "off", grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx,
+            grant->mcs[1].idx, rv[0], rv[1], acks[0] ? "OK" : "KO", acks[1] ? "OK" : "KO",
+            10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
+            srslte_pdsch_last_noi(&ue_dl.pdsch),
+            timestr);
 
         //printf("tti=%d, cfo=%f\n", tti, cfo*15000);
         //srslte_vec_save_file("pdsch", signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
@@ -660,22 +686,24 @@ void phch_worker::reset_uci()
   bzero(&uci_data, sizeof(srslte_uci_data_t));
 }
 
-  void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb) {
-    if (nof_tb > 0) {
-      uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
-    }
-
-    if (nof_tb > 1) {
-      uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
-    }
-
-    if (nof_tb > 2) {
-      Error("Number of transport blocks is not supported");
-    }
-
-    uci_data.uci_ack_len = nof_tb;
-
+void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS])
+{
+  uint32_t nof_tb = 0;
+  if (tb_en[0]) {
+    uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
+    nof_tb = 1;
+  } else {
+    uci_data.uci_ack = 1;
   }
+
+  if (tb_en[1]) {
+    uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
+    nof_tb = 2;
+  }
+
+  uci_data.uci_ack_len = nof_tb;
+
+}
 
 void phch_worker::set_uci_sr()
 {
@@ -698,7 +726,16 @@ void phch_worker::set_uci_periodic_cqi()
   int cqi_max       = phy->args->cqi_max;
   
   if (period_cqi.configured && rnti_is_set) {
-    if (srslte_cqi_send(period_cqi.pmi_idx, (tti+4)%10240)) {
+    if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, (tti+4)%10240)) {
+      if (uci_data.uci_ri_len) {
+        uci_data.uci_cqi[0] = uci_data.uci_ri;
+        uci_data.uci_cqi_len = uci_data.uci_ri_len;
+        uci_data.uci_ri_len = 0;
+        uci_data.uci_dif_cqi_len = 0;
+        uci_data.uci_pmi_len = 0;
+        Info("PUCCH: Periodic RI=%d\n", uci_data.uci_cqi[0]);
+      }
+    } else if (srslte_cqi_send(period_cqi.pmi_idx, (tti+4)%10240)) {
       srslte_cqi_value_t cqi_report;
       if (period_cqi.format_is_subband) {
         // TODO: Implement subband periodic reports
@@ -813,11 +850,12 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   snprintf(timestr, 64, ", total_time=%4d us", (int) logtime_start[0].tv_usec);
 #endif
 
-  Info("PUSCH: tti_tx=%d, n_prb=%d, rb_start=%d, tbs=%d, mod=%d, mcs=%d, rv_idx=%d, ack=%s, cfo=%.1f Hz%s\n", 
+  Info("PUSCH: tti_tx=%d, n_prb=%d, rb_start=%d, tbs=%d, mod=%d, mcs=%d, rv_idx=%d, ack=%s, ri=%s, cfo=%.1f Hz%s\n",
          (tti+4)%10240,
          grant->L_prb, grant->n_prb[0], 
          grant->mcs.tbs/8, grant->mcs.mod, grant->mcs.idx, rv,
          uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
+         uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
          cfo*15000, timestr);
 
   // Store metrics
@@ -859,10 +897,13 @@ void phch_worker::encode_pucch()
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
   
-  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s, sr=%s, cfo=%.1f Hz%s\n", 
+  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, sr=%s, cfo=%.1f Hz%s\n",
          tx_power, (tti+4)%10240, 
          last_dl_pdcch_ncce, ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb, 
-       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
+       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
+       uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",
+       uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
+       uci_data.scheduling_request?"yes":"no",
          cfo*15000, timestr);        
   }   
   
@@ -992,12 +1033,19 @@ void phch_worker::set_ul_params(bool pregen_disabled)
   /* CQI configuration */
   bzero(&period_cqi, sizeof(srslte_cqi_periodic_cfg_t));
   period_cqi.configured        = dedicated->cqi_report_cnfg.report_periodic_setup_present;
-  period_cqi.pmi_idx           = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx; 
+  period_cqi.pmi_idx           = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
   period_cqi.simul_cqi_ack     = dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi;
   period_cqi.format_is_subband = dedicated->cqi_report_cnfg.report_periodic.format_ind_periodic ==
                                  LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_SUBBAND_CQI;
   period_cqi.subband_size      = dedicated->cqi_report_cnfg.report_periodic.format_ind_periodic_subband_k;
-  
+
+  if (dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present) {
+    period_cqi.ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
+    period_cqi.ri_idx_present = true;
+  } else {
+    period_cqi.ri_idx_present = false;
+  }
+
   /* SR configuration */
   I_sr                         = dedicated->sched_request_cnfg.sr_cnfg_idx;
   
@@ -1043,7 +1091,7 @@ int phch_worker::read_ce_abs(float *ce_abs) {
   bzero(ce_abs, sizeof(float)*sz);
   int g = (sz - 12*cell.nof_prb)/2;
   for (i = 0; i < 12*cell.nof_prb; i++) {
-    ce_abs[g+i] = 20 * log10(cabs(ue_dl.ce[0][i]));
+    ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[0][0][i]));
     if (isinf(ce_abs[g+i])) {
       ce_abs[g+i] = -80;
     }
