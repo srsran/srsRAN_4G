@@ -50,20 +50,14 @@
 #define SRSLTE_TCOD_MAX_LEN_CODED  (SRSLTE_TCOD_RATE*SRSLTE_TCOD_MAX_LEN_CB+SRSLTE_TCOD_TOTALTAIL)
 
 #include "srslte/phy/fec/turbodecoder_gen.h"
-
-#ifdef LV_HAVE_SSE
 #include "srslte/phy/fec/turbodecoder_simd.h"
-#else
-#define SRSLTE_TDEC_NPAR 1
-#endif
 
 typedef struct SRSLTE_API {
-#ifdef LV_HAVE_SSE
-  srslte_tdec_simd_t tdec_simd;
-#else
-  float *input_conv; 
-  srslte_tdec_gen_t tdec_gen;
-#endif  
+  float *input_conv;
+  union {
+    srslte_tdec_simd_t tdec_simd;
+    srslte_tdec_gen_t  tdec_gen;
+  };
 } srslte_tdec_t;
 
 SRSLTE_API int srslte_tdec_init(srslte_tdec_t * h, 

@@ -43,23 +43,8 @@
 #include "srslte/phy/fec/tc_interl.h"
 #include "srslte/phy/fec/cbsegm.h"
 
-//#define ENABLE_SIMD_INTER
-
-// The constant SRSLTE_TDEC_NPAR defines the maximum number of parallel CB supported by all SIMD decoders 
-#ifdef ENABLE_SIMD_INTER
-  #include "srslte/phy/fec/turbodecoder_simd_inter.h"
-  #ifdef LV_HAVE_AVX2
-    #define SRSLTE_TDEC_NPAR_INTRA 2
-  #else
-    #define SRSLTE_TDEC_NPAR_INTRA 1
-  #endif
-#else
-  #ifdef LV_HAVE_AVX2
-    #define SRSLTE_TDEC_NPAR 2
-  #else
-    #define SRSLTE_TDEC_NPAR 1
-  #endif
-#endif
+// Define maximum number of CB decoded in parallel (2 for AVX2)
+#define SRSLTE_TDEC_NPAR 2
 
 #define SRSLTE_TCOD_RATE 3
 #define SRSLTE_TCOD_TOTALTAIL 12
