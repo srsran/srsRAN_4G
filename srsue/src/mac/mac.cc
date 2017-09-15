@@ -268,7 +268,7 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
 
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
     action->generate_ack = false; 
-    action->decode_enabled = true; 
+    action->decode_enabled[0] = true;
     srslte_softbuffer_rx_reset_cb(&pch_softbuffer, 1);
     action->payload_ptr[0] = pch_payload_buffer;
     action->softbuffers[0]  = &pch_softbuffer;
@@ -276,7 +276,7 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
     action->rv[0]   = grant.rv[0];
     if (grant.n_bytes[0] > pch_payload_buffer_sz) {
       Error("Received grant for PCH (%d bytes) exceeds buffer (%d bytes)\n", grant.n_bytes[0], pch_payload_buffer_sz);
-      action->decode_enabled = false; 
+      action->decode_enabled[0] = false;
     }
   } else {
     // If PDCCH for C-RNTI and RA procedure in Contention Resolution, notify it

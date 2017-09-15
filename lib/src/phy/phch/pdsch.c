@@ -613,7 +613,7 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
       ret = SRSLTE_SUCCESS;
     }
   } else {
-    ERROR("Detected NULL pointer");
+    ERROR("Detected NULL pointer in TB%d &softbuffer=%p &data=%p &ack=%p", codeword_idx, softbuffer, (void*)data, ack);
   }
 
   return ret;
@@ -689,7 +689,8 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
 
     // Codeword decoding
     for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb ++) {
-      if (cfg->grant.tb_en[tb]) {
+      /* Decode only if transport block is enabled and the default ACK is not true */
+      if (cfg->grant.tb_en[tb] && !acks[tb]) {
         int ret = srslte_pdsch_codeword_decode(q, cfg, softbuffers[tb], rnti, data[tb], tb, &acks[tb]);
 
         /* Check if there has been any execution error */

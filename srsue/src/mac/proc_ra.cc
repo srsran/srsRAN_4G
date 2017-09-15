@@ -275,8 +275,9 @@ void ra_proc::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_p
 {
   if (grant.n_bytes[0] < MAX_RAR_PDU_LEN) {
     rDebug("DL grant found RA-RNTI=%d\n", ra_rnti);        
-    action->decode_enabled = true; 
-    action->default_ack = false; 
+    action->decode_enabled[0] = true;
+    action->decode_enabled[1] = false;
+    action->default_ack[0] = false;
     action->generate_ack = false; 
     action->payload_ptr[0] = rar_pdu_buffer;
     action->rnti = grant.rnti; 
@@ -290,7 +291,8 @@ void ra_proc::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_p
     }
   } else {
     rError("Received RAR grant exceeds buffer length (%d>%d)\n", grant.n_bytes[0], MAX_RAR_PDU_LEN);
-    action->decode_enabled = false; 
+    action->decode_enabled[0] = false;
+    action->decode_enabled[1] = false;
     state = RESPONSE_ERROR;
   }
 }

@@ -230,18 +230,18 @@ void phch_worker::work_imp()
 
       /* Set DL ACKs to default */
       for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
-        dl_ack[tb] = dl_action.default_ack;
+        dl_ack[tb] = dl_action.default_ack[tb];
       }
 
       /* Decode PDSCH if instructed to do so */
-      if (dl_action.decode_enabled) {
+      if (dl_action.decode_enabled[0] || dl_action.decode_enabled[1]) {
         decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr,
                       dl_action.softbuffers, dl_action.rv, dl_action.rnti,
                       dl_mac_grant.pid, dl_ack);
       }
-      if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
+      if (dl_action.generate_ack_callback) {
         for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-          if (dl_mac_grant.tb_en[tb]) {
+          if (dl_action.decode_enabled[tb]) {
             phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
             dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
             Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack[tb]);
@@ -332,12 +332,12 @@ void phch_worker::work_imp()
   
   phy->worker_end(tx_tti, signal_ready, signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);
   
-  if (dl_action.decode_enabled && !dl_action.generate_ack_callback) {
-    if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH) {
+  if (!dl_action.generate_ack_callback) {
+    if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH && dl_action.decode_enabled[0]) {
       phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
     } else {
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-        if (dl_mac_grant.tb_en[tb]) {
+        if (dl_action.decode_enabled[tb]) {
           phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
         }
       }

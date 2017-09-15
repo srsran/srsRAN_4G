@@ -277,8 +277,8 @@ public:
   }
 
   void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) {
-    action->decode_enabled = true; 
-    action->default_ack = false; 
+    action->decode_enabled[0] = true;
+    action->default_ack[0] = false;
     if (grant.rnti == 2) {
       action->generate_ack = false; 
     } else {

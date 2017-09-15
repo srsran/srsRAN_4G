@@ -168,12 +168,14 @@ private:
     void new_grant_dl(Tgrant grant, Taction *action) {
       /* Fill action structure */
       bzero(action, sizeof(Taction));
-      action->default_ack = false;
       action->generate_ack = true;
-      action->decode_enabled = false;
+      action->rnti = grant.rnti;
 
       /* For each subprocess... */
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        action->default_ack[tb] = false;
+        action->decode_enabled[tb] = false;
+        action->phy_grant.dl.tb_en[tb] = grant.tb_en[tb];
         if (grant.tb_en[tb]) {
           subproc[tb].new_grant_dl(grant, action);
         }
@@ -258,20 +260,19 @@ private:
                                                                        cur_grant.n_bytes[tid]);
           action->payload_ptr[tid] = payload_buffer_ptr;
           if (!action->payload_ptr) {
-            action->decode_enabled = false;
+            action->decode_enabled[tid] = false;
             Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes[tid]);
             return;
           }
-          action->decode_enabled = true;
+          action->decode_enabled[tid]= true;
           action->rv[tid] = cur_grant.rv[tid];
-          action->rnti = cur_grant.rnti;
           action->softbuffers[tid] = &softbuffer;
           memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(Tphygrant));
           n_retx++;
 
         } else {
+          action->default_ack[tid] = true;
           Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
-          action->phy_grant.dl.tb_en[tid] = false;
         }
 
         if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(TIME_ALIGNMENT)->is_expired()) {

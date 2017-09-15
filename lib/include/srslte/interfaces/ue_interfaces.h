@@ -303,11 +303,11 @@ public:
   } mac_grant_t; 
   
   typedef struct {
-    bool                    decode_enabled;
+    bool                    decode_enabled[SRSLTE_MAX_TB];
     int                     rv[SRSLTE_MAX_TB];
     uint16_t                rnti; 
     bool                    generate_ack; 
-    bool                    default_ack; 
+    bool                    default_ack[SRSLTE_MAX_TB];
     // If non-null, called after tb_decoded_ok to determine if ack needs to be sent
     bool                  (*generate_ack_callback)(void*); 
     void                   *generate_ack_callback_arg;

@@ -460,6 +460,10 @@ int main(int argc, char **argv) {
         srslte_softbuffer_rx_reset_tbs(softbuffers_rx[i], (uint32_t) grant.mcs[i].tbs);
       }
     }
+
+    /* Set ACKs to zero, otherwise will not decode if there are positive ACKs*/
+    bzero(acks, sizeof(acks));
+
     r = srslte_pdsch_decode(&pdsch_rx, &pdsch_cfg, softbuffers_rx, rx_slot_symbols, ce, 0, rnti, data_rx, acks);
   }
   gettimeofday(&t[2], NULL);
