@@ -297,7 +297,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
       ret = srslte_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);
       if (ret < 0) {
         fprintf(stderr, "Error calling srslte_ue_sync_work()\n");       
-        break; 
+        return -1;
       } else if (ret == 1) {
         /* This means a peak was found and ue_sync is now in tracking state */
         ret = srslte_sync_get_cell_id(&q->ue_sync.strack);

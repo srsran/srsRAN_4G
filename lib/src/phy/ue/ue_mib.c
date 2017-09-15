@@ -271,7 +271,7 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
       ret = srslte_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);
       if (ret < 0) {
         fprintf(stderr, "Error calling srslte_ue_sync_work()\n");       
-        break; 
+        return -1;
       } else if (srslte_ue_sync_get_sfidx(&q->ue_sync) == 0) {
         if (ret == 1) {
           mib_ret = srslte_ue_mib_decode(&q->ue_mib, q->sf_buffer[0], bch_payload, nof_tx_ports, sfn_offset);                    

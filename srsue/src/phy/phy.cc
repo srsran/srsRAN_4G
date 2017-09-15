@@ -232,6 +232,11 @@ void phy::cell_search_start()
   sf_recv.cell_search_start();
 }
 
+void phy::cell_search_stop()
+{
+  sf_recv.cell_search_stop();
+}
+
 void phy::cell_search_next()
 {
   sf_recv.cell_search_next();
@@ -293,7 +298,7 @@ int phy::prach_tx_tti()
 
 void phy::reset()
 {
-  // TODO 
+  sf_recv.stop_sync();
   n_ta = 0; 
   pdcch_dl_search_reset();
   for(uint32_t i=0;i<nof_workers;i++) {
@@ -317,10 +322,6 @@ int phy::sr_last_tx_tti()
   return workers_common.sr_last_tx_tti;
 }
 
-void phy::resync_sfn() {
-  sf_recv.resync_sfn();
-}
-
 void phy::set_earfcn(vector< uint32_t > earfcns)
 {
   sf_recv.set_earfcn(earfcns);
@@ -329,11 +330,6 @@ void phy::set_earfcn(vector< uint32_t > earfcns)
 bool phy::sync_status()
 {
   return sf_recv.status_is_sync();
-}
-
-bool phy::sync_stop()
-{
-  return sf_recv.stop_sync();
 }
 
 void phy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])

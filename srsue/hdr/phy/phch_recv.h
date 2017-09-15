@@ -52,13 +52,12 @@ public:
   void stop();
   void set_agc_enable(bool enable);
 
-  void     resync_sfn();
-
   void    set_earfcn(std::vector<uint32_t> earfcn);
 
   bool    stop_sync();
   void    cell_search_start();
-  void    cell_search_next();
+  void    cell_search_stop();
+  void    cell_search_next(bool reset = false);
   bool    cell_select(uint32_t earfcn, srslte_cell_t cell);
 
   uint32_t get_current_tti();
@@ -79,11 +78,16 @@ private:
 
   void   set_sampling_rate();
   bool   set_frequency();
+  void   resync_sfn();
 
   void   cell_search_inc();
 
-  bool init_cell();
-  void free_cell();
+  bool   init_cell();
+  void   free_cell();
+
+  void   stop_rx();
+  void   start_rx();
+  bool   radio_is_rx;
 
   bool   running; 
   
@@ -153,7 +157,7 @@ private:
 
   int    cell_sync_sfn();
   int    cell_meas_rsrp();
-  bool   cell_search(int force_N_id_2 = -1);
+  int    cell_search(int force_N_id_2 = -1);
   bool   set_cell();
 };
 

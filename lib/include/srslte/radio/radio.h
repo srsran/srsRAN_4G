@@ -78,7 +78,8 @@ namespace srslte {
       };
       
       bool init(char *args = NULL, char *devname = NULL);
-      void stop(); 
+      void stop();
+      void reset();
       bool start_agc(bool tx_gain_same_rx);
       
       void set_burst_preamble(double preamble_us);
@@ -170,6 +171,10 @@ namespace srslte {
       bool agc_enabled;
       int offset;
       uint32_t sf_len;
+
+      char saved_args[128];
+      char saved_devname[128];
+
   }; 
 }
 

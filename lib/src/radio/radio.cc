@@ -30,6 +30,7 @@ extern "C" {
 }
 #include "srslte/radio/radio.h"
 #include <string.h>
+#include <unistd.h>
 
 namespace srslte {
 
@@ -60,13 +61,26 @@ bool radio::init(char *args, char *devname)
   } else {
     printf("\nWarning burst preamble is not calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));
   }
-  
+
+  strncpy(saved_args,    args, 128);
+  strncpy(saved_devname, devname, 128);
+
   return true;    
 }
 
 void radio::stop() 
 {
   srslte_rf_close(&rf_device);
+}
+
+void radio::reset()
+{
+  printf("Resetting Radio...\n");
+  srslte_rf_close(&rf_device);
+  sleep(3);
+  if (srslte_rf_open_devname(&rf_device, saved_devname, saved_args)) {
+    fprintf(stderr, "Error opening RF device\n");
+  }
 }
 
 void radio::set_manual_calibration(rf_cal_t* calibration)

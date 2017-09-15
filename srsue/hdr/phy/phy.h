@@ -80,18 +80,17 @@ public:
   /********** RRC INTERFACE ********************/
   void    reset();
   void    configure_ul_params(bool pregen_disabled = false);
-  void    resync_sfn();
   void    cell_search_start();
+  void    cell_search_stop();
   void    cell_search_next();
   bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
 
   /********** MAC INTERFACE ********************/
   /* Functions to synchronize with a cell */
   bool    sync_status(); // this is also RRC interface
-  bool    sync_stop();
 
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
-  void set_crnti(uint16_t rnti);
+  void    set_crnti(uint16_t rnti);
   
   /* Instructs the PHY to configure using the parameters written by set_param() */
   void    configure_prach_params();

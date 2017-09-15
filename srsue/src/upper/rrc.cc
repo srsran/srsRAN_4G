@@ -430,6 +430,7 @@ void rrc::run_thread() {
         plmn_select_timeout++;
         if (plmn_select_timeout >= RRC_PLMN_SELECT_TIMEOUT) {
           rrc_log->info("RRC PLMN Search: timeout expired. Searching again\n");
+          phy->cell_search_stop();
           sleep(1);
           rrc_log->console("\nRRC PLMN Search: timeout expired. Searching again\n");
           plmn_select_timeout = 0;
@@ -714,7 +715,6 @@ void rrc::send_con_restablish_request() {
   mac->reset();
 
   // FIXME: Cell selection should be different??
-  phy->resync_sfn();
 
   // Wait for cell re-synchronization
   uint32_t timeout_cnt = 0;
@@ -1097,7 +1097,7 @@ void rrc::rrc_connection_release() {
   pthread_mutex_lock(&mutex);
   drb_up = false;
   state = RRC_STATE_IDLE;
-  phy->sync_stop();
+  phy->reset();
   set_phy_default();
   set_mac_default();
   mac_timers->get(t311)->run();

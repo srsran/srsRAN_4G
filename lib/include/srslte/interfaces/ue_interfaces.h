@@ -518,9 +518,9 @@ public:
 
   /* Cell search and selection procedures */
   virtual void cell_search_start() = 0;
+  virtual void cell_search_stop() = 0;
   virtual void cell_search_next() = 0;
   virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
-  virtual bool sync_stop() = 0;
 
   /* Is the PHY downlink synchronized? */
   virtual bool sync_status() = 0;
@@ -529,8 +529,6 @@ public:
   virtual void configure_ul_params(bool pregen_disabled = false) = 0;
 
   virtual void reset() = 0;
-  
-  virtual void resync_sfn() = 0;   
 
 };
   
