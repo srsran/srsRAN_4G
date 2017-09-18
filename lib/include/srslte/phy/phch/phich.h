@@ -101,24 +101,14 @@ SRSLTE_API void srslte_phich_calc(srslte_phich_t *q,
                                   uint32_t *nseq); 
 
 SRSLTE_API int srslte_phich_decode(srslte_phich_t *q, 
-                                   cf_t *slot_symbols, 
-                                   cf_t *ce[SRSLTE_MAX_PORTS],
+                                   cf_t *slot_symbols[SRSLTE_MAX_PORTS],
+                                   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                    float noise_estimate, 
                                    uint32_t ngroup, 
                                    uint32_t nseq, 
                                    uint32_t nsubframe, 
                                    uint8_t *ack, 
                                    float *distance);
-
-SRSLTE_API int srslte_phich_decode_multi(srslte_phich_t *q, 
-                                         cf_t *slot_symbols[SRSLTE_MAX_PORTS], 
-                                         cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                         float noise_estimate, 
-                                         uint32_t ngroup, 
-                                         uint32_t nseq, 
-                                         uint32_t nsubframe, 
-                                         uint8_t *ack, 
-                                         float *distance);
 
 SRSLTE_API int srslte_phich_encode(srslte_phich_t *q, 
                                    uint8_t ack, 
