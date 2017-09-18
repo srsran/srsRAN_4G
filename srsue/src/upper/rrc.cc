@@ -154,13 +154,22 @@ void rrc::run_thread() {
       case RRC_STATE_IDLE:
         // If camping on the cell, it will receive SI and paging from PLMN
         if (phy->sync_status()) {
-
+          // If attempting to attach, reselect cell
+          if (nas->is_attaching()) {
+            sleep(1);
+            rrc_log->info("RRC IDLE: NAS is attaching and camping on cell, reselecting...\n");
+            plmn_select(selected_plmn_id);
+          }
         // If not camping on a cell
         } else {
           // If NAS is attached, perform cell reselection on current PLMN
           if (nas->is_attached()) {
             rrc_log->info("RRC IDLE: NAS is attached, PHY not synchronized. Re-selecting cell...\n");
             plmn_select(selected_plmn_id);
+          } else if (nas->is_attaching()) {
+            sleep(1);
+            rrc_log->info("RRC IDLE: NAS is attaching, searching again PLMN\n");
+            plmn_search();
           }
           // If not attached, PLMN selection will be triggered from higher layers
         }
@@ -358,6 +367,7 @@ void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
     if (phy->sync_status() && selected_plmn_id.mcc == plmn_id.mcc && selected_plmn_id.mnc == plmn_id.mnc) {
       rrc_log->info("Already camping on selected PLMN, connecting...\n");
       state = RRC_STATE_CELL_SELECTING;
+      select_cell_timeout = 0;
     } else {
       rrc_log->info("PLMN %s selected\n", plmn_id_to_c_str(plmn_id).c_str());
       // Sort cells according to RSRP
@@ -495,6 +505,7 @@ void rrc::in_sync() {
 void rrc::radio_link_failure() {
   // TODO: Generate and store failure report
 
+  phy->sync_reset();
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state != RRC_STATE_CONNECTED) {
@@ -681,7 +692,7 @@ void rrc::send_con_restablish_request() {
   rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
   mac->set_contention_id(uecri);
 
-  rrc_log->info("Sending RRC Connection Resetablishment Request on SRB0\n");
+  rrc_log->info("Sending RRC Connection Reestablishment Request on SRB0\n");
   pdcp->write_sdu(RB_ID_SRB0, pdcp_buf);
 }
 

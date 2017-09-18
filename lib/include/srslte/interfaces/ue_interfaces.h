@@ -98,6 +98,7 @@ class nas_interface_rrc
 {
 public:
   virtual bool      is_attached() = 0;
+  virtual bool      is_attaching() = 0;
   virtual void      notify_connection_setup() = 0;
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
@@ -532,6 +533,7 @@ public:
 
   /* Is the PHY downlink synchronized? */
   virtual bool sync_status() = 0;
+  virtual void sync_reset()  = 0;
 
   /* Configure UL using parameters written with set_param() */
   virtual void configure_ul_params(bool pregen_disabled = false) = 0;

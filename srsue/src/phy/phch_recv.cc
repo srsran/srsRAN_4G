@@ -79,15 +79,7 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
   prach_buffer = _prach_buffer;
   nof_rx_antennas = nof_rx_antennas_;
 
-  tx_mutex_cnt = 0;
-  running = true;
-  phy_state = IDLE;
-  time_adv_sec = 0;
-  cell_is_set = false;
-  sync_sfn_cnt = 0;
-  srate_mode = SRATE_NONE;
-  cell_search_in_progress = false;
-  current_earfcn = 0;
+  reset();
 
   for (uint32_t i = 0; i < nof_rx_antennas; i++) {
     sf_buffer[i] = (cf_t *) srslte_vec_malloc(sizeof(cf_t) * 3 * SRSLTE_SF_LEN_PRB(100));
@@ -155,6 +147,37 @@ void phch_recv::stop() {
 
   running = false;
   wait_thread_finish();
+}
+
+void phch_recv::reset() {
+  tx_mutex_cnt = 0;
+  running = true;
+  phy_state = IDLE;
+  time_adv_sec = 0;
+  cell_is_set = false;
+  sync_sfn_cnt = 0;
+  srate_mode = SRATE_NONE;
+  cell_search_in_progress = false;
+  current_earfcn = 0;
+  radio_is_resetting = false;
+}
+
+void phch_recv::radio_error() {
+  log_h->error("SYNC:  Receiving from radio.\n");
+  phy_state = IDLE;
+  radio_is_resetting=true;
+  radio_h->reset();
+  reset();
+  radio_is_resetting=false;
+}
+
+bool phch_recv::wait_radio_reset() {
+  int cnt=0;
+  while(cnt < 20 && radio_is_resetting) {
+    sleep(1);
+    cnt++;
+  }
+  return radio_is_resetting;
 }
 
 void phch_recv::set_agc_enable(bool enable) {
@@ -394,6 +417,9 @@ int phch_recv::cell_meas_rsrp() {
 }
 
 void phch_recv::resync_sfn() {
+
+  wait_radio_reset();
+
   stop_rx();
   start_rx();
   srslte_ue_mib_reset(&ue_mib);
@@ -407,6 +433,9 @@ void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
 }
 
 bool phch_recv::stop_sync() {
+
+  wait_radio_reset();
+
   if (phy_state == IDLE && is_in_idle) {
     return true;
   } else {
@@ -419,6 +448,16 @@ bool phch_recv::stop_sync() {
     }
     return is_in_idle;
   }
+}
+
+void phch_recv::reset_sync() {
+
+  wait_radio_reset();
+
+  Info("SYNC:  Resetting sync\n");
+  srslte_ue_sync_reset(&ue_mib_sync.ue_sync);
+  srslte_ue_sync_reset(&ue_sync);
+  resync_sfn();
 }
 
 void phch_recv::cell_search_inc()
@@ -540,17 +579,20 @@ bool phch_recv::set_frequency()
 void phch_recv::set_sampling_rate()
 {
   float srate = (float) srslte_sampling_freq_hz(cell.nof_prb);
+  if (srate != -1) {
+    Info("SYNC:  Setting sampling rate %.2f MHz\n", srate/1000000);
 
-  Info("SYNC:  Setting sampling rate %.2f MHz\n", srate/1000000);
-
-  if (30720 % ((int) srate / 1000) == 0) {
-    radio_h->set_master_clock_rate(30.72e6);
+    if (30720 % ((int) srate / 1000) == 0) {
+      radio_h->set_master_clock_rate(30.72e6);
+    } else {
+      radio_h->set_master_clock_rate(23.04e6);
+    }
+    srate_mode = SRATE_CAMP;
+    radio_h->set_rx_srate(srate);
+    radio_h->set_tx_srate(srate);
   } else {
-    radio_h->set_master_clock_rate(23.04e6);
+    Error("Error setting sampling rate for cell with %d PRBs\n", cell.nof_prb);
   }
-  srate_mode = SRATE_CAMP;
-  radio_h->set_rx_srate(srate);
-  radio_h->set_tx_srate(srate);
 }
 
 void phch_recv::run_thread() {
@@ -585,9 +627,8 @@ void phch_recv::run_thread() {
             }
             break;
           default:
-            log_h->error("SYNC:  Receiving frorm radio.\n");
-            phy_state = IDLE;
-            radio_h->reset();
+            radio_error();
+            break;
           }
         }
         break;
@@ -610,9 +651,7 @@ void phch_recv::run_thread() {
           case 0:
             break;
           default:
-            log_h->error("SYNC:  Receiving frorm radio.\n");
-            phy_state = IDLE;
-            radio_h->reset();
+            radio_error();
             break;
         }
         sync_sfn_cnt++;
@@ -632,9 +671,8 @@ void phch_recv::run_thread() {
           case 0:
             break;
           default:
-            log_h->error("SYNC:  Receiving frorm radio.\n");
-            phy_state = IDLE;
-            radio_h->reset();
+            radio_error();
+            break;
         }
         break;
       case CELL_CAMP:
@@ -694,9 +732,8 @@ void phch_recv::run_thread() {
               worker_com->reset_ul();
               break;
             default:
-              log_h->error("SYNC:  Receiving from radio.\n");
-              phy_state = IDLE;
-              radio_h->reset();
+              radio_error();
+              break;
           }
         } else {
           // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here

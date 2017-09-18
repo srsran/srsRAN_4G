@@ -242,6 +242,10 @@ void phy::cell_search_next()
   sf_recv.cell_search_next();
 }
 
+void phy::sync_reset() {
+  sf_recv.reset_sync();
+}
+
 bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
 {
   return sf_recv.cell_select(earfcn, phy_cell);

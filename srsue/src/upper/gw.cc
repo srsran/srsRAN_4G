@@ -232,8 +232,10 @@ void gw::run_thread()
   int32           N_bytes;
   srslte::byte_buffer_t  *pdu = pool_allocate;
 
-  const static uint32_t ATTACH_TIMEOUT_MS = 2000;
+  const static uint32_t ATTACH_TIMEOUT_MS   = 10000;
+  const static uint32_t ATTACH_MAX_ATTEMPTS = 3;
   uint32_t attach_cnt = 0;
+  uint32_t attach_attempts = 0;
 
   gw_log->info("GW IP packet receiver thread run_enable\n");
 
@@ -260,10 +262,11 @@ void gw::run_thread()
         {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-          while(run_enable && !pdcp->is_drb_enabled(lcid)) {
+          while(run_enable && !pdcp->is_drb_enabled(lcid) && attach_attempts < ATTACH_MAX_ATTEMPTS) {
             if (attach_cnt == 0) {
-              gw_log->info("LCID=%d not active, requesting NAS attach\n", lcid);
+              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
               nas->attach_request();
+              attach_attempts++;
             }
             attach_cnt++;
             if (attach_cnt == ATTACH_TIMEOUT_MS) {
@@ -271,6 +274,12 @@ void gw::run_thread()
             }
             usleep(1000);
           }
+
+          if (attach_attempts == ATTACH_MAX_ATTEMPTS) {
+            gw_log->warning("LCID=%d was not active after %d attempts\n", lcid, ATTACH_MAX_ATTEMPTS);
+          }
+
+          attach_attempts = 0;
           attach_cnt = 0;
 
           if (!run_enable) {
@@ -278,18 +287,20 @@ void gw::run_thread()
           }
 
           // Send PDU directly to PDCP
-          pdu->set_timestamp();
-          ul_tput_bytes += pdu->N_bytes;
-          pdcp->write_sdu(lcid, pdu);
+          if (pdcp->is_drb_enabled(lcid)) {
+            pdu->set_timestamp();
+            ul_tput_bytes += pdu->N_bytes;
+            pdcp->write_sdu(lcid, pdu);
 
-          do {
-            pdu = pool_allocate;
-            if (!pdu) {
-              printf("Not enough buffers in pool\n");
-              usleep(100000);
-            }
-          } while(!pdu);
-          idx = 0;
+            do {
+              pdu = pool_allocate;
+              if (!pdu) {
+                printf("Not enough buffers in pool\n");
+                usleep(100000);
+              }
+            } while(!pdu);
+            idx = 0;
+          }
         }else{
           idx += N_bytes;
         }

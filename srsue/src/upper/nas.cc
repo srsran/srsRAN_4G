@@ -121,6 +121,10 @@ bool nas::is_attached() {
   return state == EMM_STATE_REGISTERED;
 }
 
+bool nas::is_attaching() {
+  return state == EMM_STATE_REGISTERED_INITIATED;
+}
+
 void nas::notify_connection_setup() {
   nas_log->debug("State = %s\n", emm_state_text[state]);
   if (EMM_STATE_REGISTERED_INITIATED == state) {

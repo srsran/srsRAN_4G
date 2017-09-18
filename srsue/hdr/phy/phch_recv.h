@@ -54,7 +54,7 @@ public:
 
   void    set_earfcn(std::vector<uint32_t> earfcn);
 
-  bool    stop_sync();
+  void    reset_sync();
   void    cell_search_start();
   void    cell_search_stop();
   void    cell_search_next(bool reset = false);
@@ -73,12 +73,16 @@ private:
 
   std::vector<uint32_t> earfcn;
 
+  void   reset();
+  void   radio_error();
+  bool   wait_radio_reset();
   void   set_ue_sync_opts(srslte_ue_sync_t *q); 
   void   run_thread();
 
   void   set_sampling_rate();
   bool   set_frequency();
   void   resync_sfn();
+  bool   stop_sync();
 
   void   cell_search_inc();
 
@@ -88,6 +92,8 @@ private:
   void   stop_rx();
   void   start_rx();
   bool   radio_is_rx;
+
+  bool   radio_is_resetting;
 
   bool   running; 
   
@@ -151,7 +157,6 @@ private:
   uint32_t measure_cnt;
   float    measure_rsrp;
   srslte_ue_dl_t ue_dl_measure;
-
 
   const static int RSRP_MEASURE_NOF_FRAMES = 5;
 

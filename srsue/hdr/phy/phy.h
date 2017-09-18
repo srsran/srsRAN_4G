@@ -79,6 +79,7 @@ public:
 
   /********** RRC INTERFACE ********************/
   void    reset();
+  void    sync_reset();
   void    configure_ul_params(bool pregen_disabled = false);
   void    cell_search_start();
   void    cell_search_stop();
