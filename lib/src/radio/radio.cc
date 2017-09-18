@@ -62,8 +62,12 @@ bool radio::init(char *args, char *devname)
     printf("\nWarning burst preamble is not calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));
   }
 
-  strncpy(saved_args,    args, 128);
-  strncpy(saved_devname, devname, 128);
+  if (args) {
+    strncpy(saved_args, args, 128);
+  }
+  if (devname) {
+    strncpy(saved_devname, devname, 128);
+  }
 
   return true;    
 }

@@ -29,7 +29,14 @@ bool radio_multi::init_multi(uint32_t nof_rx_antennas, char* args, char* devname
   } else {
     printf("\nWarning burst preamble is not calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));
   }
-  
+
+  if (args) {
+    strncpy(saved_args, args, 128);
+  }
+  if (devname) {
+    strncpy(saved_devname, devname, 128);
+  }
+
   return true;    
 }
 

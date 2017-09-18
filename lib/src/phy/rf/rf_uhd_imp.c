@@ -290,6 +290,13 @@ int rf_uhd_open(char *args, void **h)
   return rf_uhd_open_multi(args, h, 1);
 }
 
+static void remove_substring(char *s,const char *toremove)
+{
+  while((s=strstr(s,toremove))) {
+    memmove(s,s+strlen(toremove),1+strlen(s+strlen(toremove)));
+  }
+}
+
 int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
 {
   if (h) {
@@ -324,7 +331,21 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     handler->uhd_error_handler = NULL;
     
     bzero(zero_mem, sizeof(cf_t)*64*1024);
-    
+
+    enum {DEFAULT, EXTERNAL, GPSDO} clock_src;
+
+    // Set external clock reference
+    if (strstr(args, "clock=external")) {
+      remove_substring(args, "clock=external");
+      clock_src = EXTERNAL;
+    } else if (strstr(args, "clock=gpsdo")) {
+      printf("Using GPSDO clock\n");
+      remove_substring(args, "clock=gpsdo");
+      clock_src = GPSDO;
+    } else {
+      clock_src = DEFAULT;
+    }
+
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
@@ -379,14 +400,12 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     }
     
     // Set external clock reference   
-    if (strstr(args, "clock=external")) {
+    if (clock_src == EXTERNAL) {
       uhd_usrp_set_clock_source(handler->usrp, "external", 0);       
-    } else if (strstr(args, "clock=gpsdo")) {
-      printf("Using GPSDO clock\n");
-      uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);       
+    } else if (clock_src == GPSDO) {
+      uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);
     }
 
-      
     handler->has_rssi = get_has_rssi(handler);  
     if (handler->has_rssi) {        
       uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
@@ -405,9 +424,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     handler->nof_tx_channels = nof_channels;
 
     /* Set default rate to avoid decimation warnings */
-    uhd_usrp_set_rx_rate(handler->usrp, 1.92e6, 0);
-    uhd_usrp_set_tx_rate(handler->usrp, 1.92e6, 0);
-    
+    for (int i=0;i<nof_channels;i++) {
+      uhd_usrp_set_rx_rate(handler->usrp, 1.92e6, i);
+      uhd_usrp_set_tx_rate(handler->usrp, 1.92e6, i);
+    }
+
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
