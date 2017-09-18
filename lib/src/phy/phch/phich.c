@@ -173,26 +173,9 @@ void srslte_phich_ack_encode(uint8_t ack, uint8_t bits[SRSLTE_PHICH_NBITS]) {
   memset(bits, ack, 3 * sizeof(uint8_t));
 }
 
-int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate,
-    uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, float *distance) 
-{
-  cf_t *_sf_symbols[SRSLTE_MAX_PORTS]; 
-  cf_t *_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  
-  _sf_symbols[0] = sf_symbols; 
-  for (int i=0;i<q->cell.nof_ports;i++) {
-    _ce[i][0] = ce[i]; 
-  }
-
-  return srslte_phich_decode_multi(q, _sf_symbols, _ce, noise_estimate, ngroup, nseq, subframe, ack, distance);
-}
-/* Decodes the phich channel and saves the CFI in the cfi pointer.
- *
- * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
- */
-int srslte_phich_decode_multi(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate,
-                              uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, float *distance) 
-{
+int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS],
+                        cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate,
+                        uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, float *distance) {
 
   /* Set pointers for layermapping & precoding */
   int i, j;

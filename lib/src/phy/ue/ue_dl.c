@@ -776,13 +776,7 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
     sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq, 
     srslte_phich_ngroups(&q->phich), srslte_phich_nsf(&q->phich));
   
-  cf_t *ce0[SRSLTE_MAX_PORTS];
-  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce0[i] = q->ce_m[i][0];
-  }
-
-  
-  if (!srslte_phich_decode(&q->phich, q->sf_symbols_m[0], ce0, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
+  if (!srslte_phich_decode(&q->phich, q->sf_symbols_m, q->ce_m, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
     INFO("Decoded PHICH %d with distance %f\n", ack_bit, distance);    
   } else {
     fprintf(stderr, "Error decoding PHICH\n");
