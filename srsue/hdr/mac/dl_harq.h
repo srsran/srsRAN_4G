@@ -212,6 +212,7 @@ private:
           return false;
         } else {
           pid = pid_;
+          is_first_tb = true;
           is_initiated = true;
           harq_entity = parent;
           log_h = harq_entity->log_h;
@@ -220,6 +221,7 @@ private:
       }
 
       void reset(void) {
+        is_first_tb = true;
         ack = false;
         payload_buffer_ptr = NULL;
         bzero(&cur_grant, sizeof(Tgrant));
@@ -241,7 +243,12 @@ private:
           }
         }
         calc_is_new_transmission(grant);
-        if (is_new_transmission) {
+        // If this is a new transmission or the size of the TB has changed
+        if (is_new_transmission || (cur_grant.n_bytes[tid] != grant.n_bytes[tid])) {
+          if (!is_new_transmission) {
+            Warning("DL PID %d: Size of grant changed during a retransmission %d!=%d\n", pid,
+                    cur_grant.n_bytes[tid], grant.n_bytes[tid]);
+          }
           ack = false;
           srslte_softbuffer_rx_reset_tbs(&softbuffer, cur_grant.n_bytes[tid] * 8);
           n_retx = 0;
@@ -337,17 +344,14 @@ private:
       int get_current_tbs(void) { return cur_grant.n_bytes[tid] * 8; }
 
     private:
+      // Determine if it's a new transmission 5.3.2.2
       bool calc_is_new_transmission(Tgrant grant) {
-        bool is_new_tb = true;
-        if ((srslte_tti_interval(grant.tti, cur_grant.tti) <= 8 && (grant.n_bytes[tid] == cur_grant.n_bytes[tid])) ||
-            pid == HARQ_BCCH_PID) {
-          is_new_tb = false;
-        }
 
-        if ((grant.ndi[tid] != cur_grant.ndi[tid] && !is_new_tb) || // NDI toggled for same TB
-            is_new_tb || // is new TB
-            (pid == HARQ_BCCH_PID && grant.rv[tid] == 0))      // Broadcast PID and 1st TX (RV=0)
+        if ((grant.ndi[tid] != cur_grant.ndi[tid])       || // 1st condition (NDI has changed)
+            (pid == HARQ_BCCH_PID && grant.rv[tid] == 0) || // 2nd condition (Broadcast and 1st transmission)
+             is_first_tb)                                   // 3rd condition (first TB)
         {
+          is_first_tb         = false;
           is_new_transmission = true;
           Debug("Set HARQ for new transmission\n");
         } else {
@@ -362,6 +366,7 @@ private:
       dl_harq_entity *harq_entity;
       srslte::log *log_h;
 
+      bool is_first_tb;
       bool is_new_transmission;
 
       uint32_t pid;     /* HARQ Proccess ID   */
