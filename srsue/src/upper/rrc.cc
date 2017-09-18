@@ -31,6 +31,7 @@
 #include "upper/rrc.h"
 #include <boost/assign.hpp>
 #include <upper/rrc.h>
+#include <srslte/asn1/liblte_rrc.h>
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 
@@ -95,12 +96,14 @@ void rrc::init(phy_interface_rrc *phy_,
   t301 = mac_timers->get_unique_id();
   t310 = mac_timers->get_unique_id();
   t311 = mac_timers->get_unique_id();
-  safe_reset_timer = mac_timers->get_unique_id();
 
   transaction_id = 0;
 
   // Register logging handler with liblte_rrc
   liblte_rrc_log_register_handler(this, liblte_rrc_handler);
+
+  nof_sib1_trials = 0;
+  last_win_start  = 0;
 
   // Set default values for all layers
   set_rrc_default();
@@ -117,6 +120,14 @@ rrc_state_t rrc::get_state() {
   return state;
 }
 
+bool rrc::is_connected() {
+  return (RRC_STATE_CONNECTED == state);
+}
+
+bool rrc::have_drb() {
+  return drb_up;
+}
+
 void rrc::set_ue_category(int category) {
   if (category >= 1 && category <= 5) {
     ue_category = category;
@@ -125,305 +136,33 @@ void rrc::set_ue_category(int category) {
   }
 }
 
-
-
-/*******************************************************************************
-*
-*
-*
-* PLMN selection, cell selection/reselection and acquisition of SI procedures
-*
-*
-*
-*******************************************************************************/
-
-/*******************************************************************************
-NAS interface
-*******************************************************************************/
-
-uint16_t rrc::get_mcc() {
-  if (current_cell) {
-    if (current_cell->sib1.N_plmn_ids > 0) {
-      return current_cell->sib1.plmn_id[0].id.mcc;
-    }
-  }
-  return 0;
-}
-
-uint16_t rrc::get_mnc() {
-  if (current_cell) {
-    if (current_cell->sib1.N_plmn_ids > 0) {
-      return current_cell->sib1.plmn_id[0].id.mnc;
-    }
-  }
-  return 0;
-}
-
-void rrc::plmn_search() {
-  rrc_log->info("Starting PLMN search procedure\n");
-  state = RRC_STATE_PLMN_SELECTION;
-  phy->cell_search_start();
-  plmn_select_timeout = 0;
-}
-
-void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
-  rrc_log->info("PLMN %s selected\n", plmn_id_to_c_str(plmn_id).c_str());
-
-
-  // Sort cells according to RSRP
-
-  selected_plmn_id = plmn_id;
-  last_selected_cell = -1;
-  select_cell_timeout = 0;
-
-  state = RRC_STATE_CELL_SELECTING;
-  select_next_cell_in_plmn();
-}
-
-void rrc::select_next_cell_in_plmn() {
-  for (uint32_t i = last_selected_cell + 1; i < known_cells.size(); i++) {
-    for (uint32_t j = 0; j < known_cells[i].sib1.N_plmn_ids; j++) {
-      if (known_cells[i].sib1.plmn_id[j].id.mcc == selected_plmn_id.mcc ||
-          known_cells[i].sib1.plmn_id[j].id.mnc == selected_plmn_id.mnc) {
-        rrc_log->info("Selecting cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
-                      known_cells[i].phy_cell.id, known_cells[i].earfcn,
-                      known_cells[i].sib1.cell_id);
-        rrc_log->console("Select cell: PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
-                      known_cells[i].phy_cell.id, known_cells[i].earfcn,
-                      known_cells[i].sib1.cell_id);
-        // Check that cell satisfies S criteria
-        if (known_cells[i].in_sync) { // %% rsrp > S dbm
-          // Try to select Cell
-          if (phy->cell_select(known_cells[i].earfcn, known_cells[i].phy_cell))
-          {
-            last_selected_cell = i;
-            current_cell = &known_cells[i];
-            return;
-          } else {
-            rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x.\n",
-                           known_cells[i].earfcn, known_cells[i].sib1.cell_id);
-          }
-        }
-      }
-    }
-  }
-  rrc_log->info("No more known cells...\n");
-}
-
-/*******************************************************************************
-PHY interface
-*******************************************************************************/
-
-void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
-
-  // find if cell_id-earfcn combination already exists
-  for (uint32_t i = 0; i < known_cells.size(); i++) {
-    if (earfcn == known_cells[i].earfcn && phy_cell.id == known_cells[i].phy_cell.id) {
-      known_cells[i].rsrp    = rsrp;
-      known_cells[i].in_sync = true;
-      current_cell = &known_cells[i];
-      rrc_log->info("Updating cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n", known_cells[i].earfcn,
-                    known_cells[i].phy_cell.id, known_cells[i].rsrp);
-
-      if (!known_cells[i].has_valid_sib1) {
-        si_acquire_state = SI_ACQUIRE_SIB1;
-      } else {
-        for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
-          nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
-        }
-      }
-      return;
-    }
-  }
-  // add to list of known cells
-  cell_t cell;
-  cell.phy_cell = phy_cell;
-  cell.rsrp = rsrp;
-  cell.earfcn = earfcn;
-  cell.has_valid_sib1 = false;
-  cell.has_valid_sib2 = false;
-  known_cells.push_back(cell);
-
-  // save current cell
-  current_cell = &known_cells.back();
-
-  si_acquire_state = SI_ACQUIRE_SIB1;
-
-  rrc_log->info("New Cell: PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm\n",
-                cell.phy_cell.id, cell.phy_cell.nof_prb, cell.phy_cell.nof_ports,
-                cell.earfcn, cell.rsrp);
-}
-
-// Detection of physical layer problems (5.3.11.1)
-void rrc::out_of_sync() {
-    current_cell->in_sync = false;
-  if (!mac_timers->get(t311)->is_running() && !mac_timers->get(t310)->is_running()) {
-    n310_cnt++;
-    if (n310_cnt == N310) {
-      mac_timers->get(t310)->reset();
-      mac_timers->get(t310)->run();
-      n310_cnt = 0;
-      rrc_log->info("Detected %d out-of-sync from PHY. Starting T310 timer\n", N310);
-    }
-  }
-}
-
-// Recovery of physical layer problems (5.3.11.2)
-void rrc::in_sync() {
-  current_cell->in_sync = true;
-  if (mac_timers->get(t310)->is_running()) {
-    n311_cnt++;
-    if (n311_cnt == N311) {
-      mac_timers->get(t310)->stop();
-      n311_cnt = 0;
-      rrc_log->info("Detected %d in-sync from PHY. Stopping T310 timer\n", N311);
-    }
-  }
-}
-
-/*******************************************************************************
-PDCP interface
-*******************************************************************************/
-void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu) {
-  pool->deallocate(pdu);
-  if (state == RRC_STATE_PLMN_SELECTION) {
-    // Do we need to do something with BCH?
-    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
-  } else {
-    rrc_log->warning("Received BCCH BCH in incorrect state\n");
-  }
-}
-
-void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH DLSCH message received.");
-  rrc_log->info("BCCH DLSCH message Stack latency: %ld us\n", pdu->get_latency_us());
-  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
-  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
-  bit_buf.N_bits = pdu->N_bytes * 8;
-  pool->deallocate(pdu);
-  liblte_rrc_unpack_bcch_dlsch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dlsch_msg);
-
-  if (dlsch_msg.N_sibs > 0) {
-    if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[0].sib_type && SI_ACQUIRE_SIB1 == si_acquire_state) {
-      mac->bcch_stop_rx();
-
-      // Handle SIB1
-      memcpy(&current_cell->sib1, &dlsch_msg.sibs[0].sib.sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
-
-      rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
-                    current_cell->sib1.cell_id & 0xfff,
-                    liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length],
-                    liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity]);
-
-
-      // Set TDD Config
-      if (current_cell->sib1.tdd) {
-        phy->set_config_tdd(&current_cell->sib1.tdd_cnfg);
-      }
-
-      current_cell->has_valid_sib1 = true;
-
-      // Send PLMN and TAC to NAS
-      std::stringstream ss;
-      for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
-        nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
-      }
-
-      // Jump to next state
-      switch(state) {
-        case RRC_STATE_CELL_SELECTING:
-          si_acquire_state = SI_ACQUIRE_SIB2;
-          break;
-        case RRC_STATE_PLMN_SELECTION:
-          si_acquire_state = SI_ACQUIRE_IDLE;
-          rrc_log->info("SI Acquisition done. Searching next cell...\n");
-          usleep(5000);
-          phy->cell_search_next();
-          break;
-        default:
-          si_acquire_state = SI_ACQUIRE_IDLE;
-      }
-
-    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[0].sib_type &&
-               SI_ACQUIRE_SIB2 == si_acquire_state) {
-      mac->bcch_stop_rx();
-
-      // Handle SIB2
-      memcpy(&current_cell->sib2, &dlsch_msg.sibs[0].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
-      rrc_log->info("SIB2 received\n");
-
-      apply_sib2_configs(&current_cell->sib2);
-
-      current_cell->has_valid_sib2 = true;
-
-      // Jump to next state
-      switch(state) {
-        case RRC_STATE_CELL_SELECTING:
-          si_acquire_state = SI_ACQUIRE_IDLE;
-          state = RRC_STATE_CELL_SELECTED;
-          break;
-        default:
-          si_acquire_state = SI_ACQUIRE_IDLE;
-      }
-    }
-  }
-}
-
-
-// Right now, this thread only controls System Information acquisition procedure
+/*
+ *
+ * RRC State Machine
+ *
+ */
 void rrc::run_thread() {
-  uint32_t tti;
-  uint32_t si_win_start=0, si_win_len=0, last_win_start=0;
-  uint16_t period;
-  uint32_t nof_sib1_trials = 0;
-  const int SIB1_SEARCH_TIMEOUT = 30;
 
   while (thread_running) {
-    switch (si_acquire_state) {
-      case SI_ACQUIRE_SIB1:
-        // Instruct MAC to look for SIB1
-        tti = mac->get_current_tti();
-        si_win_start = sib_start_tti(tti, 2, 5);
-        if (tti > last_win_start + 10) {
-          last_win_start = si_win_start;
-          mac->bcch_start_rx(si_win_start, 1);
-          rrc_log->debug("Instructed MAC to search for SIB1, win_start=%d, win_len=%d\n",
-                         si_win_start, 1);
-          nof_sib1_trials++;
-          if (nof_sib1_trials >= SIB1_SEARCH_TIMEOUT) {
-            if (state == RRC_STATE_CELL_SELECTING) {
-              select_next_cell_in_plmn();
-              si_acquire_state = SI_ACQUIRE_IDLE;
-            } else if (state == RRC_STATE_PLMN_SELECTION) {
-              phy->cell_search_next();
-            }
-            nof_sib1_trials = 0;
-          }
-        }
-        break;
-      case SI_ACQUIRE_SIB2:
-        // Instruct MAC to look for SIB2 only when selecting a cell
-        tti = mac->get_current_tti();
-        period = liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity];
-        si_win_start = sib_start_tti(tti, period, 0);
-        if (tti > last_win_start + 10) {
-          last_win_start = si_win_start;
-          si_win_len = liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length];
 
-          mac->bcch_start_rx(si_win_start, si_win_len);
-          rrc_log->debug("Instructed MAC to search for SIB2, win_start=%d, win_len=%d\n",
-                         si_win_start, si_win_len);
-        }
-        break;
-      default:
-        break;
+    if (state >= RRC_STATE_IDLE && state < RRC_STATE_CONNECTING) {
+      run_si_acquisition_procedure();
     }
+
     switch(state) {
+      /* Procedures in IDLE state 36.304 Sec 4 */
       case RRC_STATE_IDLE:
-        if (nas->is_attached()) {
-          usleep(10000);
-          rrc_log->info("RRC IDLE: NAS is attached, re-selecting cell...\n");
-          plmn_select(selected_plmn_id);
+        // If camping on the cell, it will receive SI and paging from PLMN
+        if (phy->sync_status()) {
+
+        // If not camping on a cell
+        } else {
+          // If NAS is attached, perform cell reselection on current PLMN
+          if (nas->is_attached()) {
+            rrc_log->info("RRC IDLE: NAS is attached, PHY not synchronized. Re-selecting cell...\n");
+            plmn_select(selected_plmn_id);
+          }
+          // If not attached, PLMN selection will be triggered from higher layers
         }
         break;
       case RRC_STATE_PLMN_SELECTION:
@@ -474,6 +213,22 @@ void rrc::run_thread() {
       case RRC_STATE_CONNECTED:
         // Take measurements, cell reselection, etc
         break;
+      case RRC_STATE_LEAVE_CONNECTED:
+        usleep(60000);
+        rrc_log->info("Leaving RRC_CONNECTED state\n");
+        drb_up = false;
+        pdcp->reset();
+        rlc->reset();
+        phy->reset();
+        mac->reset();
+        set_phy_default();
+        set_mac_default();
+        mac->pcch_start_rx();
+        mac_timers->get(t311)->run();
+        mac_timers->get(t310)->stop();
+        mac_timers->get(t311)->stop();
+        state = RRC_STATE_IDLE;
+        break;
       default:
         break;
     }
@@ -487,36 +242,268 @@ void rrc::run_thread() {
 
 
 
-
-
-
-
-
-
-
 /*******************************************************************************
-NAS interface
+*
+*
+*
+* System Information Acquisition procedure
+*
+*
+*
 *******************************************************************************/
 
-void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", get_rb_name(lcid).c_str());
-  switch (state) {
-    case RRC_STATE_CONNECTING:
-      send_con_setup_complete(sdu);
+
+// Determine SI messages scheduling as in 36.331 5.2.3 Acquisition of an SI message
+uint32_t rrc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t x) {
+  return (period * 10 * (1 + tti / (period * 10)) + x) % 10240; // the 1 means next opportunity
+}
+
+void rrc::run_si_acquisition_procedure()
+{
+  uint32_t tti;
+  uint32_t si_win_start=0, si_win_len=0;
+  uint16_t period;
+  const int SIB1_SEARCH_TIMEOUT = 30;
+
+  switch (si_acquire_state) {
+    case SI_ACQUIRE_SIB1:
+      // Instruct MAC to look for SIB1
+      tti = mac->get_current_tti();
+      si_win_start = sib_start_tti(tti, 2, 5);
+      if (tti > last_win_start + 10) {
+        last_win_start = si_win_start;
+        mac->bcch_start_rx(si_win_start, 1);
+        rrc_log->debug("Instructed MAC to search for SIB1, win_start=%d, win_len=%d\n",
+                       si_win_start, 1);
+        nof_sib1_trials++;
+        if (nof_sib1_trials >= SIB1_SEARCH_TIMEOUT) {
+          if (state == RRC_STATE_CELL_SELECTING) {
+            select_next_cell_in_plmn();
+            si_acquire_state = SI_ACQUIRE_IDLE;
+          } else if (state == RRC_STATE_PLMN_SELECTION) {
+            phy->cell_search_next();
+          }
+          nof_sib1_trials = 0;
+        }
+      }
       break;
-    case RRC_STATE_CONNECTED:
-      send_ul_info_transfer(lcid, sdu);
+    case SI_ACQUIRE_SIB2:
+      // Instruct MAC to look for SIB2 only when selecting a cell
+      tti = mac->get_current_tti();
+      period = liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity];
+      si_win_start = sib_start_tti(tti, period, 0);
+      if (tti > last_win_start + 10) {
+        last_win_start = si_win_start;
+        si_win_len = liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length];
+
+        mac->bcch_start_rx(si_win_start, si_win_len);
+        rrc_log->debug("Instructed MAC to search for SIB2, win_start=%d, win_len=%d\n",
+                       si_win_start, si_win_len);
+      }
       break;
     default:
-      rrc_log->error("SDU received from NAS while RRC state = %s", rrc_state_text[state]);
       break;
   }
 }
 
 
+
+
+
+
+
+
+
+
+
 /*******************************************************************************
-MAC interface
+*
+*
+*
+* PLMN selection, cell selection/reselection and acquisition of SI procedures
+*
+*
+*
 *******************************************************************************/
+
+uint16_t rrc::get_mcc() {
+  if (current_cell) {
+    if (current_cell->sib1.N_plmn_ids > 0) {
+      return current_cell->sib1.plmn_id[0].id.mcc;
+    }
+  }
+  return 0;
+}
+
+uint16_t rrc::get_mnc() {
+  if (current_cell) {
+    if (current_cell->sib1.N_plmn_ids > 0) {
+      return current_cell->sib1.plmn_id[0].id.mnc;
+    }
+  }
+  return 0;
+}
+
+void rrc::plmn_search() {
+  rrc_log->info("Starting PLMN search procedure\n");
+  state = RRC_STATE_PLMN_SELECTION;
+  phy->cell_search_start();
+  plmn_select_timeout = 0;
+}
+
+void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
+
+  // If already camping on the selected PLMN, select this cell
+  if (state == RRC_STATE_IDLE || state == RRC_STATE_CONNECTED || state == RRC_STATE_PLMN_SELECTION) {
+    if (phy->sync_status() && selected_plmn_id.mcc == plmn_id.mcc && selected_plmn_id.mnc == plmn_id.mnc) {
+      rrc_log->info("Already camping on selected PLMN, connecting...\n");
+      state = RRC_STATE_CELL_SELECTING;
+    } else {
+      rrc_log->info("PLMN %s selected\n", plmn_id_to_c_str(plmn_id).c_str());
+      // Sort cells according to RSRP
+
+      selected_plmn_id = plmn_id;
+      last_selected_cell = -1;
+      select_cell_timeout = 0;
+
+      state = RRC_STATE_CELL_SELECTING;
+      select_next_cell_in_plmn();
+    }
+  } else {
+    rrc_log->warning("Requested PLMN select in incorrect state %s\n", rrc_state_text[state]);
+  }
+}
+
+void rrc::select_next_cell_in_plmn() {
+  for (uint32_t i = last_selected_cell + 1; i < known_cells.size(); i++) {
+    for (uint32_t j = 0; j < known_cells[i].sib1.N_plmn_ids; j++) {
+      if (known_cells[i].sib1.plmn_id[j].id.mcc == selected_plmn_id.mcc ||
+          known_cells[i].sib1.plmn_id[j].id.mnc == selected_plmn_id.mnc) {
+        rrc_log->info("Selecting cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
+                      known_cells[i].phy_cell.id, known_cells[i].earfcn,
+                      known_cells[i].sib1.cell_id);
+        rrc_log->console("Select cell: PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
+                      known_cells[i].phy_cell.id, known_cells[i].earfcn,
+                      known_cells[i].sib1.cell_id);
+        // Check that cell satisfies S criteria
+        if (known_cells[i].in_sync) { // %% rsrp > S dbm
+          // Try to select Cell
+          if (phy->cell_select(known_cells[i].earfcn, known_cells[i].phy_cell))
+          {
+            last_selected_cell = i;
+            current_cell = &known_cells[i];
+            return;
+          } else {
+            rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x.\n",
+                           known_cells[i].earfcn, known_cells[i].sib1.cell_id);
+          }
+        }
+      }
+    }
+  }
+  rrc_log->info("No more known cells...\n");
+}
+
+void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
+
+  // find if cell_id-earfcn combination already exists
+  for (uint32_t i = 0; i < known_cells.size(); i++) {
+    if (earfcn == known_cells[i].earfcn && phy_cell.id == known_cells[i].phy_cell.id) {
+      known_cells[i].rsrp    = rsrp;
+      known_cells[i].in_sync = true;
+      current_cell = &known_cells[i];
+      rrc_log->info("Updating cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n", known_cells[i].earfcn,
+                    known_cells[i].phy_cell.id, known_cells[i].rsrp);
+
+      if (!known_cells[i].has_valid_sib1) {
+        si_acquire_state = SI_ACQUIRE_SIB1;
+      } else {
+        for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
+          nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
+        }
+      }
+      return;
+    }
+  }
+  // add to list of known cells
+  cell_t cell;
+  cell.phy_cell = phy_cell;
+  cell.rsrp = rsrp;
+  cell.earfcn = earfcn;
+  cell.has_valid_sib1 = false;
+  cell.has_valid_sib2 = false;
+  known_cells.push_back(cell);
+
+  // save current cell
+  current_cell = &known_cells.back();
+
+  si_acquire_state = SI_ACQUIRE_SIB1;
+
+  rrc_log->info("New Cell: PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm\n",
+                cell.phy_cell.id, cell.phy_cell.nof_prb, cell.phy_cell.nof_ports,
+                cell.earfcn, cell.rsrp);
+}
+
+
+
+
+
+
+
+
+
+/*******************************************************************************
+*
+*
+*
+* Detection of Radio-Link Failures
+*
+*
+*
+*******************************************************************************/
+
+// Detection of physical layer problems (5.3.11.1)
+void rrc::out_of_sync() {
+    current_cell->in_sync = false;
+  if (!mac_timers->get(t311)->is_running() && !mac_timers->get(t310)->is_running()) {
+    n310_cnt++;
+    if (n310_cnt == N310) {
+      mac_timers->get(t310)->reset();
+      mac_timers->get(t310)->run();
+      n310_cnt = 0;
+      rrc_log->info("Detected %d out-of-sync from PHY. Starting T310 timer\n", N310);
+    }
+  }
+}
+
+// Recovery of physical layer problems (5.3.11.2)
+void rrc::in_sync() {
+  current_cell->in_sync = true;
+  if (mac_timers->get(t310)->is_running()) {
+    n311_cnt++;
+    if (n311_cnt == N311) {
+      mac_timers->get(t310)->stop();
+      n311_cnt = 0;
+      rrc_log->info("Detected %d in-sync from PHY. Stopping T310 timer\n", N311);
+    }
+  }
+}
+
+/* Detection of radio link failure (5.3.11.3)
+ * Upon T310 expiry, RA problem or RLC max retx
+ */
+void rrc::radio_link_failure() {
+  // TODO: Generate and store failure report
+
+  rrc_log->warning("Detected Radio-Link Failure\n");
+  rrc_log->console("Warning: Detected Radio-Link Failure\n");
+  if (state != RRC_STATE_CONNECTED) {
+    state = RRC_STATE_LEAVE_CONNECTED;
+  } else {
+    send_con_restablish_request();
+  }
+}
+
 /* Reception of PUCCH/SRS release procedure (Section 5.3.13) */
 void rrc::release_pucch_srs() {
   // Apply default configuration for PUCCH (CQI and SR) and SRS (release)
@@ -530,95 +517,42 @@ void rrc::ra_problem() {
   radio_link_failure();
 }
 
-/*******************************************************************************
-GW interface
-*******************************************************************************/
-
-bool rrc::is_connected() {
-  return (RRC_STATE_CONNECTED == state);
-}
-
-bool rrc::have_drb() {
-  return drb_up;
-}
-
-/*******************************************************************************
-PDCP interface
-*******************************************************************************/
-
-void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", get_rb_name(lcid).c_str());
-  rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
-
-  switch (lcid) {
-    case RB_ID_SRB0:
-      parse_dl_ccch(pdu);
-      break;
-    case RB_ID_SRB1:
-    case RB_ID_SRB2:
-      parse_dl_dcch(lcid, pdu);
-      break;
-    default:
-      rrc_log->error("TX PDU with invalid bearer id: %s", lcid);
-      break;
-  }
-}
-
-void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
-  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
-    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received %d bytes\n", pdu->N_bytes);
-    rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
-    rrc_log->console("PCCH message received %d bytes\n", pdu->N_bytes);
-
-    LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg;
-    srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
-    bit_buf.N_bits = pdu->N_bytes * 8;
-    pool->deallocate(pdu);
-    liblte_rrc_unpack_pcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &pcch_msg);
-
-    if (pcch_msg.paging_record_list_size > LIBLTE_RRC_MAX_PAGE_REC) {
-      pcch_msg.paging_record_list_size = LIBLTE_RRC_MAX_PAGE_REC;
-    }
-
-    LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
-    if (!nas->get_s_tmsi(&s_tmsi)) {
-      rrc_log->info("No S-TMSI present in NAS\n");
-      return;
-    }
-
-    LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi_paged;
-    for (uint32_t i = 0; i < pcch_msg.paging_record_list_size; i++) {
-      s_tmsi_paged = &pcch_msg.paging_record_list[i].ue_identity.s_tmsi;
-      rrc_log->info("Received paging (%d/%d) for UE 0x%x\n", i + 1, pcch_msg.paging_record_list_size,
-                    pcch_msg.paging_record_list[i].ue_identity.s_tmsi);
-      rrc_log->console("Received paging (%d/%d) for UE 0x%x\n", i + 1, pcch_msg.paging_record_list_size,
-                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi);
-      if (s_tmsi.mmec == s_tmsi_paged->mmec && s_tmsi.m_tmsi == s_tmsi_paged->m_tmsi) {
-        rrc_log->info("S-TMSI match in paging message\n");
-        rrc_log->console("S-TMSI match in paging message\n");
-        mac->pcch_stop_rx();
-        if (RRC_STATE_IDLE == state) {
-          rrc_log->info("RRC in IDLE state - sending connection request.\n");
-          state = RRC_STATE_CONNECTING;
-          send_con_request();
-        }
-      }
-    }
-  }
-}
-
-/*******************************************************************************
-RLC interface
-*******************************************************************************/
-
 void rrc::max_retx_attempted() {
   //TODO: Handle the radio link failure
   rrc_log->warning("Max RLC reTx attempted\n");
-  //radio_link_failure();
+  radio_link_failure();
 }
 
+void rrc::timer_expired(uint32_t timeout_id) {
+  if (timeout_id == t310) {
+    rrc_log->info("Timer T310 expired: Radio Link Failure\n");
+    radio_link_failure();
+  } else if (timeout_id == t311) {
+    rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
+    state = RRC_STATE_LEAVE_CONNECTED;
+  } else if (timeout_id == t301) {
+    rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
+    state = RRC_STATE_LEAVE_CONNECTED;
+  } else {
+    rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
+  }
+}
+
+
+
+
+
+
+
+
 /*******************************************************************************
-Senders
+*
+*
+*
+* Connection Control: Establishment, Reconfiguration, Reestablishment and Release
+*
+*
+*
 *******************************************************************************/
 
 void rrc::send_con_request() {
@@ -879,6 +813,355 @@ void rrc::send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu) {
   pdcp->write_sdu(lcid, pdu);
 }
 
+
+void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig,
+                                  byte_buffer_t *pdu) {
+  uint32_t i;
+
+  if (reconfig->rr_cnfg_ded_present) {
+    apply_rr_config_dedicated(&reconfig->rr_cnfg_ded);
+  } else {
+    printf("received con reconfig no rr confg present\n");
+  }
+  if (reconfig->meas_cnfg_present) {
+    //TODO: handle meas_cnfg
+  }
+  if (reconfig->mob_ctrl_info_present) {
+    //TODO: handle mob_ctrl_info
+  }
+
+  send_rrc_con_reconfig_complete(lcid, pdu);
+
+  byte_buffer_t *nas_sdu;
+  for (i = 0; i < reconfig->N_ded_info_nas; i++) {
+    nas_sdu = pool_allocate;;
+    memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
+    nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
+    nas->write_pdu(lcid, nas_sdu);
+  }
+}
+
+  /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
+void rrc::rrc_connection_release() {
+  // Save idleModeMobilityControlInfo, etc.
+  state = RRC_STATE_LEAVE_CONNECTED;
+  rrc_log->console("Received RRC Connection Release\n");
+}
+
+
+
+
+
+
+
+
+/*******************************************************************************
+*
+*
+*
+* Reception of Broadcast messages (MIB and SIBs)
+*
+*
+*
+*******************************************************************************/
+void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu) {
+  pool->deallocate(pdu);
+  if (state == RRC_STATE_PLMN_SELECTION) {
+    // Do we need to do something with BCH?
+    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
+  } else {
+    rrc_log->warning("Received BCCH BCH in incorrect state\n");
+  }
+}
+
+void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH DLSCH message received.");
+  rrc_log->info("BCCH DLSCH message Stack latency: %ld us\n", pdu->get_latency_us());
+  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
+  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
+  bit_buf.N_bits = pdu->N_bytes * 8;
+  pool->deallocate(pdu);
+  liblte_rrc_unpack_bcch_dlsch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dlsch_msg);
+
+  if (dlsch_msg.N_sibs > 0) {
+    if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[0].sib_type && SI_ACQUIRE_SIB1 == si_acquire_state) {
+      mac->bcch_stop_rx();
+
+      // Handle SIB1
+      memcpy(&current_cell->sib1, &dlsch_msg.sibs[0].sib.sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
+
+      rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
+                    current_cell->sib1.cell_id & 0xfff,
+                    liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length],
+                    liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity]);
+
+
+      // Set TDD Config
+      if (current_cell->sib1.tdd) {
+        phy->set_config_tdd(&current_cell->sib1.tdd_cnfg);
+      }
+
+      current_cell->has_valid_sib1 = true;
+
+      // Send PLMN and TAC to NAS
+      std::stringstream ss;
+      for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
+        nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
+      }
+
+      // Jump to next state
+      switch(state) {
+        case RRC_STATE_CELL_SELECTING:
+          si_acquire_state = SI_ACQUIRE_SIB2;
+          break;
+        case RRC_STATE_PLMN_SELECTION:
+          si_acquire_state = SI_ACQUIRE_IDLE;
+          rrc_log->info("SI Acquisition done. Searching next cell...\n");
+          usleep(5000);
+          phy->cell_search_next();
+          break;
+        default:
+          si_acquire_state = SI_ACQUIRE_IDLE;
+      }
+
+    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[0].sib_type &&
+               SI_ACQUIRE_SIB2 == si_acquire_state) {
+      mac->bcch_stop_rx();
+
+      // Handle SIB2
+      memcpy(&current_cell->sib2, &dlsch_msg.sibs[0].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
+      rrc_log->info("SIB2 received\n");
+
+      apply_sib2_configs(&current_cell->sib2);
+
+      current_cell->has_valid_sib2 = true;
+
+      // Jump to next state
+      switch(state) {
+        case RRC_STATE_CELL_SELECTING:
+          si_acquire_state = SI_ACQUIRE_IDLE;
+          state = RRC_STATE_CELL_SELECTED;
+          break;
+        default:
+          si_acquire_state = SI_ACQUIRE_IDLE;
+      }
+    }
+  }
+}
+
+
+
+/*******************************************************************************
+*
+*
+*
+* Reception of Paging messages
+*
+*
+*
+*******************************************************************************/
+void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
+  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
+    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received %d bytes\n", pdu->N_bytes);
+    rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
+    rrc_log->console("PCCH message received %d bytes\n", pdu->N_bytes);
+
+    LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg;
+    srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
+    bit_buf.N_bits = pdu->N_bytes * 8;
+    pool->deallocate(pdu);
+    liblte_rrc_unpack_pcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &pcch_msg);
+
+    if (pcch_msg.paging_record_list_size > LIBLTE_RRC_MAX_PAGE_REC) {
+      pcch_msg.paging_record_list_size = LIBLTE_RRC_MAX_PAGE_REC;
+    }
+
+    LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
+    if (!nas->get_s_tmsi(&s_tmsi)) {
+      rrc_log->info("No S-TMSI present in NAS\n");
+      return;
+    }
+
+    LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi_paged;
+    for (uint32_t i = 0; i < pcch_msg.paging_record_list_size; i++) {
+      s_tmsi_paged = &pcch_msg.paging_record_list[i].ue_identity.s_tmsi;
+      rrc_log->info("Received paging (%d/%d) for UE 0x%x\n", i + 1, pcch_msg.paging_record_list_size,
+                    pcch_msg.paging_record_list[i].ue_identity.s_tmsi);
+      rrc_log->console("Received paging (%d/%d) for UE 0x%x\n", i + 1, pcch_msg.paging_record_list_size,
+                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi);
+      if (s_tmsi.mmec == s_tmsi_paged->mmec && s_tmsi.m_tmsi == s_tmsi_paged->m_tmsi) {
+        rrc_log->info("S-TMSI match in paging message\n");
+        rrc_log->console("S-TMSI match in paging message\n");
+        mac->pcch_stop_rx();
+        if (RRC_STATE_IDLE == state) {
+          rrc_log->info("RRC in IDLE state - sending connection request.\n");
+          state = RRC_STATE_CELL_SELECTING;
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+/*******************************************************************************
+*
+*
+*
+* Packet processing
+*
+*
+*
+*******************************************************************************/
+void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", get_rb_name(lcid).c_str());
+  switch (state) {
+    case RRC_STATE_CONNECTING:
+      send_con_setup_complete(sdu);
+      break;
+    case RRC_STATE_CONNECTED:
+      send_ul_info_transfer(lcid, sdu);
+      break;
+    default:
+      rrc_log->error("SDU received from NAS while RRC state = %s", rrc_state_text[state]);
+      break;
+  }
+}
+
+void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", get_rb_name(lcid).c_str());
+  rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
+
+  switch (lcid) {
+    case RB_ID_SRB0:
+      parse_dl_ccch(pdu);
+      break;
+    case RB_ID_SRB1:
+    case RB_ID_SRB2:
+      parse_dl_dcch(lcid, pdu);
+      break;
+    default:
+      rrc_log->error("TX PDU with invalid bearer id: %s", lcid);
+      break;
+  }
+}
+
+void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
+  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
+  bit_buf.N_bits = pdu->N_bytes * 8;
+  pool->deallocate(pdu);
+  bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
+  liblte_rrc_unpack_dl_ccch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_ccch_msg);
+
+  rrc_log->info("SRB0 - Received %s\n",
+                liblte_rrc_dl_ccch_msg_type_text[dl_ccch_msg.msg_type]);
+
+  switch (dl_ccch_msg.msg_type) {
+    case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
+      rrc_log->info("Connection Reject received. Wait time: %d\n",
+                    dl_ccch_msg.msg.rrc_con_rej.wait_time);
+      state = RRC_STATE_IDLE;
+      break;
+    case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP:
+      rrc_log->info("Connection Setup received\n");
+      transaction_id = dl_ccch_msg.msg.rrc_con_setup.rrc_transaction_id;
+      handle_con_setup(&dl_ccch_msg.msg.rrc_con_setup);
+      rrc_log->info("Notifying NAS of connection setup\n");
+      nas->notify_connection_setup();
+      break;
+    case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST:
+      rrc_log->info("Connection Reestablishment received\n");
+      rrc_log->console("Reestablishment OK\n");
+      transaction_id = dl_ccch_msg.msg.rrc_con_reest.rrc_transaction_id;
+      handle_con_reest(&dl_ccch_msg.msg.rrc_con_reest);
+      break;
+      /* Reception of RRCConnectionReestablishmentReject 5.3.7.8 */
+    case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST_REJ:
+      rrc_log->info("Connection Reestablishment Reject received\n");
+      rrc_log->console("Reestablishment Reject\n");
+      state = RRC_STATE_LEAVE_CONNECTED;
+      break;
+    default:
+      break;
+  }
+}
+
+void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
+  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
+  bit_buf.N_bits = pdu->N_bytes * 8;
+  liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
+
+  rrc_log->info("%s - Received %s\n",
+                get_rb_name(lcid).c_str(),
+                liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
+
+  // Reset and reuse pdu buffer if possible
+  pdu->reset();
+
+  switch (dl_dcch_msg.msg_type) {
+    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_DL_INFO_TRANSFER:
+      memcpy(pdu->msg, dl_dcch_msg.msg.dl_info_transfer.dedicated_info.msg,
+             dl_dcch_msg.msg.dl_info_transfer.dedicated_info.N_bytes);
+      pdu->N_bytes = dl_dcch_msg.msg.dl_info_transfer.dedicated_info.N_bytes;
+      nas->write_pdu(lcid, pdu);
+      break;
+    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_SECURITY_MODE_COMMAND:
+      transaction_id = dl_dcch_msg.msg.security_mode_cmd.rrc_transaction_id;
+
+      cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) dl_dcch_msg.msg.security_mode_cmd.sec_algs.cipher_alg;
+      integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM) dl_dcch_msg.msg.security_mode_cmd.sec_algs.int_alg;
+
+      // Configure PDCP for security
+      usim->generate_as_keys(nas->get_ul_count(), k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+      pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+      send_security_mode_complete(lcid, pdu);
+      break;
+    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG:
+      transaction_id = dl_dcch_msg.msg.rrc_con_reconfig.rrc_transaction_id;
+      handle_rrc_con_reconfig(lcid, &dl_dcch_msg.msg.rrc_con_reconfig, pdu);
+      break;
+    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_UE_CAPABILITY_ENQUIRY:
+      transaction_id = dl_dcch_msg.msg.ue_cap_enquiry.rrc_transaction_id;
+      for (uint32_t i = 0; i < dl_dcch_msg.msg.ue_cap_enquiry.N_ue_cap_reqs; i++) {
+        if (LIBLTE_RRC_RAT_TYPE_EUTRA == dl_dcch_msg.msg.ue_cap_enquiry.ue_capability_request[i]) {
+          send_rrc_ue_cap_info(lcid, pdu);
+          break;
+        }
+      }
+      break;
+    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RELEASE:
+      rrc_connection_release();
+      break;
+    default:
+      break;
+  }
+}
+
+
+
+
+
+
+
+
+
+/*******************************************************************************
+*
+*
+*
+* Capabilities Message
+*
+*
+*
+*******************************************************************************/
 void rrc::enable_capabilities() {
   bool enable_ul_64 = ue_category >= 5 && current_cell->sib2.rr_config_common_sib.pusch_cnfg.enable_64_qam;
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64 ? "Enabling" : "Disabling");
@@ -963,175 +1246,24 @@ void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu) {
   pdcp->write_sdu(lcid, pdu);
 }
 
-/*******************************************************************************
-Parsers
-*******************************************************************************/
 
-void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
-  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
-  bit_buf.N_bits = pdu->N_bytes * 8;
-  pool->deallocate(pdu);
-  bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
-  liblte_rrc_unpack_dl_ccch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_ccch_msg);
 
-  rrc_log->info("SRB0 - Received %s\n",
-                liblte_rrc_dl_ccch_msg_type_text[dl_ccch_msg.msg_type]);
 
-  switch (dl_ccch_msg.msg_type) {
-    case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
-      rrc_log->info("Connection Reject received. Wait time: %d\n",
-                    dl_ccch_msg.msg.rrc_con_rej.wait_time);
-      state = RRC_STATE_IDLE;
-      break;
-    case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP:
-      rrc_log->info("Connection Setup received\n");
-      transaction_id = dl_ccch_msg.msg.rrc_con_setup.rrc_transaction_id;
-      handle_con_setup(&dl_ccch_msg.msg.rrc_con_setup);
-      rrc_log->info("Notifying NAS of connection setup\n");
-      nas->notify_connection_setup();
-      break;
-    case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST:
-      rrc_log->info("Connection Reestablishment received\n");
-      rrc_log->console("Reestablishment OK\n");
-      transaction_id = dl_ccch_msg.msg.rrc_con_reest.rrc_transaction_id;
-      handle_con_reest(&dl_ccch_msg.msg.rrc_con_reest);
-      break;
-    case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST_REJ:
-      rrc_log->info("Connection Reestablishment Reject received\n");
-      rrc_log->console("Reestablishment Reject\n");
-      usleep(50000);
-      rrc_connection_release();
-      break;
-    default:
-      break;
-  }
-}
 
-void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
-  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
-  bit_buf.N_bits = pdu->N_bytes * 8;
-  liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
 
-  rrc_log->info("%s - Received %s\n",
-                get_rb_name(lcid).c_str(),
-                liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
-  // Reset and reuse pdu buffer if possible
-  pdu->reset();
 
-  switch (dl_dcch_msg.msg_type) {
-    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_DL_INFO_TRANSFER:
-      memcpy(pdu->msg, dl_dcch_msg.msg.dl_info_transfer.dedicated_info.msg,
-             dl_dcch_msg.msg.dl_info_transfer.dedicated_info.N_bytes);
-      pdu->N_bytes = dl_dcch_msg.msg.dl_info_transfer.dedicated_info.N_bytes;
-      nas->write_pdu(lcid, pdu);
-      break;
-    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_SECURITY_MODE_COMMAND:
-      transaction_id = dl_dcch_msg.msg.security_mode_cmd.rrc_transaction_id;
 
-      cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) dl_dcch_msg.msg.security_mode_cmd.sec_algs.cipher_alg;
-      integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM) dl_dcch_msg.msg.security_mode_cmd.sec_algs.int_alg;
-
-      // Configure PDCP for security
-      usim->generate_as_keys(nas->get_ul_count(), k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
-      pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
-      send_security_mode_complete(lcid, pdu);
-      break;
-    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG:
-      transaction_id = dl_dcch_msg.msg.rrc_con_reconfig.rrc_transaction_id;
-      handle_rrc_con_reconfig(lcid, &dl_dcch_msg.msg.rrc_con_reconfig, pdu);
-      break;
-    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_UE_CAPABILITY_ENQUIRY:
-      transaction_id = dl_dcch_msg.msg.ue_cap_enquiry.rrc_transaction_id;
-      for (uint32_t i = 0; i < dl_dcch_msg.msg.ue_cap_enquiry.N_ue_cap_reqs; i++) {
-        if (LIBLTE_RRC_RAT_TYPE_EUTRA == dl_dcch_msg.msg.ue_cap_enquiry.ue_capability_request[i]) {
-          send_rrc_ue_cap_info(lcid, pdu);
-          break;
-        }
-      }
-      break;
-    case LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RELEASE:
-      rrc_connection_release();
-      break;
-    default:
-      break;
-  }
-}
 
 /*******************************************************************************
-Timer expiration callback
+*
+*
+*
+* PHY and MAC Radio Resource configuration
+*
+*
+*
 *******************************************************************************/
-void rrc::timer_expired(uint32_t timeout_id) {
-  if (timeout_id == t310) {
-    rrc_log->info("Timer T310 expired: Radio Link Failure\n");
-    radio_link_failure();
-  } else if (timeout_id == t311) {
-    rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
-    rrc_connection_release();
-  } else if (timeout_id == t301) {
-    rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
-    rrc_connection_release();
-  } else if (timeout_id == safe_reset_timer) {
-    reset_ue();
-  } else {
-    rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
-  }
-}
-
-/*******************************************************************************
-Helpers
-*******************************************************************************/
-
-void rrc::reset_ue() {
-  phy->reset();
-  mac->reset();
-  pdcp->reset();
-  rlc->reset();
-  mac->pcch_start_rx();
-  mac_timers->get(safe_reset_timer)->stop();
-  mac_timers->get(safe_reset_timer)->reset();
-  rrc_log->console("RRC Connection Released.\n");
-}
-
-void rrc::rrc_connection_release() {
-  pthread_mutex_lock(&mutex);
-  drb_up = false;
-  state = RRC_STATE_IDLE;
-  phy->reset();
-  set_phy_default();
-  set_mac_default();
-  mac_timers->get(t311)->run();
-  mac_timers->get(t310)->stop();
-  mac_timers->get(t311)->stop();
-  mac_timers->get(safe_reset_timer)->stop();
-  mac_timers->get(safe_reset_timer)->reset();
-  mac_timers->get(safe_reset_timer)->run();
-  pthread_mutex_unlock(&mutex);
-}
-
-void rrc::test_con_restablishment() {
-  printf("Testing connection Reestablishment\n");
-  send_con_restablish_request();
-}
-
-/* Detection of radio link failure (5.3.11.3) */
-void rrc::radio_link_failure() {
-  // TODO: Generate and store failure report
-
-  rrc_log->warning("Detected Radio-Link Failure\n");
-  rrc_log->console("Warning: Detected Radio-Link Failure\n");
-  if (state != RRC_STATE_CONNECTED) {
-    rrc_connection_release();
-  } else {
-    send_con_restablish_request();
-  }
-}
-
-
-// Determine SI messages scheduling as in 36.331 5.2.3 Acquisition of an SI message
-uint32_t rrc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t x) {
-  return (period * 10 * (1 + tti / (period * 10)) + x) % 10240; // the 1 means next opportunity
-}
 
 void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
 
@@ -1453,33 +1585,6 @@ void rrc::handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup) 
 }
 
 
-void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig,
-                                  byte_buffer_t *pdu) {
-  uint32_t i;
-
-  if (reconfig->rr_cnfg_ded_present) {
-    apply_rr_config_dedicated(&reconfig->rr_cnfg_ded);
-  } else {
-    printf("received con reconfig no rr confg present\n");
-  }
-  if (reconfig->meas_cnfg_present) {
-    //TODO: handle meas_cnfg
-  }
-  if (reconfig->mob_ctrl_info_present) {
-    //TODO: handle mob_ctrl_info
-  }
-
-  send_rrc_con_reconfig_complete(lcid, pdu);
-
-  byte_buffer_t *nas_sdu;
-  for (i = 0; i < reconfig->N_ded_info_nas; i++) {
-    nas_sdu = pool_allocate;;
-    memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
-    nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
-    nas->write_pdu(lcid, nas_sdu);
-  }
-}
-
 void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
   // Setup PDCP
   pdcp->add_bearer(srb_cnfg->srb_id, srslte_pdcp_config_t(true)); // Set PDCP config control flag
@@ -1588,10 +1693,6 @@ void rrc::release_drb(uint8_t lcid) {
   // TODO
 }
 
-/************************** 
-*  DEFAULT VALUES Section 9
-****************************/
-
 // PHY CONFIG DEDICATED Defaults (3GPP 36.331 v10 9.2.4)
 void rrc::set_phy_default_pucch_srs() {
 
@@ -1630,7 +1731,6 @@ void rrc::set_rrc_default() {
   N311 = 1;
   mac_timers->get(t310)->set(this, 1000);
   mac_timers->get(t311)->set(this, 1000);
-  mac_timers->get(safe_reset_timer)->set(this, 10);
 }
 
 

@@ -65,6 +65,15 @@ void pdcp::reset()
 /*******************************************************************************
   RRC/GW interface
 *******************************************************************************/
+bool pdcp::is_drb_enabled(uint32_t lcid)
+{
+  if(lcid >= SRSLTE_N_RADIO_BEARERS) {
+    pdcp_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
+    return false;
+  }
+  return pdcp_array[lcid].is_active();
+}
+
 void pdcp::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 {
   if(valid_lcid(lcid))

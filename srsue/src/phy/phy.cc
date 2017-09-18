@@ -298,8 +298,8 @@ int phy::prach_tx_tti()
 
 void phy::reset()
 {
-  sf_recv.stop_sync();
-  n_ta = 0; 
+  Info("Resetting PHY\n");
+  n_ta = 0;
   pdcch_dl_search_reset();
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();

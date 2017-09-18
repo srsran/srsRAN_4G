@@ -167,7 +167,7 @@ bool ue::init(all_args_t *args_)
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
   nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
-  gw.init(&pdcp, this, &gw_log, 3 /* RB_ID_DRB1 */);
+  gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
 
   usim.init(&args->usim, &usim_log);
 
@@ -193,10 +193,6 @@ bool ue::init(all_args_t *args_)
 void ue::pregenerate_signals(bool enable)
 {
   phy.enable_pregen_signals(enable);
-}
-
-void ue::test_con_restablishment() {
-  rrc.test_con_restablishment();
 }
 
 void ue::stop()

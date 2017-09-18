@@ -29,7 +29,7 @@
 
 #include <stdint.h>
 
-#include "srslte/upper/gw_metrics.h"
+#include "upper/gw_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "mac/mac_metrics.h"
 #include "phy/phy_metrics.h"
@@ -48,7 +48,7 @@ typedef struct {
   phy_metrics_t         phy;
   mac_metrics_t         mac;
   srslte::rlc_metrics_t rlc;
-  srslte::gw_metrics_t  gw;
+  gw_metrics_t          gw;
 }ue_metrics_t;
 
 // UE interface

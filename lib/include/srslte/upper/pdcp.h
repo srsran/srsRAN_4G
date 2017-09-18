@@ -50,6 +50,9 @@ public:
             uint8_t direction_);
   void stop();
 
+  // GW interface
+  bool is_drb_enabled(uint32_t lcid);
+
   // RRC interface
   void reset();
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);

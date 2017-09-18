@@ -407,14 +407,18 @@ void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
 }
 
 bool phch_recv::stop_sync() {
-  Info("SYNC:  Going to IDLE\n");
-  phy_state = IDLE;
-  int cnt=0;
-  while(!is_in_idle && cnt<100) {
-    usleep(10000);
-    cnt++;
+  if (phy_state == IDLE && is_in_idle) {
+    return true;
+  } else {
+    Info("SYNC:  Going to IDLE\n");
+    phy_state = IDLE;
+    int cnt = 0;
+    while (!is_in_idle && cnt < 100) {
+      usleep(10000);
+      cnt++;
+    }
+    return is_in_idle;
   }
-  return is_in_idle;
 }
 
 void phch_recv::cell_search_inc()
@@ -425,7 +429,6 @@ void phch_recv::cell_search_inc()
       cur_earfcn_index = 0;
     }
   }
-  usleep(100000);
   Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
   if (current_earfcn != earfcn[cur_earfcn_index]) {
     current_earfcn = earfcn[cur_earfcn_index];
@@ -627,8 +630,6 @@ void phch_recv::run_thread() {
             rrc->cell_found(earfcn[cur_earfcn_index], cell, 10*log10(measure_rsrp/1000));
             break;
           case 0:
-            log_h->error("SYNC:  Getting RSRP cell measurement.\n");
-            cell_search_next();
             break;
           default:
             log_h->error("SYNC:  Receiving frorm radio.\n");
@@ -684,6 +685,7 @@ void phch_recv::run_thread() {
                 rrc->in_sync();
                 log_h->debug("SYNC:  Sending in-sync to RRC\n");
               }
+              break;
             case 0:
               log_h->error("SYNC:  Sync error. Sending out-of-sync to RRC\n");
               // Notify RRC of out-of-sync frame
@@ -692,7 +694,7 @@ void phch_recv::run_thread() {
               worker_com->reset_ul();
               break;
             default:
-              log_h->error("SYNC:  Receiving frorm radio.\n");
+              log_h->error("SYNC:  Receiving from radio.\n");
               phy_state = IDLE;
               radio_h->reset();
           }

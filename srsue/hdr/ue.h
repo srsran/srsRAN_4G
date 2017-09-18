@@ -45,7 +45,7 @@
 #include "srslte/upper/pdcp.h"
 #include "upper/rrc.h"
 #include "upper/nas.h"
-#include "srslte/upper/gw.h"
+#include "upper/gw.h"
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"
@@ -82,9 +82,6 @@ public:
 
   void pregenerate_signals(bool enable);
 
-  // Testing
-  void test_con_restablishment();
-
 
 private:
   virtual ~ue();
@@ -97,7 +94,7 @@ private:
   srslte::pdcp       pdcp;
   srsue::rrc         rrc;
   srsue::nas         nas;
-  srslte::gw         gw;
+  srsue::gw          gw;
   srsue::usim        usim;
 
 #ifdef LOG_STDOUT

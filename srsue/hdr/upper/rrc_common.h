@@ -38,14 +38,16 @@ typedef enum {
   RRC_STATE_CELL_SELECTED,
   RRC_STATE_CONNECTING,
   RRC_STATE_CONNECTED,
+  RRC_STATE_LEAVE_CONNECTED,
   RRC_STATE_N_ITEMS,
 } rrc_state_t;
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "PLMN SELECTION",
-                                                            "CELL SELECTION",
+                                                            "CELL SELECTING",
+                                                            "CELL SELECTED",
                                                             "CONNECTING",
                                                             "CONNECTED",
-                                                            "RRC CONNECTED"};
+                                                            "LEAVE CONNECTED"};
 
 } // namespace srsue
 

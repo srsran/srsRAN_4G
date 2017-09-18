@@ -78,8 +78,6 @@ public:
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);
 
-  void test_con_restablishment();
-
   void liblte_rrc_log(char *str);
 
 private:
@@ -130,7 +128,6 @@ private:
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
   uint32_t t301, t310, t311;
-  uint32_t safe_reset_timer;
   int ue_category;
 
   typedef struct {
@@ -155,6 +152,10 @@ private:
   } si_acquire_state_t;
 
   si_acquire_state_t si_acquire_state;
+  void               run_si_acquisition_procedure();
+  uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t x);
+  uint32_t           nof_sib1_trials;
+  uint32_t           last_win_start;
 
   void select_next_cell_in_plmn();
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT selected_plmn_id;
@@ -242,12 +243,10 @@ private:
   void          parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
 
   // Helpers
-  void          reset_ue();
   void          rrc_connection_release();
   void          radio_link_failure(); 
   static void*  start_sib_thread(void *rrc_);
   void          sib_search();
-  uint32_t      sib_start_tti(uint32_t tti, uint32_t period, uint32_t x);
   void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
   void          handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
   void          handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);

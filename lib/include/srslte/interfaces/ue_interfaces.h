@@ -113,6 +113,13 @@ public:
   virtual void      deattach_request() = 0;
 };
 
+// NAS interface for UE
+class nas_interface_gw
+{
+public:
+  virtual void      attach_request() = 0;
+};
+
 // RRC interface for MAC
 class rrc_interface_mac_common
 {
@@ -172,6 +179,7 @@ class pdcp_interface_gw
 {
 public:
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual bool is_drb_enabled(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RRC
