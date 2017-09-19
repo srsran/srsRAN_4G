@@ -255,9 +255,17 @@ void phch_worker::work_imp()
 
       /* Select Rank Indicator by computing Condition Number */
       if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
-        float cn = 0.0f;
-        srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
-        uci_data.uci_ri_len = 1;
+        if (ue_dl.nof_rx_antennas > 1) {
+          /* If 2 ort more receiving antennas, select RI */
+          float cn = 0.0f;
+          srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
+          uci_data.uci_ri_len = 1;
+        } else {
+          /* If only one receiving antenna, force RI for 1 layer */
+          uci_data.uci_ri = 0;
+          uci_data.uci_ri_len = 1;
+          Warning("Only one receiving antenna with TM3. Forcing RI=1 layer.\n");
+        }
       } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4){
         float sinr = 0.0f;
         uint8 packed_pmi = 0;
@@ -270,6 +278,11 @@ void phch_worker::work_imp()
         } else {
           uci_data.uci_pmi_len = 1;
           uci_data.uci_dif_cqi_len = 3;
+        }
+
+        /* If only one antenna in TM4 print limitation warning */
+        if (ue_dl.nof_rx_antennas < 2) {
+          Warning("Only one receiving antenna with TM4. Forcing RI=1 layer (PMI=%d).\n", packed_pmi);
         }
       }
     }
@@ -508,20 +521,22 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
     case LIBLTE_RRC_TRANSMISSION_MODE_3:
       if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
         mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-      } else if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
+      } else if (ue_dl.nof_rx_antennas > 1 && SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_CDD;
       } else {
-        Error("Wrong number of transport blocks (%d) for TM3\n", SRSLTE_RA_DL_GRANT_NOF_TB(grant));
+        Error("Wrong combination of antennas (%d) or transport blocks (%d) for TM3\n", ue_dl.nof_rx_antennas,
+              SRSLTE_RA_DL_GRANT_NOF_TB(grant));
         valid_config = false;
       }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_4:
       if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
         mimo_type = (grant->pinfo == 0) ? SRSLTE_MIMO_TYPE_TX_DIVERSITY : SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
-      } else if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
+      } else if (ue_dl.nof_rx_antennas > 1 && SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
       } else {
-        Error("Wrong number of transport blocks (%d) for TM4\n", SRSLTE_RA_DL_GRANT_NOF_TB(grant));
+        Error("Wrong combination of antennas (%d) or transport blocks (%d) for TM3\n", ue_dl.nof_rx_antennas,
+              SRSLTE_RA_DL_GRANT_NOF_TB(grant));
         valid_config = false;
       }
     break;
@@ -923,12 +938,14 @@ void phch_worker::encode_pucch()
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
   
-  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, sr=%s, cfo=%.1f Hz%s\n",
+  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, pmi=%s%s, sr=%s, cfo=%.1f Hz%s\n",
          tx_power, (tti+4)%10240, 
          last_dl_pdcch_ncce, ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb, 
        uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
        uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",
        uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
+       uci_data.uci_pmi_len>0?(uci_data.uci_pmi[1]?"1":"0"):"no",
+       uci_data.uci_pmi_len>0?(uci_data.uci_pmi[0]?"1":"0"):"",
        uci_data.scheduling_request?"yes":"no",
          cfo*15000, timestr);        
   }   

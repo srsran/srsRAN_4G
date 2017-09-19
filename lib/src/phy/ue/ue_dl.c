@@ -115,7 +115,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
     }
     srslte_cfo_set_tol(&q->sfo_correct, 1e-5f/q->fft.symbol_sz);
     
-    for (int j=0;j<nof_rx_antennas;j++) {
+    for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
       q->sf_symbols_m[j] = srslte_vec_malloc(MAX_SFLEN_RE * sizeof(cf_t));
       if (!q->sf_symbols_m[j]) {
         perror("malloc");
@@ -127,6 +127,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
           perror("malloc");
           goto clean_exit; 
         }
+        bzero(q->ce_m[i][j], MAX_SFLEN_RE * sizeof(cf_t));
       }
     }
     
@@ -163,7 +164,7 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
         free(q->softbuffers[i]);
       }
     }
-    for (int j=0;j<q->nof_rx_antennas;j++) {
+    for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
       if (q->sf_symbols_m[j]) {
         free(q->sf_symbols_m[j]);
       }
@@ -516,10 +517,10 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint8_t *ri, uint8_t *pmi, flo
   float best_sinr = -INFINITY;
   uint8_t best_pmi = 0, best_ri = 0;
 
-  if (q->cell.nof_ports < 2 || q->nof_rx_antennas < 2) {
+  if (q->cell.nof_ports < 2) {
     /* Do nothing */
     return SRSLTE_SUCCESS;
-  } else if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
+  } else {
     if (srslte_pdsch_pmi_select(&q->pdsch, &q->pdsch_cfg, q->ce_m, noise_estimate,
                                   SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp), q->pmi, q->sinr)) {
       ERROR("SINR calculation error");
@@ -527,7 +528,7 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint8_t *ri, uint8_t *pmi, flo
     }
 
     /* Select the best Rank indicator (RI) and Precoding Matrix Indicator (PMI) */
-    for (uint32_t nof_layers = 1; nof_layers <= 2; nof_layers++) {
+    for (uint32_t nof_layers = 1; nof_layers <= SRSLTE_MAX_LAYERS; nof_layers++) {
       float _sinr = q->sinr[nof_layers - 1][q->pmi[nof_layers - 1]] * nof_layers * nof_layers;
       if (_sinr > best_sinr + 0.1) {
         best_sinr = _sinr;
@@ -535,37 +536,34 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint8_t *ri, uint8_t *pmi, flo
         best_ri = (uint8_t) (nof_layers - 1);
       }
     }
+  }
 
-    /* Set RI */
-    if (ri != NULL) {
-      *ri = best_ri;
-    }
+  /* Print Trace */
+  if (ri != NULL && pmi != NULL && current_sinr != NULL) {
+    INFO("PDSCH Select RI=%d; PMI=%d; Current SINR=%.1fdB (nof_layers=%d, codebook_idx=%d)\n", *ri, *pmi,
+         10*log10(*current_sinr), q->pdsch_cfg.nof_layers, q->pdsch_cfg.codebook_idx);
+  }
 
-    /* Set PMI */
-    if (pmi != NULL) {
-      *pmi = best_pmi;
-    }
+  /* Set RI */
+  if (ri != NULL) {
+    *ri = best_ri;
+  }
 
-    /* Set current SINR */
-    if (current_sinr != NULL && q->pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
-      if (q->pdsch_cfg.nof_layers == 1) {
-        *current_sinr = q->sinr[0][q->pdsch_cfg.codebook_idx];
-      } else if (q->pdsch_cfg.nof_layers == 2) {
-        *current_sinr = q->sinr[1][q->pdsch_cfg.codebook_idx - 1];
-      } else {
-        ERROR("Not implemented number of layers (%d)", q->pdsch_cfg.nof_layers);
-        return SRSLTE_ERROR;
-      }
-    }
+  /* Set PMI */
+  if (pmi != NULL) {
+    *pmi = best_pmi;
+  }
 
-    /* Print Trace */
-    if (ri != NULL && pmi != NULL && current_sinr != NULL) {
-      INFO("PDSCH Select RI=%d; PMI=%d; Current SINR=%.1fdB (nof_layers=%d, codebook_idx=%d)\n", *ri, *pmi,
-           10*log10(*current_sinr), q->pdsch_cfg.nof_layers, q->pdsch_cfg.codebook_idx);
+  /* Set current SINR */
+  if (current_sinr != NULL && q->pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
+    if (q->pdsch_cfg.nof_layers == 1) {
+      *current_sinr = q->sinr[0][q->pdsch_cfg.codebook_idx];
+    } else if (q->pdsch_cfg.nof_layers == 2) {
+      *current_sinr = q->sinr[1][q->pdsch_cfg.codebook_idx - 1];
+    } else {
+      ERROR("Not implemented number of layers (%d)", q->pdsch_cfg.nof_layers);
+      return SRSLTE_ERROR;
     }
-  } else {
-    ERROR("Not implemented configuration");
-    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   return SRSLTE_SUCCESS;
