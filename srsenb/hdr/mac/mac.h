@@ -106,24 +106,14 @@ public:
   void timer_expired(uint32_t timer_id); 
   
   srslte::timers::timer*   get(uint32_t timer_id);
+  void                     free(uint32_t timer_id);
   u_int32_t                get_unique_id();
-  
+
+  const static int NOF_MAC_TIMERS = 20;
+
   uint32_t get_current_tti();
   void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
-      
-  enum {
-    HARQ_RTT, 
-    TIME_ALIGNMENT,
-    CONTENTION_TIMER,
-    BSR_TIMER_PERIODIC,
-    BSR_TIMER_RETX,
-    PHR_TIMER_PERIODIC,
-    PHR_TIMER_PROHIBIT,
-    NOF_MAC_TIMERS
-  } mac_timers_t; 
-  
-  static const int MAC_NOF_UPPER_TIMERS = 20; 
-  
+
 private:  
 
   void log_step_ul(uint32_t tti);
@@ -194,12 +184,13 @@ private:
   /* Class to run upper-layer timers with normal priority */
   class upper_timers : public thread {
   public: 
-    upper_timers() : timers_db(MAC_NOF_UPPER_TIMERS),ttisync(10240) {start();}
+    upper_timers() : timers_db(NOF_MAC_TIMERS),ttisync(10240) {start();}
     void tti_clock();
     void stop();
     void reset();
     srslte::timers::timer* get(uint32_t timer_id);
-    uint32_t get_unique_id();
+    void                   free(uint32_t timer_id);
+    uint32_t               get_unique_id();
   private:
     void run_thread();
     srslte::timers      timers_db;

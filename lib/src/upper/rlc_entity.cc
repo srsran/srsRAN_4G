@@ -76,6 +76,11 @@ void rlc_entity::reset()
   rlc = NULL;
 }
 
+void rlc_entity::stop()
+{
+  rlc->stop();
+  rlc = NULL;
+}
 
 void rlc_entity::empty_queue()
 {

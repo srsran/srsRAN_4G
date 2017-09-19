@@ -47,7 +47,7 @@ public:
   {
     t.step();
   }
-
+  void free(uint32_t timer_id) {}
 private:
   srslte::timers::timer t;
 };

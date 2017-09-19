@@ -145,7 +145,7 @@ public:
   }
   uint32_t get_unique_id() {
     if (nof_used_timers >= nof_timers) {
-      fprintf(stderr, "Error getting uinque timer id: no more timers available\n");
+      fprintf(stderr, "Error getting unique timer id: no more timers available\n");
       return 0;
     } else {
       while(used_timers[next_timer]) {

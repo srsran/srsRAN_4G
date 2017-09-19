@@ -102,6 +102,12 @@ void rlc_um::empty_queue() {
   }
 }
 
+void rlc_um::stop()
+{
+  reset();
+  mac_timers->free(reordering_timeout_id);
+}
+
 void rlc_um::reset()
 {
   

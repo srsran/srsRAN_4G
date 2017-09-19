@@ -43,6 +43,7 @@ public:
     return &t;
   }
   uint32_t get_unique_id(){return 0;}
+  void free(uint32_t id){}
 
 private:
   srslte::timers::timer t;

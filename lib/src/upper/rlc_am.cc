@@ -93,6 +93,12 @@ void rlc_am::empty_queue() {
   }
 }
 
+void rlc_am::stop()
+{
+  reset();
+  pthread_mutex_destroy(&mutex);
+}
+
 void rlc_am::reset()
 {
   // Empty tx_sdu_queue before locking the mutex 

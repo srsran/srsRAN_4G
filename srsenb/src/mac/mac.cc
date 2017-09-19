@@ -124,6 +124,11 @@ uint32_t mac::get_unique_id()
   return upper_timers_thread.get_unique_id();
 }
 
+void mac::free(uint32_t timer_id)
+{
+  upper_timers_thread.free(timer_id);
+}
+
 /* Front-end to upper-layer timers */
 srslte::timers::timer* mac::get(uint32_t timer_id)
 {
@@ -658,9 +663,20 @@ void mac::upper_timers::run_thread()
     timers_db.step_all();
   }
 }
+
+void mac::upper_timers::free(uint32_t timer_id)
+{
+  timers_db.release_id(timer_id);
+}
+
 srslte::timers::timer* mac::upper_timers::get(uint32_t timer_id)
 {
-  return timers_db.get(timer_id%MAC_NOF_UPPER_TIMERS);
+  if (timer_id < NOF_MAC_TIMERS) {
+    return timers_db.get(timer_id);
+  } else {
+    fprintf(stderr, "Error requested invalid timer id=%d\n", timer_id);
+    return NULL;
+  }
 }
 
 uint32_t mac::upper_timers::get_unique_id()
