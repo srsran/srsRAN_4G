@@ -93,9 +93,9 @@ void rrc::init(phy_interface_rrc *phy_,
   pthread_mutex_init(&mutex, NULL);
 
   ue_category = SRSLTE_UE_CATEGORY;
-  t301 = mac_timers->get_unique_id();
-  t310 = mac_timers->get_unique_id();
-  t311 = mac_timers->get_unique_id();
+  t301 = mac_timers->timer_get_unique_id();
+  t310 = mac_timers->timer_get_unique_id();
+  t311 = mac_timers->timer_get_unique_id();
 
   transaction_id = 0;
 
@@ -233,9 +233,9 @@ void rrc::run_thread() {
         set_phy_default();
         set_mac_default();
         mac->pcch_start_rx();
-        mac_timers->get(t311)->run();
-        mac_timers->get(t310)->stop();
-        mac_timers->get(t311)->stop();
+        mac_timers->timer_get(t311)->run();
+        mac_timers->timer_get(t310)->stop();
+        mac_timers->timer_get(t311)->stop();
         state = RRC_STATE_IDLE;
         break;
       default:
@@ -475,11 +475,11 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
     current_cell->in_sync = false;
-  if (!mac_timers->get(t311)->is_running() && !mac_timers->get(t310)->is_running()) {
+  if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
     if (n310_cnt == N310) {
-      mac_timers->get(t310)->reset();
-      mac_timers->get(t310)->run();
+      mac_timers->timer_get(t310)->reset();
+      mac_timers->timer_get(t310)->run();
       n310_cnt = 0;
       rrc_log->info("Detected %d out-of-sync from PHY. Starting T310 timer\n", N310);
     }
@@ -489,10 +489,10 @@ void rrc::out_of_sync() {
 // Recovery of physical layer problems (5.3.11.2)
 void rrc::in_sync() {
   current_cell->in_sync = true;
-  if (mac_timers->get(t310)->is_running()) {
+  if (mac_timers->timer_get(t310)->is_running()) {
     n311_cnt++;
     if (n311_cnt == N311) {
-      mac_timers->get(t310)->stop();
+      mac_timers->timer_get(t310)->stop();
       n311_cnt = 0;
       rrc_log->info("Detected %d in-sync from PHY. Stopping T310 timer\n", N311);
     }
@@ -652,9 +652,9 @@ void rrc::send_con_restablish_request() {
 
   rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
   rrc_log->console("RRC Connection Reestablishment\n");
-  mac_timers->get(t310)->stop();
-  mac_timers->get(t311)->reset();
-  mac_timers->get(t311)->run();
+  mac_timers->timer_get(t310)->stop();
+  mac_timers->timer_get(t311)->reset();
+  mac_timers->timer_get(t311)->run();
 
   set_phy_default();
   mac->reset();
@@ -667,9 +667,9 @@ void rrc::send_con_restablish_request() {
     usleep(10000);
     timeout_cnt++;
   }
-  mac_timers->get(t301)->reset();
-  mac_timers->get(t301)->run();
-  mac_timers->get(t311)->stop();
+  mac_timers->timer_get(t301)->reset();
+  mac_timers->timer_get(t301)->run();
+  mac_timers->timer_get(t311)->stop();
   rrc_log->info("Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
 
   // Byte align and pack the message bits for PDCP
@@ -1337,15 +1337,15 @@ void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
                 liblte_rrc_srs_subfr_config_num[sib2->rr_config_common_sib.srs_ul_cnfg.subfr_cnfg],
                 sib2->rr_config_common_sib.srs_ul_cnfg.ack_nack_simul_tx ? "yes" : "no");
 
-  mac_timers->get(t301)->set(this, liblte_rrc_t301_num[sib2->ue_timers_and_constants.t301]);
-  mac_timers->get(t310)->set(this, liblte_rrc_t310_num[sib2->ue_timers_and_constants.t310]);
-  mac_timers->get(t311)->set(this, liblte_rrc_t311_num[sib2->ue_timers_and_constants.t311]);
+  mac_timers->timer_get(t301)->set(this, liblte_rrc_t301_num[sib2->ue_timers_and_constants.t301]);
+  mac_timers->timer_get(t310)->set(this, liblte_rrc_t310_num[sib2->ue_timers_and_constants.t310]);
+  mac_timers->timer_get(t311)->set(this, liblte_rrc_t311_num[sib2->ue_timers_and_constants.t311]);
   N310 = liblte_rrc_n310_num[sib2->ue_timers_and_constants.n310];
   N311 = liblte_rrc_n311_num[sib2->ue_timers_and_constants.n311];
 
   rrc_log->info("Set Constants and Timers: N310=%d, N311=%d, t301=%d, t310=%d, t311=%d\n",
-                N310, N311, mac_timers->get(t301)->get_timeout(),
-                mac_timers->get(t310)->get_timeout(), mac_timers->get(t311)->get_timeout());
+                N310, N311, mac_timers->timer_get(t301)->get_timeout(),
+                mac_timers->timer_get(t310)->get_timeout(), mac_timers->timer_get(t311)->get_timeout());
 
 }
 
@@ -1583,7 +1583,7 @@ void rrc::handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup) {
 
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
 void rrc::handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup) {
-  mac_timers->get(t301)->stop();
+  mac_timers->timer_get(t301)->stop();
 
   // TODO: Restablish DRB1. Not done because never was suspended
 
@@ -1740,8 +1740,8 @@ void rrc::set_mac_default() {
 void rrc::set_rrc_default() {
   N310 = 1;
   N311 = 1;
-  mac_timers->get(t310)->set(this, 1000);
-  mac_timers->get(t311)->set(this, 1000);
+  mac_timers->timer_get(t310)->set(this, 1000);
+  mac_timers->timer_get(t311)->set(this, 1000);
 }
 
 

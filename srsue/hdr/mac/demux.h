@@ -42,7 +42,7 @@ class demux : public srslte::pdu_queue::process_callback
 {
 public:
   demux(uint8_t nof_harq_proc_);
-  void init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc, srslte::log* log_h_, srslte::timers* timers_db_);
+  void init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc, srslte::log* log_h_, srslte::timers::timer* time_alignment_timer);
 
   bool     process_pdus();
   uint8_t* request_buffer(uint32_t pid, uint32_t len);
@@ -74,7 +74,7 @@ private:
     
   phy_interface_mac_common *phy_h;
   srslte::log              *log_h;
-  srslte::timers           *timers_db;
+  srslte::timers::timer    *time_alignment_timer;
   rlc_interface_mac        *rlc;
   uint8_t                   nof_harq_proc;
   

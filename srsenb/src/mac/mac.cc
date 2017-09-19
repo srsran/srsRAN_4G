@@ -42,7 +42,8 @@
 
 namespace srsenb {
 
-mac::mac() : timers_db((uint32_t) NOF_MAC_TIMERS),
+mac::mac() : timers_db(128),
+             timers_thread(&timers_db),
              rar_pdu_msg(sched_interface::MAX_RAR_LIST),
              pdu_process_thread(this)
 {
@@ -99,7 +100,7 @@ void mac::stop()
   srslte_softbuffer_tx_free(&pcch_softbuffer_tx);
   srslte_softbuffer_tx_free(&rar_softbuffer_tx);
   started = false;   
-  upper_timers_thread.stop();
+  timers_thread.stop();
   pdu_process_thread.stop();
 }
 
@@ -109,8 +110,7 @@ void mac::reset()
   Info("Resetting MAC\n");
   
   timers_db.stop_all();
-  upper_timers_thread.reset();
-  
+
   tti = 0; 
   last_rnti = 70; 
   
@@ -118,23 +118,6 @@ void mac::reset()
   scheduler.reset();
   
 }
-
-uint32_t mac::get_unique_id()
-{
-  return upper_timers_thread.get_unique_id();
-}
-
-void mac::free(uint32_t timer_id)
-{
-  upper_timers_thread.free(timer_id);
-}
-
-/* Front-end to upper-layer timers */
-srslte::timers::timer* mac::get(uint32_t timer_id)
-{
-  return upper_timers_thread.get(timer_id);
-}
-
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
@@ -645,57 +628,59 @@ void mac::log_step_dl(uint32_t tti)
 
 void mac::tti_clock()
 {
-  upper_timers_thread.tti_clock();
+  timers_thread.tti_clock();
 }
+
+
+
 
 /********************************************************
  *
- * Class to run upper-layer timers with normal priority 
+ * Interface for upper layer timers
  *
  *******************************************************/
-void mac::upper_timers::run_thread()
+uint32_t mac::timer_get_unique_id()
+{
+  return timers_db.get_unique_id();
+}
+
+void mac::timer_release_id(uint32_t timer_id)
+{
+  timers_db.release_id(timer_id);
+}
+
+/* Front-end to upper-layer timers */
+srslte::timers::timer* mac::timer_get(uint32_t timer_id)
+{
+  return timers_db.get(timer_id);
+}
+
+
+
+/********************************************************
+ *
+ * Class to run timers with normal priority
+ *
+ *******************************************************/
+void mac::timer_thread::run_thread()
 {
   running=true; 
   ttisync.set_producer_cntr(0);
   ttisync.resync();
   while(running) {
     ttisync.wait();
-    timers_db.step_all();
+    timers->step_all();
   }
 }
 
-void mac::upper_timers::free(uint32_t timer_id)
-{
-  timers_db.release_id(timer_id);
-}
-
-srslte::timers::timer* mac::upper_timers::get(uint32_t timer_id)
-{
-  if (timer_id < NOF_MAC_TIMERS) {
-    return timers_db.get(timer_id);
-  } else {
-    fprintf(stderr, "Error requested invalid timer id=%d\n", timer_id);
-    return NULL;
-  }
-}
-
-uint32_t mac::upper_timers::get_unique_id()
-{
-  return timers_db.get_unique_id();
-}
-
-void mac::upper_timers::stop()
+void mac::timer_thread::stop()
 {
   running=false;
   ttisync.increase();
   wait_thread_finish();
 }
-void mac::upper_timers::reset()
-{
-  timers_db.stop_all();
-}
 
-void mac::upper_timers::tti_clock()
+void mac::timer_thread::tti_clock()
 {
   ttisync.increase();
 }

@@ -62,7 +62,8 @@ void rlc_um::init(srslte::log                 *log_,
   pdcp                  = pdcp_;
   rrc                   = rrc_;
   mac_timers            = mac_timers_;
-  reordering_timeout_id = mac_timers->get_unique_id();
+  reordering_timer_id   = mac_timers->timer_get_unique_id();
+  reordering_timer      = mac_timers->timer_get(reordering_timer_id);
 }
 
 void rlc_um::configure(srslte_rlc_config_t cnfg_)
@@ -105,7 +106,7 @@ void rlc_um::empty_queue() {
 void rlc_um::stop()
 {
   reset();
-  mac_timers->free(reordering_timeout_id);
+  mac_timers->timer_release_id(reordering_timer_id);
 }
 
 void rlc_um::reset()
@@ -125,7 +126,7 @@ void rlc_um::reset()
   if(tx_sdu)
     tx_sdu->reset();
   if(mac_timers)
-    mac_timers->get(reordering_timeout_id)->stop();
+    reordering_timer->stop();
   
   // Drop all messages in RX window
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it;
@@ -209,7 +210,7 @@ void rlc_um::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 void rlc_um::timer_expired(uint32_t timeout_id)
 {
-  if(reordering_timeout_id == timeout_id)
+  if(reordering_timer_id == timeout_id)
   {
     pthread_mutex_lock(&mutex);
 
@@ -227,11 +228,11 @@ void rlc_um::timer_expired(uint32_t timeout_id)
       reassemble_rx_sdus();
       log->debug("Finished reassemble from timeout id=%d\n", timeout_id);
     }
-    mac_timers->get(reordering_timeout_id)->stop();
+    reordering_timer->stop();
     if(RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur))
     {
-      mac_timers->get(reordering_timeout_id)->set(this, cfg.t_reordering);
-      mac_timers->get(reordering_timeout_id)->run();
+      reordering_timer->set(this, cfg.t_reordering);
+      reordering_timer->run();
       vr_ux = vr_uh;
     }
 
@@ -242,7 +243,7 @@ void rlc_um::timer_expired(uint32_t timeout_id)
 
 bool rlc_um::reordering_timeout_running()
 {
-  return mac_timers->get(reordering_timeout_id)->is_running();
+  return reordering_timer->is_running();
 }
 
 /****************************************************************************
@@ -404,20 +405,20 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   log->debug("Finished reassemble from received PDU\n");
   
   // Update reordering variables and timers
-  if(mac_timers->get(reordering_timeout_id)->is_running())
+  if(reordering_timer->is_running())
   {
     if(RX_MOD_BASE(vr_ux) <= RX_MOD_BASE(vr_ur) ||
        (!inside_reordering_window(vr_ux) && vr_ux != vr_uh))
     {
-      mac_timers->get(reordering_timeout_id)->stop();
+      reordering_timer->stop();
     }
   }
-  if(!mac_timers->get(reordering_timeout_id)->is_running())
+  if(!reordering_timer->is_running())
   {
     if(RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur))
     {
-      mac_timers->get(reordering_timeout_id)->set(this, cfg.t_reordering);
-      mac_timers->get(reordering_timeout_id)->run();
+      reordering_timer->set(this, cfg.t_reordering);
+      reordering_timer->run();
       vr_ux = vr_uh;
     }
   }

@@ -48,9 +48,9 @@ namespace srsue {
 class mac
     :public mac_interface_phy
     ,public mac_interface_rrc
+    ,public srslte::timer_callback
     ,public srslte::mac_interface_timers
     ,public thread
-    ,public srslte::timer_callback
 {
 public:
   mac();
@@ -90,17 +90,19 @@ public:
   void set_contention_id(uint64_t uecri);
   
   void get_rntis(ue_rnti_t *rntis);
-  
-  void timer_expired(uint32_t timer_id); 
+
   void start_pcap(srslte::mac_pcap* pcap);
 
-  srslte::timers::timer*   get(uint32_t timer_id);
-  void                     free(uint32_t timer_id);
-  u_int32_t                get_unique_id();
+  // Timer callback interface
+  void timer_expired(uint32_t timer_id); 
 
   uint32_t get_current_tti();
-  
-  static const int MAC_NOF_UPPER_TIMERS = 20;
+
+  // Interface for upper-layer timers
+  srslte::timers::timer* timer_get(uint32_t timer_id);
+  void                   timer_release_id(uint32_t timer_id);
+  uint32_t               timer_get_unique_id();
+
 
 private:  
   void run_thread(); 
@@ -145,36 +147,38 @@ private:
   /* Buffers for PCH reception (not included in DL HARQ) */
   const static uint32_t  pch_payload_buffer_sz = 8*1024;
   srslte_softbuffer_rx_t pch_softbuffer;
-  uint8_t                pch_payload_buffer[pch_payload_buffer_sz]; 
-  
+  uint8_t                pch_payload_buffer[pch_payload_buffer_sz];
+
+
+  /* class that runs a thread to trigger timer callbacks in low priority */
+  class timer_thread : public thread {
+  public:
+    timer_thread(srslte::timers *timers_) : ttisync(10240),running(false),timers(timers_) {start();}
+    void tti_clock();
+    void stop();
+  private:
+    bool running;
+    void run_thread();
+    srslte::tti_sync_cv ttisync;
+    srslte::timers     *timers;
+  };
+
+
   /* Functions for MAC Timers */
-  srslte::timers  timers_db;
+  uint32_t        timer_alignment;
+  uint32_t        contention_resolution_timer;
   void            setup_timers();
-  void            timeAlignmentTimerExpire();
-  
+  void            timer_alignment_expire();
+  srslte::timers  timers;
+  timer_thread    timers_thread;
+
+
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap;
   bool is_first_ul_grant;
 
 
   mac_metrics_t metrics; 
-
-
-  /* Class to run upper-layer timers with normal priority */
-  class upper_timers : public periodic_thread {
-  public:
-    upper_timers();
-    void reset();
-    void free(uint32_t timer_id);
-    srslte::timers::timer* get(uint32_t timer_id);
-    uint32_t get_unique_id();
-  private:
-    void run_period();
-    srslte::timers  timers_db;
-  };
-  upper_timers   upper_timers_thread;
-
-
 
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {

@@ -42,56 +42,60 @@
 namespace srsue {
 
 mac::mac() : ttisync(10240), 
-             timers_db((uint32_t) NOF_MAC_TIMERS),
+             timers(64),
+             timers_thread(&timers),
              mux_unit(MAC_NOF_HARQ_PROC),
              demux_unit(SRSLTE_MAX_TB*MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
 {
-  started = false;  
-  pcap    = NULL;   
+  started = false;
+  pcap    = NULL;
   bzero(&metrics, sizeof(mac_metrics_t));
 }
-  
+
 bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
 {
-  started = false; 
+  started = false;
   phy_h = phy;
-  rlc_h = rlc;   
-  rrc_h = rrc;   
-  log_h = log_h_; 
-  tti = 0; 
-  is_synchronized = false;   
-  last_temporal_crnti = 0; 
-  phy_rnti = 0; 
-  
+  rlc_h = rlc;
+  rrc_h = rrc;
+  log_h = log_h_;
+  tti = 0;
+  is_synchronized = false;
+  last_temporal_crnti = 0;
+  phy_rnti = 0;
+
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
-  
-  bsr_procedure.init(       rlc_h, log_h,          &config, &timers_db);
-  phr_procedure.init(phy_h,        log_h,          &config,                &timers_db);
+
+  timer_alignment             = timers.get_unique_id();
+  contention_resolution_timer = timers.get_unique_id();
+
+  bsr_procedure.init(       rlc_h, log_h,          &config,                &timers);
+  phr_procedure.init(phy_h,        log_h,          &config,                &timers);
   mux_unit.init     (       rlc_h, log_h,                                              &bsr_procedure, &phr_procedure);
-  demux_unit.init   (phy_h, rlc_h, log_h,                                  &timers_db);
-  ra_procedure.init (phy_h, rrc,   log_h, &uernti, &config,                &timers_db, &mux_unit, &demux_unit);
+  demux_unit.init   (phy_h, rlc_h, log_h,                                  timers.get(timer_alignment));
+  ra_procedure.init (phy_h, rrc,   log_h, &uernti, &config,                timers.get(timer_alignment), timers.get(contention_resolution_timer), &mux_unit, &demux_unit);
   sr_procedure.init (phy_h, rrc,   log_h,          &config);
-  ul_harq.init      (              log_h, &uernti, &config.ul_harq_params, &timers_db, &mux_unit);
-  dl_harq.init      (              log_h,                                  &timers_db, &demux_unit);
+  ul_harq.init      (              log_h, &uernti, &config.ul_harq_params, timers.get(contention_resolution_timer), &mux_unit);
+  dl_harq.init      (              log_h,                                  timers.get(timer_alignment),             &demux_unit);
 
   reset();
-  
-  started = true; 
+
+  started = true;
   start(MAC_MAIN_THREAD_PRIO);
-  
-  
-  return started; 
+
+
+  return started;
 }
 
 void mac::stop()
 {
   srslte_softbuffer_rx_free(&pch_softbuffer);
 
-  started = false;   
+  started = false;
   ttisync.increase();
-  upper_timers_thread.thread_cancel();
   pdu_process_thread.stop();
+  timers_thread.stop();
   wait_thread_finish();
 }
 
@@ -116,8 +120,7 @@ void mac::reset()
 
   Info("Resetting MAC\n");
 
-  timers_db.stop_all();
-  upper_timers_thread.reset();
+  timers.stop_all();
 
   ul_harq.reset_ndi();
 
@@ -157,7 +160,8 @@ void mac::run_thread() {
       tti = phy_h->get_current_tti();
 
       log_h->step(tti);
-      timers_db.step_all();
+
+      timers_thread.tti_clock();
 
       // Step all procedures
       bsr_procedure.step(tti);
@@ -297,7 +301,7 @@ void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
   /* Start PHR Periodic timer on first UL grant */
   if (is_first_ul_grant) {
     is_first_ul_grant = false;
-    timers_db.get(PHR_TIMER_PERIODIC)->run();
+    phr_procedure.start_timer();
   }
   if (grant.rnti_type == SRSLTE_RNTI_USER && ra_procedure.is_contention_resolution()) {
     ra_procedure.pdcch_to_crnti(true);
@@ -343,25 +347,23 @@ void mac::setup_timers()
 {
   int value = liblte_rrc_time_alignment_timer_num[config.main.time_alignment_timer];
   if (value > 0) {
-    timers_db.get(TIME_ALIGNMENT)->set(this, value);
+    timers.get(timer_alignment)->set(this, value);
   }
 }
 
 void mac::timer_expired(uint32_t timer_id)
 {
-  switch(timer_id) {
-    case TIME_ALIGNMENT:
-      timeAlignmentTimerExpire();
-      break;
-    default:
-      break;
+  if(timer_id == timer_alignment) {
+    timer_alignment_expire();
+  } else {
+    Warning("Received callback from unknown timer_id=%d\n", timer_id);
   }
 }
 
 /* Function called on expiry of TimeAlignmentTimer */
-void mac::timeAlignmentTimerExpire()
+void mac::timer_alignment_expire()
 {
-  printf("timeAlignmentTimer has expired value=%d ms\n", timers_db.get(TIME_ALIGNMENT)->get_timeout());
+  printf("TimeAlignment timer has expired value=%d ms\n", timers.get(timer_alignment)->get_timeout());
   rrc_h->release_pucch_srs();
   dl_harq.reset();
   ul_harq.reset();
@@ -414,24 +416,7 @@ void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_t
   bsr_procedure.set_priority(lcid, priority);
 }
 
-uint32_t mac::get_unique_id()
-{
-  return upper_timers_thread.get_unique_id();
-}
-
-/* Front-end to upper-layer timers */
-srslte::timers::timer* mac::get(uint32_t timer_id)
-{
-  return upper_timers_thread.get(timer_id);
-}
-
-void mac::free(uint32_t timer_id)
-{
-  upper_timers_thread.free(timer_id);
-}
-
-
-  void mac::get_metrics(mac_metrics_t &m)
+void mac::get_metrics(mac_metrics_t &m)
 {
   Info("DL retx: %.2f \%%, perpkt: %.2f, UL retx: %.2f \%% perpkt: %.2f\n", 
        metrics.rx_pkts?((float) 100*metrics.rx_errors/metrics.rx_pkts):0.0, 
@@ -445,47 +430,59 @@ void mac::free(uint32_t timer_id)
 }
 
 
+
+
 /********************************************************
  *
- * Class to run upper-layer timers with normal priority
+ * Interface for timers used by upper layers
  *
  *******************************************************/
-
-mac::upper_timers::upper_timers() : timers_db(MAC_NOF_UPPER_TIMERS)
+srslte::timers::timer* mac::timer_get(uint32_t timer_id)
 {
-  start_periodic(1000, MAC_MAIN_THREAD_PRIO+1);
+  return timers.get(timer_id);
 }
 
-void mac::upper_timers::run_period()
+void mac::timer_release_id(uint32_t timer_id)
 {
-  timers_db.step_all();
+  timers.release_id(timer_id);
 }
 
-srslte::timers::timer* mac::upper_timers::get(uint32_t timer_id)
+uint32_t mac::timer_get_unique_id()
 {
-  return timers_db.get(timer_id%MAC_NOF_UPPER_TIMERS);
-}
-
-uint32_t mac::upper_timers::get_unique_id()
-{
-  return timers_db.get_unique_id();
-}
-
-void mac::upper_timers::reset()
-{
-  timers_db.stop_all();
+  return timers.get_unique_id();
 }
 
 
-void mac::upper_timers::free(uint32_t timer_id)
+/********************************************************
+ *
+ * Class that runs timers in lower priority
+ *
+ *******************************************************/
+void mac::timer_thread::tti_clock()
 {
-  timers_db.release_id(timer_id);
+  ttisync.increase();
+}
+
+void mac::timer_thread::run_thread()
+{
+  running=true;
+  ttisync.set_producer_cntr(0);
+  ttisync.resync();
+  while(running) {
+    ttisync.wait();
+    timers->step_all();
+  }
+}
+
+void mac::timer_thread::stop()
+{
+  running=false;
+  ttisync.increase();
+  wait_thread_finish();
 }
 
 
-
-
-  /********************************************************
+/********************************************************
  *
  * Class that runs a thread to process DL MAC PDUs from
  * DEMUX unit

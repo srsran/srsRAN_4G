@@ -40,12 +40,12 @@ demux::demux(uint8_t nof_harq_proc_) : mac_msg(20), pending_mac_msg(20), nof_har
 {
 }
 
-void demux::init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc_, srslte::log* log_h_, srslte::timers* timers_db_)
+void demux::init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc_, srslte::log* log_h_, srslte::timers::timer* time_alignment_timer_)
 {
   phy_h     = phy_h_; 
   log_h     = log_h_; 
-  rlc       = rlc_;  
-  timers_db = timers_db_;
+  rlc       = rlc_;
+  time_alignment_timer = time_alignment_timer_;
   pdus.init(this, log_h);
 }
 
@@ -190,8 +190,8 @@ bool demux::process_ce(srslte::sch_subh *subh) {
       Info("Received TA=%d\n", subh->get_ta_cmd());
       
       // Start or restart timeAlignmentTimer
-      timers_db->get(TIME_ALIGNMENT)->reset();
-      timers_db->get(TIME_ALIGNMENT)->run();
+      time_alignment_timer->reset();
+      time_alignment_timer->run();
       break;
     case srslte::sch_subh::PADDING:
       break;

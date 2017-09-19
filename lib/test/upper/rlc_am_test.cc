@@ -38,12 +38,12 @@ class mac_dummy_timers
     :public srslte::mac_interface_timers
 {
 public:
-  srslte::timers::timer* get(uint32_t timer_id)
+  srslte::timers::timer* timer_get(uint32_t timer_id)
   {
     return &t;
   }
-  uint32_t get_unique_id(){return 0;}
-  void free(uint32_t id){}
+  uint32_t timer_get_unique_id(){return 0;}
+  void timer_release_id(uint32_t id){}
 
 private:
   srslte::timers::timer t;

@@ -125,7 +125,8 @@ private:
    * Timers
    * Ref: 3GPP TS 36.322 v10.0.0 Section 7
    ***************************************************************************/
-  uint32_t reordering_timeout_id;
+  srslte::timers::timer *reordering_timer;
+  uint32_t               reordering_timer_id;
 
   bool     pdu_lost;
 

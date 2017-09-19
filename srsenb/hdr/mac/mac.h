@@ -102,14 +102,11 @@ public:
   int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
     
   bool process_pdus(); 
-  
-  void timer_expired(uint32_t timer_id); 
-  
-  srslte::timers::timer*   get(uint32_t timer_id);
-  void                     free(uint32_t timer_id);
-  u_int32_t                get_unique_id();
 
-  const static int NOF_MAC_TIMERS = 20;
+  // Interface for upper-layer timers
+  srslte::timers::timer*   timer_get(uint32_t timer_id);
+  void                     timer_release_id(uint32_t timer_id);
+  u_int32_t                timer_get_unique_id();
 
   uint32_t get_current_tti();
   void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
@@ -182,22 +179,18 @@ private:
   
 
   /* Class to run upper-layer timers with normal priority */
-  class upper_timers : public thread {
-  public: 
-    upper_timers() : timers_db(NOF_MAC_TIMERS),ttisync(10240) {start();}
+  class timer_thread : public thread {
+  public:
+    timer_thread(srslte::timers *t) : ttisync(10240),timers(t),running(false) {start();}
     void tti_clock();
     void stop();
-    void reset();
-    srslte::timers::timer* get(uint32_t timer_id);
-    void                   free(uint32_t timer_id);
-    uint32_t               get_unique_id();
   private:
     void run_thread();
-    srslte::timers      timers_db;
     srslte::tti_sync_cv ttisync;
+    srslte::timers     *timers;
     bool running; 
   };
-  upper_timers   upper_timers_thread; 
+  timer_thread   timers_thread;
 
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {

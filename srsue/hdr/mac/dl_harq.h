@@ -35,7 +35,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 #include "mac/demux.h"
-#include "mac/mac_common.h"
 #include "mac/dl_sps.h"
 #include "srslte/common/mac_pcap.h"
 
@@ -58,9 +57,9 @@ public:
     pcap = NULL;
   }
     
-  bool init(srslte::log *log_h_, srslte::timers *timers_, demux *demux_unit_)
+  bool init(srslte::log *log_h_, srslte::timers::timer *timer_aligment_timer_, demux *demux_unit_)
   {
-    timers_db  = timers_; 
+    timer_aligment_timer  = timer_aligment_timer_;
     demux_unit = demux_unit_; 
     si_window_start = 0; 
     log_h = log_h_; 
@@ -102,7 +101,7 @@ public:
       } else {
         if (grant.is_sps_release) {
           dl_sps_assig.clear();
-          if (timers_db->get(TIME_ALIGNMENT)->is_running()) {
+          if (timer_aligment_timer->is_running()) {
             //phy_h->send_sps_ack();
             Warning("PHY Send SPS ACK not implemented\n");
           }
@@ -282,7 +281,7 @@ private:
           Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
         }
 
-        if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(TIME_ALIGNMENT)->is_expired()) {
+        if (pid == HARQ_BCCH_PID || harq_entity->timer_aligment_timer->is_expired()) {
           // Do not generate ACK
           Debug("Not generating ACK\n");
           action->generate_ack = false;
@@ -397,7 +396,7 @@ private:
   
 
   std::vector<dl_harq_process> proc;
-  srslte::timers   *timers_db;
+  srslte::timers::timer   *timer_aligment_timer;
   demux           *demux_unit; 
   srslte::log     *log_h;
   srslte::mac_pcap *pcap; 

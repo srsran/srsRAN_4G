@@ -35,7 +35,6 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log.h"
 #include "mac/mux.h"
-#include "mac/mac_common.h"
 #include "mac/ul_sps.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
@@ -55,9 +54,10 @@ public:
   
   ul_harq_entity() : proc(N)
   {
-    pcap        = NULL; 
-    timers_db   = NULL; 
-    mux_unit    = NULL; 
+    contention_timer = NULL;
+
+    pcap        = NULL;
+    mux_unit    = NULL;
     log_h       = NULL; 
     params      = NULL;
     rntis       = NULL; 
@@ -68,14 +68,14 @@ public:
   bool init(srslte::log *log_h_, 
             mac_interface_rrc_common::ue_rnti_t *rntis_,
             mac_interface_rrc_common::ul_harq_params_t *params_,
-            srslte::timers* timers_db_, 
+            srslte::timers::timer* contention_timer_,
             mux *mux_unit_)
   {
     log_h     = log_h_;
     mux_unit  = mux_unit_;
     params    = params_;
     rntis     = rntis_;
-    timers_db = timers_db_;
+    contention_timer = contention_timer_;
     for (uint32_t i=0;i<N;i++) {
       if (!proc[i].init(i, this)) {
         return false;
@@ -350,7 +350,7 @@ private:
 
       // On every Msg3 retransmission, restart mac-ContentionResolutionTimer as defined in Section 5.1.5
       if (is_msg3) {
-        harq_entity->timers_db->get(CONTENTION_TIMER)->reset();
+        harq_entity->contention_timer->reset();
       }
 
       harq_entity->mux_unit->pusch_retx(tti_tx, pid);
@@ -415,7 +415,7 @@ private:
   
   ul_sps           ul_sps_assig;
 
-  srslte::timers  *timers_db;
+  srslte::timers::timer  *contention_timer;
   mux             *mux_unit;
   std::vector<ul_harq_process> proc;
   srslte::log     *log_h;

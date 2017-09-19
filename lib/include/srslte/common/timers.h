@@ -74,7 +74,7 @@ public:
     }
     void step() {
       if (running) {
-        counter++; 
+        counter++;
         if (is_expired()) {
           running = false; 
           if (callback) {

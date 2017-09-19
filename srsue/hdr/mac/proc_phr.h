@@ -49,7 +49,9 @@ public:
   
   bool generate_phr_on_ul_grant(float *phr);
   void timer_expired(uint32_t timer_id);
-  
+
+  void start_timer();
+
 private:
   
   bool pathloss_changed(); 
@@ -59,11 +61,15 @@ private:
   phy_interface_mac* phy_h; 
   srslte::timers* timers_db;
   bool initiated;
-  int timer_prohibit;
-  int timer_periodic;
+  int timer_prohibit_value;
+  int timer_periodic_value;
   int dl_pathloss_change; 
   int last_pathloss_db;
   bool phr_is_triggered;
+
+  uint32_t timer_periodic_id;
+  uint32_t timer_prohibit_id;
+
 };
 
 } // namespace srsue
