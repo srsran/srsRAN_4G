@@ -246,7 +246,7 @@ static int pdsch_init(srslte_pdsch_t *q, uint32_t max_prb, bool is_ue, uint32_t 
         goto clean;
       }
       if (q->is_ue) {
-        for (int j=0;j<q->nof_rx_antennas;j++) {
+        for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
           q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
           if (!q->ce[i][j]) {
             goto clean;
@@ -309,7 +309,7 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
       free(q->symbols[i]);
     }
     if (q->is_ue) {
-      for (int j=0;j<q->nof_rx_antennas;j++) {
+      for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
         if (q->ce[i][j]) {
           free(q->ce[i][j]);
         }
@@ -713,14 +713,25 @@ int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
                                   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate, uint32_t nof_ce,
                                   uint32_t pmi[SRSLTE_MAX_LAYERS], float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS]) {
 
-  if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
-    for (int nof_layers = 1; nof_layers <= 2; nof_layers++ ) {
+  if (q->cell.nof_ports == 2 && q->nof_rx_antennas <= 2) {
+    int nof_layers = 1;
+    for (; nof_layers <= q->nof_rx_antennas; nof_layers++ ) {
       if (sinr[nof_layers - 1] && pmi) {
         if (srslte_precoding_pmi_select(ce, nof_ce, noise_estimate, nof_layers, &pmi[nof_layers - 1],
                                         sinr[nof_layers - 1]) < 0) {
           ERROR("PMI Select for %d layers", nof_layers);
           return SRSLTE_ERROR;
         }
+      }
+    }
+
+    /* FIXME: Set other layers to 0 */
+    for (; nof_layers <= SRSLTE_MAX_LAYERS; nof_layers++ ) {
+      if (sinr[nof_layers - 1] && pmi) {
+        for (int cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb++) {
+          sinr[nof_layers - 1][cb] = -INFINITY;
+        }
+        pmi[nof_layers - 1] = 0;
       }
     }
   } else {

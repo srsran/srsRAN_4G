@@ -1367,7 +1367,7 @@ int srslte_predecoding_multiplex(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_P
                                  int nof_rxant, int nof_ports, int nof_layers, int codebook_idx, int nof_symbols,
                                  float noise_estimate)
 {
-  if (nof_ports == 2 && nof_rxant == 2) {
+  if (nof_ports == 2 && nof_rxant <= 2) {
     if (nof_layers == 2) {
       switch (mimo_decoder) {
         case SRSLTE_MIMO_DECODER_ZF:
@@ -1407,7 +1407,7 @@ int srslte_predecoding_multiplex(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_P
   } else if (nof_ports == 4) {
     ERROR("Error predecoding multiplex: not implemented for %d Tx ports", nof_ports);
   } else {
-    ERROR("Error predecoding multiplex: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
+    ERROR("Error predecoding multiplex: Invalid combination of ports %d and rx antennas %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
 }
