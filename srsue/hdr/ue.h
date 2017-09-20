@@ -116,8 +116,7 @@ private:
 
   all_args_t       *args;
   bool              started;
-  rf_metrics_t     rf_metrics;
-  
+
   bool check_srslte_version();
 };
 
