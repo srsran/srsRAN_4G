@@ -653,7 +653,6 @@ int rf_uhd_recv_with_time_multi(void *h,
         return -1;
       } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE ) {
         fprintf(stderr, "Error code 0x%x was returned during streaming. Aborting.\n", error_code);
-        return -1;
       }
       
     } while (n < nsamples && trials < 100);
