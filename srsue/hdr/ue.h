@@ -102,7 +102,7 @@ private:
 #else
     srslte::logger_file logger;
 #endif
-  srslte::log_filter  rf_log;
+  // rf_log is on ue_base
   srslte::log_filter  phy_log;
   srslte::log_filter  mac_log;
   srslte::log_filter  rlc_log;
