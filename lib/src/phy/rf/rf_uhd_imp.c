@@ -76,9 +76,10 @@ static void log_overflow(rf_uhd_handler_t *h) {
   }
 }
 
-static void log_late(rf_uhd_handler_t *h) {  
+static void log_late(rf_uhd_handler_t *h, bool is_rx) {
   if (h->uhd_error_handler) {
-    srslte_rf_error_t error; 
+    srslte_rf_error_t error;
+    error.opt = is_rx?1:0;
     bzero(&error, sizeof(srslte_rf_error_t));
     error.type = SRSLTE_RF_ERROR_LATE;
     h->uhd_error_handler(error);
@@ -109,7 +110,7 @@ static void* async_thread(void *h) {
             event_code == UHD_ASYNC_METADATA_EVENT_CODE_UNDERFLOW_IN_PACKET) {
           log_underflow(handler);
         } else if (event_code == UHD_ASYNC_METADATA_EVENT_CODE_TIME_ERROR) {
-          log_late(handler);
+          log_late(handler, false);
         }
       }
     } else {
@@ -647,7 +648,7 @@ int rf_uhd_recv_with_time_multi(void *h,
       if (error_code == UHD_RX_METADATA_ERROR_CODE_OVERFLOW) {
         log_overflow(handler);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND) {
-        log_late(handler);
+        log_late(handler, true);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_TIMEOUT) {
         fprintf(stderr, "Error timed out while receiving samples from UHD.\n");
         return -1;

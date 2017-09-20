@@ -88,7 +88,7 @@ void ue_base::handle_rf_msg(srslte_rf_error_t error)
   } else if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_LATE) {
     rf_metrics.rf_l++;
     rf_metrics.rf_error = true;
-    rf_log.warning("Late\n");
+    rf_log.warning("Late (detected in %s)\n", error.opt?"rx call":"asynchronous thread");
   } else if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OTHER) {
     std::string str(error.msg);
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
