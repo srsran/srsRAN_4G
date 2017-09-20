@@ -96,12 +96,13 @@ bool phy::check_args(phy_args_t *args)
 }
 
 bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_interface_phy *rrc,
-               srslte::log *log_h, phy_args_t *phy_args) {
+               std::vector<void*> log_vec, phy_args_t *phy_args) {
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
 
   n_ta = 0;
-  this->log_h         = log_h;
+  this->log_vec       = log_vec;
+  this->log_h         = (srslte::log*) log_vec[0];
   this->radio_handler = radio_handler;
   this->mac           = mac;
   this->rrc           = rrc;
@@ -128,12 +129,12 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
 void phy::run_thread() {
 
   prach_buffer.init(&config.common.prach_cnfg, SRSLTE_MAX_PRB, args, log_h);
-  workers_common.init(&config, args, log_h, radio_handler, mac);
+  workers_common.init(&config, args, (srslte::log*) log_vec[0], radio_handler, mac);
 
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_common(&workers_common);
-    workers[i].init(SRSLTE_MAX_PRB);
+    workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i]);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);
   }
 

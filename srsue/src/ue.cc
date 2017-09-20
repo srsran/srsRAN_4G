@@ -56,7 +56,15 @@ bool ue::init(all_args_t *args_)
     logger.init(args->log.filename);
 #endif
   rf_log.init("RF  ", &logger);
-  phy_log.init("PHY ", &logger, true);
+  // Create array of pointers to phy_logs
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    srslte::log_filter *mylog = new srslte::log_filter;
+    char tmp[16];
+    sprintf(tmp, "PHY%d",i);
+    mylog->init(tmp, &logger, true);
+    phy_log.push_back((void*) mylog);
+  }
+
   mac_log.init("MAC ", &logger, true);
   rlc_log.init("RLC ", &logger);
   pdcp_log.init("PDCP", &logger);
@@ -70,7 +78,9 @@ bool ue::init(all_args_t *args_)
   logger.log("\n\n");
 #endif
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
-  phy_log.set_level(level(args->log.phy_level));
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
+  }
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
@@ -79,7 +89,9 @@ bool ue::init(all_args_t *args_)
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  phy_log.set_hex_limit(args->log.phy_hex_limit);
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+  }
   mac_log.set_hex_limit(args->log.mac_hex_limit);
   rlc_log.set_hex_limit(args->log.rlc_hex_limit);
   pdcp_log.set_hex_limit(args->log.pdcp_hex_limit);
@@ -104,7 +116,7 @@ bool ue::init(all_args_t *args_)
 
   // PHY initis in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
-  phy.init(&radio, &mac, &rrc, &phy_log, &args->expert.phy);
+  phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
 
   /* Start Radio */
   char *dev_name = NULL;

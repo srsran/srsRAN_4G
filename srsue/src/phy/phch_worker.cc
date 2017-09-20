@@ -30,10 +30,10 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/asn1/liblte_rrc.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) phy->log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) phy->log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) phy->log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) phy->log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
 
 /* This is to visualize the channel response */
@@ -106,8 +106,9 @@ void phch_worker::set_common(phch_common* phy_)
   phy = phy_;   
 }
 
-bool phch_worker::init(uint32_t max_prb)
+bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
 {
+  this->log_h = log_h;
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
     signal_buffer[i] = (cf_t*) srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(max_prb));
@@ -166,6 +167,7 @@ void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
 {
   tti    = tti_; 
   tx_tti = tx_tti_;
+  log_h->step(tti);
 }
 
 void phch_worker::set_cfo(float cfo_)
@@ -477,7 +479,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 
     char hexstr[16];
     hexstr[0]='\0';
-    if (phy->log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
       srslte_vec_sprint_hex(hexstr, dci_msg.data, dci_msg.nof_bits);
     }
     Info("PDCCH: DL DCI %s cce_index=%2d, L=%d, n_data_bits=%d, hex=%s\n", srslte_dci_format_string(dci_msg.format), 
@@ -678,7 +680,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       
       char hexstr[16];
       hexstr[0]='\0';
-      if (phy->log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
         srslte_vec_sprint_hex(hexstr, dci_msg.data, dci_msg.nof_bits);
       }
       // Change to last_location_ul
@@ -783,7 +785,7 @@ void phch_worker::set_uci_periodic_cqi()
         cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND;
         cqi_report.subband.subband_cqi = srslte_cqi_from_snr(phy->avg_snr_db);
         cqi_report.subband.subband_label = 0;
-        phy->log_h->console("Warning: Subband CQI periodic reports not implemented\n");
+        log_h->console("Warning: Subband CQI periodic reports not implemented\n");
         Info("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.subband.subband_cqi, phy->avg_snr_db);
       } else {
         cqi_report.type = SRSLTE_CQI_TYPE_WIDEBAND;
@@ -1118,13 +1120,13 @@ void phch_worker::start_plot() {
 #ifdef ENABLE_GUI
   if (plot_worker_id == -1) {
     plot_worker_id = get_id();
-    phy->log_h->console("Starting plot for worker_id=%d\n", plot_worker_id);
+    log_h->console("Starting plot for worker_id=%d\n", plot_worker_id);
     init_plots(this);
   } else {
-    phy->log_h->console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
+    log_h->console("Trying to start a plot but already started by worker_id=%d\n", plot_worker_id);
   }
 #else 
-    phy->log_h->console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in phch_worker.cc)\n");
+    log_h->console("Trying to start a plot but plots are disabled (ENABLE_GUI constant in phch_worker.cc)\n");
 #endif
 }
 
