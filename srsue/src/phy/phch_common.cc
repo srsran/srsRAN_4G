@@ -74,10 +74,11 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   sync_metrics_count = 0;
 }
   
-void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, mac_interface_phy *_mac)
+void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, rrc_interface_phy *_rrc, mac_interface_phy *_mac)
 {
   log_h     = _log; 
-  radio_h   = _radio; 
+  radio_h   = _radio;
+  rrc       = _rrc;
   mac       = _mac; 
   config    = _config;     
   args      = _args; 

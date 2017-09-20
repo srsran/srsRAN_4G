@@ -478,6 +478,9 @@ void rrc::out_of_sync() {
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
     if (n310_cnt == N310) {
+      // attempt resync
+      phy->sync_reset();
+
       mac_timers->timer_get(t310)->reset();
       mac_timers->timer_get(t310)->run();
       n310_cnt = 0;
@@ -656,8 +659,10 @@ void rrc::send_con_restablish_request() {
   mac_timers->timer_get(t311)->reset();
   mac_timers->timer_get(t311)->run();
 
+  phy->reset();
   set_phy_default();
   mac->reset();
+  set_mac_default();
 
   // FIXME: Cell selection should be different??
 

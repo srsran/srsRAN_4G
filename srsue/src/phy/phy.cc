@@ -129,7 +129,7 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
 void phy::run_thread() {
 
   prach_buffer.init(&config.common.prach_cnfg, SRSLTE_MAX_PRB, args, log_h);
-  workers_common.init(&config, args, (srslte::log*) log_vec[0], radio_handler, mac);
+  workers_common.init(&config, args, (srslte::log*) log_vec[0], radio_handler, rrc, mac);
 
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {

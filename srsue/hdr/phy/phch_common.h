@@ -47,7 +47,8 @@ namespace srsue {
     
     /* Common variables used by all phy workers */
     phy_interface_rrc::phy_cfg_t *config; 
-    phy_args_t                   *args; 
+    phy_args_t                   *args;
+    rrc_interface_phy *rrc;
     mac_interface_phy *mac;
     srslte_ue_ul_t     ue_ul; 
     
@@ -68,7 +69,8 @@ namespace srsue {
     void init(phy_interface_rrc::phy_cfg_t *config, 
               phy_args_t  *args, 
               srslte::log *_log, 
-              srslte::radio *_radio, 
+              srslte::radio *_radio,
+              rrc_interface_phy *rrc,
               mac_interface_phy *_mac);
     
     /* For RNTI searches, -1 means now or forever */    

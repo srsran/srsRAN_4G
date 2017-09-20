@@ -219,11 +219,14 @@ void phch_worker::work_imp()
   bzero(&ul_action, sizeof(mac_interface_phy::tb_action_ul_t));
 
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
-  if (extract_fft_and_pdcch_llr()) {
-    
-    
+  bool chest_ok = extract_fft_and_pdcch_llr();
+
+  bool snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>1.0;
+
+  if (chest_ok && snr_th_ok) {
+
     /***** Downlink Processing *******/
-    
+
     /* PDCCH DL + PDSCH */
     dl_grant_available = decode_pdcch_dl(&dl_mac_grant); 
     if(dl_grant_available) {
@@ -360,6 +363,17 @@ void phch_worker::work_imp()
   }
 
   update_measurements();
+
+  if (chest_ok) {
+    if (snr_th_ok) {
+      phy->rrc->in_sync();
+      log_h->debug("SYNC:  Sending in-sync to RRC\n");
+    } else {
+      phy->rrc->out_of_sync();
+      log_h->debug("SNR=%.1f dB under threshold. Sending out-of-sync to RRC\n",
+                   10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
+    }
+  }
   
   /* Tell the plotting thread to draw the plots */
 #ifdef ENABLE_GUI
