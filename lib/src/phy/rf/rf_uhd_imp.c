@@ -386,7 +386,17 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);       
     }
 
-      
+    // Set over the wire format
+    char *otw_format = "sc16";
+    if (strstr(args, "otw_format=sc12")) {
+      otw_format = "sc12";
+    } else if (strstr(args, "otw_format=sc16")) {
+      /* Do nothing */
+    } else if (strstr(args, "otw_format=")) {
+      fprintf(stderr, "Wrong over the wire format. Valid formats: sc12, sc16\n", error);
+      return -1;
+    }
+
     handler->has_rssi = get_has_rssi(handler);  
     if (handler->has_rssi) {        
       uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
@@ -395,7 +405,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     size_t channel[4] = {0, 1, 2, 3};
     uhd_stream_args_t stream_args = {
           .cpu_format = "fc32",
-          .otw_format = (nof_channels > 1) ? "sc12" : "sc16",
+          .otw_format = otw_format,
           .args = "",
           .channel_list = channel,
           .n_channels = nof_channels,
@@ -632,7 +642,8 @@ int rf_uhd_recv_with_time_multi(void *h,
         return -1;
       } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE ) {
         fprintf(stderr, "Error code 0x%x was returned during streaming. Aborting.\n", error_code);
-        return -1;
+        // FIXME: Keep going if an error not mentioned above occurs
+        // return -1;
       }
       
     } while (n < nsamples && trials < 100);
