@@ -513,11 +513,20 @@ void rlc_um::reassemble_rx_sdus()
     }
     
     // Handle last segment
-    memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
-    rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
-    log->debug("Writting last segment in SDU buffer. Updating vr_ur=%d, Buffer size=%d, segment size=%d\n", 
-               vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
-    vr_ur_in_rx_sdu = vr_ur; 
+    // Handle last segment
+    if (rx_sdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES                 ||
+        rx_window[vr_ur].buf->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES   ||
+        rx_window[vr_ur].buf->N_bytes + rx_sdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
+
+      memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
+      rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
+      log->debug("Writting last segment in SDU buffer. Updating vr_ur=%d, Buffer size=%d, segment size=%d\n",
+                 vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
+    } else {
+      log->error("Out of bounds while reassembling SDU buffer in UM: sdu_len=%d, window_buffer_len=%d, vr_ur=%d\n",
+                 rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur);
+    }
+    vr_ur_in_rx_sdu = vr_ur;
     if(rlc_um_end_aligned(rx_window[vr_ur].header.fi))
     {
       if(pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
