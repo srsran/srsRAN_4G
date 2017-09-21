@@ -57,8 +57,7 @@ namespace srslte {
         bzero(&end_of_burst_time, sizeof(srslte_timestamp_t));
         bzero(zeros, burst_preamble_max_samples*sizeof(cf_t));
         
-        sf_len                  = 0;
-        burst_preamble_sec      = 0; 
+        burst_preamble_sec      = 0;
         is_start_of_burst       = false; 
         burst_preamble_samples  = 0; 
         burst_preamble_time_rounded = 0; 
@@ -72,9 +71,7 @@ namespace srslte {
         rx_freq                 = 0; 
         trace_enabled           = false; 
         tti                     = 0; 
-        agc_enabled             = false; 
-        offset                  = 0; 
-        
+        agc_enabled             = false;
       };
       
       bool init(char *args = NULL, char *devname = NULL);
@@ -124,9 +121,8 @@ namespace srslte {
       void stop_rx();
       
       void set_tti(uint32_t tti);
-      void tx_offset(int offset);
-      void set_tti_len(uint32_t sf_len);
-      uint32_t get_tti_len();
+
+      bool is_first_of_burst();
 
       void register_error_handler(srslte_rf_error_handler_t h);
       
@@ -169,8 +165,6 @@ namespace srslte {
       bool trace_enabled;
       uint32_t tti;
       bool agc_enabled;
-      int offset;
-      uint32_t sf_len;
 
       char saved_args[128];
       char saved_devname[128];

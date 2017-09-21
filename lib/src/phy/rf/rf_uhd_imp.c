@@ -710,11 +710,11 @@ int rf_uhd_send_timed_multi(void *h,
   }
 
   size_t txd_samples;
-  if (has_time_spec) {
-    uhd_tx_metadata_set_time_spec(&handler->tx_md, secs, frac_secs);
-  }
-  int trials = 0; 
+  int trials = 0;
   if (blocking) {
+    if (has_time_spec) {
+      uhd_tx_metadata_set_time_spec(&handler->tx_md, secs, frac_secs);
+    }
     int n = 0;
     cf_t *data_c[4];
     for (int i = 0; i < 4; i++) {
@@ -722,8 +722,8 @@ int rf_uhd_send_timed_multi(void *h,
     }
     do {
       size_t tx_samples = handler->tx_nof_samples;
-      
-      // First packet is start of burst if so defined, others are never 
+
+      // First packet is start of burst if so defined, others are never
       if (n == 0) {
         uhd_tx_metadata_set_start(&handler->tx_md, is_start_of_burst);
       } else {
@@ -760,9 +760,15 @@ int rf_uhd_send_timed_multi(void *h,
     for (int i = 0; i < 4; i++) {
      buffs_ptr[i] = data[i];
     }
+    uhd_tx_metadata_set_has_time_spec(&handler->tx_md, is_start_of_burst);
     uhd_tx_metadata_set_start(&handler->tx_md, is_start_of_burst);
     uhd_tx_metadata_set_end(&handler->tx_md, is_end_of_burst);
-    return uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 0.0, &txd_samples);
+    uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 3.0, &txd_samples);
+    if (error) {
+      fprintf(stderr, "Error sending to UHD: %d\n", error);
+      return -1;
+    }
+    return txd_samples;
   }
 }
 

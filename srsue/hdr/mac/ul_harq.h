@@ -368,6 +368,7 @@ private:
         current_tx_nb = 0;
         current_irv = 0;
         is_msg3 = is_msg3_;
+
         Info("UL %d:  New TX%s, RV=%d, TBS=%d, RNTI=%d\n",
              pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.n_bytes[0],
              is_msg3?harq_entity->rntis->temp_rnti:cur_grant.rnti);

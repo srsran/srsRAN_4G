@@ -39,15 +39,16 @@
 
 namespace srsue {
 
-int radio_recv_wrapper_cs(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
-  srslte::radio_multi *radio_h = (srslte::radio_multi *) h;
+int radio_recv_wrapper_cs(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
+  phch_recv *h = (phch_recv*) obj;
+  srslte::radio_multi *radio_h = h->radio_h;
 
   if (radio_h->rx_now(data, nsamples, rx_time)) {
-    int offset = nsamples - radio_h->get_tti_len();
+    int offset = nsamples - h->current_sflen;
     if (abs(offset) < 10 && offset != 0) {
-      radio_h->tx_offset(offset);
+      h->next_offset = offset;
     } else if (nsamples < 10) {
-      radio_h->tx_offset(nsamples);
+      h->next_offset = nsamples;
     }
     return nsamples;
   } else {
@@ -87,7 +88,7 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
 
 
   if (srslte_ue_cellsearch_init_multi(&cs, 5, radio_recv_wrapper_cs, nof_rx_antennas,
-                                      radio_h)) {
+                                      this)) {
     Error("SYNC:  Initiating UE cell search\n");
     return;
   }
@@ -111,12 +112,12 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
     return;
   }
 
-  if (srslte_ue_sync_init_multi(&ue_sync, SRSLTE_MAX_PRB, false, radio_recv_wrapper_cs, nof_rx_antennas, radio_h)) {
+  if (srslte_ue_sync_init_multi(&ue_sync, SRSLTE_MAX_PRB, false, radio_recv_wrapper_cs, nof_rx_antennas, this)) {
     Error("SYNC:  Initiating ue_sync\n");
     return;
   }
 
-  if (srslte_ue_mib_sync_init_multi(&ue_mib_sync, radio_recv_wrapper_cs, nof_rx_antennas, radio_h)) {
+  if (srslte_ue_mib_sync_init_multi(&ue_mib_sync, radio_recv_wrapper_cs, nof_rx_antennas, this)) {
     Error("SYNC:  Initiating UE MIB synchronization\n");
     return;
   }
@@ -154,6 +155,7 @@ void phch_recv::reset() {
   running = true;
   phy_state = IDLE;
   time_adv_sec = 0;
+  next_offset  = 0;
   cell_is_set = false;
   sync_sfn_cnt = 0;
   srate_mode = SRATE_NONE;
@@ -185,7 +187,12 @@ void phch_recv::set_agc_enable(bool enable) {
 }
 
 void phch_recv::set_time_adv_sec(float _time_adv_sec) {
-  time_adv_sec = _time_adv_sec;
+  if (TX_MODE_CONTINUOUS && !radio_h->is_first_of_burst()) {
+    int nsamples = ceil(current_srate*_time_adv_sec);
+    next_offset = -nsamples;
+  } else {
+    time_adv_sec = _time_adv_sec;
+  }
 }
 
 void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
@@ -241,7 +248,6 @@ bool phch_recv::set_cell() {
       return false;
     }
   }
-  radio_h->set_tti_len(SRSLTE_SF_LEN_PRB(cell.nof_prb));
   if (do_agc) {
     srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, last_gain);
   }
@@ -578,18 +584,19 @@ bool phch_recv::set_frequency()
 
 void phch_recv::set_sampling_rate()
 {
-  float srate = (float) srslte_sampling_freq_hz(cell.nof_prb);
-  if (srate != -1) {
-    Info("SYNC:  Setting sampling rate %.2f MHz\n", srate/1000000);
+  current_srate = (float) srslte_sampling_freq_hz(cell.nof_prb);
+  current_sflen = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+  if (current_srate != -1) {
+    Info("SYNC:  Setting sampling rate %.2f MHz\n", current_srate/1000000);
 
-    if (30720 % ((int) srate / 1000) == 0) {
+    if (30720 % ((int) current_srate / 1000) == 0) {
       radio_h->set_master_clock_rate(30.72e6);
     } else {
       radio_h->set_master_clock_rate(23.04e6);
     }
     srate_mode = SRATE_CAMP;
-    radio_h->set_rx_srate(srate);
-    radio_h->set_tx_srate(srate);
+    radio_h->set_rx_srate(current_srate);
+    radio_h->set_tx_srate(current_srate);
   } else {
     Error("Error setting sampling rate for cell with %d PRBs\n", cell.nof_prb);
   }
@@ -702,7 +709,8 @@ void phch_recv::run_thread() {
               srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
               srslte_timestamp_copy(&tx_time, &rx_time);
               srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec);
-              worker->set_tx_time(tx_time);
+              worker->set_tx_time(tx_time, next_offset);
+              next_offset = 0;
 
               Debug("SYNC:  Setting TTI=%d, tx_mutex=%d to worker %d\n", tti, tx_mutex_cnt, worker->get_id());
               worker->set_tti(tti, tx_mutex_cnt);

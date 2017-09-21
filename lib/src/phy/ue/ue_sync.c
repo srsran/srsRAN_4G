@@ -513,7 +513,7 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
     discard the offseted samples to align next frame */
   if (q->next_rf_sample_offset > 0 && q->next_rf_sample_offset < MAX_TIME_OFFSET) {
     DEBUG("Positive time offset %d samples.\n", q->next_rf_sample_offset);
-    if (q->recv_callback(q->stream, dummy_offset_buffer, (uint32_t) q->next_rf_sample_offset, &q->last_timestamp) < 0) {
+    if (q->recv_callback(q->stream, dummy_offset_buffer, (uint32_t) q->next_rf_sample_offset, NULL) < 0) {
       fprintf(stderr, "Error receiving from USRP\n");
       return SRSLTE_ERROR; 
     }

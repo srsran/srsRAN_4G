@@ -52,7 +52,7 @@ public:
   /* Functions used by main PHY thread */
   cf_t* get_buffer(uint32_t antenna_idx);
   void  set_tti(uint32_t tti, uint32_t tx_tti); 
-  void  set_tx_time(srslte_timestamp_t tx_time);
+  void  set_tx_time(srslte_timestamp_t tx_time, uint32_t next_offset);
   void  set_cfo(float cfo);
   void  set_sample_offset(float sample_offset); 
   
@@ -123,7 +123,9 @@ private:
   bool           pregen_enabled;
   uint32_t       last_dl_pdcch_ncce;
   bool           rnti_is_set;
-  
+
+  uint32_t next_offset;
+
   /* Objects for DL */
   srslte_ue_dl_t ue_dl; 
   uint32_t       cfi; 

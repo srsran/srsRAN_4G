@@ -27,6 +27,9 @@
 #ifndef UEPHYWORKERCOMMON_H
 #define UEPHYWORKERCOMMON_H
 
+#define TX_MODE_CONTINUOUS 1
+
+
 #include <pthread.h>
 #include <string.h>
 #include <vector>
@@ -35,8 +38,6 @@
 #include "srslte/radio/radio.h"
 #include "srslte/common/log.h"
 #include "phy/phy_metrics.h"
-
-//#define CONTINUOUS_TX
 
 
 namespace srsue {

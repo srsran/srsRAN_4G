@@ -294,7 +294,7 @@ void phch_worker::work_imp()
   }
   
   // Decode PHICH 
-  bool ul_ack; 
+  bool ul_ack = false;
   bool ul_ack_available = decode_phich(&ul_ack); 
 
   /***** Uplink Processing + Transmission *******/
@@ -347,9 +347,13 @@ void phch_worker::work_imp()
   } 
 
   tr_log_end();
-  
-  phy->worker_end(tx_tti, signal_ready, signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);
-  
+
+  if (next_offset > 0) {
+    phy->worker_end(tx_tti, signal_ready, signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
+  } else {
+    phy->worker_end(tx_tti, signal_ready, &signal_buffer[0][-next_offset], SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
+  }
+
   if (!dl_action.generate_ack_callback) {
     if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH && dl_action.decode_enabled[0]) {
       phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
@@ -867,8 +871,9 @@ bool phch_worker::srs_is_ready_to_send() {
   return false; 
 }
 
-void phch_worker::set_tx_time(srslte_timestamp_t _tx_time)
+void phch_worker::set_tx_time(srslte_timestamp_t _tx_time, uint32_t next_offset)
 {
+  this->next_offset = next_offset;
   memcpy(&tx_time, &_tx_time, sizeof(srslte_timestamp_t));
 }
 
@@ -954,8 +959,8 @@ void phch_worker::encode_pucch()
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
   
-  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, pmi=%s%s, sr=%s, cfo=%.1f Hz%s\n",
-         tx_power, (tti+4)%10240, 
+  Info("PUCCH: tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, pmi=%s%s, sr=%s, cfo=%.1f Hz%s\n",
+         (tti+4)%10240,
          last_dl_pdcch_ncce, ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb, 
        uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
        uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",

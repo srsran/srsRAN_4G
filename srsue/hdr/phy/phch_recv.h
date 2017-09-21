@@ -67,7 +67,13 @@ public:
   void    set_time_adv_sec(float time_adv_sec);
   void    get_current_cell(srslte_cell_t *cell);
   
-  const static int MUTEX_X_WORKER = 4; 
+  const static int MUTEX_X_WORKER = 4;
+
+  // public variables needed by callback function
+  uint32_t              current_sflen;
+  srslte::radio_multi  *radio_h;
+  int                   next_offset;
+
 
 private:
 
@@ -97,7 +103,6 @@ private:
 
   bool   running; 
   
-  srslte::radio_multi  *radio_h;
   mac_interface_phy    *mac;
   rrc_interface_phy    *rrc;
   srslte::log          *log_h;
@@ -133,6 +138,7 @@ private:
   enum {
     SRATE_NONE=0, SRATE_FIND, SRATE_CAMP
   } srate_mode;
+  float         current_srate;
 
   srslte_cell_t cell;
   bool          cell_is_set;
