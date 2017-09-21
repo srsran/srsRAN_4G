@@ -103,6 +103,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("log.usim_level", bpo::value<string>(&args->log.usim_level), "USIM log level")
     ("log.usim_hex_limit", bpo::value<int>(&args->log.usim_hex_limit), "USIM log hex dump limit")
 
+
     ("log.all_level", bpo::value<string>(&args->log.all_level)->default_value("info"), "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log.all_hex_limit)->default_value(32), "ALL log hex dump limit")
 

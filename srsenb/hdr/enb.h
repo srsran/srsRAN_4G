@@ -138,8 +138,6 @@ typedef struct {
   Main UE class
 *******************************************************************************/
 
-//#define LOG_STDOUT
-
 class enb
     :public enb_metrics_interface {
 public:
@@ -180,11 +178,10 @@ private:
   srsenb::gtpu gtpu;
   srsenb::s1ap s1ap;
 
-#ifdef LOG_STDOUT
-    srslte::logger_stdout logger;
-#else
-    srslte::logger_file logger;
-#endif
+  srslte::logger_stdout logger_stdout;
+  srslte::logger_file   logger_file;
+  srslte::logger        *logger;
+
   srslte::log_filter  rf_log;
   std::vector<void*>  phy_log;
   srslte::log_filter  mac_log;

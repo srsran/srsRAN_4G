@@ -32,6 +32,7 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <ue_base.h>
 
 using namespace srslte;
 
@@ -52,31 +53,33 @@ bool ue::init(all_args_t *args_)
 {
   args     = args_;
 
-#ifndef LOG_STDOUT
-    logger.init(args->log.filename);
-#endif
-  rf_log.init("RF  ", &logger);
+  if (!args->log.filename.compare("stdout")) {
+    logger = &logger_stdout;
+  } else {
+    logger_file.init(args->log.filename);
+    logger_file.log("\n\n");
+    logger = &logger_file;
+  }
+
+  rf_log.init("RF  ", logger);
   // Create array of pointers to phy_logs
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     srslte::log_filter *mylog = new srslte::log_filter;
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
-    mylog->init(tmp, &logger, true);
+    mylog->init(tmp, logger, true);
     phy_log.push_back((void*) mylog);
   }
 
-  mac_log.init("MAC ", &logger, true);
-  rlc_log.init("RLC ", &logger);
-  pdcp_log.init("PDCP", &logger);
-  rrc_log.init("RRC ", &logger);
-  nas_log.init("NAS ", &logger);
-  gw_log.init("GW  ", &logger);
-  usim_log.init("USIM", &logger);
+  mac_log.init("MAC ", logger, true);
+  rlc_log.init("RLC ", logger);
+  pdcp_log.init("PDCP", logger);
+  rrc_log.init("RRC ", logger);
+  nas_log.init("NAS ", logger);
+  gw_log.init("GW  ", logger);
+  usim_log.init("USIM", logger);
 
   // Init logs
-#ifndef LOG_STDOUT
-  logger.log("\n\n");
-#endif
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));

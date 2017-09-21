@@ -57,8 +57,6 @@
 
 namespace srsue {
 
-//#define LOG_STDOUT
-
 /*******************************************************************************
   Main UE class
 *******************************************************************************/
@@ -97,11 +95,10 @@ private:
   srsue::gw          gw;
   srsue::usim        usim;
 
-#ifdef LOG_STDOUT
-    srslte::logger_stdout logger;
-#else
-    srslte::logger_file logger;
-#endif
+  srslte::logger_stdout logger_stdout;
+  srslte::logger_file   logger_file;
+  srslte::logger        *logger;
+
   // rf_log is on ue_base
   std::vector<void*>  phy_log;
   srslte::log_filter  mac_log;
