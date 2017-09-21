@@ -333,9 +333,8 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     
     bzero(zero_mem, sizeof(cf_t)*64*1024);
 
+    // Check external clock argument
     enum {DEFAULT, EXTERNAL, GPSDO} clock_src;
-
-    // Set external clock reference
     if (strstr(args, "clock=external")) {
       remove_substring(args, "clock=external");
       clock_src = EXTERNAL;
@@ -345,6 +344,17 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       clock_src = GPSDO;
     } else {
       clock_src = DEFAULT;
+    }
+
+    // Set over the wire format
+    char *otw_format = "sc16";
+    if (strstr(args, "otw_format=sc12")) {
+      otw_format = "sc12";
+    } else if (strstr(args, "otw_format=sc16")) {
+      /* Do nothing */
+    } else if (strstr(args, "otw_format=")) {
+      fprintf(stderr, "Wrong over the wire format. Valid formats: sc12, sc16\n");
+      return -1;
     }
 
     /* If device type or name not given in args, choose a B200 */
@@ -407,7 +417,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);
     }
 
-    handler->has_rssi = get_has_rssi(handler);  
+    handler->has_rssi = get_has_rssi(handler);
     if (handler->has_rssi) {        
       uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
     }
@@ -415,7 +425,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     size_t channel[4] = {0, 1, 2, 3};
     uhd_stream_args_t stream_args = {
           .cpu_format = "fc32",
-          .otw_format = (nof_channels > 1) ? "sc12" : "sc16",
+          .otw_format = otw_format,
           .args = "",
           .channel_list = channel,
           .n_channels = nof_channels,
