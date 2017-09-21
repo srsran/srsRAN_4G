@@ -43,7 +43,6 @@ namespace srsue {
 
 mac::mac() : ttisync(10240), 
              timers(64),
-             timers_thread(&timers),
              mux_unit(MAC_NOF_HARQ_PROC),
              demux_unit(SRSLTE_MAX_TB*MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
@@ -95,7 +94,6 @@ void mac::stop()
   started = false;
   ttisync.increase();
   pdu_process_thread.stop();
-  timers_thread.stop();
   wait_thread_finish();
 }
 
@@ -161,7 +159,7 @@ void mac::run_thread() {
 
       log_h->step(tti);
 
-      timers_thread.tti_clock();
+      timers.step_all();
 
       // Step all procedures
       bsr_procedure.step(tti);
@@ -312,6 +310,7 @@ void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
 
 void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
+  log_h->info("new_grant_ul_ack\n");
   int tbs = ul_harq.get_current_tbs(tti);
   ul_harq.new_grant_ul_ack(grant, ack, action);
   if (!ack) {
@@ -450,35 +449,6 @@ void mac::timer_release_id(uint32_t timer_id)
 uint32_t mac::timer_get_unique_id()
 {
   return timers.get_unique_id();
-}
-
-
-/********************************************************
- *
- * Class that runs timers in lower priority
- *
- *******************************************************/
-void mac::timer_thread::tti_clock()
-{
-  ttisync.increase();
-}
-
-void mac::timer_thread::run_thread()
-{
-  running=true;
-  ttisync.set_producer_cntr(0);
-  ttisync.resync();
-  while(running) {
-    ttisync.wait();
-    timers->step_all();
-  }
-}
-
-void mac::timer_thread::stop()
-{
-  running=false;
-  ttisync.increase();
-  wait_thread_finish();
 }
 
 

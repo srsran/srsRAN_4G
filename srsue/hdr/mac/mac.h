@@ -150,27 +150,12 @@ private:
   uint8_t                pch_payload_buffer[pch_payload_buffer_sz];
 
 
-  /* class that runs a thread to trigger timer callbacks in low priority */
-  class timer_thread : public thread {
-  public:
-    timer_thread(srslte::timers *timers_) : ttisync(10240),running(false),timers(timers_) {start();}
-    void tti_clock();
-    void stop();
-  private:
-    bool running;
-    void run_thread();
-    srslte::tti_sync_cv ttisync;
-    srslte::timers     *timers;
-  };
-
-
   /* Functions for MAC Timers */
   uint32_t        timer_alignment;
   uint32_t        contention_resolution_timer;
   void            setup_timers();
   void            timer_alignment_expire();
   srslte::timers  timers;
-  timer_thread    timers_thread;
 
 
   // pointer to MAC PCAP object
