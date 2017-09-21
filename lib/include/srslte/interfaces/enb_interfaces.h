@@ -244,7 +244,7 @@ public:
 class gtpu_interface_rrc
 {
 public:
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t teid_out, uint32_t *teid_in) = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in) = 0;
   virtual void rem_bearer(uint16_t rnti, uint32_t lcid) = 0;
   virtual void rem_user(uint16_t rnti) = 0;
 };
