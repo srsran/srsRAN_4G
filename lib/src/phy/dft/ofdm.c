@@ -37,7 +37,13 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
+
 int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_prb, srslte_dft_dir_t dir) {
+  return srslte_ofdm_init_mbsfn_(q, cp, symbol_sz, nof_prb, dir, SRSLTE_SF_NORM);
+}
+
+
+int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_prb, srslte_dft_dir_t dir, srslte_sf_t sf_type) {
 
   if (srslte_dft_plan_c(&q->fft_plan, symbol_sz, dir)) {
     fprintf(stderr, "Error: Creating DFT plan\n");
@@ -60,6 +66,7 @@ int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_p
 
   q->symbol_sz = (uint32_t) symbol_sz;
   q->nof_symbols = SRSLTE_CP_NSYMB(cp);
+  q->nof_symbols_mbsfn = SRSLTE_CP_NSYMB(SRSLTE_CP_EXT);
   q->cp = cp;
   q->freq_shift = false;
   q->nof_re = nof_prb * SRSLTE_NRE;
@@ -69,10 +76,20 @@ int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_p
   DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
       dir==SRSLTE_DFT_FORWARD?"FFT":"iFFT", q->symbol_sz, q->nof_symbols,
           q->cp==SRSLTE_CP_NORM?"Normal":"Extended", q->nof_re, q->nof_guards);
-
+  
+  // MBSFN logic
+  if (sf_type == SRSLTE_SF_MBSFN) {
+    q->mbsfn_subframe = true;
+    q->non_mbsfn_region = 2; // default set to 2
+  }
+  
   return SRSLTE_SUCCESS;
 }
 
+void srslte_ofdm_set_non_mbsfn_region(srslte_ofdm_t *q, uint8_t non_mbsfn_region)
+{
+  q->non_mbsfn_region = non_mbsfn_region;
+}
 
 int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_prb) {
 
@@ -120,6 +137,17 @@ int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t max_prb) {
   return srslte_ofdm_init_(q, cp, symbol_sz, max_prb, SRSLTE_DFT_FORWARD);
 }
 
+int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb)
+{
+  int symbol_sz = srslte_symbol_sz(nof_prb);
+  if (symbol_sz < 0) {
+    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+    return -1;
+  }
+  return srslte_ofdm_init_mbsfn_(q, cp, symbol_sz, nof_prb, SRSLTE_DFT_FORWARD, SRSLTE_SF_MBSFN);
+}
+
+
 int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t max_prb) {
   uint32_t i;
   int ret;
@@ -130,8 +158,33 @@ int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t max_prb) {
     return -1;
   }
   q->max_prb = max_prb;
+  ret = srslte_ofdm_init_(q, cp, symbol_sz, max_prb, SRSLTE_DFT_BACKWARD); 
 
-  ret = srslte_ofdm_init_(q, cp, symbol_sz, max_prb, SRSLTE_DFT_BACKWARD);
+  
+  if (ret == SRSLTE_SUCCESS) {
+    srslte_dft_plan_set_norm(&q->fft_plan, false);
+    
+    /* set now zeros at CP */
+    for (i=0;i<q->nof_symbols;i++) {
+      bzero(q->tmp, q->nof_guards * sizeof(cf_t));
+      bzero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards * sizeof(cf_t));
+    }
+  }
+  return ret;
+}
+
+int srslte_ofdm_tx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb)
+{
+  uint32_t i;
+  int ret;
+  
+  int symbol_sz = srslte_symbol_sz(nof_prb);
+  if (symbol_sz < 0) { 
+    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+    return -1;
+  }
+
+  ret = srslte_ofdm_init_mbsfn_(q, cp, symbol_sz, nof_prb, SRSLTE_DFT_BACKWARD, SRSLTE_SF_MBSFN);
   
   if (ret == SRSLTE_SUCCESS) {
     srslte_dft_plan_set_norm(&q->fft_plan, false);
@@ -190,7 +243,6 @@ int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
 void srslte_ofdm_rx_free(srslte_ofdm_t *q) {
   srslte_ofdm_free_(q);
 }
-
 /* Shifts the signal after the iFFT or before the FFT. 
  * Freq_shift is relative to inter-carrier spacing.
  * Caution: This function shall not be called during run-time 
@@ -233,6 +285,23 @@ void srslte_ofdm_rx_slot(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   }
 }
 
+void srslte_ofdm_rx_slot_mbsfn(srslte_ofdm_t *q, cf_t *input, cf_t *output)
+{
+  uint32_t i;
+  for(i = 0; i < q->nof_symbols_mbsfn; i++){
+    if(i == q->non_mbsfn_region) {
+      input += SRSLTE_NON_MBSFN_REGION_GUARD_LENGTH(q->non_mbsfn_region,q->symbol_sz);
+    }
+    input += (i>=q->non_mbsfn_region)?SRSLTE_CP_LEN_EXT(q->symbol_sz):SRSLTE_CP_LEN_NORM(i, q->symbol_sz);
+    srslte_dft_run_c(&q->fft_plan, input, q->tmp);
+    memcpy(output, &q->tmp[q->nof_guards], q->nof_re * sizeof(cf_t));
+    input += q->symbol_sz;
+    output += q->nof_re;
+  }
+}
+
+
+
 void srslte_ofdm_rx_slot_zerocopy(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   uint32_t i;
   for (i=0;i<q->nof_symbols;i++) {
@@ -250,8 +319,14 @@ void srslte_ofdm_rx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   if (q->freq_shift) {
     srslte_vec_prod_ccc(input, q->shift_buffer, input, 2*q->slot_sz);
   }
-  for (n=0;n<2;n++) {
-    srslte_ofdm_rx_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
+  if(!q->mbsfn_subframe){
+    for (n=0;n<2;n++) {
+      srslte_ofdm_rx_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
+    }
+  }
+  else{
+    srslte_ofdm_rx_slot_mbsfn(q, &input[0*q->slot_sz], &output[0*q->nof_re*q->nof_symbols]);
+    srslte_ofdm_rx_slot(q, &input[1*q->slot_sz], &output[1*q->nof_re*q->nof_symbols]);
   }
 }
 
@@ -271,16 +346,43 @@ void srslte_ofdm_tx_slot(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   }
 }
 
+void srslte_ofdm_tx_slot_mbsfn(srslte_ofdm_t *q, cf_t *input, cf_t *output)
+{
+  uint32_t i, cp_len;
+  
+  for(i=0;i<q->nof_symbols_mbsfn;i++) {
+    cp_len = ( i>(q->non_mbsfn_region-1) )?SRSLTE_CP_LEN_EXT(q->symbol_sz):SRSLTE_CP_LEN_NORM(i, q->symbol_sz);
+    memcpy(&q->tmp[q->nof_guards], input, q->nof_re * sizeof(cf_t));
+    srslte_dft_run_c(&q->fft_plan, q->tmp, &output[cp_len]);
+    input += q->nof_re;
+    /* add CP */
+    memcpy(output, &output[q->symbol_sz], cp_len * sizeof(cf_t));
+    output += q->symbol_sz + cp_len;
+    
+    /*skip the small section between the non mbms region and the mbms region*/
+    if(i == (q->non_mbsfn_region - 1))
+      output += SRSLTE_NON_MBSFN_REGION_GUARD_LENGTH(q->non_mbsfn_region,q->symbol_sz);
+  }  
+}
+
 void srslte_ofdm_set_normalize(srslte_ofdm_t *q, bool normalize_enable) {
   srslte_dft_plan_set_norm(&q->fft_plan, normalize_enable);
 }
 
-void srslte_ofdm_tx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
+void srslte_ofdm_tx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output)
+{
   uint32_t n; 
-  for (n=0;n<2;n++) {
-    srslte_ofdm_tx_slot(q, &input[n*q->nof_re*q->nof_symbols], &output[n*q->slot_sz]);
+  if(!q->mbsfn_subframe){
+    for (n=0;n<2;n++) {
+      srslte_ofdm_tx_slot(q, &input[n*q->nof_re*q->nof_symbols], &output[n*q->slot_sz]);
+    }
+  }
+  else{
+     srslte_ofdm_tx_slot_mbsfn(q, &input[0*q->nof_re*q->nof_symbols], &output[0*q->slot_sz]);
+     srslte_ofdm_tx_slot(q, &input[1*q->nof_re*q->nof_symbols], &output[1*q->slot_sz]);
   }
   if (q->freq_shift) {
     srslte_vec_prod_ccc(output, q->shift_buffer, output, 2*q->slot_sz);
   }
 }
+

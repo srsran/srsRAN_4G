@@ -76,7 +76,7 @@ typedef struct SRSLTE_API {
   srslte_pdsch_t  pdsch;
   srslte_phich_t  phich; 
   
-  srslte_refsignal_cs_t csr_signal;
+  srslte_refsignal_t csr_signal;
   srslte_pdsch_cfg_t pdsch_cfg; 
   srslte_ra_dl_dci_t dl_dci;
   
