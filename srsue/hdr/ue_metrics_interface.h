@@ -29,6 +29,7 @@
 
 #include <stdint.h>
 
+#include "srslte/common/metrics_hub.h"
 #include "upper/gw_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "mac/mac_metrics.h"
@@ -52,7 +53,7 @@ typedef struct {
 }ue_metrics_t;
 
 // UE interface
-class ue_metrics_interface
+class ue_metrics_interface : public srslte::metrics_interface<ue_metrics_t>
 {
 public:
   virtual bool get_metrics(ue_metrics_t &m) = 0;

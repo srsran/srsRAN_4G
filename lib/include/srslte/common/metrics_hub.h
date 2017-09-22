@@ -24,7 +24,7 @@ template<typename metrics_t>
 class metrics_listener
 {
 public: 
-  virtual void set_metrics(metrics_t &m) = 0; 
+  virtual void set_metrics(metrics_t &m, float report_period_secs=1.0) = 0;
 }; 
 
 template<typename metrics_t>
