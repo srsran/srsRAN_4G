@@ -48,14 +48,16 @@ public:
 
   void toggle_print(bool b);
   void set_metrics(ue_metrics_t &m, float report_period_secs);
+  void set_ue_handle(ue_metrics_interface *ue_);
 
 private:
   std::string float_to_string(float f, int digits);
   std::string float_to_eng_string(float f, int digits);
   std::string int_to_eng_string(int f, int digits);
 
-  bool          do_print;
-  uint8_t       n_reports;
+  bool                  do_print;
+  uint8_t               n_reports;
+  ue_metrics_interface* ue;
 };
 
 } // namespace srsue

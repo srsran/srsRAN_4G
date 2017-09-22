@@ -366,6 +366,7 @@ int main(int argc, char *argv[])
 
   metricshub.init(ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
+  metrics_screen.set_ue_handle(ue);
 
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &args);

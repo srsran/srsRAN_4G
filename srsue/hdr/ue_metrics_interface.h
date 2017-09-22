@@ -57,6 +57,7 @@ class ue_metrics_interface : public srslte::metrics_interface<ue_metrics_t>
 {
 public:
   virtual bool get_metrics(ue_metrics_t &m) = 0;
+  virtual bool is_attached() = 0;
 };
 
 } // namespace srsue

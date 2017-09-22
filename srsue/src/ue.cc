@@ -247,7 +247,7 @@ void ue::stop()
 
 bool ue::is_attached()
 {
-  return (EMM_STATE_REGISTERED == nas.get_state());
+  return (RRC_STATE_CONNECTED == rrc.get_state());
 }
 
 void ue::start_plot() {

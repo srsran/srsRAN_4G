@@ -50,7 +50,13 @@ char const * const prefixes[2][9] =
 metrics_stdout::metrics_stdout()
     :do_print(false)
     ,n_reports(10)
+    ,ue(NULL)
 {
+}
+
+void metrics_stdout::set_ue_handle(ue_metrics_interface *ue_)
+{
+  ue = ue_;
 }
 
 void metrics_stdout::toggle_print(bool b)
@@ -61,8 +67,13 @@ void metrics_stdout::toggle_print(bool b)
 
 void metrics_stdout::set_metrics(ue_metrics_t &metrics, float metrics_report_period)
 {
-  if(!do_print)
+  if(!do_print || ue == NULL)
     return;
+
+  if (!ue->is_attached()) {
+    cout << "--- disconnected ---" << endl;
+    return;
+  }
 
   if(++n_reports > 10)
   {
