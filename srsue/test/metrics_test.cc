@@ -25,15 +25,20 @@
  */
 
 #include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
 #include "ue_metrics_interface.h"
 #include "srslte/common/metrics_hub.h"
 #include "metrics_stdout.h"
+#include "metrics_csv.h"
 
 using namespace srsue;
 
 namespace srsue {
+
+char *csv_file_name = NULL;
 
 // fake classes
 class ue_dummy : public ue_metrics_interface
@@ -56,19 +61,55 @@ public:
 };
 }
 
+void usage(char *prog) {
+  printf("Usage: %s -o csv_output_file\n", prog);
+}
+
+void parse_args(int argc, char **argv) {
+  int opt;
+
+  while ((opt = getopt(argc, argv, "o")) != -1) {
+    switch(opt) {
+      case 'o':
+        csv_file_name = argv[optind];
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
+    }
+  }
+  if (!csv_file_name) {
+    usage(argv[0]);
+    exit(-1);
+  }
+}
+
+
 int main(int argc, char **argv)
 {
   float period = 1.0;
   ue_dummy ue;
 
+  if (argc < 3) {
+    usage(argv[0]);
+    exit(-1);
+  }
+
+  parse_args(argc,argv);
+
   // the default metrics type for stdout output
   metrics_stdout metrics_screen;
   metrics_screen.set_ue_handle(&ue);
+
+  // the CSV file writer
+  metrics_csv metrics_file(csv_file_name);
+  metrics_file.set_ue_handle(&ue);
 
   // create metrics hub and register metrics for stdout
   srslte::metrics_hub<ue_metrics_t> metricshub;
   metricshub.init(&ue, period);
   metricshub.add_listener(&metrics_screen);
+  metricshub.add_listener(&metrics_file);
 
   // enable printing
   metrics_screen.toggle_print(true);
