@@ -38,6 +38,7 @@ public:
   }
   void stop() {
     thread_cancel();
+    wait_thread_finish();
   }
   
   void add_listener(metrics_listener<metrics_t> *listener) {
