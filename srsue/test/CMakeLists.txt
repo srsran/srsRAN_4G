@@ -21,3 +21,7 @@
 add_subdirectory(phy)
 add_subdirectory(mac)
 add_subdirectory(upper)
+
+add_executable(metrics_test metrics_test.cc ../src/metrics_stdout.cc ../src/metrics_csv.cc)
+target_link_libraries(metrics_test srslte_phy srslte_common)
+add_test(metrics_test metrics_test -o ${CMAKE_CURRENT_BINARY_DIR}/ue_metrics.csv)

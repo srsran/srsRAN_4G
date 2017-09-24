@@ -24,42 +24,41 @@
  *
  */
 
-#ifndef UE_METRICS_INTERFACE_H
-#define UE_METRICS_INTERFACE_H
+/******************************************************************************
+ * File:        metrics_csv.h
+ * Description: Metrics class writing to CSV file.
+ *****************************************************************************/
 
+#ifndef METRICS_CSV_H
+#define METRICS_CSV_H
+
+#include <pthread.h>
 #include <stdint.h>
+#include <string>
+#include <iostream>
+#include <fstream>
 
 #include "srslte/common/metrics_hub.h"
-#include "upper/gw_metrics.h"
-#include "srslte/upper/rlc_metrics.h"
-#include "mac/mac_metrics.h"
-#include "phy/phy_metrics.h"
+#include "ue_metrics_interface.h"
 
 namespace srsue {
 
-typedef struct {
-  uint32_t rf_o;
-  uint32_t rf_u;
-  uint32_t rf_l;
-  bool     rf_error;
-}rf_metrics_t;
-
-typedef struct {
-  rf_metrics_t          rf;
-  phy_metrics_t         phy;
-  mac_metrics_t         mac;
-  srslte::rlc_metrics_t rlc;
-  gw_metrics_t          gw;
-}ue_metrics_t;
-
-// UE interface
-class ue_metrics_interface : public srslte::metrics_interface<ue_metrics_t>
+class metrics_csv : public srslte::metrics_listener<ue_metrics_t>
 {
 public:
-  virtual bool get_metrics(ue_metrics_t &m) = 0;
-  virtual bool is_attached() = 0;
+  metrics_csv(std::string filename);
+
+  void set_metrics(ue_metrics_t &m, float report_period_secs);
+  void set_ue_handle(ue_metrics_interface *ue_);
+
+private:
+  std::string float_to_string(float f, int digits, bool add_semicolon = true);
+
+  std::ofstream         file;
+  ue_metrics_interface* ue;
+  uint32_t              n_reports;
 };
 
 } // namespace srsue
 
-#endif // UE_METRICS_INTERFACE_H
+#endif // METRICS_CSV_H
