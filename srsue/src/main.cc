@@ -38,6 +38,7 @@
 
 #include "ue.h"
 #include "metrics_stdout.h"
+#include "metrics_csv.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/version.h"
 
@@ -134,6 +135,14 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.metrics_period_secs",
      bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
      "Periodicity for metrics in seconds")
+
+    ("expert.metrics_csv_enable",
+     bpo::value<bool>(&args->expert.metrics_csv_enable)->default_value(false),
+     "Write UE metrics to CSV file")
+
+    ("expert.metrics_csv_filename",
+     bpo::value<string>(&args->expert.metrics_csv_filename)->default_value("/tmp/ue_metrics.csv"),
+     "Metrics CSV filename")
 
     ("expert.pregenerate_signals",
      bpo::value<bool>(&args->expert.pregenerate_signals)->default_value(false),
@@ -363,10 +372,15 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-
   metricshub.init(ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_ue_handle(ue);
+
+  metrics_csv metrics_file(args.expert.metrics_csv_filename);
+  if (args.expert.metrics_csv_enable) {
+    metricshub.add_listener(&metrics_file);
+    metrics_file.set_ue_handle(ue);
+  }
 
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &args);
