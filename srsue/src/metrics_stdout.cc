@@ -48,29 +48,15 @@ char const * const prefixes[2][9] =
 };
 
 metrics_stdout::metrics_stdout()
-    :started(false)
-    ,do_print(false)
+    :do_print(false)
     ,n_reports(10)
+    ,ue(NULL)
 {
 }
 
-bool metrics_stdout::init(ue_metrics_interface *u, float report_period_secs)
+void metrics_stdout::set_ue_handle(ue_metrics_interface *ue_)
 {
-  ue_ = u;
-  metrics_report_period = report_period_secs;
-
-  started = true;
-  pthread_create(&metrics_thread, NULL, &metrics_thread_start, this);
-  return true;
-}
-
-void metrics_stdout::stop()
-{
-  if(started)
-  {
-    started = false;
-    pthread_join(metrics_thread, NULL);
-  }
+  ue = ue_;
 }
 
 void metrics_stdout::toggle_print(bool b)
@@ -78,30 +64,16 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
-void* metrics_stdout::metrics_thread_start(void *m_)
-{
-  metrics_stdout *m = (metrics_stdout*)m_;
-  m->metrics_thread_run();
-  return NULL;
-}
 
-void metrics_stdout::metrics_thread_run()
+void metrics_stdout::set_metrics(ue_metrics_t &metrics, float metrics_report_period)
 {
-  while(started)
-  {
-    usleep(metrics_report_period*1e6);
-    if(ue_->get_metrics(metrics)) {
-      print_metrics();
-    } else {
-      print_disconnect();
-    }
-  }
-}
-
-void metrics_stdout::print_metrics()
-{
-  if(!do_print)
+  if(!do_print || ue == NULL)
     return;
+
+  if (!ue->is_attached()) {
+    cout << "--- disconnected ---" << endl;
+    return;
+  }
 
   if(++n_reports > 10)
   {
@@ -136,13 +108,6 @@ void metrics_stdout::print_metrics()
     printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
   
-}
-
-void metrics_stdout::print_disconnect()
-{
-  if(do_print) {
-    cout << "--- disconnected ---" << endl;
-  }
 }
 
 std::string metrics_stdout::float_to_string(float f, int digits)
