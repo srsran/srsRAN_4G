@@ -87,7 +87,7 @@ private:
 
   void   set_sampling_rate();
   bool   set_frequency();
-  void   resync_sfn();
+  void   resync_sfn(bool is_connected = false);
   bool   stop_sync();
 
   void   cell_search_inc();
@@ -129,6 +129,7 @@ private:
     IDLE = 0,
     CELL_SEARCH,
     CELL_SELECT,
+    CELL_RESELECT,
     CELL_MEASURE,
     CELL_CAMP
   } phy_state;

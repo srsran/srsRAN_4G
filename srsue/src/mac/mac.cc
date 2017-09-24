@@ -142,47 +142,44 @@ void mac::reset()
 void mac::run_thread() {
   int cnt=0;
 
+  while (!phy_h->sync_status() && started) {
+    usleep(5000);
+    if (phy_h->sync_status()) {
+      Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
+      ttisync.set_producer_cntr(phy_h->get_current_tti());
+    }
+  }
+
   while(started) {
 
-    while (!phy_h->sync_status() && started) {
-      usleep(5000);
-      if (phy_h->sync_status()) {
-        Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
-        ttisync.set_producer_cntr(phy_h->get_current_tti());
-      }
+    /* Warning: Here order of invocation of procedures is important!! */
+    ttisync.wait();
+    tti = phy_h->get_current_tti();
+
+    log_h->step(tti);
+    timers.step_all();
+
+    // Step all procedures
+    bsr_procedure.step(tti);
+    phr_procedure.step(tti);
+
+    // Check if BSR procedure need to start SR
+
+    if (bsr_procedure.need_to_send_sr(tti)) {
+      Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", tti);
+      sr_procedure.start();
     }
-
-    if (started && phy_h->sync_status()) {
-      /* Warning: Here order of invocation of procedures is important!! */
-      ttisync.wait();
-      tti = phy_h->get_current_tti();
-
-      log_h->step(tti);
-
-      timers.step_all();
-
-      // Step all procedures
-      bsr_procedure.step(tti);
-      phr_procedure.step(tti);
-
-      // Check if BSR procedure need to start SR
-
-      if (bsr_procedure.need_to_send_sr(tti)) {
-        Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", tti);
-        sr_procedure.start();
-      }
-      if (bsr_procedure.need_to_reset_sr()) {
-        Debug("Resetting SR procedure by BSR request\n");
-        sr_procedure.reset();
-      }
-      sr_procedure.step(tti);
-
-      // Check SR if we need to start RA
-      if (sr_procedure.need_random_access()) {
-        ra_procedure.start_mac_order();
-      }
-      ra_procedure.step(tti);
+    if (bsr_procedure.need_to_reset_sr()) {
+      Debug("Resetting SR procedure by BSR request\n");
+      sr_procedure.reset();
     }
+    sr_procedure.step(tti);
+
+    // Check SR if we need to start RA
+    if (sr_procedure.need_random_access()) {
+      ra_procedure.start_mac_order();
+    }
+    ra_procedure.step(tti);
   }
 }
 

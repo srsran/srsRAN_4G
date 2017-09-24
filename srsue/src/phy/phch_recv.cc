@@ -422,7 +422,7 @@ int phch_recv::cell_meas_rsrp() {
   return 0;
 }
 
-void phch_recv::resync_sfn() {
+void phch_recv::resync_sfn(bool is_connected) {
 
   wait_radio_reset();
 
@@ -431,7 +431,7 @@ void phch_recv::resync_sfn() {
   srslte_ue_mib_reset(&ue_mib);
   Info("SYNC:  Starting SFN synchronization\n");
   sync_sfn_cnt = 0;
-  phy_state = CELL_SELECT;
+  phy_state = is_connected?CELL_RESELECT:CELL_SELECT;
 }
 
 void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
@@ -463,7 +463,7 @@ void phch_recv::reset_sync() {
   Warning("SYNC:  Resetting sync, cell_search_in_progress=%s\n", cell_search_in_progress?"yes":"no");
   srslte_ue_sync_reset(&ue_mib_sync.ue_sync);
   srslte_ue_sync_reset(&ue_sync);
-  resync_sfn();
+  resync_sfn(true);
 }
 
 void phch_recv::cell_search_inc()
@@ -639,6 +639,7 @@ void phch_recv::run_thread() {
           }
         }
         break;
+      case CELL_RESELECT:
       case CELL_SELECT:
 
         srslte_ue_sync_decode_sss_on_track(&ue_sync, true);
@@ -664,8 +665,12 @@ void phch_recv::run_thread() {
         sync_sfn_cnt++;
         if (sync_sfn_cnt >= SYNC_SFN_TIMEOUT) {
           sync_sfn_cnt = 0;
-          phy_state = CELL_SEARCH;
           log_h->warning("SYNC:  Timeout while synchronizing SFN\n");
+          if (phy_state == CELL_SELECT) {
+            phy_state = CELL_SEARCH;
+          } else {
+            phy_state = IDLE;
+          }
         }
         break;
       case CELL_MEASURE:
@@ -733,6 +738,7 @@ void phch_recv::run_thread() {
               rrc->out_of_sync();
               worker->release();
               worker_com->reset_ul();
+              mac->tti_clock(tti);
               break;
             default:
               radio_error();
@@ -749,6 +755,9 @@ void phch_recv::run_thread() {
         }
         is_in_idle = true;
         usleep(1000);
+        // Keep running MAC timer from system clock
+        tti = (tti+1) % 10240;
+        mac->tti_clock(tti);
         break;
     }
   }
