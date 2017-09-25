@@ -71,9 +71,7 @@ bool enb::init(all_args_t *args_)
 
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
-    printf("log name is output\n");
   } else {
-    printf("lgo name is %s\n", args->log.filename.c_str());
     logger_file.init(args->log.filename);
     logger_file.log("\n\n");
     logger = &logger_file;

@@ -514,6 +514,8 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
                                      int rv[SRSLTE_MAX_CODEWORDS],
                                      uint16_t rnti, uint32_t harq_pid, bool acks[SRSLTE_MAX_CODEWORDS]) {
   char timestr[64];
+  char commonstr[128];
+  char tbstr[2][128];
   bool valid_config = true;
   timestr[0]='\0';
   srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
@@ -610,14 +612,17 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
 
-        Info(
-            "PDSCH: l_crb=%2d, harq=%d, scheme=%s, tb_en={%s, %s}, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d, %s\n",
-            grant->nof_prb, harq_pid, srslte_mimotype2str(mimo_type), grant->tb_en[0] ? "on" : "off",
-            grant->tb_en[1] ? "on" : "off", grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx,
-            grant->mcs[1].idx, rv[0], rv[1], acks[0] ? "OK" : "KO", acks[1] ? "OK" : "KO",
-            10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
-            srslte_pdsch_last_noi(&ue_dl.pdsch),
-            timestr);
+        snprintf(commonstr, 128, "PDSCH: l_crb=%2d, harq=%d, snr=%.1f dB", grant->nof_prb, harq_pid,
+                 10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
+
+        for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
+          if (grant->tb_en[i]) {
+            snprintf(tbstr[i], 128, ", TB%d: tbs=%d, mcs=%d, rv=%d, crc=%s",
+                     i, grant->mcs[i].tbs/8, grant->mcs[i].idx, rv[i], acks[i] ? "OK" : "KO");
+          }
+        }
+
+        Info("%s%s%s%s\n", commonstr, grant->tb_en[0]?tbstr[0]:"", grant->tb_en[1]?tbstr[1]:"", timestr);
 
         // Store metrics
         dl_metrics.mcs    = grant->mcs[0].idx;
