@@ -27,14 +27,8 @@
 #ifndef SRSLTE_MAT_H
 #define SRSLTE_MAT_H
 
-#include "srslte/phy/utils/simd.h"
 #include "srslte/config.h"
-
-
-/*
- * Generic Macros
- */
-#define RANDOM_CF() (((float)rand())/((float)RAND_MAX) + _Complex_I*((float)rand())/((float)RAND_MAX))
+#include "srslte/phy/utils/simd.h"
 
 /* Generic implementation for complex reciprocal */
 SRSLTE_API cf_t srslte_mat_cf_recip_gen(cf_t a);
