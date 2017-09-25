@@ -51,8 +51,10 @@ ue::~ue()
 bool ue::init(all_args_t *args_)
 {
   args     = args_;
-  
-  logger.init(args->log.filename);
+
+#ifndef LOG_STDOUT
+    logger.init(args->log.filename);
+#endif
   rf_log.init("RF  ", &logger);
   phy_log.init("PHY ", &logger, true);
   mac_log.init("MAC ", &logger, true);
@@ -64,7 +66,9 @@ bool ue::init(all_args_t *args_)
   usim_log.init("USIM", &logger);
 
   // Init logs
+#ifndef LOG_STDOUT
   logger.log("\n\n");
+#endif
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
   phy_log.set_level(level(args->log.phy_level));
   mac_log.set_level(level(args->log.mac_level));
@@ -97,7 +101,11 @@ bool ue::init(all_args_t *args_)
   }
   
   // Init layers
-  
+
+  // PHY initis in background, start before radio
+  args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
+  phy.init(&radio, &mac, &rrc, &phy_log, &args->expert.phy);
+
   /* Start Radio */
   char *dev_name = NULL;
   if (args->rf.device_name.compare("auto")) {
@@ -128,15 +136,13 @@ bool ue::init(all_args_t *args_)
   radio.set_manual_calibration(&args->rf_cal);
 
   // Set PHY options
-  args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
 
   if (args->rf.tx_gain > 0) {
     args->expert.phy.ul_pwr_ctrl_en = false; 
   } else {
     args->expert.phy.ul_pwr_ctrl_en = true; 
   }
-  phy.init(&radio, &mac, &rrc, &phy_log, &args->expert.phy);
-  
+
   if (args->rf.rx_gain < 0) {
     radio.start_agc(false);    
     radio.set_tx_rx_gain_offset(10);
@@ -154,23 +160,31 @@ bool ue::init(all_args_t *args_)
   }
 
   radio.register_error_handler(rf_msg);
-
-  radio.set_rx_freq(args->rf.dl_freq);
-  radio.set_tx_freq(args->rf.ul_freq);
-
-  phy_log.console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz\n", args->rf.dl_freq/1e6, args->rf.ul_freq/1e6);
+  radio.set_freq_offset(args->rf.freq_offset);
 
   mac.init(&phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
-
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
+
+  nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
+  gw.init(&pdcp, this, &gw_log, 3 /* RB_ID_DRB1 */);
+
+  usim.init(&args->usim, &usim_log);
 
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
   rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
-  
-  nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
-  gw.init(&pdcp, &rrc, this, &gw_log, 3 /* RB_ID_DRB1 */);
-  usim.init(&args->usim, &usim_log);
+
+  // Currently EARFCN list is set to only one frequency as indicated in ue.conf
+  std::vector<uint32_t> earfcn_list;
+  earfcn_list.push_back(args->rf.dl_earfcn);
+  phy.set_earfcn(earfcn_list);
+
+  printf("Waiting PHY to initialize...\n");
+  phy.wait_initialize();
+  phy.configure_ul_params();
+
+  printf("...\n");
+  nas.attach_request();
 
   started = true;
   return true;
@@ -236,7 +250,7 @@ bool ue::get_metrics(ue_metrics_t &m)
   rf_metrics.rf_error = false; // Reset error flag
 
   if(EMM_STATE_REGISTERED == nas.get_state()) {
-    if(RRC_STATE_RRC_CONNECTED == rrc.get_state()) {
+    if(RRC_STATE_CONNECTED == rrc.get_state()) {
       phy.get_metrics(m.phy);
       mac.get_metrics(m.mac);
       rlc.get_metrics(m.rlc);

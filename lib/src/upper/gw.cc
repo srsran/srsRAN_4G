@@ -42,13 +42,14 @@ namespace srslte {
 
 gw::gw()
   :if_up(false)
-{}
+{
+  current_ip_addr = 0;
+}
 
-void gw::init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_, uint32_t lcid_)
+void gw::init(srsue::pdcp_interface_gw *pdcp_, srsue::ue_interface *ue_, log *gw_log_, uint32_t lcid_)
 {
   pool    = byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
-  rrc     = rrc_;
   ue      = ue_;
   gw_log  = gw_log_;
   lcid    = lcid_;
@@ -78,6 +79,8 @@ void gw::stop()
         thread_cancel();
       }
       wait_thread_finish();
+
+      current_ip_addr = 0;
     }
 
     // TODO: tear down TUN device?
@@ -127,38 +130,42 @@ void gw::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 *******************************************************************************/
 error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
 {
-  if(!if_up)
-  {
+  if (ip_addr != current_ip_addr) {
+    if(!if_up)
+    {
       if(init_if(err_str))
       {
         gw_log->error("init_if failed\n");
         return(ERROR_CANT_START);
       }
-  }
+    }
 
-  // Setup the IP address
-  sock                                                   = socket(AF_INET, SOCK_DGRAM, 0);
-  ifr.ifr_addr.sa_family                                 = AF_INET;
-  ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr = htonl(ip_addr);
-  if(0 > ioctl(sock, SIOCSIFADDR, &ifr))
-  {
+    // Setup the IP address
+    sock                                                   = socket(AF_INET, SOCK_DGRAM, 0);
+    ifr.ifr_addr.sa_family                                 = AF_INET;
+    ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr = htonl(ip_addr);
+    if(0 > ioctl(sock, SIOCSIFADDR, &ifr))
+    {
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket address: %s\n", err_str);
       close(tun_fd);
       return(ERROR_CANT_START);
-  }
-  ifr.ifr_netmask.sa_family                                 = AF_INET;
-  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
-  if(0 > ioctl(sock, SIOCSIFNETMASK, &ifr))
-  {
+    }
+    ifr.ifr_netmask.sa_family                                 = AF_INET;
+    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+    if(0 > ioctl(sock, SIOCSIFNETMASK, &ifr))
+    {
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket netmask: %s\n", err_str);
       close(tun_fd);
       return(ERROR_CANT_START);
-  }
+    }
 
-  // Setup a thread to receive packets from the TUN device
-  start(GW_THREAD_PRIO);
+    current_ip_addr = ip_addr;
+
+    // Setup a thread to receive packets from the TUN device
+    start(GW_THREAD_PRIO);
+  }
 
   return(ERROR_NONE);
 }
@@ -250,11 +257,6 @@ void gw::run_thread()
           {
             gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-            while(run_enable && (!rrc->rrc_connected() || !rrc->have_drb())) {
-              rrc->rrc_connect();
-              usleep(1000);
-            }
-            
             if (!run_enable) {
               break;
             }

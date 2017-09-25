@@ -61,8 +61,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   // Command line or config file options
   bpo::options_description common("Configuration options");
   common.add_options()
-    ("rf.dl_freq", bpo::value<float>(&args->rf.dl_freq)->default_value(2680000000), "Downlink centre frequency")
-    ("rf.ul_freq", bpo::value<float>(&args->rf.ul_freq)->default_value(2560000000), "Uplink centre frequency")
+    ("rf.dl_earfcn", bpo::value<uint32_t>(&args->rf.dl_earfcn)->default_value(3400), "Downlink EARFCN")
+    ("rf.freq_offset", bpo::value<float>(&args->rf.freq_offset)->default_value(0), "(optional) Frequency offset")
     ("rf.rx_gain", bpo::value<float>(&args->rf.rx_gain)->default_value(-1), "Front-end receiver gain")
     ("rf.tx_gain", bpo::value<float>(&args->rf.tx_gain)->default_value(-1), "Front-end transmitter gain")
     ("rf.nof_rx_ant", bpo::value<uint32_t>(&args->rf.nof_rx_ant)->default_value(1), "Number of RX antennas")
@@ -347,7 +347,6 @@ int main(int argc, char *argv[])
   signal(SIGINT, sig_int_handler);
   all_args_t args;
   parse_args(&args, argc, argv);
-
 
   srsue_instance_type_t type = LTE;
   ue_base *ue = ue_base::get_instance(type);

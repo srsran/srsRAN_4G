@@ -100,14 +100,17 @@ typedef struct {
 } srslte_enb_ul_pusch_t; 
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t *q, 
-                                  srslte_cell_t cell, 
-                                  srslte_prach_cfg_t* prach_cfg, 
-                                  srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
-                                  srslte_pusch_hopping_cfg_t *hopping_cfg,
-                                  srslte_pucch_cfg_t *pucch_cfg);
+SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t *q,
+                                  uint32_t max_prb);
 
 SRSLTE_API void srslte_enb_ul_free(srslte_enb_ul_t *q);
+
+SRSLTE_API int srslte_enb_ul_set_cell(srslte_enb_ul_t *q,
+                                      srslte_cell_t cell,
+                                      srslte_prach_cfg_t* prach_cfg,
+                                      srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
+                                      srslte_pusch_hopping_cfg_t *hopping_cfg,
+                                      srslte_pucch_cfg_t *pucch_cfg);
 
 SRSLTE_API int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, 
                                       uint16_t rnti); 

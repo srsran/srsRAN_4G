@@ -27,6 +27,7 @@
 #include "srslte/phy/ue/ue_dl.h"
 
 #include <string.h>
+#include <srslte/srslte.h>
 
 
 #define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
@@ -35,6 +36,7 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
+#define MAX_SFLEN_RE SRSLTE_SF_LEN_RE(max_prb, q->cell.cp)
 
 const static srslte_dci_format_t ue_dci_formats[8][2] = {
     /* Mode 1 */ {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1},
@@ -51,57 +53,50 @@ static srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FO
 const uint32_t nof_common_formats = 2; 
 
 int srslte_ue_dl_init(srslte_ue_dl_t *q,
-                      srslte_cell_t cell,
+                      uint32_t max_prb,
                       uint32_t nof_rx_antennas)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q               != NULL             &&
-      nof_rx_antennas <= SRSLTE_MAX_PORTS &&
-      srslte_cell_isvalid(&cell))   
+      nof_rx_antennas <= SRSLTE_MAX_PORTS)
   {
     ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(srslte_ue_dl_t));
     
-    q->cell = cell; 
     q->pkt_errors = 0;
     q->pkts_total = 0;
     q->pending_ul_dci_rnti = 0; 
     q->sample_offset = 0; 
-    q->nof_rx_antennas = nof_rx_antennas; 
-    
-    if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+    q->nof_rx_antennas = nof_rx_antennas;
+
+    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
-    if (srslte_chest_dl_init(&q->chest, cell)) {
+    if (srslte_chest_dl_init(&q->chest, max_prb)) {
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit;
     }
-    if (srslte_regs_init(&q->regs, q->cell)) {
-      fprintf(stderr, "Error initiating REGs\n");
-      goto clean_exit;
-    }
-    if (srslte_pcfich_init_multi(&q->pcfich, &q->regs, q->cell, nof_rx_antennas)) {
+    if (srslte_pcfich_init(&q->pcfich, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PCFICH object\n");
       goto clean_exit;
     }
-    if (srslte_phich_init(&q->phich, &q->regs, q->cell)) {
+    if (srslte_phich_init(&q->phich, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PHICH object\n");
       goto clean_exit;
     }
 
-    if (srslte_pdcch_init_multi(&q->pdcch, &q->regs, q->cell, nof_rx_antennas)) {
+    if (srslte_pdcch_init_ue(&q->pdcch, max_prb, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PDCCH object\n");
       goto clean_exit;
     }
 
-    if (srslte_pdsch_init_rx(&q->pdsch, q->cell, nof_rx_antennas)) {
+    if (srslte_pdsch_init_ue(&q->pdsch, max_prb, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
-
     for (int i = 0; i < SRSLTE_MAX_TB; i++) {
       q->softbuffers[i] = srslte_vec_malloc(sizeof(srslte_softbuffer_rx_t));
       if (!q->softbuffers[i]) {
@@ -109,25 +104,25 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
         goto clean_exit;
       }
 
-      if (srslte_softbuffer_rx_init(q->softbuffers[i], q->cell.nof_prb)) {
+      if (srslte_softbuffer_rx_init(q->softbuffers[i], max_prb)) {
         fprintf(stderr, "Error initiating soft buffer\n");
         goto clean_exit;
       }
     }
-    if (srslte_cfo_init(&q->sfo_correct, q->cell.nof_prb*SRSLTE_NRE)) {
+    if (srslte_cfo_init(&q->sfo_correct, max_prb*SRSLTE_NRE)) {
       fprintf(stderr, "Error initiating SFO correct\n");
       goto clean_exit;
     }
     srslte_cfo_set_tol(&q->sfo_correct, 1e-5f/q->fft.symbol_sz);
     
     for (int j=0;j<nof_rx_antennas;j++) {
-      q->sf_symbols_m[j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+      q->sf_symbols_m[j] = srslte_vec_malloc(MAX_SFLEN_RE * sizeof(cf_t));
       if (!q->sf_symbols_m[j]) {
         perror("malloc");
         goto clean_exit; 
       }
-      for (uint32_t i=0;i<q->cell.nof_ports;i++) {
-        q->ce_m[i][j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+      for (uint32_t i=0;i<SRSLTE_MAX_PORTS;i++) {
+        q->ce_m[i][j] = srslte_vec_malloc(MAX_SFLEN_RE * sizeof(cf_t));
         if (!q->ce_m[i][j]) {
           perror("malloc");
           goto clean_exit; 
@@ -136,14 +131,13 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
     }
     
     q->sf_symbols = q->sf_symbols_m[0];
-    for (int i=0;i<q->cell.nof_ports;i++) {
+    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
       q->ce[i] = q->ce_m[i][0];
     }
     
     ret = SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
-            cell.id, cell.nof_ports, cell.nof_prb);      
+    fprintf(stderr, "Invalid parametres\n");
   }
 
 clean_exit: 
@@ -173,7 +167,7 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
       if (q->sf_symbols_m[j]) {
         free(q->sf_symbols_m[j]);
       }
-      for (uint32_t i=0;i<q->cell.nof_ports;i++) {
+      for (uint32_t i=0;i<SRSLTE_MAX_PORTS;i++) {
         if (q->ce_m[i][j]) {
           free(q->ce_m[i][j]);
         }
@@ -183,11 +177,74 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
   }
 }
 
+int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q               != NULL             &&
+      srslte_cell_isvalid(&cell))
+  {
+    q->pkt_errors = 0;
+    q->pkts_total = 0;
+    q->pending_ul_dci_rnti = 0;
+    q->sample_offset = 0;
+
+    if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
+      if (q->cell.nof_prb != 0) {
+        srslte_regs_free(&q->regs);
+      }
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+      if (srslte_regs_init(&q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing REGs\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_cfo_resize(&q->sfo_correct, q->cell.nof_prb*SRSLTE_NRE)) {
+        fprintf(stderr, "Error resizing SFO correct\n");
+        return SRSLTE_ERROR;
+      }
+      srslte_cfo_set_tol(&q->sfo_correct, 1e-5/q->fft.symbol_sz);
+      if (srslte_ofdm_rx_set_prb(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+        fprintf(stderr, "Error resizing FFT\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_chest_dl_set_cell(&q->chest, q->cell)) {
+        fprintf(stderr, "Error resizing channel estimator\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_pcfich_set_cell(&q->pcfich, &q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing PCFICH object\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_phich_set_cell(&q->phich, &q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing PHICH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pdcch_set_cell(&q->pdcch, &q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing PDCCH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pdsch_set_cell(&q->pdsch, q->cell)) {
+        fprintf(stderr, "Error creating PDSCH object\n");
+        return SRSLTE_ERROR;
+      }
+      q->current_rnti = 0;
+    }
+    ret = SRSLTE_SUCCESS;
+  } else {
+    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
+            cell.id, cell.nof_ports, cell.nof_prb);
+  }
+  return ret;
+}
+
 /* Precalculate the PDSCH scramble sequences for a given RNTI. This function takes a while 
  * to execute, so shall be called once the final C-RNTI has been allocated for the session.
  * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
  */
 void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
+
   srslte_pdsch_set_rnti(&q->pdsch, rnti);
   
   // Compute UE-specific and Common search space for this RNTI
@@ -235,7 +292,7 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_P
       /* Correct SFO multiplying by complex exponential in the time domain */
       if (q->sample_offset) {
         for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
-          srslte_cfo_correct(&q->sfo_correct, 
+          srslte_cfo_correct(&q->sfo_correct,
                           &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE], 
                           &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE], 
                           q->sample_offset / q->fft.symbol_sz);
@@ -280,21 +337,22 @@ int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *c
 int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx,
                                  int rvidx[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type) {
   uint32_t pmi = 0;
+  uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
 
   /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
   if (mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
-    if (grant->nof_tb == 1) {
+    if (nof_tb == 1) {
       if (grant->pinfo > 0 && grant->pinfo < 5) {
         pmi = grant->pinfo - 1;
       } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, grant->pinfo);
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
         return SRSLTE_ERROR;
       }
     } else {
       if (grant->pinfo < 2) {
         pmi = grant->pinfo;
       } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, grant->pinfo);
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
         return SRSLTE_ERROR;
       }
     }
@@ -336,29 +394,33 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
     
     /* ===== These lines of code are supposed to be MAC functionality === */
 
-    
+
     int rvidx[SRSLTE_MAX_CODEWORDS] = {1};
     if (dci_unpacked.rv_idx < 0) {
-      uint32_t sfn = tti/10; 
-      uint32_t k   = (sfn/2)%4;
-      for (int i = 0; i < grant.nof_tb; i++) {
-        rvidx[i] = ((uint32_t) ceilf((float) 1.5 * k)) % 4;
-        srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
+      uint32_t sfn = tti / 10;
+      uint32_t k = (sfn / 2) % 4;
+      for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+        if (grant.tb_en[i]) {
+          rvidx[i] = ((uint32_t) ceilf((float) 1.5 * k)) % 4;
+          srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
+        }
       }
     } else {
-      for (int i = 0; i < grant.nof_tb; i++) {
-        switch(i) {
-          case 0:
-            rvidx[i] = (uint32_t) dci_unpacked.rv_idx;
-            break;
-          case 1:
-            rvidx[i] = (uint32_t) dci_unpacked.rv_idx_1;
-            break;
-          default:
-            ERROR("Wrong number of transport blocks");
-            return SRSLTE_ERROR;
+      for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+        if (grant.tb_en[i]) {
+          switch (i) {
+            case 0:
+              rvidx[i] = (uint32_t) dci_unpacked.rv_idx;
+              break;
+            case 1:
+              rvidx[i] = (uint32_t) dci_unpacked.rv_idx_1;
+              break;
+            default:
+              ERROR("Wrong number of transport blocks");
+              return SRSLTE_ERROR;
+          }
+          srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
         }
-        srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
       }
     }
 
@@ -372,14 +434,14 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
         }
         break;
       case SRSLTE_DCI_FORMAT2:
-        if (grant.nof_tb == 1 && dci_unpacked.pinfo == 0) {
+        if (SRSLTE_RA_DL_GRANT_NOF_TB(&grant) == 1 && dci_unpacked.pinfo == 0) {
           mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
         } else {
           mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
         }
         break;
       case SRSLTE_DCI_FORMAT2A:
-        if (grant.nof_tb == 1 && dci_unpacked.pinfo == 0) {
+        if (SRSLTE_RA_DL_GRANT_NOF_TB(&grant) == 1 && dci_unpacked.pinfo == 0) {
           mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
         } else {
           mimo_type = SRSLTE_MIMO_TYPE_CDD;
@@ -413,11 +475,13 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
                                 noise_estimate,
                                 rnti, data, acks);
 
-      for (int tb = 0; tb < q->pdsch_cfg.grant.nof_tb; tb++) {
-        if (!acks[tb]) {
-          q->pkt_errors++;
+      for (int tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        if (grant.tb_en[tb]) {
+          if (!acks[tb]) {
+            q->pkt_errors++;
+          }
+          q->pkts_total++;
         }
-        q->pkts_total++;
       }
 
       if (ret == SRSLTE_ERROR) {
@@ -447,10 +511,10 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
 
 /* Compute the Rank Indicator (RI) and Precoder Matrix Indicator (PMI) by computing the Signal to Interference plus
  * Noise Ratio (SINR), valid for TM4 */
-int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, float *current_sinr) {
+int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint8_t *ri, uint8_t *pmi, float *current_sinr) {
   float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
   float best_sinr = -INFINITY;
-  uint32_t best_pmi = 0, best_ri = 0;
+  uint8_t best_pmi = 0, best_ri = 0;
 
   if (q->cell.nof_ports < 2 || q->nof_rx_antennas < 2) {
     /* Do nothing */
@@ -464,11 +528,11 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
 
     /* Select the best Rank indicator (RI) and Precoding Matrix Indicator (PMI) */
     for (uint32_t nof_layers = 1; nof_layers <= 2; nof_layers++) {
-      float _sinr = q->sinr[nof_layers - 1][q->pmi[nof_layers - 1]] * nof_layers;
+      float _sinr = q->sinr[nof_layers - 1][q->pmi[nof_layers - 1]] * nof_layers * nof_layers;
       if (_sinr > best_sinr + 0.1) {
         best_sinr = _sinr;
-        best_pmi = q->pmi[nof_layers - 1];
-        best_ri = nof_layers;
+        best_pmi = (uint8_t) q->pmi[nof_layers - 1];
+        best_ri = (uint8_t) (nof_layers - 1);
       }
     }
 
@@ -509,7 +573,7 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
 
 
 /* Compute the Rank Indicator (RI) by computing the condition number, valid for TM3 */
-int srslte_ue_dl_ri_select(srslte_ue_dl_t *q, uint32_t *ri, float *cn) {
+int srslte_ue_dl_ri_select(srslte_ue_dl_t *q, uint8_t *ri, float *cn) {
   float _cn;
   int ret = srslte_pdsch_cn_compute(&q->pdsch, q->ce_m, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp), &_cn);
 
@@ -520,7 +584,7 @@ int srslte_ue_dl_ri_select(srslte_ue_dl_t *q, uint32_t *ri, float *cn) {
 
   /* Set rank indicator */
   if (!ret && ri) {
-    *ri = (_cn > 3.0f)? 1:0;
+    *ri = (uint8_t)((_cn < 17.0f)? 1:0);
   }
 
   return ret;
@@ -732,11 +796,11 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
 }
 
 void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuffer, uint32_t tti, uint32_t rv_idx, uint16_t rnti, uint32_t cfi) {
-  srslte_vec_save_file("sf_symbols", q->sf_symbols_m, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  srslte_vec_save_file("sf_symbols", q->sf_symbols, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   printf("%d samples\n", SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
-  srslte_vec_save_file("ce0", q->ce_m[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  srslte_vec_save_file("ce0", q->ce[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   if (q->cell.nof_ports > 1) {
-    srslte_vec_save_file("ce1", q->ce_m[1], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+    srslte_vec_save_file("ce1", q->ce[1], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   }
   srslte_vec_save_file("pcfich_ce0", q->pcfich.ce[0], q->pcfich.nof_symbols*sizeof(cf_t));
   srslte_vec_save_file("pcfich_ce1", q->pcfich.ce[1], q->pcfich.nof_symbols*sizeof(cf_t));
@@ -749,13 +813,13 @@ void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuf
   srslte_vec_save_file("pdcch_symbols", q->pdcch.symbols[0], q->pdcch.nof_cce*36*sizeof(cf_t));
   srslte_vec_save_file("pdcch_eq_symbols", q->pdcch.d, q->pdcch.nof_cce*36*sizeof(cf_t));
   srslte_vec_save_file("pdcch_llr", q->pdcch.llr, q->pdcch.nof_cce*72*sizeof(float));
-  
+
   
   srslte_vec_save_file("pdsch_symbols", q->pdsch.d, q->pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
   srslte_vec_save_file("llr", q->pdsch.e, q->pdsch_cfg.nbits[0].nof_bits*sizeof(cf_t));
   int cb_len = q->pdsch_cfg.cb_segm[0].K1;
   for (int i=0;i<q->pdsch_cfg.cb_segm[0].C;i++) {
-    char tmpstr[64]; 
+    char tmpstr[64];
     snprintf(tmpstr,64,"rmout_%d.dat",i);
     srslte_vec_save_file(tmpstr, softbuffer->buffer_f[i], (3*cb_len+12)*sizeof(int16_t));  
   }

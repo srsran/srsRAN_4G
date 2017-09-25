@@ -26,6 +26,12 @@ sched::sched()
   reset();
 }
 
+sched::~sched()
+{
+  srslte_regs_free(&regs);
+  pthread_mutex_destroy(&mutex);
+}
+
 void sched::init(rrc_interface_mac *rrc_, srslte::log* log)
 {
   sched_cfg.pdsch_max_mcs = 28; 

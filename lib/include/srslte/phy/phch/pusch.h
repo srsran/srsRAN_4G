@@ -62,13 +62,16 @@ typedef struct {
 
 typedef struct {
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
-  bool sequences_generated;
-} srslte_pusch_user_t; 
+  uint32_t cell_id;
+  bool sequence_generated;
+} srslte_pusch_user_t;
 
 /* PUSCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
 
+  bool is_ue;
+  uint16_t ue_rnti;
   uint32_t max_re;
 
   srslte_dft_precoding_t dft_precoding;  
@@ -96,12 +99,18 @@ typedef struct SRSLTE_API {
 }srslte_pusch_t;
 
 
-SRSLTE_API int srslte_pusch_init(srslte_pusch_t *q, 
-                                 srslte_cell_t cell);
+SRSLTE_API int srslte_pusch_init_ue(srslte_pusch_t *q,
+                                    uint32_t max_prb);
+
+SRSLTE_API int srslte_pusch_init_enb(srslte_pusch_t *q,
+                                    uint32_t max_prb);
 
 SRSLTE_API void srslte_pusch_free(srslte_pusch_t *q);
 
-SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t             *q, 
+SRSLTE_API int srslte_pusch_set_cell(srslte_pusch_t *q,
+                                     srslte_cell_t cell);
+
+SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t             *q,
                                 srslte_pusch_cfg_t         *cfg, 
                                 srslte_ra_ul_grant_t       *grant, 
                                 srslte_uci_cfg_t           *uci_cfg, 
@@ -114,7 +123,7 @@ SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t             *q,
 SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t *q, 
                                      uint16_t rnti);
 
-SRSLTE_API void srslte_pusch_clear_rnti(srslte_pusch_t *q, 
+SRSLTE_API void srslte_pusch_free_rnti(srslte_pusch_t *q,
                                        uint16_t rnti);
 
 SRSLTE_API int srslte_pusch_encode(srslte_pusch_t *q, 

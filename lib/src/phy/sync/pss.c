@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <complex.h>
 #include <math.h>
+#include <srslte/phy/sync/pss.h>
 
 #include "srslte/phy/sync/pss.h"
 #include "srslte/phy/dft/dft.h"
@@ -93,9 +94,11 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
  * It correlates a signal of frame_size samples with the PSS sequence in the frequency 
  * domain. The PSS sequence is transformed using fft_size samples. 
  */
-int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size, int offset, int decimate) {
+int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q,
+                                           uint32_t max_frame_size, uint32_t max_fft_size,
+                                           int offset, int decimate)
+{
 
-    
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL) {
   
@@ -107,18 +110,20 @@ int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q, uint32_t frame
     
     q->N_id_2 = 10;  
     q->ema_alpha = 0.2;
-    
+
+    q->max_fft_size  = max_fft_size;
+    q->max_frame_size = max_frame_size;
+
     q->decimate = decimate;
-    fft_size = fft_size/q->decimate;
-    frame_size = frame_size/q->decimate;
+    uint32_t fft_size = max_fft_size/q->decimate;
+    uint32_t frame_size = max_frame_size/q->decimate;
     
     q->fft_size = fft_size;
     q->frame_size = frame_size;
 
     buffer_size = fft_size + frame_size + 1;
-    
-    if(q->decimate > 1)
-    {
+
+    if(q->decimate > 1) {
         int filter_order = 3;
         srslte_filt_decim_cc_init(&q->filter,q->decimate,filter_order);
         q->filter.filter_output = srslte_vec_malloc((buffer_size) * sizeof(cf_t));
@@ -175,21 +180,19 @@ int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q, uint32_t frame
         goto clean_and_exit;
       }      
       bzero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
-
     }    
     #ifdef CONVOLUTION_FFT
 
 
-    for(N_id_2 = 0; N_id_2<3; N_id_2++)
+    for(N_id_2=0; N_id_2<3; N_id_2++)
     q->pss_signal_freq_full[N_id_2]   = srslte_vec_malloc(buffer_size * sizeof(cf_t));
 
     if (srslte_conv_fft_cc_init(&q->conv_fft, frame_size, fft_size)) {
       fprintf(stderr, "Error initiating convolution FFT\n");
       goto clean_and_exit;
     }
-    for(int i =0; i< 3; i++)
-    {
-        srslte_dft_run_c(&q->conv_fft.filter_plan, q->pss_signal_time[i], q->pss_signal_freq_full[i]);
+    for(int i=0; i<3; i++) {
+      srslte_dft_run_c(&q->conv_fft.filter_plan, q->pss_signal_time[i], q->pss_signal_freq_full[i]);
     }
     
     #endif
@@ -207,6 +210,79 @@ clean_and_exit:
 
 }
 
+
+/* Initializes the PSS synchronization object.
+ *
+ * It correlates a signal of frame_size samples with the PSS sequence in the frequency
+ * domain. The PSS sequence is transformed using fft_size samples.
+ */
+int srslte_pss_synch_resize(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size, int offset) {
+
+
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  if (q != NULL) {
+
+    ret = SRSLTE_ERROR;
+
+    if (fft_size > q->max_fft_size || frame_size > q->max_frame_size) {
+      fprintf(stderr, "Error in pss_synch_config(): fft_size and frame_size must be lower than initialized\n");
+      return SRSLTE_ERROR;
+    }
+
+    uint32_t N_id_2;
+    uint32_t buffer_size;
+
+    q->N_id_2 = 10;
+    q->ema_alpha = 0.2;
+
+    fft_size = fft_size/q->decimate;
+    frame_size = frame_size/q->decimate;
+
+    q->fft_size = fft_size;
+    q->frame_size = frame_size;
+
+    buffer_size = fft_size + frame_size + 1;
+
+    if (srslte_dft_replan(&q->dftp_input, fft_size)) {
+      fprintf(stderr, "Error creating DFT plan \n");
+      return SRSLTE_ERROR;
+    }
+
+    bzero(&q->tmp_input[q->frame_size], q->fft_size * sizeof(cf_t));
+    bzero(q->conv_output, sizeof(cf_t) * buffer_size);
+    bzero(q->conv_output_avg, sizeof(float) * buffer_size);
+
+#ifdef SRSLTE_PSS_ACCUMULATE_ABS
+    bzero(q->conv_output_abs, sizeof(float) * buffer_size);
+#endif
+
+    // Generate PSS sequences for this FFT size
+    for (N_id_2=0;N_id_2<3;N_id_2++) {
+      if (srslte_pss_synch_init_N_id_2(q->pss_signal_freq[N_id_2], q->pss_signal_time[N_id_2], N_id_2, fft_size, offset)) {
+        fprintf(stderr, "Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
+        return SRSLTE_ERROR;
+      }
+      bzero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
+    }
+#ifdef CONVOLUTION_FFT
+
+    if (srslte_conv_fft_cc_replan(&q->conv_fft, frame_size, fft_size)) {
+      fprintf(stderr, "Error initiating convolution FFT\n");
+      return SRSLTE_ERROR;
+    }
+    for(int i =0; i< 3; i++) {
+      srslte_dft_run_c(&q->conv_fft.filter_plan, q->pss_signal_time[i], q->pss_signal_freq_full[i]);
+    }
+
+#endif
+
+    srslte_pss_synch_reset(q);
+
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
+
+}
 
 void srslte_pss_synch_free(srslte_pss_synch_t *q) {
   uint32_t i;

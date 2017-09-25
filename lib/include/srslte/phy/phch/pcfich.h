@@ -78,14 +78,12 @@ typedef struct SRSLTE_API {
   
 } srslte_pcfich_t;
 
-SRSLTE_API int srslte_pcfich_init(srslte_pcfich_t *q, 
-                           srslte_regs_t *regs, 
-                           srslte_cell_t cell);
+SRSLTE_API int srslte_pcfich_init(srslte_pcfich_t *q,
+                                  uint32_t nof_rx_antennas);
 
-SRSLTE_API int srslte_pcfich_init_multi(srslte_pcfich_t *q, 
-                                        srslte_regs_t *regs, 
-                                        srslte_cell_t cell, 
-                                        uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_pcfich_set_cell(srslte_pcfich_t *q,
+                                      srslte_regs_t *regs,
+                                      srslte_cell_t cell);
 
 SRSLTE_API void srslte_pcfich_free(srslte_pcfich_t *q);
 

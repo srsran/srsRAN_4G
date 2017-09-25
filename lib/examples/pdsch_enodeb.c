@@ -292,7 +292,11 @@ void base_init() {
     exit(-1);
   }
   srslte_ofdm_set_normalize(&ifft, true);
-  if (srslte_pbch_init(&pbch, cell)) {
+  if (srslte_pbch_init(&pbch)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
+  if (srslte_pbch_set_cell(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
@@ -302,7 +306,11 @@ void base_init() {
     exit(-1);
   }
 
-  if (srslte_pcfich_init(&pcfich, &regs, cell)) {
+  if (srslte_pcfich_init(&pcfich, 1)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
+  if (srslte_pcfich_set_cell(&pcfich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
@@ -312,13 +320,20 @@ void base_init() {
     exit(-1);
   }
 
-  if (srslte_pdcch_init_tx(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init_enb(&pdcch, cell.nof_prb)) {
+    fprintf(stderr, "Error creating PDCCH object\n");
+    exit(-1);
+  }
+  if (srslte_pdcch_set_cell(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
 
-  bzero(&pdsch, sizeof(srslte_pdsch_t));
-  if (srslte_pdsch_init_tx(&pdsch, cell)) {
+  if (srslte_pdsch_init_enb(&pdsch, cell.nof_prb)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
+    exit(-1);
+  }
+  if (srslte_pdsch_set_cell(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
@@ -660,7 +675,11 @@ int main(int argc, char **argv) {
   srslte_sss_generate(sss_signal0, sss_signal5, cell.id);
   
   /* Generate CRS signals */
-  if (srslte_chest_dl_init(&est, cell)) {
+  if (srslte_chest_dl_init(&est, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    exit(-1);
+  }
+  if (srslte_chest_dl_set_cell(&est, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     exit(-1);
   }
@@ -774,9 +793,11 @@ int main(int argc, char **argv) {
         }
       } else {
         INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
-        for (uint32_t tb = 0; tb < pdsch_cfg.grant.nof_tb; tb++) {
-          for (i = 0; i < pdsch_cfg.grant.mcs[tb].tbs / 8; i++) {
-            data[tb][i] = (uint8_t) rand();
+        for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+          if (pdsch_cfg.grant.tb_en[tb]) {
+            for (i = 0; i < pdsch_cfg.grant.mcs[tb].tbs / 8; i++) {
+              data[tb][i] = (uint8_t) rand();
+            }
           }
         }
         /* Uncomment this to transmit on sf 0 and 5 only  */
@@ -832,10 +853,12 @@ int main(int argc, char **argv) {
         }        
         if (net_port > 0 && net_packet_ready) {
           if (null_file_sink) {
-            for (uint32_t tb = 0; tb < pdsch_cfg.grant.nof_tb; tb++) {
-              srslte_bit_pack_vector(data[tb], data_tmp, pdsch_cfg.grant.mcs[tb].tbs);
-              if (srslte_netsink_write(&net_sink, data_tmp, 1 + (pdsch_cfg.grant.mcs[tb].tbs - 1) / 8) < 0) {
-                fprintf(stderr, "Error sending data through UDP socket\n");
+            for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+              if (pdsch_cfg.grant.tb_en[tb]) {
+                srslte_bit_pack_vector(data[tb], data_tmp, pdsch_cfg.grant.mcs[tb].tbs);
+                if (srslte_netsink_write(&net_sink, data_tmp, 1 + (pdsch_cfg.grant.mcs[tb].tbs - 1) / 8) < 0) {
+                  fprintf(stderr, "Error sending data through UDP socket\n");
+                }
               }
             }
           }

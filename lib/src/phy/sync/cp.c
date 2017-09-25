@@ -25,6 +25,7 @@
  */
 
 #include <stdlib.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/sync/cp.h"
 #include "srslte/phy/utils/vector.h"
@@ -33,7 +34,8 @@
 int srslte_cp_synch_init(srslte_cp_synch_t *q, uint32_t symbol_sz) 
 {
   q->symbol_sz = symbol_sz;
-  
+  q->max_symbol_sz = symbol_sz;
+
   q->corr = srslte_vec_malloc(sizeof(cf_t) * q->symbol_sz);
   if (!q->corr) {
     perror("malloc");
@@ -48,6 +50,18 @@ void srslte_cp_synch_free(srslte_cp_synch_t *q)
     free(q->corr);
   }
 }
+
+int srslte_cp_synch_resize(srslte_cp_synch_t *q, uint32_t symbol_sz)
+{
+  if (symbol_sz > q->max_symbol_sz) {
+    fprintf(stderr, "Error in cp_synch_resize(): symbol_sz must be lower than initialized\n");
+    return SRSLTE_ERROR;
+  }
+  q->symbol_sz = symbol_sz;
+
+  return SRSLTE_SUCCESS;
+}
+
 
 uint32_t srslte_cp_synch(srslte_cp_synch_t *q, cf_t *input, uint32_t max_offset, uint32_t nof_symbols, uint32_t cp_len)
 {  

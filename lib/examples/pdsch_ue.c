@@ -475,23 +475,42 @@ int main(int argc, char **argv) {
              //ue_sync.decimate = prog_args.decimate;
           }
       }
-    if (srslte_ue_sync_init_multi_decim(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf,decimate)) {
+    if (srslte_ue_sync_init_multi_decim(&ue_sync,
+                                        cell.nof_prb,
+                                        cell.id==1000,
+                                        srslte_rf_recv_wrapper,
+                                        prog_args.rf_nof_rx_ant,
+                                        (void*) &rf,decimate))
+    {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
+    }
+    if (srslte_ue_sync_set_cell(&ue_sync, cell))
+    {
+      fprintf(stderr, "Error initiating ue_sync\n");
+      exit(-1);
     }
 #endif
   }
 
-  if (srslte_ue_mib_init(&ue_mib, cell)) {
+  if (srslte_ue_mib_init(&ue_mib, cell.nof_prb)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
-  }    
+  }
+  if (srslte_ue_mib_set_cell(&ue_mib, cell)) {
+    fprintf(stderr, "Error initaiting UE MIB decoder\n");
+    exit(-1);
+  }
 
-  if (srslte_ue_dl_init(&ue_dl, cell, prog_args.rf_nof_rx_ant)) {  // This is the User RNTI
+  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, prog_args.rf_nof_rx_ant)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
-  
+  if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+    fprintf(stderr, "Error initiating UE downlink processing module\n");
+    exit(-1);
+  }
+
   for (int i=0;i<prog_args.rf_nof_rx_ant;i++) {
     sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }
@@ -518,7 +537,7 @@ int main(int argc, char **argv) {
     
   // Variables for measurements 
   uint32_t nframes=0;
-  uint32_t ri = 0, pmi = 0;
+  uint8_t ri = 0, pmi = 0;
   float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0,
       sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS], cn = 0.0;
   bool decode_pdsch = false; 
@@ -566,6 +585,10 @@ int main(int argc, char **argv) {
       /* If a new line is detected set verbose level to Debug */
       if (fgets(input, sizeof(input), stdin)) {
         srslte_verbose = SRSLTE_VERBOSE_DEBUG;
+        ue_dl.pkt_errors = 0;
+        ue_dl.pkts_total = 0;
+        ue_dl.nof_detected = 0;
+        nof_trials = 0;
       }
     }
 
@@ -641,9 +664,10 @@ int main(int argc, char **argv) {
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 // FIXME: UDP Data transmission does not work
-                for (uint32_t tb = 0; tb < ue_dl.pdsch_cfg.grant.nof_tb; tb++) {
-                  srslte_netsink_write(&net_sink, data[tb], 1 + (ue_dl.pdsch_cfg.grant.mcs[tb].tbs - 1) / 8);
-
+                for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+                  if (ue_dl.pdsch_cfg.grant.tb_en[tb]) {
+                    srslte_netsink_write(&net_sink, data[tb], 1 + (ue_dl.pdsch_cfg.grant.mcs[tb].tbs - 1) / 8);
+                  }
                 }
               }
               
@@ -704,7 +728,7 @@ int main(int argc, char **argv) {
 
             /* Print basic Parameters */
             PRINT_LINE("   nof layers: %d", ue_dl.pdsch_cfg.nof_layers);
-            PRINT_LINE("nof codewords: %d", ue_dl.pdsch_cfg.grant.nof_tb);
+            PRINT_LINE("nof codewords: %d", SRSLTE_RA_DL_GRANT_NOF_TB(&ue_dl.pdsch_cfg.grant));
             PRINT_LINE("          CFO: %+5.2f kHz", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
             PRINT_LINE("          SNR: %+5.1f dB | %+5.1f dB", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
             PRINT_LINE("           Rb: %6.2f / %6.2f Mbps (net/maximum)", uerate, enodebrate);
@@ -759,10 +783,12 @@ int main(int argc, char **argv) {
         if (sfn == 1024) {
           sfn = 0; 
           PRINT_LINE_ADVANCE_CURSOR();
+          /*
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0; 
           ue_dl.nof_detected = 0;           
-          nof_trials = 0; 
+          nof_trials = 0;
+          */
         } 
       }
       

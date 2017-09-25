@@ -36,7 +36,7 @@ int srslte_cexptab_init(srslte_cexptab_t *h, uint32_t size) {
   uint32_t i;
 
   h->size = size;
-  h->tab = malloc(sizeof(cf_t) * size);
+  h->tab = malloc(sizeof(cf_t) * (1+size));
   if (h->tab) {
     for (i = 0; i < size; i++) {
       h->tab[i] = cexpf(_Complex_I * 2 * M_PI * (float) i / size);

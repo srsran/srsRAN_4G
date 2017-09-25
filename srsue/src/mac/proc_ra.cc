@@ -73,6 +73,10 @@ void ra_proc::init(phy_interface_mac* phy_h_,
   reset();
 }
 
+ra_proc::~ra_proc() {
+  srslte_softbuffer_rx_free(&softbuffer_rar);
+}
+
 void ra_proc::reset() {
   state = IDLE;
   msg3_transmitted = false;
@@ -479,6 +483,12 @@ void ra_proc::step_completition() {
     mux_unit->msg3_flush();
     msg3_flushed = true; 
   }
+  // Configure PHY to look for UL C-RNTI grants
+  phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, rntis->crnti);
+  phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, rntis->crnti);
+
+  phy_h->set_crnti(rntis->crnti);
+
   msg3_transmitted = false;  
   state = COMPLETION_DONE;
 }

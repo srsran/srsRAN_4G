@@ -71,6 +71,9 @@ class ra_proc : public srslte::timer_callback
       rar_grant_tti             = 0; 
       msg3_flushed              = false; 
     };
+
+    ~ra_proc();
+
     void init(phy_interface_mac *phy_h, 
               rrc_interface_mac *rrc_, 
               srslte::log *log_h, 

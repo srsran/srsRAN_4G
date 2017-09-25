@@ -163,7 +163,18 @@ private:
       is_initiated = false;
       is_grant_configured = false;
       tti_last_tx = 0;
+      payload_buffer = NULL;
       bzero(&cur_grant, sizeof(Tgrant));
+    }
+
+    ~ul_harq_process()
+    {
+      if (is_initiated) {
+        if (payload_buffer) {
+          free(payload_buffer);
+        }
+        srslte_softbuffer_tx_free(&softbuffer);
+      }
     }
 
     bool init(uint32_t pid_, ul_harq_entity *parent)
@@ -358,7 +369,8 @@ private:
         current_irv = 0;
         is_msg3 = is_msg3_;
         Info("UL %d:  New TX%s, RV=%d, TBS=%d, RNTI=%d\n",
-             pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.n_bytes[0], cur_grant.rnti);
+             pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.n_bytes[0],
+             is_msg3?harq_entity->rntis->temp_rnti:cur_grant.rnti);
         generate_tx(tti_tx, action);
       }
     }

@@ -3,8 +3,8 @@
 #####################################################################
 # RF configuration
 #
-# dl_freq: Downlink centre frequency (Hz).
-# ul_freq: Uplink centre frequency (Hz).
+# dl_earfcn: Downlink EARFCN code.
+# freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
@@ -21,8 +21,8 @@
 #                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
 #####################################################################
 [rf]
-dl_freq = 2685000000
-ul_freq = 2565000000
+dl_earfcn = 3400
+freq_offset = 0
 tx_gain = 80
 rx_gain = 50
 

@@ -36,22 +36,22 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
+#define MAX_SFLEN     SRSLTE_SF_LEN(srslte_symbol_sz(max_prb))
 
-int srslte_ue_ul_init(srslte_ue_ul_t *q, 
-                      srslte_cell_t cell) 
+#define DEFAULT_CFO_TOL   50.0 // Hz
+
+int srslte_ue_ul_init(srslte_ue_ul_t *q,
+                      uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
-  if (q                 != NULL &&
-      srslte_cell_isvalid(&cell))   
+  if (q != NULL)
   {
     ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(srslte_ue_ul_t));
     
-    q->cell = cell; 
-    
-    if (srslte_ofdm_tx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+    if (srslte_ofdm_tx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
@@ -60,41 +60,41 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
 
     q->normalize_en = false; 
 
-    if (srslte_cfo_init(&q->cfo, CURRENT_SFLEN)) {
+    if (srslte_cfo_init(&q->cfo, MAX_SFLEN)) {
       fprintf(stderr, "Error creating CFO object\n");
       goto clean_exit;
     }
-    
-    srslte_cfo_set_tol(&q->cfo, 0);
-    
-    if (srslte_pusch_init(&q->pusch, q->cell)) {
+
+    srslte_ue_ul_set_cfo_tol(q, DEFAULT_CFO_TOL);
+
+    if (srslte_pusch_init_ue(&q->pusch, max_prb)) {
       fprintf(stderr, "Error creating PUSCH object\n");
       goto clean_exit;
     }
-    if (srslte_pucch_init(&q->pucch, q->cell)) {
+    if (srslte_pucch_init(&q->pucch)) {
       fprintf(stderr, "Error creating PUSCH object\n");
       goto clean_exit;
     }
-    if (srslte_softbuffer_tx_init(&q->softbuffer, q->cell.nof_prb)) {
+    if (srslte_softbuffer_tx_init(&q->softbuffer, max_prb)) {
       fprintf(stderr, "Error initiating soft buffer\n");
       goto clean_exit;
     }
-    if (srslte_refsignal_ul_init(&q->signals, cell)) {
+    if (srslte_refsignal_ul_init(&q->signals, max_prb)) {
       fprintf(stderr, "Error initiating srslte_refsignal_ul\n");
       goto clean_exit;
     }
-    q->sf_symbols = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_PRB(max_prb) * sizeof(cf_t));
     if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit; 
     }
-    q->refsignal = srslte_vec_malloc(2 * SRSLTE_NRE * q->cell.nof_prb * sizeof(cf_t));
+    q->refsignal = srslte_vec_malloc(2 * SRSLTE_NRE * max_prb * sizeof(cf_t));
     if (!q->refsignal) {
       perror("malloc");
       goto clean_exit; 
     }
     
-    q->srs_signal = srslte_vec_malloc(SRSLTE_NRE * q->cell.nof_prb * sizeof(cf_t));
+    q->srs_signal = srslte_vec_malloc(SRSLTE_NRE * max_prb * sizeof(cf_t));
     if (!q->srs_signal) {
       perror("malloc");
       goto clean_exit; 
@@ -102,8 +102,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     q->signals_pregenerated = false; 
     ret = SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
-            cell.id, cell.nof_ports, cell.nof_prb);      
+    fprintf(stderr, "Invalid parameters\n");
   }
 
 clean_exit: 
@@ -115,7 +114,7 @@ clean_exit:
 
 void srslte_ue_ul_free(srslte_ue_ul_t *q) {
   if (q) {
-    srslte_ofdm_rx_free(&q->fft);
+    srslte_ofdm_tx_free(&q->fft);
     srslte_pusch_free(&q->pusch);
     srslte_pucch_free(&q->pucch);
     srslte_softbuffer_tx_free(&q->softbuffer);
@@ -140,6 +139,54 @@ void srslte_ue_ul_free(srslte_ue_ul_t *q) {
   }
 }
 
+int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
+                          srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL && srslte_cell_isvalid(&cell))
+  {
+    if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+
+      if (srslte_ofdm_tx_set_prb(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+        fprintf(stderr, "Error resizing FFT\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_cfo_resize(&q->cfo, SRSLTE_SF_LEN_PRB(q->cell.nof_prb))) {
+        fprintf(stderr, "Error resizing CFO object\n");
+        return SRSLTE_ERROR;
+      }
+
+      srslte_ue_ul_set_cfo_tol(q, q->current_cfo_tol);
+
+      if (srslte_pusch_set_cell(&q->pusch, q->cell)) {
+        fprintf(stderr, "Error resizing PUSCH object\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_pucch_set_cell(&q->pucch, q->cell)) {
+        fprintf(stderr, "Error resizing PUSCH object\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_refsignal_ul_set_cell(&q->signals, q->cell)) {
+        fprintf(stderr, "Error resizing srslte_refsignal_ul\n");
+        return SRSLTE_ERROR;
+      }
+      q->signals_pregenerated = false;
+    }
+    ret = SRSLTE_SUCCESS;
+  } else {
+    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
+            cell.id, cell.nof_ports, cell.nof_prb);
+  }
+  return ret;
+}
+
+void srslte_ue_ul_set_cfo_tol(srslte_ue_ul_t *q, float tol) {
+  q->current_cfo_tol = tol;
+  srslte_cfo_set_tol(&q->cfo, tol/(15000.0*srslte_symbol_sz(q->cell.nof_prb)));
+}
+
 void srslte_ue_ul_set_cfo(srslte_ue_ul_t *q, float cur_cfo) {
   q->current_cfo = cur_cfo; 
 }
@@ -154,7 +201,7 @@ void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, bool enabled)
   q->normalize_en = enabled;
 }
 
-/* Precalculate the PDSCH scramble sequences for a given RNTI. This function takes a while 
+/* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while
  * to execute, so shall be called once the final C-RNTI has been allocated for the session.
  * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
  */
@@ -230,6 +277,14 @@ void pucch_encode_bits(srslte_uci_data_t *uci_data, srslte_pucch_format_t format
     pucch_bits[1] = uci_data->uci_ack_2; // this will be ignored in format 1a 
   }
   if (format >= SRSLTE_PUCCH_FORMAT_2) {
+    /* Append Differential CQI */
+    memcpy(&uci_data->uci_cqi[uci_data->uci_cqi_len], uci_data->uci_dif_cqi, uci_data->uci_dif_cqi_len);
+    uci_data->uci_cqi_len += uci_data->uci_dif_cqi_len;
+
+    /* Append PMI */
+    memcpy(&uci_data->uci_cqi[uci_data->uci_cqi_len], uci_data->uci_pmi, uci_data->uci_pmi_len);
+    uci_data->uci_cqi_len += uci_data->uci_pmi_len;
+
     srslte_uci_encode_cqi_pucch(uci_data->uci_cqi, uci_data->uci_cqi_len, pucch_bits);
     if (format > SRSLTE_PUCCH_FORMAT_2) {
       pucch2_bits[0] = uci_data->uci_ack; 
@@ -295,7 +350,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
     if (q->cfo_en) {
-      srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));            
+      srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));
     }
     
     if (q->normalize_en) {
@@ -365,7 +420,7 @@ int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
     if (q->cfo_en) {
-      srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));            
+      srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));
     }
     
     if (q->normalize_en) {
@@ -407,7 +462,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
                                              q->pusch_cfg.grant.n_prb_tilde, 
                                              q->sf_symbols);
     } else {
-   
+
       if (srslte_refsignal_dmrs_pusch_gen(&q->signals, q->pusch_cfg.grant.L_prb, 
                                           q->pusch_cfg.sf_idx,
                                           q->pusch_cfg.grant.ncs_dmrs,
@@ -434,7 +489,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
     if (q->cfo_en) {
-      srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));            
+      srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));
     }
     
     if (q->normalize_en) {

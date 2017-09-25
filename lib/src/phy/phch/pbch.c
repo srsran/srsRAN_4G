@@ -32,6 +32,8 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "prb_dl.h"
 #include "srslte/phy/phch/pbch.h"
@@ -42,7 +44,6 @@
 
 #define PBCH_RE_CP_NORM    240
 #define PBCH_RE_CP_EXT     216
-
 
 const uint8_t srslte_crc_mask[4][16] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
@@ -139,33 +140,18 @@ int srslte_pbch_get(cf_t *slot1_data, cf_t *pbch, srslte_cell_t cell) {
  * At the receiver, the field nof_ports in the cell structure indicates the 
  * maximum number of BS transmitter ports to look for.  
  */
-int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
+int srslte_pbch_init(srslte_pbch_t *q) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q                       != NULL &&
-      srslte_cell_isvalid(&cell))
+  if (q != NULL)
   {
     ret = SRSLTE_ERROR;
 
     bzero(q, sizeof(srslte_pbch_t));
-    
-    if (cell.nof_ports == 0) {
-      q->search_all_ports = true; 
-      cell.nof_ports = SRSLTE_MAX_PORTS; 
-    } else {
-      q->search_all_ports = false; 
-    }
-    
-    q->cell = cell;
-    q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_CP_NORM : PBCH_RE_CP_EXT;
-    
+
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
     }
-    if (srslte_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
-      goto clean;
-    }
-
     int poly[3] = { 0x6D, 0x4F, 0x57 };
     if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, 40, true)) {
       goto clean;
@@ -178,12 +164,14 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
     q->encoder.tail_biting = true;
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
 
+    q->nof_symbols = PBCH_RE_CP_NORM;
+
     q->d = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
     if (!q->d) {
       goto clean;
     }
     int i;
-    for (i = 0; i < q->cell.nof_ports; i++) {
+    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       q->ce[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
       if (!q->ce[i]) {
         goto clean;
@@ -209,6 +197,7 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
     if (!q->rm_b) {
       goto clean;
     }
+
     ret = SRSLTE_SUCCESS;
   }
 clean: 
@@ -219,11 +208,11 @@ clean:
 }
 
 void srslte_pbch_free(srslte_pbch_t *q) {
-  if (q->d) {
-    free(q->d);
-  }
+  srslte_sequence_free(&q->seq);
+  srslte_modem_table_free(&q->mod);
+  srslte_viterbi_free(&q->decoder);
   int i;
-  for (i = 0; i < q->cell.nof_ports; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -243,12 +232,36 @@ void srslte_pbch_free(srslte_pbch_t *q) {
   if (q->rm_b) {
     free(q->rm_b);
   }
-  srslte_sequence_free(&q->seq);
-  srslte_modem_table_free(&q->mod);
-  srslte_viterbi_free(&q->decoder);
-
+  if (q->d) {
+    free(q->d);
+  }
   bzero(q, sizeof(srslte_pbch_t));
+}
 
+int srslte_pbch_set_cell(srslte_pbch_t *q, srslte_cell_t cell) {
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q                       != NULL &&
+      srslte_cell_isvalid(&cell))
+  {
+    if (cell.nof_ports == 0) {
+      q->search_all_ports = true;
+      cell.nof_ports = SRSLTE_MAX_PORTS;
+    } else {
+      q->search_all_ports = false;
+    }
+
+    if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+      if (srslte_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
+        return SRSLTE_ERROR;
+      }
+    }
+    q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_CP_NORM : PBCH_RE_CP_EXT;
+
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
 }
 
 
@@ -476,6 +489,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
     } else {
       nant = q->cell.nof_ports; 
     }
+
     do {
       if (nant != 3) {
         DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
@@ -486,7 +500,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
           srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, q->nof_symbols, noise_estimate);
         } else {
           srslte_predecoding_diversity(q->symbols[0], q->ce, x, nant,
-              q->nof_symbols);
+                                       q->nof_symbols);
           srslte_layerdemap_diversity(x, q->d, nant, q->nof_symbols / nant);
         }
 
@@ -577,7 +591,7 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
     if (q->cell.nof_ports > 1) {
       srslte_layermap_diversity(q->d, x, q->cell.nof_ports, q->nof_symbols);
       srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports,
-          q->nof_symbols / q->cell.nof_ports);
+                                 q->nof_symbols / q->cell.nof_ports);
     } else {
       memcpy(q->symbols[0], q->d, q->nof_symbols * sizeof(cf_t));
     }
