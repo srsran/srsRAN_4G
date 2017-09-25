@@ -80,8 +80,8 @@ SRSLTE_API void srslte_vec_load_file(char *filename, void *buffer, uint32_t len)
 SRSLTE_API void srslte_vec_sum_ch(uint8_t *x, uint8_t *y, char *z, uint32_t len);
 SRSLTE_API void srslte_vec_sum_fff(float *x, float *y, float *z, uint32_t len);
 SRSLTE_API void srslte_vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
-SRSLTE_API void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len);
-SRSLTE_API void srslte_vec_sum_sss(short *x, short *y, short *z, uint32_t len);
+SRSLTE_API void srslte_vec_sub_sss(int16_t *x, int16_t *y, int16_t *z, uint32_t len);
+SRSLTE_API void srslte_vec_sum_sss(int16_t *x, int16_t *y, int16_t *z, uint32_t len);
 
 /* substract two vectors z=x-y */
 SRSLTE_API void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len); 
@@ -91,7 +91,7 @@ SRSLTE_API void srslte_vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 SRSLTE_API void srslte_vec_ema_filter(cf_t *new_data, cf_t *average, cf_t *output, float coeff, uint32_t len); 
 
 /* Square distance */
-SRSLTE_API void srslte_vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoints);
+//SRSLTE_API void srslte_vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoints);
 
 /* scalar addition */
 SRSLTE_API void srslte_vec_sc_add_fff(float *x, float h, float *z, uint32_t len); 
@@ -132,7 +132,7 @@ SRSLTE_API void srslte_vec_prod_conj_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len
 
 /* real vector product (element-wise) */
 SRSLTE_API void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len);
-SRSLTE_API void srslte_vec_prod_sss(short *x, short *y, short *z, uint32_t len);
+SRSLTE_API void srslte_vec_prod_sss(int16_t *x, int16_t *y, int16_t *z, uint32_t len);
 
 /* Dot-product */
 SRSLTE_API cf_t srslte_vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len);

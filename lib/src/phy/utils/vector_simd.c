@@ -25,310 +25,148 @@
  */
 
 
-#include <float.h>
 #include <complex.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "srslte/phy/utils/vector_simd.h"
-
 #include <inttypes.h>
 #include <stdio.h>
 
-#ifdef LV_HAVE_SSE
-#include <smmintrin.h>
-#endif
-
-#ifdef LV_HAVE_AVX
-#include <immintrin.h>
-#endif
+#include <srslte/config.h>
+#include "srslte/phy/utils/vector_simd.h"
+#include "srslte/phy/utils/simd.h"
 
 
-int srslte_vec_dot_prod_sss_sse(short *x, short *y, uint32_t len)
-{
-  int result = 0; 
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int points = len / 8;
+int srslte_vec_dot_prod_sss_simd(int16_t *x, int16_t *y, int len) {
+  int i = 0;
+  int result = 0;
+#if SRSLTE_SIMD_S_SIZE
+  simd_s_t simd_dotProdVal = srslte_simd_s_zero();
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y)) {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_s_t a = srslte_simd_s_load(&x[i]);
+      simd_s_t b = srslte_simd_s_load(&y[i]);
 
-  const __m128i* xPtr = (const __m128i*) x;
-  const __m128i* yPtr = (const __m128i*) y;
-  
-  __m128i dotProdVal = _mm_setzero_si128();
+      simd_s_t z = srslte_simd_s_mul(a, b);
 
-  __m128i xVal, yVal, zVal;
-  for(;number < points; number++){
+      simd_dotProdVal = srslte_simd_s_add(simd_dotProdVal, z);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_s_t a = srslte_simd_s_loadu(&x[i]);
+      simd_s_t b = srslte_simd_s_loadu(&y[i]);
 
-    xVal = _mm_load_si128(xPtr);
-    yVal = _mm_loadu_si128(yPtr);
+      simd_s_t z = srslte_simd_s_mul(a, b);
 
-    zVal = _mm_mullo_epi16(xVal, yVal);
-
-    dotProdVal = _mm_add_epi16(dotProdVal, zVal);
-
-    xPtr ++;
-    yPtr ++;
+      simd_dotProdVal = srslte_simd_s_add(simd_dotProdVal, z);
+    }
   }
-  
-  short dotProdVector[8];
-  _mm_store_si128((__m128i*) dotProdVector, dotProdVal);
-  for (int i=0;i<8;i++) {
-    result += dotProdVector[i]; 
+  __attribute__ ((aligned (SRSLTE_SIMD_S_SIZE*2))) short dotProdVector[SRSLTE_SIMD_S_SIZE];
+  srslte_simd_s_store(dotProdVector, simd_dotProdVal);
+  for (int k = 0; k < SRSLTE_SIMD_S_SIZE; k++) {
+    result += dotProdVector[k];
+  }
+#endif /* SRSLTE_SIMD_S_SIZE */
+
+  for(; i < len; i++){
+    result += (x[i] * y[i]);
   }
 
-  number = points * 8;
-  for(;number < len; number++){
-    result += (x[number] * y[number]);
-  }
-  
-#endif
   return result; 
 }
 
+void srslte_vec_sum_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len) {
+  int i = 0;
+#ifdef SRSLTE_SIMD_S_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_s_t a = srslte_simd_s_load(&x[i]);
+      simd_s_t b = srslte_simd_s_load(&y[i]);
 
-int srslte_vec_dot_prod_sss_avx2(short *x, short *y, uint32_t len)
-{
-  int result = 0; 
-#ifdef LV_HAVE_AVX2
-  unsigned int number = 0;
-  const unsigned int points = len / 16;
+      simd_s_t r = srslte_simd_s_add(a, b);
 
-  const __m256i* xPtr = (const __m256i*) x;
-  const __m256i* yPtr = (const __m256i*) y;
-  
-  __m256i dotProdVal = _mm256_setzero_si256();
+      srslte_simd_s_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_s_t a = srslte_simd_s_loadu(&x[i]);
+      simd_s_t b = srslte_simd_s_loadu(&y[i]);
 
-  __m256i xVal, yVal, zVal;
-  for(;number < points; number++){
+      simd_s_t r = srslte_simd_s_add(a, b);
 
-    xVal = _mm256_load_si256(xPtr);
-    yVal = _mm256_loadu_si256(yPtr);
-    zVal = _mm256_mullo_epi16(xVal, yVal);
-    dotProdVal = _mm256_add_epi16(dotProdVal, zVal);
-    xPtr ++;
-    yPtr ++;
+      srslte_simd_s_storeu(&z[i], r);
+    }
   }
-  
-  __attribute__ ((aligned (256))) short dotProdVector[16];
-  _mm256_store_si256((__m256i*) dotProdVector, dotProdVal);
-  for (int i=0;i<16;i++) {
-    result += dotProdVector[i]; 
-  }
+#endif /* SRSLTE_SIMD_S_SIZE */
 
-  number = points * 16;
-  for(;number < len; number++){
-    result += (x[number] * y[number]);
+  for(; i < len; i++){
+    z[i] = x[i] + y[i];
   }
-  
-#endif
-  return result; 
 }
 
+void srslte_vec_sub_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len) {
+  int i = 0;
+#ifdef SRSLTE_SIMD_S_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_s_t a = srslte_simd_s_load(&x[i]);
+      simd_s_t b = srslte_simd_s_load(&y[i]);
 
+      simd_s_t r = srslte_simd_s_sub(a, b);
 
-void srslte_vec_sum_sss_sse(short *x, short *y, short *z, uint32_t len)
-{
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int points = len / 8;
+      srslte_simd_s_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_s_t a = srslte_simd_s_loadu(&x[i]);
+      simd_s_t b = srslte_simd_s_loadu(&y[i]);
 
-  const __m128i* xPtr = (const __m128i*) x;
-  const __m128i* yPtr = (const __m128i*) y;
-  __m128i* zPtr = (__m128i*) z;
+      simd_s_t r = srslte_simd_s_sub(a, b);
 
-  __m128i xVal, yVal, zVal;
-  for(;number < points; number++){
-
-    xVal = _mm_load_si128(xPtr);
-    yVal = _mm_load_si128(yPtr);
-
-    zVal = _mm_add_epi16(xVal, yVal);
-
-    _mm_store_si128(zPtr, zVal); 
-
-    xPtr ++;
-    yPtr ++;
-    zPtr ++;
+      srslte_simd_s_storeu(&z[i], r);
+    }
   }
+#endif /* SRSLTE_SIMD_S_SIZE */
 
-  number = points * 8;
-  for(;number < len; number++){
-    z[number] = x[number] + y[number];
+  for(; i < len; i++){
+    z[i] = x[i] - y[i];
   }
-#endif
-
 }
 
-void srslte_vec_sum_sss_avx2(short *x, short *y, short *z, uint32_t len)
-{
-#ifdef LV_HAVE_AVX2
-  unsigned int number = 0;
-  const unsigned int points = len / 16;
+void srslte_vec_prod_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len) {
+  int i = 0;
+#ifdef SRSLTE_SIMD_S_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_s_t a = srslte_simd_s_load(&x[i]);
+      simd_s_t b = srslte_simd_s_load(&y[i]);
 
-  const __m256i* xPtr = (const __m256i*) x;
-  const __m256i* yPtr = (const __m256i*) y;
-  __m256i* zPtr = (__m256i*) z;
+      simd_s_t r = srslte_simd_s_mul(a, b);
 
-  __m256i xVal, yVal, zVal;
-  for(;number < points; number++){
+      srslte_simd_s_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
+      simd_s_t a = srslte_simd_s_loadu(&x[i]);
+      simd_s_t b = srslte_simd_s_loadu(&y[i]);
 
-    xVal = _mm256_load_si256(xPtr);
-    yVal = _mm256_loadu_si256(yPtr);
+      simd_s_t r = srslte_simd_s_mul(a, b);
 
-    zVal = _mm256_add_epi16(xVal, yVal);
-    _mm256_store_si256(zPtr, zVal); 
-
-    xPtr ++;
-    yPtr ++;
-    zPtr ++;
+      srslte_simd_s_storeu(&z[i], r);
+    }
   }
+#endif /* SRSLTE_SIMD_S_SIZE */
 
-  number = points * 16;
-  for(;number < len; number++){
-    z[number] = x[number] + y[number];
+  for(; i < len; i++){
+    z[i] = x[i] * y[i];
   }
-#endif
-
-}
-
-
-void srslte_vec_sub_sss_sse(short *x, short *y, short *z, uint32_t len)
-{
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int points = len / 8;
-
-  const __m128i* xPtr = (const __m128i*) x;
-  const __m128i* yPtr = (const __m128i*) y;
-  __m128i* zPtr = (__m128i*) z;
-
-  __m128i xVal, yVal, zVal;
-  for(;number < points; number++){
-
-    xVal = _mm_load_si128(xPtr);
-    yVal = _mm_load_si128(yPtr);
-
-    zVal = _mm_sub_epi16(xVal, yVal);
-
-    _mm_store_si128(zPtr, zVal);
-
-    xPtr ++;
-    yPtr ++;
-    zPtr ++;
-  }
-
-  number = points * 8;
-  for(;number < len; number++){
-    z[number] = x[number] - y[number];
-  }
-#endif
-}
-
-void srslte_vec_sub_sss_avx2(short *x, short *y, short *z, uint32_t len)
-{
-#ifdef LV_HAVE_AVX2
-  unsigned int number = 0;
-  const unsigned int points = len / 16;
-
-  const __m256i* xPtr = (const __m256i*) x;
-  const __m256i* yPtr = (const __m256i*) y;
-  __m256i* zPtr = (__m256i*) z;
-
-  __m256i xVal, yVal, zVal;
-  for(;number < points; number++){
-
-    xVal = _mm256_load_si256(xPtr);
-    yVal = _mm256_loadu_si256(yPtr);
-
-    zVal = _mm256_sub_epi16(xVal, yVal);
-
-    _mm256_store_si256(zPtr, zVal); 
-
-    xPtr ++;
-    yPtr ++;
-    zPtr ++;
-  }
-
-  number = points * 16;
-  for(;number < len; number++){
-    z[number] = x[number] - y[number];
-  }
-  #endif
 }
 
 
 
 
-void srslte_vec_prod_sss_sse(short *x, short *y, short *z, uint32_t len)
-{
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int points = len / 8;
-
-  const __m128i* xPtr = (const __m128i*) x;
-  const __m128i* yPtr = (const __m128i*) y;
-  __m128i* zPtr = (__m128i*) z;
-
-  __m128i xVal, yVal, zVal;
-  for(;number < points; number++){
-
-    xVal = _mm_load_si128(xPtr);
-    yVal = _mm_load_si128(yPtr);
-
-    zVal = _mm_mullo_epi16(xVal, yVal);
-
-    _mm_store_si128(zPtr, zVal);
-
-    xPtr ++;
-    yPtr ++;
-    zPtr ++;
-  }
-
-  number = points * 8;
-  for(;number < len; number++){
-    z[number] = x[number] * y[number];
-  }
-#endif
-}
-
-void srslte_vec_prod_sss_avx2(short *x, short *y, short *z, uint32_t len)
-{
-#ifdef LV_HAVE_AVX2
-  unsigned int number = 0;
-  const unsigned int points = len / 16;
-
-  const __m256i* xPtr = (const __m256i*) x;
-  const __m256i* yPtr = (const __m256i*) y;
-  __m256i* zPtr = (__m256i*) z;
-
-  __m256i xVal, yVal, zVal;
-  for(;number < points; number++){
-
-    xVal = _mm256_loadu_si256(xPtr);
-    yVal = _mm256_loadu_si256(yPtr);
-
-    zVal = _mm256_mullo_epi16(xVal, yVal);
-
-    _mm256_storeu_si256(zPtr, zVal); 
-
-    xPtr ++;
-    yPtr ++;
-    zPtr ++;
-  }
-
-  number = points * 16;
-  for(;number < len; number++){
-    z[number] = x[number] * y[number];
-  }
-#endif
-}
-
-
-
-
-
-
+#warning remove function if it is not used
+/*
 void srslte_vec_sc_div2_sss_sse(short *x, int k, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
@@ -357,8 +195,10 @@ void srslte_vec_sc_div2_sss_sse(short *x, int k, short *z, uint32_t len)
     z[number] = x[number] / divn;
   }
 #endif
-}
+}*/
 
+#warning remove function if it is not used
+/*
 void srslte_vec_sc_div2_sss_avx2(short *x, int k, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_AVX2
@@ -387,7 +227,7 @@ void srslte_vec_sc_div2_sss_avx2(short *x, int k, short *z, uint32_t len)
     z[number] = x[number] / divn;
   }
 #endif
-}
+}*/
 
 
 
@@ -531,379 +371,527 @@ void srslte_vec_sum_fff_avx(float *x, float *y, float *z, uint32_t len) {
 #endif
 }
 
-void srslte_vec_sub_fff_sse(float *x, float *y, float *z, uint32_t len) {
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int points = len / 4;
+cf_t srslte_vec_acc_cc_simd(cf_t *x, int len) {
+  int i = 0;
+  cf_t acc_sum = 0.0f;
 
-  const float* xPtr = (const float*) x;
-  const float* yPtr = (const float*) y;
-  float* zPtr = (float*) z;
+#if SRSLTE_SIMD_F_SIZE
+  simd_f_t simd_sum = srslte_simd_f_zero();
 
-  __m128 xVal, yVal, zVal;
-  for(;number < points; number++){
+  if (SRSLTE_IS_ALIGNED(x)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
+      simd_f_t a = srslte_simd_f_load((float *) &x[i]);
 
-    xVal = _mm_loadu_ps(xPtr);
-    yVal = _mm_loadu_ps(yPtr);
+      simd_sum = srslte_simd_f_add(simd_sum, a);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
+      simd_f_t a = srslte_simd_f_loadu((float *) &x[i]);
 
-    zVal = _mm_sub_ps(xVal, yVal);
-
-    _mm_storeu_ps(zPtr, zVal);
-
-    xPtr += 4;
-    yPtr += 4;
-    zPtr += 4;
+      simd_sum = srslte_simd_f_add(simd_sum, a);
+    }
   }
 
-  for(number = points * 4;number < len; number++){
-    z[number] = x[number] - y[number];
+  __attribute__((aligned(64))) cf_t sum[SRSLTE_SIMD_F_SIZE/2];
+  srslte_simd_f_store((float*)&sum, simd_sum);
+  for (int k = 0; k < SRSLTE_SIMD_F_SIZE/2; k++) {
+    acc_sum += sum[k];
   }
 #endif
+
+  for (; i<len; i++) {
+    acc_sum += x[i];
+  }
+  return acc_sum;
 }
 
+void srslte_vec_add_fff_simd(float *x, float *y, float *z, int len) {
+  int i = 0;
 
-void srslte_vec_sub_fff_avx(float *x, float *y, float *z, uint32_t len) {
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int points = len / 8;
+#if SRSLTE_SIMD_F_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t a = srslte_simd_f_load(&x[i]);
+      simd_f_t b = srslte_simd_f_load(&y[i]);
 
-  const float* xPtr = (const float*) x;
-  const float* yPtr = (const float*) y;
-  float* zPtr = (float*) z;
+      simd_f_t r = srslte_simd_f_add(a, b);
 
-  __m256 xVal, yVal, zVal;
-  for(;number < points; number++){
+      srslte_simd_f_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t a = srslte_simd_f_loadu(&x[i]);
+      simd_f_t b = srslte_simd_f_loadu(&y[i]);
 
-    xVal = _mm256_loadu_ps(xPtr);
-    yVal = _mm256_loadu_ps(yPtr);
+      simd_f_t r = srslte_simd_f_add(a, b);
 
-    zVal = _mm256_sub_ps(xVal, yVal);
+      srslte_simd_f_storeu(&z[i], r);
+    }
+  }
+#endif
 
-    _mm256_storeu_ps(zPtr, zVal);
+  for (; i<len; i++) {
+    z[i] = x[i] + y[i];
+  }
+}
 
-    xPtr += 8;
-    yPtr += 8;
-    zPtr += 8;
+void srslte_vec_sub_fff_simd(float *x, float *y, float *z, int len) {
+  int i = 0;
+
+#if SRSLTE_SIMD_F_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t a = srslte_simd_f_load(&x[i]);
+      simd_f_t b = srslte_simd_f_load(&y[i]);
+
+      simd_f_t r = srslte_simd_f_sub(a, b);
+
+      srslte_simd_f_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t a = srslte_simd_f_loadu(&x[i]);
+      simd_f_t b = srslte_simd_f_loadu(&y[i]);
+
+      simd_f_t r = srslte_simd_f_sub(a, b);
+
+      srslte_simd_f_storeu(&z[i], r);
+    }
+  }
+#endif
+
+  for (; i < len; i++) {
+    z[i] = x[i] - y[i];
+  }
+}
+
+cf_t srslte_vec_dot_prod_ccc_simd(cf_t *x, cf_t *y, int len) {
+  int i = 0;
+  cf_t result = 0;
+
+#if SRSLTE_SIMD_CF_SIZE
+  __attribute__((aligned(64))) cf_t simd_dotProdVector[SRSLTE_SIMD_CF_SIZE];
+
+  simd_cf_t avx_result = srslte_simd_cf_zero();
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y)) {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t xVal = srslte_simd_cfi_load(&x[i]);
+      simd_cf_t yVal = srslte_simd_cfi_load(&y[i]);
+
+      avx_result = srslte_simd_cf_add(srslte_simd_cf_prod(xVal, yVal), avx_result);
+      srslte_simd_cfi_store(simd_dotProdVector, avx_result);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t xVal = srslte_simd_cfi_loadu(&x[i]);
+      simd_cf_t yVal = srslte_simd_cfi_loadu(&y[i]);
+
+      avx_result = srslte_simd_cf_add(srslte_simd_cf_prod(xVal, yVal), avx_result);
+      srslte_simd_cfi_storeu(simd_dotProdVector, avx_result);
+    }
   }
 
-  for(number = points * 8;number < len; number++){
-    z[number] = x[number] - y[number];
+  srslte_simd_cfi_store(simd_dotProdVector, avx_result);
+  for (int k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
+    result += simd_dotProdVector[k];
   }
 #endif
+
+  for (; i < len; i++) {
+    result += (x[i] * y[i]);
+  }
+
+  return result;
 }
 
-#ifdef LV_HAVE_SSE
-static inline __m128 _mm_complexmul_ps(__m128 x, __m128 y) {
-  __m128 yl, yh, tmp1, tmp2;
-  yl = _mm_moveldup_ps(y); // Load yl with cr,cr,dr,dr
-  yh = _mm_movehdup_ps(y); // Load yh with ci,ci,di,di
-  tmp1 = _mm_mul_ps(x, yl); // tmp1 = ar*cr,ai*cr,br*dr,bi*dr
-  x = _mm_shuffle_ps(x, x, 0xB1); // Re-arrange x to be ai,ar,bi,br
-  tmp2 = _mm_mul_ps(x, yh); // tmp2 = ai*ci,ar*ci,bi*di,br*di
-  return _mm_addsub_ps(tmp1, tmp2); // ar*cr-ai*ci, ai*cr+ar*ci, br*dr-bi*di, bi*dr+br*di
-}
+c16_t srslte_vec_dot_prod_ccc_c16i_simd(c16_t *x, c16_t *y, int len) {
+  int i = 0;
+  c16_t result = 0;
+
+#if SRSLTE_SIMD_C16_SIZE
+  simd_c16_t avx_result = srslte_simd_c16_zero();
+
+  for (; i < len - SRSLTE_SIMD_C16_SIZE + 1; i += SRSLTE_SIMD_C16_SIZE) {
+    simd_c16_t xVal = srslte_simd_c16i_load(&x[i]);
+    simd_c16_t yVal = srslte_simd_c16i_load(&y[i]);
+
+    avx_result = srslte_simd_c16_add(srslte_simd_c16_prod(xVal, yVal), avx_result);
+  }
+
+  __attribute__((aligned(256))) c16_t avx_dotProdVector[16] = {0};
+  srslte_simd_c16i_store(avx_dotProdVector, avx_result);
+  for (int k = 0; k < 16; k++) {
+    result += avx_dotProdVector[k];
+  }
 #endif
 
+  for(;i < len; i++){
+    result += (x[i] * y[i])/(1<<14);
+  }
 
-#ifdef LV_HAVE_SSE
-static inline __m128 _mm_complexmulconj_ps(__m128 x, __m128 y) {
-  const __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
-  y = _mm_xor_ps(y, conjugator); 
-  return _mm_complexmul_ps(x, y);
+  return result;
 }
-#endif
 
-cf_t srslte_vec_dot_prod_ccc_sse(cf_t *x, cf_t *y, uint32_t len)
+cf_t srslte_vec_dot_prod_conj_ccc_simd(cf_t *x, cf_t *y, int len)
 {
-  cf_t result = 0; 
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int points = len / 2;
+  int i = 0;
+  cf_t result = 0;
 
-  const float* xPtr = (const float*) x;
-  const float* yPtr = (const float*) y;
-  
-  __m128 dotProdVal = _mm_setzero_ps();
+#if SRSLTE_SIMD_CF_SIZE
+  __attribute__((aligned(256))) cf_t simd_dotProdVector[SRSLTE_SIMD_CF_SIZE];
 
-  __m128 xVal, yVal, zVal;
-  for(;number < points; number++){
+  simd_cf_t simd_result = srslte_simd_cf_zero();
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y)) {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t xVal = srslte_simd_cfi_load(&x[i]);
+      simd_cf_t yVal = srslte_simd_cfi_load(&y[i]);
 
-    xVal = _mm_loadu_ps(xPtr);
-    yVal = _mm_loadu_ps(yPtr);
+      simd_result = srslte_simd_cf_add(srslte_simd_cf_conjprod(xVal, yVal), simd_result);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t xVal = srslte_simd_cfi_loadu(&x[i]);
+      simd_cf_t yVal = srslte_simd_cfi_loadu(&y[i]);
 
-    zVal = _mm_complexmul_ps(xVal, yVal);
-
-    dotProdVal = _mm_add_ps(dotProdVal, zVal);
-
-    xPtr += 4;
-    yPtr += 4;
-  }
-  
-  cf_t dotProdVector[2];
-  _mm_storeu_ps((float*) dotProdVector, dotProdVal);
-  for (int i=0;i<2;i++) {
-    result += dotProdVector[i]; 
+      simd_result = srslte_simd_cf_add(srslte_simd_cf_conjprod(xVal, yVal), simd_result);
+    }
   }
 
-  number = points * 2;
-  for(;number < len; number++){
-    result += (x[number] * y[number]);
+  srslte_simd_cfi_store(simd_dotProdVector, simd_result);
+  for (int k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
+    result += simd_dotProdVector[k];
   }
-  
 #endif
-  return result; 
+
+  for (; i < len; i++) {
+    result += x[i] * conjf(y[i]);
+  }
+
+  return result;
 }
 
-cf_t srslte_vec_dot_prod_conj_ccc_sse(cf_t *x, cf_t *y, uint32_t len)
-{
-  cf_t result = 0; 
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int points = len / 2;
+void srslte_vec_prod_fff_simd(float *x, float *y, float *z, int len) {
+  int i = 0;
 
-  const float* xPtr = (const float*) x;
-  const float* yPtr = (const float*) y;
-  
-  __m128 dotProdVal = _mm_setzero_ps();
+#if SRSLTE_SIMD_F_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t a = srslte_simd_f_load(&x[i]);
+      simd_f_t b = srslte_simd_f_load(&y[i]);
 
-  __m128 xVal, yVal, zVal;
-  for(;number < points; number++){
+      simd_f_t r = srslte_simd_f_mul(a, b);
 
-    xVal = _mm_loadu_ps(xPtr);
-    yVal = _mm_loadu_ps(yPtr);
+      srslte_simd_f_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t a = srslte_simd_f_loadu(&x[i]);
+      simd_f_t b = srslte_simd_f_loadu(&y[i]);
 
-    zVal = _mm_complexmulconj_ps(xVal, yVal);
+      simd_f_t r = srslte_simd_f_mul(a, b);
 
-    dotProdVal = _mm_add_ps(dotProdVal, zVal);
-
-    xPtr += 4;
-    yPtr += 4;
+      srslte_simd_f_storeu(&z[i], r);
+    }
   }
-  
-  cf_t dotProdVector[2];
-  _mm_storeu_ps((float*) dotProdVector, dotProdVal);
-  for (int i=0;i<2;i++) {
-    result += dotProdVector[i]; 
-  }
-
-  number = points * 2;
-  for(;number < len; number++){
-    result += (x[number] * y[number]);
-  }
-  
 #endif
-  return result; 
+
+  for (; i<len; i++) {
+    z[i] = x[i] * y[i];
+  }
 }
 
-void srslte_vec_prod_ccc_sse(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
-{
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int halfPoints = len / 2;
+void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, int len) {
+  int i = 0;
 
-  __m128 xVal, yVal, zVal;
-  float* zPtr = (float*) z;
-  const float* xPtr = (const float*) x;
-  const float* yPtr = (const float*) y;
+#if SRSLTE_SIMD_CF_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t a = srslte_simd_cfi_load(&x[i]);
+      simd_cf_t b = srslte_simd_cfi_load(&y[i]);
 
-  for(; number < halfPoints; number++){
-    xVal = _mm_loadu_ps(xPtr); 
-    yVal = _mm_loadu_ps(yPtr); 
-    zVal = _mm_complexmul_ps(xVal, yVal);
-    _mm_storeu_ps(zPtr, zVal); 
+      simd_cf_t r = srslte_simd_cf_prod(a, b);
 
-    xPtr += 4;
-    yPtr += 4;
-    zPtr += 4;
-  }
+      srslte_simd_cfi_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t a = srslte_simd_cfi_loadu(&x[i]);
+      simd_cf_t b = srslte_simd_cfi_loadu(&y[i]);
 
-  number = halfPoints * 2;
-  for(;number < len; number++){
-    z[number] = x[number] * y[number];
+      simd_cf_t r = srslte_simd_cf_prod(a, b);
+
+      srslte_simd_cfi_storeu(&z[i], r);
+    }
   }
 #endif
+
+  for (; i<len; i++) {
+    z[i] = x[i] * y[i];
+  }
+}
+
+void srslte_vec_prod_ccc_cf_simd(float *a_re, float *a_im, float *b_re, float *b_im, float *r_re, float *r_im, int len) {
+  int i = 0;
+
+#if SRSLTE_SIMD_F_SIZE
+  for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+    simd_cf_t a = srslte_simd_cf_load(&a_re[i], &a_im[i]);
+    simd_cf_t b = srslte_simd_cf_load(&b_re[i], &b_im[i]);
+
+    simd_cf_t r = srslte_simd_cf_prod(a, b);
+
+    srslte_simd_cf_store(&r_re[i], &r_im[i], r);
+  }
+#endif
+
+  for (; i<len; i++) {
+    r_re[i] = a_re[i]*b_re[i] - a_im[i]*b_im[i];
+    r_im[i] = a_re[i]*b_im[i] + a_im[i]*b_re[i];
+  }
+}
+
+void srslte_vec_prod_ccc_c16_simd(int16_t *a_re, int16_t *a_im, int16_t *b_re, int16_t *b_im, int16_t *r_re,
+                                  int16_t *r_im, int len) {
+  int i = 0;
+
+#if SRSLTE_SIMD_C16_SIZE
+  for (; i < len - SRSLTE_SIMD_C16_SIZE + 1; i += SRSLTE_SIMD_C16_SIZE) {
+    simd_c16_t a = srslte_simd_c16_load(&a_re[i], &a_im[i]);
+    simd_c16_t b = srslte_simd_c16_load(&b_re[i], &b_im[i]);
+
+    simd_c16_t r = srslte_simd_c16_prod(a, b);
+
+    srslte_simd_c16_store(&r_re[i], &r_im[i], r);
+  }
+#endif
+
+  for (; i<len; i++) {
+    r_re[i] = a_re[i]*b_re[i] - a_im[i]*b_im[i];
+    r_im[i] = a_re[i]*b_im[i] + a_im[i]*b_re[i];
+  }
+}
+
+void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, int len) {
+  int i = 0;
+
+#if SRSLTE_SIMD_CF_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t a = srslte_simd_cfi_load(&x[i]);
+      simd_cf_t b = srslte_simd_cfi_load(&y[i]);
+
+      simd_cf_t r = srslte_simd_cf_conjprod(a, b);
+
+      srslte_simd_cfi_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t a = srslte_simd_cfi_loadu(&x[i]);
+      simd_cf_t b = srslte_simd_cfi_loadu(&y[i]);
+
+      simd_cf_t r = srslte_simd_cf_conjprod(a, b);
+
+      srslte_simd_cfi_storeu(&z[i], r);
+    }
+  }
+#endif
+
+  for (; i<len; i++) {
+    z[i] = x[i] * conjf(y[i]);
+  }
+}
+
+void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, int len) {
+  int i = 0;
+
+#if SRSLTE_SIMD_F_SIZE
+  const simd_f_t hre = srslte_simd_f_set1(__real__ h);
+  const simd_f_t him = srslte_simd_f_set1(__imag__ h);
+
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
+      simd_f_t temp = srslte_simd_f_load((float *) &x[i]);
+
+      simd_f_t m1 = srslte_simd_f_mul(hre, temp);
+      simd_f_t sw = srslte_simd_f_swap(temp);
+      simd_f_t m2 = srslte_simd_f_mul(him, sw);
+      simd_f_t r = srslte_simd_f_addsub(m1, m2);
+
+      srslte_simd_f_store((float *) &z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
+      simd_f_t temp = srslte_simd_f_load((float *) &x[i]);
+
+      simd_f_t m1 = srslte_simd_f_mul(hre, temp);
+      simd_f_t sw = srslte_simd_f_swap(temp);
+      simd_f_t m2 = srslte_simd_f_mul(him, sw);
+      simd_f_t r = srslte_simd_f_addsub(m1, m2);
+
+      srslte_simd_f_store((float *) &z[i], r);
+    }
+  }
+#endif
+
+  for (; i < len; i++) {
+    z[i] = x[i] * h;
+  }
+}
+
+void srslte_vec_sc_prod_fff_simd(float *x, float h, float *z, int len) {
+  int i = 0;
+
+#if SRSLTE_SIMD_F_SIZE
+  const simd_f_t hh = srslte_simd_f_set1(h);
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t xx = srslte_simd_f_load(&x[i]);
+
+      simd_f_t zz = srslte_simd_f_mul(xx, hh);
+
+      srslte_simd_f_store(&z[i], zz);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t xx = srslte_simd_f_loadu(&x[i]);
+
+      simd_f_t zz = srslte_simd_f_mul(xx, hh);
+
+      srslte_simd_f_storeu(&z[i], zz);
+    }
+  }
+#endif
+
+  for (; i < len; i++) {
+    z[i] = x[i] * h;
+  }
+}
+
+void srslte_vec_abs_cf_simd(cf_t *x, float *z, int len) {
+  int i = 0;
+
+#if SRSLTE_SIMD_F_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t x1 = srslte_simd_f_load((float *) &x[i]);
+      simd_f_t x2 = srslte_simd_f_load((float *) &x[i + SRSLTE_SIMD_F_SIZE / 2]);
+
+      simd_f_t mul1 = srslte_simd_f_mul(x1, x1);
+      simd_f_t mul2 = srslte_simd_f_mul(x2, x2);
+
+      simd_f_t z1 = srslte_simd_f_hadd(mul1, mul2);
+      z1 = srslte_simd_f_sqrt(z1);
+
+      srslte_simd_f_store(&z[i], z1);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t x1 = srslte_simd_f_loadu((float *) &x[i]);
+      simd_f_t x2 = srslte_simd_f_loadu((float *) &x[i + SRSLTE_SIMD_F_SIZE / 2]);
+
+      simd_f_t mul1 = srslte_simd_f_mul(x1, x1);
+      simd_f_t mul2 = srslte_simd_f_mul(x2, x2);
+
+      simd_f_t z1 = srslte_simd_f_hadd(mul1, mul2);
+      z1 = srslte_simd_f_sqrt(z1);
+
+      srslte_simd_f_storeu(&z[i], z1);
+    }
+  }
+#endif
+
+  for (; i < len; i++) {
+    z[i] = sqrtf(__real__(x[i]) * __real__(x[i]) + __imag__(x[i]) * __imag__(x[i]));
+  }
+}
+
+void srslte_vec_abs_square_cf_simd(cf_t *x, float *z, int len) {
+  int i = 0;
+
+#if SRSLTE_SIMD_F_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t x1 = srslte_simd_f_load((float *) &x[i]);
+      simd_f_t x2 = srslte_simd_f_load((float *) &x[i + SRSLTE_SIMD_F_SIZE / 2]);
+
+      simd_f_t mul1 = srslte_simd_f_mul(x1, x1);
+      simd_f_t mul2 = srslte_simd_f_mul(x2, x2);
+
+      simd_f_t z1 = srslte_simd_f_hadd(mul1, mul2);
+
+      srslte_simd_f_store(&z[i], z1);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      simd_f_t x1 = srslte_simd_f_loadu((float *) &x[i]);
+      simd_f_t x2 = srslte_simd_f_loadu((float *) &x[i + SRSLTE_SIMD_F_SIZE / 2]);
+
+      simd_f_t mul1 = srslte_simd_f_mul(x1, x1);
+      simd_f_t mul2 = srslte_simd_f_mul(x2, x2);
+
+      simd_f_t z1 = srslte_simd_f_hadd(mul1, mul2);
+
+      srslte_simd_f_storeu(&z[i], z1);
+    }
+  }
+#endif
+
+  for (; i < len; i++) {
+    z[i] = __real__(x[i]) * __real__(x[i]) + __imag__(x[i]) * __imag__(x[i]);
+  }
 }
 
 
-void srslte_vec_prod_conj_ccc_sse(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int halfPoints = len / 2;
+void srslte_vec_sc_prod_cfc_simd(const cf_t *x, const float h, cf_t *z, const int len) {
+  int i = 0;
 
-  __m128 xVal, yVal, zVal;
-  float* zPtr = (float*) z;
-  const float* xPtr = (const float*) x;
-  const float* yPtr = (const float*) y;
+#if SRSLTE_SIMD_F_SIZE
+  const simd_f_t tap = srslte_simd_f_set1(h);
 
-  for(; number < halfPoints; number++){
-    xVal = _mm_loadu_ps(xPtr); 
-    yVal = _mm_loadu_ps(yPtr); 
-    zVal = _mm_complexmulconj_ps(xVal, yVal);
-    _mm_storeu_ps(zPtr, zVal); 
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
+      simd_f_t temp = srslte_simd_f_load((float *) &x[i]);
 
-    xPtr += 4;
-    yPtr += 4;
-    zPtr += 4;
-  }
+      temp = srslte_simd_f_mul(tap, temp);
 
-  number = halfPoints * 2;
-  for(;number < len; number++){
-    z[number] = x[number] * conjf(y[number]);
+      srslte_simd_f_store((float *) &z[i], temp);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
+      simd_f_t temp = srslte_simd_f_loadu((float *) &x[i]);
+
+      temp = srslte_simd_f_mul(tap, temp);
+
+      srslte_simd_f_storeu((float *) &z[i], temp);
+    }
   }
 #endif
+
+  for (; i < len; i++) {
+    z[i] = x[i] * h;
+  }
 }
 
-void srslte_vec_sc_prod_ccc_sse(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int halfPoints = len / 2;
+void srslte_vec_cp_simd(cf_t *src, cf_t *dst, int len) {
+  uint32_t i = 0;
 
-  __m128 xVal, yl, yh, zVal, tmp1, tmp2;
-  float* zPtr = (float*) z;
-  const float* xPtr = (const float*) x;
+#if SRSLTE_SIMD_F_SIZE
+  if (SRSLTE_IS_ALIGNED(src) && SRSLTE_IS_ALIGNED(dst)) {
+    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
+      simd_f_t temp = srslte_simd_f_load((float *) &src[i]);
 
-  // Set up constant scalar vector
-  yl = _mm_set_ps1(creal(h));
-  yh = _mm_set_ps1(cimag(h));
+      srslte_simd_f_store((float *) &dst[i], temp);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
+      simd_f_t temp = srslte_simd_f_loadu((float *) &src[i]);
 
-  for(;number < halfPoints; number++){
-
-    xVal = _mm_loadu_ps(xPtr); 
-    tmp1 = _mm_mul_ps(xVal,yl); 
-    xVal = _mm_shuffle_ps(xVal,xVal,0xB1); 
-    tmp2 = _mm_mul_ps(xVal,yh); 
-    zVal = _mm_addsub_ps(tmp1,tmp2); 
-    _mm_storeu_ps(zPtr,zVal); 
-
-    xPtr += 4;
-    zPtr += 4;
-  }
-
-  number = halfPoints * 2;
-  for(;number < len; number++){
-    z[number] = x[number] * h;
+      srslte_simd_f_storeu((float *) &dst[i], temp);
+    }
   }
 #endif
-}
 
-
-void srslte_vec_sc_prod_cfc_sse(cf_t *x, float h, cf_t *z, uint32_t len) {
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int halfPoints = len / 2;
-
-  __m128 xVal, hVal, zVal;
-  float* zPtr = (float*) z;
-  const float* xPtr = (const float*) x;
-
-  // Set up constant scalar vector
-  hVal = _mm_set_ps1(h);
-  
-  for(;number < halfPoints; number++){
-
-    xVal = _mm_loadu_ps(xPtr); 
-    zVal = _mm_mul_ps(xVal,hVal); 
-    _mm_storeu_ps(zPtr,zVal); 
-
-    xPtr += 4;
-    zPtr += 4;
+  for (; i < len; i++) {
+    dst[i] = src[i];
   }
-
-  number = halfPoints * 2;
-  for(;number < len; number++){
-    z[number] = x[number] * h;
-  }
-
-#endif
-}
-
-
-
-void srslte_vec_sc_prod_fff_sse(float *x, float h, float *z, uint32_t len) {
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int quarterPoints = len / 4;
-
-  __m128 xVal, hVal, zVal;
-  float* zPtr = (float*) z;
-  const float* xPtr = (const float*) x;
-
-  // Set up constant scalar vector
-  hVal = _mm_set_ps1(h);
-  
-  for(;number < quarterPoints; number++){
-
-    xVal = _mm_loadu_ps(xPtr); 
-    zVal = _mm_mul_ps(xVal,hVal); 
-    _mm_storeu_ps(zPtr,zVal); 
-
-    xPtr += 4;
-    zPtr += 4;
-  }
-
-  number = quarterPoints * 4;
-  for(;number < len; number++){
-    z[number] = x[number] * h;
-  }
-
-#endif
-}
-
-void srslte_vec_abs_square_cf_sse(cf_t *x, float *z, uint32_t len) {
-#ifdef LV_HAVE_SSE
-  unsigned int number = 0;
-  const unsigned int quarterPoints = len / 4;
-
-  const float* xPtr = (const float*) x;
-  float* zPtr = z;
-
-  __m128 xVal1, xVal2, zVal;
-  for(; number < quarterPoints; number++){
-    xVal1 = _mm_loadu_ps(xPtr);
-    xPtr += 4;
-    xVal2 = _mm_loadu_ps(xPtr);
-    xPtr += 4;
-    xVal1 = _mm_mul_ps(xVal1, xVal1); 
-    xVal2 = _mm_mul_ps(xVal2, xVal2); 
-    zVal = _mm_hadd_ps(xVal1, xVal2);
-    _mm_storeu_ps(zPtr, zVal);
-    zPtr += 4;
-  }
-
-  number = quarterPoints * 4;
-  for(;number < len; number++){
-    z[number] = creal(x[number]) * creal(x[number]) + cimag(x[number])*cimag(x[number]);
-  }
-#endif
-}
-
-
-//srslte_32fc_s32f_multiply_32fc_avx
- void srslte_vec_sc_prod_cfc_avx( const cf_t *x,const float h,cf_t *z,const uint32_t len)
-{
-#ifdef LV_HAVE_AVX
-   
-  unsigned int i = 0;
-  const unsigned int loops = len/4;
-  //__m256 outputVec;
-    cf_t *xPtr = (cf_t*) x;
-    cf_t *zPtr = (cf_t*) z;
-  
-  __m256 inputVec, outputVec;
-    const __m256 tapsVec  = _mm256_set1_ps(h);
-  for(;i < loops;i++)
-  {
-      inputVec  = _mm256_loadu_ps((float*)xPtr);
-      //__builtin_prefetch(xPtr+4);
-      outputVec = _mm256_mul_ps(inputVec,tapsVec);
-      _mm256_storeu_ps((float*)zPtr,outputVec);
-      xPtr += 4;
-      zPtr += 4;
-  }
-  
-  for(i = loops * 4;i < len;i++)
-  {
-      *zPtr++ = (*xPtr++) * h;
-  }
-#endif
 }
