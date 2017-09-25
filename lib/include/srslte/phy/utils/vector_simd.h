@@ -44,7 +44,7 @@ extern "C" {
 #ifdef LV_HAVE_SSE
 #define SRSLTE_IS_ALIGNED(PTR) (((size_t)(PTR) & 0x0F) == 0)
 #else /* LV_HAVE_SSE */
-#define SRSLTE_IS_ALIGNED(PTR) (true)
+#define SRSLTE_IS_ALIGNED(PTR) (1)
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
 #endif /* LV_HAVE_AVX512 */

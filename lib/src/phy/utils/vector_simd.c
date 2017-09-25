@@ -77,7 +77,7 @@ int srslte_vec_dot_prod_sss_simd(int16_t *x, int16_t *y, int len) {
 
 void srslte_vec_sum_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len) {
   int i = 0;
-#ifdef SRSLTE_SIMD_S_SIZE
+#if SRSLTE_SIMD_S_SIZE
   if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
     for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
       simd_s_t a = srslte_simd_s_load(&x[i]);
@@ -106,7 +106,7 @@ void srslte_vec_sum_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len) {
 
 void srslte_vec_sub_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len) {
   int i = 0;
-#ifdef SRSLTE_SIMD_S_SIZE
+#if SRSLTE_SIMD_S_SIZE
   if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
     for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
       simd_s_t a = srslte_simd_s_load(&x[i]);
@@ -135,7 +135,7 @@ void srslte_vec_sub_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len) {
 
 void srslte_vec_prod_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len) {
   int i = 0;
-#ifdef SRSLTE_SIMD_S_SIZE
+#if SRSLTE_SIMD_S_SIZE
   if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
     for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
       simd_s_t a = srslte_simd_s_load(&x[i]);
@@ -721,14 +721,14 @@ void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, int len) {
     }
   } else {
     for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
-      simd_f_t temp = srslte_simd_f_load((float *) &x[i]);
+      simd_f_t temp = srslte_simd_f_loadu((float *) &x[i]);
 
       simd_f_t m1 = srslte_simd_f_mul(hre, temp);
       simd_f_t sw = srslte_simd_f_swap(temp);
       simd_f_t m2 = srslte_simd_f_mul(him, sw);
       simd_f_t r = srslte_simd_f_addsub(m1, m2);
 
-      srslte_simd_f_store((float *) &z[i], r);
+      srslte_simd_f_storeu((float *) &z[i], r);
     }
   }
 #endif

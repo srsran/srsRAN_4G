@@ -45,7 +45,7 @@ bool mmse_solver = false;
 bool verbose = false;
 
 #define MAX_MSE (1e-3)
-#define NOF_REPETITIONS (1024*128)
+#define NOF_REPETITIONS (1024)
 #define MAX_FUNCTIONS (64)
 #define MAX_BLOCKS (16)
 
@@ -70,7 +70,7 @@ bool verbose = false;
     return passed;\
 }
 
-#define MALLOC(TYPE, NAME) TYPE *NAME = srslte_vec_malloc(sizeof(TYPE)*block_size)
+#define MALLOC(TYPE, NAME) TYPE *NAME = malloc(sizeof(TYPE)*block_size)
 
 
 static double elapsed_us(struct timeval *ts_start, struct timeval *ts_end) {
@@ -339,7 +339,7 @@ TEST(srslte_vec_prod_conj_ccc,
 TEST(srslte_vec_sc_prod_ccc,
   MALLOC(cf_t, x);
   MALLOC(cf_t, z);
-  cf_t y = RANDOM_F();
+  cf_t y = RANDOM_CF();
 
   cf_t gold;
   for (int i = 0; i < block_size; i++) {
@@ -469,7 +469,7 @@ int main(int argc, char **argv) {
   uint32_t func_count = 0;
   bool passed = true;
 
-  for (uint32_t block_size = 1; block_size <= 1024*16; block_size *= 2) {
+  for (uint32_t block_size = 1; block_size <= 1024*8; block_size *= 2) {
     func_count = 0;
 
     passed &= test_srslte_vec_dot_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);

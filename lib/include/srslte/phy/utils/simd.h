@@ -226,7 +226,7 @@ static inline simd_f_t srslte_simd_f_mul(simd_f_t a, simd_f_t b) {
 static inline simd_f_t srslte_simd_f_addsub(simd_f_t a, simd_f_t b) {
 #ifdef LV_HAVE_AVX512
   __m512 r = _mm512_add_ps(a, b);
-  return _mm512_mask_sub_ps(r, 0b1010101010101010, a, b);
+  return _mm512_mask_sub_ps(r, 0b0101010101010101, a, b);
 #else /* LV_HAVE_AVX512 */
 #ifdef LV_HAVE_AVX2
   return _mm256_addsub_ps(a, b);
@@ -642,10 +642,10 @@ static inline simd_s_t srslte_simd_s_load(int16_t *ptr) {
   return _mm512_load_si512(ptr);
 #else /* LV_HAVE_AVX512 */
 #ifdef LV_HAVE_AVX2
-  return _mm256_load_si256(ptr);
+  return _mm256_load_si256((__m256i*) ptr);
 #else /* LV_HAVE_AVX2 */
 #ifdef LV_HAVE_SSE
-  return _mm_load_si128(ptr);
+  return _mm_load_si128((__m128i*) ptr);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
@@ -653,13 +653,13 @@ static inline simd_s_t srslte_simd_s_load(int16_t *ptr) {
 
 static inline simd_s_t srslte_simd_s_loadu(int16_t *ptr) {
 #ifdef LV_HAVE_AVX512
-  return _mm512_load_si512(ptr);
+  return _mm512_loadu_si512(ptr);
 #else /* LV_HAVE_AVX512 */
   #ifdef LV_HAVE_AVX2
-  return _mm256_load_si256(ptr);
+  return _mm256_loadu_si256((__m256i*) ptr);
 #else /* LV_HAVE_AVX2 */
 #ifdef LV_HAVE_SSE
-  return _mm_load_si128(ptr);
+  return _mm_loadu_si128((__m128i*) ptr);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
@@ -670,10 +670,10 @@ static inline void srslte_simd_s_store(int16_t *ptr, simd_s_t simdreg) {
   _mm512_store_si512(ptr, simdreg);
 #else /* LV_HAVE_AVX512 */
 #ifdef LV_HAVE_AVX2
-  _mm256_store_si256(ptr, simdreg);
+  _mm256_store_si256((__m256i*) ptr, simdreg);
 #else /* LV_HAVE_AVX2 */
 #ifdef LV_HAVE_SSE
-  _mm_store_si128(ptr, simdreg);
+  _mm_store_si128((__m128i*) ptr, simdreg);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
@@ -684,10 +684,10 @@ static inline void srslte_simd_s_storeu(int16_t *ptr, simd_s_t simdreg) {
   _mm512_storeu_si512(ptr, simdreg);
 #else /* LV_HAVE_AVX512 */
 #ifdef LV_HAVE_AVX2
-  _mm256_storeu_si256(ptr, simdreg);
+  _mm256_storeu_si256((__m256i*) ptr, simdreg);
 #else /* LV_HAVE_AVX2 */
 #ifdef LV_HAVE_SSE
-  _mm_storeu_si128(ptr, simdreg);
+  _mm_storeu_si128((__m128i*) ptr, simdreg);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
