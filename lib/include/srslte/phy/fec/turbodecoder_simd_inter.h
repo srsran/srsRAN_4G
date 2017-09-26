@@ -49,9 +49,9 @@
 #include "srslte/phy/fec/cbsegm.h"
 
 #if LV_HAVE_AVX2
-  #define SRSLTE_TDEC_NPAR 16
+  #define SRSLTE_TDEC_MAX_NPAR 16
 #else
-  #define SRSLTE_TDEC_NPAR 8
+  #define SRSLTE_TDEC_MAX_NPAR 8
 #endif
 
 
@@ -71,7 +71,7 @@ typedef struct SRSLTE_API {
   int current_cbidx; 
   uint32_t current_long_cb;
   srslte_tc_interl_t interleaver[SRSLTE_NOF_TC_CB_SIZES];
-  int n_iter[SRSLTE_TDEC_NPAR];
+  int n_iter[SRSLTE_TDEC_MAX_NPAR];
 } srslte_tdec_simd_inter_t;
 
 SRSLTE_API int srslte_tdec_simd_inter_init(srslte_tdec_simd_inter_t * h, 
@@ -90,17 +90,17 @@ SRSLTE_API int srslte_tdec_simd_inter_reset_cb(srslte_tdec_simd_inter_t * h,
                                          uint32_t cb_idx);
 
 SRSLTE_API void srslte_tdec_simd_inter_iteration(srslte_tdec_simd_inter_t * h, 
-                                           int16_t * input[SRSLTE_TDEC_NPAR], 
+                                           int16_t * input[SRSLTE_TDEC_MAX_NPAR],
                                            uint32_t nof_cb,
                                            uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_simd_inter_decision(srslte_tdec_simd_inter_t * h, 
-                                          uint8_t *output[SRSLTE_TDEC_NPAR], 
+                                          uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                           uint32_t nof_cb,
                                           uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_simd_inter_decision_byte(srslte_tdec_simd_inter_t * h, 
-                                               uint8_t *output[SRSLTE_TDEC_NPAR], 
+                                               uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                                uint32_t nof_cb,
                                                uint32_t long_cb); 
 
@@ -110,8 +110,8 @@ SRSLTE_API void srslte_tdec_simd_inter_decision_byte_cb(srslte_tdec_simd_inter_t
                                                   uint32_t long_cb); 
 
 SRSLTE_API int srslte_tdec_simd_inter_run_all(srslte_tdec_simd_inter_t * h, 
-                                        int16_t *input[SRSLTE_TDEC_NPAR], 
-                                        uint8_t *output[SRSLTE_TDEC_NPAR],
+                                        int16_t *input[SRSLTE_TDEC_MAX_NPAR],
+                                        uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                         uint32_t nof_iterations, 
                                         uint32_t nof_cb,
                                         uint32_t long_cb);

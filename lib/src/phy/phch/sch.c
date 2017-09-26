@@ -310,8 +310,8 @@ bool decode_tb_cb(srslte_sch_t *q,
 
   bool cb_map[SRSLTE_MAX_CODEBLOCKS];
     
-  uint32_t cb_idx[SRSLTE_TDEC_NPAR];
-  int16_t *decoder_input[SRSLTE_TDEC_NPAR];
+  uint32_t cb_idx[SRSLTE_TDEC_MAX_NPAR];
+  int16_t *decoder_input[SRSLTE_TDEC_MAX_NPAR];
   
   uint32_t nof_cb     = cb_size_group?cb_segm->C2:cb_segm->C1;
   uint32_t first_cb   = cb_size_group?cb_segm->C1:0;
@@ -328,7 +328,7 @@ bool decode_tb_cb(srslte_sch_t *q,
     return false; 
   }
   
-  for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+  for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
     cb_idx[i]        = i+first_cb; 
     decoder_input[i] = NULL;
   }
@@ -346,7 +346,7 @@ bool decode_tb_cb(srslte_sch_t *q,
   while(remaining_cb>0) {
         
     // Unratematch the codeblocks left to decode 
-    for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+    for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
       
       if (!decoder_input[i] && remaining_cb > 0) {        
         // Find an unprocessed CB 
@@ -364,14 +364,17 @@ bool decode_tb_cb(srslte_sch_t *q,
             n_e2 = n_e+Qm;
             rp   = (cb_segm->C - gamma)*n_e + (cb_idx[i]-(cb_segm->C - gamma))*n_e2;
           }
-                
+
           INFO("CB %d: rp=%d, n_e=%d, i=%d\n", cb_idx[i], rp, n_e2, i);
           if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[cb_idx[i]], n_e2, cb_len_idx, rv)) {
             fprintf(stderr, "Error in rate matching\n");
             return SRSLTE_ERROR;
           }
 
-          decoder_input[i] = softbuffer->buffer_f[cb_idx[i]];          
+          decoder_input[i] = softbuffer->buffer_f[cb_idx[i]];
+
+          printf("input: "); srslte_vec_fprint_s(stdout, decoder_input[i], 10);
+
         }
       }
     }
@@ -380,7 +383,7 @@ bool decode_tb_cb(srslte_sch_t *q,
     srslte_tdec_iteration_par(&q->decoder, decoder_input, cb_len);
 
     // Decide output bits and compute CRC 
-    for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+    for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
       if (decoder_input[i]) {        
         srslte_tdec_decision_byte_par_cb(&q->decoder, q->cb_in, i, cb_len);
 
@@ -394,6 +397,8 @@ bool decode_tb_cb(srslte_sch_t *q,
           len_crc = cb_segm->tbs+24; 
           crc_ptr = &q->crc_tb; 
         }
+
+        printf("output: %d", i); srslte_vec_fprint_b(stdout, q->cb_in, 10);
 
         // CRC is OK
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
@@ -474,7 +479,7 @@ static int decode_tb(srslte_sch_t *q,
     data[cb_segm->tbs/8+1] = 0; 
     data[cb_segm->tbs/8+2] = 0; 
     
-    // Process Codeblocks in groups of equal CB size to parallelize according to SRSLTE_TDEC_NPAR
+    // Process Codeblocks in groups of equal CB size to parallelize according to SRSLTE_TDEC_MAX_NPAR
     for (uint32_t i=0;i<nof_cb_groups && crc_ok;i++) {
       crc_ok = decode_tb_cb(q, softbuffer, cb_segm, Qm, rv, nof_e_bits, e_bits, data, i);            
     }

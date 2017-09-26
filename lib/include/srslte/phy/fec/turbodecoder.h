@@ -74,7 +74,7 @@ SRSLTE_API int srslte_tdec_reset_cb(srslte_tdec_t * h,
 SRSLTE_API int srslte_tdec_get_nof_iterations_cb(srslte_tdec_t * h, 
                                                  uint32_t cb_idx);
 
-SRSLTE_API int srslte_tdec_get_nof_parallel(srslte_tdec_t * h); 
+SRSLTE_API uint32_t srslte_tdec_get_nof_parallel(srslte_tdec_t * h);
 
 SRSLTE_API void srslte_tdec_iteration(srslte_tdec_t * h, 
                                       int16_t* input, 
@@ -95,15 +95,15 @@ SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h,
                                    uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_iteration_par(srslte_tdec_t * h, 
-                                          int16_t* input[SRSLTE_TDEC_NPAR], 
+                                          int16_t* input[SRSLTE_TDEC_MAX_NPAR],
                                           uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_decision_par(srslte_tdec_t * h, 
-                                         uint8_t *output[SRSLTE_TDEC_NPAR], 
+                                         uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                          uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_decision_byte_par(srslte_tdec_t * h, 
-                                              uint8_t *output[SRSLTE_TDEC_NPAR], 
+                                              uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                               uint32_t long_cb); 
 
 SRSLTE_API void srslte_tdec_decision_byte_par_cb(srslte_tdec_t * h, 
@@ -112,8 +112,8 @@ SRSLTE_API void srslte_tdec_decision_byte_par_cb(srslte_tdec_t * h,
                                                  uint32_t long_cb);
 
 SRSLTE_API int srslte_tdec_run_all_par(srslte_tdec_t * h, 
-                                       int16_t * input[SRSLTE_TDEC_NPAR], 
-                                       uint8_t *output[SRSLTE_TDEC_NPAR],
+                                       int16_t * input[SRSLTE_TDEC_MAX_NPAR],
+                                       uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                        uint32_t nof_iterations, 
                                        uint32_t long_cb);
 

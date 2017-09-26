@@ -54,13 +54,13 @@ void map_sse_alpha(map_gen_t * s, uint32_t long_cb);
 void map_sse_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t long_cb);
 
 #ifdef LV_HAVE_AVX2
-void map_avx_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_NPAR], uint32_t long_cb);
+void map_avx_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_MAX_NPAR], uint32_t long_cb);
 void map_avx_alpha(map_gen_t * s, uint32_t long_cb);
 void map_avx_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t cbidx, uint32_t long_cb);
 #endif
 
 
-void map_simd_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
+void map_simd_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_MAX_NPAR], uint32_t nof_cb, uint32_t long_cb)
 {
   if (nof_cb == 1) {
     map_sse_beta(s, output[0], long_cb);
@@ -128,12 +128,12 @@ void map_simd_free(map_gen_t * h)
 }
 
 /* Runs one instance of a decoder */
-void map_simd_dec(map_gen_t * h, int16_t * input[SRSLTE_TDEC_NPAR], int16_t *app[SRSLTE_TDEC_NPAR], int16_t * parity[SRSLTE_TDEC_NPAR], 
-                  int16_t *output[SRSLTE_TDEC_NPAR], uint32_t cb_mask, uint32_t long_cb)
+void map_simd_dec(map_gen_t * h, int16_t * input[SRSLTE_TDEC_MAX_NPAR], int16_t *app[SRSLTE_TDEC_MAX_NPAR], int16_t * parity[SRSLTE_TDEC_MAX_NPAR],
+                  int16_t *output[SRSLTE_TDEC_MAX_NPAR], uint32_t cb_mask, uint32_t long_cb)
 {
   
   uint32_t nof_cb = 1;
-  int16_t *outptr[SRSLTE_TDEC_NPAR];
+  int16_t *outptr[SRSLTE_TDEC_MAX_NPAR];
   
   // Compute branch metrics
   switch(cb_mask) {
@@ -354,21 +354,21 @@ void deinterleave_input_simd(srslte_tdec_simd_t *h, int16_t *input, uint32_t cbi
 }
 
 /* Runs 1 turbo decoder iteration */
-void srslte_tdec_simd_iteration(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC_NPAR], uint32_t long_cb)
+void srslte_tdec_simd_iteration(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC_MAX_NPAR], uint32_t long_cb)
 {
 
-  int16_t *tmp_app[SRSLTE_TDEC_NPAR];
+  int16_t *tmp_app[SRSLTE_TDEC_MAX_NPAR];
 
   if (h->current_cbidx >= 0) {
     uint16_t *inter   = h->interleaver[h->current_cbidx].forward;
     uint16_t *deinter = h->interleaver[h->current_cbidx].reverse;
     
-#if SRSLTE_TDEC_NPAR == 2
-    h->cb_mask = (input[0]?1:0) | (input[1]?2:0);
-#else
-    h->cb_mask = input[0]?1:0;
+#ifndef LV_HAVE_AVX2
+    input[1] = NULL;
 #endif
-    
+
+    h->cb_mask = (input[0]?1:0) | (input[1]?2:0);
+
     for (int i=0;i<h->max_par_cb;i++) {
       if (h->n_iter[i] == 0 && input[i]) {
         //printf("deinterleaveing %d\n",i);
@@ -484,7 +484,7 @@ void tdec_simd_decision(srslte_tdec_simd_t * h, uint8_t *output, uint32_t cbidx,
   }
 }
 
-void srslte_tdec_simd_decision(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t long_cb)
+void srslte_tdec_simd_decision(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_MAX_NPAR], uint32_t long_cb)
 {
   for (int i=0;i<h->max_par_cb;i++) {    
     tdec_simd_decision(h, output[i], i, long_cb);
@@ -510,7 +510,7 @@ void srslte_tdec_simd_decision_byte_cb(srslte_tdec_simd_t * h, uint8_t *output, 
   }
 }
 
-void srslte_tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t long_cb)
+void srslte_tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_MAX_NPAR], uint32_t long_cb)
 {
   for (int i=0;i<h->max_par_cb;i++) {
     srslte_tdec_simd_decision_byte_cb(h, output[i], i, long_cb);
@@ -519,7 +519,7 @@ void srslte_tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output[SRSL
 
 
 /* Runs nof_iterations iterations and decides the output bits */
-int srslte_tdec_simd_run_all(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC_NPAR], uint8_t *output[SRSLTE_TDEC_NPAR],
+int srslte_tdec_simd_run_all(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC_MAX_NPAR], uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                             uint32_t nof_iterations, uint32_t long_cb)
 {
   if (srslte_tdec_simd_reset(h, long_cb)) {
