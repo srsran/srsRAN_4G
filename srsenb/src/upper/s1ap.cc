@@ -170,11 +170,6 @@ void s1ap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-
-bool s1ap::is_connected() {
-  return mme_connected;
-}
-
 void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
@@ -230,6 +225,7 @@ void s1ap::user_inactivity(uint16_t rnti)
   ue_ctxt_map[rnti].release_requested = true;
   send_uectxtreleaserequest(rnti, &cause);
 }
+
 
 void s1ap::release_eutran(uint16_t rnti)
 {

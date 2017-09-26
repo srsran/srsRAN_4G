@@ -127,7 +127,7 @@ private:
   srslte::mac_interface_timers *mac_timers;
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
-  uint32_t t300, t301, t302, t310, t311;
+  uint32_t t301, t310, t311;
   int ue_category;
 
   typedef struct {
@@ -240,15 +240,15 @@ private:
   // Parsers
   void          parse_dl_ccch(byte_buffer_t *pdu);
   void          parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu);
+  void          parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
 
   // Helpers
-  void          timer_t300_expiry();
-  void          timer_barring_expiry(uint32_t timer_id);
   void          rrc_connection_release();
   void          radio_link_failure(); 
+  static void*  start_sib_thread(void *rrc_);
+  void          sib_search();
   void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
   void          handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
-  void          handle_con_rej(LIBLTE_RRC_CONNECTION_REJECT_STRUCT *reject);
   void          handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
   void          handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig, byte_buffer_t *pdu);
   void          add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);

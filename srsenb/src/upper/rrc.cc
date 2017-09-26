@@ -833,20 +833,14 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
 {
   set_activity();
-
-  if (parent->s1ap->is_connected()) {
-    if(msg->ue_id_type == LIBLTE_RRC_CON_REQ_UE_ID_TYPE_S_TMSI) {
-      mmec      = msg->ue_id.s_tmsi.mmec;
-      m_tmsi    = msg->ue_id.s_tmsi.m_tmsi;
-      has_tmsi = true;
-    }
-    send_connection_setup();
-    state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
-  } else {
-    parent->rrc_log->info("Received ConnectionRequest with no active S1 link\n");
-    parent->rrc_log->console("Received ConnectionRequest with no active S1 link\n");
-    send_connection_rej();
+  
+  if(msg->ue_id_type == LIBLTE_RRC_CON_REQ_UE_ID_TYPE_S_TMSI) {
+    mmec      = msg->ue_id.s_tmsi.mmec;
+    m_tmsi    = msg->ue_id.s_tmsi.m_tmsi;
+    has_tmsi = true;
   }
+  send_connection_setup();
+  state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
 }
 
 void rrc::ue::handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQUEST_STRUCT *msg)
@@ -1058,16 +1052,6 @@ void rrc::ue::send_connection_reest_rej()
   
   send_dl_ccch(&dl_ccch_msg);
   
-}
-
-void rrc::ue::send_connection_rej()
-{
-  LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
-  bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
-
-  dl_ccch_msg.msg_type = LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ;
-  dl_ccch_msg.msg.rrc_con_rej.wait_time = 10;
-  send_dl_ccch(&dl_ccch_msg);
 }
 
 void rrc::ue::send_connection_setup(bool is_setup)
