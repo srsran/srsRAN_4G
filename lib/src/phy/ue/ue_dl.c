@@ -940,16 +940,16 @@ void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuf
   srslte_vec_save_file("pdcch_llr", q->pdcch.llr, q->pdcch.nof_cce*72*sizeof(float));
 
   
-  srslte_vec_save_file("pdsch_symbols", q->pdsch.d, q->pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
-  srslte_vec_save_file("llr", q->pdsch.e, q->pdsch_cfg.nbits[0].nof_bits*sizeof(cf_t));
+  srslte_vec_save_file("pdsch_symbols", q->pdsch.d[0], q->pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
+  srslte_vec_save_file("llr", q->pdsch.e[0], q->pdsch_cfg.nbits[0].nof_bits*sizeof(cf_t));
   int cb_len = q->pdsch_cfg.cb_segm[0].K1;
   for (int i=0;i<q->pdsch_cfg.cb_segm[0].C;i++) {
     char tmpstr[64];
     snprintf(tmpstr,64,"rmout_%d.dat",i);
     srslte_vec_save_file(tmpstr, softbuffer->buffer_f[i], (3*cb_len+12)*sizeof(int16_t));  
   }
-  printf("Saved files for tti=%d, sf=%d, cfi=%d, mcs=%d, rv=%d, rnti=0x%x\n", tti, tti%10, cfi, 
-         q->pdsch_cfg.grant.mcs[0].idx, rv_idx, rnti);
+  printf("Saved files for tti=%d, sf=%d, cfi=%d, mcs=%d, tbs=%d, rv=%d, rnti=0x%x\n", tti, tti%10, cfi,
+         q->pdsch_cfg.grant.mcs[0].idx, q->pdsch_cfg.grant.mcs[0].tbs, rv_idx, rnti);
 }
 
 

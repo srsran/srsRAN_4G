@@ -336,3 +336,33 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srs
   }        
   return SRSLTE_SUCCESS; 
 }
+
+
+
+void srslte_enb_dl_save_signal(srslte_enb_dl_t *q, srslte_softbuffer_tx_t *softbuffer, uint8_t *data, uint32_t tti, uint32_t rv_idx, uint16_t rnti, uint32_t cfi)
+{
+  char tmpstr[64];
+
+  snprintf(tmpstr,64,"output/sf_symbols_%d",tti);
+  srslte_vec_save_file(tmpstr, q->sf_symbols[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+
+  snprintf(tmpstr,64,"output/e_%d",tti);
+  srslte_bit_unpack_vector(q->pdsch.e[0], q->tmp, q->pdsch_cfg.nbits[0].nof_bits);
+  srslte_vec_save_file(tmpstr, q->tmp, q->pdsch_cfg.nbits[0].nof_bits*sizeof(uint8_t));
+
+  /*
+  int cb_len = q->pdsch_cfg.cb_segm[0].K1;
+  for (int i=0;i<q->pdsch_cfg.cb_segm[0].C;i++) {
+    snprintf(tmpstr,64,"output/rmout_%d_%d",i,tti);
+    srslte_bit_unpack_vector(softbuffer->buffer_b[i], q->tmp, (3*cb_len+12));
+    srslte_vec_save_file(tmpstr, q->tmp, (3*cb_len+12)*sizeof(uint8_t));
+  }*/
+
+  snprintf(tmpstr,64,"output/data_%d",tti);
+  srslte_bit_unpack_vector(data, q->tmp, q->pdsch_cfg.grant.mcs[0].tbs);
+  srslte_vec_save_file(tmpstr, q->tmp, q->pdsch_cfg.grant.mcs[0].tbs*sizeof(uint8_t));
+
+  //printf("Saved files for tti=%d, sf=%d, cfi=%d, mcs=%d, tbs=%d, rv=%d, rnti=0x%x\n", tti, tti%10, cfi,
+  //       q->pdsch_cfg.grant.mcs[0].idx, q->pdsch_cfg.grant.mcs[0].tbs, rv_idx, rnti);
+}
+
