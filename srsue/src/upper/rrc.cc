@@ -93,7 +93,9 @@ void rrc::init(phy_interface_rrc *phy_,
   pthread_mutex_init(&mutex, NULL);
 
   ue_category = SRSLTE_UE_CATEGORY;
+  t300 = mac_timers->timer_get_unique_id();
   t301 = mac_timers->timer_get_unique_id();
+  t302 = mac_timers->timer_get_unique_id();
   t310 = mac_timers->timer_get_unique_id();
   t311 = mac_timers->timer_get_unique_id();
 
@@ -538,14 +540,20 @@ void rrc::max_retx_attempted() {
 }
 
 void rrc::timer_expired(uint32_t timeout_id) {
-  if (timeout_id == t310) {
+  if (timeout_id == t300) {
+    rrc_log->info("Timer T300 expired: ConnectionRequest timeout\n");
+    timer_t300_expiry();
+  } else if (timeout_id == t301) {
+    rrc_log->info("Timer T301 expired: ConnectionReestablishmentRequest timeout\n");
+    state = RRC_STATE_LEAVE_CONNECTED;
+  } else if (timeout_id == t302) {
+    rrc_log->info("Timer T302 expired: ConnectionReject Wait time expired\n");
+    timer_barring_expiry(timeout_id);
+  } else if (timeout_id == t310) {
     rrc_log->info("Timer T310 expired: Radio Link Failure\n");
     radio_link_failure();
   } else if (timeout_id == t311) {
-    rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
-    state = RRC_STATE_LEAVE_CONNECTED;
-  } else if (timeout_id == t301) {
-    rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
+    rrc_log->info("Timer T311 expired: Start of Reestablishment procedure timeout\n");
     state = RRC_STATE_LEAVE_CONNECTED;
   } else {
     rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
@@ -607,6 +615,10 @@ void rrc::send_con_request() {
   rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
 
   mac->set_contention_id(uecri);
+
+  // Start t300 timer
+  mac_timers->timer_get(t300)->reset();
+  mac_timers->timer_get(t300)->run();
 
   rrc_log->info("Sending RRC Connection Request on SRB0\n");
   pdcp->write_sdu(RB_ID_SRB0, pdcp_buf);
@@ -750,7 +762,6 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   pdcp_buf->N_bytes = bit_buf.N_bits / 8;
   pdcp_buf->set_timestamp();
 
-  state = RRC_STATE_CONNECTED;
   rrc_log->console("RRC Connected\n");
   rrc_log->info("Sending RRC Connection Setup Complete\n");
   pdcp->write_sdu(RB_ID_SRB1, pdcp_buf);
@@ -857,13 +868,25 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
   }
 }
 
-  /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
+/* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
 void rrc::rrc_connection_release() {
   // Save idleModeMobilityControlInfo, etc.
   state = RRC_STATE_LEAVE_CONNECTED;
   rrc_log->console("Received RRC Connection Release\n");
 }
 
+// Actions upon expiry of t300 timer 5.3.3.6
+void rrc::timer_t300_expiry() {
+  mac->reset();
+  set_mac_default();
+  nas->notify_connection_failure();
+  state = RRC_STATE_IDLE;
+}
+
+// Actions upon expiry of timers related to cell barring 5.3.3.7
+void rrc::timer_barring_expiry(uint32_t timer_id) {
+  nas->network_barring_state(false);
+}
 
 
 
@@ -1082,20 +1105,14 @@ void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
 
   switch (dl_ccch_msg.msg_type) {
     case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
-      rrc_log->info("Connection Reject received. Wait time: %d\n",
-                    dl_ccch_msg.msg.rrc_con_rej.wait_time);
-      state = RRC_STATE_IDLE;
+      transaction_id = dl_ccch_msg.msg.rrc_con_setup.rrc_transaction_id;
+      handle_con_rej(&dl_ccch_msg.msg.rrc_con_rej);
       break;
     case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP:
-      rrc_log->info("Connection Setup received\n");
       transaction_id = dl_ccch_msg.msg.rrc_con_setup.rrc_transaction_id;
       handle_con_setup(&dl_ccch_msg.msg.rrc_con_setup);
-      rrc_log->info("Notifying NAS of connection setup\n");
-      nas->notify_connection_setup();
       break;
     case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST:
-      rrc_log->info("Connection Reestablishment received\n");
-      rrc_log->console("Reestablishment OK\n");
       transaction_id = dl_ccch_msg.msg.rrc_con_reest.rrc_transaction_id;
       handle_con_reest(&dl_ccch_msg.msg.rrc_con_reest);
       break;
@@ -1342,9 +1359,11 @@ void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
                 liblte_rrc_srs_subfr_config_num[sib2->rr_config_common_sib.srs_ul_cnfg.subfr_cnfg],
                 sib2->rr_config_common_sib.srs_ul_cnfg.ack_nack_simul_tx ? "yes" : "no");
 
+  mac_timers->timer_get(t300)->set(this, liblte_rrc_t300_num[sib2->ue_timers_and_constants.t300]);
   mac_timers->timer_get(t301)->set(this, liblte_rrc_t301_num[sib2->ue_timers_and_constants.t301]);
   mac_timers->timer_get(t310)->set(this, liblte_rrc_t310_num[sib2->ue_timers_and_constants.t310]);
   mac_timers->timer_get(t311)->set(this, liblte_rrc_t311_num[sib2->ue_timers_and_constants.t311]);
+
   N310 = liblte_rrc_n310_num[sib2->ue_timers_and_constants.n310];
   N311 = liblte_rrc_n311_num[sib2->ue_timers_and_constants.n311];
 
@@ -1581,13 +1600,50 @@ void rrc::apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg)
   }
 }
 
+// 5.3.3.4
 void rrc::handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup) {
+  rrc_log->info("Connection Setup received\n");
+
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->rr_cnfg);
+
+  // stop timers
+  mac_timers->timer_get(t300)->stop();
+
+  // enter RRC CONNECTED
+  state = RRC_STATE_CONNECTED;
+
+  rrc_log->info("Notifying NAS of connection setup\n");
+  nas->notify_connection_setup();
+
+}
+
+// 5.3.3.8
+void rrc::handle_con_rej(LIBLTE_RRC_CONNECTION_REJECT_STRUCT *reject) {
+  rrc_log->info("Connection Reject received. Wait time: %d s\n",
+                dl_ccch_msg.msg.rrc_con_rej.wait_time);
+
+  rrc_log->console("Received Connection Reject. S1 link may not be active at the eNodeB\n");
+
+  mac_timers->timer_get(t300)->stop();
+  mac->reset();
+  set_mac_default();
+
+  mac_timers->timer_get(t302)->set(this, dl_ccch_msg.msg.rrc_con_rej.wait_time*1000);
+  mac_timers->timer_get(t302)->run();
+
+  nas->notify_connection_failure();
+  nas->network_barring_state(true);
+
+  state = RRC_STATE_IDLE;
 }
 
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
 void rrc::handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup) {
+  rrc_log->info("Connection Reestablishment received\n");
+  rrc_log->console("Reestablishment OK\n");
+
+
   mac_timers->timer_get(t301)->stop();
 
   // TODO: Restablish DRB1. Not done because never was suspended

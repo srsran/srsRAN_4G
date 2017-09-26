@@ -66,22 +66,27 @@ UE interface
 *******************************************************************************/
 void nas::attach_request() {
   nas_log->info("Attach Request\n");
-  if (state == EMM_STATE_DEREGISTERED) {
-    state = EMM_STATE_REGISTERED_INITIATED;
-    if (plmn_selection == PLMN_NOT_SELECTED) {
-      nas_log->info("Starting PLMN Search...\n");
-      rrc->plmn_search();
-    } else if (plmn_selection == PLMN_SELECTED) {
-      nas_log->info("Selecting PLMN %s\n", plmn_id_to_c_str(current_plmn).c_str());
+  if (!network_is_barred) {
+    if (state == EMM_STATE_DEREGISTERED) {
+      state = EMM_STATE_REGISTERED_INITIATED;
+      if (plmn_selection == PLMN_NOT_SELECTED) {
+        nas_log->info("Starting PLMN Search...\n");
+        rrc->plmn_search();
+      } else if (plmn_selection == PLMN_SELECTED) {
+        nas_log->info("Selecting PLMN %s\n", plmn_id_to_c_str(current_plmn).c_str());
+        rrc->plmn_select(current_plmn);
+        selecting_plmn = current_plmn;
+      }
+    } else if (state == EMM_STATE_REGISTERED) {
+      nas_log->info("NAS state is registered, connecting to same PLMN\n");
       rrc->plmn_select(current_plmn);
       selecting_plmn = current_plmn;
+    } else {
+      nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
     }
-  } else if (state == EMM_STATE_REGISTERED) {
-    nas_log->info("NAS state is registered, connecting to same PLMN\n");
-    rrc->plmn_select(current_plmn);
-    selecting_plmn = current_plmn;
   } else {
-    nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
+    nas_log->info("Requested connection while network is barred\n");
+    nas_log->console("Requested connection while network is barred\n");
   }
 }
 
@@ -93,6 +98,12 @@ void nas::deattach_request() {
 /*******************************************************************************
 RRC interface
 *******************************************************************************/
+
+void nas::network_barring_state(bool is_barred, uint32_t type_mask)
+{
+  network_is_barred    = is_barred;
+  network_barring_type = type_mask;
+}
 
 void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
 
@@ -123,6 +134,12 @@ bool nas::is_attached() {
 
 bool nas::is_attaching() {
   return state == EMM_STATE_REGISTERED_INITIATED;
+}
+
+void nas::notify_connection_failure() {
+  nas_log->info("Received RRC connection request failure\n");
+  nas_log->console("Connection Request Failure\n");
+  state = EMM_STATE_DEREGISTERED;
 }
 
 void nas::notify_connection_setup() {

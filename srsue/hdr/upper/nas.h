@@ -80,6 +80,9 @@ public:
 
   // RRC interface
   void notify_connection_setup();
+  void notify_connection_failure();
+  void network_barring_state(bool is_barred, uint32_t type_mask);
+
 
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
 
@@ -134,6 +137,9 @@ private:
   uint8_t ksi;
   uint8_t k_nas_enc[32];
   uint8_t k_nas_int[32];
+
+  bool network_is_barred;
+  uint32_t network_barring_type;
 
   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;

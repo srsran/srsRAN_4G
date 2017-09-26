@@ -97,9 +97,19 @@ public:
 class nas_interface_rrc
 {
 public:
+
+  typedef enum {
+    BARRING_MT_ACCESS       = 1,
+    BARRING_MO_CALL         = 2,
+    BARRING_MO_SIGNALLING   = 4,
+    BARRING_ALL             = 7
+  } cell_barring_type_t;
+
   virtual bool      is_attached() = 0;
   virtual bool      is_attaching() = 0;
   virtual void      notify_connection_setup() = 0;
+  virtual void      notify_connection_failure() = 0;
+  virtual void      network_barring_state(bool is_barred, uint32_t type_mask = BARRING_ALL) = 0;
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;

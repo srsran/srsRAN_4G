@@ -259,7 +259,8 @@ public:
   virtual bool user_exists(uint16_t rnti) = 0; 
   virtual void user_inactivity(uint16_t rnti) = 0;
   virtual void release_eutran(uint16_t rnti) = 0; 
-  virtual bool user_link_lost(uint16_t rnti) = 0; 
+  virtual bool user_link_lost(uint16_t rnti) = 0;
+  virtual bool is_connected() = 0;
   virtual void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res) = 0;
   virtual void ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res) = 0;
   // virtual void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps) = 0;
