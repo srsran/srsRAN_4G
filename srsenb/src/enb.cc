@@ -228,8 +228,8 @@ void enb::stop()
 {
   if(started)
   {
-    mac.stop();
     phy.stop();
+    mac.stop();
     usleep(1e5);
 
     rlc.stop();
