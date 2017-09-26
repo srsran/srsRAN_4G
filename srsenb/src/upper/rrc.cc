@@ -1066,7 +1066,7 @@ void rrc::ue::send_connection_rej()
   bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
 
   dl_ccch_msg.msg_type = LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ;
-  dl_ccch_msg.msg.rrc_con_rej.wait_time = 10; 
+  dl_ccch_msg.msg.rrc_con_rej.wait_time = 10;
   send_dl_ccch(&dl_ccch_msg);
 }
 
