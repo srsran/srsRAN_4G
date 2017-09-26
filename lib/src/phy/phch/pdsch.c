@@ -29,15 +29,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <srslte/phy/phch/pdsch_cfg.h>
-#include <srslte/phy/common/sequence.h>
-#include <srslte/phy/phch/pdsch.h>
 
 #include "prb_dl.h"
 #include "srslte/phy/phch/pdsch.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/bit.h"
 
 
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
@@ -606,6 +602,9 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
 
     /* Return  */
     ret = srslte_dlsch_decode2(&q->dl_sch, cfg, softbuffer, q->e[codeword_idx], data, codeword_idx);
+
+    q->last_nof_iterations[codeword_idx] = srslte_sch_last_noi(&q->dl_sch);
+
     if (ret == SRSLTE_SUCCESS) {
       *ack = true;
     } else if (ret == SRSLTE_ERROR) {
@@ -828,14 +827,13 @@ void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, uint32_t max_iter) {
   srslte_sch_set_max_noi(&q->dl_sch, max_iter);
 }
 
-float srslte_pdsch_average_noi(srslte_pdsch_t *q) {
-  return q->dl_sch.average_nof_iterations;
+float srslte_pdsch_last_noi(srslte_pdsch_t *q) {
+  return srslte_pdsch_last_noi_cw(q, 0);
 }
 
-uint32_t srslte_pdsch_last_noi(srslte_pdsch_t *q) {
-  return q->dl_sch.nof_iterations;
+uint32_t srslte_pdsch_last_noi_cw(srslte_pdsch_t *q, uint32_t cw_idx) {
+  return q->last_nof_iterations[cw_idx];
 }
-
 
 
   

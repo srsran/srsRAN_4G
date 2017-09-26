@@ -472,11 +472,6 @@ int srslte_pmch_encode(srslte_pmch_t *q,
   return ret; 
 }
 
-float srslte_pmch_average_noi(srslte_pmch_t *q)
-{
-  return q->dl_sch.average_nof_iterations;
-}
-
 uint32_t srslte_pmch_last_noi(srslte_pmch_t *q) {
   return q->dl_sch.nof_iterations;
 }

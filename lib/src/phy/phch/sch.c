@@ -33,11 +33,6 @@
 #include <assert.h>
 #include <math.h>
 #include "srslte/phy/phch/pdsch.h"
-#include "srslte/phy/phch/pusch.h"
-#include "srslte/phy/phch/sch.h"
-#include "srslte/phy/phch/pmch.h"
-#include "srslte/phy/phch/uci.h"
-#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
@@ -174,14 +169,9 @@ void srslte_sch_set_max_noi(srslte_sch_t *q, uint32_t max_iterations) {
   q->max_iterations = max_iterations;
 }
 
-float srslte_sch_average_noi(srslte_sch_t *q) {
-  return q->average_nof_iterations; 
-}
-
 uint32_t srslte_sch_last_noi(srslte_sch_t *q) {
   return q->nof_iterations;
 }
-
 
 /* Encode a transport block according to 36.212 5.3.2
  *
@@ -340,7 +330,7 @@ bool decode_tb_cb(srslte_sch_t *q,
   
   for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
     cb_idx[i]        = i+first_cb; 
-    decoder_input[i] = false; 
+    decoder_input[i] = NULL;
   }
   
   for (int i=0;i<nof_cb;i++) {
@@ -349,8 +339,10 @@ bool decode_tb_cb(srslte_sch_t *q,
     
   srslte_tdec_reset(&q->decoder, cb_len);
   
-  uint32_t remaining_cb = nof_cb; 
-  
+  uint32_t remaining_cb = nof_cb;
+
+  q->nof_iterations = 0;
+
   while(remaining_cb>0) {
         
     // Unratematch the codeblocks left to decode 
@@ -384,11 +376,9 @@ bool decode_tb_cb(srslte_sch_t *q,
       }
     }
         
-    // Run 1 iteration for up to TDEC_NPAR codeblocks 
+    // Run 1 iteration for the codeblocks in queue
     srslte_tdec_iteration_par(&q->decoder, decoder_input, cb_len);
 
-    q->nof_iterations = srslte_tdec_get_nof_iterations_cb(&q->decoder, 0); 
-    
     // Decide output bits and compute CRC 
     for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
       if (decoder_input[i]) {        
@@ -409,24 +399,30 @@ bool decode_tb_cb(srslte_sch_t *q,
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
 
           memcpy(&data[(cb_idx[i]*rlen)/8], q->cb_in, rlen/8 * sizeof(uint8_t));
-          
+
+          q->nof_iterations += srslte_tdec_get_nof_iterations_cb(&q->decoder, i);
+
           // Reset number of iterations for that CB in the decoder 
           srslte_tdec_reset_cb(&q->decoder, i);
           remaining_cb--;        
           decoder_input[i] = NULL; 
           cb_idx[i] = 0; 
-          
-        // CRC is error and exceeded maximum iterations for this CB. 
+
+        // CRC is error and exceeded maximum iterations for this CB.
         // Early stop the whole transport block.
         } else if (srslte_tdec_get_nof_iterations_cb(&q->decoder, i) >= q->max_iterations) {
           INFO("CB %d: Error. CB is erroneous. remaining_cb=%d, i=%d, first_cb=%d, nof_cb=%d\n", 
-                cb_idx[i], remaining_cb, i, first_cb, nof_cb);          
-          return false; 
+                cb_idx[i], remaining_cb, i, first_cb, nof_cb);
+
+          q->nof_iterations += q->max_iterations;
+          q->nof_iterations /= (nof_cb-remaining_cb+1);
+          return false;
         }
       }
     }    
   }
-  
+
+  q->nof_iterations /= nof_cb;
   return true;  
 }
 

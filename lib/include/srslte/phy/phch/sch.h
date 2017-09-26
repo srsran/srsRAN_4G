@@ -56,10 +56,9 @@
 /* DL-SCH AND UL-SCH common functions */
 typedef struct SRSLTE_API {
   
-  uint32_t max_iterations; 
-  uint32_t nof_iterations; 
-  float average_nof_iterations; 
-  
+  uint32_t max_iterations;
+  uint32_t nof_iterations;
+
   /* buffers */
   uint8_t *cb_in; 
   uint8_t *parity_bits;  
@@ -86,8 +85,6 @@ SRSLTE_API void srslte_sch_free(srslte_sch_t *q);
 
 SRSLTE_API void srslte_sch_set_max_noi(srslte_sch_t *q, 
                                        uint32_t max_iterations); 
-
-SRSLTE_API float srslte_sch_average_noi(srslte_sch_t *q);
 
 SRSLTE_API uint32_t srslte_sch_last_noi(srslte_sch_t *q);
 
