@@ -600,8 +600,6 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
     /* Bit scrambling */
     srslte_scrambling_s_offset(seq, q->e[codeword_idx], 0, nbits->nof_bits);
 
-    printf("e: "); srslte_vec_fprint_s(stdout, q->e[codeword_idx], 10);
-
     /* Return  */
     ret = srslte_dlsch_decode2(&q->dl_sch, cfg, softbuffer, q->e[codeword_idx], data, codeword_idx);
 

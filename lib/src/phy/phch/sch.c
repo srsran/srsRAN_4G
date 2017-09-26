@@ -372,9 +372,6 @@ bool decode_tb_cb(srslte_sch_t *q,
           }
 
           decoder_input[i] = softbuffer->buffer_f[cb_idx[i]];
-
-          printf("input: "); srslte_vec_fprint_s(stdout, decoder_input[i], 10);
-
         }
       }
     }
@@ -397,8 +394,6 @@ bool decode_tb_cb(srslte_sch_t *q,
           len_crc = cb_segm->tbs+24; 
           crc_ptr = &q->crc_tb; 
         }
-
-        printf("output: %d", i); srslte_vec_fprint_b(stdout, q->cb_in, 10);
 
         // CRC is OK
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
