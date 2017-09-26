@@ -122,7 +122,7 @@ void srslte_enb_dl_free(srslte_enb_dl_t *q)
     srslte_pdcch_free(&q->pdcch);
     srslte_pdsch_free(&q->pdsch);
     
-    srslte_refsignal_cs_free(&q->csr_signal);
+    srslte_refsignal_free(&q->csr_signal);
     
     for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
       if (q->sf_symbols[i]) {

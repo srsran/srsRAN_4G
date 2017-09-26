@@ -36,10 +36,8 @@
 #include <signal.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <srslte/srslte.h>
-#include <srslte/phy/phch/pdsch_cfg.h>
-#include <srslte/phy/phch/ra.h>
-
+#include <srslte/phy/common/phy_common.h>
+#include "srslte/phy/io/filesink.h"
 #include "srslte/srslte.h"
 
 #define ENABLE_AGC_DEFAULT
@@ -69,7 +67,7 @@ sem_t plot_sem;
 uint32_t plot_sf_idx=0;
 bool plot_track = true; 
 #endif
-
+char *output_file_name;
 #define PRINT_CHANGE_SCHEDULIGN
 
 //#define CORRECT_SAMPLE_OFFSET
@@ -101,6 +99,8 @@ typedef struct {
   int net_port_signal; 
   char *net_address_signal;
   int decimate;
+  int mbsfn_area_id;
+  uint8_t  non_mbsfn_region;
   int verbose;
 }prog_args_t;
 
@@ -132,10 +132,12 @@ void args_default(prog_args_t *args) {
   args->net_address_signal = "127.0.0.1";
   args->decimate = 0;
   args->cpu_affinity = -1;
+  args->mbsfn_area_id = -1;
+  args->non_mbsfn_region = 2;
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agpPoOcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [agpPoOcildDnruMNv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", args->rf_args);
   printf("\t-A Number of RX antennas [Default %d]\n", args->rf_nof_rx_ant);
@@ -169,13 +171,15 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-S remote UDP address to send input signal [Default %s]\n", args->net_address_signal);
   printf("\t-u remote TCP port to send data (-1 does nothing with it) [Default %d]\n", args->net_port);
   printf("\t-U remote TCP address to send data [Default %s]\n", args->net_address);
+  printf("\t-M MBSFN area id [Default %s]\n", args->mbsfn_area_id);
+  printf("\t-N Non-MBSFN region [Default %s]\n", args->non_mbsfn_region);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsSZy")) != -1) {
+  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsSZyWMN")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -250,6 +254,15 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'y':
       args->cpu_affinity = atoi(argv[optind]);
       break;
+    case 'W':
+      output_file_name = argv[optind];
+      break;
+    case 'M':
+      args->mbsfn_area_id = atoi(argv[optind]);
+      break;
+    case 'N':
+      args->non_mbsfn_region = atoi(argv[optind]);
+      break;
     default:
       usage(args, argv[0]);
       exit(-1);
@@ -278,6 +291,7 @@ void sig_int_handler(int signo)
 
 cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL};
 
+
 #ifndef DISABLE_RF
 int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
@@ -303,9 +317,9 @@ srslte_ue_sync_t ue_sync;
 prog_args_t prog_args; 
 
 uint32_t sfn = 0; // system frame number
-srslte_netsink_t net_sink, net_sink_signal; 
-
+srslte_netsink_t net_sink, net_sink_signal;
 /* Useful macros for printing lines which will disappear */
+
 #define PRINT_LINE_INIT() int this_nof_lines = 0; static int prev_nof_lines = 0
 #define PRINT_LINE(_fmt, ...) printf("\033[K" _fmt "\n", ##__VA_ARGS__); this_nof_lines++
 #define PRINT_LINE_RESET_CURSOR() printf("\033[%dA", this_nof_lines); prev_nof_lines = this_nof_lines
@@ -317,6 +331,7 @@ int main(int argc, char **argv) {
   srslte_cell_t cell;  
   int64_t sf_cnt;
   srslte_ue_mib_t ue_mib; 
+
 #ifndef DISABLE_RF
   srslte_rf_t rf; 
 #endif
@@ -324,7 +339,7 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int sfn_offset;
   float cfo = 0; 
-
+  
   parse_args(&prog_args, argc, argv);
   
   for (int i = 0; i< SRSLTE_MAX_CODEWORDS; i++) {
@@ -335,6 +350,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  
   if(prog_args.cpu_affinity > -1) {
     
     cpu_set_t cpuset;
@@ -403,6 +419,7 @@ int main(int argc, char **argv) {
     srslte_rf_set_rx_freq(&rf, prog_args.rf_freq + prog_args.file_offset_freq);
     srslte_rf_rx_wait_lo_locked(&rf);
 
+
     uint32_t ntrial=0; 
     do {
       ret = rf_search_and_decode_mib(&rf, prog_args.rf_nof_rx_ant, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
@@ -455,7 +472,7 @@ int main(int argc, char **argv) {
     cell.nof_ports = prog_args.file_nof_ports; 
     cell.nof_prb = prog_args.file_nof_prb; 
     
-    if (srslte_ue_sync_init_file_multi(&ue_sync, prog_args.file_nof_prb,
+    if (srslte_ue_sync_init_file_multi(&ue_sync, prog_args.file_nof_prb, 
       prog_args.input_file_name, prog_args.file_offset_time, prog_args.file_offset_freq, prog_args.rf_nof_rx_ant)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
@@ -518,6 +535,11 @@ int main(int argc, char **argv) {
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
   srslte_ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
   
+  /* Configure MBSFN area id and non-MBSFN Region */
+  if (prog_args.mbsfn_area_id > -1) {
+    srslte_ue_dl_set_mbsfn_area_id(&ue_dl, prog_args.mbsfn_area_id);
+    srslte_ue_dl_set_non_mbsfn_region(&ue_dl, prog_args.non_mbsfn_region);
+  }
   /* Initialize subframe counter */
   sf_cnt = 0;
 
@@ -592,7 +614,6 @@ int main(int argc, char **argv) {
       }
     }
 
-
     ret = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
@@ -605,9 +626,12 @@ int main(int argc, char **argv) {
     
     /* srslte_ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
+
+      uint32_t sfidx = srslte_ue_sync_get_sfidx(&ue_sync);
+
       switch (state) {
         case DECODE_MIB:
-          if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
+          if (sfidx == 0) {
             n = srslte_ue_mib_decode(&ue_mib, sf_buffer[0], bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
@@ -626,51 +650,64 @@ int main(int argc, char **argv) {
             decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, search only in appropiate places */
-            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+            if ((sfidx == 5 && (sfn%2)==0) || sfidx == 1) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 
             }
           }
-
-          INFO("Attempting DL decode SFN=%d\n", sfn);
           if (decode_pdsch) {
-            if (cell.nof_ports == 1) {
-              /* Transmission mode 1 */
-              n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
-            } else {
-              if (prog_args.rf_nof_rx_ant == 1) {
-                /* Transmission mode 2 */
-                n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
-                                        acks);
+            if(sfidx != 1 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
+              if (cell.nof_ports == 1) {
+                /* Transmission mode 1 */
+                n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
               } else {
-                /* Transmission mode 3 */
-                n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
-                                        acks);
-                if (n < 1) {
-                  /* Transmission mode 4 */
-                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                if (prog_args.rf_nof_rx_ant == 1) {
+                  /* Transmission mode 2 */
+                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                           acks);
+                } else {
+                  /* Transmission mode 3 */
+                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                                          acks);
+                  if (n < 1) {
+                    /* Transmission mode 4 */
+                    n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                                            acks);
+                  }
                 }
               }
+            }else{ // MBSFN subframe
+              n = srslte_ue_dl_decode_mbsfn(&ue_dl, 
+                                          sf_buffer,
+                                          data[0],
+                                          sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
+              if(n>0){
+                if(output_file_name){
+                  //srslte_filesink_init(&sink, output_file_name, SRSLTE_BYTE_BIN);
+                 // srslte_filesink_write(&sink, data, n);
+                  //srslte_filesink_free(&sink);
+                }
+                INFO("mbsfn PDU size is %d\n", n);
+              }
             }
-
-
-          
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
               
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
+                if(sfidx == 1) {
+                  srslte_netsink_write(&net_sink, data[0], 1+(n-1)/8);
+                } else {
                 // FIXME: UDP Data transmission does not work
-                for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
-                  if (ue_dl.pdsch_cfg.grant.tb_en[tb]) {
-                    srslte_netsink_write(&net_sink, data[tb], 1 + (ue_dl.pdsch_cfg.grant.mcs[tb].tbs - 1) / 8);
+                  for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+                    if (ue_dl.pdsch_cfg.grant.tb_en[tb]) {
+                      srslte_netsink_write(&net_sink, data[tb], 1 + (ue_dl.pdsch_cfg.grant.mcs[tb].tbs - 1) / 8);
+                    }
                   }
                 }
               }
-              
               #ifdef PRINT_CHANGE_SCHEDULIGN
               if (ue_dl.dl_dci.mcs_idx         != old_dl_dci.mcs_idx           || 
                   memcmp(&ue_dl.dl_dci.type0_alloc, &old_dl_dci.type0_alloc, sizeof(srslte_ra_type0_t)) ||
@@ -689,6 +726,7 @@ int main(int argc, char **argv) {
                                     
             nof_trials++; 
             
+ 
             rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1f);
             rsrp0 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 0), rsrp0, 0.05f);
             rsrp1 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 1), rsrp1, 0.05f);
@@ -696,6 +734,7 @@ int main(int argc, char **argv) {
             enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs[0].tbs + ue_dl.pdsch_cfg.grant.mcs[1].tbs)/1000.0f, enodebrate, 0.05f);
             uerate = SRSLTE_VEC_EMA(((acks[0]?ue_dl.pdsch_cfg.grant.mcs[0].tbs:0) + (acks[1]?ue_dl.pdsch_cfg.grant.mcs[1].tbs:0))/1000.0f, uerate, 0.01f);
 
+   
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -704,20 +743,20 @@ int main(int argc, char **argv) {
               noise = 0; 
             }
             if (isnan(rsrp0)) {
-              rsrp1 = 0;
+              rsrp0 = 0; 
             }
-            if (isnan(rsrp0)) {
-              rsrp1 = 0;
+            if (isnan(rsrp1)) {
+              rsrp1 = 0; 
             }
           }
 
           // Plot and Printf
-          if (srslte_ue_sync_get_sfidx(&ue_sync) == 5 && sfn % 20 == 0) {
+          if (sfidx == 5) {
             float gain = prog_args.rf_gain; 
             if (gain < 0) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
             }
-
+           
             /* Print transmission scheme */
             if (ue_dl.pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
               PRINT_LINE("    Tx scheme: %s (codebook_idx=%d)", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type),
@@ -733,7 +772,10 @@ int main(int argc, char **argv) {
             PRINT_LINE("          SNR: %+5.1f dB | %+5.1f dB", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
             PRINT_LINE("           Rb: %6.2f / %6.2f Mbps (net/maximum)", uerate, enodebrate);
             PRINT_LINE("   PDCCH-Miss: %5.2f%%", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
-            PRINT_LINE("   PDSCH-BLER: %5.2f%%", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+            PRINT_LINE("   PDSCH-BLER: %5.2f%%", (float) 100 * ue_dl.pdsch_pkt_errors / ue_dl.pdsch_pkts_total);
+            if(prog_args.mbsfn_area_id > -1){
+              PRINT_LINE("   PMCH-BLER: %5.2f%%", (float) 100 * ue_dl.pmch_pkt_errors/ue_dl.pmch_pkts_total);
+            }
             PRINT_LINE("         TB 0: mcs=%d; tbs=%d", ue_dl.pdsch_cfg.grant.mcs[0].idx,
                        ue_dl.pdsch_cfg.grant.mcs[0].tbs);
             PRINT_LINE("         TB 1: mcs=%d; tbs=%d", ue_dl.pdsch_cfg.grant.mcs[1].idx,
@@ -775,17 +817,20 @@ int main(int argc, char **argv) {
             PRINT_LINE("Press enter maximum printing debug log of 1 subframe.");
             PRINT_LINE("");
             PRINT_LINE_RESET_CURSOR();
+
           }
           break;
       }
-      if (srslte_ue_sync_get_sfidx(&ue_sync) == 9) {
+      if (sfidx == 9) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
           PRINT_LINE_ADVANCE_CURSOR();
+          ue_dl.pdsch_pkt_errors = 0;
+          ue_dl.pdsch_pkts_total = 0;
           /*
           ue_dl.pkt_errors = 0; 
-          ue_dl.pkts_total = 0; 
+          ue_dl.pkts_total = 0;
           ue_dl.nof_detected = 0;           
           nof_trials = 0;
           */
@@ -794,7 +839,7 @@ int main(int argc, char **argv) {
       
       #ifndef DISABLE_GRAPHICS
       if (!prog_args.disable_plots) {
-        if ((sfn%4) == 0 && decode_pdsch) {
+        if ((sfn%3) == 0 && decode_pdsch) {
           plot_sf_idx = srslte_ue_sync_get_sfidx(&ue_sync);
           plot_track = true;
           sem_post(&plot_sem);
@@ -816,8 +861,7 @@ int main(int argc, char **argv) {
         
     sf_cnt++;                  
   } // Main loop
-  printf("\033[30B\n");
-
+  
 #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
     if (!pthread_kill(plot_thread, 0)) {
@@ -838,13 +882,14 @@ int main(int argc, char **argv) {
       free(sf_buffer[i]);
     }
   }
-  
+
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
     srslte_ue_mib_free(&ue_mib);
     srslte_rf_close(&rf);    
   }
 #endif
+  
   printf("\nBye\n");
   exit(0);
 }

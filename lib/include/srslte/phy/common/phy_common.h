@@ -63,7 +63,11 @@
 #define SRSLTE_LTE_CRC16   0x11021
 #define SRSLTE_LTE_CRC8    0x19B
 
+#define SRSLTE_MAX_MBSFN_AREA_IDS 256
+#define SRSLTE_PMCH_RV            0
+
 typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
+typedef enum {SRSLTE_SF_NORM, SRSLTE_SF_MBSFN} srslte_sf_t;
 
 
 #define SRSLTE_CRNTI_START  0x000B
@@ -130,6 +134,13 @@ typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
         || l == SRSLTE_CP_NSYMB(cp) - 3)
 
 
+
+#define SRSLTE_SYMBOL_HAS_REF_MBSFN(l, s) ((l == 2 && s == 0) || (l == 0 && s == 1) || (l == 4 && s == 1))
+
+#define SRSLTE_NON_MBSFN_REGION_GUARD_LENGTH(non_mbsfn_region,symbol_sz) ((non_mbsfn_region == 1)?(SRSLTE_CP_LEN_EXT(symbol_sz) - SRSLTE_CP_LEN_NORM(0, symbol_sz)):(2*SRSLTE_CP_LEN_EXT(symbol_sz) - SRSLTE_CP_LEN_NORM(0, symbol_sz)- SRSLTE_CP_LEN_NORM(1, symbol_sz)))
+
+
+
 #define SRSLTE_NOF_LTE_BANDS 38
 
 #define SRSLTE_DEFAULT_MAX_FRAMES_PBCH      500
@@ -157,6 +168,7 @@ typedef enum {
   SRSLTE_RNTI_TEMP,     /* Temporary C-RNTI */
   SRSLTE_RNTI_SPS,      /* Semi-Persistent Scheduling C-RNTI */
   SRSLTE_RNTI_PCH,      /* Paging RNTI */
+  SRSLTE_RNTI_MBSFN,
   SRSLTE_RNTI_NOF_TYPES
 } srslte_rnti_type_t;
 

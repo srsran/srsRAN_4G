@@ -32,10 +32,10 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
-
 #include "srslte/phy/phch/pdsch.h"
 #include "srslte/phy/phch/pusch.h"
 #include "srslte/phy/phch/sch.h"
+#include "srslte/phy/phch/pmch.h"
 #include "srslte/phy/phch/uci.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/utils/bit.h"

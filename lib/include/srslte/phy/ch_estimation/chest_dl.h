@@ -60,7 +60,10 @@ typedef enum {
 
 typedef struct {
   srslte_cell_t cell; 
-  srslte_refsignal_cs_t csr_signal;
+  srslte_refsignal_t   csr_refs;
+  srslte_refsignal_t **mbsfn_refs;
+ 
+
   cf_t *pilot_estimates;
   cf_t *pilot_estimates_average; 
   cf_t *pilot_recv_signal; 
@@ -75,7 +78,7 @@ typedef struct {
 
   srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
   srslte_interp_lin_t srslte_interp_lin; 
-  
+  srslte_interp_lin_t srslte_interp_lin_mbsfn;
   float rssi[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
   float rsrp[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
   float noise_estimate[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
@@ -96,8 +99,12 @@ SRSLTE_API int srslte_chest_dl_init(srslte_chest_dl_t *q,
 
 SRSLTE_API void srslte_chest_dl_free(srslte_chest_dl_t *q);
 
+
+SRSLTE_API int srslte_chest_dl_set_mbsfn_area_id(srslte_chest_dl_t *q,
+                                                 uint16_t mbsfn_area_id);
 SRSLTE_API int srslte_chest_dl_set_cell(srslte_chest_dl_t *q,
                                         srslte_cell_t cell);
+
 
 SRSLTE_API void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, 
                                                   float *filter, 
@@ -109,6 +116,8 @@ SRSLTE_API void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q,
 SRSLTE_API void srslte_chest_dl_set_noise_alg(srslte_chest_dl_t *q, 
                                               srslte_chest_dl_noise_alg_t noise_estimation_alg); 
 
+
+
 SRSLTE_API int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, 
                                               cf_t *input[SRSLTE_MAX_PORTS],
                                               cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
@@ -119,6 +128,14 @@ SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q,
                                         cf_t *input,
                                         cf_t *ce[SRSLTE_MAX_PORTS],
                                         uint32_t sf_idx);
+
+SRSLTE_API int srslte_chest_dl_estimate_multi_mbsfn(srslte_chest_dl_t *q,
+                                                    cf_t *input[SRSLTE_MAX_PORTS],
+                                                    cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                                    uint32_t sf_idx,
+                                                    uint32_t nof_rx_antennas,
+                                                    uint16_t mbsfn_area_id);
+
 
 SRSLTE_API int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, 
                                              cf_t *input,

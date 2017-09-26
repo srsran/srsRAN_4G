@@ -77,6 +77,7 @@ typedef struct SRSLTE_API {
   srslte_uci_cqi_pusch_t uci_cqi;
   
 } srslte_sch_t;
+#include "srslte/phy/phch/pmch.h"
 
 SRSLTE_API int srslte_sch_init(srslte_sch_t *q);
 

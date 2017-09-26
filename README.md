@@ -72,6 +72,7 @@ Build Instructions
 
 * Mandatory requirements: 
   * Common:
+    * cmake              https://cmake.org/
     * libfftw            http://www.fftw.org/
     * PolarSSL/mbedTLS   https://tls.mbed.org
   * srsUE:
@@ -83,7 +84,7 @@ Build Instructions
 
 For example, on Ubuntu 17.04, one can install the required libraries with:
 ```
-sudo apt-get install libfftw3-dev libmbedtls-dev libboost-all-dev libconfig++-dev libsctp-dev
+sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-all-dev libconfig++-dev libsctp-dev
 ```
 Note that depending on your flavor and version of Linux, the actual package names may be different.
 

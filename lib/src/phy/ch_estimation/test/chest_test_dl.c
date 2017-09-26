@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
         bzero(h, sizeof(cf_t) * num_re);
 
         srslte_refsignal_cs_put_sf(cell, n_port, 
-                            est.csr_signal.pilots[n_port/2][sf_idx], input);
+                            est.csr_refs.pilots[n_port/2][sf_idx], input);
 
         for (i=0;i<2*SRSLTE_CP_NSYMB(cell.cp);i++) {
           for (j=0;j<cell.nof_prb * SRSLTE_NRE;j++) {

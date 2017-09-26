@@ -676,6 +676,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
             /* Track PSS/SSS around the expected PSS position 
              * In tracking phase, the subframe carrying the PSS is always the last one of the frame
              */
+            
             switch(srslte_sync_find(&q->strack, input_buffer[0], 
                                     q->frame_len - q->sf_len/2 - q->fft_size - q->strack.max_offset/2, 
                                     &track_idx)) 
