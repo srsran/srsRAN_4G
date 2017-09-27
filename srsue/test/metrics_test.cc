@@ -56,7 +56,7 @@ public:
 
   bool is_attached()
   {
-    return true;
+    return (rand() % 2 == 0);
   }
 };
 }

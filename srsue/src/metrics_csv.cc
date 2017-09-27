@@ -55,14 +55,9 @@ void metrics_csv::set_ue_handle(ue_metrics_interface *ue_)
 
 void metrics_csv::set_metrics(ue_metrics_t &metrics, float metrics_report_period)
 {
-  if (file.is_open()) {
-    if (!ue->is_attached()) {
-      file << "# disconnected" << endl;
-      return;
-    }
-
+  if (file.is_open() && ue != NULL) {
     if(n_reports == 0) {
-      file << "time;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_mcs;ul_buff;ul_brate;ul_bler;rf_o;rf_u;rf_l" << endl;
+      file << "time;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_mcs;ul_buff;ul_brate;ul_bler;rf_o;rf_u;rf_l;is_attached" << endl;
     }
     file << (metrics_report_period*n_reports) << ";";
     file << float_to_string(metrics.phy.dl.rsrp, 2);
@@ -87,7 +82,8 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, float metrics_report_period
     }
     file << float_to_string(metrics.rf.rf_o, 2);
     file << float_to_string(metrics.rf.rf_u, 2);
-    file << float_to_string(metrics.rf.rf_l, 2, false);
+    file << float_to_string(metrics.rf.rf_l, 2);
+    file << (ue->is_attached() ? "1.0" : "0.0");
     file << endl;
 
     n_reports++;
