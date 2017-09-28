@@ -705,7 +705,7 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
   do {
     coderate = srslte_pdcch_coderate(nof_bits, l);
     l++;
-  } while(l<3 && coderate > max_coderate);
+  } while(l<3 && 1.5*coderate > max_coderate);
   Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n", dl_cqi, l, nof_bits, coderate, max_coderate);
   return l; 
 }
