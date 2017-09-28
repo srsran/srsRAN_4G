@@ -635,7 +635,7 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
     return 0; 
   }
   
-  for (n=1;n<=cell.nof_prb && nbytes < req_bytes + 4;n++) {
+  for (n=1;n<cell.nof_prb && nbytes < req_bytes + 4;n++) {
     uint32_t nof_re = (2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs)*n*SRSLTE_NRE;
     int tbs = 0; 
     if (fixed_mcs_ul < 0) {
@@ -647,8 +647,8 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
       nbytes = tbs; 
     }
   }
-  
-  while (!srslte_dft_precoding_valid_prb(n)) {
+
+  while (!srslte_dft_precoding_valid_prb(n) && n<=cell.nof_prb) {
     n++;
   }
   
