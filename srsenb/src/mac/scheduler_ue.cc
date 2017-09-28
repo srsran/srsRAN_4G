@@ -815,7 +815,7 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
   if (has_pucch && is_ul) {
-    cqi-=2;
+    cqi-=3;
   }
 
   int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, &sel_mcs)/8;
