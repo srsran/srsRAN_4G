@@ -89,6 +89,26 @@ float squared_error (cf_t a, cf_t b) {
   return diff_re*diff_re + diff_im*diff_im;
 }
 
+TEST(srslte_vec_acc_ff,
+     MALLOC(float, x);
+         float z;
+
+         cf_t gold = 0.0f;
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_F();
+         }
+
+         TEST_CALL(z = srslte_vec_acc_ff(x, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold += x[i];
+         }
+
+         mse += fabs(gold - z) / gold;
+
+         free(x);
+)
+
 TEST(srslte_vec_dot_prod_sss,
      MALLOC(int16_t, x);
          MALLOC(int16_t, y);
@@ -314,6 +334,37 @@ TEST(srslte_vec_prod_ccc,
   free(z);
 )
 
+TEST(srslte_vec_prod_ccc_split,
+     MALLOC(float, x_re);
+     MALLOC(float, x_im);
+     MALLOC(float, y_re);
+     MALLOC(float, y_im);
+     MALLOC(float, z_re);
+     MALLOC(float, z_im);
+
+         cf_t gold;
+         for (int i = 0; i < block_size; i++) {
+           x_re[i] = RANDOM_F();
+           x_im[i] = RANDOM_F();
+           y_re[i] = RANDOM_F();
+           y_im[i] = RANDOM_F();
+         }
+
+         TEST_CALL(srslte_vec_prod_ccc_split(x_re, x_im, y_re, y_im, z_re, z_im, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = (x_re[i] + I * x_im[i]) * (y_re[i] + I * y_im[i]);
+           mse += cabsf(gold - (z_re[i] + I*z_im[i]));
+         }
+
+         free(x_re);
+         free(x_im);
+         free(y_re);
+         free(y_im);
+         free(z_re);
+         free(z_im);
+)
+
 TEST(srslte_vec_prod_conj_ccc,
   MALLOC(cf_t, x);
   MALLOC(cf_t, y);
@@ -357,6 +408,27 @@ TEST(srslte_vec_sc_prod_ccc,
   free(z);
 )
 
+TEST(srslte_vec_convert_fi,
+  MALLOC(float, x);
+  MALLOC(short, z);
+      float scale = 1000.0f;
+
+  short gold;
+  for (int i = 0; i < block_size; i++) {
+    x[i] = (float) RANDOM_F();
+  }
+
+  TEST_CALL(srslte_vec_convert_fi(x, z, scale, block_size))
+
+  for (int i = 0; i < block_size; i++) {
+      gold = (short) ((x[i] * scale));
+      mse += cabsf((float)gold - (float) z[i]);
+  }
+
+  free(x);
+  free(z);
+)
+
 TEST(srslte_vec_prod_fff,
   MALLOC(float, x);
   MALLOC(float, y);
@@ -376,6 +448,30 @@ TEST(srslte_vec_prod_fff,
   }
 
   free(x);
+  free(y);
+  free(z);
+)
+
+TEST(srslte_vec_prod_cfc,
+  MALLOC(cf_t, x);
+  MALLOC(float, y);
+  MALLOC(cf_t, z);
+
+  cf_t gold;
+  for (int i = 0; i < block_size; i++) {
+    x[i] = RANDOM_CF();
+    y[i] = RANDOM_F();
+  }
+
+  TEST_CALL(srslte_vec_prod_cfc(x, y, z, block_size))
+
+  for (int i = 0; i < block_size; i++) {
+    gold = x[i] * y[i];
+    mse += cabsf(gold - z[i]);
+  }
+
+  free(x);
+  free(y);
   free(z);
 )
 
@@ -461,66 +557,216 @@ TEST(srslte_vec_sc_prod_cfc,
   free(z);
 )
 
+TEST(srslte_vec_div_ccc,
+     MALLOC(cf_t, x);
+         MALLOC(cf_t, y);
+         MALLOC(cf_t, z);
+
+         cf_t gold;
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_CF();
+           y[i] = RANDOM_CF();
+         }
+
+         TEST_CALL(srslte_vec_div_ccc(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] / y[i];
+           mse += cabsf(gold - z[i]);
+         }
+         mse /= block_size;
+
+         free(x);
+         free(y);
+         free(z);
+)
+
+
+TEST(srslte_vec_div_cfc,
+     MALLOC(cf_t, x);
+         MALLOC(float, y);
+         MALLOC(cf_t, z);
+
+         cf_t gold;
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_CF();
+           y[i] = RANDOM_F();
+         }
+
+         TEST_CALL(srslte_vec_div_cfc(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] / y[i];
+           mse += cabsf(gold - z[i])/cabsf(gold);
+         }
+         mse /= block_size;
+
+         free(x);
+         free(y);
+         free(z);
+)
+
+
+TEST(srslte_vec_div_fff,
+     MALLOC(float, x);
+         MALLOC(float, y);
+         MALLOC(float, z);
+
+         cf_t gold;
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_F();
+           y[i] = RANDOM_F();
+         }
+
+         TEST_CALL(srslte_vec_div_fff(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] / y[i];
+           mse += cabsf(gold - z[i]);
+         }
+         mse /= block_size;
+
+         free(x);
+         free(y);
+         free(z);
+)
+
+TEST(srslte_vec_max_fi,
+     MALLOC(float, x);
+
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_F();
+         }
+
+         uint32_t max_index = 0;
+         TEST_CALL(max_index = srslte_vec_max_fi(x, block_size);)
+
+         float gold_value = -INFINITY;
+         uint32_t gold_index = 0;
+         for (int i = 0; i < block_size; i++) {
+           if (gold_value < x[i]) {
+             gold_value = x[i];
+             gold_index = i;
+           }
+         }
+         mse = (gold_index != max_index) ? 1:0;
+
+         free(x);
+)
+
+TEST(srslte_vec_max_abs_ci,
+     MALLOC(cf_t, x);
+
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_CF();
+         }
+
+         uint32_t max_index = 0;
+         TEST_CALL(max_index = srslte_vec_max_abs_ci(x, block_size);)
+
+         float gold_value = -INFINITY;
+         uint32_t gold_index = 0;
+         for (int i = 0; i < block_size; i++) {
+           cf_t a = x[i];
+           float abs2 = __real__ a * __real__ a + __imag__ a * __imag__ a;
+           if (abs2 > gold_value) {
+             gold_value = abs2;
+             gold_index = (uint32_t)i;
+           }
+         }
+         mse = (gold_index != max_index) ? 1:0;
+
+         free(x);
+)
+
 int main(int argc, char **argv) {
   char func_names[MAX_FUNCTIONS][32];
   double timmings[MAX_FUNCTIONS][MAX_BLOCKS];
   uint32_t sizes[32];
   uint32_t size_count = 0;
   uint32_t func_count = 0;
-  bool passed = true;
+  bool passed[MAX_FUNCTIONS][MAX_BLOCKS];
+  bool all_passed = true;
 
   for (uint32_t block_size = 1; block_size <= 1024*8; block_size *= 2) {
     func_count = 0;
 
-    passed &= test_srslte_vec_dot_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_acc_ff(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_sum_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_dot_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_sub_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_sum_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_sub_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_acc_cc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_sum_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_acc_cc(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_sub_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_sum_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_dot_prod_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_sub_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_dot_prod_conj_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_dot_prod_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_prod_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_dot_prod_conj_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_prod_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_convert_fi(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_prod_conj_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_prod_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_sc_prod_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_prod_cfc(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_sc_prod_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_prod_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_abs_cf(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_prod_ccc_split(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_abs_square_cf(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_prod_conj_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
-    passed &= test_srslte_vec_sc_prod_cfc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    passed[func_count][size_count] = test_srslte_vec_sc_prod_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_sc_prod_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_abs_cf(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_abs_square_cf(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_sc_prod_cfc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_div_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_div_cfc(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_div_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_max_fi(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_max_abs_ci(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     sizes[size_count] = block_size;
@@ -546,10 +792,11 @@ int main(int argc, char **argv) {
   for (int i = 0; i < func_count; i++) {
     printf("%32s | ", func_names[i]);
     for (int j = 0; j < size_count; j++) {
-      printf(" %7.1f", (double) NOF_REPETITIONS*(double)sizes[j]/timmings[i][j]);
+      printf(" %s%7.1f\x1b[0m", (passed[i][j])?"":"\x1B[31m", (double) NOF_REPETITIONS*(double)sizes[j]/timmings[i][j]);
+      all_passed &= passed[i][j];
     }
     printf(" |\n");
   }
 
-  return (passed)?SRSLTE_SUCCESS:SRSLTE_ERROR;
+  return (all_passed)?SRSLTE_SUCCESS:SRSLTE_ERROR;
 }

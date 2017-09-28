@@ -88,6 +88,8 @@
 #define SRSLTE_SIMD_F_SIZE    16
 #define SRSLTE_SIMD_CF_SIZE   16
 
+#define SRSLTE_SIMD_I_SIZE    16
+
 #define SRSLTE_SIMD_S_SIZE    32
 #define SRSLTE_SIMD_C16_SIZE  0
 
@@ -96,6 +98,8 @@
 
 #define SRSLTE_SIMD_F_SIZE    8
 #define SRSLTE_SIMD_CF_SIZE   8
+
+#define SRSLTE_SIMD_I_SIZE    8
 
 #define SRSLTE_SIMD_S_SIZE    16
 #define SRSLTE_SIMD_C16_SIZE  16
@@ -106,6 +110,8 @@
 #define SRSLTE_SIMD_F_SIZE    4
 #define SRSLTE_SIMD_CF_SIZE   4
 
+#define SRSLTE_SIMD_I_SIZE    4
+
 #define SRSLTE_SIMD_S_SIZE    8
 #define SRSLTE_SIMD_C16_SIZE  8
 
@@ -113,6 +119,8 @@
 
 #define SRSLTE_SIMD_F_SIZE    0
 #define SRSLTE_SIMD_CF_SIZE   0
+
+#define SRSLTE_SIMD_I_SIZE    0
 
 #define SRSLTE_SIMD_S_SIZE    0
 #define SRSLTE_SIMD_C16_SIZE  0
@@ -218,6 +226,20 @@ static inline simd_f_t srslte_simd_f_mul(simd_f_t a, simd_f_t b) {
 #else /* LV_HAVE_AVX2 */
 #ifdef LV_HAVE_SSE
   return _mm_mul_ps(a, b);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
+static inline simd_f_t srslte_simd_f_rcp(simd_f_t a) {
+#ifdef LV_HAVE_AVX512
+  return _mm512_rcp_ps(a);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return _mm256_rcp_ps(a);
+#else /* LV_HAVE_AVX2 */
+  #ifdef LV_HAVE_SSE
+  return _mm_rcp_ps(a);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
@@ -600,6 +622,61 @@ static inline simd_cf_t srslte_simd_cf_add (simd_cf_t a, simd_cf_t b) {
   return ret;
 }
 
+static inline simd_cf_t srslte_simd_cf_mul (simd_cf_t a, simd_f_t b) {
+    simd_cf_t ret;
+#ifdef LV_HAVE_AVX512
+  b = _mm512_permutexvar_ps(b, _mm512_setr_epi32(0,4,1,5,2,6,3,7,8,12,9,13,10,14,11,15));
+  ret.re = _mm512_mul_ps(a.re, b);
+  ret.im = _mm512_mul_ps(a.im, b);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  b = _mm256_permutevar8x32_ps(b, _mm256_setr_epi32(0,4,1,5,2,6,3,7));
+  ret.re = _mm256_mul_ps(a.re, b);
+  ret.im = _mm256_mul_ps(a.im, b);
+#else /* LV_HAVE_AVX2 */
+#ifdef LV_HAVE_SSE
+  ret.re = _mm_mul_ps(a.re, b);
+  ret.im = _mm_mul_ps(a.im, b);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+    return ret;
+}
+
+static inline simd_cf_t srslte_simd_cf_rcp (simd_cf_t a) {
+  simd_cf_t ret;
+#ifdef LV_HAVE_AVX512
+  simd_f_t a2re = _mm512_mul_ps(a.re, a.re);
+  simd_f_t a2im = _mm512_mul_ps(a.im, a.im);
+  simd_f_t mod2 = _mm512_add_ps(a2re, a2im);
+  simd_f_t rcp = _mm512_rcp_ps(mod2);
+  simd_f_t neg_a_im = _mm512_xor_ps(_mm512_set1_ps(-0.0f), a.im);
+  ret.re = _mm512_mul_ps(a.re, rcp);
+  ret.im = _mm512_mul_ps(neg_a_im, rcp);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  simd_f_t a2re = _mm256_mul_ps(a.re, a.re);
+  simd_f_t a2im = _mm256_mul_ps(a.im, a.im);
+  simd_f_t mod2 = _mm256_add_ps(a2re, a2im);
+  simd_f_t rcp = _mm256_rcp_ps(mod2);
+  simd_f_t neg_a_im = _mm256_xor_ps(_mm256_set1_ps(-0.0f), a.im);
+  ret.re = _mm256_mul_ps(a.re, rcp);
+  ret.im = _mm256_mul_ps(neg_a_im, rcp);
+#else /* LV_HAVE_AVX2 */
+  #ifdef LV_HAVE_SSE
+  simd_f_t a2re = _mm_mul_ps(a.re, a.re);
+  simd_f_t a2im = _mm_mul_ps(a.im, a.im);
+  simd_f_t mod2 = _mm_add_ps(a2re, a2im);
+  simd_f_t rcp = _mm_rcp_ps(mod2);
+  simd_f_t neg_a_im = _mm_xor_ps(_mm_set1_ps(-0.0f), a.im);
+  ret.re = _mm_mul_ps(a.re, rcp);
+  ret.im = _mm_mul_ps(neg_a_im, rcp);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+  return ret;
+}
+
 static inline simd_cf_t srslte_simd_cf_zero (void) {
   simd_cf_t ret;
 #ifdef LV_HAVE_AVX512
@@ -620,6 +697,106 @@ static inline simd_cf_t srslte_simd_cf_zero (void) {
 }
 
 #endif /* SRSLTE_SIMD_CF_SIZE */
+
+#if SRSLTE_SIMD_I_SIZE
+
+#ifdef LV_HAVE_AVX512
+typedef __m512i simd_i_t;
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+typedef __m256i simd_i_t;
+#else /* LV_HAVE_AVX2 */
+#ifdef LV_HAVE_SSE
+typedef __m128i simd_i_t;
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+
+static inline simd_i_t srslte_simd_i_load(int *x) {
+#ifdef LV_HAVE_AVX512
+  return _mm512_load_epi32((__m512i*)x);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return _mm256_load_si256((__m256i*)x);
+#else
+  #ifdef LV_HAVE_SSE
+  return _mm_load_si128((__m128i*)x);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
+static inline void srslte_simd_i_store(int *x, simd_i_t reg) {
+#ifdef LV_HAVE_AVX512
+  _mm512_store_epi32((__m512i*)x, reg);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  _mm256_store_si256((__m256i*)x, reg);
+#else
+#ifdef LV_HAVE_SSE
+  _mm_store_si128((__m128i*)x, reg);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
+static inline simd_i_t srslte_simd_i_set1(int x) {
+#ifdef LV_HAVE_AVX512
+  return _mm512_set1_epi32(x);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return _mm256_set1_epi32(x);
+#else
+  #ifdef LV_HAVE_SSE
+  return _mm_set1_epi32(x);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
+static inline simd_i_t srslte_simd_i_add(simd_i_t a, simd_i_t b) {
+#ifdef LV_HAVE_AVX512
+  return _mm512_add_epi32(a, b);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return _mm256_add_epi32(a, b);
+#else
+#ifdef LV_HAVE_SSE
+  return _mm_add_epi32(a, b);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
+static inline simd_i_t srslte_simd_f_max(simd_f_t a, simd_f_t b) {
+#ifdef LV_HAVE_AVX512
+  return (simd_i_t) _mm512_cmp_ps_mask(a, b, _CMP_GT_OS);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return (simd_i_t) _mm256_cmp_ps(a, b, _CMP_GT_OS);
+#else /* LV_HAVE_AVX2 */
+  #ifdef LV_HAVE_SSE
+  return  (simd_i_t) _mm_cmpgt_ps(a, b);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
+static inline simd_i_t srslte_simd_i_select(simd_i_t a, simd_i_t b, simd_i_t selector) {
+#ifdef LV_HAVE_AVX512
+  return (__m512i) _mm512_blendv_ps((__m512)a, (__m512) b, (__m512) selector);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return (__m256i) _mm256_blendv_ps((__m256) a,(__m256) b,(__m256) selector);
+#else
+  #ifdef LV_HAVE_SSE
+  return (__m128i) _mm_blendv_ps((__m128)a, (__m128)b, (__m128)selector);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
+#endif /* SRSLTE_SIMD_I_SIZE*/
 
 
 #if SRSLTE_SIMD_S_SIZE
@@ -829,6 +1006,20 @@ static inline simd_c16_t srslte_simd_c16_load(int16_t *re, int16_t *im) {
   return ret;
 }
 
+static inline simd_c16_t srslte_simd_c16_loadu(int16_t *re, int16_t *im) {
+  simd_c16_t ret;
+#ifdef LV_HAVE_AVX2
+  ret.re.m256 = _mm256_loadu_si256((__m256i*)(re));
+  ret.im.m256 = _mm256_loadu_si256((__m256i*)(im));
+#else
+#ifdef LV_HAVE_SSE
+  ret.re.m128 = _mm_loadu_si128((__m128i*)(re));
+  ret.im.m128 = _mm_loadu_si128((__m128i*)(im));
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+  return ret;
+}
+
 static inline void srslte_simd_c16i_store(c16_t *ptr, simd_c16_t simdreg) {
 #ifdef LV_HAVE_AVX2
   __m256i re_sw = _mm256_shufflelo_epi16(_mm256_shufflehi_epi16(simdreg.re.m256, 0b10110001), 0b10110001);
@@ -845,6 +1036,22 @@ static inline void srslte_simd_c16i_store(c16_t *ptr, simd_c16_t simdreg) {
 #endif /* LV_HAVE_AVX2 */
 }
 
+static inline void srslte_simd_c16i_storeu(c16_t *ptr, simd_c16_t simdreg) {
+#ifdef LV_HAVE_AVX2
+  __m256i re_sw = _mm256_shufflelo_epi16(_mm256_shufflehi_epi16(simdreg.re.m256, 0b10110001), 0b10110001);
+  __m256i im_sw = _mm256_shufflelo_epi16(_mm256_shufflehi_epi16(simdreg.im.m256, 0b10110001), 0b10110001);
+  _mm256_storeu_si256((__m256i *) (ptr), _mm256_blend_epi16(simdreg.re.m256, im_sw, 0b10101010));
+  _mm256_storeu_si256((__m256i *) (ptr + 8), _mm256_blend_epi16(re_sw, simdreg.im.m256, 0b10101010));
+#else
+#ifdef LV_HAVE_SSE
+  __m128i re_sw = _mm_shufflelo_epi16(_mm_shufflehi_epi16(simdreg.re.m128, 0b10110001), 0b10110001);
+  __m128i im_sw = _mm_shufflelo_epi16(_mm_shufflehi_epi16(simdreg.im.m128, 0b10110001), 0b10110001);
+  _mm_storeu_si128((__m128i *) (ptr), _mm_blend_epi16(simdreg.re.m128, im_sw, 0b10101010));
+  _mm_storeu_si128((__m128i *) (ptr + 8), _mm_blend_epi16(re_sw, simdreg.im.m128, 0b10101010));
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+}
+
 static inline void srslte_simd_c16_store(int16_t *re, int16_t *im, simd_c16_t simdreg) {
 #ifdef LV_HAVE_AVX2
   _mm256_store_si256((__m256i *) re, simdreg.re.m256);
@@ -853,6 +1060,18 @@ static inline void srslte_simd_c16_store(int16_t *re, int16_t *im, simd_c16_t si
 #ifdef LV_HAVE_SSE
   _mm_store_si128((__m128i *) re, simdreg.re.m128);
   _mm_store_si128((__m128i *) im, simdreg.im.m128);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+}
+
+static inline void srslte_simd_c16_storeu(int16_t *re, int16_t *im, simd_c16_t simdreg) {
+#ifdef LV_HAVE_AVX2
+  _mm256_storeu_si256((__m256i *) re, simdreg.re.m256);
+  _mm256_storeu_si256((__m256i *) im, simdreg.im.m256);
+#else
+#ifdef LV_HAVE_SSE
+  _mm_storeu_si128((__m128i *) re, simdreg.re.m128);
+  _mm_storeu_si128((__m128i *) im, simdreg.im.m128);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 }
@@ -905,6 +1124,24 @@ static inline simd_c16_t srslte_simd_c16_zero (void) {
 
 #endif /* SRSLTE_SIMD_C16_SIZE */
 
+#if SRSLTE_SIMD_F_SIZE && SRSLTE_SIMD_S_SIZE
 
+static inline simd_s_t srslte_simd_convert_2f_s(simd_f_t a, simd_f_t b) {
+#ifdef LV_HAVE_AVX2
+  __m256 aa = _mm256_permute2f128_ps(a, b, 0x20);
+  __m256 bb = _mm256_permute2f128_ps(a, b, 0x31);
+  __m256i ai = _mm256_cvttps_epi32(aa);
+  __m256i bi = _mm256_cvttps_epi32(bb);
+  return _mm256_packs_epi32(ai, bi);
+#else
+#ifdef LV_HAVE_SSE
+  __m128i ai = _mm_cvttps_epi32(a);
+  __m128i bi = _mm_cvttps_epi32(b);
+  return _mm_packs_epi32(ai, bi);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+}
+
+#endif /* SRSLTE_SIMD_F_SIZE && SRSLTE_SIMD_C16_SIZE */
 
 #endif //SRSLTE_SIMD_H_H

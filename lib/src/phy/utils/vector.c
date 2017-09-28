@@ -48,18 +48,7 @@ int srslte_vec_acc_ii(int *x, uint32_t len) {
 
 // Used in PRACH detector, AGC and chest_dl for noise averaging
 float srslte_vec_acc_ff(float *x, uint32_t len) {
-#ifdef HAVE_VOLK_ACC_FUNCTION
-  float result;
-  volk_32f_accumulator_s32f(&result,x,len);
-  return result;
-#else
-   int i;
-   float z=0;
-   for (i=0;i<len;i++) {
-     z+=x[i];
-   }
-   return z;
-#endif
+  return srslte_vec_acc_ff_simd(x, len);
 }
 
 void srslte_vec_ema_filter(cf_t *new_data, cf_t *average, cf_t *output, float coeff, uint32_t len) {
@@ -190,14 +179,7 @@ void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
 
 // Chest UL 
 void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
-#ifndef LV_HAVE_SSE
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = x[i]*h;
-  }
-#else
   srslte_vec_sc_prod_ccc_simd(x,h,z,len);
-#endif
 }
 
 // Used in turbo decoder 
@@ -217,14 +199,7 @@ void srslte_vec_convert_ci(int8_t *x, int16_t *z, uint32_t len) {
 }
 
 void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
-#ifndef LV_HAVE_SSE
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = (int16_t) (x[i]*scale);
-  }
-#else 
-  srslte_vec_convert_fi_sse(x, z, scale, len);
-#endif
+  srslte_vec_convert_fi_simd(x, z, scale, len);
 }
 
 void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len) {
@@ -234,13 +209,7 @@ void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len) {
 }
 
 void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len) {
-#ifndef LV_HAVE_SSE
-  for (int i=0;i<len;i++) {
-    y[lut[i]] = x[i];
-  }
-#else
-  srslte_vec_lut_sss_sse(x, lut, y, len);
-#endif
+  srslte_vec_lut_sss_simd(x, lut, y, len);
 }
 
 void srslte_vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len) {
@@ -280,7 +249,7 @@ void srslte_vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
  */
 void *srslte_vec_malloc(uint32_t size) {
   void *ptr;
-  if (posix_memalign(&ptr,512,size)) {
+  if (posix_memalign(&ptr, SRSLTE_SIMD_BIT_ALIGN, size)) {
     return NULL;
   } else {
     return ptr;
@@ -292,7 +261,7 @@ void *srslte_vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
   return realloc(ptr, new_size);
 #else
   void *new_ptr;
-  if (posix_memalign(&new_ptr,256,new_size)) {
+  if (posix_memalign(&new_ptr, SRSLTE_SIMD_BIT_ALIGN, new_size)) {
     return NULL;
   } else {
     memcpy(new_ptr, ptr, old_size);
@@ -415,6 +384,7 @@ void srslte_vec_load_file(char *filename, void *buffer, uint32_t len) {
 
 // Used in PSS
 void srslte_vec_conj_cc(cf_t *x, cf_t *y, uint32_t len) {
+  /* This function is used in initialisation only, then no optimisation is required */
   int i;
   for (i=0;i<len;i++) {
     y[i] = conjf(x[i]);
@@ -423,10 +393,7 @@ void srslte_vec_conj_cc(cf_t *x, cf_t *y, uint32_t len) {
 
 // Used in scrambling complex 
 void srslte_vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = x[i]*y[i];
-  }
+  srslte_vec_prod_cfc_simd(x, y, z, len);
 }
 
 // Used in scrambling float
@@ -444,6 +411,10 @@ void srslte_vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
   srslte_vec_prod_ccc_simd(x,y,z,len);
 }
 
+void srslte_vec_prod_ccc_split(float *x_re, float *x_im, float *y_re, float *y_im, float *z_re, float *z_im, uint32_t len) {
+  srslte_vec_prod_ccc_split_simd(x_re, x_im, y_re , y_im, z_re,z_im, len);
+}
+
 // PRACH, CHEST UL, etc. 
 void srslte_vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
   srslte_vec_prod_conj_ccc_simd(x,y,z,len);
@@ -452,40 +423,17 @@ void srslte_vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 //#define DIV_USE_VEC
 
 // Used in SSS 
-/* Complex division is conjugate multiplication + real division */
-void srslte_vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *z_imag, uint32_t len) {
-#ifdef DIV_USE_VEC
-  srslte_vec_prod_conj_ccc(x,y,z,len);
-  srslte_vec_abs_square_cf(y,y_mod,len);
-  srslte_vec_div_cfc(z,y_mod,z,z_real,z_imag,len);  
-#else 
-  int i; 
-  for (i=0;i<len;i++) {
-    z[i] = x[i] / y[i]; 
-  }
-#endif
+void srslte_vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+  srslte_vec_div_ccc_simd(x, y, z, len);
 }
 
 /* Complex division by float z=x/y */
-void srslte_vec_div_cfc(cf_t *x, float *y, cf_t *z, float *z_real, float *z_imag, uint32_t len) {
-#ifdef DIV_USE_VEC
-  srslte_vec_deinterleave_cf(x, z_real, z_imag, len);
-  srslte_vec_div_fff(z_real, y, z_real, len);
-  srslte_vec_div_fff(z_imag, y, z_imag, len);
-  srslte_vec_interleave_cf(z_real, z_imag, z, len);
-#else
-  int i; 
-  for (i=0;i<len;i++) {
-    z[i] = x[i] / y[i]; 
-  }
-#endif
+void srslte_vec_div_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
+  srslte_vec_div_cfc_simd(x, y, z, len);
 }
 
 void srslte_vec_div_fff(float *x, float *y, float *z, uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = x[i] / y[i];
-  }
+  srslte_vec_div_fff_simd(x, y, z, len);
 }
 
 // PSS. convolution 
@@ -554,30 +502,7 @@ void srslte_vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
 }
 
 uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
-
-  // This is to solve an issue with incorrect type of 1st parameter in version 1.2 of volk
-#ifdef HAVE_VOLK_MAX_FUNCTION_32
-  uint32_t target=0;
-  volk_32f_index_max_32u(&target,x,len);
-  return target;
-#else
-#ifdef HAVE_VOLK_MAX_FUNCTION_16
-  uint32_t target=0;
-  volk_32f_index_max_16u(&target,x,len);
-  return target;
-#else
-  uint32_t i;
-  float m=-FLT_MAX;
-  uint32_t p=0;
-  for (i=0;i<len;i++) {
-    if (x[i]>m) {
-      m=x[i];
-      p=i;
-    }
-  }
-  return p;
-#endif
-#endif
+  return srslte_vec_max_fi_simd(x, len);
 }
 
 int16_t srslte_vec_max_star_si(int16_t *x, uint32_t len) {
@@ -616,30 +541,7 @@ void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len) {
 
 // CP autocorr
 uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
-#ifdef HAVE_VOLK_MAX_ABS_FUNCTION_32
-  uint32_t target=0;
-  volk_32fc_index_max_32u(&target,x,len);
-  return target;
-#else
-#ifdef HAVE_VOLK_MAX_ABS_FUNCTION_16
-  uint32_t target=0;
-  volk_32fc_index_max_16u(&target,x,len);
-  return target;
-#else
-  uint32_t i;
-  float m=-FLT_MAX;
-  uint32_t p=0;
-  float tmp;
-  for (i=0;i<len;i++) {
-    tmp = crealf(x[i])*crealf(x[i]) + cimagf(x[i])*cimagf(x[i]);
-    if (tmp>m) {
-      m=tmp;
-      p=i;
-    }
-  }
-  return p;
-#endif
-#endif
+  return srslte_vec_max_ci_simd(x, len);
 }
 
 void srslte_vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len) {

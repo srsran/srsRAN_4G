@@ -123,6 +123,7 @@ SRSLTE_API void srslte_vec_interleave_cf(float *real, float *imag, cf_t *x, uint
 
 /* vector product (element-wise) */
 SRSLTE_API void srslte_vec_prod_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
+SRSLTE_API void srslte_vec_prod_ccc_split(float *x_re, float *x_im, float *y_re, float *y_im, float *z_re, float *z_im, uint32_t len);
 
 /* vector product (element-wise) */
 SRSLTE_API void srslte_vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len);
@@ -142,8 +143,8 @@ SRSLTE_API float srslte_vec_dot_prod_fff(float *x, float *y, uint32_t len);
 SRSLTE_API int32_t srslte_vec_dot_prod_sss(int16_t *x, int16_t *y, uint32_t len); 
 
 /* z=x/y vector division (element-wise) */
-SRSLTE_API void srslte_vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *z_imag, uint32_t len);
-void srslte_vec_div_cfc(cf_t *x, float *y, cf_t *z, float *z_real, float *z_imag, uint32_t len);
+SRSLTE_API void srslte_vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
+SRSLTE_API void srslte_vec_div_cfc(cf_t *x, float *y, cf_t *z, uint32_t len);
 SRSLTE_API void srslte_vec_div_fff(float *x, float *y, float *z, uint32_t len);
 
 /* conjugate */
