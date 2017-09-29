@@ -556,7 +556,7 @@ void srslte_vec_prod_cfc_simd(cf_t *x, float *y, cf_t *z, int len) {
     for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
       simd_f_t s = srslte_simd_f_loadu(&y[i]);
 
-      simd_cf_t a = srslte_simd_cfi_load(&x[i]);
+      simd_cf_t a = srslte_simd_cfi_loadu(&x[i]);
       simd_cf_t r = srslte_simd_cf_mul(a, s);
       srslte_simd_cfi_storeu(&z[i], r);
     }
@@ -1036,7 +1036,7 @@ uint32_t srslte_vec_max_fi_simd(float *x, int len) {
     for (; i < len - SRSLTE_SIMD_I_SIZE + 1; i += SRSLTE_SIMD_I_SIZE) {
       simd_f_t a = srslte_simd_f_load(&x[i]);
 
-      simd_i_t res = srslte_simd_f_max(a, simd_max_values);
+      simd_sel_t res = srslte_simd_f_max(a, simd_max_values);
 
       simd_max_indexes = srslte_simd_i_select(simd_max_indexes, simd_indexes, res);
       simd_max_values = (simd_f_t) srslte_simd_i_select((simd_i_t) simd_max_values, (simd_i_t) a, res);
@@ -1046,7 +1046,7 @@ uint32_t srslte_vec_max_fi_simd(float *x, int len) {
     for (; i < len - SRSLTE_SIMD_I_SIZE + 1; i += SRSLTE_SIMD_I_SIZE) {
       simd_f_t a = srslte_simd_f_loadu(&x[i]);
 
-      simd_i_t res = srslte_simd_f_max(a, simd_max_values);
+      simd_sel_t res = srslte_simd_f_max(a, simd_max_values);
 
       simd_max_indexes = srslte_simd_i_select(simd_max_indexes, simd_indexes, res);
       simd_max_values = (simd_f_t) srslte_simd_i_select((simd_i_t) simd_max_values, (simd_i_t) a, res);
@@ -1102,7 +1102,7 @@ uint32_t srslte_vec_max_ci_simd(cf_t *x, int len) {
 
       simd_f_t z1 = srslte_simd_f_hadd(mul1, mul2);
 
-      simd_i_t res = srslte_simd_f_max(z1, simd_max_values);
+      simd_sel_t res = srslte_simd_f_max(z1, simd_max_values);
 
       simd_max_indexes = srslte_simd_i_select(simd_max_indexes, simd_indexes, res);
       simd_max_values = (simd_f_t) srslte_simd_i_select((simd_i_t) simd_max_values, (simd_i_t) z1, res);
@@ -1118,7 +1118,7 @@ uint32_t srslte_vec_max_ci_simd(cf_t *x, int len) {
 
       simd_f_t z1 = srslte_simd_f_hadd(mul1, mul2);
 
-      simd_i_t res = srslte_simd_f_max(z1, simd_max_values);
+      simd_sel_t res = srslte_simd_f_max(z1, simd_max_values);
 
       simd_max_indexes = srslte_simd_i_select(simd_max_indexes, simd_indexes, res);
       simd_max_values = (simd_f_t) srslte_simd_i_select((simd_i_t) simd_max_values, (simd_i_t) z1, res);

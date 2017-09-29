@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <complex.h>
 #include <stdbool.h>
-#include <immintrin.h>
 #include <sys/time.h>
 
 #include "srslte/phy/utils/mat.h"

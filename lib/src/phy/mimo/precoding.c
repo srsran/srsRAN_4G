@@ -33,19 +33,16 @@
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/mat.h"
 
 #ifdef LV_HAVE_SSE
-#include <immintrin.h>
 int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
 int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_symbols);
 #endif
 
 #ifdef LV_HAVE_AVX
-#include <immintrin.h>
 int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
 #endif
-
-#include "srslte/phy/utils/mat.h"
 
 static srslte_mimo_decoder_t mimo_decoder = SRSLTE_MIMO_DECODER_MMSE;
 

@@ -29,9 +29,7 @@
 #include <unistd.h>
 #include <complex.h>
 #include <stdbool.h>
-#include <immintrin.h>
 #include <sys/time.h>
-#include <srslte/phy/utils/vector_simd.h>
 #include <memory.h>
 #include <math.h>
 
