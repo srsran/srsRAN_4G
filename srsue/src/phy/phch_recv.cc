@@ -168,7 +168,13 @@ void phch_recv::radio_error() {
   log_h->error("SYNC:  Receiving from radio.\n");
   phy_state = IDLE;
   radio_is_resetting=true;
-  radio_h->reset();
+
+  // Need to find a method to effectively reset radio, reloading the driver does not work
+  //radio_h->reset();
+
+  fprintf(stdout, "Error while receiving samples. Restart srsUE\n");
+  exit(-1);
+
   reset();
   radio_is_resetting=false;
 }
