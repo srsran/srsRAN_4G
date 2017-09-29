@@ -228,15 +228,15 @@ void enb::stop()
 {
   if(started)
   {
+    gtpu.stop();
     phy.stop();
     mac.stop();
-    usleep(1e5);
+    usleep(100000);
 
     rlc.stop();
     pdcp.stop();
-    gtpu.stop();
     rrc.stop();
- 
+
     usleep(1e5);
     if(args->pcap.enable)
     {

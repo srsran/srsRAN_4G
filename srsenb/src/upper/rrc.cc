@@ -223,7 +223,8 @@ void rrc::rem_user(uint16_t rnti)
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
     rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
     /* **Caution** order of removal here is imporant: from bottom to top */
-    mac->ue_rem(rnti);  // MAC handles PHY 
+    mac->ue_rem(rnti);  // MAC handles PHY
+    usleep(50000);
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
     gtpu->rem_user(rnti);
