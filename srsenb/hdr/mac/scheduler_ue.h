@@ -173,7 +173,7 @@ private:
   // Allowed DCI locations per CFI and per subframe    
   sched_dci_cce_t dci_locations[3][10];   
 
-  const static int SCHED_MAX_HARQ_PROC = 8; 
+  const static int SCHED_MAX_HARQ_PROC = 2*HARQ_DELAY_MS;
   dl_harq_proc dl_harq[SCHED_MAX_HARQ_PROC]; 
   ul_harq_proc ul_harq[SCHED_MAX_HARQ_PROC]; 
   

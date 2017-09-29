@@ -406,7 +406,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
   log_step_dl(tti);
 
   if (!started) {
-    return 0; 
+    return 0;
   }
   
   if (!dl_sched_res) {
@@ -604,7 +604,7 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
 
 void mac::log_step_ul(uint32_t tti) 
 {
-  int tti_ul = tti-8;
+  int tti_ul = tti-(2*HARQ_DELAY_MS);
   if (tti_ul < 0) {
     tti_ul += 10240;
   }
@@ -613,7 +613,7 @@ void mac::log_step_ul(uint32_t tti)
 
 void mac::log_step_dl(uint32_t tti) 
 {
-  int tti_dl = tti-4;
+  int tti_dl = tti-HARQ_DELAY_MS;
   if (tti_dl < 0) {
     tti_dl += 10240;
   }

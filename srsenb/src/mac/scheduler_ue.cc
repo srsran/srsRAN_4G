@@ -247,7 +247,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
   
   // First check if it has pending ACKs 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == current_tti) {
+    if (HARQ_TX(dl_harq[i].get_tti()) == current_tti) {
       uint32_t n_pucch = srslte_pucch_get_npucch(dl_harq[i].get_n_cce(), SRSLTE_PUCCH_FORMAT_1A, has_sr, &pucch_sched);
       if (prb_idx) {
         for (int i=0;i<2;i++) {
@@ -295,7 +295,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
 int sched_ue::set_ack_info(uint32_t tti, bool ack)
 {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == tti) {
+    if (HARQ_TX(dl_harq[i].get_tti()) == tti) {
       Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tti=%d\n", ack, rnti, i, tti);
       dl_harq[i].set_ack(ack); 
       return dl_harq[i].get_tbs();

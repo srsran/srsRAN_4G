@@ -176,11 +176,11 @@ cf_t* phch_worker::get_buffer_rx()
 void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timestamp_t tx_time_)
 {
   tti_rx       = tti_; 
-  tti_tx       = (tti_ + 4)%10240; 
-  tti_sched_ul = (tti_ + 8)%10240; 
-  sf_rx        = tti_rx%10;
-  sf_tx        = tti_tx%10;
-  sf_sched_ul  = tti_sched_ul%10;
+  tti_tx       = HARQ_TX(tti_rx);
+  tti_sched_ul = HARQ_RX(tti_rx);
+  sf_rx        = tti_rx%HARQ_SFMOD;
+  sf_tx        = tti_tx%HARQ_SFMOD;
+  sf_sched_ul  = tti_sched_ul%HARQ_SFMOD;
   tx_mutex_cnt = tx_mutex_cnt_;
   memcpy(&tx_time, &tx_time_, sizeof(srslte_timestamp_t));
 }
@@ -245,7 +245,7 @@ void phch_worker::rem_rnti(uint16_t rnti)
     srslte_enb_ul_rem_rnti(&enb_ul, rnti);
     
     // remove any pending grant for each subframe 
-    for (uint32_t i=0;i<10;i++) {
+    for (uint32_t i=0;i<HARQ_SFMOD;i++) {
       for (uint32_t j=0;j<phy->ul_grants[i].nof_grants;j++) {
         if (phy->ul_grants[i].sched_grants[j].rnti == rnti) {
           phy->ul_grants[i].sched_grants[j].rnti = 0; 
@@ -266,7 +266,7 @@ void phch_worker::rem_rnti(uint16_t rnti)
 void phch_worker::work_imp()
 {
   uint32_t sf_ack;
-
+  
   if (!running) {
     return;
   }
@@ -326,12 +326,12 @@ void phch_worker::work_imp()
   encode_phich(ul_grants[sf_sched_ul].phich, ul_grants[sf_sched_ul].nof_phich, sf_tx);
   
   // Prepare for receive ACK for DL grants in sf_tx+4
-  sf_ack = (sf_tx+4)%10; 
+  sf_ack = HARQ_RX(sf_tx)%HARQ_SFMOD;
   phy->ack_clear(sf_ack);
   for (uint32_t i=0;i<dl_grants[sf_tx].nof_grants;i++) {
     // SI-RNTI and RAR-RNTI do not have ACK
     if (dl_grants[sf_tx].sched_grants[i].rnti >= SRSLTE_CRNTI_START && dl_grants[sf_tx].sched_grants[i].rnti <= SRSLTE_CRNTI_END) {
-      phy->ack_set_pending(sf_ack, dl_grants[sf_tx].sched_grants[i].rnti, dl_grants[sf_tx].sched_grants[i].location.ncce);      
+      phy->ack_set_pending(sf_ack, dl_grants[sf_tx].sched_grants[i].rnti, dl_grants[sf_tx].sched_grants[i].location.ncce);
     }
   }
   
@@ -504,8 +504,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
 
 int phch_worker::decode_pucch(uint32_t tti_rx)
 {
-  uint32_t sf_rx = tti_rx%10;
-  srslte_uci_data_t uci_data; 
+  srslte_uci_data_t uci_data;
   
   for(std::map<uint16_t, ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     uint16_t rnti = (uint16_t) iter->first;
@@ -523,7 +522,7 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
           uci_data.scheduling_request = true; 
         }
       }      
-      if (phy->ack_is_pending(sf_rx, rnti, &last_n_pdcch)) {
+      if (phy->ack_is_pending(tti_rx%HARQ_SFMOD, rnti, &last_n_pdcch)) {
         needs_pucch = true; 
         needs_ack = true; 
         uci_data.uci_ack_len = 1; 
@@ -589,7 +588,7 @@ int phch_worker::encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks, ui
       srslte_enb_dl_put_phich(&enb_dl, acks[i].ack, 
                               ue_db[rnti].phich_info.n_prb_lowest, 
                               ue_db[rnti].phich_info.n_dmrs, 
-                              sf_idx);
+                              sf_idx%10);
       
       Info("PHICH: rnti=0x%x, hi=%d, I_lowest=%d, n_dmrs=%d, tti_tx=%d\n", 
           rnti, acks[i].ack, 
@@ -606,13 +605,13 @@ int phch_worker::encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_gra
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (grants[i].needs_pdcch && rnti) {
-      if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &grants[i].grant, grants[i].location, rnti, sf_idx)) {
+      if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &grants[i].grant, grants[i].location, rnti, sf_idx%10)) {
         fprintf(stderr, "Error putting PUSCH %d\n",i);
         return SRSLTE_ERROR; 
       }
 
-      Info("PDCCH: UL DCI Format0  rnti=0x%x, cce_index=%d, L=%d, tti_tx=%d\n", 
-          rnti, grants[i].location.ncce, (1<<grants[i].location.L), tti_tx);
+      Info("PDCCH: UL DCI Format0  rnti=0x%x, cce_index=%d, L=%d, tpc=%d, tti_tx=%d\n",
+           rnti, grants[i].location.ncce, (1<<grants[i].location.L), grants[i].grant.tpc_pusch, tti_tx);
     }
   }
   return SRSLTE_SUCCESS; 
@@ -633,7 +632,7 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
           format = SRSLTE_DCI_FORMAT1A; 
         break;
       }
-      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &grants[i].grant, format, grants[i].location, rnti, sf_idx)) {
+      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &grants[i].grant, format, grants[i].location, rnti, sf_idx%10)) {
         fprintf(stderr, "Error putting PDCCH %d\n",i);
         return SRSLTE_ERROR; 
       }      
@@ -683,7 +682,7 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
           len = 1; 
         }        
         log_h->info_hex(ptr, len,
-                             "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n", 
+                             "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n",
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
                              phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }

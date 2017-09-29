@@ -138,7 +138,7 @@ namespace srsue {
       uint32_t I_lowest; 
       uint32_t n_dmrs;
     } pending_ack_t;
-    pending_ack_t pending_ack[10];
+    pending_ack_t pending_ack[HARQ_SFMOD];
     
     bool            is_first_tx;
 

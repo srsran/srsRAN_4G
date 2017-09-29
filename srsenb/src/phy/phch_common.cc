@@ -48,8 +48,8 @@ void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
 }
 
 void phch_common::reset() {
-  bzero(ul_grants, sizeof(mac_interface_phy::ul_sched_t)*10);
-  bzero(dl_grants, sizeof(mac_interface_phy::dl_sched_t)*10);
+  bzero(ul_grants, sizeof(mac_interface_phy::ul_sched_t)*HARQ_SFMOD);
+  bzero(dl_grants, sizeof(mac_interface_phy::dl_sched_t)*HARQ_SFMOD);
 }
 
 bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interface_phy *mac_)

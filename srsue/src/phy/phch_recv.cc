@@ -715,11 +715,11 @@ void phch_recv::run_thread() {
 
               worker->set_sample_offset(srslte_ue_sync_get_sfo(&ue_sync)/1000);
 
-              /* Compute TX time: Any transmission happens in TTI4 thus advance 4 ms the reception time */
+              /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
               srslte_timestamp_t rx_time, tx_time, tx_time_prach;
               srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
               srslte_timestamp_copy(&tx_time, &rx_time);
-              srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec);
+              srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3 - time_adv_sec);
               worker->set_tx_time(tx_time, next_offset);
               next_offset = 0;
 
