@@ -441,8 +441,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
       dl_sched_res->sched_grants[n].data     = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu, 
                                                         sched_result.data[i].nof_pdu_elems, 
                                                         sched_result.data[i].tbs);
-      srslte_softbuffer_tx_reset_tbs(dl_sched_res->sched_grants[n].softbuffer, sched_result.data[i].tbs);
-      
+
       if (pcap) {
         pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data, sched_result.data[i].tbs, rnti, true, tti);
       }
@@ -462,7 +461,6 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
     // Set softbuffer (there are no retx in RAR but a softbuffer is required)
     dl_sched_res->sched_grants[n].softbuffer = &rar_softbuffer_tx;    
-    srslte_softbuffer_tx_reset_tbs(&rar_softbuffer_tx, sched_result.rar[i].tbs); // TBS is usually 54-bit 
 
     // Assemble PDU 
     dl_sched_res->sched_grants[n].data = assemble_rar(sched_result.rar[i].grants, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs);        
@@ -485,9 +483,6 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     // Set softbuffer    
     if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
       dl_sched_res->sched_grants[n].softbuffer = &bcch_softbuffer_tx[sched_result.bc[i].index];    
-      if (sched_result.bc[i].dci.rv_idx == 0) {
-        srslte_softbuffer_tx_reset_tbs(dl_sched_res->sched_grants[n].softbuffer, sched_result.bc[i].tbs*8);
-      }
       dl_sched_res->sched_grants[n].data = assemble_si(sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
       if (pcap) {
@@ -496,7 +491,6 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 #endif
     } else {
       dl_sched_res->sched_grants[n].softbuffer = &pcch_softbuffer_tx;    
-      srslte_softbuffer_tx_reset_tbs(dl_sched_res->sched_grants[n].softbuffer, sched_result.bc[i].tbs*8);
       dl_sched_res->sched_grants[n].data = pcch_payload_buffer;
       rlc_h->read_pdu_pcch(pcch_payload_buffer, pcch_payload_buffer_len);
       
