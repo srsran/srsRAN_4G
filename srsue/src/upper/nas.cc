@@ -74,7 +74,12 @@ void nas::attach_request() {
     } else if (plmn_selection == PLMN_SELECTED) {
       nas_log->info("Selecting PLMN %s\n", plmn_id_to_c_str(current_plmn).c_str());
       rrc->plmn_select(current_plmn);
+      selecting_plmn = current_plmn;
     }
+  } else if (state == EMM_STATE_REGISTERED) {
+    nas_log->info("NAS state is registered, connecting to same PLMN\n");
+    rrc->plmn_select(current_plmn);
+    selecting_plmn = current_plmn;
   } else {
     nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
   }
@@ -97,6 +102,7 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
       nas_log->info("Detected known PLMN %s\n", plmn_id_to_c_str(plmn_id).c_str());
       if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
         rrc->plmn_select(plmn_id);
+        selecting_plmn = plmn_id;
       }
       return;
     }
@@ -107,11 +113,16 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
                 tracking_area_code);
   if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
     rrc->plmn_select(plmn_id);
+    selecting_plmn = plmn_id;
   }
 }
 
 bool nas::is_attached() {
   return state == EMM_STATE_REGISTERED;
+}
+
+bool nas::is_attaching() {
+  return state == EMM_STATE_REGISTERED_INITIATED;
 }
 
 void nas::notify_connection_setup() {
@@ -317,6 +328,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     // FIXME: Setup the default EPS bearer context
 
     state = EMM_STATE_REGISTERED;
+    current_plmn = selecting_plmn;
 
     // Send EPS bearer context accept and attach complete
     count_ul++;

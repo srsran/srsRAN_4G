@@ -52,13 +52,12 @@ public:
   void stop();
   void set_agc_enable(bool enable);
 
-  void     resync_sfn();
-
   void    set_earfcn(std::vector<uint32_t> earfcn);
 
-  bool    stop_sync();
+  void    reset_sync();
   void    cell_search_start();
-  void    cell_search_next();
+  void    cell_search_stop();
+  void    cell_search_next(bool reset = false);
   bool    cell_select(uint32_t earfcn, srslte_cell_t cell);
 
   uint32_t get_current_tti();
@@ -68,26 +67,42 @@ public:
   void    set_time_adv_sec(float time_adv_sec);
   void    get_current_cell(srslte_cell_t *cell);
   
-  const static int MUTEX_X_WORKER = 4; 
+  const static int MUTEX_X_WORKER = 4;
+
+  // public variables needed by callback function
+  uint32_t              current_sflen;
+  srslte::radio_multi  *radio_h;
+  int                   next_offset;
+
 
 private:
 
   std::vector<uint32_t> earfcn;
 
+  void   reset();
+  void   radio_error();
+  bool   wait_radio_reset();
   void   set_ue_sync_opts(srslte_ue_sync_t *q); 
   void   run_thread();
 
   void   set_sampling_rate();
   bool   set_frequency();
+  void   resync_sfn(bool is_connected = false);
+  bool   stop_sync();
 
   void   cell_search_inc();
 
-  bool init_cell();
-  void free_cell();
+  bool   init_cell();
+  void   free_cell();
+
+  void   stop_rx();
+  void   start_rx();
+  bool   radio_is_rx;
+
+  bool   radio_is_resetting;
 
   bool   running; 
   
-  srslte::radio_multi  *radio_h;
   mac_interface_phy    *mac;
   rrc_interface_phy    *rrc;
   srslte::log          *log_h;
@@ -114,6 +129,7 @@ private:
     IDLE = 0,
     CELL_SEARCH,
     CELL_SELECT,
+    CELL_RESELECT,
     CELL_MEASURE,
     CELL_CAMP
   } phy_state;
@@ -123,6 +139,7 @@ private:
   enum {
     SRATE_NONE=0, SRATE_FIND, SRATE_CAMP
   } srate_mode;
+  float         current_srate;
 
   srslte_cell_t cell;
   bool          cell_is_set;
@@ -148,12 +165,11 @@ private:
   float    measure_rsrp;
   srslte_ue_dl_t ue_dl_measure;
 
-
   const static int RSRP_MEASURE_NOF_FRAMES = 5;
 
   int    cell_sync_sfn();
   int    cell_meas_rsrp();
-  bool   cell_search(int force_N_id_2 = -1);
+  int    cell_search(int force_N_id_2 = -1);
   bool   set_cell();
 };
 

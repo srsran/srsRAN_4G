@@ -32,6 +32,7 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <ue_base.h>
 
 using namespace srslte;
 
@@ -52,25 +53,37 @@ bool ue::init(all_args_t *args_)
 {
   args     = args_;
 
-#ifndef LOG_STDOUT
-    logger.init(args->log.filename);
-#endif
-  rf_log.init("RF  ", &logger);
-  phy_log.init("PHY ", &logger, true);
-  mac_log.init("MAC ", &logger, true);
-  rlc_log.init("RLC ", &logger);
-  pdcp_log.init("PDCP", &logger);
-  rrc_log.init("RRC ", &logger);
-  nas_log.init("NAS ", &logger);
-  gw_log.init("GW  ", &logger);
-  usim_log.init("USIM", &logger);
+  if (!args->log.filename.compare("stdout")) {
+    logger = &logger_stdout;
+  } else {
+    logger_file.init(args->log.filename);
+    logger_file.log("\n\n");
+    logger = &logger_file;
+  }
+
+  rf_log.init("RF  ", logger);
+  // Create array of pointers to phy_logs
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    srslte::log_filter *mylog = new srslte::log_filter;
+    char tmp[16];
+    sprintf(tmp, "PHY%d",i);
+    mylog->init(tmp, logger, true);
+    phy_log.push_back((void*) mylog);
+  }
+
+  mac_log.init("MAC ", logger, true);
+  rlc_log.init("RLC ", logger);
+  pdcp_log.init("PDCP", logger);
+  rrc_log.init("RRC ", logger);
+  nas_log.init("NAS ", logger);
+  gw_log.init("GW  ", logger);
+  usim_log.init("USIM", logger);
 
   // Init logs
-#ifndef LOG_STDOUT
-  logger.log("\n\n");
-#endif
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
-  phy_log.set_level(level(args->log.phy_level));
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
+  }
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
@@ -79,7 +92,9 @@ bool ue::init(all_args_t *args_)
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  phy_log.set_hex_limit(args->log.phy_hex_limit);
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+  }
   mac_log.set_hex_limit(args->log.mac_hex_limit);
   rlc_log.set_hex_limit(args->log.rlc_hex_limit);
   pdcp_log.set_hex_limit(args->log.pdcp_hex_limit);
@@ -104,7 +119,7 @@ bool ue::init(all_args_t *args_)
 
   // PHY initis in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
-  phy.init(&radio, &mac, &rrc, &phy_log, &args->expert.phy);
+  phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
 
   /* Start Radio */
   char *dev_name = NULL;
@@ -167,7 +182,7 @@ bool ue::init(all_args_t *args_)
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
   nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
-  gw.init(&pdcp, this, &gw_log, 3 /* RB_ID_DRB1 */);
+  gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
 
   usim.init(&args->usim, &usim_log);
 
@@ -193,10 +208,6 @@ bool ue::init(all_args_t *args_)
 void ue::pregenerate_signals(bool enable)
 {
   phy.enable_pregen_signals(enable);
-}
-
-void ue::test_con_restablishment() {
-  rrc.test_con_restablishment();
 }
 
 void ue::stop()
@@ -236,7 +247,7 @@ void ue::stop()
 
 bool ue::is_attached()
 {
-  return (EMM_STATE_REGISTERED == nas.get_state());
+  return (RRC_STATE_CONNECTED == rrc.get_state());
 }
 
 void ue::start_plot() {

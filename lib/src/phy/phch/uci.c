@@ -581,7 +581,49 @@ static uint32_t encode_ri_ack(uint8_t data[2], uint32_t data_len, srslte_uci_bit
 
   return i;
 }
-                       
+
+
+/* Decode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
+ *  Currently only supporting 1-bit HARQ
+ */
+#ifndef MIMO_ENB
+
+static int32_t decode_ri_ack(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos)
+{
+  uint32_t p0 = pos[0].position;
+  uint32_t p1 = pos[1].position;
+
+  uint32_t q0 = c_seq[p0]?q_bits[p0]:-q_bits[p0];
+  uint32_t q1 = c_seq[p0]?q_bits[p1]:-q_bits[p1];
+
+  return -(q0+q1);
+}
+int srslte_uci_decode_ack(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_seq,
+                          float beta, uint32_t H_prime_total,
+                          uint32_t O_cqi, srslte_uci_bit_t *ack_bits, uint8_t acks[2], uint32_t nof_acks)
+{
+  int32_t rx_ack = 0;
+
+  if (beta < 0) {
+    fprintf(stderr, "Error beta is reserved\n");
+    return -1;
+  }
+
+  uint32_t Qprime = Q_prime_ri_ack(cfg, 1, O_cqi, beta);
+
+  // Use the same interleaver function to get the HARQ bit position
+  for (uint32_t i=0;i<Qprime;i++) {
+    uci_ulsch_interleave_ack_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ack_bits[cfg->grant.Qm*i]);
+    rx_ack += (int32_t) decode_ri_ack(q_bits, c_seq, &ack_bits[cfg->grant.Qm*i]);
+  }
+
+  if (acks) {
+    acks[0] = rx_ack>0;
+  }
+  return (int) Qprime;
+}
+#else
+
 static void decode_ri_ack(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos, uint32_t Qm, int32_t data[3])
 {
   uint32_t p0 = pos[Qm * 0 + 0].position;
@@ -603,10 +645,6 @@ static void decode_ri_ack(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos
   data[2] -= q2 + q5;
 }
 
-
-/* Decode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
- *  Currently only supporting 1-bit HARQ
- */
 int srslte_uci_decode_ack(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_seq, 
                           float beta, uint32_t H_prime_total, 
                           uint32_t O_cqi, srslte_uci_bit_t *ack_bits, uint8_t acks[2], uint32_t nof_acks)
@@ -635,6 +673,7 @@ int srslte_uci_decode_ack(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_s
   }
   return (int) Qprime;  
 }
+#endif
 
 /* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit HARQ
@@ -681,7 +720,7 @@ int srslte_uci_decode_ri(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_se
   for (uint32_t i=0;i<Qprime;i++) {
     uci_ulsch_interleave_ri_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ri_bits[cfg->grant.Qm*i]);
     if ((i % 3 == 0) && i > 0) {
-      decode_ri_ack(q_bits, &c_seq[0], &ri_bits[cfg->grant.Qm*(i-3)], cfg->grant.Qm, ri_sum);
+      //decode_ri_ack(q_bits, &c_seq[0], &ri_bits[cfg->grant.Qm*(i-3)], cfg->grant.Qm, ri_sum);
     }
   }
 

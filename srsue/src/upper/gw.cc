@@ -25,7 +25,7 @@
  */
 
 
-#include "srslte/upper/gw.h"
+#include "../../hdr/upper/gw.h"
 
 #include <errno.h>
 #include <unistd.h>
@@ -38,7 +38,7 @@
 #include <sys/socket.h>
 
 
-namespace srslte {
+namespace srsue {
 
 gw::gw()
   :if_up(false)
@@ -46,11 +46,11 @@ gw::gw()
   current_ip_addr = 0;
 }
 
-void gw::init(srsue::pdcp_interface_gw *pdcp_, srsue::ue_interface *ue_, log *gw_log_, uint32_t lcid_)
+void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, uint32_t lcid_)
 {
-  pool    = byte_buffer_pool::get_instance();
+  pool    = srslte::byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
-  ue      = ue_;
+  nas     = nas_;
   gw_log  = gw_log_;
   lcid    = lcid_;
   run_enable = true;
@@ -107,7 +107,7 @@ void gw::get_metrics(gw_metrics_t &m)
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
-void gw::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
+void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
   gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU");
   gw_log->info("RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
@@ -128,7 +128,7 @@ void gw::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 /*******************************************************************************
   NAS interface
 *******************************************************************************/
-error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
+srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
 {
   if (ip_addr != current_ip_addr) {
     if(!if_up)
@@ -136,7 +136,7 @@ error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
       if(init_if(err_str))
       {
         gw_log->error("init_if failed\n");
-        return(ERROR_CANT_START);
+        return(srslte::ERROR_CANT_START);
       }
     }
 
@@ -149,7 +149,7 @@ error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket address: %s\n", err_str);
       close(tun_fd);
-      return(ERROR_CANT_START);
+      return(srslte::ERROR_CANT_START);
     }
     ifr.ifr_netmask.sa_family                                 = AF_INET;
     ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
@@ -158,7 +158,7 @@ error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket netmask: %s\n", err_str);
       close(tun_fd);
-      return(ERROR_CANT_START);
+      return(srslte::ERROR_CANT_START);
     }
 
     current_ip_addr = ip_addr;
@@ -167,59 +167,59 @@ error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
     start(GW_THREAD_PRIO);
   }
 
-  return(ERROR_NONE);
+  return(srslte::ERROR_NONE);
 }
 
-error_t gw::init_if(char *err_str)
+srslte::error_t gw::init_if(char *err_str)
 {
-    if(if_up)
-    {
-      return(ERROR_ALREADY_STARTED);
-    }
+  if(if_up)
+  {
+    return(srslte::ERROR_ALREADY_STARTED);
+  }
 
-    char dev[IFNAMSIZ] = "tun_srsue";
+  char dev[IFNAMSIZ] = "tun_srsue";
 
-    // Construct the TUN device
-    tun_fd = open("/dev/net/tun", O_RDWR);
-    gw_log->info("TUN file descriptor = %d\n", tun_fd);
-    if(0 > tun_fd)
-    {
-        err_str = strerror(errno);
-        gw_log->debug("Failed to open TUN device: %s\n", err_str);
-        return(ERROR_CANT_START);
-    }
-    memset(&ifr, 0, sizeof(ifr));
-    ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-    strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ);
-    if(0 > ioctl(tun_fd, TUNSETIFF, &ifr))
-    {
-        err_str = strerror(errno);
-        gw_log->debug("Failed to set TUN device name: %s\n", err_str);
-        close(tun_fd);
-        return(ERROR_CANT_START);
-    }
+  // Construct the TUN device
+  tun_fd = open("/dev/net/tun", O_RDWR);
+  gw_log->info("TUN file descriptor = %d\n", tun_fd);
+  if(0 > tun_fd)
+  {
+      err_str = strerror(errno);
+      gw_log->debug("Failed to open TUN device: %s\n", err_str);
+      return(srslte::ERROR_CANT_START);
+  }
+  memset(&ifr, 0, sizeof(ifr));
+  ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ);
+  if(0 > ioctl(tun_fd, TUNSETIFF, &ifr))
+  {
+      err_str = strerror(errno);
+      gw_log->debug("Failed to set TUN device name: %s\n", err_str);
+      close(tun_fd);
+      return(srslte::ERROR_CANT_START);
+  }
 
-    // Bring up the interface
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if(0 > ioctl(sock, SIOCGIFFLAGS, &ifr))
-    {
-        err_str = strerror(errno);
-        gw_log->debug("Failed to bring up socket: %s\n", err_str);
-        close(tun_fd);
-        return(ERROR_CANT_START);
-    }
-    ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-    if(0 > ioctl(sock, SIOCSIFFLAGS, &ifr))
-    {
-        err_str = strerror(errno);
-        gw_log->debug("Failed to set socket flags: %s\n", err_str);
-        close(tun_fd);
-        return(ERROR_CANT_START);
-    }
+  // Bring up the interface
+  sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if(0 > ioctl(sock, SIOCGIFFLAGS, &ifr))
+  {
+      err_str = strerror(errno);
+      gw_log->debug("Failed to bring up socket: %s\n", err_str);
+      close(tun_fd);
+      return(srslte::ERROR_CANT_START);
+  }
+  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+  if(0 > ioctl(sock, SIOCSIFFLAGS, &ifr))
+  {
+      err_str = strerror(errno);
+      gw_log->debug("Failed to set socket flags: %s\n", err_str);
+      close(tun_fd);
+      return(srslte::ERROR_CANT_START);
+  }
 
-    if_up = true;
+  if_up = true;
 
-    return(ERROR_NONE);
+  return(srslte::ERROR_NONE);
 }
 
 /********************/
@@ -227,65 +227,92 @@ error_t gw::init_if(char *err_str)
 /********************/
 void gw::run_thread()
 {
-    struct iphdr   *ip_pkt;
-    uint32          idx = 0;
-    int32           N_bytes;
-    byte_buffer_t  *pdu = pool_allocate;
+  struct iphdr   *ip_pkt;
+  uint32          idx = 0;
+  int32           N_bytes;
+  srslte::byte_buffer_t  *pdu = pool_allocate;
 
-    gw_log->info("GW IP packet receiver thread run_enable\n");
+  const static uint32_t ATTACH_TIMEOUT_MS   = 10000;
+  const static uint32_t ATTACH_MAX_ATTEMPTS = 3;
+  uint32_t attach_cnt = 0;
+  uint32_t attach_attempts = 0;
 
-    running = true; 
-    while(run_enable)
+  gw_log->info("GW IP packet receiver thread run_enable\n");
+
+  running = true;
+  while(run_enable)
+  {
+    if (SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET > idx) {
+      N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);
+    } else {
+      gw_log->error("GW pdu buffer full - gw receive thread exiting.\n");
+      gw_log->console("GW pdu buffer full - gw receive thread exiting.\n");
+      break;
+    }
+    gw_log->debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_fd, idx);
+    if(N_bytes > 0)
     {
-      if (SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET > idx) {
-        N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);
-      } else {
-        gw_log->error("GW pdu buffer full - gw receive thread exiting.\n");
-        gw_log->console("GW pdu buffer full - gw receive thread exiting.\n");
-        break; 
-      }
-      gw_log->debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_fd, idx);
-      if(N_bytes > 0)
-      {
-        pdu->N_bytes = idx + N_bytes;
-        ip_pkt       = (struct iphdr*)pdu->msg;
+      pdu->N_bytes = idx + N_bytes;
+      ip_pkt       = (struct iphdr*)pdu->msg;
 
-        // Warning: Accept only IPv4 packets
-        if (ip_pkt->version == 4) {
-          // Check if entire packet was received
-          if(ntohs(ip_pkt->tot_len) == pdu->N_bytes)
-          {
-            gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
+      // Warning: Accept only IPv4 packets
+      if (ip_pkt->version == 4) {
+        // Check if entire packet was received
+        if(ntohs(ip_pkt->tot_len) == pdu->N_bytes)
+        {
+          gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-            if (!run_enable) {
-              break;
+          while(run_enable && !pdcp->is_drb_enabled(lcid) && attach_attempts < ATTACH_MAX_ATTEMPTS) {
+            if (attach_cnt == 0) {
+              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
+              nas->attach_request();
+              attach_attempts++;
             }
-            
-            // Send PDU directly to PDCP
+            attach_cnt++;
+            if (attach_cnt == ATTACH_TIMEOUT_MS) {
+              attach_cnt = 0;
+            }
+            usleep(1000);
+          }
+
+          if (attach_attempts == ATTACH_MAX_ATTEMPTS) {
+            gw_log->warning("LCID=%d was not active after %d attempts\n", lcid, ATTACH_MAX_ATTEMPTS);
+          }
+
+          attach_attempts = 0;
+          attach_cnt = 0;
+
+          if (!run_enable) {
+            break;
+          }
+
+          // Send PDU directly to PDCP
+          if (pdcp->is_drb_enabled(lcid)) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
             pdcp->write_sdu(lcid, pdu);
-            
+
             do {
               pdu = pool_allocate;
               if (!pdu) {
                 printf("Not enough buffers in pool\n");
                 usleep(100000);
               }
-            } while(!pdu); 
+            } while(!pdu);
             idx = 0;
-          }else{
-            idx += N_bytes;
-          }            
-        } 
-      }else{
-        gw_log->error("Failed to read from TUN interface - gw receive thread exiting.\n");
-        gw_log->console("Failed to read from TUN interface - gw receive thread exiting.\n");
-        break;
+          }
+        }else{
+          idx += N_bytes;
+        }
       }
+    }else{
+      gw_log->error("Failed to read from TUN interface - gw receive thread exiting.\n");
+      gw_log->console("Failed to read from TUN interface - gw receive thread exiting.\n");
+      break;
     }
-    running = false; 
-    gw_log->info("GW IP receiver thread exiting.\n");
+  }
+  running = false;
+  gw_log->info("GW IP receiver thread exiting.\n");
 }
 
 } // namespace srsue

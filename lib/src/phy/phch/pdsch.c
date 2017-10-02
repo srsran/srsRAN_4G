@@ -29,15 +29,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <srslte/phy/phch/pdsch_cfg.h>
-#include <srslte/phy/common/sequence.h>
-#include <srslte/phy/phch/pdsch.h>
 
 #include "prb_dl.h"
 #include "srslte/phy/phch/pdsch.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/bit.h"
 
 
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
@@ -246,7 +242,7 @@ static int pdsch_init(srslte_pdsch_t *q, uint32_t max_prb, bool is_ue, uint32_t 
         goto clean;
       }
       if (q->is_ue) {
-        for (int j=0;j<q->nof_rx_antennas;j++) {
+        for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
           q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
           if (!q->ce[i][j]) {
             goto clean;
@@ -309,7 +305,7 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
       free(q->symbols[i]);
     }
     if (q->is_ue) {
-      for (int j=0;j<q->nof_rx_antennas;j++) {
+      for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
         if (q->ce[i][j]) {
           free(q->ce[i][j]);
         }
@@ -606,6 +602,9 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
 
     /* Return  */
     ret = srslte_dlsch_decode2(&q->dl_sch, cfg, softbuffer, q->e[codeword_idx], data, codeword_idx);
+
+    q->last_nof_iterations[codeword_idx] = srslte_sch_last_noi(&q->dl_sch);
+
     if (ret == SRSLTE_SUCCESS) {
       *ack = true;
     } else if (ret == SRSLTE_ERROR) {
@@ -613,7 +612,7 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
       ret = SRSLTE_SUCCESS;
     }
   } else {
-    ERROR("Detected NULL pointer");
+    ERROR("Detected NULL pointer in TB%d &softbuffer=%p &data=%p &ack=%p", codeword_idx, softbuffer, (void*)data, ack);
   }
 
   return ret;
@@ -686,10 +685,10 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
         srslte_layerdemap_type(x, q->d, cfg->nof_layers, nof_tb,
                              nof_symbols[0], nof_symbols, cfg->mimo_type);
     }
-
     // Codeword decoding
     for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb ++) {
-      if (cfg->grant.tb_en[tb]) {
+      /* Decode only if transport block is enabled and the default ACK is not true */
+      if (cfg->grant.tb_en[tb] && !acks[tb]) {
         int ret = srslte_pdsch_codeword_decode(q, cfg, softbuffers[tb], rnti, data[tb], tb, &acks[tb]);
 
         /* Check if there has been any execution error */
@@ -712,14 +711,25 @@ int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
                                   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate, uint32_t nof_ce,
                                   uint32_t pmi[SRSLTE_MAX_LAYERS], float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS]) {
 
-  if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
-    for (int nof_layers = 1; nof_layers <= 2; nof_layers++ ) {
+  if (q->cell.nof_ports == 2 && q->nof_rx_antennas <= 2) {
+    int nof_layers = 1;
+    for (; nof_layers <= q->nof_rx_antennas; nof_layers++ ) {
       if (sinr[nof_layers - 1] && pmi) {
         if (srslte_precoding_pmi_select(ce, nof_ce, noise_estimate, nof_layers, &pmi[nof_layers - 1],
                                         sinr[nof_layers - 1]) < 0) {
           ERROR("PMI Select for %d layers", nof_layers);
           return SRSLTE_ERROR;
         }
+      }
+    }
+
+    /* FIXME: Set other layers to 0 */
+    for (; nof_layers <= SRSLTE_MAX_LAYERS; nof_layers++ ) {
+      if (sinr[nof_layers - 1] && pmi) {
+        for (int cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb++) {
+          sinr[nof_layers - 1][cb] = -INFINITY;
+        }
+        pmi[nof_layers - 1] = 0;
       }
     }
   } else {
@@ -816,14 +826,13 @@ void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, uint32_t max_iter) {
   srslte_sch_set_max_noi(&q->dl_sch, max_iter);
 }
 
-float srslte_pdsch_average_noi(srslte_pdsch_t *q) {
-  return q->dl_sch.average_nof_iterations;
+float srslte_pdsch_last_noi(srslte_pdsch_t *q) {
+  return srslte_pdsch_last_noi_cw(q, 0);
 }
 
-uint32_t srslte_pdsch_last_noi(srslte_pdsch_t *q) {
-  return q->dl_sch.nof_iterations;
+uint32_t srslte_pdsch_last_noi_cw(srslte_pdsch_t *q, uint32_t cw_idx) {
+  return q->last_nof_iterations[cw_idx];
 }
-
 
 
   

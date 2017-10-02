@@ -76,9 +76,10 @@ static void log_overflow(rf_uhd_handler_t *h) {
   }
 }
 
-static void log_late(rf_uhd_handler_t *h) {  
+static void log_late(rf_uhd_handler_t *h, bool is_rx) {
   if (h->uhd_error_handler) {
-    srslte_rf_error_t error; 
+    srslte_rf_error_t error;
+    error.opt = is_rx?1:0;
     bzero(&error, sizeof(srslte_rf_error_t));
     error.type = SRSLTE_RF_ERROR_LATE;
     h->uhd_error_handler(error);
@@ -109,7 +110,7 @@ static void* async_thread(void *h) {
             event_code == UHD_ASYNC_METADATA_EVENT_CODE_UNDERFLOW_IN_PACKET) {
           log_underflow(handler);
         } else if (event_code == UHD_ASYNC_METADATA_EVENT_CODE_TIME_ERROR) {
-          log_late(handler);
+          log_late(handler, false);
         }
       }
     } else {
@@ -290,6 +291,13 @@ int rf_uhd_open(char *args, void **h)
   return rf_uhd_open_multi(args, h, 1);
 }
 
+static void remove_substring(char *s,const char *toremove)
+{
+  while((s=strstr(s,toremove))) {
+    memmove(s,s+strlen(toremove),1+strlen(s+strlen(toremove)));
+  }
+}
+
 int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
 {
   if (h) {
@@ -324,7 +332,31 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     handler->uhd_error_handler = NULL;
     
     bzero(zero_mem, sizeof(cf_t)*64*1024);
-    
+
+    // Check external clock argument
+    enum {DEFAULT, EXTERNAL, GPSDO} clock_src;
+    if (strstr(args, "clock=external")) {
+      remove_substring(args, "clock=external");
+      clock_src = EXTERNAL;
+    } else if (strstr(args, "clock=gpsdo")) {
+      printf("Using GPSDO clock\n");
+      remove_substring(args, "clock=gpsdo");
+      clock_src = GPSDO;
+    } else {
+      clock_src = DEFAULT;
+    }
+
+    // Set over the wire format
+    char *otw_format = "sc16";
+    if (strstr(args, "otw_format=sc12")) {
+      otw_format = "sc12";
+    } else if (strstr(args, "otw_format=sc16")) {
+      /* Do nothing */
+    } else if (strstr(args, "otw_format=")) {
+      fprintf(stderr, "Wrong over the wire format. Valid formats: sc12, sc16\n");
+      return -1;
+    }
+
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
@@ -379,15 +411,13 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     }
     
     // Set external clock reference   
-    if (strstr(args, "clock=external")) {
+    if (clock_src == EXTERNAL) {
       uhd_usrp_set_clock_source(handler->usrp, "external", 0);       
-    } else if (strstr(args, "clock=gpsdo")) {
-      printf("Using GPSDO clock\n");
-      uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);       
+    } else if (clock_src == GPSDO) {
+      uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);
     }
 
-      
-    handler->has_rssi = get_has_rssi(handler);  
+    handler->has_rssi = get_has_rssi(handler);
     if (handler->has_rssi) {        
       uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
     }
@@ -395,7 +425,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     size_t channel[4] = {0, 1, 2, 3};
     uhd_stream_args_t stream_args = {
           .cpu_format = "fc32",
-          .otw_format = "sc16",
+          .otw_format = otw_format,
           .args = "",
           .channel_list = channel,
           .n_channels = nof_channels,
@@ -405,9 +435,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     handler->nof_tx_channels = nof_channels;
 
     /* Set default rate to avoid decimation warnings */
-    uhd_usrp_set_rx_rate(handler->usrp, 1.92e6, 0);
-    uhd_usrp_set_tx_rate(handler->usrp, 1.92e6, 0);
-    
+    for (int i=0;i<nof_channels;i++) {
+      uhd_usrp_set_rx_rate(handler->usrp, 1.92e6, i);
+      uhd_usrp_set_tx_rate(handler->usrp, 1.92e6, i);
+    }
+
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
@@ -626,9 +658,10 @@ int rf_uhd_recv_with_time_multi(void *h,
       if (error_code == UHD_RX_METADATA_ERROR_CODE_OVERFLOW) {
         log_overflow(handler);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND) {
-        log_late(handler);
+        log_late(handler, true);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_TIMEOUT) {
-        fprintf(stderr, "Error timed out while receiving asynchronoous messages from UHD.\n");
+        fprintf(stderr, "Error timed out while receiving samples from UHD.\n");
+        return -1;
       } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE ) {
         fprintf(stderr, "Error code 0x%x was returned during streaming. Aborting.\n", error_code);
       }
@@ -677,11 +710,11 @@ int rf_uhd_send_timed_multi(void *h,
   }
 
   size_t txd_samples;
-  if (has_time_spec) {
-    uhd_tx_metadata_set_time_spec(&handler->tx_md, secs, frac_secs);
-  }
-  int trials = 0; 
+  int trials = 0;
   if (blocking) {
+    if (has_time_spec) {
+      uhd_tx_metadata_set_time_spec(&handler->tx_md, secs, frac_secs);
+    }
     int n = 0;
     cf_t *data_c[4];
     for (int i = 0; i < 4; i++) {
@@ -689,8 +722,8 @@ int rf_uhd_send_timed_multi(void *h,
     }
     do {
       size_t tx_samples = handler->tx_nof_samples;
-      
-      // First packet is start of burst if so defined, others are never 
+
+      // First packet is start of burst if so defined, others are never
       if (n == 0) {
         uhd_tx_metadata_set_start(&handler->tx_md, is_start_of_burst);
       } else {
@@ -727,9 +760,15 @@ int rf_uhd_send_timed_multi(void *h,
     for (int i = 0; i < 4; i++) {
      buffs_ptr[i] = data[i];
     }
+    uhd_tx_metadata_set_has_time_spec(&handler->tx_md, is_start_of_burst);
     uhd_tx_metadata_set_start(&handler->tx_md, is_start_of_burst);
     uhd_tx_metadata_set_end(&handler->tx_md, is_end_of_burst);
-    return uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 0.0, &txd_samples);
+    uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 3.0, &txd_samples);
+    if (error) {
+      fprintf(stderr, "Error sending to UHD: %d\n", error);
+      return -1;
+    }
+    return txd_samples;
   }
 }
 

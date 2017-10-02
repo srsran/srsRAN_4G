@@ -76,7 +76,7 @@ typedef struct SRSLTE_API {
   srslte_pdsch_t  pdsch;
   srslte_phich_t  phich; 
   
-  srslte_refsignal_cs_t csr_signal;
+  srslte_refsignal_t csr_signal;
   srslte_pdsch_cfg_t pdsch_cfg; 
   srslte_ra_dl_dci_t dl_dci;
   
@@ -88,6 +88,8 @@ typedef struct SRSLTE_API {
   float sss_signal5[SRSLTE_SSS_LEN]; 
     
   float tx_amp;
+
+  uint8_t tmp[1024*128];
   
 } srslte_enb_dl_t;
 
@@ -176,5 +178,12 @@ SRSLTE_API int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q,
                                           uint16_t rnti, 
                                           uint32_t sf_idx); 
 
+SRSLTE_API void srslte_enb_dl_save_signal(srslte_enb_dl_t *q,
+                                          srslte_softbuffer_tx_t *softbuffer,
+                                          uint8_t *data,
+                                          uint32_t tti,
+                                          uint32_t rv_idx,
+                                          uint16_t rnti,
+                                          uint32_t cfi);
 
 #endif

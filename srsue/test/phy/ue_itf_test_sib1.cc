@@ -116,8 +116,8 @@ public:
     total_dci++; 
     
 
-    action->decode_enabled = true; 
-    action->default_ack = false; 
+    action->decode_enabled[0] = true;
+    action->default_ack[0] = false;
     action->generate_ack = false;
     for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
       action->payload_ptr[tb] = payload[tb];

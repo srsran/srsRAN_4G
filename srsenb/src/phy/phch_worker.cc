@@ -434,8 +434,6 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       ue_db[rnti].phich_info.n_prb_lowest = enb_ul.pusch_cfg.grant.n_prb_tilde[0];                                           
       ue_db[rnti].phich_info.n_dmrs       = phy_grant.ncs_dmrs;                                           
 
-      
-      
       char cqi_str[64];
       if (cqi_enabled) {
         srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
@@ -689,9 +687,11 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
                              phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }
+
       srslte_softbuffer_tx_t *sb[SRSLTE_MAX_CODEWORDS] = {grants[i].softbuffer, NULL};
       uint8_t                 *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
       int                     rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, 0};
+
 
       if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, rv, sf_idx, d, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0))
       {

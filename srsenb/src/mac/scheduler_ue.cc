@@ -635,7 +635,7 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
     return 0; 
   }
   
-  for (n=1;n<=cell.nof_prb && nbytes < req_bytes + 4;n++) {
+  for (n=1;n<cell.nof_prb && nbytes < req_bytes + 4;n++) {
     uint32_t nof_re = (2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs)*n*SRSLTE_NRE;
     int tbs = 0; 
     if (fixed_mcs_ul < 0) {
@@ -647,8 +647,8 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
       nbytes = tbs; 
     }
   }
-  
-  while (!srslte_dft_precoding_valid_prb(n)) {
+
+  while (!srslte_dft_precoding_valid_prb(n) && n<=cell.nof_prb) {
     n++;
   }
   
@@ -705,7 +705,7 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
   do {
     coderate = srslte_pdcch_coderate(nof_bits, l);
     l++;
-  } while(l<3 && coderate > max_coderate);
+  } while(l<3 && 1.5*coderate > max_coderate);
   Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n", dl_cqi, l, nof_bits, coderate, max_coderate);
   return l; 
 }
@@ -815,7 +815,7 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
   if (has_pucch && is_ul) {
-    cqi-=2;
+    cqi-=3;
   }
 
   int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, &sel_mcs)/8;

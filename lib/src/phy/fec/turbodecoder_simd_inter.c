@@ -172,7 +172,7 @@ void extract_input(srslte_tdec_simd_inter_t *h, int16_t *input, uint32_t cbidx, 
   }
 }
 
-void srslte_tdec_simd_inter_iteration(srslte_tdec_simd_inter_t * h, int16_t *input[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
+void srslte_tdec_simd_inter_iteration(srslte_tdec_simd_inter_t * h, int16_t *input[SRSLTE_TDEC_MAX_NPAR], uint32_t nof_cb, uint32_t long_cb)
 {
 
   if (h->current_cbidx >= 0) {
@@ -239,7 +239,7 @@ void srslte_tdec_simd_inter_decision_cb(srslte_tdec_simd_inter_t * h, uint8_t *o
   }
 }
 
-void srslte_tdec_simd_inter_decision(srslte_tdec_simd_inter_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
+void srslte_tdec_simd_inter_decision(srslte_tdec_simd_inter_t * h, uint8_t *output[SRSLTE_TDEC_MAX_NPAR], uint32_t nof_cb, uint32_t long_cb)
 {
   for (int i=0;i<nof_cb;i++) {
     srslte_tdec_simd_inter_decision_cb(h, output[i], i, long_cb);
@@ -269,7 +269,7 @@ void srslte_tdec_simd_inter_decision_byte_cb(srslte_tdec_simd_inter_t * h, uint8
   }
 }
 
-void srslte_tdec_simd_inter_decision_byte(srslte_tdec_simd_inter_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
+void srslte_tdec_simd_inter_decision_byte(srslte_tdec_simd_inter_t * h, uint8_t *output[SRSLTE_TDEC_MAX_NPAR], uint32_t nof_cb, uint32_t long_cb)
 {
   for (int i=0;i<nof_cb;i++) {
     srslte_tdec_simd_inter_decision_byte_cb(h, output[i], i, long_cb);
@@ -277,7 +277,7 @@ void srslte_tdec_simd_inter_decision_byte(srslte_tdec_simd_inter_t * h, uint8_t 
 }
 
 int srslte_tdec_simd_inter_run_all(srslte_tdec_simd_inter_t * h, 
-                                  int16_t *input[SRSLTE_TDEC_NPAR], uint8_t *output[SRSLTE_TDEC_NPAR],
+                                  int16_t *input[SRSLTE_TDEC_MAX_NPAR], uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                   uint32_t nof_iterations, uint32_t nof_cb, uint32_t long_cb)
 {
   uint32_t iter = 0;

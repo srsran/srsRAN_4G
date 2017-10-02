@@ -52,8 +52,8 @@ public:
   phy();
   bool init(srslte::radio_multi *radio_handler, 
             mac_interface_phy *mac, 
-            rrc_interface_phy *rrc, 
-            srslte::log *log_h, 
+            rrc_interface_phy *rrc,
+            std::vector<void*> log_vec,
             phy_args_t *args = NULL);
   
   void stop();
@@ -79,19 +79,19 @@ public:
 
   /********** RRC INTERFACE ********************/
   void    reset();
+  void    sync_reset();
   void    configure_ul_params(bool pregen_disabled = false);
-  void    resync_sfn();
   void    cell_search_start();
+  void    cell_search_stop();
   void    cell_search_next();
   bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
 
   /********** MAC INTERFACE ********************/
   /* Functions to synchronize with a cell */
   bool    sync_status(); // this is also RRC interface
-  bool    sync_stop();
 
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
-  void set_crnti(uint16_t rnti);
+  void    set_crnti(uint16_t rnti);
   
   /* Instructs the PHY to configure using the parameters written by set_param() */
   void    configure_prach_params();
@@ -148,6 +148,7 @@ private:
   const static int WORKERS_THREAD_PRIO = 0; 
   
   srslte::radio_multi      *radio_handler;
+  std::vector<void*>        log_vec;
   srslte::log              *log_h;
   srsue::mac_interface_phy *mac;
   srsue::rrc_interface_phy *rrc;

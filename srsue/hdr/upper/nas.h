@@ -63,7 +63,10 @@ typedef enum {
 } plmn_selection_state_t;
 
 class nas
-  : public nas_interface_rrc, public nas_interface_ue {
+  : public nas_interface_rrc,
+    public nas_interface_ue,
+    public nas_interface_gw
+{
 public:
   nas();
   void init(usim_interface_nas  *usim_,
@@ -83,6 +86,7 @@ public:
   uint32_t get_ul_count();
 
   bool is_attached();
+  bool is_attaching();
 
   bool get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
 
@@ -106,6 +110,7 @@ private:
 
   plmn_selection_state_t plmn_selection;
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT current_plmn;
+  LIBLTE_RRC_PLMN_IDENTITY_STRUCT selecting_plmn;
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT home_plmn;
 
   std::vector<LIBLTE_RRC_PLMN_IDENTITY_STRUCT > known_plmns;

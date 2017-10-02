@@ -45,7 +45,7 @@
 #include "srslte/upper/pdcp.h"
 #include "upper/rrc.h"
 #include "upper/nas.h"
-#include "srslte/upper/gw.h"
+#include "upper/gw.h"
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"
@@ -56,8 +56,6 @@
 #include "ue_metrics_interface.h"
 
 namespace srsue {
-
-//#define LOG_STDOUT
 
 /*******************************************************************************
   Main UE class
@@ -82,9 +80,6 @@ public:
 
   void pregenerate_signals(bool enable);
 
-  // Testing
-  void test_con_restablishment();
-
 
 private:
   virtual ~ue();
@@ -97,16 +92,15 @@ private:
   srslte::pdcp       pdcp;
   srsue::rrc         rrc;
   srsue::nas         nas;
-  srslte::gw         gw;
+  srsue::gw          gw;
   srsue::usim        usim;
 
-#ifdef LOG_STDOUT
-    srslte::logger_stdout logger;
-#else
-    srslte::logger_file logger;
-#endif
-  srslte::log_filter  rf_log;
-  srslte::log_filter  phy_log;
+  srslte::logger_stdout logger_stdout;
+  srslte::logger_file   logger_file;
+  srslte::logger        *logger;
+
+  // rf_log is on ue_base
+  std::vector<void*>  phy_log;
   srslte::log_filter  mac_log;
   srslte::log_filter  rlc_log;
   srslte::log_filter  pdcp_log;
@@ -119,8 +113,7 @@ private:
 
   all_args_t       *args;
   bool              started;
-  rf_metrics_t     rf_metrics;
-  
+
   bool check_srslte_version();
 };
 

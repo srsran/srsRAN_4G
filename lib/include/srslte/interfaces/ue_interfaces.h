@@ -98,6 +98,7 @@ class nas_interface_rrc
 {
 public:
   virtual bool      is_attached() = 0;
+  virtual bool      is_attaching() = 0;
   virtual void      notify_connection_setup() = 0;
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
@@ -111,6 +112,13 @@ class nas_interface_ue
 public:
   virtual void      attach_request() = 0;
   virtual void      deattach_request() = 0;
+};
+
+// NAS interface for UE
+class nas_interface_gw
+{
+public:
+  virtual void      attach_request() = 0;
 };
 
 // RRC interface for MAC
@@ -172,6 +180,7 @@ class pdcp_interface_gw
 {
 public:
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual bool is_drb_enabled(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RRC
@@ -295,11 +304,11 @@ public:
   } mac_grant_t; 
   
   typedef struct {
-    bool                    decode_enabled;
+    bool                    decode_enabled[SRSLTE_MAX_TB];
     int                     rv[SRSLTE_MAX_TB];
     uint16_t                rnti; 
     bool                    generate_ack; 
-    bool                    default_ack; 
+    bool                    default_ack[SRSLTE_MAX_TB];
     // If non-null, called after tb_decoded_ok to determine if ack needs to be sent
     bool                  (*generate_ack_callback)(void*); 
     void                   *generate_ack_callback_arg;
@@ -518,19 +527,18 @@ public:
 
   /* Cell search and selection procedures */
   virtual void cell_search_start() = 0;
+  virtual void cell_search_stop() = 0;
   virtual void cell_search_next() = 0;
   virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
-  virtual bool sync_stop() = 0;
 
   /* Is the PHY downlink synchronized? */
   virtual bool sync_status() = 0;
+  virtual void sync_reset()  = 0;
 
   /* Configure UL using parameters written with set_param() */
   virtual void configure_ul_params(bool pregen_disabled = false) = 0;
 
   virtual void reset() = 0;
-  
-  virtual void resync_sfn() = 0;   
 
 };
   

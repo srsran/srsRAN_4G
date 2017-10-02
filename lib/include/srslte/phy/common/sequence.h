@@ -94,4 +94,10 @@ SRSLTE_API int srslte_sequence_pucch(srslte_sequence_t *seq,
                                      uint16_t rnti, 
                                      uint32_t nslot, 
                                      uint32_t cell_id); 
+
+SRSLTE_API int srslte_sequence_pmch(srslte_sequence_t *seq,
+                                    uint32_t nslot,
+                                    uint32_t mbsfn_id,
+                                    uint32_t len);
+
 #endif

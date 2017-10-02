@@ -335,10 +335,9 @@ int main(int argc, char **argv) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;
             } else if (n == 0) {
-              printf("CFO: %+6.4f kHz, SFO: %+6.4f kHz, NOI: %.2f, PDCCH-Det: %.3f\r",
+              printf("CFO: %+6.4f kHz, SFO: %+6.4f kHz, PDCCH-Det: %.3f\r",
                       srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
-                      srslte_pdsch_average_noi(&ue_dl.pdsch),
-                      (float) ue_dl.nof_detected/nof_trials);                
+                      (float) ue_dl.nof_detected/nof_trials);
               nof_trials++; 
             } else {
               printf("Decoded SIB1. Payload: ");

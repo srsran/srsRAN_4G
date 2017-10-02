@@ -66,6 +66,11 @@ void rlc_tm::reset()
   empty_queue(); 
 }
 
+void rlc_tm::stop()
+{
+  reset();
+}
+
 rlc_mode_t rlc_tm::get_mode()
 {
   return RLC_MODE_TM;

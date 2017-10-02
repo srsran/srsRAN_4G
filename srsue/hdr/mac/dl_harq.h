@@ -35,7 +35,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 #include "mac/demux.h"
-#include "mac/mac_common.h"
 #include "mac/dl_sps.h"
 #include "srslte/common/mac_pcap.h"
 
@@ -58,9 +57,9 @@ public:
     pcap = NULL;
   }
     
-  bool init(srslte::log *log_h_, srslte::timers *timers_, demux *demux_unit_)
+  bool init(srslte::log *log_h_, srslte::timers::timer *timer_aligment_timer_, demux *demux_unit_)
   {
-    timers_db  = timers_; 
+    timer_aligment_timer  = timer_aligment_timer_;
     demux_unit = demux_unit_; 
     si_window_start = 0; 
     log_h = log_h_; 
@@ -102,7 +101,7 @@ public:
       } else {
         if (grant.is_sps_release) {
           dl_sps_assig.clear();
-          if (timers_db->get(TIME_ALIGNMENT)->is_running()) {
+          if (timer_aligment_timer->is_running()) {
             //phy_h->send_sps_ack();
             Warning("PHY Send SPS ACK not implemented\n");
           }
@@ -168,12 +167,14 @@ private:
     void new_grant_dl(Tgrant grant, Taction *action) {
       /* Fill action structure */
       bzero(action, sizeof(Taction));
-      action->default_ack = false;
       action->generate_ack = true;
-      action->decode_enabled = false;
+      action->rnti = grant.rnti;
 
       /* For each subprocess... */
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        action->default_ack[tb] = false;
+        action->decode_enabled[tb] = false;
+        action->phy_grant.dl.tb_en[tb] = grant.tb_en[tb];
         if (grant.tb_en[tb]) {
           subproc[tb].new_grant_dl(grant, action);
         }
@@ -210,6 +211,7 @@ private:
           return false;
         } else {
           pid = pid_;
+          is_first_tb = true;
           is_initiated = true;
           harq_entity = parent;
           log_h = harq_entity->log_h;
@@ -218,6 +220,7 @@ private:
       }
 
       void reset(void) {
+        is_first_tb = true;
         ack = false;
         payload_buffer_ptr = NULL;
         bzero(&cur_grant, sizeof(Tgrant));
@@ -239,7 +242,12 @@ private:
           }
         }
         calc_is_new_transmission(grant);
-        if (is_new_transmission) {
+        // If this is a new transmission or the size of the TB has changed
+        if (is_new_transmission || (cur_grant.n_bytes[tid] != grant.n_bytes[tid])) {
+          if (!is_new_transmission) {
+            Warning("DL PID %d: Size of grant changed during a retransmission %d!=%d\n", pid,
+                    cur_grant.n_bytes[tid], grant.n_bytes[tid]);
+          }
           ack = false;
           srslte_softbuffer_rx_reset_tbs(&softbuffer, cur_grant.n_bytes[tid] * 8);
           n_retx = 0;
@@ -258,23 +266,22 @@ private:
                                                                        cur_grant.n_bytes[tid]);
           action->payload_ptr[tid] = payload_buffer_ptr;
           if (!action->payload_ptr) {
-            action->decode_enabled = false;
+            action->decode_enabled[tid] = false;
             Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes[tid]);
             return;
           }
-          action->decode_enabled = true;
+          action->decode_enabled[tid]= true;
           action->rv[tid] = cur_grant.rv[tid];
-          action->rnti = cur_grant.rnti;
           action->softbuffers[tid] = &softbuffer;
           memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(Tphygrant));
           n_retx++;
 
         } else {
+          action->default_ack[tid] = true;
           Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
-          action->phy_grant.dl.tb_en[tid] = false;
         }
 
-        if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(TIME_ALIGNMENT)->is_expired()) {
+        if (pid == HARQ_BCCH_PID || harq_entity->timer_aligment_timer->is_expired()) {
           // Do not generate ACK
           Debug("Not generating ACK\n");
           action->generate_ack = false;
@@ -336,17 +343,14 @@ private:
       int get_current_tbs(void) { return cur_grant.n_bytes[tid] * 8; }
 
     private:
+      // Determine if it's a new transmission 5.3.2.2
       bool calc_is_new_transmission(Tgrant grant) {
-        bool is_new_tb = true;
-        if ((srslte_tti_interval(grant.tti, cur_grant.tti) <= 8 && (grant.n_bytes[tid] == cur_grant.n_bytes[tid])) ||
-            pid == HARQ_BCCH_PID) {
-          is_new_tb = false;
-        }
 
-        if ((grant.ndi[tid] != cur_grant.ndi[tid] && !is_new_tb) || // NDI toggled for same TB
-            is_new_tb || // is new TB
-            (pid == HARQ_BCCH_PID && grant.rv[tid] == 0))      // Broadcast PID and 1st TX (RV=0)
+        if ((grant.ndi[tid] != cur_grant.ndi[tid])       || // 1st condition (NDI has changed)
+            (pid == HARQ_BCCH_PID && grant.rv[tid] == 0) || // 2nd condition (Broadcast and 1st transmission)
+             is_first_tb)                                   // 3rd condition (first TB)
         {
+          is_first_tb         = false;
           is_new_transmission = true;
           Debug("Set HARQ for new transmission\n");
         } else {
@@ -361,6 +365,7 @@ private:
       dl_harq_entity *harq_entity;
       srslte::log *log_h;
 
+      bool is_first_tb;
       bool is_new_transmission;
 
       uint32_t pid;     /* HARQ Proccess ID   */
@@ -391,7 +396,7 @@ private:
   
 
   std::vector<dl_harq_process> proc;
-  srslte::timers   *timers_db;
+  srslte::timers::timer   *timer_aligment_timer;
   demux           *demux_unit; 
   srslte::log     *log_h;
   srslte::mac_pcap *pcap; 

@@ -32,12 +32,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
-
 #include "srslte/phy/phch/pdsch.h"
-#include "srslte/phy/phch/pusch.h"
-#include "srslte/phy/phch/sch.h"
-#include "srslte/phy/phch/uci.h"
-#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
@@ -174,14 +169,9 @@ void srslte_sch_set_max_noi(srslte_sch_t *q, uint32_t max_iterations) {
   q->max_iterations = max_iterations;
 }
 
-float srslte_sch_average_noi(srslte_sch_t *q) {
-  return q->average_nof_iterations; 
-}
-
 uint32_t srslte_sch_last_noi(srslte_sch_t *q) {
   return q->nof_iterations;
 }
-
 
 /* Encode a transport block according to 36.212 5.3.2
  *
@@ -320,8 +310,8 @@ bool decode_tb_cb(srslte_sch_t *q,
 
   bool cb_map[SRSLTE_MAX_CODEBLOCKS];
     
-  uint32_t cb_idx[SRSLTE_TDEC_NPAR];
-  int16_t *decoder_input[SRSLTE_TDEC_NPAR];
+  uint32_t cb_idx[SRSLTE_TDEC_MAX_NPAR];
+  int16_t *decoder_input[SRSLTE_TDEC_MAX_NPAR];
   
   uint32_t nof_cb     = cb_size_group?cb_segm->C2:cb_segm->C1;
   uint32_t first_cb   = cb_size_group?cb_segm->C1:0;
@@ -338,9 +328,9 @@ bool decode_tb_cb(srslte_sch_t *q,
     return false; 
   }
   
-  for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+  for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
     cb_idx[i]        = i+first_cb; 
-    decoder_input[i] = false; 
+    decoder_input[i] = NULL;
   }
   
   for (int i=0;i<nof_cb;i++) {
@@ -349,12 +339,14 @@ bool decode_tb_cb(srslte_sch_t *q,
     
   srslte_tdec_reset(&q->decoder, cb_len);
   
-  uint32_t remaining_cb = nof_cb; 
-  
+  uint32_t remaining_cb = nof_cb;
+
+  q->nof_iterations = 0;
+
   while(remaining_cb>0) {
         
     // Unratematch the codeblocks left to decode 
-    for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+    for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
       
       if (!decoder_input[i] && remaining_cb > 0) {        
         // Find an unprocessed CB 
@@ -372,25 +364,23 @@ bool decode_tb_cb(srslte_sch_t *q,
             n_e2 = n_e+Qm;
             rp   = (cb_segm->C - gamma)*n_e + (cb_idx[i]-(cb_segm->C - gamma))*n_e2;
           }
-                
+
           INFO("CB %d: rp=%d, n_e=%d, i=%d\n", cb_idx[i], rp, n_e2, i);
           if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[cb_idx[i]], n_e2, cb_len_idx, rv)) {
             fprintf(stderr, "Error in rate matching\n");
             return SRSLTE_ERROR;
           }
 
-          decoder_input[i] = softbuffer->buffer_f[cb_idx[i]];          
+          decoder_input[i] = softbuffer->buffer_f[cb_idx[i]];
         }
       }
     }
         
-    // Run 1 iteration for up to TDEC_NPAR codeblocks 
+    // Run 1 iteration for the codeblocks in queue
     srslte_tdec_iteration_par(&q->decoder, decoder_input, cb_len);
 
-    q->nof_iterations = srslte_tdec_get_nof_iterations_cb(&q->decoder, 0); 
-    
     // Decide output bits and compute CRC 
-    for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+    for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
       if (decoder_input[i]) {        
         srslte_tdec_decision_byte_par_cb(&q->decoder, q->cb_in, i, cb_len);
 
@@ -409,24 +399,30 @@ bool decode_tb_cb(srslte_sch_t *q,
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
 
           memcpy(&data[(cb_idx[i]*rlen)/8], q->cb_in, rlen/8 * sizeof(uint8_t));
-          
+
+          q->nof_iterations += srslte_tdec_get_nof_iterations_cb(&q->decoder, i);
+
           // Reset number of iterations for that CB in the decoder 
           srslte_tdec_reset_cb(&q->decoder, i);
           remaining_cb--;        
           decoder_input[i] = NULL; 
           cb_idx[i] = 0; 
-          
-        // CRC is error and exceeded maximum iterations for this CB. 
+
+        // CRC is error and exceeded maximum iterations for this CB.
         // Early stop the whole transport block.
         } else if (srslte_tdec_get_nof_iterations_cb(&q->decoder, i) >= q->max_iterations) {
           INFO("CB %d: Error. CB is erroneous. remaining_cb=%d, i=%d, first_cb=%d, nof_cb=%d\n", 
-                cb_idx[i], remaining_cb, i, first_cb, nof_cb);          
-          return false; 
+                cb_idx[i], remaining_cb, i, first_cb, nof_cb);
+
+          q->nof_iterations += q->max_iterations;
+          q->nof_iterations /= (nof_cb-remaining_cb+1);
+          return false;
         }
       }
     }    
   }
-  
+
+  q->nof_iterations /= nof_cb;
   return true;  
 }
 
@@ -478,7 +474,7 @@ static int decode_tb(srslte_sch_t *q,
     data[cb_segm->tbs/8+1] = 0; 
     data[cb_segm->tbs/8+2] = 0; 
     
-    // Process Codeblocks in groups of equal CB size to parallelize according to SRSLTE_TDEC_NPAR
+    // Process Codeblocks in groups of equal CB size to parallelize according to SRSLTE_TDEC_MAX_NPAR
     for (uint32_t i=0;i<nof_cb_groups && crc_ok;i++) {
       crc_ok = decode_tb_cb(q, softbuffer, cb_segm, Qm, rv, nof_e_bits, e_bits, data, i);            
     }

@@ -58,8 +58,8 @@ drb_config = drb.conf
 #####################################################################
 [rf]
 dl_earfcn = 3400
-tx_gain = 80
-rx_gain = 50
+tx_gain = 70
+rx_gain = 40
 
 #device_name = auto
 #device_args = auto
@@ -98,8 +98,9 @@ filename = /tmp/enb.pcap
 # Logging layers: phy, mac, rlc, pdcp, rrc, nas, gtpu, usim, all
 # Logging levels: debug, info, warning, error, none
 #
-# filename: File path to use for log output
-#####################################################################
+# filename: File path to use for log output. Can be set to stdout
+#           to print logs to standard output
+git c#####################################################################
 [log]
 all_level = info
 all_hex_limit = 32

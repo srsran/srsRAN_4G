@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
   bzero(&uci_data_tx, sizeof(srslte_uci_data_t));
   uci_data_tx.uci_cqi_len = 4; 
   uci_data_tx.uci_ri_len = 0; 
-  uci_data_tx.uci_ack_len = 2;
+  uci_data_tx.uci_ack_len = 1;
   memcpy(&uci_data_rx, &uci_data_tx, sizeof(srslte_uci_data_t));
     
   for (uint32_t i=0;i<20;i++) {

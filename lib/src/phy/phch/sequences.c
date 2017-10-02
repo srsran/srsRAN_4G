@@ -78,3 +78,9 @@ int srslte_sequence_pusch(srslte_sequence_t *seq, uint16_t rnti, uint32_t nslot,
 int srslte_sequence_pucch(srslte_sequence_t *seq, uint16_t rnti, uint32_t nslot, uint32_t cell_id) {
   return srslte_sequence_LTE_pr(seq, 20, ((((nslot/2)+1)*(2*cell_id+1))<<16)+rnti);
 }
+
+int srslte_sequence_pmch(srslte_sequence_t *seq, uint32_t nslot, uint32_t mbsfn_id , uint32_t len){
+  bzero(seq,sizeof(srslte_sequence_t));
+  return srslte_sequence_LTE_pr(seq, len, (((nslot/2)<<9) + mbsfn_id));
+  
+}

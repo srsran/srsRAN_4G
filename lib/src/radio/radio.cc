@@ -30,6 +30,7 @@ extern "C" {
 }
 #include "srslte/radio/radio.h"
 #include <string.h>
+#include <unistd.h>
 
 namespace srslte {
 
@@ -60,13 +61,30 @@ bool radio::init(char *args, char *devname)
   } else {
     printf("\nWarning burst preamble is not calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));
   }
-  
+
+  if (args) {
+    strncpy(saved_args, args, 128);
+  }
+  if (devname) {
+    strncpy(saved_devname, devname, 128);
+  }
+
   return true;    
 }
 
 void radio::stop() 
 {
   srslte_rf_close(&rf_device);
+}
+
+void radio::reset()
+{
+  printf("Resetting Radio...\n");
+  srslte_rf_close(&rf_device);
+  sleep(3);
+  if (srslte_rf_open_devname(&rf_device, saved_devname, saved_args)) {
+    fprintf(stderr, "Error opening RF device\n");
+  }
 }
 
 void radio::set_manual_calibration(rf_cal_t* calibration)
@@ -100,11 +118,6 @@ void radio::set_tx_adv(int nsamples)
 
 void radio::set_tx_adv_neg(bool tx_adv_is_neg) {
   tx_adv_negative = tx_adv_is_neg; 
-}
-
-void radio::tx_offset(int offset_)
-{
-  offset = offset_; 
 }
 
 bool radio::start_agc(bool tx_gain_same_rx)
@@ -167,6 +180,12 @@ bool radio::has_rssi()
   return srslte_rf_has_rssi(&rf_device);
 }
 
+bool radio::is_first_of_burst() {
+  return is_start_of_burst;
+}
+
+#define BLOCKING_TX true
+
 bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
   void *iq_samples[4] = {(void *) zeros, (void *) zeros, (void *) zeros, (void *) zeros};
@@ -185,7 +204,7 @@ bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
       save_trace(1, &tx_time_pad);
       srslte_rf_send_timed_multi(&rf_device, iq_samples, burst_preamble_samples, tx_time_pad.full_secs, tx_time_pad.frac_secs, true, true, false);
       is_start_of_burst = false; 
-    }        
+    }
   }
   
   // Save possible end of burst time 
@@ -194,24 +213,15 @@ bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
   
   save_trace(0, &tx_time);
   iq_samples[0] = buffer;
-  int ret = srslte_rf_send_timed_multi(&rf_device, (void**) iq_samples, nof_samples+offset, tx_time.full_secs, tx_time.frac_secs, true, is_start_of_burst, false);
-  offset = 0; 
-  is_start_of_burst = false; 
+  int ret = srslte_rf_send_timed_multi(&rf_device, (void**) iq_samples, nof_samples,
+                                       tx_time.full_secs, tx_time.frac_secs,
+                                       BLOCKING_TX, is_start_of_burst, false);
+  is_start_of_burst = false;
   if (ret > 0) {
     return true; 
   } else {
     return false; 
   }
-}
-
-uint32_t radio::get_tti_len()
-{
-  return sf_len; 
-}
-
-void radio::set_tti_len(uint32_t sf_len_)
-{
-  sf_len = sf_len_; 
 }
 
 void radio::tx_end()

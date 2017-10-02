@@ -107,6 +107,8 @@ typedef struct {
   float      metrics_period_secs;
   bool pregenerate_signals;
   std::string ue_cateogry;
+  bool metrics_csv_enable;
+  std::string metrics_csv_filename;
 }expert_args_t;
 
 typedef struct {

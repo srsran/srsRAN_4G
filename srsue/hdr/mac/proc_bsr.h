@@ -81,6 +81,9 @@ private:
   bool generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes); 
   char* bsr_type_tostring(triggered_bsr_type_t type); 
   char* bsr_format_tostring(bsr_format_t format);
+
+  uint32_t timer_periodic_id;
+  uint32_t timer_retx_id;
 };
 
 } // namespace srsue

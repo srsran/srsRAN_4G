@@ -223,7 +223,8 @@ void rrc::rem_user(uint16_t rnti)
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
     rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
     /* **Caution** order of removal here is imporant: from bottom to top */
-    mac->ue_rem(rnti);  // MAC handles PHY 
+    mac->ue_rem(rnti);  // MAC handles PHY
+    usleep(50000);
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
     gtpu->rem_user(rnti);
@@ -945,20 +946,16 @@ bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)
     if(erab->iE_Extensions_present) {
       parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
     }
-
-    uint8_t id = erab->e_RAB_ID.E_RAB_ID;
-    erabs[id].id = id;
-    memcpy(&erabs[id].qos_params, &erab->e_RABlevelQoSParameters, sizeof(LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT));
-    memcpy(&erabs[id].address, &erab->transportLayerAddress, sizeof(LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT));
-    uint8_to_uint32(erab->gTP_TEID.buffer, &erabs[id].teid_out);
-
-    uint8_t lcid = id - 2;  // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
-    parent->gtpu->add_bearer(rnti, lcid, erabs[id].teid_out, &(erabs[id].teid_in));
-
-    if(erab->nAS_PDU_present) {
-      memcpy(parent->erab_info.msg, erab->nAS_PDU.buffer, erab->nAS_PDU.n_octets);
-      parent->erab_info.N_bytes = erab->nAS_PDU.n_octets;
+    if(erab->transportLayerAddress.n_bits > 32) {
+      parent->rrc_log->error("IPv6 addresses not currently supported\n");
+      return false;
     }
+
+    uint32_t teid_out;
+    uint8_to_uint32(erab->gTP_TEID.buffer, &teid_out);
+    LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu = erab->nAS_PDU_present ? &erab->nAS_PDU : NULL;
+    setup_erab(erab->e_RAB_ID.E_RAB_ID, &erab->e_RABlevelQoSParameters,
+               &erab->transportLayerAddress, teid_out, nas_pdu);
   }
   return true;
 }
@@ -973,23 +970,41 @@ bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
     if(erab->iE_Extensions_present) {
       parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
     }
+    if(erab->transportLayerAddress.n_bits > 32) {
+      parent->rrc_log->error("IPv6 addresses not currently supported\n");
+      return false;
+    }
 
-    uint8_t id = erab->e_RAB_ID.E_RAB_ID;
-    erabs[id].id = id;
-    memcpy(&erabs[id].qos_params, &erab->e_RABlevelQoSParameters, sizeof(LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT));
-    memcpy(&erabs[id].address, &erab->transportLayerAddress, sizeof(LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT));
-    uint8_to_uint32(erab->gTP_TEID.buffer, &erabs[id].teid_out);
-
-    uint8_t lcid = id - 2;  // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
-    parent->gtpu->add_bearer(rnti, lcid, erabs[id].teid_out, &(erabs[id].teid_in));
-
-    memcpy(parent->erab_info.msg, erab->nAS_PDU.buffer, erab->nAS_PDU.n_octets);
-    parent->erab_info.N_bytes = erab->nAS_PDU.n_octets;
+    uint32_t teid_out;
+    uint8_to_uint32(erab->gTP_TEID.buffer, &teid_out);
+    setup_erab(erab->e_RAB_ID.E_RAB_ID, &erab->e_RABlevelQoSParameters,
+               &erab->transportLayerAddress, teid_out, &erab->nAS_PDU);
   }
+
   // Work in progress
   notify_s1ap_ue_erab_setup_response(e);
   send_connection_reconf_new_bearer(e);
   return true;
+}
+
+void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT *qos,
+                         LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT *addr, uint32_t teid_out,
+                         LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu)
+{
+  erabs[id].id = id;
+  memcpy(&erabs[id].qos_params, qos, sizeof(LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT));
+  memcpy(&erabs[id].address, addr, sizeof(LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT));
+  erabs[id].teid_out = teid_out;
+
+  uint8_t* bit_ptr = addr->buffer;
+  uint32_t addr_ = liblte_bits_2_value(&bit_ptr, addr->n_bits);
+  uint8_t lcid  = id - 2;  // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
+  parent->gtpu->add_bearer(rnti, lcid, addr_, erabs[id].teid_out, &(erabs[id].teid_in));
+
+  if(nas_pdu) {
+    memcpy(parent->erab_info.msg, nas_pdu->buffer, nas_pdu->n_octets);
+    parent->erab_info.N_bytes = nas_pdu->n_octets;
+  }
 }
 
 bool rrc::ue::release_erabs()

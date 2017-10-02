@@ -38,16 +38,16 @@ class mac_dummy_timers
     :public srslte::mac_interface_timers
 {
 public:
-  srslte::timers::timer* get(uint32_t timer_id)
+  srslte::timers::timer* timer_get(uint32_t timer_id)
   {
     return &t;
   }
-  uint32_t get_unique_id(){return 0;}
+  uint32_t timer_get_unique_id(){return 0;}
   void step()
   {
     t.step();
   }
-
+  void timer_release_id(uint32_t timer_id) {}
 private:
   srslte::timers::timer t;
 };
@@ -205,8 +205,8 @@ void loss_test()
   }
 
   // Step the reordering timer until expiry
-  while(!timers.get(1)->is_expired())
-    timers.get(1)->step();
+  while(!timers.timer_get(1)->is_expired())
+    timers.timer_get(1)->step();
 
   assert(NBUFS-1 == tester.n_sdus);
 }

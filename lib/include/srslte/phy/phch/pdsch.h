@@ -58,7 +58,8 @@ typedef struct SRSLTE_API {
   srslte_cell_t cell;
   
   uint32_t nof_rx_antennas;
-  
+  uint32_t last_nof_iterations[SRSLTE_MAX_CODEWORDS];
+
   uint32_t max_re;
 
   uint16_t ue_rnti;
@@ -149,10 +150,12 @@ SRSLTE_API int srslte_pdsch_cn_compute(srslte_pdsch_t *q,
                                        uint32_t nof_ce,
                                        float *cn);
 
-SRSLTE_API void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, uint32_t max_iter);
+SRSLTE_API void srslte_pdsch_set_max_noi(srslte_pdsch_t *q,
+                                         uint32_t max_iter);
 
-SRSLTE_API float srslte_pdsch_average_noi(srslte_pdsch_t *q);
+SRSLTE_API float srslte_pdsch_last_noi(srslte_pdsch_t *q);
 
-SRSLTE_API uint32_t srslte_pdsch_last_noi(srslte_pdsch_t *q); 
+SRSLTE_API uint32_t srslte_pdsch_last_noi_cw(srslte_pdsch_t *q,
+                                             uint32_t cw_idx);
 
 #endif

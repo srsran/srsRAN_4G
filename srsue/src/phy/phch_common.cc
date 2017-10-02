@@ -34,8 +34,6 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-#define TX_MODE_CONTINUOUS 0 
-
 namespace srsue {
 
 cf_t zeros[50000];
@@ -63,6 +61,10 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   cur_pusch_power = 0;
   bzero(zeros, 50000*sizeof(cf_t));
 
+  // FIXME: This is an ungly fix to avoid the TX filters to empty
+  for (int i=0;i<50000;i++) {
+    zeros[i] = 0.01*cexpf(((float) i/50000)*0.1*_Complex_I);
+  }
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   dl_metrics_read = true;
   dl_metrics_count = 0;
@@ -74,10 +76,11 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   sync_metrics_count = 0;
 }
   
-void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, mac_interface_phy *_mac)
+void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, rrc_interface_phy *_rrc, mac_interface_phy *_mac)
 {
   log_h     = _log; 
-  radio_h   = _radio; 
+  radio_h   = _radio;
+  rrc       = _rrc;
   mac       = _mac; 
   config    = _config;     
   args      = _args; 

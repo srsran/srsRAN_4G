@@ -32,7 +32,7 @@
 #include "upper/common_enb.h"
 #include "upper/s1ap_metrics.h"
 #include "upper/rrc_metrics.h"
-#include "srslte/upper/gw_metrics.h"
+#include "../../../../srsue/hdr/upper/gw_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "mac/mac_metrics.h"
 #include "phy/phy_metrics.h"

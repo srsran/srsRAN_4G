@@ -38,6 +38,8 @@
 
 #include "ue.h"
 #include "metrics_stdout.h"
+#include "metrics_csv.h"
+#include "srslte/common/metrics_hub.h"
 #include "srslte/version.h"
 
 using namespace std;
@@ -103,6 +105,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("log.usim_level", bpo::value<string>(&args->log.usim_level), "USIM log level")
     ("log.usim_hex_limit", bpo::value<int>(&args->log.usim_hex_limit), "USIM log hex dump limit")
 
+
     ("log.all_level", bpo::value<string>(&args->log.all_level)->default_value("info"), "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log.all_hex_limit)->default_value(32), "ALL log hex dump limit")
 
@@ -132,6 +135,14 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.metrics_period_secs",
      bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
      "Periodicity for metrics in seconds")
+
+    ("expert.metrics_csv_enable",
+     bpo::value<bool>(&args->expert.metrics_csv_enable)->default_value(false),
+     "Write UE metrics to CSV file")
+
+    ("expert.metrics_csv_filename",
+     bpo::value<string>(&args->expert.metrics_csv_filename)->default_value("/tmp/ue_metrics.csv"),
+     "Metrics CSV filename")
 
     ("expert.pregenerate_signals",
      bpo::value<bool>(&args->expert.pregenerate_signals)->default_value(false),
@@ -319,13 +330,13 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
 static bool running = true;
 static bool do_metrics = false;
+metrics_stdout metrics_screen;
 
 void sig_int_handler(int signo) {
   running = false;
 }
 
 void *input_loop(void *m) {
-  metrics_stdout *metrics = (metrics_stdout *) m;
   char key;
   while (running) {
     cin >> key;
@@ -336,7 +347,7 @@ void *input_loop(void *m) {
       } else {
         cout << "Enter t to restart trace." << endl;
       }
-      metrics->toggle_print(do_metrics);
+      metrics_screen.toggle_print(do_metrics);
     }
   }
   return NULL;
@@ -344,6 +355,7 @@ void *input_loop(void *m) {
 
 int main(int argc, char *argv[])
 {
+  srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
   all_args_t args;
   parse_args(&args, argc, argv);
@@ -360,11 +372,18 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  metrics_stdout metrics;
-  metrics.init(ue, args.expert.metrics_period_secs);
+  metricshub.init(ue, args.expert.metrics_period_secs);
+  metricshub.add_listener(&metrics_screen);
+  metrics_screen.set_ue_handle(ue);
+
+  metrics_csv metrics_file(args.expert.metrics_csv_filename);
+  if (args.expert.metrics_csv_enable) {
+    metricshub.add_listener(&metrics_file);
+    metrics_file.set_ue_handle(ue);
+  }
 
   pthread_t input;
-  pthread_create(&input, NULL, &input_loop, &metrics);
+  pthread_create(&input, NULL, &input_loop, &args);
 
   bool plot_started = false;
   bool signals_pregenerated = false;
@@ -382,7 +401,7 @@ int main(int argc, char *argv[])
     sleep(1);
   }
   pthread_cancel(input);
-  metrics.stop();
+  metricshub.stop();
   ue->stop();
   ue->cleanup();
   cout << "---  exiting  ---" << endl;
