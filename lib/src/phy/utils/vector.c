@@ -37,15 +37,6 @@
 
 
 
-int srslte_vec_acc_ii(int *x, uint32_t len) {
-  int i;
-  int z=0;
-  for (i=0;i<len;i++) {
-    z+=x[i];
-  }
-  return z;
-}
-
 // Used in PRACH detector, AGC and chest_dl for noise averaging
 float srslte_vec_acc_ff(float *x, uint32_t len) {
   return srslte_vec_acc_ff_simd(x, len);
@@ -60,16 +51,6 @@ void srslte_vec_ema_filter(cf_t *new_data, cf_t *average, cf_t *output, float co
 cf_t srslte_vec_acc_cc(cf_t *x, uint32_t len) {
   return srslte_vec_acc_cc_simd(x, len);
 }
-
-#warning Remove function if not used!
-/*void srslte_vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoints) {
-  uint32_t i;
-  cf_t diff; 
-  for (i=0;i<npoints;i++) {
-    diff = symbol - points[i];
-    distance[i] = crealf(diff) * crealf(diff) + cimagf(diff) * cimagf(diff);
-  }
-}*/
 
 void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
   srslte_vec_sub_fff_simd(x, y, z, len);
@@ -97,85 +78,15 @@ void srslte_vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
   srslte_vec_sum_fff((float*) x,(float*) y,(float*) z,2*len);
 }
 
-void srslte_vec_sum_bbb(uint8_t *x, uint8_t *y, uint8_t *z, uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = x[i]+y[i];
-  }
-}
-
-void srslte_vec_sc_add_fff(float *x, float h, float *z, uint32_t len) {
-  int i; 
-  for (i=0;i<len;i++) {
-    z[i] = x[i]+h;
-  }
-}
-
-void srslte_vec_sc_add_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
-  int i; 
-  for (i=0;i<len;i++) {
-    z[i] = x[i]+ h;
-  }
-}
-
-void srslte_vec_sc_add_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = x[i]+ h;
-  }
-}
-
-void srslte_vec_sc_add_sss(int16_t *x, int16_t h, int16_t *z, uint32_t len) {
-  int i; 
-  for (i=0;i<len;i++) {
-    z[i] = x[i]+ h;
-  }
-}
-// PSS, PBCH, DEMOD, FFTW, etc. 
+// PSS, PBCH, DEMOD, FFTW, etc.
 void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
   srslte_vec_sc_prod_fff_simd(x, h, z, len);
-}
-
-void srslte_vec_sc_prod_sfs(short *x, float h, short *z, uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = x[i]*h;
-  }
-}
-
-#warning remove function if it is not used
-/*void srslte_vec_sc_div2_sss(short *x, int n_rightshift, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX2
-  srslte_vec_sc_div2_sss_avx2(x, n_rightshift, z, len);
-#else
-#ifdef LV_HAVE_SSE
-  srslte_vec_sc_div2_sss_sse(x, n_rightshift, z, len);
-#else
-  int i;
-  int pow2_div = 1<<n_rightshift;
-  for (i=0;i<len;i++) {
-    z[i] = x[i]/pow2_div;
-  }
-#endif
-#endif
-}*/
-
-// TODO: Improve this implementation
-void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len) {
-  // We should use fabs() here but is statistically should be similar
-  float *xp = (float*) x; 
-  uint32_t idx = srslte_vec_max_fi(xp, 2*len);
-  float max = xp[idx]; 
-
-  // Normalize before TX 
-  srslte_vec_sc_prod_cfc(x, amplitude/max, y, len);
 }
 
 // Used throughout 
 void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) { 
   srslte_vec_sc_prod_cfc_simd(x,h,z,len);
 }
-
 
 // Chest UL 
 void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
@@ -190,63 +101,14 @@ void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len) {
   }
 }
 
-
-void srslte_vec_convert_ci(int8_t *x, int16_t *z, uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = ((int16_t) x[i]);
-  }
-}
-
 void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
   srslte_vec_convert_fi_simd(x, z, scale, len);
-}
-
-void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len) {
-  for (int i=0;i<len;i++) {
-    y[lut[i]] = x[i];
-  }
 }
 
 void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len) {
   srslte_vec_lut_sss_simd(x, lut, y, len);
 }
 
-void srslte_vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len) {
-#ifdef HAVE_VOLK_INTERLEAVE_FUNCTION
-  volk_32f_x2_interleave_32fc(x, real, imag, len);
-#else 
-  int i;
-  for (i=0;i<len;i++) {
-    x[i] = real[i] + _Complex_I*imag[i];
-  }
-#endif
-}
-
-void srslte_vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len) {
-#ifdef HAVE_VOLK_DEINTERLEAVE_FUNCTION
-  volk_32fc_deinterleave_32f_x2(real, imag, x, len);
-#else 
-  int i;
-  for (i=0;i<len;i++) {
-    real[i] = __real__ x[i];
-    imag[i] = __imag__ x[i];
-  }
-#endif
-}
-
-void srslte_vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    real[i] = __real__ x[i];
-  }
-}
-
-/* Note: We align memory to 32 bytes (for AVX2 compatibility) 
- * because in some cases volk can incorrectly detect the architecture. 
- * This could be inefficient for SSE or non-SIMD platforms but shouldn't 
- * be a huge problem. 
- */
 void *srslte_vec_malloc(uint32_t size) {
   void *ptr;
   if (posix_memalign(&ptr, SRSLTE_SIMD_BIT_ALIGN, size)) {
@@ -493,51 +355,9 @@ void srslte_vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len) {
   srslte_vec_abs_square_cf_simd(x,abs_square,len);
 }
 
-
-void srslte_vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    arg[i] = cargf(x[i]);
-  }
-}
-
 uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
   return srslte_vec_max_fi_simd(x, len);
 }
-
-int16_t srslte_vec_max_star_si(int16_t *x, uint32_t len) {
-  uint32_t i;
-  int16_t m=-INT16_MIN;
-  for (i=0;i<len;i++) {
-    if (x[i]>m) {
-      m=x[i];
-    }
-  }
-  return m;
-}
-
-int16_t srslte_vec_max_abs_star_si(int16_t *x, uint32_t len) {
-  uint32_t i;
-  int16_t m=-INT16_MIN;
-  for (i=0;i<len;i++) {
-    if (abs(x[i])>m) {
-      m=abs(x[i]);
-    }
-  }
-  return m;
-}
-
-void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len) {
-  uint32_t i; 
-  for (i=0;i<len;i++) {
-    if (x[i] > y[i]) {
-      z[i] = x[i]; 
-    } else {
-      z[i] = y[i]; 
-    }
-  }
-}
-
 
 // CP autocorr
 uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
