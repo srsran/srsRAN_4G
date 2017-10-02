@@ -198,13 +198,16 @@ void gtpu::run_thread()
 
     pdu->reset();
     gtpu_log->debug("Waiting for read...\n");
+    int n = 0;
     do{
-      pdu->N_bytes = recv(src_fd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0);
-    }while (pdu->N_bytes == -1 && errno == EAGAIN);
+      n = recv(src_fd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0);
+    } while (n == -1 && errno == EAGAIN);
 
-    if (pdu->N_bytes == -1) {
+    if (n < 0) {
         gtpu_log->error("Failed to read from socket\n");
     }
+
+    pdu->N_bytes = (uint32_t) n;
     
     gtpu_header_t header;
     gtpu_read_header(pdu, &header);
