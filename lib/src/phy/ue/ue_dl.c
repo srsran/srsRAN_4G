@@ -631,8 +631,7 @@ int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
       fprintf(stderr, "Error calling srslte_pmch_decode()\n");
     }
   }
-printf("q->pmch_pkts_total %d \n", q->pmch_pkts_total);
-printf("qq->pmch_pkt_errors %d \n", q->pmch_pkt_errors);
+
   q->pmch_pkts_total++;
 
   if (ret == SRSLTE_SUCCESS) {
