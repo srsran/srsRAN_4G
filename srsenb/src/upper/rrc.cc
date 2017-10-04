@@ -24,9 +24,10 @@
  *
  */
 
-#include <srslte/interfaces/sched_interface.h>
-#include <srslte/asn1/liblte_rrc.h>
-#include <upper/rrc.h>
+#include "srslte/interfaces/sched_interface.h"
+#include "srslte/asn1/liblte_rrc.h"
+#include "upper/rrc.h"
+#include "srslte/srslte.h"
 #include "srslte/asn1/liblte_mme.h"
 #include "upper/rrc.h"
 
@@ -1177,7 +1178,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
   sched_cfg.pucch_cfg.delta_pucch_shift  = liblte_rrc_delta_pucch_shift_num[parent->sib2.rr_config_common_sib.pucch_cnfg.delta_pucch_shift%LIBLTE_RRC_DELTA_PUCCH_SHIFT_N_ITEMS];
   sched_cfg.pucch_cfg.N_cs               = parent->sib2.rr_config_common_sib.pucch_cnfg.n_cs_an;
   sched_cfg.pucch_cfg.n_rb_2             = parent->sib2.rr_config_common_sib.pucch_cnfg.n_rb_cqi;
-  
+  sched_cfg.pucch_cfg.n1_pucch_an        = parent->sib2.rr_config_common_sib.pucch_cnfg.n1_pucch_an;
+
   // Configure MAC 
   parent->mac->ue_cfg(rnti, &sched_cfg);
     

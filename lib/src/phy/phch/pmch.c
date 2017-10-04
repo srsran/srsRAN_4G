@@ -394,8 +394,10 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
     * thus we don't need tot set it in thde LLRs normalization
     */
    
+    
+    
     srslte_demod_soft_demodulate_s(cfg->grant.mcs[0].mod, q->d, q->e, cfg->nbits[0].nof_re);
-   
+    
     /* descramble */
     srslte_scrambling_s_offset(&q->seqs[area_id]->seq[cfg->sf_idx], q->e, 0, cfg->nbits[0].nof_bits);
   
