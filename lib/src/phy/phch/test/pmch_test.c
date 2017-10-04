@@ -151,8 +151,8 @@ int main(int argc, char **argv) {
   parse_args(argc,argv);
 
   /* Initialise to zeros */
-  bzero(&pmch_tx, sizeof(srslte_pdsch_t));
-  bzero(&pmch_rx, sizeof(srslte_pdsch_t));
+  bzero(&pmch_tx, sizeof(srslte_pmch_t));
+  bzero(&pmch_rx, sizeof(srslte_pmch_t));
   bzero(&pmch_cfg, sizeof(srslte_pdsch_cfg_t));
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(tx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
