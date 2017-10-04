@@ -160,6 +160,19 @@ add_test(pdsch_test_multiplex2cw_p1_75  pdsch_test -x multiplex -a 2 -t 0 -p 1 -
 add_test(pdsch_test_multiplex2cw_p1_100 pdsch_test -x multiplex -a 2 -t 0 -p 1 -n 100)
 
 ########################################################################
+# PMCH TEST  
+########################################################################
+
+
+add_executable(pmch_test pmch_test.c)
+target_link_libraries(pmch_test srslte_phy)
+
+add_test(pmch_test_qpsk pmch_test -m 6 -n 50)
+add_test(pmch_test_qam16 pmch_test -m 15 -n 100)
+add_test(pmch_test_qam64 pmch_test -m 25 -n 100)
+
+
+########################################################################
 # FILE TEST  
 ########################################################################
 
@@ -178,11 +191,15 @@ target_link_libraries(pdcch_file_test srslte_phy)
 add_executable(pdsch_pdcch_file_test pdsch_pdcch_file_test.c)
 target_link_libraries(pdsch_pdcch_file_test srslte_phy)
 
+add_executable(pmch_file_test pmch_file_test.c)
+target_link_libraries(pmch_file_test srslte_phy)
+
 add_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat) 
 add_test(pcfich_file_test pcfich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat) 
 add_test(phich_file_test phich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat) 
 add_test(pdcch_file_test pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat) 
-add_test(pdsch_pdcch_file_test pdsch_pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat) 
+add_test(pdsch_pdcch_file_test pdsch_pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat)
+add_test(pmch_file_test pmch_file_test  -i ${CMAKE_CURRENT_SOURCE_DIR}/pmch_100prbs_MCS2_SR0.bin) 
 
 ########################################################################
 # PUSCH TEST  

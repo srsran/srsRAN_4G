@@ -320,9 +320,9 @@ void base_init() {
     exit(-1);
   }
   srslte_ofdm_set_non_mbsfn_region(&ifft_mbsfn, 2);
-  
-  srslte_ofdm_set_normalize(&ifft, true);
   srslte_ofdm_set_normalize(&ifft_mbsfn, true);
+  srslte_ofdm_set_normalize(&ifft, true);
+  
   
   if (srslte_pbch_init(&pbch)) {
     fprintf(stderr, "Error creating PBCH object\n");
