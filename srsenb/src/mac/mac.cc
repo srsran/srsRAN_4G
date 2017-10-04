@@ -403,7 +403,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
 int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 {
-  log_step_dl(tti);
+  log_h->step(tti);
 
   if (!started) {
     return 0; 
@@ -544,8 +544,8 @@ uint8_t* mac::assemble_si(uint32_t index)
 
 int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res) 
 {
-  
-  log_step_ul(tti);
+
+  log_h->step(tti);
   
   if (!started) {
     return 0; 
@@ -600,24 +600,6 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
   }
   ul_sched_res->nof_phich = sched_result.nof_phich_elems;
   return SRSLTE_SUCCESS; 
-}
-
-void mac::log_step_ul(uint32_t tti) 
-{
-  int tti_ul = tti-8;
-  if (tti_ul < 0) {
-    tti_ul += 10240;
-  }
-  log_h->step(tti_ul);
-}
-
-void mac::log_step_dl(uint32_t tti) 
-{
-  int tti_dl = tti-4;
-  if (tti_dl < 0) {
-    tti_dl += 10240;
-  }
-  log_h->step(tti_dl);
 }
 
 void mac::tti_clock()

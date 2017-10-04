@@ -700,7 +700,6 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     sched_ue *user = (sched_ue*) &iter->second;
     uint16_t rnti  = (uint16_t) iter->first; 
 
-    user->has_pusch = false;
     user->has_pucch = false;
 
     ul_harq_proc *h = user->get_ul_harq(current_tti);
@@ -726,15 +725,12 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     sched_ue *user = (sched_ue*) &iter->second;
     uint16_t rnti  = (uint16_t) iter->first; 
     uint32_t prb_idx[2] = {0, 0}; 
-    uint32_t L = 0; 
-    if (user->get_pucch_sched(current_tti, prb_idx, &L)) {
+    if (user->get_pucch_sched(current_tti, prb_idx)) {
       user->has_pucch = true;
-      // allocate PUCCH if no PUSCH for user
-      if (!user->has_pusch) {
-        for (int i=0;i<2;i++) {
-          ul_harq_proc::ul_alloc_t pucch = {prb_idx[i], L};
-          ul_metric->update_allocation(pucch);
-        }
+      // allocate PUCCH
+      for (int i=0;i<2;i++) {
+        ul_harq_proc::ul_alloc_t pucch = {prb_idx[i], 1};
+        ul_metric->update_allocation(pucch);
       }
     }
   }
@@ -807,22 +803,22 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
             user->unset_sr();
           }
 
-          log_h->info("SCHED: %s %s rnti=0x%x, pid=%d, dci=%d,%d, grant=%d,%d, n_rtx=%d, tbs=%d, bsr=%d (%d-%d)\n",
+          log_h->info("SCHED: %s %s rnti=0x%x, pid=%d, dci=%d,%d, grant=(%d,%d), n_rtx=%d, tbs=%d, bsr=%d (%d-%d)\n",
                       is_rar?"RAR":"UL",
                       is_newtx?"tx":"retx",                
                       rnti, h->get_id(), 
                       sched_result->pusch[nof_dci_elems].dci_location.L, sched_result->pusch[nof_dci_elems].dci_location.ncce,
-                      alloc.RB_start, alloc.L, h->nof_retx(), sched_result->pusch[nof_dci_elems].tbs, 
+                      alloc.RB_start, alloc.RB_start+alloc.L, h->nof_retx(), sched_result->pusch[nof_dci_elems].tbs,
                       user->get_pending_ul_new_data(current_tti),pending_data_before, user->get_pending_ul_old_data());
 
           nof_dci_elems++;          
         } else {
-          log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=%d,%d, grant=%d,%d, tbs=%d, bsr=%d\n", 
+          log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=%d,%d, grant=(%d,%d), tbs=%d, bsr=%d\n",
                       is_rar?"RAR":"UL",
                       is_newtx?"tx":"retx",                
                       rnti, h->get_id(), 
                       sched_result->pusch[nof_dci_elems].dci_location.L, sched_result->pusch[nof_dci_elems].dci_location.ncce,
-                      alloc.RB_start, alloc.L, sched_result->pusch[nof_dci_elems].tbs, 
+                      alloc.RB_start, alloc.RB_start+alloc.L, sched_result->pusch[nof_dci_elems].tbs,
                       user->get_pending_ul_new_data(current_tti));
         }   
       }
