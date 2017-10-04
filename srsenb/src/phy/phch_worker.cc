@@ -176,11 +176,16 @@ cf_t* phch_worker::get_buffer_rx()
 void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timestamp_t tx_time_)
 {
   tti_rx       = tti_; 
-  tti_tx       = (tti_ + 4)%10240; 
-  tti_sched_ul = (tti_ + 8)%10240; 
+  tti_tx       = HARQ_TX(tti_rx);
+  tti_sched_ul = HARQ_RX(tti_rx);
+  
   sf_rx        = tti_rx%10;
   sf_tx        = tti_tx%10;
-  sf_sched_ul  = tti_sched_ul%10;
+  
+  t_tx         = TTIMOD(tti_tx);
+  t_rx         = TTIMOD(tti_rx);
+  t_sched_ul   = TTIMOD(tti_sched_ul);
+  
   tx_mutex_cnt = tx_mutex_cnt_;
   memcpy(&tx_time, &tx_time_, sizeof(srslte_timestamp_t));
 }
@@ -245,7 +250,7 @@ void phch_worker::rem_rnti(uint16_t rnti)
     srslte_enb_ul_rem_rnti(&enb_ul, rnti);
     
     // remove any pending grant for each subframe 
-    for (uint32_t i=0;i<10;i++) {
+    for (uint32_t i=0;i<TTIMOD_SZ;i++) {
       for (uint32_t j=0;j<phy->ul_grants[i].nof_grants;j++) {
         if (phy->ul_grants[i].sched_grants[j].rnti == rnti) {
           phy->ul_grants[i].sched_grants[j].rnti = 0; 
@@ -265,8 +270,6 @@ void phch_worker::rem_rnti(uint16_t rnti)
 
 void phch_worker::work_imp()
 {
-  uint32_t sf_ack;
-
   if (!running) {
     return;
   }
@@ -290,48 +293,47 @@ void phch_worker::work_imp()
   srslte_enb_ul_fft(&enb_ul, signal_buffer_rx);
 
   // Decode pending UL grants for the tti they were scheduled
-  decode_pusch(ul_grants[sf_rx].sched_grants, ul_grants[sf_rx].nof_grants, sf_rx);
+  decode_pusch(ul_grants[t_rx].sched_grants, ul_grants[t_rx].nof_grants);
   
   // Decode remaining PUCCH ACKs not associated with PUSCH transmission and SR signals
-  decode_pucch(tti_rx);
+  decode_pucch();
       
   // Get DL scheduling for the TX TTI from MAC
-  if (mac->get_dl_sched(tti_tx, &dl_grants[sf_tx]) < 0) {
+  if (mac->get_dl_sched(tti_tx, &dl_grants[t_tx]) < 0) {
     Error("Getting DL scheduling from MAC\n");
     goto unlock;
   } 
   
-  if (dl_grants[sf_tx].cfi < 1 || dl_grants[sf_tx].cfi > 3) {
-    Error("Invalid CFI=%d\n", dl_grants[sf_tx].cfi);
+  if (dl_grants[t_tx].cfi < 1 || dl_grants[t_tx].cfi > 3) {
+    Error("Invalid CFI=%d\n", dl_grants[t_tx].cfi);
     goto unlock;
   }
   
   // Get UL scheduling for the TX TTI from MAC
-  if (mac->get_ul_sched(tti_sched_ul, &ul_grants[sf_sched_ul]) < 0) {
+  if (mac->get_ul_sched(tti_sched_ul, &ul_grants[t_sched_ul]) < 0) {
     Error("Getting UL scheduling from MAC\n");
     goto unlock;
   } 
   
   // Put base signals (references, PBCH, PCFICH and PSS/SSS) into the resource grid
   srslte_enb_dl_clear_sf(&enb_dl);
-  srslte_enb_dl_set_cfi(&enb_dl, dl_grants[sf_tx].cfi);
+  srslte_enb_dl_set_cfi(&enb_dl, dl_grants[t_tx].cfi);
   srslte_enb_dl_put_base(&enb_dl, tti_tx);
 
   // Put UL/DL grants to resource grid. PDSCH data will be encoded as well. 
-  encode_pdcch_dl(dl_grants[sf_tx].sched_grants, dl_grants[sf_tx].nof_grants, sf_tx);  
-  encode_pdcch_ul(ul_grants[sf_sched_ul].sched_grants, ul_grants[sf_sched_ul].nof_grants, sf_tx);
-  encode_pdsch(dl_grants[sf_tx].sched_grants, dl_grants[sf_tx].nof_grants, sf_tx);  
+  encode_pdcch_dl(dl_grants[t_tx].sched_grants, dl_grants[t_tx].nof_grants);
+  encode_pdcch_ul(ul_grants[t_sched_ul].sched_grants, ul_grants[t_sched_ul].nof_grants);
+  encode_pdsch(dl_grants[t_tx].sched_grants, dl_grants[t_tx].nof_grants);
   
   // Put pending PHICH HARQ ACK/NACK indications into subframe
-  encode_phich(ul_grants[sf_sched_ul].phich, ul_grants[sf_sched_ul].nof_phich, sf_tx);
+  encode_phich(ul_grants[t_sched_ul].phich, ul_grants[t_sched_ul].nof_phich);
   
-  // Prepare for receive ACK for DL grants in sf_tx+4
-  sf_ack = (sf_tx+4)%10; 
-  phy->ack_clear(sf_ack);
-  for (uint32_t i=0;i<dl_grants[sf_tx].nof_grants;i++) {
+  // Prepare for receive ACK for DL grants in t_tx+4
+  phy->ack_clear(TTIMOD(HARQ_TX(sf_tx)));
+  for (uint32_t i=0;i<dl_grants[t_tx].nof_grants;i++) {
     // SI-RNTI and RAR-RNTI do not have ACK
-    if (dl_grants[sf_tx].sched_grants[i].rnti >= SRSLTE_CRNTI_START && dl_grants[sf_tx].sched_grants[i].rnti <= SRSLTE_CRNTI_END) {
-      phy->ack_set_pending(sf_ack, dl_grants[sf_tx].sched_grants[i].rnti, dl_grants[sf_tx].sched_grants[i].location.ncce);      
+    if (dl_grants[t_tx].sched_grants[i].rnti >= SRSLTE_CRNTI_START && dl_grants[t_tx].sched_grants[i].rnti <= SRSLTE_CRNTI_END) {
+      phy->ack_set_pending(TTIMOD(HARQ_TX(sf_tx)), dl_grants[t_tx].sched_grants[i].rnti, dl_grants[t_tx].sched_grants[i].location.ncce);
     }
   }
   
@@ -364,7 +366,7 @@ unlock:
 }
 
 
-int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti)
+int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
 {
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
@@ -383,7 +385,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
     #endif
 
       // Get pending ACKs with an associated PUSCH transmission
-      if (phy->ack_is_pending(sf_rx, rnti)) {
+      if (phy->ack_is_pending(t_rx, rnti)) {
         uci_data.uci_ack_len = 1; 
       }
       // Configure PUSCH CQI channel 
@@ -406,7 +408,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       
       srslte_ra_ul_grant_t phy_grant; 
       int res = -1;
-      if (!srslte_ra_ul_dci_to_grant(&grants[i].grant, enb_ul.cell.nof_prb, n_rb_ho, &phy_grant, tti%8)) {
+      if (!srslte_ra_ul_dci_to_grant(&grants[i].grant, enb_ul.cell.nof_prb, n_rb_ho, &phy_grant, tti_rx%8)) {
         if (phy_grant.mcs.mod == SRSLTE_MOD_64QAM) {
           phy_grant.mcs.mod = SRSLTE_MOD_16QAM;
         }
@@ -416,7 +418,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
                                                 grants[i].current_tx_nb, 
                                                 grants[i].data, 
                                                 &uci_data, 
-                                                tti);     
+                                                sf_rx);
       } else {
         Error("Computing PUSCH grant\n");
         return SRSLTE_ERROR; 
@@ -502,10 +504,9 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
 }
 
 
-int phch_worker::decode_pucch(uint32_t tti_rx)
+int phch_worker::decode_pucch()
 {
-  uint32_t sf_rx = tti_rx%10;
-  srslte_uci_data_t uci_data; 
+  srslte_uci_data_t uci_data;
   
   for(std::map<uint16_t, ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     uint16_t rnti = (uint16_t) iter->first;
@@ -523,7 +524,7 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
           uci_data.scheduling_request = true; 
         }
       }      
-      if (phy->ack_is_pending(sf_rx, rnti, &last_n_pdcch)) {
+      if (phy->ack_is_pending(t_rx, rnti, &last_n_pdcch)) {
         needs_pucch = true; 
         needs_ack = true; 
         uci_data.uci_ack_len = 1; 
@@ -539,7 +540,7 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
       }
       
       if (needs_pucch) {
-        if (srslte_enb_ul_get_pucch(&enb_ul, rnti, last_n_pdcch, sf_rx, &uci_data)) {
+        if (srslte_enb_ul_get_pucch(&enb_ul, rnti, last_n_pdcch, t_rx, &uci_data)) {
           fprintf(stderr, "Error getting PUCCH\n");
           return SRSLTE_ERROR; 
         }
@@ -581,7 +582,7 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
 }
 
 
-int phch_worker::encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
+int phch_worker::encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks)
 {
   for (uint32_t i=0;i<nof_acks;i++) {
     uint16_t rnti = acks[i].rnti;
@@ -589,7 +590,7 @@ int phch_worker::encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks, ui
       srslte_enb_dl_put_phich(&enb_dl, acks[i].ack, 
                               ue_db[rnti].phich_info.n_prb_lowest, 
                               ue_db[rnti].phich_info.n_dmrs, 
-                              sf_idx);
+                              sf_tx);
       
       Info("PHICH: rnti=0x%x, hi=%d, I_lowest=%d, n_dmrs=%d, tti_tx=%d\n", 
           rnti, acks[i].ack, 
@@ -601,24 +602,24 @@ int phch_worker::encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks, ui
 }
 
 
-int phch_worker::encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int phch_worker::encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_grants)
 {
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (grants[i].needs_pdcch && rnti) {
-      if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &grants[i].grant, grants[i].location, rnti, sf_idx)) {
+      if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &grants[i].grant, grants[i].location, rnti, sf_tx)) {
         fprintf(stderr, "Error putting PUSCH %d\n",i);
         return SRSLTE_ERROR; 
       }
 
-      Info("PDCCH: UL DCI Format0  rnti=0x%x, cce_index=%d, L=%d, tti_tx=%d\n", 
-          rnti, grants[i].location.ncce, (1<<grants[i].location.L), tti_tx);
+      Info("PDCCH: UL DCI Format0  rnti=0x%x, cce_index=%d, L=%d, tpc=%d, tti_tx=%d\n",
+           rnti, grants[i].location.ncce, (1<<grants[i].location.L), grants[i].grant.tpc_pusch, tti_tx);
     }
   }
   return SRSLTE_SUCCESS; 
 }
 
-int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants)
 {
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
@@ -633,7 +634,7 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
           format = SRSLTE_DCI_FORMAT1A; 
         break;
       }
-      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &grants[i].grant, format, grants[i].location, rnti, sf_idx)) {
+      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &grants[i].grant, format, grants[i].location, rnti, sf_tx)) {
         fprintf(stderr, "Error putting PDCCH %d\n",i);
         return SRSLTE_ERROR; 
       }      
@@ -647,7 +648,7 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
   return 0; 
 }
 
-int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants)
 {
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
@@ -683,7 +684,7 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
           len = 1; 
         }        
         log_h->info_hex(ptr, len,
-                             "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n", 
+                             "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n",
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
                              phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }
@@ -693,7 +694,7 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
       int                     rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, 0};
 
 
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, rv, sf_idx, d, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0))
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, rv, sf_tx, d, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0))
       {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 

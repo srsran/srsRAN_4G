@@ -195,13 +195,13 @@ void phch_common::set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int 
 }
 
 void phch_common::reset_pending_ack(uint32_t tti) {
-  pending_ack[tti%10].enabled = false; 
+  pending_ack[TTIMOD(tti)].enabled = false;
 }
 
 void phch_common::set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs) {
-  pending_ack[tti%10].enabled  = true; 
-  pending_ack[tti%10].I_lowest = I_lowest;       
-  pending_ack[tti%10].n_dmrs = n_dmrs;            
+  pending_ack[TTIMOD(tti)].enabled  = true;
+  pending_ack[TTIMOD(tti)].I_lowest = I_lowest;
+  pending_ack[TTIMOD(tti)].n_dmrs = n_dmrs;
   Debug("Set pending ACK for tti=%d I_lowest=%d, n_dmrs=%d\n", tti, I_lowest, n_dmrs);
 }
 
@@ -211,12 +211,12 @@ bool phch_common::get_pending_ack(uint32_t tti) {
 
 bool phch_common::get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_dmrs) {
   if (I_lowest) {
-    *I_lowest = pending_ack[tti%10].I_lowest;
+    *I_lowest = pending_ack[TTIMOD(tti)].I_lowest;
   }
   if (n_dmrs) {
-    *n_dmrs = pending_ack[tti%10].n_dmrs;
+    *n_dmrs = pending_ack[TTIMOD(tti)].n_dmrs;
   }
-  return pending_ack[tti%10].enabled;
+  return pending_ack[TTIMOD(tti)].enabled;
 }
 
 /* The transmisison of UL subframes must be in sequence. Each worker uses this function to indicate

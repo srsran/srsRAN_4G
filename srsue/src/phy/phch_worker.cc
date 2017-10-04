@@ -335,7 +335,7 @@ void phch_worker::work_imp()
                  &ul_action.softbuffers[0], ul_action.rv[0], ul_action.rnti, ul_mac_grant.is_from_rar);
     signal_ready = true; 
     if (ul_action.expect_ack) {
-      phy->set_pending_ack(tti + 8, ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
+      phy->set_pending_ack(HARQ_RX(tti), ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
     }
 
   } else if (dl_action.generate_ack || uci_data.scheduling_request || uci_data.uci_cqi_len > 0) {
@@ -663,7 +663,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
   char timestr[64];
   timestr[0]='\0';
 
-  phy->reset_pending_ack(tti + 8); 
+  phy->reset_pending_ack(HARQ_RX(tti));
 
   srslte_dci_msg_t dci_msg; 
   srslte_ra_ul_dci_t dci_unpacked;
@@ -776,7 +776,7 @@ void phch_worker::set_uci_sr()
 {
   uci_data.scheduling_request = false; 
   if (phy->sr_enabled) {
-    uint32_t sr_tx_tti = (tti+4)%10240;
+    uint32_t sr_tx_tti = HARQ_TX(tti);
     // Get I_sr parameter   
     if (srslte_ue_ul_sr_send_tti(I_sr, sr_tx_tti)) {
       Info("PUCCH: SR transmission at TTI=%d, I_sr=%d\n", sr_tx_tti, I_sr);
@@ -793,7 +793,7 @@ void phch_worker::set_uci_periodic_cqi()
   int cqi_max       = phy->args->cqi_max;
   
   if (period_cqi.configured && rnti_is_set) {
-    if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, (tti+4)%10240)) {
+    if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, HARQ_TX(tti))) {
       if (uci_data.uci_ri_len) {
         uci_data.uci_cqi[0] = uci_data.uci_ri;
         uci_data.uci_cqi_len = uci_data.uci_ri_len;
@@ -802,7 +802,7 @@ void phch_worker::set_uci_periodic_cqi()
         uci_data.uci_pmi_len = 0;
         Info("PUCCH: Periodic RI=%d\n", uci_data.uci_cqi[0]);
       }
-    } else if (srslte_cqi_send(period_cqi.pmi_idx, (tti+4)%10240)) {
+    } else if (srslte_cqi_send(period_cqi.pmi_idx, HARQ_TX(tti))) {
       srslte_cqi_value_t cqi_report;
       if (period_cqi.format_is_subband) {
         // TODO: Implement subband periodic reports
@@ -868,8 +868,8 @@ void phch_worker::set_uci_aperiodic_cqi()
 
 bool phch_worker::srs_is_ready_to_send() {
   if (srs_cfg.configured) {
-    if (srslte_refsignal_srs_send_cs(srs_cfg.subframe_config, (tti+4)%10) == 1 && 
-        srslte_refsignal_srs_send_ue(srs_cfg.I_srs, (tti+4)%10240)        == 1)
+    if (srslte_refsignal_srs_send_cs(srs_cfg.subframe_config, HARQ_RX(tti)%10) == 1 &&
+        srslte_refsignal_srs_send_ue(srs_cfg.I_srs, HARQ_TX(tti))        == 1)
     {
       return true; 
     }
@@ -889,7 +889,7 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   char timestr[64];
   timestr[0]='\0';
   
-  if (srslte_ue_ul_cfg_grant(&ue_ul, grant, (tti+4)%10240, rv, current_tx_nb)) {
+  if (srslte_ue_ul_cfg_grant(&ue_ul, grant, HARQ_TX(tti), rv, current_tx_nb)) {
     Error("Configuring UL grant\n");
   }
   
@@ -919,7 +919,7 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 #endif
 
   Info("PUSCH: tti_tx=%d, n_prb=%d, rb_start=%d, tbs=%d, mod=%d, mcs=%d, rv_idx=%d, ack=%s, ri=%s, cfo=%.1f Hz%s\n",
-         (tti+4)%10240,
+         HARQ_TX(tti),
          grant->L_prb, grant->n_prb[0], 
          grant->mcs.tbs/8, grant->mcs.mod, grant->mcs.idx, rv,
          uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
@@ -950,7 +950,7 @@ void phch_worker::encode_pucch()
     gettimeofday(&t[1], NULL);
 #endif
 
-    if (srslte_ue_ul_pucch_encode(&ue_ul, uci_data, last_dl_pdcch_ncce, (tti+4)%10240, signal_buffer[0])) {
+    if (srslte_ue_ul_pucch_encode(&ue_ul, uci_data, last_dl_pdcch_ncce, HARQ_TX(tti), signal_buffer[0])) {
       Error("Encoding PUCCH\n");
     }
 
@@ -966,7 +966,7 @@ void phch_worker::encode_pucch()
   float gain = set_power(tx_power);  
   
   Info("PUCCH: tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, pmi=%s%s, sr=%s, cfo=%.1f Hz%s\n",
-         (tti+4)%10240,
+         HARQ_TX(tti),
          last_dl_pdcch_ncce, ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb, 
        uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
        uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",
@@ -987,7 +987,7 @@ void phch_worker::encode_srs()
   char timestr[64];
   timestr[0]='\0';
   
-  if (srslte_ue_ul_srs_encode(&ue_ul, (tti+4)%10240, signal_buffer[0])) 
+  if (srslte_ue_ul_srs_encode(&ue_ul, HARQ_TX(tti), signal_buffer[0]))
   {
     Error("Encoding SRS\n");
   }
@@ -1002,7 +1002,7 @@ void phch_worker::encode_srs()
   float gain = set_power(tx_power);
   uint32_t fi = srslte_vec_max_fi((float*) signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
   float *f = (float*) signal_buffer;
-  Info("SRS:   power=%.2f dBm, tti_tx=%d%s\n", tx_power, (tti+4)%10240, timestr);
+  Info("SRS:   power=%.2f dBm, tti_tx=%d%s\n", tx_power, HARQ_TX(tti), timestr);
   
 }
 

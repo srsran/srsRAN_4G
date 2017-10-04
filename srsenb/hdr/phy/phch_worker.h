@@ -73,12 +73,12 @@ private:
   
   void work_imp();
   
-  int encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
-  int decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti_rx);
-  int encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx);
-  int encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
-  int encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx); 
-  int decode_pucch(uint32_t tti_rx);
+  int encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants);
+  int decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch);
+  int encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks);
+  int encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants);
+  int encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_grants);
+  int decode_pucch();
   
   
   /* Common objects */  
@@ -89,8 +89,9 @@ private:
 
   cf_t          *signal_buffer_rx; 
   cf_t          *signal_buffer_tx; 
-  uint32_t       tti_rx, tti_tx, tti_sched_ul, sf_rx, sf_tx, sf_sched_ul, tx_mutex_cnt;
-
+  uint32_t       tti_rx, tti_tx, tti_sched_ul;
+  uint32_t       sf_rx, sf_tx, tx_mutex_cnt;
+  uint32_t       t_rx, t_tx, t_sched_ul;
   srslte_enb_dl_t enb_dl;
   srslte_enb_ul_t enb_ul;
   

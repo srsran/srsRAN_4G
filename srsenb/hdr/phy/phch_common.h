@@ -78,13 +78,13 @@ public:
   mac_interface_phy *mac; 
   
   // Common objects for schedulign grants 
-  mac_interface_phy::ul_sched_t ul_grants[10];
-  mac_interface_phy::dl_sched_t dl_grants[10];
+  mac_interface_phy::ul_sched_t ul_grants[TTIMOD_SZ];
+  mac_interface_phy::dl_sched_t dl_grants[TTIMOD_SZ];
   
   // Map of pending ACKs for each user 
   typedef struct {
-    bool is_pending[10]; 
-    uint16_t n_pdcch[10];
+    bool is_pending[TTIMOD_SZ];
+    uint16_t n_pdcch[TTIMOD_SZ];
   } pending_ack_t;
   std::map<uint16_t,pending_ack_t> pending_ack;
   
