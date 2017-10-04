@@ -149,15 +149,13 @@ int main(int argc, char **argv) {
   int M=1;
   
   parse_args(argc,argv);
-
   /* Initialise to zeros */
-  bzero(&pmch_tx, sizeof(srslte_pdsch_t));
-  bzero(&pmch_rx, sizeof(srslte_pdsch_t));
+  bzero(&pmch_tx, sizeof(srslte_pmch_t));
+  bzero(&pmch_rx, sizeof(srslte_pmch_t));
   bzero(&pmch_cfg, sizeof(srslte_pdsch_cfg_t));
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(tx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(rx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
-
 
   cell.nof_ports = 1;
 
@@ -177,7 +175,6 @@ int main(int argc, char **argv) {
     
     srslte_dl_fill_ra_mcs(&grant.mcs[0], cell.nof_prb);
     grant.Qm[0] = srslte_mod_bits_x_symbol(grant.mcs[0].mod);
-    
     for(int i = 0; i < 2; i++){
       for(int j = 0; j < grant.nof_prb; j++){
         grant.prb_idx[i][j] = true;
@@ -196,7 +193,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
-  
   
   srslte_ofdm_set_non_mbsfn_region(&ifft_mbsfn, non_mbsfn_region);
   srslte_ofdm_set_non_mbsfn_region(&fft_mbsfn, non_mbsfn_region);
@@ -220,7 +216,6 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
-
   /* init memory */
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
@@ -261,7 +256,6 @@ int main(int argc, char **argv) {
   }
 
 
-  
   
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     softbuffers_rx[i] = calloc(sizeof(srslte_softbuffer_rx_t), 1);
