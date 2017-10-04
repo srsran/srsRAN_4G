@@ -87,7 +87,7 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   bindaddr.sin_port        = htons(GTPU_PORT);
 
   if (bind(src_fd, (struct sockaddr *)&bindaddr, sizeof(struct sockaddr_in))) {
-    gtpu_log->error("Failed to bind on address %s, port %d\n", gtp_bind_addr, GTPU_PORT);
+    gtpu_log->error("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
     return false;
   }
 
