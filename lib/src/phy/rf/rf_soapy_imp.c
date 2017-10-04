@@ -88,11 +88,11 @@ void rf_soapy_register_error_handler(void *notused, srslte_rf_error_handler_t ne
 }
 
 
-
 char* rf_soapy_devname(void* h)
 {
   return "soapy";
 }
+
 
 bool rf_soapy_rx_wait_lo_locked(void *h)
 {
@@ -155,7 +155,6 @@ int rf_soapy_stop_tx_stream(void *h)
   if(SoapySDRDevice_deactivateStream(handler->device, handler->txStream, 0, 0) != 0)
     return SRSLTE_ERROR;
 
-
   handler->tx_stream_active = false;
   return SRSLTE_SUCCESS;
 }
@@ -199,9 +198,8 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   }
   
   for (size_t i = 0; i < length; i++) {
-    printf("Soapy Has Found device #%d: ", (int)i);
-    for (size_t j = 0; j < soapy_args[i].size; j++)
-    {
+    printf("Soapy has Found device #%d: ", (int)i);
+    for (size_t j = 0; j < soapy_args[i].size; j++) {
       printf("%s=%s, ", soapy_args[i].keys[j], soapy_args[i].vals[j]);
     }
     printf("\n");
@@ -220,7 +218,6 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   handler->device = sdr;
   handler->tx_stream_active = false;
   handler->rx_stream_active = false;
-
 
   if(SoapySDRDevice_getNumChannels(handler->device,SOAPY_SDR_RX) > 0){     
     printf("setting up RX stream\n");
@@ -364,7 +361,8 @@ double rf_soapy_set_tx_freq(void *h, double freq)
 }
 
 
-void rf_soapy_get_time(void *h, time_t *secs, double *frac_secs) {
+void rf_soapy_get_time(void *h, time_t *secs, double *frac_secs)
+{
 
 }
 
@@ -430,49 +428,46 @@ int rf_soapy_recv_with_time(void *h,
 
 
 int rf_soapy_send_timed(void *h,
-                     void *data,
-                     int nsamples,
-                     time_t secs,
-                     double frac_secs,                      
-                     bool has_time_spec,
-                     bool blocking,
-                     bool is_start_of_burst,
-                     bool is_end_of_burst) 
+                        void *data,
+                        int nsamples,
+                        time_t secs,
+                        double frac_secs,
+                        bool has_time_spec,
+                        bool blocking,
+                        bool is_start_of_burst,
+                        bool is_end_of_burst)
 {
-    
-    int flags;
-    long long timeNs;
-    int trials = 0;
-    int ret = 0;
-    rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-    timeNs = secs * 1000000000;
-    timeNs = timeNs + (frac_secs * 1000000000);
-    int n = 0;
+  int flags;
+  long long timeNs;
+  int trials = 0;
+  int ret = 0;
+  rf_soapy_handler_t *handler = (rf_soapy_handler_t *) h;
+  timeNs = secs * 1000000000;
+  timeNs = timeNs + (frac_secs * 1000000000);
+  int n = 0;
 
-    if(!handler->tx_stream_active){
-      rf_soapy_start_tx_stream(h);
+  if (!handler->tx_stream_active) {
+    rf_soapy_start_tx_stream(h);
+  }
+  
+  cf_t *data_c = (cf_t *) data;
+  do {
+    size_t tx_samples = nsamples;
+    if (tx_samples > nsamples - n) {
+      tx_samples = nsamples - n;
     }
-    
-    
-    cf_t *data_c = (cf_t*) data;
-    do{
-      size_t tx_samples = nsamples;
-      if (tx_samples > nsamples - n) {
-          tx_samples = nsamples - n; 
-      }
-      void *buff = (void*) &data_c[n];
-      const void *buffs_ptr[1] = {buff};
-      ret = SoapySDRDevice_writeStream(handler->device, handler->txStream, buffs_ptr, tx_samples, &flags, timeNs,  10000);
-      if(ret < 0)
-         return SRSLTE_ERROR;
-       
-       n += ret;
-       trials++;
-     }while (n < nsamples && trials < 100);
+    void *buff = (void *) &data_c[n];
+    const void *buffs_ptr[1] = {buff};
+    ret = SoapySDRDevice_writeStream(handler->device, handler->txStream, buffs_ptr, tx_samples, &flags, timeNs, 10000);
+    if (ret < 0)
+      return SRSLTE_ERROR;
 
-    if(ret != nsamples)
-        return SRSLTE_ERROR;
-    
-    return ret;
+    n += ret;
+    trials++;
+  } while (n < nsamples && trials < 100);
 
+  if (ret != nsamples)
+    return SRSLTE_ERROR;
+
+  return ret;
 }
