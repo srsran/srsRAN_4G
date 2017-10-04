@@ -466,6 +466,7 @@ int srslte_dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb) {
     tbs = 0;
     i_tbs = 0;
   }
+  
   if (tbs == -1) {
     tbs = srslte_ra_tbs_from_idx(i_tbs, nprb);
     if (tbs >= 0) {
