@@ -106,7 +106,7 @@ SRSLTE_API void rf_soapy_get_time(void *h,
                               time_t *secs, 
                               double *frac_secs); 
 
-SRSLTE_API int  rf_soapy_send_timed(void *h, 
+SRSLTE_API int rf_soapy_send_timed(void *h,
                                   void *data, 
                                   int nsamples,
                                   time_t secs, 
@@ -116,3 +116,12 @@ SRSLTE_API int  rf_soapy_send_timed(void *h,
                                   bool is_start_of_burst, 
                                   bool is_end_of_burst);
 
+int rf_soapy_send_timed_multi(void *h,
+                              void *data[4],
+                              int nsamples,
+                              time_t secs,
+                              double frac_secs,
+                              bool has_time_spec,
+                              bool blocking,
+                              bool is_start_of_burst,
+                              bool is_end_of_burst);

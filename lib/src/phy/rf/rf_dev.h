@@ -177,7 +177,7 @@ static rf_dev_t dev_soapy = {
   rf_soapy_recv_with_time,
   rf_soapy_recv_with_time_multi,
   rf_soapy_send_timed,
-  .srslte_rf_send_timed_multi = /* FIXME: Implement srslte_rf_send_timed_multi for Soapy SDR */ NULL,
+  .srslte_rf_send_timed_multi = rf_soapy_send_timed_multi,
   rf_soapy_set_tx_cal,
   rf_soapy_set_rx_cal
 };
