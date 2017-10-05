@@ -104,7 +104,7 @@ void phch_common::ack_clear(uint32_t sf_idx)
 
 void phch_common::ack_add_rnti(uint16_t rnti)
 {
-  for (int sf_idx=0;sf_idx<10;sf_idx++) {
+  for (int sf_idx=0;sf_idx<TTIMOD_SZ;sf_idx++) {
     pending_ack[rnti].is_pending[sf_idx] = false; 
   }
 }
@@ -126,14 +126,18 @@ bool phch_common::ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t *last_
 {
   if (pending_ack.count(rnti)) {
     bool ret = pending_ack[rnti].is_pending[sf_idx];  
-    pending_ack[rnti].is_pending[sf_idx] = false; 
+    pending_ack[rnti].is_pending[sf_idx] = false;
+
+    if (ret) {
+
+    }
     
     if (ret && last_n_pdcch) {
       *last_n_pdcch = pending_ack[rnti].n_pdcch[sf_idx];
     }
     return ret; 
   } else {
-    return false; 
+    return false;
   }
 }
 

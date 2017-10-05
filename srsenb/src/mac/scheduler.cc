@@ -677,14 +677,14 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   pthread_mutex_lock(&mutex);
 
   /* If dl_sched() not yet called this tti (this tti is +4ms advanced), reset CCE state */
-  if (HARQ_TX(current_tti) != tti) {
+  if (TTI_TX(current_tti) != tti) {
     bzero(used_cce, MAX_CCE*sizeof(bool));    
   }
   
   /* Initialize variables */
   current_tti = tti; 
   sfn = tti/10;
-  if (tti > 4) {
+  if (tti > HARQ_DELAY_MS) {
     sf_idx = (tti-HARQ_DELAY_MS)%10;
   } else {
     sf_idx = (tti+10240-HARQ_DELAY_MS)%10;

@@ -89,9 +89,9 @@ private:
 
   cf_t          *signal_buffer_rx; 
   cf_t          *signal_buffer_tx; 
-  uint32_t       tti_rx, tti_tx, tti_sched_ul;
+  uint32_t       tti_rx, tti_tx_dl, tti_tx_ul;
   uint32_t       sf_rx, sf_tx, tx_mutex_cnt;
-  uint32_t       t_rx, t_tx, t_sched_ul;
+  uint32_t       t_rx, t_tx_dl, t_tx_ul;
   srslte_enb_dl_t enb_dl;
   srslte_enb_ul_t enb_ul;
   
