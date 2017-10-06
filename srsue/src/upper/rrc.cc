@@ -427,7 +427,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
       if (!known_cells[i].has_valid_sib1) {
         si_acquire_state = SI_ACQUIRE_SIB1;
-      } else {
+      } else if (state == RRC_STATE_PLMN_SELECTION) {
         for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
           nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
         }
