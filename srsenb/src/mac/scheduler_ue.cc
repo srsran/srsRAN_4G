@@ -29,6 +29,7 @@
 #include <srslte/interfaces/sched_interface.h>
 #include <srslte/phy/phch/pucch.h>
 #include <srslte/srslte.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
@@ -695,10 +696,16 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
   uint32_t l=0;
   float max_coderate = srslte_cqi_to_coderate(dl_cqi);
   float coderate = 99;
+  float factor=1.5;
+  uint32_t l_max = 3;
+  if (cell.nof_prb == 6) {
+    factor = 1.0;
+    l_max  = 2;
+  }
   do {
     coderate = srslte_pdcch_coderate(nof_bits, l);
     l++;
-  } while(l<3 && 1.5*coderate > max_coderate);
+  } while(l<l_max && factor*coderate > max_coderate);
   Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n", dl_cqi, l, nof_bits, coderate, max_coderate);
   return l; 
 }
