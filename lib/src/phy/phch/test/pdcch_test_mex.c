@@ -33,13 +33,14 @@
 
 #define ENBCFG  prhs[0]
 #define RNTI    prhs[1]
-#define INPUT   prhs[2]
-#define NOF_INPUTS 3
+#define AMP     prhs[2]
+#define INPUT   prhs[3]
+#define NOF_INPUTS 4
 
 
 
-srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
-const uint32_t nof_ue_formats = 2; 
+srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1,SRSLTE_DCI_FORMAT2B}; // SRSLTE_DCI_FORMAT1B should go here also
+const uint32_t nof_ue_formats = 3; 
 
 srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
 const uint32_t nof_common_formats = 2; 
@@ -162,7 +163,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } else {
     noise_power = srslte_chest_dl_get_noise_estimate(&chest);
   }
-  mexPrintf("noise power=%f, RNTI=0x%x, cfi=%d\n", noise_power, rnti, cfi);
+  
+  float amplitude = mxGetScalar(AMP);
+  
+  srslte_viterbi_set_gain_quant(&pdcch.decoder, amplitude);
   
   srslte_pdcch_extract_llr(&pdcch, input_fft, ce, noise_power, sf_idx, cfi);
   

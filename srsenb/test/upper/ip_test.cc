@@ -16,7 +16,7 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/common.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/logger.h"
+#include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/upper/rlc.h"
 #include "srslte/radio/radio.h"
@@ -155,6 +155,7 @@ public:
   void set_activity_user(uint16_t rnti) {}
   bool is_paging_opportunity(uint32_t tti, uint32_t *payload_len) {return false;}
   void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size) {}
+  std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
   
   void write_pdu(uint32_t lcid, srslte::byte_buffer_t *sdu)
   {
@@ -320,11 +321,11 @@ private:
 
 
 // Create classes
-srslte::logger logger;
-srslte::log_filter log_phy;
-srslte::log_filter log_mac;
-srslte::log_filter log_rlc;
-srslte::log_filter log_tester;
+srslte::logger_file logger;
+srslte::log_filter  log_phy;
+srslte::log_filter  log_mac;
+srslte::log_filter  log_rlc;
+srslte::log_filter  log_tester;
 srsenb::phy my_phy;
 srsenb::mac my_mac;
 srslte::rlc  my_rlc;
@@ -566,7 +567,7 @@ int main(int argc, char *argv[])
   
   my_phy.init(&phy_args, &phy_cfg, &my_radio, &my_mac, &log_phy);
   my_mac.init(&mac_args, &mac_cfg.cell, &my_phy, &my_tester, &my_tester, &log_mac);
-  my_rlc.init(&my_tester, &my_tester, &my_tester, &log_rlc, &my_mac);
+  my_rlc.init(&my_tester, &my_tester, &my_tester, &log_rlc, &my_mac, 0 /* SRB0 */);
   my_tester.init(&my_rlc, &my_mac, &my_phy, &log_tester, prog_args.ip_address);
     
   if (prog_args.enable_gui) {

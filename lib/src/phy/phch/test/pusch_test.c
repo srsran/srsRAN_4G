@@ -110,7 +110,8 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  srslte_pusch_t pusch;
+  srslte_pusch_t pusch_tx;
+  srslte_pusch_t pusch_rx;
   uint8_t *data = NULL;
   cf_t *sf_symbols = NULL;
   cf_t *ce = NULL; 
@@ -145,11 +146,23 @@ int main(int argc, char **argv) {
   ul_hopping.hopping_offset = 0;
   ul_hopping.hop_mode = SRSLTE_PUSCH_HOP_MODE_INTER_SF;
   
-  if (srslte_pusch_init(&pusch, cell)) {
-    fprintf(stderr, "Error creating PDSCH object\n");
+  if (srslte_pusch_init_ue(&pusch_tx, cell.nof_prb)) {
+    fprintf(stderr, "Error creating PUSCH object\n");
     goto quit;
   }
-  
+  if (srslte_pusch_set_cell(&pusch_tx, cell)) {
+    fprintf(stderr, "Error creating PUSCH object\n");
+    goto quit;
+  }
+  if (srslte_pusch_init_enb(&pusch_rx, cell.nof_prb)) {
+    fprintf(stderr, "Error creating PUSCH object\n");
+    goto quit;
+  }
+  if (srslte_pusch_set_cell(&pusch_rx, cell)) {
+    fprintf(stderr, "Error creating PUSCH object\n");
+    goto quit;
+  }
+
   /* Configure PUSCH */
     
   printf("Encoding rv_idx=%d\n",rv_idx);
@@ -159,27 +172,33 @@ int main(int argc, char **argv) {
   uci_cfg.I_offset_ri = 2; 
   uci_cfg.I_offset_ack = 4; 
 
-  if (srslte_pusch_cfg(&pusch, &cfg, &grant, &uci_cfg, &ul_hopping, NULL, subframe, 0, 0)) {
+  if (srslte_pusch_cfg(&pusch_tx, &cfg, &grant, &uci_cfg, &ul_hopping, NULL, subframe, 0, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
-  
+  if (srslte_pusch_cfg(&pusch_rx, &cfg, &grant, &uci_cfg, &ul_hopping, NULL, subframe, 0, 0)) {
+    fprintf(stderr, "Error configuring PDSCH\n");
+    exit(-1);
+  }
+
   uint16_t rnti = 1234; 
-  srslte_pusch_set_rnti(&pusch, rnti);
-  
+  srslte_pusch_set_rnti(&pusch_tx, rnti);
+  srslte_pusch_set_rnti(&pusch_rx, rnti);
+
   srslte_uci_data_t uci_data_tx; 
   srslte_uci_data_t uci_data_rx; 
   bzero(&uci_data_tx, sizeof(srslte_uci_data_t));
   uci_data_tx.uci_cqi_len = 4; 
   uci_data_tx.uci_ri_len = 0; 
-  uci_data_tx.uci_ack_len = 0; 
+  uci_data_tx.uci_ack_len = 1;
   memcpy(&uci_data_rx, &uci_data_tx, sizeof(srslte_uci_data_t));
     
   for (uint32_t i=0;i<20;i++) {
     uci_data_tx.uci_cqi [i] = 1;
   }
-  uci_data_tx.uci_ri = 1; 
-  uci_data_tx.uci_ack = 1; 
+  uci_data_tx.uci_ri = 1;
+  uci_data_tx.uci_ack = 1;
+  uci_data_tx.uci_ack_2 = 1;
 
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
@@ -188,7 +207,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
-  data = srslte_vec_malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
+  data = srslte_vec_malloc(sizeof(uint8_t) * (cfg.grant.mcs.tbs+24));
   if (!data) {
     perror("malloc");
     exit(-1);
@@ -211,13 +230,13 @@ int main(int argc, char **argv) {
   
   uint32_t ntrials = 100; 
 
-  if (srslte_pusch_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data_tx, rnti, sf_symbols)) {
+  if (srslte_pusch_encode(&pusch_tx, &cfg, &softbuffer_tx, data, uci_data_tx, rnti, sf_symbols)) {
     fprintf(stderr, "Error encoding TB\n");
     exit(-1);
   }
   if (rv_idx > 0) {
     cfg.rv = rv_idx; 
-    if (srslte_pusch_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data_tx, rnti, sf_symbols)) {
+    if (srslte_pusch_encode(&pusch_tx, &cfg, &softbuffer_tx, data, uci_data_tx, rnti, sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
@@ -233,7 +252,7 @@ int main(int argc, char **argv) {
   }
   
   gettimeofday(&t[1], NULL);
-  int r = srslte_pusch_decode(&pusch, &cfg, &softbuffer_rx, sf_symbols, ce, 0, rnti, data, &uci_data_rx);
+  int r = srslte_pusch_decode(&pusch_rx, &cfg, &softbuffer_rx, sf_symbols, ce, 0, rnti, data, &uci_data_rx);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   if (r) {
@@ -250,11 +269,19 @@ int main(int argc, char **argv) {
   if (uci_data_tx.uci_ack_len) {
     if (uci_data_tx.uci_ack != uci_data_rx.uci_ack) {
       printf("UCI ACK bit error: %d != %d\n", uci_data_tx.uci_ack, uci_data_rx.uci_ack);
+      ret = SRSLTE_ERROR;
+    }
+  }
+  if (uci_data_tx.uci_ack_len > 1) {
+    if (uci_data_tx.uci_ack_2 != uci_data_rx.uci_ack_2) {
+      printf("UCI ACK 2 bit error: %d != %d\n", uci_data_tx.uci_ack_2, uci_data_rx.uci_ack_2);
+      ret = SRSLTE_ERROR;
     }
   }
   if (uci_data_tx.uci_ri_len) {
     if (uci_data_tx.uci_ri != uci_data_rx.uci_ri) {
       printf("UCI RI bit error: %d != %d\n", uci_data_tx.uci_ri, uci_data_rx.uci_ri);
+      ret = SRSLTE_ERROR;
     }
   }
   if (uci_data_tx.uci_cqi_len) {
@@ -265,7 +292,8 @@ int main(int argc, char **argv) {
   }
 
 quit:
-  srslte_pusch_free(&pusch);
+  srslte_pusch_free(&pusch_tx);
+  srslte_pusch_free(&pusch_rx);
   srslte_softbuffer_tx_free(&softbuffer_tx);
   
   if (sf_symbols) {

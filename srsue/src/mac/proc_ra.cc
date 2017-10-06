@@ -53,7 +53,8 @@ void ra_proc::init(phy_interface_mac* phy_h_,
                    srslte::log* log_h_, 
                    mac_interface_rrc::ue_rnti_t *rntis_, 
                    mac_interface_rrc::mac_cfg_t *mac_cfg_, 
-                   srslte::timers* timers_db_,
+                   srslte::timers::timer* time_alignment_timer_,
+                   srslte::timers::timer* contention_resolution_timer_,
                    mux* mux_unit_, 
                    demux* demux_unit_)
 {
@@ -61,16 +62,23 @@ void ra_proc::init(phy_interface_mac* phy_h_,
   log_h     = log_h_; 
   mac_cfg   = mac_cfg_;
   rntis     = rntis_;
-  timers_db = timers_db_;
   mux_unit  = mux_unit_; 
   demux_unit= demux_unit_; 
-  rrc       = rrc_; 
+  rrc       = rrc_;
+
+  time_alignment_timer        = time_alignment_timer_;
+  contention_resolution_timer = contention_resolution_timer_;
+  
   srslte_softbuffer_rx_init(&softbuffer_rar, 10);
   
   // Tell demux to call us when a UE CRID is received
   demux_unit->set_uecrid_callback(uecrid_callback, this);
 
   reset();
+}
+
+ra_proc::~ra_proc() {
+  srslte_softbuffer_rx_free(&softbuffer_rar);
 }
 
 void ra_proc::reset() {
@@ -115,7 +123,7 @@ void ra_proc::read_params() {
   delta_preamble_db         = delta_preamble_db_table[configIndex%5]; 
   
   if (contentionResolutionTimer > 0) {
-    timers_db->get(mac::CONTENTION_TIMER)->set(this, contentionResolutionTimer);
+    contention_resolution_timer->set(this, contentionResolutionTimer);
   }
 
 }
@@ -165,14 +173,14 @@ void ra_proc::process_timeadv_cmd(uint32_t ta) {
   if (preambleIndex == 0) {
     // Preamble not selected by UE MAC 
     phy_h->set_timeadv_rar(ta);
-    timers_db->get(mac::TIME_ALIGNMENT)->reset();
-    timers_db->get(mac::TIME_ALIGNMENT)->run();
+    time_alignment_timer->reset();
+    time_alignment_timer->run();
     Debug("Applying RAR TA CMD %d\n", ta);
   } else {
     // Preamble selected by UE MAC 
-    if (!timers_db->get(mac::TIME_ALIGNMENT)->is_running()) {
+    if (!time_alignment_timer->is_running()) {
       phy_h->set_timeadv_rar(ta);
-      timers_db->get(mac::TIME_ALIGNMENT)->run();
+      time_alignment_timer->run();
       Debug("Applying RAR TA CMD %d\n", ta);
     } else {
       // Ignore TA CMD
@@ -269,24 +277,26 @@ void ra_proc::step_pdcch_setup() {
 
 void ra_proc::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action) 
 {
-  if (grant.n_bytes < MAX_RAR_PDU_LEN) {
+  if (grant.n_bytes[0] < MAX_RAR_PDU_LEN) {
     rDebug("DL grant found RA-RNTI=%d\n", ra_rnti);        
-    action->decode_enabled = true; 
-    action->default_ack = false; 
+    action->decode_enabled[0] = true;
+    action->decode_enabled[1] = false;
+    action->default_ack[0] = false;
     action->generate_ack = false; 
-    action->payload_ptr = rar_pdu_buffer; 
+    action->payload_ptr[0] = rar_pdu_buffer;
     action->rnti = grant.rnti; 
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
-    action->rv = grant.rv;
-    action->softbuffer = &softbuffer_rar;
-    rar_grant_nbytes = grant.n_bytes;
+    action->rv[0] = grant.rv[0];
+    action->softbuffers[0] = &softbuffer_rar;
+    rar_grant_nbytes = grant.n_bytes[0];
     rar_grant_tti    = grant.tti; 
-    if (action->rv == 0) {
+    if (action->rv[0] == 0) {
       srslte_softbuffer_rx_reset(&softbuffer_rar);
     }
   } else {
-    rError("Received RAR grant exceeds buffer length (%d>%d)\n", grant.n_bytes, MAX_RAR_PDU_LEN);
-    action->decode_enabled = false; 
+    rError("Received RAR grant exceeds buffer length (%d>%d)\n", grant.n_bytes[0], MAX_RAR_PDU_LEN);
+    action->decode_enabled[0] = false;
+    action->decode_enabled[1] = false;
     state = RESPONSE_ERROR;
   }
 }
@@ -355,8 +365,8 @@ void ra_proc::tb_decoded_ok() {
         state = CONTENTION_RESOLUTION;
         
         // Start contention resolution timer 
-        timers_db->get(mac::CONTENTION_TIMER)->reset();
-        timers_db->get(mac::CONTENTION_TIMER)->run();                      
+        contention_resolution_timer->reset();
+        contention_resolution_timer->run();
       }  
     } else {
       rDebug("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
@@ -417,7 +427,7 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id) {
   rDebug("MAC PDU Contains Contention Resolution ID CE\n");
   
   // MAC PDU successfully decoded and contains MAC CE contention Id
-  timers_db->get(mac::CONTENTION_TIMER)->stop();
+  contention_resolution_timer->stop();
   
   if (transmitted_contention_id == rx_contention_id) 
   {    
@@ -453,7 +463,7 @@ void ra_proc::step_contention_resolution() {
             (started_by_pdcch && pdcch_to_crnti_received != PDCCH_CRNTI_NOT_RECEIVED))
       {
         rDebug("PDCCH for C-RNTI received\n");
-        timers_db->get(mac::CONTENTION_TIMER)->stop();
+        contention_resolution_timer->stop();
         rntis->temp_rnti = 0; 
         state = COMPLETION;           
       }            
@@ -479,6 +489,12 @@ void ra_proc::step_completition() {
     mux_unit->msg3_flush();
     msg3_flushed = true; 
   }
+  // Configure PHY to look for UL C-RNTI grants
+  phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, rntis->crnti);
+  phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, rntis->crnti);
+
+  phy_h->set_crnti(rntis->crnti);
+
   msg3_transmitted = false;  
   state = COMPLETION_DONE;
 }
@@ -559,7 +575,7 @@ void ra_proc::pdcch_to_crnti(bool contains_uplink_grant) {
 
 void ra_proc::harq_retx()
 {
-  timers_db->get(mac::CONTENTION_TIMER)->reset();
+  contention_resolution_timer->reset();
 }
 
 }

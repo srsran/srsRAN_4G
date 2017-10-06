@@ -25,8 +25,7 @@
  */
 
 #include <string.h>
-
-#include "srslte/srslte.h"
+#include "mac/scheduler_harq.h"
 #include "mac/scheduler_metric.h"
 
 #define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
@@ -214,8 +213,8 @@ void ul_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb_,
   for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user      = (sched_ue*) &iter->second;
     if (user->get_pending_ul_new_data(current_tti) || !user->get_ul_harq(current_tti)->is_empty()) {
-      user->ue_idx = nof_users_with_data;
-      nof_users_with_data++; 
+      user->ue_idx    = nof_users_with_data;
+      nof_users_with_data++;
     }
   }
 
@@ -274,7 +273,7 @@ void ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
     return; 
   }
   for (uint32_t n=alloc.RB_start;n<alloc.RB_start+alloc.L;n++) {
-    used_rb[n] = true; 
+    used_rb[n] = true;
   }
   available_rb -= alloc.L; 
 }

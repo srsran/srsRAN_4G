@@ -42,59 +42,64 @@
 namespace srsue {
 
 mac::mac() : ttisync(10240), 
-             timers_db((uint32_t) NOF_MAC_TIMERS), 
+             timers(64),
+             mux_unit(MAC_NOF_HARQ_PROC),
+             demux_unit(SRSLTE_MAX_TB*MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
 {
-  started = false;  
-  pcap    = NULL;   
-  signals_pregenerated = false;  
+  started = false;
+  pcap    = NULL;
   bzero(&metrics, sizeof(mac_metrics_t));
 }
-  
+
 bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
 {
-  started = false; 
+  started = false;
   phy_h = phy;
-  rlc_h = rlc;   
-  rrc_h = rrc;   
-  log_h = log_h_; 
-  tti = 0; 
-  is_synchronized = false;   
-  last_temporal_crnti = 0; 
-  phy_rnti = 0; 
-  
+  rlc_h = rlc;
+  rrc_h = rrc;
+  log_h = log_h_;
+  tti = 0;
+  is_synchronized = false;
+  last_temporal_crnti = 0;
+  phy_rnti = 0;
+
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
-  
-  bsr_procedure.init(       rlc_h, log_h,          &config, &timers_db);
-  phr_procedure.init(phy_h,        log_h,          &config, &timers_db);
-  mux_unit.init     (       rlc_h, log_h,                               &bsr_procedure, &phr_procedure);
-  demux_unit.init   (phy_h, rlc_h, log_h,                   &timers_db);
-  ra_procedure.init (phy_h, rrc,   log_h, &uernti, &config, &timers_db, &mux_unit, &demux_unit);
+
+  timer_alignment             = timers.get_unique_id();
+  contention_resolution_timer = timers.get_unique_id();
+
+  bsr_procedure.init(       rlc_h, log_h,          &config,                &timers);
+  phr_procedure.init(phy_h,        log_h,          &config,                &timers);
+  mux_unit.init     (       rlc_h, log_h,                                              &bsr_procedure, &phr_procedure);
+  demux_unit.init   (phy_h, rlc_h, log_h,                                  timers.get(timer_alignment));
+  ra_procedure.init (phy_h, rrc,   log_h, &uernti, &config,                timers.get(timer_alignment), timers.get(contention_resolution_timer), &mux_unit, &demux_unit);
   sr_procedure.init (phy_h, rrc,   log_h,          &config);
-  ul_harq.init      (              log_h, &uernti, &config, &timers_db, &mux_unit);
-  dl_harq.init      (              log_h,          &config, &timers_db, &demux_unit);
+  ul_harq.init      (              log_h, &uernti, &config.ul_harq_params, timers.get(contention_resolution_timer), &mux_unit);
+  dl_harq.init      (              log_h,                                  timers.get(timer_alignment),             &demux_unit);
 
   reset();
-  
-  started = true; 
+
+  started = true;
   start(MAC_MAIN_THREAD_PRIO);
-  
-  
-  return started; 
+
+
+  return started;
 }
 
 void mac::stop()
 {
-  started = false;   
+  srslte_softbuffer_rx_free(&pch_softbuffer);
+
+  started = false;
   ttisync.increase();
-  upper_timers_thread.thread_cancel();
   pdu_process_thread.stop();
   wait_thread_finish();
 }
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
-  pcap = pcap_; 
+  pcap = pcap_;
   dl_harq.start_pcap(pcap);
   ul_harq.start_pcap(pcap);
   ra_procedure.start_pcap(pcap);
@@ -110,89 +115,72 @@ void mac::reconfiguration()
 void mac::reset()
 {
   bzero(&metrics, sizeof(mac_metrics_t));
- 
+
   Info("Resetting MAC\n");
-  
-  timers_db.stop_all();
-  upper_timers_thread.reset();
-  
+
+  timers.stop_all();
+
   ul_harq.reset_ndi();
-  
+
   mux_unit.msg3_flush();
   mux_unit.reset();
-  
-  ra_procedure.reset();    
+
+  ra_procedure.reset();
   sr_procedure.reset();
   bsr_procedure.reset();
   phr_procedure.reset();
-  
+
   dl_harq.reset();
   phy_h->pdcch_dl_search_reset();
   phy_h->pdcch_ul_search_reset();
-  
-  signals_pregenerated = false; 
-  is_first_ul_grant = true;   
-  
+
+  is_first_ul_grant = true;
+
   bzero(&uernti, sizeof(ue_rnti_t));
 }
 
 void mac::run_thread() {
   int cnt=0;
-  
-  Info("Waiting PHY to synchronize with cell\n");  
-  phy_h->sync_start();
-  while(!phy_h->get_current_tti() && started) {
-    usleep(50000);
+
+  while (!phy_h->sync_status() && started) {
+    usleep(5000);
+    if (phy_h->sync_status()) {
+      Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
+      ttisync.set_producer_cntr(phy_h->get_current_tti());
+    }
   }
-  Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
-  ttisync.set_producer_cntr(phy_h->get_current_tti());
-     
+
   while(started) {
 
     /* Warning: Here order of invocation of procedures is important!! */
     ttisync.wait();
     tti = phy_h->get_current_tti();
-    
-    if (started) {
-      log_h->step(tti);
 
-      timers_db.step_all();
-      
-      // Step all procedures 
-      bsr_procedure.step(tti);
-      phr_procedure.step(tti);
-      
-      // Check if BSR procedure need to start SR 
-      
-      if (bsr_procedure.need_to_send_sr(tti)) {
-        Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", tti);
-        sr_procedure.start();
-      }
-      if (bsr_procedure.need_to_reset_sr()) {
-        Debug("Resetting SR procedure by BSR request\n");
-        sr_procedure.reset();
-      }
-      sr_procedure.step(tti);
+    log_h->step(tti);
+    timers.step_all();
 
-      // Check SR if we need to start RA 
-      if (sr_procedure.need_random_access()) {
-        ra_procedure.start_mac_order();
-      }
-      ra_procedure.step(tti);
-      
-      if (ra_procedure.is_successful() && !signals_pregenerated) {
+    // Step all procedures
+    bsr_procedure.step(tti);
+    phr_procedure.step(tti);
 
-        // Configure PHY to look for UL C-RNTI grants
-        phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, uernti.crnti);
-        phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, uernti.crnti);
-        
-        // Pregenerate UL signals and C-RNTI scrambling sequences
-        Debug("Pre-computing C-RNTI scrambling sequences for C-RNTI=0x%x\n", uernti.crnti);
-        phy_h->set_crnti(uernti.crnti);
-        signals_pregenerated = true; 
-      }      
+    // Check if BSR procedure need to start SR
+
+    if (bsr_procedure.need_to_send_sr(tti)) {
+      Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", tti);
+      sr_procedure.start();
     }
-  }  
+    if (bsr_procedure.need_to_reset_sr()) {
+      Debug("Resetting SR procedure by BSR request\n");
+      sr_procedure.reset();
+    }
+    sr_procedure.step(tti);
+
+    // Check SR if we need to start RA
+    if (sr_procedure.need_random_access()) {
+      ra_procedure.start_mac_order();
+    }
+    ra_procedure.step(tti);
+  }
 }
 
 void mac::bcch_start_rx()
@@ -208,7 +196,7 @@ void mac::bcch_start_rx(int si_window_start, int si_window_length)
   } else {
     phy_h->pdcch_dl_search(SRSLTE_RNTI_SI, SRSLTE_SIRNTI, si_window_start);
   }
-  Info("SCHED: Searching for DL grant for SI-RNTI window_st=%d, window_len=%d\n", si_window_start, si_window_length);  
+  Info("SCHED: Searching for DL grant for SI-RNTI window_st=%d, window_len=%d\n", si_window_start, si_window_length);
 }
 
 void mac::bcch_stop_rx()
@@ -219,7 +207,7 @@ void mac::bcch_stop_rx()
 void mac::pcch_start_rx()
 {
   phy_h->pdcch_dl_search(SRSLTE_RNTI_PCH, SRSLTE_PRNTI);
-  Info("SCHED: Searching for DL grant for P-RNTI\n");  
+  Info("SCHED: Searching for DL grant for P-RNTI\n");
 }
 
 void mac::pcch_stop_rx()
@@ -235,9 +223,9 @@ void mac::tti_clock(uint32_t tti)
 
 void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)
 {
-  // Send MIB to RLC 
+  // Send MIB to RLC
   rlc_h->write_pdu_bcch_bch(payload, len);
-  
+
   if (pcap) {
     pcap->write_dl_bch(payload, len, true, phy_h->get_current_tti());
   }
@@ -245,25 +233,25 @@ void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)
 
 void mac::pch_decoded_ok(uint32_t len)
 {
-  // Send PCH payload to RLC 
+  // Send PCH payload to RLC
   rlc_h->write_pdu_pcch(pch_payload_buffer, len);
-  
+
   if (pcap) {
     pcap->write_dl_pch(pch_payload_buffer, len, true, phy_h->get_current_tti());
   }
 }
 
-void mac::tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
+void mac::tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
 {
   if (rnti_type == SRSLTE_RNTI_RAR) {
     if (ack) {
       ra_procedure.tb_decoded_ok();
     }
   } else {
-    dl_harq.tb_decoded(ack, rnti_type, harq_pid);
+    dl_harq.tb_decoded(ack, tb_idx, rnti_type, harq_pid);
     if (ack) {
       pdu_process_thread.notify();
-      metrics.rx_brate += dl_harq.get_current_tbs(harq_pid);
+      metrics.rx_brate += dl_harq.get_current_tbs(harq_pid, tb_idx);
     } else {
       metrics.rx_errors++;
     }
@@ -278,21 +266,21 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
   } else if (grant.rnti_type == SRSLTE_RNTI_PCH) {
 
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
-    action->generate_ack = false; 
-    action->decode_enabled = true; 
+    action->generate_ack = false;
+    action->decode_enabled[0] = true;
     srslte_softbuffer_rx_reset_cb(&pch_softbuffer, 1);
-    action->payload_ptr = pch_payload_buffer;
-    action->softbuffer  = &pch_softbuffer;
+    action->payload_ptr[0] = pch_payload_buffer;
+    action->softbuffers[0]  = &pch_softbuffer;
     action->rnti = grant.rnti;
-    action->rv   = grant.rv; 
-    if (grant.n_bytes > pch_payload_buffer_sz) {
-      Error("Received grant for PCH (%d bytes) exceeds buffer (%d bytes)\n", grant.n_bytes, pch_payload_buffer_sz);
-      action->decode_enabled = false; 
+    action->rv[0]   = grant.rv[0];
+    if (grant.n_bytes[0] > pch_payload_buffer_sz) {
+      Error("Received grant for PCH (%d bytes) exceeds buffer (%d bytes)\n", grant.n_bytes[0], pch_payload_buffer_sz);
+      action->decode_enabled[0] = false;
     }
   } else {
     // If PDCCH for C-RNTI and RA procedure in Contention Resolution, notify it
     if (grant.rnti_type == SRSLTE_RNTI_USER && ra_procedure.is_contention_resolution()) {
-      ra_procedure.pdcch_to_crnti(false);      
+      ra_procedure.pdcch_to_crnti(false);
     }
     dl_harq.new_grant_dl(grant, action);
   }
@@ -307,11 +295,11 @@ void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
 {
   /* Start PHR Periodic timer on first UL grant */
   if (is_first_ul_grant) {
-    is_first_ul_grant = false; 
-    timers_db.get(mac::PHR_TIMER_PERIODIC)->run();
+    is_first_ul_grant = false;
+    phr_procedure.start_timer();
   }
   if (grant.rnti_type == SRSLTE_RNTI_USER && ra_procedure.is_contention_resolution()) {
-    ra_procedure.pdcch_to_crnti(true);    
+    ra_procedure.pdcch_to_crnti(true);
   }
   ul_harq.new_grant_ul(grant, action);
   metrics.tx_pkts++;
@@ -354,25 +342,23 @@ void mac::setup_timers()
 {
   int value = liblte_rrc_time_alignment_timer_num[config.main.time_alignment_timer];
   if (value > 0) {
-    timers_db.get(TIME_ALIGNMENT)->set(this, value);
+    timers.get(timer_alignment)->set(this, value);
   }
 }
 
 void mac::timer_expired(uint32_t timer_id)
 {
-  switch(timer_id) {
-    case TIME_ALIGNMENT:
-      timeAlignmentTimerExpire();
-      break;
-    default: 
-      break;
+  if(timer_id == timer_alignment) {
+    timer_alignment_expire();
+  } else {
+    Warning("Received callback from unknown timer_id=%d\n", timer_id);
   }
 }
 
 /* Function called on expiry of TimeAlignmentTimer */
-void mac::timeAlignmentTimerExpire() 
+void mac::timer_alignment_expire()
 {
-  printf("timeAlignmentTimer has expired value=%d ms\n", timers_db.get(TIME_ALIGNMENT)->get_timeout());
+  printf("TimeAlignment timer has expired value=%d ms\n", timers.get(timer_alignment)->get_timeout());
   rrc_h->release_pucch_srs();
   dl_harq.reset();
   ul_harq.reset();
@@ -385,7 +371,7 @@ void mac::get_rntis(ue_rnti_t* rntis)
 
 void mac::set_contention_id(uint64_t uecri)
 {
-  uernti.contention_id = uecri; 
+  uernti.contention_id = uecri;
 }
 
 void mac::get_config(mac_cfg_t* mac_cfg)
@@ -418,24 +404,12 @@ void mac::set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT* sr_cfg)
 
 void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)
 {
-  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSd=%d\n", 
+  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSd=%d\n",
        lcid, lcg, priority, PBR_x_tti, BSD);
   mux_unit.set_priority(lcid, priority, PBR_x_tti, BSD);
   bsr_procedure.setup_lcg(lcid, lcg);
   bsr_procedure.set_priority(lcid, priority);
 }
-
-uint32_t mac::get_unique_id()
-{
-  return upper_timers_thread.get_unique_id();
-}
-
-/* Front-end to upper-layer timers */
-srslte::timers::timer* mac::get(uint32_t timer_id)
-{
-  return upper_timers_thread.get(timer_id);
-}
-
 
 void mac::get_metrics(mac_metrics_t &m)
 {
@@ -451,44 +425,33 @@ void mac::get_metrics(mac_metrics_t &m)
 }
 
 
+
+
 /********************************************************
  *
- * Class to run upper-layer timers with normal priority 
+ * Interface for timers used by upper layers
  *
  *******************************************************/
-
-mac::upper_timers::upper_timers() : timers_db(MAC_NOF_UPPER_TIMERS) 
+srslte::timers::timer* mac::timer_get(uint32_t timer_id)
 {
-  start_periodic(1000, MAC_MAIN_THREAD_PRIO+1);  
+  return timers.get(timer_id);
 }
 
-void mac::upper_timers::run_period()
+void mac::timer_release_id(uint32_t timer_id)
 {
-  timers_db.step_all();
-}
-  
-srslte::timers::timer* mac::upper_timers::get(uint32_t timer_id)
-{
-  return timers_db.get(timer_id%MAC_NOF_UPPER_TIMERS);
+  timers.release_id(timer_id);
 }
 
-uint32_t mac::upper_timers::get_unique_id()
+uint32_t mac::timer_get_unique_id()
 {
-  return timers_db.get_unique_id();
+  return timers.get_unique_id();
 }
-
-void mac::upper_timers::reset()
-{
-  timers_db.stop_all();
-}
-
-
 
 
 /********************************************************
  *
  * Class that runs a thread to process DL MAC PDUs from
- * DEMU unit
+ * DEMUX unit
  *
  *******************************************************/
 mac::pdu_process::pdu_process(demux *demux_unit_)

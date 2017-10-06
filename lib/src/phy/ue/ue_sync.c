@@ -29,6 +29,7 @@
 #include <strings.h>
 #include <assert.h>
 #include <unistd.h>
+#include <srslte/srslte.h>
 
 
 #include "srslte/phy/ue/ue_sync.h"
@@ -53,6 +54,11 @@ cf_t dummy_buffer1[15*2048/2];
 cf_t *dummy_offset_buffer[SRSLTE_MAX_PORTS] = {dummy_buffer0, dummy_buffer1};
 
 int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset_time, float offset_freq) {
+  return srslte_ue_sync_init_file_multi(q, nof_prb, file_name, offset_time, offset_freq, 1);
+}
+
+int srslte_ue_sync_init_file_multi(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset_time,
+                                   float offset_freq, uint32_t nof_rx_ant) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                   != NULL && 
@@ -66,6 +72,7 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
     q->file_cfo = -offset_freq; 
     q->correct_cfo = true; 
     q->fft_size = srslte_symbol_sz(nof_prb);
+    q->nof_rx_antennas = nof_rx_ant;
     
     if (srslte_cfo_init(&q->file_cfo_correct, 2*q->sf_len)) {
       fprintf(stderr, "Error initiating CFO\n");
@@ -80,12 +87,12 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
     INFO("Offseting input file by %d samples and %.1f kHz\n", offset_time, offset_freq/1000);
 
     if (offset_time) {
-      cf_t *file_offset_buffer = srslte_vec_malloc(offset_time * sizeof(cf_t));
+      cf_t *file_offset_buffer = srslte_vec_malloc(offset_time * nof_rx_ant * sizeof(cf_t));
       if (!file_offset_buffer) {
         perror("malloc");
         goto clean_exit;
       }
-      srslte_filesource_read(&q->file_source, file_offset_buffer, offset_time);
+      srslte_filesource_read(&q->file_source, file_offset_buffer, offset_time * nof_rx_ant);
       free(file_offset_buffer);
     }
 
@@ -122,39 +129,41 @@ int recv_callback_multi_to_single(void *h, cf_t *x[SRSLTE_MAX_PORTS], uint32_t n
 }
 
 int srslte_ue_sync_init(srslte_ue_sync_t *q, 
-                 srslte_cell_t cell,
-                 int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*),                 
-                 void *stream_handler) 
+                        uint32_t max_prb,
+                        bool search_cell,
+                        int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*),
+                        void *stream_handler)
 {
-  int ret = srslte_ue_sync_init_multi(q, cell, recv_callback_multi_to_single, 1, (void*) q);
+  int ret = srslte_ue_sync_init_multi(q, max_prb, search_cell, recv_callback_multi_to_single, 1, (void*) q);
   q->recv_callback_single = recv_callback;
   q->stream_single = stream_handler;
   return ret; 
 }
 
 int srslte_ue_sync_init_multi(srslte_ue_sync_t *q, 
-                              srslte_cell_t cell,
+                              uint32_t max_prb,
+                              bool search_cell,
                               int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
                               uint32_t nof_rx_antennas,
                               void *stream_handler) 
 
 {
     
-    return srslte_ue_sync_init_multi_decim(q,  cell,recv_callback ,nof_rx_antennas,stream_handler,1); 
+    return srslte_ue_sync_init_multi_decim(q, max_prb,search_cell, recv_callback ,nof_rx_antennas,stream_handler,1);
 }
 
 int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q, 
-                              srslte_cell_t cell,
-                              int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
-                              uint32_t nof_rx_antennas,
-                              void *stream_handler,
-                              int decimate) 
+                                    uint32_t max_prb,
+                                    bool search_cell,
+                                    int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
+                                    uint32_t nof_rx_antennas,
+                                    void *stream_handler,
+                                    int decimate)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                                 != NULL && 
       stream_handler                    != NULL && 
-      srslte_nofprb_isvalid(cell.nof_prb)       &&
       nof_rx_antennas <= SRSLTE_MAX_PORTS       &&
       recv_callback                     != NULL)
   {
@@ -165,104 +174,58 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     q->stream = stream_handler;
     q->recv_callback = recv_callback;
     q->nof_rx_antennas = nof_rx_antennas;
-    q->cell = cell;
-    q->fft_size = srslte_symbol_sz(q->cell.nof_prb);
+    q->fft_size = srslte_symbol_sz(max_prb);
     q->sf_len = SRSLTE_SF_LEN(q->fft_size);
     q->file_mode = false; 
     q->correct_cfo = true; 
     q->agc_period = 0; 
     q->sample_offset_correct_period = DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD; 
     q->sfo_ema                      = DEFAULT_SFO_EMA_COEFF; 
-    
-    if (cell.id == 1000) {
+
+    q->max_prb = max_prb;
+
+    if (search_cell) {
       
       /* If the cell is unkown, we search PSS/SSS in 5 ms */
       q->nof_recv_sf = 5; 
-
-      q->decode_sss_on_track = true; 
 
     } else {
       
       /* If the cell is known, we work on a 1ms basis */
       q->nof_recv_sf = 1; 
 
-      q->decode_sss_on_track = true; 
     }
 
     q->frame_len = q->nof_recv_sf*q->sf_len;
     
-    if(q->fft_size < 700  && q->decimate)
-    {
+    if(q->fft_size < 700 && q->decimate) {
         q->decimate = 1;    
     }
-    
-  
+
     if(srslte_sync_init_decim(&q->sfind, q->frame_len, q->frame_len, q->fft_size,q->decimate)) {
       fprintf(stderr, "Error initiating sync find\n");
       goto clean_exit;
     }
-    if (cell.id == 1000) {
+    if (search_cell) {
       if(srslte_sync_init(&q->strack, q->frame_len, TRACK_FRAME_SIZE, q->fft_size)) {
         fprintf(stderr, "Error initiating sync track\n");
         goto clean_exit;
-      }      
+      }
     } else {
       if(srslte_sync_init(&q->strack, q->frame_len, SRSLTE_CP_LEN_NORM(1,q->fft_size), q->fft_size)) {
         fprintf(stderr, "Error initiating sync track\n");
         goto clean_exit;
       }
     }
-    
-    if (cell.id == 1000) {
-      /* If the cell id is unknown, enable CP detection on find */ 
-      // FIXME: CP detection not working very well. Not supporting Extended CP right now
-      srslte_sync_cp_en(&q->sfind, false);      
-      srslte_sync_cp_en(&q->strack, false); 
 
-      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.8);
-      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
-
-      srslte_sync_cfo_i_detec_en(&q->sfind, false); 
-
-      q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES; 
-      srslte_sync_set_threshold(&q->sfind, 2.0);
-      srslte_sync_set_threshold(&q->strack, 1.2);
-      
-    } else {
-      srslte_sync_set_N_id_2(&q->sfind, cell.id%3);
-      srslte_sync_set_N_id_2(&q->strack, cell.id%3);
-      q->sfind.cp = cell.cp;
-      q->strack.cp = cell.cp;
-      srslte_sync_cp_en(&q->sfind, false);      
-      srslte_sync_cp_en(&q->strack, false);        
-
-      srslte_sync_cfo_i_detec_en(&q->sfind, false); 
-      
-      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.1);
-      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
-
-      /* In find phase and if the cell is known, do not average pss correlation
-       * because we only capture 1 subframe and do not know where the peak is. 
-       */
-      q->nof_avg_find_frames = 1; 
-      srslte_sync_set_em_alpha(&q->sfind, 1);
-      srslte_sync_set_threshold(&q->sfind, 3.0);
-      
-      srslte_sync_set_em_alpha(&q->strack, 0.2);
-      srslte_sync_set_threshold(&q->strack, 1.2);
-
-    }
-      
-    srslte_ue_sync_reset(q);
-    
     ret = SRSLTE_SUCCESS;
   }
-  
+
 clean_exit:
   if (ret == SRSLTE_ERROR) {
     srslte_ue_sync_free(q);
   }
-  return ret; 
+  return ret;
 }
 
 uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q) {
@@ -275,12 +238,118 @@ void srslte_ue_sync_free(srslte_ue_sync_t *q) {
   }
   if (!q->file_mode) {
     srslte_sync_free(&q->sfind);
-    srslte_sync_free(&q->strack);    
+    srslte_sync_free(&q->strack);
   } else {
     srslte_filesource_free(&q->file_source);
   }
   bzero(q, sizeof(srslte_ue_sync_t));
 }
+
+
+int srslte_ue_sync_set_cell(srslte_ue_sync_t *q, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q                                 != NULL &&
+      srslte_nofprb_isvalid(cell.nof_prb))
+  {
+    ret = SRSLTE_ERROR;
+
+    if (cell.nof_prb > q->max_prb) {
+      fprintf(stderr, "Error in ue_sync_set_cell(): cell.nof_prb must be lower than initialized\n");
+      return SRSLTE_ERROR;
+    }
+
+    memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+    q->fft_size = srslte_symbol_sz(q->cell.nof_prb);
+    q->sf_len = SRSLTE_SF_LEN(q->fft_size);
+    q->agc_period = 0;
+
+    if (cell.id == 1000) {
+
+      /* If the cell is unkown, we search PSS/SSS in 5 ms */
+      q->nof_recv_sf = 5;
+
+      q->decode_sss_on_track = true;
+
+    } else {
+
+      /* If the cell is known, we work on a 1ms basis */
+      q->nof_recv_sf = 1;
+
+      q->decode_sss_on_track = true;
+    }
+
+    q->frame_len = q->nof_recv_sf*q->sf_len;
+
+    if(q->fft_size < 700 && q->decimate) {
+      q->decimate = 1;
+    }
+
+    if(srslte_sync_resize(&q->sfind, q->frame_len, q->frame_len, q->fft_size)) {
+      fprintf(stderr, "Error initiating sync find\n");
+      return SRSLTE_ERROR;
+    }
+    if (cell.id == 1000) {
+      if(srslte_sync_resize(&q->strack, q->frame_len, TRACK_FRAME_SIZE, q->fft_size)) {
+        fprintf(stderr, "Error initiating sync track\n");
+        return SRSLTE_ERROR;
+      }
+    } else {
+      if(srslte_sync_resize(&q->strack, q->frame_len, SRSLTE_CP_LEN_NORM(1,q->fft_size), q->fft_size)) {
+        fprintf(stderr, "Error initiating sync track\n");
+        return SRSLTE_ERROR;
+      }
+    }
+
+    if (cell.id == 1000) {
+      /* If the cell id is unknown, enable CP detection on find */
+      // FIXME: CP detection not working very well. Not supporting Extended CP right now
+      srslte_sync_cp_en(&q->sfind, false);
+      srslte_sync_cp_en(&q->strack, false);
+
+      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.8);
+      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
+
+      srslte_sync_cfo_i_detec_en(&q->sfind, false);
+
+      q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES;
+      srslte_sync_set_threshold(&q->sfind, 2.0);
+      srslte_sync_set_threshold(&q->strack, 1.2);
+
+    } else {
+      srslte_sync_set_N_id_2(&q->sfind, cell.id%3);
+      srslte_sync_set_N_id_2(&q->strack, cell.id%3);
+      q->sfind.cp = cell.cp;
+      q->strack.cp = cell.cp;
+      srslte_sync_cp_en(&q->sfind, false);
+      srslte_sync_cp_en(&q->strack, false);
+
+      srslte_sync_cfo_i_detec_en(&q->sfind, false);
+
+      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.1);
+      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
+
+      /* In find phase and if the cell is known, do not average pss correlation
+       * because we only capture 1 subframe and do not know where the peak is.
+       */
+      q->nof_avg_find_frames = 1;
+      srslte_sync_set_em_alpha(&q->sfind, 1);
+      srslte_sync_set_threshold(&q->sfind, 3.0);
+
+      srslte_sync_set_em_alpha(&q->strack, 0.2);
+      srslte_sync_set_threshold(&q->strack, 1.2);
+
+    }
+
+    srslte_ue_sync_reset(q);
+
+    ret = SRSLTE_SUCCESS;
+  }
+
+  return ret;
+}
+
 
 void srslte_ue_sync_get_last_timestamp(srslte_ue_sync_t *q, srslte_timestamp_t *timestamp) {
   memcpy(timestamp, &q->last_timestamp, sizeof(srslte_timestamp_t));
@@ -310,6 +379,8 @@ void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, float cfo) {
   srslte_sync_set_cfo(&q->sfind, cfo/15000);
   srslte_sync_set_cfo(&q->strack, cfo/15000);
 }
+
+void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t *q, float cfo_tol) {}
 
 float srslte_ue_sync_get_sfo(srslte_ue_sync_t *q) {
   return q->mean_sfo/5e-3;
@@ -442,7 +513,7 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
     discard the offseted samples to align next frame */
   if (q->next_rf_sample_offset > 0 && q->next_rf_sample_offset < MAX_TIME_OFFSET) {
     DEBUG("Positive time offset %d samples.\n", q->next_rf_sample_offset);
-    if (q->recv_callback(q->stream, dummy_offset_buffer, (uint32_t) q->next_rf_sample_offset, &q->last_timestamp) < 0) {
+    if (q->recv_callback(q->stream, dummy_offset_buffer, (uint32_t) q->next_rf_sample_offset, NULL) < 0) {
       fprintf(stderr, "Error receiving from USRP\n");
       return SRSLTE_ERROR; 
     }
@@ -518,26 +589,27 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
   {
     
     if (q->file_mode) {
-      int n = srslte_filesource_read(&q->file_source, input_buffer[0], q->sf_len);
+      int n = srslte_filesource_read_multi(&q->file_source, (void **) input_buffer, q->sf_len, q->nof_rx_antennas);
       if (n < 0) {
         fprintf(stderr, "Error reading input file\n");
-        return SRSLTE_ERROR; 
+        return SRSLTE_ERROR;
       }
       if (n == 0) {
         srslte_filesource_seek(&q->file_source, 0);
-        q->sf_idx = 9; 
-        int n = srslte_filesource_read(&q->file_source, input_buffer[0], q->sf_len);
+        q->sf_idx = 9;
+        n = srslte_filesource_read_multi(&q->file_source, (void **) input_buffer, q->sf_len, q->nof_rx_antennas);
         if (n < 0) {
           fprintf(stderr, "Error reading input file\n");
-          return SRSLTE_ERROR; 
+          return SRSLTE_ERROR;
         }
       }
       if (q->correct_cfo) {
-        srslte_cfo_correct(&q->file_cfo_correct, 
-                    input_buffer[0], 
-                    input_buffer[0], 
-                    q->file_cfo / 15000 / q->fft_size);               
-                    
+        for (int i = 0; i < q->nof_rx_antennas; i++) {
+          srslte_cfo_correct(&q->file_cfo_correct,
+                             input_buffer[i],
+                             input_buffer[i],
+                             q->file_cfo / 15000 / q->fft_size);
+        }
       }
       q->sf_idx++;
       if (q->sf_idx == 10) {
@@ -604,6 +676,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
             /* Track PSS/SSS around the expected PSS position 
              * In tracking phase, the subframe carrying the PSS is always the last one of the frame
              */
+            
             switch(srslte_sync_find(&q->strack, input_buffer[0], 
                                     q->frame_len - q->sf_len/2 - q->fft_size - q->strack.max_offset/2, 
                                     &track_idx)) 
@@ -642,7 +715,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           } 
           if (q->correct_cfo) {
             for (int i=0;i<q->nof_rx_antennas;i++) {
-              srslte_cfo_correct(&q->sfind.cfocorr, 
+              srslte_cfo_correct(&q->strack.cfocorr,
                           input_buffer[i], 
                           input_buffer[i], 
                           -srslte_sync_get_cfo(&q->strack) / q->fft_size);                         

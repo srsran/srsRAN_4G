@@ -45,7 +45,7 @@
 #define SRSLTE_PUCCH_N_SEQ       12 
 #define SRSLTE_PUCCH2_NOF_BITS   SRSLTE_UCI_CQI_CODED_PUCCH_B
 #define SRSLTE_PUCCH_MAX_BITS    SRSLTE_CQI_MAX_BITS
-#define SRSLTE_PUCCH_MAX_SYMBOLS 120
+#define SRSLTE_PUCCH_MAX_SYMBOLS 128
 
 typedef enum SRSLTE_API {
   SRSLTE_PUCCH_FORMAT_1 = 0, 
@@ -108,7 +108,6 @@ typedef struct SRSLTE_API {
   bool group_hopping_en;
 
   float threshold_format1;
-  float threshold_format1a;
   float last_corr;
   uint32_t last_n_prb;
   uint32_t last_n_pucch;
@@ -116,18 +115,19 @@ typedef struct SRSLTE_API {
 }srslte_pucch_t;
 
 
-SRSLTE_API int srslte_pucch_init(srslte_pucch_t *q, 
-                                 srslte_cell_t cell);
+SRSLTE_API int srslte_pucch_init(srslte_pucch_t *q);
 
 SRSLTE_API void srslte_pucch_free(srslte_pucch_t *q);
 
-SRSLTE_API bool srslte_pucch_set_cfg(srslte_pucch_t* q, 
+SRSLTE_API int srslte_pucch_set_cell(srslte_pucch_t *q,
+                                     srslte_cell_t cell);
+
+SRSLTE_API bool srslte_pucch_set_cfg(srslte_pucch_t* q,
                                      srslte_pucch_cfg_t* cfg, 
                                      bool group_hopping_en); 
 
-SRSLTE_API void srslte_pucch_set_threshold(srslte_pucch_t *q, 
-                                           float format1, 
-                                           float format1a); 
+SRSLTE_API void srslte_pucch_set_threshold(srslte_pucch_t *q,
+                                           float format1_threshold);
 
 SRSLTE_API int srslte_pucch_set_crnti(srslte_pucch_t *q, 
                                       uint16_t c_rnti); 

@@ -39,21 +39,13 @@ SRSLTE_API int srslte_vec_dot_prod_sss_sse(short *x, short *y, uint32_t len);
 
 SRSLTE_API int srslte_vec_dot_prod_sss_avx2(short *x, short *y, uint32_t len); 
 
-
-  
 SRSLTE_API void srslte_vec_sum_sss_sse(short *x, short *y, short *z, uint32_t len);
 
 SRSLTE_API void srslte_vec_sum_sss_avx2(short *x, short *y, short *z, uint32_t len);
 
-
-
 SRSLTE_API void srslte_vec_sub_sss_sse(short *x, short *y, short *z, uint32_t len); 
 
 SRSLTE_API void srslte_vec_sub_sss_avx2(short *x, short *y, short *z, uint32_t len);
-
-
-
-
 
 SRSLTE_API void srslte_vec_prod_sss_sse(short *x, short *y, short *z, uint32_t len); 
 
@@ -64,17 +56,11 @@ SRSLTE_API void srslte_vec_sc_div2_sss_sse(short *x, int n_rightshift, short *z,
 
 SRSLTE_API  void srslte_vec_sc_div2_sss_avx2(short *x, int k, short *z, uint32_t len);
 
-
-
-
-
 SRSLTE_API void srslte_vec_lut_sss_sse(short *x, unsigned short *lut, short *y, uint32_t len); 
 
-SRSLTE_API void srslte_vec_convert_fi_sse(float *x, int16_t *z, float scale, uint32_t len); 
+SRSLTE_API void srslte_vec_convert_fi_sse(float *x, int16_t *z, float scale, uint32_t len);
 
-
-
-SRSLTE_API void srslte_vec_mult_scalar_cf_f_avx( cf_t *z,const cf_t *x,const float h,const uint32_t len);
+SRSLTE_API void srslte_vec_sc_prod_cfc_avx(const cf_t *x,const float h,cf_t *y,const uint32_t len);
 #ifdef __cplusplus
 }
 #endif

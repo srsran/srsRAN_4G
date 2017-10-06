@@ -53,6 +53,8 @@
 #define SRSLTE_BCH_PAYLOADCRC_LEN  (SRSLTE_BCH_PAYLOAD_LEN+16)
 #define SRSLTE_BCH_ENCODED_LEN     3*(SRSLTE_BCH_PAYLOADCRC_LEN)
 
+#define SRSLTE_PBCH_MAX_RE 256 // make it avx2-aligned
+
 /* PBCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
@@ -83,12 +85,14 @@ typedef struct SRSLTE_API {
   
 } srslte_pbch_t;
 
-SRSLTE_API int srslte_pbch_init(srslte_pbch_t *q,
-                         srslte_cell_t cell);
+SRSLTE_API int srslte_pbch_init(srslte_pbch_t *q);
 
 SRSLTE_API void srslte_pbch_free(srslte_pbch_t *q);
 
-SRSLTE_API int srslte_pbch_decode(srslte_pbch_t *q, 
+SRSLTE_API int srslte_pbch_set_cell(srslte_pbch_t *q,
+                                    srslte_cell_t cell);
+
+SRSLTE_API int srslte_pbch_decode(srslte_pbch_t *q,
                            cf_t *slot1_symbols, 
                            cf_t *ce_slot1[SRSLTE_MAX_PORTS], 
                            float noise_estimate, 

@@ -59,8 +59,7 @@ class ra_proc : public srslte::timer_callback
       phy_h                     = NULL; 
       log_h                     = NULL; 
       mac_cfg                   = NULL; 
-      timers_db                 = NULL; 
-      mux_unit                  = NULL; 
+      mux_unit                  = NULL;
       demux_unit                = NULL; 
       rrc                       = NULL; 
       transmitted_contention_id = 0; 
@@ -69,14 +68,21 @@ class ra_proc : public srslte::timer_callback
       started_by_pdcch          = false; 
       rar_grant_nbytes          = 0; 
       rar_grant_tti             = 0; 
-      msg3_flushed              = false; 
+      msg3_flushed              = false;
+
+      time_alignment_timer        = NULL;
+      contention_resolution_timer = NULL;
     };
+
+    ~ra_proc();
+
     void init(phy_interface_mac *phy_h, 
               rrc_interface_mac *rrc_, 
               srslte::log *log_h, 
               mac_interface_rrc::ue_rnti_t *rntis, 
-              mac_interface_rrc::mac_cfg_t *mac_cfg, 
-              srslte::timers *timers_db, 
+              mac_interface_rrc::mac_cfg_t *mac_cfg,
+              srslte::timers::timer* time_alignment_timer_,
+              srslte::timers::timer* contention_resolution_timer_,
               mux *mux_unit, 
               demux *demux_unit);
     void reset();
@@ -98,9 +104,9 @@ class ra_proc : public srslte::timer_callback
     void start_pcap(srslte::mac_pcap* pcap);
 private: 
     static bool uecrid_callback(void *arg, uint64_t uecri);
-    
+
     bool contention_resolution_id_received(uint64_t uecri);
-    void process_timeadv_cmd(uint32_t ta_cmd); 
+    void process_timeadv_cmd(uint32_t ta_cmd);
     void step_initialization();
     void step_resource_selection();
     void step_preamble_transmission();
@@ -111,14 +117,14 @@ private:
     void step_contention_resolution();
     void step_completition();
 
-    //  Buffer to receive RAR PDU 
+    //  Buffer to receive RAR PDU
     static const uint32_t MAX_RAR_PDU_LEN = 2048;
     uint8_t     rar_pdu_buffer[MAX_RAR_PDU_LEN];
-    srslte::rar_pdu rar_pdu_msg; 
-    
+    srslte::rar_pdu rar_pdu_msg;
+
     // Random Access parameters provided by higher layers defined in 5.1.1
     uint32_t configIndex;
-    uint32_t nof_preambles; 
+    uint32_t nof_preambles;
     uint32_t nof_groupA_preambles;
     uint32_t nof_groupB_preambles;
     uint32_t messagePowerOffsetGroupB;
@@ -127,26 +133,25 @@ private:
     uint32_t powerRampingStep;
     uint32_t preambleTransMax;
     uint32_t iniReceivedTargetPower;
-    int      delta_preamble_db; 
-    uint32_t contentionResolutionTimer; 
-    uint32_t maskIndex; 
-    int      preambleIndex;    
-    uint32_t new_ra_msg_len; 
-    
+    int      delta_preamble_db;
+    uint32_t contentionResolutionTimer;
+    uint32_t maskIndex;
+    int      preambleIndex;
+    uint32_t new_ra_msg_len;
+
     // Internal variables
-    uint32_t preambleTransmissionCounter; 
-    uint32_t backoff_param_ms; 
-    uint32_t sel_maskIndex; 
-    uint32_t sel_preamble; 
+    uint32_t preambleTransmissionCounter;
+    uint32_t backoff_param_ms;
+    uint32_t sel_maskIndex;
+    uint32_t sel_preamble;
     uint32_t backoff_interval_start;
     uint32_t backoff_inteval;
-    int      received_target_power_dbm; 
-    uint32_t ra_rnti; 
-    uint32_t current_ta; 
-    
-    srslte_softbuffer_rx_t softbuffer_rar; 
-    
-    
+    int      received_target_power_dbm;
+    uint32_t ra_rnti;
+    uint32_t current_ta;
+
+    srslte_softbuffer_rx_t softbuffer_rar;
+
     enum {
       IDLE = 0,
       INITIALIZATION,           // Section 5.1.1
@@ -160,36 +165,38 @@ private:
       COMPLETION,               // Section 5.1.6
       COMPLETION_DONE,
       RA_PROBLEM                // Section 5.1.5 last part
-    } state; 
-    
+    } state;
+
     typedef enum {RA_GROUP_A, RA_GROUP_B} ra_group_t;
-    
-    ra_group_t  last_msg3_group; 
-    bool        msg3_transmitted; 
-    bool        first_rar_received; 
+
+    ra_group_t  last_msg3_group;
+    bool        msg3_transmitted;
+    bool        first_rar_received;
     void        read_params();
-    
+
     phy_interface_mac *phy_h;
     srslte::log       *log_h;
-    srslte::timers    *timers_db;
     mux               *mux_unit;
     demux             *demux_unit;
     srslte::mac_pcap  *pcap;
     rrc_interface_mac *rrc;
 
+    srslte::timers::timer  *time_alignment_timer;
+    srslte::timers::timer  *contention_resolution_timer;
+
     mac_interface_rrc::ue_rnti_t *rntis;
     mac_interface_rrc::mac_cfg_t *mac_cfg;
-    
+
     uint64_t    transmitted_contention_id;
-    uint16_t    transmitted_crnti; 
-    
+    uint16_t    transmitted_crnti;
+
     enum {
-       PDCCH_CRNTI_NOT_RECEIVED = 0, 
-       PDCCH_CRNTI_UL_GRANT, 
-       PDCCH_CRNTI_DL_GRANT      
+       PDCCH_CRNTI_NOT_RECEIVED = 0,
+       PDCCH_CRNTI_UL_GRANT,
+       PDCCH_CRNTI_DL_GRANT
     } pdcch_to_crnti_received;
 
-    bool started_by_pdcch; 
+    bool started_by_pdcch;
     uint32_t rar_grant_nbytes;
     uint32_t rar_grant_tti;
     bool msg3_flushed;

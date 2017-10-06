@@ -28,8 +28,42 @@
 #define INTERFACE_COMMON_H
 
 #include "srslte/common/timers.h"
+#include "srslte/common/security.h"
+#include "srslte/asn1/liblte_rrc.h"
+
 
 namespace srslte {
+
+class srslte_nas_config_t
+{
+public:
+  srslte_nas_config_t(uint32_t lcid_ = 0)
+    :lcid(lcid_)
+    {}
+
+  uint32_t lcid;
+};
+
+
+class srslte_pdcp_config_t
+{
+public:
+  srslte_pdcp_config_t(bool is_control_ = false, bool is_data_ = false, uint8_t direction_ = SECURITY_DIRECTION_UPLINK)
+    :direction(direction_)
+    ,is_control(is_control_)
+    ,is_data(is_data_)
+    ,do_security(false)
+    ,sn_len(12) {}
+
+  uint8_t             direction;
+  bool                is_control;
+  bool                is_data;
+  bool                do_security;
+  uint8_t             sn_len;
+
+  // TODO: Support the following configurations
+  // bool do_rohc;
+};
 
 class mac_interface_timers
 {
@@ -37,8 +71,9 @@ public:
   /* Timer services with ms resolution. 
    * timer_id must be lower than MAC_NOF_UPPER_TIMERS
    */
-  virtual timers::timer* get(uint32_t timer_id) = 0;
-  virtual uint32_t               get_unique_id() = 0;
+  virtual timers::timer* timer_get(uint32_t timer_id)  = 0;
+  virtual void           timer_release_id(uint32_t timer_id) = 0;
+  virtual uint32_t       timer_get_unique_id() = 0;
 };
 
 class read_pdu_interface

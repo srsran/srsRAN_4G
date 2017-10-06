@@ -32,7 +32,7 @@
 #include "srslte/radio/radio_multi.h"
 #include "phy/phy.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include "mac/mac.h"
 #include "srslte/common/mac_pcap.h"
 
@@ -427,22 +427,11 @@ private:
 
 int main(int argc, char *argv[])
 {
-  srslte::log_stdout mac_log("MAC"), phy_log("PHY"); 
+  srslte::log_filter mac_log("MAC");
   rlctest my_rlc;  
   parse_args(&prog_args, argc, argv);
   
-  switch (prog_args.verbose) {
-    case 1:
-      mac_log.set_level(srslte::LOG_LEVEL_INFO);
-      phy_log.set_level(srslte::LOG_LEVEL_INFO);
-      break;
-    case 2: 
-      mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-      phy_log.set_level(srslte::LOG_LEVEL_DEBUG);
-      break;
-  }
- 
-  // Capture SIGINT to write traces 
+  // Capture SIGINT to write traces
   if (prog_args.do_trace) {
     signal(SIGINT, sig_int_handler);
     //radio.start_trace();
@@ -461,7 +450,26 @@ int main(int argc, char *argv[])
   if (!radio.init()) {
     exit(1);
   }
-  phy.init(&radio, &mac, NULL, &phy_log);
+
+  std::vector<void*> phy_log;
+
+  srslte::log_filter *mylog = new srslte::log_filter("PHY");
+  char tmp[16];
+  sprintf(tmp, "PHY%d",0);
+  phy_log.push_back((void*) mylog);
+
+  switch (prog_args.verbose) {
+    case 1:
+      mac_log.set_level(srslte::LOG_LEVEL_INFO);
+      mylog->set_level(srslte::LOG_LEVEL_INFO);
+      break;
+    case 2:
+      mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+      mylog->set_level(srslte::LOG_LEVEL_DEBUG);
+      break;
+  }
+
+  phy.init(&radio, &mac, NULL, phy_log);
   if (prog_args.rf_rx_gain > 0 && prog_args.rf_tx_gain > 0) {
     radio.set_rx_gain(prog_args.rf_rx_gain);
     radio.set_tx_gain(prog_args.rf_tx_gain);

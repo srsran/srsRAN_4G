@@ -37,7 +37,7 @@
 
 namespace srsue {
 
-class bsr_proc : public srslte::timer_callback
+class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
 {
 public:
   bsr_proc();
@@ -48,18 +48,6 @@ public:
   void set_priority(uint32_t lcid, uint32_t priority); 
   void timer_expired(uint32_t timer_id);
   uint32_t get_buffer_state();
-  
-  typedef enum {
-    LONG_BSR, 
-    SHORT_BSR, 
-    TRUNC_BSR    
-  } bsr_format_t;
-  
-  typedef struct {
-    bsr_format_t format; 
-    uint32_t buff_size[4];
-  } bsr_t; 
-
   bool need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr); 
   bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr);
   bool need_to_send_sr(uint32_t tti); 
@@ -93,6 +81,9 @@ private:
   bool generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes); 
   char* bsr_type_tostring(triggered_bsr_type_t type); 
   char* bsr_format_tostring(bsr_format_t format);
+
+  uint32_t timer_periodic_id;
+  uint32_t timer_retx_id;
 };
 
 } // namespace srsue

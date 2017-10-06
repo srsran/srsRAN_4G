@@ -152,6 +152,9 @@ SRSLTE_API void srslte_vec_conj_cc(cf_t *x, cf_t *y, uint32_t len);
 /* average vector power */
 SRSLTE_API float srslte_vec_avg_power_cf(cf_t *x, uint32_t len);
 
+/* Correlation between complex vectors x and y */
+SRSLTE_API float srslte_vec_corr_ccc(cf_t *x, cf_t *y, uint32_t len);
+
 /* return the index of the maximum value in the vector */
 SRSLTE_API uint32_t srslte_vec_max_fi(float *x, uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len);
@@ -171,6 +174,9 @@ SRSLTE_API void srslte_vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t le
 
 /* argument of each vector element */
 SRSLTE_API void srslte_vec_arg_cf(cf_t *x, float *arg, uint32_t len);
+
+/* Copy 256 bit aligned vector */
+SRSLTE_API void srs_vec_cf_cpy(cf_t *src, cf_t *dst, int len);
 
 #ifdef __cplusplus
 }

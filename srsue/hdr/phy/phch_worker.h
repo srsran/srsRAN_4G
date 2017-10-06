@@ -42,15 +42,17 @@ class phch_worker : public srslte::thread_pool::worker
 public:
   
   phch_worker();
+  ~phch_worker();
   void  reset(); 
   void  set_common(phch_common *phy);
-  bool  init_cell(srslte_cell_t cell);
-  void  free_cell();
-  
+  bool  init(uint32_t max_prb, srslte::log *log);
+
+  bool  set_cell(srslte_cell_t cell);
+
   /* Functions used by main PHY thread */
   cf_t* get_buffer(uint32_t antenna_idx);
   void  set_tti(uint32_t tti, uint32_t tx_tti); 
-  void  set_tx_time(srslte_timestamp_t tx_time);
+  void  set_tx_time(srslte_timestamp_t tx_time, uint32_t next_offset);
   void  set_cfo(float cfo);
   void  set_sample_offset(float sample_offset); 
   
@@ -76,8 +78,15 @@ private:
   /* ... for DL */
   bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);
   bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
-  bool decode_phich(bool *ack); 
-  bool decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload, srslte_softbuffer_rx_t* softbuffer, int rv, uint16_t rnti, uint32_t pid);
+  bool decode_phich(bool *ack);
+
+  int decode_pdsch(srslte_ra_dl_grant_t *grant,
+                   uint8_t *payload[SRSLTE_MAX_CODEWORDS],
+                   srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS],
+                   int rv[SRSLTE_MAX_CODEWORDS],
+                   uint16_t rnti,
+                   uint32_t pid,
+                   bool acks[SRSLTE_MAX_CODEWORDS]);
 
   /* ... for UL */
   void encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, uint32_t current_tx_nb, srslte_softbuffer_tx_t *softbuffer, 
@@ -88,7 +97,7 @@ private:
   void set_uci_sr();
   void set_uci_periodic_cqi();
   void set_uci_aperiodic_cqi();
-  void set_uci_ack(bool ack);
+  void set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS]);
   bool srs_is_ready_to_send();
   float set_power(float tx_power);
   void setup_tx_gain();
@@ -104,15 +113,19 @@ private:
   
   /* Common objects */  
   phch_common    *phy;
-  srslte_cell_t  cell; 
-  bool           cell_initiated; 
+  srslte::log    *log_h;
+  srslte_cell_t  cell;
+  bool           mem_initiated;
+  bool           cell_initiated;
   cf_t          *signal_buffer[SRSLTE_MAX_PORTS]; 
   uint32_t       tti; 
   uint32_t       tx_tti;
   bool           pregen_enabled;
   uint32_t       last_dl_pdcch_ncce;
-  bool           rnti_is_set; 
-  
+  bool           rnti_is_set;
+
+  uint32_t next_offset;
+
   /* Objects for DL */
   srslte_ue_dl_t ue_dl; 
   uint32_t       cfi; 

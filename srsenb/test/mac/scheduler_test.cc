@@ -6,7 +6,7 @@
 
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/radio/radio.h"
 #include "srslte/phy/utils/debug.h"
 
@@ -62,7 +62,7 @@ private:
 
 
 // Create classes
-srslte::log_stdout   log_out("ALL");
+srslte::log_filter   log_out("ALL");
 srsenb::sched        my_sched;
 srsenb::dl_metric_rr dl_metric;
 srsenb::ul_metric_rr ul_metric;

@@ -142,7 +142,11 @@ int base_init() {
     }
   }
   
-  if (srslte_chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    return -1;
+  }
+  if (srslte_chest_dl_set_cell(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -157,7 +161,11 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_pcfich_init(&pcfich, &regs, cell)) {
+  if (srslte_pcfich_init(&pcfich, 1)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    return -1;
+  }
+  if (srslte_pcfich_set_cell(&pcfich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     return -1;
   }

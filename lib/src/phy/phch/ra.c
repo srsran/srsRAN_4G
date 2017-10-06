@@ -41,15 +41,19 @@
 
 /* Returns the number of RE in a PRB in a slot and subframe */
 uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_t nof_prb,
-    uint32_t nof_ports, uint32_t nof_ctrl_symbols, srslte_cp_t cp) {
+    uint32_t nof_ports, uint32_t nof_ctrl_symbols, srslte_cp_t cp, srslte_sf_t sf_type) {
 
   uint32_t re;
-  bool skip_refs = false;
+  bool skip_refs = true;
+  srslte_cp_t cp_ = cp;
+  if(SRSLTE_SF_MBSFN == sf_type) {
+    cp_ = SRSLTE_CP_EXT;
+  }
 
   if (slot == 0) {
-    re = (SRSLTE_CP_NSYMB(cp) - nof_ctrl_symbols) * SRSLTE_NRE;
+    re = (SRSLTE_CP_NSYMB(cp_) - nof_ctrl_symbols) * SRSLTE_NRE;
   } else {
-    re = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE;
+    re = SRSLTE_CP_NSYMB(cp_) * SRSLTE_NRE;
   }
 
   /* if it's the prb in the middle, there are less RE due to PBCH and PSS/SSS */
@@ -57,18 +61,18 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
       && (prb_idx >= nof_prb / 2 - 3 && prb_idx < nof_prb / 2 + 3 + (nof_prb%2))) {
     if (subframe == 0) {
       if (slot == 0) {
-        re = (SRSLTE_CP_NSYMB(cp) - nof_ctrl_symbols - 2) * SRSLTE_NRE;
+        re = (SRSLTE_CP_NSYMB(cp_) - nof_ctrl_symbols - 2) * SRSLTE_NRE;
       } else {
-        if (SRSLTE_CP_ISEXT(cp)) {
-          re = (SRSLTE_CP_NSYMB(cp) - 4) * SRSLTE_NRE;
-          skip_refs = true;
+        if (SRSLTE_CP_ISEXT(cp_)) {
+          re = (SRSLTE_CP_NSYMB(cp_) - 4) * SRSLTE_NRE;
+          skip_refs = false;
         } else {
-          re = (SRSLTE_CP_NSYMB(cp) - 4) * SRSLTE_NRE + 2 * nof_ports;
+          re = (SRSLTE_CP_NSYMB(cp_) - 4) * SRSLTE_NRE + 2 * nof_ports;
         }
       }
     } else if (subframe == 5) {
       if (slot == 0) {
-        re = (SRSLTE_CP_NSYMB(cp) - nof_ctrl_symbols - 2) * SRSLTE_NRE;
+        re = (SRSLTE_CP_NSYMB(cp_) - nof_ctrl_symbols - 2) * SRSLTE_NRE;
       }
     }
     if ((nof_prb % 2)
@@ -77,7 +81,7 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
         re += 2 * SRSLTE_NRE / 2;
       } else if (subframe == 0) {
         re += 4 * SRSLTE_NRE / 2 - nof_ports;
-        if (SRSLTE_CP_ISEXT(cp)) {
+        if (SRSLTE_CP_ISEXT(cp_)) {
           re -= nof_ports > 2 ? 2 : nof_ports;
         }
       }
@@ -85,22 +89,27 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
   }
 
   // remove references
-  if (!skip_refs) {
-    switch (nof_ports) {
-    case 1:
-    case 2:
-      re -= 2 * (slot + 1) * nof_ports;
-      break;
-    case 4:
-      if (slot == 1) {
-        re -= 12;
-      } else {
-        re -= 4;
-        if (nof_ctrl_symbols == 1) {
+  if (skip_refs) {
+    if(sf_type == SRSLTE_SF_NORM){
+      switch (nof_ports) {
+      case 1:
+      case 2:
+        re -= 2 * (slot + 1) * nof_ports;
+        break;
+      case 4:
+        if (slot == 1) {
+          re -= 12;
+        } else {
           re -= 4;
+          if (nof_ctrl_symbols == 1) {
+            re -= 4;
+          }
         }
+        break;
       }
-      break;
+    }
+    if(sf_type == SRSLTE_SF_MBSFN){
+      re -= 6*(slot + 1);
     }
   }
   return re;
@@ -278,22 +287,22 @@ uint32_t srslte_ra_dl_approx_nof_re(srslte_cell_t cell, uint32_t nof_prb, uint32
 
 /* Computes the number of RE for each PRB in the prb_dist structure */
 uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, srslte_cell_t cell, 
-                                      uint32_t sf_idx, uint32_t nof_ctrl_symbols) 
+                                      uint32_t sf_idx, uint32_t nof_ctrl_symbols)
 {
   uint32_t j, s;
-
   // Compute number of RE per PRB
   uint32_t nof_re = 0;
   for (s = 0; s < 2; s++) {
     for (j = 0; j < cell.nof_prb; j++) {
       if (grant->prb_idx[s][j]) {
-        nof_re += ra_re_x_prb(sf_idx, s, j,
-            cell.nof_prb, cell.nof_ports, nof_ctrl_symbols, cell.cp);          
+        nof_re += ra_re_x_prb(sf_idx, s, j, cell.nof_prb, cell.nof_ports,
+                              nof_ctrl_symbols, cell.cp, grant->sf_type);
       }
     }
-  }  
+  }
   return nof_re; 
 }
+
 
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213
  * Decode dci->type?_alloc to grant
@@ -432,7 +441,7 @@ int srslte_ra_dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_
   return SRSLTE_SUCCESS;
 }
 
-int dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb) {
+int srslte_dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb) {
   uint32_t i_tbs = 0; 
   int tbs = -1; 
   if (mcs->idx < 10) {
@@ -457,6 +466,53 @@ int dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb) {
     tbs = 0;
     i_tbs = 0;
   }
+  
+  if (tbs == -1) {
+    tbs = srslte_ra_tbs_from_idx(i_tbs, nprb);
+    if (tbs >= 0) {
+      mcs->tbs = tbs; 
+    }
+  }  
+  return tbs; 
+}
+
+int srslte_dl_fill_ra_mcs_pmch(srslte_ra_mcs_t *mcs, uint32_t nprb) {
+  uint32_t i_tbs = 0; 
+  int tbs = -1; 
+  if (mcs->idx < 5) {
+    mcs->mod = SRSLTE_MOD_QPSK;
+    i_tbs = mcs->idx*2;
+  }else if (mcs->idx < 6) {
+    mcs->mod = SRSLTE_MOD_16QAM;
+    i_tbs = mcs->idx*2;
+  }else if (mcs->idx < 11) {
+    mcs->mod = SRSLTE_MOD_16QAM;
+    i_tbs = mcs->idx + 5;
+  }else if (mcs->idx < 20) {
+    mcs->mod = SRSLTE_MOD_64QAM;
+    i_tbs = mcs->idx + 5;
+  }else if (mcs->idx < 28) {
+    //mcs->mod = SRSLTE_MOD_256QAM; 
+    i_tbs = mcs->idx + 5;
+  }else if (mcs->idx == 28) {
+    mcs->mod = SRSLTE_MOD_QPSK;
+    tbs = 0;
+    i_tbs = 0;
+  }else if (mcs->idx == 29) {
+    mcs->mod = SRSLTE_MOD_16QAM;
+    tbs = 0;
+    i_tbs = 0;
+  }else if (mcs->idx == 30) {
+    mcs->mod = SRSLTE_MOD_64QAM;
+    tbs = 0;
+    i_tbs = 0;
+  }else if (mcs->idx == 31) {
+    mcs->mod = SRSLTE_MOD_64QAM;
+    tbs = 0;
+    i_tbs = 0;
+  }
+  
+  
   if (tbs == -1) {
     tbs = srslte_ra_tbs_from_idx(i_tbs, nprb);
     if (tbs >= 0) {
@@ -492,44 +548,45 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
       fprintf(stderr, "Error decoding DCI: P/SI/RA-RNTI supports Format1A/1C only\n");
       return SRSLTE_ERROR; 
     }
-    grant->mcs.mod = SRSLTE_MOD_QPSK;      
-    grant->mcs.tbs = (uint32_t) tbs; 
+    grant->mcs[0].mod = SRSLTE_MOD_QPSK;
+    grant->mcs[0].tbs = (uint32_t) tbs;
   } else {
     n_prb = grant->nof_prb;
     grant->nof_tb = 0; 
     if (dci->tb_en[0]) {
-      grant->mcs.idx = dci->mcs_idx;
-      tbs   = dl_fill_ra_mcs(&grant->mcs, n_prb);
+      grant->mcs[0].idx = dci->mcs_idx;
+      tbs   = srslte_dl_fill_ra_mcs(&grant->mcs[0], n_prb);
       if (tbs) {
         last_dl_tbs[dci->harq_process%8] = tbs;
       } else {
         // For mcs>=29, set last TBS received for this PID
-        grant->mcs.tbs = last_dl_tbs[dci->harq_process%8]; 
+        grant->mcs[0].tbs = last_dl_tbs[dci->harq_process%8];
       }
       grant->nof_tb++;
     } else {
-      grant->mcs.tbs = 0; 
+      grant->mcs[0].tbs = 0;
     }
     if (dci->tb_en[1]) {
-      grant->mcs2.idx = dci->mcs_idx_1;
-      tbs = dl_fill_ra_mcs(&grant->mcs2, n_prb);
+      grant->mcs[1].idx = dci->mcs_idx_1;
+      tbs = srslte_dl_fill_ra_mcs(&grant->mcs[1], n_prb);
       if (tbs) {
         last_dl_tbs2[dci->harq_process%8] = tbs;
       } else {
         // For mcs>=29, set last TBS received for this PID
-        grant->mcs2.tbs = last_dl_tbs2[dci->harq_process%8]; 
+        grant->mcs[1].tbs = last_dl_tbs2[dci->harq_process%8];
       }
-      grant->nof_tb++;
     } else {
-      grant->mcs2.tbs = 0; 
+      grant->mcs[1].tbs = 0;
     }
-  }  
-  if (dci->tb_en[0]) {
-    grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
   }
-  if (dci->tb_en[1]) {
-    grant->Qm2 = srslte_mod_bits_x_symbol(grant->mcs2.mod);      
+  for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    grant->tb_en[tb] = dci->tb_en[tb];
+    if (dci->tb_en[tb]) {
+      grant->Qm[tb] = srslte_mod_bits_x_symbol(grant->mcs[tb].mod);
+    }
   }
+  grant->pinfo = dci->pinfo;
+
   if (tbs < 0) {
     return SRSLTE_ERROR; 
   } else {    
@@ -537,19 +594,30 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
   }
 }
 
-void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srslte_cell_t cell, uint32_t sf_idx, srslte_ra_nbits_t *nbits) 
+void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srslte_cell_t cell, uint32_t sf_idx,
+                                 srslte_ra_nbits_t nbits [SRSLTE_MAX_CODEWORDS])
 {
   // Compute number of RE 
-  nbits->nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb<10?(cfi+1):cfi);
-  nbits->lstart = cell.nof_prb<10?(cfi+1):cfi;
-  nbits->nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-nbits->lstart;
-  nbits->nof_bits = nbits->nof_re * grant->Qm;      
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (grant->tb_en[i]) {
+      /* Compute number of RE for first transport block */
+      nbits[i].nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb < 10 ? (cfi + 1) : cfi);
+      nbits[i].lstart = cell.nof_prb < 10 ? (cfi + 1) : cfi;
+      if (SRSLTE_SF_NORM == grant->sf_type) {
+        nbits[i].nof_symb = 2 * SRSLTE_CP_NSYMB(cell.cp) - nbits[0].lstart;
+      } else if (SRSLTE_SF_MBSFN == grant->sf_type) {
+        nbits[i].nof_symb = 2 * SRSLTE_CP_EXT_NSYMB - nbits[0].lstart;
+      }
+      nbits[i].nof_bits = nbits[i].nof_re * grant->Qm[i];
+    }
+  }
 }
 
 /** Obtains a DL grant from a DCI grant for PDSCH */
 int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, 
                               uint32_t nof_prb, uint16_t msg_rnti, srslte_ra_dl_grant_t *grant) 
-{  
+{
+  grant->sf_type = SRSLTE_SF_NORM;
   bool crc_is_crnti = false; 
   if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
     crc_is_crnti = true; 
@@ -796,18 +864,34 @@ void srslte_ra_pdsch_fprint(FILE *f, srslte_ra_dl_dci_t *dci, uint32_t nof_prb) 
     }
     break;
   }
-  fprintf(f, " - Modulation and coding scheme index:\t%d\n", dci->mcs_idx);
   fprintf(f, " - HARQ process:\t\t\t%d\n", dci->harq_process);
-  fprintf(f, " - New data indicator:\t\t\t%s\n", dci->ndi ? "Yes" : "No");
-  fprintf(f, " - Redundancy version:\t\t\t%d\n", dci->rv_idx);
   fprintf(f, " - TPC command for PUCCH:\t\t--\n");
+  fprintf(f, " - Transport blocks swapped:\t\t%s\n", (dci->tb_cw_swap)?"true":"false");
+  fprintf(f, " - Transport block 1 enabled:\t\t%s\n", (dci->tb_en[0])?"true":"false");
+  if (dci->tb_en[0]) {
+    fprintf(f, "   + Modulation and coding scheme index:\t%d\n", dci->mcs_idx);
+    fprintf(f, "   + New data indicator:\t\t\t%s\n", dci->ndi ? "Yes" : "No");
+    fprintf(f, "   + Redundancy version:\t\t\t%d\n", dci->rv_idx);
+  }
+  fprintf(f, " - Transport block 2 enabled:\t\t%s\n", (dci->tb_en[1])?"true":"false");
+  if (dci->tb_en[1]) {
+    fprintf(f, "   + Modulation and coding scheme index:\t%d\n", dci->mcs_idx_1);
+    fprintf(f, "   + New data indicator:\t\t\t%s\n", dci->ndi_1 ? "Yes" : "No");
+    fprintf(f, "   + Redundancy version:\t\t\t%d\n", dci->rv_idx_1);
+  }
 }
 
 void srslte_ra_dl_grant_fprint(FILE *f, srslte_ra_dl_grant_t *grant) {
   srslte_ra_prb_fprint(f, grant);
   fprintf(f, " - Number of PRBs:\t\t\t%d\n", grant->nof_prb);
-  fprintf(f, " - Modulation type:\t\t\t%s\n", srslte_mod_string(grant->mcs.mod));
-  fprintf(f, " - Transport block size:\t\t%d\n", grant->mcs.tbs);
+  fprintf(f, " - Number of TBs:\t\t\t%d\n", SRSLTE_RA_DL_GRANT_NOF_TB(grant));
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (grant->tb_en[i]) {
+      fprintf(f, "  - Transport block:\t\t\t%d\n", i);
+      fprintf(f, "   -> Modulation type:\t\t\t%s\n", srslte_mod_string(grant->mcs[i].mod));
+      fprintf(f, "   -> Transport block size:\t\t%d\n", grant->mcs[i].tbs);
+    }
+  }
 }
 
 void srslte_ra_prb_fprint(FILE *f, srslte_ra_dl_grant_t *grant) {
@@ -824,5 +908,3 @@ void srslte_ra_prb_fprint(FILE *f, srslte_ra_dl_grant_t *grant) {
   }
   
 }
-
-

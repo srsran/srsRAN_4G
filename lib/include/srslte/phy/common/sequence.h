@@ -44,7 +44,8 @@ typedef struct SRSLTE_API {
   uint8_t *c_bytes;
   float *c_float;
   short *c_short;
-  uint32_t len;
+  uint32_t cur_len;
+  uint32_t max_len;
 } srslte_sequence_t;
 
 SRSLTE_API int srslte_sequence_init(srslte_sequence_t *q, uint32_t len);
@@ -55,8 +56,9 @@ SRSLTE_API int srslte_sequence_LTE_pr(srslte_sequence_t *q,
                                       uint32_t len, 
                                       uint32_t seed);
 
-SRSLTE_API void srslte_sequence_set_LTE_pr(srslte_sequence_t *q, 
-                                           uint32_t seed); 
+SRSLTE_API int srslte_sequence_set_LTE_pr(srslte_sequence_t *q,
+                                           uint32_t len,
+                                           uint32_t seed);
 
 SRSLTE_API int srslte_sequence_pbch(srslte_sequence_t *seq, 
                                     srslte_cp_t cp, 
@@ -92,4 +94,10 @@ SRSLTE_API int srslte_sequence_pucch(srslte_sequence_t *seq,
                                      uint16_t rnti, 
                                      uint32_t nslot, 
                                      uint32_t cell_id); 
+
+SRSLTE_API int srslte_sequence_pmch(srslte_sequence_t *seq,
+                                    uint32_t nslot,
+                                    uint32_t mbsfn_id,
+                                    uint32_t len);
+
 #endif

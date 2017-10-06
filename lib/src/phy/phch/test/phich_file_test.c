@@ -29,6 +29,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/srslte.h"
 
@@ -165,7 +166,11 @@ int base_init() {
     }
   }
 
-  if (srslte_chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    return -1;
+  }
+  if (srslte_chest_dl_set_cell(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -180,7 +185,11 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_phich_init(&phich, &regs, cell)) {
+  if (srslte_phich_init(&phich, 1)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    return -1;
+  }
+  if (srslte_phich_set_cell(&phich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     return -1;
   }
@@ -254,7 +263,7 @@ int main(int argc, char **argv) {
   for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
     for (nseq=0;nseq<max_nseq;nseq++) {
 
-      if (srslte_phich_decode(&phich, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
+      if (srslte_phich_decode(&phich, &fft_buffer, &ce, srslte_chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
         printf("Error decoding ACK\n");
         exit(-1);
       }

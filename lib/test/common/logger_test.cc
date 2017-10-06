@@ -29,12 +29,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "srslte/common/logger.h"
+#include "srslte/common/logger_file.h"
 
 using namespace srslte;
 
 typedef struct {
-  logger *l;
+  logger_file *l;
   int thread_id;
 }args_t;
 
@@ -44,13 +44,13 @@ void* thread_loop(void *a) {
   for(int i=0;i<NMSGS;i++)
   {
     sprintf(buf, "Thread %d: %d", args->thread_id, i);
-    args->l->log(buf);
+    args->l->log(new std::string(buf));
   }
   return NULL;
 }
 
 void write(std::string filename) {
-  logger l;
+  logger_file l;
   l.init(filename);
   pthread_t threads[NTHREADS];
   args_t    args[NTHREADS];

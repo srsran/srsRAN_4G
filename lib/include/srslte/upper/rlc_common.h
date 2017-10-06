@@ -27,6 +27,8 @@
 #ifndef RLC_COMMON_H
 #define RLC_COMMON_H
 
+#include "srslte/upper/rlc_interface.h"
+
 namespace srslte {
 
 /****************************************************************************
@@ -65,14 +67,6 @@ typedef enum{
 }rlc_dc_field_t;
 static const char rlc_dc_field_text[RLC_DC_FIELD_N_ITEMS][20] = {"Control PDU",
                                                                  "Data PDU"};
-
-typedef enum{
-  RLC_UMD_SN_SIZE_5_BITS = 0,
-  RLC_UMD_SN_SIZE_10_BITS,
-  RLC_UMD_SN_SIZE_N_ITEMS,
-}rlc_umd_sn_size_t;
-static const char     rlc_umd_sn_size_text[RLC_UMD_SN_SIZE_N_ITEMS][20] = {"5 bits", "10 bits"};
-static const uint16_t rlc_umd_sn_size_num[RLC_UMD_SN_SIZE_N_ITEMS] = {5, 10};
 
 // UMD PDU Header
 typedef struct{
@@ -162,8 +156,9 @@ public:
                     srsue::pdcp_interface_rlc         *pdcp_,
                     srsue::rrc_interface_rlc          *rrc_,
                     srslte::mac_interface_timers      *mac_timers_) = 0;
-  virtual void configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) = 0;
+  virtual void configure(srslte_rlc_config_t cnfg) = 0;
   virtual void reset() = 0;
+  virtual void stop() = 0;
   virtual void empty_queue() = 0; 
 
   virtual rlc_mode_t    get_mode() = 0;

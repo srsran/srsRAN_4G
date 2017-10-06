@@ -74,7 +74,7 @@ public:
     }
     void step() {
       if (running) {
-        counter++; 
+        counter++;
         if (is_expired()) {
           running = false; 
           if (callback) {
@@ -97,11 +97,13 @@ public:
     bool running; 
   };
   
-  timers(uint32_t nof_timers_) : timer_list(nof_timers_) {
+  timers(uint32_t nof_timers_) : timer_list(nof_timers_),used_timers(nof_timers_) {
     nof_timers = nof_timers_; 
     next_timer = 0;
+    nof_used_timers = 0;
     for (uint32_t i=0;i<nof_timers;i++) {
-      timer_list[i].id = i; 
+      timer_list[i].id = i;
+      used_timers[i] = false;
     }
   }
   
@@ -133,17 +135,36 @@ public:
       return NULL; 
     }
   }
-  uint32_t get_unique_id() {
-    if (next_timer == nof_timers){
-      printf("No more unique timer ids (Only %d timers available)\n", nof_timers);
-      next_timer = 0;
+  void release_id(uint32_t i) {
+    if (nof_used_timers > 0 && i < nof_timers) {
+      used_timers[i] = false;
+      nof_used_timers--;
+    } else {
+      fprintf(stderr, "Error releasing timer: nof_used_timers=%d, nof_timers=%d\n", nof_used_timers, nof_timers);
     }
-    return next_timer++;
+  }
+  uint32_t get_unique_id() {
+    if (nof_used_timers >= nof_timers) {
+      fprintf(stderr, "Error getting unique timer id: no more timers available\n");
+      return 0;
+    } else {
+      while(used_timers[next_timer]) {
+        next_timer++;
+        if (next_timer >= nof_timers) {
+          next_timer=0;
+        }
+      }
+      used_timers[next_timer] = true;
+      nof_used_timers++;
+      return next_timer;
+    }
   }
 private:
-  uint32_t nof_timers; 
   uint32_t next_timer;
-  std::vector<timer>   timer_list;   
+  uint32_t nof_used_timers;
+  uint32_t nof_timers;
+  std::vector<timer>   timer_list;
+  std::vector<bool>    used_timers;
 };
 
 } // namespace srslte

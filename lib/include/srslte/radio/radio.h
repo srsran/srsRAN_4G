@@ -57,8 +57,7 @@ namespace srslte {
         bzero(&end_of_burst_time, sizeof(srslte_timestamp_t));
         bzero(zeros, burst_preamble_max_samples*sizeof(cf_t));
         
-        sf_len                  = 0;
-        burst_preamble_sec      = 0; 
+        burst_preamble_sec      = 0;
         is_start_of_burst       = false; 
         burst_preamble_samples  = 0; 
         burst_preamble_time_rounded = 0; 
@@ -72,13 +71,12 @@ namespace srslte {
         rx_freq                 = 0; 
         trace_enabled           = false; 
         tti                     = 0; 
-        agc_enabled             = false; 
-        offset                  = 0; 
-        
+        agc_enabled             = false;
       };
       
       bool init(char *args = NULL, char *devname = NULL);
-      void stop(); 
+      void stop();
+      void reset();
       bool start_agc(bool tx_gain_same_rx);
       
       void set_burst_preamble(double preamble_us);
@@ -98,15 +96,16 @@ namespace srslte {
       void set_tx_rx_gain_offset(float offset); 
       double set_rx_gain_th(float gain);
 
-      void set_tx_freq(float freq);
-      void set_rx_freq(float freq);
+      void set_freq_offset(double freq);
+      void set_tx_freq(double freq);
+      void set_rx_freq(double freq);
 
-      float get_tx_freq();
-      float get_rx_freq();
+      double get_tx_freq();
+      double get_rx_freq();
 
-      void set_master_clock_rate(float rate);
-      void set_tx_srate(float srate);
-      void set_rx_srate(float srate);
+      void set_master_clock_rate(double rate);
+      void set_tx_srate(double srate);
+      void set_rx_srate(double srate);
 
       float get_tx_gain();
       float get_rx_gain();
@@ -122,9 +121,8 @@ namespace srslte {
       void stop_rx();
       
       void set_tti(uint32_t tti);
-      void tx_offset(int offset);
-      void set_tti_len(uint32_t sf_len);
-      uint32_t get_tti_len();
+
+      bool is_first_of_burst();
 
       void register_error_handler(srslte_rf_error_handler_t h);
       
@@ -156,9 +154,9 @@ namespace srslte {
       
       const static double blade_default_burst_preamble_sec = 0.0;
       const static double blade_default_tx_adv_samples     = 27;
-      const static double blade_default_tx_adv_offset_sec  = 1e-6; 
-      
-      float tx_freq, rx_freq; 
+      const static double blade_default_tx_adv_offset_sec  = 1e-6;
+
+      double tx_freq, rx_freq, freq_offset;
       
       trace<uint32_t> tr_local_time;
       trace<uint32_t> tr_usrp_time;
@@ -167,8 +165,10 @@ namespace srslte {
       bool trace_enabled;
       uint32_t tti;
       bool agc_enabled;
-      int offset;
-      uint32_t sf_len;
+
+      char saved_args[128];
+      char saved_devname[128];
+
   }; 
 }
 

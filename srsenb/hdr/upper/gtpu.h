@@ -75,7 +75,7 @@ public:
   void stop();
   
   // gtpu_interface_rrc
-  void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t teid_out, uint32_t *teid_in);
+  void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in);
   void rem_bearer(uint16_t rnti, uint32_t lcid);
   void rem_user(uint16_t rnti);
   
@@ -86,7 +86,7 @@ public:
 private:
   static const int THREAD_PRIO = 7;
   static const int GTPU_PORT   = 2152;
-  srslte::byte_buffer_pool         *pool;
+  srslte::byte_buffer_pool     *pool;
   bool                         running;
   bool                         run_enable;
 
@@ -98,11 +98,13 @@ private:
   typedef struct{
     uint32_t teids_in[SRSENB_N_RADIO_BEARERS];
     uint32_t teids_out[SRSENB_N_RADIO_BEARERS];
+    uint32_t spgw_addrs[SRSENB_N_RADIO_BEARERS];
   }bearer_map;
   std::map<uint16_t, bearer_map> rnti_bearers;
 
-  srslte_netsink_t      snk;
-  srslte_netsource_t    src;
+  // Socket file descriptors
+  int snk_fd;
+  int src_fd;
 
   void run_thread();
   

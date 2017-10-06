@@ -27,22 +27,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <unistd.h>
+#include <srslte/phy/common/phy_common.h>
+#include <srslte/phy/phch/ra.h>
+#include <srslte/phy/phch/dci.h>
+#include <srslte/phy/phch/pdcch.h>
 
 #include "srslte/srslte.h"
 
 srslte_cell_t cell = {
-  6,            // nof_prb
-  1,            // nof_ports
-  1,            // cell_id
-  SRSLTE_CP_NORM,       // cyclic prefix
-  SRSLTE_PHICH_R_1,          // PHICH resources      
-  SRSLTE_PHICH_NORM    // PHICH length
+  .nof_prb = 6,
+  .nof_ports = 1,
+  .id = 1,
+  .cp = SRSLTE_CP_NORM,
+  .phich_resources = SRSLTE_PHICH_R_1,
+  .phich_length = SRSLTE_PHICH_NORM
 };
 
 uint32_t cfi = 1;
-bool print_dci_table; 
+uint32_t nof_rx_ant = 1;
+bool print_dci_table;
 
 void usage(char *prog) {
   printf("Usage: %s [cfpndv]\n", prog);
@@ -50,25 +54,29 @@ void usage(char *prog) {
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
+  printf("\t-A nof_rx_ant [Default %d]\n", nof_rx_ant);
   printf("\t-d Print DCI table [Default %s]\n", print_dci_table?"yes":"no");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "cfpndv")) != -1) {
+  while ((opt = getopt(argc, argv, "cfpndvA")) != -1) {
     switch (opt) {
     case 'p':
-      cell.nof_ports = atoi(argv[optind]);
+      cell.nof_ports = (uint32_t) atoi(argv[optind]);
       break;
     case 'f':
-      cfi = atoi(argv[optind]);
+      cfi = (uint32_t) atoi(argv[optind]);
       break;
     case 'n':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t) atoi(argv[optind]);
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t) atoi(argv[optind]);
+      break;
+    case 'A':
+      nof_rx_ant = (uint32_t) atoi(argv[optind]);
       break;
     case 'd':
       print_dci_table = true;
@@ -85,25 +93,26 @@ void parse_args(int argc, char **argv) {
 
 int test_dci_payload_size() {
   int i, j;
-  int x[4];
-  const srslte_dci_format_t formats[4] = { SRSLTE_DCI_FORMAT0, SRSLTE_DCI_FORMAT1, SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1C };
+  int x[5];
+  const srslte_dci_format_t formats[] = { SRSLTE_DCI_FORMAT0, SRSLTE_DCI_FORMAT1, SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1C, SRSLTE_DCI_FORMAT2A };
   const int prb[6] = { 6, 15, 25, 50, 75, 100 };
-  const int dci_sz[6][5] = { { 21, 19, 21, 8 }, { 22, 23, 22, 10 }, { 25, 27,
-      25, 12 }, { 27, 31, 27, 13 }, { 27, 33, 27, 14 }, { 28, 39, 28, 15 } };
+  const int dci_sz[6][5] = { { 21, 19, 21, 8, 28 }, { 22, 23, 22, 10 , 31}, { 25, 27,
+      25, 12 , 36}, { 27, 31, 27, 13 , 41}, { 27, 33, 27, 14 , 42}, { 28, 39, 28, 15, 48 }};
+
 
   printf("Testing DCI payload sizes...\n");
-  printf("  PRB\t0\t1\t1A\t1C\n");
+  printf("  PRB\t0\t1\t1A\t1C\t2A\n");
   for (i = 0; i < 6; i++) {
     int n = prb[i];
-    for (j = 0; j < 4; j++) {
-      x[j] = srslte_dci_format_sizeof(formats[j], n, 1);
+    for (j = 0; j < 5; j++) {
+      x[j] = srslte_dci_format_sizeof(formats[j], (uint32_t) n, 1);
       if (x[j] != dci_sz[i][j]) {
         fprintf(stderr, "Invalid DCI payload size for %s\n",
             srslte_dci_format_string(formats[j]));
         return -1;
       }
     }
-    printf("  %2d:\t%2d\t%2d\t%2d\t%2d\n", n, x[0], x[1], x[2], x[3]);
+    printf("  %2d:\t%2d\t%2d\t%2d\t%2d\t%2d\n", n, x[0], x[1], x[2], x[3], x[4]);
   }
   printf("Ok\n");
   
@@ -111,8 +120,8 @@ int test_dci_payload_size() {
     printf("dci_sz_table[101][4] = {\n");
     for (i=0;i<=100;i++) {
       printf("  {");
-      for (int j=0;j<4;j++) {
-        printf("%d",srslte_dci_format_sizeof(formats[j], i, 1));
+      for (j=0;j<4;j++) {
+        printf("%d",srslte_dci_format_sizeof(formats[j], (uint32_t) i, 1));
         if (j<3) {
           printf(", ");
         }
@@ -128,16 +137,23 @@ int test_dci_payload_size() {
   return 0;
 }
 
+typedef struct {
+  srslte_dci_msg_t dci_tx, dci_rx;
+  srslte_dci_location_t dci_location;
+  srslte_dci_format_t dci_format;
+  srslte_ra_dl_dci_t ra_dl_tx;
+  srslte_ra_dl_dci_t ra_dl_rx;
+} testcase_dci_t;
+
 int main(int argc, char **argv) {
-  srslte_pdcch_t pdcch;
-  srslte_dci_msg_t dci_tx[2], dci_rx[2], dci_tmp;
-  srslte_dci_location_t dci_locations[2];
+  srslte_pdcch_t pdcch_tx, pdcch_rx;
+  testcase_dci_t testcases[10] = {0};
   srslte_ra_dl_dci_t ra_dl;
   srslte_regs_t regs;
-  int i, j;
-  cf_t *ce[SRSLTE_MAX_PORTS];
+  int i, j, k;
+  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   int nof_re;
-  cf_t *slot_symbols[SRSLTE_MAX_PORTS];
+  cf_t *tx_slot_symbols[SRSLTE_MAX_PORTS], *rx_slot_symbols[SRSLTE_MAX_PORTS];
   int nof_dcis; 
 
   int ret = -1;
@@ -152,19 +168,30 @@ int main(int argc, char **argv) {
 
   /* init memory */
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    ce[i] = malloc(sizeof(cf_t) * nof_re);
-    if (!ce[i]) {
+    for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
+      ce[i][j] = malloc(sizeof(cf_t) * nof_re);
+      if (!ce[i][j]) {
+        perror("malloc");
+        exit(-1);
+      }
+      for (k = 0; k < nof_re; k++) {
+        //ce[i][j][k] = (i == j) ? 1 : 0;
+        ce[i][j][k] = ((float)rand()/(float)RAND_MAX) + _Complex_I*((float)rand()/(float)RAND_MAX);
+      }
+    }
+    tx_slot_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    if (!tx_slot_symbols[i]) {
       perror("malloc");
       exit(-1);
     }
-    for (j = 0; j < nof_re; j++) {
-      ce[i][j] = 1;
-    }
-    slot_symbols[i] = malloc(sizeof(cf_t) * nof_re);
-    if (!slot_symbols[i]) {
+    bzero(tx_slot_symbols[i], sizeof(cf_t) * nof_re);
+
+    rx_slot_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    if (!rx_slot_symbols[i]) {
       perror("malloc");
       exit(-1);
     }
+    bzero(rx_slot_symbols[i], sizeof(cf_t) * nof_re);
   }
 
   if (srslte_regs_init(&regs, cell)) {
@@ -177,12 +204,26 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init_enb(&pdcch_tx, cell.nof_prb)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
+  if (srslte_pdcch_set_cell(&pdcch_tx, &regs, cell)) {
+    fprintf(stderr, "Error setting cell in PDCCH object\n");
+    exit(-1);
+  }
 
-  nof_dcis = 2;
+  if (srslte_pdcch_init_ue(&pdcch_rx, cell.nof_prb, nof_rx_ant)) {
+    fprintf(stderr, "Error creating PDCCH object\n");
+    exit(-1);
+  }
+  if (srslte_pdcch_set_cell(&pdcch_rx, &regs, cell)) {
+    fprintf(stderr, "Error setting cell in PDCCH object\n");
+    exit(-1);
+  }
+
+  /* Resource allocate init */
+  nof_dcis = 0;
   bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
   ra_dl.harq_process = 0;
   ra_dl.mcs_idx = 5;
@@ -190,62 +231,131 @@ int main(int argc, char **argv) {
   ra_dl.rv_idx = 0;
   ra_dl.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   ra_dl.type0_alloc.rbg_bitmask = 0x5;
+  ra_dl.tb_en[0] = true;
 
-  srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_tx[0], cell.nof_prb, cell.nof_ports, false);
-  srslte_dci_location_set(&dci_locations[0], 0, 0);
+  /* Format 1 Test case */
+  testcases[nof_dcis].dci_format = SRSLTE_DCI_FORMAT1;
+  testcases[nof_dcis].ra_dl_tx = ra_dl;
+  nof_dcis++;
 
+  /* Format 1 Test case */
   ra_dl.mcs_idx = 15;
-  srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_tx[1], cell.nof_prb, cell.nof_ports, false);
-  srslte_dci_location_set(&dci_locations[1], 0, 1);
-  
+  testcases[nof_dcis].dci_format = SRSLTE_DCI_FORMAT1;
+  testcases[nof_dcis].ra_dl_tx = ra_dl;
+  nof_dcis++;
+
+  /* Tx Diversity Test case */
+  if (cell.nof_ports > 1) {
+    ra_dl.mcs_idx_1 = 0;
+    ra_dl.rv_idx_1 = 0;
+    ra_dl.ndi_1 = false;
+    ra_dl.tb_en[1] = false;
+    testcases[nof_dcis].dci_format = SRSLTE_DCI_FORMAT2A;
+    testcases[nof_dcis].ra_dl_tx = ra_dl;
+    nof_dcis++;
+  }
+
+  /* CDD Spatial Multiplexing Test case */
+  if (cell.nof_ports > 1) {
+    ra_dl.mcs_idx_1 = 28;
+    ra_dl.rv_idx_1 = 1;
+    ra_dl.ndi_1 = false;
+    ra_dl.tb_en[1] = true;
+    testcases[nof_dcis].dci_format = SRSLTE_DCI_FORMAT2A;
+    testcases[nof_dcis].ra_dl_tx = ra_dl;
+    nof_dcis++;
+  }
+
+  /* Execute Rx */
   for (i=0;i<nof_dcis;i++) {
-    if (srslte_pdcch_encode(&pdcch, &dci_tx[i], dci_locations[i], 1234+i, slot_symbols, 0, cfi)) {
+    srslte_dci_msg_pack_pdsch(&testcases[i].ra_dl_tx, testcases[i].dci_format, &testcases[i].dci_tx,
+                              cell.nof_prb, cell.nof_ports, false);
+    srslte_dci_location_set(&testcases[i].dci_location, 0, (uint32_t) i);
+
+    if (srslte_pdcch_encode(&pdcch_tx, &testcases[i].dci_tx, testcases[i].dci_location, (uint16_t) (1234 + i),
+                            tx_slot_symbols, 0, cfi)) {
       fprintf(stderr, "Error encoding DCI message\n");
       goto quit;
     }
   }
 
-  srslte_vec_fprint_b(stdout, dci_tx[0].data, dci_tx[0].nof_bits);
-  /* combine outputs */
-  for (i = 1; i < cell.nof_ports; i++) {
-    for (j = 0; j < nof_re; j++) {
-      slot_symbols[0][j] += slot_symbols[i][j];
+  /* Apply channel */
+  for (j = 0; j < nof_rx_ant; j++) {
+    for (k = 0; k < nof_re; k++) {
+      for (i = 0; i < cell.nof_ports; i++) {
+        rx_slot_symbols[j][k] += tx_slot_symbols[i][k]*ce[i][j][k];
+      }
     }
   }
 
-  for (i=0;i<2;i++) {
-    if (srslte_pdcch_extract_llr(&pdcch, slot_symbols[0], ce, 0, 0, cfi)) {
-      fprintf(stderr, "Error extracting LLRs\n");
-      goto quit;
-    }
-    uint16_t crc_rem; 
-    if (srslte_pdcch_decode_msg(&pdcch, &dci_tmp, &dci_locations[i], SRSLTE_DCI_FORMAT1, &crc_rem)) {
+  /* Execute 'Rx' */
+  if (srslte_pdcch_extract_llr_multi(&pdcch_rx, rx_slot_symbols, ce, 0, 0, cfi)) {
+    fprintf(stderr, "Error extracting LLRs\n");
+    goto quit;
+  }
+
+  /* Decode DCIs */
+  for (i=0;i<nof_dcis;i++) {
+    uint16_t crc_rem;
+    if (srslte_pdcch_decode_msg(&pdcch_rx, &testcases[i].dci_rx, &testcases[i].dci_location, testcases[i].dci_format, &crc_rem)) {
       fprintf(stderr, "Error decoding DCI message\n");
       goto quit;
-    }      
+    }
+    if (srslte_dci_msg_unpack_pdsch(&testcases[i].dci_rx, &testcases[i].ra_dl_rx, cell.nof_prb, cell.nof_ports, false)) {
+      fprintf(stderr, "Error unpacking DCI message\n");
+      goto quit;
+    }
     if (crc_rem >= 1234 && crc_rem < 1234 + nof_dcis) {
       crc_rem -= 1234;
-        memcpy(&dci_rx[crc_rem], &dci_tmp, sizeof(srslte_dci_msg_t));
     } else {
       printf("Received invalid DCI CRC 0x%x\n", crc_rem);
       goto quit;
     }
   }
+
+  /* Compare Tx and Rx */
   for (i = 0; i < nof_dcis; i++) {
-    if (memcmp(dci_tx[i].data, dci_rx[i].data, dci_tx[i].nof_bits)) {
+    if (memcmp(testcases[i].dci_tx.data, testcases[i].dci_rx.data, testcases[i].dci_tx.nof_bits)) {
       printf("Error in DCI %d: Received data does not match\n", i);
+      goto quit;
+    }
+    if (memcmp(&testcases[i].ra_dl_tx, &testcases[i].ra_dl_rx, sizeof(srslte_ra_dl_dci_t))) {
+      printf("Error in RA %d: Received data does not match\n", i);
+      printf("     Field    |    Tx    |    Rx    \n");
+      printf("--------------+----------+----------\n");
+      printf(" harq_process | %8d | %8d\n", testcases[i].ra_dl_tx.harq_process, testcases[i].ra_dl_rx.harq_process);
+      printf("      mcs_idx | %8d | %8d\n", testcases[i].ra_dl_tx.mcs_idx, testcases[i].ra_dl_rx.mcs_idx);
+      printf("       rv_idx | %8d | %8d\n", testcases[i].ra_dl_tx.rv_idx, testcases[i].ra_dl_rx.rv_idx);
+      printf("          ndi | %8d | %8d\n", testcases[i].ra_dl_tx.ndi, testcases[i].ra_dl_rx.ndi);
+      printf("    mcs_idx_1 | %8d | %8d\n", testcases[i].ra_dl_tx.mcs_idx_1, testcases[i].ra_dl_rx.mcs_idx_1);
+      printf("     rv_idx_1 | %8d | %8d\n", testcases[i].ra_dl_tx.rv_idx_1, testcases[i].ra_dl_rx.rv_idx_1);
+      printf("        ndi_1 | %8d | %8d\n", testcases[i].ra_dl_tx.ndi_1, testcases[i].ra_dl_rx.ndi_1);
+      printf("   tb_cw_swap | %8d | %8d\n", testcases[i].ra_dl_tx.tb_cw_swap, testcases[i].ra_dl_rx.tb_cw_swap);
+      printf("      sram_id | %8d | %8d\n", testcases[i].ra_dl_tx.sram_id, testcases[i].ra_dl_rx.sram_id);
+      printf("        pinfo | %8d | %8d\n", testcases[i].ra_dl_tx.pinfo, testcases[i].ra_dl_rx.pinfo);
+      printf("        pconf | %8d | %8d\n", testcases[i].ra_dl_tx.pconf, testcases[i].ra_dl_rx.pconf);
+      printf(" power_offset | %8d | %8d\n", testcases[i].ra_dl_tx.power_offset, testcases[i].ra_dl_rx.power_offset);
+      printf("    tpc_pucch | %8d | %8d\n", testcases[i].ra_dl_tx.tpc_pucch, testcases[i].ra_dl_rx.tpc_pucch);
+      printf("     tb_en[0] | %8d | %8d\n", testcases[i].ra_dl_tx.tb_en[0], testcases[i].ra_dl_rx.tb_en[0]);
+      printf("     tb_en[1] | %8d | %8d\n", testcases[i].ra_dl_tx.tb_en[1], testcases[i].ra_dl_rx.tb_en[1]);
+      printf("    dci_is_1a | %8d | %8d\n", testcases[i].ra_dl_tx.dci_is_1a, testcases[i].ra_dl_rx.dci_is_1a);
+      printf("    dci_is_1c | %8d | %8d\n", testcases[i].ra_dl_tx.dci_is_1c, testcases[i].ra_dl_rx.dci_is_1c);
       goto quit;
     }
   }
   ret = 0;
 
 quit: 
-  srslte_pdcch_free(&pdcch);
+  srslte_pdcch_free(&pdcch_tx);
+  srslte_pdcch_free(&pdcch_rx);
   srslte_regs_free(&regs);
 
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    free(ce[i]);
-    free(slot_symbols[i]);
+    for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
+      free(ce[i][j]);
+    }
+    free(tx_slot_symbols[i]);
+    free(rx_slot_symbols[i]);
   }
   if (ret) {
     printf("Error\n");

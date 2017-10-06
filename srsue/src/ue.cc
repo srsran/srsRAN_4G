@@ -26,39 +26,17 @@
 
 
 #include "ue.h"
-//#include "srslte_version_check.h"
 #include "srslte/srslte.h"
 #include <pthread.h>
 #include <iostream>
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <ue_base.h>
 
 using namespace srslte;
 
 namespace srsue{
-
-ue*           ue::instance = NULL;
-pthread_mutex_t ue_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-ue* ue::get_instance(void)
-{
-  pthread_mutex_lock(&ue_instance_mutex);
-  if(NULL == instance) {
-      instance = new ue();
-  }
-  pthread_mutex_unlock(&ue_instance_mutex);
-  return(instance);
-}
-void ue::cleanup(void)
-{
-  pthread_mutex_lock(&ue_instance_mutex);
-  if(NULL != instance) {
-      delete instance;
-      instance = NULL;
-  }
-  pthread_mutex_unlock(&ue_instance_mutex);
-}
 
 ue::ue()
     :started(false)
@@ -74,22 +52,38 @@ ue::~ue()
 bool ue::init(all_args_t *args_)
 {
   args     = args_;
-  
-  logger.init(args->log.filename);
-  rf_log.init("RF  ", &logger);
-  phy_log.init("PHY ", &logger, true);
-  mac_log.init("MAC ", &logger, true);
-  rlc_log.init("RLC ", &logger);
-  pdcp_log.init("PDCP", &logger);
-  rrc_log.init("RRC ", &logger);
-  nas_log.init("NAS ", &logger);
-  gw_log.init("GW  ", &logger);
-  usim_log.init("USIM", &logger);
+
+  if (!args->log.filename.compare("stdout")) {
+    logger = &logger_stdout;
+  } else {
+    logger_file.init(args->log.filename);
+    logger_file.log("\n\n");
+    logger = &logger_file;
+  }
+
+  rf_log.init("RF  ", logger);
+  // Create array of pointers to phy_logs
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    srslte::log_filter *mylog = new srslte::log_filter;
+    char tmp[16];
+    sprintf(tmp, "PHY%d",i);
+    mylog->init(tmp, logger, true);
+    phy_log.push_back((void*) mylog);
+  }
+
+  mac_log.init("MAC ", logger, true);
+  rlc_log.init("RLC ", logger);
+  pdcp_log.init("PDCP", logger);
+  rrc_log.init("RRC ", logger);
+  nas_log.init("NAS ", logger);
+  gw_log.init("GW  ", logger);
+  usim_log.init("USIM", logger);
 
   // Init logs
-  logger.log("\n\n");
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
-  phy_log.set_level(level(args->log.phy_level));
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
+  }
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
@@ -98,7 +92,9 @@ bool ue::init(all_args_t *args_)
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  phy_log.set_hex_limit(args->log.phy_hex_limit);
+  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+    ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+  }
   mac_log.set_hex_limit(args->log.mac_hex_limit);
   rlc_log.set_hex_limit(args->log.rlc_hex_limit);
   pdcp_log.set_hex_limit(args->log.pdcp_hex_limit);
@@ -120,7 +116,11 @@ bool ue::init(all_args_t *args_)
   }
   
   // Init layers
-  
+
+  // PHY initis in background, start before radio
+  args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
+  phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
+
   /* Start Radio */
   char *dev_name = NULL;
   if (args->rf.device_name.compare("auto")) {
@@ -151,15 +151,13 @@ bool ue::init(all_args_t *args_)
   radio.set_manual_calibration(&args->rf_cal);
 
   // Set PHY options
-  args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
 
   if (args->rf.tx_gain > 0) {
     args->expert.phy.ul_pwr_ctrl_en = false; 
   } else {
     args->expert.phy.ul_pwr_ctrl_en = true; 
   }
-  phy.init(&radio, &mac, &rrc, &phy_log, &args->expert.phy);
-  
+
   if (args->rf.rx_gain < 0) {
     radio.start_agc(false);    
     radio.set_tx_rx_gain_offset(10);
@@ -177,22 +175,31 @@ bool ue::init(all_args_t *args_)
   }
 
   radio.register_error_handler(rf_msg);
-
-  radio.set_rx_freq(args->rf.dl_freq);
-  radio.set_tx_freq(args->rf.ul_freq);
-
-  phy_log.console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz\n", args->rf.dl_freq/1e6, args->rf.ul_freq/1e6);
+  radio.set_freq_offset(args->rf.freq_offset);
 
   mac.init(&phy, &rlc, &rrc, &mac_log);
-  rlc.init(&pdcp, &rrc, this, &rlc_log, &mac);
-  pdcp.init(&rlc, &rrc, &gw, &pdcp_log, SECURITY_DIRECTION_UPLINK);
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
-  
-  rrc.set_ue_category(args->expert.ue_cateogry);
-  
-  nas.init(&usim, &rrc, &gw, &nas_log);
-  gw.init(&pdcp, &rrc, this, &gw_log);
+  rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
+  pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
+
+  nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
+  gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
+
   usim.init(&args->usim, &usim_log);
+
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
+  rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
+
+  // Currently EARFCN list is set to only one frequency as indicated in ue.conf
+  std::vector<uint32_t> earfcn_list;
+  earfcn_list.push_back(args->rf.dl_earfcn);
+  phy.set_earfcn(earfcn_list);
+
+  printf("Waiting PHY to initialize...\n");
+  phy.wait_initialize();
+  phy.configure_ul_params();
+
+  printf("...\n");
+  nas.attach_request();
 
   started = true;
   return true;
@@ -201,10 +208,6 @@ bool ue::init(all_args_t *args_)
 void ue::pregenerate_signals(bool enable)
 {
   phy.enable_pregen_signals(enable);
-}
-
-void ue::test_con_restablishment() {
-  rrc.test_con_restablishment();
 }
 
 void ue::stop()
@@ -244,7 +247,7 @@ void ue::stop()
 
 bool ue::is_attached()
 {
-  return (EMM_STATE_REGISTERED == nas.get_state());
+  return (RRC_STATE_CONNECTED == rrc.get_state());
 }
 
 void ue::start_plot() {
@@ -258,7 +261,7 @@ bool ue::get_metrics(ue_metrics_t &m)
   rf_metrics.rf_error = false; // Reset error flag
 
   if(EMM_STATE_REGISTERED == nas.get_state()) {
-    if(RRC_STATE_RRC_CONNECTED == rrc.get_state()) {
+    if(RRC_STATE_CONNECTED == rrc.get_state()) {
       phy.get_metrics(m.phy);
       mac.get_metrics(m.mac);
       rlc.get_metrics(m.rlc);
@@ -271,49 +274,8 @@ bool ue::get_metrics(ue_metrics_t &m)
 
 void ue::rf_msg(srslte_rf_error_t error)
 {
-  ue *u = ue::get_instance();
-  u->handle_rf_msg(error);
-}
-
-void ue::handle_rf_msg(srslte_rf_error_t error)
-{
-  if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
-    rf_metrics.rf_o++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Overflow\n");
-  }else if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_UNDERFLOW) {
-    rf_metrics.rf_u++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Underflow\n");
-  } else if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_LATE) {
-    rf_metrics.rf_l++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Late\n");
-  } else if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OTHER) {
-    std::string str(error.msg);
-    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
-    str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
-    str.push_back('\n');
-    rf_log.info(str);
-  }
-}
-
-srslte::LOG_LEVEL_ENUM ue::level(std::string l)
-{
-  std::transform(l.begin(), l.end(), l.begin(), ::toupper);
-  if("NONE" == l){
-    return srslte::LOG_LEVEL_NONE;
-  }else if("ERROR" == l){
-    return srslte::LOG_LEVEL_ERROR;
-  }else if("WARNING" == l){
-    return srslte::LOG_LEVEL_WARNING;
-  }else if("INFO" == l){
-    return srslte::LOG_LEVEL_INFO;
-  }else if("DEBUG" == l){
-    return srslte::LOG_LEVEL_DEBUG;
-  }else{
-    return srslte::LOG_LEVEL_NONE;
-  }
+  ue_base *ue = ue_base::get_instance(LTE);
+  ue->handle_rf_msg(error);
 }
 
 } // namespace srsue

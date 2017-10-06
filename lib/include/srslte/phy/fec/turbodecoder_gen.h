@@ -66,6 +66,8 @@ typedef struct SRSLTE_API {
   float *parity;
 
   int current_cbidx; 
+  uint32_t current_cb_len;
+  uint32_t n_iter; 
   srslte_tc_interl_t interleaver[SRSLTE_NOF_TC_CB_SIZES];
 } srslte_tdec_gen_t;
 

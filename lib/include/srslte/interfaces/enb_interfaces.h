@@ -28,7 +28,9 @@
 
 #include "srslte/common/common.h"
 #include "srslte/common/security.h"
+#include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/upper/rlc_interface.h"
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/asn1/liblte_s1ap.h"
 
@@ -156,7 +158,7 @@ public:
   virtual void add_user(uint16_t rnti) = 0; 
   virtual void rem_user(uint16_t rnti) = 0; 
   virtual void add_bearer(uint16_t rnti, uint32_t lcid) = 0;
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
 };
 
 // PDCP interface for GTPU
@@ -174,7 +176,7 @@ public:
   virtual void add_user(uint16_t rnti) = 0; 
   virtual void rem_user(uint16_t rnti) = 0; 
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg=NULL) = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg) = 0;
   virtual void config_security(uint16_t rnti, 
                                uint32_t lcid,
                                uint8_t *k_rrc_enc_,
@@ -242,7 +244,7 @@ public:
 class gtpu_interface_rrc
 {
 public:
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t teid_out, uint32_t *teid_in) = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in) = 0;
   virtual void rem_bearer(uint16_t rnti, uint32_t lcid) = 0;
   virtual void rem_user(uint16_t rnti) = 0;
 };

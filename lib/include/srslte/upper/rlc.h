@@ -34,6 +34,7 @@
 #include "srslte/common/msg_queue.h"
 #include "srslte/upper/rlc_entity.h"
 #include "srslte/upper/rlc_metrics.h"
+#include "srslte/upper/rlc_common.h"
 
 namespace srslte {
 
@@ -55,13 +56,15 @@ public:
             srsue::rrc_interface_rlc  *rrc_,
             srsue::ue_interface       *ue_,
             log        *rlc_log_, 
-            mac_interface_timers *mac_timers_);
+            mac_interface_timers *mac_timers_,
+            uint32_t                  lcid_);
   void stop();
 
   void get_metrics(rlc_metrics_t &m);
 
   // PDCP interface
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  std::string get_rb_name(uint32_t lcid);
 
   // MAC interface
   uint32_t get_buffer_state(uint32_t lcid);
@@ -74,8 +77,9 @@ public:
 
   // RRC interface
   void reset();
+  void empty_queue();
   void add_bearer(uint32_t lcid);
-  void add_bearer(uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg);
+  void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
 
 private:
   void reset_metrics(); 
@@ -87,6 +91,7 @@ private:
   srslte::mac_interface_timers *mac_timers; 
   srsue::ue_interface         *ue;
   srslte::rlc_entity           rlc_array[SRSLTE_N_RADIO_BEARERS];
+  uint32_t                     default_lcid;
 
   long                ul_tput_bytes[SRSLTE_N_RADIO_BEARERS];
   long                dl_tput_bytes[SRSLTE_N_RADIO_BEARERS];

@@ -68,7 +68,7 @@ public:
     /* Virtual methods for user metric calculation */
     virtual void           new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb, uint32_t tti) = 0;
     virtual ul_harq_proc*  get_user_allocation(sched_ue *user) = 0; 
-    virtual void           update_allocation(ul_harq_proc::ul_alloc_t alloc) = 0; 
+    virtual void           update_allocation(ul_harq_proc::ul_alloc_t alloc) = 0;
   };
 
   
@@ -80,7 +80,8 @@ public:
    ************************************************************/
   
   sched(); 
-  
+  ~sched();
+
   void init(rrc_interface_mac *rrc, srslte::log *log);
   void set_metric(metric_dl *dl_metric, metric_ul *ul_metric);
   int cell_cfg(cell_cfg_t *cell_cfg); 
@@ -108,7 +109,7 @@ public:
   
   int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc);
   int ul_sr_info(uint32_t tti, uint16_t rnti); 
-  int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr); 
+  int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true);
   int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len);
   int ul_phr(uint16_t rnti, int phr); 
   int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code); 

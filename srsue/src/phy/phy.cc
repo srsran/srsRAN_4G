@@ -95,44 +95,64 @@ bool phy::check_args(phy_args_t *args)
   return true; 
 }
 
-bool phy::init(srslte::radio_multi* radio_handler_, mac_interface_phy *mac, rrc_interface_phy *rrc, 
-               srslte::log *log_h_, phy_args_t *phy_args)
-{
+bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_interface_phy *rrc,
+               std::vector<void*> log_vec, phy_args_t *phy_args) {
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
-  
-  n_ta = 0; 
-  log_h = log_h_; 
-  radio_handler = radio_handler_;
-  
+
+  n_ta = 0;
+  this->log_vec       = log_vec;
+  this->log_h         = (srslte::log*) log_vec[0];
+  this->radio_handler = radio_handler;
+  this->mac           = mac;
+  this->rrc           = rrc;
+
   if (!phy_args) {
-    args = &default_args; 
+    args = &default_args;
     set_default_args(args);
   } else {
     args = phy_args;
   }
-  
+
   if (!check_args(args)) {
-    return false; 
+    return false;
   }
-  
-  nof_workers = args->nof_phy_threads; 
-  
+
+  nof_workers = args->nof_phy_threads;
+
+  initiated = false;
+  start();
+  return true;
+}
+
+// Initializes PHY in a thread
+void phy::run_thread() {
+
+  prach_buffer.init(&config.common.prach_cnfg, SRSLTE_MAX_PRB, args, log_h);
+  workers_common.init(&config, args, (srslte::log*) log_vec[0], radio_handler, rrc, mac);
+
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_common(&workers_common);
-    workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);    
+    workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i]);
+    workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);
   }
-  prach_buffer.init(&config.common.prach_cnfg, args, log_h);
-  workers_common.init(&config, args, log_h, radio_handler, mac);
-  
+
   // Warning this must be initialized after all workers have been added to the pool
   sf_recv.init(radio_handler, mac, rrc, &prach_buffer, &workers_pool, &workers_common, log_h, args->nof_rx_ant, SF_RECV_THREAD_PRIO, args->sync_cpu_affinity);
 
   // Disable UL signal pregeneration until the attachment 
   enable_pregen_signals(false);
 
-  return true; 
+  initiated = true;
+}
+
+void phy::wait_initialize() {
+  wait_thread_finish();
+}
+
+bool phy::is_initiated() {
+  return initiated;
 }
 
 void phy::set_agc_enable(bool enabled)
@@ -190,7 +210,7 @@ void phy::configure_prach_params()
     Debug("Configuring PRACH parameters\n");
     srslte_cell_t cell; 
     sf_recv.get_current_cell(&cell);
-    if (!prach_buffer.init_cell(cell)) {
+    if (!prach_buffer.set_cell(cell)) {
       Error("Configuring PRACH parameters\n");
     } 
   } else {
@@ -201,9 +221,35 @@ void phy::configure_prach_params()
 void phy::configure_ul_params(bool pregen_disabled)
 {
   Info("PHY:   Configuring UL parameters\n");
-  for (uint32_t i=0;i<nof_workers;i++) {
-    workers[i].set_ul_params(pregen_disabled);
+  if (is_initiated()) {
+    for (uint32_t i=0;i<nof_workers;i++) {
+      workers[i].set_ul_params(pregen_disabled);
+    }
   }
+}
+
+void phy::cell_search_start()
+{
+  sf_recv.cell_search_start();
+}
+
+void phy::cell_search_stop()
+{
+  sf_recv.cell_search_stop();
+}
+
+void phy::cell_search_next()
+{
+  sf_recv.cell_search_next();
+}
+
+void phy::sync_reset() {
+  sf_recv.reset_sync();
+}
+
+bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
+{
+  return sf_recv.cell_select(earfcn, phy_cell);
 }
 
 float phy::get_phr()
@@ -257,8 +303,8 @@ int phy::prach_tx_tti()
 
 void phy::reset()
 {
-  // TODO 
-  n_ta = 0; 
+  Info("Resetting PHY\n");
+  n_ta = 0;
   pdcch_dl_search_reset();
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();
@@ -281,23 +327,14 @@ int phy::sr_last_tx_tti()
   return workers_common.sr_last_tx_tti;
 }
 
-bool phy::status_is_sync()
+void phy::set_earfcn(vector< uint32_t > earfcns)
+{
+  sf_recv.set_earfcn(earfcns);
+}
+
+bool phy::sync_status()
 {
   return sf_recv.status_is_sync();
-}
-
-void phy::resync_sfn() {
-  sf_recv.resync_sfn();
-}
-
-void phy::sync_start()
-{
-  sf_recv.sync_start();
-}
-
-void phy::sync_stop()
-{
-  sf_recv.sync_stop();
 }
 
 void phy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])

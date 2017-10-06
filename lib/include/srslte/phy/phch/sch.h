@@ -56,10 +56,9 @@
 /* DL-SCH AND UL-SCH common functions */
 typedef struct SRSLTE_API {
   
-  uint32_t max_iterations; 
-  uint32_t nof_iterations; 
-  float average_nof_iterations; 
-  
+  uint32_t max_iterations;
+  uint32_t nof_iterations;
+
   /* buffers */
   uint8_t *cb_in; 
   uint8_t *parity_bits;  
@@ -77,6 +76,7 @@ typedef struct SRSLTE_API {
   srslte_uci_cqi_pusch_t uci_cqi;
   
 } srslte_sch_t;
+#include "srslte/phy/phch/pmch.h"
 
 SRSLTE_API int srslte_sch_init(srslte_sch_t *q);
 
@@ -86,8 +86,6 @@ SRSLTE_API void srslte_sch_free(srslte_sch_t *q);
 SRSLTE_API void srslte_sch_set_max_noi(srslte_sch_t *q, 
                                        uint32_t max_iterations); 
 
-SRSLTE_API float srslte_sch_average_noi(srslte_sch_t *q);
-
 SRSLTE_API uint32_t srslte_sch_last_noi(srslte_sch_t *q);
 
 SRSLTE_API int srslte_dlsch_encode(srslte_sch_t *q, 
@@ -96,11 +94,25 @@ SRSLTE_API int srslte_dlsch_encode(srslte_sch_t *q,
                                    uint8_t *data, 
                                    uint8_t *e_bits);
 
+SRSLTE_API int srslte_dlsch_encode2(srslte_sch_t *q,
+                                    srslte_pdsch_cfg_t *cfg,
+                                    srslte_softbuffer_tx_t *softbuffer,
+                                    uint8_t *data,
+                                    uint8_t *e_bits,
+                                    int codeword_idx);
+
 SRSLTE_API int srslte_dlsch_decode(srslte_sch_t *q, 
                                    srslte_pdsch_cfg_t *cfg,
                                    srslte_softbuffer_rx_t *softbuffer,
                                    int16_t *e_bits, 
                                    uint8_t *data);
+
+SRSLTE_API int srslte_dlsch_decode2(srslte_sch_t *q,
+                                   srslte_pdsch_cfg_t *cfg,
+                                   srslte_softbuffer_rx_t *softbuffer,
+                                   int16_t *e_bits,
+                                   uint8_t *data,
+                                   int codeword_idx);
 
 SRSLTE_API int srslte_ulsch_encode(srslte_sch_t *q, 
                                    srslte_pusch_cfg_t *cfg,

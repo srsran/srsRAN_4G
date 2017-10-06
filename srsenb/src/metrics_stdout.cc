@@ -108,8 +108,8 @@ void metrics_stdout::print_metrics()
   {
     n_reports = 0;
     cout << endl;
-    cout << "------DL-------------------UL----------------" << endl;
-    cout << "rnti   mcs   brate   bler  snr  phr  turbo  mcs  brate   bler" << endl;
+    cout << "------DL-------------------------UL-------------------------------" << endl;
+    cout << "rnti   cqi   mcs  brate   bler   snr  phr   mcs  brate   bler   bsr" << endl;
   }
   if (metrics.rrc.n_ues > 0) {
     
@@ -122,6 +122,7 @@ void metrics_stdout::print_metrics()
       }
     
       cout << std::hex << metrics.mac[i].rnti << " ";
+      cout << float_to_string(metrics.mac[i].dl_cqi, 2);
       cout << float_to_string(metrics.phy[i].dl.mcs, 2);
       if (metrics.mac[i].tx_brate > 0 && metrics_report_period) {
         cout << float_to_eng_string((float) metrics.mac[i].tx_brate/metrics_report_period, 2);
@@ -129,13 +130,12 @@ void metrics_stdout::print_metrics()
         cout << float_to_string(0, 2);                
       }
       if (metrics.mac[i].tx_pkts > 0 && metrics.mac[i].tx_errors) {
-        cout << float_to_string((float) 100*metrics.mac[i].tx_errors/metrics.mac[i].tx_pkts, 2) << "%";
+        cout << float_to_string((float) 100*metrics.mac[i].tx_errors/metrics.mac[i].tx_pkts, 1) << "%";
       } else {
-        cout << float_to_string(0, 2) << "%";
+        cout << float_to_string(0, 1) << "%";
       }
       cout << float_to_string(metrics.phy[i].ul.sinr, 2);
       cout << float_to_string(metrics.mac[i].phr, 2);
-      cout << float_to_string(metrics.phy[i].ul.turbo_iters, 2);
       cout << float_to_string(metrics.phy[i].ul.mcs, 2);
       if (metrics.mac[i].rx_brate > 0 && metrics_report_period) {
         cout << float_to_eng_string((float) metrics.mac[i].rx_brate/metrics_report_period, 2);
@@ -143,10 +143,11 @@ void metrics_stdout::print_metrics()
         cout << float_to_string(0, 2);        
       }
       if (metrics.mac[i].rx_pkts > 0 && metrics.mac[i].rx_errors > 0) {
-        cout << float_to_string((float) 100*metrics.mac[i].rx_errors/metrics.mac[i].rx_pkts, 2) << "%";
+        cout << float_to_string((float) 100*metrics.mac[i].rx_errors/metrics.mac[i].rx_pkts, 1) << "%";
       } else {
-        cout << float_to_string(0, 2) << "%";
+        cout << float_to_string(0, 1) << "%";
       }
+      cout << float_to_eng_string(metrics.mac[i].ul_buffer, 2);
       cout << endl;
     }
   } else {

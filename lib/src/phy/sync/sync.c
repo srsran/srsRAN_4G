@@ -28,6 +28,8 @@
 #include <strings.h>
 #include <complex.h>
 #include <math.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/sync/sync.h>
 
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/common/phy_common.h"
@@ -38,6 +40,8 @@
 #define MEANPEAK_EMA_ALPHA      0.1
 #define CFO_EMA_ALPHA           0.1
 #define CP_EMA_ALPHA            0.1
+
+#define DEFAULT_CFO_TOL         50.0 // Hz
 
 static bool fft_size_isvalid(uint32_t fft_size) {
   if (fft_size >= SRSLTE_SYNC_FFT_SZ_MIN && fft_size <= SRSLTE_SYNC_FFT_SZ_MAX && (fft_size%64) == 0) {
@@ -77,7 +81,10 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     q->frame_size = frame_size;
     q->max_offset = max_offset;
     q->sss_alg = SSS_FULL;
-        
+    q->max_frame_size = frame_size;
+    q->mean_cfo_isunset = true;
+    q->mean_cfo2_isunset = true;
+
     q->enable_cfo_corr = true; 
     if (srslte_cfo_init(&q->cfocorr, q->frame_size)) {
       fprintf(stderr, "Error initiating CFO\n");
@@ -89,11 +96,8 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
       goto clean_exit;
     }
     
-    // Set a CFO tolerance of approx 50 Hz
-    srslte_cfo_set_tol(&q->cfocorr, 50.0/(15000.0*q->fft_size));
-
-    // Set a CFO tolerance of approx 50 Hz
-    srslte_cfo_set_tol(&q->cfocorr2, 50.0/(15000.0*q->fft_size));
+    // Set default CFO tolerance
+    srslte_sync_set_cfo_tol(q, DEFAULT_CFO_TOL);
 
     for (int i=0;i<2;i++) {
       q->cfo_i_corr[i] = srslte_vec_malloc(sizeof(cf_t)*q->frame_size);
@@ -111,11 +115,11 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     
     srslte_sync_set_cp(q, SRSLTE_CP_NORM);
     q->decimate = decimate;
-    if(!decimate)
+    if(!decimate) {
       decimate = 1;
-                 
-    
-    if (srslte_pss_synch_init_fft_offset_decim(&q->pss, max_offset, fft_size,0,decimate)) {
+    }
+
+    if (srslte_pss_synch_init_fft_offset_decim(&q->pss, max_offset, fft_size, 0, decimate)) {
       fprintf(stderr, "Error initializing PSS object\n");
       goto clean_exit;
     }
@@ -160,6 +164,80 @@ void srslte_sync_free(srslte_sync_t *q) {
       free(q->temp);
     }
   }
+}
+
+int srslte_sync_resize(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset, uint32_t fft_size) {
+
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q                 != NULL         &&
+      frame_size        <= 307200       &&
+      fft_size_isvalid(fft_size))
+  {
+    ret = SRSLTE_ERROR;
+
+    if (frame_size > q->max_frame_size) {
+      fprintf(stderr, "Error in sync_resize(): frame_size must be lower than initialized\n");
+      return SRSLTE_ERROR;
+    }
+    q->detect_cp = true;
+    q->sss_en = true;
+    q->mean_cfo = 0;
+    q->mean_cfo2 = 0;
+    q->N_id_2 = 1000;
+    q->N_id_1 = 1000;
+    q->cfo_i = 0;
+    q->find_cfo_i = false;
+    q->find_cfo_i_initiated = false;
+    q->cfo_ema_alpha = CFO_EMA_ALPHA;
+    q->fft_size = fft_size;
+    q->frame_size = frame_size;
+    q->max_offset = max_offset;
+    q->sss_alg = SSS_FULL;
+
+    q->enable_cfo_corr = true;
+
+    if (srslte_pss_synch_resize(&q->pss, max_offset, fft_size, 0)) {
+      fprintf(stderr, "Error resizing PSS object\n");
+      return SRSLTE_ERROR;
+    }
+    if (srslte_sss_synch_resize(&q->sss, fft_size)) {
+      fprintf(stderr, "Error resizing SSS object\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (srslte_cp_synch_resize(&q->cp_synch, fft_size)) {
+      fprintf(stderr, "Error resizing CFO\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (srslte_cfo_resize(&q->cfocorr, q->frame_size)) {
+      fprintf(stderr, "Error resizing CFO\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (srslte_cfo_resize(&q->cfocorr2, q->frame_size)) {
+      fprintf(stderr, "Error resizing CFO\n");
+      return SRSLTE_ERROR;
+    }
+
+    // Update CFO tolerance
+    srslte_sync_set_cfo_tol(q, q->current_cfo_tol);
+
+    DEBUG("SYNC init with frame_size=%d, max_offset=%d and fft_size=%d\n", frame_size, max_offset, fft_size);
+
+    ret = SRSLTE_SUCCESS;
+  }  else {
+    fprintf(stderr, "Invalid parameters frame_size: %d, fft_size: %d\n", frame_size, fft_size);
+  }
+
+  return ret;
+}
+
+void srslte_sync_set_cfo_tol(srslte_sync_t *q, float tol) {
+  q->current_cfo_tol = tol;
+  srslte_cfo_set_tol(&q->cfocorr, tol/(15000.0*q->fft_size));
+  srslte_cfo_set_tol(&q->cfocorr2, tol/(15000.0*q->fft_size));
 }
 
 void srslte_sync_set_threshold(srslte_sync_t *q, float threshold) {
@@ -217,7 +295,10 @@ float srslte_sync_get_cfo(srslte_sync_t *q) {
 }
 
 void srslte_sync_set_cfo(srslte_sync_t *q, float cfo) {
-  q->mean_cfo = cfo;
+  q->mean_cfo  = cfo;
+  q->mean_cfo2 = cfo;
+  q->mean_cfo2_isunset = false;
+  q->mean_cfo_isunset  = false;
 }
 
 void srslte_sync_set_cfo_i(srslte_sync_t *q, int cfo_i) {
@@ -445,13 +526,18 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
     cf_t *input_cfo = input; 
 
     if (q->enable_cfo_corr) {
-      float cfo = cfo_estimate(q, input); 
-      
-      /* compute exponential moving average CFO */
-      q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
-      
+      float cfo = cfo_estimate(q, input);
+
+      if (q->mean_cfo_isunset) {
+        q->mean_cfo = cfo;
+        q->mean_cfo_isunset = false;
+      } else {
+        /* compute exponential moving average CFO */
+        q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
+      }
+
       /* Correct CFO with the averaged CFO estimation */
-      srslte_cfo_correct(&q->cfocorr2, input, q->temp, -q->mean_cfo / q->fft_size);      
+      srslte_cfo_correct(&q->cfocorr2, input, q->temp, -q->mean_cfo / q->fft_size);
       
       input_cfo = q->temp; 
     }
@@ -504,8 +590,13 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
   
       if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
         float cfo2   = srslte_pss_synch_cfo_compute(&q->pss, &input[find_offset + peak_pos - q->fft_size]);
-        q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
-        
+        if (q->mean_cfo2_isunset) {
+          q->mean_cfo2 = cfo2;
+          q->mean_cfo2_isunset = true;
+        } else {
+          q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
+        }
+
         ret = SRSLTE_SYNC_FOUND;
       } else {
         ret = SRSLTE_SYNC_FOUND_NOSPACE; 
@@ -526,7 +617,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
 }
 
 void srslte_sync_reset(srslte_sync_t *q) {
-  q->M_ext_avg = 0; 
+  q->M_ext_avg  = 0;
   q->M_norm_avg = 0; 
   srslte_pss_synch_reset(&q->pss);
 }

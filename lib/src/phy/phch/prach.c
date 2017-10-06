@@ -26,6 +26,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/phch/prach.h"
@@ -60,6 +61,8 @@ uint32_t prach_Tseq[5] = {24576, 24576, 2*24576, 2*24576, 4096};
 
 // Table 5.7.2-2 - N_cs values for unrestricted sets
 uint32_t prach_Ncs_unrestricted[16] = {0,13,15,18,22,26,32,38,46,59,76,93,119,167,279,419};
+
+#define MAX_N_zc 839
 
 // Table 5.7.2-2 - N_cs values for restricted sets
 uint32_t prach_Ncs_restricted[15] = {15,18,22,26,32,38,46,55,68,82,100,128,158,202,237};
@@ -328,7 +331,10 @@ int srslte_prach_gen_seqs(srslte_prach_t *p)
 
 int srslte_prach_init_cfg(srslte_prach_t *p, srslte_prach_cfg_t *cfg, uint32_t nof_prb)
 {
-  return srslte_prach_init(p, 
+  if (srslte_prach_init(p, srslte_symbol_sz(nof_prb))) {
+    return -1;
+  }
+  return srslte_prach_set_cell(p,
                            srslte_symbol_sz(nof_prb), 
                            cfg->config_idx, 
                            cfg->root_seq_idx,
@@ -336,28 +342,95 @@ int srslte_prach_init_cfg(srslte_prach_t *p, srslte_prach_cfg_t *cfg, uint32_t n
                            cfg->zero_corr_zone);
 }
 
-int srslte_prach_init(srslte_prach_t *p,
-               uint32_t N_ifft_ul,
-               uint32_t config_idx,
-               uint32_t root_seq_index,
-               bool high_speed_flag,
-               uint32_t zero_corr_zone_config)
+int srslte_prach_init(srslte_prach_t *p, uint32_t max_N_ifft_ul)
+{
+  int ret = SRSLTE_ERROR;
+  if(p                      != NULL      &&
+     max_N_ifft_ul          <  2049)
+  {
+    bzero(p, sizeof(srslte_prach_t));
+
+    p->max_N_ifft_ul = max_N_ifft_ul;
+
+    // Set up containers
+    p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*MAX_N_zc);
+    p->corr_spec = srslte_vec_malloc(sizeof(cf_t)*MAX_N_zc);
+    p->corr = srslte_vec_malloc(sizeof(float)*MAX_N_zc);
+
+    // Set up ZC FFTS
+    if(srslte_dft_plan(&p->zc_fft, MAX_N_zc, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)){
+      return SRSLTE_ERROR;
+    }
+    srslte_dft_plan_set_mirror(&p->zc_fft, false);
+    srslte_dft_plan_set_norm(&p->zc_fft, true);
+
+    if(srslte_dft_plan(&p->zc_ifft, MAX_N_zc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)){
+      return SRSLTE_ERROR;
+    }
+    srslte_dft_plan_set_mirror(&p->zc_ifft, false);
+    srslte_dft_plan_set_norm(&p->zc_ifft, false);
+
+    uint32_t fft_size_alloc = max_N_ifft_ul * DELTA_F/DELTA_F_RA;
+
+    p->ifft_in = (cf_t*)srslte_vec_malloc(fft_size_alloc*sizeof(cf_t));
+    p->ifft_out = (cf_t*)srslte_vec_malloc(fft_size_alloc*sizeof(cf_t));
+    if(srslte_dft_plan(&p->ifft, fft_size_alloc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
+      fprintf(stderr, "Error creating DFT plan\n");
+      return -1;
+    }
+    srslte_dft_plan_set_mirror(&p->ifft, true);
+    srslte_dft_plan_set_norm(&p->ifft, true);
+
+    if(srslte_dft_plan(&p->fft, fft_size_alloc, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)){
+      fprintf(stderr, "Error creating DFT plan\n");
+      return -1;
+    }
+    
+    p->signal_fft = srslte_vec_malloc(sizeof(cf_t)*fft_size_alloc);
+    if (!p->signal_fft) {
+      fprintf(stderr, "Error allocating memory\n");
+      return -1; 
+    }
+    
+    srslte_dft_plan_set_mirror(&p->fft, true);
+    srslte_dft_plan_set_norm(&p->fft, false);
+
+    ret = SRSLTE_SUCCESS;
+  } else {
+    fprintf(stderr, "Invalid parameters\n");
+  }
+
+  return ret;
+}
+
+
+int srslte_prach_set_cell(srslte_prach_t *p,
+                      uint32_t N_ifft_ul,
+                      uint32_t config_idx,
+                      uint32_t root_seq_index,
+                      bool high_speed_flag,
+                      uint32_t zero_corr_zone_config)
 {
   int ret = SRSLTE_ERROR;
   if(p                      != NULL      &&
      N_ifft_ul              <  2049      &&
-     config_idx             <  64        && 
+     config_idx             <  64        &&
      root_seq_index         <  MAX_ROOTS)
   {
+    if (N_ifft_ul > p->max_N_ifft_ul) {
+      fprintf(stderr, "PRACH: Error in set_cell(): N_ifft_ul must be lower or equal max_N_ifft_ul in init()\n");
+      return -1;
+    }
+
     uint32_t preamble_format = srslte_prach_get_preamble_format(config_idx);
-    p->config_idx = config_idx; 
+    p->config_idx = config_idx;
     p->f = preamble_format;
     p->rsi = root_seq_index;
     p->hs = high_speed_flag;
     p->zczc = zero_corr_zone_config;
-    p->detect_factor = PRACH_DETECT_FACTOR; 
-    
-    
+    p->detect_factor = PRACH_DETECT_FACTOR;
+
+
     // Determine N_zc and N_cs
     if(4 == preamble_format){
       if (p->zczc < 7) {
@@ -368,43 +441,33 @@ int srslte_prach_init(srslte_prach_t *p,
         return SRSLTE_ERROR;
       }
     }else{
-      p->N_zc = 839;
+      p->N_zc = MAX_N_zc;
       if(p->hs){
         if (p->zczc < 15) {
           p->N_cs = prach_Ncs_restricted[p->zczc];
         } else {
           fprintf(stderr, "Invalid zeroCorrelationZoneConfig=%d for restricted set\n", p->zczc);
           return SRSLTE_ERROR;
-        }   
+        }
       }else{
         if (p->zczc < 16) {
           p->N_cs = prach_Ncs_unrestricted[p->zczc];
         } else {
           fprintf(stderr, "Invalid zeroCorrelationZoneConfig=%d\n", p->zczc);
           return SRSLTE_ERROR;
-        }   
+        }
       }
     }
-    
-    // Set up containers
-    p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
-    p->corr_spec = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
-    p->corr = srslte_vec_malloc(sizeof(float)*p->N_zc);
 
     // Set up ZC FFTS
-    p->zc_fft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
-    if(srslte_dft_plan(p->zc_fft, p->N_zc, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)){
-      return SRSLTE_ERROR;
+    if (p->N_zc != MAX_N_zc) {
+      if(srslte_dft_replan(&p->zc_fft, p->N_zc)){
+        return SRSLTE_ERROR;
+      }
+      if(srslte_dft_replan(&p->zc_ifft, p->N_zc)){
+        return SRSLTE_ERROR;
+      }
     }
-    srslte_dft_plan_set_mirror(p->zc_fft, false);
-    srslte_dft_plan_set_norm(p->zc_fft, true);
-
-    p->zc_ifft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
-    if(srslte_dft_plan(p->zc_ifft, p->N_zc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)){
-      return SRSLTE_ERROR;
-    }
-    srslte_dft_plan_set_mirror(p->zc_ifft, false);
-    srslte_dft_plan_set_norm(p->zc_ifft, false);
 
     // Generate our 64 sequences
     p->N_roots = 0;
@@ -412,9 +475,9 @@ int srslte_prach_init(srslte_prach_t *p,
 
     // Generate sequence FFTs
     for(int i=0;i<N_SEQS;i++){
-      srslte_dft_run(p->zc_fft, p->seqs[i], p->dft_seqs[i]);
+      srslte_dft_run(&p->zc_fft, p->seqs[i], p->dft_seqs[i]);
     }
-    
+
     // Create our FFT objects and buffers
     p->N_ifft_ul = N_ifft_ul;
     if(4 == preamble_format){
@@ -422,47 +485,31 @@ int srslte_prach_init(srslte_prach_t *p,
     }else{
       p->N_ifft_prach = p->N_ifft_ul * DELTA_F/DELTA_F_RA;
     }
-    
+
     /* The deadzone specifies the number of samples at the end of the correlation window
      * that will be considered as belonging to the next preamble
      */
-    p->deadzone = 0; 
+    p->deadzone = 0;
     /*
     if(p->N_cs != 0) {
       float samp_rate=15000*p->N_ifft_ul;
       p->deadzone = (uint32_t) ceil((float) samp_rate/((float) p->N_zc*subcarrier_spacing));
     }*/
 
-    p->ifft_in = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
-    p->ifft_out = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
-    p->ifft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
-    if(srslte_dft_plan(p->ifft, p->N_ifft_prach, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
+    if(srslte_dft_replan(&p->ifft, p->N_ifft_prach)) {
       fprintf(stderr, "Error creating DFT plan\n");
       return -1;
     }
-    srslte_dft_plan_set_mirror(p->ifft, true);
-    srslte_dft_plan_set_norm(p->ifft, true);
-
-    p->fft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
-    if(srslte_dft_plan(p->fft, p->N_ifft_prach, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)){
+    if(srslte_dft_replan(&p->fft, p->N_ifft_prach)){
       fprintf(stderr, "Error creating DFT plan\n");
       return -1;
     }
-    
-    p->signal_fft = srslte_vec_malloc(sizeof(cf_t)*p->N_ifft_prach);
-    if (!p->signal_fft) {
-      fprintf(stderr, "Error allocating memory\n");
-      return -1; 
-    }
-    
-    srslte_dft_plan_set_mirror(p->fft, true);
-    srslte_dft_plan_set_norm(p->fft, false);
 
     p->N_seq = prach_Tseq[p->f]*p->N_ifft_ul/2048;
     p->N_cp  = prach_Tcp[p->f]*p->N_ifft_ul/2048;
     p->T_seq = prach_Tseq[p->f]*SRSLTE_LTE_TS;
     p->T_tot = (prach_Tseq[p->f]+prach_Tcp[p->f])*SRSLTE_LTE_TS;
-    
+
     ret = SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid parameters\n");
@@ -500,7 +547,7 @@ int srslte_prach_gen(srslte_prach_t *p,
     memcpy(&p->ifft_in[begin], p->dft_seqs[seq_index], p->N_zc * sizeof(cf_t));
     memset(&p->ifft_in[begin+p->N_zc], 0, (p->N_ifft_prach - begin - p->N_zc) * sizeof(cf_t));
 
-    srslte_dft_run(p->ifft, p->ifft_in, p->ifft_out);
+    srslte_dft_run(&p->ifft, p->ifft_in, p->ifft_out);
 
     // Copy CP into buffer
     memcpy(signal, &p->ifft_out[p->N_ifft_prach-p->N_cp], p->N_cp*sizeof(cf_t));
@@ -552,7 +599,7 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
     }
     
     // FFT incoming signal
-    srslte_dft_run(p->fft, signal, p->signal_fft);
+    srslte_dft_run(&p->fft, signal, p->signal_fft);
 
     *n_indices = 0;
 
@@ -569,7 +616,7 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
      
       srslte_vec_prod_conj_ccc(p->prach_bins, root_spec, p->corr_spec, p->N_zc);
 
-      srslte_dft_run(p->zc_ifft, p->corr_spec, p->corr_spec);
+      srslte_dft_run(&p->zc_ifft, p->corr_spec, p->corr_spec);
       
       srslte_vec_abs_square_cf(p->corr_spec, p->corr, p->N_zc);
 
@@ -632,16 +679,12 @@ int srslte_prach_free(srslte_prach_t *p) {
   free(p->prach_bins);
   free(p->corr_spec);
   free(p->corr);
-  srslte_dft_plan_free(p->ifft);
-  free(p->ifft);
+  srslte_dft_plan_free(&p->ifft);
   free(p->ifft_in);
   free(p->ifft_out);
-  srslte_dft_plan_free(p->fft);
-  free(p->fft);
-  srslte_dft_plan_free(p->zc_fft);
-  free(p->zc_fft);
-  srslte_dft_plan_free(p->zc_ifft);
-  free(p->zc_ifft);
+  srslte_dft_plan_free(&p->fft);
+  srslte_dft_plan_free(&p->zc_fft);
+  srslte_dft_plan_free(&p->zc_ifft);
 
   if (p->signal_fft) {
     free(p->signal_fft); 

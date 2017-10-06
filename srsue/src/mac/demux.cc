@@ -36,16 +36,16 @@
 
 namespace srsue {
     
-demux::demux() : mac_msg(20), pending_mac_msg(20)
+demux::demux(uint8_t nof_harq_proc_) : mac_msg(20), pending_mac_msg(20), nof_harq_proc(nof_harq_proc_)
 {
 }
 
-void demux::init(phy_interface_mac* phy_h_, rlc_interface_mac *rlc_, srslte::log* log_h_, srslte::timers* timers_db_)
+void demux::init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc_, srslte::log* log_h_, srslte::timers::timer* time_alignment_timer_)
 {
   phy_h     = phy_h_; 
   log_h     = log_h_; 
-  rlc       = rlc_;  
-  timers_db = timers_db_;
+  rlc       = rlc_;
+  time_alignment_timer = time_alignment_timer_;
   pdus.init(this, log_h);
 }
 
@@ -68,9 +68,9 @@ void demux::deallocate(uint8_t* payload_buffer_ptr)
 uint8_t* demux::request_buffer(uint32_t pid, uint32_t len)
 {  
   uint8_t *buff = NULL; 
-  if (pid < NOF_HARQ_PID) {
+  if (pid < nof_harq_proc) {
     return pdus.request(len);
-  } else if (pid == NOF_HARQ_PID) {
+  } else if (pid == nof_harq_proc) {
     buff = bcch_buffer;
   } else {
     Error("Requested buffer for invalid PID=%d\n", pid);
@@ -119,9 +119,9 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
  */ 
 void demux::push_pdu(uint32_t pid, uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp)
 {
-  if (pid < NOF_HARQ_PID) {    
+  if (pid < nof_harq_proc) {
     return pdus.push(buff, nof_bytes, tstamp);
-  } else if (pid == NOF_HARQ_PID) {
+  } else if (pid == nof_harq_proc) {
     /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through 
     * the MAC in transparent mode. 
     * Warning: In this case function sends the message to RLC now, since SI blocks do not 
@@ -190,8 +190,8 @@ bool demux::process_ce(srslte::sch_subh *subh) {
       Info("Received TA=%d\n", subh->get_ta_cmd());
       
       // Start or restart timeAlignmentTimer
-      timers_db->get(mac::TIME_ALIGNMENT)->reset();
-      timers_db->get(mac::TIME_ALIGNMENT)->run();      
+      time_alignment_timer->reset();
+      time_alignment_timer->run();
       break;
     case srslte::sch_subh::PADDING:
       break;

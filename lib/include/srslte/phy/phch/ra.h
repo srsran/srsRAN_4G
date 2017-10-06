@@ -102,12 +102,17 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   bool prb_idx[2][SRSLTE_MAX_PRB];
   uint32_t nof_prb;  
-  uint32_t Qm;
-  uint32_t Qm2; 
-  srslte_ra_mcs_t mcs;
-  srslte_ra_mcs_t mcs2;
+  uint32_t Qm[SRSLTE_MAX_CODEWORDS];
+  uint32_t Qm2[SRSLTE_MAX_CODEWORDS];
+  srslte_ra_mcs_t mcs[SRSLTE_MAX_CODEWORDS];
+  srslte_ra_mcs_t mcs2[SRSLTE_MAX_CODEWORDS];
   uint32_t nof_tb;
+  srslte_sf_t sf_type;
+  bool tb_en[SRSLTE_MAX_CODEWORDS];
+  uint32_t pinfo;
 } srslte_ra_dl_grant_t;
+
+#define SRSLTE_RA_DL_GRANT_NOF_TB(G) ((((G)->tb_en[0])?1:0)+(((G)->tb_en[1])?1:0))
 
 /** Unpacked DCI message for DL grant */
 typedef struct SRSLTE_API {
@@ -206,10 +211,10 @@ SRSLTE_API int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci,
 SRSLTE_API void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, 
                                             uint32_t cfi, 
                                             srslte_cell_t cell, 
-                                            uint32_t sf_idx, 
-                                            srslte_ra_nbits_t *nbits); 
+                                            uint32_t sf_idx,
+                                            srslte_ra_nbits_t nbits[SRSLTE_MAX_CODEWORDS]);
 
-SRSLTE_API uint32_t srslte_ra_dl_approx_nof_re(srslte_cell_t cell, 
+SRSLTE_API uint32_t srslte_ra_dl_approx_nof_re(srslte_cell_t cell,
                                                uint32_t nof_prb, 
                                                uint32_t nof_ctrl_symbols); 
 
@@ -288,5 +293,10 @@ SRSLTE_API void srslte_ra_pusch_fprint(FILE *f,
 
 SRSLTE_API void srslte_ra_ul_grant_fprint(FILE *f, 
                                           srslte_ra_ul_grant_t *grant);
+
+SRSLTE_API int srslte_dl_fill_ra_mcs_pmch(srslte_ra_mcs_t *mcs, uint32_t nprb);
+
+SRSLTE_API int srslte_dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb);
+
 
 #endif /* RB_ALLOC_H_ */

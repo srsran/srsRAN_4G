@@ -70,6 +70,7 @@ typedef struct SRSLTE_API {
   srslte_dft_plan_t dftp_input;
   
   uint32_t fft_size;
+  uint32_t max_fft_size;
 
   float corr_peak_threshold;
   uint32_t symbol_sz;
@@ -89,7 +90,7 @@ typedef struct SRSLTE_API {
 SRSLTE_API int srslte_sss_synch_init(srslte_sss_synch_t *q,
                                      uint32_t fft_size);
 
-SRSLTE_API int srslte_sss_synch_realloc(srslte_sss_synch_t *q, 
+SRSLTE_API int srslte_sss_synch_resize(srslte_sss_synch_t *q,
                                         uint32_t fft_size); 
 
 SRSLTE_API void srslte_sss_synch_free(srslte_sss_synch_t *q);

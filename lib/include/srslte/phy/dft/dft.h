@@ -58,6 +58,7 @@ typedef enum {
 }srslte_dft_dir_t;
 
 typedef struct SRSLTE_API {
+  int init_size;      // DFT length used in the first initialization
   int size;           // DFT length
   void *in;           // Input buffer
   void *out;          // Output buffer
@@ -71,20 +72,32 @@ typedef struct SRSLTE_API {
   srslte_dft_mode_t mode;   // Complex/Real
 }srslte_dft_plan_t;
 
-/* Create DFT plans */
+SRSLTE_API void srslte_dft_load();
 
-SRSLTE_API int srslte_dft_plan(srslte_dft_plan_t *plan, 
+SRSLTE_API void srslte_dft_exit();
+
+SRSLTE_API int srslte_dft_plan(srslte_dft_plan_t *plan,
                                int dft_points, 
                                srslte_dft_dir_t dir,                         
                                srslte_dft_mode_t type);
 
-SRSLTE_API int srslte_dft_plan_c(srslte_dft_plan_t *plan, 
+SRSLTE_API int srslte_dft_plan_c(srslte_dft_plan_t *plan,
                                  int dft_points, 
                                  srslte_dft_dir_t dir);
 
 SRSLTE_API int srslte_dft_plan_r(srslte_dft_plan_t *plan, 
                                  int dft_points, 
                                  srslte_dft_dir_t dir);
+
+SRSLTE_API int srslte_dft_replan(srslte_dft_plan_t *plan,
+                                 const int new_dft_points);
+
+SRSLTE_API int srslte_dft_replan_c(srslte_dft_plan_t *plan,
+                                   int new_dft_points);
+
+SRSLTE_API int srslte_dft_replan_r(srslte_dft_plan_t *plan,
+                                   int new_dft_points);
+
 
 SRSLTE_API void srslte_dft_plan_free(srslte_dft_plan_t *plan);
 

@@ -46,6 +46,7 @@ uint32_t seed = 0;
 int K = -1;
 
 #define MAX_ITERATIONS  10
+int nof_cb = 1; 
 int nof_iterations = MAX_ITERATIONS;
 int test_known_data = 0;
 int test_errors = 0;
@@ -59,6 +60,7 @@ void usage(char *prog) {
   printf("Usage: %s [nlesv]\n", prog);
   printf(
       "\t-k Test with known data (ignores frame_length) [Default disabled]\n");
+  printf("\t-c nof_cb in parallel [Default %d]\n", nof_cb);
   printf("\t-i nof_iterations [Default %d]\n", nof_iterations);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-N nof_repetitions [Default %d]\n", nof_repetitions);
@@ -70,8 +72,11 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "inNlstvekt")) != -1) {
+  while ((opt = getopt(argc, argv, "cinNlstvekt")) != -1) {
     switch (opt) {
+    case 'c':
+      nof_cb = atoi(argv[optind]);
+      break;
     case 'n':
       nof_frames = atoi(argv[optind]);
       break;
@@ -112,7 +117,7 @@ int main(int argc, char **argv) {
   float *llr;
   short *llr_s;
   uint8_t *llr_c;
-  uint8_t *data_tx, *data_rx, *data_rx_bytes, *symbols;
+  uint8_t *data_tx, *data_rx, *data_rx_bytes[SRSLTE_TDEC_MAX_NPAR], *symbols;
   uint32_t i, j;
   float var[SNR_POINTS];
   uint32_t snr_points;
@@ -154,10 +159,12 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
-  data_rx_bytes = srslte_vec_malloc(frame_length * sizeof(uint8_t));
-  if (!data_rx_bytes) {
-    perror("malloc");
-    exit(-1);
+  for (int cb=0;cb<SRSLTE_TDEC_MAX_NPAR;cb++) {
+    data_rx_bytes[cb] = srslte_vec_malloc(frame_length * sizeof(uint8_t));
+    if (!data_rx_bytes[cb]) {
+      perror("malloc");
+      exit(-1);
+    }    
   }
 
   symbols = srslte_vec_malloc(coded_length * sizeof(uint8_t));
@@ -232,7 +239,6 @@ int main(int argc, char **argv) {
       for (j = 0; j < coded_length; j++) {
         llr[j] = symbols[j] ? 1 : -1;
       }
-
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);
 
       for (j=0;j<coded_length;j++) {
@@ -248,23 +254,39 @@ int main(int argc, char **argv) {
         t = nof_iterations;
       }
 
+      int16_t *input[SRSLTE_TDEC_MAX_NPAR];
+      uint8_t *output[SRSLTE_TDEC_MAX_NPAR];
+      
+      for (int n=0;n<SRSLTE_TDEC_MAX_NPAR;n++) {
+        if (n < nof_cb) {
+          input[n] = llr_s;         
+        } else {
+          input[n] = NULL; 
+        }
+        output[n] = data_rx_bytes[n];           
+      }
+
       gettimeofday(&tdata[1], NULL); 
-      for (int k=0;k<nof_repetitions;k++) {     
-        srslte_tdec_run_all(&tdec, llr_s, data_rx_bytes, t, frame_length);        
+      for (int k=0;k<nof_repetitions;k++) { 
+        srslte_tdec_run_all_par(&tdec, input, output, t, frame_length);        
       }
       gettimeofday(&tdata[2], NULL);
       get_time_interval(tdata);
       mean_usec = (float) mean_usec * 0.9 + (float) (tdata[0].tv_usec/nof_repetitions) * 0.1;
       
-      srslte_bit_unpack_vector(data_rx_bytes, data_rx, frame_length);
-
-      errors += srslte_bit_diff(data_tx, data_rx, frame_length);
-      
       frame_cnt++;
+      uint32_t errors_this = 0; 
+      for (int cb=0;cb<nof_cb;cb++) {
+        srslte_bit_unpack_vector(data_rx_bytes[cb], data_rx, frame_length);
+        
+        errors_this=srslte_bit_diff(data_tx, data_rx, frame_length);
+        //printf("error[%d]=%d\n", cb, errors_this);
+        errors += errors_this;
+      }
       printf("Eb/No: %2.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
-      printf("BER: %.2e  ", (float) errors / (frame_cnt * frame_length));
-      printf("%3.1f Mbps (%6.2f usec)", (float) frame_length / mean_usec, mean_usec);
-      printf("\r");
+      printf("BER: %.2e  ", (float) errors / (nof_cb*frame_cnt * frame_length));
+      printf("%3.1f Mbps (%6.2f usec)", (float) (nof_cb*frame_length) / mean_usec, mean_usec);
+      printf("\r");        
 
     }    
     printf("\n");
@@ -273,7 +295,7 @@ int main(int argc, char **argv) {
   printf("\n");
   if (snr_points == 1) {
     if (errors) {
-      printf("%d Errors\n", errors);
+      printf("%d Errors\n", errors/nof_cb);
     }
   }    
 

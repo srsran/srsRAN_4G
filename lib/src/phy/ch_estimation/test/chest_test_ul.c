@@ -125,13 +125,17 @@ int main(int argc, char **argv) {
     max_cid = cell.id;
   }
   printf("max_cid=%d, cid=%d, cell.id=%d\n", max_cid, cid, cell.id);
+  if (srslte_chest_ul_init(&est, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    goto do_exit;
+  }
   while(cid <= max_cid) {
     cell.id = cid; 
-    if (srslte_chest_ul_init(&est, cell)) {
+    if (srslte_chest_ul_set_cell(&est, cell)) {
       fprintf(stderr, "Error initializing equalizer\n");
       goto do_exit;
     }
-    
+
     for (int n=6;n<=cell.nof_prb;n+=5) {
       if (srslte_dft_precoding_valid_prb(n)) {
         for (int delta_ss=29;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
@@ -213,9 +217,9 @@ int main(int argc, char **argv) {
     }
     cid+=10;
     printf("cid=%d\n", cid);
-    srslte_chest_ul_free(&est);
   }
 
+  srslte_chest_ul_free(&est);
 
   if (fmatlab) {
     fprintf(fmatlab, "input=");

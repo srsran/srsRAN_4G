@@ -41,8 +41,8 @@ namespace srsue {
 class demux : public srslte::pdu_queue::process_callback
 {
 public:
-  demux();
-  void init(phy_interface_mac* phy_h_, rlc_interface_mac *rlc, srslte::log* log_h_, srslte::timers* timers_db_);
+  demux(uint8_t nof_harq_proc_);
+  void init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc, srslte::log* log_h_, srslte::timers::timer* time_alignment_timer);
 
   bool     process_pdus();
   uint8_t* request_buffer(uint32_t pid, uint32_t len);
@@ -57,7 +57,6 @@ public:
   void     process_pdu(uint8_t *pdu, uint32_t nof_bytes, uint32_t tstamp);
   
 private:
-  const static int NOF_HARQ_PID    = 8; 
   const static int MAX_PDU_LEN     = 150*1024/8; // ~ 150 Mbps  
   const static int NOF_BUFFER_PDUS = 64; // Number of PDU buffers per HARQ pid
   uint8_t bcch_buffer[1024]; // BCCH PID has a dedicated buffer
@@ -73,10 +72,11 @@ private:
   
   bool       is_uecrid_successful; 
     
-  phy_interface_mac *phy_h; 
-  srslte::log       *log_h;
-  srslte::timers    *timers_db;
-  rlc_interface_mac *rlc;
+  phy_interface_mac_common *phy_h;
+  srslte::log              *log_h;
+  srslte::timers::timer    *time_alignment_timer;
+  rlc_interface_mac        *rlc;
+  uint8_t                   nof_harq_proc;
   
   // Buffer of PDUs
   srslte::pdu_queue pdus; 

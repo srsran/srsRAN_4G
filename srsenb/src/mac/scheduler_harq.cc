@@ -98,9 +98,9 @@ bool harq_proc::get_ack()
 void harq_proc::set_ack(bool ack_)
 {
   ack = ack_;   
-  ack_received = true; 
+  ack_received = true;
   log_h->debug("ACK=%d received pid=%d, n_rtx=%d, max_retx=%d\n", ack_, id, n_rtx, max_retx);
-  if (n_rtx >= max_retx) {
+  if (n_rtx + 1 >= max_retx) {
     Warning("SCHED: discarting TB pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", id, tti, max_retx);
     active = false;      
   }
@@ -229,13 +229,22 @@ bool ul_harq_proc::has_pending_ack()
     active = false;     
   }
   if (!active) {
-    pending_data = 0; 
-    need_ack = false; 
+    need_ack = false;
   }
   return ret; 
 }
 
-uint32_t ul_harq_proc::get_pending_data()
+
+
+void ul_harq_proc::reset_pending_data()
+{
+  if (!active) {
+    pending_data = 0;
+  }
+}
+
+
+  uint32_t ul_harq_proc::get_pending_data()
 {
   return pending_data; 
 }

@@ -58,7 +58,13 @@ void ue::config(uint16_t rnti_, uint32_t nof_prb, sched_interface *sched_, rrc_i
   for(int i=0;i<NOF_HARQ_PROCESSES;i++) {
     pending_buffers[i] = NULL; 
   }
+
+  // Set LCID group for SRB0 and SRB1
+  set_lcg(0, 0);
+  set_lcg(1, 0);
 }  
+
+
 
 void ue::reset()
 {
@@ -86,7 +92,16 @@ void ue::rl_failure_reset()
 {
   nof_failures = 0;
 }
-  
+
+void ue::set_lcg(uint32_t lcid, uint32_t lcg)
+{
+  // find and remove if already exists
+  for (int i=0;i<4;i++) {
+    lc_groups[lcg].erase(std::remove(lc_groups[lcg].begin(), lc_groups[lcg].end(), lcid), lc_groups[lcg].end());
+  }
+  lc_groups[lcg].push_back(lcid);
+}
+
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
 {
   return &softbuffer_rx[tti%NOF_HARQ_PROCESSES];
@@ -136,63 +151,83 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
   if (pcap) {
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti);
   }
+
+  uint32_t lcid_most_data = 0;
+  int most_data = -99;
   
   while(mac_msg_ul.next()) {
     assert(mac_msg_ul.get());
-    if (mac_msg_ul.get()->is_sdu()) 
-    {
+    if (mac_msg_ul.get()->is_sdu()) {
       // Route logical channel 
-      log_h->debug_hex(mac_msg_ul.get()->get_sdu_ptr(), mac_msg_ul.get()->get_payload_size(), 
-                      "PDU:   rnti=0x%x, lcid=%d, %d bytes\n", 
-                      rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
-      
-      
+      log_h->debug_hex(mac_msg_ul.get()->get_sdu_ptr(), mac_msg_ul.get()->get_payload_size(),
+                       "PDU:   rnti=0x%x, lcid=%d, %d bytes\n",
+                       rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
+
+
       /* In some cases, an uplink transmission with only CQI has all zeros and gets routed to RRC 
        * Compute the checksum if lcid=0 and avoid routing in that case 
        */
-      bool route_pdu = true; 
+      bool route_pdu = true;
       if (mac_msg_ul.get()->get_sdu_lcid() == 0) {
         uint8_t *x = mac_msg_ul.get()->get_sdu_ptr();
-        uint32_t sum = 0; 
-        for (uint32_t i=0;i<mac_msg_ul.get()->get_payload_size();i++) {
+        uint32_t sum = 0;
+        for (uint32_t i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
           sum += x[i];
         }
         if (sum == 0) {
-          route_pdu = false; 
+          route_pdu = false;
           Warning("Received all zero PDU\n");
         }
       }
-      
+
       if (route_pdu) {
-        rlc->write_pdu(rnti, 
-                     mac_msg_ul.get()->get_sdu_lcid(), 
-                     mac_msg_ul.get()->get_sdu_ptr(), 
-                     mac_msg_ul.get()->get_payload_size());          
+        rlc->write_pdu(rnti,
+                       mac_msg_ul.get()->get_sdu_lcid(),
+                       mac_msg_ul.get()->get_sdu_ptr(),
+                       mac_msg_ul.get()->get_payload_size());
       }
-      
+
       // Indicate scheduler to update BSR counters 
       sched->ul_recv_len(rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
-      
+
+      if ((int) mac_msg_ul.get()->get_payload_size() > most_data) {
+        most_data = (int) mac_msg_ul.get()->get_payload_size();
+        lcid_most_data = mac_msg_ul.get()->get_sdu_lcid();
+      }
+
       // Save contention resolution if lcid == 0
       if (mac_msg_ul.get()->get_sdu_lcid() == 0 && route_pdu) {
-        uint32_t nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;          
+        uint32_t nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
         if (mac_msg_ul.get()->get_payload_size() >= nbytes) {
-          uint8_t *ue_cri_ptr  = (uint8_t*) &conres_id;
-          uint8_t *pkt_ptr     = mac_msg_ul.get()->get_sdu_ptr(); // Warning here: we want to include the 
-          for (uint32_t i=0;i<nbytes;i++) {
-            ue_cri_ptr[nbytes-i-1] = pkt_ptr[i];
+          uint8_t *ue_cri_ptr = (uint8_t *) &conres_id;
+          uint8_t *pkt_ptr = mac_msg_ul.get()->get_sdu_ptr(); // Warning here: we want to include the
+          for (uint32_t i = 0; i < nbytes; i++) {
+            ue_cri_ptr[nbytes - i - 1] = pkt_ptr[i];
           }
         } else {
           Error("Received CCCH UL message of invalid size=%d bytes\n", mac_msg_ul.get()->get_payload_size());
         }
-      }      
-    } else {
-      // Process MAC Control Element
-      if (!process_ce(mac_msg_ul.get())) {
-        Warning("Received Subheader with invalid or unkonwn LCID\n");
       }
     }
-  }      
+  }
+  mac_msg_ul.reset();
+
+  /* Process CE after all SDUs because we need to update BSR after */
+  bool bsr_received = false;
+  while(mac_msg_ul.next()) {
+    assert(mac_msg_ul.get());
+    if (!mac_msg_ul.get()->is_sdu()) {
+      // Process MAC Control Element
+      bsr_received |= process_ce(mac_msg_ul.get());
+    }
+  }
+
+  // If BSR is not received means that new data has arrived and there is no space for BSR transmission
+  if (!bsr_received && lcid_most_data > 2) {
+    // Add BSR to the LCID for which most data was received
+    sched->ul_bsr(rnti, lcid_most_data, 256, false); // false adds BSR instead of setting
+    Debug("BSR not received. Giving extra grant\n");
+  }
 
   Debug("MAC PDU processed\n");
   
@@ -220,9 +255,10 @@ void ue::push_pdu(uint32_t tti, uint32_t len)
 
 bool ue::process_ce(srslte::sch_subh *subh) {
   uint32_t buff_size[4] = {0, 0, 0, 0};
-  uint32_t idx = 0; 
-  float phr = 0; 
-  uint16_t old_rnti = 0; 
+  float phr = 0;
+  int idx = 0;
+  uint16_t old_rnti = 0;
+  bool is_bsr = false;
   switch(subh->ce_type()) {
     case srslte::sch_subh::PHR_REPORT: 
       phr = subh->get_phr(); 
@@ -241,23 +277,26 @@ bool ue::process_ce(srslte::sch_subh *subh) {
       }
       break;
     case srslte::sch_subh::TRUNC_BSR: 
-    case srslte::sch_subh::SHORT_BSR: 
-    case srslte::sch_subh::LONG_BSR: 
+    case srslte::sch_subh::SHORT_BSR:
       idx = subh->get_bsr(buff_size);
-      if (idx > 0) {
-        // Indicate BSR to scheduler 
-        sched->ul_bsr(rnti, idx, buff_size[idx]);
-        Info("CE:    Received BSR rnti=0x%x, lcid=%d, value=%d\n", rnti, idx, buff_size[idx]);        
-      } else if (idx == 0) {
-        // TODO: map lcid group to lcid
-        for (int i=0;i<4;i++) {
-          sched->ul_bsr(rnti, i, buff_size[i]);
-        }
-        Info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n", rnti, 
-             buff_size[0], buff_size[1], buff_size[2], buff_size[3]);        
-      } else {
-        printf("Error!\n");
+      for (uint32_t i=0;i<lc_groups[idx].size();i++) {
+        // Indicate BSR to scheduler
+        sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
       }
+      Info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d\n",
+           subh->ce_type()==srslte::sch_subh::SHORT_BSR?"Short":"Trunc", rnti, idx, buff_size[idx]);
+      is_bsr = true;
+      break;
+    case srslte::sch_subh::LONG_BSR:
+      subh->get_bsr(buff_size);
+      for (int idx=0;idx<4;idx++) {
+        for (uint32_t i=0;i<lc_groups[idx].size();i++) {
+          sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
+        }
+      }
+      is_bsr = true;
+      Info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n", rnti,
+           buff_size[0], buff_size[1], buff_size[2], buff_size[3]);
       break;
     case srslte::sch_subh::PADDING: 
       Debug("CE:    Received padding for rnti=0x%x\n", rnti);
@@ -266,7 +305,7 @@ bool ue::process_ce(srslte::sch_subh *subh) {
       Error("CE:    Invalid lcid=0x%x\n", subh->ce_type());
       break;
   }
-  return true; 
+  return is_bsr;
 }
 
 
@@ -357,14 +396,20 @@ void ue::metrics_read(mac_metrics_t* metrics_)
   metrics.dl_buffer = sched->get_dl_buffer(rnti);
   
   memcpy(metrics_, &metrics, sizeof(mac_metrics_t));
-  
-  phr_counter = 0; 
+
+  phr_counter = 0;
+  dl_cqi_counter = 0;
   bzero(&metrics, sizeof(mac_metrics_t));  
 }
 
 void ue::metrics_phr(float phr) {
   metrics.phr = SRSLTE_VEC_CMA(phr, metrics.phr, phr_counter);
-  phr_counter++; 
+  phr_counter++;
+}
+
+void ue::metrics_dl_cqi(uint32_t dl_cqi) {
+  metrics.dl_cqi = SRSLTE_VEC_CMA((float) dl_cqi, metrics.dl_cqi, dl_cqi_counter);
+  dl_cqi_counter++;
 }
 
 void ue::metrics_rx(bool crc, uint32_t tbs)

@@ -33,6 +33,7 @@
 #include <strings.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <srslte/interfaces/sched_interface.h>
 
 #include "srslte/common/log.h"
 #include "mac/mac.h"
@@ -41,7 +42,8 @@
 
 namespace srsenb {
 
-mac::mac() : timers_db((uint32_t) NOF_MAC_TIMERS),
+mac::mac() : timers_db(128),
+             timers_thread(&timers_db),
              rar_pdu_msg(sched_interface::MAX_RAR_LIST),
              pdu_process_thread(this)
 {
@@ -82,19 +84,23 @@ bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, 
     reset();
 
     started = true; 
-  }    
+  }
+
   return started; 
 }
 
 void mac::stop()
 {
+  for (uint32_t i=0;i<ue_db.size();i++) {
+    delete ue_db[i];
+  }
   for (int i=0;i<NOF_BCCH_DLSCH_MSG;i++) {
     srslte_softbuffer_tx_free(&bcch_softbuffer_tx[i]);
   }  
   srslte_softbuffer_tx_free(&pcch_softbuffer_tx);
   srslte_softbuffer_tx_free(&rar_softbuffer_tx);
   started = false;   
-  upper_timers_thread.stop();
+  timers_thread.stop();
   pdu_process_thread.stop();
 }
 
@@ -104,37 +110,14 @@ void mac::reset()
   Info("Resetting MAC\n");
   
   timers_db.stop_all();
-  upper_timers_thread.reset();
-  
+
   tti = 0; 
   last_rnti = 70; 
   
   /* Setup scheduler */
   scheduler.reset();
   
-  /* Setup SI-RNTI in PHY */
-  phy_h->add_rnti(SRSLTE_SIRNTI);
-
-  /* Setup P-RNTI in PHY */
-  phy_h->add_rnti(SRSLTE_PRNTI);
-
-  /* Setup RA-RNTI in PHY */
-  for (int i=0;i<10;i++) {
-    phy_h->add_rnti(1+i);
-  }    
 }
-
-uint32_t mac::get_unique_id()
-{
-  return upper_timers_thread.get_unique_id();
-}
-
-/* Front-end to upper-layer timers */
-srslte::timers::timer* mac::get(uint32_t timer_id)
-{
-  return upper_timers_thread.get(timer_id);
-}
-
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
@@ -163,7 +146,9 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
 
 int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
 {
-  if (ue_db.count(rnti)) {   
+  if (ue_db.count(rnti)) {
+    // configure BSR group in UE
+    ue_db[rnti]->set_lcg(lc_id, (uint32_t) cfg->group);
     return scheduler.bearer_ue_cfg(rnti, lc_id, cfg);      
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -259,7 +244,7 @@ void mac::rl_failure(uint16_t rnti)
   if (ue_db.count(rnti)) {         
     uint32_t nof_fails = ue_db[rnti]->rl_failure();  
     if (nof_fails >= (uint32_t) args.link_failure_nof_err && args.link_failure_nof_err > 0) {    
-      Info("Detected PUSCH failure for rnti=0x%x\n", rnti);
+      Info("Detected Uplink failure for rnti=0x%x\n", rnti);
       rrc_h->rl_failure(rnti);
       ue_db[rnti]->rl_failure_reset();
     }
@@ -326,6 +311,7 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 
   if (ue_db.count(rnti)) {         
     scheduler.dl_cqi_info(tti, rnti, cqi_value);
+    ue_db[rnti]->metrics_dl_cqi(cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     return -1;
@@ -384,7 +370,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
   }
   // Save RA info
   pending_rars[ra_id].preamble_idx = preamble_idx; 
-  pending_rars[ra_id].ta_cmd       = time_adv; 
+  pending_rars[ra_id].ta_cmd       = 2*time_adv;
   pending_rars[ra_id].temp_crnti   = last_rnti;   
   
   // Add new user to the scheduler so that it can RX/TX SRB0
@@ -417,7 +403,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
 int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 {
-  log_step_dl(tti);
+  log_h->step(tti);
 
   if (!started) {
     return 0; 
@@ -455,8 +441,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
       dl_sched_res->sched_grants[n].data     = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu, 
                                                         sched_result.data[i].nof_pdu_elems, 
                                                         sched_result.data[i].tbs);
-      srslte_softbuffer_tx_reset_tbs(dl_sched_res->sched_grants[n].softbuffer, sched_result.data[i].tbs);
-      
+
       if (pcap) {
         pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data, sched_result.data[i].tbs, rnti, true, tti);
       }
@@ -476,7 +461,6 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
     // Set softbuffer (there are no retx in RAR but a softbuffer is required)
     dl_sched_res->sched_grants[n].softbuffer = &rar_softbuffer_tx;    
-    srslte_softbuffer_tx_reset_tbs(&rar_softbuffer_tx, sched_result.rar[i].tbs); // TBS is usually 54-bit 
 
     // Assemble PDU 
     dl_sched_res->sched_grants[n].data = assemble_rar(sched_result.rar[i].grants, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs);        
@@ -499,9 +483,6 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     // Set softbuffer    
     if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
       dl_sched_res->sched_grants[n].softbuffer = &bcch_softbuffer_tx[sched_result.bc[i].index];    
-      if (sched_result.bc[i].dci.rv_idx == 0) {
-        srslte_softbuffer_tx_reset_tbs(dl_sched_res->sched_grants[n].softbuffer, sched_result.bc[i].tbs*8);
-      }
       dl_sched_res->sched_grants[n].data = assemble_si(sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
       if (pcap) {
@@ -510,7 +491,6 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 #endif
     } else {
       dl_sched_res->sched_grants[n].softbuffer = &pcch_softbuffer_tx;    
-      srslte_softbuffer_tx_reset_tbs(dl_sched_res->sched_grants[n].softbuffer, sched_result.bc[i].tbs*8);
       dl_sched_res->sched_grants[n].data = pcch_payload_buffer;
       rlc_h->read_pdu_pcch(pcch_payload_buffer, pcch_payload_buffer_len);
       
@@ -564,8 +544,8 @@ uint8_t* mac::assemble_si(uint32_t index)
 
 int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res) 
 {
-  
-  log_step_ul(tti);
+
+  log_h->step(tti);
   
   if (!started) {
     return 0; 
@@ -622,66 +602,61 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
   return SRSLTE_SUCCESS; 
 }
 
-void mac::log_step_ul(uint32_t tti) 
-{
-  int tti_ul = tti-8;
-  if (tti_ul < 0) {
-    tti_ul += 10240;
-  }
-  log_h->step(tti_ul);
-}
-
-void mac::log_step_dl(uint32_t tti) 
-{
-  int tti_dl = tti-4;
-  if (tti_dl < 0) {
-    tti_dl += 10240;
-  }
-  log_h->step(tti_dl);
-}
-
 void mac::tti_clock()
 {
-  upper_timers_thread.tti_clock();
+  timers_thread.tti_clock();
 }
+
+
+
 
 /********************************************************
  *
- * Class to run upper-layer timers with normal priority 
+ * Interface for upper layer timers
  *
  *******************************************************/
-void mac::upper_timers::run_thread()
+uint32_t mac::timer_get_unique_id()
+{
+  return timers_db.get_unique_id();
+}
+
+void mac::timer_release_id(uint32_t timer_id)
+{
+  timers_db.release_id(timer_id);
+}
+
+/* Front-end to upper-layer timers */
+srslte::timers::timer* mac::timer_get(uint32_t timer_id)
+{
+  return timers_db.get(timer_id);
+}
+
+
+
+/********************************************************
+ *
+ * Class to run timers with normal priority
+ *
+ *******************************************************/
+void mac::timer_thread::run_thread()
 {
   running=true; 
   ttisync.set_producer_cntr(0);
   ttisync.resync();
   while(running) {
     ttisync.wait();
-    timers_db.step_all();
+    timers->step_all();
   }
 }
-srslte::timers::timer* mac::upper_timers::get(uint32_t timer_id)
-{
-  return timers_db.get(timer_id%MAC_NOF_UPPER_TIMERS);
-}
 
-uint32_t mac::upper_timers::get_unique_id()
-{
-  return timers_db.get_unique_id();
-}
-
-void mac::upper_timers::stop()
+void mac::timer_thread::stop()
 {
   running=false;
   ttisync.increase();
   wait_thread_finish();
 }
-void mac::upper_timers::reset()
-{
-  timers_db.stop_all();
-}
 
-void mac::upper_timers::tti_clock()
+void mac::timer_thread::tti_clock()
 {
   ttisync.increase();
 }

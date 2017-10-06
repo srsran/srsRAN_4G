@@ -25,7 +25,8 @@
  */
 
 #include <iostream>
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
+#include "srslte/common/logger_stdout.h"
 #include "srslte/upper/rlc_am.h"
 #include <assert.h>
 #define NBUFS 5
@@ -37,11 +38,12 @@ class mac_dummy_timers
     :public srslte::mac_interface_timers
 {
 public:
-  srslte::timers::timer* get(uint32_t timer_id)
+  srslte::timers::timer* timer_get(uint32_t timer_id)
   {
     return &t;
   }
-  uint32_t get_unique_id(){return 0;}
+  uint32_t timer_get_unique_id(){return 0;}
+  void timer_release_id(uint32_t id){}
 
 private:
   srslte::timers::timer t;
@@ -66,6 +68,7 @@ public:
   
   // RRC interface
   void max_retx_attempted(){}
+  std::string get_rb_name(uint32_t lcid) { return std::string(""); }
 
   byte_buffer_t *sdus[10];
   int n_sdus;
@@ -73,8 +76,8 @@ public:
 
 void basic_test()
 {
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -100,6 +103,7 @@ void basic_test()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -152,8 +156,8 @@ void basic_test()
 
 void concat_test()
 {
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -179,6 +183,7 @@ void concat_test()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -216,8 +221,8 @@ void concat_test()
 
 void segment_test()
 {
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -243,6 +248,7 @@ void segment_test()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -298,8 +304,8 @@ void segment_test()
 
 void retx_test()
 {
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -325,6 +331,7 @@ void retx_test()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -394,8 +401,8 @@ void resegment_test_1()
   // PDUs:                |  10  |  10  |  10  |  10  |  10  |
   // Retx PDU segments:                 | 5 | 5|
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -421,6 +428,7 @@ void resegment_test_1()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -503,8 +511,8 @@ void resegment_test_2()
   // PDUs:              | 5 |  10  |     20     |  10  | 5 |
   // Retx PDU segments:            |  10  |  10 |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -530,6 +538,7 @@ void resegment_test_2()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -609,8 +618,8 @@ void resegment_test_3()
   // PDUs:              | 5 | 5|      20     |  10  |  10  |
   // Retx PDU segments:        |  10  |  10  |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -636,6 +645,7 @@ void resegment_test_3()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -711,8 +721,8 @@ void resegment_test_4()
   // PDUs:              | 5 | 5|         30         | 5 | 5|
   // Retx PDU segments:        |    15    |    15   |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -738,6 +748,7 @@ void resegment_test_4()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -813,8 +824,8 @@ void resegment_test_5()
   // PDUs:              |2|3|            40            |3|2|
   // Retx PDU segments:     |     20      |     20     |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -840,6 +851,7 @@ void resegment_test_5()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -914,8 +926,8 @@ void resegment_test_6()
   // PDUs:                |10|10|10|                270               | 54 |
   // Retx PDU segments:            |  120           |      150        |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -941,6 +953,7 @@ void resegment_test_6()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);

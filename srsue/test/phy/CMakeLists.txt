@@ -18,8 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_executable(ue_itf_test_sib1 ue_itf_test_sib1.cc)
-target_link_libraries(ue_itf_test_sib1 srsue_phy srslte_common srslte_phy srslte_radio ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+#add_executable(ue_itf_test_sib1 ue_itf_test_sib1.cc)
+#target_link_libraries(ue_itf_test_sib1 srsue_phy srslte_common srslte_phy srslte_radio ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 
-add_executable(ue_itf_test_prach ue_itf_test_prach.cc)
-target_link_libraries(ue_itf_test_prach srsue_phy srslte_common srslte_phy srslte_radio ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+#add_executable(ue_itf_test_prach ue_itf_test_prach.cc)
+#target_link_libraries(ue_itf_test_prach srsue_phy srslte_common srslte_phy srslte_radio ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})

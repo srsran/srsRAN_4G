@@ -54,7 +54,7 @@ uint32_t sf_idx = 0;
 srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
 srslte_filesource_t fsrc;
 srslte_ue_dl_t ue_dl;
-cf_t *input_buffer;
+cf_t *input_buffer[SRSLTE_MAX_PORTS];
 
 void usage(char *prog) {
   printf("Usage: %s [rovfcenmps] -i input_file\n", prog);
@@ -131,17 +131,21 @@ int base_init() {
 
   flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb)));
 
-  input_buffer = malloc(flen * sizeof(cf_t));
-  if (!input_buffer) {
+  input_buffer[0] = malloc(flen * sizeof(cf_t));
+  if (!input_buffer[0]) {
     perror("malloc");
     exit(-1);
   }
 
-  if (srslte_ue_dl_init_multi(&ue_dl, cell, 1)) {
+  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, 1)) {
     fprintf(stderr, "Error initializing UE DL\n");
     return -1;
   }
-  
+  if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+    fprintf(stderr, "Error initializing UE DL\n");
+    return -1;
+  }
+
   srslte_ue_dl_set_rnti(&ue_dl, rnti); 
 
   DEBUG("Memory init OK\n",0);
@@ -151,12 +155,13 @@ int base_init() {
 void base_free() {
   srslte_filesource_free(&fsrc);
   srslte_ue_dl_free(&ue_dl);
-  free(input_buffer);  
+  free(input_buffer[0]);
 }
 
 int main(int argc, char **argv) {
   int nof_frames;
   int ret;
+  bool acks[SRSLTE_MAX_TB];
 
   if (argc < 3) {
     usage(argv[0]);
@@ -169,15 +174,15 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  uint8_t *data = malloc(100000);
+  uint8_t *data[] = {malloc(100000)};
 
   ret = -1;
   nof_frames = 0;
   do {
-    srslte_filesource_read(&fsrc, input_buffer, flen);
+    srslte_filesource_read(&fsrc, input_buffer[0], flen);
     INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
 
-    ret = srslte_ue_dl_decode(&ue_dl, input_buffer, data, sf_idx); 
+    ret = srslte_ue_dl_decode(&ue_dl, input_buffer, data, 0, sf_idx, acks);
     if(ret > 0) {
       printf("PDSCH Decoded OK!\n");       
     } else if (ret == 0) {
@@ -190,7 +195,8 @@ int main(int argc, char **argv) {
   } while (nof_frames <= max_frames && ret == 0);
 
   base_free();
-  if (ret > 0) {        
+  free(data[0]);
+  if (ret > 0) {
     exit(0);
   } else {
     exit(-1); 

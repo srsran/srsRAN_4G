@@ -24,6 +24,7 @@
  *
  */
 
+#include "srslte/srslte.h"
 #include "phy/prach_worker.h"
 
 namespace srsenb {
@@ -48,7 +49,7 @@ int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac
   srslte_prach_set_detect_factor(&prach, 60);    
 
   nof_sf = (uint32_t) ceilf(prach.T_tot*1000); 
-  
+
   signal_buffer_rx = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*nof_sf*SRSLTE_SF_LEN_PRB(cell.nof_prb));
   if (!signal_buffer_rx) {
     perror("malloc");
@@ -56,8 +57,9 @@ int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac
   }
   
   start(priority);
-  initiated = true; 
-  
+  initiated = true;
+
+  sf_cnt = 0;
   pending_tti   = 0; 
   processed_tti = 0; 
   return 0; 
@@ -65,6 +67,11 @@ int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac
 
 void prach_worker::stop()
 {
+  srslte_prach_free(&prach);
+
+  if (signal_buffer_rx) {
+    free(signal_buffer_rx);
+  }
   pthread_mutex_lock(&mutex);
   processed_tti = 99999; 
   running = false; 
@@ -108,7 +115,7 @@ int prach_worker::run_tti(uint32_t tti_rx)
 {
   if (srslte_prach_tti_opportunity(&prach, tti_rx, -1)) 
   {
-    // Detect possible PRACHs 
+    // Detect possible PRACHs
     if (srslte_prach_detect_offset(&prach,
                                    prach_cfg.freq_offset,
                                    &signal_buffer_rx[prach.N_cp],

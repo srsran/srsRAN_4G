@@ -46,6 +46,8 @@ typedef struct SRSLTE_API {
   uint32_t input_len;
   uint32_t filter_len;
   uint32_t output_len;
+  uint32_t max_input_len;
+  uint32_t max_filter_len;
   srslte_dft_plan_t input_plan;
   srslte_dft_plan_t filter_plan;
   srslte_dft_plan_t output_plan;
@@ -58,6 +60,9 @@ SRSLTE_API int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q,
                                        uint32_t input_len, 
                                        uint32_t filter_len);
 
+SRSLTE_API int srslte_conv_fft_cc_replan(srslte_conv_fft_cc_t *q,
+                                         uint32_t input_len,
+                                         uint32_t filter_len);
 
 SRSLTE_API void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q);
 

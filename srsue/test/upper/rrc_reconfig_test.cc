@@ -26,12 +26,12 @@
 
 #include <iostream>
 #include <srslte/srslte.h>
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/asn1/liblte_mme.h"
 
 void nas_test() {
-  srslte::log_stdout log1("NAS");
+  srslte::log_filter log1("NAS");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
 
@@ -91,7 +91,7 @@ void nas_test() {
 }
 
 void basic_test() {
-  srslte::log_stdout log1("RRC");
+  srslte::log_filter log1("RRC");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
 

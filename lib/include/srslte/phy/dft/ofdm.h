@@ -47,6 +47,7 @@
 /* This is common for both directions */
 typedef struct SRSLTE_API{
   srslte_dft_plan_t fft_plan;
+  uint32_t max_prb;
   uint32_t nof_symbols;
   uint32_t symbol_sz;
   uint32_t nof_guards;
@@ -55,7 +56,14 @@ typedef struct SRSLTE_API{
   srslte_cp_t cp;
   cf_t *tmp; // for removing zero padding
   
+  bool     mbsfn_subframe;
+  uint32_t mbsfn_guard_len;
+  uint32_t nof_symbols_mbsfn;
+  uint8_t  non_mbsfn_region;
+
+  
   bool freq_shift;
+  float freq_shift_f;
   cf_t *shift_buffer; 
 }srslte_ofdm_t;
 
@@ -63,11 +71,32 @@ SRSLTE_API int srslte_ofdm_init_(srslte_ofdm_t *q,
                                  srslte_cp_t cp, 
                                  int symbol_sz, 
                                  int nof_prb, 
-                                 srslte_dft_dir_t dir); 
+                                 srslte_dft_dir_t dir);
+
+SRSLTE_API int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, 
+                                 srslte_cp_t cp, 
+                                 int symbol_sz, 
+                                 int nof_prb, 
+                                 srslte_dft_dir_t dir,
+                                 srslte_sf_t sf_type);
+
+SRSLTE_API int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q,
+                                         srslte_cp_t cp_type,
+                                         uint32_t nof_prb);
+
+
 
 SRSLTE_API int srslte_ofdm_rx_init(srslte_ofdm_t *q, 
                                srslte_cp_t cp_type, 
-                               uint32_t nof_prb);
+                               uint32_t max_prb);
+
+SRSLTE_API int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q,
+                                      srslte_cp_t cp,
+                                      uint32_t nof_prb);
+
+SRSLTE_API int srslte_ofdm_rx_set_prb(srslte_ofdm_t *q,
+                                      srslte_cp_t cp,
+                                      uint32_t nof_prb);
 
 SRSLTE_API void srslte_ofdm_rx_free(srslte_ofdm_t *q);
 
@@ -85,11 +114,21 @@ SRSLTE_API int srslte_ofdm_tx_init(srslte_ofdm_t *q,
                                     srslte_cp_t cp_type, 
                                     uint32_t nof_prb);
 
+SRSLTE_API int srslte_ofdm_tx_init_mbsfn(srslte_ofdm_t *q,
+                                        srslte_cp_t cp, 
+                                        uint32_t nof_prb);
+
+
 SRSLTE_API void srslte_ofdm_tx_free(srslte_ofdm_t *q);
 
 SRSLTE_API void srslte_ofdm_tx_slot(srslte_ofdm_t *q, 
                                   cf_t *input, 
                                   cf_t *output);
+
+SRSLTE_API void srslte_ofdm_tx_slot_mbsfn(srslte_ofdm_t *q,
+                                         cf_t *input,
+                                         cf_t *output);
+
 
 SRSLTE_API void srslte_ofdm_tx_sf(srslte_ofdm_t *q, 
                                 cf_t *input, 
@@ -100,5 +139,9 @@ SRSLTE_API int srslte_ofdm_set_freq_shift(srslte_ofdm_t *q,
 
 SRSLTE_API void srslte_ofdm_set_normalize(srslte_ofdm_t *q, 
                                          bool normalize_enable); 
+
+SRSLTE_API void srslte_ofdm_set_non_mbsfn_region(srslte_ofdm_t *q,
+                                               uint8_t non_mbsfn_region);
+
 
 #endif

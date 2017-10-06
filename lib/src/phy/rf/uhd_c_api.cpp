@@ -38,6 +38,12 @@ void uhd_tx_metadata_set_start(uhd_tx_metadata_handle *md, bool is_start_of_burs
   (*md)->tx_metadata_cpp.start_of_burst = is_start_of_burst;
 }
 
+void uhd_tx_metadata_set_has_time_spec(uhd_tx_metadata_handle *md, bool has_time_spec)
+{
+  (*md)->tx_metadata_cpp.has_time_spec = has_time_spec;
+}
+
+
 void uhd_tx_metadata_set_end(uhd_tx_metadata_handle *md, bool is_end_of_burst)
 {
   (*md)->tx_metadata_cpp.end_of_burst = is_end_of_burst;

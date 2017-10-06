@@ -173,7 +173,7 @@ void s1ap::build_tai_cgi()
 void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
-  ue_ctxt_map[rnti].stream_id      = next_ue_stream_id++;
+  ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
   send_initialuemessage(rnti, pdu, false);
@@ -182,7 +182,7 @@ void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
 void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
-  ue_ctxt_map[rnti].stream_id      = next_ue_stream_id++;
+  ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
   send_initialuemessage(rnti, pdu, true, m_tmsi, mmec);
@@ -347,6 +347,7 @@ bool s1ap::setup_s1()
   uint16_t                    tmp16;
   srslte::byte_buffer_t       msg;
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
+  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
 
   pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
 
@@ -594,7 +595,7 @@ bool s1ap::handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMA
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
 
-  uint16_t rnti;
+  uint16_t rnti = 0;
   if(msg->UE_S1AP_IDs.choice_type == LIBLTE_S1AP_UE_S1AP_IDS_CHOICE_UE_S1AP_ID_PAIR) {
 
     if(msg->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.ext) {

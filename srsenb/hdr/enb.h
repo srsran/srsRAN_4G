@@ -50,7 +50,7 @@
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/logger.h"
+#include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -139,49 +139,57 @@ typedef struct {
 *******************************************************************************/
 
 class enb
-    :public enb_metrics_interface
-{
+    :public enb_metrics_interface {
 public:
-  static enb* get_instance(void);
+  static enb *get_instance(void);
+
   static void cleanup(void);
 
   bool init(all_args_t *args_);
+
   void stop();
+
   void start_plot();
-  
+
   static void rf_msg(srslte_rf_error_t error);
+
   void handle_rf_msg(srslte_rf_error_t error);
 
   // eNodeB metrics interface
   bool get_metrics(enb_metrics_t &m);
 
   void pregenerate_signals(bool enable);
-  
+
 
 private:
   static enb *instance;
+
   enb();
+
   virtual ~enb();
 
-  srslte::radio      radio;
-  srsenb::phy        phy;
-  srsenb::mac        mac;
-  srslte::mac_pcap   mac_pcap;
-  srsenb::rlc        rlc;
-  srsenb::pdcp       pdcp;
-  srsenb::rrc        rrc;
-  srsenb::gtpu       gtpu;
-  srsenb::s1ap       s1ap;
+  srslte::radio radio;
+  srsenb::phy phy;
+  srsenb::mac mac;
+  srslte::mac_pcap mac_pcap;
+  srsenb::rlc rlc;
+  srsenb::pdcp pdcp;
+  srsenb::rrc rrc;
+  srsenb::gtpu gtpu;
+  srsenb::s1ap s1ap;
 
-  srslte::logger     logger;
-  srslte::log_filter rf_log;
-  std::vector<void*> phy_log;
-  srslte::log_filter mac_log;
-  srslte::log_filter rlc_log;
-  srslte::log_filter pdcp_log;
-  srslte::log_filter rrc_log;
-  srslte::log_filter gtpu_log;
-  srslte::log_filter s1ap_log;
+  srslte::logger_stdout logger_stdout;
+  srslte::logger_file   logger_file;
+  srslte::logger        *logger;
+
+  srslte::log_filter  rf_log;
+  std::vector<void*>  phy_log;
+  srslte::log_filter  mac_log;
+  srslte::log_filter  rlc_log;
+  srslte::log_filter  pdcp_log;
+  srslte::log_filter  rrc_log;
+  srslte::log_filter  gtpu_log;
+  srslte::log_filter  s1ap_log;
 
   srslte::byte_buffer_pool *pool;
 

@@ -38,7 +38,7 @@ typedef struct {
   void   (*srslte_rf_suppress_stdout)(void *h);
   void   (*srslte_rf_register_error_handler)(void *h, srslte_rf_error_handler_t error_handler);
   int    (*srslte_rf_open)(char *args, void **h);
-  int    (*srslte_rf_open_multi)(char *args, void **h, uint32_t nof_rx_antennas);
+  int    (*srslte_rf_open_multi)(char *args, void **h, uint32_t nof_channels);
   int    (*srslte_rf_close)(void *h);
   void   (*srslte_rf_set_master_clock_rate)(void *h, double rate);
   bool   (*srslte_rf_is_master_clock_dynamic)(void *h);
@@ -56,6 +56,9 @@ typedef struct {
   int    (*srslte_rf_recv_with_time_multi)(void *h, void **data, uint32_t nsamples, 
                            bool blocking, time_t *secs,double *frac_secs);
   int    (*srslte_rf_send_timed)(void *h, void *data, int nsamples,
+                     time_t secs, double frac_secs, bool has_time_spec,
+                     bool blocking, bool is_start_of_burst, bool is_end_of_burst);
+  int    (*srslte_rf_send_timed_multi)(void *h, void *data[4], int nsamples,
                      time_t secs, double frac_secs, bool has_time_spec,
                      bool blocking, bool is_start_of_burst, bool is_end_of_burst);
   void   (*srslte_rf_set_tx_cal)(void *h, srslte_rf_cal_t *cal);
@@ -81,7 +84,7 @@ static rf_dev_t dev_uhd = {
   rf_uhd_suppress_stdout,
   rf_uhd_register_error_handler,
   rf_uhd_open,
-  rf_uhd_open_multi,
+  .srslte_rf_open_multi = rf_uhd_open_multi,
   rf_uhd_close,
   rf_uhd_set_master_clock_rate,
   rf_uhd_is_master_clock_dynamic,
@@ -97,6 +100,7 @@ static rf_dev_t dev_uhd = {
   rf_uhd_recv_with_time,
   rf_uhd_recv_with_time_multi,
   rf_uhd_send_timed,
+  .srslte_rf_send_timed_multi = rf_uhd_send_timed_multi,
   rf_uhd_set_tx_cal,
   rf_uhd_set_rx_cal
 };
@@ -119,7 +123,7 @@ static rf_dev_t dev_blade = {
   rf_blade_suppress_stdout,
   rf_blade_register_error_handler,
   rf_blade_open,
-  rf_blade_open_multi,
+  .srslte_rf_open_multi = rf_blade_open_multi,
   rf_blade_close,
   rf_blade_set_master_clock_rate,
   rf_blade_is_master_clock_dynamic,
@@ -135,6 +139,7 @@ static rf_dev_t dev_blade = {
   rf_blade_recv_with_time,
   rf_blade_recv_with_time_multi,
   rf_blade_send_timed,
+  .srslte_rf_send_timed_multi = rf_blade_send_timed_multi,
   rf_blade_set_tx_cal,
   rf_blade_set_rx_cal
 };
@@ -172,6 +177,7 @@ static rf_dev_t dev_soapy = {
   rf_soapy_recv_with_time,
   rf_soapy_recv_with_time_multi,
   rf_soapy_send_timed,
+  .srslte_rf_send_timed_multi = rf_soapy_send_timed_multi,
   rf_soapy_set_tx_cal,
   rf_soapy_set_rx_cal
 };

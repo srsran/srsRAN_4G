@@ -28,7 +28,7 @@
 
 #include "srslte/phy/utils/debug.h"
 #include "phy/phy.h"
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio_multi.h"
 
@@ -87,8 +87,8 @@ bool bch_decoded = false;
 uint32_t total_pkts=0;
 uint32_t total_dci=0;
 uint32_t total_oks=0;
-uint8_t payload[1024]; 
-srslte_softbuffer_rx_t softbuffer; 
+uint8_t payload[SRSLTE_MAX_TB][1024];
+srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_TB];
 
 class rrc_dummy : public srsue::rrc_interface_phy
 {
@@ -116,22 +116,25 @@ public:
     total_dci++; 
     
 
-    action->decode_enabled = true; 
-    action->default_ack = false; 
-    action->generate_ack = false; 
-    action->payload_ptr = payload; 
-    memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
-    action->rv = ((uint32_t) ceilf((float)3*((my_phy.tti_to_SFN(grant.tti)/2)%4)/2))%4;
-    action->softbuffer = &softbuffer;
-    action->rnti = grant.rnti; 
-    if (action->rv == 0) {
-      srslte_softbuffer_rx_reset(&softbuffer);
+    action->decode_enabled[0] = true;
+    action->default_ack[0] = false;
+    action->generate_ack = false;
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      action->payload_ptr[tb] = payload[tb];
+      action->rv[tb] = ((uint32_t) ceilf((float) 3 * ((my_phy.tti_to_SFN(grant.tti) / 2) % 4) / 2)) % 4;
+      if (action->rv == 0) {
+        srslte_softbuffer_rx_reset(&softbuffers[tb]);
+      }
+      action->softbuffers[0] = &softbuffers[tb];
     }
+    memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
+
+    action->rnti = grant.rnti;
   }
   
   
   
-  void tb_decoded(bool ack, srslte_rnti_type_t rnti, uint32_t harq_pid) {
+  void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid) {
     if (ack) {
       total_oks++;     
     }
@@ -144,7 +147,9 @@ public:
     bch_decoded = true; 
     srslte_cell_t cell; 
     my_phy.get_current_cell(&cell); 
-    srslte_softbuffer_rx_init(&softbuffer, cell.nof_prb);
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      srslte_softbuffer_rx_init(&softbuffers[tb], cell.nof_prb);
+    }
   }
   void tti_clock(uint32_t tti) {
     
@@ -160,7 +165,7 @@ rrc_dummy           rrc_dummy;
 
 int main(int argc, char *argv[])
 {
-  srslte::log_stdout log("PHY");
+  srslte::log_filter log("PHY");
   
   parse_args(&prog_args, argc, argv);
 
@@ -189,11 +194,9 @@ int main(int argc, char *argv[])
   // Set RX freq and gain
   radio.set_rx_freq(prog_args.rf_freq);
   
-  my_phy.sync_start();
-  
-  bool running = true; 
+  bool running = true;
   while(running) {
-    if (bch_decoded && my_phy.status_is_sync()) {
+    if (bch_decoded && my_phy.sync_status()) {
       uint32_t tti = my_phy.get_current_tti();
       
       // SIB1 is scheduled in subframe #5 of even frames, try to decode next frame SIB1
@@ -203,7 +206,7 @@ int main(int argc, char *argv[])
       total_pkts++;       
     }
     usleep(30000);    
-    if (bch_decoded && my_phy.status_is_sync() && total_pkts > 0) {
+    if (bch_decoded && my_phy.sync_status() && total_pkts > 0) {
       if (srslte_verbose == SRSLTE_VERBOSE_NONE && srsapps_verbose == 0) {
         float gain = prog_args.rf_gain; 
         if (gain < 0) {

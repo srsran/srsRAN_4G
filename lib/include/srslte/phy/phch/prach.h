@@ -44,6 +44,8 @@
 #include "srslte/phy/common/phy_common.h"
 
 
+#define SRSLTE_PRACH_MAX_LEN  (2*24576+21024) // Maximum Tcp + Tseq
+
 /** Generation and detection of RACH signals for uplink.
  *  Currently only supports preamble formats 0-3.
  *  Does not currently support high speed flag.
@@ -59,6 +61,8 @@ typedef struct SRSLTE_API {
   uint32_t zczc;            // zeroCorrelationZoneConfig
   uint32_t N_ifft_ul;       // IFFT size for uplink
   uint32_t N_ifft_prach;    // IFFT size for PRACH generation
+
+  uint32_t max_N_ifft_ul;
 
   // Working parameters
   uint32_t N_zc;  // PRACH sequence length
@@ -82,12 +86,12 @@ typedef struct SRSLTE_API {
   float *corr;
 
   // PRACH IFFT
-  srslte_dft_plan_t *fft;
-  srslte_dft_plan_t *ifft;
+  srslte_dft_plan_t fft;
+  srslte_dft_plan_t ifft;
 
   // ZC-sequence FFT and IFFT
-  srslte_dft_plan_t *zc_fft;
-  srslte_dft_plan_t *zc_ifft;
+  srslte_dft_plan_t zc_fft;
+  srslte_dft_plan_t zc_ifft;
   
   cf_t *signal_fft; 
   float detect_factor; 
@@ -129,11 +133,14 @@ SRSLTE_API void srslte_prach_sf_config(uint32_t config_idx,
                                        srslte_prach_sf_config_t *sf_config);
 
 SRSLTE_API int srslte_prach_init(srslte_prach_t *p,
-                                 uint32_t N_ifft_ul,
-                                 uint32_t config_idx,
-                                 uint32_t root_seq_index,
-                                 bool high_speed_flag,
-                                 uint32_t zero_corr_zone_config);
+                                 uint32_t max_N_ifft_ul);
+
+SRSLTE_API int srslte_prach_set_cell(srslte_prach_t *p,
+                                     uint32_t N_ifft_ul,
+                                     uint32_t config_idx,
+                                     uint32_t root_seq_index,
+                                     bool high_speed_flag,
+                                     uint32_t zero_corr_zone_config);
 
 SRSLTE_API int srslte_prach_init_cfg(srslte_prach_t* p, 
                                      srslte_prach_cfg_t* cfg, 

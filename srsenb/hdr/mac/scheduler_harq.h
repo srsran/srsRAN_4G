@@ -104,7 +104,8 @@ public:
   void       set_alloc(ul_alloc_t alloc);
   void       same_alloc();
   bool       is_adaptive_retx(); 
-  
+
+  void       reset_pending_data();
   bool       has_pending_ack();
   uint32_t   get_pending_data(); 
   

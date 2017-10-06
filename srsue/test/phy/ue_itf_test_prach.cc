@@ -29,7 +29,7 @@
 #include "srslte/phy/utils/debug.h"
 #include "phy/phy.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/radio/radio_multi.h"
 
 /**********************************************************************
@@ -158,8 +158,8 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
 srsue::phy my_phy;
 bool bch_decoded = false; 
 
-uint8_t payload[10240]; 
-uint8_t payload_bits[10240]; 
+uint8_t payload[SRSLTE_MAX_TB][10240];
+uint8_t payload_bits[SRSLTE_MAX_TB][10240];
 const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6, 0x00, 0x00, 0x00};
 
 enum mac_state {RA, RAR, CONNREQUEST, CONNSETUP} state = RA; 
@@ -168,7 +168,7 @@ uint32_t preamble_idx = 0;
 rar_msg_t rar_msg;
 
 uint32_t nof_rtx_connsetup = 0; 
-uint32_t rv_value[4] = {0, 2, 3, 1}; 
+uint32_t rv_value[4] = {0, 2, 3, 1};
 
 void config_phy() {
   srsue::phy_interface_rrc::phy_cfg_t config; 
@@ -194,8 +194,8 @@ void config_phy() {
   my_phy.configure_prach_params();
 }
 
-srslte_softbuffer_rx_t softbuffer_rx; 
-srslte_softbuffer_tx_t softbuffer_tx; 
+srslte_softbuffer_rx_t softbuffers_rx[SRSLTE_MAX_TB];
+srslte_softbuffer_tx_t softbuffers_tx[SRSLTE_MAX_TB];
 
 uint16_t temp_c_rnti; 
 
@@ -218,7 +218,7 @@ public:
   
   bool rar_rnti_set;
 
-  void pch_decoded_ok(uint32_t len) {} 
+  void pch_decoded_ok(uint32_t len) {}
 
   
   void tti_clock(uint32_t tti) {
@@ -233,19 +233,21 @@ public:
   
   void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action) {
     printf("New grant UL\n");
-    memcpy(payload, conn_request_msg, grant.n_bytes*sizeof(uint8_t));
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb ++) {
+      memcpy(payload[tb], conn_request_msg, grant.n_bytes[tb]*sizeof(uint8_t));
+      action->rv[tb] = rv_value[nof_rtx_connsetup%4];
+      action->payload_ptr[tb] = payload[tb];
+      if (action->rv[tb] == 0) {
+        srslte_softbuffer_tx_reset(&softbuffers_tx[tb]);
+      }
+    }
     action->current_tx_nb = nof_rtx_connsetup;
-    action->rv = rv_value[nof_rtx_connsetup%4];
-    action->softbuffer = &softbuffer_tx;     
+    action->softbuffers = softbuffers_tx;
     action->rnti = temp_c_rnti; 
     action->expect_ack = (nof_rtx_connsetup < 5)?true:false;
-    action->payload_ptr = payload;
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
     memcpy(&last_grant, &grant, sizeof(mac_grant_t));
     action->tx_enabled = true; 
-    if (action->rv == 0) {
-      srslte_softbuffer_tx_reset(&softbuffer_tx);      
-    }
     my_phy.pdcch_dl_search(SRSLTE_RNTI_USER, temp_c_rnti);
   }
   
@@ -258,45 +260,49 @@ public:
     if (!ack) {
       nof_rtx_connsetup++;
       action->current_tx_nb = nof_rtx_connsetup;
-      action->rv = rv_value[nof_rtx_connsetup%4];
-      action->softbuffer = &softbuffer_tx;     
+      action->softbuffers = softbuffers_tx;
       action->rnti = temp_c_rnti; 
       action->expect_ack = true; 
       memcpy(&action->phy_grant, &last_grant.phy_grant, sizeof(srslte_phy_grant_t));
-      action->tx_enabled = true; 
-      if (action->rv == 0) {
-        srslte_softbuffer_tx_reset(&softbuffer_tx);      
+      action->tx_enabled = true;
+      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb ++) {
+        action->rv[tb] = rv_value[nof_rtx_connsetup%4];
+        if (action->rv[tb] == 0) {
+          srslte_softbuffer_tx_reset(&softbuffers_tx[tb]);
+        }
+        printf("Retransmission %d (TB %d), rv=%d\n", nof_rtx_connsetup, tb, action->rv[tb]);
+
       }
-      printf("Retransmission %d, rv=%d\n", nof_rtx_connsetup, action->rv);
-    } 
+    }
   }
 
   void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) {
-    action->decode_enabled = true; 
-    action->default_ack = false; 
+    action->decode_enabled[0] = true;
+    action->default_ack[0] = false;
     if (grant.rnti == 2) {
       action->generate_ack = false; 
     } else {
       action->generate_ack = true; 
     }
-    action->payload_ptr = payload; 
-    action->rnti = grant.rnti; 
+    action->rnti = grant.rnti;
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
     memcpy(&last_grant, &grant, sizeof(mac_grant_t));
-    action->rv = grant.rv;
-    action->softbuffer = &softbuffer_rx;
-    
-    if (action->rv == 0) {
-      srslte_softbuffer_rx_reset(&softbuffer_rx);
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb ++) {
+      action->softbuffers[tb] = &softbuffers_rx[tb];
+      action->rv[tb] = grant.rv[tb];
+      action->payload_ptr[tb] = payload[tb];
+      if (action->rv[tb] == 0) {
+        srslte_softbuffer_rx_reset(&softbuffers_rx[tb]);
+      }
     }
   }
   
-  void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid) {
+  void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid) {
     if (ack) {
       if (rnti_type == SRSLTE_RNTI_RAR) {
         my_phy.pdcch_dl_search_reset();
-        srslte_bit_unpack_vector(payload, payload_bits, last_grant.n_bytes*8);
-        rar_unpack(payload_bits, &rar_msg);
+        srslte_bit_unpack_vector(payload[tb_idx], payload_bits[tb_idx], last_grant.n_bytes[tb_idx]*8);
+        rar_unpack(payload_bits[tb_idx], &rar_msg);
         if (rar_msg.RAPID == preamble_idx) {
 
           printf("Received RAR at TTI: %d\n", last_grant.tti);
@@ -304,7 +310,7 @@ public:
           
           temp_c_rnti = rar_msg.temp_c_rnti; 
           
-          if (last_grant.n_bytes*8 > 20 + SRSLTE_RAR_GRANT_LEN) {
+          if (last_grant.n_bytes[0]*8 > 20 + SRSLTE_RAR_GRANT_LEN) {
             uint8_t rar_grant[SRSLTE_RAR_GRANT_LEN];
             memcpy(rar_grant, &payload_bits[20], sizeof(uint8_t)*SRSLTE_RAR_GRANT_LEN);
             my_phy.set_rar_grant(last_grant.tti, rar_grant);          
@@ -323,9 +329,11 @@ public:
     printf("BCH decoded\n");
     bch_decoded = true; 
     srslte_cell_t cell; 
-    my_phy.get_current_cell(&cell); 
-    srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb);
-    srslte_softbuffer_tx_init(&softbuffer_tx, cell.nof_prb);
+    my_phy.get_current_cell(&cell);
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      srslte_softbuffer_rx_init(&softbuffers_rx[tb], cell.nof_prb);
+      srslte_softbuffer_tx_init(&softbuffers_tx[tb], cell.nof_prb);
+    }
   }
    
 private: 
@@ -339,7 +347,7 @@ rrc_dummy             rrc_dummy;
   
 int main(int argc, char *argv[])
 {
-  srslte::log_stdout log("PHY");
+  srslte::log_filter log("PHY");
   
   parse_args(&prog_args, argc, argv);
 
@@ -372,9 +380,7 @@ int main(int argc, char *argv[])
   radio.set_tx_freq(prog_args.rf_tx_freq);
   
   // Instruct the PHY to configure PRACH parameters and sync to current cell 
-  my_phy.sync_start();
-  
-  while(!my_phy.status_is_sync()) {
+  while(!my_phy.sync_status()) {
     usleep(20000);
   }
 

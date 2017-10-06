@@ -14,9 +14,11 @@ bool radio_multi::init_multi(uint32_t nof_rx_antennas, char* args, char* devname
   burst_preamble_samples = 0; 
   burst_preamble_time_rounded = 0; 
   cur_tx_srate = 0; 
-  is_start_of_burst = true; 
-  
-  
+  is_start_of_burst = true;
+
+  // Suppress radio stdout
+  srslte_rf_suppress_stdout(&rf_device);
+
   tx_adv_auto = true; 
   // Set default preamble length each known device
   // We distinguish by device family, maybe we should calibrate per device
@@ -27,7 +29,14 @@ bool radio_multi::init_multi(uint32_t nof_rx_antennas, char* args, char* devname
   } else {
     printf("\nWarning burst preamble is not calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));
   }
-  
+
+  if (args) {
+    strncpy(saved_args, args, 128);
+  }
+  if (devname) {
+    strncpy(saved_devname, devname, 128);
+  }
+
   return true;    
 }
 

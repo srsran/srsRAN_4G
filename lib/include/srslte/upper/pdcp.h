@@ -46,13 +46,17 @@ public:
             srsue::rrc_interface_pdcp *rrc_,
             srsue::gw_interface_pdcp *gw_,
             log *pdcp_log_,
+            uint32_t lcid_,
             uint8_t direction_);
   void stop();
+
+  // GW interface
+  bool is_drb_enabled(uint32_t lcid);
 
   // RRC interface
   void reset();
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
-  void add_bearer(uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg = NULL);
+  void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
   void config_security(uint32_t lcid,
                        uint8_t *k_rrc_enc,
                        uint8_t *k_rrc_int,
@@ -66,14 +70,14 @@ public:
   void write_pdu_pcch(byte_buffer_t *sdu);
 
 private:
-  log        *pdcp_log;
-  pdcp_entity         pdcp_array[SRSLTE_N_RADIO_BEARERS];
-
   srsue::rlc_interface_pdcp *rlc;
   srsue::rrc_interface_pdcp *rrc;
   srsue::gw_interface_pdcp  *gw;
 
-  uint8_t             direction;
+  log                       *pdcp_log;
+  pdcp_entity                pdcp_array[SRSLTE_N_RADIO_BEARERS];
+  uint32_t                   lcid; // default LCID that is maintained active by PDCP instance
+  uint8_t                    direction;
 
   bool valid_lcid(uint32_t lcid);
 };

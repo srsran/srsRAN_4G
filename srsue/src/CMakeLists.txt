@@ -22,11 +22,16 @@ add_subdirectory(phy)
 add_subdirectory(mac)
 add_subdirectory(upper)
 
+# Link libstdc++ and libgcc
+if(BUILD_STATIC)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+endif(BUILD_STATIC)
+
 if (RPATH)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif (RPATH)
 
-add_executable(srsue main.cc ue.cc metrics_stdout.cc)
+add_executable(srsue main.cc ue_base.cc ue.cc metrics_stdout.cc metrics_csv.cc)
 target_link_libraries(srsue   srsue_mac
                               srsue_phy
                               srsue_upper
@@ -40,6 +45,8 @@ target_link_libraries(srsue   srsue_mac
 if (RPATH)
   set_target_properties(srsue PROPERTIES INSTALL_RPATH ".")
 endif (RPATH)
+
+install(TARGETS srsue DESTINATION ${RUNTIME_DIR})
 
 ########################################################################
 # Option to run command after build (useful for remote builds)

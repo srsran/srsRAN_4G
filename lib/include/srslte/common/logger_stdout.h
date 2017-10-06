@@ -24,18 +24,28 @@
  *
  */
 
-#ifndef UE_GW_METRICS_H
-#define UE_GW_METRICS_H
+/******************************************************************************
+ * File:        logger_stdout.h
+ * Description: Interface for logging output
+ *****************************************************************************/
 
+#ifndef LOGGER_STDOUT_H
+#define LOGGER_STDOUT_H
+
+#include <stdio.h>
+#include <string>
+#include "srslte/common/logger.h"
 
 namespace srslte {
 
-struct gw_metrics_t
-{
-  double dl_tput_mbps;
-  double ul_tput_mbps;
-};
+  class logger_stdout : public logger
+  {
+  public:
+    void log(std::string *msg) {
+      fprintf(stdout, "%s", msg->c_str());
+    }
+  };
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // UE_GW_METRICS_H
+#endif // LOGGER_H

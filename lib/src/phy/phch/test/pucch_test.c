@@ -87,15 +87,23 @@ int main(int argc, char **argv) {
   
   parse_args(argc,argv);
 
-  if (srslte_pucch_init(&pucch, cell)) {
+  if (srslte_pucch_init(&pucch)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
-  if (srslte_refsignal_ul_init(&dmrs, cell)) {
+  if (srslte_pucch_set_cell(&pucch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
-  
+  if (srslte_refsignal_ul_init(&dmrs, cell.nof_prb)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
+    exit(-1);
+  }
+  if (srslte_refsignal_ul_set_cell(&dmrs, cell)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
+    exit(-1);
+  }
+
   bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
   
   for (int i=0;i<SRSLTE_PUCCH_MAX_BITS;i++) {

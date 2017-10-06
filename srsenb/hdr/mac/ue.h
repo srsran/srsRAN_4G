@@ -38,7 +38,7 @@
 
 namespace srsenb {
   
-class ue : public srslte::read_pdu_interface, 
+class ue : public srslte::read_pdu_interface,
            public srslte::pdu_queue::process_callback
 {
 public:
@@ -48,8 +48,9 @@ public:
     log_h = NULL; 
     rnti  = 0; 
     pcap  = NULL;
-    nof_failures = 0; 
-    phr_counter = 0; 
+    nof_failures   = 0;
+    phr_counter    = 0;
+    dl_cqi_counter = 0;
     is_phy_added = false; 
     for (int i=0;i<NOF_HARQ_PROCESSES;i++) {
       pending_buffers[i] = NULL; 
@@ -58,6 +59,10 @@ public:
   }
   
   virtual ~ue() {
+    for (int i=0;i<NOF_HARQ_PROCESSES;i++) {
+      srslte_softbuffer_rx_free(&softbuffer_rx[i]);
+      srslte_softbuffer_tx_free(&softbuffer_tx[i]);
+    }
     pthread_mutex_destroy(&mutex);
   }
   
@@ -81,12 +86,16 @@ public:
   
   uint32_t rl_failure();
   void     rl_failure_reset();
-  
+
+  void set_lcg(uint32_t lcid, uint32_t lcg);
+
   void metrics_read(srsenb::mac_metrics_t* metrics);
   void metrics_rx(bool crc, uint32_t tbs);
   void metrics_tx(bool crc, uint32_t tbs);
-  
-  
+  void metrics_phr(float phr);
+  void metrics_dl_cqi(uint32_t dl_cqi);
+
+
   bool is_phy_added;
 
 private: 
@@ -94,10 +103,11 @@ private:
   void allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t sdu_len);   
   bool process_ce(srslte::sch_subh *subh); 
   void allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid);
-  
-  void metrics_phr(float phr); 
-  uint32_t phr_counter; 
-  
+
+  std::vector<uint32_t> lc_groups[4];
+
+  uint32_t phr_counter;
+  uint32_t dl_cqi_counter;
   mac_metrics_t metrics;
   
   srslte::mac_pcap* pcap;

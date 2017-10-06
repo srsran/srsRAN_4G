@@ -40,7 +40,9 @@ class sched_ue {
 public: 
   
   // used by sched_metric
-  uint32_t ue_idx;   
+  uint32_t ue_idx;
+
+  bool has_pucch;
   
   typedef struct {
     uint32_t cce_start[4][6];
@@ -62,7 +64,7 @@ public:
   void rem_bearer(uint32_t lc_id);
   
   void dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
-  void ul_buffer_state(uint8_t lc_id, uint32_t bsr); 
+  void ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value = true);
   void ul_phr(int phr); 
   void mac_buffer_state(uint32_t ce_code);
   void ul_recv_len(uint32_t lcid, uint32_t len);
@@ -113,9 +115,11 @@ public:
   bool       needs_cqi(uint32_t tti, bool will_send = false); 
   uint32_t   get_max_retx(); 
   
-  bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32_t *L);
-  bool       pucch_sr_collision(uint32_t current_tti, uint32_t n_cce); 
-  
+  bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2]);
+  bool       pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
+
+  uint32_t   get_pending_ul_old_data();
+
 private: 
   
   typedef struct {
@@ -126,12 +130,13 @@ private:
   } ue_bearer_t; 
   
   bool       is_sr_triggered();
-  uint32_t   get_pending_ul_old_data();  
-  int        alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);  
+  int        alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
 
   static uint32_t format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb); 
-  static int cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t *mcs);
-  static int alloc_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, uint32_t max_mcs, int *mcs); 
+  static int cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, uint32_t *mcs);
+  int alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int *mcs);
+  int alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int *mcs);
+  int alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int *mcs);
   
   static bool bearer_is_ul(ue_bearer_t *lch);
   static bool bearer_is_dl(ue_bearer_t *lch);

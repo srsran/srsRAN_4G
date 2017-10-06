@@ -50,7 +50,7 @@
 #define SRSLTE_MAX_BUFFER_SIZE_BYTES 12756
 #define SRSLTE_BUFFER_HEADER_OFFSET  1024
 
-#define SRSLTE_BUFFER_POOL_LOG_ENABLED
+//#define SRSLTE_BUFFER_POOL_LOG_ENABLED
 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
 #define pool_allocate (pool->allocate(__FUNCTION__))
@@ -82,32 +82,6 @@ static const char error_text[ERROR_N_ITEMS][20] = { "None",
                                                     "Out of bounds",
                                                     "Can't start",
                                                     "Already started"};
-
-typedef enum{
-  RB_ID_SRB0 = 0,
-  RB_ID_SRB1,
-  RB_ID_SRB2,
-  RB_ID_DRB1,
-  RB_ID_DRB2,
-  RB_ID_DRB3,
-  RB_ID_DRB4,
-  RB_ID_DRB5,
-  RB_ID_DRB6,
-  RB_ID_DRB7,
-  RB_ID_DRB8,
-  RB_ID_N_ITEMS,
-}rb_id_t;
-static const char rb_id_text[RB_ID_N_ITEMS][20] = { "SRB0",
-                                                    "SRB1",
-                                                    "SRB2",
-                                                    "DRB1",
-                                                    "DRB2",
-                                                    "DRB3",
-                                                    "DRB4",
-                                                    "DRB5",
-                                                    "DRB6",
-                                                    "DRB7",
-                                                    "DRB8"};
 
 /******************************************************************************
  * Byte and Bit buffers

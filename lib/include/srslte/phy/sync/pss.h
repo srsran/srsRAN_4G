@@ -79,6 +79,10 @@ typedef struct SRSLTE_API {
 
 #endif
   int decimate;
+
+  uint32_t max_frame_size;
+  uint32_t max_fft_size;
+
   uint32_t frame_size;
   uint32_t N_id_2;
   uint32_t fft_size;
@@ -112,6 +116,10 @@ SRSLTE_API int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q,
                                                 uint32_t fft_size, 
                                                 int cfo_i,
                                                 int decimate);
+
+SRSLTE_API int srslte_pss_synch_resize(srslte_pss_synch_t *q, uint32_t frame_size,
+                                       uint32_t fft_size,
+                                       int offset);
 
 SRSLTE_API int srslte_pss_synch_init(srslte_pss_synch_t *q, 
                                      uint32_t frame_size);

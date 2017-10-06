@@ -51,7 +51,7 @@ public:
   void add_user(uint16_t rnti);  
   void rem_user(uint16_t rnti); 
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);
-  void add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg=NULL);
+  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg);
   void config_security(uint16_t rnti, 
                        uint32_t lcid,
                        uint8_t *k_rrc_enc_,
@@ -89,6 +89,7 @@ private:
     void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu);
     void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu);
     void write_pdu_pcch(srslte::byte_buffer_t *pdu);
+    std::string get_rb_name(uint32_t lcid);
   };
   
   class user_interface 

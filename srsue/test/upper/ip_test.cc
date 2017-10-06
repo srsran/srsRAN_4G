@@ -21,7 +21,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/common.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/logger.h"
+#include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/upper/rlc.h"
 #include "upper/rrc.h"
@@ -269,6 +269,7 @@ public:
   }
   void write_pdu_pcch(srslte::byte_buffer_t *sdu) {}
   void max_retx_attempted(){}
+  std::string get_rb_name(uint32_t lcid) { return std::string("rb"); }
   void in_sync() {};
   void out_of_sync() {};
 
@@ -464,12 +465,12 @@ private:
 
 
 // Create classes
-srslte::logger logger;
-srslte::log_filter log_phy;
-srslte::log_filter log_mac;
-srslte::log_filter log_rlc;
-srslte::log_filter log_tester;
-srslte::mac_pcap   mac_pcap;
+srslte::logger_file logger;
+srslte::log_filter  log_phy;
+srslte::log_filter  log_mac;
+srslte::log_filter  log_rlc;
+srslte::log_filter  log_tester;
+srslte::mac_pcap    mac_pcap;
 srsue::phy my_phy;
 srsue::mac my_mac;
 srslte::rlc rlc;
@@ -543,7 +544,7 @@ int main(int argc, char *argv[])
     
   my_phy.init(&my_radio, &my_mac, &my_tester, &log_phy, NULL);
   my_mac.init(&my_phy, &rlc, &my_tester, &log_mac);
-  rlc.init(&my_tester, &my_tester, &my_tester, &log_rlc, &my_mac);  
+  rlc.init(&my_tester, &my_tester, &my_tester, &log_rlc, &my_mac, 0 /* SRB0 */);
   my_tester.init(&my_phy, &my_mac, &rlc, &log_tester, prog_args.ip_address);
 
   

@@ -12,6 +12,7 @@
 # mnc:            Mobile Network Code
 # mme_addr:       IP address of MME for S1 connnection
 # gtp_bind_addr:  Local IP address to bind for GTP connection
+# n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
 #
 #####################################################################
 [enb]
@@ -58,7 +59,7 @@ drb_config = drb.conf
 [rf]
 dl_earfcn = 3400
 tx_gain = 70
-rx_gain = 50
+rx_gain = 40
 
 #device_name = auto
 #device_args = auto
@@ -97,7 +98,8 @@ filename = /tmp/enb.pcap
 # Logging layers: phy, mac, rlc, pdcp, rrc, nas, gtpu, usim, all
 # Logging levels: debug, info, warning, error, none
 #
-# filename: File path to use for log output
+# filename: File path to use for log output. Can be set to stdout
+#           to print logs to standard output
 #####################################################################
 [log]
 all_level = info
@@ -121,7 +123,7 @@ enable = false
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
-pusch_max_mcs    = 16
+#pusch_max_mcs    = -1
 nof_ctrl_symbols = 2
 
 #####################################################################
@@ -141,9 +143,9 @@ nof_ctrl_symbols = 2
 #pdsch_max_its        = 4
 #nof_phy_threads      = 2
 #pregenerate_signals  = false
-#tx_amplitude         = 0.8
+#tx_amplitude         = 0.6
 #link_failure_nof_err = 50
-#rrc_inactivity_timer = 30000
+#rrc_inactivity_timer = 10000
 #max_prach_offset_us  = 30
 
 #####################################################################

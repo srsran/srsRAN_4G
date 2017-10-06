@@ -52,13 +52,22 @@
 #define SRSLTE_MAX_PORTS     4
 #define SRSLTE_MAX_LAYERS    4
 #define SRSLTE_MAX_CODEWORDS 2
+#define SRSLTE_MAX_TB        SRSLTE_MAX_CODEWORDS
+
+#define SRSLTE_MAX_CODEBLOCKS 32
+
+#define SRSLTE_MAX_CODEBOOKS 4
 
 #define SRSLTE_LTE_CRC24A  0x1864CFB
 #define SRSLTE_LTE_CRC24B  0X1800063
 #define SRSLTE_LTE_CRC16   0x11021
 #define SRSLTE_LTE_CRC8    0x19B
 
+#define SRSLTE_MAX_MBSFN_AREA_IDS 256
+#define SRSLTE_PMCH_RV            0
+
 typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
+typedef enum {SRSLTE_SF_NORM, SRSLTE_SF_MBSFN} srslte_sf_t;
 
 
 #define SRSLTE_CRNTI_START  0x000B
@@ -125,6 +134,13 @@ typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
         || l == SRSLTE_CP_NSYMB(cp) - 3)
 
 
+
+#define SRSLTE_SYMBOL_HAS_REF_MBSFN(l, s) ((l == 2 && s == 0) || (l == 0 && s == 1) || (l == 4 && s == 1))
+
+#define SRSLTE_NON_MBSFN_REGION_GUARD_LENGTH(non_mbsfn_region,symbol_sz) ((non_mbsfn_region == 1)?(SRSLTE_CP_LEN_EXT(symbol_sz) - SRSLTE_CP_LEN_NORM(0, symbol_sz)):(2*SRSLTE_CP_LEN_EXT(symbol_sz) - SRSLTE_CP_LEN_NORM(0, symbol_sz)- SRSLTE_CP_LEN_NORM(1, symbol_sz)))
+
+
+
 #define SRSLTE_NOF_LTE_BANDS 38
 
 #define SRSLTE_DEFAULT_MAX_FRAMES_PBCH      500
@@ -146,12 +162,13 @@ typedef enum SRSLTE_API {
 } srslte_phich_resources_t;
 
 typedef enum {
-  SRSLTE_RNTI_USER = 0,
-  SRSLTE_RNTI_SI,
-  SRSLTE_RNTI_RAR,
-  SRSLTE_RNTI_TEMP,
-  SRSLTE_RNTI_SPS,
-  SRSLTE_RNTI_PCH,  
+  SRSLTE_RNTI_USER = 0, /* Cell RNTI */
+  SRSLTE_RNTI_SI,       /* System Information RNTI */
+  SRSLTE_RNTI_RAR,      /* Random Access RNTI */
+  SRSLTE_RNTI_TEMP,     /* Temporary C-RNTI */
+  SRSLTE_RNTI_SPS,      /* Semi-Persistent Scheduling C-RNTI */
+  SRSLTE_RNTI_PCH,      /* Paging RNTI */
+  SRSLTE_RNTI_MBSFN,
   SRSLTE_RNTI_NOF_TYPES
 } srslte_rnti_type_t;
 
@@ -170,6 +187,11 @@ typedef enum SRSLTE_API {
   SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX, 
   SRSLTE_MIMO_TYPE_CDD
 } srslte_mimo_type_t;
+
+typedef enum SRSLTE_API {
+  SRSLTE_MIMO_DECODER_ZF,
+  SRSLTE_MIMO_DECODER_MMSE
+} srslte_mimo_decoder_t;
 
 typedef enum SRSLTE_API {
   SRSLTE_MOD_BPSK = 0, 
@@ -240,7 +262,12 @@ SRSLTE_API uint32_t srslte_N_ta_new_rar(uint32_t ta);
 SRSLTE_API uint32_t srslte_N_ta_new(uint32_t N_ta_old, 
                                     uint32_t ta);
 
+SRSLTE_API float srslte_coderate(uint32_t tbs,
+                                 uint32_t nof_re);
+
 SRSLTE_API char *srslte_cp_string(srslte_cp_t cp); 
+
+SRSLTE_API srslte_mod_t srslte_str2mod (char * mod_str);
 
 SRSLTE_API char *srslte_mod_string(srslte_mod_t mod);
 
@@ -270,6 +297,8 @@ SRSLTE_API int srslte_band_get_fd_region(enum band_geographical_area region,
 
 SRSLTE_API int srslte_str2mimotype(char *mimo_type_str, 
                                    srslte_mimo_type_t *type);
+
+SRSLTE_API char *srslte_mimotype2str(srslte_mimo_type_t mimo_type);
 
 SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1, 
                                         uint32_t tti2); 

@@ -3,8 +3,8 @@
 #####################################################################
 # RF configuration
 #
-# dl_freq: Downlink centre frequency (Hz).
-# ul_freq: Uplink centre frequency (Hz).
+# dl_earfcn: Downlink EARFCN code.
+# freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
@@ -21,10 +21,10 @@
 #                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
 #####################################################################
 [rf]
-dl_freq = 2685000000
-ul_freq = 2565000000
+dl_earfcn = 3400
+freq_offset = 0
 tx_gain = 70
-rx_gain = 50
+rx_gain = 40
 
 #nof_rx_ant = 1
 #device_name = auto
@@ -64,7 +64,8 @@ filename = /tmp/ue.pcap
 # Logging layers: phy, mac, rlc, pdcp, rrc, nas, gw, usim, all
 # Logging levels: debug, info, warning, error, none
 #
-# filename: File path to use for log output
+# filename: File path to use for log output. Can be set to stdout
+#           to print logs to standard output
 #####################################################################
 [log]
 all_level = info
@@ -129,6 +130,10 @@ enable = false
 #
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 #
+# metrics_csv_enable:   Write UE metrics to CSV file.
+#
+# metrics_csv_filename: File path to use for CSV metrics.
+#
 #####################################################################
 [expert]
 #ue_category         = 4
@@ -148,6 +153,8 @@ enable = false
 #sss_algorithm       = full
 #estimator_fil_w     = 0.1
 #pregenerate_signals = false
+#metrics_csv_enable  = false
+#metrics_csv_filename = /tmp/ue_metrics.csv
 
 #####################################################################
 # Manual RF calibration

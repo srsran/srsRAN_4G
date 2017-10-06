@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
   srslte_phich_t phich;
   srslte_regs_t regs;
   int i, j;
-  cf_t *ce[SRSLTE_MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   int nof_re;
   cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   uint8_t ack[50][SRSLTE_PHICH_NORM_NSEQUENCES], ack_rx;
@@ -120,13 +120,15 @@ int main(int argc, char **argv) {
 
   /* init memory */
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = malloc(sizeof(cf_t) * nof_re);
-    if (!ce[i]) {
-      perror("malloc");
-      exit(-1);
-    }
-    for (j=0;j<nof_re;j++) {
-      ce[i][j] = 1;
+    for (int k=0;k<SRSLTE_MAX_PORTS;k++) {
+      ce[k][i] = malloc(sizeof(cf_t) * nof_re);
+      if (!ce[k][i]) {
+        perror("malloc");
+        exit(-1);
+      }
+      for (j = 0; j < nof_re; j++) {
+        ce[k][i][j] = 1;
+      }
     }
     slot_symbols[i] = malloc(sizeof(cf_t) * nof_re);
     if (!slot_symbols[i]) {
@@ -142,6 +144,10 @@ int main(int argc, char **argv) {
     cid = cell.id;
     max_cid = cell.id;
   }
+  if (srslte_phich_init(&phich, 1)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
   while(cid <= max_cid) {
     cell.id = cid;
     
@@ -152,7 +158,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    if (srslte_phich_init(&phich, &regs, cell)) {
+    if (srslte_phich_set_cell(&phich, &regs, cell)) {
       fprintf(stderr, "Error creating PBCH object\n");
       exit(-1);
     }
@@ -181,7 +187,7 @@ int main(int argc, char **argv) {
       for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
         for (nseq=0;nseq<max_nseq;nseq++) {
 
-          if (srslte_phich_decode(&phich, slot_symbols[0], ce, 0, ngroup, nseq, nsf, &ack_rx, &distance)<0) {
+          if (srslte_phich_decode(&phich, slot_symbols, ce, 0, ngroup, nseq, nsf, &ack_rx, &distance)<0) {
             printf("Error decoding ACK\n");
             exit(-1);
           }
@@ -198,13 +204,15 @@ int main(int argc, char **argv) {
         }
       }
     }
-    srslte_phich_free(&phich);
     srslte_regs_free(&regs);
     cid++;
   }
+  srslte_phich_free(&phich);
 
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    free(ce[i]);
+    for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
+      free(ce[i][j]);
+    }
     free(slot_symbols[i]);
   }
   printf("OK\n");

@@ -39,78 +39,54 @@
 
 #define MAX_CANDIDATES  16
 
-int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell, 
-                       srslte_prach_cfg_t *prach_cfg, 
-                       srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg, 
-                       srslte_pusch_hopping_cfg_t *hopping_cfg, 
-                       srslte_pucch_cfg_t *pucch_cfg)
+int srslte_enb_ul_init(srslte_enb_ul_t *q,
+                       uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
-  if (q                 != NULL &&
-      srslte_cell_isvalid(&cell))   
+  if (q != NULL)
   {
     ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(srslte_enb_ul_t));
     
-    q->cell = cell;
-    
-    if (hopping_cfg) {
-      memcpy(&q->hopping_cfg, hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
-    } 
-    
-    q->users = calloc(sizeof(srslte_enb_ul_user_t*), SRSLTE_SIRNTI);
+    q->users = calloc(sizeof(srslte_enb_ul_user_t*), (1+SRSLTE_SIRNTI));
     if (!q->users) {
       perror("malloc");
       goto clean_exit;
     }
     
-    if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
     srslte_ofdm_set_normalize(&q->fft, false);
     srslte_ofdm_set_freq_shift(&q->fft, -0.5);
 
-    if (srslte_pucch_init(&q->pucch, q->cell)) {
+    if (srslte_pucch_init(&q->pucch)) {
       fprintf(stderr, "Error creating PUCCH object\n");
       goto clean_exit;
     }
 
-    if (srslte_pusch_init(&q->pusch, q->cell)) {
+    if (srslte_pusch_init_enb(&q->pusch, max_prb)) {
       fprintf(stderr, "Error creating PUSCH object\n");
       goto clean_exit;
     }
-    
-    if (prach_cfg) {
-      if (srslte_prach_init_cfg(&q->prach, prach_cfg, q->cell.nof_prb)) {
-        fprintf(stderr, "Error initiating PRACH\n");
-        goto clean_exit; 
-      }
-      srslte_prach_set_detect_factor(&q->prach, 60);    
-    }
-    
-    srslte_pucch_set_threshold(&q->pucch, 0.5, 0.5);
-    
-    if (srslte_chest_ul_init(&q->chest, cell)) {
+
+    srslte_pucch_set_threshold(&q->pucch, 0.8);
+
+    if (srslte_chest_ul_init(&q->chest, max_prb)) {
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit; 
     }
-    
-    // Configure common PUCCH configuration 
-    srslte_pucch_set_cfg(&q->pucch, pucch_cfg, pusch_cfg->group_hopping_en);
-    
-    // SRS is a dedicated configuration
-    srslte_chest_ul_set_cfg(&q->chest, pusch_cfg, pucch_cfg, NULL);
-        
-    q->sf_symbols = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+
+    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
     if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit; 
     }
     
-    q->ce = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+    q->ce = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
     if (!q->ce) {
       perror("malloc");
       goto clean_exit; 
@@ -119,8 +95,7 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
     ret = SRSLTE_SUCCESS;
     
   } else {
-    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
-            cell.id, cell.nof_ports, cell.nof_prb);      
+    fprintf(stderr, "Invalid parameters\n");
   }
 
 clean_exit: 
@@ -135,7 +110,7 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
   if (q) {
     
     if (q->users) {
-      for (int i=0;i<SRSLTE_SIRNTI;i++) {
+      for (int i=0;i<=SRSLTE_SIRNTI;i++) {
         if (q->users[i]) {
           free(q->users[i]);
         }
@@ -158,11 +133,73 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
   }  
 }
 
+int srslte_enb_ul_set_cell(srslte_enb_ul_t *q, srslte_cell_t cell,
+                           srslte_prach_cfg_t *prach_cfg,
+                           srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
+                           srslte_pusch_hopping_cfg_t *hopping_cfg,
+                           srslte_pucch_cfg_t *pucch_cfg)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q                 != NULL &&
+      srslte_cell_isvalid(&cell))
+  {
+    if (cell.id != q->cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+
+      if (hopping_cfg) {
+        memcpy(&q->hopping_cfg, hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
+      }
+
+      if (srslte_ofdm_rx_set_prb(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+        fprintf(stderr, "Error initiating FFT\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pucch_set_cell(&q->pucch, q->cell)) {
+        fprintf(stderr, "Error creating PUCCH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pusch_set_cell(&q->pusch, q->cell)) {
+        fprintf(stderr, "Error creating PUSCH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (prach_cfg) {
+        if (srslte_prach_init_cfg(&q->prach, prach_cfg, q->cell.nof_prb)) {
+          fprintf(stderr, "Error initiating PRACH\n");
+          return SRSLTE_ERROR;
+        }
+        srslte_prach_set_detect_factor(&q->prach, 60);
+      }
+
+      if (srslte_chest_ul_set_cell(&q->chest, cell)) {
+        fprintf(stderr, "Error initiating channel estimator\n");
+        return SRSLTE_ERROR;
+      }
+
+      // Configure common PUCCH configuration
+      srslte_pucch_set_cfg(&q->pucch, pucch_cfg, pusch_cfg->group_hopping_en);
+
+      // SRS is a dedicated configuration
+      srslte_chest_ul_set_cfg(&q->chest, pusch_cfg, pucch_cfg, NULL);
+
+      ret = SRSLTE_SUCCESS;
+    }
+  } else {
+    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
+            cell.id, cell.nof_ports, cell.nof_prb);
+  }
+  return ret;
+}
+
+
 int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, uint16_t rnti)
 {
   if (!q->users[rnti]) {
-    q->users[rnti] = malloc(sizeof(srslte_enb_ul_user_t));
-    
+    q->users[rnti] = calloc(1, sizeof(srslte_enb_ul_user_t));
+
     if (srslte_pucch_set_crnti(&q->pucch, rnti)) {
       fprintf(stderr, "Error setting PUCCH rnti\n");
       return -1;
@@ -183,7 +220,7 @@ void srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, uint16_t rnti)
   if (q->users[rnti]) {
     free(q->users[rnti]); 
     q->users[rnti] = NULL; 
-    srslte_pusch_clear_rnti(&q->pusch, rnti);
+    srslte_pusch_free_rnti(&q->pusch, rnti);
   }
 }
 

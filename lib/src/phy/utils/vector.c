@@ -35,6 +35,16 @@
 #include "srslte/phy/utils/vector_simd.h"
 #include "srslte/phy/utils/bit.h"
 
+
+#ifdef LV_HAVE_SSE
+#include <smmintrin.h>
+#endif
+
+#ifdef LV_HAVE_AVX
+#include <immintrin.h>
+#endif
+
+
 #ifdef HAVE_VOLK
 #include "volk/volk.h"
 #endif
@@ -240,7 +250,7 @@ void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len) {
 
 void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
 #ifdef LV_HAVE_AVX
-  srslte_vec_mult_scalar_cf_f_avx(z,x, h, len);  
+  srslte_vec_sc_prod_cfc_avx(x,h,z,len);
 #else
   int i;
   for (i=0;i<len;i++) {
@@ -681,6 +691,15 @@ float srslte_vec_avg_power_cf(cf_t *x, uint32_t len) {
   return crealf(srslte_vec_dot_prod_conj_ccc(x,x,len)) / len;
 }
 
+// Correlation assumes zero-mean x and y
+float srslte_vec_corr_ccc(cf_t *x, cf_t *y, uint32_t len) {
+//  return crealf(srslte_vec_dot_prod_conj_ccc(x,y,len)) / len;
+  float s_x = crealf(srslte_vec_dot_prod_conj_ccc(x, x, len))/len;
+  float s_y = crealf(srslte_vec_dot_prod_conj_ccc(y, y, len))/len;
+  float cov = crealf(srslte_vec_dot_prod_conj_ccc(x, y, len))/len;
+  return cov/(sqrt(s_x*s_y));
+}
+
 void srslte_vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
 #ifndef HAVE_VOLK_MAG_FUNCTION
   int i;
@@ -843,3 +862,24 @@ void srslte_vec_quant_suc(int16_t *in, uint8_t *out, float gain, int16_t offset,
   }
 }
 
+void srs_vec_cf_cpy(cf_t *dst, cf_t *src, int len) {
+  int i = 0;
+
+#ifdef LV_HAVE_AVX
+    for (; i < len - 3; i += 4) {
+      _mm256_store_ps((float *) &dst[i], _mm256_load_ps((float *) &src[i]));
+    }
+#endif /* LV_HAVE_AVX */
+#ifdef LV_HAVE_SSE
+    for (; i < len - 1; i += 2) {
+      _mm_store_ps((float *) &dst[i], _mm_load_ps((float *) &src[i]));
+    }
+  for (; i < len; i++) {
+    ((__m64*) dst)[i] = ((__m64*) src)[i];
+  }
+#else
+  for (; i < len; i++) {
+    dst[i] = src[i];
+  }
+#endif /* LV_HAVE_SSE */
+}

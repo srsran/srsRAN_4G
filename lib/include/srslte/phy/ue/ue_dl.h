@@ -48,6 +48,7 @@
 #include "srslte/phy/phch/pcfich.h"
 #include "srslte/phy/phch/pdcch.h"
 #include "srslte/phy/phch/pdsch.h"
+#include "srslte/phy/phch/pmch.h"
 #include "srslte/phy/phch/pdsch_cfg.h"
 #include "srslte/phy/phch/phich.h"
 #include "srslte/phy/phch/ra.h"
@@ -76,15 +77,18 @@ typedef struct SRSLTE_API {
   srslte_pcfich_t pcfich;
   srslte_pdcch_t pdcch;
   srslte_pdsch_t pdsch;
+  srslte_pmch_t  pmch;
   srslte_phich_t phich; 
   srslte_regs_t regs;
   srslte_ofdm_t fft;
+  srslte_ofdm_t fft_mbsfn;
   srslte_chest_dl_t chest;
   
   srslte_cfo_t sfo_correct; 
   
-  srslte_pdsch_cfg_t pdsch_cfg; 
-  srslte_softbuffer_rx_t softbuffer;
+  srslte_pdsch_cfg_t pdsch_cfg;
+  srslte_pdsch_cfg_t pmch_cfg;
+  srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS];
   srslte_ra_dl_dci_t dl_dci;
   srslte_cell_t cell;
 
@@ -94,13 +98,23 @@ typedef struct SRSLTE_API {
   cf_t *sf_symbols_m[SRSLTE_MAX_PORTS]; 
   cf_t *ce[SRSLTE_MAX_PORTS]; // compatibility
   cf_t *ce_m[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  
+
+  /* RI, PMI and SINR for MIMO statistics */
+  float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS];
+  uint32_t pmi[SRSLTE_MAX_LAYERS];
+  uint32_t ri;
+
   srslte_dci_format_t dci_format;
   uint64_t pkt_errors; 
   uint64_t pkts_total;
+  uint64_t pdsch_pkt_errors;
+  uint64_t pdsch_pkts_total;
+  uint64_t pmch_pkt_errors;
+  uint64_t pmch_pkts_total;
   uint64_t nof_detected; 
 
   uint16_t current_rnti;
+  uint16_t current_mbsfn_area_id;
   dci_blind_search_t current_ss_ue[3][10];
   dci_blind_search_t current_ss_common[3];
   srslte_dci_location_t last_location;
@@ -113,34 +127,42 @@ typedef struct SRSLTE_API {
 }srslte_ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q, 
-                                 srslte_cell_t cell);
-
-SRSLTE_API int srslte_ue_dl_init_multi(srslte_ue_dl_t *q, 
-                                       srslte_cell_t cell, 
-                                       uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q,
+                                 uint32_t max_prb,
+                                 uint32_t nof_rx_antennas);
 
 SRSLTE_API void srslte_ue_dl_free(srslte_ue_dl_t *q);
 
-SRSLTE_API int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, 
-                                                cf_t *input, 
-                                                uint32_t sf_idx, 
-                                                uint32_t *cfi); 
+SRSLTE_API int srslte_ue_dl_set_cell(srslte_ue_dl_t *q,
+                                          srslte_cell_t cell);
 
-SRSLTE_API int srslte_ue_dl_decode_fft_estimate_multi(srslte_ue_dl_t *q, 
-                                                cf_t *input[SRSLTE_MAX_PORTS], 
-                                                uint32_t sf_idx, 
-                                                uint32_t *cfi); 
+int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, 
+                                     cf_t *input[SRSLTE_MAX_PORTS], 
+                                     uint32_t sf_idx, 
+                                     uint32_t *cfi);
 
-SRSLTE_API int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, 
+SRSLTE_API int srslte_ue_dl_decode_fft_estimate_mbsfn(srslte_ue_dl_t *q,
+                                                cf_t *input[SRSLTE_MAX_PORTS],
+                                                uint32_t sf_idx, 
+                                                uint32_t *cfi,
+                                                srslte_sf_t sf_type); 
+
+
+int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, 
+                                 uint32_t sf_idx, 
+                                 uint32_t *cfi);
+
+SRSLTE_API int srslte_ue_dl_decode_estimate_mbsfn(srslte_ue_dl_t *q, 
                                             uint32_t sf_idx, 
-                                            uint32_t *cfi); 
+                                            uint32_t *cfi,
+                                            srslte_sf_t sf_type);  
 
-SRSLTE_API int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, 
-                                      srslte_ra_dl_grant_t *grant, 
-                                      uint32_t cfi, 
-                                      uint32_t sf_idx, 
-                                      uint32_t rvidx); 
+SRSLTE_API int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q,
+                                      srslte_ra_dl_grant_t *grant,
+                                      uint32_t cfi,
+                                      uint32_t sf_idx,
+                                      int rvidx[SRSLTE_MAX_CODEWORDS],
+                                      srslte_mimo_type_t mimo_type);
 
 SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, 
                                         uint32_t cfi, 
@@ -149,12 +171,14 @@ SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q,
                                         srslte_dci_msg_t *dci_msg); 
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, 
+                                        uint32_t tm,
                                         uint32_t cfi, 
                                         uint32_t sf_idx, 
                                         uint16_t rnti, 
                                         srslte_dci_msg_t *dci_msg); 
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, 
+                                             uint32_t tm,
                                              uint32_t cfi, 
                                              uint32_t sf_idx, 
                                              uint16_t rnti, 
@@ -166,27 +190,41 @@ SRSLTE_API uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q);
 SRSLTE_API void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, 
                                                float sample_offset); 
 
-SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
-                                   cf_t *input, 
-                                   uint8_t *data,
-                                   uint32_t tti);
+SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t *q,
+                                   cf_t *input[SRSLTE_MAX_PORTS],
+                                   uint8_t *data[SRSLTE_MAX_CODEWORDS],
+                                   uint32_t tm,
+                                   uint32_t tti,
+                                   bool acks[SRSLTE_MAX_CODEWORDS]);
 
-SRSLTE_API int srslte_ue_dl_decode_multi(srslte_ue_dl_t * q, 
-                                         cf_t *input[SRSLTE_MAX_PORTS], 
+SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
+                                        cf_t *input[SRSLTE_MAX_PORTS],
+                                        uint8_t *data[SRSLTE_MAX_CODEWORDS],
+                                        uint32_t tm,
+                                        uint32_t tti,
+                                        uint16_t rnti,
+                                        bool acks[SRSLTE_MAX_CODEWORDS]);
+
+/* Used by example applications - full PMCH decode for a given MBSFN area ID
+ * srslte_ue_dl_decode_fft_estimate_multi,
+ * srslte_chest_dl_get_noise_estimate,
+ * srslte_ue_dl_cfg_grant,
+ * srslte_pmch_decode_multi
+ */
+SRSLTE_API int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
+                                         cf_t *input[SRSLTE_MAX_PORTS],
                                          uint8_t *data,
                                          uint32_t tti);
 
-SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q, 
-                                        cf_t *input, 
-                                        uint8_t *data,
-                                        uint32_t tti,
-                                        uint16_t rnti);
 
-SRSLTE_API int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t * q, 
-                                              cf_t *input[SRSLTE_MAX_PORTS], 
-                                              uint8_t *data,
-                                              uint32_t tti,
-                                              uint16_t rnti);
+SRSLTE_API int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q,
+                                          uint8_t *ri,
+                                          uint8_t *pmi,
+                                          float *current_sinr);
+
+SRSLTE_API int srslte_ue_dl_ri_select(srslte_ue_dl_t *q,
+                                      uint8_t *ri,
+                                      float *cn);
 
 SRSLTE_API bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, 
                                           uint32_t sf_idx, 
@@ -197,6 +235,15 @@ SRSLTE_API void srslte_ue_dl_reset(srslte_ue_dl_t *q);
 
 SRSLTE_API void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, 
                                       uint16_t rnti);
+
+/* Generate signals if required, store in q->current_mbsfn_area_id */
+SRSLTE_API int srslte_ue_dl_set_mbsfn_area_id(srslte_ue_dl_t *q,
+                                              uint16_t mbsfn_area_id);
+
+SRSLTE_API void srslte_ue_dl_set_non_mbsfn_region(srslte_ue_dl_t *q,
+                                                  uint8_t non_mbsfn_region_length);
+
+
 
 SRSLTE_API void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, 
                                          srslte_softbuffer_rx_t *softbuffer, 

@@ -44,6 +44,7 @@ char *output_file_name;
 char *rf_args="";
 float rf_gain=40.0, rf_freq=-1.0, rf_rate=0.96e6;
 int nof_samples = -1;
+int nof_rx_antennas = 1;
 
 void int_handler(int dummy) {
   keep_running = false;
@@ -55,12 +56,13 @@ void usage(char *prog) {
   printf("\t-g RF Gain [Default %.2f dB]\n", rf_gain);
   printf("\t-r RF Rate [Default %.6f Hz]\n", rf_rate);
   printf("\t-n nof_samples [Default %d]\n", nof_samples);
+  printf("\t-A nof_rx_antennas [Default %d]\n", nof_rx_antennas);
   printf("\t-v srslte_verbose\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "agrnvfo")) != -1) {
+  while ((opt = getopt(argc, argv, "agrnvfoA")) != -1) {
     switch (opt) {
     case 'o':
       output_file_name = argv[optind];
@@ -80,6 +82,9 @@ void parse_args(int argc, char **argv) {
     case 'n':
       nof_samples = atoi(argv[optind]);
       break;
+    case 'A':
+      nof_rx_antennas = atoi(argv[optind]);
+      break;
     case 'v':
       srslte_verbose++;
       break;
@@ -95,11 +100,11 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  cf_t *buffer; 
+  cf_t *buffer[SRSLTE_MAX_PORTS];
   int sample_count, n;
   srslte_rf_t rf;
   srslte_filesink_t sink;
-  int32_t buflen;
+  uint32_t buflen;
 
   signal(SIGINT, int_handler);
 
@@ -107,17 +112,19 @@ int main(int argc, char **argv) {
   
   buflen = 4800;
   sample_count = 0;
-  
-  buffer = malloc(sizeof(cf_t) * buflen);
-  if (!buffer) {
-    perror("malloc");
-    exit(-1);
+
+  for (int i = 0; i < nof_rx_antennas; i++) {
+    buffer[i] = malloc(sizeof(cf_t) * buflen);
+    if (!buffer[i]) {
+      perror("malloc");
+      exit(-1);
+    }
   }
 
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
   printf("Opening RF device...\n");
-  if (srslte_rf_open(&rf, rf_args)) {
+  if (srslte_rf_open_multi(&rf, rf_args, nof_rx_antennas)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
@@ -151,18 +158,23 @@ int main(int argc, char **argv) {
   
   while((sample_count < nof_samples || nof_samples == -1)
         && keep_running){
-    n = srslte_rf_recv(&rf, buffer, buflen, 1);
+    n = srslte_rf_recv_with_time_multi(&rf, (void**) buffer, buflen, true, NULL, NULL);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
     }
     
-    srslte_filesink_write(&sink, buffer, buflen);
+    srslte_filesink_write_multi(&sink, (void**) buffer, buflen, nof_rx_antennas);
     sample_count += buflen;
   }
   
+  for (int i = 0; i < nof_rx_antennas; i++) {
+    if (buffer[i]) {
+      free(buffer[i]);
+    }
+  }
+
   srslte_filesink_free(&sink);
-  free(buffer);
   srslte_rf_close(&rf);
 
   printf("Ok - wrote %d samples\n", sample_count);

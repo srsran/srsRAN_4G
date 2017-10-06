@@ -33,7 +33,6 @@
  * 36.211 6.6.1
  */
 int srslte_sequence_pbch(srslte_sequence_t *seq, srslte_cp_t cp, uint32_t cell_id) {
-  bzero(seq, sizeof(srslte_sequence_t));
   return srslte_sequence_LTE_pr(seq, SRSLTE_CP_ISNORM(cp)?1920:1728, cell_id);
 }
 
@@ -41,7 +40,6 @@ int srslte_sequence_pbch(srslte_sequence_t *seq, srslte_cp_t cp, uint32_t cell_i
  * 36.211 6.7.1
  */
 int srslte_sequence_pcfich(srslte_sequence_t *seq, uint32_t nslot, uint32_t cell_id) {
-  bzero(seq, sizeof(srslte_sequence_t));
   return srslte_sequence_LTE_pr(seq, 32, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
 }
 
@@ -50,7 +48,6 @@ int srslte_sequence_pcfich(srslte_sequence_t *seq, uint32_t nslot, uint32_t cell
  * 36.211 6.9.1
  */
 int srslte_sequence_phich(srslte_sequence_t *seq, uint32_t nslot, uint32_t cell_id) {
-  bzero(seq, sizeof(srslte_sequence_t));
   return srslte_sequence_LTE_pr(seq, 12, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
 }
 
@@ -58,7 +55,6 @@ int srslte_sequence_phich(srslte_sequence_t *seq, uint32_t nslot, uint32_t cell_
  * 36.211 6.8.2
  */
 int srslte_sequence_pdcch(srslte_sequence_t *seq, uint32_t nslot, uint32_t cell_id, uint32_t len) {
-  bzero(seq, sizeof(srslte_sequence_t));
   return srslte_sequence_LTE_pr(seq, len, (nslot/2) * 512 + cell_id);
 }
 
@@ -66,7 +62,6 @@ int srslte_sequence_pdcch(srslte_sequence_t *seq, uint32_t nslot, uint32_t cell_
  * 36.211 6.3.1
  */
 int srslte_sequence_pdsch(srslte_sequence_t *seq, uint16_t rnti, int q, uint32_t nslot, uint32_t cell_id, uint32_t len) {
-  bzero(seq, sizeof(srslte_sequence_t));
   return srslte_sequence_LTE_pr(seq, len, (rnti<<14) + (q<<13) + ((nslot/2)<<9) + cell_id);
 }
 
@@ -74,7 +69,6 @@ int srslte_sequence_pdsch(srslte_sequence_t *seq, uint16_t rnti, int q, uint32_t
  * 36.211 5.3.1
  */
 int srslte_sequence_pusch(srslte_sequence_t *seq, uint16_t rnti, uint32_t nslot, uint32_t cell_id, uint32_t len) {
-  bzero(seq, sizeof(srslte_sequence_t));
   return srslte_sequence_LTE_pr(seq, len, (rnti<<14) + ((nslot/2)<<9) + cell_id);
 }
 
@@ -82,6 +76,11 @@ int srslte_sequence_pusch(srslte_sequence_t *seq, uint16_t rnti, uint32_t nslot,
  * 36.211 5.4.2
  */
 int srslte_sequence_pucch(srslte_sequence_t *seq, uint16_t rnti, uint32_t nslot, uint32_t cell_id) {
-  bzero(seq, sizeof(srslte_sequence_t));
   return srslte_sequence_LTE_pr(seq, 20, ((((nslot/2)+1)*(2*cell_id+1))<<16)+rnti);
+}
+
+int srslte_sequence_pmch(srslte_sequence_t *seq, uint32_t nslot, uint32_t mbsfn_id , uint32_t len){
+  bzero(seq,sizeof(srslte_sequence_t));
+  return srslte_sequence_LTE_pr(seq, len, (((nslot/2)<<9) + mbsfn_id));
+  
 }

@@ -32,15 +32,22 @@ namespace srslte {
 pdcp::pdcp()
 {}
 
-void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_, srsue::gw_interface_pdcp *gw_, log *pdcp_log_, uint8_t direction_)
+void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_, srsue::gw_interface_pdcp *gw_, log *pdcp_log_, uint32_t lcid_, uint8_t direction_)
 {
   rlc       = rlc_;
   rrc       = rrc_;
   gw        = gw_;
   pdcp_log  = pdcp_log_;
+  lcid      = lcid_;
   direction = direction_;
 
-  pdcp_array[0].init(rlc, rrc, gw, pdcp_log, RB_ID_SRB0, direction); // SRB0
+  // Default config
+  srslte_pdcp_config_t cnfg;
+  cnfg.is_control = false;
+  cnfg.is_data = false;
+  cnfg.direction = direction_;
+
+  pdcp_array[0].init(rlc, rrc, gw, pdcp_log, lcid, cnfg);
 }
 
 void pdcp::stop()
@@ -52,29 +59,38 @@ void pdcp::reset()
     pdcp_array[i].reset();
   }
 
-  pdcp_array[0].init(rlc, rrc, gw, pdcp_log, RB_ID_SRB0, direction); // SRB0
+  pdcp_array[0].init(rlc, rrc, gw, pdcp_log, lcid, direction);
 }
 
 /*******************************************************************************
   RRC/GW interface
 *******************************************************************************/
+bool pdcp::is_drb_enabled(uint32_t lcid)
+{
+  if(lcid >= SRSLTE_N_RADIO_BEARERS) {
+    pdcp_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
+    return false;
+  }
+  return pdcp_array[lcid].is_active();
+}
+
 void pdcp::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 {
   if(valid_lcid(lcid))
     pdcp_array[lcid].write_sdu(sdu);
 }
 
-void pdcp::add_bearer(uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg)
+void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
 {
-  if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
+  if(lcid >= SRSLTE_N_RADIO_BEARERS) {
     pdcp_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return;
   }
   if (!pdcp_array[lcid].is_active()) {
-    pdcp_array[lcid].init(rlc, rrc, gw, pdcp_log, lcid, direction, cnfg);
-    pdcp_log->info("Added bearer %s\n", rb_id_text[lcid]);
+    pdcp_array[lcid].init(rlc, rrc, gw, pdcp_log, lcid, cfg);
+    pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
-    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rb_id_text[lcid]);
+    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }
 }
 
@@ -116,7 +132,7 @@ void pdcp::write_pdu_pcch(byte_buffer_t *sdu)
 *******************************************************************************/
 bool pdcp::valid_lcid(uint32_t lcid)
 {
-  if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
+  if(lcid >= SRSLTE_N_RADIO_BEARERS) {
     pdcp_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
     return false;
   }
