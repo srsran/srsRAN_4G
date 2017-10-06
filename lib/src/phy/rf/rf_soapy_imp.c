@@ -492,7 +492,7 @@ int rf_soapy_send_timed_multi(void *h,
   rf_soapy_handler_t *handler = (rf_soapy_handler_t *) h;
   int flags = 0;
   const long timeoutUs = 2000; // arbitrarily chosen
-  long long timeNs;
+  long long timeNs = 0;
   int trials = 0;
   int ret = 0;
   int n = 0;
