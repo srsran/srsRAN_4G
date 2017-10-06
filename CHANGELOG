@@ -1,6 +1,11 @@
 Change Log for Releases
 ==============================
 
+## 17.09
+  * Added MIMO 2x2 in the PHY layer and srsUE (i.e. TM3/TM4)
+  * eMBMS support in the PHY layer
+  * Many bug-fixes and improved stability and performance in srsUE/srsENB
+
 ## 002.000.000
   * Added fully functional srsENB to srsLTE code
   * Merged srsUE code into srsLTE and reestructured PHY code 
