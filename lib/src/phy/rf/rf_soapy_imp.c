@@ -174,7 +174,7 @@ void rf_soapy_flush_buffer(void *h)
 
 bool rf_soapy_has_rssi(void *h)
 {
-  printf("TODO: implement rf_soapy_has_rssi()\n");
+  // TODO: implement rf_soapy_has_rssi()
   return false;
 }
 
@@ -282,12 +282,12 @@ double rf_soapy_set_rx_srate(void *h, double rate)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_RX, 0, rate) != 0) {
-    printf("setSampleRate fail: %s\n", SoapySDRDevice_lastError());
+    printf("setSampleRate Rx fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
 
   if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_RX, 0, rate) != 0) {
-    printf("setBandwidth failed: %s\n", SoapySDRDevice_lastError());
+    printf("setBandwidth Rx failed: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
 
@@ -298,12 +298,12 @@ double rf_soapy_set_tx_srate(void *h, double rate)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_TX, 0, rate) != 0) {
-    printf("setSampleRate fail: %s\n", SoapySDRDevice_lastError());
+    printf("setSampleRate Tx fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
 
   if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_TX, 0, rate) != 0) {
-    printf("setBandwidth failed: %s\n", SoapySDRDevice_lastError());
+    printf("setBandwidth Tx failed: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
 
@@ -393,7 +393,7 @@ double rf_soapy_set_tx_freq(void *h, double freq)
 
 void rf_soapy_get_time(void *h, time_t *secs, double *frac_secs)
 {
-
+  printf("Todo: implement rf_soapy_get_time()\n");
 }
 
 
@@ -424,7 +424,7 @@ int  rf_soapy_recv_with_time_multi(void *h,
       cf_t *data_c = (cf_t*) data[i];
       buffs_ptr[i] = &data_c[n];
     }
-    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr , rx_samples, &flags, &timeNs, 1000000);
+    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, 10000);
     if(ret < 0) {
       // continue when getting overflows
       if (ret == SOAPY_SDR_OVERFLOW) {
@@ -436,11 +436,12 @@ int  rf_soapy_recv_with_time_multi(void *h,
       }
     }
 
-#if 0
-    *secs = timeNs / 1000000000;
-    *frac_secs = (timeNs % 1000000000)/1000000000;
-    printf("ret=%d, flags=%d, timeNs=%lld\n", ret, flags, timeNs);
-#endif
+    // update rx time
+    if (secs != NULL && frac_secs != NULL) {
+      *secs = timeNs / 1e9;
+      *frac_secs = (timeNs % 1000000000)/1e9;
+      //printf("rx_time: secs=%d, frac_secs=%lf timeNs=%lld\n", *secs, *frac_secs, timeNs);
+    }
 
     n += ret;
     trials++;
@@ -489,22 +490,18 @@ int rf_soapy_send_timed_multi(void *h,
                             bool is_start_of_burst,
                             bool is_end_of_burst)
 {
+  rf_soapy_handler_t *handler = (rf_soapy_handler_t *) h;
   int flags = 0;
   const long timeoutUs = 2000; // arbitrarily chosen
   long long timeNs;
   int trials = 0;
   int ret = 0;
-
-  rf_soapy_handler_t *handler = (rf_soapy_handler_t *) h;
-  timeNs = secs * 1000000000;
-  timeNs = timeNs + (frac_secs * 1000000000);
   int n = 0;
+
 
   if (!handler->tx_stream_active) {
     rf_soapy_start_tx_stream(h);
   }
-
-  //printf("send_timed_multi(): time_spec=%d blocking=%d, is_start_of_burst=%d is_end_of_burst=%d\n", has_time_spec, blocking, is_start_of_burst, is_end_of_burst);
 
   if (is_start_of_burst && is_end_of_burst) {
     flags |= SOAPY_SDR_ONE_PACKET;
@@ -516,6 +513,9 @@ int rf_soapy_send_timed_multi(void *h,
 
   if (has_time_spec) {
     flags |= SOAPY_SDR_HAS_TIME;
+    timeNs = secs * 1000000000;
+    timeNs = timeNs + (frac_secs * 1000000000);
+    //printf("time_spec: secs=%d, frac_secs=%lf timeNs=%lld\n", secs, frac_secs, timeNs);
   }
 
   do {
