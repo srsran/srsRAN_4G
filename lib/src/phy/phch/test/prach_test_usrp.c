@@ -231,7 +231,8 @@ int main(int argc, char **argv) {
   }
   
   srslte_vec_save_file(output_filename,buffer,11*flen*sizeof(cf_t));
-  
+
+  srslte_rf_close(&rf);
   srslte_prach_free(p);
   free(p);
 

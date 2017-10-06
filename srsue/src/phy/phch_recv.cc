@@ -171,6 +171,7 @@ void phch_recv::radio_error() {
 
   // Need to find a method to effectively reset radio, reloading the driver does not work
   //radio_h->reset();
+  radio_h->stop();
 
   fprintf(stdout, "Error while receiving samples. Restart srsUE\n");
   exit(-1);
