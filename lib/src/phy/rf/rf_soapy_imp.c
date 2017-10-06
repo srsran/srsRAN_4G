@@ -383,7 +383,6 @@ double rf_soapy_set_tx_freq(void *h, double freq)
     fprintf(stderr, "Failed to set Tx antenna.\n");
   }
 
-
   char *ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_TX, 0);
   printf("Tx antenna set to %s\n", ant);
 
