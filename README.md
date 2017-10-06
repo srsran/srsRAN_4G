@@ -18,10 +18,10 @@ Common Features
  * LTE Release 8 compliant (with selected features of Release 9)
  * FDD configuration
  * Tested bandwidths: 1.4, 3, 5, 10, 15 and 20 MHz
- * Transmission mode 1 (single antenna), 2 (transmit diversity), 3 (transmit diversity/CCD) and 4 (closed-loop spatial multiplexing)
+ * Transmission mode 1 (single antenna), 2 (transmit diversity), 3 (CCD) and 4 (closed-loop spatial multiplexing)
  * Frequency-based ZF and MMSE equalizer
  * Evolved multimedia broadcast and multicast service (eMBMS)
- * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX (+100 Mbps) and standard C (+25 Mbps)
+ * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX2 (+100 Mbps) and standard C (+25 Mbps)
  * MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers
  * Detailed log system with per-layer log levels and hex dumps
  * MAC layer wireshark packet capture
@@ -57,6 +57,8 @@ srsENB has been tested and validated with the following handsets:
  * LG Nexus 5
  * LG Nexus 4
  * Motorola Moto G4 plus
+ * Huawei P9/P9lite
+ * Huawei dongles: E3276 and E398
 
 Hardware
 --------
