@@ -15,11 +15,12 @@ srsLTE is released under the AGPLv3 license and uses software from the OpenLTE p
 Common Features
 ---------------
 
- * LTE Release 8 compliant
+ * LTE Release 8 compliant (with selected features of Release 9)
  * FDD configuration
  * Tested bandwidths: 1.4, 3, 5, 10, 15 and 20 MHz
- * Transmission mode 1 (single antenna) and 2 (transmit diversity) 
+ * Transmission mode 1 (single antenna), 2 (transmit diversity), 3 (transmit diversity/CCD) and 4 (closed-loop spatial multiplexing)
  * Frequency-based ZF and MMSE equalizer
+ * Evolved multimedia broadcast and multicast service (eMBMS)
  * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX (+100 Mbps) and standard C (+25 Mbps)
  * MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers
  * Detailed log system with per-layer log levels and hex dumps
@@ -33,6 +34,7 @@ srsUE Features
  * Cell search and synchronization procedure for the UE
  * Soft USIM supporting Milenage and XOR authentication 
  * Virtual network interface *tun_srsue* created upon network attach
+ * >100 Mbps DL in 20 MHz MIMO TM4 configuration in i7 Quad-Core CPU.
  * 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
  * 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.
 
@@ -65,7 +67,7 @@ We have tested the following hardware:
  * USRP B210
  * USRP X300
  * bladeRF
- * limeSDR
+ * limeSDR (currently, only the PHY-layer examples, i.e., pdsch_enodeb/ue are supported)
 
 Build Instructions
 ------------------
