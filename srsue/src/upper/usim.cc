@@ -153,8 +153,8 @@ int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
     return -1;
   }
 
-  uint32_t mcc_len = 3;
-  uint32_t mnc_len = 2;
+  int mcc_len = 3;
+  int mnc_len = 2;
 
   uint8_t imsi_vec[15];
   get_imsi_vec(imsi_vec, 15);
@@ -166,7 +166,12 @@ int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
   }
 
   // US MCC uses 3 MNC digits
-  if (!mcc_str.str().compare("310")) {
+  if (!mcc_str.str().compare("310") ||
+      !mcc_str.str().compare("311") ||
+      !mcc_str.str().compare("312") ||
+      !mcc_str.str().compare("313") ||
+      !mcc_str.str().compare("316"))
+  {
     mnc_len = 3;
   }
   for (int i=mcc_len;i<mcc_len+mnc_len;i++) {
