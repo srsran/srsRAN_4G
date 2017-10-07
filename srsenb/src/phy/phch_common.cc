@@ -128,10 +128,6 @@ bool phch_common::ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t *last_
     bool ret = pending_ack[rnti].is_pending[sf_idx];  
     pending_ack[rnti].is_pending[sf_idx] = false;
 
-    if (ret) {
-
-    }
-    
     if (ret && last_n_pdcch) {
       *last_n_pdcch = pending_ack[rnti].n_pdcch[sf_idx];
     }
