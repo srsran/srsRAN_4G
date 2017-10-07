@@ -123,8 +123,8 @@ enable = false
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
-#pusch_max_mcs    = -1
-nof_ctrl_symbols = 2
+pusch_max_mcs    = 16
+nof_ctrl_symbols = 3
 
 #####################################################################
 # Expert configuration options
