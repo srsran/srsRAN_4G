@@ -113,7 +113,7 @@ inline bool mnc_to_string(uint16_t mnc, std::string *str)
   *str += (mnc & 0x000F) + '0';
   return true;
 }
-inline std::string plmn_id_to_c_str(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
+inline std::string plmn_id_to_string(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
   std::string mcc_str, mnc_str;
   mnc_to_string(plmn_id.mnc, &mnc_str);
   mcc_to_string(plmn_id.mcc, &mcc_str);

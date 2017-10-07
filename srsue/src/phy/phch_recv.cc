@@ -479,6 +479,7 @@ void phch_recv::cell_search_inc()
   if (cur_earfcn_index >= 0) {
     if (cur_earfcn_index >= (int) earfcn.size() - 1) {
       cur_earfcn_index = 0;
+      rrc->earfcn_end();
     }
   }
   Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());

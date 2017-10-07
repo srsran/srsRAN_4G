@@ -72,7 +72,7 @@ void nas::attach_request() {
       nas_log->info("Starting PLMN Search...\n");
       rrc->plmn_search();
     } else if (plmn_selection == PLMN_SELECTED) {
-      nas_log->info("Selecting PLMN %s\n", plmn_id_to_c_str(current_plmn).c_str());
+      nas_log->info("Selecting PLMN %s\n", plmn_id_to_string(current_plmn).c_str());
       rrc->plmn_select(current_plmn);
       selecting_plmn = current_plmn;
     }
@@ -96,24 +96,48 @@ RRC interface
 
 void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
 
-  // Store PLMN if not registered
+  // Check if already registered
   for (uint32_t i=0;i<known_plmns.size();i++) {
     if (plmn_id.mcc == known_plmns[i].mcc && plmn_id.mnc == known_plmns[i].mnc) {
-      nas_log->info("Detected known PLMN %s\n", plmn_id_to_c_str(plmn_id).c_str());
+      nas_log->info("Found known PLMN Id=%s\n", plmn_id_to_string(plmn_id).c_str());
       if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
+        nas_log->info("Connecting Home PLMN Id=%s\n", plmn_id_to_string(plmn_id).c_str());
         rrc->plmn_select(plmn_id);
         selecting_plmn = plmn_id;
       }
       return;
     }
   }
-  nas_log->info("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_c_str(plmn_id).c_str(),
+
+  // Save if new PLMN
+  known_plmns.push_back(plmn_id);
+
+  nas_log->info("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_string(plmn_id).c_str(),
                 tracking_area_code);
-  nas_log->console("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_c_str(plmn_id).c_str(),
+  nas_log->console("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_string(plmn_id).c_str(),
                 tracking_area_code);
+
   if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
     rrc->plmn_select(plmn_id);
     selecting_plmn = plmn_id;
+  }
+
+}
+
+// RRC indicates that the UE has gone through all EARFCN and finished PLMN selection
+void nas::plmn_search_end() {
+  if (known_plmns.size() > 0) {
+    nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
+                  plmn_id_to_string(home_plmn).c_str(),
+                  plmn_id_to_string(known_plmns[0]).c_str());
+
+    nas_log->console("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
+                     plmn_id_to_string(home_plmn).c_str(),
+                     plmn_id_to_string(known_plmns[0]).c_str());
+
+    rrc->plmn_select(known_plmns[0]);
+  } else {
+    nas_log->info("Finished searching PLMN in current EARFCN set but no networks were found.\n");
   }
 }
 
