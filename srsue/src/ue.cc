@@ -181,10 +181,9 @@ bool ue::init(all_args_t *args_)
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
+  usim.init(&args->usim, &usim_log);
   nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
-
-  usim.init(&args->usim, &usim_log);
 
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
   rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
