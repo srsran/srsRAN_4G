@@ -95,7 +95,6 @@ public:
 
   // UE interface
   void attach_request();
-
   void deattach_request();
 
 private:

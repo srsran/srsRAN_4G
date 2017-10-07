@@ -54,6 +54,7 @@ class usim_interface_nas
 public:
   virtual void get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
   virtual void get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
+  virtual int  get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id) = 0;
   virtual void generate_authentication_response(uint8_t  *rand,
                                                 uint8_t  *autn_enb,
                                                 uint16_t  mcc,

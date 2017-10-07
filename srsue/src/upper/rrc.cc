@@ -458,7 +458,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
 // PHY indicates that has gone through all known EARFCN
 void rrc::earfcn_end() {
-  rrc_log->info("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
+  rrc_log->debug("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
 
   // If searching for PLMN, indicate NAS we scanned all frequencies
   if (state == RRC_STATE_PLMN_SELECTION) {

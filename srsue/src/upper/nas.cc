@@ -50,8 +50,12 @@ void nas::init(usim_interface_nas *usim_,
   nas_log = nas_log_;
   state = EMM_STATE_DEREGISTERED;
   plmn_selection = PLMN_NOT_SELECTED;
-  home_plmn.mcc = 61441; // This is 001
-  home_plmn.mnc = 65281; // This is 01
+
+  if (usim->get_home_plmn_id(&home_plmn)) {
+    nas_log->error("Getting Home PLMN Id from USIM. Defaulting to 001-01\n");
+    home_plmn.mcc = 61441; // This is 001
+    home_plmn.mnc = 65281; // This is 01
+  }
   cfg     = cfg_;
 }
 
@@ -64,6 +68,7 @@ emm_state_t nas::get_state() {
 /*******************************************************************************
 UE interface
 *******************************************************************************/
+
 void nas::attach_request() {
   nas_log->info("Attach Request\n");
   if (state == EMM_STATE_DEREGISTERED) {
@@ -137,7 +142,7 @@ void nas::plmn_search_end() {
 
     rrc->plmn_select(known_plmns[0]);
   } else {
-    nas_log->info("Finished searching PLMN in current EARFCN set but no networks were found.\n");
+    nas_log->debug("Finished searching PLMN in current EARFCN set but no networks were found.\n");
   }
 }
 
