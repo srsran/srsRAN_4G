@@ -177,7 +177,7 @@ void rrc::run_thread() {
       case RRC_STATE_PLMN_SELECTION:
         plmn_select_timeout++;
         if (plmn_select_timeout >= RRC_PLMN_SELECT_TIMEOUT) {
-          rrc_log->info("RRC PLMN Search: timeout expired. Searching again\n");
+          rrc_log->info("RRC PLMN Search: timeout expired\n");
           phy->cell_search_stop();
           sleep(1);
           rrc_log->console("\nRRC PLMN Search: timeout expired. Searching again\n");
@@ -369,7 +369,7 @@ void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
       state = RRC_STATE_CELL_SELECTING;
       select_cell_timeout = 0;
     } else {
-      rrc_log->info("PLMN %s selected\n", plmn_id_to_c_str(plmn_id).c_str());
+      rrc_log->info("PLMN Id=%s selected\n", plmn_id_to_string(plmn_id).c_str());
       // Sort cells according to RSRP
 
       selected_plmn_id = plmn_id;
@@ -431,6 +431,8 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
         for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
           nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
         }
+        usleep(5000);
+        phy->cell_search_next();
       }
       return;
     }
@@ -454,6 +456,15 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
                 cell.earfcn, cell.rsrp);
 }
 
+// PHY indicates that has gone through all known EARFCN
+void rrc::earfcn_end() {
+  rrc_log->info("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
+
+  // If searching for PLMN, indicate NAS we scanned all frequencies
+  if (state == RRC_STATE_PLMN_SELECTION) {
+    nas->plmn_search_end();
+  }
+}
 
 
 

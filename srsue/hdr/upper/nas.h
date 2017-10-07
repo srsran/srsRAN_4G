@@ -91,6 +91,7 @@ public:
   bool get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
 
   void plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code);
+  void plmn_search_end();
 
   // UE interface
   void attach_request();
