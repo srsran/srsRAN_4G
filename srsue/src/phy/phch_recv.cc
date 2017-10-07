@@ -171,6 +171,7 @@ void phch_recv::radio_error() {
 
   // Need to find a method to effectively reset radio, reloading the driver does not work
   //radio_h->reset();
+  radio_h->stop();
 
   fprintf(stdout, "Error while receiving samples. Restart srsUE\n");
   exit(-1);
@@ -478,6 +479,7 @@ void phch_recv::cell_search_inc()
   if (cur_earfcn_index >= 0) {
     if (cur_earfcn_index >= (int) earfcn.size() - 1) {
       cur_earfcn_index = 0;
+      rrc->earfcn_end();
     }
   }
   Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());

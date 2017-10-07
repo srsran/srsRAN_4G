@@ -619,6 +619,7 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
                       tbs, user->get_pending_dl_new_data(current_tti));          
         }      
       } else {
+        h->reset();
         Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d\n", rnti, h->get_id());              
       }      
     }    
@@ -782,6 +783,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
             user->get_locations(current_cfi, sf_idx), 
             aggr_level)) 
         {
+          h->reset();
           log_h->warning("SCHED: Could not schedule UL DCI rnti=0x%x, pid=%d, L=%d\n", 
                           rnti, h->get_id(), aggr_level);          
           sched_result->pusch[nof_dci_elems].needs_pdcch = false; 

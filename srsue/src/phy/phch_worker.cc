@@ -922,16 +922,16 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 #ifdef LOG_EXECTIME
   gettimeofday(&logtime_start[2], NULL);
   get_time_interval(logtime_start);
-  snprintf(timestr, 64, ", total_time=%4d us", (int) logtime_start[0].tv_usec);
+  snprintf(timestr, 64, ", tot_time=%4d us", (int) logtime_start[0].tv_usec);
 #endif
 
-  Info("PUSCH: tti_tx=%d, n_prb=%d, rb_start=%d, tbs=%d, mod=%d, mcs=%d, rv_idx=%d, ack=%s, ri=%s, cfo=%.1f Hz%s\n",
-         TTI_TX(tti),
-         grant->L_prb, grant->n_prb[0], 
-         grant->mcs.tbs/8, grant->mcs.mod, grant->mcs.idx, rv,
+  Info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d, ack=%s, ri=%s, cfo=%.1f KHz%s\n",
+         (tti+4)%10240,
+         grant->n_prb[0], grant->n_prb[0]+grant->L_prb,
+         grant->mcs.tbs/8, grant->mcs.idx, rv,
          uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
          uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
-         cfo*15000, timestr);
+         cfo*15, timestr);
 
   // Store metrics
   ul_metrics.mcs   = grant->mcs.idx;
@@ -966,23 +966,23 @@ void phch_worker::encode_pucch()
   memcpy(&t[2], &logtime_start[2], sizeof(struct timeval));
   get_time_interval(logtime_start);
   get_time_interval(t);
-  snprintf(timestr, 64, ", enc_time=%d, total_time=%d us", (int) t[0].tv_usec, (int) logtime_start[0].tv_usec);
+  snprintf(timestr, 64, ", tot_time=%d us", (int) logtime_start[0].tv_usec);
 #endif
 
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
   
-  Info("PUCCH: tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, pmi=%s%s, sr=%s, cfo=%.1f Hz%s\n",
-         TTI_TX(tti),
-         last_dl_pdcch_ncce, ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb, 
-       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
-       uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",
-       uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
-       uci_data.uci_pmi_len>0?(uci_data.uci_pmi[1]?"1":"0"):"no",
-       uci_data.uci_pmi_len>0?(uci_data.uci_pmi[0]?"1":"0"):"",
-       uci_data.scheduling_request?"yes":"no",
-         cfo*15000, timestr);        
-  }   
+  Info("PUCCH: tti_tx=%d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, pmi=%s%s, sr=%s, cfo=%.1f KHz%s\n",
+         (tti+4)%10240,
+         ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb,
+         uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
+         uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",
+         uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
+         uci_data.uci_pmi_len>0?(uci_data.uci_pmi[1]?"1":"0"):"no",
+         uci_data.uci_pmi_len>0?(uci_data.uci_pmi[0]?"1":"0"):"",
+         uci_data.scheduling_request?"yes":"no",
+         cfo*15, timestr);
+  }
   
   if (uci_data.scheduling_request) {
     phy->sr_enabled = false; 
@@ -1002,7 +1002,7 @@ void phch_worker::encode_srs()
 #ifdef LOG_EXECTIME
   gettimeofday(&logtime_start[2], NULL);
   get_time_interval(logtime_start);
-  snprintf(timestr, 64, ", total_time=%4d us", (int) logtime_start[0].tv_usec);
+  snprintf(timestr, 64, ", tot_time=%4d us", (int) logtime_start[0].tv_usec);
 #endif
   
   float tx_power = srslte_ue_ul_srs_power(&ue_ul, phy->pathloss);  

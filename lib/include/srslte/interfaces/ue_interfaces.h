@@ -54,6 +54,7 @@ class usim_interface_nas
 public:
   virtual void get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
   virtual void get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
+  virtual int  get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id) = 0;
   virtual void generate_authentication_response(uint8_t  *rand,
                                                 uint8_t  *autn_enb,
                                                 uint16_t  mcc,
@@ -104,6 +105,7 @@ public:
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
   virtual void      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
+  virtual void      plmn_search_end() = 0;
 };
 
 // NAS interface for UE
@@ -140,6 +142,7 @@ class rrc_interface_phy
 public:
   virtual void in_sync() = 0;
   virtual void out_of_sync() = 0;
+  virtual void earfcn_end() = 0;
   virtual void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) = 0;
 };
 

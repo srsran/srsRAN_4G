@@ -66,7 +66,7 @@ uint8_t* pdu_queue::request(uint32_t len)
 void pdu_queue::deallocate(uint8_t* pdu)
 {
   if (!pool.deallocate((pdu_t*) pdu)) {
-    log_h->warning("Error deallocating from buffer pool: buffer not created in this pool.\n");
+    log_h->warning("Error deallocating from buffer pool in deallocate(): buffer not created in this pool.\n");
   }
 }
 
@@ -92,7 +92,7 @@ bool pdu_queue::process_pdus()
       callback->process_pdu(pdu->ptr, pdu->len, pdu->tstamp);
     }
     if (!pool.deallocate(pdu)) {
-      log_h->warning("Error deallocating from buffer pool: buffer not created in this pool.\n");
+      log_h->warning("Error deallocating from buffer pool in process_pdus(): buffer not created in this pool.\n");
     }
     cnt++;
     have_data = true;

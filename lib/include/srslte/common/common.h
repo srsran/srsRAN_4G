@@ -44,12 +44,12 @@
 #define SRSLTE_N_DRB           8
 #define SRSLTE_N_RADIO_BEARERS 11
 
-#define HARQ_DELAY_MS   6
+#define HARQ_DELAY_MS   4
 #define MSG3_DELAY_MS   6
 #define TTI_TX(tti)     ((tti+HARQ_DELAY_MS)%10240)
 #define TTI_RX_ACK(tti) ((tti+(2*HARQ_DELAY_MS))%10240)
 
-#define TTIMOD_SZ       20
+#define TTIMOD_SZ       (((2*HARQ_DELAY_MS) < 10)?10:20)
 #define TTIMOD(tti)     (tti%TTIMOD_SZ)
 
 #define ASYNC_DL_SCHED  (HARQ_DELAY_MS <= 4)

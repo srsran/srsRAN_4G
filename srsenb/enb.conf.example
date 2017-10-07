@@ -100,7 +100,7 @@ filename = /tmp/enb.pcap
 #
 # filename: File path to use for log output. Can be set to stdout
 #           to print logs to standard output
-git c#####################################################################
+#####################################################################
 [log]
 all_level = info
 all_hex_limit = 32
