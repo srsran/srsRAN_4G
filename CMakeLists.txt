@@ -60,6 +60,7 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 ########################################################################
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
+option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
 
 option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          ON)
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
@@ -155,7 +156,7 @@ else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 
 # Boost
-if(ENABLE_SRSUE OR ENABLE_SRSENB)
+if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
   if(BUILD_STATIC)
     set(Boost_USE_STATIC_LIBS ON)
   endif(BUILD_STATIC)
@@ -177,7 +178,7 @@ if(ENABLE_SRSUE OR ENABLE_SRSENB)
       "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
   )
   find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
-endif(ENABLE_SRSUE OR ENABLE_SRSENB)
+endif(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
 
 # srsGUI
 if(ENABLE_GUI)
@@ -371,3 +372,9 @@ if(RF_FOUND)
 else(RF_FOUND)
   message(STATUS "srsUE and srsENB builds disabled due to missing RF driver")
 endif(RF_FOUND)
+if(ENABLE_SRSENB)
+  message(STATUS "Building with srsEPC")
+  add_subdirectory(srsepc)
+else(ENABLE_SRSEPC)
+  message(STATUS "srsEPC build disabled")
+endif(ENABLE_SRSUE)
