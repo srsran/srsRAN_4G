@@ -24,34 +24,10 @@
  *
  */
 
-/******************************************************************************
- * File:        mme.h
- * Description: Top-level MME class. Creates and links all
- *              interfaces and helpers.
- *****************************************************************************/
-
-#ifndef MME_H
-#define MME_H
-
-#include <cstddef>
-
 namespace srsepc{
 
-class mme
+s1ap::s1ap()
 {
-public:
-  static mme* get_instance(void);
+}
 
-  static void cleanup(void);
-
-private:
-
-  static mme *instance;
-  mme();
-  virtual ~mme();
-
-};
-
-} // namespace srsepc
-
-#endif // MME_H
+}//namespace srsepc

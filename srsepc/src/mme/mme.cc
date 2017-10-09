@@ -32,6 +32,15 @@ namespace srsepc{
 mme*          mme::instance = NULL;
 boost::mutex  mme_instance_mutex;
 
+mme::mme()
+{
+    return;
+}
+
+mme::~mme()
+{
+  return;
+}
 
 mme*
 mme::get_instance(void)
@@ -41,10 +50,6 @@ mme::get_instance(void)
     instance = new mme();
   }
   return(instance);
-}
-
-mme::mme()
-{
 }
 
 void
