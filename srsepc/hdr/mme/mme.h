@@ -33,10 +33,17 @@
 #ifndef MME_H
 #define MME_H
 
+#include <cstddef>
+
 namespace srsepc{
 
 class mme
 {
+public:
+  mme* get_instance(void);
+
+  void cleanup(void);
+
 private:
 
   static mme *instance;

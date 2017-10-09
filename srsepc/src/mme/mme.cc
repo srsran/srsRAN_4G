@@ -24,13 +24,38 @@
  *
  */
 
-
+#include <boost/thread/mutex.hpp>
 #include "mme/mme.h"
 
 namespace srsepc{
 
+mme*          mme::instance = NULL;
+boost::mutex  mme_instance_mutex;
+
+
+mme*
+mme::get_instance(void)
+{
+  boost::mutex::scoped_lock lock(mme_instance_mutex);
+  if(NULL == instance) {
+    instance = new mme();
+  }
+  return(instance);
+}
+
 mme::mme()
 {
 }
+
+void
+mme::cleanup(void)
+{
+  boost::mutex::scoped_lock lock(mme_instance_mutex);
+  if(NULL != instance) {
+    delete instance;
+    instance = NULL;
+  }
+}
+
 
 } //namespace srsepc
