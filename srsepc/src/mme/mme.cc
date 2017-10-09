@@ -25,9 +25,12 @@
  */
 
 
-#include "mme.h"
+#include "mme/mme.h"
 
-class srsmme
+namespace srsepc{
+
+mme::mme()
 {
-  int tst;
-};
+}
+
+} //namespace srsepc

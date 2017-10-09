@@ -13,10 +13,7 @@ endif (RPATH)
 
 
 add_executable(srsepc main.cc )
-target_link_libraries(srsepc  srsenb_upper
-                              srslte_common
-                              srslte_phy
-                              srslte_upper
+target_link_libraries(srsepc  srsepc_mme
                               ${CMAKE_THREAD_LIBS_INIT} 
                               ${Boost_LIBRARIES} 
                               ${SEC_LIBRARIES}
@@ -32,11 +29,11 @@ install(TARGETS srsepc DESTINATION ${RUNTIME_DIR})
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################
-if (NOT ${BUILDENB_CMD} STREQUAL "")
-  message(STATUS "Added custom post-build-ENB command: ${BUILDENB_CMD}")
+if (NOT ${BUILDEPC_CMD} STREQUAL "")
+  message(STATUS "Added custom post-build-EPC command: ${BUILDENB_CMD}")
   add_custom_command(TARGET srsenb POST_BUILD COMMAND ${BUILDENB_CMD})
-else(NOT ${BUILDENB_CMD} STREQUAL "")
-  message(STATUS "No post-build-ENB command defined")
-endif (NOT ${BUILDENB_CMD} STREQUAL "")
+else(NOT ${BUILDEPC_CMD} STREQUAL "")
+  message(STATUS "No post-build-EPC command defined")
+endif (NOT ${BUILDEPC_CMD} STREQUAL "")
 
 install(TARGETS srsepc DESTINATION ${RUNTIME_DIR})
