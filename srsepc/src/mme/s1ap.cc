@@ -24,10 +24,48 @@
  *
  */
 
+#include <iostream> //TODO Remove
+
+#include <strings.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/sctp.h>
+#include "mme/s1ap.h"
+
 namespace srsepc{
 
 s1ap::s1ap()
 {
+}
+
+s1ap::~s1ap()
+{
+}
+
+int
+s1ap::enb_listen()
+{
+  /*This function sets up the SCTP socket for eNBs to connect to*/
+  int sock_fd;
+  struct sockaddr_in s1mme_addr;//TODO make this a configurable class memeber.
+
+  sock_fd = socket (AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
+  if (sock_fd == -1){
+    std::cout << "[S1APP] Could not create SCTP socket" <<std::endl; //TODO fix logging
+    return -1;
+  }
+
+  //S1-MME bind
+  bzero(&s1mme_addr, sizeof(s1mme_addr));
+  s1mme_addr.sin_family = AF_INET;
+  s1mme_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  s1mme_addr.sin_port = htons(18000); //TODO define S1MME_PORT
+
+  //Listen for connections
+  listen(sock_fd,SOMAXCONN);
+
+  return sock_fd;
 }
 
 }//namespace srsepc

@@ -24,10 +24,14 @@
  *
  */
 
+namespace srsepc{
+
 class s1ap
 {
 public:
   s1ap();
   virtual ~s1ap();
   int enb_listen();
-}
+};
+
+} //namespace srsepc
