@@ -738,7 +738,7 @@ typedef __m256 simd_sel_t;
 #else /* LV_HAVE_AVX2 */
 #ifdef LV_HAVE_SSE
 typedef __m128i simd_i_t;
-typedef __m128i simd_sel_t;
+typedef __m128 simd_sel_t;
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
@@ -807,7 +807,7 @@ static inline simd_sel_t srslte_simd_f_max(simd_f_t a, simd_f_t b) {
   return _mm256_cmp_ps(a, b, _CMP_GT_OS);
 #else /* LV_HAVE_AVX2 */
   #ifdef LV_HAVE_SSE
-  return  (simd_i_t) _mm_cmpgt_ps(a, b);
+  return  (simd_sel_t) _mm_cmpgt_ps(a, b);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
