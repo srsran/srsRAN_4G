@@ -24,12 +24,13 @@
  *
  */
 
+#include <iostream> //TODO Remove
 #include <boost/thread/mutex.hpp>
 #include "mme/mme.h"
 
 namespace srsepc{
 
-mme*          mme::instance = NULL;
+mme*          mme::m_instance = NULL;
 boost::mutex  mme_instance_mutex;
 
 mme::mme()
@@ -46,21 +47,36 @@ mme*
 mme::get_instance(void)
 {
   boost::mutex::scoped_lock lock(mme_instance_mutex);
-  if(NULL == instance) {
-    instance = new mme();
+  if(NULL == m_instance) {
+    m_instance = new mme();
   }
-  return(instance);
+  return(m_instance);
 }
 
 void
 mme::cleanup(void)
 {
   boost::mutex::scoped_lock lock(mme_instance_mutex);
-  if(NULL != instance) {
-    delete instance;
-    instance = NULL;
+  if(NULL != m_instance) {
+    delete m_instance;
+    m_instance = NULL;
   }
 }
 
+int
+mme::init(all_args_t* args)
+{
+  if(m_s1ap.init(args->s1ap_args)){
+    std::cout << "Error initializing MME S1APP" << std::endl;
+    exit(-1);
+  }
+  return 0;
+}
+
+int
+mme::get_s1_mme()
+{
+  return m_s1ap.get_s1_mme();
+}
 
 } //namespace srsepc

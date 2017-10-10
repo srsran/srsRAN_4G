@@ -34,8 +34,15 @@
 #define MME_H
 
 #include <cstddef>
+#include "s1ap.h"
+
 
 namespace srsepc{
+
+typedef struct{
+  s1ap_args_t s1ap_args;
+} all_args_t;
+
 
 class mme
 {
@@ -43,13 +50,18 @@ public:
   static mme* get_instance(void);
 
   static void cleanup(void);
+  
+  int init(all_args_t* args);
+
+  int get_s1_mme();
 
 private:
 
-  static mme *instance;
   mme();
   virtual ~mme();
-
+  static mme *m_instance;
+  s1ap m_s1ap;
+ 
 };
 
 } // namespace srsepc

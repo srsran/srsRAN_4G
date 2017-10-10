@@ -44,10 +44,25 @@ s1ap::~s1ap()
 }
 
 int
+s1ap::init(s1ap_args_t s1ap_args)
+{
+  m_mme_code    = s1ap_args.mme_code ;
+  m_mme_group   = s1ap_args.mme_group;
+  m_tac         = s1ap_args.tac;
+  m_mcc         = s1ap_args.mcc;        
+  m_mnc         = s1ap_args.mnc;        
+  m_mme_bindx_addr = s1ap_args.mme_bindx_addr;
+  m_mme_name = std::string("SRS MME");
+
+  m_s1mme = enb_listen();
+  return 0;
+}
+
+int
 s1ap::enb_listen()
 {
   /*This function sets up the SCTP socket for eNBs to connect to*/
-  int sock_fd;
+  int sock_fd, err;
   struct sockaddr_in s1mme_addr;//TODO make this a configurable class memeber.
 
   sock_fd = socket (AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
@@ -59,13 +74,26 @@ s1ap::enb_listen()
   //S1-MME bind
   bzero(&s1mme_addr, sizeof(s1mme_addr));
   s1mme_addr.sin_family = AF_INET;
-  s1mme_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  s1mme_addr.sin_port = htons(18000); //TODO define S1MME_PORT
+  s1mme_addr.sin_addr.s_addr = htonl(INADDR_ANY); //TODO this should use the bindx information
+  s1mme_addr.sin_port = htons(S1MME_PORT);
+  err = bind(sock_fd, (struct sockaddr*) &s1mme_addr, sizeof (s1mme_addr));
+  if (err != 0){
+    std::cout << "Error binding SCTP socket" << std::endl;
+  }
 
   //Listen for connections
-  listen(sock_fd,SOMAXCONN);
+  err = listen(sock_fd,SOMAXCONN);
+  if (err != 0){
+    std::cout << "Error in SCTP socket listen" << std::endl;
+  }
 
   return sock_fd;
+}
+
+int
+s1ap::get_s1_mme()
+{
+  return m_s1mme;
 }
 
 }//namespace srsepc

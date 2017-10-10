@@ -26,12 +26,39 @@
 
 namespace srsepc{
 
+const uint16_t S1MME_PORT = 36412;
+
+typedef struct{
+  uint8_t       mme_code;
+  uint16_t      mme_group;
+  uint16_t      tac;        // 16-bit tac
+  uint16_t      mcc;        // BCD-coded with 0xF filler
+  uint16_t      mnc;        // BCD-coded with 0xF filler
+  std::string   mme_bindx_addr;
+  std::string   mme_name;
+} s1ap_args_t;
+
 class s1ap
 {
 public:
   s1ap();
   virtual ~s1ap();
   int enb_listen();
+  
+  int init(s1ap_args_t s1ap_args);
+
+  int get_s1_mme();
+
+private:
+  uint8_t       m_mme_code;
+  uint16_t      m_mme_group;
+  uint16_t      m_tac;        // 16-bit tac
+  uint16_t      m_mcc;        // BCD-coded with 0xF filler
+  uint16_t      m_mnc;        // BCD-coded with 0xF filler
+  std::string   m_mme_bindx_addr;
+  std::string   m_mme_name;
+
+  int m_s1mme;
 };
 
 } //namespace srsepc
