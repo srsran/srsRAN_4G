@@ -92,7 +92,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, float metrics_report_per
   if (metrics.mac.rx_pkts > 0) {
     cout << float_to_string((float) 100*metrics.mac.rx_errors/metrics.mac.rx_pkts, 1) << "%";
   } else {
-    cout << float_to_string(0, 2) << "%";
+    cout << float_to_string(0, 1) << "%";
   }
   cout << float_to_string(metrics.phy.ul.mcs, 2);
   cout << float_to_eng_string((float) metrics.mac.ul_buffer, 2);
@@ -100,7 +100,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, float metrics_report_per
   if (metrics.mac.tx_pkts > 0) {
     cout << float_to_string((float) 100*metrics.mac.tx_errors/metrics.mac.tx_pkts, 1) << "%";
   } else {
-    cout << float_to_string(0, 2) << "%";
+    cout << float_to_string(0, 1) << "%";
   }
   cout << endl;
 

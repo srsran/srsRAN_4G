@@ -45,7 +45,9 @@ drb_config = drb.conf
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
-# Optional parameters: 
+# Optional parameters:
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn (must be set if dl_freq is set)
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
@@ -100,7 +102,7 @@ filename = /tmp/enb.pcap
 #
 # filename: File path to use for log output. Can be set to stdout
 #           to print logs to standard output
-git c#####################################################################
+#####################################################################
 [log]
 all_level = info
 all_hex_limit = 32
@@ -123,8 +125,8 @@ enable = false
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
-#pusch_max_mcs    = -1
-nof_ctrl_symbols = 2
+pusch_max_mcs    = 16
+nof_ctrl_symbols = 3
 
 #####################################################################
 # Expert configuration options

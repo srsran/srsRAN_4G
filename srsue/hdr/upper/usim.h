@@ -61,6 +61,7 @@ public:
   // NAS interface
   void get_imsi_vec(uint8_t* imsi_, uint32_t n);
   void get_imei_vec(uint8_t* imei_, uint32_t n);
+  int  get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id);
 
   void generate_authentication_response(uint8_t  *rand,
                                         uint8_t  *autn_enb,
@@ -118,6 +119,8 @@ private:
   uint8_t     autn[16];
   uint8_t     k_asme[32];
   uint8_t     k_enb[32];
+
+  bool initiated;
 
 };
 

@@ -99,7 +99,7 @@ typedef struct {
   int net_port_signal; 
   char *net_address_signal;
   int decimate;
-  int mbsfn_area_id;
+  int32_t mbsfn_area_id;
   uint8_t  non_mbsfn_region;
   int verbose;
 }prog_args_t;
@@ -171,8 +171,8 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-S remote UDP address to send input signal [Default %s]\n", args->net_address_signal);
   printf("\t-u remote TCP port to send data (-1 does nothing with it) [Default %d]\n", args->net_port);
   printf("\t-U remote TCP address to send data [Default %s]\n", args->net_address);
-  printf("\t-M MBSFN area id [Default %s]\n", args->mbsfn_area_id);
-  printf("\t-N Non-MBSFN region [Default %s]\n", args->non_mbsfn_region);
+  printf("\t-M MBSFN area id [Default %d]\n", args->mbsfn_area_id);
+  printf("\t-N Non-MBSFN region [Default %d]\n", args->non_mbsfn_region);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 

@@ -26,6 +26,9 @@
 
 #include "upper/gtpu.h"
 #include <unistd.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <errno.h>
 
 using namespace srslte;
 
@@ -42,16 +45,51 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   
   pool          = byte_buffer_pool::get_instance();
 
-  if(0 != srslte_netsource_init(&src, gtp_bind_addr.c_str(), GTPU_PORT, SRSLTE_NETSOURCE_UDP)) {
-    gtpu_log->error("Failed to create source socket on %s:%d", gtp_bind_addr.c_str(), GTPU_PORT);
+  // Set up sink socket
+  snk_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (snk_fd < 0) {
+    gtpu_log->error("Failed to create sink socket\n");
     return false;
   }
-  if(0 != srslte_netsink_init(&snk, mme_addr.c_str(), GTPU_PORT, SRSLTE_NETSINK_UDP)) {
-    gtpu_log->error("Failed to create sink socket on %s:%d", mme_addr.c_str(), GTPU_PORT);
+  if (fcntl(snk_fd, F_SETFL, O_NONBLOCK)) {
+    gtpu_log->error("Failed to set non-blocking sink socket\n");
     return false;
   }
-  
-  srslte_netsink_set_nonblocking(&snk);
+  int enable = 1;
+#if defined (SO_REUSEADDR)
+  if (setsockopt(snk_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+      gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
+#endif
+#if defined (SO_REUSEPORT)
+  if (setsockopt(snk_fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+      gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
+#endif
+
+
+  // Set up source socket
+  src_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (src_fd < 0) {
+    gtpu_log->error("Failed to create source socket\n");
+    return false;
+  }
+#if defined (SO_REUSEADDR)
+  if (setsockopt(src_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+      gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
+#endif
+#if defined (SO_REUSEPORT)
+  if (setsockopt(src_fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+      gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
+#endif
+
+  struct sockaddr_in bindaddr;
+  bindaddr.sin_family      = AF_INET;
+  bindaddr.sin_addr.s_addr = inet_addr(gtp_bind_addr.c_str());
+  bindaddr.sin_port        = htons(GTPU_PORT);
+
+  if (bind(src_fd, (struct sockaddr *)&bindaddr, sizeof(struct sockaddr_in))) {
+    gtpu_log->error("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
+    return false;
+  }
 
   // Setup a thread to receive packets from the src socket
   start(THREAD_PRIO);
@@ -61,7 +99,7 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
 
 void gtpu::stop()
 {
-  if(run_enable) {
+  if (run_enable) {
     run_enable = false;
     // Wait thread to exit gracefully otherwise might leave a mutex locked
     int cnt=0;
@@ -75,8 +113,12 @@ void gtpu::stop()
     wait_thread_finish();
   }
 
-  srslte_netsink_free(&snk);
-  srslte_netsource_free(&src);
+  if (snk_fd) {
+    close(snk_fd);
+  }
+  if (src_fd) {
+    close(src_fd);
+  }
 }
 
 // gtpu_interface_pdcp
@@ -89,28 +131,35 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   header.length       = pdu->N_bytes;
   header.teid         = rnti_bearers[rnti].teids_out[lcid];
 
+  struct sockaddr_in servaddr;
+  servaddr.sin_family      = AF_INET;
+  servaddr.sin_addr.s_addr = htonl(rnti_bearers[rnti].spgw_addrs[lcid]);
+  servaddr.sin_port        = htons(GTPU_PORT);
+
   gtpu_write_header(&header, pdu);
-  srslte_netsink_write(&snk, pdu->msg, pdu->N_bytes);
+  sendto(snk_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
   pool->deallocate(pdu);
 }
 
 // gtpu_interface_rrc
-void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t teid_out, uint32_t *teid_in)
+void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in)
 {
   // Allocate a TEID for the incoming tunnel
   rntilcid_to_teidin(rnti, lcid, teid_in);
-  gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, teid_out: 0x%x, teid_in: 0x%x\n", rnti, lcid, teid_out, *teid_in);
+  gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x\n", rnti, lcid, addr, teid_out, *teid_in);
 
   // Initialize maps if it's a new RNTI
   if(rnti_bearers.count(rnti) == 0) {
     for(int i=0;i<SRSENB_N_RADIO_BEARERS;i++) {
       rnti_bearers[rnti].teids_in[i]  = 0;
       rnti_bearers[rnti].teids_out[i] = 0;
+      rnti_bearers[rnti].spgw_addrs[i] = 0;
     }
   }
 
   rnti_bearers[rnti].teids_in[lcid]  = *teid_in;
   rnti_bearers[rnti].teids_out[lcid] = teid_out;
+  rnti_bearers[rnti].spgw_addrs[lcid] = addr;
 }
 
 void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
@@ -146,10 +195,19 @@ void gtpu::run_thread()
 
   running=true; 
   while(run_enable) {
+
     pdu->reset();
     gtpu_log->debug("Waiting for read...\n");
-    pdu->N_bytes = srslte_netsource_read(&src, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET);
+    int n = 0;
+    do{
+      n = recv(src_fd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0);
+    } while (n == -1 && errno == EAGAIN);
 
+    if (n < 0) {
+        gtpu_log->error("Failed to read from socket\n");
+    }
+
+    pdu->N_bytes = (uint32_t) n;
     
     gtpu_header_t header;
     gtpu_read_header(pdu, &header);

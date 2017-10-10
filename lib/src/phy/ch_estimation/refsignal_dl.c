@@ -228,7 +228,8 @@ int srslte_refsignal_cs_init(srslte_refsignal_t * q, uint32_t max_prb)
 
   if (q != NULL)
   {
-    ret = SRSLTE_ERROR; 
+    ret = SRSLTE_ERROR;
+    bzero(q, sizeof(srslte_refsignal_t));
     for (int p=0;p<2;p++) {
       for (int i=0;i<SRSLTE_NSUBFRAMES_X_FRAME;i++) {
         q->pilots[p][i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_NUM_SF(max_prb, 2*p));

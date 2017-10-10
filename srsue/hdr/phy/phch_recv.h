@@ -53,6 +53,7 @@ public:
   void set_agc_enable(bool enable);
 
   void    set_earfcn(std::vector<uint32_t> earfcn);
+  void    force_freq(float dl_freq, float ul_freq);
 
   void    reset_sync();
   void    cell_search_start();
@@ -171,6 +172,10 @@ private:
   int    cell_meas_rsrp();
   int    cell_search(int force_N_id_2 = -1);
   bool   set_cell();
+
+  float dl_freq;
+  float ul_freq;
+
 };
 
 } // namespace srsue

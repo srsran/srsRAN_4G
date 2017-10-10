@@ -42,7 +42,6 @@ public:
   // used by sched_metric
   uint32_t ue_idx;
 
-  bool has_pusch;
   bool has_pucch;
   
   typedef struct {
@@ -116,7 +115,7 @@ public:
   bool       needs_cqi(uint32_t tti, bool will_send = false); 
   uint32_t   get_max_retx(); 
   
-  bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32_t *L);
+  bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2]);
   bool       pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
 
   uint32_t   get_pending_ul_old_data();
@@ -173,7 +172,7 @@ private:
   // Allowed DCI locations per CFI and per subframe    
   sched_dci_cce_t dci_locations[3][10];   
 
-  const static int SCHED_MAX_HARQ_PROC = 8; 
+  const static int SCHED_MAX_HARQ_PROC = 2*HARQ_DELAY_MS;
   dl_harq_proc dl_harq[SCHED_MAX_HARQ_PROC]; 
   ul_harq_proc ul_harq[SCHED_MAX_HARQ_PROC]; 
   

@@ -467,6 +467,8 @@ int srslte_chest_dl_estimate_port_mbsfn(srslte_chest_dl_t *q, cf_t *input, cf_t 
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal+(2*q->cell.nof_prb), q->mbsfn_refs[mbsfn_area_id]->pilots[port_id/2][sf_idx],
                            q->pilot_estimates+(2*q->cell.nof_prb), SRSLTE_REFSIGNAL_NUM_SF_MBSFN(q->cell.nof_prb, port_id)-(2*q->cell.nof_prb));
   
+
+  
   chest_interpolate_noise_est(q, input, ce, sf_idx, port_id, rxant_id, SRSLTE_SF_MBSFN);
       
   return 0;

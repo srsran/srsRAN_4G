@@ -63,6 +63,8 @@ double callback_set_rx_gain(void *h, double gain) {
 
 
 phch_recv::phch_recv() {
+  dl_freq = -1;
+  ul_freq = -1;
   bzero(&cell, sizeof(srslte_cell_t));
   running = false;
 }
@@ -171,6 +173,7 @@ void phch_recv::radio_error() {
 
   // Need to find a method to effectively reset radio, reloading the driver does not work
   //radio_h->reset();
+  radio_h->stop();
 
   fprintf(stdout, "Error while receiving samples. Restart srsUE\n");
   exit(-1);
@@ -444,6 +447,11 @@ void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
   this->earfcn = earfcn;
 }
 
+void phch_recv::force_freq(float dl_freq, float ul_freq) {
+  this->dl_freq = dl_freq;
+  this->ul_freq = ul_freq;
+}
+
 bool phch_recv::stop_sync() {
 
   wait_radio_reset();
@@ -478,6 +486,7 @@ void phch_recv::cell_search_inc()
   if (cur_earfcn_index >= 0) {
     if (cur_earfcn_index >= (int) earfcn.size() - 1) {
       cur_earfcn_index = 0;
+      rrc->earfcn_end();
     }
   }
   Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
@@ -566,17 +575,25 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
 bool phch_recv::set_frequency()
 {
-  double dl_freq = 1e6*srslte_band_fd(current_earfcn);
-  double ul_freq = 1e6*srslte_band_fu(srslte_band_ul_earfcn(current_earfcn));
-  if (dl_freq > 0 && ul_freq > 0) {
+  double set_dl_freq = 0;
+  double set_ul_freq = 0;
+
+  if (this->dl_freq > 0 && this->ul_freq > 0) {
+    set_dl_freq = this->dl_freq;
+    set_ul_freq = this->ul_freq;
+  } else {
+    set_dl_freq = 1e6*srslte_band_fd(current_earfcn);
+    set_ul_freq = 1e6*srslte_band_fu(srslte_band_ul_earfcn(current_earfcn));
+  }
+  if (set_dl_freq > 0 && set_ul_freq > 0) {
     log_h->info("SYNC:  Set DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
-                current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
+                current_earfcn, set_dl_freq / 1e6, set_ul_freq / 1e6);
 
     log_h->console("Searching cell in DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
-                current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
+                current_earfcn, set_dl_freq / 1e6, set_ul_freq / 1e6);
 
-    radio_h->set_rx_freq(dl_freq);
-    radio_h->set_tx_freq(ul_freq);
+    radio_h->set_rx_freq(set_dl_freq);
+    radio_h->set_tx_freq(set_ul_freq);
     ul_dl_factor = radio_h->get_tx_freq()/radio_h->get_rx_freq();
 
     srslte_ue_sync_reset(&ue_sync);
@@ -715,11 +732,11 @@ void phch_recv::run_thread() {
 
               worker->set_sample_offset(srslte_ue_sync_get_sfo(&ue_sync)/1000);
 
-              /* Compute TX time: Any transmission happens in TTI4 thus advance 4 ms the reception time */
+              /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
               srslte_timestamp_t rx_time, tx_time, tx_time_prach;
               srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
               srslte_timestamp_copy(&tx_time, &rx_time);
-              srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec);
+              srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3 - time_adv_sec);
               worker->set_tx_time(tx_time, next_offset);
               next_offset = 0;
 

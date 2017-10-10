@@ -513,10 +513,10 @@ void rlc_um::reassemble_rx_sdus()
     }
     
     // Handle last segment
-    // Handle last segment
-    if (rx_sdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES                 ||
-        rx_window[vr_ur].buf->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES   ||
-        rx_window[vr_ur].buf->N_bytes + rx_sdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
+    if (rx_sdu->N_bytes                                 < SRSLTE_MAX_BUFFER_SIZE_BYTES   &&
+        rx_window[vr_ur].buf->N_bytes                   < SRSLTE_MAX_BUFFER_SIZE_BYTES   &&
+        rx_window[vr_ur].buf->N_bytes + rx_sdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES)
+    {
 
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
       rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;

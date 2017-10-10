@@ -28,6 +28,8 @@
 #include <boost/concept_check.hpp>
 #include <srslte/interfaces/sched_interface.h>
 #include <srslte/phy/phch/pucch.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
@@ -232,7 +234,7 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
   }
 }
 
-bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32_t *L)
+bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
 {
   if (!phy_config_dedicated_enabled) {
     return false; 
@@ -241,23 +243,21 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
   pucch_sched.sps_enabled = false;
   pucch_sched.n_pucch_sr = cfg.sr_N_pucch;
   pucch_sched.n_pucch_2  = cfg.n_pucch_cqi;
-  pucch_sched.N_pucch_1  = cfg.pucch_cfg.n1_pucch_an; 
+  pucch_sched.N_pucch_1  = cfg.pucch_cfg.n1_pucch_an;
   
   bool has_sr = cfg.sr_enabled && srslte_ue_ul_sr_send_tti(cfg.sr_I, current_tti);    
   
   // First check if it has pending ACKs 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == current_tti) {
+    if (TTI_TX(dl_harq[i].get_tti()) == current_tti) {
       uint32_t n_pucch = srslte_pucch_get_npucch(dl_harq[i].get_n_cce(), SRSLTE_PUCCH_FORMAT_1A, has_sr, &pucch_sched);
       if (prb_idx) {
         for (int i=0;i<2;i++) {
-          prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_1A, n_pucch, cell.nof_prb, cell.cp, i); 
-        }      
+          prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_1A, n_pucch, cell.nof_prb, cell.cp, i);
+        }
       }
-      if (L) {
-        *L = 1; 
-      }
-      Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], n_pucch);
+      Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, ncce=%d, has_sr=%d, n_pucch_1=%d\n",
+           rnti, prb_idx[0], prb_idx[1], n_pucch, dl_harq[i].get_n_cce(), has_sr, pucch_sched.N_pucch_1);
       return true; 
     }
   }
@@ -268,9 +268,6 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
         prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_1, cfg.sr_N_pucch, cell.nof_prb, cell.cp, i); 
       }
     }
-    if (L) {
-      *L = 1; 
-    }
     Debug("SCHED: Reserved Format1 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], cfg.sr_N_pucch);
     return true; 
   }
@@ -280,9 +277,6 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
       for (int i=0;i<2;i++) {
         prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_2, cfg.cqi_pucch, cell.nof_prb, cell.cp, i);
       }
-    }
-    if(L) {
-      *L = 2;
     }
     Debug("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
          rnti, prb_idx[0], prb_idx[1], cfg.cqi_pucch, cfg.cqi_idx);
@@ -295,7 +289,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
 int sched_ue::set_ack_info(uint32_t tti, bool ack)
 {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == tti) {
+    if (TTI_TX(dl_harq[i].get_tti()) == tti) {
       Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tti=%d\n", ack, rnti, i, tti);
       dl_harq[i].set_ack(ack); 
       return dl_harq[i].get_tbs();
@@ -663,6 +657,7 @@ bool sched_ue::is_sr_triggered()
 /* Gets HARQ process with oldest pending retx */
 dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 {
+#if ASYNC_DL_SCHED
   int oldest_idx=-1; 
   uint32_t oldest_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
@@ -678,7 +673,10 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
     return &dl_harq[oldest_idx]; 
   } else {
     return NULL; 
-  }  
+  }
+#else
+  return &dl_harq[tti%SCHED_MAX_HARQ_PROC];
+#endif
 }
 
 dl_harq_proc* sched_ue::get_empty_dl_harq()
@@ -688,7 +686,7 @@ dl_harq_proc* sched_ue::get_empty_dl_harq()
       return &dl_harq[i]; 
     }
   }
-  return NULL; 
+  return NULL;
 }
 
 ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti)
@@ -702,10 +700,16 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
   uint32_t l=0;
   float max_coderate = srslte_cqi_to_coderate(dl_cqi);
   float coderate = 99;
+  float factor=1.5;
+  uint32_t l_max = 3;
+  if (cell.nof_prb == 6) {
+    factor = 1.0;
+    l_max  = 2;
+  }
   do {
     coderate = srslte_pdcch_coderate(nof_bits, l);
     l++;
-  } while(l<3 && 1.5*coderate > max_coderate);
+  } while(l<l_max && factor*coderate > max_coderate);
   Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n", dl_cqi, l, nof_bits, coderate, max_coderate);
   return l; 
 }

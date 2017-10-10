@@ -76,6 +76,7 @@ public:
   void write_trace(std::string filename);
 
   void set_earfcn(std::vector<uint32_t> earfcns);
+  void force_freq(float dl_freq, float ul_freq);
 
   /********** RRC INTERFACE ********************/
   void    reset();
@@ -167,7 +168,7 @@ private:
   
   /* Current time advance */
   uint32_t     n_ta;
-    
+
   bool init_(srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log *log_h, bool do_agc, uint32_t nof_workers);
   void set_default_args(phy_args_t *args);
   bool check_args(phy_args_t *args); 

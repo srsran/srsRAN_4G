@@ -82,8 +82,7 @@ private:
   
   const static int MIN_RLC_SDU_LEN = 0; 
   const static int MAX_NOF_SUBHEADERS = 20; 
-  const static int MAX_HARQ_PROC = 8; 
-  
+
   std::vector<lchid_t> lch; 
   
   // Keep track of the PIDs that transmitted BSR reports 

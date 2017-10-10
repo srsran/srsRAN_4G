@@ -25,13 +25,15 @@
  */
 
 
+#include <sstream>
 #include "upper/usim.h"
+#include "srslte/common/bcd_helpers.h"
 
 using namespace srslte;
 
 namespace srsue{
 
-usim::usim()
+usim::usim() : initiated(false)
 {}
 
 void usim::init(usim_args_t *args, srslte::log *usim_log_)
@@ -91,6 +93,7 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
   if("xor" == args->algo) {
     auth_algo = auth_algo_xor;
   }
+  initiated = true;
 }
 
 void usim::stop()
@@ -102,6 +105,11 @@ void usim::stop()
 
 void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 {
+  if (!initiated)
+  {
+    usim_log->error("Getting IMSI: USIM not initiated\n");
+    return;
+  }
   if(NULL == imsi_ || n < 15)
   {
     usim_log->error("Invalid parameters to get_imsi_vec");
@@ -111,13 +119,18 @@ void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
   uint64_t temp = imsi;
   for(int i=14;i>=0;i--)
   {
-      imsi_[i] = temp % 10;
-      temp /= 10;
+    imsi_[i] = temp % 10;
+    temp /= 10;
   }
 }
 
 void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 {
+  if (!initiated)
+  {
+    usim_log->error("Getting IMEI: USIM not initiated\n");
+    return;
+  }
   if(NULL == imei_ || n < 15)
   {
     usim_log->error("Invalid parameters to get_imei_vec");
@@ -127,9 +140,51 @@ void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
   uint64 temp = imei;
   for(int i=14;i>=0;i--)
   {
-      imei_[i] = temp % 10;
-      temp /= 10;
+    imei_[i] = temp % 10;
+    temp /= 10;
   }
+}
+
+int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
+{
+  if (!initiated)
+  {
+    usim_log->error("Getting Home PLMN Id: USIM not initiated\n");
+    return -1;
+  }
+
+  int mcc_len = 3;
+  int mnc_len = 2;
+
+  uint8_t imsi_vec[15];
+  get_imsi_vec(imsi_vec, 15);
+
+  std::ostringstream mcc_str, mnc_str;
+
+  for (int i=0;i<mcc_len;i++) {
+    mcc_str << (int) imsi_vec[i];
+  }
+
+  // US MCC uses 3 MNC digits
+  if (!mcc_str.str().compare("310") ||
+      !mcc_str.str().compare("311") ||
+      !mcc_str.str().compare("312") ||
+      !mcc_str.str().compare("313") ||
+      !mcc_str.str().compare("316"))
+  {
+    mnc_len = 3;
+  }
+  for (int i=mcc_len;i<mcc_len+mnc_len;i++) {
+    mnc_str << (int) imsi_vec[i];
+  }
+
+  string_to_mcc(mcc_str.str(), &home_plmn_id->mcc);
+  string_to_mnc(mnc_str.str(), &home_plmn_id->mnc);
+
+  usim_log->info("Read Home PLMN Id=%s\n",
+                 plmn_id_to_string(*home_plmn_id).c_str());
+
+  return 0;
 }
 
 void usim::generate_authentication_response(uint8_t  *rand,

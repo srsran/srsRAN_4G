@@ -9,6 +9,8 @@
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
 # Optional parameters: 
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn
 # nof_rx_ant:         Number of RX antennas (Default 1, supported 1 or 2)
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 

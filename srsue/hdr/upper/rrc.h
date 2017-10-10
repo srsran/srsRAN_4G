@@ -177,8 +177,8 @@ private:
 
   // PHY interface
   void in_sync();
-
   void out_of_sync();
+  void earfcn_end();
   void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
 
   // MAC interface
