@@ -37,7 +37,7 @@ namespace srsenb {
 int enb::parse_cell_cfg(all_args_t *args, srslte_cell_t *cell) {
   cell->id        = args->enb.pci;
   cell->cp        = SRSLTE_CP_NORM; 
-  cell->nof_ports = 1; 
+  cell->nof_ports = args->enb.nof_ports;
   cell->nof_prb   = args->enb.n_prb;  
   
   LIBLTE_RRC_PHICH_CONFIG_STRUCT phichcfg; 
@@ -842,6 +842,30 @@ bool enb::sib_is_present(LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info, uint32_t
 
 int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
 {
+
+  /* Transmission mode config section */
+  if (args->enb.transmission_mode < 0 || args->enb.transmission_mode > LIBLTE_RRC_TRANSMISSION_MODE_N_ITEMS) {
+    ERROR("Invalid transmission mode (%d). Only indexes 1-4 are implemented.\n", args->enb.transmission_mode);
+    return SRSLTE_ERROR;
+  }
+
+  bzero(&rrc_cfg->antenna_info, sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+  rrc_cfg->antenna_info.tx_mode = (LIBLTE_RRC_TRANSMISSION_MODE_ENUM) (args->enb.transmission_mode - 1);
+
+  if (rrc_cfg->antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup = LIBLTE_RRC_UE_TX_ANTENNA_SELECTION_OPEN_LOOP;
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup_present = true;
+
+    rrc_cfg->antenna_info.codebook_subset_restriction_choice = LIBLTE_RRC_CODEBOOK_SUBSET_RESTRICTION_N2_TM3;
+  } else if (rrc_cfg->antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup = LIBLTE_RRC_UE_TX_ANTENNA_SELECTION_CLOSED_LOOP;
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup_present = true;
+
+    rrc_cfg->antenna_info.codebook_subset_restriction_choice = LIBLTE_RRC_CODEBOOK_SUBSET_RESTRICTION_N2_TM4;
+    rrc_cfg->antenna_info.codebook_subset_restriction = 0b111111;
+    rrc_cfg->antenna_info.codebook_subset_restriction_present = true;
+  }
+
   /* MAC config section */
   parser::section mac_cnfg("mac_cnfg");
 

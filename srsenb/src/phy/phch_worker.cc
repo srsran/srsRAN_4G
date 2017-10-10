@@ -88,15 +88,17 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
   pthread_mutex_init(&mutex, NULL); 
   
   // Init cell here
-  signal_buffer_rx    = (cf_t*) srslte_vec_malloc(2*SRSLTE_SF_LEN_PRB(phy->cell.nof_prb)*sizeof(cf_t));
-  if (!signal_buffer_rx) {
-    fprintf(stderr, "Error allocating memory\n");
-    return; 
-  }
-  signal_buffer_tx = (cf_t*) srslte_vec_malloc(2*SRSLTE_SF_LEN_PRB(phy->cell.nof_prb)*sizeof(cf_t));
-  if (!signal_buffer_tx) {
-    fprintf(stderr, "Error allocating memory\n");
-    return; 
+  for(int p = 0; p < SRSLTE_MAX_PORTS; p++) {
+    signal_buffer_rx[p] = (cf_t *) srslte_vec_malloc(2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
+    if (!signal_buffer_rx) {
+      fprintf(stderr, "Error allocating memory\n");
+      return;
+    }
+    signal_buffer_tx[p] = (cf_t *) srslte_vec_malloc(2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
+    if (!signal_buffer_tx) {
+      fprintf(stderr, "Error allocating memory\n");
+      return;
+    }
   }
   if (srslte_enb_dl_init(&enb_dl, phy->cell.nof_prb)) {
     fprintf(stderr, "Error initiating ENB DL\n");
@@ -168,9 +170,9 @@ void phch_worker::reset()
   ue_db.clear();
 }
 
-cf_t* phch_worker::get_buffer_rx()
+cf_t* phch_worker::get_buffer_rx(uint32_t antenna_idx)
 {
-  return signal_buffer_rx;
+  return signal_buffer_rx[antenna_idx];
 }
 
 void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timestamp_t tx_time_)
@@ -287,7 +289,7 @@ void phch_worker::work_imp()
   }
 
   // Process UL signal
-  srslte_enb_ul_fft(&enb_ul, signal_buffer_rx);
+  srslte_enb_ul_fft(&enb_ul, signal_buffer_rx[0]);
 
   // Decode pending UL grants for the tti they were scheduled
   decode_pusch(ul_grants[sf_rx].sched_grants, ul_grants[sf_rx].nof_grants, sf_rx);
@@ -649,6 +651,9 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
 
 int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
+  /* FIXME: currently, it assumes TM1, TM2 or TM3 */
+  srslte_mimo_type_t mimo_type = (enb_dl.cell.nof_ports == 1) ? SRSLTE_MIMO_TYPE_SINGLE_ANTENNA : SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {
@@ -676,25 +681,21 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
       
       if (LOG_THIS(rnti)) { 
         uint8_t x = 0;
-        uint8_t *ptr = grants[i].data;
+        uint8_t *ptr = grants[i].data[0];
         uint32_t len = phy_grant.mcs[0].tbs / (uint32_t) 8;
         if (!ptr) {          
           ptr = &x;
           len = 1; 
         }        
         log_h->info_hex(ptr, len,
-                             "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n", 
+                             "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n",
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
                              phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }
 
-      srslte_softbuffer_tx_t *sb[SRSLTE_MAX_CODEWORDS] = {grants[i].softbuffer, NULL};
-      uint8_t                 *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
-      int                     rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, 0};
+      int rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, grants[i].grant.rv_idx_1};
 
-
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, rv, sf_idx, d, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0))
-      {
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, grants[i].softbuffers, rnti, rv, sf_idx, grants[i].data, mimo_type, 0)) {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 
       }

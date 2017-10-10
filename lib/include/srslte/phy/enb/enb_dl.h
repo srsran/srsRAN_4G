@@ -97,8 +97,8 @@ typedef struct {
   uint16_t                rnti; 
   srslte_ra_dl_dci_t      grant;
   srslte_dci_location_t   location; 
-  srslte_softbuffer_tx_t *softbuffer;
-  uint8_t                *data; 
+  srslte_softbuffer_tx_t *softbuffers[SRSLTE_MAX_TB];
+  uint8_t                *data[SRSLTE_MAX_TB];
 } srslte_enb_dl_pdsch_t; 
 
 typedef struct {
@@ -147,7 +147,7 @@ SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t *q,
                                        uint32_t tti);
 
 SRSLTE_API void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, 
-                                         cf_t *signal_buffer); 
+                                         cf_t *signal_buffer[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, 
                                       uint16_t rnti); 

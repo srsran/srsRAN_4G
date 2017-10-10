@@ -65,7 +65,7 @@ public:
   
   void set_nof_mutex(uint32_t nof_mutex); 
 
-  void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+  void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
   srslte_cell_t                     cell; 

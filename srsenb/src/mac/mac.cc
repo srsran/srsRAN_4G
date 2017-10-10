@@ -434,20 +434,20 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     memcpy(&dl_sched_res->sched_grants[n].grant,    &sched_result.data[i].dci,          sizeof(srslte_ra_dl_dci_t));
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.data[i].dci_location, sizeof(srslte_dci_location_t));    
     
-    dl_sched_res->sched_grants[n].softbuffer = ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.harq_process);
+    dl_sched_res->sched_grants[n].softbuffers[0] = ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.harq_process);
     
     // Get PDU if it's a new transmission
     if (sched_result.data[i].nof_pdu_elems > 0) {
-      dl_sched_res->sched_grants[n].data     = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu, 
+      dl_sched_res->sched_grants[n].data[0] = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu,
                                                         sched_result.data[i].nof_pdu_elems, 
                                                         sched_result.data[i].tbs);
 
       if (pcap) {
-        pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data, sched_result.data[i].tbs, rnti, true, tti);
+        pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data[0], sched_result.data[i].tbs, rnti, true, tti);
       }
       
     } else {
-      dl_sched_res->sched_grants[n].data = NULL; 
+      dl_sched_res->sched_grants[n].data[0] = NULL;
     }
     n++;
   }
@@ -460,14 +460,14 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.rar[i].dci_location, sizeof(srslte_dci_location_t));    
 
     // Set softbuffer (there are no retx in RAR but a softbuffer is required)
-    dl_sched_res->sched_grants[n].softbuffer = &rar_softbuffer_tx;    
+    dl_sched_res->sched_grants[n].softbuffers[0] = &rar_softbuffer_tx;
 
     // Assemble PDU 
-    dl_sched_res->sched_grants[n].data = assemble_rar(sched_result.rar[i].grants, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs);        
+    dl_sched_res->sched_grants[n].data[0] = assemble_rar(sched_result.rar[i].grants, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs);
 
     
     if (pcap) {
-      pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data, sched_result.data[i].tbs, dl_sched_res->sched_grants[n].rnti, true, tti);
+      pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data[0], sched_result.data[i].tbs, dl_sched_res->sched_grants[n].rnti, true, tti);
     }
 
     n++;
@@ -482,20 +482,20 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     
     // Set softbuffer    
     if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
-      dl_sched_res->sched_grants[n].softbuffer = &bcch_softbuffer_tx[sched_result.bc[i].index];    
-      dl_sched_res->sched_grants[n].data = assemble_si(sched_result.bc[i].index);
+      dl_sched_res->sched_grants[n].softbuffers[0] = &bcch_softbuffer_tx[sched_result.bc[i].index];
+      dl_sched_res->sched_grants[n].data[0] = assemble_si(sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
       if (pcap) {
         pcap->write_dl_sirnti(dl_sched_res->sched_grants[n].data, sched_result.bc[i].tbs, true, tti);
       }
 #endif
     } else {
-      dl_sched_res->sched_grants[n].softbuffer = &pcch_softbuffer_tx;    
-      dl_sched_res->sched_grants[n].data = pcch_payload_buffer;
+      dl_sched_res->sched_grants[n].softbuffers[0] = &pcch_softbuffer_tx;
+      dl_sched_res->sched_grants[n].data[0] = pcch_payload_buffer;
       rlc_h->read_pdu_pcch(pcch_payload_buffer, pcch_payload_buffer_len);
       
       if (pcap) {
-        pcap->write_dl_pch(dl_sched_res->sched_grants[n].data, sched_result.bc[i].tbs, true, tti);
+        pcap->write_dl_pch(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
     }
     

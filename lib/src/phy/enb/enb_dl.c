@@ -264,14 +264,15 @@ void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti)
   
 }
 
-void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, cf_t *signal_buffer) 
+void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, cf_t *signal_buffer[SRSLTE_MAX_PORTS])
 {
-  
-  srslte_ofdm_tx_sf(&q->ifft, q->sf_symbols[0], signal_buffer);
-     
   // TODO: PAPR control
   float norm_factor = (float) sqrt(q->cell.nof_prb)/15;
-  srslte_vec_sc_prod_cfc(signal_buffer, q->tx_amp*norm_factor, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+
+  for (int  p = 0; p < SRSLTE_MAX_PORTS; p++) {
+    srslte_ofdm_tx_sf(&q->ifft, q->sf_symbols[p], signal_buffer[p]);
+    srslte_vec_sc_prod_cfc(signal_buffer[p], q->tx_amp*norm_factor, signal_buffer[p], (uint32_t) SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+  }
 }
 
 int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, uint16_t rnti)

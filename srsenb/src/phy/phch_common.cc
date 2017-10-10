@@ -74,7 +74,7 @@ void phch_common::stop() {
   }
 }
 
-void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
+void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
 
   // Wait previous TTIs to be transmitted 
@@ -84,8 +84,8 @@ void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_s
     pthread_mutex_lock(&tx_mutex[tx_mutex_cnt%nof_mutex]);
   }
 
-  radio->set_tti(tx_mutex_cnt); 
-  radio->tx(buffer, nof_samples, tx_time);
+  radio->set_tti(tx_mutex_cnt);
+  radio->tx((void **) buffer, nof_samples, tx_time);
   
   // Trigger next transmission 
   pthread_mutex_unlock(&tx_mutex[(tx_mutex_cnt+1)%nof_mutex]);
