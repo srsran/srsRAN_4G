@@ -24,11 +24,11 @@ SRSLTE_API void srslte_ringbuffer_free(srslte_ringbuffer_t *q,
                                        int capacity);
 
 SRSLTE_API int srslte_ringbuffer_write(srslte_ringbuffer_t *q, 
-                                       uint8_t *ptr, 
+                                       void *ptr,
                                        int nof_bytes);
 
 SRSLTE_API int srslte_ringbuffer_read(srslte_ringbuffer_t *q, 
-                                       uint8_t *ptr, 
+                                       void *ptr,
                                        int nof_bytes);
 
 

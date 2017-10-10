@@ -70,11 +70,8 @@ public:
   
   const static int MUTEX_X_WORKER = 4;
 
-  // public variables needed by callback function
-  uint32_t              current_sflen;
-  srslte::radio_multi  *radio_h;
-  int                   next_offset;
-
+  int radio_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
+  int scell_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
 
 private:
 
@@ -83,49 +80,156 @@ private:
   void   reset();
   void   radio_error();
   bool   wait_radio_reset();
-  void   set_ue_sync_opts(srslte_ue_sync_t *q); 
+  void   set_ue_sync_opts(srslte_ue_sync_t *q);
   void   run_thread();
 
   void   set_sampling_rate();
   bool   set_frequency();
-  void   resync_sfn(bool is_connected = false);
-  bool   stop_sync();
+  bool   set_cell();
 
   void   cell_search_inc();
-
-  bool   init_cell();
-  void   free_cell();
+  void   resync_sfn(bool is_connected = false);
+  bool   stop_sync();
 
   void   stop_rx();
   void   start_rx();
   bool   radio_is_rx;
 
   bool   radio_is_resetting;
+  bool   running;
 
-  bool   running; 
-  
+  // Class to run cell search
+  class search {
+  public:
+    typedef enum {CELL_NOT_FOUND, CELL_FOUND, ERROR, TIMEOUT} ret_code;
+
+    ~search();
+    void     init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, uint32_t nof_rx_antennas, phch_recv *parent);
+    void     reset();
+    float    get_last_gain();
+    float    get_last_cfo();
+    void     set_N_id_2(int N_id_2);
+    ret_code run(srslte_cell_t *cell);
+
+  private:
+    phch_recv              *p;
+    srslte::log            *log_h;
+    cf_t                   *buffer[SRSLTE_MAX_PORTS];
+    srslte_ue_cellsearch_t  cs;
+    srslte_ue_mib_sync_t    ue_mib_sync;
+    int                     force_N_id_2;
+  };
+
+  // Class to synchronize system frame number
+  class sfn_sync {
+  public:
+    typedef enum {IDLE, SFN_FOUND, ERROR, TIMEOUT} ret_code;
+
+    ~sfn_sync();
+    void     init(srslte_ue_sync_t *ue_sync, cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, uint32_t timeout = SYNC_SFN_TIMEOUT);
+    void     reset();
+    bool     set_cell(srslte_cell_t cell);
+    ret_code run_subframe(srslte_cell_t *cell, uint32_t *tti_cnt);
+
+  private:
+    srslte::log      *log_h;
+    srslte_ue_sync_t *ue_sync;
+    cf_t             *buffer[SRSLTE_MAX_PORTS];
+    srslte_ue_mib_t   ue_mib;
+    uint32_t          cnt;
+    uint32_t          timeout;
+    const static uint32_t SYNC_SFN_TIMEOUT = 200;
+  };
+
+  // Class to perform cell measurements
+  class measure {
+  public:
+    typedef enum {IDLE, MEASURE_OK, ERROR} ret_code;
+
+    ~measure();
+    void      init(srslte_ue_sync_t *ue_sync, cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h,
+                   uint32_t nof_rx_antennas, uint32_t nof_subframes = RSRP_MEASURE_NOF_FRAMES);
+    void      reset();
+    void      set_cell(srslte_cell_t cell);
+    ret_code  run_subframe(uint32_t sf_idx);
+    float     rsrp();
+    float     rsrq();
+    float     snr();
+  private:
+    srslte::log      *log_h;
+    srslte_ue_dl_t    ue_dl;
+    srslte_ue_sync_t *ue_sync;
+    cf_t              *buffer[SRSLTE_MAX_PORTS];
+    uint32_t cnt;
+    uint32_t nof_subframes;
+    float mean_rsrp, mean_rsrq, mean_snr;
+    const static int RSRP_MEASURE_NOF_FRAMES = 5;
+  };
+
+
+  // Class to receive secondary cell
+  class scell_recv : public thread {
+  public:
+    void init(phch_recv *parent, srslte::log *log_h, uint32_t nof_rx_antennas, uint32_t prio, int cpu_affinity = -1);
+    void stop();
+    int  recv(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
+    void write(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
+    bool is_enabled();
+  private:
+    void run_thread();
+
+    enum {
+      IDLE = 0,
+      SCELL_SELECT,
+      SCELL_MEASURE,
+      SCELL_CAMPING
+    } scell_state;
+
+    srslte::log        *log_h;
+    phch_recv          *p;
+    bool                running;
+    srslte_ringbuffer_t ring_buffer[SRSLTE_MAX_PORTS];
+    cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
+    srslte_ue_sync_t    ue_sync;
+    srslte_cell_t       cell;
+
+    measure    measure_p;
+    sfn_sync   sfn_p;
+    uint32_t   tti;
+  };
+
+
+
+
+  // Objects for internal use
+  scell_recv            scell;
+  measure               measure_p;
+  search                search_p;
+  sfn_sync              sfn_p;
+
+  uint32_t              current_sflen;
+  int                   next_offset;
+  uint32_t              nof_rx_antennas;
+
+  // Pointers to other classes
   mac_interface_phy    *mac;
   rrc_interface_phy    *rrc;
   srslte::log          *log_h;
   srslte::thread_pool  *workers_pool;
+  srslte::radio_multi  *radio_h;
   phch_common          *worker_com;
   prach                *prach_buffer;
 
-  // Structures for Cell Camp
-  srslte_ue_sync_t    ue_sync;
-  srslte_ue_mib_t     ue_mib;
+  // Object for synchronization of the primary cell
+  srslte_ue_sync_t      ue_sync;
 
-  // Structures for Cell Search
-  srslte_ue_cellsearch_t cs;
-  srslte_ue_mib_sync_t   ue_mib_sync;
-
-  uint32_t      nof_rx_antennas;
-
-  cf_t *sf_buffer[SRSLTE_MAX_PORTS];
+  // Buffer for primary cell samples
+  cf_t                 *sf_buffer[SRSLTE_MAX_PORTS];
 
   // Sync metrics
-  sync_metrics_t metrics;
+  sync_metrics_t        metrics;
 
+  // State for primary cell
   enum {
     IDLE = 0,
     CELL_SEARCH,
@@ -137,44 +241,30 @@ private:
 
   bool is_in_idle;
 
+  // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
   enum {
     SRATE_NONE=0, SRATE_FIND, SRATE_CAMP
   } srate_mode;
   float         current_srate;
 
+  // This is the primary cell
   srslte_cell_t cell;
   bool          cell_is_set;
-  bool          is_sfn_synched; 
-  bool          started; 
+  bool          started;
   float         time_adv_sec;
   uint32_t      tti;
   bool          do_agc;
   
-  float         last_gain;
-  float         cellsearch_cfo;
   uint32_t      nof_tx_mutex;
   uint32_t      tx_mutex_cnt;
 
+  float         ul_dl_factor;
   uint32_t      current_earfcn;
+  int           cur_earfcn_index;
+  bool          cell_search_in_progress;
 
-  uint32_t      sync_sfn_cnt;
-  const static uint32_t SYNC_SFN_TIMEOUT = 200;
-  float ul_dl_factor;
-  int cur_earfcn_index;
-  bool cell_search_in_progress;
-  uint32_t measure_cnt;
-  float    measure_rsrp;
-  srslte_ue_dl_t ue_dl_measure;
-
-  const static int RSRP_MEASURE_NOF_FRAMES = 5;
-
-  int    cell_sync_sfn();
-  int    cell_meas_rsrp();
-  int    cell_search(int force_N_id_2 = -1);
-  bool   set_cell();
-
-  float dl_freq;
-  float ul_freq;
+  float         dl_freq;
+  float         ul_freq;
 
 };
 

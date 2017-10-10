@@ -34,8 +34,9 @@ void srslte_ringbuffer_free(srslte_ringbuffer_t *q, int capacity)
   }
 }
 
-int srslte_ringbuffer_write(srslte_ringbuffer_t *q, uint8_t *ptr, int nof_bytes)
-{  
+int srslte_ringbuffer_write(srslte_ringbuffer_t *q, void *p, int nof_bytes)
+{
+  uint8_t *ptr = (uint8_t*) p;
   int w_bytes = nof_bytes;
   pthread_mutex_lock(&q->mutex);
   if (q->count + w_bytes >= q->capacity) {
@@ -59,8 +60,9 @@ int srslte_ringbuffer_write(srslte_ringbuffer_t *q, uint8_t *ptr, int nof_bytes)
   return w_bytes; 
 }
 
-int srslte_ringbuffer_read(srslte_ringbuffer_t *q, uint8_t *ptr, int nof_bytes)
+int srslte_ringbuffer_read(srslte_ringbuffer_t *q, void *p, int nof_bytes)
 {
+  uint8_t *ptr = (uint8_t*) p;
   pthread_mutex_lock(&q->mutex);
   while(q->count < nof_bytes) {
     pthread_cond_wait(&q->cvar, &q->mutex);
