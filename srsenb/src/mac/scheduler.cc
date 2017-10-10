@@ -541,7 +541,7 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
                 pending_rar[j].rar_tti = 0;            
                 
                 // Save UL resources 
-                uint32_t pending_tti=(current_tti+MSG3_DELAY_MS)%10;
+                uint32_t pending_tti=(current_tti+MSG3_DELAY_MS+HARQ_DELAY_MS)%10;
                 pending_msg3[pending_tti].enabled = true; 
                 pending_msg3[pending_tti].rnti    = pending_rar[j].rnti; 
                 pending_msg3[pending_tti].L       = L_prb; 

@@ -137,15 +137,13 @@ void phch_common::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_G
 {
   srslte_dci_rar_grant_unpack(&rar_grant, grant_payload);
   rar_grant_pending = true;
-  int delay = MSG3_DELAY_MS-HARQ_DELAY_MS;
-  if (delay < 0) {
-    fprintf(stderr, "Error MSG3_DELAY_MS can't be lower than HARQ_DELAY_MS\n");
-    delay = 0;
+  if (MSG3_DELAY_MS < 0) {
+    fprintf(stderr, "Error MSG3_DELAY_MS can't be negative\n");
   }
   if (rar_grant.ul_delay) {
-    rar_grant_tti     = (tti + delay + 1) % 10240;
+    rar_grant_tti     = (tti + MSG3_DELAY_MS + 1) % 10240;
   } else {
-    rar_grant_tti     = (tti + delay) % 10240;
+    rar_grant_tti     = (tti + MSG3_DELAY_MS) % 10240;
   }
 }
 
