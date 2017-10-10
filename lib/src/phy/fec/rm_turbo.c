@@ -741,4 +741,3 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
 
   return 0;
 }
-

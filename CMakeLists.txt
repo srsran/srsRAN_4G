@@ -61,7 +61,7 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 
-option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          ON)
+option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          OFF)
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 

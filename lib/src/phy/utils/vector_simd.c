@@ -211,7 +211,7 @@ void srslte_vec_sub_sss_sse(short *x, short *y, short *z, uint32_t len)
 
     zVal = _mm_sub_epi16(xVal, yVal);
 
-    _mm_store_si128(zPtr, zVal); 
+    _mm_store_si128(zPtr, zVal);
 
     xPtr ++;
     yPtr ++;
@@ -278,7 +278,7 @@ void srslte_vec_prod_sss_sse(short *x, short *y, short *z, uint32_t len)
 
     zVal = _mm_mullo_epi16(xVal, yVal);
 
-    _mm_store_si128(zPtr, zVal); 
+    _mm_store_si128(zPtr, zVal);
 
     xPtr ++;
     yPtr ++;
@@ -345,7 +345,7 @@ void srslte_vec_sc_div2_sss_sse(short *x, int k, short *z, uint32_t len)
     
     zVal = _mm_srai_epi16(xVal, k);                 
       
-    _mm_store_si128(zPtr, zVal); 
+    _mm_store_si128(zPtr, zVal);
 
     xPtr ++;
     zPtr ++;
@@ -467,6 +467,416 @@ void srslte_vec_convert_fi_sse(float *x, int16_t *z, float scale, uint32_t len)
   }
 #endif
 }
+
+
+// for enb no-volk
+void srslte_vec_sum_fff_sse(float *x, float *y, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 4;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  float* zPtr = (float*) z;
+
+  __m128 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
+
+    zVal = _mm_add_ps(xVal, yVal);
+
+    _mm_storeu_ps(zPtr, zVal);
+
+    xPtr += 4;
+    yPtr += 4;
+    zPtr += 4;
+  }
+
+  number = points * 4;
+  for(;number < len; number++){
+    z[number] = x[number] + y[number];
+  }
+#endif
+}
+
+void srslte_vec_sum_fff_avx(float *x, float *y, float *z, uint32_t len) {
+#ifdef LV_HAVE_AVX
+  unsigned int number = 0;
+  const unsigned int points = len / 8;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  float* zPtr = (float*) z;
+
+  __m256 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_loadu_ps(xPtr);
+    yVal = _mm256_loadu_ps(yPtr);
+
+    zVal = _mm256_add_ps(xVal, yVal);
+
+    _mm256_storeu_ps(zPtr, zVal);
+
+    xPtr += 8;
+    yPtr += 8;
+    zPtr += 8;
+  }
+
+  for(number = points * 8;number < len; number++){
+    z[number] = x[number] + y[number];
+  }
+#endif
+}
+
+void srslte_vec_sub_fff_sse(float *x, float *y, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 4;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  float* zPtr = (float*) z;
+
+  __m128 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
+
+    zVal = _mm_sub_ps(xVal, yVal);
+
+    _mm_storeu_ps(zPtr, zVal);
+
+    xPtr += 4;
+    yPtr += 4;
+    zPtr += 4;
+  }
+
+  for(number = points * 4;number < len; number++){
+    z[number] = x[number] - y[number];
+  }
+#endif
+}
+
+
+void srslte_vec_sub_fff_avx(float *x, float *y, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 8;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  float* zPtr = (float*) z;
+
+  __m256 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_loadu_ps(xPtr);
+    yVal = _mm256_loadu_ps(yPtr);
+
+    zVal = _mm256_sub_ps(xVal, yVal);
+
+    _mm256_storeu_ps(zPtr, zVal);
+
+    xPtr += 8;
+    yPtr += 8;
+    zPtr += 8;
+  }
+
+  for(number = points * 8;number < len; number++){
+    z[number] = x[number] - y[number];
+  }
+#endif
+}
+
+#ifdef LV_HAVE_SSE
+static inline __m128 _mm_complexmul_ps(__m128 x, __m128 y) {
+  __m128 yl, yh, tmp1, tmp2;
+  yl = _mm_moveldup_ps(y); // Load yl with cr,cr,dr,dr
+  yh = _mm_movehdup_ps(y); // Load yh with ci,ci,di,di
+  tmp1 = _mm_mul_ps(x, yl); // tmp1 = ar*cr,ai*cr,br*dr,bi*dr
+  x = _mm_shuffle_ps(x, x, 0xB1); // Re-arrange x to be ai,ar,bi,br
+  tmp2 = _mm_mul_ps(x, yh); // tmp2 = ai*ci,ar*ci,bi*di,br*di
+  return _mm_addsub_ps(tmp1, tmp2); // ar*cr-ai*ci, ai*cr+ar*ci, br*dr-bi*di, bi*dr+br*di
+}
+#endif
+
+
+#ifdef LV_HAVE_SSE
+static inline __m128 _mm_complexmulconj_ps(__m128 x, __m128 y) {
+  const __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
+  y = _mm_xor_ps(y, conjugator); 
+  return _mm_complexmul_ps(x, y);
+}
+#endif
+
+cf_t srslte_vec_dot_prod_ccc_sse(cf_t *x, cf_t *y, uint32_t len)
+{
+  cf_t result = 0; 
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 2;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  
+  __m128 dotProdVal = _mm_setzero_ps();
+
+  __m128 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
+
+    zVal = _mm_complexmul_ps(xVal, yVal);
+
+    dotProdVal = _mm_add_ps(dotProdVal, zVal);
+
+    xPtr += 4;
+    yPtr += 4;
+  }
+  
+  cf_t dotProdVector[2];
+  _mm_storeu_ps((float*) dotProdVector, dotProdVal);
+  for (int i=0;i<2;i++) {
+    result += dotProdVector[i]; 
+  }
+
+  number = points * 2;
+  for(;number < len; number++){
+    result += (x[number] * y[number]);
+  }
+  
+#endif
+  return result; 
+}
+
+cf_t srslte_vec_dot_prod_conj_ccc_sse(cf_t *x, cf_t *y, uint32_t len)
+{
+  cf_t result = 0; 
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 2;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  
+  __m128 dotProdVal = _mm_setzero_ps();
+
+  __m128 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
+
+    zVal = _mm_complexmulconj_ps(xVal, yVal);
+
+    dotProdVal = _mm_add_ps(dotProdVal, zVal);
+
+    xPtr += 4;
+    yPtr += 4;
+  }
+  
+  cf_t dotProdVector[2];
+  _mm_storeu_ps((float*) dotProdVector, dotProdVal);
+  for (int i=0;i<2;i++) {
+    result += dotProdVector[i]; 
+  }
+
+  number = points * 2;
+  for(;number < len; number++){
+    result += (x[number] * y[number]);
+  }
+  
+#endif
+  return result; 
+}
+
+void srslte_vec_prod_ccc_sse(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
+{
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int halfPoints = len / 2;
+
+  __m128 xVal, yVal, zVal;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+
+  for(; number < halfPoints; number++){
+    xVal = _mm_loadu_ps(xPtr); 
+    yVal = _mm_loadu_ps(yPtr); 
+    zVal = _mm_complexmul_ps(xVal, yVal);
+    _mm_storeu_ps(zPtr, zVal); 
+
+    xPtr += 4;
+    yPtr += 4;
+    zPtr += 4;
+  }
+
+  number = halfPoints * 2;
+  for(;number < len; number++){
+    z[number] = x[number] * y[number];
+  }
+#endif
+}
+
+
+void srslte_vec_prod_conj_ccc_sse(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int halfPoints = len / 2;
+
+  __m128 xVal, yVal, zVal;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+
+  for(; number < halfPoints; number++){
+    xVal = _mm_loadu_ps(xPtr); 
+    yVal = _mm_loadu_ps(yPtr); 
+    zVal = _mm_complexmulconj_ps(xVal, yVal);
+    _mm_storeu_ps(zPtr, zVal); 
+
+    xPtr += 4;
+    yPtr += 4;
+    zPtr += 4;
+  }
+
+  number = halfPoints * 2;
+  for(;number < len; number++){
+    z[number] = x[number] * conjf(y[number]);
+  }
+#endif
+}
+
+void srslte_vec_sc_prod_ccc_sse(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int halfPoints = len / 2;
+
+  __m128 xVal, yl, yh, zVal, tmp1, tmp2;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+
+  // Set up constant scalar vector
+  yl = _mm_set_ps1(creal(h));
+  yh = _mm_set_ps1(cimag(h));
+
+  for(;number < halfPoints; number++){
+
+    xVal = _mm_loadu_ps(xPtr); 
+    tmp1 = _mm_mul_ps(xVal,yl); 
+    xVal = _mm_shuffle_ps(xVal,xVal,0xB1); 
+    tmp2 = _mm_mul_ps(xVal,yh); 
+    zVal = _mm_addsub_ps(tmp1,tmp2); 
+    _mm_storeu_ps(zPtr,zVal); 
+
+    xPtr += 4;
+    zPtr += 4;
+  }
+
+  number = halfPoints * 2;
+  for(;number < len; number++){
+    z[number] = x[number] * h;
+  }
+#endif
+}
+
+
+void srslte_vec_sc_prod_cfc_sse(cf_t *x, float h, cf_t *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int halfPoints = len / 2;
+
+  __m128 xVal, hVal, zVal;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+
+  // Set up constant scalar vector
+  hVal = _mm_set_ps1(h);
+  
+  for(;number < halfPoints; number++){
+
+    xVal = _mm_loadu_ps(xPtr); 
+    zVal = _mm_mul_ps(xVal,hVal); 
+    _mm_storeu_ps(zPtr,zVal); 
+
+    xPtr += 4;
+    zPtr += 4;
+  }
+
+  number = halfPoints * 2;
+  for(;number < len; number++){
+    z[number] = x[number] * h;
+  }
+
+#endif
+}
+
+
+
+void srslte_vec_sc_prod_fff_sse(float *x, float h, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int quarterPoints = len / 4;
+
+  __m128 xVal, hVal, zVal;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+
+  // Set up constant scalar vector
+  hVal = _mm_set_ps1(h);
+  
+  for(;number < quarterPoints; number++){
+
+    xVal = _mm_loadu_ps(xPtr); 
+    zVal = _mm_mul_ps(xVal,hVal); 
+    _mm_storeu_ps(zPtr,zVal); 
+
+    xPtr += 4;
+    zPtr += 4;
+  }
+
+  number = quarterPoints * 4;
+  for(;number < len; number++){
+    z[number] = x[number] * h;
+  }
+
+#endif
+}
+
+void srslte_vec_abs_square_cf_sse(cf_t *x, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int quarterPoints = len / 4;
+
+  const float* xPtr = (const float*) x;
+  float* zPtr = z;
+
+  __m128 xVal1, xVal2, zVal;
+  for(; number < quarterPoints; number++){
+    xVal1 = _mm_loadu_ps(xPtr);
+    xPtr += 4;
+    xVal2 = _mm_loadu_ps(xPtr);
+    xPtr += 4;
+    xVal1 = _mm_mul_ps(xVal1, xVal1); 
+    xVal2 = _mm_mul_ps(xVal2, xVal2); 
+    zVal = _mm_hadd_ps(xVal1, xVal2);
+    _mm_storeu_ps(zPtr, zVal);
+    zPtr += 4;
+  }
+
+  number = quarterPoints * 4;
+  for(;number < len; number++){
+    z[number] = creal(x[number]) * creal(x[number]) + cimag(x[number])*cimag(x[number]);
+  }
+#endif
+}
+
 
 //srslte_32fc_s32f_multiply_32fc_avx
  void srslte_vec_sc_prod_cfc_avx( const cf_t *x,const float h,cf_t *z,const uint32_t len)
