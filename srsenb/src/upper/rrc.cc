@@ -1114,6 +1114,9 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->sched_request_cnfg_present = true;
   phy_cfg->sched_request_cnfg.setup_present = true; 
   phy_cfg->sched_request_cnfg.dsr_trans_max = parent->cfg.sr_cfg.dsr_max; 
+  memcpy(&phy_cfg->antenna_info_explicit_value, &parent->cfg.antenna_info, sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+  phy_cfg->antenna_info_present = true;
+  phy_cfg->antenna_info_default_value = false;
 
   if (is_setup) {
     if (sr_allocate(parent->cfg.sr_cfg.period, &phy_cfg->sched_request_cnfg.sr_cnfg_idx, &phy_cfg->sched_request_cnfg.sr_pucch_resource_idx)) {

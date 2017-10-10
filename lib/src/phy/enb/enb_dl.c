@@ -219,15 +219,19 @@ void srslte_enb_dl_clear_sf(srslte_enb_dl_t *q)
 void srslte_enb_dl_put_sync(srslte_enb_dl_t *q, uint32_t sf_idx) 
 {
   if (sf_idx == 0 || sf_idx == 5) {
-    srslte_pss_put_slot(q->pss_signal, q->sf_symbols[0], q->cell.nof_prb, q->cell.cp);
-    srslte_sss_put_slot(sf_idx ? q->sss_signal5 : q->sss_signal0, q->sf_symbols[0], 
-                        q->cell.nof_prb, SRSLTE_CP_NORM);
+    for (int p = 0; p < q->cell.nof_ports; p++) {
+      srslte_pss_put_slot(q->pss_signal, q->sf_symbols[p], q->cell.nof_prb, q->cell.cp);
+      srslte_sss_put_slot(sf_idx ? q->sss_signal5 : q->sss_signal0, q->sf_symbols[p],
+                          q->cell.nof_prb, SRSLTE_CP_NORM);
+    }
   }  
 }
 
 void srslte_enb_dl_put_refs(srslte_enb_dl_t *q, uint32_t sf_idx)
 {
-  srslte_refsignal_cs_put_sf(q->cell, 0, q->csr_signal.pilots[0][sf_idx], q->sf_symbols[0]);
+  for (int p = 0; p < q->cell.nof_ports; p++) {
+    srslte_refsignal_cs_put_sf(q->cell, (uint32_t) p, q->csr_signal.pilots[p / 2][sf_idx], q->sf_symbols[p]);
+  }
 }
 
 void srslte_enb_dl_put_mib(srslte_enb_dl_t *q, uint32_t tti)
@@ -256,7 +260,7 @@ void srslte_enb_dl_put_phich(srslte_enb_dl_t *q, uint8_t ack, uint32_t n_prb_low
 void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti) 
 {
   uint32_t sf_idx = tti%10;
-  
+
   srslte_enb_dl_put_sync(q, sf_idx);
   srslte_enb_dl_put_refs(q, sf_idx);
   srslte_enb_dl_put_mib(q, tti);

@@ -90,12 +90,12 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
   // Init cell here
   for(int p = 0; p < SRSLTE_MAX_PORTS; p++) {
     signal_buffer_rx[p] = (cf_t *) srslte_vec_malloc(2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
-    if (!signal_buffer_rx) {
+    if (!signal_buffer_rx[p]) {
       fprintf(stderr, "Error allocating memory\n");
       return;
     }
     signal_buffer_tx[p] = (cf_t *) srslte_vec_malloc(2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
-    if (!signal_buffer_tx) {
+    if (!signal_buffer_tx[p]) {
       fprintf(stderr, "Error allocating memory\n");
       return;
     }
@@ -155,11 +155,13 @@ void phch_worker::stop()
 
   srslte_enb_dl_free(&enb_dl);
   srslte_enb_ul_free(&enb_ul);
-  if (signal_buffer_rx) {
-    free(signal_buffer_rx);
-  }
-  if (signal_buffer_tx) {
-    free(signal_buffer_tx);
+  for (int p  = 0; p < SRSLTE_MAX_PORTS; p++) {
+    if (signal_buffer_rx[p]) {
+      free(signal_buffer_rx[p]);
+    }
+    if (signal_buffer_tx[p]) {
+      free(signal_buffer_tx[p]);
+    }
   }
   pthread_mutex_unlock(&mutex);
   pthread_mutex_destroy(&mutex);
