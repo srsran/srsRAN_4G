@@ -65,6 +65,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   common.add_options()
     ("rf.dl_earfcn", bpo::value<uint32_t>(&args->rf.dl_earfcn)->default_value(3400), "Downlink EARFCN")
     ("rf.freq_offset", bpo::value<float>(&args->rf.freq_offset)->default_value(0), "(optional) Frequency offset")
+    ("rf.dl_freq",     bpo::value<float>(&args->rf.dl_freq)->default_value(-1),      "Downlink Frequency (if positive overrides EARFCN)")
+    ("rf.ul_freq",     bpo::value<float>(&args->rf.ul_freq)->default_value(-1),      "Uplink Frequency (if positive overrides EARFCN)")
     ("rf.rx_gain", bpo::value<float>(&args->rf.rx_gain)->default_value(-1), "Front-end receiver gain")
     ("rf.tx_gain", bpo::value<float>(&args->rf.tx_gain)->default_value(-1), "Front-end transmitter gain")
     ("rf.nof_rx_ant", bpo::value<uint32_t>(&args->rf.nof_rx_ant)->default_value(1), "Number of RX antennas")

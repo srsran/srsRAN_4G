@@ -332,6 +332,11 @@ void phy::set_earfcn(vector< uint32_t > earfcns)
   sf_recv.set_earfcn(earfcns);
 }
 
+void phy::force_freq(float dl_freq, float ul_freq)
+{
+  sf_recv.force_freq(dl_freq, ul_freq);
+}
+
 bool phy::sync_status()
 {
   return sf_recv.status_is_sync();
