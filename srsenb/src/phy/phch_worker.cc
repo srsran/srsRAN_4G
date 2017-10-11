@@ -210,13 +210,28 @@ uint32_t phch_worker::get_nof_rnti() {
   return ue_db.size();
 }
 
+void phch_worker::set_conf_dedicated_ack(uint16_t rnti, bool ack){
+  pthread_mutex_lock(&mutex);
+  if (ue_db.count(rnti)) {
+    ue_db[rnti].dedicated_ack = ack;
+  } else {
+    Error("Setting dedicated ack: rnti=0x%x does not exist\n");
+  }
+  pthread_mutex_unlock(&mutex);
+}
+
 void phch_worker::set_config_dedicated(uint16_t rnti, 
                                        srslte_uci_cfg_t *uci_cfg, 
                                        srslte_pucch_sched_t *pucch_sched,
                                        srslte_refsignal_srs_cfg_t *srs_cfg, 
-                                       uint32_t I_sr, bool pucch_cqi, uint32_t pmi_idx, bool pucch_cqi_ack)
+                                       LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
-  pthread_mutex_lock(&mutex); 
+  uint32_t  I_sr = dedicated->sched_request_cnfg.sr_cnfg_idx;
+  bool pucch_cqi = dedicated->cqi_report_cnfg.report_periodic_setup_present;
+  uint32_t pmi_idx = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
+  bool pucch_cqi_ack = dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi;
+
+  pthread_mutex_lock(&mutex);
   if (ue_db.count(rnti)) {
     pucch_sched->N_pucch_1 = phy->pucch_cfg.n1_pucch_an;
     srslte_enb_ul_cfg_ue(&enb_ul, rnti, uci_cfg, pucch_sched, srs_cfg);
@@ -232,7 +247,9 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
       ue_db[rnti].pmi_idx = 0; 
       ue_db[rnti].cqi_en  = false;             
     }
-    
+
+    /* Copy all dedicated RRC configuration to UE */
+    memcpy(&ue_db[rnti].dedicated, dedicated, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
   } else {
     Error("Setting config dedicated: rnti=0x%x does not exist\n");
   }
@@ -624,14 +641,25 @@ int phch_worker::encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_gra
 
 int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
+  /* For each grant... */
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {
-      srslte_dci_format_t format = SRSLTE_DCI_FORMAT1; 
+      bool dedicated_acknowledged = ue_db[grants[i].rnti].dedicated_ack;
+      bool antenna_info_present = ue_db[grants[i].rnti].dedicated.antenna_info_present;
+      LIBLTE_RRC_TRANSMISSION_MODE_ENUM tx_mode = ue_db[grants[i].rnti].dedicated.antenna_info_explicit_value.tx_mode;
+
+      srslte_dci_format_t format = SRSLTE_DCI_FORMAT1;
       switch(grants[i].grant.alloc_type) {
         case SRSLTE_RA_ALLOC_TYPE0:
         case SRSLTE_RA_ALLOC_TYPE1:
-          format = SRSLTE_DCI_FORMAT1; 
+          if (dedicated_acknowledged && antenna_info_present && tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+            format = SRSLTE_DCI_FORMAT2A;
+          } else if (dedicated_acknowledged && antenna_info_present && tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+            format = SRSLTE_DCI_FORMAT2;
+          } else {
+            format = SRSLTE_DCI_FORMAT1;
+          }
         break;
         case SRSLTE_RA_ALLOC_TYPE2:
           format = SRSLTE_DCI_FORMAT1A; 

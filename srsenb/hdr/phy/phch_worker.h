@@ -56,13 +56,15 @@ public:
   int read_ce_abs(float *ce_abs);
   int read_pusch_d(cf_t *pusch_d);
   void start_plot();
-  
+
+  void set_conf_dedicated_ack(uint16_t rnti,
+                         bool rrc_completed);
   
   void set_config_dedicated(uint16_t rnti, 
                             srslte_uci_cfg_t *uci_cfg, 
                             srslte_pucch_sched_t *pucch_sched,
                             srslte_refsignal_srs_cfg_t *srs_cfg, 
-                            uint32_t I_sr, bool pucch_cqi, uint32_t pmi_idx, bool pucch_cqi_ack);
+                            LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated);
   
   uint32_t get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   
@@ -99,13 +101,16 @@ private:
   // Class to store user information 
   class ue {
   public:
-    ue() : I_sr(0), I_sr_en(false), cqi_en(false), pucch_cqi_ack(false), pmi_idx(0), has_grant_tti(0) {bzero(&metrics, sizeof(phy_metrics_t));}
+    ue() : I_sr(0), I_sr_en(false), cqi_en(false), pucch_cqi_ack(false), pmi_idx(0), has_grant_tti(0),
+           dedicated_ack(false) {bzero(&metrics, sizeof(phy_metrics_t));}
     uint32_t I_sr; 
     uint32_t pmi_idx;
     bool I_sr_en; 
     bool cqi_en;
     bool pucch_cqi_ack; 
     int has_grant_tti; 
+    LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT dedicated;
+    bool dedicated_ack;
     uint32_t rnti; 
     srslte_enb_ul_phich_info_t phich_info;
     void metrics_read(phy_metrics_t *metrics);

@@ -93,7 +93,8 @@ public:
 class phy_interface_rrc
 {
 public:
-  virtual void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated) = 0; 
+  virtual void set_conf_dedicated_ack(uint16_t rnti, bool rrc_completed) = 0;
+  virtual void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated) = 0;
   
 };
 

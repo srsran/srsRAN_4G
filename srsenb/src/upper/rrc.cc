@@ -862,6 +862,9 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
   memcpy(pdu->msg, msg->dedicated_info_nas.msg, msg->dedicated_info_nas.N_bytes);
   pdu->N_bytes = msg->dedicated_info_nas.N_bytes;
 
+  // Acknowledge Dedicated Configuration
+  parent->phy->set_conf_dedicated_ack(rnti, true);
+
   if(has_tmsi) {
     parent->s1ap->initial_ue(rnti, pdu, m_tmsi, mmec);
   } else {
@@ -1197,6 +1200,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
+  parent->phy->set_conf_dedicated_ack(rnti, false);
   parent->mac->phy_config_enabled(rnti, true);
   
   rr_cfg->drb_to_add_mod_list_size = 0; 
