@@ -35,7 +35,7 @@ typedef struct{
   uint16_t      tac;        // 16-bit tac
   uint16_t      mcc;        // BCD-coded with 0xF filler
   uint16_t      mnc;        // BCD-coded with 0xF filler
-  std::string   mme_bindx_addr;
+  std::string   mme_bind_addr;
   std::string   mme_name;
 } s1ap_args_t;
 
@@ -56,7 +56,7 @@ private:
   uint16_t      m_tac;        // 16-bit tac
   uint16_t      m_mcc;        // BCD-coded with 0xF filler
   uint16_t      m_mnc;        // BCD-coded with 0xF filler
-  std::string   m_mme_bindx_addr;
+  std::string   m_mme_bind_addr;
   std::string   m_mme_name;
 
   srslte::log   *m_log_h;

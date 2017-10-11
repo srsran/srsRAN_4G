@@ -54,7 +54,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
   m_tac         = s1ap_args.tac;
   m_mcc         = s1ap_args.mcc;        
   m_mnc         = s1ap_args.mnc;        
-  m_mme_bindx_addr = s1ap_args.mme_bindx_addr;
+  m_mme_bind_addr = s1ap_args.mme_bind_addr;
   m_mme_name = std::string("SRS MME");
 
   m_log_h = s1ap_log;
@@ -111,8 +111,9 @@ s1ap::enb_listen()
 
   //S1-MME bind
   bzero(&s1mme_addr, sizeof(s1mme_addr));
-  s1mme_addr.sin_family = AF_INET;
-  s1mme_addr.sin_addr.s_addr = htonl(INADDR_ANY); //TODO this should use the bindx information
+  s1mme_addr.sin_family = AF_INET; 
+  inet_pton(AF_INET, m_mme_bind_addr.c_str(), &(s1mme_addr.sin_addr) );
+  //s1mme_addr.sin_addr.s_addr = htonl(INADDR_ANY); //TODO this should use the bindx information
   s1mme_addr.sin_port = htons(S1MME_PORT);
   err = bind(sock_fd, (struct sockaddr*) &s1mme_addr, sizeof (s1mme_addr));
   if (err != 0){
