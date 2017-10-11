@@ -53,6 +53,8 @@ public:
   
   int init(all_args_t* args);
 
+  void stop();
+
   int get_s1_mme();
 
 private:

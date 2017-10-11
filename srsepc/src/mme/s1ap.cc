@@ -31,11 +31,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/sctp.h>
+#include <unistd.h>
 #include "mme/s1ap.h"
 
 namespace srsepc{
 
-s1ap::s1ap()
+s1ap::s1ap():
+  m_s1mme(-1)
 {
 }
 
@@ -58,16 +60,48 @@ s1ap::init(s1ap_args_t s1ap_args)
   return 0;
 }
 
+void
+s1ap::stop()
+{
+  if (m_s1mme != -1){
+    close(m_s1mme);
+  }
+  return;
+}
+
+int
+s1ap::get_s1_mme()
+{
+  return m_s1mme;
+}
+
 int
 s1ap::enb_listen()
 {
   /*This function sets up the SCTP socket for eNBs to connect to*/
   int sock_fd, err;
   struct sockaddr_in s1mme_addr;//TODO make this a configurable class memeber.
+  struct sctp_event_subscribe evnts;
 
   sock_fd = socket (AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
   if (sock_fd == -1){
     std::cout << "[S1APP] Could not create SCTP socket" <<std::endl; //TODO fix logging
+    return -1;
+  }
+
+  //Set timeout
+  struct timeval timeout;      
+  timeout.tv_sec = 1;
+  timeout.tv_usec = 0;
+  if (setsockopt (sock_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0){
+    std::cout << "Set socket timeout failed" << std::endl;
+    return -1; 
+  }
+
+  bzero (&evnts, sizeof (evnts)) ;
+  evnts.sctp_data_io_event = 1;
+  if(setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof (evnts))){
+    std::cout << "Subscribing to sctp_data_io_events failed" << std::cout;
     return -1;
   }
 
@@ -79,21 +113,18 @@ s1ap::enb_listen()
   err = bind(sock_fd, (struct sockaddr*) &s1mme_addr, sizeof (s1mme_addr));
   if (err != 0){
     std::cout << "Error binding SCTP socket" << std::endl;
+    return -1;
   }
 
   //Listen for connections
   err = listen(sock_fd,SOMAXCONN);
   if (err != 0){
     std::cout << "Error in SCTP socket listen" << std::endl;
+    return -1;
   }
 
   return sock_fd;
 }
 
-int
-s1ap::get_s1_mme()
-{
-  return m_s1mme;
-}
 
 }//namespace srsepc

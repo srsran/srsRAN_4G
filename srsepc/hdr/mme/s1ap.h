@@ -43,9 +43,9 @@ class s1ap
 public:
   s1ap();
   virtual ~s1ap();
-  int enb_listen();
-  
+  int enb_listen(); 
   int init(s1ap_args_t s1ap_args);
+  void stop();
 
   int get_s1_mme();
 

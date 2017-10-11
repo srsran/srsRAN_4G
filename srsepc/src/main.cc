@@ -24,6 +24,8 @@
  *
  */
 #include <iostream>
+#include <errno.h>
+#include <signal.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -36,6 +38,12 @@ using namespace srsepc;
 namespace bpo = boost::program_options;
 
 bool running = true;
+
+void 
+sig_int_handler(int signo){
+  running = false;
+}
+
 
 /*
 void
@@ -84,7 +92,7 @@ main (int argc,char * argv[] )
 {  
   cout << "---  Software Radio Systems EPC MME  ---" << endl << endl;
   
-  //signal(SIGINT,    sig_int_handler);
+  signal(SIGINT,    sig_int_handler);
 
   //TODO these should be passed from config files
   all_args_t args; 
@@ -100,7 +108,7 @@ main (int argc,char * argv[] )
   struct sctp_sndrcvinfo sri;
   socklen_t fromlen;
   int rd_sz;
-  int msg_flags;
+  int msg_flags=0;
 
   mme *mme = mme::get_instance();
   if (mme->init(&args)) {
@@ -110,17 +118,29 @@ main (int argc,char * argv[] )
 
   //Initalize S1-MME scoket
   int s1mme = mme->get_s1_mme();
+  cout << "Socket: " << s1mme;
   while(running)
   {
-    cout << "Waiting for SCTP Msg" << endl;
+    cout << "Waiting for SCTP Msg on: " << s1mme << endl;
+    //cout << "Sri:" << sri <<endl;
+    cout << "Flags:" << msg_flags <<endl;
     rd_sz = sctp_recvmsg(s1mme, (void*) readbuf, sizeof(readbuf),(struct sockaddr*) &enb_addr, &fromlen, &sri, &msg_flags);
-    if (rd_sz == -1){
+    if (rd_sz == -1 && errno != EAGAIN){
       cout<< "Error reading from SCTP socket"<<endl;
+      printf("Error: %s\n", strerror(errno));
+      return -1;
     }
-    cout << "Received SCTP msg." << endl;
-    cout << "\tSize: " << rd_sz <<endl;
-    cout << "\tMsg: " << readbuf << endl;
+    else if (rd_sz == -1 && errno == EAGAIN){
+      cout << "Timeout reached" << endl;
+    }
+    else{
+      cout<< "Received SCTP msg." << endl;
+      cout << "\tSize: " << rd_sz <<endl;
+      cout << "\tMsg: " << readbuf << endl;
+    }
   }
-    
+  mme->stop();
+  mme->cleanup();  
+  cout << "---  exiting  ---" << endl;  
   return 0;
 }

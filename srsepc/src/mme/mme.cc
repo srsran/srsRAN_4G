@@ -73,6 +73,13 @@ mme::init(all_args_t* args)
   return 0;
 }
 
+void
+mme::stop()
+{
+  m_s1ap.stop();
+  return;
+}
+
 int
 mme::get_s1_mme()
 {
