@@ -23,6 +23,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#include "srslte/common/log.h"
 
 namespace srsepc{
 
@@ -44,7 +45,7 @@ public:
   s1ap();
   virtual ~s1ap();
   int enb_listen(); 
-  int init(s1ap_args_t s1ap_args);
+  int init(s1ap_args_t s1ap_args, srslte::log *s1ap_log);
   void stop();
 
   int get_s1_mme();
@@ -57,6 +58,8 @@ private:
   uint16_t      m_mnc;        // BCD-coded with 0xF filler
   std::string   m_mme_bindx_addr;
   std::string   m_mme_name;
+
+  srslte::log   *m_log_h;
 
   int m_s1mme;
 };

@@ -103,6 +103,7 @@ main (int argc,char * argv[] )
   args.s1ap_args.mnc = 0x01;
   args.s1ap_args.mme_bindx_addr="127.0.0.0/24";
 
+  args.log_args.filename = std::string("/tmp/epc.log");
   struct sockaddr_in enb_addr;
   char readbuf[1000];
   struct sctp_sndrcvinfo sri;

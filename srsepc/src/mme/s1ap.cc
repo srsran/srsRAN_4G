@@ -32,6 +32,7 @@
 #include <sys/socket.h>
 #include <netinet/sctp.h>
 #include <unistd.h>
+
 #include "mme/s1ap.h"
 
 namespace srsepc{
@@ -46,7 +47,7 @@ s1ap::~s1ap()
 }
 
 int
-s1ap::init(s1ap_args_t s1ap_args)
+s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
 {
   m_mme_code    = s1ap_args.mme_code ;
   m_mme_group   = s1ap_args.mme_group;
@@ -55,6 +56,8 @@ s1ap::init(s1ap_args_t s1ap_args)
   m_mnc         = s1ap_args.mnc;        
   m_mme_bindx_addr = s1ap_args.mme_bindx_addr;
   m_mme_name = std::string("SRS MME");
+
+  m_log_h = s1ap_log;
 
   m_s1mme = enb_listen();
   return 0;
@@ -83,6 +86,7 @@ s1ap::enb_listen()
   struct sockaddr_in s1mme_addr;//TODO make this a configurable class memeber.
   struct sctp_event_subscribe evnts;
 
+  m_log_h->info("Initializing S1-MME ...");
   sock_fd = socket (AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
   if (sock_fd == -1){
     std::cout << "[S1APP] Could not create SCTP socket" <<std::endl; //TODO fix logging

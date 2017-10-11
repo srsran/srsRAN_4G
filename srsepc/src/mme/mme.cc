@@ -66,7 +66,18 @@ mme::cleanup(void)
 int
 mme::init(all_args_t* args)
 {
-  if(m_s1ap.init(args->s1ap_args)){
+
+  /*Init loggers*/
+  if (!args->log_args.filename.compare("stdout")) {
+    m_logger = &m_logger_stdout;
+  } else {
+    m_logger_file.init(args->log_args.filename);
+    m_logger_file.log("\n\n");
+    m_logger = &m_logger_file;
+  }
+
+  m_s1ap_log.init("S1AP", m_logger);
+  if(m_s1ap.init(args->s1ap_args, &m_s1ap_log)){
     std::cout << "Error initializing MME S1APP" << std::endl;
     exit(-1);
   }

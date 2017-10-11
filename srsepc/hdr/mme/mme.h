@@ -34,13 +34,24 @@
 #define MME_H
 
 #include <cstddef>
+#include "srslte/common/logger_file.h"
+#include "srslte/common/log_filter.h"
 #include "s1ap.h"
 
 
 namespace srsepc{
 
+
+typedef struct {
+  std::string   s1ap_level;
+  std::string   all_level;
+  int           s1ap_hex_limit;
+  std::string   filename;
+}log_args_t;
+
 typedef struct{
   s1ap_args_t s1ap_args;
+  log_args_t log_args;
 } all_args_t;
 
 
@@ -63,6 +74,13 @@ private:
   virtual ~mme();
   static mme *m_instance;
   s1ap m_s1ap;
+
+  /*Logs*/
+  srslte::logger_stdout m_logger_stdout;
+  srslte::logger_file   m_logger_file;
+  srslte::logger        *m_logger;
+
+  srslte::log_filter  m_s1ap_log;
  
 };
 
