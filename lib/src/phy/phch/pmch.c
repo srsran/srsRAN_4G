@@ -381,11 +381,11 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
     srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, cfg->nbits[0].nof_re, noise_estimate);
     
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("SAVED FILE subframe.dat: received subframe symbols\n",0);
+      DEBUG("SAVED FILE subframe.dat: received subframe symbols\n");
       srslte_vec_save_file("subframe.dat", sf_symbols, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
-      DEBUG("SAVED FILE hest0.dat: channel estimates for port 4\n",0);
+      DEBUG("SAVED FILE hest0.dat: channel estimates for port 4\n");
       srslte_vec_save_file("hest0.dat", ce[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
-      DEBUG("SAVED FILE pmch_symbols.dat: symbols after equalization\n",0);
+      DEBUG("SAVED FILE pmch_symbols.dat: symbols after equalization\n");
       srslte_vec_save_file("pmch_symbols.bin", q->d, cfg->nbits[0].nof_re*sizeof(cf_t));
     }
     
@@ -393,16 +393,13 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
     * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
     * thus we don't need tot set it in thde LLRs normalization
     */
-   
-    
-    
     srslte_demod_soft_demodulate_s(cfg->grant.mcs[0].mod, q->d, q->e, cfg->nbits[0].nof_re);
     
     /* descramble */
     srslte_scrambling_s_offset(&q->seqs[area_id]->seq[cfg->sf_idx], q->e, 0, cfg->nbits[0].nof_bits);
   
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling\n",0);
+      DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling\n");
       srslte_vec_save_file("llr.dat", q->e, cfg->nbits[0].nof_bits*sizeof(int16_t));
     }
     return srslte_dlsch_decode(&q->dl_sch, cfg, softbuffer, q->e, data);
