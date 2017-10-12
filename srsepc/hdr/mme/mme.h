@@ -36,6 +36,7 @@
 #include <cstddef>
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/buffer_pool.h"
 #include "s1ap.h"
 
 
@@ -67,6 +68,8 @@ public:
   void stop();
 
   int get_s1_mme();
+  
+  void main_loop();
 
 private:
 
@@ -74,6 +77,8 @@ private:
   virtual ~mme();
   static mme *m_instance;
   s1ap m_s1ap;
+
+  srslte::byte_buffer_pool *m_pool;
 
   /*Logs*/
   srslte::logger_stdout m_logger_stdout;

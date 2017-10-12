@@ -25,6 +25,10 @@
  */
 
 #include <iostream> //TODO Remove
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/sctp.h>
 #include <boost/thread/mutex.hpp>
 #include "mme/mme.h"
 
@@ -35,7 +39,8 @@ boost::mutex  mme_instance_mutex;
 
 mme::mme()
 {
-    return;
+  m_pool = srslte::byte_buffer_pool::get_instance();     
+  return;
 }
 
 mme::~mme()
@@ -95,6 +100,43 @@ int
 mme::get_s1_mme()
 {
   return m_s1ap.get_s1_mme();
+}
+
+void
+mme::main_loop()
+{
+  srslte::byte_buffer_t *pdu = m_pool->allocate();
+  uint32_t sz = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
+
+  struct sockaddr_in enb_addr;
+  struct sctp_sndrcvinfo sri;
+  socklen_t fromlen = sizeof(enb_addr);
+  bzero(&enb_addr, sizeof(enb_addr));
+  int rd_sz;
+  int msg_flags=0;
+
+  //Get S1-MME socket
+  int s1mme = m_s1ap.get_s1_mme();
+  while(true)
+  {
+    std::cout << "Waiting for SCTP Msg " << std::endl;
+    pdu->reset();
+    rd_sz = sctp_recvmsg(s1mme, pdu->msg, sz,(struct sockaddr*) &enb_addr, &fromlen, &sri, &msg_flags);
+    if (rd_sz == -1 && errno != EAGAIN){
+      std::cout<< "Error reading from SCTP socket" << std::endl;
+      printf("Error: %s\n", strerror(errno));
+    }
+    else if (rd_sz == -1 && errno == EAGAIN){
+      std::cout << "Timeout reached" << std::endl;
+    }
+    else{
+      pdu->N_bytes = rd_sz;
+      std::cout<< "Received SCTP msg." << std::endl;
+      std::cout << "\tSize: " << pdu->N_bytes << std::endl;
+      std::cout << "\tMsg: " << pdu->msg << std::endl;
+      m_s1ap.handle_s1ap_rx_pdu(pdu);
+    }
+  }
 }
 
 } //namespace srsepc

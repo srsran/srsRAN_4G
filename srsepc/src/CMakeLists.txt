@@ -14,6 +14,7 @@ endif (RPATH)
 
 add_executable(srsepc main.cc )
 target_link_libraries(srsepc  srsepc_mme
+                              srslte_upper
                               srslte_common
                               ${CMAKE_THREAD_LIBS_INIT} 
                               ${Boost_LIBRARIES} 

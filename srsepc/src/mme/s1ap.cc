@@ -33,6 +33,7 @@
 #include <netinet/sctp.h>
 #include <unistd.h>
 
+#include "srslte/common/common.h"
 #include "mme/s1ap.h"
 
 namespace srsepc{
@@ -60,6 +61,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
   m_log_h = s1ap_log;
 
   m_s1mme = enb_listen();
+
   return 0;
 }
 
@@ -129,6 +131,96 @@ s1ap::enb_listen()
   }
 
   return sock_fd;
+}
+
+bool
+s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu) //TODO As it is, this function is exactly the same as srsenb::handle_s1ap_rx_pdu. Refactoring is needed.
+{
+  LIBLTE_S1AP_S1AP_PDU_STRUCT rx_pdu;
+
+  if(liblte_s1ap_unpack_s1ap_pdu((LIBLTE_BYTE_MSG_STRUCT*)pdu, &rx_pdu) != LIBLTE_SUCCESS) {
+    std::cout << "Failed to Unpack PDU" << std::endl;
+    m_log_h->error("Failed to unpack received PDU\n");
+    return false;
+  }
+
+  switch(rx_pdu.choice_type) {
+  case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
+    std::cout << "Received initiating PDU" <<std::endl;
+    m_log_h->debug("Received initiating PDU\n");
+    return handle_initiatingmessage(&rx_pdu.choice.initiatingMessage);
+    break;
+  case LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME:
+    std::cout << "Received Successful PDU" <<std::endl;
+    m_log_h->debug("Received Succeseful Outcome PDU\n");
+    return true;//handle_successfuloutcome(&rx_pdu.choice.successfulOutcome);
+    break;
+  case LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME:
+    std::cout << "Received Unsuccesfull PDU" <<std::endl;
+    m_log_h->debug("Received Unsucceseful Outcome PDU\n");
+    return true;//handle_unsuccessfuloutcome(&rx_pdu.choice.unsuccessfulOutcome);
+    break;
+  default:
+    std::cout << "Unhandled PDU type" <<std::endl;
+    m_log_h->error("Unhandled PDU type %d\n", rx_pdu.choice_type);
+    return false;
+  }
+
+  return true;
+
+}
+
+bool 
+s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg)
+{
+  switch(msg->choice_type) {
+  case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST:
+    std::cout << "Received S1 Setup Request." << std::endl;
+    return handle_s1setuprequest(&msg->choice.S1SetupRequest);
+  default:
+    std::cout << "Unhandled intiating message" << std::cout;
+    //s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
+  }
+  return true;
+}
+
+bool 
+s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg)
+{
+  
+  uint8_t tmp[150];
+  bzero(tmp,sizeof(tmp));
+  memcpy(tmp,&msg->eNBname.buffer,msg->eNBname.n_octets);  
+  std::cout <<"Wazuup" <<std::endl;
+  //liblte_s1ap_unpack_enbname(&tmp, &msg->eNBname);
+  std::cout << tmp <<std::endl;
+  //free(tmp);
+  //std::cout << msg->Global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer<<std::endl; 
+  //s1ap_log->info("Received DownlinkNASTransport\n");
+  /*
+  if(msg->ext) {
+    s1ap_log->warning("Not handling S1AP message extension\n");
+  }
+  if(enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID)) {
+    s1ap_log->warning("eNB_UE_S1AP_ID not found - discarding message\n");
+    return false;
+  }
+  uint16_t rnti = enbid_to_rnti_map[msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID];
+  ue_ctxt_map[rnti].MME_UE_S1AP_ID = msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+
+  if(msg->HandoverRestrictionList_present) {
+    s1ap_log->warning("Not handling HandoverRestrictionList\n");
+  }
+  if(msg->SubscriberProfileIDforRFP_present) {
+    s1ap_log->warning("Not handling SubscriberProfileIDforRFP\n");
+  }
+
+  srslte::byte_buffer_t *pdu = pool_allocate;
+  memcpy(pdu->msg, msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
+  pdu->N_bytes = msg->NAS_PDU.n_octets;
+  rrc->write_dl_info(rnti, pdu);
+  */
+  return true;
 }
 
 

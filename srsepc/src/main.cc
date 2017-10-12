@@ -2,8 +2,6 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2017 Software Radio Systems Limited
- *
  * \section LICENSE
  *
  * This file is part of srsLTE.
@@ -26,10 +24,6 @@
 #include <iostream>
 #include <errno.h>
 #include <signal.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/sctp.h>
 #include <boost/program_options.hpp>
 #include "srslte/common/bcd_helpers.h"
 #include "mme/mme.h"
@@ -145,21 +139,7 @@ main (int argc,char * argv[] )
   all_args_t args;
   parse_args(&args, argc, argv); 
   
-  //TODO these should be passed from config files
-  //args.s1ap_args.mme_code = 0x01;
-  //args.s1ap_args.mme_group = 0x0001;
-  //args.s1ap_args.tac = 0x0001;
-  //args.s1ap_args.mcc = 0x01;
-  //args.s1ap_args.mnc = 0x01;
-  //args.s1ap_args.mme_bindx_addr="127.0.0.0/24";
-
   args.log_args.filename = std::string("/tmp/epc.log");
-  struct sockaddr_in enb_addr;
-  char readbuf[1000];
-  struct sctp_sndrcvinfo sri;
-  socklen_t fromlen;
-  int rd_sz;
-  int msg_flags=0;
 
   mme *mme = mme::get_instance();
   if (mme->init(&args)) {
@@ -167,29 +147,8 @@ main (int argc,char * argv[] )
     exit(1);
   }
 
-  //Initalize S1-MME scoket
-  int s1mme = mme->get_s1_mme();
-  cout << "Socket: " << s1mme;
-  while(running)
-  {
-    cout << "Waiting for SCTP Msg on: " << s1mme << endl;
-    //cout << "Sri:" << sri <<endl;
-    cout << "Flags:" << msg_flags <<endl;
-    rd_sz = sctp_recvmsg(s1mme, (void*) readbuf, sizeof(readbuf),(struct sockaddr*) &enb_addr, &fromlen, &sri, &msg_flags);
-    if (rd_sz == -1 && errno != EAGAIN){
-      cout<< "Error reading from SCTP socket"<<endl;
-      printf("Error: %s\n", strerror(errno));
-      return -1;
-    }
-    else if (rd_sz == -1 && errno == EAGAIN){
-      cout << "Timeout reached" << endl;
-    }
-    else{
-      cout<< "Received SCTP msg." << endl;
-      cout << "\tSize: " << rd_sz <<endl;
-      cout << "\tMsg: " << readbuf << endl;
-    }
-  }
+  mme->main_loop();
+  
   mme->stop();
   mme->cleanup();  
   cout << "---  exiting  ---" << endl;  

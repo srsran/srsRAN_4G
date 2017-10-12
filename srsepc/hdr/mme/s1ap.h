@@ -23,6 +23,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/log.h"
 
 namespace srsepc{
@@ -49,6 +50,12 @@ public:
   void stop();
 
   int get_s1_mme();
+
+  bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu);
+
+  bool handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg);
+
+  bool handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg);
 
 private:
   uint8_t       m_mme_code;
