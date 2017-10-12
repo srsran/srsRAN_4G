@@ -100,7 +100,7 @@ private:
   uint8_t            nof_harq_proc;
   
   /* Msg3 Buffer */
-  static const uint32_t MSG3_BUFF_SZ = 128; 
+  static const uint32_t MSG3_BUFF_SZ = 1024;
   uint8_t               msg3_buff[MSG3_BUFF_SZ];
   
   /* PDU Buffer */
