@@ -261,11 +261,11 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
   uint32_t nof_frames = 0; 
   int mib_ret = SRSLTE_UE_MIB_NOTFOUND;
 
-  srslte_ue_mib_sync_reset(q);
-
-  if (q != NULL) 
+  if (q != NULL)
   {
-    ret = SRSLTE_SUCCESS;     
+    srslte_ue_mib_sync_reset(q);
+
+    ret = SRSLTE_SUCCESS;
     do {
       mib_ret = SRSLTE_UE_MIB_NOTFOUND; 
       ret = srslte_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);

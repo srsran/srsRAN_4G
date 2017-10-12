@@ -86,11 +86,7 @@ uint32_t srslte_refsignal_cs_nof_symbols(uint32_t port_id)
 
 uint32_t srslte_refsignal_mbsfn_nof_symbols()
 {
-  if(false){
-   return 3;
-  }else{
-   return 3;
-  }
+ return 3;
 }
 
 

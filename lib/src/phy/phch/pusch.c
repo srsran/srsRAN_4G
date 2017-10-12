@@ -323,7 +323,7 @@ int srslte_pusch_set_cell(srslte_pusch_t *q, srslte_cell_t cell) {
 
     q->max_re = cell.nof_prb * MAX_PUSCH_RE(q->cell.cp);
 
-    INFO("PUSCH: Cell config PCI=5d, %d ports %d PRBs, max_symbols: %d\n",
+    INFO("PUSCH: Cell config PCI=%d, %d ports %d PRBs, max_symbols: %d\n",
          q->cell.id, q->cell.nof_ports, q->cell.nof_prb, q->max_re);
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {

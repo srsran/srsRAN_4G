@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
       ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * NOF_CE_SYMBOLS);
-      if (!ce[i]) {
+      if (!ce[i][j]) {
         perror("srslte_vec_malloc");
         goto quit;
       }
