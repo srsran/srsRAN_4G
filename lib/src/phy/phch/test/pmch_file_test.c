@@ -157,7 +157,7 @@ int base_init() {
   srslte_ue_dl_set_non_mbsfn_region(&ue_dl, non_mbsfn_region);
   
   
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 

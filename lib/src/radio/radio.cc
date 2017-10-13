@@ -63,10 +63,10 @@ bool radio::init(char *args, char *devname)
   }
 
   if (args) {
-    strncpy(saved_args, args, 128);
+    strncpy(saved_args, args, 127);
   }
   if (devname) {
-    strncpy(saved_devname, devname, 128);
+    strncpy(saved_devname, devname, 127);
   }
 
   return true;    
