@@ -24,6 +24,7 @@
  *
  */
 #include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/common/common.h"
 #include "srslte/common/log.h"
 
 namespace srsepc{
@@ -70,5 +71,8 @@ private:
 
   int m_s1mme;
 };
+
+
+
 
 } //namespace srsepc

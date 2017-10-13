@@ -23,7 +23,7 @@ target_link_libraries(srsepc  srsepc_mme
                               ${SCTP_LIBRARIES})
 
 if (RPATH)
-  set_target_properties(srsenb PROPERTIES INSTALL_RPATH ".")
+  set_target_properties(srsepc PROPERTIES INSTALL_RPATH ".")
 endif (RPATH)
 
 install(TARGETS srsepc DESTINATION ${RUNTIME_DIR})

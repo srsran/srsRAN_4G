@@ -33,7 +33,8 @@
 #include <netinet/sctp.h>
 #include <unistd.h>
 
-#include "srslte/common/common.h"
+#include "srslte/upper/s1ap_common.h"
+#include "srslte/common/bcd_helpers.h"
 #include "mme/s1ap.h"
 
 namespace srsepc{
@@ -188,15 +189,62 @@ bool
 s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg)
 {
   
-  uint8_t tmp[150];
-  bzero(tmp,sizeof(tmp));
-  memcpy(tmp,&msg->eNBname.buffer,msg->eNBname.n_octets);  
-  std::cout <<"Wazuup" <<std::endl;
-  //liblte_s1ap_unpack_enbname(&tmp, &msg->eNBname);
-  std::cout << tmp <<std::endl;
-  //free(tmp);
-  //std::cout << msg->Global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer<<std::endl; 
-  //s1ap_log->info("Received DownlinkNASTransport\n");
+  uint8_t enb_name[150];
+  uint8_t enb_id[20];
+  uint32_t plmn = 0;
+  std::string mnc_str, mcc_str;
+  uint16_t mcc, mnc;  
+  uint16_t tac, bplmn;
+  uint32_t bplmns[32];
+
+  //eNB Name
+  if(msg->eNBname_present)
+  {
+    bzero(enb_name,sizeof(enb_name));
+    memcpy(enb_name,&msg->eNBname.buffer,msg->eNBname.n_octets);
+    std::cout <<"eNB Name: " << enb_name <<std::endl;
+  }
+  //eNB Id 9.2.1.37
+  memcpy(&enb_id, msg->Global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer, LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
+  std::cout << "eNB ID: ";
+  for (int i=0;i < 20;i++) {
+    std::cout<< (uint16_t)enb_id[i];
+  }
+  std::cout << std::endl;
+  //PLMN Id
+  ((uint8_t*)&plmn)[1] = msg->Global_ENB_ID.pLMNidentity.buffer[0];
+  ((uint8_t*)&plmn)[2] = msg->Global_ENB_ID.pLMNidentity.buffer[1];
+  ((uint8_t*)&plmn)[3] = msg->Global_ENB_ID.pLMNidentity.buffer[2];
+
+  plmn = ntohl(plmn);
+  srslte::s1ap_plmn_to_mccmnc(plmn, &mcc, &mnc);
+  srslte::mnc_to_string(mnc, &mnc_str);
+  srslte::mnc_to_string(mcc, &mcc_str);
+  std::cout << "MCC: "<< mcc_str << " MNC: " << mnc_str << std::endl;
+
+  //SupportedTAs
+  for(uint16_t i=0; i<msg->SupportedTAs.len; i++)
+  {
+    //tac = msg->SupportedTAs.buffer[i].tAC.buffer[]; //broadcastPLMNs
+    ((uint8_t*)&tac)[0] = msg->SupportedTAs.buffer[i].tAC.buffer[0];
+    ((uint8_t*)&tac)[1] = msg->SupportedTAs.buffer[i].tAC.buffer[1];
+    std::cout << "TAC: " << ntohs(tac) << std::endl;
+    for (uint16_t j=0; j<msg->SupportedTAs.buffer[i].broadcastPLMNs.len; j++)
+    {
+      ((uint8_t*)&bplmns[j])[1] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[0];
+      ((uint8_t*)&bplmns[j])[2] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[1];
+      ((uint8_t*)&bplmns[j])[3] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[2];
+
+      bplmns[j] = ntohl(bplmns[j]);
+      srslte::mnc_to_string(mnc, &mnc_str);
+      srslte::mnc_to_string(mcc, &mcc_str);
+      std::cout << "B_MCC: "<< mcc_str << " B_MNC: " << mnc_str << std::endl;
+    }
+  }
+
+  //Default Paging DRX
+  LIBLTE_S1AP_PAGINGDRX_ENUM drx = msg->DefaultPagingDRX.e;
+  std::cout << "Default Paging DRX" << drx << std::endl;
   /*
   if(msg->ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
@@ -224,4 +272,4 @@ s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg)
 }
 
 
-}//namespace srsepc
+} //namespace srsepc
