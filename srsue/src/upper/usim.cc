@@ -105,20 +105,18 @@ void usim::stop()
 
 void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 {
-  if (!initiated)
-  {
-    usim_log->error("Getting IMSI: USIM not initiated\n");
+  if (!initiated) {
+    fprintf(stderr, "USIM not initiated!\n");
     return;
   }
-  if(NULL == imsi_ || n < 15)
-  {
+
+  if(NULL == imsi_ || n < 15) {
     usim_log->error("Invalid parameters to get_imsi_vec");
     return;
   }
 
   uint64_t temp = imsi;
-  for(int i=14;i>=0;i--)
-  {
+  for(int i=14;i>=0;i--) {
     imsi_[i] = temp % 10;
     temp /= 10;
   }
@@ -126,13 +124,12 @@ void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 
 void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 {
-  if (!initiated)
-  {
-    usim_log->error("Getting IMEI: USIM not initiated\n");
+  if (!initiated) {
+    fprintf(stderr, "USIM not initiated!\n");
     return;
   }
-  if(NULL == imei_ || n < 15)
-  {
+
+  if(NULL == imei_ || n < 15) {
     usim_log->error("Invalid parameters to get_imei_vec");
     return;
   }
@@ -147,9 +144,8 @@ void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 
 int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
 {
-  if (!initiated)
-  {
-    usim_log->error("Getting Home PLMN Id: USIM not initiated\n");
+  if (!initiated) {
+    fprintf(stderr, "USIM not initiated!\n");
     return -1;
   }
 

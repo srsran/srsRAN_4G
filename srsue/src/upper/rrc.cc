@@ -233,7 +233,6 @@ void rrc::run_thread() {
         set_phy_default();
         set_mac_default();
         mac->pcch_start_rx();
-        mac_timers->timer_get(t311)->run();
         mac_timers->timer_get(t310)->stop();
         mac_timers->timer_get(t311)->stop();
         state = RRC_STATE_IDLE;
