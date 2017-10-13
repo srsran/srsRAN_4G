@@ -80,6 +80,7 @@ public:
 
   void pregenerate_signals(bool enable);
 
+  void test_scell();
 
 private:
   virtual ~ue();

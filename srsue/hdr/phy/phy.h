@@ -78,6 +78,8 @@ public:
   void set_earfcn(std::vector<uint32_t> earfcns);
   void force_freq(float dl_freq, float ul_freq);
 
+  void    scell_enable(bool enable);
+
   /********** RRC INTERFACE ********************/
   void    reset();
   void    sync_reset();

@@ -243,6 +243,11 @@ void phy::cell_search_next()
   sf_recv.cell_search_next();
 }
 
+void phy::scell_enable(bool enable)
+{
+  sf_recv.scell_enable(enable);
+}
+
 void phy::sync_reset() {
   sf_recv.reset_sync();
 }

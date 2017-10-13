@@ -387,13 +387,19 @@ int main(int argc, char *argv[])
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &args);
 
+  bool scell_done   = false;
   bool plot_started = false;
   bool signals_pregenerated = false;
+
   while (running) {
     if (ue->is_attached()) {
       if (!signals_pregenerated && args.expert.pregenerate_signals) {
         ue->pregenerate_signals(true);
         signals_pregenerated = true;
+      }
+      if (!scell_done) {
+        ((srsue::ue*) ue)->test_scell();
+        scell_done = true;
       }
       if (!plot_started && args.gui.enable) {
         ue->start_plot();

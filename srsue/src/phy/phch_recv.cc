@@ -64,7 +64,8 @@ phch_recv::phch_recv() {
 void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_mac, rrc_interface_phy *_rrc,
                      prach *_prach_buffer, srslte::thread_pool *_workers_pool,
                      phch_common *_worker_com, srslte::log *_log_h, uint32_t nof_rx_antennas_, uint32_t prio,
-                     int sync_cpu_affinity) {
+                     int sync_cpu_affinity)
+{
   radio_h = _radio_handler;
   log_h   = _log_h;
   mac     = _mac;
@@ -96,7 +97,7 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   measure_p.init(&ue_sync, sf_buffer, log_h, nof_rx_antennas);
 
   // Start scell
-  scell.init(this, log_h, nof_rx_antennas_, prio, sync_cpu_affinity);
+  scell.init(this, log_h, nof_rx_antennas_, prio-1, sync_cpu_affinity);
 
   reset();
 
@@ -106,7 +107,6 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   } else {
     start_cpu(prio, sync_cpu_affinity);
   }
-
 }
 
 phch_recv::~phch_recv() {
@@ -118,13 +118,15 @@ phch_recv::~phch_recv() {
   srslte_ue_sync_free(&ue_sync);
 }
 
-void phch_recv::stop() {
+void phch_recv::stop()
+{
 
   running = false;
   wait_thread_finish();
 }
 
-void phch_recv::reset() {
+void phch_recv::reset()
+{
   tx_mutex_cnt = 0;
   running = true;
   phy_state = IDLE;
@@ -141,7 +143,8 @@ void phch_recv::reset() {
 
 }
 
-void phch_recv::radio_error() {
+void phch_recv::radio_error()
+{
   log_h->error("SYNC:  Receiving from radio.\n");
   phy_state = IDLE;
   radio_is_resetting=true;
@@ -157,7 +160,8 @@ void phch_recv::radio_error() {
   radio_is_resetting=false;
 }
 
-bool phch_recv::wait_radio_reset() {
+bool phch_recv::wait_radio_reset()
+{
   int cnt=0;
   while(cnt < 20 && radio_is_resetting) {
     sleep(1);
@@ -166,11 +170,13 @@ bool phch_recv::wait_radio_reset() {
   return radio_is_resetting;
 }
 
-void phch_recv::set_agc_enable(bool enable) {
+void phch_recv::set_agc_enable(bool enable)
+{
   do_agc = enable;
 }
 
-void phch_recv::set_time_adv_sec(float _time_adv_sec) {
+void phch_recv::set_time_adv_sec(float _time_adv_sec)
+{
   if (TX_MODE_CONTINUOUS && !radio_h->is_first_of_burst()) {
     int nsamples = ceil(current_srate*_time_adv_sec);
     next_offset = -nsamples;
@@ -179,7 +185,8 @@ void phch_recv::set_time_adv_sec(float _time_adv_sec) {
   }
 }
 
-void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
+void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q)
+{
   if (worker_com->args->cfo_integer_enabled) {
     srslte_ue_sync_cfo_i_detec_en(q, true);
   }
@@ -473,9 +480,12 @@ int phch_recv::radio_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, s
       next_offset = nsamples;
     }
 
-    if (offset == 0) {
+    if (offset <= 0) {
       scell.write(data, nsamples, rx_time);
     }
+
+    log_h->debug("SYNC:  received %d samples from radio\n", nsamples);
+
     return nsamples;
   } else {
     return -1;
@@ -487,7 +497,13 @@ int phch_recv::scell_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, s
   return scell.recv(data, nsamples, rx_time);
 }
 
-
+void phch_recv::scell_enable(bool enable)
+{
+  srslte_cell_t target_cell;
+  memcpy(&target_cell, &cell, sizeof(srslte_cell_t));
+  target_cell.id++;
+  scell.set_cell(target_cell);
+}
 
 
 
@@ -512,7 +528,6 @@ void phch_recv::run_thread()
       Debug("SYNC:  state=%d\n", phy_state);
     }
 
-    tti = (tti+1) % 10240;
     log_h->step(tti);
     sf_idx = tti%10;
 
@@ -635,7 +650,6 @@ void phch_recv::run_thread()
               rrc->out_of_sync();
               worker->release();
               worker_com->reset_ul();
-              mac->tti_clock(tti);
               break;
             default:
               radio_error();
@@ -652,11 +666,12 @@ void phch_recv::run_thread()
         }
         is_in_idle = true;
         usleep(1000);
-        // Keep running MAC timer from system clock
-        tti = (tti+1) % 10240;
-        mac->tti_clock(tti);
         break;
     }
+
+    // Increase TTI counter and trigger MAC clock (lower priority)
+    tti = (tti+1) % 10240;
+    mac->tti_clock(tti);
   }
 }
 
@@ -860,6 +875,7 @@ bool phch_recv::sfn_sync::set_cell(srslte_cell_t cell)
     Error("SYNC:  Setting cell: initiating ue_mib\n");
     return false;
   }
+  reset();
   return true;
 }
 
@@ -952,7 +968,8 @@ void phch_recv::measure::reset() {
   cnt       = 0; 
   mean_rsrp = 0;
   mean_rsrq = 0;
-  mean_snr  = 0; 
+  mean_snr  = 0;
+  mean_cfo  = 0;
 }
 
 void phch_recv::measure::set_cell(srslte_cell_t cell) 
@@ -960,6 +977,7 @@ void phch_recv::measure::set_cell(srslte_cell_t cell)
   if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
     Error("SYNC:  Setting cell: initiating ue_dl_measure\n");
   }
+  reset();
 }
   
 float phch_recv::measure::rsrp() {
@@ -972,6 +990,10 @@ float phch_recv::measure::rsrq() {
 
 float phch_recv::measure::snr() {
   return 10*log10(mean_snr);
+}
+
+float phch_recv::measure::cfo() {
+  return mean_cfo;
 }
 
 phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
@@ -988,10 +1010,12 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
     float rsrp   = srslte_chest_dl_get_rsrp(&ue_dl.chest);
     float rsrq   = srslte_chest_dl_get_rsrq(&ue_dl.chest);
     float snr    = srslte_chest_dl_get_snr(&ue_dl.chest);
+    float cfo    = srslte_ue_sync_get_cfo(ue_sync);
 
     mean_rsrp = SRSLTE_VEC_CMA(rsrp, mean_rsrp, cnt);
     mean_rsrq = SRSLTE_VEC_CMA(rsrq, mean_rsrq, cnt);
-    mean_snr  = SRSLTE_VEC_CMA(rsrq, mean_snr, cnt);
+    mean_snr  = SRSLTE_VEC_CMA(snr,  mean_snr, cnt);
+    mean_cfo  = SRSLTE_VEC_CMA(cfo,  mean_cfo, cnt);
     cnt++;
 
     log_h->info("SYNC:  Measuring RSRP %d/%d, sf_idx=%d, RSRP=%.1f dBm, SNR=%.1f dB\n",
@@ -1022,19 +1046,20 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
 
 void phch_recv::scell_recv::init(phch_recv *parent, srslte::log *log_h, uint32_t nof_rx_antennas, uint32_t prio, int cpu_affinity)
 {
-  this->p     = parent;
-  this->log_h = log_h;
+  this->p               = parent;
+  this->log_h           = log_h;
+  this->nof_rx_antennas = nof_rx_antennas;
 
   // Create the ringbuffer for secondary cell reception
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    if (srslte_ringbuffer_init(&ring_buffer[i], 5*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB))) {
-      Error("SYNC:  Creating ringbuffer for SCell\n");
+    if (srslte_ringbuffer_init(&ring_buffer[i], 10*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB))) {
+      Error("SCELL:  Creating ringbuffer for SCell\n");
       return;
     }
   }
   // and a separate ue_sync instance
-  if (srslte_ue_sync_init_multi(&ue_sync, SRSLTE_MAX_PRB, false, scell_recv_callback, nof_rx_antennas, this)) {
-    Error("SYNC:  Initiating ue_sync\n");
+  if (srslte_ue_sync_init_multi(&ue_sync, SRSLTE_MAX_PRB, false, scell_recv_callback, nof_rx_antennas, parent)) {
+    Error("SCELL:  Initiating ue_sync\n");
     return;
   }
 
@@ -1043,6 +1068,9 @@ void phch_recv::scell_recv::init(phch_recv *parent, srslte::log *log_h, uint32_t
   }
 
   measure_p.init(&ue_sync, sf_buffer, log_h, nof_rx_antennas);
+  sfn_p.init(&ue_sync, sf_buffer, log_h);
+
+  reset();
 
   running = true;
   if (cpu_affinity < 0) {
@@ -1058,6 +1086,26 @@ void phch_recv::scell_recv::stop()
   wait_thread_finish();
 }
 
+void phch_recv::scell_recv::reset()
+{
+  tti = 0;
+  measure_p.reset();
+  sfn_p.reset();
+  scell_state = IDLE;
+}
+
+void phch_recv::scell_recv::set_cell(srslte_cell_t scell) {
+  printf("SCELL: set scell to select, id=%d, prb=%d\n", scell.id, scell.nof_prb);
+
+  memcpy(&cell, &scell, sizeof(srslte_cell_t));
+  current_sflen = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+  srslte_ue_sync_set_cell(&ue_sync, scell);
+  measure_p.set_cell(scell);
+  sfn_p.set_cell(scell);
+
+  scell_state = SCELL_SELECT;
+}
+
 bool phch_recv::scell_recv::is_enabled()
 {
   return scell_state != IDLE;
@@ -1065,13 +1113,37 @@ bool phch_recv::scell_recv::is_enabled()
 
 int phch_recv::scell_recv::recv(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time)
 {
-  if (is_enabled()) {
-    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-      srslte_ringbuffer_read(&ring_buffer[i], data[i], sizeof(cf_t)*nsamples);
+  if (is_enabled())
+  {
+    uint32_t read_samples = nsamples;
+    if (read_samples > current_sflen) {
+      read_samples = current_sflen;
     }
+    if (nsamples < 10) {
+      read_samples = 0; 
+    }
+    int n = 0;
+    for (uint32_t i=0;i<nof_rx_antennas;i++) {
+      n = srslte_ringbuffer_read(&ring_buffer[i], data[i], sizeof(cf_t)*read_samples);
+      if (n < 0) {
+        Error("SCELL:  Receiving from SCell buffer\n");
+        return -1;
+      }
+      if ((uint32_t) n < read_samples*sizeof(cf_t)) {
+        Error("SCELL:  SCell received %d<%d samples from port %d\n", n/sizeof(cf_t), read_samples, i);
+        return -1;
+      }
+      // Pad with zeros if requested more samples in order to avoid consuming the buffer
+      for (int j=read_samples;j<nsamples;j++) {
+        data[i][j] = 0;
+      }
+    }
+    log_h->debug("SCELL:  tti=%d, read %d/%d samples from buffer, buffer size=%d\n",
+                tti, read_samples,nsamples, srslte_ringbuffer_status(&ring_buffer[0]));
+
     return nsamples;
   } else {
-    Error("SYNC:  SCell reception not enabled\n");
+    Error("SCELL:  Reception not enabled\n");
     return -1;
   }
 }
@@ -1079,7 +1151,7 @@ int phch_recv::scell_recv::recv(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples,
 void phch_recv::scell_recv::write(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time)
 {
   if (is_enabled()) {
-    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    for (uint32_t i = 0; i < nof_rx_antennas; i++) {
       srslte_ringbuffer_write(&ring_buffer[i], data[i], sizeof(cf_t) * nsamples);
     }
   }
@@ -1090,16 +1162,19 @@ void phch_recv::scell_recv::run_thread()
   while(running) {
     switch(scell_state) {
       case IDLE:
+        usleep(1000);
         break;
       case SCELL_SELECT:
 
         switch (sfn_p.run_subframe(&cell, &tti))
         {
           case sfn_sync::SFN_FOUND:
-            log_h->info("SFN Sync OK. Camping on cell PCI=%d...\n", cell.id);
+            log_h->info("SCELL: SFN Sync OK. Camping on cell PCI=%d...\n", cell.id);
+            sfn_p.reset();
+            scell_state = SCELL_MEASURE;
             break;
           case sfn_sync::TIMEOUT:
-            log_h->info("SFN sync timeout\n");
+            log_h->info("SCELL: SFN sync timeout\n");
             break;
           case sfn_sync::IDLE:
             break;
@@ -1107,11 +1182,15 @@ void phch_recv::scell_recv::run_thread()
             p->radio_error();
             break;
         }
+
         break;
       case SCELL_MEASURE:
         switch (measure_p.run_subframe(tti%10)) {
           case measure::MEASURE_OK:
-            log_h->info("SYNC:  Measured OK\n");
+            log_h->info("SCELL:  Measured OK TTI=%5d, RSRP=%.1f dBm, RSRQ=%.1f dB, SNR=%3.1f dB, CFO=%.1f KHz, Buff=%d\n",
+                        tti, measure_p.rsrp(), measure_p.rsrq(), measure_p.snr(), measure_p.cfo()/1000,
+                        srslte_ringbuffer_status(&ring_buffer[0]));
+            measure_p.reset();
             break;
           case measure::IDLE:
             break;
@@ -1121,6 +1200,8 @@ void phch_recv::scell_recv::run_thread()
         }
         break;
     }
+    // Increase TTI counter
+    tti = (tti+1) % 10240;
   }
 }
 

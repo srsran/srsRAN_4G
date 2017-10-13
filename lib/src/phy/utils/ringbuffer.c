@@ -34,6 +34,11 @@ void srslte_ringbuffer_free(srslte_ringbuffer_t *q, int capacity)
   }
 }
 
+int srslte_ringbuffer_status(srslte_ringbuffer_t *q)
+{
+  return q->count;
+}
+
 int srslte_ringbuffer_write(srslte_ringbuffer_t *q, void *p, int nof_bytes)
 {
   uint8_t *ptr = (uint8_t*) p;

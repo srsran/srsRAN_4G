@@ -67,7 +67,9 @@ public:
 
   void    set_time_adv_sec(float time_adv_sec);
   void    get_current_cell(srslte_cell_t *cell);
-  
+
+  void    scell_enable(bool enable);
+
   const static int MUTEX_X_WORKER = 4;
 
   int radio_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
@@ -155,6 +157,7 @@ private:
     float     rsrp();
     float     rsrq();
     float     snr();
+    float     cfo();
   private:
     srslte::log      *log_h;
     srslte_ue_dl_t    ue_dl;
@@ -162,7 +165,7 @@ private:
     cf_t              *buffer[SRSLTE_MAX_PORTS];
     uint32_t cnt;
     uint32_t nof_subframes;
-    float mean_rsrp, mean_rsrq, mean_snr;
+    float mean_rsrp, mean_rsrq, mean_snr, mean_cfo;
     const static int RSRP_MEASURE_NOF_FRAMES = 5;
   };
 
@@ -172,9 +175,11 @@ private:
   public:
     void init(phch_recv *parent, srslte::log *log_h, uint32_t nof_rx_antennas, uint32_t prio, int cpu_affinity = -1);
     void stop();
+    void reset();
     int  recv(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
     void write(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
     bool is_enabled();
+    void set_cell(srslte_cell_t scell);
   private:
     void run_thread();
 
@@ -192,6 +197,8 @@ private:
     cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
     srslte_ue_sync_t    ue_sync;
     srslte_cell_t       cell;
+    uint32_t            nof_rx_antennas;
+    uint32_t            current_sflen;
 
     measure    measure_p;
     sfn_sync   sfn_p;
