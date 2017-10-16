@@ -103,26 +103,29 @@ static uint8_t M_basis_seq_pucch[20][13]={
                                   {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1},
                                   {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
                                   {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0},
-                                  };                                    
+                                  };
 
 void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t *q) {
-  uint8_t word[16]; 
-    
-  uint32_t nwords      = 16;
-  for (uint32_t w=0;w<nwords;w++) {
-    q->cqi_table[w]   = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B*sizeof(int8_t));
-    q->cqi_table_s[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B*sizeof(int16_t));
+  uint8_t word[16];
+
+  uint32_t nwords = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
+  q->cqi_table = srslte_vec_malloc(nwords * sizeof(int8_t *));
+  q->cqi_table_s = srslte_vec_malloc(nwords * sizeof(int16_t *));
+
+  for (uint32_t w = 0; w < nwords; w++) {
+    q->cqi_table[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B * sizeof(int8_t));
+    q->cqi_table_s[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B * sizeof(int16_t));
     uint8_t *ptr = word;
-    srslte_bit_unpack(w, &ptr, 4);
-    srslte_uci_encode_cqi_pucch(word, 4, q->cqi_table[w]);    
-    for (int j=0;j<SRSLTE_UCI_CQI_CODED_PUCCH_B;j++) {
-      q->cqi_table_s[w][j] = 2*q->cqi_table[w][j]-1;
+    srslte_bit_unpack(w, &ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
+    srslte_uci_encode_cqi_pucch(word, SRSLTE_UCI_MAX_CQI_LEN_PUCCH, q->cqi_table[w]);
+    for (int j = 0; j < SRSLTE_UCI_CQI_CODED_PUCCH_B; j++) {
+      q->cqi_table_s[w][j] = (int16_t)(2 * q->cqi_table[w][j] - 1);
     }
   }
 }
 
 void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q) {
-  uint32_t nwords      = 16;
+  uint32_t nwords      = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
   for (uint32_t w=0;w<nwords;w++) {
     if (q->cqi_table[w]) {
       free(q->cqi_table[w]);
@@ -131,6 +134,8 @@ void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q) {
       free(q->cqi_table_s[w]);
     }
   }
+  free(q->cqi_table);
+  free(q->cqi_table_s);
 }
 
 /* Encode UCI CQI/PMI as described in 5.2.3.3 of 36.212 
@@ -151,17 +156,32 @@ int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_b
   }
 }
 
+int srslte_uci_encode_cqi_pucch_from_table(srslte_uci_cqi_pucch_t *q, uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
+{
+  if (cqi_len <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH) {
+    bzero(&cqi_data[cqi_len], SRSLTE_UCI_MAX_CQI_LEN_PUCCH - cqi_len);
+    uint8_t *ptr = cqi_data;
+    uint32_t packed = srslte_bit_pack(&ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
+    memcpy(b_bits, q->cqi_table[packed], SRSLTE_UCI_CQI_CODED_PUCCH_B);
+
+    return SRSLTE_SUCCESS;
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
 /* Decode UCI CQI/PMI over PUCCH 
  */
 int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t *q, int16_t b_bits[32], uint8_t *cqi_data, uint32_t cqi_len)
 {
-  if (cqi_len           == 4     &&
+  if (cqi_len           < SRSLTE_UCI_MAX_CQI_LEN_PUCCH     &&
       b_bits            != NULL  &&
       cqi_data          != NULL) 
   {
     uint32_t max_w = 0;
-    int32_t max_corr = INT32_MIN;   
-    for (uint32_t w=0;w<16;w++) {
+    int32_t max_corr = INT32_MIN;
+    uint32_t nwords      = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
+    for (uint32_t w=0;w<nwords;w += 1<<(SRSLTE_UCI_MAX_CQI_LEN_PUCCH - cqi_len)) {
           
       // Calculate correlation with pregenerated word and select maximum
       int32_t corr = srslte_vec_dot_prod_sss(q->cqi_table_s[w], b_bits, SRSLTE_UCI_CQI_CODED_PUCCH_B);
@@ -172,7 +192,7 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t *q, int16_t b_bits[32
     }
     // Convert word to bits again
     uint8_t *ptr = cqi_data; 
-    srslte_bit_unpack(max_w, &ptr, cqi_len);
+    srslte_bit_unpack(max_w, &ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
     
     INFO("Decoded CQI: w=%d, corr=%d\n", max_w, max_corr);
     return max_corr;

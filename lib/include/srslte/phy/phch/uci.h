@@ -57,8 +57,8 @@ typedef struct SRSLTE_API {
 } srslte_uci_cqi_pusch_t;
 
 typedef struct SRSLTE_API {
-  uint8_t *cqi_table[16];
-  int16_t *cqi_table_s[16];
+  uint8_t **cqi_table;
+  int16_t **cqi_table_s;
 } srslte_uci_cqi_pucch_t;
 
 typedef struct SRSLTE_API {
@@ -94,6 +94,11 @@ SRSLTE_API void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q);
 SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data,
                                            uint32_t cqi_len, 
                                            uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
+
+SRSLTE_API int srslte_uci_encode_cqi_pucch_from_table(srslte_uci_cqi_pucch_t *q,
+                                                      uint8_t *cqi_data,
+                                                      uint32_t cqi_len,
+                                                      uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
 
 SRSLTE_API int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t *q, 
                                            int16_t b_bits[32], // aligned for simd 
