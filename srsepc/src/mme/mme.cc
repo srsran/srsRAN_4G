@@ -135,6 +135,9 @@ mme::main_loop()
       std::cout << "\tSize: " << pdu->N_bytes << std::endl;
       std::cout << "\tMsg: " << pdu->msg << std::endl;
       m_s1ap.handle_s1ap_rx_pdu(pdu);
+      sctp_send(s1mme, "OK", 2, &sri, 0);
+
+
     }
   }
 }

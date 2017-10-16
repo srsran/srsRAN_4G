@@ -33,7 +33,7 @@
 #include <netinet/sctp.h>
 #include <unistd.h>
 
-#include "srslte/upper/s1ap_common.h"
+//#include "srslte/upper/s1ap_common.h"
 #include "srslte/common/bcd_helpers.h"
 #include "mme/s1ap.h"
 
@@ -245,24 +245,9 @@ s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg)
   //Default Paging DRX
   LIBLTE_S1AP_PAGINGDRX_ENUM drx = msg->DefaultPagingDRX.e;
   std::cout << "Default Paging DRX" << drx << std::endl;
+
+
   /*
-  if(msg->ext) {
-    s1ap_log->warning("Not handling S1AP message extension\n");
-  }
-  if(enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID)) {
-    s1ap_log->warning("eNB_UE_S1AP_ID not found - discarding message\n");
-    return false;
-  }
-  uint16_t rnti = enbid_to_rnti_map[msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID];
-  ue_ctxt_map[rnti].MME_UE_S1AP_ID = msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
-
-  if(msg->HandoverRestrictionList_present) {
-    s1ap_log->warning("Not handling HandoverRestrictionList\n");
-  }
-  if(msg->SubscriberProfileIDforRFP_present) {
-    s1ap_log->warning("Not handling SubscriberProfileIDforRFP\n");
-  }
-
   srslte::byte_buffer_t *pdu = pool_allocate;
   memcpy(pdu->msg, msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
   pdu->N_bytes = msg->NAS_PDU.n_octets;
