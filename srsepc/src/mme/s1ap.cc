@@ -242,16 +242,8 @@ s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, stru
   LIBLTE_S1AP_PAGINGDRX_ENUM drx = msg->DefaultPagingDRX.e;
   std::cout << "Default Paging DRX" << drx << std::endl;
 
-
   send_s1setupfailure(enb_sri);
-  //sctp_send(m_s1mme,"OK",2,enb_sri,0);
-
-  /*
-  srslte::byte_buffer_t *pdu = pool_allocate;
-  memcpy(pdu->msg, msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
-  pdu->N_bytes = msg->NAS_PDU.n_octets;
-  rrc->write_dl_info(rnti, pdu);
-  */
+  
   return true;
 }
 
@@ -289,6 +281,73 @@ s1ap::send_s1setupfailure(struct sctp_sndrcvinfo *enb_sri)
   }
   return true;
 }
+
+
+bool
+s1ap::send_s1setupresponse(struct sctp_sndrcvinfo *enb_sri)
+{
+  srslte::byte_buffer_t       msg;
+  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
+  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
+
+  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *succ = &pdu.choice.successfulOutcome;
+  succ->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
+  succ->criticality = LIBLTE_S1AP_CRITICALITY_REJECT;
+  succ->choice_type = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE;
+ 
+  LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* s1_resp=(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT*)&succ->choice;
+
+  s1_resp->ext=false;
+  
+  //MME Name
+  s1_resp->MMEname_present=true;
+  s1_resp->MMEname.ext=false;
+  s1_resp->MMEname.n_octets=m_mme_name.length();
+  memcpy(s1_resp->MMEname.buffer,m_mme_name.c_str(),m_mme_name.length());
+
+  //Served GUMEIs
+  s1_resp->ServedGUMMEIs.len=1;//TODO Only one served GUMMEI supported
+  LIBLTE_S1AP_SERVEDGUMMEISITEM_STRUCT *serv_gummei = &s1_resp->ServedGUMMEIs.buffer[0];
+
+  serv_gummei->ext=false;
+  //serv_gummei->iE_Extensions=false;
+
+  uint32_t plmn=0;
+  srslte::s1ap_mccmnc_to_plmn(m_mcc, m_mnc, &plmn);
+  plmn=htonl(plmn);
+  serv_gummei->servedPLMNs.len = 1; //Only one PLMN supported
+  serv_gummei->servedPLMNs.buffer[0].buffer[0]=((uint8_t*)&plmn)[1];
+  serv_gummei->servedPLMNs.buffer[0].buffer[1]=((uint8_t*)&plmn)[2];
+  serv_gummei->servedPLMNs.buffer[0].buffer[2]=((uint8_t*)&plmn)[3];
+
+  serv_gummei->servedGroupIDs.len=1; //LIBLTE_S1AP_SERVEDGROUPIDS_STRUCT
+  uint16_t tmp=htons(m_mme_group);
+  serv_gummei->servedGroupIDs.buffer[0].buffer[0]=((uint8_t*)&tmp)[0];
+  serv_gummei->servedGroupIDs.buffer[0].buffer[1]=((uint8_t*)&tmp)[1];
+ 
+  serv_gummei->servedMMECs.len=1; //Only one MMEC served
+  serv_gummei->servedMMECs.buffer[0].buffer[0]=m_mme_code;
+
+  //Relative MME Capacity
+  s1_resp->RelativeMMECapacity.RelativeMMECapacity=255;
+
+  //Relay Unsupported
+  s1_resp->MMERelaySupportIndicator_present=false;
+    
+  liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
+  
+  ssize_t n_sent = sctp_send(m_s1mme,msg.msg, msg.N_bytes, enb_sri, 0);
+  
+  if(n_sent == -1)
+  {
+    m_s1ap_log->console("Failed to send S1 Setup Failure");
+    return false;
+  }
+  return true;
+}
+
 
 /*
 bool

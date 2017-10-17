@@ -59,7 +59,8 @@ public:
   bool handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
 
   bool send_s1setupfailure(struct sctp_sndrcvinfo *enb_sri);
-
+  
+  bool send_s1setupresponse(struct sctp_sndrcvinfo *enb_sri);
 private:
   uint8_t       m_mme_code;
   uint16_t      m_mme_group;
