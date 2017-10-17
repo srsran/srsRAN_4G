@@ -262,8 +262,11 @@ private:
         if (!ack) {
 
           // Instruct the PHY To combine the received data and attempt to decode it
-          payload_buffer_ptr = harq_entity->demux_unit->request_buffer(pid * SRSLTE_MAX_TB + tid,
-                                                                       cur_grant.n_bytes[tid]);
+          if (pid == HARQ_BCCH_PID) {
+            payload_buffer_ptr = harq_entity->demux_unit->request_buffer_bcch(cur_grant.n_bytes[tid]);
+          } else {
+            payload_buffer_ptr = harq_entity->demux_unit->request_buffer(cur_grant.n_bytes[tid]);
+          }
           action->payload_ptr[tid] = payload_buffer_ptr;
           if (!action->payload_ptr) {
             action->decode_enabled[tid] = false;
@@ -305,8 +308,7 @@ private:
               harq_entity->pcap->write_dl_sirnti(payload_buffer_ptr, cur_grant.n_bytes[tid], ack, cur_grant.tti);
             }
             Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.n_bytes[tid]);
-            harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
-                                              cur_grant.tti);
+            harq_entity->demux_unit->push_pdu_bcch(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.tti);
           } else {
             if (harq_entity->pcap) {
               harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.rnti, ack,
@@ -318,8 +320,7 @@ private:
               harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid]);
             } else {
               Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes[tid]);
-              harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
-                                                cur_grant.tti);
+              harq_entity->demux_unit->push_pdu(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.tti);
 
               // Compute average number of retransmissions per packet
               harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx,
