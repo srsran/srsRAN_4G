@@ -242,8 +242,8 @@ s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, stru
   LIBLTE_S1AP_PAGINGDRX_ENUM drx = msg->DefaultPagingDRX.e;
   std::cout << "Default Paging DRX" << drx << std::endl;
 
-  send_s1setupfailure(enb_sri);
-  
+  //send_s1setupfailure(enb_sri);
+  send_s1setupresponse(enb_sri); 
   return true;
 }
 
@@ -294,7 +294,7 @@ s1ap::send_s1setupresponse(struct sctp_sndrcvinfo *enb_sri)
 
   LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *succ = &pdu.choice.successfulOutcome;
   succ->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
-  succ->criticality = LIBLTE_S1AP_CRITICALITY_REJECT;
+  succ->criticality = LIBLTE_S1AP_CRITICALITY_IGNORE;
   succ->choice_type = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE;
  
   LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* s1_resp=(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT*)&succ->choice;
