@@ -82,10 +82,13 @@ mme::init(all_args_t* args)
   }
 
   m_s1ap_log.init("S1AP", m_logger);
+  m_s1ap_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  m_s1ap_log.set_hex_limit(32);
   if(m_s1ap.init(args->s1ap_args, &m_s1ap_log)){
     std::cout << "Error initializing MME S1APP" << std::endl;
     exit(-1);
   }
+  m_s1ap_log.console("Initialized MME\n");
   return 0;
 }
 
@@ -134,7 +137,7 @@ mme::main_loop()
       std::cout<< "Received SCTP msg." << std::endl;
       std::cout << "\tSize: " << pdu->N_bytes << std::endl;
       std::cout << "\tMsg: " << pdu->msg << std::endl;
-      m_s1ap.handle_s1ap_rx_pdu(pdu);
+      m_s1ap.handle_s1ap_rx_pdu(pdu,&sri);
       sctp_send(s1mme, "OK", 2, &sri, 0);
 
 
@@ -142,4 +145,4 @@ mme::main_loop()
   }
 }
 
-} //namespace srsepc
+} //namespace srsepe<

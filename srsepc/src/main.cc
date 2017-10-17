@@ -146,7 +146,7 @@ main (int argc,char * argv[] )
     cout << "Error initializing MME" << endl;
     exit(1);
   }
-
+  
   mme->main_loop();
   
   mme->stop();

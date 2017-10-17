@@ -52,11 +52,13 @@ public:
 
   int get_s1_mme();
 
-  bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu);
+  bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri);
 
-  bool handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg);
+  bool handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
 
-  bool handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg);
+  bool handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
+
+  bool send_s1setupfailure(struct sctp_sndrcvinfo *enb_sri);
 
 private:
   uint8_t       m_mme_code;
@@ -67,7 +69,7 @@ private:
   std::string   m_mme_bind_addr;
   std::string   m_mme_name;
 
-  srslte::log   *m_log_h;
+  srslte::log   *m_s1ap_log;
 
   int m_s1mme;
 };

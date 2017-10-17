@@ -57,12 +57,13 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
   m_mcc         = s1ap_args.mcc;        
   m_mnc         = s1ap_args.mnc;        
   m_mme_bind_addr = s1ap_args.mme_bind_addr;
-  m_mme_name = std::string("SRS MME");
+  m_mme_name = std::string("srsmme0");
 
-  m_log_h = s1ap_log;
+  m_s1ap_log = s1ap_log;
 
   m_s1mme = enb_listen();
-
+  
+  m_s1ap_log->console("Initialized S1-APP\n"); 
   return 0;
 }
 
@@ -86,13 +87,13 @@ s1ap::enb_listen()
 {
   /*This function sets up the SCTP socket for eNBs to connect to*/
   int sock_fd, err;
-  struct sockaddr_in s1mme_addr;//TODO make this a configurable class memeber.
+  struct sockaddr_in s1mme_addr;
   struct sctp_event_subscribe evnts;
 
-  m_log_h->info("Initializing S1-MME ...");
+  m_s1ap_log->console("Initializing S1-MME\n");
   sock_fd = socket (AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
   if (sock_fd == -1){
-    std::cout << "[S1APP] Could not create SCTP socket" <<std::endl; //TODO fix logging
+    m_s1ap_log->console("Could not create SCTP socket\n"); 
     return -1;
   }
 
@@ -101,14 +102,14 @@ s1ap::enb_listen()
   timeout.tv_sec = 1;
   timeout.tv_usec = 0;
   if (setsockopt (sock_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0){
-    std::cout << "Set socket timeout failed" << std::endl;
+    m_s1ap_log->console("Set socket timeout failed\n");
     return -1; 
   }
 
   bzero (&evnts, sizeof (evnts)) ;
   evnts.sctp_data_io_event = 1;
   if(setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof (evnts))){
-    std::cout << "Subscribing to sctp_data_io_events failed" << std::cout;
+    m_s1ap_log->console("Subscribing to sctp_data_io_events failed\n");
     return -1;
   }
 
@@ -135,35 +136,30 @@ s1ap::enb_listen()
 }
 
 bool
-s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu) //TODO As it is, this function is exactly the same as srsenb::handle_s1ap_rx_pdu. Refactoring is needed.
+s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri) 
 {
   LIBLTE_S1AP_S1AP_PDU_STRUCT rx_pdu;
 
   if(liblte_s1ap_unpack_s1ap_pdu((LIBLTE_BYTE_MSG_STRUCT*)pdu, &rx_pdu) != LIBLTE_SUCCESS) {
-    std::cout << "Failed to Unpack PDU" << std::endl;
-    m_log_h->error("Failed to unpack received PDU\n");
+    m_s1ap_log->console("Failed to unpack received PDU\n");
     return false;
   }
 
   switch(rx_pdu.choice_type) {
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
-    std::cout << "Received initiating PDU" <<std::endl;
-    m_log_h->debug("Received initiating PDU\n");
-    return handle_initiatingmessage(&rx_pdu.choice.initiatingMessage);
+    m_s1ap_log->console("Received initiating PDU\n");
+    return handle_initiatingmessage(&rx_pdu.choice.initiatingMessage, enb_sri);
     break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME:
-    std::cout << "Received Successful PDU" <<std::endl;
-    m_log_h->debug("Received Succeseful Outcome PDU\n");
+    m_s1ap_log->console("Received Succeseful Outcome PDU\n");
     return true;//handle_successfuloutcome(&rx_pdu.choice.successfulOutcome);
     break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME:
-    std::cout << "Received Unsuccesfull PDU" <<std::endl;
-    m_log_h->debug("Received Unsucceseful Outcome PDU\n");
+    m_s1ap_log->console("Received Unsucceseful Outcome PDU\n");
     return true;//handle_unsuccessfuloutcome(&rx_pdu.choice.unsuccessfulOutcome);
     break;
   default:
-    std::cout << "Unhandled PDU type" <<std::endl;
-    m_log_h->error("Unhandled PDU type %d\n", rx_pdu.choice_type);
+    m_s1ap_log->console("Unhandled PDU type %d\n", rx_pdu.choice_type);
     return false;
   }
 
@@ -172,12 +168,12 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu) //TODO As it is, this funct
 }
 
 bool 
-s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg)
+s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  struct sctp_sndrcvinfo *enb_sri)
 {
   switch(msg->choice_type) {
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST:
     std::cout << "Received S1 Setup Request." << std::endl;
-    return handle_s1setuprequest(&msg->choice.S1SetupRequest);
+    return handle_s1setuprequest(&msg->choice.S1SetupRequest, enb_sri);
   default:
     std::cout << "Unhandled intiating message" << std::cout;
     //s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
@@ -186,7 +182,7 @@ s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg)
 }
 
 bool 
-s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg)
+s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
 {
   
   uint8_t enb_name[150];
@@ -247,6 +243,9 @@ s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg)
   std::cout << "Default Paging DRX" << drx << std::endl;
 
 
+  send_s1setupfailure(enb_sri);
+  //sctp_send(m_s1mme,"OK",2,enb_sri,0);
+
   /*
   srslte::byte_buffer_t *pdu = pool_allocate;
   memcpy(pdu->msg, msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
@@ -256,5 +255,46 @@ s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg)
   return true;
 }
 
+bool
+s1ap::send_s1setupfailure(struct sctp_sndrcvinfo *enb_sri)
+{
+  srslte::byte_buffer_t       msg;
+  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
+  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME;
+
+  LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT *unsucc = &pdu.choice.unsuccessfulOutcome;
+  unsucc->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
+  unsucc->criticality = LIBLTE_S1AP_CRITICALITY_REJECT;
+  unsucc->choice_type = LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_S1SETUPFAILURE;
+ 
+  LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT* s1_fail=(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT*)&unsucc->choice;
+
+  s1_fail->TimeToWait_present=false;
+  s1_fail->CriticalityDiagnostics_present=false;
+  s1_fail->Cause.ext=false;
+  s1_fail->Cause.choice_type = LIBLTE_S1AP_CAUSE_CHOICE_MISC;
+  s1_fail->Cause.choice.misc.ext=false;
+  s1_fail->Cause.choice.misc.e=LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN;
+  
+  liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
+  
+  ssize_t n_sent = sctp_send(m_s1mme,msg.msg, msg.N_bytes, enb_sri, 0);
+  
+  if(n_sent == -1)
+  {
+    m_s1ap_log->console("Failed to send S1 Setup Failure");
+    return false;
+  }
+  return true;
+}
+
+/*
+bool
+s1ap::setup_enb_ctx()
+{
+  return false;
+}*/
 
 } //namespace srsepc
