@@ -135,7 +135,7 @@ private:
   demux         demux_unit; 
   
   /* DL/UL HARQ */
-  dl_harq_entity<MAC_NOF_HARQ_PROC, mac_grant_t, tb_action_dl_t, srslte_phy_grant_t> dl_harq;
+  dl_harq_entity<MAC_NOF_HARQ_PROC+MOD_N_PROC, mac_grant_t, tb_action_dl_t, srslte_phy_grant_t> dl_harq;
   ul_harq_entity<MAC_NOF_HARQ_PROC, mac_grant_t, tb_action_ul_t, srslte_phy_grant_t> ul_harq;
   
   /* MAC Uplink-related Procedures */

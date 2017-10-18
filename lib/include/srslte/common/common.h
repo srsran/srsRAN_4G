@@ -52,6 +52,7 @@
 #define TTIMOD_SZ       (((2*HARQ_DELAY_MS) < 10)?10:20)
 #define TTIMOD(tti)     (tti%TTIMOD_SZ)
 
+#define MOD_N_PROC      (2*HARQ_DELAY_MS-8)
 #define ASYNC_DL_SCHED  (HARQ_DELAY_MS <= 4)
 
 // Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
