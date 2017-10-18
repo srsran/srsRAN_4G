@@ -122,6 +122,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
 
     /* Expert section */
+    ("expert.ip_netmask",
+     bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
+     "Netmask of the tun_srsue device")
+
     ("expert.phy.worker_cpu_mask",
      bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
      "cpu bit mask (eg 255 = 1111 1111)")
