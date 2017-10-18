@@ -97,15 +97,7 @@ s1ap::enb_listen()
     return -1;
   }
 
-  //Set timeout
-  struct timeval timeout;      
-  timeout.tv_sec = 1;
-  timeout.tv_usec = 0;
-  if (setsockopt (sock_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0){
-    m_s1ap_log->console("Set socket timeout failed\n");
-    return -1; 
-  }
-
+  //Sets the data_io_event to be able to use sendrecv_info
   bzero (&evnts, sizeof (evnts)) ;
   evnts.sctp_data_io_event = 1;
   if(setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof (evnts))){
