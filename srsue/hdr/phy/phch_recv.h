@@ -158,7 +158,7 @@ private:
   uint32_t      current_earfcn;
 
   uint32_t      sync_sfn_cnt;
-  const static uint32_t SYNC_SFN_TIMEOUT = 200;
+  const static uint32_t SYNC_SFN_TIMEOUT = 1000;
   float ul_dl_factor;
   int cur_earfcn_index;
   bool cell_search_in_progress;
@@ -166,7 +166,7 @@ private:
   float    measure_rsrp;
   srslte_ue_dl_t ue_dl_measure;
 
-  const static int RSRP_MEASURE_NOF_FRAMES = 5;
+  const static int RSRP_MEASURE_NOF_FRAMES = 10;
 
   int    cell_sync_sfn();
   int    cell_meas_rsrp();
