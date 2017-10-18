@@ -31,9 +31,10 @@ template<typename metrics_t>
 class metrics_hub : public periodic_thread
 {
 public:
-  metrics_hub() {
-    m         = NULL;
-  }
+  metrics_hub()
+    :m(NULL)
+    ,report_period_secs(1)
+  {}
   bool init(metrics_interface<metrics_t> *m_, float report_period_secs_=1.0) {
     m = m_;
     report_period_secs = report_period_secs_;
