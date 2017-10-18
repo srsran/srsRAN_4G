@@ -265,7 +265,7 @@ private:
           payload_buffer_ptr = harq_entity->demux_unit->request_buffer(pid * SRSLTE_MAX_TB + tid,
                                                                        cur_grant.n_bytes[tid]);
           action->payload_ptr[tid] = payload_buffer_ptr;
-          if (!action->payload_ptr) {
+          if (!action->payload_ptr[tid]) {
             action->decode_enabled[tid] = false;
             Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes[tid]);
             return;
