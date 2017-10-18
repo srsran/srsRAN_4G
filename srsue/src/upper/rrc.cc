@@ -489,12 +489,12 @@ void rrc::earfcn_end() {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
-    current_cell->in_sync = false;
+  current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
     if (n310_cnt == N310) {
       // attempt resync
-      phy->sync_reset();
+      //phy->sync_reset();
 
       mac_timers->timer_get(t310)->reset();
       mac_timers->timer_get(t310)->run();
