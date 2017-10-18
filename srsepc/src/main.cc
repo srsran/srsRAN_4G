@@ -134,7 +134,7 @@ int
 main (int argc,char * argv[] )
 {  
   cout << "---  Software Radio Systems EPC  ---" << endl << endl;
-  signal(SIGINT,    sig_int_handler);
+  signal(SIGINT, sig_int_handler);
 
   all_args_t args;
   parse_args(&args, argc, argv); 
@@ -146,11 +146,15 @@ main (int argc,char * argv[] )
     cout << "Error initializing MME" << endl;
     exit(1);
   }
+  mme->start();
   
-  mme->main_loop();
-  
+  while(running) {
+    sleep(0.5);
+  }
+
   mme->stop();
   mme->cleanup();  
+
   cout << "---  exiting  ---" << endl;  
   return 0;
 }

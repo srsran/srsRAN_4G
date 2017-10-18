@@ -37,7 +37,8 @@ namespace srsepc{
 mme*          mme::m_instance = NULL;
 boost::mutex  mme_instance_mutex;
 
-mme::mme()
+mme::mme():
+  m_running(false)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();     
   return;
@@ -71,7 +72,6 @@ mme::cleanup(void)
 int
 mme::init(all_args_t* args)
 {
-
   /*Init loggers*/
   if (!args->log_args.filename.compare("stdout")) {
     m_logger = &m_logger_stdout;
@@ -95,6 +95,12 @@ mme::init(all_args_t* args)
 void
 mme::stop()
 {
+  if(m_running)
+  {
+    m_running = false;
+    thread_cancel();
+    wait_thread_finish();
+  }
   m_s1ap.stop();
   return;
 }
@@ -106,7 +112,7 @@ mme::get_s1_mme()
 }
 
 void
-mme::main_loop()
+mme::run_thread()
 {
   srslte::byte_buffer_t *pdu = m_pool->allocate();
   uint32_t sz = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
@@ -118,29 +124,30 @@ mme::main_loop()
   int rd_sz;
   int msg_flags=0;
 
+  //Mark the thread as running
+  m_running=true;
+
   //Get S1-MME socket
   int s1mme = m_s1ap.get_s1_mme();
-  while(true)
+  while(m_running)
   {
-    std::cout << "Waiting for SCTP Msg " << std::endl;
+    //std::cout << "Waiting for SCTP Msg " << std::endl;
+    m_s1ap_log.debug("Waiting for SCTP Msg");
     pdu->reset();
     rd_sz = sctp_recvmsg(s1mme, pdu->msg, sz,(struct sockaddr*) &enb_addr, &fromlen, &sri, &msg_flags);
     if (rd_sz == -1 && errno != EAGAIN){
-      std::cout<< "Error reading from SCTP socket" << std::endl;
-      printf("Error: %s\n", strerror(errno));
+      m_s1ap_log.error("Error reading from SCTP socket: %s", strerror(errno));
     }
     else if (rd_sz == -1 && errno == EAGAIN){
-      std::cout << "Timeout reached" << std::endl;
+      m_s1ap_log("Socket timeout reached");
     }
     else{
       pdu->N_bytes = rd_sz;
-      std::cout<< "Received SCTP msg." << std::endl;
-      std::cout << "\tSize: " << pdu->N_bytes << std::endl;
-      std::cout << "\tMsg: " << pdu->msg << std::endl;
+      m_s1ap_log("Received S1AP msg. Size: %d", pdu->N_bytes);
       m_s1ap.handle_s1ap_rx_pdu(pdu,&sri);
-
     }
   }
+  return;
 }
 
 } //namespace srsepe<

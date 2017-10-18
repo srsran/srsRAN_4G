@@ -38,6 +38,7 @@
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/threads.h"
 #include "s1ap.h"
 
 
@@ -57,20 +58,16 @@ typedef struct{
 } all_args_t;
 
 
-class mme
+class mme:
+  public thread
 {
 public:
   static mme* get_instance(void);
-
   static void cleanup(void);
-  
   int init(all_args_t* args);
-
   void stop();
-
   int get_s1_mme();
-  
-  void main_loop();
+  void run_thread();
 
 private:
 
@@ -79,6 +76,7 @@ private:
   static mme *m_instance;
   s1ap m_s1ap;
 
+  bool m_running;
   srslte::byte_buffer_pool *m_pool;
 
   /*Logs*/
