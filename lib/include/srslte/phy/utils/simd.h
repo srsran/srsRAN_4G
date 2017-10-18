@@ -310,10 +310,10 @@ static inline simd_f_t srslte_simd_f_addsub(simd_f_t a, simd_f_t b) {
   return _mm_addsub_ps(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON // CURRENTLY USES GENERIC IMPLEMENTATION FOR NEON
- float* a_ptr = &a;
- float* b_ptr = &b;
+ float* a_ptr = (float*) &a;
+ float* b_ptr = (float*) &b;
  simd_f_t ret;
- float* c_ptr = &ret;
+ float* c_ptr = (float*) &ret;
  for(int i = 0; i<4;i++){
    if(i%2==0){
      c_ptr[i] = a_ptr[i] - b_ptr[i];
@@ -1028,12 +1028,12 @@ static inline simd_i_t srslte_simd_i_select(simd_i_t a, simd_i_t b, simd_sel_t s
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON // CURRENTLY USES GENERIC IMPLEMENTATION FOR NEON
   
- int* a_ptr = &a;
- int* b_ptr = &b;
+ int* a_ptr = (int*) &a;
+ int* b_ptr = (int*) &b;
  simd_i_t ret;
- int* sel = &selector;
+ int* sel = (int*) &selector;
  
- int* c_ptr = &ret;
+ int* c_ptr = (int*) &ret;
  for(int i = 0;i<4;i++)
  { 
    if(sel[i] == -1){
@@ -1097,7 +1097,7 @@ static inline simd_s_t srslte_simd_s_loadu(int16_t *ptr) {
   return _mm256_loadu_si256((__m256i*) ptr);
 #else /* LV_HAVE_AVX2 */
 #ifdef LV_HAVE_SSE
-  return _mm_loadu_si128((__m128i*) ptr)
+  return _mm_loadu_si128((__m128i*) ptr);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
   return vld1q_s16(ptr);
