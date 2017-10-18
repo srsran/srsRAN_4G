@@ -36,36 +36,28 @@
 #include <stdint.h>
 #include <string>
 
+#include "srslte/common/metrics_hub.h"
 #include "ue_metrics_interface.h"
 
 namespace srsue {
 
-class metrics_stdout
+class metrics_stdout : public srslte::metrics_listener<ue_metrics_t>
 {
 public:
   metrics_stdout();
 
-  bool init(ue_metrics_interface *u, float report_period_secs=1.0);
-  void stop();
   void toggle_print(bool b);
-  static void* metrics_thread_start(void *m);
-  void metrics_thread_run();
+  void set_metrics(ue_metrics_t &m, float report_period_secs);
+  void set_ue_handle(ue_metrics_interface *ue_);
 
 private:
-  void        print_metrics();
-  void        print_disconnect();
   std::string float_to_string(float f, int digits);
   std::string float_to_eng_string(float f, int digits);
   std::string int_to_eng_string(int f, int digits);
-  
-  ue_metrics_interface *ue_;
 
-  bool          started;
-  bool          do_print;
-  pthread_t     metrics_thread;
-  ue_metrics_t  metrics;
-  float         metrics_report_period; // seconds
-  uint8_t       n_reports;
+  bool                  do_print;
+  uint8_t               n_reports;
+  ue_metrics_interface* ue;
 };
 
 } // namespace srsue

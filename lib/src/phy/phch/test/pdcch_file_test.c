@@ -148,7 +148,11 @@ int base_init() {
     }
   }
 
-  if (srslte_chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    return -1;
+  }
+  if (srslte_chest_dl_set_cell(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -167,11 +171,15 @@ int base_init() {
     fprintf(stderr, "Error setting CFI %d\n", cfi);
     return -1;
   }
-  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init_ue(&pdcch, cell.nof_prb, 1)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
-  
+  if (srslte_pdcch_set_cell(&pdcch, &regs, cell)) {
+    fprintf(stderr, "Error creating PDCCH object\n");
+    exit(-1);
+  }
+
   DEBUG("Memory init OK\n",0);
   return 0;
 }

@@ -81,7 +81,12 @@ int main(int argc, char **argv) {
   
   parse_args(argc,argv);
 
-  if (srslte_refsignal_ul_init(&refs, cell)) {
+  if (srslte_refsignal_ul_init(&refs, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing UL reference signal\n");
+    goto do_exit;
+  }
+
+  if (srslte_refsignal_ul_set_cell(&refs, cell)) {
     fprintf(stderr, "Error initializing UL reference signal\n");
     goto do_exit;
   }

@@ -38,7 +38,7 @@
 
 namespace srsenb {
   
-class ue : public srslte::read_pdu_interface, 
+class ue : public srslte::read_pdu_interface,
            public srslte::pdu_queue::process_callback
 {
 public:

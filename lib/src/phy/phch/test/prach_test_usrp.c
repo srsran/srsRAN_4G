@@ -133,6 +133,9 @@ int main(int argc, char **argv) {
   memset(preamble, 0, sizeof(cf_t)*MAX_LEN);
 
   srslte_prach_init(p,
+                    srslte_symbol_sz(nof_prb));
+
+  srslte_prach_set_cell(p,
                     srslte_symbol_sz(nof_prb),
                     preamble_format,
                     root_seq_idx,
@@ -228,7 +231,8 @@ int main(int argc, char **argv) {
   }
   
   srslte_vec_save_file(output_filename,buffer,11*flen*sizeof(cf_t));
-  
+
+  srslte_rf_close(&rf);
   srslte_prach_free(p);
   free(p);
 

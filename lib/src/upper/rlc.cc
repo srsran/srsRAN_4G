@@ -65,7 +65,10 @@ void rlc::reset_metrics()
 
 void rlc::stop()
 {
-  reset();
+  for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
+    if(rlc_array[i].active())
+      rlc_array[i].stop();
+  }
 }
 
 void rlc::get_metrics(rlc_metrics_t &m)

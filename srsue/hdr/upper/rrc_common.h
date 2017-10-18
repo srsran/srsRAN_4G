@@ -29,22 +29,25 @@
 
 namespace srsue {
 
+
 // RRC states (3GPP 36.331 v10.0.0)
-typedef enum{
-    RRC_STATE_IDLE = 0,
-    RRC_STATE_SIB1_SEARCH,
-    RRC_STATE_SIB2_SEARCH,
-    RRC_STATE_WAIT_FOR_CON_SETUP,
-    RRC_STATE_COMPLETING_SETUP,
-    RRC_STATE_RRC_CONNECTED,
-    RRC_STATE_N_ITEMS,
-}rrc_state_t;
+typedef enum {
+  RRC_STATE_IDLE = 0,
+  RRC_STATE_PLMN_SELECTION,
+  RRC_STATE_CELL_SELECTING,
+  RRC_STATE_CELL_SELECTED,
+  RRC_STATE_CONNECTING,
+  RRC_STATE_CONNECTED,
+  RRC_STATE_LEAVE_CONNECTED,
+  RRC_STATE_N_ITEMS,
+} rrc_state_t;
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "SIB1_SEARCH",
-                                                            "SIB2_SEARCH",
-                                                            "WAIT FOR CON SETUP",
-                                                            "COMPLETING SETUP",
-                                                            "RRC CONNECTED"};
+                                                            "PLMN SELECTION",
+                                                            "CELL SELECTING",
+                                                            "CELL SELECTED",
+                                                            "CONNECTING",
+                                                            "CONNECTED",
+                                                            "LEAVE CONNECTED"};
 
 } // namespace srsue
 

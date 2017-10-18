@@ -277,8 +277,8 @@ public:
   }
 
   void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) {
-    action->decode_enabled = true; 
-    action->default_ack = false; 
+    action->decode_enabled[0] = true;
+    action->default_ack[0] = false;
     if (grant.rnti == 2) {
       action->generate_ack = false; 
     } else {
@@ -380,9 +380,7 @@ int main(int argc, char *argv[])
   radio.set_tx_freq(prog_args.rf_tx_freq);
   
   // Instruct the PHY to configure PRACH parameters and sync to current cell 
-  my_phy.sync_start();
-  
-  while(!my_phy.status_is_sync()) {
+  while(!my_phy.sync_status()) {
     usleep(20000);
   }
 

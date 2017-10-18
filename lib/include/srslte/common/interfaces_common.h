@@ -71,8 +71,9 @@ public:
   /* Timer services with ms resolution. 
    * timer_id must be lower than MAC_NOF_UPPER_TIMERS
    */
-  virtual timers::timer* get(uint32_t timer_id) = 0;
-  virtual uint32_t               get_unique_id() = 0;
+  virtual timers::timer* timer_get(uint32_t timer_id)  = 0;
+  virtual void           timer_release_id(uint32_t timer_id) = 0;
+  virtual uint32_t       timer_get_unique_id() = 0;
 };
 
 class read_pdu_interface

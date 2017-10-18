@@ -85,42 +85,30 @@ typedef struct SRSLTE_API {
   
 } srslte_phich_t;
 
-SRSLTE_API int srslte_phich_init(srslte_phich_t *q, 
-                                 srslte_regs_t *regs, 
-                                 srslte_cell_t cell);
-
-SRSLTE_API int srslte_phich_init_multi(srslte_phich_t *q, 
-                                       srslte_regs_t *regs, 
-                                       srslte_cell_t cell, 
-                                       uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_phich_init(srslte_phich_t *q,
+                                 uint32_t nof_rx_antennas);
 
 SRSLTE_API void srslte_phich_free(srslte_phich_t *q);
 
-SRSLTE_API void srslte_phich_calc(srslte_phich_t *q, 
+SRSLTE_API int srslte_phich_set_cell(srslte_phich_t *q,
+                                     srslte_regs_t *regs,
+                                     srslte_cell_t cell);
+
+SRSLTE_API void srslte_phich_calc(srslte_phich_t *q,
                                   uint32_t n_prb_lowest, 
                                   uint32_t n_dmrs, 
                                   uint32_t *ngroup, 
                                   uint32_t *nseq); 
 
 SRSLTE_API int srslte_phich_decode(srslte_phich_t *q, 
-                                   cf_t *slot_symbols, 
-                                   cf_t *ce[SRSLTE_MAX_PORTS],
+                                   cf_t *slot_symbols[SRSLTE_MAX_PORTS],
+                                   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                    float noise_estimate, 
                                    uint32_t ngroup, 
                                    uint32_t nseq, 
                                    uint32_t nsubframe, 
                                    uint8_t *ack, 
                                    float *distance);
-
-SRSLTE_API int srslte_phich_decode_multi(srslte_phich_t *q, 
-                                         cf_t *slot_symbols[SRSLTE_MAX_PORTS], 
-                                         cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                         float noise_estimate, 
-                                         uint32_t ngroup, 
-                                         uint32_t nseq, 
-                                         uint32_t nsubframe, 
-                                         uint8_t *ack, 
-                                         float *distance);
 
 SRSLTE_API int srslte_phich_encode(srslte_phich_t *q, 
                                    uint8_t ack, 

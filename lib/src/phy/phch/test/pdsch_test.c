@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   srslte_softbuffer_tx_t *softbuffers_tx[SRSLTE_MAX_CODEWORDS];
-  int M=10;
+  int M=1;
   bool acks[SRSLTE_MAX_CODEWORDS] = {false};
 
   parse_args(argc,argv);
@@ -213,8 +213,6 @@ int main(int argc, char **argv) {
     return ret;
   }
 
-
-
 #ifdef DO_OFDM
   srslte_ofdm_tx_init(&ofdm_tx, cell.cp, cell.nof_prb);
   srslte_ofdm_rx_init(&ofdm_rx, cell.cp, cell.nof_prb);
@@ -257,8 +255,8 @@ int main(int argc, char **argv) {
   }
 
 
-  for (int i = 0; i < grant.nof_tb; i++) {
-    if (grant.mcs[i].tbs) {
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (grant.tb_en[i]) {
       data_tx[i] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs[i].tbs);
       if (!data_tx[i]) {
         perror("srslte_vec_malloc");
@@ -276,7 +274,11 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (srslte_pdsch_init_rx(&pdsch_rx, cell, nof_rx_antennas)) {
+  if (srslte_pdsch_init_ue(&pdsch_rx, cell.nof_prb, nof_rx_antennas)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
+    goto quit;
+  }
+  if (srslte_pdsch_set_cell(&pdsch_rx, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
@@ -303,12 +305,11 @@ int main(int argc, char **argv) {
   INFO("              cp=%s\n", srslte_cp_string(cell.cp));
   INFO("    phich_length=%d\n", (int) cell.phich_length);
   INFO(" phich_resources=%d\n", (int) cell.phich_resources);
-  INFO("          nof_tb=%d\n", pdsch_cfg.grant.nof_tb);
   INFO("         nof_prb=%d\n", pdsch_cfg.grant.nof_prb);
   INFO("          sf_idx=%d\n", pdsch_cfg.sf_idx);
   INFO("       mimo_type=%s\n", srslte_mimotype2str(pdsch_cfg.mimo_type));
   INFO("      nof_layers=%d\n", pdsch_cfg.nof_layers);
-  INFO("          nof_tb=%d\n", pdsch_cfg.grant.nof_tb);
+  INFO("          nof_tb=%d\n", SRSLTE_RA_DL_GRANT_NOF_TB(&pdsch_cfg.grant));
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     INFO(" Tranport block index %d:\n", i);
     INFO("              Qm=%d\n", pdsch_cfg.grant.Qm[i]);
@@ -334,9 +335,13 @@ int main(int argc, char **argv) {
     srslte_filesource_read(&fsrc, rx_slot_symbols[0], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
 #endif
     
-    srslte_chest_dl_t chest; 
-    if (srslte_chest_dl_init(&chest, cell)) {
+    srslte_chest_dl_t chest;
+    if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
       fprintf(stderr, "Error initializing equalizer\n");
+      exit(-1);
+    }
+    if (srslte_chest_dl_set_cell(&chest, cell)) {
+      printf("Error initializing equalizer\n");
       exit(-1);
     }
     srslte_chest_dl_estimate(&chest, rx_slot_symbols[0], ce[0], subframe);
@@ -345,7 +350,11 @@ int main(int argc, char **argv) {
     srslte_filesource_free(&fsrc);
   } else {
 
-    if (srslte_pdsch_init_tx(&pdsch_tx, cell)) {
+    if (srslte_pdsch_init_enb(&pdsch_tx, cell.nof_prb)) {
+      fprintf(stderr, "Error creating PDSCH object\n");
+      goto quit;
+    }
+    if (srslte_pdsch_set_cell(&pdsch_tx, cell)) {
       fprintf(stderr, "Error creating PDSCH object\n");
       goto quit;
     }
@@ -372,9 +381,11 @@ int main(int argc, char **argv) {
       }
     }
 
-    for (int tb = 0; tb < grant.nof_tb; tb++) {
-      for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
-        data_tx[tb][byte] = (uint8_t)(rand() % 256);
+    for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+      if (grant.tb_en[tb]) {
+        for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
+          data_tx[tb][byte] = (uint8_t) (rand() % 256);
+        }
       }
     }
 
@@ -444,11 +455,15 @@ int main(int argc, char **argv) {
       srslte_ofdm_rx_sf(&ofdm_rx, tx_sf_symbols[i], rx_slot_symbols[i]);
     }
 #endif
-    for (i = 0; i < grant.nof_tb; i++) {
-      if (grant.mcs[i].tbs) {
+    for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      if (grant.tb_en[i]) {
         srslte_softbuffer_rx_reset_tbs(softbuffers_rx[i], (uint32_t) grant.mcs[i].tbs);
       }
     }
+
+    /* Set ACKs to zero, otherwise will not decode if there are positive ACKs*/
+    bzero(acks, sizeof(acks));
+
     r = srslte_pdsch_decode(&pdsch_rx, &pdsch_cfg, softbuffers_rx, rx_slot_symbols, ce, 0, rnti, data_rx, acks);
   }
   gettimeofday(&t[2], NULL);
@@ -464,19 +479,23 @@ int main(int argc, char **argv) {
   }
 
   /* Check Tx and Rx bytes */
-  for (int tb = 0; tb < grant.nof_tb; tb++) {
-    for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
-      if (data_tx[tb][byte] != data_rx[tb][byte]) {
-        ERROR("Found BYTE error in TB %d (%02X != %02X), quiting...", tb, data_tx[tb][byte], data_rx[tb][byte]);
-        ret = SRSLTE_ERROR;
-        goto quit;
+  for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    if (grant.tb_en[tb]) {
+      for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
+        if (data_tx[tb][byte] != data_rx[tb][byte]) {
+          ERROR("Found BYTE error in TB %d (%02X != %02X), quiting...", tb, data_tx[tb][byte], data_rx[tb][byte]);
+          ret = SRSLTE_ERROR;
+          goto quit;
+        }
       }
     }
   }
 
   /* Check all transport blocks have been decoded OK */
-  for (int tb = 0; tb < grant.nof_tb; tb++) {
-    ret |= (acks[tb]) ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+  for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    if (grant.tb_en[tb]) {
+      ret |= (acks[tb]) ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+    }
   }
 
   ret = SRSLTE_SUCCESS;

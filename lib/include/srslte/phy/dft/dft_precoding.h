@@ -45,12 +45,18 @@ typedef struct SRSLTE_API {
 
   uint32_t max_prb;  
   srslte_dft_plan_t dft_plan[SRSLTE_MAX_PRB+1];
-  srslte_dft_plan_t idft_plan[SRSLTE_MAX_PRB+1];
-    
+
 }srslte_dft_precoding_t;
 
-SRSLTE_API int srslte_dft_precoding_init(srslte_dft_precoding_t *q, 
-                                         uint32_t max_prb);
+SRSLTE_API int srslte_dft_precoding_init(srslte_dft_precoding_t *q,
+                                         uint32_t max_prb,
+                                         bool is_tx);
+
+SRSLTE_API int srslte_dft_precoding_init_tx(srslte_dft_precoding_t *q,
+                                            uint32_t max_prb);
+
+SRSLTE_API int srslte_dft_precoding_init_rx(srslte_dft_precoding_t *q,
+                                            uint32_t max_prb);
 
 SRSLTE_API void srslte_dft_precoding_free(srslte_dft_precoding_t *q);
 
@@ -61,11 +67,5 @@ SRSLTE_API int srslte_dft_precoding(srslte_dft_precoding_t *q,
                                     cf_t *output, 
                                     uint32_t nof_prb, 
                                     uint32_t nof_symbols);
-
-SRSLTE_API int srslte_dft_predecoding(srslte_dft_precoding_t *q, 
-                                      cf_t *input, 
-                                      cf_t *output, 
-                                      uint32_t nof_prb, 
-                                      uint32_t nof_symbols);
 
 #endif

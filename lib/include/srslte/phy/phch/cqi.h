@@ -41,11 +41,14 @@
 #include "srslte/phy/common/phy_common.h"
 
 #define SRSLTE_CQI_MAX_BITS 64
+#define SRSLTE_DIF_CQI_MAX_BITS 3
+#define SRSLTE_PMI_MAX_BITS 4
 
 typedef struct {
   bool     configured; 
   uint32_t pmi_idx; 
   uint32_t ri_idx;
+  bool ri_idx_present;
   bool     simul_cqi_ack;
   bool     format_is_subband; 
   uint32_t subband_size; 

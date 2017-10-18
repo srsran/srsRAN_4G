@@ -42,7 +42,6 @@ public:
   // used by sched_metric
   uint32_t ue_idx;
 
-  bool has_pusch;
   bool has_pucch;
   
   typedef struct {
@@ -116,7 +115,7 @@ public:
   bool       needs_cqi(uint32_t tti, bool will_send = false); 
   uint32_t   get_max_retx(); 
   
-  bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32_t *L);
+  bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2]);
   bool       pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
 
   uint32_t   get_pending_ul_old_data();

@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   float *llr;
   short *llr_s;
   uint8_t *llr_c;
-  uint8_t *data_tx, *data_rx, *data_rx_bytes[SRSLTE_TDEC_NPAR], *symbols;
+  uint8_t *data_tx, *data_rx, *data_rx_bytes[SRSLTE_TDEC_MAX_NPAR], *symbols;
   uint32_t i, j;
   float var[SNR_POINTS];
   uint32_t snr_points;
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
-  for (int cb=0;cb<SRSLTE_TDEC_NPAR;cb++) {
+  for (int cb=0;cb<SRSLTE_TDEC_MAX_NPAR;cb++) {
     data_rx_bytes[cb] = srslte_vec_malloc(frame_length * sizeof(uint8_t));
     if (!data_rx_bytes[cb]) {
       perror("malloc");
@@ -254,10 +254,10 @@ int main(int argc, char **argv) {
         t = nof_iterations;
       }
 
-      int16_t *input[SRSLTE_TDEC_NPAR];
-      uint8_t *output[SRSLTE_TDEC_NPAR];        
+      int16_t *input[SRSLTE_TDEC_MAX_NPAR];
+      uint8_t *output[SRSLTE_TDEC_MAX_NPAR];
       
-      for (int n=0;n<SRSLTE_TDEC_NPAR;n++) {
+      for (int n=0;n<SRSLTE_TDEC_MAX_NPAR;n++) {
         if (n < nof_cb) {
           input[n] = llr_s;         
         } else {

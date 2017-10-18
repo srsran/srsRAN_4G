@@ -33,29 +33,29 @@
 #include "srslte/phy/scrambling/scrambling.h"
 
 void srslte_scrambling_f(srslte_sequence_t *s, float *data) {
-  srslte_scrambling_f_offset(s, data, 0, s->len);
+  srslte_scrambling_f_offset(s, data, 0, s->cur_len);
 }
 
 void srslte_scrambling_f_offset(srslte_sequence_t *s, float *data, int offset, int len) {
-  assert (len + offset <= s->len);
+  assert (len + offset <= s->cur_len);
   srslte_vec_prod_fff(data, &s->c_float[offset], data, len);
 }
 
 void srslte_scrambling_s(srslte_sequence_t *s, short *data) {
-  srslte_scrambling_s_offset(s, data, 0, s->len);
+  srslte_scrambling_s_offset(s, data, 0, s->cur_len);
 }
 
 void srslte_scrambling_s_offset(srslte_sequence_t *s, short *data, int offset, int len) {
-  assert (len + offset <= s->len);
+  assert (len + offset <= s->cur_len);
   srslte_vec_prod_sss(data, &s->c_short[offset], data, len);
 }
 
 void srslte_scrambling_c(srslte_sequence_t *s, cf_t *data) {
-  srslte_scrambling_c_offset(s, data, 0, s->len);
+  srslte_scrambling_c_offset(s, data, 0, s->cur_len);
 }
 
 void srslte_scrambling_c_offset(srslte_sequence_t *s, cf_t *data, int offset, int len) {
-  assert (len + offset <= s->len);
+  assert (len + offset <= s->cur_len);
   srslte_vec_prod_cfc(data, &s->c_float[offset], data, len);
 }
 
@@ -81,7 +81,7 @@ void scrambling_b_word(uint8_t *c, uint8_t *data, int len) {
 
 
 void srslte_scrambling_b(srslte_sequence_t *s, uint8_t *data) {
-  scrambling_b_word(s->c, data, s->len);  
+  scrambling_b_word(s->c, data, s->cur_len);  
 }
 
 void srslte_scrambling_b_offset(srslte_sequence_t *s, uint8_t *data, int offset, int len) {

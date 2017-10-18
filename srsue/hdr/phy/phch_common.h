@@ -27,6 +27,9 @@
 #ifndef UEPHYWORKERCOMMON_H
 #define UEPHYWORKERCOMMON_H
 
+#define TX_MODE_CONTINUOUS 1
+
+
 #include <pthread.h>
 #include <string.h>
 #include <vector>
@@ -35,8 +38,6 @@
 #include "srslte/radio/radio.h"
 #include "srslte/common/log.h"
 #include "phy/phy_metrics.h"
-
-//#define CONTINUOUS_TX
 
 
 namespace srsue {
@@ -47,8 +48,8 @@ namespace srsue {
     
     /* Common variables used by all phy workers */
     phy_interface_rrc::phy_cfg_t *config; 
-    phy_args_t                   *args; 
-    srslte::log       *log_h;
+    phy_args_t                   *args;
+    rrc_interface_phy *rrc;
     mac_interface_phy *mac;
     srslte_ue_ul_t     ue_ul; 
     
@@ -69,7 +70,8 @@ namespace srsue {
     void init(phy_interface_rrc::phy_cfg_t *config, 
               phy_args_t  *args, 
               srslte::log *_log, 
-              srslte::radio *_radio, 
+              srslte::radio *_radio,
+              rrc_interface_phy *rrc,
               mac_interface_phy *_mac);
     
     /* For RNTI searches, -1 means now or forever */    
@@ -116,7 +118,8 @@ namespace srsue {
     bool               is_first_of_burst;
     srslte::radio      *radio_h;
     float              cfo;
-    
+    srslte::log       *log_h;
+
     
     bool               ul_rnti_active(uint32_t tti);
     bool               dl_rnti_active(uint32_t tti);

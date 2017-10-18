@@ -15,12 +15,13 @@ srsLTE is released under the AGPLv3 license and uses software from the OpenLTE p
 Common Features
 ---------------
 
- * LTE Release 8 compliant
+ * LTE Release 8 compliant (with selected features of Release 9)
  * FDD configuration
  * Tested bandwidths: 1.4, 3, 5, 10, 15 and 20 MHz
- * Transmission mode 1 (single antenna) and 2 (transmit diversity) 
+ * Transmission mode 1 (single antenna), 2 (transmit diversity), 3 (CCD) and 4 (closed-loop spatial multiplexing)
  * Frequency-based ZF and MMSE equalizer
- * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX (+100 Mbps) and standard C (+25 Mbps)
+ * Evolved multimedia broadcast and multicast service (eMBMS)
+ * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX2 (+100 Mbps) and standard C (+25 Mbps)
  * MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers
  * Detailed log system with per-layer log levels and hex dumps
  * MAC layer wireshark packet capture
@@ -33,6 +34,7 @@ srsUE Features
  * Cell search and synchronization procedure for the UE
  * Soft USIM supporting Milenage and XOR authentication 
  * Virtual network interface *tun_srsue* created upon network attach
+ * +100 Mbps DL in 20 MHz MIMO TM4 configuration in i7 Quad-Core CPU.
  * 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
  * 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.
 
@@ -55,6 +57,8 @@ srsENB has been tested and validated with the following handsets:
  * LG Nexus 5
  * LG Nexus 4
  * Motorola Moto G4 plus
+ * Huawei P9/P9lite
+ * Huawei dongles: E3276 and E398
 
 Hardware
 --------
@@ -65,13 +69,14 @@ We have tested the following hardware:
  * USRP B210
  * USRP X300
  * bladeRF
- * limeSDR
+ * limeSDR (currently, only the PHY-layer examples, i.e., pdsch_enodeb/ue are supported)
 
 Build Instructions
 ------------------
 
 * Mandatory requirements: 
   * Common:
+    * cmake              https://cmake.org/
     * libfftw            http://www.fftw.org/
     * PolarSSL/mbedTLS   https://tls.mbed.org
   * srsUE:
@@ -83,7 +88,7 @@ Build Instructions
 
 For example, on Ubuntu 17.04, one can install the required libraries with:
 ```
-sudo apt-get install libfftw3-dev libmbedtls-dev libboost-all-dev libconfig++-dev libsctp-dev
+sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-all-dev libconfig++-dev libsctp-dev
 ```
 Note that depending on your flavor and version of Linux, the actual package names may be different.
 

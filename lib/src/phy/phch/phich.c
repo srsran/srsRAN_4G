@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/phch/phich.h"
@@ -67,36 +68,21 @@ void srslte_phich_reset(srslte_phich_t *q, cf_t *slot_symbols[SRSLTE_MAX_PORTS])
   }
 }
 
-int srslte_phich_init(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t cell) 
-{
-  return srslte_phich_init_multi(q, regs, cell, 1);
-}
-
 /** Initializes the phich channel receiver */
-int srslte_phich_init_multi(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t cell, uint32_t nof_rx_antennas) 
+int srslte_phich_init(srslte_phich_t *q, uint32_t nof_rx_antennas)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
-  if (q         != NULL &&
-      regs      != NULL &&
-      srslte_cell_isvalid(&cell)) 
+  if (q != NULL)
   {
 
     bzero(q, sizeof(srslte_phich_t));
     ret = SRSLTE_ERROR;
     
-    q->cell = cell;
-    q->regs = regs;
-    q->nof_rx_antennas = nof_rx_antennas; 
+    q->nof_rx_antennas = nof_rx_antennas;
     
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_BPSK)) {
       goto clean;
-    }
-
-    for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
-      if (srslte_sequence_phich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
-        goto clean;
-      }
     }
     ret = SRSLTE_SUCCESS;
   }
@@ -114,8 +100,33 @@ void srslte_phich_free(srslte_phich_t *q) {
   srslte_modem_table_free(&q->mod);
 
   bzero(q, sizeof(srslte_phich_t));
-
 }
+
+int srslte_phich_set_cell(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q         != NULL &&
+      regs      != NULL &&
+      srslte_cell_isvalid(&cell))
+  {
+
+    q->regs = regs;
+
+    if (cell.id != q->cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+      for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
+        if (srslte_sequence_phich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
+          return SRSLTE_ERROR;
+        }
+      }
+    }
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
+}
+
+
 
 /* Computes n_group and n_seq according to Section 9.1.2 in 36.213 */
 void srslte_phich_calc(srslte_phich_t *q, uint32_t n_prb_lowest, uint32_t n_dmrs, 
@@ -162,26 +173,9 @@ void srslte_phich_ack_encode(uint8_t ack, uint8_t bits[SRSLTE_PHICH_NBITS]) {
   memset(bits, ack, 3 * sizeof(uint8_t));
 }
 
-int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate,
-    uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, float *distance) 
-{
-  cf_t *_sf_symbols[SRSLTE_MAX_PORTS]; 
-  cf_t *_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  
-  _sf_symbols[0] = sf_symbols; 
-  for (int i=0;i<q->cell.nof_ports;i++) {
-    _ce[i][0] = ce[i]; 
-  }
-
-  return srslte_phich_decode_multi(q, _sf_symbols, _ce, noise_estimate, ngroup, nseq, subframe, ack, distance);
-}
-/* Decodes the phich channel and saves the CFI in the cfi pointer.
- *
- * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
- */
-int srslte_phich_decode_multi(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate,
-                              uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, float *distance) 
-{
+int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS],
+                        cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate,
+                        uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, float *distance) {
 
   /* Set pointers for layermapping & precoding */
   int i, j;

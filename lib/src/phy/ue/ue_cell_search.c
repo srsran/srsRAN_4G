@@ -29,6 +29,7 @@
 #include <strings.h>
 #include <assert.h>
 #include <unistd.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/ue/ue_cell_search.h"
 
@@ -51,11 +52,16 @@ int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames,
     cell.id = SRSLTE_CELL_ID_UNKNOWN; 
     cell.nof_prb = SRSLTE_CS_NOF_PRB; 
 
-    if (srslte_ue_sync_init(&q->ue_sync, cell, recv_callback, stream_handler)) {
+    if (srslte_ue_sync_init(&q->ue_sync, cell.nof_prb, true, recv_callback, stream_handler)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       goto clean_exit; 
     }
-    
+
+    if (srslte_ue_sync_set_cell(&q->ue_sync, cell)) {
+      fprintf(stderr, "Error initiating ue_sync\n");
+      goto clean_exit;
+    }
+
     q->sf_buffer[0] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
     q->nof_rx_antennas = 1; 
     
@@ -105,11 +111,15 @@ int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t * q, uint32_t max_fra
     cell.id = SRSLTE_CELL_ID_UNKNOWN; 
     cell.nof_prb = SRSLTE_CS_NOF_PRB; 
 
-    if (srslte_ue_sync_init_multi(&q->ue_sync, cell, recv_callback, nof_rx_antennas, stream_handler)) {
+    if (srslte_ue_sync_init_multi(&q->ue_sync, cell.nof_prb, true, recv_callback, nof_rx_antennas, stream_handler)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       goto clean_exit; 
     }
-    
+    if (srslte_ue_sync_set_cell(&q->ue_sync, cell)) {
+      fprintf(stderr, "Error initiating ue_sync\n");
+      goto clean_exit;
+    }
+
     for (int i=0;i<nof_rx_antennas;i++) {
       q->sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
     }
@@ -242,7 +252,8 @@ int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t * q,
 {
   int ret = 0; 
   float max_peak_value = -1.0;
-  uint32_t nof_detected_cells = 0; 
+  uint32_t nof_detected_cells = 0;
+
   for (uint32_t N_id_2=0;N_id_2<3 && ret >= 0;N_id_2++) {
     ret = srslte_ue_cellsearch_scan_N_id_2(q, N_id_2, &found_cells[N_id_2]);
     if (ret < 0) {
@@ -273,8 +284,12 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
 
   if (q != NULL) 
   {
-    ret = SRSLTE_SUCCESS; 
-    
+    ret = SRSLTE_SUCCESS;
+
+    bzero(q->candidates, sizeof(srslte_ue_cellsearch_result_t)*q->max_frames);
+    bzero(q->mode_ntimes, sizeof(uint32_t)*q->max_frames);
+    bzero(q->mode_counted, sizeof(uint8_t)*q->max_frames);
+
     srslte_ue_sync_set_N_id_2(&q->ue_sync, N_id_2);
     srslte_ue_sync_reset(&q->ue_sync);
     do {
@@ -282,7 +297,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
       ret = srslte_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);
       if (ret < 0) {
         fprintf(stderr, "Error calling srslte_ue_sync_work()\n");       
-        break; 
+        return -1;
       } else if (ret == 1) {
         /* This means a peak was found and ue_sync is now in tracking state */
         ret = srslte_sync_get_cell_id(&q->ue_sync.strack);

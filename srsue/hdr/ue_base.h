@@ -52,15 +52,17 @@ namespace srsue {
 *******************************************************************************/
 
 typedef struct {
+  uint32_t      dl_earfcn;
   float         dl_freq;
   float         ul_freq;
+  float         freq_offset;
   float         rx_gain;
   float         tx_gain;
-  uint32_t      nof_rx_ant; 
-  std::string   device_name; 
-  std::string   device_args; 
-  std::string   time_adv_nsamples; 
-  std::string   burst_preamble; 
+  uint32_t      nof_rx_ant;
+  std::string   device_name;
+  std::string   device_args;
+  std::string   time_adv_nsamples;
+  std::string   burst_preamble;
 }rf_args_t;
 
 typedef struct {
@@ -105,6 +107,8 @@ typedef struct {
   float      metrics_period_secs;
   bool pregenerate_signals;
   std::string ue_cateogry;
+  bool metrics_csv_enable;
+  std::string metrics_csv_filename;
 }expert_args_t;
 
 typedef struct {

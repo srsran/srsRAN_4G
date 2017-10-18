@@ -134,6 +134,9 @@ void phy::stop()
 {  
   tx_rx.stop();  
   workers_common.stop();
+  for (uint32_t i=0;i<nof_workers;i++) {
+    workers[i].stop();
+  }
   workers_pool.stop();
   prach.stop();
 }

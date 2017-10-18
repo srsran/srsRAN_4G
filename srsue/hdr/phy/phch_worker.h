@@ -42,15 +42,17 @@ class phch_worker : public srslte::thread_pool::worker
 public:
   
   phch_worker();
+  ~phch_worker();
   void  reset(); 
   void  set_common(phch_common *phy);
-  bool  init_cell(srslte_cell_t cell);
-  void  free_cell();
-  
+  bool  init(uint32_t max_prb, srslte::log *log);
+
+  bool  set_cell(srslte_cell_t cell);
+
   /* Functions used by main PHY thread */
   cf_t* get_buffer(uint32_t antenna_idx);
   void  set_tti(uint32_t tti, uint32_t tx_tti); 
-  void  set_tx_time(srslte_timestamp_t tx_time);
+  void  set_tx_time(srslte_timestamp_t tx_time, uint32_t next_offset);
   void  set_cfo(float cfo);
   void  set_sample_offset(float sample_offset); 
   
@@ -95,7 +97,7 @@ private:
   void set_uci_sr();
   void set_uci_periodic_cqi();
   void set_uci_aperiodic_cqi();
-  void set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb);
+  void set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS]);
   bool srs_is_ready_to_send();
   float set_power(float tx_power);
   void setup_tx_gain();
@@ -111,15 +113,19 @@ private:
   
   /* Common objects */  
   phch_common    *phy;
-  srslte_cell_t  cell; 
-  bool           cell_initiated; 
+  srslte::log    *log_h;
+  srslte_cell_t  cell;
+  bool           mem_initiated;
+  bool           cell_initiated;
   cf_t          *signal_buffer[SRSLTE_MAX_PORTS]; 
   uint32_t       tti; 
   uint32_t       tx_tti;
   bool           pregen_enabled;
   uint32_t       last_dl_pdcch_ncce;
-  bool           rnti_is_set; 
-  
+  bool           rnti_is_set;
+
+  uint32_t next_offset;
+
   /* Objects for DL */
   srslte_ue_dl_t ue_dl; 
   uint32_t       cfi; 

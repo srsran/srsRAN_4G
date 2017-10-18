@@ -28,6 +28,8 @@
 #include <boost/concept_check.hpp>
 #include <srslte/interfaces/sched_interface.h>
 #include <srslte/phy/phch/pucch.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
@@ -232,7 +234,7 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
   }
 }
 
-bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32_t *L)
+bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
 {
   if (!phy_config_dedicated_enabled) {
     return false; 
@@ -241,7 +243,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
   pucch_sched.sps_enabled = false;
   pucch_sched.n_pucch_sr = cfg.sr_N_pucch;
   pucch_sched.n_pucch_2  = cfg.n_pucch_cqi;
-  pucch_sched.N_pucch_1  = cfg.pucch_cfg.n1_pucch_an; 
+  pucch_sched.N_pucch_1  = cfg.pucch_cfg.n1_pucch_an;
   
   bool has_sr = cfg.sr_enabled && srslte_ue_ul_sr_send_tti(cfg.sr_I, current_tti);    
   
@@ -250,15 +252,13 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
     if (((dl_harq[i].get_tti()+4)%10240) == current_tti) {
       uint32_t n_pucch = srslte_pucch_get_npucch(dl_harq[i].get_n_cce(), SRSLTE_PUCCH_FORMAT_1A, has_sr, &pucch_sched);
       if (prb_idx) {
-        for (int i=0;i<2;i++) {
-          prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_1A, n_pucch, cell.nof_prb, cell.cp, i); 
-        }      
+        for (int  j=0;j<2;j++) {
+          prb_idx[j] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_1A, n_pucch, cell.nof_prb, cell.cp, j);
+        }
+        Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, ncce=%d, has_sr=%d, n_pucch_1=%d\n",
+              rnti, prb_idx[0], prb_idx[1], n_pucch, dl_harq[i].get_n_cce(), has_sr, pucch_sched.N_pucch_1);
       }
-      if (L) {
-        *L = 1; 
-      }
-      Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], n_pucch);
-      return true; 
+      return true;
     }
   }
   // If there is no Format1A/B, then check if it's expecting Format1
@@ -267,9 +267,6 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
       for (int i=0;i<2;i++) {
         prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_1, cfg.sr_N_pucch, cell.nof_prb, cell.cp, i); 
       }
-    }
-    if (L) {
-      *L = 1; 
     }
     Debug("SCHED: Reserved Format1 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], cfg.sr_N_pucch);
     return true; 
@@ -280,12 +277,9 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
       for (int i=0;i<2;i++) {
         prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_2, cfg.cqi_pucch, cell.nof_prb, cell.cp, i);
       }
+      Debug("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
+            rnti, prb_idx[0], prb_idx[1], cfg.cqi_pucch, cfg.cqi_idx);
     }
-    if(L) {
-      *L = 2;
-    }
-    Debug("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
-         rnti, prb_idx[0], prb_idx[1], cfg.cqi_pucch, cfg.cqi_idx);
     return true;
   }
 
@@ -397,7 +391,7 @@ int sched_ue::generate_format1(dl_harq_proc *h,
     if (fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb);
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb)/8;
       mcs = fixed_mcs_dl; 
     }
 
@@ -468,7 +462,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(allocation.L, nof_re, req_bytes, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), allocation.L);
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), allocation.L)/8;
       mcs = fixed_mcs_ul;
     }
     
@@ -607,12 +601,12 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
   
   uint32_t nof_re = 0; 
   int tbs = 0; 
-  for (n=1;n<cell.nof_prb && nbytes < req_bytes;n++) {
+  for (n=1;n<=cell.nof_prb && nbytes < req_bytes;n++) {
     nof_re = srslte_ra_dl_approx_nof_re(cell, n, nof_ctrl_symbols);
     if (fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(n, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), n);
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), n)/8;
     }
     if (tbs > 0) {
       nbytes = tbs; 
@@ -641,14 +635,14 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), n);
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), n)/8;
     }
     if (tbs > 0) {
       nbytes = tbs; 
     }
   }
-  
-  while (!srslte_dft_precoding_valid_prb(n)) {
+
+  while (!srslte_dft_precoding_valid_prb(n) && n<=cell.nof_prb) {
     n++;
   }
   
@@ -702,10 +696,16 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
   uint32_t l=0;
   float max_coderate = srslte_cqi_to_coderate(dl_cqi);
   float coderate = 99;
+  float factor=1.5;
+  uint32_t l_max = 3;
+  if (cell.nof_prb == 6) {
+    factor = 1.0;
+    l_max  = 2;
+  }
   do {
     coderate = srslte_pdcch_coderate(nof_bits, l);
     l++;
-  } while(l<3 && coderate > max_coderate);
+  } while(l<l_max && factor*coderate > max_coderate);
   Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n", dl_cqi, l, nof_bits, coderate, max_coderate);
   return l; 
 }
@@ -814,8 +814,8 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   uint32_t max_Qm  = is_ul?4:6; // Allow 16-QAM in PUSCH Only
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  if (has_pucch) {
-    cqi-=2;
+  if (has_pucch && is_ul) {
+    cqi-=3;
   }
 
   int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, &sel_mcs)/8;

@@ -81,7 +81,7 @@ static inline int16_t hMax1(__m256i masked_value)
 }
 
 /* Computes beta values */
-void map_avx_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_NPAR], uint32_t long_cb)
+void map_avx_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_MAX_NPAR], uint32_t long_cb)
 {
   int k;
   uint32_t end = long_cb + 3;

@@ -349,14 +349,19 @@ bool mux::msg3_is_transmitted()
 /* Returns a pointer to the Msg3 buffer */
 uint8_t* mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
 {
-  uint8_t* msg3_buff_start_pdu = pdu_get(msg3_buff, pdu_sz, 0, 0); 
-  if (!msg3_buff_start_pdu) {
-    Error("Moving PDU from Mux unit to Msg3 buffer\n");
+  if (pdu_sz < MSG3_BUFF_SZ - 32) {
+    uint8_t* msg3_buff_start_pdu = pdu_get(msg3_buff, pdu_sz, 0, 0);
+    if (!msg3_buff_start_pdu) {
+      Error("Moving PDU from Mux unit to Msg3 buffer\n");
+      return NULL;
+    }
+    memcpy(payload, msg3_buff_start_pdu, sizeof(uint8_t)*pdu_sz);
+    msg3_has_been_transmitted = true;
+    return payload;
+  } else {
+    Error("Msg3 size (%d) is longer than internal msg3_buff size=%d, (see mux.h)\n", pdu_sz, MSG3_BUFF_SZ-32);
     return NULL;
-  }    
-  memcpy(payload, msg3_buff_start_pdu, sizeof(uint8_t)*pdu_sz);
-  msg3_has_been_transmitted = true; 
-  return payload; 
+  }
 }
 
   

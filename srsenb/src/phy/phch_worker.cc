@@ -50,6 +50,9 @@ using namespace std;
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
 #include <srslte/phy/phch/ra.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/phch/pdsch.h>
+#include <srslte/phy/common/sequence.h>
 
 void init_plots(srsenb::phch_worker *worker);
 pthread_t plot_thread; 
@@ -95,22 +98,40 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     fprintf(stderr, "Error allocating memory\n");
     return; 
   }
-  if (srslte_enb_dl_init(&enb_dl, phy->cell)) {
+  if (srslte_enb_dl_init(&enb_dl, phy->cell.nof_prb)) {
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
-  
-  if (srslte_enb_ul_init(&enb_ul, 
-                          phy->cell, 
-                          NULL, 
-                          &phy->pusch_cfg, 
-                          &phy->hopping_cfg,
-                          &phy->pucch_cfg)) 
+  if (srslte_enb_dl_set_cell(&enb_dl, phy->cell)) {
+    fprintf(stderr, "Error initiating ENB DL\n");
+    return;
+  }
+  if (srslte_enb_ul_init(&enb_ul, phy->cell.nof_prb)) {
+    fprintf(stderr, "Error initiating ENB UL\n");
+    return;
+  }
+  if (srslte_enb_ul_set_cell(&enb_ul,
+                              phy->cell,
+                              NULL,
+                              &phy->pusch_cfg,
+                              &phy->hopping_cfg,
+                              &phy->pucch_cfg))
   {
-    fprintf(stderr, "Error initiating ENB DL\n");
+    fprintf(stderr, "Error initiating ENB UL\n");
     return;
   }
   
+  /* Setup SI-RNTI in PHY */
+  add_rnti(SRSLTE_SIRNTI);
+
+  /* Setup P-RNTI in PHY */
+  add_rnti(SRSLTE_PRNTI);
+
+  /* Setup RA-RNTI in PHY */
+  for (int i=0;i<10;i++) {
+    add_rnti(1+i);
+  }
+
   srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
@@ -118,12 +139,29 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
   Info("Worker %d configured cell %d PRB\n", get_id(), phy->cell.nof_prb);
   
   initiated = true; 
-  
+  running   = true;
+
 #ifdef DEBUG_WRITE_FILE
   f = fopen("test.dat", "w");
 #endif
 }
 
+void phch_worker::stop()
+{
+  running = false;
+  pthread_mutex_lock(&mutex);
+
+  srslte_enb_dl_free(&enb_dl);
+  srslte_enb_ul_free(&enb_ul);
+  if (signal_buffer_rx) {
+    free(signal_buffer_rx);
+  }
+  if (signal_buffer_tx) {
+    free(signal_buffer_tx);
+  }
+  pthread_mutex_unlock(&mutex);
+  pthread_mutex_destroy(&mutex);
+}
 void phch_worker::reset() 
 {
   initiated  = false; 
@@ -149,14 +187,14 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timesta
 
 int phch_worker::add_rnti(uint16_t rnti)
 {
-  
+
   if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
     return -1; 
   }
   if (srslte_enb_ul_add_rnti(&enb_ul, rnti)) {
     return -1; 
   }
-  
+
   // Create user 
   ue_db[rnti].rnti = rnti; 
     
@@ -227,9 +265,13 @@ void phch_worker::rem_rnti(uint16_t rnti)
 
 void phch_worker::work_imp()
 {
-  uint32_t sf_ack; 
-  
-  pthread_mutex_lock(&mutex); 
+  uint32_t sf_ack;
+
+  if (!running) {
+    return;
+  }
+
+  pthread_mutex_lock(&mutex);
   
   mac_interface_phy::ul_sched_t *ul_grants = phy->ul_grants;
   mac_interface_phy::dl_sched_t *dl_grants = phy->dl_grants; 
@@ -244,10 +286,10 @@ void phch_worker::work_imp()
     ue_db[rnti].has_grant_tti = -1; 
   }
 
-  // Process UL signal 
+  // Process UL signal
   srslte_enb_ul_fft(&enb_ul, signal_buffer_rx);
 
-  // Decode pending UL grants for the tti they were scheduled 
+  // Decode pending UL grants for the tti they were scheduled
   decode_pusch(ul_grants[sf_rx].sched_grants, ul_grants[sf_rx].nof_grants, sf_rx);
   
   // Decode remaining PUCCH ACKs not associated with PUSCH transmission and SR signals
@@ -316,7 +358,7 @@ void phch_worker::work_imp()
   }
 #endif
 
-unlock: 
+unlock:
   pthread_mutex_unlock(&mutex); 
 
 }
@@ -392,8 +434,6 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       ue_db[rnti].phich_info.n_prb_lowest = enb_ul.pusch_cfg.grant.n_prb_tilde[0];                                           
       ue_db[rnti].phich_info.n_dmrs       = phy_grant.ncs_dmrs;                                           
 
-      
-      
       char cqi_str[64];
       if (cqi_enabled) {
         srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
@@ -647,9 +687,13 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
                              phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }
+
       srslte_softbuffer_tx_t *sb[SRSLTE_MAX_CODEWORDS] = {grants[i].softbuffer, NULL};
-      uint8_t *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, grants[i].grant.rv_idx, sf_idx, d))
+      uint8_t                 *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
+      int                     rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, 0};
+
+
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, rv, sf_idx, d, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0))
       {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 

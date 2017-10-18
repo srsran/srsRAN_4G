@@ -67,13 +67,17 @@ SRSLTE_API void srslte_interp_linear_f(float *input,
 
 typedef struct {
   cf_t *diff_vec; 
-  uint32_t vector_len; 
+  uint32_t vector_len;
+  uint32_t max_vector_len;
 } srslte_interp_linsrslte_vec_t;
 
 SRSLTE_API int srslte_interp_linear_vector_init(srslte_interp_linsrslte_vec_t *q, 
                                                 uint32_t vector_len);
 
 SRSLTE_API void srslte_interp_linear_vector_free(srslte_interp_linsrslte_vec_t *q); 
+
+SRSLTE_API int srslte_interp_linear_vector_resize(srslte_interp_linsrslte_vec_t *q,
+                                                  uint32_t vector_len);
 
 SRSLTE_API void srslte_interp_linear_vector(srslte_interp_linsrslte_vec_t *q, 
                                             cf_t *in0, 
@@ -107,7 +111,9 @@ typedef struct {
   cf_t *diff_vec2;
   float *ramp;
   uint32_t vector_len; 
-  uint32_t M; 
+  uint32_t M;
+  uint32_t max_vector_len;
+  uint32_t max_M;
 } srslte_interp_lin_t;
 
 SRSLTE_API int srslte_interp_linear_init(srslte_interp_lin_t *q, 
@@ -115,6 +121,10 @@ SRSLTE_API int srslte_interp_linear_init(srslte_interp_lin_t *q,
                                          uint32_t M); 
 
 SRSLTE_API void srslte_interp_linear_free(srslte_interp_lin_t *q);
+
+SRSLTE_API int srslte_interp_linear_resize(srslte_interp_lin_t *q,
+                                           uint32_t vector_len,
+                                           uint32_t M);
 
 SRSLTE_API void srslte_interp_linear_offset(srslte_interp_lin_t *q, 
                                             cf_t *input, 

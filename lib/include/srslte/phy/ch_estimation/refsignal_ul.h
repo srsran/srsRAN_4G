@@ -94,7 +94,10 @@ typedef struct {
 } srslte_refsignal_srs_pregen_t;
 
 SRSLTE_API int srslte_refsignal_ul_init(srslte_refsignal_ul_t *q, 
-                                        srslte_cell_t cell);
+                                        uint32_t max_prb);
+
+SRSLTE_API int srslte_refsignal_ul_set_cell(srslte_refsignal_ul_t *q,
+                                            srslte_cell_t cell);
 
 SRSLTE_API void srslte_refsignal_ul_free(srslte_refsignal_ul_t *q);
 
@@ -115,9 +118,13 @@ SRSLTE_API uint32_t srslte_refsignal_dmrs_pucch_symbol(uint32_t m,
 
 SRSLTE_API bool srslte_refsignal_dmrs_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, 
                                                         srslte_refsignal_dmrs_pusch_cfg_t *cfg, 
-                                                        uint32_t nof_prb); 
+                                                        uint32_t nof_prb);
 
-SRSLTE_API int srslte_refsignal_dmrs_pusch_pregen(srslte_refsignal_ul_t *q, 
+SRSLTE_API int srslte_refsignal_dmrs_pusch_pregen_init(srslte_refsignal_ul_t *q,
+                                                       srslte_refsignal_ul_dmrs_pregen_t *pregen,
+                                                       uint32_t max_prb);
+
+SRSLTE_API int srslte_refsignal_dmrs_pusch_pregen(srslte_refsignal_ul_t *q,
                                                   srslte_refsignal_ul_dmrs_pregen_t *pregen);
 
 SRSLTE_API void srslte_refsignal_dmrs_pusch_pregen_free(srslte_refsignal_ul_t *q, 

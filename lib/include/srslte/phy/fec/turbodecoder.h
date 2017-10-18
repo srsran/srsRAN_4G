@@ -50,20 +50,14 @@
 #define SRSLTE_TCOD_MAX_LEN_CODED  (SRSLTE_TCOD_RATE*SRSLTE_TCOD_MAX_LEN_CB+SRSLTE_TCOD_TOTALTAIL)
 
 #include "srslte/phy/fec/turbodecoder_gen.h"
-
-#ifdef LV_HAVE_SSE
 #include "srslte/phy/fec/turbodecoder_simd.h"
-#else
-#define SRSLTE_TDEC_NPAR 1
-#endif
 
 typedef struct SRSLTE_API {
-#ifdef LV_HAVE_SSE
-  srslte_tdec_simd_t tdec_simd;
-#else
-  float *input_conv; 
-  srslte_tdec_gen_t tdec_gen;
-#endif  
+  float *input_conv;
+  union {
+    srslte_tdec_simd_t tdec_simd;
+    srslte_tdec_gen_t  tdec_gen;
+  };
 } srslte_tdec_t;
 
 SRSLTE_API int srslte_tdec_init(srslte_tdec_t * h, 
@@ -80,7 +74,7 @@ SRSLTE_API int srslte_tdec_reset_cb(srslte_tdec_t * h,
 SRSLTE_API int srslte_tdec_get_nof_iterations_cb(srslte_tdec_t * h, 
                                                  uint32_t cb_idx);
 
-SRSLTE_API int srslte_tdec_get_nof_parallel(srslte_tdec_t * h); 
+SRSLTE_API uint32_t srslte_tdec_get_nof_parallel(srslte_tdec_t * h);
 
 SRSLTE_API void srslte_tdec_iteration(srslte_tdec_t * h, 
                                       int16_t* input, 
@@ -101,15 +95,15 @@ SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h,
                                    uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_iteration_par(srslte_tdec_t * h, 
-                                          int16_t* input[SRSLTE_TDEC_NPAR], 
+                                          int16_t* input[SRSLTE_TDEC_MAX_NPAR],
                                           uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_decision_par(srslte_tdec_t * h, 
-                                         uint8_t *output[SRSLTE_TDEC_NPAR], 
+                                         uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                          uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_decision_byte_par(srslte_tdec_t * h, 
-                                              uint8_t *output[SRSLTE_TDEC_NPAR], 
+                                              uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                               uint32_t long_cb); 
 
 SRSLTE_API void srslte_tdec_decision_byte_par_cb(srslte_tdec_t * h, 
@@ -118,8 +112,8 @@ SRSLTE_API void srslte_tdec_decision_byte_par_cb(srslte_tdec_t * h,
                                                  uint32_t long_cb);
 
 SRSLTE_API int srslte_tdec_run_all_par(srslte_tdec_t * h, 
-                                       int16_t * input[SRSLTE_TDEC_NPAR], 
-                                       uint8_t *output[SRSLTE_TDEC_NPAR],
+                                       int16_t * input[SRSLTE_TDEC_MAX_NPAR],
+                                       uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
                                        uint32_t nof_iterations, 
                                        uint32_t long_cb);
 

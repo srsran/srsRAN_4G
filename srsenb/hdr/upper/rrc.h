@@ -195,6 +195,9 @@ public:
 
     bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e);
     bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
+    void setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT *qos,
+                    LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT *addr, uint32_t teid_out,
+                    LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu);
     bool release_erabs();
 
     void notify_s1ap_ue_ctxt_setup_complete();
