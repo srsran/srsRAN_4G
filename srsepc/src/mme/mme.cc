@@ -77,7 +77,7 @@ mme::init(all_args_t* args)
     m_logger = &m_logger_stdout;
   } else {
     m_logger_file.init(args->log_args.filename);
-    m_logger_file.log("\n\n");
+    m_logger_file.log("\n---  Software Radio Systems MME log ---\n\n");
     m_logger = &m_logger_file;
   }
 
@@ -85,10 +85,11 @@ mme::init(all_args_t* args)
   m_s1ap_log.set_level(srslte::LOG_LEVEL_DEBUG);
   m_s1ap_log.set_hex_limit(32);
   if(m_s1ap.init(args->s1ap_args, &m_s1ap_log)){
-    std::cout << "Error initializing MME S1APP" << std::endl;
+    m_s1ap_log.error("Error initializing MME S1APP\n");
     exit(-1);
   }
-  m_s1ap_log.console("Initialized MME\n");
+  m_s1ap_log.info("Initialized S1-MME\n");
+  m_s1ap_log.console("Initialized S1-MME\n");
   return 0;
 }
 
@@ -131,23 +132,22 @@ mme::run_thread()
   int s1mme = m_s1ap.get_s1_mme();
   while(m_running)
   {
-    //std::cout << "Waiting for SCTP Msg " << std::endl;
-    m_s1ap_log.debug("Waiting for SCTP Msg");
+    m_s1ap_log.debug("Waiting for SCTP Msg\n");
     pdu->reset();
     rd_sz = sctp_recvmsg(s1mme, pdu->msg, sz,(struct sockaddr*) &enb_addr, &fromlen, &sri, &msg_flags);
     if (rd_sz == -1 && errno != EAGAIN){
       m_s1ap_log.error("Error reading from SCTP socket: %s", strerror(errno));
     }
     else if (rd_sz == -1 && errno == EAGAIN){
-      m_s1ap_log("Socket timeout reached");
+      m_s1ap_log.debug("Socket timeout reached");
     }
     else{
       pdu->N_bytes = rd_sz;
-      m_s1ap_log("Received S1AP msg. Size: %d", pdu->N_bytes);
+      m_s1ap_log.info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
       m_s1ap.handle_s1ap_rx_pdu(pdu,&sri);
     }
   }
   return;
 }
 
-} //namespace srsepe<
+} //namespace srsepc

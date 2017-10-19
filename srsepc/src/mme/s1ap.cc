@@ -26,14 +26,6 @@
 
 #include <iostream> //TODO Remove
 
-#include <strings.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/sctp.h>
-#include <unistd.h>
-
-//#include "srslte/upper/s1ap_common.h"
 #include "srslte/common/bcd_helpers.h"
 #include "mme/s1ap.h"
 
@@ -59,11 +51,12 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
   m_mme_bind_addr = s1ap_args.mme_bind_addr;
   m_mme_name = std::string("srsmme0");
 
+  srslte::s1ap_mccmnc_to_plmn(m_mcc, m_mnc, &m_plmn);
+
   m_s1ap_log = s1ap_log;
 
   m_s1mme = enb_listen();
   
-  m_s1ap_log->console("Initialized S1-APP\n"); 
   return 0;
 }
 
@@ -109,18 +102,19 @@ s1ap::enb_listen()
   bzero(&s1mme_addr, sizeof(s1mme_addr));
   s1mme_addr.sin_family = AF_INET; 
   inet_pton(AF_INET, m_mme_bind_addr.c_str(), &(s1mme_addr.sin_addr) );
-  //s1mme_addr.sin_addr.s_addr = htonl(INADDR_ANY); //TODO this should use the bindx information
   s1mme_addr.sin_port = htons(S1MME_PORT);
   err = bind(sock_fd, (struct sockaddr*) &s1mme_addr, sizeof (s1mme_addr));
   if (err != 0){
-    std::cout << "Error binding SCTP socket" << std::endl;
+    m_s1ap_log->error("Error binding SCTP socket\n");
+    m_s1ap_log->console("Error binding SCTP socket\n");
     return -1;
   }
 
   //Listen for connections
   err = listen(sock_fd,SOMAXCONN);
   if (err != 0){
-    std::cout << "Error in SCTP socket listen" << std::endl;
+    m_s1ap_log->error("Error in SCTP socket listen\n");
+    m_s1ap_log->console("Error in SCTP socket listen\n");
     return -1;
   }
 
@@ -133,14 +127,14 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb
   LIBLTE_S1AP_S1AP_PDU_STRUCT rx_pdu;
 
   if(liblte_s1ap_unpack_s1ap_pdu((LIBLTE_BYTE_MSG_STRUCT*)pdu, &rx_pdu) != LIBLTE_SUCCESS) {
-    m_s1ap_log->console("Failed to unpack received PDU\n");
+    m_s1ap_log->error("Failed to unpack received PDU\n");
     return false;
   }
 
   switch(rx_pdu.choice_type) {
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
     m_s1ap_log->console("Received initiating PDU\n");
-    return handle_initiatingmessage(&rx_pdu.choice.initiatingMessage, enb_sri);
+    return handle_initiating_message(&rx_pdu.choice.initiatingMessage, enb_sri);
     break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME:
     m_s1ap_log->console("Received Succeseful Outcome PDU\n");
@@ -160,21 +154,20 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb
 }
 
 bool 
-s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  struct sctp_sndrcvinfo *enb_sri)
+s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  struct sctp_sndrcvinfo *enb_sri)
 {
   switch(msg->choice_type) {
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST:
-    std::cout << "Received S1 Setup Request." << std::endl;
-    return handle_s1setuprequest(&msg->choice.S1SetupRequest, enb_sri);
+    m_s1ap_log->info("Received S1 Setup Request.\n");
+    return handle_s1_setup_request(&msg->choice.S1SetupRequest, enb_sri);
   default:
-    std::cout << "Unhandled intiating message" << std::cout;
-    //s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
+    m_s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
   return true;
 }
 
 bool 
-s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
+s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
 {
   
   uint8_t enb_name[150];
@@ -184,8 +177,21 @@ s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, stru
   uint16_t mcc, mnc;  
   uint16_t tac, bplmn;
   uint32_t bplmns[32];
+  enb_ctx_t enb_ctx;
 
+  if(!m_s1ap_mngmt_proc.unpack_s1_setup_request(msg, &enb_ctx)){
+    m_s1ap_log->error("Malformed S1 Setup Request\n");
+    return false;
+  }
+
+  if(enb_ctx.enb_name_present){
+    m_s1ap_log->console("S1 Setup request from eNB %s\n", enb_ctx.enb_name);
+  }
+  else{
+    m_s1ap_log->console("S1 Setup request from eNB id \n");
+  }
   //eNB Name
+  /*
   if(msg->eNBname_present)
   {
     bzero(enb_name,sizeof(enb_name));
@@ -233,14 +239,22 @@ s1ap::handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, stru
   //Default Paging DRX
   LIBLTE_S1AP_PAGINGDRX_ENUM drx = msg->DefaultPagingDRX.e;
   std::cout << "Default Paging DRX" << drx << std::endl;
-
+  */
+  /*
+  if(plmn!=m_plmn){
+    send_s1_setup_failure(enb_sri);
+  }
+  else{
+    send_s1_setup_response(enb_sri);
+  }
+  */
   //send_s1setupfailure(enb_sri);
-  send_s1setupresponse(enb_sri); 
+  //send_s1setupresponse(enb_sri); 
   return true;
 }
 
 bool
-s1ap::send_s1setupfailure(struct sctp_sndrcvinfo *enb_sri)
+s1ap::send_s1_setup_failure(struct sctp_sndrcvinfo *enb_sri)
 {
   srslte::byte_buffer_t       msg;
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
@@ -276,7 +290,7 @@ s1ap::send_s1setupfailure(struct sctp_sndrcvinfo *enb_sri)
 
 
 bool
-s1ap::send_s1setupresponse(struct sctp_sndrcvinfo *enb_sri)
+s1ap::send_s1_setup_response(struct sctp_sndrcvinfo *enb_sri)
 {
   srslte::byte_buffer_t       msg;
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
@@ -339,13 +353,5 @@ s1ap::send_s1setupresponse(struct sctp_sndrcvinfo *enb_sri)
   }
   return true;
 }
-
-
-/*
-bool
-s1ap::setup_enb_ctx()
-{
-  return false;
-}*/
 
 } //namespace srsepc

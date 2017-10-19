@@ -23,9 +23,21 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#ifndef S1AP_H
+#define S1AP_H
+
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
+
+#include <strings.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/sctp.h>
+#include <unistd.h>
+
+#include "mme/s1ap_mngmt_proc.h"
 
 namespace srsepc{
 
@@ -54,28 +66,34 @@ public:
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri);
 
-  bool handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
+  bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
 
-  bool handle_s1setuprequest(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
+  bool handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
 
-  bool send_s1setupfailure(struct sctp_sndrcvinfo *enb_sri);
+  bool send_s1_setup_failure(struct sctp_sndrcvinfo *enb_sri);
   
-  bool send_s1setupresponse(struct sctp_sndrcvinfo *enb_sri);
+  bool send_s1_setup_response(struct sctp_sndrcvinfo *enb_sri);
+
 private:
   uint8_t       m_mme_code;
   uint16_t      m_mme_group;
   uint16_t      m_tac;        // 16-bit tac
   uint16_t      m_mcc;        // BCD-coded with 0xF filler
   uint16_t      m_mnc;        // BCD-coded with 0xF filler
+  uint32_t      m_plmn;
+
   std::string   m_mme_bind_addr;
   std::string   m_mme_name;
 
   srslte::log   *m_s1ap_log;
 
   int m_s1mme;
+  s1ap_mngmt_proc m_s1ap_mngmt_proc;
 };
 
 
 
 
 } //namespace srsepc
+
+#endif //S1AP_H
