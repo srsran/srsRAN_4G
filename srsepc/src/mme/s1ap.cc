@@ -170,124 +170,68 @@ bool
 s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
 {
   
-  uint8_t enb_name[150];
-  uint8_t enb_id[20];
-  uint32_t plmn = 0;
   std::string mnc_str, mcc_str;
-  uint16_t mcc, mnc;  
-  uint16_t tac, bplmn;
-  uint32_t bplmns[32];
   enb_ctx_t enb_ctx;
+  srslte::byte_buffer_t reply_msg;
+  LIBLTE_S1AP_S1AP_PDU_STRUCT reply_pdu;
 
-  if(!m_s1ap_mngmt_proc.unpack_s1_setup_request(msg, &enb_ctx)){
+  if(!m_s1ap_mngmt_proc.unpack_s1_setup_request(msg, &enb_ctx))
+  {
     m_s1ap_log->error("Malformed S1 Setup Request\n");
     return false;
   }
 
-  if(enb_ctx.enb_name_present){
-    m_s1ap_log->console("S1 Setup request from eNB %s\n", enb_ctx.enb_name);
-  }
-  else{
-    m_s1ap_log->console("S1 Setup request from eNB id \n");
-  }
-  //eNB Name
-  /*
-  if(msg->eNBname_present)
+  //Log S1 Setup Request Info
+  if(enb_ctx.enb_name_present)
   {
-    bzero(enb_name,sizeof(enb_name));
-    memcpy(enb_name,&msg->eNBname.buffer,msg->eNBname.n_octets);
-    std::cout <<"eNB Name: " << enb_name <<std::endl;
+    m_s1ap_log->console("S1 Setup Request - eNB Name: %s, eNB id: 0x%x\n", enb_ctx.enb_name, enb_ctx.enb_id);
+    m_s1ap_log->info("S1 Setup Request - eNB Name: %s, eNB id: 0x%x\n", enb_ctx.enb_name, enb_ctx.enb_id);
   }
-  //eNB Id 9.2.1.37
-  memcpy(&enb_id, msg->Global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer, LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
-  std::cout << "eNB ID: ";
-  for (int i=0;i < 20;i++) {
-    std::cout<< (uint16_t)enb_id[i];
-  }
-  std::cout << std::endl;
-  //PLMN Id
-  ((uint8_t*)&plmn)[1] = msg->Global_ENB_ID.pLMNidentity.buffer[0];
-  ((uint8_t*)&plmn)[2] = msg->Global_ENB_ID.pLMNidentity.buffer[1];
-  ((uint8_t*)&plmn)[3] = msg->Global_ENB_ID.pLMNidentity.buffer[2];
-
-  plmn = ntohl(plmn);
-  srslte::s1ap_plmn_to_mccmnc(plmn, &mcc, &mnc);
-  srslte::mnc_to_string(mnc, &mnc_str);
-  srslte::mnc_to_string(mcc, &mcc_str);
-  std::cout << "MCC: "<< mcc_str << " MNC: " << mnc_str << std::endl;
-
-  //SupportedTAs
-  for(uint16_t i=0; i<msg->SupportedTAs.len; i++)
+  else
   {
-    //tac = msg->SupportedTAs.buffer[i].tAC.buffer[]; //broadcastPLMNs
-    ((uint8_t*)&tac)[0] = msg->SupportedTAs.buffer[i].tAC.buffer[0];
-    ((uint8_t*)&tac)[1] = msg->SupportedTAs.buffer[i].tAC.buffer[1];
-    std::cout << "TAC: " << ntohs(tac) << std::endl;
-    for (uint16_t j=0; j<msg->SupportedTAs.buffer[i].broadcastPLMNs.len; j++)
+    m_s1ap_log->console("S1 Setup Request - eNB Id 0x%x\n", enb_ctx.enb_id);
+    m_s1ap_log->info("S1 Setup request - eNB Id 0x%x\n", enb_ctx.enb_id);
+  }
+  srslte::mcc_to_string(enb_ctx.mcc, &mcc_str);
+  srslte::mnc_to_string(enb_ctx.mnc, &mnc_str);
+  m_s1ap_log->info("S1 Setup Request - MCC:%s, MNC:%s, PLMN: %d\n", mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
+  m_s1ap_log->console("S1 Setup Request - MCC:%s, MNC:%s, PLMN: %d\n", mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
+  for(int i=0;i<enb_ctx.nof_supported_ta;i++)
+  {
+    for(int j=0;i<enb_ctx.nof_supported_ta;i++)
     {
-      ((uint8_t*)&bplmns[j])[1] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[0];
-      ((uint8_t*)&bplmns[j])[2] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[1];
-      ((uint8_t*)&bplmns[j])[3] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[2];
-
-      bplmns[j] = ntohl(bplmns[j]);
-      srslte::mnc_to_string(mnc, &mnc_str);
-      srslte::mnc_to_string(mcc, &mcc_str);
-      std::cout << "B_MCC: "<< mcc_str << " B_MNC: " << mnc_str << std::endl;
+      m_s1ap_log->info("S1 Setup Request - TAC %d, B-PLMN %d\n",enb_ctx.tac[i],enb_ctx.bplmns[i][j]);
+      m_s1ap_log->console("S1 Setup Request - TAC %d, B-PLMN %d\n",enb_ctx.tac[i],enb_ctx.bplmns[i][j]);
     }
-  }
-
-  //Default Paging DRX
-  LIBLTE_S1AP_PAGINGDRX_ENUM drx = msg->DefaultPagingDRX.e;
-  std::cout << "Default Paging DRX" << drx << std::endl;
-  */
-  /*
-  if(plmn!=m_plmn){
-    send_s1_setup_failure(enb_sri);
+  }  
+  m_s1ap_log->console("S1 Setup Request - Paging DRX %d\n",enb_ctx.drx);
+  
+  //Check matching PLMNs  
+  if(enb_ctx.plmn!=m_plmn){
+    m_s1ap_log->console("S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_log->info("S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_mngmt_proc.pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
+    ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0); //FIXME
   }
   else{
+    m_s1ap_log->console("S1 Setup Response\n");
+    m_s1ap_log->info("S1 Setup Response\n");
+    //m_s1ap_mngmt_proc.pack_s1_setup_response(,&reply_msg);
     send_s1_setup_response(enb_sri);
   }
-  */
-  //send_s1setupfailure(enb_sri);
-  //send_s1setupresponse(enb_sri); 
-  return true;
-}
-
-bool
-s1ap::send_s1_setup_failure(struct sctp_sndrcvinfo *enb_sri)
-{
-  srslte::byte_buffer_t       msg;
-  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
-  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME;
-
-  LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT *unsucc = &pdu.choice.unsuccessfulOutcome;
-  unsucc->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
-  unsucc->criticality = LIBLTE_S1AP_CRITICALITY_REJECT;
-  unsucc->choice_type = LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_S1SETUPFAILURE;
- 
-  LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT* s1_fail=(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT*)&unsucc->choice;
-
-  s1_fail->TimeToWait_present=false;
-  s1_fail->CriticalityDiagnostics_present=false;
-  s1_fail->Cause.ext=false;
-  s1_fail->Cause.choice_type = LIBLTE_S1AP_CAUSE_CHOICE_MISC;
-  s1_fail->Cause.choice.misc.ext=false;
-  s1_fail->Cause.choice.misc.e=LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN;
   
-  liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
-  
+  //Send Reply to eNB
+  /*
   ssize_t n_sent = sctp_send(m_s1mme,msg.msg, msg.N_bytes, enb_sri, 0);
-  
   if(n_sent == -1)
   {
-    m_s1ap_log->console("Failed to send S1 Setup Failure");
+    m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
     return false;
   }
+  */
   return true;
+  
 }
-
 
 bool
 s1ap::send_s1_setup_response(struct sctp_sndrcvinfo *enb_sri)
