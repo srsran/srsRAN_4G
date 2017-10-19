@@ -197,7 +197,8 @@ typedef enum SRSLTE_API {
   SRSLTE_MOD_BPSK = 0, 
   SRSLTE_MOD_QPSK, 
   SRSLTE_MOD_16QAM, 
-  SRSLTE_MOD_64QAM
+  SRSLTE_MOD_64QAM,
+  SRSLTE_MOD_LAST
 } srslte_mod_t;
 
 typedef struct SRSLTE_API {

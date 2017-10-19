@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   dci.mcs_idx = mcs_idx;
   
   srslte_ra_ul_grant_t grant; 
-  if (srslte_ra_ul_dci_to_grant(&dci, cell.nof_prb, 0, &grant, 0)) {
+  if (srslte_ra_ul_dci_to_grant(&dci, cell.nof_prb, 0, &grant)) {
     fprintf(stderr, "Error computing resource allocation\n");
     return ret;
   }
