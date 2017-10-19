@@ -481,11 +481,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     /* Fill MAC grant structure */
     grant->ndi[0] = dci_unpacked.ndi;
     grant->ndi[1] = dci_unpacked.ndi_1;
-    if (tti < MOD_N_PROC) {
-      grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:tti+(2*HARQ_DELAY_MS);
-    } else {
-      grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(tti%(2*HARQ_DELAY_MS));
-    }
+    grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(tti%(2*HARQ_DELAY_MS));
     grant->n_bytes[0] = grant->phy_grant.dl.mcs[0].tbs / (uint32_t) 8;
     grant->n_bytes[1] = grant->phy_grant.dl.mcs[1].tbs / (uint32_t) 8;
     grant->tti = tti;
