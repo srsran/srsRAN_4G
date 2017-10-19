@@ -109,6 +109,7 @@ typedef struct {
   std::string ue_cateogry;
   bool metrics_csv_enable;
   std::string metrics_csv_filename;
+  std::string ip_netmask;
 }expert_args_t;
 
 typedef struct {
