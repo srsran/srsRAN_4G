@@ -603,7 +603,8 @@ int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
   grant.sf_type = SRSLTE_SF_MBSFN;
   grant.nof_tb = 1;
   grant.mcs[0].idx = 2;
- 
+  grant.tb_en[0] = true;
+  grant.tb_en[1] = false;
   grant.nof_prb = q->pmch.cell.nof_prb;
   srslte_dl_fill_ra_mcs(&grant.mcs[0], grant.nof_prb);
   srslte_softbuffer_rx_reset_tbs(q->softbuffers[0], (uint32_t) grant.mcs[0].tbs);

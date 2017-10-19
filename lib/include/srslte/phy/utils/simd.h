@@ -1027,12 +1027,10 @@ static inline simd_i_t srslte_simd_i_select(simd_i_t a, simd_i_t b, simd_sel_t s
   return (__m128i) _mm_blendv_ps((__m128)a, (__m128)b, selector);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON // CURRENTLY USES GENERIC IMPLEMENTATION FOR NEON
-  
  int* a_ptr = (int*) &a;
  int* b_ptr = (int*) &b;
  simd_i_t ret;
  int* sel = (int*) &selector;
- 
  int* c_ptr = (int*) &ret;
  for(int i = 0;i<4;i++)
  { 
