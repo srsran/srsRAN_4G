@@ -155,7 +155,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Pregenerate uplink signals after attach. Improves CPU performance.")
 
     ("expert.rssi_sensor_enabled",
-     bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(true),
+     bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(false),
      "Enable or disable RF frontend RSSI sensor. In some USRP devices can cause segmentation fault")
 
     ("expert.prach_gain",
