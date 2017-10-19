@@ -277,7 +277,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   int head_len  = rlc_um_packed_length(&header);
   int pdu_space = nof_bytes;
 
-  if(pdu_space <= head_len)
+  if(pdu_space <= head_len + 1)
   {
     log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
