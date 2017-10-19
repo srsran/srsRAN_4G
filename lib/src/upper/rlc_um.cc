@@ -309,7 +309,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Pull SDUs from queue
-  while(pdu_space > head_len && tx_sdu_queue.size() > 0)
+  while(pdu_space > head_len + 1 && tx_sdu_queue.size() > 0)
   {
     log->debug("pdu_space=%d, head_len=%d\n", pdu_space, head_len);
     if(last_li > 0)
