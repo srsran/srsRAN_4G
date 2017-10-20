@@ -56,9 +56,7 @@ void srslte_dft_load() {
 
 void srslte_dft_exit() {
 #ifdef FFTW_WISDOM_FILE
-  if (!fftwf_export_wisdom_to_filename(FFTW_WISDOM_FILE)) {
-    fprintf(stderr, "Error saving FFTW wisdom to file %s\n", FFTW_WISDOM_FILE);
-  }
+  fftwf_export_wisdom_to_filename(FFTW_WISDOM_FILE);
 #endif
 }
 
