@@ -185,7 +185,10 @@ SRSLTE_API void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t *q,
                                            float tol);
 
 SRSLTE_API void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, 
-                                       float cfo); 
+                                       float cfo);
+
+SRSLTE_API void srslte_ue_sync_set_cfo_ema(srslte_ue_sync_t *q,
+                                           float ema);
 
 SRSLTE_API void srslte_ue_sync_cfo_i_detec_en(srslte_ue_sync_t *q, 
                                               bool enable); 

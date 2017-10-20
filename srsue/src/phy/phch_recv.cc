@@ -209,6 +209,7 @@ void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
     srslte_ue_sync_cfo_i_detec_en(q, true);
   }
 
+  srslte_ue_sync_set_cfo_ema(q, worker_com->args->cfo_ema);
   srslte_ue_sync_set_cfo_tol(q, worker_com->args->cfo_correct_tol_hz);
 
   int time_correct_period = worker_com->args->time_correct_period;

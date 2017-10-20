@@ -98,7 +98,10 @@ enable = false
 #####################################################################
 # Expert configuration options
 #
+# ue_category:          Sets UE category (range 1-5). Default: 4
 # ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
+# rssi_sensor_enabled:  Enable or disable RF frontend RSSI sensor. Required for RSRP metrics but
+#                       can cause UHD instability for long-duration testing. Default true.
 # ue_category:          Sets UE category (range 1-5). Default: 4
 #
 # prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only., 
@@ -116,7 +119,9 @@ enable = false
 # nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
 # equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
 #                       non-negative real number to indicate a regularized zf coefficient.
-#                       Default is MMSE. 
+#                       Default is MMSE.
+# cfo_ema:              CFO Exponential Moving Average coefficient. Lower makes it more robust to noise
+#                       but vulnerable to periodic interruptions due to VCO corrections.
 # cfo_integer_enabled:  Enables integer CFO estimation and correction. This needs improvement
 #                       and may lead to incorrect synchronization. Use with caution. 
 # cfo_correct_tol_hz:   Tolerance (in Hz) for digial CFO compensation. Lower tolerance means that 
@@ -140,6 +145,7 @@ enable = false
 #####################################################################
 [expert]
 #ip_netmask          = 255.255.255.0
+#rssi_sensor_enabled = false
 #ue_category         = 4
 #prach_gain          = 30
 #cqi_max             = 15
@@ -150,6 +156,7 @@ enable = false
 #attach_enable_64qam = false
 #nof_phy_threads     = 2
 #equalizer_mode      = mmse
+#cfo_ema             = 0.4
 #cfo_integer_enabled = false
 #cfo_correct_tol_hz  = 50
 #time_correct_period = 5

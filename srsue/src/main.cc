@@ -202,6 +202,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(50.0),
      "Tolerance (in Hz) for digial CFO compensation.")
 
+    ("expert.cfo_ema",
+     bpo::value<float>(&args->expert.phy.cfo_ema)->default_value(0.4),
+     "CFO Exponential Moving Average coefficient. Lower makes it more robust to noise "
+     "but vulnerable to periodic interruptions due to VCO corrections.")
+
     ("expert.time_correct_period",
      bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
      "Period for sampling time offset correction.")
