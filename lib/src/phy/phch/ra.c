@@ -549,7 +549,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
   }
   grant->pinfo = dci->pinfo;
 
-  if (tbs < 0) {
+  if (grant->mcs[0].tbs < 0 || grant->mcs[1].tbs < 0) {
     return SRSLTE_ERROR; 
   } else {    
     return SRSLTE_SUCCESS; 
@@ -584,10 +584,12 @@ int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci,
   if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
     crc_is_crnti = true; 
   }
-  // Compute PRB allocation 
-  if (!srslte_ra_dl_dci_to_grant_prb_allocation(dci, grant, nof_prb)) {
-    // Compute MCS 
-    if (!dl_dci_to_grant_mcs(dci, grant, crc_is_crnti)) {            
+  // Compute PRB allocation
+  int ret =srslte_ra_dl_dci_to_grant_prb_allocation(dci, grant, nof_prb);
+  if (!ret) {
+    // Compute MCS
+    ret = dl_dci_to_grant_mcs(dci, grant, crc_is_crnti);
+    if (ret == SRSLTE_SUCCESS) {
       // Apply Section 7.1.7.3. If RA-RNTI and Format1C rv_idx=0
       if (msg_rnti >= SRSLTE_RARNTI_START && msg_rnti <= SRSLTE_RARNTI_END && 
         dci->dci_is_1c) 

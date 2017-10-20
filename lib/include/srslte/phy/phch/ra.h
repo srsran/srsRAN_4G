@@ -103,9 +103,7 @@ typedef struct SRSLTE_API {
   bool prb_idx[2][SRSLTE_MAX_PRB];
   uint32_t nof_prb;  
   uint32_t Qm[SRSLTE_MAX_CODEWORDS];
-  uint32_t Qm2[SRSLTE_MAX_CODEWORDS];
   srslte_ra_mcs_t mcs[SRSLTE_MAX_CODEWORDS];
-  srslte_ra_mcs_t mcs2[SRSLTE_MAX_CODEWORDS];
   uint32_t nof_tb;
   srslte_sf_t sf_type;
   bool tb_en[SRSLTE_MAX_CODEWORDS];
