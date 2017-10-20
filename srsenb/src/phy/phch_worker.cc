@@ -93,12 +93,13 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     fprintf(stderr, "Error allocating memory\n");
     return; 
   }
-  signal_buffer_tx = (cf_t*) srslte_vec_malloc(2*SRSLTE_SF_LEN_PRB(phy->cell.nof_prb)*sizeof(cf_t));
-  if (!signal_buffer_tx) {
+  bzero(&signal_buffer_tx, sizeof(cf_t *) * SRSLTE_MAX_PORTS);
+  signal_buffer_tx[0] = (cf_t*) srslte_vec_malloc(2*SRSLTE_SF_LEN_PRB(phy->cell.nof_prb)*sizeof(cf_t));
+  if (!signal_buffer_tx[0]) {
     fprintf(stderr, "Error allocating memory\n");
     return; 
   }
-  if (srslte_enb_dl_init(&enb_dl, phy->cell.nof_prb)) {
+  if (srslte_enb_dl_init(&enb_dl, signal_buffer_tx, phy->cell.nof_prb)) {
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
@@ -106,7 +107,7 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
-  if (srslte_enb_ul_init(&enb_ul, phy->cell.nof_prb)) {
+  if (srslte_enb_ul_init(&enb_ul, signal_buffer_rx, phy->cell.nof_prb)) {
     fprintf(stderr, "Error initiating ENB UL\n");
     return;
   }
@@ -156,8 +157,10 @@ void phch_worker::stop()
   if (signal_buffer_rx) {
     free(signal_buffer_rx);
   }
-  if (signal_buffer_tx) {
-    free(signal_buffer_tx);
+  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    if (signal_buffer_tx[i]) {
+      free(signal_buffer_tx[i]);
+    }
   }
   pthread_mutex_unlock(&mutex);
   pthread_mutex_destroy(&mutex);
@@ -336,9 +339,9 @@ void phch_worker::work_imp()
   }
   
   // Generate signal and transmit
-  srslte_enb_dl_gen_signal(&enb_dl, signal_buffer_tx);  
+  srslte_enb_dl_gen_signal(&enb_dl);
   Debug("Sending to radio\n");
-  phy->worker_end(tx_mutex_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
+  phy->worker_end(tx_mutex_cnt, signal_buffer_tx[0], SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
 
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb)*sizeof(cf_t), 1, f);

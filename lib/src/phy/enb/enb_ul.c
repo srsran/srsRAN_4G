@@ -40,6 +40,7 @@
 #define MAX_CANDIDATES  16
 
 int srslte_enb_ul_init(srslte_enb_ul_t *q,
+                       cf_t *in_buffer,
                        uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -55,8 +56,20 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
       perror("malloc");
       goto clean_exit;
     }
-    
-    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
+
+    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+    if (!q->sf_symbols) {
+      perror("malloc");
+      goto clean_exit;
+    }
+
+    q->ce = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+    if (!q->ce) {
+      perror("malloc");
+      goto clean_exit;
+    }
+
+    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, in_buffer, q->sf_symbols, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
@@ -80,18 +93,6 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
       goto clean_exit; 
     }
 
-    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
-    if (!q->sf_symbols) {
-      perror("malloc");
-      goto clean_exit; 
-    }
-    
-    q->ce = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
-    if (!q->ce) {
-      perror("malloc");
-      goto clean_exit; 
-    }
-        
     ret = SRSLTE_SUCCESS;
     
   } else {
@@ -254,7 +255,7 @@ int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint16_t rnti,
 
 void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer) 
 {
-  srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
+  srslte_ofdm_rx_sf(&q->fft);
 }
 
 int get_pucch(srslte_enb_ul_t *q, uint16_t rnti, 

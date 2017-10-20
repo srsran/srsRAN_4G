@@ -101,13 +101,13 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
   if (do_agc) {
     srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, last_gain);
   }
-
-  if (srslte_ue_dl_init(&ue_dl_measure, SRSLTE_MAX_PRB, nof_rx_antennas)) {
+  
+  if (srslte_ue_dl_init(&ue_dl_measure, sf_buffer, SRSLTE_MAX_PRB, nof_rx_antennas)) {
     Error("SYNC:  Initiating ue_dl_measure\n");
     return;
   }
 
-  if (srslte_ue_mib_init(&ue_mib, SRSLTE_MAX_PRB)) {
+  if (srslte_ue_mib_init(&ue_mib, sf_buffer, SRSLTE_MAX_PRB)) {
     Error("SYNC:  Initiating UE MIB decoder\n");
     return;
   }
@@ -374,7 +374,7 @@ int phch_recv::cell_sync_sfn(void) {
       int sfn_offset = 0;
       Info("SYNC:  Trying to decode MIB... SNR=%.1f dB\n",
            10*log10(srslte_chest_dl_get_snr(&ue_mib.chest)));
-      int n = srslte_ue_mib_decode(&ue_mib, sf_buffer[0], bch_payload, NULL, &sfn_offset);
+      int n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
       if (n < 0) {
         Error("SYNC:  Error decoding MIB while synchronising SFN");
         return -1;
