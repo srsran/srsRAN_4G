@@ -36,7 +36,7 @@
 #include <sys/socket.h>
 #include <netinet/sctp.h>
 #include <unistd.h>
-
+#include <map>
 #include "mme/s1ap_common.h"
 #include "mme/s1ap_mngmt_proc.h"
 
@@ -71,20 +71,11 @@ private:
 
   s1ap_args_t   m_s1ap_args;
   uint32_t       m_plmn;
-  /*
-  uint8_t       m_mme_code;
-  uint16_t      m_mme_group;
-  uint16_t      m_tac;        // 16-bit tac
-  uint16_t      m_mcc;        // BCD-coded with 0xF filler
-  uint16_t      m_mnc;        // BCD-coded with 0xF filler
-  uint32_t      m_plmn;
-  
-  std::string   m_mme_bind_addr;
-  std::string   m_mme_name;
-  */
   srslte::log   *m_s1ap_log;
 
   int m_s1mme;
+  std::map<uint16_t,enb_ctx_t> m_active_enbs;
+ 
   s1ap_mngmt_proc m_s1ap_mngmt_proc;
 };
 

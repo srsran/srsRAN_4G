@@ -149,7 +149,7 @@ main (int argc,char * argv[] )
   mme->start();
   
   while(running) {
-    sleep(0.5);
+    sleep(1);
   }
 
   mme->stop();

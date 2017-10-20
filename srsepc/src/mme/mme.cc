@@ -106,12 +106,6 @@ mme::stop()
   return;
 }
 
-int
-mme::get_s1_mme()
-{
-  return m_s1ap.get_s1_mme();
-}
-
 void
 mme::run_thread()
 {

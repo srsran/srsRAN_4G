@@ -24,8 +24,6 @@
  *
  */
 
-#include <iostream> //TODO Remove
-
 #include "srslte/common/bcd_helpers.h"
 #include "mme/s1ap.h"
 
@@ -43,15 +41,7 @@ s1ap::~s1ap()
 int
 s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
 {
-  /*
-  m_mme_code    = s1ap_args.mme_code ;
-  m_mme_group   = s1ap_args.mme_group;
-  m_tac         = s1ap_args.tac;
-  m_mcc         = s1ap_args.mcc;        
-  m_mnc         = s1ap_args.mnc;        
-  m_mme_bind_addr = s1ap_args.mme_bind_addr;
-  m_mme_name = std::string("srsmme0");
-  */
+  
   m_s1ap_args = s1ap_args;
 
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
@@ -194,9 +184,21 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
     m_s1ap_mngmt_proc.pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
   }
   else{
+    /*
+    if(m_active_enbs.find(enb_ctx.enb_id))
+    {
+      //eNB already registered
+    }
+    else
+    {
+      //new eNB
+      
+    }
+    */    
+    m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t>(enb_ctx.enb_id,enb_ctx));
+    m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
     m_s1ap_log->console("S1 Setup Response\n");
     m_s1ap_log->info("S1 Setup Response\n");
-    m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
   }
   
   //Send Reply to eNB
