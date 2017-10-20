@@ -62,7 +62,7 @@ s1ap::stop()
   std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.begin();
   while(it!=m_active_enbs.end())
   {
-    //print_enb_ctx_info(*it->second);
+    print_enb_ctx_info(*it->second);
     delete it->second;
     m_active_enbs.erase(it++);
   }
@@ -91,8 +91,10 @@ s1ap::enb_listen()
   }
 
   //Sets the data_io_event to be able to use sendrecv_info
+  //Subscribes to the SCTP_SHUTDOWN event, to handle graceful shutdown
   bzero (&evnts, sizeof (evnts)) ;
   evnts.sctp_data_io_event = 1;
+  evnts.sctp_shutdown_event=1;
   if(setsockopt(sock_fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof (evnts))){
     m_s1ap_log->console("Subscribing to sctp_data_io_events failed\n");
     return -1;

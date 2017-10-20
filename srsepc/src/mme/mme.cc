@@ -136,9 +136,22 @@ mme::run_thread()
       m_s1ap_log.debug("Socket timeout reached");
     }
     else{
-      pdu->N_bytes = rd_sz;
-      m_s1ap_log.info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
-      m_s1ap.handle_s1ap_rx_pdu(pdu,&sri);
+      if(msg_flags & MSG_NOTIFICATION)
+      {
+        //Received notification
+        m_s1ap_log.console("SCTP Notification %d\n", ((union sctp_notification*)pdu->msg)->sn_header.sn_type);
+        if (((union sctp_notification*)pdu->msg)->sn_header.sn_type == SCTP_SHUTDOWN_EVENT)
+        {
+          m_s1ap_log.console("SCTP Association Gracefully Shutdown\n");
+        }
+      }
+      else
+      { 
+        //Received data
+        pdu->N_bytes = rd_sz;
+        m_s1ap_log.info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
+        m_s1ap.handle_s1ap_rx_pdu(pdu,&sri);
+      }
     }
   }
   return;
