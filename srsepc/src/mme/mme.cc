@@ -98,11 +98,11 @@ mme::stop()
 {
   if(m_running)
   {
+    m_s1ap.stop();
     m_running = false;
     thread_cancel();
     wait_thread_finish();
   }
-  m_s1ap.stop();
   return;
 }
 
