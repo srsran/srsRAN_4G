@@ -98,6 +98,8 @@ private:
   uint8_t transaction_id;
   bool drb_up;
 
+  bool reestablishment_in_progress;
+
   // timeouts in ms
 
   uint32_t connecting_timeout;
@@ -244,7 +246,8 @@ private:
 
   // Helpers
   void          rrc_connection_release();
-  void          radio_link_failure(); 
+  void          con_restablish_cell_reselected();
+  void          radio_link_failure();
   static void*  start_sib_thread(void *rrc_);
   void          sib_search();
   void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);

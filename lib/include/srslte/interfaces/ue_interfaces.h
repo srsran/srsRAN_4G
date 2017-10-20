@@ -445,7 +445,8 @@ typedef struct {
   float snr_ema_coeff; 
   std::string snr_estim_alg; 
   bool cfo_integer_enabled; 
-  float cfo_correct_tol_hz; 
+  float cfo_correct_tol_hz;
+  float cfo_ema;
   int time_correct_period; 
   bool sfo_correct_disable; 
   std::string sss_algorithm; 

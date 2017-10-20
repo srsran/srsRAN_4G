@@ -359,6 +359,11 @@ uint32_t srslte_ue_sync_peak_idx(srslte_ue_sync_t *q) {
   return q->peak_idx;
 }
 
+void srslte_ue_sync_set_cfo_ema(srslte_ue_sync_t *q, float ema) {
+  srslte_sync_set_cfo_ema_alpha(&q->sfind, ema);
+  srslte_sync_set_cfo_ema_alpha(&q->strack, ema);
+}
+
 srslte_ue_sync_state_t srslte_ue_sync_get_state(srslte_ue_sync_t *q) {
   return q->state;
 }

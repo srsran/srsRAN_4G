@@ -249,7 +249,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
   
   // First check if it has pending ACKs 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == current_tti) {
+    if (TTI_TX(dl_harq[i].get_tti()) == current_tti) {
       uint32_t n_pucch = srslte_pucch_get_npucch(dl_harq[i].get_n_cce(), SRSLTE_PUCCH_FORMAT_1A, has_sr, &pucch_sched);
       if (prb_idx) {
         for (int  j=0;j<2;j++) {
@@ -289,7 +289,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
 int sched_ue::set_ack_info(uint32_t tti, bool ack)
 {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == tti) {
+    if (TTI_TX(dl_harq[i].get_tti()) == tti) {
       Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tti=%d\n", ack, rnti, i, tti);
       dl_harq[i].set_ack(ack); 
       return dl_harq[i].get_tbs();
@@ -657,6 +657,7 @@ bool sched_ue::is_sr_triggered()
 /* Gets HARQ process with oldest pending retx */
 dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 {
+#if ASYNC_DL_SCHED
   int oldest_idx=-1; 
   uint32_t oldest_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
@@ -672,7 +673,10 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
     return &dl_harq[oldest_idx]; 
   } else {
     return NULL; 
-  }  
+  }
+#else
+  return &dl_harq[tti%SCHED_MAX_HARQ_PROC];
+#endif
 }
 
 dl_harq_proc* sched_ue::get_empty_dl_harq()
@@ -682,7 +686,7 @@ dl_harq_proc* sched_ue::get_empty_dl_harq()
       return &dl_harq[i]; 
     }
   }
-  return NULL; 
+  return NULL;
 }
 
 ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti)

@@ -120,7 +120,7 @@ private:
   
   uint32_t nof_failures; 
   
-  const static int NOF_HARQ_PROCESSES = 8; 
+  const static int NOF_HARQ_PROCESSES = 2*HARQ_DELAY_MS;
   srslte_softbuffer_tx_t softbuffer_tx[NOF_HARQ_PROCESSES];
   srslte_softbuffer_rx_t softbuffer_rx[NOF_HARQ_PROCESSES];
 

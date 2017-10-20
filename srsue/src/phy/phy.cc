@@ -200,8 +200,8 @@ void phy::set_timeadv_rar(uint32_t ta_cmd) {
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   n_ta = srslte_N_ta_new(n_ta, ta_cmd);
-  //sf_recv.set_time_adv_sec(((float) n_ta)*SRSLTE_LTE_TS);  
-  Warning("Not supported: Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, ((float) n_ta)*SRSLTE_LTE_TS*1e6);
+  sf_recv.set_time_adv_sec(((float) n_ta)*SRSLTE_LTE_TS);
+  //Warning("Not supported: Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, ((float) n_ta)*SRSLTE_LTE_TS*1e6);
 }
 
 void phy::configure_prach_params()
@@ -308,7 +308,8 @@ void phy::reset()
   pdcch_dl_search_reset();
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();
-  }    
+  }
+  workers_common.reset_ul();
 }
 
 uint32_t phy::get_current_tti()
@@ -330,6 +331,11 @@ int phy::sr_last_tx_tti()
 void phy::set_earfcn(vector< uint32_t > earfcns)
 {
   sf_recv.set_earfcn(earfcns);
+}
+
+void phy::force_freq(float dl_freq, float ul_freq)
+{
+  sf_recv.force_freq(dl_freq, ul_freq);
 }
 
 bool phy::sync_status()

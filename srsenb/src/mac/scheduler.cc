@@ -541,7 +541,7 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
                 pending_rar[j].rar_tti = 0;            
                 
                 // Save UL resources 
-                uint32_t pending_tti=(current_tti+6)%10;
+                uint32_t pending_tti=(current_tti+MSG3_DELAY_MS+HARQ_DELAY_MS)%10;
                 pending_msg3[pending_tti].enabled = true; 
                 pending_msg3[pending_tti].rnti    = pending_rar[j].rnti; 
                 pending_msg3[pending_tti].L       = L_prb; 
@@ -678,17 +678,17 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   pthread_mutex_lock(&mutex);
 
   /* If dl_sched() not yet called this tti (this tti is +4ms advanced), reset CCE state */
-  if ((current_tti+4)%10240 != tti) {
+  if (TTI_TX(current_tti) != tti) {
     bzero(used_cce, MAX_CCE*sizeof(bool));    
   }
   
   /* Initialize variables */
   current_tti = tti; 
   sfn = tti/10;
-  if (tti > 4) {
-    sf_idx = (tti-4)%10; 
+  if (tti > HARQ_DELAY_MS) {
+    sf_idx = (tti-HARQ_DELAY_MS)%10;
   } else {
-    sf_idx = (tti+10240-4)%10;
+    sf_idx = (tti+10240-HARQ_DELAY_MS)%10;
   }
   int nof_dci_elems   = 0; 
   int nof_phich_elems = 0; 

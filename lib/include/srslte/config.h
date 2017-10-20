@@ -59,5 +59,6 @@
 
 // cf_t definition
 typedef _Complex float cf_t;
+typedef _Complex short int c16_t;
 
 #endif // CONFIG_H

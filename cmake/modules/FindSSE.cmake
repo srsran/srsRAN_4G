@@ -4,10 +4,11 @@
 
 include(CheckCSourceRuns)
 
-option(ENABLE_SSE "Enable compile-time SSE4.1 support." ON)
-option(ENABLE_AVX "Enable compile-time AVX support."  ON)
-option(ENABLE_AVX2 "Enable compile-time AVX2 support."  ON)
-option(ENABLE_FMA "Enable compile-time FMA support."  ON)
+option(ENABLE_SSE    "Enable compile-time SSE4.1 support." ON)
+option(ENABLE_AVX    "Enable compile-time AVX support."    ON)
+option(ENABLE_AVX2   "Enable compile-time AVX2 support."   ON)
+option(ENABLE_FMA    "Enable compile-time FMA support."    ON)
+option(ENABLE_AVX512 "Enable compile-time AVX512 support." ON)
 
 if (ENABLE_SSE)
     #
@@ -135,6 +136,41 @@ if (ENABLE_SSE)
         endif()
     endif()
 
+    if (ENABLE_AVX512)
+
+        #
+        # Check compiler for AVX intrinsics
+        #
+        if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+            set(CMAKE_REQUIRED_FLAGS "-mavx512f")
+            check_c_source_runs("
+          #include <immintrin.h>
+          int main()
+          {
+            __m512i a, b, c;
+            const int src[16] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8 , 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF};
+            int dst[16];
+            a =  _mm512_loadu_si512( (__m512i*)src );
+            b =  _mm512_loadu_si512( (__m512i*)src );
+            c = _mm512_add_epi32( a, b );
+            _mm512_storeu_si512( (__m512i*)dst, c );
+            int i = 0;
+            for( i = 0; i < 16; i++ ){
+              if( ( src[i] + src[i] ) != dst[i] ){
+                return -1;
+              }
+            }
+            return 0;
+          }"
+                    HAVE_AVX512)
+        endif()
+
+        if (HAVE_AVX512)
+            message(STATUS "AVX512 is enabled - target CPU must support it")
+        endif()
+    endif()
+
+
 endif()
 
-mark_as_advanced(HAVE_SSE, HAVE_AVX, HAVE_AVX2, HAVE_FMA)
+mark_as_advanced(HAVE_SSE, HAVE_AVX, HAVE_AVX2, HAVE_FMA, HAVE_AVX512)

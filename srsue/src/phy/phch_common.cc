@@ -136,12 +136,14 @@ srslte::radio* phch_common::get_radio()
 void phch_common::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])
 {
   srslte_dci_rar_grant_unpack(&rar_grant, grant_payload);
-  rar_grant_pending = true; 
-  // PUSCH is at n+6 or n+7 and phch_worker assumes default delay of 4 ttis
+  rar_grant_pending = true;
+  if (MSG3_DELAY_MS < 0) {
+    fprintf(stderr, "Error MSG3_DELAY_MS can't be negative\n");
+  }
   if (rar_grant.ul_delay) {
-    rar_grant_tti     = (tti + 3) % 10240; 
+    rar_grant_tti     = (tti + MSG3_DELAY_MS + 1) % 10240;
   } else {
-    rar_grant_tti     = (tti + 2) % 10240; 
+    rar_grant_tti     = (tti + MSG3_DELAY_MS) % 10240;
   }
 }
 
@@ -195,13 +197,13 @@ void phch_common::set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int 
 }
 
 void phch_common::reset_pending_ack(uint32_t tti) {
-  pending_ack[tti%10].enabled = false; 
+  pending_ack[TTIMOD(tti)].enabled = false;
 }
 
 void phch_common::set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs) {
-  pending_ack[tti%10].enabled  = true; 
-  pending_ack[tti%10].I_lowest = I_lowest;       
-  pending_ack[tti%10].n_dmrs = n_dmrs;            
+  pending_ack[TTIMOD(tti)].enabled  = true;
+  pending_ack[TTIMOD(tti)].I_lowest = I_lowest;
+  pending_ack[TTIMOD(tti)].n_dmrs = n_dmrs;
   Debug("Set pending ACK for tti=%d I_lowest=%d, n_dmrs=%d\n", tti, I_lowest, n_dmrs);
 }
 
@@ -211,12 +213,12 @@ bool phch_common::get_pending_ack(uint32_t tti) {
 
 bool phch_common::get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_dmrs) {
   if (I_lowest) {
-    *I_lowest = pending_ack[tti%10].I_lowest;
+    *I_lowest = pending_ack[TTIMOD(tti)].I_lowest;
   }
   if (n_dmrs) {
-    *n_dmrs = pending_ack[tti%10].n_dmrs;
+    *n_dmrs = pending_ack[TTIMOD(tti)].n_dmrs;
   }
-  return pending_ack[tti%10].enabled;
+  return pending_ack[TTIMOD(tti)].enabled;
 }
 
 /* The transmisison of UL subframes must be in sequence. Each worker uses this function to indicate
@@ -334,6 +336,7 @@ void phch_common::reset_ul()
     pthread_mutex_trylock(&tx_mutex[i]);
     pthread_mutex_unlock(&tx_mutex[i]);
   }
+  radio_h->tx_end();
 }
 
 }

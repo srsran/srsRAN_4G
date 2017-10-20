@@ -65,6 +65,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   common.add_options()
     ("rf.dl_earfcn", bpo::value<uint32_t>(&args->rf.dl_earfcn)->default_value(3400), "Downlink EARFCN")
     ("rf.freq_offset", bpo::value<float>(&args->rf.freq_offset)->default_value(0), "(optional) Frequency offset")
+    ("rf.dl_freq",     bpo::value<float>(&args->rf.dl_freq)->default_value(-1),      "Downlink Frequency (if positive overrides EARFCN)")
+    ("rf.ul_freq",     bpo::value<float>(&args->rf.ul_freq)->default_value(-1),      "Uplink Frequency (if positive overrides EARFCN)")
     ("rf.rx_gain", bpo::value<float>(&args->rf.rx_gain)->default_value(-1), "Front-end receiver gain")
     ("rf.tx_gain", bpo::value<float>(&args->rf.tx_gain)->default_value(-1), "Front-end transmitter gain")
     ("rf.nof_rx_ant", bpo::value<uint32_t>(&args->rf.nof_rx_ant)->default_value(1), "Number of RX antennas")
@@ -120,6 +122,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
 
     /* Expert section */
+    ("expert.ip_netmask",
+     bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
+     "Netmask of the tun_srsue device")
+
     ("expert.phy.worker_cpu_mask",
      bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
      "cpu bit mask (eg 255 = 1111 1111)")
@@ -195,6 +201,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.cfo_correct_tol_hz",
      bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(50.0),
      "Tolerance (in Hz) for digial CFO compensation.")
+
+    ("expert.cfo_ema",
+     bpo::value<float>(&args->expert.phy.cfo_ema)->default_value(0.4),
+     "CFO Exponential Moving Average coefficient. Lower makes it more robust to noise "
+     "but vulnerable to periodic interruptions due to VCO corrections.")
 
     ("expert.time_correct_period",
      bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),

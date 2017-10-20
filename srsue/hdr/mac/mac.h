@@ -109,7 +109,7 @@ private:
   
   static const int MAC_MAIN_THREAD_PRIO = 5; 
   static const int MAC_PDU_THREAD_PRIO  = 6;
-  static const int MAC_NOF_HARQ_PROC    = 8;
+  static const int MAC_NOF_HARQ_PROC    = 2*HARQ_DELAY_MS;
 
   // Interaction with PHY 
   srslte::tti_sync_cv   ttisync; 

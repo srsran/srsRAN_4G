@@ -80,7 +80,7 @@ typedef struct SRSLTE_API {
   srslte_pmch_t  pmch;
   srslte_phich_t phich; 
   srslte_regs_t regs;
-  srslte_ofdm_t fft;
+  srslte_ofdm_t fft[SRSLTE_MAX_PORTS];
   srslte_ofdm_t fft_mbsfn;
   srslte_chest_dl_t chest;
   
@@ -128,6 +128,7 @@ typedef struct SRSLTE_API {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q,
+                                 cf_t *in_buffer[SRSLTE_MAX_PORTS],
                                  uint32_t max_prb,
                                  uint32_t nof_rx_antennas);
 

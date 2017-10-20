@@ -117,7 +117,8 @@ void mac::reset()
 
   Info("Resetting MAC\n");
 
-  timers.stop_all();
+  timers.get(timer_alignment)->stop();
+  timers.get(contention_resolution_timer)->stop();
 
   ul_harq.reset_ndi();
 

@@ -61,7 +61,7 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 
-option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          ON)
+option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          OFF)
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 
@@ -281,6 +281,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
     endif(HAVE_AVX)
   endif (HAVE_AVX2)
+
+  if (HAVE_AVX512)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
+  endif(HAVE_AVX512)
 
   if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     if(HAVE_SSE)

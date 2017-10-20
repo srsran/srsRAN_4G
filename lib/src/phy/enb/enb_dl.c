@@ -41,7 +41,7 @@
 
 #define SRSLTE_ENB_RF_AMP 0.1
 
-int srslte_enb_dl_init(srslte_enb_dl_t *q, uint32_t max_prb)
+int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -53,13 +53,26 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, uint32_t max_prb)
     
     q->cfi  = 3;
     q->tx_amp = SRSLTE_ENB_RF_AMP;
-    
-    if (srslte_ofdm_tx_init(&q->ifft, SRSLTE_CP_NORM, max_prb)) {
-      fprintf(stderr, "Error initiating FFT\n");
-      goto clean_exit;
+
+    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+      q->sf_symbols[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+      if (!q->sf_symbols[i]) {
+        perror("malloc");
+        goto clean_exit;
+      }
+      q->slot1_symbols[i] = &q->sf_symbols[i][SRSLTE_SLOT_LEN_RE(max_prb, SRSLTE_CP_NORM)];
     }
 
-    srslte_ofdm_set_normalize(&q->ifft, true);
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+      if (srslte_ofdm_tx_init(&q->ifft[i], SRSLTE_CP_NORM, q->sf_symbols[i], out_buffer[i], max_prb)) {
+        fprintf(stderr, "Error initiating FFT (%d)\n", i);
+        goto clean_exit;
+      }
+    }
+
+    for (int i = 0; i < q->cell.nof_ports; i++) {
+      srslte_ofdm_set_normalize(&q->ifft[i], true);
+    }
 
     if (srslte_pbch_init(&q->pbch)) {
       fprintf(stderr, "Error creating PBCH object\n");
@@ -89,15 +102,6 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, uint32_t max_prb)
       goto clean_exit;
     }
     
-    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-      q->sf_symbols[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
-      if (!q->sf_symbols[i]) {
-        perror("malloc");
-        goto clean_exit; 
-      }
-      q->slot1_symbols[i] = &q->sf_symbols[i][SRSLTE_SLOT_LEN_RE(max_prb, SRSLTE_CP_NORM)];
-    }
-    
     ret = SRSLTE_SUCCESS;
     
   } else {
@@ -114,7 +118,9 @@ clean_exit:
 void srslte_enb_dl_free(srslte_enb_dl_t *q)
 {
   if (q) {
-    srslte_ofdm_tx_free(&q->ifft);
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+      srslte_ofdm_tx_free(&q->ifft[i]);
+    }
     srslte_regs_free(&q->regs);
     srslte_pbch_free(&q->pbch);
     srslte_pcfich_free(&q->pcfich);
@@ -152,9 +158,11 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
         fprintf(stderr, "Error resizing REGs\n");
         return SRSLTE_ERROR;
       }
-      if (srslte_ofdm_rx_set_prb(&q->ifft, q->cell.cp, q->cell.nof_prb)) {
-        fprintf(stderr, "Error initiating FFT\n");
-        return SRSLTE_ERROR;
+      for (int i = 0; i < q->cell.nof_ports; i++) {
+        if (srslte_ofdm_tx_set_prb(&q->ifft[i], q->cell.cp, q->cell.nof_prb)) {
+          fprintf(stderr, "Error re-planning iFFT (%d)\n", i);
+          return SRSLTE_ERROR;
+        }
       }
       if (srslte_pbch_set_cell(&q->pbch, q->cell)) {
         fprintf(stderr, "Error creating PBCH object\n");
@@ -264,14 +272,15 @@ void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti)
   
 }
 
-void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, cf_t *signal_buffer) 
+void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q)
 {
-  
-  srslte_ofdm_tx_sf(&q->ifft, q->sf_symbols[0], signal_buffer);
-     
   // TODO: PAPR control
   float norm_factor = (float) sqrt(q->cell.nof_prb)/15;
-  srslte_vec_sc_prod_cfc(signal_buffer, q->tx_amp*norm_factor, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+
+  for (int i = 0; i < q->cell.nof_ports; i++) {
+    srslte_ofdm_tx_sf(&q->ifft[i]);
+    srslte_vec_sc_prod_cfc(q->ifft[i].out_buffer, q->tx_amp*norm_factor, q->ifft[i].out_buffer, (uint32_t) SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+  }
 }
 
 int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, uint16_t rnti)
