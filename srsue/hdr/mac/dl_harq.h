@@ -347,7 +347,7 @@ private:
       // Determine if it's a new transmission 5.3.2.2
       bool calc_is_new_transmission(Tgrant grant) {
 
-        if (grant.phy_grant.dl.mcs[tid].idx < 28 &&          // mcs 29,30,31 always retx regardless of rest
+        if (grant.phy_grant.dl.mcs[tid].idx <= 28 &&          // mcs 29,30,31 always retx regardless of rest
             ((grant.ndi[tid] != cur_grant.ndi[tid])       || // 1st condition (NDI has changed)
              (pid == HARQ_BCCH_PID && grant.rv[tid] == 0) || // 2nd condition (Broadcast and 1st transmission)
              is_first_tb))
