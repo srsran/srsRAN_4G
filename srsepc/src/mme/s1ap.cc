@@ -59,6 +59,13 @@ s1ap::stop()
   if (m_s1mme != -1){
     close(m_s1mme);
   }
+  std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.begin();
+  while(it!=m_active_enbs.end())
+  {
+    print_enb_ctx_info(*it->second);
+    delete it->second;
+    m_active_enbs.erase(it++);
+  }
   return;
 }
 
@@ -184,18 +191,21 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
     m_s1ap_mngmt_proc.pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
   }
   else{
-    /*
-    if(m_active_enbs.find(enb_ctx.enb_id))
+    std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.find(enb_ctx.enb_id);
+    if(it != m_active_enbs.end())
     {
       //eNB already registered
+      //TODO replace enb_ctx
     }
     else
     {
       //new eNB
-      
+      enb_ctx_t *enb_ptr = new enb_ctx_t;//TODO use buffer pool here?
+      memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx));
+      m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
     }
-    */    
-    m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t>(enb_ctx.enb_id,enb_ctx));
+        
+    //m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t>(enb_ctx.enb_id,enb_ctx));
     m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
     m_s1ap_log->console("S1 Setup Response\n");
     m_s1ap_log->info("S1 Setup Response\n");

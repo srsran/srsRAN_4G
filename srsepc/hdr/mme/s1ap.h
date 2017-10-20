@@ -74,7 +74,7 @@ private:
   srslte::log   *m_s1ap_log;
 
   int m_s1mme;
-  std::map<uint16_t,enb_ctx_t> m_active_enbs;
+  std::map<uint16_t,enb_ctx_t*> m_active_enbs;
  
   s1ap_mngmt_proc m_s1ap_mngmt_proc;
 };
