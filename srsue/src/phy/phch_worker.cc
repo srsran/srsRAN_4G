@@ -117,12 +117,12 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
     }
   }
 
-  if (srslte_ue_dl_init(&ue_dl, max_prb, phy->args->nof_rx_ant)) {
+  if (srslte_ue_dl_init(&ue_dl, signal_buffer, max_prb, phy->args->nof_rx_ant)) {
     Error("Initiating UE DL\n");
     return false;
   }
 
-  if (srslte_ue_ul_init(&ue_ul, max_prb)) {
+  if (srslte_ue_ul_init(&ue_ul, signal_buffer[0], max_prb)) {
     Error("Initiating UE UL\n");
     return false;
   }

@@ -140,7 +140,7 @@ int base_init() {
     exit(-1);
   }
 
-  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, 1)) {
+  if (srslte_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
     fprintf(stderr, "Error initializing UE DL\n");
     return -1;
   }
