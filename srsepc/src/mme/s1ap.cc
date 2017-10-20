@@ -43,6 +43,7 @@ s1ap::~s1ap()
 int
 s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
 {
+  /*
   m_mme_code    = s1ap_args.mme_code ;
   m_mme_group   = s1ap_args.mme_group;
   m_tac         = s1ap_args.tac;
@@ -50,8 +51,10 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
   m_mnc         = s1ap_args.mnc;        
   m_mme_bind_addr = s1ap_args.mme_bind_addr;
   m_mme_name = std::string("srsmme0");
+  */
+  m_s1ap_args = s1ap_args;
 
-  srslte::s1ap_mccmnc_to_plmn(m_mcc, m_mnc, &m_plmn);
+  srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
 
   m_s1ap_log = s1ap_log;
 
@@ -101,7 +104,7 @@ s1ap::enb_listen()
   //S1-MME bind
   bzero(&s1mme_addr, sizeof(s1mme_addr));
   s1mme_addr.sin_family = AF_INET; 
-  inet_pton(AF_INET, m_mme_bind_addr.c_str(), &(s1mme_addr.sin_addr) );
+  inet_pton(AF_INET, m_s1ap_args.mme_bind_addr.c_str(), &(s1mme_addr.sin_addr) );
   s1mme_addr.sin_port = htons(S1MME_PORT);
   err = bind(sock_fd, (struct sockaddr*) &s1mme_addr, sizeof (s1mme_addr));
   if (err != 0){
@@ -182,6 +185,37 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
   }
 
   //Log S1 Setup Request Info
+  print_enb_ctx_info(enb_ctx);
+  
+  //Check matching PLMNs  
+  if(enb_ctx.plmn!=m_plmn){
+    m_s1ap_log->console("S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_log->info("S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_mngmt_proc.pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
+  }
+  else{
+    m_s1ap_log->console("S1 Setup Response\n");
+    m_s1ap_log->info("S1 Setup Response\n");
+    m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
+  }
+  
+  //Send Reply to eNB
+  ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0);
+  if(n_sent == -1)
+  {
+    m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
+    return false;
+  }
+  
+  return true;
+  
+}
+
+void
+s1ap::print_enb_ctx_info(const enb_ctx_t &enb_ctx)
+{
+  std::string mnc_str, mcc_str;
+
   if(enb_ctx.enb_name_present)
   {
     m_s1ap_log->console("S1 Setup Request - eNB Name: %s, eNB id: 0x%x\n", enb_ctx.enb_name, enb_ctx.enb_id);
@@ -203,99 +237,9 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
       m_s1ap_log->info("S1 Setup Request - TAC %d, B-PLMN %d\n",enb_ctx.tac[i],enb_ctx.bplmns[i][j]);
       m_s1ap_log->console("S1 Setup Request - TAC %d, B-PLMN %d\n",enb_ctx.tac[i],enb_ctx.bplmns[i][j]);
     }
-  }  
+  }
   m_s1ap_log->console("S1 Setup Request - Paging DRX %d\n",enb_ctx.drx);
-  
-  //Check matching PLMNs  
-  if(enb_ctx.plmn!=m_plmn){
-    m_s1ap_log->console("S1 Setup Failure - Unkown PLMN\n");
-    m_s1ap_log->info("S1 Setup Failure - Unkown PLMN\n");
-    m_s1ap_mngmt_proc.pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
-    ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0); //FIXME
-  }
-  else{
-    m_s1ap_log->console("S1 Setup Response\n");
-    m_s1ap_log->info("S1 Setup Response\n");
-    //m_s1ap_mngmt_proc.pack_s1_setup_response(,&reply_msg);
-    send_s1_setup_response(enb_sri);
-  }
-  
-  //Send Reply to eNB
-  /*
-  ssize_t n_sent = sctp_send(m_s1mme,msg.msg, msg.N_bytes, enb_sri, 0);
-  if(n_sent == -1)
-  {
-    m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
-    return false;
-  }
-  */
-  return true;
-  
-}
-
-bool
-s1ap::send_s1_setup_response(struct sctp_sndrcvinfo *enb_sri)
-{
-  srslte::byte_buffer_t       msg;
-  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
-  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
-
-  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *succ = &pdu.choice.successfulOutcome;
-  succ->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
-  succ->criticality = LIBLTE_S1AP_CRITICALITY_IGNORE;
-  succ->choice_type = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE;
- 
-  LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* s1_resp=(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT*)&succ->choice;
-
-  s1_resp->ext=false;
-  
-  //MME Name
-  s1_resp->MMEname_present=true;
-  s1_resp->MMEname.ext=false;
-  s1_resp->MMEname.n_octets=m_mme_name.length();
-  memcpy(s1_resp->MMEname.buffer,m_mme_name.c_str(),m_mme_name.length());
-
-  //Served GUMEIs
-  s1_resp->ServedGUMMEIs.len=1;//TODO Only one served GUMMEI supported
-  LIBLTE_S1AP_SERVEDGUMMEISITEM_STRUCT *serv_gummei = &s1_resp->ServedGUMMEIs.buffer[0];
-
-  serv_gummei->ext=false;
-  //serv_gummei->iE_Extensions=false;
-
-  uint32_t plmn=0;
-  srslte::s1ap_mccmnc_to_plmn(m_mcc, m_mnc, &plmn);
-  plmn=htonl(plmn);
-  serv_gummei->servedPLMNs.len = 1; //Only one PLMN supported
-  serv_gummei->servedPLMNs.buffer[0].buffer[0]=((uint8_t*)&plmn)[1];
-  serv_gummei->servedPLMNs.buffer[0].buffer[1]=((uint8_t*)&plmn)[2];
-  serv_gummei->servedPLMNs.buffer[0].buffer[2]=((uint8_t*)&plmn)[3];
-
-  serv_gummei->servedGroupIDs.len=1; //LIBLTE_S1AP_SERVEDGROUPIDS_STRUCT
-  uint16_t tmp=htons(m_mme_group);
-  serv_gummei->servedGroupIDs.buffer[0].buffer[0]=((uint8_t*)&tmp)[0];
-  serv_gummei->servedGroupIDs.buffer[0].buffer[1]=((uint8_t*)&tmp)[1];
- 
-  serv_gummei->servedMMECs.len=1; //Only one MMEC served
-  serv_gummei->servedMMECs.buffer[0].buffer[0]=m_mme_code;
-
-  //Relative MME Capacity
-  s1_resp->RelativeMMECapacity.RelativeMMECapacity=255;
-
-  //Relay Unsupported
-  s1_resp->MMERelaySupportIndicator_present=false;
-    
-  liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
-  
-  ssize_t n_sent = sctp_send(m_s1mme,msg.msg, msg.N_bytes, enb_sri, 0);
-  
-  if(n_sent == -1)
-  {
-    m_s1ap_log->console("Failed to send S1 Setup Failure");
-    return false;
-  }
-  return true;
+  return;
 }
 
 } //namespace srsepc

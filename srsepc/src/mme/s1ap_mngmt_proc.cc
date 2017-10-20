@@ -123,16 +123,15 @@ s1ap_mngmt_proc::pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_ENUM cause, srslte:
 
 
 bool
-s1ap_mngmt_proc::pack_s1_setup_response(LIBLTE_S1AP_S1AP_PDU_STRUCT *pdu)
+s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buffer_t *msg)
 {
-/*
-  srslte::byte_buffer_t       msg;
-  //LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
-  bzero(pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
 
-  pdu->choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
+  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
+  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
 
-  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *succ = &pdu->choice.successfulOutcome;
+  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
+
+  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *succ = &pdu.choice.successfulOutcome;
   succ->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
   succ->criticality = LIBLTE_S1AP_CRITICALITY_IGNORE;
   succ->choice_type = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE;
@@ -144,8 +143,8 @@ s1ap_mngmt_proc::pack_s1_setup_response(LIBLTE_S1AP_S1AP_PDU_STRUCT *pdu)
   //MME Name
   s1_resp->MMEname_present=true;
   s1_resp->MMEname.ext=false;
-  s1_resp->MMEname.n_octets=m_mme_name.length();
-  memcpy(s1_resp->MMEname.buffer,m_mme_name.c_str(),m_mme_name.length());
+  s1_resp->MMEname.n_octets=s1ap_args.mme_name.length();
+  memcpy(s1_resp->MMEname.buffer,s1ap_args.mme_name.c_str(),s1ap_args.mme_name.length());
 
   //Served GUMEIs
   s1_resp->ServedGUMMEIs.len=1;//TODO Only one served GUMMEI supported
@@ -155,7 +154,7 @@ s1ap_mngmt_proc::pack_s1_setup_response(LIBLTE_S1AP_S1AP_PDU_STRUCT *pdu)
   //serv_gummei->iE_Extensions=false;
 
   uint32_t plmn=0;
-  srslte::s1ap_mccmnc_to_plmn(m_mcc, m_mnc, &plmn);
+  srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
   plmn=htonl(plmn);
   serv_gummei->servedPLMNs.len = 1; //Only one PLMN supported
   serv_gummei->servedPLMNs.buffer[0].buffer[0]=((uint8_t*)&plmn)[1];
@@ -163,12 +162,12 @@ s1ap_mngmt_proc::pack_s1_setup_response(LIBLTE_S1AP_S1AP_PDU_STRUCT *pdu)
   serv_gummei->servedPLMNs.buffer[0].buffer[2]=((uint8_t*)&plmn)[3];
 
   serv_gummei->servedGroupIDs.len=1; //LIBLTE_S1AP_SERVEDGROUPIDS_STRUCT
-  uint16_t tmp=htons(m_mme_group);
+  uint16_t tmp=htons(s1ap_args.mme_group);
   serv_gummei->servedGroupIDs.buffer[0].buffer[0]=((uint8_t*)&tmp)[0];
   serv_gummei->servedGroupIDs.buffer[0].buffer[1]=((uint8_t*)&tmp)[1];
  
   serv_gummei->servedMMECs.len=1; //Only one MMEC served
-  serv_gummei->servedMMECs.buffer[0].buffer[0]=m_mme_code;
+  serv_gummei->servedMMECs.buffer[0].buffer[0]=s1ap_args.mme_code;
 
   //Relative MME Capacity
   s1_resp->RelativeMMECapacity.RelativeMMECapacity=255;
@@ -176,8 +175,8 @@ s1ap_mngmt_proc::pack_s1_setup_response(LIBLTE_S1AP_S1AP_PDU_STRUCT *pdu)
   //Relay Unsupported
   s1_resp->MMERelaySupportIndicator_present=false;
     
-  liblte_s1ap_pack_s1ap_pdu(pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
-*/  
+  liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)msg);
+  
  return true;
 }
 

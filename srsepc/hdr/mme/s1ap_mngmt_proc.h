@@ -28,24 +28,9 @@
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/common.h"
+#include "mme/s1ap_common.h"
+
 namespace srsepc{
-
-static const uint8_t MAX_TA=255;
-static const uint8_t MAX_BPLMN=6;
-
-typedef struct{
-  bool     enb_name_present;
-  uint32_t enb_id;
-  uint8_t  enb_name[150];
-  uint16_t mcc, mnc;
-  uint32_t plmn;
-  uint8_t  nof_supported_ta;
-  uint16_t tac[MAX_TA];
-  uint8_t  nof_supported_bplmns[MAX_TA];
-  uint16_t bplmns[MAX_TA][MAX_BPLMN];
-  LIBLTE_S1AP_PAGINGDRX_ENUM drx;
-  struct   sctp_sndrcvinfo sri;
-} enb_ctx_t;
 
 class s1ap_mngmt_proc
 {
@@ -55,7 +40,7 @@ public:
 
   bool unpack_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, enb_ctx_t* enb_ctx);
   bool pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_ENUM cause, srslte::byte_buffer_t* msg);
-  bool pack_s1_setup_response(LIBLTE_S1AP_S1AP_PDU_STRUCT *pdu);
+  bool pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buffer_t* msg);
 };
 
 } //namespace srsepc

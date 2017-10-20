@@ -37,21 +37,12 @@
 #include <netinet/sctp.h>
 #include <unistd.h>
 
+#include "mme/s1ap_common.h"
 #include "mme/s1ap_mngmt_proc.h"
 
 namespace srsepc{
 
 const uint16_t S1MME_PORT = 36412;
-
-typedef struct{
-  uint8_t       mme_code;
-  uint16_t      mme_group;
-  uint16_t      tac;        // 16-bit tac
-  uint16_t      mcc;        // BCD-coded with 0xF filler
-  uint16_t      mnc;        // BCD-coded with 0xF filler
-  std::string   mme_bind_addr;
-  std::string   mme_name;
-} s1ap_args_t;
 
 class s1ap
 {
@@ -73,18 +64,24 @@ public:
   bool send_s1_setup_failure(struct sctp_sndrcvinfo *enb_sri);
   
   bool send_s1_setup_response(struct sctp_sndrcvinfo *enb_sri);
+  
+  void print_enb_ctx_info(const enb_ctx_t &enb_ctx);
 
 private:
+
+  s1ap_args_t   m_s1ap_args;
+  uint32_t       m_plmn;
+  /*
   uint8_t       m_mme_code;
   uint16_t      m_mme_group;
   uint16_t      m_tac;        // 16-bit tac
   uint16_t      m_mcc;        // BCD-coded with 0xF filler
   uint16_t      m_mnc;        // BCD-coded with 0xF filler
   uint32_t      m_plmn;
-
+  
   std::string   m_mme_bind_addr;
   std::string   m_mme_name;
-
+  */
   srslte::log   *m_s1ap_log;
 
   int m_s1mme;
