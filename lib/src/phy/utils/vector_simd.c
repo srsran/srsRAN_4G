@@ -751,10 +751,37 @@ void srslte_vec_div_fff_simd(float *x, float *y, float *z, int len) {
   }
 }
 
+
+
+int  srslte_vec_sc_prod_ccc_simd2(cf_t *x, cf_t h, cf_t *z, int len)
+{     
+   int i = 0;
+   const unsigned int loops = len / 4;
+#ifdef HAVE_NEON
+  simd_cf_t h_vec; 
+    h_vec.val[0] = srslte_simd_f_set1(__real__ h);
+    h_vec.val[1] = srslte_simd_f_set1(__imag__ h);
+  for (; i < loops; i++) {
+
+    simd_cf_t in =  srslte_simd_cfi_load(&x[i*4]);
+    simd_cf_t temp =  srslte_simd_cf_prod(in, h_vec);
+    srslte_simd_cfi_store(&z[i*4], temp);
+  }
+          
+#endif  
+  i = loops * 4;
+return i;
+}
+
 void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, int len) {
   int i = 0;
 
 #if SRSLTE_SIMD_F_SIZE
+  
+
+#ifdef HAVE_NEON
+  i = srslte_vec_sc_prod_ccc_simd2(x, h, z, len);
+#else
   const simd_f_t hre = srslte_simd_f_set1(__real__ h);
   const simd_f_t him = srslte_simd_f_set1(__imag__ h);
 
@@ -766,8 +793,8 @@ void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, int len) {
       simd_f_t sw = srslte_simd_f_swap(temp);
       simd_f_t m2 = srslte_simd_f_mul(him, sw);
       simd_f_t r = srslte_simd_f_addsub(m1, m2);
-
       srslte_simd_f_store((float *) &z[i], r);
+
     }
   } else {
     for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
@@ -782,10 +809,11 @@ void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, int len) {
     }
   }
 #endif
-
+#endif
   for (; i < len; i++) {
     z[i] = x[i] * h;
   }
+  
 }
 
 void srslte_vec_sc_prod_fff_simd(float *x, float h, float *z, int len) {
@@ -831,7 +859,6 @@ void srslte_vec_abs_cf_simd(cf_t *x, float *z, int len) {
 
       simd_f_t z1 = srslte_simd_f_hadd(mul1, mul2);
       z1 = srslte_simd_f_sqrt(z1);
-
       srslte_simd_f_store(&z[i], z1);
     }
   } else {
@@ -966,9 +993,7 @@ uint32_t srslte_vec_max_fi_simd(float *x, int len) {
   if (SRSLTE_IS_ALIGNED(x)) {
     for (; i < len - SRSLTE_SIMD_I_SIZE + 1; i += SRSLTE_SIMD_I_SIZE) {
       simd_f_t a = srslte_simd_f_load(&x[i]);
-
       simd_sel_t res = srslte_simd_f_max(a, simd_max_values);
-
       simd_max_indexes = srslte_simd_i_select(simd_max_indexes, simd_indexes, res);
       simd_max_values = (simd_f_t) srslte_simd_i_select((simd_i_t) simd_max_values, (simd_i_t) a, res);
       simd_indexes = srslte_simd_i_add(simd_indexes, simd_inc);
@@ -976,9 +1001,7 @@ uint32_t srslte_vec_max_fi_simd(float *x, int len) {
   } else {
     for (; i < len - SRSLTE_SIMD_I_SIZE + 1; i += SRSLTE_SIMD_I_SIZE) {
       simd_f_t a = srslte_simd_f_loadu(&x[i]);
-
       simd_sel_t res = srslte_simd_f_max(a, simd_max_values);
-
       simd_max_indexes = srslte_simd_i_select(simd_max_indexes, simd_indexes, res);
       simd_max_values = (simd_f_t) srslte_simd_i_select((simd_i_t) simd_max_values, (simd_i_t) a, res);
       simd_indexes = srslte_simd_i_add(simd_indexes, simd_inc);

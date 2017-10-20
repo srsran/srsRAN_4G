@@ -63,12 +63,12 @@ bool verbose = false;
     strncpy(func_name, #X, 32);\
     CODE;\
     passed = (mse < MAX_MSE);\
-    printf("%32s (%5d) ... %7.1f MSamp/s ... %3s Passed\n", func_name, block_size, \
-    (double) block_size*NOF_REPETITIONS/ *timing, passed?"":"Not");\
+    printf("%32s (%5d) ... %7.1f MSamp/s ... %3s Passed (%.6f)\n", func_name, block_size, \
+    (double) block_size*NOF_REPETITIONS/ *timing, passed?"":"Not", mse);\
     return passed;\
 }
 
-#define MALLOC(TYPE, NAME) TYPE *NAME = malloc(sizeof(TYPE)*block_size)
+#define MALLOC(TYPE, NAME) TYPE *NAME = srslte_vec_malloc(sizeof(TYPE)*block_size)
 
 
 static double elapsed_us(struct timeval *ts_start, struct timeval *ts_end) {
@@ -507,7 +507,7 @@ TEST(srslte_vec_abs_cf,
 
   for (int i = 0; i < block_size; i++) {
     gold = sqrtf(crealf(x[i]) * crealf(x[i]) + cimagf(x[i])*cimagf(x[i]));
-    mse += cabsf(gold - z[i]);
+    mse += cabsf(gold - z[i])/block_size;
   }
 
   free(x);
@@ -771,12 +771,27 @@ int main(int argc, char **argv) {
     size_count++;
   }
 
+  char fname[68];
+  FILE *f = NULL;
+  void * p = popen("(date +%g%m%d && hostname) | tr '\\r\\n' '__'", "r");
+  if (p) {
+    fgets(fname, 64, p);
+    strncpy(fname + strnlen(fname, 64) - 1, ".tsv", 4);
+    f = fopen(fname, "w");
+    if (f) printf("Saving benchmark results in '%s'\n", fname);
+  }
+  pclose(p);
+
+
   printf("\n");
   printf("%32s |", "Subroutine/MSps");
+  if (f) fprintf(f, "Subroutine/MSps Vs Vector size\t");
   for (int i = 0; i < size_count; i++) {
     printf(" %7d", sizes[i]);
+    if (f) fprintf(f, "%d\t", sizes[i]);
   }
   printf("  |\n");
+  if (f) fprintf(f, "\n");
 
   for (int j = 0; j < 32; j++) {
     printf("-");
@@ -789,12 +804,19 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < func_count; i++) {
     printf("%32s | ", func_names[i]);
+    if (f) fprintf(f, "%s\t", func_names[i]);
+
     for (int j = 0; j < size_count; j++) {
       printf(" %s%7.1f\x1b[0m", (passed[i][j])?"":"\x1B[31m", (double) NOF_REPETITIONS*(double)sizes[j]/timmings[i][j]);
+      if (f) fprintf(f, "%.1f\t", (double) NOF_REPETITIONS*(double)sizes[j]/timmings[i][j]);
+
       all_passed &= passed[i][j];
     }
     printf(" |\n");
+    if (f) fprintf(f, "\n");
   }
+
+  if (f) fclose(f);
 
   return (all_passed)?SRSLTE_SUCCESS:SRSLTE_ERROR;
 }
