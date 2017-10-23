@@ -30,6 +30,7 @@
 #include <limits.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #ifdef LV_HAVE_SSE
 
@@ -38,6 +39,172 @@
 #endif /* LV_HAVE_SSE */
 
 #include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
+
+void srslte_bit_interleaver_init(srslte_bit_interleaver_t *q,
+                                 uint16_t *interleaver,
+                                 uint32_t nof_bits) {
+  static const uint8_t mask[] = { 0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
+
+  bzero(q, sizeof(srslte_bit_interleaver_t));
+
+  q->interleaver = srslte_vec_malloc(sizeof(uint16_t)*nof_bits);
+  q->byte_idx = srslte_vec_malloc(sizeof(uint16_t)*nof_bits);
+  q->bit_mask = srslte_vec_malloc(sizeof(uint8_t)*nof_bits);
+  q->nof_bits = nof_bits;
+
+  for (int i = 0; i < nof_bits; i++) {
+    uint16_t i_px = interleaver[i];
+    q->interleaver[i] = i_px;
+    q->byte_idx[i] = (uint16_t) (interleaver[i] / 8);
+    q->bit_mask[i] = (uint8_t) (mask[i_px%8]);
+  }
+}
+
+void srslte_bit_interleaver_free(srslte_bit_interleaver_t *q) {
+  if (q->interleaver) {
+    free(q->interleaver);
+  }
+
+  if (q->byte_idx) {
+    free(q->byte_idx);
+  }
+
+  if (q->bit_mask) {
+    free(q->bit_mask);
+  }
+
+  bzero(q, sizeof(srslte_bit_interleaver_t));
+}
+
+void srslte_bit_interleaver_run(srslte_bit_interleaver_t *q, uint8_t *input, uint8_t *output, uint16_t w_offset) {
+  static const uint8_t mask[] = { 0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
+  uint16_t *byte_idx = q->byte_idx;
+  uint8_t *bit_mask = q->bit_mask;
+  uint8_t *output_ptr = output;
+
+  uint32_t st=0, w_offset_p=0;
+
+  if (w_offset < 8 && w_offset > 0) {
+    st=1;
+    for (uint32_t j=0;j<8-w_offset;j++) {
+      uint16_t i_p = q->interleaver[j];
+      if (input[i_p/8] & mask[i_p%8]) {
+        output[0] |= mask[j+w_offset];
+      } else {
+        output[0] &= ~(mask[j+w_offset]);
+      }
+    }
+    w_offset_p=8-w_offset;
+  }
+
+  uint32_t i = st * 8;
+
+  byte_idx += i - w_offset_p;
+  bit_mask += i - w_offset_p;
+  output_ptr += st;
+
+#ifdef LV_HAVE_SSE
+  for(; i < q->nof_bits - 15; i += 16) {
+    __m128i in128;
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x7);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x6);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x5);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x4);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x3);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x2);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x1);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x0);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0xF);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0xE);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0xD);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0xC);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0xB);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0xA);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x9);
+    in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x8);
+
+    __m128i mask128 = _mm_loadu_si128((__m128i *) bit_mask);
+    mask128 = _mm_shuffle_epi8(mask128, _mm_set_epi8(0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF,
+                                                     0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7));
+
+    __m128i cmp128 = _mm_cmpeq_epi8(_mm_and_si128(in128, mask128), mask128);
+    *((uint16_t *) (output_ptr)) = (uint16_t) _mm_movemask_epi8(cmp128);
+
+    bit_mask += 16;
+    output_ptr += 2;
+  }
+
+#endif /* LV_HAVE_SSE */
+
+  for(; i < q->nof_bits; i += 8) {
+    uint8_t out0  = (input[*(byte_idx++)] & *(bit_mask++))?mask[0]:(uint8_t)0;
+    uint8_t out1  = (input[*(byte_idx++)] & *(bit_mask++))?mask[1]:(uint8_t)0;
+    uint8_t out2  = (input[*(byte_idx++)] & *(bit_mask++))?mask[2]:(uint8_t)0;
+    uint8_t out3  = (input[*(byte_idx++)] & *(bit_mask++))?mask[3]:(uint8_t)0;
+    uint8_t out4  = (input[*(byte_idx++)] & *(bit_mask++))?mask[4]:(uint8_t)0;
+    uint8_t out5  = (input[*(byte_idx++)] & *(bit_mask++))?mask[5]:(uint8_t)0;
+    uint8_t out6  = (input[*(byte_idx++)] & *(bit_mask++))?mask[6]:(uint8_t)0;
+    uint8_t out7  = (input[*(byte_idx++)] & *(bit_mask++))?mask[7]:(uint8_t)0;
+
+    *output_ptr = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7;
+    output_ptr++;
+  }
+
+  for (uint32_t j=0;j<q->nof_bits%8;j++) {
+    uint16_t i_p = q->interleaver[(q->nof_bits/8)*8+j-w_offset];
+    if (input[i_p/8] & mask[i_p%8]) {
+      output[q->nof_bits/8] |= mask[j];
+    } else {
+      output[q->nof_bits/8] &= ~(mask[j]);
+    }
+  }
+  for (uint32_t j=0;j<w_offset;j++) {
+    uint16_t i_p = q->interleaver[(q->nof_bits/8)*8+j-w_offset];
+    if (input[i_p/8] & (1<<(7-i_p%8))) {
+      output[q->nof_bits/8] |= mask[j];
+    } else {
+      output[q->nof_bits/8] &= ~(mask[j]);
+    }
+  }
+
+#if 0
+  /* THIS PIECE OF CODE IS FOR CHECKING SIMD BEHAVIOUR. DO NOT ENABLE. */
+  uint8_t *output2 = malloc(q->nof_bits/8);
+  for (i=st;i<q->nof_bits/8;i++) {
+
+    uint16_t i_p0 = q->interleaver[i*8+0-w_offset_p];
+    uint16_t i_p1 = q->interleaver[i*8+1-w_offset_p];
+    uint16_t i_p2 = q->interleaver[i*8+2-w_offset_p];
+    uint16_t i_p3 = q->interleaver[i*8+3-w_offset_p];
+    uint16_t i_p4 = q->interleaver[i*8+4-w_offset_p];
+    uint16_t i_p5 = q->interleaver[i*8+5-w_offset_p];
+    uint16_t i_p6 = q->interleaver[i*8+6-w_offset_p];
+    uint16_t i_p7 = q->interleaver[i*8+7-w_offset_p];
+
+    uint8_t out0  = (input[i_p0/8] & mask[i_p0%8])?mask[0]:(uint8_t)0;
+    uint8_t out1  = (input[i_p1/8] & mask[i_p1%8])?mask[1]:(uint8_t)0;
+    uint8_t out2  = (input[i_p2/8] & mask[i_p2%8])?mask[2]:(uint8_t)0;
+    uint8_t out3  = (input[i_p3/8] & mask[i_p3%8])?mask[3]:(uint8_t)0;
+    uint8_t out4  = (input[i_p4/8] & mask[i_p4%8])?mask[4]:(uint8_t)0;
+    uint8_t out5  = (input[i_p5/8] & mask[i_p5%8])?mask[5]:(uint8_t)0;
+    uint8_t out6  = (input[i_p6/8] & mask[i_p6%8])?mask[6]:(uint8_t)0;
+    uint8_t out7  = (input[i_p7/8] & mask[i_p7%8])?mask[7]:(uint8_t)0;
+
+    output2[i] = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7;
+  }
+
+  for(i = st; i < q->nof_bits/8; i++) {
+    if (true || output[i] != output2[i]) {
+      printf("%05d/%05d %02X %02X\n", i, q->nof_bits/8, output[i], output2[i]);
+    }
+    //output[i] = output2[i];
+  }
+  free(output2);
+#endif
+}
+
+
 
 void srslte_bit_interleave(uint8_t *input, uint8_t *output, uint16_t *interleaver, uint32_t nof_bits) {
   srslte_bit_interleave_w_offset(input, output, interleaver, nof_bits, 0);
@@ -90,7 +257,11 @@ void srslte_bit_interleave_w_offset(uint8_t *input, uint8_t *output, uint16_t *i
     epx2.m128 = _mm_shuffle_epi8(ipx2.m128, _mm_set_epi8(0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E,
                                                          0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E));
 
-    epx.m64.reg_b = epx2.m64.reg_a;
+    epx.m128 = _mm_blendv_epi8(epx.m128, epx2.m128, _mm_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0,
+                                                                  (uint8_t) 0xFF, (uint8_t) 0xFF,
+                                                                  (uint8_t) 0xFF, (uint8_t) 0xFF,
+                                                                  (uint8_t) 0xFF, (uint8_t) 0xFF,
+                                                                  (uint8_t) 0xFF, (uint8_t) 0xFF));
 
     b128.m128 = _mm_and_si128(epx.m128, _mm_set1_epi8(0x7));
     b128.m128 = _mm_shuffle_epi8(m128mask, b128.m128);
