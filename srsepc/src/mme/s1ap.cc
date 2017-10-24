@@ -162,6 +162,9 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST:
     m_s1ap_log->info("Received S1 Setup Request.\n");
     return handle_s1_setup_request(&msg->choice.S1SetupRequest, enb_sri);
+  case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALUEMESSAGE:
+    m_s1ap_log->info("Received Initial UE Message.\n");
+    return handle_initial_ue_message(&msg->choice.InitialUEMessage, enb_sri);
   default:
     m_s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
@@ -224,6 +227,24 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
   return true;
   
 }
+
+bool 
+s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
+{
+ 
+  //Send Reply to eNB
+  //ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0);
+  //if(n_sent == -1)
+  //{
+  //  m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
+  //  return false;
+  //}
+  
+  return true;
+  
+}
+
+
 
 void
 s1ap::print_enb_ctx_info(const enb_ctx_t &enb_ctx)

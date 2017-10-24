@@ -142,7 +142,7 @@ mme::run_thread()
         m_s1ap_log.console("SCTP Notification %d\n", ((union sctp_notification*)pdu->msg)->sn_header.sn_type);
         if (((union sctp_notification*)pdu->msg)->sn_header.sn_type == SCTP_SHUTDOWN_EVENT)
         {
-          m_s1ap_log.console("SCTP Association Gracefully Shutdown\n");
+          m_s1ap_log.console("SCTP Association Gracefully Shutdown\n");//TODO
         }
       }
       else
