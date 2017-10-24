@@ -266,18 +266,32 @@ int sched::ul_crc_info(uint32_t tti, uint16_t rnti, bool crc)
   return ret; 
 }
 
-int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
-    ue_db[rnti].set_dl_cqi(tti, cqi_value);
+    ue_db[rnti].set_dl_ri(tti, cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
   pthread_mutex_unlock(&mutex);
   return ret; 
+}
+
+int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+{
+  pthread_mutex_lock(&mutex);
+  int ret = 0;
+  if (ue_db.count(rnti)) {
+    ue_db[rnti].set_dl_cqi(tti, cqi_value);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    ret = -1;
+  }
+  pthread_mutex_unlock(&mutex);
+  return ret;
 }
 
 int sched::dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size)

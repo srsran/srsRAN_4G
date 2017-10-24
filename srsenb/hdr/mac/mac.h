@@ -72,6 +72,7 @@ public:
   int sr_detected(uint32_t tti, uint16_t rnti); 
   int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv); 
   
+  int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
   int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
   int snr_info(uint32_t tti, uint16_t rnti, float snr); 
   int ack_info(uint32_t tti, uint16_t rnti, bool ack); 

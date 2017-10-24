@@ -227,6 +227,7 @@ public:
   /* DL information */
   virtual int dl_ack_info(uint32_t tti, uint16_t rnti, bool ack) = 0; 
   virtual int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size) = 0; 
+  virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) = 0; 
   virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 
   
   /* UL information */

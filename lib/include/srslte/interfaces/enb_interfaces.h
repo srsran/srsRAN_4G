@@ -64,6 +64,7 @@ public:
   virtual int sr_detected(uint32_t tti, uint16_t rnti) = 0; 
   virtual int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv) = 0; 
   
+  virtual int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) = 0;
   virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 
   virtual int snr_info(uint32_t tti, uint16_t rnti, float snr_db) = 0; 
   virtual int ack_info(uint32_t tti, uint16_t rnti, bool ack) = 0;

@@ -258,41 +258,10 @@ void phch_worker::work_imp()
         set_uci_ack(dl_ack, dl_mac_grant.tb_en);
       }
 
-      /* Select Rank Indicator by computing Condition Number */
-      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
-        if (ue_dl.nof_rx_antennas > 1) {
-          /* If 2 ort more receiving antennas, select RI */
-          float cn = 0.0f;
-          srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
-          uci_data.uci_ri_len = 1;
-        } else {
-          /* If only one receiving antenna, force RI for 1 layer */
-          uci_data.uci_ri = 0;
-          uci_data.uci_ri_len = 1;
-          Warning("Only one receiving antenna with TM3. Forcing RI=1 layer.\n");
-        }
-      } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4){
-        float sinr = 0.0f;
-        uint8 packed_pmi = 0;
-        srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
-        srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, 2);
-        uci_data.uci_ri_len = 1;
-        if (uci_data.uci_ri == 0) {
-          uci_data.uci_pmi_len = 2;
-          uci_data.uci_dif_cqi_len = 0;
-        } else {
-          uci_data.uci_pmi_len = 1;
-          uci_data.uci_dif_cqi_len = 3;
-        }
-
-        /* If only one antenna in TM4 print limitation warning */
-        if (ue_dl.nof_rx_antennas < 2) {
-          Warning("Only one receiving antenna with TM4. Forcing RI=1 layer (PMI=%d).\n", packed_pmi);
-        }
-      }
+      compute_ri();
     }
   }
-  
+
   // Decode PHICH 
   bool ul_ack = false;
   bool ul_ack_available = decode_phich(&ul_ack); 
@@ -338,7 +307,7 @@ void phch_worker::work_imp()
       phy->set_pending_ack(tti + 8, ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
     }
 
-  } else if (dl_action.generate_ack || uci_data.scheduling_request || uci_data.uci_cqi_len > 0) {
+  } else if (dl_action.generate_ack || uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ri_len > 0) {
     encode_pucch();
     signal_ready = true; 
   } else if (srs_is_ready_to_send()) {
@@ -387,6 +356,40 @@ void phch_worker::work_imp()
 #endif
 }
 
+void phch_worker::compute_ri() {
+  /* Select Rank Indicator by computing Condition Number */
+  if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+    if (ue_dl.nof_rx_antennas > 1) {
+      /* If 2 ort more receiving antennas, select RI */
+      float cn = 0.0f;
+      srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
+      Info("RI select %d layers, κ=%fdB\n", uci_data.uci_ri + 1, cn);
+    } else {
+      /* If only one receiving antenna, force RI for 1 layer */
+      uci_data.uci_ri = 0;
+      Warning("Only one receiving antenna with TM3. Forcing RI=1 layer.\n");
+    }
+    uci_data.uci_ri_len = 1;
+  } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+    float sinr = 0.0f;
+    uint8 packed_pmi = 0;
+    srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
+    srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, 2);
+    if (uci_data.uci_ri == 0) {
+      uci_data.uci_pmi_len = 2;
+      uci_data.uci_dif_cqi_len = 0;
+    } else {
+      uci_data.uci_pmi_len = 1;
+      uci_data.uci_dif_cqi_len = 3;
+    }
+
+    /* If only one antenna in TM4 print limitation warning */
+    if (ue_dl.nof_rx_antennas < 2) {
+      Warning("Only one receiving antenna with TM4. Forcing RI=1 layer (PMI=%d).\n", packed_pmi);
+    }
+    uci_data.uci_ri_len = 1;
+  }
+}
 
 bool phch_worker::extract_fft_and_pdcch_llr() {
   bool decode_pdcch = false; 
@@ -612,8 +615,8 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
 
-        snprintf(commonstr, 128, "PDSCH: l_crb=%2d, harq=%d, snr=%.1f dB", grant->nof_prb, harq_pid,
-                 10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
+        snprintf(commonstr, 128, "PDSCH: l_crb=%2d, harq=%d, snr=%.1f dB, tx_scheme=%s", grant->nof_prb, harq_pid,
+                 10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)), srslte_mimotype2str(mimo_type));
 
         for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
           if (grant->tb_en[i]) {
@@ -794,14 +797,14 @@ void phch_worker::set_uci_periodic_cqi()
   
   if (period_cqi.configured && rnti_is_set) {
     if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, (tti+4)%10240)) {
-      if (uci_data.uci_ri_len) {
-        uci_data.uci_cqi[0] = uci_data.uci_ri;
-        uci_data.uci_cqi_len = uci_data.uci_ri_len;
-        uci_data.uci_ri_len = 0;
-        uci_data.uci_dif_cqi_len = 0;
-        uci_data.uci_pmi_len = 0;
-        Info("PUCCH: Periodic RI=%d\n", uci_data.uci_cqi[0]);
+      /* If the RI is not computed, compute it */
+      if (uci_data.uci_ri_len < 1) {
+        compute_ri();
       }
+      uci_data.uci_cqi_len = 0;
+      uci_data.uci_dif_cqi_len = 0;
+      uci_data.uci_pmi_len = 0;
+      Info("PUCCH: Periodic RI=%d\n", uci_data.uci_ri);
     } else if (srslte_cqi_send(period_cqi.pmi_idx, (tti+4)%10240)) {
       srslte_cqi_value_t cqi_report;
       if (period_cqi.format_is_subband) {
@@ -937,7 +940,7 @@ void phch_worker::encode_pucch()
   char timestr[64];
   timestr[0]='\0';
 
-  if (uci_data.scheduling_request || uci_data.uci_ack_len > 0 || uci_data.uci_cqi_len > 0) 
+  if (uci_data.scheduling_request || uci_data.uci_ack_len > 0 || uci_data.uci_cqi_len > 0 || uci_data.uci_ri_len > 0)
   {
     
     // Drop CQI if there is collision with ACK 

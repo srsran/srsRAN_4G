@@ -173,7 +173,7 @@ srslte_pucch_format_t srslte_pucch_get_format(srslte_uci_data_t *uci_data, srslt
 {
   srslte_pucch_format_t format = SRSLTE_PUCCH_FORMAT_ERROR; 
   // No CQI data
-  if (uci_data->uci_cqi_len == 0) {
+  if (uci_data->uci_cqi_len == 0 && uci_data->uci_ri_len == 0) {
     // 1-bit ACK + optional SR
     if (uci_data->uci_ack_len == 1) {
       format = SRSLTE_PUCCH_FORMAT_1A;
@@ -750,7 +750,7 @@ float srslte_pucch_get_last_corr(srslte_pucch_t* q)
 /* Equalize, demodulate and decode PUCCH bits according to Section 5.4.1 of 36.211 */
 int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format, 
                         uint32_t n_pucch, uint32_t sf_idx, uint16_t rnti, cf_t *sf_symbols, cf_t *ce, float noise_estimate, 
-                        uint8_t bits[SRSLTE_PUCCH_MAX_BITS]) 
+                        uint8_t bits[SRSLTE_PUCCH_MAX_BITS], uint32_t nof_bits)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q          != NULL && 
@@ -838,7 +838,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
           }
           srslte_demod_soft_demodulate_s(SRSLTE_MOD_QPSK, q->z, llr_pucch2, SRSLTE_PUCCH2_NOF_BITS/2);
           srslte_scrambling_s(&q->users[rnti]->seq_f2[sf_idx], llr_pucch2);  
-          q->last_corr = (float) srslte_uci_decode_cqi_pucch(&q->cqi, llr_pucch2, bits, 4)/2000;
+          q->last_corr = (float) srslte_uci_decode_cqi_pucch(&q->cqi, llr_pucch2, bits, nof_bits)/2000;
           ret = 1; 
         } else {
           fprintf(stderr, "Decoding PUCCH2: rnti not set\n");

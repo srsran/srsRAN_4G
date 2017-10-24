@@ -259,11 +259,15 @@ void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer)
 
 int get_pucch(srslte_enb_ul_t *q, uint16_t rnti, 
               uint32_t pdcch_n_cce, uint32_t sf_rx, 
-              srslte_uci_data_t *uci_data, uint8_t bits[SRSLTE_PUCCH_MAX_BITS]) 
+              srslte_uci_data_t *uci_data, uint8_t bits[SRSLTE_PUCCH_MAX_BITS], uint32_t nof_bits)
 {
   float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
   
   srslte_pucch_format_t format = srslte_pucch_get_format(uci_data, q->cell.cp);
+  if (format == SRSLTE_PUCCH_FORMAT_ERROR) {
+    fprintf(stderr,"Error getting format\n");
+    return SRSLTE_ERROR;
+  }
     
   uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data->scheduling_request, &q->users[rnti]->pucch_sched);
   
@@ -272,7 +276,7 @@ int get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
     return SRSLTE_ERROR;
   }
   
-  int ret_val = srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, rnti, q->sf_symbols, q->ce, noise_power, bits); 
+  int ret_val = srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, rnti, q->sf_symbols, q->ce, noise_power, bits, nof_bits);
   if (ret_val < 0) {
     fprintf(stderr,"Error decoding PUCCH\n");
     return SRSLTE_ERROR; 
@@ -285,16 +289,19 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
                             srslte_uci_data_t *uci_data)
 {
   uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS];
-  
-  if (q->users[rnti]) {
+  uint8_t *pucch_bits_ptr = pucch_bits;
 
-    int ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits);
+  if (q->users[rnti]) {
+    uint32_t nof_uci_bits = (uci_data->uci_ri_len > 0) ? uci_data->uci_ri_len : (uci_data->uci_cqi_len +
+                                                                                 uci_data->uci_dif_cqi_len +
+                                                                                 uci_data->uci_pmi_len);
+    int ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits, nof_uci_bits);
 
     // If we are looking for SR and ACK at the same time and ret=0, means there is no SR. 
     // try again to decode ACK only 
     if (uci_data->scheduling_request && uci_data->uci_ack_len && ret_val != 1) {
       uci_data->scheduling_request = false; 
-      ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits);
+      ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits, nof_uci_bits);
     }
 
     // update schedulign request 
@@ -304,12 +311,24 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
     
     // Save ACK bits 
     if (uci_data->uci_ack_len > 0) {
-      uci_data->uci_ack = pucch_bits[0];            
+      uci_data->uci_ack = *(pucch_bits_ptr++);
+    }
+
+    if (uci_data->uci_ack_len > 1) {
+      uci_data->uci_ack_2 = *(pucch_bits_ptr++);
     }
     
     // PUCCH2 CQI bits are decoded inside srslte_pucch_decode() 
     if (uci_data->uci_cqi_len) {
       memcpy(uci_data->uci_cqi, pucch_bits, uci_data->uci_cqi_len*sizeof(uint8_t));
+    }
+
+    if (uci_data->uci_ri_len) {
+      uint8_t *ptr = pucch_bits;
+      uci_data->uci_ri = (uint8_t) srslte_bit_pack(&ptr, uci_data->uci_ri_len);
+    }
+
+    if (uci_data->uci_cqi_len || uci_data->uci_ri_len) {
       if (uci_data->uci_ack_len >= 1) {
         uci_data->uci_ack = pucch_bits[20];
       }

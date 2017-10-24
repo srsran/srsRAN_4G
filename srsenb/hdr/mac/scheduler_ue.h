@@ -69,6 +69,7 @@ public:
   void mac_buffer_state(uint32_t ce_code);
   void ul_recv_len(uint32_t lcid, uint32_t len);
   void set_ul_cqi(uint32_t tti, uint32_t cqi, uint32_t ul_ch_code);
+  void set_dl_ri(uint32_t tti, uint32_t ri);
   void set_dl_cqi(uint32_t tti, uint32_t cqi);
   int  set_ack_info(uint32_t tti, bool ack);
   void set_ul_crc(uint32_t tti, bool crc_res);
@@ -155,6 +156,8 @@ private:
   ue_bearer_t lch[sched_interface::MAX_LC];
   
   int      power_headroom; 
+  uint32_t dl_ri;
+  uint32_t dl_ri_tti;
   uint32_t dl_cqi;
   uint32_t dl_cqi_tti; 
   uint32_t cqi_request_tti; 

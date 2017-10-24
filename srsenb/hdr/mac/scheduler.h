@@ -105,6 +105,7 @@ public:
     
   int dl_ack_info(uint32_t tti, uint16_t rnti, bool ack);
   int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size); 
+  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
   int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
   
   int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc);

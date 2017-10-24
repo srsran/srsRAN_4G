@@ -305,11 +305,25 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
   }
 }
 
-int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
 {
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
+    scheduler.dl_ri_info(tti, rnti, ri_value);
+    ue_db[rnti]->metrics_dl_ri(ri_value);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    return -1;
+  }
+  return 0; 
+}
+
+int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+{
+  log_h->step(tti);
+
+  if (ue_db.count(rnti)) {
     scheduler.dl_cqi_info(tti, rnti, cqi_value);
     ue_db[rnti]->metrics_dl_cqi(cqi_value);
   } else {

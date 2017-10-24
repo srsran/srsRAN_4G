@@ -533,7 +533,7 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
 
     if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END && ue_db[rnti].has_grant_tti != (int) tti_rx) {
       // Check if user needs to receive PUCCH 
-      bool needs_pucch = false, needs_ack=false, needs_sr=false, needs_cqi=false; 
+      bool needs_pucch = false, needs_ack=false, needs_sr=false, needs_cqi=false, needs_ri=false;
       uint32_t last_n_pdcch = 0;
       bzero(&uci_data, sizeof(srslte_uci_data_t));
       
@@ -550,8 +550,18 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
         uci_data.uci_ack_len = 1; 
       }
       srslte_cqi_value_t cqi_value;
+      LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &ue_db[rnti].dedicated;
+      LIBLTE_RRC_TRANSMISSION_MODE_ENUM tx_mode = dedicated->antenna_info_explicit_value.tx_mode;
+      bool ri_report_present = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present;
+      uint32_t pmi_idx = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
+      uint32_t ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
+
       if (ue_db[rnti].cqi_en && (ue_db[rnti].pucch_cqi_ack || !needs_ack)) {
-        if (srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
+        if (ri_report_present && srslte_ri_send(pmi_idx, ri_idx, tti_rx)) {
+          needs_pucch = true;
+          needs_ri = true;
+          uci_data.uci_ri_len = 1;
+        } else if (srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
           needs_pucch = true; 
           needs_cqi = true; 
           cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND; 
@@ -571,11 +581,14 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
           phy->mac->sr_detected(tti_rx, rnti);                
         }
         
-        char cqi_str[64];
-        if (uci_data.uci_cqi_len) {
+        char cqi_ri_str[64];
+        if (uci_data.uci_ri_len && needs_ri) {
+          phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
+          sprintf(cqi_ri_str, ", ri=%d", uci_data.uci_ri);
+        } else if (uci_data.uci_cqi_len && needs_cqi) {
           srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
           phy->mac->cqi_info(tti_rx, rnti, cqi_value.wideband.wideband_cqi);
-          sprintf(cqi_str, ", cqi=%d", cqi_value.wideband.wideband_cqi);
+          sprintf(cqi_ri_str, ", cqi=%d", cqi_value.wideband.wideband_cqi);
         }
         log_h->info("PUCCH: rnti=0x%x, corr=%.2f, n_pucch=%d, n_prb=%d%s%s%s\n", 
                     rnti, 
@@ -583,7 +596,7 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
                     enb_ul.pucch.last_n_pucch, enb_ul.pucch.last_n_prb,
                     needs_ack?(uci_data.uci_ack?", ack=1":", ack=0"):"", 
                     needs_sr?(uci_data.scheduling_request?", sr=yes":", sr=no"):"", 
-                    needs_cqi?cqi_str:"");                
+                    (needs_cqi || needs_ri)?cqi_ri_str:"");
 
 
         // Notify MAC of RL status 
@@ -709,7 +722,7 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
         break;
       }
       
-      if (LOG_THIS(rnti)) { 
+      if (LOG_THIS(rnti)) {
         uint8_t x = 0;
         uint8_t *ptr = grants[i].data[0];
         uint32_t len = phy_grant.mcs[0].tbs / (uint32_t) 8;

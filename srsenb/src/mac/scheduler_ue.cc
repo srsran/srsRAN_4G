@@ -323,6 +323,12 @@ void sched_ue::set_ul_crc(uint32_t tti, bool crc_res)
   get_ul_harq(tti)->set_ack(crc_res);
 }
 
+void sched_ue::set_dl_ri(uint32_t tti, uint32_t ri)
+{
+  dl_ri     = ri;
+  dl_ri_tti = tti;
+}
+
 void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cqi)
 {
   dl_cqi     = cqi; 
