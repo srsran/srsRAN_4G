@@ -231,7 +231,85 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
 bool 
 s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
 {
- 
+  m_s1ap_log->console("Received Initial UE Message\n");
+  m_s1ap_log->info("Received Initial UE Message\n");
+  
+  //msg->eNB_UE_S1AP_ID;
+
+  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
+
+  if(!liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT *) &msg->NAS_PDU.buffer))
+  {
+    m_s1ap_log->console("Error unpacking NAS attach request.");
+  }
+  else{
+    m_s1ap_log->console("Unpacked NAS attach request.");
+  }
+  /*Log unhandled IEs*/
+  if(msg->S_TMSI_present){
+    m_s1ap_log->warning("S-TMSI present, but not handled.");
+  }
+  if(msg->CSG_Id_present){
+    m_s1ap_log->warning("S-TMSI present, but not handled.");
+  }
+  if(msg->GUMMEI_ID_present){
+    m_s1ap_log->warning("GUMMEI ID present, but not handled.");
+  }
+  if(msg->CellAccessMode_present){
+    m_s1ap_log->warning("Cell Access Mode present, but not handled.");
+  }
+  if(msg->GW_TransportLayerAddress_present){
+    m_s1ap_log->warning("GW Transport Layer present, but not handled.");
+  }
+  if(msg->GW_TransportLayerAddress_present){
+    m_s1ap_log->warning("GW Transport Layer present, but not handled.");
+  }
+  if(msg->RelayNode_Indicator_present){
+    m_s1ap_log->warning("Relay Node Indicator present, but not handled.");
+  }
+  if(msg->GUMMEIType_present){
+    m_s1ap_log->warning("GUMMEI Type present, but not handled.");
+  }
+  if(msg->Tunnel_Information_for_BBF_present){
+    m_s1ap_log->warning("Tunnel Information for BBF present, but not handled.");
+  }
+  if(msg->SIPTO_L_GW_TransportLayerAddress_present){
+    m_s1ap_log->warning("SIPTO GW Transport Layer Address present, but not handled.");
+  }
+  if(msg->LHN_ID_present){
+    m_s1ap_log->warning("LHN Id present, but not handled.");
+  }
+  
+  /*
+  typedef struct{
+  bool                                                         ext;
+  LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
+  LIBLTE_S1AP_NAS_PDU_STRUCT                                   NAS_PDU;
+  LIBLTE_S1AP_TAI_STRUCT                                       TAI;
+  LIBLTE_S1AP_EUTRAN_CGI_STRUCT                                EUTRAN_CGI;
+  LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM_EXT                 RRC_Establishment_Cause;
+  LIBLTE_S1AP_S_TMSI_STRUCT                                    S_TMSI;
+  bool                                                         S_TMSI_present;
+  LIBLTE_S1AP_CSG_ID_STRUCT                                    CSG_Id;
+  bool                                                         CSG_Id_present;
+  LIBLTE_S1AP_GUMMEI_STRUCT                                    GUMMEI_ID;
+  bool                                                         GUMMEI_ID_present;
+  LIBLTE_S1AP_CELLACCESSMODE_ENUM_EXT                          CellAccessMode;
+  bool                                                         CellAccessMode_present;
+  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     GW_TransportLayerAddress;
+  bool                                                         GW_TransportLayerAddress_present;
+  LIBLTE_S1AP_RELAYNODE_INDICATOR_ENUM_EXT                     RelayNode_Indicator;
+  bool                                                         RelayNode_Indicator_present;
+  LIBLTE_S1AP_GUMMEITYPE_ENUM_EXT                              GUMMEIType;
+  bool                                                         GUMMEIType_present;
+  LIBLTE_S1AP_TUNNELINFORMATION_STRUCT                         Tunnel_Information_for_BBF;
+  bool                                                         Tunnel_Information_for_BBF_present;
+  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     SIPTO_L_GW_TransportLayerAddress;
+  bool                                                         SIPTO_L_GW_TransportLayerAddress_present;
+  LIBLTE_S1AP_LHN_ID_STRUCT                                    LHN_ID;
+  bool                                                         LHN_ID_present;
+  }LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT;  
+  */ 
   //Send Reply to eNB
   //ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0);
   //if(n_sent == -1)
