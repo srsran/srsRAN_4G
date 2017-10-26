@@ -251,7 +251,13 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
     m_s1ap_log->warning("NAS Attach Request: Unhandle UE Id Type");
   }
   else{
-    m_s1ap_log->console("IMSI: %d", attach_req.eps_mobile_id.imsi);
+    uint64_t temp = 0;
+    for(int i=14;i>=0;i--)
+    {
+      temp  *=10;
+      temp  += attach_req.eps_mobile_id.imsi[i];
+    }
+    m_s1ap_log->console("IMSI: %d", temp);
   }
   
   if(attach_req.old_p_tmsi_signature_present){}
@@ -273,10 +279,10 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   /*Handle PDN Connctivity Request*/
   liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req);
   
-  pdn_con_req.eps_bearer_id
-  pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
-  pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
-  pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
+  //pdn_con_req.eps_bearer_id
+  //pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
+  //pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
+  //pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
 
   // Set the optional flags
   if(pdn_con_req.esm_info_transfer_flag_present){}
