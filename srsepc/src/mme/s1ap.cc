@@ -234,17 +234,58 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   m_s1ap_log->console("Received Initial UE Message\n");
   m_s1ap_log->info("Received Initial UE Message\n");
   
-  //msg->eNB_UE_S1AP_ID;
-
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
 
-  if(!liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT *) &msg->NAS_PDU.buffer))
-  {
+  /*Get */
+
+  /*Get NAS Attach Request Message*/
+  if(!liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) msg->NAS_PDU.buffer, &attach_req)){
     m_s1ap_log->console("Error unpacking NAS attach request.");
   }
   else{
     m_s1ap_log->console("Unpacked NAS attach request.");
   }
+
+  if(attach_req.eps_mobile_id.type_of_id!=LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI){
+    m_s1ap_log->warning("NAS Attach Request: Unhandle UE Id Type");
+  }
+  else{
+    m_s1ap_log->console("IMSI: %d", attach_req.eps_mobile_id.imsi);
+  }
+  
+  if(attach_req.old_p_tmsi_signature_present){}
+  if(attach_req.additional_guti_present){}
+  if(attach_req.last_visited_registered_tai_present){}
+  if(attach_req.drx_param_present){}
+  if(attach_req.ms_network_cap_present){}
+  if(attach_req.old_lai_present){}
+  if(attach_req.tmsi_status_present){}
+  if(attach_req.ms_cm2_present){}
+  if(attach_req.ms_cm3_present){}
+  if(attach_req.supported_codecs_present){}
+  if(attach_req.additional_update_type_present){}
+  if(attach_req.voice_domain_pref_and_ue_usage_setting_present){}
+  if(attach_req.device_properties_present){}
+  if(attach_req.old_guti_type_present){}
+    
+
+  /*Handle PDN Connctivity Request*/
+  liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req);
+  
+  pdn_con_req.eps_bearer_id
+  pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
+  pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
+  pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
+
+  // Set the optional flags
+  if(pdn_con_req.esm_info_transfer_flag_present){}
+  if(pdn_con_req.apn_present){}
+  if(pdn_con_req.protocol_cnfg_opts_present){}
+  if(pdn_con_req.device_properties_present){}
+
+
+
   /*Log unhandled IEs*/
   if(msg->S_TMSI_present){
     m_s1ap_log->warning("S-TMSI present, but not handled.");
@@ -279,7 +320,44 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   if(msg->LHN_ID_present){
     m_s1ap_log->warning("LHN Id present, but not handled.");
   }
-  
+
+  /*
+  typedef struct{
+    LIBLTE_MME_NAS_KEY_SET_ID_STRUCT                         nas_ksi;
+    LIBLTE_MME_EPS_MOBILE_ID_STRUCT                          eps_mobile_id;
+    LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT                  ue_network_cap;
+    LIBLTE_BYTE_MSG_STRUCT                                   esm_msg;
+    LIBLTE_MME_EPS_MOBILE_ID_STRUCT                          additional_guti;
+    LIBLTE_MME_TRACKING_AREA_ID_STRUCT                       last_visited_registered_tai;
+    LIBLTE_MME_DRX_PARAMETER_STRUCT                          drx_param;
+    LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT                  ms_network_cap;
+    LIBLTE_MME_LOCATION_AREA_ID_STRUCT                       old_lai;
+    LIBLTE_MME_MOBILE_STATION_CLASSMARK_2_STRUCT             ms_cm2;
+    LIBLTE_MME_MOBILE_STATION_CLASSMARK_3_STRUCT             ms_cm3;
+    LIBLTE_MME_SUPPORTED_CODEC_LIST_STRUCT                   supported_codecs;
+    LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT voice_domain_pref_and_ue_usage_setting;
+    LIBLTE_MME_TMSI_STATUS_ENUM                              tmsi_status;
+    LIBLTE_MME_ADDITIONAL_UPDATE_TYPE_ENUM                   additional_update_type;
+    LIBLTE_MME_DEVICE_PROPERTIES_ENUM                        device_properties;
+    LIBLTE_MME_GUTI_TYPE_ENUM                                old_guti_type;
+    uint32                                                   old_p_tmsi_signature;
+    uint8                                                    eps_attach_type;
+    bool                                                     old_p_tmsi_signature_present;
+    bool                                                     additional_guti_present;
+    bool                                                     last_visited_registered_tai_present;
+    bool                                                     drx_param_present;
+    bool                                                     ms_network_cap_present;
+    bool                                                     old_lai_present;
+    bool                                                     tmsi_status_present;
+    bool                                                     ms_cm2_present;
+    bool                                                     ms_cm3_present;
+    bool                                                     supported_codecs_present;
+    bool                                                     additional_update_type_present;
+    bool                                                     voice_domain_pref_and_ue_usage_setting_present; 
+    bool                                                     device_properties_present;
+    bool                                                     old_guti_type_present;
+  }LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT;
+  */
   /*
   typedef struct{
   bool                                                         ext;

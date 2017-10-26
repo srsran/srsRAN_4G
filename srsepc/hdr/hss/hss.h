@@ -47,6 +47,7 @@ typedef struct{
 }hss_args_t;
 
 
+
 class hss
 {
 public:
@@ -54,6 +55,10 @@ public:
   static void cleanup(void);
   int init(hss_args_t *hss_args, srslte::logger* logger);
 
+  //bool gen_auth_info_answer(uint64_t imsi);
+  
+  //bool get_k_amf_op(uint64_t imsi, *k, *amf, *op);
+  
 private:
 
   hss();
