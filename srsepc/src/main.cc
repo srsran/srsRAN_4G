@@ -27,6 +27,7 @@
 #include <boost/program_options.hpp>
 #include "srslte/common/bcd_helpers.h"
 #include "mme/mme.h"
+#include "hss/hss.h"
 
 using namespace std;
 using namespace srsepc;
@@ -38,6 +39,19 @@ void
 sig_int_handler(int signo){
   running = false;
 }
+
+typedef struct {
+  std::string   all_level;
+  int           hex_limit;
+  std::string   filename;
+}log_args_t;
+
+
+typedef struct{
+  mme_args_t mme_args;
+  hss_args_t hss_args;
+  log_args_t log_args;
+}all_args_t;
 
 /**********************************************************************
  *  Program arguments processing
@@ -103,29 +117,29 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   {
     std::stringstream sstr;
     sstr << std::hex << vm["mme.mme_group"].as<std::string>();
-    sstr >> args->s1ap_args.mme_group;
+    sstr >> args->mme_args.s1ap_args.mme_group;
   }
   {
     std::stringstream sstr;
     sstr << std::hex << vm["mme.mme_code"].as<std::string>();
     uint16_t tmp; // Need intermediate uint16_t as uint8_t is treated as char
     sstr >> tmp;
-    args->s1ap_args.mme_code = tmp;
+    args->mme_args.s1ap_args.mme_code = tmp;
   }
   {
     std::stringstream sstr;
     sstr << std::hex << vm["mme.tac"].as<std::string>();
-    sstr >> args->s1ap_args.tac;
+    sstr >> args->mme_args.s1ap_args.tac;
   }
   // Convert MCC/MNC strings
-  if(!srslte::string_to_mcc(mcc, &args->s1ap_args.mcc)) {
+  if(!srslte::string_to_mcc(mcc, &args->mme_args.s1ap_args.mcc)) {
     cout << "Error parsing enb.mcc:" << mcc << " - must be a 3-digit string." << endl;
   }
-  if(!srslte::string_to_mnc(mnc, &args->s1ap_args.mnc)) {
+  if(!srslte::string_to_mnc(mnc, &args->mme_args.s1ap_args.mnc)) {
     cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
   
-  args->s1ap_args.mme_bind_addr = mme_bind_addr;
+  args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
   return;
 }
 
@@ -138,14 +152,34 @@ main (int argc,char * argv[] )
 
   all_args_t args;
   parse_args(&args, argc, argv); 
-  
-  args.log_args.filename = std::string("/tmp/epc.log");
+ 
+  srslte::logger_stdout logger_stdout;
+  srslte::logger_file   logger_file;
+  srslte::logger        *logger;
+
+ 
+  /*Init logger*/
+  args.log_args.filename = std::string("/tmp/epc.log"); //FIXME
+  if (!args.log_args.filename.compare("stdout")) {
+    logger = &logger_stdout;
+  } else {
+    logger_file.init(args.log_args.filename);
+    logger_file.log("\n---  Software Radio Systems EPC log ---\n\n");
+    logger = &logger_file;
+  }
 
   mme *mme = mme::get_instance();
-  if (mme->init(&args)) {
+  if (mme->init(&args.mme_args, logger)) {
     cout << "Error initializing MME" << endl;
     exit(1);
   }
+  hss *hss = hss::get_instance();
+  if (hss->init(&args.hss_args,logger)) {
+    cout << "Error initializing HSS" << endl;
+    exit(1);
+  }
+
+
   mme->start();
   
   while(running) {

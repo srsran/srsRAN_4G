@@ -70,9 +70,10 @@ mme::cleanup(void)
 }
 
 int
-mme::init(all_args_t* args)
+mme::init(mme_args_t* args, srslte::logger *logger)
 {
   /*Init loggers*/
+  /*
   if (!args->log_args.filename.compare("stdout")) {
     m_logger = &m_logger_stdout;
   } else {
@@ -80,7 +81,7 @@ mme::init(all_args_t* args)
     m_logger_file.log("\n---  Software Radio Systems MME log ---\n\n");
     m_logger = &m_logger_file;
   }
-
+  */
   m_s1ap_log.init("S1AP", m_logger);
   m_s1ap_log.set_level(srslte::LOG_LEVEL_DEBUG);
   m_s1ap_log.set_hex_limit(32);

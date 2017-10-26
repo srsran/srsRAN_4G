@@ -24,21 +24,15 @@
  *
  */
 
-#include <iostream> //TODO Remove
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/sctp.h>
 #include <boost/thread/mutex.hpp>
-#include "mme/mme.h"
+#include "hss/hss.h"
 
 namespace srsepc{
 
 hss*          hss::m_instance = NULL;
 boost::mutex  hss_instance_mutex;
 
-hss::hss():
-  m_running(false)
+hss::hss()
 {
   m_pool = srslte::byte_buffer_pool::get_instance();     
   return;
@@ -70,24 +64,14 @@ hss::cleanup(void)
 }
 
 int
-hss::init(all_args_t* args)
+hss::init(hss_args_t *hss_args, srslte::logger *logger)
 {
   /*Init loggers*/
-  if (!args->log_args.filename.compare("stdout")) {
-    m_logger = &m_logger_stdout;
-  } else {
-    m_logger_file.init(args->log_args.filename);
-    m_logger_file.log("\n---  Software Radio Systems HSS log ---\n\n");
-    m_logger = &m_logger_file;
-  }
-
+  m_logger=logger;
   m_hss_log.init("HSS", m_logger);
   m_hss_log.set_level(srslte::LOG_LEVEL_DEBUG);
   m_hss_log.set_hex_limit(32);
-  if(m_hss.init(args->s1ap_args, &m_s1ap_log)){
-    m_hss_log.error("Error initializing MME S1APP\n");
-    exit(-1);
-  }
+
   m_hss_log.info("Initialized HSS\n");
   m_hss_log.console("Initialized HSS\n");
   return 0;

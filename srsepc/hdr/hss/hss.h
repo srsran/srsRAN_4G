@@ -25,68 +25,49 @@
  */
 
 /******************************************************************************
- * File:        mme.h
- * Description: Top-level MME class. Creates and links all
+ * File:        hss.h
+ * Description: Top-level HSS class. Creates and links all
  *              interfaces and helpers.
  *****************************************************************************/
 
-#ifndef MME_H
-#define MME_H
+#ifndef HSS_H
+#define HSS_H
 
 #include <cstddef>
 #include "srslte/common/log.h"
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/threads.h"
-#include "s1ap.h"
 
 
 namespace srsepc{
 
-/*
-typedef struct {
-  std::string   s1ap_level;
-  std::string   all_level;
-  int           s1ap_hex_limit;
-  std::string   filename;
-}log_args_t;
-*/
-
 typedef struct{
-  s1ap_args_t s1ap_args;
-  //diameter_args_t diameter_args;
-  //gtpc_args_t gtpc_args;
-} mme_args_t;
+  std::string ue_file;
+}hss_args_t;
 
 
-class mme:
-  public thread
+class hss
 {
 public:
-  static mme* get_instance(void);
+  static hss* get_instance(void);
   static void cleanup(void);
-  int init(mme_args_t* args, srslte::logger *logger);
-  void stop();
-  int get_s1_mme();
-  void run_thread();
+  int init(hss_args_t *hss_args, srslte::logger* logger);
 
 private:
 
-  mme();
-  virtual ~mme();
-  static mme *m_instance;
-  s1ap m_s1ap;
+  hss();
+  virtual ~hss();
+  static hss *m_instance;
 
-  bool m_running;
   srslte::byte_buffer_pool *m_pool;
 
   /*Logs*/
-  //srslte::logger_stdout m_logger_stdout;
-  //srslte::logger_file   m_logger_file;
+  srslte::logger_stdout m_logger_stdout;
+  srslte::logger_file   m_logger_file;
   srslte::logger        *m_logger;
 
-  srslte::log_filter  m_s1ap_log;
+  srslte::log_filter  m_hss_log;
  
 };
 
