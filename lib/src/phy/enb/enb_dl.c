@@ -326,8 +326,30 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
 
 int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer[SRSLTE_MAX_CODEWORDS],
                             uint16_t rnti, int rv_idx[SRSLTE_MAX_CODEWORDS], uint32_t sf_idx,
-                            uint8_t *data[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type, uint32_t pmi)
+                            uint8_t *data[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type)
 {  
+  uint32_t pmi = 0;
+  uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
+
+  /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
+  if (mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
+    if (nof_tb == 1) {
+      if (grant->pinfo > 0 && grant->pinfo < 5) {
+        pmi = grant->pinfo - 1;
+      } else {
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+        return SRSLTE_ERROR;
+      }
+    } else {
+      if (grant->pinfo < 2) {
+        pmi = grant->pinfo;
+      } else {
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+        return SRSLTE_ERROR;
+      }
+    }
+  }
+
   /* Configure pdsch_cfg parameters */
   if (srslte_pdsch_cfg_mimo(&q->pdsch_cfg, q->cell, grant, q->cfi, sf_idx, rv_idx, mimo_type, pmi)) {
     fprintf(stderr, "Error configuring PDSCH\n");

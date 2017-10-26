@@ -412,6 +412,11 @@ void ue::metrics_dl_ri(uint32_t dl_ri) {
   dl_ri_counter++;
 }
 
+void ue::metrics_dl_pmi(uint32_t dl_ri) {
+  metrics.dl_pmi = SRSLTE_VEC_CMA((float) dl_ri, metrics.dl_pmi, dl_pmi_counter);
+  dl_pmi_counter++;
+}
+
 void ue::metrics_dl_cqi(uint32_t dl_cqi) {
   metrics.dl_cqi = SRSLTE_VEC_CMA((float) dl_cqi, metrics.dl_cqi, dl_cqi_counter);
   dl_cqi_counter++;

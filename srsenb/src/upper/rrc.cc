@@ -864,6 +864,7 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
 
   // Acknowledge Dedicated Configuration
   parent->phy->set_conf_dedicated_ack(rnti, true);
+  parent->mac->phy_config_enabled(rnti, true);
 
   if(has_tmsi) {
     parent->s1ap->initial_ue(rnti, pdu, m_tmsi, mmec);
@@ -1211,7 +1212,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
   parent->phy->set_conf_dedicated_ack(rnti, false);
-  parent->mac->phy_config_enabled(rnti, true);
+  parent->mac->set_dl_ant_info(rnti, &phy_cfg->antenna_info_explicit_value);
+  parent->mac->phy_config_enabled(rnti, false);
   
   rr_cfg->drb_to_add_mod_list_size = 0; 
   rr_cfg->drb_to_release_list_size = 0; 

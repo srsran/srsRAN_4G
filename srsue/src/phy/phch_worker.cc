@@ -374,7 +374,6 @@ void phch_worker::compute_ri() {
     float sinr = 0.0f;
     uint8 packed_pmi = 0;
     srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
-    srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, 2);
     if (uci_data.uci_ri == 0) {
       uci_data.uci_pmi_len = 2;
       uci_data.uci_dif_cqi_len = 0;
@@ -382,6 +381,8 @@ void phch_worker::compute_ri() {
       uci_data.uci_pmi_len = 1;
       uci_data.uci_dif_cqi_len = 3;
     }
+    srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, uci_data.uci_pmi_len);
+    Info("pmi=%d\n", packed_pmi);
 
     /* If only one antenna in TM4 print limitation warning */
     if (ue_dl.nof_rx_antennas < 2) {
@@ -615,9 +616,13 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
 
-        snprintf(commonstr, 128, "PDSCH: l_crb=%2d, harq=%d, snr=%.1f dB, tx_scheme=%s", grant->nof_prb, harq_pid,
-                 10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)), srslte_mimotype2str(mimo_type));
+        char pinfo_str[16] = {0};
+        if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+          snprintf(pinfo_str, 15, ", pinfo=%x", grant->pinfo);
+        }
 
+        snprintf(commonstr, 128, "PDSCH: l_crb=%2d, harq=%d, snr=%.1f dB, tx_scheme=%s%s", grant->nof_prb, harq_pid,
+                 10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)), srslte_mimotype2str(mimo_type), pinfo_str);
         for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
           if (grant->tb_en[i]) {
             snprintf(tbstr[i], 128, ", TB%d: tbs=%d, mcs=%d, rv=%d, crc=%s, it=%d",
@@ -825,6 +830,16 @@ void phch_worker::set_uci_periodic_cqi()
           cqi_report.wideband.wideband_cqi = cqi_max; 
         }
         Info("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db);
+      }
+      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+        if (ue_dl.ri == 0) {
+          uci_data.uci_pmi_len = 2;
+        } else {
+          uci_data.uci_pmi_len = 1;
+          uci_data.uci_dif_cqi_len = 3;
+        }
+        uint8_t *ptr = uci_data.uci_pmi;
+        srslte_bit_unpack(ue_dl.pmi[ue_dl.ri], &ptr, uci_data.uci_pmi_len);
       }
       uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
       rar_cqi_request = false;       

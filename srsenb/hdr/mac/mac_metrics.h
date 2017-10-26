@@ -45,6 +45,7 @@ struct mac_metrics_t
   int dl_buffer;
   float dl_cqi;
   float dl_ri;
+  float dl_pmi;
   float phr; 
 };
 

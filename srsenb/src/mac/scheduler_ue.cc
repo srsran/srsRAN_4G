@@ -109,8 +109,8 @@ void sched_ue::reset()
   ul_cqi_tti = 0; 
   cqi_request_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    dl_harq[i].reset();
-    ul_harq[i].reset();
+    dl_harq[i].reset(0);
+    ul_harq[i].reset(0);
   }
   for (int i=0;i<sched_interface::MAX_LC; i++) {
     rem_bearer(i);
@@ -291,8 +291,8 @@ int sched_ue::set_ack_info(uint32_t tti, bool ack)
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     if (((dl_harq[i].get_tti()+4)%10240) == tti) {
       Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tti=%d\n", ack, rnti, i, tti);
-      dl_harq[i].set_ack(ack); 
-      return dl_harq[i].get_tbs();
+      dl_harq[i].set_ack(0, ack);
+      return dl_harq[i].get_tbs(0);
     }
   }
   Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti);
@@ -320,7 +320,7 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
 
 void sched_ue::set_ul_crc(uint32_t tti, bool crc_res)
 {
-  get_ul_harq(tti)->set_ack(crc_res);
+  get_ul_harq(tti)->set_ack(0, crc_res);
 }
 
 void sched_ue::set_dl_ri(uint32_t tti, uint32_t ri)
@@ -329,10 +329,21 @@ void sched_ue::set_dl_ri(uint32_t tti, uint32_t ri)
   dl_ri_tti = tti;
 }
 
+void sched_ue::set_dl_pmi(uint32_t tti, uint32_t pmi)
+{
+  dl_pmi     = pmi;
+  dl_pmi_tti = tti;
+}
+
 void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cqi)
 {
-  dl_cqi     = cqi; 
-  dl_cqi_tti = tti; 
+  dl_cqi     = cqi;
+  dl_cqi_tti = tti;
+}
+
+void sched_ue::set_dl_ant_info(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *d)
+{
+  memcpy(&dl_ant_info, d, sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
 }
 
 void sched_ue::set_ul_cqi(uint32_t tti, uint32_t cqi, uint32_t ul_ch_code)
@@ -363,10 +374,10 @@ void sched_ue::tpc_dec() {
 
 
 // Generates a Format1 grant 
-int sched_ue::generate_format1(dl_harq_proc *h, 
-                         sched_interface::dl_sched_data_t *data, 
-                         uint32_t tti, 
-                         uint32_t cfi) 
+int sched_ue::generate_format1(dl_harq_proc *h,
+                         sched_interface::dl_sched_data_t *data,
+                         uint32_t tti,
+                         uint32_t cfi)
 {
   srslte_ra_dl_dci_t *dci = &data->dci;
   bzero(dci, sizeof(srslte_ra_dl_dci_t));
@@ -385,7 +396,7 @@ int sched_ue::generate_format1(dl_harq_proc *h,
   if (is_first_dl_tx()) {
     need_conres_ce = true; 
   }
-  if (h->is_empty()) {
+  if (h->is_empty(0)) {
 
     uint32_t req_bytes = get_pending_dl_new_data(tti); 
     
@@ -401,11 +412,11 @@ int sched_ue::generate_format1(dl_harq_proc *h,
       mcs = fixed_mcs_dl; 
     }
 
-    h->new_tx(tti, mcs, tbs, data->dci_location.ncce);  
+    h->new_tx(0, tti, mcs, tbs, data->dci_location.ncce);
     
     Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
   } else {
-    h->new_retx(tti, &mcs, &tbs);  
+    h->new_retx(0, tti, &mcs, &tbs);
     Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
   }
  
@@ -431,19 +442,159 @@ int sched_ue::generate_format1(dl_harq_proc *h,
   if (tbs > 0) {
     dci->harq_process = h->get_id(); 
     dci->mcs_idx      = mcs; 
-    dci->rv_idx       = sched::get_rvidx(h->nof_retx()); 
-    dci->ndi          = h->get_ndi(); 
-    dci->tpc_pucch    = next_tpc_pucch; 
+    dci->rv_idx       = sched::get_rvidx(h->nof_retx(0));
+    dci->ndi          = h->get_ndi(0);
+    dci->tpc_pucch    = next_tpc_pucch;
     next_tpc_pucch    = 1; 
-    data->tbs         = tbs; 
+    data->tbs[0]         = tbs;
     dci->tb_en[0]     = true; 
     dci->tb_en[1]     = false; 
   }  
   return tbs; 
 }
 
+// Generates a Format2a grant
+int sched_ue::generate_format2a(dl_harq_proc *h,
+                         sched_interface::dl_sched_data_t *data,
+                         uint32_t tti,
+                         uint32_t cfi)
+{
+  srslte_ra_dl_dci_t *dci = &data->dci;
+  bzero(dci, sizeof(srslte_ra_dl_dci_t));
 
-int sched_ue::generate_format0(ul_harq_proc *h,  
+  uint32_t sf_idx = tti%10;
+
+  int mcs = 0;
+  int tbs = 0;
+
+  dci->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
+  dci->type0_alloc.rbg_bitmask = h->get_rbgmask();
+
+  if (h->is_empty(0)) {
+
+    uint32_t req_bytes = get_pending_dl_new_data(tti);
+
+    uint32_t nof_prb = format1_count_prb(h->get_rbgmask(), cell.nof_prb);
+    srslte_ra_dl_grant_t grant;
+    srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
+    uint32_t nof_ctrl_symbols = cfi+(cell.nof_prb<10?1:0);
+    uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
+    if (fixed_mcs_dl < 0) {
+      tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
+    } else {
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb)/8;
+      mcs = fixed_mcs_dl;
+    }
+
+    h->new_tx(0, tti, mcs, tbs, data->dci_location.ncce);
+
+    Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
+  } else {
+    h->new_retx(0, tti, &mcs, &tbs);
+    Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
+  }
+
+  int rem_tbs = tbs;
+  int x = 0;
+  do {
+    x = alloc_pdu(rem_tbs, &data->pdu[data->nof_pdu_elems]);
+    rem_tbs -= x;
+    if (x) {
+      data->nof_pdu_elems++;
+    }
+  } while(rem_tbs > 0 && x > 0);
+
+  data->rnti    = rnti;
+
+  if (tbs > 0) {
+    dci->harq_process = h->get_id();
+    dci->mcs_idx      = mcs;
+    dci->rv_idx       = sched::get_rvidx(h->nof_retx(0));
+    dci->ndi          = h->get_ndi(0);
+    dci->tpc_pucch    = next_tpc_pucch;
+    next_tpc_pucch    = 1;
+    data->tbs[0]         = tbs;
+    dci->tb_en[0]     = true;
+    dci->tb_en[1]     = false;
+  }
+  return tbs;
+}
+
+// Generates a Format2 grant
+int sched_ue::generate_format2(dl_harq_proc *h,
+                         sched_interface::dl_sched_data_t *data,
+                         uint32_t tti,
+                         uint32_t cfi)
+{
+  srslte_ra_dl_dci_t *dci = &data->dci;
+  bzero(dci, sizeof(srslte_ra_dl_dci_t));
+
+  uint32_t sf_idx = tti%10;
+
+  int mcs = 0;
+  int tbs = 0;
+
+  dci->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
+  dci->type0_alloc.rbg_bitmask = h->get_rbgmask();
+
+  if (h->is_empty(0)) {
+
+    uint32_t req_bytes = get_pending_dl_new_data(tti);
+
+    uint32_t nof_prb = format1_count_prb(h->get_rbgmask(), cell.nof_prb);
+    srslte_ra_dl_grant_t grant;
+    srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
+    uint32_t nof_ctrl_symbols = cfi+(cell.nof_prb<10?1:0);
+    uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
+    if (fixed_mcs_dl < 0) {
+      tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
+    } else {
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb)/8;
+      mcs = fixed_mcs_dl;
+    }
+
+    h->new_tx(0, tti, mcs, tbs, data->dci_location.ncce);
+
+    Debug("SCHED: Alloc format2 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
+  } else {
+    h->new_retx(0, tti, &mcs, &tbs);
+    Debug("SCHED: Alloc format2 previous mcs=%d, tbs=%d\n", mcs, tbs);
+  }
+
+  int rem_tbs = tbs;
+  int x = 0;
+  do {
+    x = alloc_pdu(rem_tbs, &data->pdu[data->nof_pdu_elems]);
+    rem_tbs -= x;
+    if (x) {
+      data->nof_pdu_elems++;
+    }
+  } while(rem_tbs > 0 && x > 0);
+
+  data->rnti    = rnti;
+
+  if (tbs > 0) {
+    dci->pinfo = (uint8_t) (dl_pmi + 1);
+/*    if (SRSLTE_RA_DL_GRANT_NOF_TB(dci) == 1) {
+      dci->pinfo = (uint8_t) (dl_pmi + 1);
+    } else {
+      dci->pinfo = (uint8_t) (dl_pmi & 1);
+    }*/
+    dci->harq_process = h->get_id();
+    dci->mcs_idx      = mcs;
+    dci->rv_idx       = sched::get_rvidx(h->nof_retx(0));
+    dci->ndi          = h->get_ndi(0);
+    dci->tpc_pucch    = next_tpc_pucch;
+    next_tpc_pucch    = 1;
+    data->tbs[0]         = tbs;
+    dci->tb_en[0]     = true;
+    dci->tb_en[1]     = false;
+  }
+  return tbs;
+}
+
+
+int sched_ue::generate_format0(ul_harq_proc *h,
                          sched_interface::ul_sched_data_t *data, 
                          uint32_t tti,
                          bool cqi_request) 
@@ -459,7 +610,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   if (h->get_rar_mcs(&mcs)) {
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
     h->new_tx(tti, mcs, tbs); 
-  } else if (h->is_empty()) {
+  } else if (h->is_empty(0)) {
     
     uint32_t req_bytes = get_pending_ul_new_data(tti); 
     
@@ -475,7 +626,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     h->new_tx(tti, mcs, tbs);  
 
   } else {    
-    h->new_retx(tti, &mcs, NULL);  
+    h->new_retx(0, tti, &mcs, NULL);
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
   }
   
@@ -486,8 +637,8 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     dci->type2_alloc.L_crb = allocation.L;
     dci->type2_alloc.RB_start = allocation.RB_start;
     dci->mcs_idx     = mcs; 
-    dci->rv_idx      = sched::get_rvidx(h->nof_retx()); 
-    dci->ndi         = h->get_ndi(); 
+    dci->rv_idx      = sched::get_rvidx(h->nof_retx(0));
+    dci->ndi         = h->get_ndi(0);
     dci->cqi_request = cqi_request; 
     dci->freq_hop_fl = srslte_ra_ul_dci_t::SRSLTE_RA_PUSCH_HOP_DISABLED; 
     dci->tpc_pusch   = next_tpc_pusch; 
@@ -518,7 +669,7 @@ uint32_t sched_ue::get_max_retx() {
 bool sched_ue::is_first_dl_tx()
 {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (dl_harq[i].nof_tx() > 0) {
+    if (dl_harq[i].nof_tx(0) > 0) {
       return false; 
     }
   }
@@ -666,7 +817,7 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
   int oldest_idx=-1; 
   uint32_t oldest_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (dl_harq[i].has_pending_retx(tti)) {
+    if (dl_harq[i].has_pending_retx(0, tti)) {
       uint32_t x = srslte_tti_interval(tti, dl_harq[i].get_tti()); 
       if (x > oldest_tti) {
         oldest_idx = i; 
@@ -684,7 +835,7 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 dl_harq_proc* sched_ue::get_empty_dl_harq()
 {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (dl_harq[i].is_empty()) {
+    if (dl_harq[i].is_empty(0)) {
       return &dl_harq[i]; 
     }
   }
@@ -695,6 +846,36 @@ ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti)
 {
   return &ul_harq[tti%SCHED_MAX_HARQ_PROC];
 }
+
+srslte_dci_format_t sched_ue::get_dci_format() {
+  srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1;
+
+  if (phy_config_dedicated_enabled) {
+    /* FIXME: Assumes UE-Specific Search Space (Not common) */
+    switch (dl_ant_info.tx_mode) {
+      case LIBLTE_RRC_TRANSMISSION_MODE_1:
+      case LIBLTE_RRC_TRANSMISSION_MODE_2:
+        ret = SRSLTE_DCI_FORMAT1;
+        break;
+      case LIBLTE_RRC_TRANSMISSION_MODE_3:
+        ret = SRSLTE_DCI_FORMAT2A;
+        break;
+      case LIBLTE_RRC_TRANSMISSION_MODE_4:
+        ret = SRSLTE_DCI_FORMAT2;
+        break;
+      case LIBLTE_RRC_TRANSMISSION_MODE_5:
+      case LIBLTE_RRC_TRANSMISSION_MODE_6:
+      case LIBLTE_RRC_TRANSMISSION_MODE_7:
+      case LIBLTE_RRC_TRANSMISSION_MODE_8:
+      case LIBLTE_RRC_TRANSMISSION_MODE_N_ITEMS:
+      default:
+        Warning("Incorrect transmission mode (rnti=%04x)\n", rnti);
+    }
+  }
+
+  return ret;
+}
+
 
 /* Find lowest DCI aggregation level supported by the UE spectral efficiency */
 uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)

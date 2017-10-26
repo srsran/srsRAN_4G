@@ -305,6 +305,18 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
   }
 }
 
+int mac::set_dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) {
+  log_h->step(tti);
+
+  if (ue_db.count(rnti)) {
+    scheduler.dl_ant_info(rnti, dl_ant_info);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    return -1;
+  }
+  return 0;
+}
+
 int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
 {
   log_h->step(tti);
@@ -317,6 +329,20 @@ int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
     return -1;
   }
   return 0; 
+}
+
+int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
+{
+  log_h->step(tti);
+
+  if (ue_db.count(rnti)) {
+    scheduler.dl_pmi_info(tti, rnti, pmi_value);
+    ue_db[rnti]->metrics_dl_pmi(pmi_value);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    return -1;
+  }
+  return 0;
 }
 
 int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
@@ -445,6 +471,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     
     // Copy grant info 
     dl_sched_res->sched_grants[n].rnti = rnti; 
+    dl_sched_res->sched_grants[n].dci_format = sched_result.data[i].dci_format;
     memcpy(&dl_sched_res->sched_grants[n].grant,    &sched_result.data[i].dci,          sizeof(srslte_ra_dl_dci_t));
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.data[i].dci_location, sizeof(srslte_dci_location_t));    
     
@@ -454,10 +481,10 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     if (sched_result.data[i].nof_pdu_elems > 0) {
       dl_sched_res->sched_grants[n].data[0] = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu,
                                                         sched_result.data[i].nof_pdu_elems, 
-                                                        sched_result.data[i].tbs);
+                                                        sched_result.data[i].tbs[0]);
 
       if (pcap) {
-        pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data[0], sched_result.data[i].tbs, rnti, true, tti);
+        pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data[0], sched_result.data[i].tbs[0], rnti, true, tti);
       }
       
     } else {
@@ -469,7 +496,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
   // Copy RAR grants 
   for (uint32_t i=0;i<sched_result.nof_rar_elems;i++) {
     // Copy grant info 
-    dl_sched_res->sched_grants[n].rnti = sched_result.rar[i].rarnti; 
+    dl_sched_res->sched_grants[n].rnti = sched_result.rar[i].rarnti;
+    dl_sched_res->sched_grants[n].dci_format = SRSLTE_DCI_FORMAT1A; // Force Format 1A
     memcpy(&dl_sched_res->sched_grants[n].grant,    &sched_result.rar[i].dci,          sizeof(srslte_ra_dl_dci_t));
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.rar[i].dci_location, sizeof(srslte_dci_location_t));    
 
@@ -481,7 +509,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
     
     if (pcap) {
-      pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data[0], sched_result.data[i].tbs, dl_sched_res->sched_grants[n].rnti, true, tti);
+      pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data[0], sched_result.data[i].tbs[0], dl_sched_res->sched_grants[n].rnti, true, tti);
     }
 
     n++;
@@ -490,7 +518,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
   // Copy SI and Paging grants   
   for (uint32_t i=0;i<sched_result.nof_bc_elems;i++) {
     // Copy grant info 
-    dl_sched_res->sched_grants[n].rnti = (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH ) ? SRSLTE_SIRNTI : SRSLTE_PRNTI; 
+    dl_sched_res->sched_grants[n].rnti = (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH ) ? SRSLTE_SIRNTI : SRSLTE_PRNTI;
+    dl_sched_res->sched_grants[n].dci_format = SRSLTE_DCI_FORMAT1A; // Force Format 1A
     memcpy(&dl_sched_res->sched_grants[n].grant,    &sched_result.bc[i].dci,          sizeof(srslte_ra_dl_dci_t));
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.bc[i].dci_location, sizeof(srslte_dci_location_t));    
     

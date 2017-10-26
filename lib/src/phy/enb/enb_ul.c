@@ -323,9 +323,17 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
       memcpy(uci_data->uci_cqi, pucch_bits, uci_data->uci_cqi_len*sizeof(uint8_t));
     }
 
+    if (uci_data->uci_dif_cqi_len) {
+      memcpy(uci_data->uci_dif_cqi, pucch_bits + uci_data->uci_cqi_len, uci_data->uci_dif_cqi_len*sizeof(uint8_t));
+    }
+
+    if (uci_data->uci_pmi_len) {
+      memcpy(uci_data->uci_pmi, pucch_bits + uci_data->uci_cqi_len + uci_data->uci_dif_cqi_len,
+             uci_data->uci_pmi_len*sizeof(uint8_t));
+    }
+
     if (uci_data->uci_ri_len) {
-      uint8_t *ptr = pucch_bits;
-      uci_data->uci_ri = (uint8_t) srslte_bit_pack(&ptr, uci_data->uci_ri_len);
+      uci_data->uci_ri = pucch_bits[0]; /* Assume only one bit of RI */
     }
 
     if (uci_data->uci_cqi_len || uci_data->uci_ri_len) {

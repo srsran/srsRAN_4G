@@ -99,6 +99,7 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
       fprintf(stderr, "Error allocating memory\n");
       return;
     }
+    bzero(signal_buffer_tx[p], 2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
   }
   if (srslte_enb_dl_init(&enb_dl, phy->cell.nof_prb)) {
     fprintf(stderr, "Error initiating ENB DL\n");
@@ -566,6 +567,10 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
           needs_cqi = true; 
           cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND; 
           uci_data.uci_cqi_len = srslte_cqi_size(&cqi_value);
+          if (tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+            //uci_data.uci_dif_cqi_len = 3;
+            uci_data.uci_pmi_len = 2;
+          }
         }
       }
       
@@ -589,6 +594,17 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
           srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
           phy->mac->cqi_info(tti_rx, rnti, cqi_value.wideband.wideband_cqi);
           sprintf(cqi_ri_str, ", cqi=%d", cqi_value.wideband.wideband_cqi);
+
+          if (uci_data.uci_pmi_len) {
+            uint8_t *ptr = uci_data.uci_pmi;
+            uint32_t packed_pmi = uci_data.uci_pmi[0];
+            if (uci_data.uci_pmi_len > 1) {
+              packed_pmi = (packed_pmi << 1) + uci_data.uci_pmi[1];
+            }
+            phy->mac->pmi_info(tti_rx, rnti, packed_pmi);
+            sprintf(cqi_ri_str, "%s, pmi=%c", cqi_ri_str, packed_pmi + 0x30);
+          }
+
         }
         log_h->info("PUCCH: rnti=0x%x, corr=%.2f, n_pucch=%d, n_prb=%d%s%s%s\n", 
                     rnti, 
@@ -656,35 +672,16 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
 {
   /* For each grant... */
   for (uint32_t i=0;i<nof_grants;i++) {
-    uint16_t rnti = grants[i].rnti;
+    srslte_enb_dl_pdsch_t *grant = &grants[i];
+    uint16_t rnti = grant->rnti;
     if (rnti) {
-      bool dedicated_acknowledged = ue_db[grants[i].rnti].dedicated_ack;
-      bool antenna_info_present = ue_db[grants[i].rnti].dedicated.antenna_info_present;
-      LIBLTE_RRC_TRANSMISSION_MODE_ENUM tx_mode = ue_db[grants[i].rnti].dedicated.antenna_info_explicit_value.tx_mode;
-
-      srslte_dci_format_t format = SRSLTE_DCI_FORMAT1;
-      switch(grants[i].grant.alloc_type) {
-        case SRSLTE_RA_ALLOC_TYPE0:
-        case SRSLTE_RA_ALLOC_TYPE1:
-          if (dedicated_acknowledged && antenna_info_present && tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
-            format = SRSLTE_DCI_FORMAT2A;
-          } else if (dedicated_acknowledged && antenna_info_present && tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-            format = SRSLTE_DCI_FORMAT2;
-          } else {
-            format = SRSLTE_DCI_FORMAT1;
-          }
-        break;
-        case SRSLTE_RA_ALLOC_TYPE2:
-          format = SRSLTE_DCI_FORMAT1A; 
-        break;
-      }
-      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &grants[i].grant, format, grants[i].location, rnti, sf_idx)) {
+      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &grants[i].grant, grant->dci_format, grants[i].location, rnti, sf_idx)) {
         fprintf(stderr, "Error putting PDCCH %d\n",i);
         return SRSLTE_ERROR; 
-      }      
+      }
       
       if (LOG_THIS(rnti)) {
-        Info("PDCCH: DL DCI %s rnti=0x%x, cce_index=%d, L=%d, tti_tx=%d\n", srslte_dci_format_string(format), 
+        Info("PDCCH: DL DCI %s rnti=0x%x, cce_index=%d, L=%d, tti_tx=%d\n", srslte_dci_format_string(grant->dci_format),
           rnti, grants[i].location.ncce, (1<<grants[i].location.L), tti_tx);
       }
     }
@@ -694,19 +691,17 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
 
 int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  /* FIXME: currently, it assumes TM1, TM2 or TM3 */
-  srslte_mimo_type_t mimo_type = (enb_dl.cell.nof_ports == 1) ? SRSLTE_MIMO_TYPE_SINGLE_ANTENNA : SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {
-
-      bool rnti_is_user = true; 
+      bool rnti_is_user = true;
       if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || rnti == SRSLTE_MRNTI) {
         rnti_is_user = false; 
       }
-      
-      srslte_ra_dl_grant_t phy_grant; 
+      /* Mimo type (tx scheme) shall be single or tx diversity by default */
+      srslte_mimo_type_t mimo_type = (enb_dl.cell.nof_ports == 1) ? SRSLTE_MIMO_TYPE_SINGLE_ANTENNA
+                                                                  : SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+      srslte_ra_dl_grant_t phy_grant;
       srslte_ra_dl_dci_to_grant(&grants[i].grant, enb_dl.cell.nof_prb, rnti, &phy_grant);
       
       char grant_str[64];
@@ -717,11 +712,41 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
         case SRSLTE_RA_ALLOC_TYPE1:
           sprintf(grant_str, "mask=0x%x",grants[i].grant.type1_alloc.vrb_bitmask);
         break;
+        case SRSLTE_RA_ALLOC_TYPE2:
         default:
           sprintf(grant_str, "rb_start=%d",grants[i].grant.type2_alloc.RB_start);
         break;
       }
       
+
+      srslte_dci_format_t dci_format = grants[i].dci_format;
+      switch (dci_format) {
+        case SRSLTE_DCI_FORMAT1:
+        case SRSLTE_DCI_FORMAT1A:
+          /* Do nothing, it keeps default */
+          break;
+        case SRSLTE_DCI_FORMAT2A:
+          break;
+        case SRSLTE_DCI_FORMAT2:
+          if (SRSLTE_RA_DL_GRANT_NOF_TB(&phy_grant) == 1) {
+            if (phy_grant.pinfo == 0) {
+              mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+            } else {
+              mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+            }
+          } else if (SRSLTE_RA_DL_GRANT_NOF_TB(&phy_grant) == 1 && phy_grant.pinfo == 0) {
+            mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+          }
+          break;
+        case SRSLTE_DCI_FORMAT0:
+        case SRSLTE_DCI_FORMAT1C:
+        case SRSLTE_DCI_FORMAT1B:
+        case SRSLTE_DCI_FORMAT1D:
+        case SRSLTE_DCI_FORMAT2B:
+        default:
+          Error("Not implemented/Undefined DCI format (%d)\n", dci_format);
+      }
+   
       if (LOG_THIS(rnti)) {
         uint8_t x = 0;
         uint8_t *ptr = grants[i].data[0];
@@ -729,16 +754,20 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
         if (!ptr) {          
           ptr = &x;
           len = 1; 
-        }        
+        }
+        char pinfo_str[16] = {0};
+        if (dci_format == SRSLTE_DCI_FORMAT2) {
+          snprintf(pinfo_str, 15, ", pinfo=%x", phy_grant.pinfo);
+        }
         log_h->info_hex(ptr, len,
-                             "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n",
+                             "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d, tx_scheme=%s%s\n",
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
-                             phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
+                             phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx, srslte_mimotype2str(mimo_type), pinfo_str);
       }
 
       int rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, grants[i].grant.rv_idx_1};
 
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, grants[i].softbuffers, rnti, rv, sf_idx, grants[i].data, mimo_type, 0)) {
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, grants[i].softbuffers, rnti, rv, sf_idx, grants[i].data, mimo_type)) {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 
       }

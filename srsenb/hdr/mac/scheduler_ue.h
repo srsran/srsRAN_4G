@@ -68,8 +68,10 @@ public:
   void ul_phr(int phr); 
   void mac_buffer_state(uint32_t ce_code);
   void ul_recv_len(uint32_t lcid, uint32_t len);
+  void set_dl_ant_info(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dedicated);
   void set_ul_cqi(uint32_t tti, uint32_t cqi, uint32_t ul_ch_code);
   void set_dl_ri(uint32_t tti, uint32_t ri);
+  void set_dl_pmi(uint32_t tti, uint32_t ri);
   void set_dl_cqi(uint32_t tti, uint32_t cqi);
   int  set_ack_info(uint32_t tti, bool ack);
   void set_ul_crc(uint32_t tti, bool crc_res);
@@ -107,9 +109,12 @@ public:
   void       set_sr();
   void       unset_sr();
 
-  int        generate_format1(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);     
-  int        generate_format0(ul_harq_proc *h, sched_interface::ul_sched_data_t *data, uint32_t tti, bool cqi_request);     
-  
+  int        generate_format1(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+  int        generate_format2a(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+  int        generate_format2(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+  int        generate_format0(ul_harq_proc *h, sched_interface::ul_sched_data_t *data, uint32_t tti, bool cqi_request);
+
+  srslte_dci_format_t get_dci_format();
   uint32_t         get_aggr_level(uint32_t nof_bits);
   sched_dci_cce_t *get_locations(uint32_t current_cfi, uint32_t sf_idx);
   
@@ -158,6 +163,8 @@ private:
   int      power_headroom; 
   uint32_t dl_ri;
   uint32_t dl_ri_tti;
+  uint32_t dl_pmi;
+  uint32_t dl_pmi_tti;
   uint32_t dl_cqi;
   uint32_t dl_cqi_tti; 
   uint32_t cqi_request_tti; 
@@ -180,7 +187,8 @@ private:
   ul_harq_proc ul_harq[SCHED_MAX_HARQ_PROC]; 
   
   bool phy_config_dedicated_enabled;
-    
+  LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT dl_ant_info;
+  
 }; 
   
 }

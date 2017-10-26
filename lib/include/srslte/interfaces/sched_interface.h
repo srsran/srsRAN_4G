@@ -131,9 +131,10 @@ public:
   
   typedef struct {
     uint32_t              rnti; 
+    srslte_dci_format_t   dci_format;
     srslte_ra_dl_dci_t    dci;     
     srslte_dci_location_t dci_location;
-    uint32_t              tbs; 
+    uint32_t              tbs[SRSLTE_MAX_TB];
     bool mac_ce_ta;
     bool mac_ce_rnti;
     uint32_t nof_pdu_elems; 
@@ -228,6 +229,7 @@ public:
   virtual int dl_ack_info(uint32_t tti, uint16_t rnti, bool ack) = 0; 
   virtual int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size) = 0; 
   virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) = 0; 
+  virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) = 0;
   virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 
   
   /* UL information */

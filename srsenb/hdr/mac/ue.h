@@ -94,6 +94,7 @@ public:
   void metrics_tx(bool crc, uint32_t tbs);
   void metrics_phr(float phr);
   void metrics_dl_ri(uint32_t dl_cqi);
+  void metrics_dl_pmi(uint32_t dl_cqi);
   void metrics_dl_cqi(uint32_t dl_cqi);
 
 
@@ -110,6 +111,7 @@ private:
   uint32_t phr_counter;
   uint32_t dl_cqi_counter;
   uint32_t dl_ri_counter;
+  uint32_t dl_pmi_counter;
   mac_metrics_t metrics;
   
   srslte::mac_pcap* pcap;

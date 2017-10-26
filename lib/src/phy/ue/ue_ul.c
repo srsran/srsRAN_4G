@@ -281,8 +281,9 @@ void pucch_encode_bits(srslte_uci_data_t *uci_data, srslte_pucch_format_t format
   }
   if (format >= SRSLTE_PUCCH_FORMAT_2) {
     /* Append RI */
-    uint8_t *ptr = uci_buffer;
-    srslte_bit_unpack(uci_data->uci_ri, &ptr, uci_data->uci_ri_len);
+    if (uci_data->uci_ri_len) {
+      uci_data->uci_ri = uci_buffer[0]; // It assumes only 1 bit of RI
+    }
     uci_buffer_len += uci_data->uci_ri_len;
 
     /* Append CQI */
