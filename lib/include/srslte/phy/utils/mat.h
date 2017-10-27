@@ -27,14 +27,8 @@
 #ifndef SRSLTE_MAT_H
 #define SRSLTE_MAT_H
 
-#include "srslte/phy/utils/simd.h"
 #include "srslte/config.h"
-
-
-/*
- * Generic Macros
- */
-#define RANDOM_CF() (((float)rand())/((float)RAND_MAX) + _Complex_I*((float)rand())/((float)RAND_MAX))
+#include "srslte/phy/utils/simd.h"
 
 /* Generic implementation for complex reciprocal */
 SRSLTE_API cf_t srslte_mat_cf_recip_gen(cf_t a);
@@ -66,7 +60,6 @@ SRSLTE_API float srslte_mat_2x2_cn(cf_t h00,
 
 
 #ifdef LV_HAVE_SSE
-#include <smmintrin.h>
 
 /* SSE implementation for complex reciprocal */
 SRSLTE_API __m128 srslte_mat_cf_recip_sse(__m128 a);
@@ -89,8 +82,6 @@ SRSLTE_API void srslte_mat_2x2_mmse_sse(__m128 y0, __m128 y1,
 #endif /* LV_HAVE_SSE */
 
 #ifdef LV_HAVE_AVX
-
-#include <immintrin.h>
 
 /* AVX implementation for complex reciprocal */
 SRSLTE_API __m256 srslte_mat_cf_recip_avx(__m256 a);

@@ -223,9 +223,13 @@ void rrc::rem_user(uint16_t rnti)
   if (users.count(rnti) == 1) {
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
     rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
-    /* **Caution** order of removal here is imporant: from bottom to top */
+    /* **Caution** order of removal here is important: from bottom to top */
     mac->ue_rem(rnti);  // MAC handles PHY
+
+    pthread_mutex_unlock(&user_mutex);
     usleep(50000);
+    pthread_mutex_lock(&user_mutex);
+
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
     gtpu->rem_user(rnti);

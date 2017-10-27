@@ -179,7 +179,7 @@ void dl_harq_proc::set_rbgmask(uint32_t new_mask)
 
 bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t current_tti)
 {
-  return srslte_tti_interval(current_tti, tti) >= 8 && has_pending_retx_common(tb_idx);
+  return srslte_tti_interval(current_tti, tti) >= (2*HARQ_DELAY_MS) && has_pending_retx_common(tb_idx);
 }
 
 int dl_harq_proc::get_tbs(uint32_t tb_idx)

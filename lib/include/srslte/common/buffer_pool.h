@@ -93,7 +93,7 @@ public:
       available.pop();
       
       if (available.size() < capacity/20) {
-        printf("Warning buffer pool capacity is %f %%\n", (float) available.size()/capacity);
+        printf("Warning buffer pool capacity is %f %%\n", (float) 100*available.size()/capacity);
       }
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     if (debug_name) {

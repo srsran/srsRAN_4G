@@ -281,7 +281,6 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept;
 
   nas_log->info("Received Attach Accept\n");
-  count_dl++;
 
   liblte_mme_unpack_attach_accept_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &attach_accept);
 
@@ -358,6 +357,8 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 
     state = EMM_STATE_REGISTERED;
     current_plmn = selecting_plmn;
+
+    count_dl++;
 
     // Send EPS bearer context accept and attach complete
     count_ul++;
@@ -437,6 +438,9 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
     nas_log->console("Warning: Network authentication failure\n");
     pool->deallocate(pdu);
   }
+
+  // Reset DL counter (as per 24.301 5.4.3.2)
+  count_dl = 0;
 }
 
 void nas::parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu) {
@@ -538,6 +542,8 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu) {
       success = true;
     }
   }
+
+  count_dl++;
 
   if (!success) {
     // Reuse pdu for response

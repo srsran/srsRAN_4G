@@ -44,7 +44,6 @@ namespace srsue {
 mac::mac() : ttisync(10240), 
              timers(64),
              mux_unit(MAC_NOF_HARQ_PROC),
-             demux_unit(SRSLTE_MAX_TB*MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
 {
   started = false;
@@ -118,7 +117,8 @@ void mac::reset()
 
   Info("Resetting MAC\n");
 
-  timers.stop_all();
+  timers.get(timer_alignment)->stop();
+  timers.get(contention_resolution_timer)->stop();
 
   ul_harq.reset_ndi();
 
@@ -417,7 +417,7 @@ void mac::get_metrics(mac_metrics_t &m)
        metrics.rx_pkts?((float) 100*metrics.rx_errors/metrics.rx_pkts):0.0, 
        dl_harq.get_average_retx(),
        metrics.tx_pkts?((float) 100*metrics.tx_errors/metrics.tx_pkts):0.0, 
-       dl_harq.get_average_retx());
+       ul_harq.get_average_retx());
   
   metrics.ul_buffer = (int) bsr_procedure.get_buffer_state();
   m = metrics;  

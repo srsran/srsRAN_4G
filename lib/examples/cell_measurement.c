@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1;
   }
-  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, 1)) {
+  if (srslte_ue_dl_init(&ue_dl, sf_buffer, cell.nof_prb, 1)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
-  if (srslte_ue_mib_init(&ue_mib, cell.nof_prb)) {
+  if (srslte_ue_mib_init(&ue_mib, sf_buffer, cell.nof_prb)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     return -1;
   }
@@ -271,8 +271,16 @@ int main(int argc, char **argv) {
 
   /* Initialize subframe counter */
   sf_cnt = 0;
-    
-  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
+
+  int sf_re = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
+
+  cf_t *sf_symbols = srslte_vec_malloc(sf_re * sizeof(cf_t));
+
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    ce[i] = srslte_vec_malloc(sizeof(cf_t) * sf_re);
+  }
+
+  if (srslte_ofdm_rx_init(&fft, cell.cp, sf_buffer[0], sf_symbols, cell.nof_prb)) {
     fprintf(stderr, "Error initiating FFT\n");
     return -1;
   }
@@ -283,14 +291,6 @@ int main(int argc, char **argv) {
   if (srslte_chest_dl_set_cell(&chest, cell)) {
     fprintf(stderr, "Error initiating channel estimator\n");
     return -1;
-  }
-
-  int sf_re = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
-
-  cf_t *sf_symbols = srslte_vec_malloc(sf_re * sizeof(cf_t));
-
-  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = srslte_vec_malloc(sizeof(cf_t) * sf_re);
   }
   
   srslte_rf_start_rx_stream(&rf);
@@ -315,7 +315,7 @@ int main(int argc, char **argv) {
         case DECODE_MIB:
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
             srslte_pbch_decode_reset(&ue_mib.pbch);
-            n = srslte_ue_mib_decode(&ue_mib, sf_buffer[0], bch_payload, NULL, &sfn_offset);
+            n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               return -1;
@@ -351,7 +351,7 @@ int main(int argc, char **argv) {
         
         if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
           /* Run FFT for all subframe data */
-          srslte_ofdm_rx_sf(&fft, sf_buffer[0], sf_symbols);
+          srslte_ofdm_rx_sf(&fft);
           
           srslte_chest_dl_estimate(&chest, sf_symbols, ce, srslte_ue_sync_get_sfidx(&ue_sync));
                   

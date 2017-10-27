@@ -103,6 +103,7 @@ typedef struct {
 }gui_args_t;
 
 typedef struct {
+  std::string   ip_netmask;
   phy_args_t phy;
   float      metrics_period_secs;
   bool pregenerate_signals;

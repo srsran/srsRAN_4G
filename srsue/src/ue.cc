@@ -185,6 +185,8 @@ bool ue::init(all_args_t *args_)
   nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
 
+  gw.set_netmask(args->expert.ip_netmask);
+
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
   rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
 
@@ -192,6 +194,10 @@ bool ue::init(all_args_t *args_)
   std::vector<uint32_t> earfcn_list;
   earfcn_list.push_back(args->rf.dl_earfcn);
   phy.set_earfcn(earfcn_list);
+
+  if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {
+    phy.force_freq(args->rf.dl_freq, args->rf.ul_freq);
+  }
 
   printf("Waiting PHY to initialize...\n");
   phy.wait_initialize();

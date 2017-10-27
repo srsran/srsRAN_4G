@@ -649,12 +649,14 @@ int rf_uhd_recv_with_time_multi(void *h,
         fprintf(stderr, "Error receiving from UHD: %d\n", error);
         return -1; 
       }
-      md = &handler->rx_md; 
+
+      uhd_rx_metadata_error_code_t error_code = 0;
+      uhd_rx_metadata_error_code(*md, &error_code);
+
+      md = &handler->rx_md;
       n += rxd_samples;
       trials++;
-      
-      uhd_rx_metadata_error_code_t error_code;
-      uhd_rx_metadata_error_code(*md, &error_code);
+
       if (error_code == UHD_RX_METADATA_ERROR_CODE_OVERFLOW) {
         log_overflow(handler);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND) {

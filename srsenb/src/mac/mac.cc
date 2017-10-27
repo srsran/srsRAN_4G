@@ -446,7 +446,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
   log_h->step(tti);
 
   if (!started) {
-    return 0; 
+    return 0;
   }
   
   if (!dl_sched_res) {
@@ -644,7 +644,7 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
   ul_sched_res->nof_phich = sched_result.nof_phich_elems;
   return SRSLTE_SUCCESS; 
 }
-
+  
 void mac::tti_clock()
 {
   timers_thread.tti_clock();

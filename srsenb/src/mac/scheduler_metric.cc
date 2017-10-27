@@ -142,8 +142,12 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
   dl_harq_proc *h = user->get_pending_dl_harq(current_tti);
 
   // Time-domain RR scheduling
+#if ASYNC_DL_SCHED
   if (pending_data || h) {
-    if (nof_users_with_data) {    
+#else
+  if (pending_data || (h && !h->is_empty())) {
+#endif
+    if (nof_users_with_data) {
       if (nof_users_with_data == 2) {
       }
       if ((current_tti%nof_users_with_data) != user->ue_idx) {      
@@ -153,7 +157,11 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
   }
   
   // Schedule retx if we have space 
+#if ASYNC_DL_SCHED
   if (h) {
+#else
+  if (h && !h->is_empty()) {
+#endif
     uint32_t retx_mask = h->get_rbgmask();
     // If can schedule the same mask, do it
     if (!allocation_is_valid(retx_mask)) {
@@ -170,10 +178,14 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
       }
     }
   } 
-  // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID 
+  // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID
+#if ASYNC_DL_SCHED
   h = user->get_empty_dl_harq(); 
   if (h) {
-    // Allocate resources based on pending data 
+#else
+  if (h && h->is_empty()) {
+#endif
+    // Allocate resources based on pending data
     if (pending_data) {
       uint32_t pending_rb = user->get_required_prb_dl(pending_data, nof_ctrl_symbols);
       uint32_t newtx_mask = 0; 

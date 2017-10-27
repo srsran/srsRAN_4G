@@ -249,16 +249,16 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
   
   // First check if it has pending ACKs 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == current_tti) {
+    if (TTI_TX(dl_harq[i].get_tti()) == current_tti) {
       uint32_t n_pucch = srslte_pucch_get_npucch(dl_harq[i].get_n_cce(), SRSLTE_PUCCH_FORMAT_1A, has_sr, &pucch_sched);
       if (prb_idx) {
-        for (int i=0;i<2;i++) {
-          prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_1A, n_pucch, cell.nof_prb, cell.cp, i);
+        for (int  j=0;j<2;j++) {
+          prb_idx[j] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_1A, n_pucch, cell.nof_prb, cell.cp, j);
         }
+        Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, ncce=%d, has_sr=%d, n_pucch_1=%d\n",
+              rnti, prb_idx[0], prb_idx[1], n_pucch, dl_harq[i].get_n_cce(), has_sr, pucch_sched.N_pucch_1);
       }
-      Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, ncce=%d, has_sr=%d, n_pucch_1=%d\n",
-           rnti, prb_idx[0], prb_idx[1], n_pucch, dl_harq[i].get_n_cce(), has_sr, pucch_sched.N_pucch_1);
-      return true; 
+      return true;
     }
   }
   // If there is no Format1A/B, then check if it's expecting Format1
@@ -277,9 +277,9 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
       for (int i=0;i<2;i++) {
         prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_2, cfg.cqi_pucch, cell.nof_prb, cell.cp, i);
       }
+      Debug("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
+            rnti, prb_idx[0], prb_idx[1], cfg.cqi_pucch, cfg.cqi_idx);
     }
-    Debug("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
-         rnti, prb_idx[0], prb_idx[1], cfg.cqi_pucch, cfg.cqi_idx);
     return true;
   }
 
@@ -289,7 +289,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
 int sched_ue::set_ack_info(uint32_t tti, bool ack)
 {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == tti) {
+    if (TTI_TX(dl_harq[i].get_tti()) == tti) {
       Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tti=%d\n", ack, rnti, i, tti);
       dl_harq[i].set_ack(0, ack);
       return dl_harq[i].get_tbs(0);
@@ -814,6 +814,7 @@ bool sched_ue::is_sr_triggered()
 /* Gets HARQ process with oldest pending retx */
 dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 {
+#if ASYNC_DL_SCHED
   int oldest_idx=-1; 
   uint32_t oldest_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
@@ -829,7 +830,10 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
     return &dl_harq[oldest_idx]; 
   } else {
     return NULL; 
-  }  
+  }
+#else
+  return &dl_harq[tti%SCHED_MAX_HARQ_PROC];
+#endif
 }
 
 dl_harq_proc* sched_ue::get_empty_dl_harq()
@@ -839,7 +843,7 @@ dl_harq_proc* sched_ue::get_empty_dl_harq()
       return &dl_harq[i]; 
     }
   }
-  return NULL; 
+  return NULL;
 }
 
 ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti)

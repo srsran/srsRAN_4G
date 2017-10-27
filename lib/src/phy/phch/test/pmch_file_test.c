@@ -140,7 +140,7 @@ int base_init() {
     exit(-1);
   }
 
-  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, 1)) {
+  if (srslte_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
     fprintf(stderr, "Error initializing UE DL\n");
     return -1;
   }
@@ -157,7 +157,7 @@ int base_init() {
   srslte_ue_dl_set_non_mbsfn_region(&ue_dl, non_mbsfn_region);
   
   
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 

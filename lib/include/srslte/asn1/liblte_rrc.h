@@ -6435,11 +6435,102 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_mobility_from_eutra_command_msg(LIBLTE_BIT_M
 
     Document Reference: 36.331 v10.0.0 Section 6.2.2 
 *********************************************************************/
-// Defines
-// Enums
+typedef struct{
+    LIBLTE_RRC_CELL_GLOBAL_ID_EUTRA_STRUCT  cell_global_id;
+    uint16                                  tracking_area_code;
+    LIBLTE_RRC_PLMN_IDENTITY_STRUCT         plmn_identity_list[5];
+    uint32                                  n_plmn_identity_list;
+    bool                                    have_plmn_identity_list;
+}LIBLTE_RRC_CGI_INFO_STRUCT;
+LIBLTE_ERROR_ENUM liblte_rrc_pack_cgi_info_ie(LIBLTE_RRC_CGI_INFO_STRUCT  *cgi_info,
+                                              uint8                      **ie_ptr);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_cgi_info_ie(uint8                      **ie_ptr,
+                                                LIBLTE_RRC_CGI_INFO_STRUCT  *cgi_info);
+
+typedef struct{
+    uint8 rsrp_result;
+    bool  have_rsrp;
+    uint8 rsrq_result;
+    bool  have_rsrq;
+}LIBLTE_RRC_MEAS_RESULT_STRUCT;
+LIBLTE_ERROR_ENUM liblte_rrc_pack_meas_result_ie(LIBLTE_RRC_MEAS_RESULT_STRUCT  *meas_result,
+                                                 uint8                         **ie_ptr);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_meas_result_ie(uint8                         **ie_ptr,
+                                                   LIBLTE_RRC_MEAS_RESULT_STRUCT  *meas_result);
+
+typedef struct{
+    uint16                                  phys_cell_id;
+    LIBLTE_RRC_CGI_INFO_STRUCT              cgi_info;
+    bool                                    have_cgi_info;
+    LIBLTE_RRC_MEAS_RESULT_STRUCT           meas_result;
+}LIBLTE_RRC_MEAS_RESULT_EUTRA_STRUCT;
+LIBLTE_ERROR_ENUM liblte_rrc_pack_meas_result_eutra_ie(LIBLTE_RRC_MEAS_RESULT_EUTRA_STRUCT  *meas_result_eutra,
+                                                       uint8                               **ie_ptr);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_meas_result_eutra_ie(uint8                               **ie_ptr,
+                                                         LIBLTE_RRC_MEAS_RESULT_EUTRA_STRUCT  *meas_result_eutra);
+
+typedef struct{
+  //FIXME
+}LIBLTE_RRC_MEAS_RESULT_UTRA_STRUCT;
+typedef struct{
+  //FIXME
+}LIBLTE_RRC_MEAS_RESULT_GERAN_STRUCT;
+typedef struct{
+  //FIXME
+}LIBLTE_RRC_MEAS_RESULT_CDMA2000_STRUCT;
+
+
+
+typedef struct{
+    LIBLTE_RRC_MEAS_RESULT_EUTRA_STRUCT     result_eutra_list[8];
+    uint8                                   n_result;
+}LIBLTE_RRC_MEAS_RESULT_LIST_EUTRA_STRUCT;
+
+typedef struct{
+    LIBLTE_RRC_MEAS_RESULT_UTRA_STRUCT     result_utra_list[8];
+    uint8                                   n_result;
+}LIBLTE_RRC_MEAS_RESULT_LIST_UTRA_STRUCT;
+
+typedef struct{
+    LIBLTE_RRC_MEAS_RESULT_GERAN_STRUCT     result_geran_list[8];
+    uint8                                   n_result;
+}LIBLTE_RRC_MEAS_RESULT_LIST_GERAN_STRUCT;
+
+
+typedef struct{
+    bool pre_registration_status_HRPD;
+    LIBLTE_RRC_MEAS_RESULT_CDMA2000_STRUCT cdma2000[8];
+}LIBLTE_RRC_MEAS_RESULTS_CDMA2000_STRUCT;
+
+typedef enum{
+    LIBLTE_RRC_MEAS_RESULT_LIST_EUTRA = 0,
+    LIBLTE_RRC_MEAS_RESULT_LIST_UTRA,
+    LIBLTE_RRC_MEAS_RESULT_LIST_GERAN,
+    LIBLTE_RRC_MEAS_RESULTS_CDMA2000,
+    LIBLTE_RRC_MEAS_RESULT_N_ITEMS,
+}LIBLTE_RRC_MEAS_RESULT_NEIGH_CELLS_ENUM;
+static const char liblte_rrc_meas_reult_neigh_cells_text[LIBLTE_RRC_MEAS_RESULT_N_ITEMS][32] = { "measResultListEUTRA",  "measResultListUTRA",  "measResultListGERAN",  "measResultsCDMA2000"};
+
+
+typedef union{
+    LIBLTE_RRC_MEAS_RESULT_LIST_EUTRA_STRUCT     eutra;
+    LIBLTE_RRC_MEAS_RESULT_LIST_UTRA_STRUCT      utra;
+    LIBLTE_RRC_MEAS_RESULT_LIST_GERAN_STRUCT     geran;
+    LIBLTE_RRC_MEAS_RESULTS_CDMA2000_STRUCT cdma2000;
+}LIBLTE_RRC_MEAS_RESULT_NEIGH_CELLS_UNION;
+
+//TODO: pack/unpack for the result lists
+
+
 // Structs
 typedef struct{
-    // FIXME
+    uint8   meas_id;
+    uint8   pcell_rsrp_result;
+    uint8   pcell_rsrq_result;
+
+    LIBLTE_RRC_MEAS_RESULT_NEIGH_CELLS_UNION  meas_result_neigh_cells;
+    LIBLTE_RRC_MEAS_RESULT_NEIGH_CELLS_ENUM   meas_result_neigh_cells_choice;
+    bool                                      have_meas_result_neigh_cells;
 }LIBLTE_RRC_MEASUREMENT_REPORT_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_rrc_pack_measurement_report_msg(LIBLTE_RRC_MEASUREMENT_REPORT_STRUCT *meas_report,

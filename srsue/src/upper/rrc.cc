@@ -35,8 +35,6 @@
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 
-#define TIMEOUT_RESYNC_REESTABLISH 100
-
 using namespace srslte;
 
 namespace srsue {
@@ -91,6 +89,8 @@ void rrc::init(phy_interface_rrc *phy_,
   start();
 
   pthread_mutex_init(&mutex, NULL);
+
+  reestablishment_in_progress = false;
 
   ue_category = SRSLTE_UE_CATEGORY;
   t301 = mac_timers->timer_get_unique_id();
@@ -207,7 +207,11 @@ void rrc::run_thread() {
         break;
       case RRC_STATE_CELL_SELECTED:
         rrc_log->info("RRC Cell Selected: Sending connection request...\n");
-        send_con_request();
+        if (reestablishment_in_progress) {
+          con_restablish_cell_reselected();
+        } else {
+          send_con_request();
+        }
         state = RRC_STATE_CONNECTING;
         connecting_timeout = 0;
         break;
@@ -226,6 +230,7 @@ void rrc::run_thread() {
         usleep(60000);
         rrc_log->info("Leaving RRC_CONNECTED state\n");
         drb_up = false;
+        reestablishment_in_progress = false;
         pdcp->reset();
         rlc->reset();
         phy->reset();
@@ -233,7 +238,6 @@ void rrc::run_thread() {
         set_phy_default();
         set_mac_default();
         mac->pcch_start_rx();
-        mac_timers->timer_get(t311)->run();
         mac_timers->timer_get(t310)->stop();
         mac_timers->timer_get(t311)->stop();
         state = RRC_STATE_IDLE;
@@ -485,12 +489,12 @@ void rrc::earfcn_end() {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
-    current_cell->in_sync = false;
+  current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
     if (n310_cnt == N310) {
       // attempt resync
-      phy->sync_reset();
+      //phy->sync_reset();
 
       mac_timers->timer_get(t310)->reset();
       mac_timers->timer_get(t310)->run();
@@ -664,6 +668,8 @@ void rrc::send_con_restablish_request() {
   ul_ccch_msg.msg.rrc_con_reest_req.cause = LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE;
   liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
+  reestablishment_in_progress = true;
+
   rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
   rrc_log->console("RRC Connection Reestablishment\n");
   mac_timers->timer_get(t310)->stop();
@@ -674,19 +680,16 @@ void rrc::send_con_restablish_request() {
   set_phy_default();
   mac->reset();
   set_mac_default();
+}
 
-  // FIXME: Cell selection should be different??
-
-  // Wait for cell re-synchronization
-  uint32_t timeout_cnt = 0;
-  while (!phy->sync_status() && timeout_cnt < TIMEOUT_RESYNC_REESTABLISH) {
-    usleep(10000);
-    timeout_cnt++;
-  }
+// Actions following cell reselection 5.3.7.3
+void rrc::con_restablish_cell_reselected()
+{
+  reestablishment_in_progress = false;
+  rrc_log->info("Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
   mac_timers->timer_get(t301)->reset();
   mac_timers->timer_get(t301)->run();
   mac_timers->timer_get(t311)->stop();
-  rrc_log->info("Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
 
   // Byte align and pack the message bits for PDCP
   if ((bit_buf.N_bits % 8) != 0) {
