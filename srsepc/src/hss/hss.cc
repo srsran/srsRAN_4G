@@ -77,6 +77,23 @@ hss::init(hss_args_t *hss_args, srslte::logger *logger)
   return 0;
 }
 
+bool
+hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
+{
 
+  if(imsi != 1010123456789)
+  {
+    return false;
+  }
+  else
+  {
+
+  }
+  //uint8_t     k[16];
+  //uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
+  //uint8_t     op[16];
+
+  return false;
+}
 
 } //namespace srsepc

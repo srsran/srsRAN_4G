@@ -49,7 +49,9 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
   m_s1ap_log = s1ap_log;
 
   m_s1mme = enb_listen();
-  
+
+  m_hss = hss::get_instance(); 
+ 
   return 0;
 }
 
@@ -234,10 +236,13 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   m_s1ap_log->console("Received Initial UE Message\n");
   m_s1ap_log->info("Received Initial UE Message\n");
   
+  uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
+  uint8_t     op[16];
+  uint8_t     k[16];
+  uint64_t    imsi;
+
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
-
-  /*Get */
 
   /*Get NAS Attach Request Message*/
   if(!liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) msg->NAS_PDU.buffer, &attach_req)){
@@ -251,13 +256,13 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
     m_s1ap_log->warning("NAS Attach Request: Unhandle UE Id Type");
   }
   else{
-    uint64_t temp = 0;
+    imsi = 0;
     for(int i=14;i>=0;i--)
     {
-      temp  *=10;
-      temp  += attach_req.eps_mobile_id.imsi[i];
+      imsi  *=10;
+      imsi  += attach_req.eps_mobile_id.imsi[i];
     }
-    m_s1ap_log->console("IMSI: %d", temp);
+    m_s1ap_log->console("IMSI: %d", imsi);
   }
   
   if(attach_req.old_p_tmsi_signature_present){}
@@ -326,6 +331,13 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   if(msg->LHN_ID_present){
     m_s1ap_log->warning("LHN Id present, but not handled.");
   }
+ 
+  if(!m_hss->get_k_amf_op(imsi, k, amf, op))
+  {
+    m_s1ap_log->info("User %d not found",imsi);
+  }
+
+  
 
   /*
   typedef struct{

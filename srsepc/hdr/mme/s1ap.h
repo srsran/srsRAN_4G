@@ -40,6 +40,7 @@
 #include <map>
 #include "mme/s1ap_common.h"
 #include "mme/s1ap_mngmt_proc.h"
+#include "hss/hss.h"
 
 namespace srsepc{
 
@@ -76,6 +77,7 @@ private:
   uint32_t       m_plmn;
   srslte::log   *m_s1ap_log;
 
+  hss *m_hss;
   int m_s1mme;
   std::map<uint16_t,enb_ctx_t*> m_active_enbs;
  
