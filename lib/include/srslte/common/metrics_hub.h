@@ -24,8 +24,8 @@ template<typename metrics_t>
 class metrics_listener
 {
 public: 
-  virtual void set_metrics(metrics_t &m, float report_period_secs=1.0) = 0;
-}; 
+  virtual void set_metrics(metrics_t &m) = 0;
+};
 
 template<typename metrics_t>
 class metrics_hub : public periodic_thread
@@ -57,7 +57,7 @@ private:
       bzero(&metric, sizeof(metrics_t));
       m->get_metrics(metric);
       for (uint32_t i=0;i<listeners.size();i++) {
-        listeners[i]->set_metrics(metric, report_period_secs);
+        listeners[i]->set_metrics(metric);
       }
     }
   }
