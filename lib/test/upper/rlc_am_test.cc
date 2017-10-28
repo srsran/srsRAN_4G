@@ -123,7 +123,7 @@ void basic_test()
   byte_buffer_t pdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, 3); // 3 bytes for header + payload
+    len = rlc1.read_pdu(pdu_bufs[i].msg, 4); // 3 bytes for header + payload
     pdu_bufs[i].N_bytes = len;
   }
 
@@ -351,7 +351,7 @@ void retx_test()
   byte_buffer_t pdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, 3); // 2 byte header + 1 byte payload
+    len = rlc1.read_pdu(pdu_bufs[i].msg, 4); // 2 byte header + 1 byte payload
     pdu_bufs[i].N_bytes = len;
   }
 

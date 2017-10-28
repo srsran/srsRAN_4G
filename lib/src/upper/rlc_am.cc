@@ -613,7 +613,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint32_t pdu_space = nof_bytes;
   uint8_t *pdu_ptr   = pdu->msg;
 
-  if(pdu_space <= head_len)
+  if(pdu_space <= head_len + 1)
   {
     log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
@@ -652,7 +652,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Pull SDUs from queue
-  while(pdu_space > head_len && tx_sdu_queue.size() > 0)
+  while(pdu_space > head_len + 1 && tx_sdu_queue.size() > 0)
   {
     if(last_li > 0)
       header.li[header.N_li++] = last_li;
