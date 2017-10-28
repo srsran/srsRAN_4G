@@ -677,8 +677,10 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
     }
 
     // Pre-decoder
-    srslte_predecoding_type_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
-                                    cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, noise_estimate);
+    if (srslte_predecoding_type_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
+                                      cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, noise_estimate)<0) {
+      return -1;
+    }
 
     // Layer demapping only if necessary
     if (cfg->nof_layers != nof_tb) {
