@@ -597,12 +597,13 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
     uint16_t rnti = (uint16_t) iter->first; 
 
     dl_harq_proc *h = dl_metric->get_user_allocation(user); 
-        
+
+    uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, cfg.cell.nof_prb, cfg.cell.nof_ports));
     if (h) {
       // Try to schedule DCI first 
       if (generate_dci(&data[nof_data_elems].dci_location, 
-                       user->get_locations(current_cfi, sf_idx), 
-                       user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, cfg.cell.nof_prb, cfg.cell.nof_ports)), user)) 
+                       user->get_locations(current_cfi, sf_idx),
+                       aggr_level, user))
       {     
         bool is_newtx = h->is_empty();
         int tbs = user->generate_format1(h, &data[nof_data_elems], current_tti, current_cfi);
@@ -620,7 +621,8 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
         }      
       } else {
         h->reset();
-        Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d\n", rnti, h->get_id());              
+        Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d, L=%d, nof_candidates=%d\n",
+                rnti, h->get_id(), aggr_level, user->get_locations(current_cfi, sf_idx)->nof_loc[aggr_level] );
       }      
     }    
   } 
