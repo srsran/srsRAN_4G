@@ -608,7 +608,6 @@ int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
   //float noise_estimate = 0; 
 
   grant.sf_type = SRSLTE_SF_MBSFN;
-  grant.nof_tb = 1;
   grant.mcs[0].idx = 2;
   grant.tb_en[0] = true;
   grant.tb_en[1] = false;

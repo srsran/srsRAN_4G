@@ -942,7 +942,8 @@ int main(int argc, char **argv) {
           }
           /* Configure pmch_cfg parameters */
           srslte_ra_dl_grant_t grant;
-          grant.nof_tb = 1;
+          grant.tb_en[0] = true;
+          grant.tb_en[1] = false;
           grant.mcs[0].idx = 2;
           grant.mcs[0].mod = SRSLTE_MOD_QPSK;
           grant.nof_prb = cell.nof_prb;

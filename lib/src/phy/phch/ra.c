@@ -526,11 +526,9 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
     grant->mcs[0].tbs = (uint32_t) tbs;
   } else {
     n_prb = grant->nof_prb;
-    grant->nof_tb = 0;
     if (dci->tb_en[0]) {
       grant->mcs[0].idx = dci->mcs_idx;
       grant->mcs[0].tbs = srslte_dl_fill_ra_mcs(&grant->mcs[0], n_prb);
-      grant->nof_tb++;
     } else {
       grant->mcs[0].tbs = 0;
     }

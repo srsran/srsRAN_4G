@@ -167,7 +167,6 @@ int main(int argc, char **argv) {
   /* If transport block 0 is enabled */
     grant.tb_en[0] = true;
     grant.tb_en[1] = false;
-    grant.nof_tb = 1;
     grant.mcs[0].idx = mcs_idx;
 
     grant.nof_prb = cell.nof_prb;
