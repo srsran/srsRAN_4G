@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <srslte/phy/phch/ra.h>
 
 #include "srslte/phy/phch/dci.h"
 #include "srslte/phy/common/phy_common.h"
@@ -1159,7 +1160,32 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
     data->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(nof_ports));
   }
-  
+
+  // Table 5.3.3.1.5-1
+  if (SRSLTE_RA_DL_GRANT_NOF_TB(data) == 2) {
+    if (data->tb_cw_swap) {
+      uint32_t tmp   = data->rv_idx;
+      data->rv_idx   = data->rv_idx_1;
+      data->rv_idx_1 = tmp;
+
+      tmp             = data->mcs_idx;
+      data->mcs_idx   = data->mcs_idx_1;
+      data->mcs_idx_1 = tmp;
+
+      bool tmp_ndi    = data->ndi;
+      data->ndi       = data->ndi_1;
+      data->ndi_1     = tmp_ndi;
+    }
+  }
+
+  // Table 5.3.3.1.5-2
+  if (!data->tb_en[0]) {
+    data->rv_idx  = data->rv_idx_1;
+    data->mcs_idx = data->mcs_idx_1;
+    data->ndi     = data->ndi_1;
+
+    data->tb_en[1] = false;
+  }
   
   return SRSLTE_SUCCESS;
 }
