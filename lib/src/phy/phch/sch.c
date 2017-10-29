@@ -458,12 +458,12 @@ static int decode_tb(srslte_sch_t *q,
     
     if (cb_segm->F) {
       fprintf(stderr, "Error filler bits are not supported. Use standard TBS\n");
-      return SRSLTE_ERROR;       
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
       fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
-      return SRSLTE_ERROR;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
         
     bool crc_ok = true; 

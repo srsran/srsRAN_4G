@@ -610,6 +610,9 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
     } else if (ret == SRSLTE_ERROR) {
       *ack = false;
       ret = SRSLTE_SUCCESS;
+    } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
+      *ack = false;
+      ret = SRSLTE_ERROR;
     }
   } else {
     ERROR("Detected NULL pointer in TB%d &softbuffer=%p &data=%p &ack=%p", codeword_idx, softbuffer, (void*)data, ack);
