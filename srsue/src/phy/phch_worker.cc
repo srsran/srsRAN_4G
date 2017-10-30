@@ -256,8 +256,6 @@ void phch_worker::work_imp()
       if (dl_action.generate_ack) {
         set_uci_ack(dl_ack, dl_mac_grant.tb_en);
       }
-
-      compute_ri();
     }
   }
 
@@ -306,6 +304,8 @@ void phch_worker::work_imp()
   /* Transmit PUSCH, PUCCH or SRS */
   bool signal_ready = false; 
   if (ul_action.tx_enabled) {
+    compute_ri();
+
     encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr[0], ul_action.current_tx_nb,
                  &ul_action.softbuffers[0], ul_action.rv[0], ul_action.rnti, ul_mac_grant.is_from_rar);
     signal_ready = true; 
@@ -363,8 +363,9 @@ void phch_worker::work_imp()
 }
 
 void phch_worker::compute_ri() {
-  /* Select Rank Indicator by computing Condition Number */
-  if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+  if (uci_data.uci_ri_len > 0) {
+    /* Do nothing */
+  } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
     if (ue_dl.nof_rx_antennas > 1) {
       /* If 2 ort more receiving antennas, select RI */
       float cn = 0.0f;
@@ -834,13 +835,8 @@ void phch_worker::set_uci_periodic_cqi()
   
   if (period_cqi.configured && rnti_is_set) {
     if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, TTI_TX(tti))) {
-      /* If the RI is not computed, compute it */
-      if (uci_data.uci_ri_len < 1) {
-        compute_ri();
-      }
-      uci_data.uci_cqi_len = 0;
-      uci_data.uci_dif_cqi_len = 0;
-      uci_data.uci_pmi_len = 0;
+      compute_ri();
+      uci_data.ri_periodic_report = true;
       Info("PUCCH: Periodic RI=%d\n", uci_data.uci_ri);
     } else if (srslte_cqi_send(period_cqi.pmi_idx, TTI_TX(tti))) {
       srslte_cqi_value_t cqi_report;

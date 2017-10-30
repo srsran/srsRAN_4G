@@ -282,24 +282,23 @@ void pucch_encode_bits(srslte_uci_data_t *uci_data, srslte_pucch_format_t format
     pucch_bits[1] = uci_data->uci_ack_2; // this will be ignored in format 1a 
   }
   if (format >= SRSLTE_PUCCH_FORMAT_2) {
-    /* Append RI */
-    if (uci_data->uci_ri_len) {
-      uci_data->uci_ri = uci_buffer[0]; // It assumes only 1 bit of RI
+    /* Put RI (goes alone) */
+    if (uci_data->ri_periodic_report) {
+      uci_buffer[0] = uci_data->uci_ri; // It assumes only 1 bit of RI
+      uci_buffer_len += uci_data->uci_ri_len;
+    } else {
+      /* Append CQI */
+      memcpy(&uci_buffer[uci_buffer_len], uci_data->uci_cqi, uci_data->uci_cqi_len);
+      uci_buffer_len += uci_data->uci_cqi_len;
+
+      /* Append Differential CQI */
+      memcpy(&uci_buffer[uci_buffer_len], uci_data->uci_dif_cqi, uci_data->uci_dif_cqi_len);
+      uci_buffer_len += uci_data->uci_dif_cqi_len;
+
+      /* Append PMI */
+      memcpy(&uci_buffer[uci_buffer_len], uci_data->uci_pmi, uci_data->uci_pmi_len);
+      uci_buffer_len += uci_data->uci_pmi_len;
     }
-    uci_buffer_len += uci_data->uci_ri_len;
-
-    /* Append CQI */
-    memcpy(&uci_buffer[uci_buffer_len], uci_data->uci_cqi, uci_data->uci_cqi_len);
-    uci_buffer_len += uci_data->uci_cqi_len;
-
-    /* Append Differential CQI */
-    memcpy(&uci_buffer[uci_buffer_len], uci_data->uci_dif_cqi, uci_data->uci_dif_cqi_len);
-    uci_buffer_len += uci_data->uci_dif_cqi_len;
-
-    /* Append PMI */
-    memcpy(&uci_buffer[uci_buffer_len], uci_data->uci_pmi, uci_data->uci_pmi_len);
-    uci_buffer_len += uci_data->uci_pmi_len;
-
     srslte_uci_encode_cqi_pucch(uci_buffer, uci_buffer_len, pucch_bits);
     if (format > SRSLTE_PUCCH_FORMAT_2) {
       pucch2_bits[0] = uci_data->uci_ack; 
