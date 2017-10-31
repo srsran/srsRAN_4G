@@ -98,11 +98,13 @@ hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
   memcpy(amf,amf_tmp,2);
   memcpy(op,op_tmp,16);
 
-  //uint8_t     k[16];
-  //uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
-  //uint8_t     op[16];
-
   return true;
+}
+
+uint64_t
+hss::get_sqn( )
+{
+  return 0;
 }
 
 } //namespace srsepc

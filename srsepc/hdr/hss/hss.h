@@ -55,6 +55,7 @@ public:
   static void cleanup(void);
   int init(hss_args_t *hss_args, srslte::logger* logger);
  
+  uint64_t get_sqn();
   bool get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op);
   
 private:
