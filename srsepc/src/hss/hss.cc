@@ -81,19 +81,28 @@ bool
 hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
 {
 
+  uint8_t k_tmp[16];
+  for(int i=0;i<8;i++)
+  {
+    k_tmp[2*i]=i;
+    k_tmp[2*i+1]=i;
+  }
+  uint8_t amf_tmp[2]={0x80,0x00};
+  uint8_t op_tmp[16]={0x63,0xbf,0xA5,0x0E,0xE6,0x52,0x33,0x65,0xFF,0x14,0xC1,0xF4,0x5F,0x88,0x73,0x7D};
   if(imsi != 1010123456789)
   {
     return false;
   }
-  else
-  {
+  m_hss_log.console("Found User %015lu\n",imsi);
+  memcpy(k,k_tmp,16);
+  memcpy(amf,amf_tmp,2);
+  memcpy(op,op_tmp,16);
 
-  }
   //uint8_t     k[16];
   //uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
   //uint8_t     op[16];
 
-  return false;
+  return true;
 }
 
 } //namespace srsepc

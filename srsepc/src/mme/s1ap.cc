@@ -263,13 +263,13 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
 
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_req);
   if(err != LIBLTE_SUCCESS){
-    m_s1ap_log->console("Error unpacking NAS attach request. Error: %s\n", liblte_error_text[err]);
+    m_s1ap_log->error("Error unpacking NAS attach request. Error: %s\n", liblte_error_text[err]);
     return false;
   }
 
   m_s1ap_log->info("Received Attach Request\n");
   if(attach_req.eps_mobile_id.type_of_id!=LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI){
-    m_s1ap_log->warning("NAS Attach Request: Unhandle UE Id Type");
+    m_s1ap_log->error("NAS Attach Request: Unhandle UE Id Type");
     return false;
   }
   
@@ -277,7 +277,6 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   for(int i=0;i<=14;i++)
   {
     imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
-    //std::cout << (uint16_t) attach_req.eps_mobile_id.imsi[i] << " ";
   }
   m_s1ap_log->console("IMSI: %015lu\n", imsi);
   
@@ -298,20 +297,30 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
     
 
   /*Handle PDN Connctivity Request*/
-  liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req);
-  
-  //pdn_con_req.eps_bearer_id
-  //pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
-  //pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
-  //pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
+  err = liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS PDN Connectivity Request. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
 
-  // Set the optional flags
+  uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
+  uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
+  if(pdn_con_req.pdn_type != LIBLTE_MME_PDN_TYPE_IPV4)
+  {
+    m_s1ap_log->error("PDN Connectivity Request: Only IPv4 connectivity supported.\n");
+    return false;
+  }
+  if(pdn_con_req.request_type != LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST)
+  {
+    m_s1ap_log->error("PDN Connectivity Request: Only Initial Request supported.\n");
+    return false;
+  }
+
+  //Handle the optional flags
   if(pdn_con_req.esm_info_transfer_flag_present){}
   if(pdn_con_req.apn_present){}
   if(pdn_con_req.protocol_cnfg_opts_present){}
   if(pdn_con_req.device_properties_present){}
-
-
 
   /*Log unhandled IEs*/
   if(msg->S_TMSI_present){
@@ -350,7 +359,9 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
  
   if(!m_hss->get_k_amf_op(imsi, k, amf, op))
   {
-    m_s1ap_log->info("User %d not found",imsi);
+    m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
+    m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
+    return false;
   }
 
   
@@ -391,6 +402,22 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
     bool                                                     device_properties_present;
     bool                                                     old_guti_type_present;
   }LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT;
+  */
+  /*
+  typedef struct{
+    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT       apn;
+    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT protocol_cnfg_opts;
+    LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM    esm_info_transfer_flag;
+    LIBLTE_MME_DEVICE_PROPERTIES_ENUM         device_properties;
+    uint8                                     eps_bearer_id;
+    uint8                                     proc_transaction_id;
+    uint8                                     pdn_type;
+    uint8                                     request_type;
+    bool                                      esm_info_transfer_flag_present;
+    bool                                      apn_present;
+    bool                                      protocol_cnfg_opts_present;
+    bool                                      device_properties_present;
+  }LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT;
   */
   /*
   typedef struct{
