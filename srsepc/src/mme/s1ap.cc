@@ -24,6 +24,8 @@
  *
  */
 
+#include <iostream>
+#include <cmath>
 #include "srslte/common/bcd_helpers.h"
 #include "mme/s1ap.h"
 
@@ -265,21 +267,19 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
     return false;
   }
 
-  m_s1ap_log->console("Unpacked NAS attach request.\n");
-
-
+  m_s1ap_log->info("Received Attach Request\n");
   if(attach_req.eps_mobile_id.type_of_id!=LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI){
     m_s1ap_log->warning("NAS Attach Request: Unhandle UE Id Type");
+    return false;
   }
-  else{
-    imsi = 0;
-    for(int i=14;i>=0;i--)
-    {
-      imsi  *=10;
-      imsi  += attach_req.eps_mobile_id.imsi[i];
-    }
-    m_s1ap_log->console("IMSI: %d", imsi);
+  
+  imsi = 0;
+  for(int i=0;i<=14;i++)
+  {
+    imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
+    //std::cout << (uint16_t) attach_req.eps_mobile_id.imsi[i] << " ";
   }
+  m_s1ap_log->console("IMSI: %015lu\n", imsi);
   
   if(attach_req.old_p_tmsi_signature_present){}
   if(attach_req.additional_guti_present){}
