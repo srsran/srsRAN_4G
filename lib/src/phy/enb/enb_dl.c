@@ -31,6 +31,7 @@
 #include <string.h>
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/srslte.h>
+#include <srslte/phy/dft/ofdm.h>
 
 
 #define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
@@ -275,7 +276,7 @@ void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti)
 void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q)
 {
   // TODO: PAPR control
-  float norm_factor = (float) sqrt(q->cell.nof_prb)/15;
+  float norm_factor = (float) sqrt(q->cell.nof_prb)/15/sqrt(q->ifft[0].symbol_sz);
 
   for (int i = 0; i < q->cell.nof_ports; i++) {
     srslte_ofdm_tx_sf(&q->ifft[i]);
