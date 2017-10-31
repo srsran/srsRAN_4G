@@ -517,15 +517,15 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 
 
 int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                         int16_t *e_bits, uint8_t *data, int codeword_idx) {
+                         int16_t *e_bits, uint8_t *data, int tb_idx) {
   uint32_t Nl = 1;
 
   if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
-  return decode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx],
-                   cfg->grant.Qm[codeword_idx] * Nl, cfg->rv[codeword_idx], cfg->nbits[codeword_idx].nof_bits,
+  return decode_tb(q, softbuffer, &cfg->cb_segm[tb_idx],
+                   cfg->grant.Qm[tb_idx] * Nl, cfg->rv[tb_idx], cfg->nbits[tb_idx].nof_bits,
                    e_bits, data);
 }
 
@@ -546,15 +546,15 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 }
 
 int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
-                              uint8_t *data, uint8_t *e_bits, int codeword_idx) {
+                              uint8_t *data, uint8_t *e_bits, int tb_idx) {
   uint32_t Nl = 1;
 
   if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
-  return encode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx], cfg->grant.Qm[codeword_idx]*Nl, cfg->rv[codeword_idx],
-                   cfg->nbits[codeword_idx].nof_bits, data, e_bits);
+  return encode_tb(q, softbuffer, &cfg->cb_segm[tb_idx], cfg->grant.Qm[tb_idx]*Nl, cfg->rv[tb_idx],
+                   cfg->nbits[tb_idx].nof_bits, data, e_bits);
 }
 
 /* Compute the interleaving function on-the-fly, because it depends on number of RI bits
