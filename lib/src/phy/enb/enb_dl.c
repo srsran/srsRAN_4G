@@ -71,10 +71,6 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], u
       }
     }
 
-    for (int i = 0; i < q->cell.nof_ports; i++) {
-      srslte_ofdm_set_normalize(&q->ifft[i], true);
-    }
-
     if (srslte_pbch_init(&q->pbch)) {
       fprintf(stderr, "Error creating PBCH object\n");
       goto clean_exit;
