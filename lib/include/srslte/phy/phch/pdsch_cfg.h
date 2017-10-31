@@ -48,6 +48,7 @@ typedef struct SRSLTE_API {
   uint32_t nof_layers;
   uint32_t codebook_idx;
   srslte_mimo_type_t mimo_type;
+  bool tb_cw_swap;
 } srslte_pdsch_cfg_t;
 
 #endif
