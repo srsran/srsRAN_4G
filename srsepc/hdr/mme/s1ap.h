@@ -73,9 +73,10 @@ public:
 
 private:
 
-  s1ap_args_t   m_s1ap_args;
-  uint32_t       m_plmn;
-  srslte::log   *m_s1ap_log;
+  s1ap_args_t                  m_s1ap_args;
+  uint32_t                     m_plmn;
+  srslte::byte_buffer_pool    *m_pool;
+  srslte::log                 *m_s1ap_log;
 
   hss *m_hss;
   int m_s1mme;

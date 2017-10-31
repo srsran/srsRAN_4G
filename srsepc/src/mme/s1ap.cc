@@ -51,6 +51,8 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
   m_s1mme = enb_listen();
 
   m_hss = hss::get_instance(); 
+
+  m_pool = srslte::byte_buffer_pool::get_instance();
  
   return 0;
 }
@@ -245,12 +247,26 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
 
   /*Get NAS Attach Request Message*/
-  if(!liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) msg->NAS_PDU.buffer, &attach_req)){
-    m_s1ap_log->console("Error unpacking NAS attach request.");
+  uint8_t pd, msg_type;
+
+  srslte::byte_buffer_t *nas_msg = m_pool->allocate();
+  memcpy(nas_msg->msg, &msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
+  nas_msg->N_bytes = msg->NAS_PDU.n_octets;
+  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
+  
+  if(msg_type!=LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST){
+    m_s1ap_log->error("Unhandled NAS message within the Initial UE message\n");
+    return false;
   }
-  else{
-    m_s1ap_log->console("Unpacked NAS attach request.");
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_req);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->console("Error unpacking NAS attach request. Error: %s\n", liblte_error_text[err]);
+    return false;
   }
+
+  m_s1ap_log->console("Unpacked NAS attach request.\n");
+
 
   if(attach_req.eps_mobile_id.type_of_id!=LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI){
     m_s1ap_log->warning("NAS Attach Request: Unhandle UE Id Type");
