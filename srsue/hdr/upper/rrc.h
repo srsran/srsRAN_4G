@@ -196,9 +196,13 @@ private:
     float    rsrp;
     bool     has_valid_sib1;
     bool     has_valid_sib2;
+    bool     has_valid_sib3;
+    bool     has_valid_sib13;
     bool     in_sync;
-    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT sib1;
-    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2;
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT  sib2;
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT  sib3;
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
   } cell_t;
 
   std::vector<cell_t> known_cells;
@@ -212,8 +216,9 @@ private:
 
   si_acquire_state_t si_acquire_state;
   void               run_si_acquisition_procedure();
-  uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t x);
+  uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf);
   uint32_t           nof_sib1_trials;
+  uint16_t           sysinfo_index;
   uint32_t           last_win_start;
 
   void select_next_cell_in_plmn();
@@ -365,10 +370,16 @@ private:
   void          rrc_connection_release();
   void          con_restablish_cell_reselected();
   void          radio_link_failure();
+
   static void*  start_sib_thread(void *rrc_);
   void          sib_search();
   void          apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
   void          apply_rr_config_common_ul(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
+  void          handle_sib1();
+  void          handle_sib2();
+  void          handle_sib3();
+  void          handle_sib13();
+
   void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
   void          handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
   void          handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
