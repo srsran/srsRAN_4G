@@ -47,6 +47,7 @@ namespace srsue {
 rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
+  ,sysinfo_index(0)
 {
   sync_reset_cnt = 0;
   n310_cnt       = 0;
@@ -204,12 +205,7 @@ void rrc::run_thread() {
         if (phy->sync_status()) {
           if (!current_cell->has_valid_sib1) {
             si_acquire_state = SI_ACQUIRE_SIB1;
-          } else if (!current_cell->has_valid_sib2) {
-            si_acquire_state = SI_ACQUIRE_SIB2;
-          } else {
-            apply_sib2_configs(&current_cell->sib2);
-            si_acquire_state = SI_ACQUIRE_IDLE;
-            state = RRC_STATE_CELL_SELECTED;
+            sysinfo_index = 0;
           }
         }
         select_cell_timeout++;
@@ -289,8 +285,8 @@ void rrc::run_thread() {
 
 
 // Determine SI messages scheduling as in 36.331 5.2.3 Acquisition of an SI message
-uint32_t rrc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t x) {
-  return (period * 10 * (1 + tti / (period * 10)) + x) % 10240; // the 1 means next opportunity
+uint32_t rrc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf) {
+  return (period*10*(1+tti/(period*10))+(offset*10)+sf)%10240; // the 1 means next opportunity
 }
 
 void rrc::run_si_acquisition_procedure()
@@ -298,13 +294,14 @@ void rrc::run_si_acquisition_procedure()
   uint32_t tti;
   uint32_t si_win_start=0, si_win_len=0;
   uint16_t period;
+  uint32_t x, sf, offset;
   const int SIB1_SEARCH_TIMEOUT = 30;
 
   switch (si_acquire_state) {
     case SI_ACQUIRE_SIB1:
       // Instruct MAC to look for SIB1
       tti = mac->get_current_tti();
-      si_win_start = sib_start_tti(tti, 2, 5);
+      si_win_start = sib_start_tti(tti, 2, 0, 5);
       if (tti > last_win_start + 10) {
         last_win_start = si_win_start;
         mac->bcch_start_rx(si_win_start, 1);
@@ -323,17 +320,30 @@ void rrc::run_si_acquisition_procedure()
       }
       break;
     case SI_ACQUIRE_SIB2:
-      // Instruct MAC to look for SIB2 only when selecting a cell
-      tti = mac->get_current_tti();
-      period = liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity];
-      si_win_start = sib_start_tti(tti, period, 0);
-      if (tti > last_win_start + 10) {
-        last_win_start = si_win_start;
-        si_win_len = liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length];
+      // Instruct MAC to look for next SIB
+      if(sysinfo_index < current_cell->sib1.N_sched_info) {
+        si_win_len   = liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length];
+        x            = sysinfo_index*si_win_len;
+        sf           = x%10;
+        offset       = x/10;
 
-        mac->bcch_start_rx(si_win_start, si_win_len);
-        rrc_log->debug("Instructed MAC to search for SIB2, win_start=%d, win_len=%d\n",
-                       si_win_start, si_win_len);
+        tti          = mac->get_current_tti();
+        period       = liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[sysinfo_index].si_periodicity];
+        si_win_start = sib_start_tti(tti, period, offset, sf);
+
+        if (tti > last_win_start + 10) {
+          last_win_start = si_win_start;
+          si_win_len = liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length];
+
+          mac->bcch_start_rx(si_win_start, si_win_len);
+          rrc_log->debug("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
+                         si_win_start, si_win_len);
+        }
+
+      } else {
+        // We've received all SIBs, move on to connection request
+        si_acquire_state = SI_ACQUIRE_IDLE;
+        state = RRC_STATE_CELL_SELECTED;
       }
       break;
     default:
@@ -984,6 +994,8 @@ void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu) {
 }
 
 void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
+  mac->bcch_stop_rx();
+
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH DLSCH message received.");
   rrc_log->info("BCCH DLSCH message Stack latency: %ld us\n", pdu->get_latency_us());
   LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
@@ -992,71 +1004,101 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
   pool->deallocate(pdu);
   liblte_rrc_unpack_bcch_dlsch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dlsch_msg);
 
-  if (dlsch_msg.N_sibs > 0) {
-    if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[0].sib_type && SI_ACQUIRE_SIB1 == si_acquire_state) {
-      mac->bcch_stop_rx();
+  for(uint32_t i=0; i<dlsch_msg.N_sibs; i++) {
+    rrc_log->info("Processing SIB: %d\n", liblte_rrc_sys_info_block_type_num[dlsch_msg.sibs[i].sib_type]);
 
-      // Handle SIB1
-      memcpy(&current_cell->sib1, &dlsch_msg.sibs[0].sib.sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
-
-      rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
-                    current_cell->sib1.cell_id & 0xfff,
-                    liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length],
-                    liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity]);
-
-
-      // Set TDD Config
-      if (current_cell->sib1.tdd) {
-        phy->set_config_tdd(&current_cell->sib1.tdd_cnfg);
-      }
-
+    if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[i].sib_type && SI_ACQUIRE_SIB1 == si_acquire_state) {
+      memcpy(&current_cell->sib1, &dlsch_msg.sibs[i].sib.sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
       current_cell->has_valid_sib1 = true;
-
-      // Send PLMN and TAC to NAS
-      std::stringstream ss;
-      for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
-        nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
-      }
-
-      // Jump to next state
-      switch(state) {
-        case RRC_STATE_CELL_SELECTING:
-          si_acquire_state = SI_ACQUIRE_SIB2;
-          break;
-        case RRC_STATE_PLMN_SELECTION:
-          si_acquire_state = SI_ACQUIRE_IDLE;
-          rrc_log->info("SI Acquisition done. Searching next cell...\n");
-          usleep(5000);
-          phy->cell_search_next();
-          break;
-        default:
-          si_acquire_state = SI_ACQUIRE_IDLE;
-      }
-
-    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[0].sib_type &&
-               SI_ACQUIRE_SIB2 == si_acquire_state) {
-      mac->bcch_stop_rx();
-
-      // Handle SIB2
-      memcpy(&current_cell->sib2, &dlsch_msg.sibs[0].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
-      rrc_log->info("SIB2 received\n");
-
-      apply_sib2_configs(&current_cell->sib2);
-
+      handle_sib1();
+    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[i].sib_type && !current_cell->has_valid_sib2) {
+      memcpy(&current_cell->sib2, &dlsch_msg.sibs[i].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
       current_cell->has_valid_sib2 = true;
-
-      // Jump to next state
-      switch(state) {
-        case RRC_STATE_CELL_SELECTING:
-          si_acquire_state = SI_ACQUIRE_IDLE;
-          state = RRC_STATE_CELL_SELECTED;
-          break;
-        default:
-          si_acquire_state = SI_ACQUIRE_IDLE;
-      }
+      handle_sib2();
+    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3 == dlsch_msg.sibs[i].sib_type && !current_cell->has_valid_sib3) {
+      memcpy(&current_cell->sib3, &dlsch_msg.sibs[i].sib.sib3, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT));
+      current_cell->has_valid_sib3 = true;
+      handle_sib3();
+    }else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13 == dlsch_msg.sibs[i].sib_type && !current_cell->has_valid_sib13) {
+      memcpy(&current_cell->sib13, &dlsch_msg.sibs[0].sib.sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT));
+      current_cell->has_valid_sib13 = true;
+      handle_sib13();
     }
   }
+  if(current_cell->has_valid_sib2) {
+    sysinfo_index++;
+  }
 }
+
+void rrc::handle_sib1()
+{
+  rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
+                current_cell->sib1.cell_id&0xfff,
+                liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length],
+                liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity]);
+
+  // Print SIB scheduling info
+  uint32_t i,j;
+  for(i=0;i<current_cell->sib1.N_sched_info;i++){
+    for(j=0;j<current_cell->sib1.sched_info[i].N_sib_mapping_info;j++){
+      LIBLTE_RRC_SIB_TYPE_ENUM t       = current_cell->sib1.sched_info[i].sib_mapping_info[j].sib_type;
+      LIBLTE_RRC_SI_PERIODICITY_ENUM p = current_cell->sib1.sched_info[i].si_periodicity;
+      rrc_log->debug("SIB scheduling info, sib_type=%d, si_periodicity=%d\n",
+                    liblte_rrc_sib_type_num[t],
+                    liblte_rrc_si_periodicity_num[p]);
+    }
+  }
+
+  // Set TDD Config
+  if(current_cell->sib1.tdd) {
+    phy->set_config_tdd(&current_cell->sib1.tdd_cnfg);
+  }
+
+  current_cell->has_valid_sib1 = true;
+
+  // Send PLMN and TAC to NAS
+  std::stringstream ss;
+  for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
+    nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
+  }
+
+  // Jump to next state
+  switch(state) {
+    case RRC_STATE_CELL_SELECTING:
+      si_acquire_state = SI_ACQUIRE_SIB2;
+      break;
+    case RRC_STATE_PLMN_SELECTION:
+      si_acquire_state = SI_ACQUIRE_IDLE;
+      rrc_log->info("SI Acquisition done. Searching next cell...\n");
+      usleep(5000);
+      phy->cell_search_next();
+      break;
+    default:
+      si_acquire_state = SI_ACQUIRE_IDLE;
+  }
+}
+
+void rrc::handle_sib2()
+{
+  rrc_log->info("SIB2 received\n");
+
+  apply_sib2_configs(&current_cell->sib2);
+}
+
+void rrc::handle_sib3()
+{
+  rrc_log->info("SIB3 received\n");
+}
+
+void rrc::handle_sib13()
+{
+  rrc_log->info("SIB13 received\n");
+
+//  mac->set_config_mbsfn_sib13(&current_cell->sib13.mbsfn_area_info_list_r9[0],
+//                              current_cell->sib13.mbsfn_area_info_list_r9_size,
+//                              &current_cell->sib13.mbsfn_notification_config);
+}
+
 
 
 
@@ -1449,6 +1491,11 @@ void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
   memcpy(&cfg.rach, &sib2->rr_config_common_sib.rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT));
   cfg.prach_config_index = sib2->rr_config_common_sib.prach_cnfg.root_sequence_index;
   cfg.ul_harq_params.max_harq_msg3_tx = cfg.rach.max_harq_msg3_tx;
+  // Apply MBSFN configuration
+//  cfg.mbsfn_subfr_cnfg_list_size = sib2->mbsfn_subfr_cnfg_list_size;
+//  for(uint8_t i=0;i<sib2->mbsfn_subfr_cnfg_list_size;i++) {
+//    memcpy(&cfg.mbsfn_subfr_cnfg_list[i], &sib2->mbsfn_subfr_cnfg_list[i], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
+//  }
 
   mac->set_config(&cfg);
 
