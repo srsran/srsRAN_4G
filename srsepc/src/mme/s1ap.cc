@@ -45,17 +45,16 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
 {
   
   m_s1ap_args = s1ap_args;
-
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
 
   m_s1ap_log = s1ap_log;
+  m_s1ap_nas_transport.set_log(s1ap_log);
+
+  m_hss = hss::get_instance(); 
+  m_pool = srslte::byte_buffer_pool::get_instance();
 
   m_s1mme = enb_listen();
 
-  m_hss = hss::get_instance(); 
-
-  m_pool = srslte::byte_buffer_pool::get_instance();
- 
   return 0;
 }
 
@@ -370,7 +369,7 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
     return false;
   }
   
-  m_s1ap_nas_transport->gen_auth_request(); 
+  m_s1ap_nas_transport.pack_authentication_request(); 
 
   return true;
   

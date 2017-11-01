@@ -40,6 +40,7 @@
 #include <map>
 #include "mme/s1ap_common.h"
 #include "mme/s1ap_mngmt_proc.h"
+#include "mme/s1ap_nas_transport.h"
 #include "hss/hss.h"
 
 namespace srsepc{
@@ -83,6 +84,7 @@ private:
   std::map<uint16_t,enb_ctx_t*> m_active_enbs;
  
   s1ap_mngmt_proc m_s1ap_mngmt_proc;
+  s1ap_nas_transport m_s1ap_nas_transport;
 };
 
 

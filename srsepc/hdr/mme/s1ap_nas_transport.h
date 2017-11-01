@@ -23,8 +23,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef S1AP_MNGMT_PROC_H
-#define S1AP_MNGMT_PROC_H
+#ifndef S1AP_NAS_TRANSPORT_H
+#define S1AP_NAS_TRANSPORT_H
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/common.h"
@@ -35,12 +35,18 @@ namespace srsepc{
 class s1ap_nas_transport
 {
 public:
-  s1ap_mngmt_proc(srslte::logger s1ap_logger);
+  s1ap_nas_transport();
   virtual ~s1ap_nas_transport();
 
+  void set_log(srslte::log *s1ap_logger);
   bool unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, uint64_t *imsi);
+  bool pack_authentication_request();
+
+private:
+  srslte::log *m_s1ap_log;
+
 };
 
 } //namespace srsepc
 
-#endif //S1AP_MNGMT_PROC
+#endif //S1AP_NAS_TRANSPORT
