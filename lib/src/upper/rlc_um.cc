@@ -279,6 +279,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   if(pdu_space <= head_len + 1)
   {
+    pool->deallocate(pdu);
     log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
     return 0;
@@ -348,7 +349,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   rlc_um_write_data_pdu_header(&header, pdu);
   memcpy(payload, pdu->msg, pdu->N_bytes);
   uint32_t ret = pdu->N_bytes;
-  log->debug("%sreturning length %d\n", rrc->get_rb_name(lcid).c_str(), pdu->N_bytes);
+  log->debug("%s returning length %d\n", rrc->get_rb_name(lcid).c_str(), pdu->N_bytes);
   pool->deallocate(pdu);
 
   debug_state();
