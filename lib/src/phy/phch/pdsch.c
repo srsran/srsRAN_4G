@@ -493,7 +493,7 @@ int srslte_pdsch_cfg_mimo(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra
           ERROR("Wrong number of transport blocks (%d) for transmit diversity.", nof_tb);
           return SRSLTE_ERROR;
         }
-        cfg->nof_layers = 2;
+        cfg->nof_layers = cell.nof_ports;
         break;
       case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
         if (nof_tb == 1) {
