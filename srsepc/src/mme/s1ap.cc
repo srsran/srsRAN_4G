@@ -356,107 +356,22 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   if(msg->LHN_ID_present){
     m_s1ap_log->warning("LHN Id present, but not handled.");
   }
- 
-  if(!m_hss->get_k_amf_op(imsi, k, amf, op))
+
+
+  uint8_t     k_asme[32];
+  uint8_t     autn[16]; 
+  uint8_t     rand[6];
+  uint8_t     xres[16];
+
+  if(!m_hss->gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, xres))
   {
     m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
     return false;
   }
   
-  
+  m_s1ap_nas_transport->gen_auth_request(); 
 
-  /*
-  typedef struct{
-    LIBLTE_MME_NAS_KEY_SET_ID_STRUCT                         nas_ksi;
-    LIBLTE_MME_EPS_MOBILE_ID_STRUCT                          eps_mobile_id;
-    LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT                  ue_network_cap;
-    LIBLTE_BYTE_MSG_STRUCT                                   esm_msg;
-    LIBLTE_MME_EPS_MOBILE_ID_STRUCT                          additional_guti;
-    LIBLTE_MME_TRACKING_AREA_ID_STRUCT                       last_visited_registered_tai;
-    LIBLTE_MME_DRX_PARAMETER_STRUCT                          drx_param;
-    LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT                  ms_network_cap;
-    LIBLTE_MME_LOCATION_AREA_ID_STRUCT                       old_lai;
-    LIBLTE_MME_MOBILE_STATION_CLASSMARK_2_STRUCT             ms_cm2;
-    LIBLTE_MME_MOBILE_STATION_CLASSMARK_3_STRUCT             ms_cm3;
-    LIBLTE_MME_SUPPORTED_CODEC_LIST_STRUCT                   supported_codecs;
-    LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT voice_domain_pref_and_ue_usage_setting;
-    LIBLTE_MME_TMSI_STATUS_ENUM                              tmsi_status;
-    LIBLTE_MME_ADDITIONAL_UPDATE_TYPE_ENUM                   additional_update_type;
-    LIBLTE_MME_DEVICE_PROPERTIES_ENUM                        device_properties;
-    LIBLTE_MME_GUTI_TYPE_ENUM                                old_guti_type;
-    uint32                                                   old_p_tmsi_signature;
-    uint8                                                    eps_attach_type;
-    bool                                                     old_p_tmsi_signature_present;
-    bool                                                     additional_guti_present;
-    bool                                                     last_visited_registered_tai_present;
-    bool                                                     drx_param_present;
-    bool                                                     ms_network_cap_present;
-    bool                                                     old_lai_present;
-    bool                                                     tmsi_status_present;
-    bool                                                     ms_cm2_present;
-    bool                                                     ms_cm3_present;
-    bool                                                     supported_codecs_present;
-    bool                                                     additional_update_type_present;
-    bool                                                     voice_domain_pref_and_ue_usage_setting_present; 
-    bool                                                     device_properties_present;
-    bool                                                     old_guti_type_present;
-  }LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT;
-  */
-  /*
-  typedef struct{
-    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT       apn;
-    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT protocol_cnfg_opts;
-    LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM    esm_info_transfer_flag;
-    LIBLTE_MME_DEVICE_PROPERTIES_ENUM         device_properties;
-    uint8                                     eps_bearer_id;
-    uint8                                     proc_transaction_id;
-    uint8                                     pdn_type;
-    uint8                                     request_type;
-    bool                                      esm_info_transfer_flag_present;
-    bool                                      apn_present;
-    bool                                      protocol_cnfg_opts_present;
-    bool                                      device_properties_present;
-  }LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT;
-  */
-  /*
-  typedef struct{
-  bool                                                         ext;
-  LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
-  LIBLTE_S1AP_NAS_PDU_STRUCT                                   NAS_PDU;
-  LIBLTE_S1AP_TAI_STRUCT                                       TAI;
-  LIBLTE_S1AP_EUTRAN_CGI_STRUCT                                EUTRAN_CGI;
-  LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM_EXT                 RRC_Establishment_Cause;
-  LIBLTE_S1AP_S_TMSI_STRUCT                                    S_TMSI;
-  bool                                                         S_TMSI_present;
-  LIBLTE_S1AP_CSG_ID_STRUCT                                    CSG_Id;
-  bool                                                         CSG_Id_present;
-  LIBLTE_S1AP_GUMMEI_STRUCT                                    GUMMEI_ID;
-  bool                                                         GUMMEI_ID_present;
-  LIBLTE_S1AP_CELLACCESSMODE_ENUM_EXT                          CellAccessMode;
-  bool                                                         CellAccessMode_present;
-  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     GW_TransportLayerAddress;
-  bool                                                         GW_TransportLayerAddress_present;
-  LIBLTE_S1AP_RELAYNODE_INDICATOR_ENUM_EXT                     RelayNode_Indicator;
-  bool                                                         RelayNode_Indicator_present;
-  LIBLTE_S1AP_GUMMEITYPE_ENUM_EXT                              GUMMEIType;
-  bool                                                         GUMMEIType_present;
-  LIBLTE_S1AP_TUNNELINFORMATION_STRUCT                         Tunnel_Information_for_BBF;
-  bool                                                         Tunnel_Information_for_BBF_present;
-  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     SIPTO_L_GW_TransportLayerAddress;
-  bool                                                         SIPTO_L_GW_TransportLayerAddress_present;
-  LIBLTE_S1AP_LHN_ID_STRUCT                                    LHN_ID;
-  bool                                                         LHN_ID_present;
-  }LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT;  
-  */ 
-  //Send Reply to eNB
-  //ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0);
-  //if(n_sent == -1)
-  //{
-  //  m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
-  //  return false;
-  //}
-  
   return true;
   
 }

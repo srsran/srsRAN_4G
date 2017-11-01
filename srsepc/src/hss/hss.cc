@@ -27,6 +27,9 @@
 #include <time.h>       /* time */
 #include <boost/thread/mutex.hpp>
 #include "hss/hss.h"
+#include "srslte/common/security.h"
+
+using namespace srslte;
 
 namespace srsepc{
 
@@ -82,13 +85,20 @@ hss::init(hss_args_t *hss_args, srslte::logger *logger)
 }
 
 bool
-hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *kasme, uint8_t *autn, uint8_t *rand, uint8_t *xres)
+hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres)
 {
   uint8_t k[16];
   uint8_t amf[2];
   uint8_t op[16];
-  //uint8_t rand[16];
   uint8_t sqn[6];
+
+  uint8_t     ck[16];
+  uint8_t     ik[16];
+  uint8_t     ak[6];
+  uint8_t     mac[8];
+
+  uint16_t  mcc=1;
+  uint16_t  mnc=1;
 
   if(!get_k_amf_op(imsi,k,amf,op))
   {
@@ -96,6 +106,31 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *kasme, uint8_t *autn,
   }
   gen_rand(rand);
   get_sqn(sqn);
+
+  security_milenage_f2345( k,
+                           op,
+                           rand,
+                           xres,
+                           ck,
+                           ik,
+                           ak);
+
+  security_milenage_f1( k,
+                        op,
+                        rand,
+                        sqn,
+                        amf,
+                        mac);
+
+  // Generate K_asme
+  security_generate_k_asme( ck,
+                            ik,
+                            ak,
+                            sqn,
+                            mcc,
+                            mnc,
+                            k_asme);
+
 
   return true;
 }
