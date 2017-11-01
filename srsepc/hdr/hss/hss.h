@@ -55,8 +55,10 @@ public:
   static void cleanup(void);
   int init(hss_args_t *hss_args, srslte::logger* logger);
  
-  uint64_t get_sqn();
+  void get_sqn(uint8_t sqn[6]);
+  void gen_rand(uint8_t rand_[16]);
   bool get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op);
+  bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *kasme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
   
 private:
 
@@ -64,6 +66,7 @@ private:
   virtual ~hss();
   static hss *m_instance;
 
+  uint64_t m_sqn; //48 bits
   srslte::byte_buffer_pool *m_pool;
 
   /*Logs*/
