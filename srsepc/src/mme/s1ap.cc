@@ -413,27 +413,34 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   auth_req.nas_ksi.nas_ksi=0;
   
   
-  // NAS_PDU
+  // Pack NAS_PDU
   nas_buffer = m_pool->allocate();
-  err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->console("Error packing Athentication Request");
     return false;
   }
   
-  memcpy(dw_nas->NAS_PDU.buffer, reply_msg->msg, reply_msg->N_bytes);
-  dw_nas->NAS_PDU.n_octets = reply_msg->N_bytes;
+  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
 
+  //Pack Downlink NAS Transport Message
+  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->console("Error packing Athentication Request");
+    return false;
+  }
 
   //Send Reply to eNB
   ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
   if(n_sent == -1)
   {
-    m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
+    m_s1ap_log->console("Failed to send NAS Attach Request");
     return false;
   }
-
+  m_s1ap_log->console("Sent NAS Athentication Request\n");
   m_pool->deallocate(reply_msg);
   //TODO Start T3460 Timer!
   return true;
