@@ -286,11 +286,6 @@ double rf_soapy_set_rx_srate(void *h, double rate)
     return SRSLTE_ERROR;
   }
 
-  if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_RX, 0, rate) != 0) {
-    printf("setBandwidth Rx failed: %s\n", SoapySDRDevice_lastError());
-    return SRSLTE_ERROR;
-  }
-
   return SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_RX,0);
 }
 
@@ -299,11 +294,6 @@ double rf_soapy_set_tx_srate(void *h, double rate)
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_TX, 0, rate) != 0) {
     printf("setSampleRate Tx fail: %s\n", SoapySDRDevice_lastError());
-    return SRSLTE_ERROR;
-  }
-
-  if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_TX, 0, rate) != 0) {
-    printf("setBandwidth Tx failed: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
 
