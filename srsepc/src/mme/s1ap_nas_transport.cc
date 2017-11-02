@@ -59,28 +59,10 @@ s1ap_nas_transport::pack_authentication_request(uint8_t *autn,uint8_t *rand)
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT pdu;
   memcpy(pdu.autn , autn, 16);
   memcpy(pdu.rand, rand, 16); 
-  pdu.tsg_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  pdu.nas_ksi=0;
-
+  pdu.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+  pdu.nas_ksi.nas_ksi=0;
+  
   return true;
-
-  //typedef struct{
-  //  LIBLTE_MME_NAS_KEY_SET_ID_STRUCT nas_ksi;
-  //  uint8                            autn[16];
-  //  uint8                            rand[16];
-  //}LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT;
-
-  //typedef struct{
-  //  LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_ENUM tsc_flag;
-  //  uint8                                         nas_ksi;
-  //}LIBLTE_MME_NAS_KEY_SET_ID_STRUCT;
-
-  //typedef enum{
-  //  LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE = 0,
-  //  LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_MAPPED,
-  //  LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_N_ITEMS,
-  //}LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_ENUM;
-
 }
 
 } //namespace srsepc

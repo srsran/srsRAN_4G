@@ -32,7 +32,8 @@
 namespace srsepc{
 
 s1ap::s1ap():
-  m_s1mme(-1)
+  m_s1mme(-1),
+  m_next_mme_ue_s1ap_id(0)
 {
 }
 
@@ -183,6 +184,7 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
   std::string mnc_str, mcc_str;
   enb_ctx_t enb_ctx;
   srslte::byte_buffer_t reply_msg;
+
   LIBLTE_S1AP_S1AP_PDU_STRUCT reply_pdu;
 
   if(!m_s1ap_mngmt_proc.unpack_s1_setup_request(msg, &enb_ctx))
@@ -247,6 +249,8 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
 
+  /*Get info from initial UE message*/ 
+  uint32_t enb_ue_s1ap_id = msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   /*Get NAS Attach Request Message*/
   uint8_t pd, msg_type;
 
@@ -369,10 +373,70 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
     return false;
   }
   
-  m_s1ap_nas_transport.pack_authentication_request(); 
-
-  return true;
+  //Pack NAS Authentication Request in Downlink NAS Transport msg
+  srslte::byte_buffer_t *nas_buffer;
+  srslte::byte_buffer_t *reply_msg = m_pool->allocate();
   
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS message
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_next_mme_ue_s1ap_id++;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+  /*
+  typedef struct{
+    bool                                                         ext;
+    LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
+    LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
+    LIBLTE_S1AP_NAS_PDU_STRUCT                                   NAS_PDU;
+    LIBLTE_S1AP_HANDOVERRESTRICTIONLIST_STRUCT                   HandoverRestrictionList;
+    bool                                                         HandoverRestrictionList_present;
+    LIBLTE_S1AP_SUBSCRIBERPROFILEIDFORRFP_STRUCT                 SubscriberProfileIDforRFP;
+    bool                                                         SubscriberProfileIDforRFP_present;
+  }LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT;
+  */
+
+  LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
+  memcpy(auth_req.autn , autn, 16);
+  memcpy(auth_req.rand, rand, 16);
+  auth_req.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+  auth_req.nas_ksi.nas_ksi=0;
+  
+  
+  // NAS_PDU
+  nas_buffer = m_pool->allocate();
+  err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->console("Error packing Athentication Request");
+    return false;
+  }
+  
+  memcpy(dw_nas->NAS_PDU.buffer, reply_msg->msg, reply_msg->N_bytes);
+  dw_nas->NAS_PDU.n_octets = reply_msg->N_bytes;
+
+
+  //Send Reply to eNB
+  ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
+  if(n_sent == -1)
+  {
+    m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
+    return false;
+  }
+
+  m_pool->deallocate(reply_msg);
+  //TODO Start T3460 Timer!
+  return true;
 }
 
 

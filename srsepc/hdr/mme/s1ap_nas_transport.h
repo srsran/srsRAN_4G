@@ -40,7 +40,7 @@ public:
 
   void set_log(srslte::log *s1ap_logger);
   bool unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, uint64_t *imsi);
-  bool pack_authentication_request();
+  bool pack_authentication_request(uint8_t *autn,uint8_t *rand);
 
 private:
   srslte::log *m_s1ap_log;

@@ -82,6 +82,7 @@ private:
   hss *m_hss;
   int m_s1mme;
   std::map<uint16_t,enb_ctx_t*> m_active_enbs;
+  uint32_t m_next_mme_ue_s1ap_id;
  
   s1ap_mngmt_proc m_s1ap_mngmt_proc;
   s1ap_nas_transport m_s1ap_nas_transport;
