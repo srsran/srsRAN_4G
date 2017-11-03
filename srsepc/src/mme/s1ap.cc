@@ -236,130 +236,43 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
 }
 
 bool 
-s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
+s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri)
 {
-  m_s1ap_log->console("Received Initial UE Message\n");
-  m_s1ap_log->info("Received Initial UE Message\n");
-  
-  uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
-  uint8_t     op[16];
-  uint8_t     k[16];
-  uint64_t    imsi;
-
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
 
-  /*Get info from initial UE message*/ 
-  uint32_t enb_ue_s1ap_id = msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
-  /*Get NAS Attach Request Message*/
-  uint8_t pd, msg_type;
+  uint64_t    imsi;
 
-  srslte::byte_buffer_t *nas_msg = m_pool->allocate();
-  memcpy(nas_msg->msg, &msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
-  nas_msg->N_bytes = msg->NAS_PDU.n_octets;
-  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
-  
-  if(msg_type!=LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST){
-    m_s1ap_log->error("Unhandled NAS message within the Initial UE message\n");
-    return false;
-  }
+  uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
+  uint8_t     op[16];
+  uint8_t     k[16];
 
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_req);
-  if(err != LIBLTE_SUCCESS){
-    m_s1ap_log->error("Error unpacking NAS attach request. Error: %s\n", liblte_error_text[err]);
-    return false;
-  }
+ /*Get info from initial UE message*/ 
+  uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+  m_s1ap_log->console("Received Initial UE Message. eNB-UE S1AP Id: %d\n",enb_ue_s1ap_id);
+  m_s1ap_log->info("Received Initial UE Message. eNB-UE S1AP Id: %d\n",enb_ue_s1ap_id);
 
-  m_s1ap_log->info("Received Attach Request\n");
-  if(attach_req.eps_mobile_id.type_of_id!=LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI){
-    m_s1ap_log->error("NAS Attach Request: Unhandle UE Id Type");
-    return false;
-  }
-  
-  imsi = 0;
-  for(int i=0;i<=14;i++)
+  /*Log unhandled Initial UE message IEs*/
+  m_s1ap_nas_transport.log_unhandled_initial_ue_message_ies(init_ue);
+
+  /*Get NAS Attach Request and PDN connectivity request messages*/
+  if(!m_s1ap_nas_transport.unpack_initial_ue_message(init_ue, &attach_req,&pdn_con_req))
   {
+    //TODO set up error reply
+    return false;
+  }
+
+  //Get IMSI
+  imsi = 0;
+  for(int i=0;i<=14;i++){
     imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
   }
-  m_s1ap_log->console("IMSI: %015lu\n", imsi);
-  
-  if(attach_req.old_p_tmsi_signature_present){}
-  if(attach_req.additional_guti_present){}
-  if(attach_req.last_visited_registered_tai_present){}
-  if(attach_req.drx_param_present){}
-  if(attach_req.ms_network_cap_present){}
-  if(attach_req.old_lai_present){}
-  if(attach_req.tmsi_status_present){}
-  if(attach_req.ms_cm2_present){}
-  if(attach_req.ms_cm3_present){}
-  if(attach_req.supported_codecs_present){}
-  if(attach_req.additional_update_type_present){}
-  if(attach_req.voice_domain_pref_and_ue_usage_setting_present){}
-  if(attach_req.device_properties_present){}
-  if(attach_req.old_guti_type_present){}
+  m_s1ap_log->console("Attach request from IMSI: %015lu\n", imsi);
+  m_s1ap_log->info("Attach request from IMSI: %015lu\n", imsi);  
     
-
-  /*Handle PDN Connctivity Request*/
-  err = liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req);
-  if(err != LIBLTE_SUCCESS){
-    m_s1ap_log->error("Error unpacking NAS PDN Connectivity Request. Error: %s\n", liblte_error_text[err]);
-    return false;
-  }
-
+  //FIXME use this info
   uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
   uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
-  if(pdn_con_req.pdn_type != LIBLTE_MME_PDN_TYPE_IPV4)
-  {
-    m_s1ap_log->error("PDN Connectivity Request: Only IPv4 connectivity supported.\n");
-    return false;
-  }
-  if(pdn_con_req.request_type != LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST)
-  {
-    m_s1ap_log->error("PDN Connectivity Request: Only Initial Request supported.\n");
-    return false;
-  }
-
-  //Handle the optional flags
-  if(pdn_con_req.esm_info_transfer_flag_present){}
-  if(pdn_con_req.apn_present){}
-  if(pdn_con_req.protocol_cnfg_opts_present){}
-  if(pdn_con_req.device_properties_present){}
-
-  /*Log unhandled IEs*/
-  if(msg->S_TMSI_present){
-    m_s1ap_log->warning("S-TMSI present, but not handled.");
-  }
-  if(msg->CSG_Id_present){
-    m_s1ap_log->warning("S-TMSI present, but not handled.");
-  }
-  if(msg->GUMMEI_ID_present){
-    m_s1ap_log->warning("GUMMEI ID present, but not handled.");
-  }
-  if(msg->CellAccessMode_present){
-    m_s1ap_log->warning("Cell Access Mode present, but not handled.");
-  }
-  if(msg->GW_TransportLayerAddress_present){
-    m_s1ap_log->warning("GW Transport Layer present, but not handled.");
-  }
-  if(msg->GW_TransportLayerAddress_present){
-    m_s1ap_log->warning("GW Transport Layer present, but not handled.");
-  }
-  if(msg->RelayNode_Indicator_present){
-    m_s1ap_log->warning("Relay Node Indicator present, but not handled.");
-  }
-  if(msg->GUMMEIType_present){
-    m_s1ap_log->warning("GUMMEI Type present, but not handled.");
-  }
-  if(msg->Tunnel_Information_for_BBF_present){
-    m_s1ap_log->warning("Tunnel Information for BBF present, but not handled.");
-  }
-  if(msg->SIPTO_L_GW_TransportLayerAddress_present){
-    m_s1ap_log->warning("SIPTO GW Transport Layer Address present, but not handled.");
-  }
-  if(msg->LHN_ID_present){
-    m_s1ap_log->warning("LHN Id present, but not handled.");
-  }
-
 
   uint8_t     k_asme[32];
   uint8_t     autn[16]; 
@@ -393,19 +306,8 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
-  /*
-  typedef struct{
-    bool                                                         ext;
-    LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
-    LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
-    LIBLTE_S1AP_NAS_PDU_STRUCT                                   NAS_PDU;
-    LIBLTE_S1AP_HANDOVERRESTRICTIONLIST_STRUCT                   HandoverRestrictionList;
-    bool                                                         HandoverRestrictionList_present;
-    LIBLTE_S1AP_SUBSCRIBERPROFILEIDFORRFP_STRUCT                 SubscriberProfileIDforRFP;
-    bool                                                         SubscriberProfileIDforRFP_present;
-  }LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT;
-  */
-
+  
+  //
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
   memcpy(auth_req.autn , autn, 16);
   memcpy(auth_req.rand, rand, 16);
@@ -415,7 +317,7 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg
   
   // Pack NAS_PDU
   nas_buffer = m_pool->allocate();
-  err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->console("Error packing Athentication Request");

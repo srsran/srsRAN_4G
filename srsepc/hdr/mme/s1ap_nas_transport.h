@@ -27,7 +27,7 @@
 #define S1AP_NAS_TRANSPORT_H
 
 #include "srslte/asn1/liblte_s1ap.h"
-#include "srslte/common/common.h"
+#include "srslte/common/buffer_pool.h"
 #include "mme/s1ap_common.h"
 
 namespace srsepc{
@@ -39,12 +39,17 @@ public:
   virtual ~s1ap_nas_transport();
 
   void set_log(srslte::log *s1ap_logger);
-  bool unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, uint64_t *imsi);
+  bool unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req, LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);
   bool pack_authentication_request(uint8_t *autn,uint8_t *rand);
+
+  void log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req);
+  void log_unhandled_pdn_con_request_ies(const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);
+  void log_unhandled_initial_ue_message_ies(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue);
+
 
 private:
   srslte::log *m_s1ap_log;
-
+  srslte::byte_buffer_pool *m_pool;
 };
 
 } //namespace srsepc
