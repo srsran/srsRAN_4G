@@ -33,7 +33,7 @@ namespace srsepc{
 
 s1ap::s1ap():
   m_s1mme(-1),
-  m_next_mme_ue_s1ap_id(0)
+  m_next_mme_ue_s1ap_id(1)
 {
 }
 
@@ -242,10 +242,10 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
 
   uint64_t    imsi;
-
-  uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
-  uint8_t     op[16];
-  uint8_t     k[16];
+  uint8_t     k_asme[32];
+  uint8_t     autn[16]; 
+  uint8_t     rand[6];
+  uint8_t     xres[16];
 
  /*Get info from initial UE message*/ 
   uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
@@ -274,67 +274,19 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
   uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
 
-  uint8_t     k_asme[32];
-  uint8_t     autn[16]; 
-  uint8_t     rand[6];
-  uint8_t     xres[16];
-
+  //Get Authentication Vectors from HSS
   if(!m_hss->gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, xres))
   {
     m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
     return false;
   }
-  
+ 
+ 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  srslte::byte_buffer_t *nas_buffer;
   srslte::byte_buffer_t *reply_msg = m_pool->allocate();
+  m_s1ap_nas_transport.pack_authentication_request(reply_msg, enb_ue_s1ap_id, m_next_mme_ue_s1ap_id++, autn, rand);
   
-  //Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS message
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_next_mme_ue_s1ap_id++;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
-  
-  //
-  LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
-  memcpy(auth_req.autn , autn, 16);
-  memcpy(auth_req.rand, rand, 16);
-  auth_req.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  auth_req.nas_ksi.nas_ksi=0;
-  
-  
-  // Pack NAS_PDU
-  nas_buffer = m_pool->allocate();
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
-  if(err != LIBLTE_SUCCESS)
-  {
-    m_s1ap_log->console("Error packing Athentication Request");
-    return false;
-  }
-  
-  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
-
-  //Pack Downlink NAS Transport Message
-  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if(err != LIBLTE_SUCCESS)
-  {
-    m_s1ap_log->console("Error packing Athentication Request");
-    return false;
-  }
-
   //Send Reply to eNB
   ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
   if(n_sent == -1)
