@@ -37,7 +37,7 @@ hss*          hss::m_instance = NULL;
 boost::mutex  hss_instance_mutex;
 
 hss::hss()
- :m_sqn(0)
+ :m_sqn(1)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();     
   return;
@@ -131,6 +131,18 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
                             mnc,
                             k_asme);
 
+  //DEBUG code
+  std::cout<<"SQN: ";
+  for(int i=0;i<6;i++){
+    std::cout << std::hex <<(uint16_t) sqn[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"RAND: ";
+  for(int i=0;i<16;i++){
+    std::cout << std::hex <<(uint16_t) rand[i];
+  }
+  std::cout<<std::endl;
 
   return true;
 }
