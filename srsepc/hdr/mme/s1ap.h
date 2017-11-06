@@ -68,8 +68,10 @@ public:
   
   bool send_s1_setup_response(struct sctp_sndrcvinfo *enb_sri);
  
-  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
+  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri);
  
+  bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri);
+
   void print_enb_ctx_info(const enb_ctx_t &enb_ctx);
 
 private:

@@ -171,6 +171,9 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALUEMESSAGE:
     m_s1ap_log->info("Received Initial UE Message.\n");
     return handle_initial_ue_message(&msg->choice.InitialUEMessage, enb_sri);
+  case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UPLINKNASTRANSPORT:
+    m_s1ap_log->info("Received Initial UE Message.\n");
+    return handle_uplink_nas_transport(&msg->choice.UplinkNASTransport, enb_sri);
   default:
     m_s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
@@ -300,8 +303,37 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   return true;
 }
 
+bool
+s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri)
+{
 
+  uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+  uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
 
+  m_s1ap_log->console("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
+  m_s1ap_log->info("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
+
+  /*
+  typedef struct{
+  bool                                                         ext;
+  LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
+  LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
+  LIBLTE_S1AP_NAS_PDU_STRUCT                                   NAS_PDU;
+  LIBLTE_S1AP_EUTRAN_CGI_STRUCT                                EUTRAN_CGI;
+  LIBLTE_S1AP_TAI_STRUCT                                       TAI;
+  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     GW_TransportLayerAddress;
+  bool                                                         GW_TransportLayerAddress_present;
+  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     SIPTO_L_GW_TransportLayerAddress;
+  bool                                                         SIPTO_L_GW_TransportLayerAddress_present;
+  LIBLTE_S1AP_LHN_ID_STRUCT                                    LHN_ID;
+  bool                                                         LHN_ID_present;
+  }LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT;
+  */
+
+  //m_s1ap_nas_transport.log_unhandled_uplink_nas_transport_message_ies(ul_xport);
+
+  return true;
+}
 void
 s1ap::print_enb_ctx_info(const enb_ctx_t &enb_ctx)
 {
