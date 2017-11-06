@@ -154,6 +154,35 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   return true;
 }
 
+bool
+s1ap_nas_transport::unpack_authentication_response(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport,
+                                              LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT *auth_resp )
+{
+
+  /*Get NAS Authentiation Response Message*/
+  uint8_t pd, msg_type;
+  srslte::byte_buffer_t *nas_msg = m_pool->allocate();
+
+  memcpy(nas_msg->msg, &ul_xport->NAS_PDU.buffer, ul_xport->NAS_PDU.n_octets);
+  nas_msg->N_bytes = ul_xport->NAS_PDU.n_octets;
+  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
+
+  if(msg_type!=LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE){
+    m_s1ap_log->error("Unhandled NAS message within UL NAS Transport message\n");
+    return false;
+  }
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, auth_resp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  m_pool->deallocate(nas_msg);
+  return true;
+}
+
+
 /*Helper functions*/
 void
 s1ap_nas_transport::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req)
@@ -278,5 +307,8 @@ s1ap_nas_transport::log_unhandled_initial_ue_message_ies(LIBLTE_S1AP_MESSAGE_INI
   }
   return;
 }
+
+
+
 
 } //namespace srsepc

@@ -250,10 +250,12 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   uint8_t     rand[6];
   uint8_t     xres[16];
 
+  ue_ctx_t ue_ctx;
+
  /*Get info from initial UE message*/ 
-  uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
-  m_s1ap_log->console("Received Initial UE Message. eNB-UE S1AP Id: %d\n",enb_ue_s1ap_id);
-  m_s1ap_log->info("Received Initial UE Message. eNB-UE S1AP Id: %d\n",enb_ue_s1ap_id);
+  ue_ctx.enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+  m_s1ap_log->console("Received Initial UE Message. eNB-UE S1AP Id: %d\n", ue_ctx.enb_ue_s1ap_id);
+  m_s1ap_log->info("Received Initial UE Message. eNB-UE S1AP Id: %d\n", ue_ctx.enb_ue_s1ap_id);
 
   /*Log unhandled Initial UE message IEs*/
   m_s1ap_nas_transport.log_unhandled_initial_ue_message_ies(init_ue);
@@ -278,17 +280,24 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
 
   //Get Authentication Vectors from HSS
-  if(!m_hss->gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, xres))
+  if(!m_hss->gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, ue_ctx.xres))
   {
     m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
     return false;
   }
- 
+
+  //Save UE context
+  ue_ctx.imsi = imsi;
+  ue_ctx.mme_ue_s1ap_id = m_next_mme_ue_s1ap_id++; 
+  
+  ue_ctx_t *ue_ptr = new ue_ctx_t;//TODO use buffer pool here?
+  memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
+  m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
  
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   srslte::byte_buffer_t *reply_msg = m_pool->allocate();
-  m_s1ap_nas_transport.pack_authentication_request(reply_msg, enb_ue_s1ap_id, m_next_mme_ue_s1ap_id++, autn, rand);
+  m_s1ap_nas_transport.pack_authentication_request(reply_msg, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
   
   //Send Reply to eNB
   ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
@@ -307,11 +316,35 @@ bool
 s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri)
 {
 
+  bool     ue_valid = true;
   uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
 
+  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
+
   m_s1ap_log->console("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
   m_s1ap_log->info("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
+
+  //mme_ue_ctx_t ue_ctx = m_mme_ue_map[mme_ue_s1ap_id];
+  //if(mme_ue_ctx == m_mme_ue_map.end())
+  //{
+  //
+  //}
+
+  //Get NAS authentication response
+  if(!m_s1ap_nas_transport.unpack_authentication_response(ul_xport, &auth_resp))
+  {
+    //TODO set up error reply
+    return false;
+  }
+
+  //for(int i=0; i<16;i++)
+  //{
+  //  if(auth_resp.res[i] != ue_ctx.xres[i])
+  //  {
+  //    ue_valid = false;
+  //  }
+  //}
 
   /*
   typedef struct{
@@ -328,6 +361,11 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   LIBLTE_S1AP_LHN_ID_STRUCT                                    LHN_ID;
   bool                                                         LHN_ID_present;
   }LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT;
+  */
+  /*
+  typedef struct{
+    uint8 res[16];
+  }LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT;
   */
 
   //m_s1ap_nas_transport.log_unhandled_uplink_nas_transport_message_ies(ul_xport);

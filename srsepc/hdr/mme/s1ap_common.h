@@ -48,4 +48,11 @@ typedef struct{
   struct   sctp_sndrcvinfo sri;
 } enb_ctx_t;
 
+typedef struct{
+  uint64_t imsi;
+  uint32_t enb_ue_s1ap_id;
+  uint32_t mme_ue_s1ap_id;
+  uint8_t  xres[16];
+} ue_ctx_t;
+
 #endif

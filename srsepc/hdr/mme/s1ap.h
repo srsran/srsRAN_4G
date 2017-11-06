@@ -76,18 +76,20 @@ public:
 
 private:
 
-  s1ap_args_t                  m_s1ap_args;
-  uint32_t                     m_plmn;
-  srslte::byte_buffer_pool    *m_pool;
-  srslte::log                 *m_s1ap_log;
+  s1ap_args_t                    m_s1ap_args;
+  uint32_t                       m_plmn;
+  srslte::byte_buffer_pool      *m_pool;
+  srslte::log                   *m_s1ap_log;
 
   hss *m_hss;
   int m_s1mme;
-  std::map<uint16_t,enb_ctx_t*> m_active_enbs;
-  uint32_t m_next_mme_ue_s1ap_id;
+  std::map<uint16_t, enb_ctx_t*> m_active_enbs;
+  std::map<uint32_t, ue_ctx_t*>  m_active_ues;
+
+  uint32_t                       m_next_mme_ue_s1ap_id;
  
-  s1ap_mngmt_proc m_s1ap_mngmt_proc;
-  s1ap_nas_transport m_s1ap_nas_transport;
+  s1ap_mngmt_proc                m_s1ap_mngmt_proc;
+  s1ap_nas_transport             m_s1ap_nas_transport;
 };
 
 
