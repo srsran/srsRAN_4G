@@ -37,7 +37,7 @@ hss*          hss::m_instance = NULL;
 boost::mutex  hss_instance_mutex;
 
 hss::hss()
- :m_sqn(1)
+ :m_sqn(0x112233445566)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();     
   return;
@@ -97,8 +97,8 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   uint8_t     ak[6];
   uint8_t     mac[8];
 
-  uint16_t  mcc=1;
-  uint16_t  mnc=1;
+  uint16_t  mcc=61441; //001
+  uint16_t  mnc=65281; //01
 
   if(!get_k_amf_op(imsi,k,amf,op))
   {
@@ -131,16 +131,83 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
                             mnc,
                             k_asme);
 
+  //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
+  for(int i=0;i<6;i++ )
+  {
+    autn[i] = sqn[i]^ak[i];
+  }
+  for(int i=0;i<2;i++)
+  {
+    autn[6+i]=amf[i];
+  }
+  for(int i=0;i<8;i++)
+  {
+    autn[8+i]=mac[i];
+  }
+
+  std::cout<<"IMSI: "<< imsi << std::endl;
+  std::cout<<"MCC: "<<mcc<<std::endl;
+  std::cout<<"MNC "<<mnc<<std::endl; 
+
   //DEBUG code
-  std::cout<<"SQN: ";
-  for(int i=0;i<6;i++){
-    std::cout << std::hex <<(uint16_t) sqn[i];
+  std::cout<<"K: ";
+  for(int i=0;i<16;i++){
+    std::cout << std::hex <<(uint16_t) k[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"OP: ";
+  for(int i=0;i<16;i++){
+    std::cout << std::hex <<(uint16_t) op[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"AMF: ";
+  for(int i=0;i<2;i++){
+    std::cout << std::hex <<(uint16_t) amf[i];
   }
   std::cout<<std::endl;
 
   std::cout<<"RAND: ";
   for(int i=0;i<16;i++){
     std::cout << std::hex <<(uint16_t) rand[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout << std::endl;
+  std::cout<<"XRES: ";
+  for(int i=0;i<16;i++){
+    std::cout << std::hex <<(uint16_t) xres[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"CK: ";
+  for(int i=0;i<16;i++){
+    std::cout << std::hex <<(uint16_t) ck[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"IK: ";
+  for(int i=0;i<16;i++){
+    std::cout << std::hex <<(uint16_t) ik[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"AK: ";
+  for(int i=0;i<6;i++){
+    std::cout << std::hex <<(uint16_t) ak[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"Authn: ";
+  for(int i=0;i<6;i++){
+    std::cout << std::hex <<(uint16_t) autn[i];
+  }
+  std::cout<<std::endl;
+
+  std::cout<<"SQN: ";
+  for(int i=0;i<6;i++){
+    std::cout << std::hex <<(uint16_t) sqn[i];
   }
   std::cout<<std::endl;
 
@@ -151,7 +218,7 @@ bool
 hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
 {
 
-  uint8_t k_tmp[16];
+  uint8_t k_tmp[16] ={0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff};
   uint8_t amf_tmp[2]={0x80,0x00};
   uint8_t op_tmp[16]={0x63,0xbf,0xA5,0x0E,0xE6,0x52,0x33,0x65,0xFF,0x14,0xC1,0xF4,0x5F,0x88,0x73,0x7D};
   
@@ -159,12 +226,6 @@ hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
   {
     m_hss_log.console("Usernot found. IMSI: %015lu\n",imsi);
     return false;
-  }
-
-  for(int i=0;i<8;i++)
-  {
-    k_tmp[2*i]=i;
-    k_tmp[2*i+1]=i;
   }
 
   m_hss_log.console("Found User %015lu\n",imsi);
