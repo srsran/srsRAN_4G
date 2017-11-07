@@ -319,17 +319,21 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   bool     ue_valid = true;
   uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  ue_ctx_t *ue_ctx;
 
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
+  srslte::byte_buffer_t *reply_msg = m_pool->allocate();  
 
   m_s1ap_log->console("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
   m_s1ap_log->info("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
 
-  //mme_ue_ctx_t ue_ctx = m_mme_ue_map[mme_ue_s1ap_id];
-  //if(mme_ue_ctx == m_mme_ue_map.end())
-  //{
-  //
-  //}
+  std::map<uint32_t, ue_ctx_t*>::iterator it = m_active_ues.find(mme_ue_s1ap_id);
+  ue_ctx = it->second;
+  if(it == m_active_ues.end())
+  {
+    //TODO UE not registered, send error message.
+    return false;
+  }
 
   //Get NAS authentication response
   if(!m_s1ap_nas_transport.unpack_authentication_response(ul_xport, &auth_resp))
@@ -338,13 +342,23 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
     return false;
   }
 
-  //for(int i=0; i<16;i++)
-  //{
-  //  if(auth_resp.res[i] != ue_ctx.xres[i])
-  //  {
-  //    ue_valid = false;
-  //  }
-  //}
+  for(int i=0; i<16;i++)
+  {
+    if(auth_resp.res[i] != ue_ctx->xres[i])
+    {
+      ue_valid = false;
+    }
+  }
+  if(!ue_valid)
+  {
+    m_s1ap_log->warning("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
+    //TODO send back error reply
+    return false;
+  }
+  m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
+
+  
+  m_s1ap_nas_transport.pack_security_mode_command();
 
   /*
   typedef struct{
@@ -366,6 +380,20 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   typedef struct{
     uint8 res[16];
   }LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT;
+  */
+
+  /*
+  typedef struct{
+    LIBLTE_MME_NAS_SECURITY_ALGORITHMS_STRUCT  selected_nas_sec_algs;
+    LIBLTE_MME_NAS_KEY_SET_ID_STRUCT           nas_ksi;
+    LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT ue_security_cap;
+    LIBLTE_MME_IMEISV_REQUEST_ENUM             imeisv_req;
+    uint32                                     nonce_ue;
+    uint32                                     nonce_mme;
+    bool                                       imeisv_req_present;
+    bool                                       nonce_ue_present;
+    bool                                       nonce_mme_present;
+  }LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT;
   */
 
   //m_s1ap_nas_transport.log_unhandled_uplink_nas_transport_message_ies(ul_xport);

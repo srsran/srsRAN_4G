@@ -182,10 +182,105 @@ s1ap_nas_transport::unpack_authentication_response(LIBLTE_S1AP_MESSAGE_UPLINKNAS
   return true;
 }
 
+s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t reply_msg, mme_ue_ctx_t *ue_ctx)
+{
+  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
+
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+  m_s1ap_log->console("Dw NAS id %d\n", ue_ctx->enb_ue_s1ap_id);
+
+  //Pack NAS PDU 
+  LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
+ 
+  sm_cmd.selected_nas_sec_algs;
+  sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+  sm_cmd.nas_ksi.nas_ksi=0;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->console("Error packing Athentication Request\n");
+    return false;
+  }
+
+  //Copy NAS PDU to Downlink NAS Trasport message buffer
+  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
+
+  //Pack Downlink NAS Transport Message
+  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->console("Error packing Athentication Request\n");
+    return false;
+  }
+   
+  m_pool->deallocate(nas_buffer);
+
+  return true;
+}
+  
+
+  /*
+  typedef struct{
+    LIBLTE_MME_NAS_SECURITY_ALGORITHMS_STRUCT  selected_nas_sec_algs;
+    LIBLTE_MME_NAS_KEY_SET_ID_STRUCT           nas_ksi;
+    LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT ue_security_cap;
+    LIBLTE_MME_IMEISV_REQUEST_ENUM             imeisv_req;
+    uint32                                     nonce_ue;
+    uint32                                     nonce_mme;
+    bool                                       imeisv_req_present;
+    bool                                       nonce_ue_present;
+    bool                                       nonce_mme_present;
+  }LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT;
+  */
+  /*
+  typedef struct{
+    LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_ENUM type_of_eea;
+    LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_ENUM type_of_eia;
+  }LIBLTE_MME_NAS_SECURITY_ALGORITHMS_STRUCT;
+  */
+  /*
+  typedef struct{
+    LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_ENUM tsc_flag;
+    uint8                                         nas_ksi;
+  }LIBLTE_MME_NAS_KEY_SET_ID_STRUCT;
+  */
+  /*
+  typedef struct{
+    bool eea[8];
+    bool eia[8];
+    bool uea[8];
+    bool uea_present;
+    bool uia[8];
+    bool uia_present;
+    bool gea[8];
+    bool gea_present;
+  }LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT;
+  */
+
+}
 
 /*Helper functions*/
-void
-s1ap_nas_transport::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req)
+
+voi::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req)
 {
   if(attach_req->old_p_tmsi_signature_present)
   {
