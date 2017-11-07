@@ -278,9 +278,10 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   //FIXME use this info
   uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
   uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
+  m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
 
   //Get Authentication Vectors from HSS
-  if(!m_hss->gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, ue_ctx.xres))
+  if(!m_hss->gen_auth_info_answer_milenage(imsi, ue_ctx.k_asme, autn, rand, ue_ctx.xres))
   {
     m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);

@@ -26,6 +26,7 @@
 
 #include "mme/s1ap.h"
 #include "mme/s1ap_nas_transport.h"
+#include "srslte/common/security.h"
 
 namespace srsepc{
 
@@ -233,6 +234,31 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
     return false;
   }
 
+  //Generate MAC for integrity protection
+  //FIXME Write wrapper to support EIA1, EIA2, etc.
+  //TODO which is the RB ID? Standard says a constant, but which?
+  uint8_t mac[4];
+
+  uint8_t k_nas_enc[32];
+  uint8_t k_nas_int[32];
+
+  srslte::security_generate_k_nas( ue_ctx->k_asme,
+                           srslte::CIPHERING_ALGORITHM_ID_EEA0,
+                           srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
+                           k_nas_enc,
+                           k_nas_int
+                         );
+
+  srslte::security_128_eia1 (&k_nas_int[16],
+                     count,
+                     0,
+                     SECURITY_DIRECTION_DOWNLINK,
+                     &nas_buffer->msg[5],
+                     nas_buffer->N_bytes - 5,
+                     mac
+  ); 
+
+  memcpy(&nas_buffer->msg[1],mac,4);
   //Copy NAS PDU to Downlink NAS Trasport message buffer
   memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
   dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;

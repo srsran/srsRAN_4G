@@ -52,7 +52,8 @@ typedef struct{
   uint64_t imsi;
   uint32_t enb_ue_s1ap_id;
   uint32_t mme_ue_s1ap_id;
-  uint8_t  xres[16];
+  uint8_t  xres[8];
+  uint8_t  k_asme[32];
 } ue_ctx_t;
 
 #endif
