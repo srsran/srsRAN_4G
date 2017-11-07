@@ -25,6 +25,8 @@
  */
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
+#include <string>
+#include <sstream>
 #include <boost/thread/mutex.hpp>
 #include "hss/hss.h"
 #include "srslte/common/security.h"
@@ -145,6 +147,29 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
     autn[8+i]=mac[i];
   }
 
+
+
+  //std::stringstream ss;
+  std::cout<<"SQN: ";
+  for(int i=0;i<6;i++)
+  {
+    std::cout << std::hex <<(uint16_t)sqn[i];
+  }
+  std::cout<<std::endl;
+  std::cout<<"AUTN: ";
+  for(int i=0;i<8;i++)
+  {
+    std::cout << std::hex <<(uint16_t)autn[i];
+  }
+  std::cout<<std::endl;
+  std::cout<<"XRES: ";
+  for(int i=0;i<16;i++)
+  {
+    std::cout << std::hex <<(uint16_t)xres[i];
+  }
+  std::cout<<std::endl;
+  //std::string autn_str = ss.str();
+  //m_hss_log.console("AUTN: %s", autn_str.c_str());
   return true;
 }
 

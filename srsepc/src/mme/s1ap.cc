@@ -248,7 +248,7 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   uint8_t     k_asme[32];
   uint8_t     autn[16]; 
   uint8_t     rand[6];
-  uint8_t     xres[16];
+  uint8_t     xres[8];
 
   ue_ctx_t ue_ctx;
 
@@ -332,17 +332,19 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   if(it == m_active_ues.end())
   {
     //TODO UE not registered, send error message.
+    m_s1ap_log->console("Could not find UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
     return false;
   }
+  m_s1ap_log->console("Found UE. MME-UE S1AP id: %lu",mme_ue_s1ap_id);
 
   //Get NAS authentication response
   if(!m_s1ap_nas_transport.unpack_authentication_response(ul_xport, &auth_resp))
   {
-    //TODO set up error reply
+    m_s1ap_log->warning("Error unpacking authentication response\n");
     return false;
   }
 
-  for(int i=0; i<16;i++)
+  for(int i=0; i<8;i++)
   {
     if(auth_resp.res[i] != ue_ctx->xres[i])
     {
@@ -351,78 +353,35 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   }
   if(!ue_valid)
   {
+    std::cout<<std::endl;
+    std::cout<<"XRES: ";
+    for(int i=0;i<8;i++)
+    {
+      std::cout << std::hex <<(uint16_t)ue_ctx->xres[i];
+    }
+    std::cout<<std::endl;
+   
+    m_s1ap_log->console("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     m_s1ap_log->warning("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     //TODO send back error reply
     return false;
   }
   m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
 
-  reply_msg = m_pool->allocate();
 
+  //Send Security Mode Command
+  reply_msg = m_pool->allocate();
   m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
 
-  /*
-  typedef struct{
-  bool                                                         ext;
-  LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
-  LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
-  LIBLTE_S1AP_NAS_PDU_STRUCT                                   NAS_PDU;
-  LIBLTE_S1AP_EUTRAN_CGI_STRUCT                                EUTRAN_CGI;
-  LIBLTE_S1AP_TAI_STRUCT                                       TAI;
-  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     GW_TransportLayerAddress;
-  bool                                                         GW_TransportLayerAddress_present;
-  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     SIPTO_L_GW_TransportLayerAddress;
-  bool                                                         SIPTO_L_GW_TransportLayerAddress_present;
-  LIBLTE_S1AP_LHN_ID_STRUCT                                    LHN_ID;
-  bool                                                         LHN_ID_present;
-  }LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT;
-  */
-  /*
-  typedef struct{
-    uint8 res[16];
-  }LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT;
-  */
-
-  /*
-  typedef struct{
-    LIBLTE_MME_NAS_SECURITY_ALGORITHMS_STRUCT  selected_nas_sec_algs;
-    LIBLTE_MME_NAS_KEY_SET_ID_STRUCT           nas_ksi;
-    LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT ue_security_cap;
-    LIBLTE_MME_IMEISV_REQUEST_ENUM             imeisv_req;
-    uint32                                     nonce_ue;
-    uint32                                     nonce_mme;
-    bool                                       imeisv_req_present;
-    bool                                       nonce_ue_present;
-    bool                                       nonce_mme_present;
-  }LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT;
-  */
-  /*
-  typedef struct{
-    LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_ENUM type_of_eea;
-    LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_ENUM type_of_eia;
-  }LIBLTE_MME_NAS_SECURITY_ALGORITHMS_STRUCT;
-  */
-  /*
-  typedef struct{
-    LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_ENUM tsc_flag;
-    uint8                                         nas_ksi;
-  }LIBLTE_MME_NAS_KEY_SET_ID_STRUCT;
-  */
-  /*
-  typedef struct{
-    bool eea[8];
-    bool eia[8];
-    bool uea[8];
-    bool uea_present;
-    bool uia[8];
-    bool uia_present;
-    bool gea[8];
-    bool gea_present;
-  }LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT;
-  */
-
-
-  //m_s1ap_nas_transport.log_unhandled_uplink_nas_transport_message_ies(ul_xport);
+  //Send Reply to eNB
+  ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
+  if(n_sent == -1)
+  {
+    m_s1ap_log->console("Failed to send NAS Attach Request");
+    return false;
+  }
+  m_s1ap_log->console("Sent Security Mode Command\n");
+  m_pool->deallocate(reply_msg);
 
   return true;
 }

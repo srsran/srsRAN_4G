@@ -205,13 +205,13 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
-  m_s1ap_log->console("Dw NAS id %d\n", ue_ctx->enb_ue_s1ap_id);
+  m_s1ap_log->console("Sending Security Mode command to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
 
   //Pack NAS PDU 
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
  
   sm_cmd.selected_nas_sec_algs.type_of_eea = LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0;
-  sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_EIA0;
+  sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_128_EIA1;
 
   sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
   sm_cmd.nas_ksi.nas_ksi=0;
@@ -219,12 +219,12 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   //FIXME UE security cap not used by srsUE.
   //sm_cmd.ue_security_cap;
 
- sm_cmd.imeisv_req_present=false;
+  sm_cmd.imeisv_req_present=false;
   sm_cmd.nonce_ue_present=false;
   sm_cmd.nonce_mme_present=false;
 
-  uint8_t  sec_hdr_type;
-  uint32_t count;
+  uint8_t  sec_hdr_type=3;
+  uint32_t count=0;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
