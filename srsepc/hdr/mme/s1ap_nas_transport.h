@@ -42,6 +42,7 @@ public:
   bool unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req, LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);
   bool pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t *autn,uint8_t *rand);
   bool unpack_authentication_response(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT *auth_resp);
+  bool pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
 
   void log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req);
   void log_unhandled_pdn_con_request_ies(const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);

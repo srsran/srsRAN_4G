@@ -322,7 +322,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   ue_ctx_t *ue_ctx;
 
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
-  srslte::byte_buffer_t *reply_msg = m_pool->allocate();  
+  srslte::byte_buffer_t *reply_msg;  
 
   m_s1ap_log->console("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
   m_s1ap_log->info("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
@@ -357,8 +357,9 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   }
   m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
 
-  
-  m_s1ap_nas_transport.pack_security_mode_command();
+  reply_msg = m_pool->allocate();
+
+  m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
 
   /*
   typedef struct{
@@ -395,6 +396,31 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
     bool                                       nonce_mme_present;
   }LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT;
   */
+  /*
+  typedef struct{
+    LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_ENUM type_of_eea;
+    LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_ENUM type_of_eia;
+  }LIBLTE_MME_NAS_SECURITY_ALGORITHMS_STRUCT;
+  */
+  /*
+  typedef struct{
+    LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_ENUM tsc_flag;
+    uint8                                         nas_ksi;
+  }LIBLTE_MME_NAS_KEY_SET_ID_STRUCT;
+  */
+  /*
+  typedef struct{
+    bool eea[8];
+    bool eia[8];
+    bool uea[8];
+    bool uea_present;
+    bool uia[8];
+    bool uia_present;
+    bool gea[8];
+    bool gea_present;
+  }LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT;
+  */
+
 
   //m_s1ap_nas_transport.log_unhandled_uplink_nas_transport_message_ies(ul_xport);
 

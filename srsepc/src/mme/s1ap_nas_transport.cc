@@ -182,7 +182,8 @@ s1ap_nas_transport::unpack_authentication_response(LIBLTE_S1AP_MESSAGE_UPLINKNAS
   return true;
 }
 
-s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t reply_msg, mme_ue_ctx_t *ue_ctx)
+bool
+s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -209,11 +210,23 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t reply_msg, 
   //Pack NAS PDU 
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
  
-  sm_cmd.selected_nas_sec_algs;
+  sm_cmd.selected_nas_sec_algs.type_of_eea = LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0;
+  sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_EIA0;
+
   sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
   sm_cmd.nas_ksi.nas_ksi=0;
 
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  //FIXME UE security cap not used by srsUE.
+  //sm_cmd.ue_security_cap;
+
+ sm_cmd.imeisv_req_present=false;
+  sm_cmd.nonce_ue_present=false;
+  sm_cmd.nonce_mme_present=false;
+
+  uint8_t  sec_hdr_type;
+  uint32_t count;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->console("Error packing Athentication Request\n");
@@ -238,49 +251,10 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t reply_msg, 
 }
   
 
-  /*
-  typedef struct{
-    LIBLTE_MME_NAS_SECURITY_ALGORITHMS_STRUCT  selected_nas_sec_algs;
-    LIBLTE_MME_NAS_KEY_SET_ID_STRUCT           nas_ksi;
-    LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT ue_security_cap;
-    LIBLTE_MME_IMEISV_REQUEST_ENUM             imeisv_req;
-    uint32                                     nonce_ue;
-    uint32                                     nonce_mme;
-    bool                                       imeisv_req_present;
-    bool                                       nonce_ue_present;
-    bool                                       nonce_mme_present;
-  }LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT;
-  */
-  /*
-  typedef struct{
-    LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_ENUM type_of_eea;
-    LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_ENUM type_of_eia;
-  }LIBLTE_MME_NAS_SECURITY_ALGORITHMS_STRUCT;
-  */
-  /*
-  typedef struct{
-    LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_ENUM tsc_flag;
-    uint8                                         nas_ksi;
-  }LIBLTE_MME_NAS_KEY_SET_ID_STRUCT;
-  */
-  /*
-  typedef struct{
-    bool eea[8];
-    bool eia[8];
-    bool uea[8];
-    bool uea_present;
-    bool uia[8];
-    bool uia_present;
-    bool gea[8];
-    bool gea_present;
-  }LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT;
-  */
-
-}
 
 /*Helper functions*/
-
-voi::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req)
+void
+s1ap_nas_transport::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req)
 {
   if(attach_req->old_p_tmsi_signature_present)
   {
