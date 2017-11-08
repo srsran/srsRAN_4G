@@ -70,27 +70,19 @@ mme::cleanup(void)
 }
 
 int
-mme::init(mme_args_t* args, srslte::logger *logger)
+mme::init(mme_args_t* args, srslte::log_filter *s1ap_log)
 {
-  /*Init loggers*/
-  /*
-  if (!args->log_args.filename.compare("stdout")) {
-    m_logger = &m_logger_stdout;
-  } else {
-    m_logger_file.init(args->log_args.filename);
-    m_logger_file.log("\n---  Software Radio Systems MME log ---\n\n");
-    m_logger = &m_logger_file;
-  }
-  */
-  m_s1ap_log.init("S1AP", m_logger);
-  m_s1ap_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  m_s1ap_log.set_hex_limit(32);
-  if(m_s1ap.init(args->s1ap_args, &m_s1ap_log)){
-    m_s1ap_log.error("Error initializing MME S1APP\n");
+  
+  /*Init S1AP*/ 
+  if(m_s1ap.init(args->s1ap_args, s1ap_log)){
+    m_s1ap_log->error("Error initializing MME S1APP\n");
     exit(-1);
   }
-  m_s1ap_log.info("Initialized S1-MME\n");
-  m_s1ap_log.console("Initialized S1-MME\n");
+
+  /*Init logger*/
+  m_s1ap_log = s1ap_log;
+  m_s1ap_log->info("MME Initialized\n");
+  m_s1ap_log->console("MME Initialized\n");
   return 0;
 }
 
@@ -127,30 +119,30 @@ mme::run_thread()
   int s1mme = m_s1ap.get_s1_mme();
   while(m_running)
   {
-    m_s1ap_log.debug("Waiting for SCTP Msg\n");
+    m_s1ap_log->debug("Waiting for SCTP Msg\n");
     pdu->reset();
     rd_sz = sctp_recvmsg(s1mme, pdu->msg, sz,(struct sockaddr*) &enb_addr, &fromlen, &sri, &msg_flags);
     if (rd_sz == -1 && errno != EAGAIN){
-      m_s1ap_log.error("Error reading from SCTP socket: %s", strerror(errno));
+      m_s1ap_log->error("Error reading from SCTP socket: %s", strerror(errno));
     }
     else if (rd_sz == -1 && errno == EAGAIN){
-      m_s1ap_log.debug("Socket timeout reached");
+      m_s1ap_log->debug("Socket timeout reached");
     }
     else{
       if(msg_flags & MSG_NOTIFICATION)
       {
         //Received notification
-        m_s1ap_log.console("SCTP Notification %d\n", ((union sctp_notification*)pdu->msg)->sn_header.sn_type);
+        m_s1ap_log->console("SCTP Notification %d\n", ((union sctp_notification*)pdu->msg)->sn_header.sn_type);
         if (((union sctp_notification*)pdu->msg)->sn_header.sn_type == SCTP_SHUTDOWN_EVENT)
         {
-          m_s1ap_log.console("SCTP Association Gracefully Shutdown\n");//TODO
+          m_s1ap_log->console("SCTP Association Gracefully Shutdown\n");//TODO
         }
       }
       else
       { 
         //Received data
         pdu->N_bytes = rd_sz;
-        m_s1ap_log.info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
+        m_s1ap_log->info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
         m_s1ap.handle_s1ap_rx_pdu(pdu,&sri);
       }
     }

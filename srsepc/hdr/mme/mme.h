@@ -66,7 +66,7 @@ class mme:
 public:
   static mme* get_instance(void);
   static void cleanup(void);
-  int init(mme_args_t* args, srslte::logger *logger);
+  int init(mme_args_t* args, srslte::log_filter *s1ap_log);
   void stop();
   int get_s1_mme();
   void run_thread();
@@ -82,11 +82,7 @@ private:
   srslte::byte_buffer_pool *m_pool;
 
   /*Logs*/
-  //srslte::logger_stdout m_logger_stdout;
-  //srslte::logger_file   m_logger_file;
-  srslte::logger        *m_logger;
-
-  srslte::log_filter  m_s1ap_log;
+  srslte::log_filter  *m_s1ap_log;
  
 };
 

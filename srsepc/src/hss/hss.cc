@@ -71,18 +71,14 @@ hss::cleanup(void)
 }
 
 int
-hss::init(hss_args_t *hss_args, srslte::logger *logger)
+hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
 {
   /*Init loggers*/
-  m_logger=logger;
-  m_hss_log.init("HSS", m_logger);
-  m_hss_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  m_hss_log.set_hex_limit(32);
-
   srand(time(NULL));
 
-  m_hss_log.info("Initialized HSS\n");
-  m_hss_log.console("Initialized HSS\n");
+  m_hss_log = hss_log;
+  m_hss_log->info("HSS Initialized\n");
+  m_hss_log->console("HSS Initialized\n");
   return 0;
 }
 
@@ -169,7 +165,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   }
   std::cout<<std::endl;
   //std::string autn_str = ss.str();
-  //m_hss_log.console("AUTN: %s", autn_str.c_str());
+  //m_hss_log->console("AUTN: %s", autn_str.c_str());
   return true;
 }
 
@@ -183,11 +179,11 @@ hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
   
   if(imsi != 1010123456789)
   {
-    m_hss_log.console("Usernot found. IMSI: %015lu\n",imsi);
+    m_hss_log->console("User not found. IMSI: %015lu\n",imsi);
     return false;
   }
 
-  m_hss_log.console("Found User %015lu\n",imsi);
+  m_hss_log->console("Found User %015lu\n",imsi);
   memcpy(k,k_tmp,16);
   memcpy(amf,amf_tmp,2);
   memcpy(op,op_tmp,16);

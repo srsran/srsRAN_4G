@@ -53,7 +53,7 @@ class hss
 public:
   static hss* get_instance(void);
   static void cleanup(void);
-  int init(hss_args_t *hss_args, srslte::logger* logger);
+  int init(hss_args_t *hss_args, srslte::log_filter* hss_log);
  
   void get_sqn(uint8_t sqn[6]);
   void gen_rand(uint8_t rand_[16]);
@@ -66,15 +66,11 @@ private:
   virtual ~hss();
   static hss *m_instance;
 
-  uint64_t m_sqn; //48 bits
+  uint64_t                  m_sqn; //48 bits
   srslte::byte_buffer_pool *m_pool;
 
   /*Logs*/
-  srslte::logger_stdout m_logger_stdout;
-  srslte::logger_file   m_logger_file;
-  srslte::logger        *m_logger;
-
-  srslte::log_filter  m_hss_log;
+  srslte::log_filter       *m_hss_log;
  
 };
 

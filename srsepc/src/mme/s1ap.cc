@@ -42,9 +42,9 @@ s1ap::~s1ap()
 }
 
 int
-s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
+s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
 {
-  
+
   m_s1ap_args = s1ap_args;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
 
@@ -56,6 +56,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log *s1ap_log)
 
   m_s1mme = enb_listen();
 
+  m_s1ap_log->info("S1AP Initialized\n");
   return 0;
 }
 
@@ -89,7 +90,7 @@ s1ap::enb_listen()
   struct sockaddr_in s1mme_addr;
   struct sctp_event_subscribe evnts;
 
-  m_s1ap_log->console("Initializing S1-MME\n");
+  m_s1ap_log->info("S1-MME Initializing\n");
   sock_fd = socket (AF_INET, SOCK_SEQPACKET, IPPROTO_SCTP);
   if (sock_fd == -1){
     m_s1ap_log->console("Could not create SCTP socket\n"); 

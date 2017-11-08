@@ -159,7 +159,7 @@ main (int argc,char * argv[] )
 
  
   /*Init logger*/
-  args.log_args.filename = std::string("/tmp/epc.log"); //FIXME
+  args.log_args.filename = std::string("/tmp/epc.log");
   if (!args.log_args.filename.compare("stdout")) {
     logger = &logger_stdout;
   } else {
@@ -168,17 +168,29 @@ main (int argc,char * argv[] )
     logger = &logger_file;
   }
 
+  srslte::log_filter s1ap_log;
+  s1ap_log.init("S1AP",logger);
+  s1ap_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  s1ap_log.set_hex_limit(32);
+
+  srslte::log_filter hss_log;
+  hss_log.init("HSS ",logger);
+  hss_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  hss_log.set_hex_limit(32);
+  
   mme *mme = mme::get_instance();
-  if (mme->init(&args.mme_args, logger)) {
+  if (mme->init(&args.mme_args, &s1ap_log)) {
     cout << "Error initializing MME" << endl;
     exit(1);
   }
+  
   hss *hss = hss::get_instance();
-  if (hss->init(&args.hss_args,logger)) {
+  if (hss->init(&args.hss_args,&hss_log)) {
     cout << "Error initializing HSS" << endl;
     exit(1);
   }
-
+  
+  
   mme->start();
   
   while(running) {
@@ -187,7 +199,8 @@ main (int argc,char * argv[] )
 
   mme->stop();
   mme->cleanup();  
-
+  
+  
   cout << "---  exiting  ---" << endl;  
   return 0;
 }

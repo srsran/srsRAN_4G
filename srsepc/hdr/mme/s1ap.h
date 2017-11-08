@@ -53,7 +53,7 @@ public:
   s1ap();
   virtual ~s1ap();
   int enb_listen(); 
-  int init(s1ap_args_t s1ap_args, srslte::log *s1ap_log);
+  int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log);
   void stop();
 
   int get_s1_mme();
@@ -79,7 +79,8 @@ private:
   s1ap_args_t                    m_s1ap_args;
   uint32_t                       m_plmn;
   srslte::byte_buffer_pool      *m_pool;
-  srslte::log                   *m_s1ap_log;
+  srslte::logger                *m_logger;
+  srslte::log_filter            *m_s1ap_log;
 
   hss *m_hss;
   int m_s1mme;
