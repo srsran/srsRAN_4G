@@ -142,19 +142,19 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb
 
   switch(rx_pdu.choice_type) {
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
-    m_s1ap_log->console("Received initiating PDU\n");
+    m_s1ap_log->info("Received initiating PDU\n");
     return handle_initiating_message(&rx_pdu.choice.initiatingMessage, enb_sri);
     break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME:
-    m_s1ap_log->console("Received Succeseful Outcome PDU\n");
+    m_s1ap_log->info("Received Succeseful Outcome PDU\n");
     return true;//handle_successfuloutcome(&rx_pdu.choice.successfulOutcome);
     break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME:
-    m_s1ap_log->console("Received Unsucceseful Outcome PDU\n");
+    m_s1ap_log->info("Received Unsucceseful Outcome PDU\n");
     return true;//handle_unsuccessfuloutcome(&rx_pdu.choice.unsuccessfulOutcome);
     break;
   default:
-    m_s1ap_log->console("Unhandled PDU type %d\n", rx_pdu.choice_type);
+    m_s1ap_log->error("Unhandled PDU type %d\n", rx_pdu.choice_type);
     return false;
   }
 
@@ -173,7 +173,7 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     m_s1ap_log->info("Received Initial UE Message.\n");
     return handle_initial_ue_message(&msg->choice.InitialUEMessage, enb_sri);
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UPLINKNASTRANSPORT:
-    m_s1ap_log->info("Received Initial UE Message.\n");
+    m_s1ap_log->info("Received Uplink NAS Transport Message.\n");
     return handle_uplink_nas_transport(&msg->choice.UplinkNASTransport, enb_sri);
   default:
     m_s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
@@ -202,8 +202,8 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
   
   //Check matching PLMNs  
   if(enb_ctx.plmn!=m_plmn){
-    m_s1ap_log->console("S1 Setup Failure - Unkown PLMN\n");
-    m_s1ap_log->info("S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_log->console("Sending S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_log->info("Sending S1 Setup Failure - Unkown PLMN\n");
     m_s1ap_mngmt_proc.pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
   }
   else{
@@ -223,8 +223,8 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
         
     //m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t>(enb_ctx.enb_id,enb_ctx));
     m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
-    m_s1ap_log->console("S1 Setup Response\n");
-    m_s1ap_log->info("S1 Setup Response\n");
+    m_s1ap_log->console("Sending S1 Setup Response\n");
+    m_s1ap_log->info("Sending S1 Setup Response\n");
   }
   
   //Send Reply to eNB
@@ -323,8 +323,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
   ue_ctx_t *ue_ctx;
 
-  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
-  srslte::byte_buffer_t *reply_msg;  
+  srslte::byte_buffer_t *reply_msg = m_pool->allocate();  
 
   m_s1ap_log->console("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
   m_s1ap_log->info("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
@@ -339,10 +338,54 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   }
   m_s1ap_log->console("Found UE. MME-UE S1AP id: %lu",mme_ue_s1ap_id);
 
-  //Get NAS authentication response
-  if(!m_s1ap_nas_transport.unpack_authentication_response(ul_xport, &auth_resp))
+  //Get NAS message type
+  uint8_t pd, msg_type;
+  srslte::byte_buffer_t *nas_msg = m_pool->allocate();
+
+  memcpy(nas_msg->msg, &ul_xport->NAS_PDU.buffer, ul_xport->NAS_PDU.n_octets);
+  nas_msg->N_bytes = ul_xport->NAS_PDU.n_octets;
+  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
+    
+  switch (msg_type) {
+    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
+      handle_nas_authentication_response(nas_msg, reply_msg, ue_ctx);
+      m_s1ap_log->info("UL NAS: Received Authentication Response\n");
+      break;
+    case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
+      m_s1ap_log->info("UL NAS: Received Security Mode Complete\n");
+      break;
+    default:
+      m_s1ap_log->info("Unhandled NAS message");
+      return false; //FIXME cleanup (deallocate needs to be called)
+  }
+    
+
+  //Send Reply to eNB
+  ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
+  if(n_sent == -1)
   {
-    m_s1ap_log->warning("Error unpacking authentication response\n");
+    m_s1ap_log->console("Failed to send NAS Attach Request");
+    return false;
+  }
+  m_s1ap_log->console("Sent Security Mode Command\n");
+
+  m_pool->deallocate(nas_msg);
+  m_pool->deallocate(reply_msg);
+
+  return true;
+}
+
+bool
+s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
+{
+
+  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
+  bool ue_valid=true;
+ 
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
     return false;
   }
 
@@ -370,23 +413,11 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   }
   m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
 
-
   //Send Security Mode Command
-  reply_msg = m_pool->allocate();
   m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
-
-  //Send Reply to eNB
-  ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
-  if(n_sent == -1)
-  {
-    m_s1ap_log->console("Failed to send NAS Attach Request");
-    return false;
-  }
-  m_s1ap_log->console("Sent Security Mode Command\n");
-  m_pool->deallocate(reply_msg);
-
   return true;
 }
+
 void
 s1ap::print_enb_ctx_info(const enb_ctx_t &enb_ctx)
 {
