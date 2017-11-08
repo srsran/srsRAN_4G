@@ -106,7 +106,7 @@ float srslte_resample_arb_polyfilt[SRSLTE_RESAMPLE_ARB_N][SRSLTE_RESAMPLE_ARB_M]
 {0.000764085430796,  -0.030612377229395,   0.154765509342932,   0.702921418438421,   0.206204344739138,  -0.034615802155152,   0.000568080243211,   0.000003596427925},
 {0.000722236729272,  -0.032053439082436,   0.171322660416961,   0.704261032406613,   0.188481383863832,  -0.033395686652146,   0.000657994314549 ,  0.000002955485215}};
 
-inline cf_t srslte_resample_arb_dot_prod(cf_t* x, float *y, int len){
+static inline cf_t srslte_resample_arb_dot_prod(cf_t* x, float *y, int len){
 
   cf_t res1 = srslte_vec_dot_prod_cfc(x,y,len);
   return res1;
