@@ -74,6 +74,9 @@ public:
 
   bool handle_nas_authentication_response(srslte::byte_buffer_t *nas_buffer, srslte::byte_buffer_t *reply_buffer, ue_ctx_t *ue_ctx);
 
+  bool handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
+
+
   void print_enb_ctx_info(const enb_ctx_t &enb_ctx);
 
 private:

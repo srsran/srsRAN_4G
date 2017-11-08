@@ -353,6 +353,8 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
       break;
     case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
       m_s1ap_log->info("UL NAS: Received Security Mode Complete\n");
+      handle_nas_security_mode_complete(nas_msg, reply_msg, ue_ctx);
+      return true; //no need for reply. FIXME this should be better structured...
       break;
     default:
       m_s1ap_log->info("Unhandled NAS message");
@@ -415,6 +417,36 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
 
   //Send Security Mode Command
   m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
+  return true;
+}
+
+bool
+s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
+{
+  /*
+  typedef struct{
+    LIBLTE_MME_MOBILE_ID_STRUCT imeisv;
+    bool                        imeisv_present;
+  }LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT;
+  */
+  LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sm_comp;
+ 
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_security_mode_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &sm_comp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  //TODO Check integrity
+
+  //TODO Handle imeisv
+  if(sm_comp.imeisv_present)
+  {
+    m_s1ap_log->warning("IMEI-SV present but not handled");
+  }
+
+  m_s1ap_log->console("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
   return true;
 }
 
