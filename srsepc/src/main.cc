@@ -190,16 +190,13 @@ main (int argc,char * argv[] )
     exit(1);
   }
   
-  
-  mme->start();
-  
+  mme->start(); 
   while(running) {
     sleep(1);
   }
 
   mme->stop();
-  mme->cleanup();  
-  
+  mme->cleanup();   
   
   cout << "---  exiting  ---" << endl;  
   return 0;
