@@ -44,7 +44,6 @@ namespace srsue {
 mac::mac() : ttisync(10240), 
              timers(64),
              mux_unit(MAC_NOF_HARQ_PROC),
-             demux_unit(SRSLTE_MAX_TB*MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
 {
   started = false;
@@ -118,7 +117,8 @@ void mac::reset()
 
   Info("Resetting MAC\n");
 
-  timers.stop_all();
+  timers.get(timer_alignment)->stop();
+  timers.get(contention_resolution_timer)->stop();
 
   ul_harq.reset_ndi();
 

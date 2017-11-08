@@ -50,6 +50,7 @@ char const * const prefixes[2][9] =
 metrics_stdout::metrics_stdout()
     :do_print(false)
     ,n_reports(10)
+    ,metrics_report_period(1.0)
     ,ue(NULL)
 {
 }
@@ -64,8 +65,11 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
+void metrics_stdout::set_periodicity(float metrics_report_period_sec) {
+  this->metrics_report_period = metrics_report_period_sec;
+}
 
-void metrics_stdout::set_metrics(ue_metrics_t &metrics, float metrics_report_period)
+void metrics_stdout::set_metrics(ue_metrics_t &metrics)
 {
   if(!do_print || ue == NULL)
     return;

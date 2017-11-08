@@ -381,6 +381,18 @@ bool rlc_am::poll_required()
     return true;
   if(poll_retx())
     return true;
+
+  if(tx_sdu_queue.size() == 0 && retx_queue.size() == 0)
+    return true;
+
+  /* According to 5.2.2.1 in 36.322 v13.3.0 a poll should be requested if
+   * the entire AM window is unacknowledged, i.e. no new PDU can be transmitted.
+   * However, it seems more appropiate to request more often if polling
+   * is disabled otherwise, e.g. every N PDUs.
+   */
+  if (cfg.poll_pdu == 0 && cfg.poll_byte == 0 && vt_s % poll_periodicity == 0)
+    return true;
+
   return false;
 }
 
@@ -613,7 +625,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint32_t pdu_space = nof_bytes;
   uint8_t *pdu_ptr   = pdu->msg;
 
-  if(pdu_space <= head_len)
+  if(pdu_space <= head_len + 1)
   {
     log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
@@ -652,7 +664,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Pull SDUs from queue
-  while(pdu_space > head_len && tx_sdu_queue.size() > 0)
+  while(pdu_space > head_len + 1 && tx_sdu_queue.size() > 0)
   {
     if(last_li > 0)
       header.li[header.N_li++] = last_li;

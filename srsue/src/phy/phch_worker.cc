@@ -65,8 +65,7 @@ phch_worker::phch_worker() : tr_exec(10240)
   cell_initiated  = false; 
   pregen_enabled  = false; 
   trace_enabled   = false;
-
-  reset();  
+  reset();
 }
 
 
@@ -97,7 +96,7 @@ void phch_worker::reset()
   bzero(&period_cqi, sizeof(srslte_cqi_periodic_cfg_t));
   I_sr = 0; 
   rnti_is_set     = false; 
-  rar_cqi_request = false; 
+  rar_cqi_request = false;
   cfi = 0;
 }
 
@@ -118,12 +117,12 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
     }
   }
 
-  if (srslte_ue_dl_init(&ue_dl, max_prb, phy->args->nof_rx_ant)) {
+  if (srslte_ue_dl_init(&ue_dl, signal_buffer, max_prb, phy->args->nof_rx_ant)) {
     Error("Initiating UE DL\n");
     return false;
   }
 
-  if (srslte_ue_ul_init(&ue_ul, max_prb)) {
+  if (srslte_ue_ul_init(&ue_ul, signal_buffer[0], max_prb)) {
     Error("Initiating UE UL\n");
     return false;
   }
@@ -479,10 +478,20 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
       return false;   
     }
 
+    grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(tti%(2*HARQ_DELAY_MS));
+
+    // Set last TBS for this TB (pid) in case of mcs>29 (7.1.7.2 of 36.213)
+    for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
+      if (grant->phy_grant.dl.mcs[i].tbs < 0) {
+        grant->phy_grant.dl.mcs[i].tbs = last_dl_tbs[grant->pid%(2*HARQ_DELAY_MS)][i];
+      }
+      // save it
+      last_dl_tbs[grant->pid%(2*HARQ_DELAY_MS)][i] = grant->phy_grant.dl.mcs[i].tbs;
+    }
+
     /* Fill MAC grant structure */
     grant->ndi[0] = dci_unpacked.ndi;
     grant->ndi[1] = dci_unpacked.ndi_1;
-    grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(tti%(2*HARQ_DELAY_MS));
     grant->n_bytes[0] = grant->phy_grant.dl.mcs[0].tbs / (uint32_t) 8;
     grant->n_bytes[1] = grant->phy_grant.dl.mcs[1].tbs / (uint32_t) 8;
     grant->tti = tti;
@@ -494,11 +503,6 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     grant->tb_en[0] = dci_unpacked.tb_en[0];
     grant->tb_en[1] = dci_unpacked.tb_en[1];
     grant->tb_cw_swap = dci_unpacked.tb_cw_swap; // FIXME: tb_cw_swap not supported
-
-    if (grant->tb_cw_swap) {
-      Info("tb_cw_swap = true\n");
-      printf("tb_cw_swap = true\n");
-    }
 
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
@@ -624,7 +628,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
 
         for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
           if (grant->tb_en[i]) {
-            snprintf(tbstr[i], 128, ", TB%d: tbs=%d, mcs=%d, rv=%d, crc=%s, it=%d",
+            snprintf(tbstr[i], 128, ", CW%d: tbs=%d, mcs=%d, rv=%d, crc=%s, it=%d",
                      i, grant->mcs[i].tbs/8, grant->mcs[i].idx, rv[i], acks[i] ? "OK" : "KO",
                      srslte_pdsch_last_noi_cw(&ue_dl.pdsch, i));
           }
@@ -719,14 +723,29 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
            ue_dl.last_location_ul.ncce, (1<<ue_dl.last_location_ul.L), dci_msg.nof_bits, hexstr);
       
       if (grant->phy_grant.ul.mcs.tbs==0) {
-        srslte_vec_fprint_hex(stdout, dci_msg.data, dci_msg.nof_bits);
+        Info("Received PUSCH grant with empty data\n");
       }
     }
   }
-  
+
+  if (ret) {
+
+    // Use last TBS for this TB in case of mcs>28
+    if (grant->phy_grant.ul.mcs.tbs < 0) {
+      grant->phy_grant.ul.mcs.tbs = last_ul_tbs[tti%(2*HARQ_DELAY_MS)];
+    }
+    last_ul_tbs[tti%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.tbs;
+
+    if (grant->phy_grant.ul.mcs.mod == SRSLTE_MOD_LAST) {
+      grant->phy_grant.ul.mcs.mod = last_ul_mod[tti%(2*HARQ_DELAY_MS)];
+      grant->phy_grant.ul.Qm      = srslte_mod_bits_x_symbol(grant->phy_grant.ul.mcs.mod);
+    }
+    last_ul_mod[tti%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.mod;
+  }
+
   /* Limit UL modulation if not supported by the UE or disabled by higher layers */
   if (!phy->config->enable_64qam) {
-    if (grant->phy_grant.ul.mcs.mod == SRSLTE_MOD_64QAM) {
+    if (grant->phy_grant.ul.mcs.mod >= SRSLTE_MOD_64QAM) {
       grant->phy_grant.ul.mcs.mod = SRSLTE_MOD_16QAM;
       grant->phy_grant.ul.Qm      = 4;
     }
@@ -899,7 +918,7 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   if (srslte_ue_ul_cfg_grant(&ue_ul, grant, TTI_TX(tti), rv, current_tx_nb)) {
     Error("Configuring UL grant\n");
   }
-  
+
   if (srslte_ue_ul_pusch_encode_rnti_softbuffer(&ue_ul, 
                                                 payload, uci_data, 
                                                 softbuffer,
@@ -926,12 +945,12 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 #endif
 
   Info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d, ack=%s, ri=%s, cfo=%.1f KHz%s\n",
-         (tti+4)%10240,
-         grant->n_prb[0], grant->n_prb[0]+grant->L_prb,
-         grant->mcs.tbs/8, grant->mcs.idx, rv,
-         uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
-         uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
-         cfo*15, timestr);
+       (tti+HARQ_DELAY_MS)%10240,
+       grant->n_prb[0], grant->n_prb[0]+grant->L_prb,
+       grant->mcs.tbs/8, grant->mcs.idx, rv,
+       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
+       uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
+       cfo*15, timestr);
 
   // Store metrics
   ul_metrics.mcs   = grant->mcs.idx;

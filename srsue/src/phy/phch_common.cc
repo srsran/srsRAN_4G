@@ -336,6 +336,7 @@ void phch_common::reset_ul()
     pthread_mutex_trylock(&tx_mutex[i]);
     pthread_mutex_unlock(&tx_mutex[i]);
   }
+  radio_h->tx_end();
 }
 
 }

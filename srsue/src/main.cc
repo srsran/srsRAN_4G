@@ -122,6 +122,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
 
     /* Expert section */
+    ("expert.ip_netmask",
+     bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
+     "Netmask of the tun_srsue device")
+
     ("expert.phy.worker_cpu_mask",
      bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
      "cpu bit mask (eg 255 = 1111 1111)")
@@ -197,6 +201,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.cfo_correct_tol_hz",
      bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(50.0),
      "Tolerance (in Hz) for digial CFO compensation.")
+
+    ("expert.cfo_ema",
+     bpo::value<float>(&args->expert.phy.cfo_ema)->default_value(0.4),
+     "CFO Exponential Moving Average coefficient. Lower makes it more robust to noise "
+     "but vulnerable to periodic interruptions due to VCO corrections.")
 
     ("expert.time_correct_period",
      bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
@@ -377,11 +386,13 @@ int main(int argc, char *argv[])
   metricshub.init(ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_ue_handle(ue);
+  metrics_screen.set_periodicity(args.expert.metrics_period_secs);
 
   metrics_csv metrics_file(args.expert.metrics_csv_filename);
   if (args.expert.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_ue_handle(ue);
+    metrics_file.set_periodicity(args.expert.metrics_period_secs);
   }
 
   pthread_t input;
