@@ -83,7 +83,7 @@ public:
   
   // Map of pending ACKs for each user 
   typedef struct {
-    bool is_pending[TTIMOD_SZ];
+    bool is_pending[TTIMOD_SZ][SRSLTE_MAX_TB];
     uint16_t n_pdcch[TTIMOD_SZ];
   } pending_ack_t;
   std::map<uint16_t,pending_ack_t> pending_ack;
@@ -91,8 +91,8 @@ public:
   void ack_add_rnti(uint16_t rnti);
   void ack_rem_rnti(uint16_t rnti);
   void ack_clear(uint32_t sf_idx); 
-  void ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t n_pdcch);
-  bool ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t *last_n_pdcch = NULL);
+  void ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t n_pdcch);
+  bool ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t *last_n_pdcch = NULL);
         
 private:
   std::vector<pthread_mutex_t>    tx_mutex; 

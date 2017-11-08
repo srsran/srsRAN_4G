@@ -389,7 +389,7 @@ void phch_worker::compute_ri() {
       uci_data.uci_dif_cqi_len = 3;
     }
     srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, uci_data.uci_pmi_len);
-    Info("pmi=%d\n", packed_pmi);
+    Info("ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
 
     /* If only one antenna in TM4 print limitation warning */
     if (ue_dl.nof_rx_antennas < 2) {
@@ -604,7 +604,8 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
   if (valid_config) {
     if (!srslte_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, rv, mimo_type)) {
-      if (ue_dl.pdsch_cfg.grant.mcs[0].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[0].tbs >= 0) {
+      if ((ue_dl.pdsch_cfg.grant.mcs[0].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[0].tbs >= 0) ||
+          (ue_dl.pdsch_cfg.grant.mcs[1].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[1].tbs >= 0)) {
         
         float noise_estimate = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);
         
@@ -796,21 +797,15 @@ void phch_worker::reset_uci()
 
 void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS])
 {
-  uint32_t nof_tb = 0;
-  if (tb_en[0]) {
-    uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
-    nof_tb = 1;
-  } else {
-    uci_data.uci_ack = 1;
+  /* Map ACK according to 3GPP 36.212 clause 5.2.3.1 */
+  uint32_t nof_ack = 0;
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    if (tb_en[tb]) {
+      ((nof_ack == 0)?uci_data.uci_ack:uci_data.uci_ack_2) = (uint8_t)(ack[tb]?1:0);
+      nof_ack++;
+    }
   }
-
-  if (tb_en[1]) {
-    uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
-    nof_tb = 2;
-  }
-
-  uci_data.uci_ack_len = nof_tb;
-
+  uci_data.uci_ack_len = nof_ack;
 }
 
 void phch_worker::set_uci_sr()

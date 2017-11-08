@@ -137,8 +137,8 @@ public:
     uint32_t              tbs[SRSLTE_MAX_TB];
     bool mac_ce_ta;
     bool mac_ce_rnti;
-    uint32_t nof_pdu_elems; 
-    dl_sched_pdu_t pdu[MAX_RLC_PDU_LIST];
+    uint32_t nof_pdu_elems[SRSLTE_MAX_TB];
+    dl_sched_pdu_t pdu[SRSLTE_MAX_TB][MAX_RLC_PDU_LIST];
   } dl_sched_data_t;
   
   typedef struct {
@@ -226,7 +226,7 @@ public:
   virtual int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code) = 0; 
     
   /* DL information */
-  virtual int dl_ack_info(uint32_t tti, uint16_t rnti, bool ack) = 0; 
+  virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) = 0;
   virtual int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size) = 0; 
   virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) = 0; 
   virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) = 0;

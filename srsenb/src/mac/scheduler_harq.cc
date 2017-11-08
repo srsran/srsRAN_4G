@@ -67,7 +67,7 @@ uint32_t harq_proc::get_id()
 
 void harq_proc::reset(uint32_t tb_idx)
 {
-  active = false; 
+  active[tb_idx] = false;
   ack[tb_idx] = true;
   ack_received[tb_idx] = false;
   n_rtx[tb_idx] = 0;
@@ -79,7 +79,7 @@ void harq_proc::reset(uint32_t tb_idx)
 
 bool harq_proc::is_empty(uint32_t tb_idx)
 {
-  return !active || (active && ack[tb_idx] && ack_received[tb_idx]);
+  return !active[tb_idx] || (active[tb_idx] && ack[tb_idx] && ack_received[tb_idx]);
 }
 
 bool harq_proc::has_pending_retx_common(uint32_t tb_idx)
@@ -104,7 +104,7 @@ void harq_proc::set_ack(uint32_t tb_idx, bool ack_)
   log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
   if (n_rtx[tb_idx] + 1 >= max_retx) {
     Warning("SCHED: discarting TB %d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", tb_idx, id, tti, max_retx);
-    active = false;      
+    active[tb_idx] = false;
   }
 }
 
@@ -118,9 +118,9 @@ void harq_proc::new_tx_common(uint32_t tb_idx, uint32_t tti_, int mcs, int tbs)
   last_tbs[tb_idx] = tbs;
 
   if (max_retx) {
-    active = true; 
+    active[tb_idx] = true;
   } else {
-    active = false; // Can reuse this process if no retx are allowed 
+    active[tb_idx] = false; // Can reuse this process if no retx are allowed
   }
 }
 
@@ -227,10 +227,10 @@ bool ul_harq_proc::has_pending_ack()
   bool ret = need_ack; 
   
   // Reset if already received a positive ACK
-  if (active && ack[0]) {
-    active = false;     
+  if (active[0] && ack[0]) {
+    active[0] = false;
   }
-  if (!active) {
+  if (!active[0]) {
     need_ack = false;
   }
   return ret; 
@@ -240,7 +240,7 @@ bool ul_harq_proc::has_pending_ack()
 
 void ul_harq_proc::reset_pending_data()
 {
-  if (!active) {
+  if (!active[0]) {
     pending_data = 0;
   }
 }

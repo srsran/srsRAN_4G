@@ -686,7 +686,9 @@ int srslte_uci_decode_ack(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_s
     }
   }
 
-  if (acks) {
+  if (nof_acks == 1 && acks) {
+    acks[0] = (uint8_t)(acks_sum[0] + acks_sum[1] + acks_sum[2] > 0);
+  } else if (acks) {
     acks[0] = (uint8_t)(acks_sum[0] > 0);
     acks[1] = (uint8_t)(acks_sum[1] > 0);
     // TODO: Do something with acks_sum[2]

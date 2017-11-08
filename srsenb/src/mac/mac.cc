@@ -262,10 +262,10 @@ void mac::rl_ok(uint16_t rnti)
   }
 }
 
-int mac::ack_info(uint32_t tti, uint16_t rnti, bool ack)
+int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
   log_h->step(tti);
-  uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, ack);    
+  uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, tb_idx, ack);
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
   
   if (ack) {
@@ -474,25 +474,39 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     dl_sched_res->sched_grants[n].dci_format = sched_result.data[i].dci_format;
     memcpy(&dl_sched_res->sched_grants[n].grant,    &sched_result.data[i].dci,          sizeof(srslte_ra_dl_dci_t));
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.data[i].dci_location, sizeof(srslte_dci_location_t));    
-    
-    dl_sched_res->sched_grants[n].softbuffers[0] = ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.harq_process);
-    
-    // Get PDU if it's a new transmission
-    if (sched_result.data[i].nof_pdu_elems > 0) {
-      dl_sched_res->sched_grants[n].data[0] = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu,
-                                                        sched_result.data[i].nof_pdu_elems, 
-                                                        sched_result.data[i].tbs[0]);
 
-      if (pcap) {
-        pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data[0], sched_result.data[i].tbs[0], rnti, true, tti);
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      if (sched_result.data[i].dci.tb_en[tb] && sched_result.data[i].nof_pdu_elems[tb] > 0) {
+        dl_sched_res->sched_grants[n].softbuffers[tb] =
+            ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.harq_process, tb);
+
+        /* Get PDU if it's a new transmission */
+        dl_sched_res->sched_grants[n].data[tb] = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu[tb],
+                                                                           sched_result.data[i].nof_pdu_elems[tb],
+                                                                           sched_result.data[i].tbs[tb]);
+
+        if (!dl_sched_res->sched_grants[n].data[tb]) {
+          Error("Error! PDU was not generated (rnti=0x%04x, tb=%d)\n", rnti, tb);
+          sched_result.data[i].dci.tb_en[tb] = false;
+        }
+
+        if (pcap) {
+          pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti);
+        }
+
+      } else {
+        /* TB not enabled OR no data to send: set pointers to NULL  */
+        dl_sched_res->sched_grants[n].softbuffers[tb] = NULL;
+        dl_sched_res->sched_grants[n].data[tb] = NULL;
+        if (sched_result.data[i].dci.tb_en[tb]) {
+          Warning("Transport block without PDU elements (rnti: %04x)\n", rnti);
+          sched_result.data[i].dci.tb_en[tb] = false;
+        }
       }
-      
-    } else {
-      dl_sched_res->sched_grants[n].data[0] = NULL;
     }
     n++;
   }
-  
+
   // Copy RAR grants 
   for (uint32_t i=0;i<sched_result.nof_rar_elems;i++) {
     // Copy grant info 

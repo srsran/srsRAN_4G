@@ -791,7 +791,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
 
     // Perform ML-decoding 
     float corr=0, corr_max=-1e9;
-    int b_max = 0; // default bit value, eg. HI is NACK
+    uint8_t b_max = 0, b2_max = 0; // default bit value, eg. HI is NACK
     switch(format) {
       case SRSLTE_PUCCH_FORMAT_1:
         bzero(bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
@@ -808,7 +808,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
       case SRSLTE_PUCCH_FORMAT_1A:
         bzero(bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
         ret = 0;
-        for (int b=0;b<2;b++) {
+        for (uint8_t b=0;b<2;b++) {
           bits[0] = b;
           pucch_encode(q, format, n_pucch, sf_idx, rnti, bits, q->z_tmp);
           corr = srslte_vec_corr_ccc(q->z, q->z_tmp, nof_re);
@@ -823,6 +823,30 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         }
         q->last_corr = corr_max; 
         bits[0] = b_max; 
+        break;
+      case SRSLTE_PUCCH_FORMAT_1B:
+        bzero(bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
+        ret = 0;
+        for (uint8_t b=0;b<2;b++) {
+          for (uint8_t b2 = 0; b2 < 2; b2++) {
+            bits[0] = b;
+            bits[1] = b2;
+            pucch_encode(q, format, n_pucch, sf_idx, rnti, bits, q->z_tmp);
+            corr = srslte_vec_corr_ccc(q->z, q->z_tmp, nof_re);
+            if (corr > corr_max) {
+              corr_max = corr;
+              b_max = b;
+              b2_max = b2;
+            }
+            if (corr_max > q->threshold_format1) { // check with format1 in case ack+sr because ack only is binary
+              ret = 1;
+            }
+            DEBUG("format1b b=%d, corr=%f, nof_re=%d\n", b, corr, nof_re);
+          }
+        }
+        q->last_corr = corr_max;
+        bits[0] = b_max;
+        bits[1] = b2_max;
         break;
       case SRSLTE_PUCCH_FORMAT_2:
       case SRSLTE_PUCCH_FORMAT_2A:

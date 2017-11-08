@@ -78,7 +78,7 @@ public:
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
   int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
   int snr_info(uint32_t tti, uint16_t rnti, float snr); 
-  int ack_info(uint32_t tti, uint16_t rnti, bool ack); 
+  int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res); 
     
   int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res);

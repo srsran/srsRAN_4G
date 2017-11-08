@@ -104,10 +104,10 @@ typedef struct SRSLTE_API {
   uint32_t nof_prb;  
   uint32_t Qm[SRSLTE_MAX_CODEWORDS];
   srslte_ra_mcs_t mcs[SRSLTE_MAX_CODEWORDS];
-  uint32_t nof_tb;
   srslte_sf_t sf_type;
   bool tb_en[SRSLTE_MAX_CODEWORDS];
   uint32_t pinfo;
+  bool tb_cw_swap;
 } srslte_ra_dl_grant_t;
 
 #define SRSLTE_RA_DL_GRANT_NOF_TB(G) ((((G)->tb_en[0])?1:0)+(((G)->tb_en[1])?1:0))

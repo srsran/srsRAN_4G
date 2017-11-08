@@ -106,8 +106,10 @@ private:
            dedicated_ack(false) {bzero(&metrics, sizeof(phy_metrics_t));}
     uint32_t I_sr; 
     uint32_t pmi_idx;
+    uint32_t ri_idx;
     bool I_sr_en; 
     bool cqi_en;
+    bool ri_en;
     bool pucch_cqi_ack; 
     int has_grant_tti; 
     LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT dedicated;

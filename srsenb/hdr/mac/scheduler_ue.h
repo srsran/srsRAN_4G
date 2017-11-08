@@ -73,7 +73,7 @@ public:
   void set_dl_ri(uint32_t tti, uint32_t ri);
   void set_dl_pmi(uint32_t tti, uint32_t ri);
   void set_dl_cqi(uint32_t tti, uint32_t cqi);
-  int  set_ack_info(uint32_t tti, bool ack);
+  int  set_ack_info(uint32_t tti, uint32_t tb_idx, bool ack);
   void set_ul_crc(uint32_t tti, bool crc_res);
 
 /*******************************************************

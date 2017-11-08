@@ -68,7 +68,7 @@ public:
   virtual int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) = 0;
   virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 
   virtual int snr_info(uint32_t tti, uint16_t rnti, float snr_db) = 0; 
-  virtual int ack_info(uint32_t tti, uint16_t rnti, bool ack) = 0;
+  virtual int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) = 0;
   virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res) = 0; 
   
   virtual int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res) = 0;

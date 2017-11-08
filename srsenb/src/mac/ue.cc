@@ -107,9 +107,9 @@ srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
   return &softbuffer_rx[tti%NOF_HARQ_PROCESSES];
 }
 
-srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process)
+srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx)
 {
-  return &softbuffer_tx[harq_process%NOF_HARQ_PROCESSES];
+  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx  )%NOF_HARQ_PROCESSES];
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)

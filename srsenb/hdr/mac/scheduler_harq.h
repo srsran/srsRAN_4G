@@ -58,7 +58,7 @@ protected:
   bool     has_pending_retx_common(uint32_t tb_idx);
   
   bool     ack[SRSLTE_MAX_TB];
-  bool     active; 
+  bool     active[SRSLTE_MAX_TB];
   bool     ndi[SRSLTE_MAX_TB];
   uint32_t id;  
   uint32_t max_retx; 

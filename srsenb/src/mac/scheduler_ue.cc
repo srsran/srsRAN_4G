@@ -27,11 +27,7 @@
 #include <string.h>
 #include <boost/concept_check.hpp>
 #include <srslte/interfaces/sched_interface.h>
-#include <srslte/phy/phch/pucch.h>
-#include <srslte/srslte.h>
-#include <srslte/phy/common/phy_common.h>
 
-#include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
 #include "mac/scheduler_ue.h"
 #include "mac/scheduler.h"
@@ -109,8 +105,10 @@ void sched_ue::reset()
   ul_cqi_tti = 0; 
   cqi_request_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    dl_harq[i].reset(0);
-    ul_harq[i].reset(0);
+    for(uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      dl_harq[i].reset(tb);
+      ul_harq[i].reset(tb);
+    }
   }
   for (int i=0;i<sched_interface::MAX_LC; i++) {
     rem_bearer(i);
@@ -286,13 +284,13 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
   return false; 
 }
 
-int sched_ue::set_ack_info(uint32_t tti, bool ack)
+int sched_ue::set_ack_info(uint32_t tti, uint32_t tb_idx, bool ack)
 {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     if (TTI_TX(dl_harq[i].get_tti()) == tti) {
-      Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tti=%d\n", ack, rnti, i, tti);
-      dl_harq[i].set_ack(0, ack);
-      return dl_harq[i].get_tbs(0);
+      Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d.%d, tti=%d\n", ack, rnti, i, tb_idx, tti);
+      dl_harq[i].set_ack(tb_idx, ack);
+      return dl_harq[i].get_tbs(tb_idx);
     }
   }
   Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti);
@@ -422,18 +420,18 @@ int sched_ue::generate_format1(dl_harq_proc *h,
  
   // Allocate MAC ConRes CE
   if (need_conres_ce) {
-    data->pdu[0].lcid = srslte::sch_subh::CON_RES_ID;
-    data->nof_pdu_elems++;
+    data->pdu[0][0].lcid = srslte::sch_subh::CON_RES_ID;
+    data->nof_pdu_elems[0]++;
     Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
   }
   
   int rem_tbs = tbs; 
   int x = 0; 
   do {
-    x = alloc_pdu(rem_tbs, &data->pdu[data->nof_pdu_elems]); 
+    x = alloc_pdu(rem_tbs, &data->pdu[0][data->nof_pdu_elems[0]]);
     rem_tbs -= x; 
     if (x) {
-      data->nof_pdu_elems++;
+      data->nof_pdu_elems[0]++;
     }
   } while(rem_tbs > 0 && x > 0);
   
@@ -441,13 +439,14 @@ int sched_ue::generate_format1(dl_harq_proc *h,
 
   if (tbs > 0) {
     dci->harq_process = h->get_id(); 
-    dci->mcs_idx      = mcs; 
+    dci->mcs_idx      = (uint32_t) mcs;
     dci->rv_idx       = sched::get_rvidx(h->nof_retx(0));
     dci->ndi          = h->get_ndi(0);
-    dci->tpc_pucch    = next_tpc_pucch;
+    dci->tpc_pucch    = (uint8_t) next_tpc_pucch;
     next_tpc_pucch    = 1; 
-    data->tbs[0]         = tbs;
-    dci->tb_en[0]     = true; 
+    data->tbs[0]      = (uint32_t) tbs;
+    data->tbs[1]      = 0;
+    dci->tb_en[0]     = true;
     dci->tb_en[1]     = false; 
   }  
   return tbs; 
@@ -464,60 +463,90 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
 
   uint32_t sf_idx = tti%10;
 
-  int mcs = 0;
-  int tbs = 0;
-
   dci->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   dci->type0_alloc.rbg_bitmask = h->get_rbgmask();
 
-  if (h->is_empty(0)) {
+  uint32_t nof_prb = format1_count_prb(h->get_rbgmask(), cell.nof_prb);
+  uint32_t nof_ctrl_symbols = cfi + (cell.nof_prb < 10 ? 1 : 0);
+  srslte_ra_dl_grant_t grant;
+  srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
+  uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
+  uint32_t req_bytes = get_pending_dl_new_data(tti);
 
-    uint32_t req_bytes = get_pending_dl_new_data(tti);
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    int mcs = 0;
+    int tbs = 0;
 
-    uint32_t nof_prb = format1_count_prb(h->get_rbgmask(), cell.nof_prb);
-    srslte_ra_dl_grant_t grant;
-    srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
-    uint32_t nof_ctrl_symbols = cfi+(cell.nof_prb<10?1:0);
-    uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
-    if (fixed_mcs_dl < 0) {
-      tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
+    /*
+     * If one layer (RI = 0) Then
+     *   If TB1 has pending harq
+     *     Send TB1 only
+     *   Else
+     *     Send TB0 Only
+     *   End If
+     * Else (RI != 0)
+     *   Send TB0 and TB1
+     * End If
+     */
+    if (dl_ri == 1 || (dl_ri == 0 && ((tb == 0 && h->is_empty(1)) || (tb == 1 && !h->is_empty(1))))) {
+      if (h->is_empty(tb)) {
+        if (fixed_mcs_dl < 0) {
+          tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
+        } else {
+          tbs = srslte_ra_tbs_from_idx((uint32_t) srslte_ra_tbs_idx_from_mcs((uint32_t) fixed_mcs_dl), nof_prb) / 8;
+          mcs = fixed_mcs_dl;
+        }
+
+        h->new_tx(tb, tti, mcs, tbs, data->dci_location.ncce);
+
+        Debug("SCHED: Alloc format2/2a new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
+      } else {
+        h->new_retx(tb, tti, &mcs, &tbs);
+        Debug("SCHED: Alloc format2/2a previous mcs=%d, tbs=%d\n", mcs, tbs);
+      }
+    }
+
+    int rem_tbs = tbs;
+    int x = 0;
+    do {
+      x = alloc_pdu(rem_tbs, &data->pdu[tb][data->nof_pdu_elems[tb]]);
+      rem_tbs -= x;
+      if (x) {
+        data->nof_pdu_elems[tb]++;
+      }
+    } while (rem_tbs > 0 && x > 0);
+
+    data->rnti = rnti;
+
+    if (tbs > 0 && data->nof_pdu_elems[tb]) {
+      if (tb == 0) {
+        dci->mcs_idx = (uint32_t) mcs;
+        dci->rv_idx = sched::get_rvidx(h->nof_retx(tb));
+        dci->ndi = h->get_ndi(tb);
+      } else {
+        dci->mcs_idx_1 = (uint32_t) mcs;
+        dci->rv_idx_1 = sched::get_rvidx(h->nof_retx(tb));
+        dci->ndi_1 = h->get_ndi(tb);
+      }
+      data->tbs[tb] = (uint32_t) tbs;
+      dci->tb_en[tb] = true;
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb)/8;
-      mcs = fixed_mcs_dl;
+      data->tbs[tb] = 0;
+      dci->tb_en[tb] = false;
     }
 
-    h->new_tx(0, tti, mcs, tbs, data->dci_location.ncce);
-
-    Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
-  } else {
-    h->new_retx(0, tti, &mcs, &tbs);
-    Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
-  }
-
-  int rem_tbs = tbs;
-  int x = 0;
-  do {
-    x = alloc_pdu(rem_tbs, &data->pdu[data->nof_pdu_elems]);
-    rem_tbs -= x;
-    if (x) {
-      data->nof_pdu_elems++;
+    if ( req_bytes > (uint32_t) tbs) {
+      req_bytes -= tbs;
+    } else {
+      req_bytes = 0;
     }
-  } while(rem_tbs > 0 && x > 0);
-
-  data->rnti    = rnti;
-
-  if (tbs > 0) {
-    dci->harq_process = h->get_id();
-    dci->mcs_idx      = mcs;
-    dci->rv_idx       = sched::get_rvidx(h->nof_retx(0));
-    dci->ndi          = h->get_ndi(0);
-    dci->tpc_pucch    = next_tpc_pucch;
-    next_tpc_pucch    = 1;
-    data->tbs[0]         = tbs;
-    dci->tb_en[0]     = true;
-    dci->tb_en[1]     = false;
   }
-  return tbs;
+
+  dci->harq_process = h->get_id();
+  dci->tpc_pucch = (uint8_t) next_tpc_pucch;
+  next_tpc_pucch = 1;
+
+  return data->tbs[0] + data->tbs[1];
 }
 
 // Generates a Format2 grant
@@ -526,71 +555,17 @@ int sched_ue::generate_format2(dl_harq_proc *h,
                          uint32_t tti,
                          uint32_t cfi)
 {
-  srslte_ra_dl_dci_t *dci = &data->dci;
-  bzero(dci, sizeof(srslte_ra_dl_dci_t));
+  /* Call Format 2a (common) */
+  int ret = generate_format2a(h, data, tti, cfi);
 
-  uint32_t sf_idx = tti%10;
-
-  int mcs = 0;
-  int tbs = 0;
-
-  dci->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
-  dci->type0_alloc.rbg_bitmask = h->get_rbgmask();
-
-  if (h->is_empty(0)) {
-
-    uint32_t req_bytes = get_pending_dl_new_data(tti);
-
-    uint32_t nof_prb = format1_count_prb(h->get_rbgmask(), cell.nof_prb);
-    srslte_ra_dl_grant_t grant;
-    srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
-    uint32_t nof_ctrl_symbols = cfi+(cell.nof_prb<10?1:0);
-    uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
-    if (fixed_mcs_dl < 0) {
-      tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
-    } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb)/8;
-      mcs = fixed_mcs_dl;
-    }
-
-    h->new_tx(0, tti, mcs, tbs, data->dci_location.ncce);
-
-    Debug("SCHED: Alloc format2 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
+  /* Compute precoding information */
+  if (SRSLTE_RA_DL_GRANT_NOF_TB(&data->dci) == 1) {
+    data->dci.pinfo = (uint8_t) (dl_pmi + 1) % (uint8_t) 5;
   } else {
-    h->new_retx(0, tti, &mcs, &tbs);
-    Debug("SCHED: Alloc format2 previous mcs=%d, tbs=%d\n", mcs, tbs);
+    data->dci.pinfo = (uint8_t) (dl_pmi & 1);
   }
 
-  int rem_tbs = tbs;
-  int x = 0;
-  do {
-    x = alloc_pdu(rem_tbs, &data->pdu[data->nof_pdu_elems]);
-    rem_tbs -= x;
-    if (x) {
-      data->nof_pdu_elems++;
-    }
-  } while(rem_tbs > 0 && x > 0);
-
-  data->rnti    = rnti;
-
-  if (tbs > 0) {
-    dci->pinfo = (uint8_t) (dl_pmi + 1);
-/*    if (SRSLTE_RA_DL_GRANT_NOF_TB(dci) == 1) {
-      dci->pinfo = (uint8_t) (dl_pmi + 1);
-    } else {
-      dci->pinfo = (uint8_t) (dl_pmi & 1);
-    }*/
-    dci->harq_process = h->get_id();
-    dci->mcs_idx      = mcs;
-    dci->rv_idx       = sched::get_rvidx(h->nof_retx(0));
-    dci->ndi          = h->get_ndi(0);
-    dci->tpc_pucch    = next_tpc_pucch;
-    next_tpc_pucch    = 1;
-    data->tbs[0]         = tbs;
-    dci->tb_en[0]     = true;
-    dci->tb_en[1]     = false;
-  }
-  return tbs;
+  return ret;
 }
 
 
@@ -818,7 +793,7 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
   int oldest_idx=-1; 
   uint32_t oldest_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (dl_harq[i].has_pending_retx(0, tti)) {
+    if (dl_harq[i].has_pending_retx(0, tti) || dl_harq[i].has_pending_retx(1, tti)) {
       uint32_t x = srslte_tti_interval(tti, dl_harq[i].get_tti()); 
       if (x > oldest_tti) {
         oldest_idx = i; 
@@ -839,7 +814,7 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 dl_harq_proc* sched_ue::get_empty_dl_harq()
 {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (dl_harq[i].is_empty(0)) {
+    if (dl_harq[i].is_empty(0) && dl_harq[i].is_empty(1)) {
       return &dl_harq[i]; 
     }
   }

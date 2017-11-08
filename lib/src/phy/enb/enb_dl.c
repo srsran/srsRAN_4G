@@ -341,26 +341,34 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srs
 
   /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
   if (mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
-    if (nof_tb == 1) {
-      if (grant->pinfo > 0 && grant->pinfo < 5) {
-        pmi = grant->pinfo - 1;
-      } else {
+    switch(nof_tb) {
+      case 1:
+        if (grant->pinfo == 0) {
+          mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+        } else if (grant->pinfo > 0 && grant->pinfo < 5) {
+          pmi = grant->pinfo - 1;
+        } else {
+          ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+          return SRSLTE_ERROR;
+        }
+        break;
+      case 2:
+        if (grant->pinfo < 2) {
+          pmi = grant->pinfo;
+        } else {
+          ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+          return SRSLTE_ERROR;
+        }
+        break;
+      default:
         ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
         return SRSLTE_ERROR;
-      }
-    } else {
-      if (grant->pinfo < 2) {
-        pmi = grant->pinfo;
-      } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
-        return SRSLTE_ERROR;
-      }
     }
   }
 
   /* Configure pdsch_cfg parameters */
   if (srslte_pdsch_cfg_mimo(&q->pdsch_cfg, q->cell, grant, q->cfi, sf_idx, rv_idx, mimo_type, pmi)) {
-    fprintf(stderr, "Error configuring PDSCH\n");
+    ERROR("Error configuring PDSCH (rnti=0x%04x)", rnti);
     return SRSLTE_ERROR;
   }
 

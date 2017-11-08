@@ -75,7 +75,7 @@ public:
   uint8_t* generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST], 
                     uint32_t nof_pdu_elems, uint32_t grant_size);
   
-  srslte_softbuffer_tx_t* get_tx_softbuffer(uint32_t harq_process);
+  srslte_softbuffer_tx_t* get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx);
   srslte_softbuffer_rx_t* get_rx_softbuffer(uint32_t tti);
   
   bool     process_pdus(); 
@@ -122,9 +122,9 @@ private:
   
   uint32_t last_tti; 
   
-  uint32_t nof_failures; 
-  
-  const static int NOF_HARQ_PROCESSES = 2*HARQ_DELAY_MS;
+  uint32_t nof_failures;
+
+  const static int NOF_HARQ_PROCESSES = 2 * HARQ_DELAY_MS * SRSLTE_MAX_TB;
   srslte_softbuffer_tx_t softbuffer_tx[NOF_HARQ_PROCESSES];
   srslte_softbuffer_rx_t softbuffer_rx[NOF_HARQ_PROCESSES];
 

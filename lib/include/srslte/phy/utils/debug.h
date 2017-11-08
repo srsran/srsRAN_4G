@@ -65,7 +65,7 @@ SRSLTE_API extern int srslte_verbose;
 
 #if CMAKE_BUILD_TYPE==Debug
 /* In debug mode, it prints out the  */
-#define ERROR(_fmt, ...) fprintf(stderr, "%s.%d: " _fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define ERROR(_fmt, ...) fprintf(stderr, "\e[31m%s.%d: " _fmt "\e[0m\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define ERROR(_fmt, ...) fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /* CMAKE_BUILD_TYPE==Debug */

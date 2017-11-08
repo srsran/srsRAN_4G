@@ -251,12 +251,12 @@ int sched::dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *
   return ret;
 }
 
-int sched::dl_ack_info(uint32_t tti, uint16_t rnti, bool ack)
+int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
-    ret = ue_db[rnti].set_ack_info(tti, ack);
+    ret = ue_db[rnti].set_ack_info(tti, tb_idx, ack);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
@@ -663,10 +663,11 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
             Error("DCI format (%d) not implemented\n", dci_format);
         }
         if (tbs >= 0) {
-          log_h->info("SCHED: DL %s rnti=0x%x, pid=%d, mask=0x%x, dci=%d,%d, n_rtx=%d, tbs=%d, buffer=%d\n", 
+          log_h->info("SCHED: DL %s rnti=0x%x, pid=%d, mask=0x%x, dci=%d,%d, n_rtx=%d, tbs=%d, buffer=%d, tb_en={%s,%s}\n",
                       !is_newtx?"retx":"tx", rnti, h->get_id(), h->get_rbgmask(), 
-                      data[nof_data_elems].dci_location.L, data[nof_data_elems].dci_location.ncce, h->nof_retx(0),
-                      tbs, user->get_pending_dl_new_data(current_tti));          
+                      data[nof_data_elems].dci_location.L, data[nof_data_elems].dci_location.ncce, h->nof_retx(0) + h->nof_retx(1),
+                      tbs, user->get_pending_dl_new_data(current_tti), data[nof_data_elems].dci.tb_en[0]?"y":"n",
+                      data[nof_data_elems].dci.tb_en[1]?"y":"n");
           nof_data_elems++;
         } else {
           log_h->warning("SCHED: Error DL %s rnti=0x%x, pid=%d, mask=0x%x, dci=%d,%d, tbs=%d, buffer=%d\n", 
@@ -675,7 +676,9 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
                       tbs, user->get_pending_dl_new_data(current_tti));          
         }      
       } else {
-        h->reset(0);
+        for(uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+          h->reset(tb);
+        }
         Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d\n", rnti, h->get_id());              
       }      
     }    
