@@ -35,7 +35,8 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-int srslte_ue_mib_init(srslte_ue_mib_t * q, 
+int srslte_ue_mib_init(srslte_ue_mib_t * q,
+                       cf_t *in_buffer[SRSLTE_MAX_PORTS],
                        uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -65,7 +66,7 @@ int srslte_ue_mib_init(srslte_ue_mib_t * q,
       }
     }
 
-    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
+    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, in_buffer[0], q->sf_symbols, max_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       goto clean_exit;
     }
@@ -143,14 +144,14 @@ void srslte_ue_mib_reset(srslte_ue_mib_t * q)
   srslte_pbch_decode_reset(&q->pbch);
 }
 
-int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input, 
+int srslte_ue_mib_decode(srslte_ue_mib_t * q,
                   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, int *sfn_offset)
 {
   int ret = SRSLTE_SUCCESS;
   cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
 
   /* Run FFT for the slot symbols */
-  srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
+  srslte_ofdm_rx_sf(&q->fft);
             
   /* Get channel estimates of sf idx #0 for each port */
   ret = srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, 0);
@@ -198,7 +199,7 @@ int srslte_ue_mib_sync_init_multi(srslte_ue_mib_sync_t *q,
   }
   q->nof_rx_antennas = nof_rx_antennas;
   
-  if (srslte_ue_mib_init(&q->ue_mib, SRSLTE_UE_MIB_NOF_PRB)) {
+  if (srslte_ue_mib_init(&q->ue_mib, q->sf_buffer, SRSLTE_UE_MIB_NOF_PRB)) {
     fprintf(stderr, "Error initiating ue_mib\n");
     return SRSLTE_ERROR;
   }
@@ -274,7 +275,7 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
         return -1;
       } else if (srslte_ue_sync_get_sfidx(&q->ue_sync) == 0) {
         if (ret == 1) {
-          mib_ret = srslte_ue_mib_decode(&q->ue_mib, q->sf_buffer[0], bch_payload, nof_tx_ports, sfn_offset);                    
+          mib_ret = srslte_ue_mib_decode(&q->ue_mib, bch_payload, nof_tx_ports, sfn_offset);
         } else {
           DEBUG("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
           srslte_ue_mib_reset(&q->ue_mib);

@@ -87,8 +87,8 @@ private:
   bool           initiated;
   bool           running;
 
-  cf_t          *signal_buffer_rx; 
-  cf_t          *signal_buffer_tx; 
+  cf_t          *signal_buffer_rx;
+  cf_t          *signal_buffer_tx[SRSLTE_MAX_PORTS];
   uint32_t       tti_rx, tti_tx_dl, tti_tx_ul;
   uint32_t       sf_rx, sf_tx, tx_mutex_cnt;
   uint32_t       t_rx, t_tx_dl, t_tx_ul;

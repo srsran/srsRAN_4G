@@ -44,6 +44,7 @@ int srslte_demod_hard_demodulate(srslte_demod_hard_t* q, cf_t* symbols, uint8_t 
 
   int nbits=-1;
   switch(q->mod) {
+  case SRSLTE_MOD_LAST:
   case SRSLTE_MOD_BPSK:
     hard_bpsk_demod(symbols,bits,nsymbols);
     nbits=nsymbols;

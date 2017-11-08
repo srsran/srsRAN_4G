@@ -82,6 +82,7 @@ int srslte_modem_table_set(srslte_modem_table_t* q, cf_t* table, uint32_t nsymbo
 int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation) {
   srslte_modem_table_init(q);
   switch(modulation) {
+  case SRSLTE_MOD_LAST:
   case SRSLTE_MOD_BPSK:
     q->nbits_x_symbol = 1;
     q->nsymbols = 2;

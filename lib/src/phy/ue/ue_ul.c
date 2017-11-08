@@ -41,6 +41,7 @@
 #define DEFAULT_CFO_TOL   50.0 // Hz
 
 int srslte_ue_ul_init(srslte_ue_ul_t *q,
+                      cf_t *out_buffer,
                       uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -50,8 +51,14 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(srslte_ue_ul_t));
-    
-    if (srslte_ofdm_tx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
+
+    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_PRB(max_prb) * sizeof(cf_t));
+    if (!q->sf_symbols) {
+      perror("malloc");
+      goto clean_exit;
+    }
+
+    if (srslte_ofdm_tx_init(&q->fft, SRSLTE_CP_NORM, q->sf_symbols, out_buffer, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
@@ -82,11 +89,6 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     if (srslte_refsignal_ul_init(&q->signals, max_prb)) {
       fprintf(stderr, "Error initiating srslte_refsignal_ul\n");
       goto clean_exit;
-    }
-    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_PRB(max_prb) * sizeof(cf_t));
-    if (!q->sf_symbols) {
-      perror("malloc");
-      goto clean_exit; 
     }
     q->refsignal = srslte_vec_malloc(2 * SRSLTE_NRE * max_prb * sizeof(cf_t));
     if (!q->refsignal) {
@@ -347,7 +349,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     
     q->last_pucch_format = format; 
 
-    srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
+    srslte_ofdm_tx_sf(&q->fft);
     
     if (q->cfo_en) {
       srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));
@@ -417,7 +419,7 @@ int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal
       }
     }
     
-    srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
+    srslte_ofdm_tx_sf(&q->fft);
     
     if (q->cfo_en) {
       srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));
@@ -486,7 +488,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
       }
     }
     
-    srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
+    srslte_ofdm_tx_sf(&q->fft);
     
     if (q->cfo_en) {
       srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));

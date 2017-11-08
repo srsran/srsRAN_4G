@@ -510,7 +510,10 @@ int main(int argc, char **argv) {
 #endif
   }
 
-  if (srslte_ue_mib_init(&ue_mib, cell.nof_prb)) {
+  for (int i=0;i<prog_args.rf_nof_rx_ant;i++) {
+    sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  }
+  if (srslte_ue_mib_init(&ue_mib, sf_buffer, cell.nof_prb)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }
@@ -519,17 +522,13 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, prog_args.rf_nof_rx_ant)) {
+  if (srslte_ue_dl_init(&ue_dl, sf_buffer, cell.nof_prb, prog_args.rf_nof_rx_ant)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
   if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
-  }
-
-  for (int i=0;i<prog_args.rf_nof_rx_ant;i++) {
-    sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }
   
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
@@ -632,7 +631,7 @@ int main(int argc, char **argv) {
       switch (state) {
         case DECODE_MIB:
           if (sfidx == 0) {
-            n = srslte_ue_mib_decode(&ue_mib, sf_buffer[0], bch_payload, NULL, &sfn_offset);
+            n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);

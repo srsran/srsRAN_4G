@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <srslte/phy/phch/ra.h>
 
 #include "srslte/phy/phch/dci.h"
 #include "srslte/phy/common/phy_common.h"
@@ -111,7 +112,7 @@ int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, uint32_t nof_prb,
   srslte_ra_type2_from_riv(riv, &ul_dci->type2_alloc.L_crb, &ul_dci->type2_alloc.RB_start,
                            nof_prb, nof_prb);
   
-  if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant, 0)) {
+  if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
     return SRSLTE_ERROR;
   }
   
@@ -177,7 +178,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
       return ret;
     } 
 
-    if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant, harq_pid)) {
+    if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
       return ret;
     }
     
@@ -1159,7 +1160,32 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
     data->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(nof_ports));
   }
-  
+
+  // Table 5.3.3.1.5-1
+  if (SRSLTE_RA_DL_GRANT_NOF_TB(data) == 2) {
+    if (data->tb_cw_swap) {
+      uint32_t tmp   = data->rv_idx;
+      data->rv_idx   = data->rv_idx_1;
+      data->rv_idx_1 = tmp;
+
+      tmp             = data->mcs_idx;
+      data->mcs_idx   = data->mcs_idx_1;
+      data->mcs_idx_1 = tmp;
+
+      bool tmp_ndi    = data->ndi;
+      data->ndi       = data->ndi_1;
+      data->ndi_1     = tmp_ndi;
+    }
+  }
+
+  // Table 5.3.3.1.5-2
+  if (!data->tb_en[0]) {
+    data->rv_idx  = data->rv_idx_1;
+    data->mcs_idx = data->mcs_idx_1;
+    data->ndi     = data->ndi_1;
+
+    data->tb_en[1] = false;
+  }
   
   return SRSLTE_SUCCESS;
 }

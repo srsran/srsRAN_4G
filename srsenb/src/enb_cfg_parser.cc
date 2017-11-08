@@ -749,7 +749,7 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
   }
   
   // Fill rest of data from enb config 
-  sib1->cell_id = args->enb.s1ap.enb_id;
+  sib1->cell_id = (args->enb.s1ap.enb_id << 8) + args->enb.s1ap.cell_id;
   sib1->tracking_area_code = args->enb.s1ap.tac;
   sib1->freq_band_indicator = srslte_band_get_band(args->rf.dl_earfcn); 
   sib1->N_plmn_ids = 1; 

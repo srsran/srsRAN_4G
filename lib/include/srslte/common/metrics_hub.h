@@ -24,18 +24,20 @@ template<typename metrics_t>
 class metrics_listener
 {
 public: 
-  virtual void set_metrics(metrics_t &m, float report_period_secs=1.0) = 0;
-}; 
+  virtual void set_metrics(metrics_t &m) = 0;
+};
 
 template<typename metrics_t>
 class metrics_hub : public periodic_thread
 {
 public:
-  metrics_hub() {
-    m         = NULL;
-  }
-  bool init(metrics_interface<metrics_t> *m_, float report_period_secs=1.0) {
-    m = m_; 
+  metrics_hub()
+    :m(NULL)
+    ,report_period_secs(1)
+  {}
+  bool init(metrics_interface<metrics_t> *m_, float report_period_secs_=1.0) {
+    m = m_;
+    report_period_secs = report_period_secs_;
     start_periodic(report_period_secs*1e6);
     return true;
   }
@@ -60,8 +62,8 @@ private:
     }
   }
   metrics_interface<metrics_t> *m;
-  std::vector<metrics_listener<metrics_t>*> listeners; 
-
+  std::vector<metrics_listener<metrics_t>*> listeners;
+  float report_period_secs;
 };
 
 } // namespace srslte

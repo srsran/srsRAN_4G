@@ -18,6 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(upper)
+add_executable(rrc_meas_test rrc_meas_test.cc)
+target_link_libraries(rrc_meas_test srslte_common srslte_phy srslte_asn1)
+add_test(rrc_meas_test rrc_meas_test)
