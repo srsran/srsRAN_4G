@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include "srslte/config.h"
 #include "srslte/phy/rf/rf.h"
-
+#define DEVNAME_LIME "lime"
 
 SRSLTE_API int rf_soapy_open(char *args,
                              void **handler);
