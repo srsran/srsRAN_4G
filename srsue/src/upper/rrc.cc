@@ -206,6 +206,12 @@ void rrc::run_thread() {
           if (!current_cell->has_valid_sib1) {
             si_acquire_state = SI_ACQUIRE_SIB1;
             sysinfo_index = 0;
+          } else if (!current_cell->has_valid_sib2) {
+            si_acquire_state = SI_ACQUIRE_SIB2;
+          } else {
+            apply_sib2_configs(&current_cell->sib2);
+            si_acquire_state = SI_ACQUIRE_IDLE;
+            state = RRC_STATE_CELL_SELECTED;
           }
         }
         select_cell_timeout++;
