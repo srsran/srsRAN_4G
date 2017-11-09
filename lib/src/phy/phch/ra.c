@@ -590,11 +590,12 @@ int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci,
     ret = dl_dci_to_grant_mcs(dci, grant, crc_is_crnti);
     if (ret == SRSLTE_SUCCESS) {
       // Apply Section 7.1.7.3. If RA-RNTI and Format1C rv_idx=0
-      if (msg_rnti >= SRSLTE_RARNTI_START && msg_rnti <= SRSLTE_RARNTI_END && 
-        dci->dci_is_1c) 
-      {
-        dci->rv_idx = 0; 
-      }  
+      if (dci->dci_is_1c) {
+        if ((msg_rnti >= SRSLTE_RARNTI_START && msg_rnti <= SRSLTE_RARNTI_END) || msg_rnti == SRSLTE_PRNTI)
+        {
+          dci->rv_idx = 0;
+        }
+      }
     } else {
       return SRSLTE_ERROR; 
     }

@@ -25,9 +25,8 @@
  */
 
 #include <string.h>
-#include <boost/concept_check.hpp>
-#include <srslte/interfaces/sched_interface.h>
 
+#include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
 #include "mac/scheduler_ue.h"
 #include "mac/scheduler.h"
@@ -411,31 +410,31 @@ int sched_ue::generate_format1(dl_harq_proc *h,
     }
 
     h->new_tx(0, tti, mcs, tbs, data->dci_location.ncce);
-    
+
+    // Allocate MAC ConRes CE
+    if (need_conres_ce) {
+      data->pdu[0][0].lcid = srslte::sch_subh::CON_RES_ID;
+      data->nof_pdu_elems[0]++;
+      Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
+    }
+
+    int rem_tbs = tbs;
+    int x = 0;
+    do {
+      x = alloc_pdu(rem_tbs, &data->pdu[0][data->nof_pdu_elems[0]]);
+      rem_tbs -= x;
+      if (x) {
+        data->nof_pdu_elems[0]++;
+      }
+    } while(rem_tbs > 0 && x > 0);
+
     Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
   } else {
     h->new_retx(0, tti, &mcs, &tbs);
     Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
   }
- 
-  // Allocate MAC ConRes CE
-  if (need_conres_ce) {
-    data->pdu[0][0].lcid = srslte::sch_subh::CON_RES_ID;
-    data->nof_pdu_elems[0]++;
-    Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
-  }
-  
-  int rem_tbs = tbs; 
-  int x = 0; 
-  do {
-    x = alloc_pdu(rem_tbs, &data->pdu[0][data->nof_pdu_elems[0]]);
-    rem_tbs -= x; 
-    if (x) {
-      data->nof_pdu_elems[0]++;
-    }
-  } while(rem_tbs > 0 && x > 0);
-  
-  data->rnti    = rnti; 
+
+  data->rnti    = rnti;
 
   if (tbs > 0) {
     dci->harq_process = h->get_id(); 
