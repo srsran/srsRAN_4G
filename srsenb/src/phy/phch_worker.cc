@@ -637,24 +637,25 @@ int phch_worker::decode_pucch()
         }
         
         char cqi_ri_str[64];
-        if (uci_data.uci_ri_len && needs_ri) {
-          phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
-          sprintf(cqi_ri_str, ", ri=%d", uci_data.uci_ri);
-        } else if (uci_data.uci_cqi_len && needs_cqi) {
-          srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
-          phy->mac->cqi_info(tti_rx, rnti, cqi_value.wideband.wideband_cqi);
-          sprintf(cqi_ri_str, ", cqi=%d", cqi_value.wideband.wideband_cqi);
+        if (srslte_pucch_get_last_corr(&enb_ul.pucch) > PUCCH_RL_CORR_TH) {
+          if (uci_data.uci_ri_len && needs_ri) {
+            phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
+            sprintf(cqi_ri_str, ", ri=%d", uci_data.uci_ri);
+          } else if (uci_data.uci_cqi_len && needs_cqi) {
+            srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
+            phy->mac->cqi_info(tti_rx, rnti, cqi_value.wideband.wideband_cqi);
+            sprintf(cqi_ri_str, ", cqi=%d", cqi_value.wideband.wideband_cqi);
 
-          if (uci_data.uci_pmi_len) {
-            uint8_t *ptr = uci_data.uci_pmi;
-            uint32_t packed_pmi = uci_data.uci_pmi[0];
-            if (uci_data.uci_pmi_len > 1) {
-              packed_pmi = (packed_pmi << 1) + uci_data.uci_pmi[1];
+            if (uci_data.uci_pmi_len) {
+              uint32_t packed_pmi = uci_data.uci_pmi[0];
+              if (uci_data.uci_pmi_len > 1) {
+                packed_pmi = (packed_pmi << 1) + uci_data.uci_pmi[1];
+              }
+              phy->mac->pmi_info(tti_rx, rnti, packed_pmi);
+              sprintf(cqi_ri_str, "%s, pmi=%c", cqi_ri_str, packed_pmi + 0x30);
             }
-            phy->mac->pmi_info(tti_rx, rnti, packed_pmi);
-            sprintf(cqi_ri_str, "%s, pmi=%c", cqi_ri_str, packed_pmi + 0x30);
-          }
 
+          }
         }
         log_h->info("PUCCH: rnti=0x%x, corr=%.2f, n_pucch=%d, n_prb=%d%s%s%s%s\n",
                     rnti,
