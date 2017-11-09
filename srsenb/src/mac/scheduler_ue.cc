@@ -458,6 +458,7 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
                          uint32_t tti,
                          uint32_t cfi)
 {
+  bool tb_en[SRSLTE_MAX_TB] = {false};
   srslte_ra_dl_dci_t *dci = &data->dci;
   bzero(dci, sizeof(srslte_ra_dl_dci_t));
 
@@ -473,22 +474,35 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
   uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
   uint32_t req_bytes = get_pending_dl_new_data(tti);
 
+  if (dl_ri == 0) {
+    if (h->is_empty(1)) {
+      /* One layer, tb1 buffer is empty, send tb0 only */
+      tb_en[0] = true;
+    } else {
+      /* One layer, tb1 buffer is not empty, send tb1 only */
+      tb_en[1] = true;
+    }
+  } else {
+    /* Two layers, retransmit what TBs that have not been Acknowledged */
+    bool no_retx = true;
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      if (!h->is_empty(tb)) {
+        tb_en[tb] = true;
+        no_retx = false;
+      }
+    }
+    /* Two layers, no retransmissions...  */
+    if (no_retx) {
+      tb_en[0] = true;
+      tb_en[1] = true;
+    }
+  }
+
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
     int mcs = 0;
     int tbs = 0;
 
-    /*
-     * If one layer (RI = 0) Then
-     *   If TB1 has pending harq
-     *     Send TB1 only
-     *   Else
-     *     Send TB0 Only
-     *   End If
-     * Else (RI != 0)
-     *   Send TB0 and TB1
-     * End If
-     */
-    if (dl_ri == 1 || (dl_ri == 0 && ((tb == 0 && h->is_empty(1)) || (tb == 1 && !h->is_empty(1))))) {
+    if (tb_en[tb]) {
       if (h->is_empty(tb)) {
         if (fixed_mcs_dl < 0) {
           tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
