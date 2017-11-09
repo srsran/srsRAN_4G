@@ -122,7 +122,6 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
-  m_s1ap_log->console("Dw NAS id %d\n", enb_ue_s1ap_id);
 
   //Pack NAS PDU 
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
@@ -134,6 +133,7 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
+    m_s1ap_log->error("Error packing Athentication Request\n");
     m_s1ap_log->console("Error packing Athentication Request\n");
     return false;
   }
@@ -146,6 +146,7 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
   if(err != LIBLTE_SUCCESS)
   {
+    m_s1ap_log->error("Error packing Athentication Request\n");
     m_s1ap_log->console("Error packing Athentication Request\n");
     return false;
   }

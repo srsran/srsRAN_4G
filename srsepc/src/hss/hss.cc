@@ -143,29 +143,10 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
     autn[8+i]=mac[i];
   }
 
+  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
+  m_hss_log->debug_hex(autn, 8, "User AUTN: ");
+  m_hss_log->debug_hex(xres, 8, "User XRES: ");
 
-
-  //std::stringstream ss;
-  std::cout<<"SQN: ";
-  for(int i=0;i<6;i++)
-  {
-    std::cout << std::hex <<(uint16_t)sqn[i];
-  }
-  std::cout<<std::endl;
-  std::cout<<"AUTN: ";
-  for(int i=0;i<8;i++)
-  {
-    std::cout << std::hex <<(uint16_t)autn[i];
-  }
-  std::cout<<std::endl;
-  std::cout<<"XRES: ";
-  for(int i=0;i<16;i++)
-  {
-    std::cout << std::hex <<(uint16_t)xres[i];
-  }
-  std::cout<<std::endl;
-  //std::string autn_str = ss.str();
-  //m_hss_log->console("AUTN: %s", autn_str.c_str());
   return true;
 }
 
@@ -179,10 +160,12 @@ hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
   
   if(imsi != 1010123456789)
   {
+    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
     m_hss_log->console("User not found. IMSI: %015lu\n",imsi);
     return false;
   }
 
+  m_hss_log->info("Found User %015lu\n",imsi);
   m_hss_log->console("Found User %015lu\n",imsi);
   memcpy(k,k_tmp,16);
   memcpy(amf,amf_tmp,2);

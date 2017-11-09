@@ -305,10 +305,10 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
   if(n_sent == -1)
   {
-    m_s1ap_log->console("Failed to send NAS Attach Request");
+    m_s1ap_log->error("Failed to send NAS Attach Request");
     return false;
   }
-  m_s1ap_log->console("Sent NAS Athentication Request\n");
+  m_s1ap_log->info("DL NAS: Sent Athentication Request\n");
   m_pool->deallocate(reply_msg);
   //TODO Start T3460 Timer!
   return true;
@@ -333,10 +333,10 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   if(it == m_active_ues.end())
   {
     //TODO UE not registered, send error message.
-    m_s1ap_log->console("Could not find UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+    m_s1ap_log->warning("Could not find UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
     return false;
   }
-  m_s1ap_log->console("Found UE. MME-UE S1AP id: %lu",mme_ue_s1ap_id);
+  m_s1ap_log->debug("Found UE. MME-UE S1AP id: %lu",mme_ue_s1ap_id);
 
   //Get NAS message type
   uint8_t pd, msg_type;
@@ -366,11 +366,11 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
   if(n_sent == -1)
   {
-    m_s1ap_log->console("Failed to send NAS Attach Request");
+    m_s1ap_log->error("Failed to send NAS Attach Request");
     return false;
   }
-  m_s1ap_log->console("Sent Security Mode Command\n");
-
+  m_s1ap_log->info("DL NAS: Sent Security Mode Command\n");
+  m_s1ap_log->console("DL NAS: Sent Security Mode Command\n");
   m_pool->deallocate(nas_msg);
   m_pool->deallocate(reply_msg);
 
@@ -414,6 +414,7 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     return false;
   }
   m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
+  m_s1ap_log->info("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
 
   //Send Security Mode Command
   m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
@@ -446,7 +447,9 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
     m_s1ap_log->warning("IMEI-SV present but not handled");
   }
 
+  m_s1ap_log->info("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
   m_s1ap_log->console("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
+
   return true;
 }
 
