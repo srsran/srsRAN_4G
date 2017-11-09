@@ -408,7 +408,7 @@ void ue::metrics_phr(float phr) {
 }
 
 void ue::metrics_dl_ri(uint32_t dl_ri) {
-  metrics.dl_ri = SRSLTE_VEC_CMA((float) dl_ri, metrics.dl_ri, dl_ri_counter);
+  metrics.dl_ri = SRSLTE_VEC_EMA((float) dl_ri, metrics.dl_ri, 0.5f);
   dl_ri_counter++;
 }
 
