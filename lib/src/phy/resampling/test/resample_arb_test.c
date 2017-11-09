@@ -35,12 +35,14 @@
 #include "srslte/phy/resampling/resample_arb.h"
 
 
-
 int main(int argc, char **argv) {
   int N = 100;        // Number of sinwave samples
   int delay = 5;      // Delay of our resampling filter
   float down = 25.0;  // Downsampling rate
 
+
+  
+  
   for(int up=1;up<down;up++)
   {
     float rate = up/down;
@@ -62,7 +64,7 @@ int main(int argc, char **argv) {
 
     // Resample
     srslte_resample_arb_t r;
-    srslte_resample_arb_init(&r, rate);
+    srslte_resample_arb_init(&r, rate, 0);
     int n_out = srslte_resample_arb_compute(&r, in, out, N);
 
     // Check interp values
@@ -74,11 +76,10 @@ int main(int argc, char **argv) {
       float diff = fabs(creal(in[pre])-creal(in[post]));
       float diff2 = fabs(creal(out[i])-creal(in[round]));
       if(diff2 > diff && pre != post){
-          printf("Interpolation failed at index %f", idx);
+          printf("Interpolation failed at index %f\n", idx);
           exit(-1);
       }
     }
-
 
     free(in);
     free(out);
