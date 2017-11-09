@@ -540,7 +540,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     if (grant->tb_en[tb] && (rv[tb] < 0 || rv[tb] > 3)) {
       valid_config = false;
-      Error("Wrong RV (%d) for TB index %d", rv[tb], tb);
+      Error("Wrong RV (%d) for TB index %d\n", rv[tb], tb);
     }
   }
 
@@ -656,6 +656,9 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       Error("Error configuring DL grant\n");
       ret = SRSLTE_ERROR;
     }
+  } else {
+    Error("Error invalid DL config\n");
+    ret = SRSLTE_ERROR;
   }
   return ret;
 }
