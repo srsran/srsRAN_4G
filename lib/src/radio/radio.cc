@@ -59,6 +59,7 @@ bool radio::init(char *args, char *devname, uint32_t nof_channels)
   } else if (strstr(srslte_rf_name(&rf_device), "bladerf")) {
     burst_preamble_sec = blade_default_burst_preamble_sec;
   } else {
+     burst_preamble_sec = 0;
     printf("\nWarning burst preamble is not calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));
   }
 
@@ -337,11 +338,10 @@ void radio::set_tx_srate(double srate)
   }
   burst_preamble_time_rounded = (double) burst_preamble_samples/cur_tx_srate;  
   
-  
   int nsamples=0;
   /* Set time advance for each known device if in auto mode */
   if (tx_adv_auto) {
-    
+   
     /* This values have been calibrated using the prach_test_usrp tool in srsLTE */
   
     if (!strcmp(srslte_rf_name(&rf_device), "uhd_b200")) {
@@ -363,7 +363,48 @@ void radio::set_tx_srate(double srate)
         /* Interpolate from known values */
         printf("\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n", cur_tx_srate);
         nsamples = cur_tx_srate*(uhd_default_tx_adv_samples * (1/cur_tx_srate) + uhd_default_tx_adv_offset_sec);        
-      }                
+      }
+      
+    }else if(!strcmp(srslte_rf_name(&rf_device), "uhd_usrp2")) {
+            double srate_khz = round(cur_tx_srate/1e3);
+      if (srate_khz == 1.92e3) {
+        nsamples = 14;// estimated
+      } else if (srate_khz == 3.84e3) {
+        nsamples = 32;
+      } else if (srate_khz == 5.76e3) {
+        nsamples = 43;
+      } else if (srate_khz == 11.52e3) {
+        nsamples = 54;
+      } else if (srate_khz == 15.36e3) {
+        nsamples = 65;// to calc
+      } else if (srate_khz == 23.04e3) {
+        nsamples = 80; // to calc
+      } else {
+        /* Interpolate from known values */
+        printf("\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n", cur_tx_srate);
+        nsamples = cur_tx_srate*(uhd_default_tx_adv_samples * (1/cur_tx_srate) + uhd_default_tx_adv_offset_sec);        
+      }
+      
+    } else if(!strcmp(srslte_rf_name(&rf_device), "lime")) {
+      double srate_khz = round(cur_tx_srate/1e3);
+      if (srate_khz == 1.92e3) {
+        nsamples = 70;// estimated
+      } else if (srate_khz == 3.84e3) {
+        nsamples = 76;//estimated
+      } else if (srate_khz == 5.76e3) {
+        nsamples = 76;
+      } else if (srate_khz == 11.52e3) {
+        nsamples = 76;
+      } else if (srate_khz == 15.36e3) {
+        nsamples = 73;
+      } else if (srate_khz == 23.04e3) {
+        nsamples = 87;
+      } else {
+        /* Interpolate from known values */
+        printf("\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n", cur_tx_srate);
+        nsamples = cur_tx_srate*(uhd_default_tx_adv_samples * (1/cur_tx_srate) + uhd_default_tx_adv_offset_sec);        
+      }
+      
     } else if (!strcmp(srslte_rf_name(&rf_device), "uhd_x300")) {
 
       // In X300 TX/RX offset is independent of sampling rate

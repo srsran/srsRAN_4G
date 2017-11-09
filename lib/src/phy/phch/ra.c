@@ -546,6 +546,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
     }
   }
   grant->pinfo = dci->pinfo;
+  grant->tb_cw_swap = dci->tb_cw_swap;
 
   if (grant->mcs[0].tbs < 0 || grant->mcs[1].tbs < 0) {
     return SRSLTE_ERROR; 

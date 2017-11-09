@@ -1454,7 +1454,7 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
       return srslte_predecoding_single_multi(y, h[0], x[0], nof_rxant, nof_symbols, noise_estimate);              
     } else {
       fprintf(stderr,
-          "Number of ports and layers must be 1 for transmission on single antenna ports\n");
+          "Number of ports and layers must be 1 for transmission on single antenna ports (%d, %d)\n", nof_ports, nof_layers);
       return -1;
     }
     break;

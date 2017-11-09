@@ -80,8 +80,9 @@ typedef struct pcaprec_hdr_s {
 #define MAC_LTE_UEID_TAG            0x03
 /* 2 bytes, network order */
 
-#define MAC_LTE_SUBFRAME_TAG        0x04
+#define MAC_LTE_FRAME_SUBFRAME_TAG  0x04
 /* 2 bytes, network order */
+/* SFN is stored in 12 MSB and SF in 4 LSB */
 
 #define MAC_LTE_PREDFINED_DATA_TAG  0x05
 /* 1 byte */
@@ -150,7 +151,7 @@ inline int MAC_LTE_PCAP_WritePDU(FILE *fd, MAC_Context_Info_t *context,
     pcaprec_hdr_t packet_header;
     char context_header[256];
     int offset = 0;
-    unsigned short tmp16;
+    uint16_t tmp16;
 
     /* Can't write if file wasn't successfully opened */
     if (fd == NULL) {
@@ -176,9 +177,11 @@ inline int MAC_LTE_PCAP_WritePDU(FILE *fd, MAC_Context_Info_t *context,
     memcpy(context_header+offset, &tmp16, 2);
     offset += 2;
 
-    /* Subframe number */
-    context_header[offset++] = MAC_LTE_SUBFRAME_TAG;
-    tmp16 = htons(context->subFrameNumber);
+    /* Subframe Number and System Frame Number */
+    /* SFN is stored in 12 MSB and SF in 4 LSB */
+    context_header[offset++] = MAC_LTE_FRAME_SUBFRAME_TAG;
+    tmp16 = (context->sysFrameNumber << 4) | context->subFrameNumber;
+    tmp16 = htons(tmp16);
     memcpy(context_header+offset, &tmp16, 2);
     offset += 2;
 

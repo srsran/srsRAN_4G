@@ -768,9 +768,9 @@ bool rrc::ue::is_timeout()
   }
   
   if (deadline_str) {
-    uint64_t deadline = deadline_s*1e6  + deadline_us; 
-    uint64_t elapsed  = t[0].tv_sec*1e6 + t[0].tv_usec;
-    if (elapsed > deadline) {
+    int64_t deadline = deadline_s*1e6  + deadline_us;
+    int64_t elapsed  = t[0].tv_sec*1e6 + t[0].tv_usec;
+    if (elapsed > deadline && elapsed > 0) {
       parent->rrc_log->warning("User rnti=0x%x expired %s deadline: %d:%d>%d:%d us\n", 
                                 rnti, deadline_str, 
                                 t[0].tv_sec, t[0].tv_usec, 
