@@ -70,10 +70,6 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], u
       }
     }
 
-    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      srslte_ofdm_set_normalize(&q->ifft[i], true);
-    }
-
     if (srslte_pbch_init(&q->pbch)) {
       fprintf(stderr, "Error creating PBCH object\n");
       goto clean_exit;
@@ -158,7 +154,7 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
         fprintf(stderr, "Error resizing REGs\n");
         return SRSLTE_ERROR;
       }
-      for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+      for (int i = 0; i < q->cell.nof_ports; i++) {
         if (srslte_ofdm_tx_set_prb(&q->ifft[i], q->cell.cp, q->cell.nof_prb)) {
           fprintf(stderr, "Error re-planning iFFT (%d)\n", i);
           return SRSLTE_ERROR;
@@ -279,7 +275,7 @@ void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti)
 void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q)
 {
   // TODO: PAPR control
-  float norm_factor = (float) sqrt(q->cell.nof_prb)/15;
+  float norm_factor = (float) sqrt(q->cell.nof_prb)/15/sqrt(q->ifft[0].symbol_sz);
 
   for (int i = 0; i < q->cell.nof_ports; i++) {
     srslte_ofdm_tx_sf(&q->ifft[i]);
