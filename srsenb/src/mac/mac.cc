@@ -476,10 +476,10 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.data[i].dci_location, sizeof(srslte_dci_location_t));    
 
     for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-      if (sched_result.data[i].dci.tb_en[tb] && sched_result.data[i].nof_pdu_elems[tb] > 0) {
-        dl_sched_res->sched_grants[n].softbuffers[tb] =
-            ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.harq_process, tb);
+      dl_sched_res->sched_grants[n].softbuffers[tb] =
+          ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.harq_process, tb);
 
+      if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
         /* Get PDU if it's a new transmission */
         dl_sched_res->sched_grants[n].data[tb] = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu[tb],
                                                                            sched_result.data[i].nof_pdu_elems[tb],
@@ -496,12 +496,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
       } else {
         /* TB not enabled OR no data to send: set pointers to NULL  */
-        dl_sched_res->sched_grants[n].softbuffers[tb] = NULL;
         dl_sched_res->sched_grants[n].data[tb] = NULL;
-        if (sched_result.data[i].dci.tb_en[tb]) {
-          Warning("Transport block without PDU elements (rnti: %04x)\n", rnti);
-          sched_result.data[i].dci.tb_en[tb] = false;
-        }
       }
     }
     n++;

@@ -555,11 +555,6 @@ static int srslte_pdsch_codeword_encode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
     valid_inputs = false;
   }
 
-  if (!data) {
-    ERROR("Error encoding (TB%d -> CW%d), data=NULL", tb_idx, codeword_idx);
-    valid_inputs = false;
-  }
-
   if (nbits->nof_bits && valid_inputs) {
     INFO("Encoding PDSCH SF: %d (TB%d -> CW%d), Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
          cfg->sf_idx, tb_idx, codeword_idx, srslte_mod_string(mcs->mod), mcs->tbs,

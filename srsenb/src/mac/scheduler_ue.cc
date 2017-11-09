@@ -513,6 +513,16 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
 
         h->new_tx(tb, tti, mcs, tbs, data->dci_location.ncce);
 
+        int rem_tbs = tbs;
+        int x = 0;
+        do {
+          x = alloc_pdu(rem_tbs, &data->pdu[tb][data->nof_pdu_elems[tb]]);
+          rem_tbs -= x;
+          if (x) {
+            data->nof_pdu_elems[tb]++;
+          }
+        } while (rem_tbs > 0 && x > 0);
+
         Debug("SCHED: Alloc format2/2a new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
       } else {
         h->new_retx(tb, tti, &mcs, &tbs);
@@ -520,19 +530,8 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
       }
     }
 
-    int rem_tbs = tbs;
-    int x = 0;
-    do {
-      x = alloc_pdu(rem_tbs, &data->pdu[tb][data->nof_pdu_elems[tb]]);
-      rem_tbs -= x;
-      if (x) {
-        data->nof_pdu_elems[tb]++;
-      }
-    } while (rem_tbs > 0 && x > 0);
-
-    data->rnti = rnti;
-
-    if (tbs > 0 && data->nof_pdu_elems[tb]) {
+    /* Fill DCI TB dedicated fields */
+    if (tbs > 0) {
       if (tb == 0) {
         dci->mcs_idx = (uint32_t) mcs;
         dci->rv_idx = sched::get_rvidx(h->nof_retx(tb));
@@ -556,6 +555,8 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
     }
   }
 
+  /* Fill common fields */
+  data->rnti = rnti;
   dci->harq_process = h->get_id();
   dci->tpc_pucch = (uint8_t) next_tpc_pucch;
   next_tpc_pucch = 1;
