@@ -69,10 +69,30 @@ s1ap::stop()
   std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.begin();
   while(it!=m_active_enbs.end())
   {
-    print_enb_ctx_info(*it->second);
+    m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", it->second->enb_id);
+    m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", it->second->enb_id);
     delete it->second;
     m_active_enbs.erase(it++);
   }
+  return;
+}
+
+void
+s1ap::delete_enb_ctx(int32_t assoc_id)
+{
+  std::map<int32_t,uint16_t>::iterator it_assoc = m_sctp_to_enb_id.find(assoc_id);
+  uint16_t enb_id = it_assoc->second;
+  std::map<uint16_t,enb_ctx_t*>::iterator it_ctx = m_active_enbs.find(enb_id);
+  if(it_ctx == m_active_enbs.end() || it_assoc == m_sctp_to_enb_id.end())
+  {
+    m_s1ap_log->error("Could not find eNB to delete. Association: %d\n",assoc_id);
+    return;
+  }
+  delete it_ctx->second;
+  m_active_enbs.erase(it_ctx);
+  m_sctp_to_enb_id.erase(it_assoc);
+  m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
+  m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
   return;
 }
 
@@ -129,6 +149,9 @@ s1ap::enb_listen()
 
   return sock_fd;
 }
+
+
+
 
 bool
 s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri) 
@@ -198,6 +221,7 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
   }
 
   //Log S1 Setup Request Info
+  m_s1ap_log->console("Received S1 Setup Request. Association: %d\n",enb_sri->sinfo_assoc_id);
   print_enb_ctx_info(enb_ctx);
   
   //Check matching PLMNs  
@@ -216,12 +240,12 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
     else
     {
       //new eNB
-      enb_ctx_t *enb_ptr = new enb_ctx_t;//TODO use buffer pool here?
+      enb_ctx_t *enb_ptr = new enb_ctx_t;
       memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx));
       m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
+      m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
     }
         
-    //m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t>(enb_ctx.enb_id,enb_ctx));
     m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
     m_s1ap_log->console("Sending S1 Setup Response\n");
     m_s1ap_log->info("Sending S1 Setup Response\n");

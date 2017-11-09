@@ -57,7 +57,9 @@ public:
   void stop();
 
   int get_s1_mme();
-
+  
+  void delete_enb_ctx(int32_t assoc_id);
+  
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri);
 
   bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
@@ -90,6 +92,7 @@ private:
   hss *m_hss;
   int m_s1mme;
   std::map<uint16_t, enb_ctx_t*> m_active_enbs;
+  std::map<int32_t, uint16_t>    m_sctp_to_enb_id;
   std::map<uint32_t, ue_ctx_t*>  m_active_ues;
 
   uint32_t                       m_next_mme_ue_s1ap_id;

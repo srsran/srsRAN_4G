@@ -132,10 +132,13 @@ mme::run_thread()
       if(msg_flags & MSG_NOTIFICATION)
       {
         //Received notification
-        m_s1ap_log->console("SCTP Notification %d\n", ((union sctp_notification*)pdu->msg)->sn_header.sn_type);
-        if (((union sctp_notification*)pdu->msg)->sn_header.sn_type == SCTP_SHUTDOWN_EVENT)
+        union sctp_notification *notification = (union sctp_notification*)pdu->msg;
+        m_s1ap_log->debug("SCTP Notification %d\n", notification->sn_header.sn_type);
+        if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT)
         {
-          m_s1ap_log->console("SCTP Association Gracefully Shutdown\n");//TODO
+          m_s1ap_log->info("SCTP Association Shutdown. Association: %d\n",sri.sinfo_assoc_id);
+          m_s1ap_log->console("SCTP Association Shutdown. Association: %d\n",sri.sinfo_assoc_id);
+          m_s1ap.delete_enb_ctx(sri.sinfo_assoc_id);
         }
       }
       else
