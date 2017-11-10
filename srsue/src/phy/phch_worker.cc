@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "phy/phch_worker.h"
+#include "srslte/srslte.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/asn1/liblte_rrc.h"
 
@@ -40,8 +41,6 @@
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
-#include "srslte/srslte.h"
-#include "srslte/interfaces/ue_interfaces.h"
 
 void init_plots(srsue::phch_worker *worker);
 pthread_t plot_thread; 
@@ -323,9 +322,9 @@ void phch_worker::work_imp()
   ul_action.tti_offset = HARQ_DELAY_MS;
 
   /* Send UL grant or HARQ information (from PHICH) to MAC */
-  if (ul_grant_available         && ul_ack_available)  {    
+  if (ul_grant_available         && ul_ack_available && ul_mac_grant.phy_grant.ul.mcs.idx < 29)  {
     phy->mac->new_grant_ul_ack(ul_mac_grant, ul_ack, &ul_action);      
-  } else if (ul_grant_available  && !ul_ack_available) {
+  } else if (ul_grant_available  && (!ul_ack_available || ul_mac_grant.phy_grant.ul.mcs.idx < 29)) {
     phy->mac->new_grant_ul(ul_mac_grant, &ul_action);
   } else if (!ul_grant_available && ul_ack_available)  {    
     phy->mac->harq_recv(tti, ul_ack, &ul_action);        
@@ -480,10 +479,14 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 
     grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(tti%(2*HARQ_DELAY_MS));
 
-    // Set last TBS for this TB (pid) in case of mcs>29 (7.1.7.2 of 36.213)
+    // Set last TBS for this TB (pid) in case of mcs>28 (7.1.7.2 of 36.213)
     for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
-      if (grant->phy_grant.dl.mcs[i].tbs < 0) {
+      if (grant->phy_grant.dl.mcs[i].idx > 28) {
         grant->phy_grant.dl.mcs[i].tbs = last_dl_tbs[grant->pid%(2*HARQ_DELAY_MS)][i];
+      }
+      if(grant->phy_grant.dl.mcs[i].tbs < 0) {
+        Info("Invalid TBS size for PDSCH grant\n");
+        grant->phy_grant.dl.mcs[i].tbs = 0;
       }
       // save it
       last_dl_tbs[grant->pid%(2*HARQ_DELAY_MS)][i] = grant->phy_grant.dl.mcs[i].tbs;
@@ -743,16 +746,17 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
   if (ret) {
 
     // Use last TBS for this TB in case of mcs>28
-    if (grant->phy_grant.ul.mcs.tbs < 0) {
-      grant->phy_grant.ul.mcs.tbs = last_ul_tbs[tti%(2*HARQ_DELAY_MS)];
+    if (grant->phy_grant.ul.mcs.idx > 28) {
+      grant->phy_grant.ul.mcs.tbs = last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
+      Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", grant->phy_grant.ul.mcs.idx, grant->phy_grant.ul.mcs.tbs, TTI_TX(tti)%(2*HARQ_DELAY_MS));
     }
-    last_ul_tbs[tti%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.tbs;
+    last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.tbs;
 
     if (grant->phy_grant.ul.mcs.mod == SRSLTE_MOD_LAST) {
-      grant->phy_grant.ul.mcs.mod = last_ul_mod[tti%(2*HARQ_DELAY_MS)];
+      grant->phy_grant.ul.mcs.mod = last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
       grant->phy_grant.ul.Qm      = srslte_mod_bits_x_symbol(grant->phy_grant.ul.mcs.mod);
     }
-    last_ul_mod[tti%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.mod;
+    last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.mod;
   }
 
   /* Limit UL modulation if not supported by the UE or disabled by higher layers */
