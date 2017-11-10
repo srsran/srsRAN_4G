@@ -1185,12 +1185,10 @@ int rlc_am::required_buffer_size(rlc_amd_retx_t retx)
       if (tx_window[retx.sn].buf) {
         return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
       } else {
-        log->console("retx.sn=%d has null ptr\n", retx.sn);
         log->warning("retx.sn=%d has null ptr in required_buffer_size()\n", retx.sn);
         return -1;
       }
     } else {
-      log->console("retx.sn=%d does not exist\n", retx.sn);
       log->warning("retx.sn=%d does not exist in required_buffer_size()\n", retx.sn);
       return -1;
     }
