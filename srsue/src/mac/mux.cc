@@ -286,7 +286,7 @@ bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz)
       }        
 
       log_h->info("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d/%d\n", 
-                   ch->id, ch->buffer_len, sched_len, *sdu_space);
+                   ch->id, ch->buffer_len, sched_len, sdu_space?*sdu_space:0);
       
       *sdu_space     -= sched_len; 
       ch->buffer_len -= sched_len; 
@@ -309,12 +309,11 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
       sdu_len = max_sdu_sz;
     }
     int sdu_space = pdu_msg->get_sdu_space();
-    if (sdu_len > sdu_space) {
+    if (sdu_len > sdu_space || max_sdu_sz < 0) {
       sdu_len = sdu_space;
-    }        
+    }
     if (sdu_len > MIN_RLC_SDU_LEN) {
       if (pdu_msg->new_subh()) { // there is space for a new subheader
-        int sdu_len2 = sdu_len; 
         sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc);
         if (sdu_len > 0) { // new SDU could be added
           
