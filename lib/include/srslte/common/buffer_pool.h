@@ -123,8 +123,6 @@ public:
       used.erase(elem); 
       available.push(b);
       ret = true; 
-    } else {
-      printf("Error deallocating from buffer pool: buffer not created in this pool.\n");
     }
     pthread_mutex_unlock(&mutex);
     return ret; 

@@ -219,7 +219,7 @@ private:
 
       // Receive and route HARQ feedbacks
       if (grant) {
-        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi()) ||
+        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi() && grant->phy_grant.ul.mcs.idx < 29) ||
           (grant->rnti_type == SRSLTE_RNTI_USER && !has_grant())             ||
           grant->is_from_rar)
         {
@@ -245,7 +245,7 @@ private:
               Warning("Uplink grant but no MAC PDU in Multiplex Unit buffer\n");
             }
           }
-        } else {
+        } else if (has_grant()) {
           // Adaptive Re-TX
           if (current_tx_nb >= max_retx) {
             Info("UL %d:  Maximum number of ReTX reached (%d). Discarting TB.\n", pid, max_retx);
@@ -254,6 +254,8 @@ private:
           } else {
             generate_retx(tti_tx, grant, action);
           }
+        } else {
+          Warning("UL %d: Received mcs=%d but no previous grant available for this PID.\n", pid, grant->phy_grant.ul.mcs.idx);
         }
       } else if (has_grant()) {
         // Non-Adaptive Re-Tx
