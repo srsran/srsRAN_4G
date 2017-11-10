@@ -201,8 +201,14 @@ uint32_t rlc_am::get_total_buffer_state()
     rlc_amd_retx_t retx = retx_queue.front();
     log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
     if(tx_window.end() != tx_window.find(retx.sn)) {
-        n_bytes += required_buffer_size(retx);
+      int req_bytes = required_buffer_size(retx);
+      if (req_bytes < 0) {
+        log->error("In get_total_buffer_state(): Removing retx.sn=%d from queue\n", retx.sn);
+        retx_queue.pop_front();
+      } else {
+        n_bytes += req_bytes;
         log->debug("Buffer state - retx: %d bytes\n", n_bytes);
+      }
     }
   }
 
@@ -250,7 +256,13 @@ uint32_t rlc_am::get_buffer_state()
     rlc_amd_retx_t retx = retx_queue.front();
     log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
     if(tx_window.end() != tx_window.find(retx.sn)) {
-      n_bytes = required_buffer_size(retx);
+      int req_bytes = required_buffer_size(retx);
+      if (req_bytes < 0) {
+        log->error("In get_buffer_state(): Removing retx.sn=%d from queue\n", retx.sn);
+        retx_queue.pop_front();
+        goto unlock_and_return;
+      }
+      n_bytes = (uint32_t) req_bytes;
       log->debug("Buffer state - retx: %d bytes\n", n_bytes);
       goto unlock_and_return;
     }
@@ -439,16 +451,33 @@ int  rlc_am::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
+  // Check there is at least 1 element before calling front()
+  if (retx_queue.empty()) {
+    log->error("In build_retx_pdu(): retx_queue is empty\n");
+    return -1;
+  }
+
   rlc_amd_retx_t retx = retx_queue.front();
 
   // Sanity check - drop any retx SNs not present in tx_window
   while(tx_window.end() == tx_window.find(retx.sn)) {
     retx_queue.pop_front();
-    retx = retx_queue.front();
+    if (!retx_queue.empty()) {
+      retx = retx_queue.front();
+    } else {
+      log->error("In build_retx_pdu(): retx_queue is empty during sanity check\n");
+      return -1;
+    }
   }
 
   // Is resegmentation needed?
-  if(retx.is_segment || required_buffer_size(retx) > (int)nof_bytes) {
+  int req_size = required_buffer_size(retx);
+  if (req_size < 0) {
+    log->error("In build_retx_pdu(): Removing retx.sn=%d from queue\n", retx.sn);
+    retx_queue.pop_front();
+    return -1;
+  }
+  if(retx.is_segment || req_size > (int)nof_bytes) {
     log->debug("%s build_retx_pdu - resegmentation required\n", rrc->get_rb_name(lcid).c_str());
     return build_segment(payload, nof_bytes, retx);
   }
@@ -482,6 +511,10 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t retx)
 {
+  if (!tx_window[retx.sn].buf) {
+    log->error("In build_segment: retx.sn=%d has null buffer\n", retx.sn);
+    return 0;
+  }
   if(!retx.is_segment){
     retx.so_start = 0;
     retx.so_end   = tx_window[retx.sn].buf->N_bytes;
@@ -1149,10 +1182,16 @@ int rlc_am::required_buffer_size(rlc_amd_retx_t retx)
 {
   if(!retx.is_segment){
     if (tx_window.count(retx.sn)) {
-      return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
+      if (tx_window[retx.sn].buf) {
+        return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
+      } else {
+        log->console("retx.sn=%d has null ptr\n", retx.sn);
+        log->warning("retx.sn=%d has null ptr in required_buffer_size()\n", retx.sn);
+        return -1;
+      }
     } else {
-      log->console("retx.sn=%d does not exist\n");
-      log->warning("retx.sn=%d does not exist in required_buffer_size()\n");
+      log->console("retx.sn=%d does not exist\n", retx.sn);
+      log->warning("retx.sn=%d does not exist in required_buffer_size()\n", retx.sn);
       return -1;
     }
   }
