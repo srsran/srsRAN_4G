@@ -1148,7 +1148,13 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
 int rlc_am::required_buffer_size(rlc_amd_retx_t retx)
 {
   if(!retx.is_segment){
-    return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
+    if (tx_window.count(retx.sn)) {
+      return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
+    } else {
+      log->console("retx.sn=%d does not exist\n");
+      log->warning("retx.sn=%d does not exist in required_buffer_size()\n");
+      return -1;
+    }
   }
 
   // Construct new header
