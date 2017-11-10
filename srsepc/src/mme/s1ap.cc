@@ -225,6 +225,9 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UPLINKNASTRANSPORT:
     m_s1ap_log->info("Received Uplink NAS Transport Message.\n");
     return handle_uplink_nas_transport(&msg->choice.UplinkNASTransport, enb_sri);
+  case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASEREQUEST:
+    m_s1ap_log->info("Received UE Context Release Request Message.\n");
+    return handle_ue_context_release_request(&msg->choice.UEContextReleaseRequest, enb_sri);
   default:
     m_s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
@@ -482,12 +485,6 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
 bool
 s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
 {
-  /*
-  typedef struct{
-    LIBLTE_MME_MOBILE_ID_STRUCT imeisv;
-    bool                        imeisv_present;
-  }LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT;
-  */
   LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sm_comp;
  
   //Get NAS authentication response
@@ -510,6 +507,45 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
 
   return true;
 }
+
+bool
+s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri)
+{
+
+  uint32_t mme_ue_s1ap_id = ue_rel->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  m_s1ap_log->info("Received UE Context Release Request. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+  m_s1ap_log->console("Received UE Context Release Request. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
+
+  std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_active_ues.find(mme_ue_s1ap_id);
+  if(ue_ctx == m_active_ues.end() )
+  {
+    m_s1ap_log->info("UE not found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    return false;
+  }
+  
+  //Delete UE within eNB UE set
+  std::map<int32_t,uint16_t>::iterator it = m_sctp_to_enb_id.find(enb_sri->sinfo_assoc_id);
+  if(it == m_sctp_to_enb_id.end() )
+  {
+    m_s1ap_log->error("Could not find eNB for this request.\n");
+    return false;
+  }  
+  uint16_t enb_id = it->second; 
+  std::map<uint16_t,std::set<uint32_t> >::iterator ue_set = m_enb_id_to_ue_ids.find(enb_id);
+  if(ue_set == m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find the eNB's UEs.\n");
+    return false;
+  }
+  ue_set->second.erase(mme_ue_s1ap_id);
+
+  //Delete UE context
+  delete ue_ctx->second;
+  m_active_ues.erase(ue_ctx);
+  m_s1ap_log->info("Deleted UE Context.\n");
+  return true;
+}
+
 
 void
 s1ap::print_enb_ctx_info(const enb_ctx_t &enb_ctx)
