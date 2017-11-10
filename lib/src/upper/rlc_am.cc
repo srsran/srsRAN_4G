@@ -296,8 +296,9 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
   // RETX if required
   if(retx_queue.size() > 0) {
+    int ret = build_retx_pdu(payload, nof_bytes);
     pthread_mutex_unlock(&mutex);
-    return build_retx_pdu(payload, nof_bytes);
+    return ret; 
   }
 
   // Build a PDU from SDUs
