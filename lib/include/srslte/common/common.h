@@ -46,6 +46,7 @@
 
 #define HARQ_DELAY_MS   4
 #define MSG3_DELAY_MS   2 // Delay added to HARQ_DELAY_MS
+#define TTI_RX(tti)     (tti>HARQ_DELAY_MS?((tti-HARQ_DELAY_MS)%10240):(10240+tti-HARQ_DELAY_MS))
 #define TTI_TX(tti)     ((tti+HARQ_DELAY_MS)%10240)
 #define TTI_RX_ACK(tti) ((tti+(2*HARQ_DELAY_MS))%10240)
 
