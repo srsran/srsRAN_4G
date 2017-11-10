@@ -320,7 +320,8 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   /*Get NAS Attach Request and PDN connectivity request messages*/
   if(!m_s1ap_nas_transport.unpack_initial_ue_message(init_ue, &attach_req,&pdn_con_req))
   {
-    //TODO set up error reply
+    //Could not decode the attach request and the PDN connectivity request.
+    m_s1ap_log->error("Could not unpack NAS Attach Request and PDN connectivity request.\n");
     return false;
   }
 
@@ -472,6 +473,7 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     m_s1ap_log->console("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     m_s1ap_log->warning("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     //TODO send back error reply
+    m_s1ap_nas_transport.pack_authentication_reject(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id);
     return false;
   }
   m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
