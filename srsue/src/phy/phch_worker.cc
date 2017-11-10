@@ -539,10 +539,15 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
     }
   }
 
+  uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
   switch(phy->config->dedicated.antenna_info_explicit_value.tx_mode) {
     /* Implemented Tx Modes */
     case LIBLTE_RRC_TRANSMISSION_MODE_1:
       mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+      if (nof_tb != 1) {
+        Error("Wrong number of transport blocks (%d) for single antenna.", nof_tb);
+        valid_config = false;
+      }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_2:
       if (cell.nof_ports > 1) {
@@ -550,26 +555,30 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       } else {
         mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
       }
+      if (nof_tb != 1) {
+        Error("Wrong number of transport blocks (%d) for transmit diversity.", nof_tb);
+        valid_config = false; 
+      }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_3:
-      if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
+      if (nof_tb == 1) {
         mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-      } else if (ue_dl.nof_rx_antennas > 1 && SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
+      } else if (ue_dl.nof_rx_antennas > 1 && nof_tb == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_CDD;
       } else {
         Error("Wrong combination of antennas (%d) or transport blocks (%d) for TM3\n", ue_dl.nof_rx_antennas,
-              SRSLTE_RA_DL_GRANT_NOF_TB(grant));
+              nof_tb);
         valid_config = false;
       }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_4:
-      if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
+      if (nof_tb == 1) {
         mimo_type = (grant->pinfo == 0) ? SRSLTE_MIMO_TYPE_TX_DIVERSITY : SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
-      } else if (ue_dl.nof_rx_antennas > 1 && SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
+      } else if (ue_dl.nof_rx_antennas > 1 && nof_tb == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
       } else {
         Error("Wrong combination of antennas (%d) or transport blocks (%d) for TM3\n", ue_dl.nof_rx_antennas,
-              SRSLTE_RA_DL_GRANT_NOF_TB(grant));
+              nof_tb);
         valid_config = false;
       }
     break;
