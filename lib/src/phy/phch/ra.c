@@ -663,7 +663,7 @@ uint32_t srslte_ra_type1_N_rb(uint32_t nof_prb) {
 /* Convert Type2 scheduling L_crb and RB_start to RIV value */
 uint32_t srslte_ra_type2_to_riv(uint32_t L_crb, uint32_t RB_start, uint32_t nof_prb) {
   uint32_t riv;
-  if (L_crb <= nof_prb / 2) {
+  if ((L_crb - 1) <= nof_prb / 2) {
     riv = nof_prb * (L_crb - 1) + RB_start;
   } else {
     riv = nof_prb * (nof_prb - L_crb + 1) + nof_prb - 1 - RB_start;
