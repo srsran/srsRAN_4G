@@ -326,7 +326,8 @@ srslte_netsink_t net_sink, net_sink_signal;
 #define PRINT_LINE_ADVANCE_CURSOR() printf("\033[%dB", prev_nof_lines + 1)
 
 int main(int argc, char **argv) {
-  int ret; 
+  struct timeval t[3];
+  int ret;
   int decimate = 1;
   srslte_cell_t cell;  
   int64_t sf_cnt;
@@ -559,7 +560,7 @@ int main(int argc, char **argv) {
   // Variables for measurements 
   uint32_t nframes=0;
   uint8_t ri = 0, pmi = 0;
-  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0,
+  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0, procrate = 0.0,
       sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS], cn = 0.0;
   bool decode_pdsch = false; 
 
@@ -655,6 +656,7 @@ int main(int argc, char **argv) {
               decode_pdsch = false; 
             }
           }
+          gettimeofday(&t[1], NULL);
           if (decode_pdsch) {
             if(sfidx != 1 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
               if (cell.nof_ports == 1) {
@@ -690,6 +692,8 @@ int main(int argc, char **argv) {
                 INFO("mbsfn PDU size is %d\n", n);
               }
             }
+            gettimeofday(&t[2], NULL);
+            get_time_interval(t);
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
@@ -723,16 +727,19 @@ int main(int argc, char **argv) {
 
             } 
                                     
-            nof_trials++; 
-            
- 
+            nof_trials++;
+
+            uint32_t nof_bits = ((acks[0]?ue_dl.pdsch_cfg.grant.mcs[0].tbs:0) + (acks[1]?ue_dl.pdsch_cfg.grant.mcs[1].tbs:0));
             rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1f);
             rsrp0 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 0), rsrp0, 0.05f);
             rsrp1 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 1), rsrp1, 0.05f);
             noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05f);
-            enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs[0].tbs + ue_dl.pdsch_cfg.grant.mcs[1].tbs)/1000.0f, enodebrate, 0.05f);
-            uerate = SRSLTE_VEC_EMA(((acks[0]?ue_dl.pdsch_cfg.grant.mcs[0].tbs:0) + (acks[1]?ue_dl.pdsch_cfg.grant.mcs[1].tbs:0))/1000.0f, uerate, 0.01f);
-
+            enodebrate = SRSLTE_VEC_EMA(nof_bits/1000.0f, enodebrate, 0.05f);
+            uerate = SRSLTE_VEC_EMA(nof_bits/1000.0f, uerate, 0.001f);
+            float elapsed = (float) t[0].tv_usec + t[0].tv_sec*1.0e+6f;
+            if (elapsed != 0.0f) {
+              procrate = SRSLTE_VEC_EMA(nof_bits/elapsed, procrate, 0.01f);
+            }
    
             nframes++;
             if (isnan(rsrq)) {
@@ -769,7 +776,7 @@ int main(int argc, char **argv) {
             PRINT_LINE("nof codewords: %d", SRSLTE_RA_DL_GRANT_NOF_TB(&ue_dl.pdsch_cfg.grant));
             PRINT_LINE("          CFO: %+5.2f kHz", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
             PRINT_LINE("          SNR: %+5.1f dB | %+5.1f dB", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
-            PRINT_LINE("           Rb: %6.2f / %6.2f Mbps (net/maximum)", uerate, enodebrate);
+            PRINT_LINE("           Rb: %6.2f / %6.2f / %6.2f Mbps (net/maximum/processing)", uerate, enodebrate, procrate);
             PRINT_LINE("   PDCCH-Miss: %5.2f%%", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
             PRINT_LINE("   PDSCH-BLER: %5.2f%%", (float) 100 * ue_dl.pdsch_pkt_errors / ue_dl.pdsch_pkts_total);
             if(prog_args.mbsfn_area_id > -1){
