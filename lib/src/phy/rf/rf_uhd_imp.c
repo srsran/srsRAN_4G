@@ -291,6 +291,13 @@ int rf_uhd_open(char *args, void **h)
   return rf_uhd_open_multi(args, h, 1);
 }
 
+#define REMOVE_SUBSTRING_WITHCOMAS(S, TOREMOVE) \
+  remove_substring(args, TOREMOVE ",");\
+  remove_substring(args, TOREMOVE ", ");\
+  remove_substring(args, "," TOREMOVE);\
+  remove_substring(args, ", " TOREMOVE);\
+  remove_substring(args, TOREMOVE);
+
 static void remove_substring(char *s,const char *toremove)
 {
   while((s=strstr(s,toremove))) {
@@ -336,11 +343,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     // Check external clock argument
     enum {DEFAULT, EXTERNAL, GPSDO} clock_src;
     if (strstr(args, "clock=external")) {
-      remove_substring(args, "clock=external");
+      REMOVE_SUBSTRING_WITHCOMAS(args, "clock=external");
       clock_src = EXTERNAL;
     } else if (strstr(args, "clock=gpsdo")) {
       printf("Using GPSDO clock\n");
-      remove_substring(args, "clock=gpsdo");
+      REMOVE_SUBSTRING_WITHCOMAS(args, "clock=gpsdo");
       clock_src = GPSDO;
     } else {
       clock_src = DEFAULT;
@@ -349,8 +356,10 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     // Set over the wire format
     char *otw_format = "sc16";
     if (strstr(args, "otw_format=sc12")) {
+      REMOVE_SUBSTRING_WITHCOMAS(args, "otw_format=sc12");
       otw_format = "sc12";
     } else if (strstr(args, "otw_format=sc16")) {
+      REMOVE_SUBSTRING_WITHCOMAS(args, "otw_format=sc16");
       /* Do nothing */
     } else if (strstr(args, "otw_format=")) {
       fprintf(stderr, "Wrong over the wire format. Valid formats: sc12, sc16\n");
