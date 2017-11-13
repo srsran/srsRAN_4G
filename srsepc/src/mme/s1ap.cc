@@ -420,7 +420,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
       break;
     default:
       m_s1ap_log->info("Unhandled NAS message");
-      return false; //FIXME cleanup (deallocate needs to be called)
+      return false; //FIXME (nas_msg deallocate needs to be called)
   }
     
 
@@ -431,8 +431,8 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
     m_s1ap_log->error("Failed to send NAS Attach Request");
     return false;
   }
-  m_s1ap_log->info("DL NAS: Sent Security Mode Command\n");
-  m_s1ap_log->console("DL NAS: Sent Security Mode Command\n");
+  m_s1ap_log->info("DL NAS: Sent Downlink NAS message\n");
+  m_s1ap_log->console("DL NAS: Sent Downlink NAs Message\n");
   m_pool->deallocate(nas_msg);
   m_pool->deallocate(reply_msg);
 
@@ -472,15 +472,17 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
    
     m_s1ap_log->console("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     m_s1ap_log->warning("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
-    //TODO send back error reply
+    //Send back Athentication Reject
     m_s1ap_nas_transport.pack_authentication_reject(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id);
     return false;
   }
-  m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
-  m_s1ap_log->info("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
-
-  //Send Security Mode Command
-  m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
+  else
+  {
+    m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
+    m_s1ap_log->info("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
+    //Send Security Mode Command
+    m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
+  }
   return true;
 }
 

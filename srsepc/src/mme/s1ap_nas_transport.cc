@@ -180,12 +180,12 @@ s1ap_nas_transport::pack_authentication_reject(srslte::byte_buffer_t *reply_msg,
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
-  LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_rej;
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_request_msg(&auth_rej, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  LIBLTE_MME_AUTHENTICATION_REJECT_MSG_STRUCT auth_rej;
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_reject_msg(&auth_rej, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Athentication Request\n");
-    m_s1ap_log->console("Error packing Athentication Request\n");
+    m_s1ap_log->error("Error packing Athentication Reject\n");
+    m_s1ap_log->console("Error packing Athentication Reject\n");
     return false;
   }
 
@@ -197,8 +197,8 @@ s1ap_nas_transport::pack_authentication_reject(srslte::byte_buffer_t *reply_msg,
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Athentication Reject\n");
-    m_s1ap_log->console("Error packing Athentication Reject\n");
+    m_s1ap_log->error("Error packing Dw NAS Transport: Athentication Reject\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: Athentication Reject\n");
     return false;
   } 
 
