@@ -226,6 +226,44 @@ static rf_dev_t dev_dummy = {
 };
 #endif
 
+#ifdef ENABLE_FAUXRF
+
+#include "rf_faux_imp.h"
+
+static rf_dev_t dev_faux = {
+  .name                              = "fauxRf", 
+  .srslte_rf_devname                 = rf_faux_devname,
+  .srslte_rf_rx_wait_lo_locked       = rf_faux_rx_wait_lo_locked,
+  .srslte_rf_start_rx_stream         = rf_faux_start_rx_stream,
+  .srslte_rf_stop_rx_stream          = rf_faux_stop_rx_stream,
+  .srslte_rf_flush_buffer            = rf_faux_flush_buffer,
+  .srslte_rf_has_rssi                = rf_faux_has_rssi,
+  .srslte_rf_get_rssi                = rf_faux_get_rssi,
+  .srslte_rf_suppress_stdout         = rf_faux_suppress_stdout,
+  .srslte_rf_register_error_handler  = rf_faux_register_error_handler,
+  .srslte_rf_open                    = rf_faux_open,
+  .srslte_rf_open_multi              = rf_faux_open_multi,
+  .srslte_rf_close                   = rf_faux_close,
+  .srslte_rf_set_master_clock_rate   = rf_faux_set_master_clock_rate,
+  .srslte_rf_is_master_clock_dynamic = rf_faux_is_master_clock_dynamic,
+  .srslte_rf_set_rx_srate            = rf_faux_set_rx_srate,
+  .srslte_rf_set_rx_gain             = rf_faux_set_rx_gain,
+  .srslte_rf_set_tx_gain             = rf_faux_set_tx_gain,
+  .srslte_rf_get_rx_gain             = rf_faux_get_rx_gain,
+  .srslte_rf_get_tx_gain             = rf_faux_get_tx_gain,
+  .srslte_rf_set_rx_freq             = rf_faux_set_rx_freq, 
+  .srslte_rf_set_tx_srate            = rf_faux_set_tx_srate,
+  .srslte_rf_set_tx_freq             = rf_faux_set_tx_freq,
+  .srslte_rf_get_time                = rf_faux_get_time,  
+  .srslte_rf_recv_with_time          = rf_faux_recv_with_time,
+  .srslte_rf_recv_with_time_multi    = rf_faux_recv_with_time_multi,
+  .srslte_rf_send_timed              = rf_faux_send_timed,
+  .srslte_rf_send_timed_multi        = rf_faux_send_timed_multi,
+  .srslte_rf_set_tx_cal              = rf_faux_set_tx_cal,
+  .srslte_rf_set_rx_cal              = rf_faux_set_rx_cal
+};                        
+#endif
+
 static rf_dev_t *available_devices[] = {
 
 #ifdef ENABLE_UHD
@@ -239,6 +277,9 @@ static rf_dev_t *available_devices[] = {
 #endif
 #ifdef ENABLE_DUMMY_DEV
   &dev_dummy,
+#endif
+#ifdef ENABLE_FAUXRF
+  &dev_faux,
 #endif
   NULL
 };

@@ -32,6 +32,7 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 ########################################################################
 cmake_minimum_required(VERSION 2.6)
 project( SRSLTE )
+set(CMAKE_EXE_LINKER_FLAGS "-lfftw3f" CACHE INTERNAL "" FORCE)
 message( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
 message( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
 message( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
@@ -50,8 +51,8 @@ configure_file(
     IMMEDIATE @ONLY)
 
 if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE Release)
-   message(STATUS "Build type not specified: defaulting to Release.")
+   set(CMAKE_BUILD_TYPE Debug)
+   message(STATUS "Build type not specified: defaulting to Debug.")
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
