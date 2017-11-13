@@ -22,6 +22,7 @@
  *
  */
 #include <iostream>
+#include <fstream>
 #include <errno.h>
 #include <signal.h>
 #include <boost/program_options.hpp>
@@ -113,6 +114,25 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
       cout << common << endl << general << endl;
       exit(0);
   }
+
+  //Parsing Config File
+  if (!vm.count("config_file")) {
+      cout << "Error: Configuration file not provided" << endl;
+      cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
+      exit(0);
+  } else {
+      cout << "Reading configuration file " << config_file << "..." << endl;
+      ifstream conf(config_file.c_str(), ios::in);
+      if(conf.fail()) {
+        cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+        exit(1);
+      }
+      bpo::store(bpo::parse_config_file(conf, common), vm);
+      bpo::notify(vm);
+  }
+
+
+
   //Concert hex strings
   {
     std::stringstream sstr;

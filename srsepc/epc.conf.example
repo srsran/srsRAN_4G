@@ -1,0 +1,25 @@
+#####################################################################
+#                   srsEPC configuration file
+#####################################################################
+
+#####################################################################
+# MME configuration
+#
+# mme_code:         8-bit MME code identifies the MME within a group.
+# mme_group:        16-bit MME group identifier.
+# tac:              16-bit Tracking Area Code.
+# mcc:              Mobile Country Code
+# mnc:              Mobile Network Code
+# mme_bindx_addr:   IP subnet to listen for eNB S1 connnections
+#
+#####################################################################
+[mme]
+mme_code = 0x19
+mme_group = 0x0001
+tac = 0x0001
+mcc = 001
+mnc = 01
+mme_bind_addr = 127.0.0.0/24
+
+
+

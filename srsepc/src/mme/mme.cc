@@ -81,8 +81,8 @@ mme::init(mme_args_t* args, srslte::log_filter *s1ap_log)
 
   /*Init logger*/
   m_s1ap_log = s1ap_log;
-  m_s1ap_log->info("MME Initialized\n");
-  m_s1ap_log->console("MME Initialized\n");
+  m_s1ap_log->info("MME Initialized. MCC: %d, MNC: %d\n",args->s1ap_args.mcc, args->s1ap_args.mnc);
+  m_s1ap_log->console("MME Initialized. \n");
   return 0;
 }
 
