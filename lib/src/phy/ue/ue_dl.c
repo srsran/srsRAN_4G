@@ -684,6 +684,7 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint8_t *ri, uint8_t *pmi, flo
   }
 
   /* Set RI */
+  q->ri = best_ri;
   if (ri != NULL) {
     *ri = best_ri;
   }
@@ -719,9 +720,10 @@ int srslte_ue_dl_ri_select(srslte_ue_dl_t *q, uint8_t *ri, float *cn) {
     *cn = _cn;
   }
 
+  q->ri = (uint8_t)((_cn < 17.0f)? 1:0);
   /* Set rank indicator */
   if (!ret && ri) {
-    *ri = (uint8_t)((_cn < 17.0f)? 1:0);
+    *ri = (uint8_t) q->ri;
   }
 
   return ret;
