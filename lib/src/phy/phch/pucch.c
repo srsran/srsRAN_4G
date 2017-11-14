@@ -173,7 +173,7 @@ srslte_pucch_format_t srslte_pucch_get_format(srslte_uci_data_t *uci_data, srslt
 {
   srslte_pucch_format_t format = SRSLTE_PUCCH_FORMAT_ERROR; 
   // No CQI data
-  if (uci_data->uci_cqi_len == 0) {
+  if (uci_data->uci_cqi_len == 0 && uci_data->uci_ri_len == 0) {
     // 1-bit ACK + optional SR
     if (uci_data->uci_ack_len == 1) {
       format = SRSLTE_PUCCH_FORMAT_1A;
