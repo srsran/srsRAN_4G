@@ -2,6 +2,7 @@
 add_subdirectory(phy)
 add_subdirectory(mac)
 add_subdirectory(upper)
+add_subdirectory(faux_phy)
 
 
 # Link libstdc++ and libgcc

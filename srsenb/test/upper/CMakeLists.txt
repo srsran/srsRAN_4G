@@ -7,11 +7,23 @@ target_link_libraries(ip_test_enb srsenb_upper
                                   srslte_phy
                                   srslte_upper
                                   srslte_radio
-                                  ${CMAKE_THREAD_LIBS_INIT} 
-                                  ${Boost_LIBRARIES} 
+                                  ${CMAKE_THREAD_LIBS_INIT}
+                                  ${Boost_LIBRARIES}
                                   ${SEC_LIBRARIES})
 
 # Simple PLMN -> MCC/MNC test
 add_executable(plmn_test plmn_test.cc)
 target_link_libraries(plmn_test srsenb_upper srslte_asn1 )
 
+# IP tx/rx program test
+add_executable(faux_ip_test_enb faux_ip_test.cc)
+target_link_libraries(faux_ip_test_enb srsenb_upper
+                                  srsenb_mac
+                                  srsenb_faux_phy
+                                  srslte_common
+                                  srslte_phy
+                                  srslte_upper
+                                  srslte_radio
+                                  ${CMAKE_THREAD_LIBS_INIT}
+                                  ${Boost_LIBRARIES}
+                                  ${SEC_LIBRARIES})

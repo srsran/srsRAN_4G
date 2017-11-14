@@ -37,7 +37,7 @@
 
 static bool g_logStdout = true;
 
-#define FAUX_DEBUG(_fmt, ...) if(g_logStdout) fprintf(stdout, "%s" _fmt, __func__, ##__VA_ARGS__)
+#define FAUX_DEBUG(fmt, ...) if(g_logStdout) fprintf(stdout, "[DEBUG]: %s, " fmt "\n", __func__, ##__VA_ARGS__)
 
 #define LOG_FUNC_TODO printf("XXX_TODO file:%s func:%s line:%d\n", __FILE__, __func__, __LINE__)
 
@@ -154,7 +154,7 @@ int rf_faux_open(char *args, void **h)
 
 int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
  {
-   FAUX_DEBUG("args %s, channels %u\n", args, nof_channels);
+   FAUX_DEBUG("args %s, channels %u", args, nof_channels);
 
    if(nof_channels == 1)
     {
@@ -181,7 +181,7 @@ void rf_faux_set_master_clock_rate(void *h, double rate)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("rate %lf to %lf\n", p->clockRate, rate);
+   FAUX_DEBUG("rate %lf to %lf", p->clockRate, rate);
 
    p->clockRate = rate;
  }
@@ -197,7 +197,7 @@ double rf_faux_set_rx_srate(void *h, double rate)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("rate %lf to %lf\n", p->rxRate, rate);
+   FAUX_DEBUG("rate %lf to %lf", p->rxRate, rate);
 
    p->rxRate = rate;
 
@@ -208,7 +208,7 @@ double rf_faux_set_rx_gain(void *h, double gain)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("gain %lf to %lf\n", p->rxGain, gain);
+   FAUX_DEBUG("gain %lf to %lf", p->rxGain, gain);
 
    p->rxGain = gain;
 
@@ -219,7 +219,7 @@ double rf_faux_set_tx_gain(void *h, double gain)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("gain %lf to %lf\n", p->txGain, gain);
+   FAUX_DEBUG("gain %lf to %lf", p->txGain, gain);
 
    p->txGain = gain;
 
@@ -230,7 +230,7 @@ double rf_faux_get_rx_gain(void *h)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("gain %lf\n", p->rxGain);
+   FAUX_DEBUG("gain %lf", p->rxGain);
 
    return p->rxGain;
  }
@@ -239,7 +239,7 @@ double rf_faux_get_tx_gain(void *h)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("gain %lf\n", p->txGain);
+   FAUX_DEBUG("gain %lf", p->txGain);
 
    return p->txGain;
  }
@@ -248,7 +248,7 @@ double rf_faux_set_rx_freq(void *h, double freq)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("freq %lf to %lf\n", p->rxFreq, freq);
+   FAUX_DEBUG("freq %lf to %lf", p->rxFreq, freq);
 
    p->rxFreq = freq;
 
@@ -259,7 +259,7 @@ double rf_faux_set_tx_srate(void *h, double rate)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("rate %lf to %lf\n", p->txRate, rate);
+   FAUX_DEBUG("rate %lf to %lf", p->txRate, rate);
 
    p->txRate = rate;
 
@@ -270,7 +270,7 @@ double rf_faux_set_tx_freq(void *h, double freq)
  {
    GET_FAUX_INFO(h)
 
-   FAUX_DEBUG("freq %lf to %lf\n", p->txFreq, freq);
+   FAUX_DEBUG("freq %lf to %lf", p->txFreq, freq);
 
    p->txFreq = freq;
 
@@ -279,7 +279,7 @@ double rf_faux_set_tx_freq(void *h, double freq)
 
 void rf_faux_get_time(void *h, time_t *secs, double *frac_secs)
  {
-   FAUX_DEBUG("secs %ld, frac %lf\n", 
+   FAUX_DEBUG("secs %ld, frac %lf", 
            *secs,
            *frac_secs);
  }
@@ -297,7 +297,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    *frac_secs = tv.tv_usec / 1000000.0;
 
-   FAUX_DEBUG("nsmaples %u, blocking %s, secs %ld, frac %lf\n", 
+   FAUX_DEBUG("nsmaples %u, blocking %s, secs %ld, frac %lf", 
            nsamples, 
            blocking ? "yes" : "no",
            *secs,
@@ -335,13 +335,13 @@ int rf_faux_send_timed_multi(void *h, void *data[4], int nsamples,
 
 void rf_faux_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
-   FAUX_DEBUG("gain %f, phase %f, i %f, q %f\n", 
+   FAUX_DEBUG("gain %f, phase %f, i %f, q %f", 
            cal->dc_gain, cal->dc_phase, cal->iq_i, cal->iq_q);
 }
 
 void rf_faux_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 {
-   FAUX_DEBUG("gain %f, phase %f, i %f, q %f\n", 
+   FAUX_DEBUG("gain %f, phase %f, i %f, q %f", 
            cal->dc_gain, cal->dc_phase, cal->iq_i, cal->iq_q);
 
 }
