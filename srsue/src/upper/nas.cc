@@ -480,6 +480,7 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu) {
       sec_mode_cmd.nas_ksi.tsc_flag != LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE) {
     sec_mode_rej.emm_cause = LIBLTE_MME_EMM_CAUSE_UE_SECURITY_CAPABILITIES_MISMATCH;
     nas_log->warning("Sending Security Mode Reject due to security capabilities mismatch\n");
+    nas_log->console("Unsupported Security Mode Command settings: use ciphering algorithm EEA0 and integrity check EIA1 or EIA2.\n");
     success = false;
   } else {
     // Generate NAS encryption key and integrity protection key

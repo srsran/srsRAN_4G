@@ -48,6 +48,9 @@ rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
 {
+  sync_reset_cnt = 0;
+  n310_cnt       = 0;
+  n311_cnt       = 0;
 }
 
 static void liblte_rrc_handler(void *ctx, char *str) {
@@ -489,13 +492,17 @@ void rrc::earfcn_end() {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
+  // attempt resync
+  sync_reset_cnt++;
+  if (sync_reset_cnt >= SYNC_RESET_TIMEOUT) {
+    rrc_log->info("Detected %d out-of-sync from PHY. Resynchronizing PHY.\n", sync_reset_cnt);
+    phy->sync_reset();
+    sync_reset_cnt = 0;
+  }
   current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
     if (n310_cnt == N310) {
-      // attempt resync
-      //phy->sync_reset();
-
       mac_timers->timer_get(t310)->reset();
       mac_timers->timer_get(t310)->run();
       n310_cnt = 0;
