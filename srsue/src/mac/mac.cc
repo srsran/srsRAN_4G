@@ -308,7 +308,7 @@ void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
 void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
   int tbs = ul_harq.get_current_tbs(tti);
-  ul_harq.new_grant_ul_ack(grant, ack, action);
+  ul_harq.new_grant_ul_ack(grant, &ack, action);
   if (!ack) {
     metrics.tx_errors++;
   } else {

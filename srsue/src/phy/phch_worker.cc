@@ -322,9 +322,9 @@ void phch_worker::work_imp()
   ul_action.tti_offset = HARQ_DELAY_MS;
 
   /* Send UL grant or HARQ information (from PHICH) to MAC */
-  if (ul_grant_available         && ul_ack_available && ul_mac_grant.phy_grant.ul.mcs.idx < 29)  {
+  if (ul_grant_available         && ul_ack_available)  {
     phy->mac->new_grant_ul_ack(ul_mac_grant, ul_ack, &ul_action);      
-  } else if (ul_grant_available  && (!ul_ack_available || ul_mac_grant.phy_grant.ul.mcs.idx < 29)) {
+  } else if (ul_grant_available  && !ul_ack_available) {
     phy->mac->new_grant_ul(ul_mac_grant, &ul_action);
   } else if (!ul_grant_available && ul_ack_available)  {    
     phy->mac->harq_recv(tti, ul_ack, &ul_action);        
@@ -743,30 +743,36 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
     }
   }
 
-  if (ret) {
 
+  // Handle Format0 adaptive retx
+  if (ret) {
     // Use last TBS for this TB in case of mcs>28
     if (grant->phy_grant.ul.mcs.idx > 28) {
-      grant->phy_grant.ul.mcs.tbs = last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
-      Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", grant->phy_grant.ul.mcs.idx, grant->phy_grant.ul.mcs.tbs, TTI_TX(tti)%(2*HARQ_DELAY_MS));
+      // Make sure we received a grant in the previous TTI for this PID
+      if (last_ul_tti[TTI_RX(tti)%(2*HARQ_DELAY_MS)] == TTI_RX(tti)) {
+        grant->phy_grant.ul.mcs.tbs = last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
+        grant->phy_grant.ul.mcs.mod = last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
+        grant->phy_grant.ul.Qm      = srslte_mod_bits_x_symbol(grant->phy_grant.ul.mcs.mod);
+      } else {
+        Warning("Missed original grant in adaptive retx\n");
+        ret = false;
+      }
     }
+  }
+  if (ret) {
     last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.tbs;
-
-    if (grant->phy_grant.ul.mcs.mod == SRSLTE_MOD_LAST) {
-      grant->phy_grant.ul.mcs.mod = last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
-      grant->phy_grant.ul.Qm      = srslte_mod_bits_x_symbol(grant->phy_grant.ul.mcs.mod);
-    }
     last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.mod;
-  }
+    last_ul_tti[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = TTI_TX(tti);
 
-  /* Limit UL modulation if not supported by the UE or disabled by higher layers */
-  if (!phy->config->enable_64qam) {
-    if (grant->phy_grant.ul.mcs.mod >= SRSLTE_MOD_64QAM) {
-      grant->phy_grant.ul.mcs.mod = SRSLTE_MOD_16QAM;
-      grant->phy_grant.ul.Qm      = 4;
+    /* Limit UL modulation if not supported by the UE or disabled by higher layers */
+    if (!phy->config->enable_64qam) {
+      if (grant->phy_grant.ul.mcs.mod >= SRSLTE_MOD_64QAM) {
+        grant->phy_grant.ul.mcs.mod = SRSLTE_MOD_16QAM;
+        grant->phy_grant.ul.Qm      = 4;
+      }
     }
   }
-  
+
   /* Make sure the grant is valid */
   if (ret && !srslte_dft_precoding_valid_prb(grant->phy_grant.ul.L_prb) && grant->phy_grant.ul.L_prb <= cell.nof_prb) {
     Warning("Received invalid UL grant. L=%d\n", grant->phy_grant.ul.L_prb);
@@ -783,11 +789,9 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
     if (SRSLTE_VERBOSE_ISINFO()) {
       srslte_ra_pusch_fprint(stdout, &dci_unpacked, cell.nof_prb);
     }
-    
-    return true;     
-  } else {
-    return false; 
-  }    
+  }
+
+  return ret;
 }
 
 void phch_worker::reset_uci()
