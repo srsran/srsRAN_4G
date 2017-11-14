@@ -217,7 +217,7 @@ private:
 
       // Receive and route HARQ feedbacks
       if (grant) {
-        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi()) ||
+        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi() && ack) ||
             (grant->rnti_type == SRSLTE_RNTI_USER && !has_grant())                  ||
              grant->is_from_rar)
         {
@@ -294,7 +294,6 @@ private:
     bool has_grant() { return is_grant_configured; }
     bool get_ndi() { return cur_grant.ndi[0]; }
     bool is_sps() { return false; }
-    uint32_t last_tx_tti() { return tti_last_tx; }
     uint32_t get_nof_retx() { return current_tx_nb; }
     int get_current_tbs() { return cur_grant.n_bytes[0]*8; }
    
