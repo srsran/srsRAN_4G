@@ -64,8 +64,16 @@ namespace srsue {
     float rx_gain_offset;
     float avg_snr_db; 
     float avg_noise; 
-    float avg_rsrp; 
-  
+    float avg_rsrp;
+
+    // Save last TBS for mcs>28 cases
+    int last_dl_tbs[2*HARQ_DELAY_MS][SRSLTE_MAX_CODEWORDS];
+    uint32_t last_dl_tti[2*HARQ_DELAY_MS];
+
+    int last_ul_tbs[2*HARQ_DELAY_MS];
+    uint32_t last_ul_tti[2*HARQ_DELAY_MS];
+    srslte_mod_t last_ul_mod[2*HARQ_DELAY_MS];
+
     phch_common(uint32_t max_mutex = 3);
     void init(phy_interface_rrc::phy_cfg_t *config, 
               phy_args_t  *args, 
@@ -139,7 +147,7 @@ namespace srsue {
       uint32_t n_dmrs;
     } pending_ack_t;
     pending_ack_t pending_ack[TTIMOD_SZ];
-    
+
     bool            is_first_tx;
 
     uint32_t        nof_workers;

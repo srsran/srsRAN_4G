@@ -477,19 +477,19 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
       return false;   
     }
 
-    grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(tti%(2*HARQ_DELAY_MS));
+    grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(UL_PIDOF(TTI_TX(tti)));
 
     // Set last TBS for this TB (pid) in case of mcs>28 (7.1.7.2 of 36.213)
     for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
       if (grant->phy_grant.dl.mcs[i].idx > 28) {
-        grant->phy_grant.dl.mcs[i].tbs = last_dl_tbs[grant->pid%(2*HARQ_DELAY_MS)][i];
+        grant->phy_grant.dl.mcs[i].tbs = phy->last_dl_tbs[grant->pid][i];
       }
       if(grant->phy_grant.dl.mcs[i].tbs < 0) {
         Info("Invalid TBS size for PDSCH grant\n");
         grant->phy_grant.dl.mcs[i].tbs = 0;
       }
       // save it
-      last_dl_tbs[grant->pid%(2*HARQ_DELAY_MS)][i] = grant->phy_grant.dl.mcs[i].tbs;
+      phy->last_dl_tbs[grant->pid][i] = grant->phy_grant.dl.mcs[i].tbs;
     }
 
     /* Fill MAC grant structure */
@@ -749,21 +749,15 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
     // Use last TBS for this TB in case of mcs>28
     if (grant->phy_grant.ul.mcs.idx > 28) {
       // Make sure we received a grant in the previous TTI for this PID
-      if (last_ul_tti[TTI_RX(tti)%(2*HARQ_DELAY_MS)] == TTI_RX(tti)) {
-        grant->phy_grant.ul.mcs.tbs = last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
-        grant->phy_grant.ul.mcs.mod = last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
-        grant->phy_grant.ul.Qm      = srslte_mod_bits_x_symbol(grant->phy_grant.ul.mcs.mod);
-      } else {
-        Warning("Missed original grant in adaptive retx\n");
-        ret = false;
-      }
+      grant->phy_grant.ul.mcs.tbs = phy->last_ul_tbs[UL_PIDOF(TTI_TX(tti))];
+      grant->phy_grant.ul.mcs.mod = phy->last_ul_mod[UL_PIDOF(TTI_TX(tti))];
+      grant->phy_grant.ul.Qm      = srslte_mod_bits_x_symbol(grant->phy_grant.ul.mcs.mod);
     }
   }
   if (ret) {
-    last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.tbs;
-    last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.mod;
-    last_ul_tti[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = TTI_TX(tti);
-
+    phy->last_ul_tbs[UL_PIDOF(TTI_TX(tti))] = grant->phy_grant.ul.mcs.tbs;
+    phy->last_ul_mod[UL_PIDOF(TTI_TX(tti))] = grant->phy_grant.ul.mcs.mod;
+    phy->last_ul_tti[UL_PIDOF(TTI_TX(tti))] = TTI_RX_ACK(tti);
     /* Limit UL modulation if not supported by the UE or disabled by higher layers */
     if (!phy->config->enable_64qam) {
       if (grant->phy_grant.ul.mcs.mod >= SRSLTE_MOD_64QAM) {
