@@ -498,7 +498,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         if (ue_db[rnti].cqi_en) {
           wideband_cqi_value = cqi_value.wideband.wideband_cqi;
         } else if (grants[i].grant.cqi_request) {
-          wideband_cqi_value = cqi_value.subband_hl.wideband_cqi;
+          wideband_cqi_value = cqi_value.subband_hl.wideband_cqi_cw0;
         }
         snprintf(cqi_str, 64, ", cqi=%d", wideband_cqi_value);
       }

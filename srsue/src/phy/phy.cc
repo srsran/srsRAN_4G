@@ -199,9 +199,10 @@ void phy::set_timeadv_rar(uint32_t ta_cmd) {
 }
 
 void phy::set_timeadv(uint32_t ta_cmd) {
-  n_ta = srslte_N_ta_new(n_ta, ta_cmd);
-  sf_recv.set_time_adv_sec(((float) n_ta)*SRSLTE_LTE_TS);
-  Info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, ((float) n_ta)*SRSLTE_LTE_TS*1e6);
+  uint32_t new_nta = srslte_N_ta_new(n_ta, ta_cmd);
+  sf_recv.set_time_adv_sec(((float) (new_nta - n_ta))*SRSLTE_LTE_TS);
+  Info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, old_n_ta: %d, ta_usec: %.1f\n", ta_cmd, new_nta, n_ta, ((float) new_nta)*SRSLTE_LTE_TS*1e6);
+  n_ta = new_nta;
 }
 
 void phy::configure_prach_params()
