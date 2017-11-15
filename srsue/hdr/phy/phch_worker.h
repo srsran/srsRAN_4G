@@ -150,11 +150,6 @@ private:
   float                             cfo;
   bool                              rar_cqi_request;
 
-  // Save last TBS for mcs>28 cases
-  int last_dl_tbs[2*HARQ_DELAY_MS][SRSLTE_MAX_CODEWORDS];
-  int last_ul_tbs[2*HARQ_DELAY_MS];
-  srslte_mod_t last_ul_mod[2*HARQ_DELAY_MS];
-
   // Metrics
   dl_metrics_t dl_metrics;
   ul_metrics_t ul_metrics;

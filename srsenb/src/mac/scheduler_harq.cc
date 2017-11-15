@@ -198,13 +198,13 @@ ul_harq_proc::ul_alloc_t ul_harq_proc::get_alloc()
 
 void ul_harq_proc::set_alloc(ul_harq_proc::ul_alloc_t alloc)
 {
-  is_adaptive = false; 
+  is_adaptive = true;
   memcpy(&allocation, &alloc, sizeof(ul_alloc_t));
 }
 
 void ul_harq_proc::same_alloc()
 {
-  is_adaptive = true; 
+  is_adaptive = false;
 }
 
 bool ul_harq_proc::is_adaptive_retx()
@@ -243,8 +243,7 @@ void ul_harq_proc::reset_pending_data()
   }
 }
 
-
-  uint32_t ul_harq_proc::get_pending_data()
+uint32_t ul_harq_proc::get_pending_data()
 {
   return pending_data; 
 }
