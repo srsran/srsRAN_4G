@@ -92,19 +92,36 @@ k    = 00112233445566778899aabbccddeeff
 imsi = 001010123456789
 imei = 353490069873319
 
+
+#####################################################################
+# RRC configuration
+#
+# stimsi_attach: If enabled, always tries first an S-TMSI attach using the
+#                S-TMSI value stored in .stimsi file generated in previous run
+# mmec_value:    If defined (non-zero), overwrites the value stored in .stimsi file
+# m_tmsi_value:  If defined (non-zero), overwrites the value stored in .stimsi file
+#
+# ue_category:   Sets UE category (range 1-5). Default: 4
+# feature_group: Hex value of the featureGroupIndicators field in the
+#                UECapabilityInformation message. Default 0xe6041c00
+#####################################################################
+[rrc]
+#stmsi_attach = false
+#mmec_value    = 0
+#mtmsi_value  = 0
+#ue_category   = 4
+#feature_group = 0xe6041c00
+
 [gui]
 enable = false
 
 #####################################################################
 # Expert configuration options
 #
-# ue_category:          Sets UE category (range 1-5). Default: 4
 # ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
 # rssi_sensor_enabled:  Enable or disable RF frontend RSSI sensor. Required for RSRP metrics but
 #                       can cause UHD instability for long-duration testing. Default true.
-# ue_category:          Sets UE category (range 1-5). Default: 4
-#
-# prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only., 
+# prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only.,
 #                       Default is to use tx_gain in [rf] section. 
 # cqi_max:              Upper bound on the maximum CQI to be reported. Default 15. 
 # cqi_fixed:            Fixes the reported CQI to a constant value. Default disabled.
@@ -146,7 +163,6 @@ enable = false
 [expert]
 #ip_netmask          = 255.255.255.0
 #rssi_sensor_enabled = false
-#ue_category         = 4
 #prach_gain          = 30
 #cqi_max             = 15
 #cqi_fixed           = 10

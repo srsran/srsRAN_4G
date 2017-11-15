@@ -39,6 +39,15 @@
 
 #include <map>
 
+typedef struct {
+  bool                          stmsi_attach;
+  LIBLTE_RRC_S_TMSI_STRUCT      stmsi_value;
+  uint32_t                      ue_category;
+  uint32_t                      feature_group;
+  uint8_t                       supported_bands[LIBLTE_RRC_BAND_N_ITEMS];
+  uint32_t                      nof_supported_bands;
+}rrc_args_t;
+
 using srslte::byte_buffer_t;
 
 namespace srsue {
@@ -73,7 +82,7 @@ public:
 
   rrc_state_t get_state();
 
-  void set_ue_category(int category);
+  void set_args(rrc_args_t *args);
 
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);
@@ -97,6 +106,9 @@ private:
   rrc_state_t state;
   uint8_t transaction_id;
   bool drb_up;
+
+  rrc_args_t args;
+  bool first_stimsi_attempt;
 
   bool reestablishment_in_progress;
 
@@ -132,7 +144,6 @@ private:
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
   uint32_t t301, t310, t311;
-  int ue_category;
 
   typedef struct {
     uint32_t earfcn;
@@ -269,7 +280,11 @@ private:
   void          set_mac_default();
   void          set_rrc_default(); 
   void          set_bearers();
-  
+
+  // s-tmsi persistent file
+  bool read_stimsi_file(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
+  bool write_stimsi_file(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi);
+
 };
 
 } // namespace srsue
