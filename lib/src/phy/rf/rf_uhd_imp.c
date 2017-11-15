@@ -309,7 +309,7 @@ static void copy_subdev_string(char *dst, char *src) {
   int n = 0;
   size_t len = strlen(src);
   /* Copy until end of string or comma */
-  while (n < len && src != '\0' && src[n] != ',') {
+  while (n < len && src[n] != '\0' && src[n] != ',') {
     dst[n] = src[n];
     n++;
   }
@@ -383,8 +383,6 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     char *tx_subdev_ptr = strstr(args, tx_subdev_arg);
     if (tx_subdev_ptr) {
       copy_subdev_string(tx_subdev_str, tx_subdev_ptr + strlen(tx_subdev_arg));
-      remove_substring(args, tx_subdev_arg);
-      remove_substring(args, tx_subdev_str);
     }
 
     // Set receiver subdevice spec string
@@ -393,6 +391,14 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     char *rx_subdev_ptr = strstr(args, rx_subdev_arg);
     if (rx_subdev_ptr) {
       copy_subdev_string(rx_subdev_str, rx_subdev_ptr + strlen(rx_subdev_arg));
+    }
+
+    if (tx_subdev_ptr) {
+      remove_substring(args, tx_subdev_arg);
+      remove_substring(args, tx_subdev_str);
+    }
+
+    if (rx_subdev_ptr) {
       remove_substring(args, rx_subdev_arg);
       remove_substring(args, rx_subdev_str);
     }
