@@ -164,14 +164,60 @@ const uint8_t GTPC_MSG_TYPE_MBMS_SESSION_STOP_RESPONSE = 236;
  * n+2    |           Sequence            |
  * n+3    |            Spare              |
  ***************************************************************************/
+
 typedef struct gtpc_header
 {
   uint8_t version;
   bool piggyback;
   bool tied_present;
-  enum gtpc_msg_type msg_type;
+  uint8_t msg_type;
   uint64_t teid;
   uint64_t sequence;
 } gtpc_header_t;
+
+
+/****************************************************************************
+ *
+ * GTP-C v2 Create Session Request
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.1-1
+ *
+ ***************************************************************************/
+typedef struct gtpc_create_session_request
+{
+  uint64_t imsi; 
+  uint64_t msisdn;        
+  uint64_t mei;
+  struct user_location_info_ uli;
+  struct serving_network_ serving_network;
+  enum rat_type_ rat_type;
+  struct indication_flags_ indication_flags;
+  struct fteid_ sender_f_teid;
+  struct fteid_ pgw_addr;
+  uint64_t apn;
+  enum selection_mode_ selection_mode;
+  enum pdn_type_ pdn_type;
+  struct pdn_addr_alloc_ pdn_addr_alloc;
+  maximum apn_restriction;
+  apn_ambr;
+  linked_eps_bearer_id;
+  pco;
+  bearer_context_created;
+  bearer_context_deleted;
+  trace_information;
+  recovery;
+  mme_fq_csid;
+  sgw_fq_csid; 
+  epdg_fq_csid;
+  ue_time_zone;
+  uci;
+  charging_caracteristics;
+  mme_ldn;
+  sgw_ldn;
+  epdg_ldn;
+  signalling_priority_indication;
+  apco;
+  bool ext;
+} gtpc_create_session_request_t;
+
 
 };

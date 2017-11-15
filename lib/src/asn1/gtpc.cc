@@ -27,19 +27,6 @@
 
 namespace srslte{
 
-
-enum gtpc_version
-{
-  GTPC_V1 = 1,
-  GTPC_V2
-};
-
-enum gtpc_msg_type
-{
-  RESERVED = 0,
-  ECHO_REQUEST = 1
-};
-
 /****************************************************************************
  * GTP-C Header
  * Ref: 3GPP TS 29.274 v10.14.0 Section 5
