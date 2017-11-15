@@ -453,7 +453,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
     
     if (srslte_pusch_encode(&q->pusch, &q->pusch_cfg, softbuffer, data, uci_data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
-      return ret; 
+      return SRSLTE_ERROR;
     }
 
     if (q->signals_pregenerated) {

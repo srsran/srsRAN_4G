@@ -444,7 +444,8 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   int tbs = 0; 
   
   ul_harq_proc::ul_alloc_t allocation = h->get_alloc();
-  
+
+  bool is_newtx = true;
   if (h->get_rar_mcs(&mcs)) {
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
     h->new_tx(tti, mcs, tbs); 
@@ -463,7 +464,8 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     
     h->new_tx(tti, mcs, tbs);  
 
-  } else {    
+  } else {
+    is_newtx = false;
     h->new_retx(tti, &mcs, NULL);  
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
   }
@@ -474,9 +476,13 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   if (tbs > 0) {
     dci->type2_alloc.L_crb = allocation.L;
     dci->type2_alloc.RB_start = allocation.RB_start;
-    dci->mcs_idx     = mcs; 
-    dci->rv_idx      = sched::get_rvidx(h->nof_retx()); 
-    dci->ndi         = h->get_ndi(); 
+    dci->rv_idx      = sched::get_rvidx(h->nof_retx());
+    if (!is_newtx && h->is_adaptive_retx()) {
+      dci->mcs_idx     = 28+dci->rv_idx;
+    } else {
+      dci->mcs_idx     = mcs;
+    }
+    dci->ndi         = h->get_ndi();
     dci->cqi_request = cqi_request; 
     dci->freq_hop_fl = srslte_ra_ul_dci_t::SRSLTE_RA_PUSCH_HOP_DISABLED; 
     dci->tpc_pusch   = next_tpc_pusch; 
