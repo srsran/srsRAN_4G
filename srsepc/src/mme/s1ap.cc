@@ -482,6 +482,8 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     m_s1ap_log->info("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
     //Send Security Mode Command
     m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
+
+    //m_gtpc->send_create_session_request(ue_ctx->imsi);
   }
   return true;
 }
