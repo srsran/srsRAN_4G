@@ -1153,7 +1153,11 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->cqi_report_cnfg_present = true; 
   if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
     phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true; 
-    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;     
+    if (phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
+    }
   } else {
     phy_cfg->cqi_report_cnfg.report_periodic_present = true; 
     phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true; 

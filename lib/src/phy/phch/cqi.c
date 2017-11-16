@@ -199,17 +199,44 @@ int srslte_cqi_value_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_value_
 }
 
 int srslte_cqi_size(srslte_cqi_value_t *value) {
+  int size = 0;
+
   switch(value->type) {
     case SRSLTE_CQI_TYPE_WIDEBAND:
-      return 4;
+      size = 4;
+      break;
     case SRSLTE_CQI_TYPE_SUBBAND:
-      return 4+(value->subband.subband_label_2_bits)?2:1;
+      size = 4 + (value->subband.subband_label_2_bits) ? 2 : 1;
+      break;
     case SRSLTE_CQI_TYPE_SUBBAND_UE:
-      return 4+2+value->subband_ue.L;
+      size = 4 + 2 + value->subband_ue.L;
+      break;
     case SRSLTE_CQI_TYPE_SUBBAND_HL:
-      return 4+2*value->subband_hl.N;
+      /* First codeword */
+      size += 4 + 2 * value->subband_hl.N;
+
+      /* Add Second codeword if required */
+      if (value->subband_hl.rank_is_not_one && value->subband_hl.pmi_present) {
+        size += 4 + 2 * value->subband_hl.N;
+      }
+
+      /* Add PMI if required*/
+      if (value->subband_hl.pmi_present) {
+        if (value->subband_hl.four_antenna_ports) {
+          size += 4;
+        } else {
+          if (value->subband_hl.rank_is_not_one) {
+            size += 1;
+          } else {
+            size += 2;
+          }
+        }
+      }
+      break;
+    default:
+      size = SRSLTE_ERROR;
   }
-  return -1;
+  return size;
 }
 
 static bool srslte_cqi_get_N(uint32_t I_cqi_pmi, uint32_t *N_p, uint32_t *N_offset) {

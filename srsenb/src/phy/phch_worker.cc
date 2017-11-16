@@ -435,8 +435,8 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       }
 
       // Configure PUSCH CQI channel
-      srslte_cqi_value_t cqi_value;
-      bool cqi_enabled = false, ri_enabled = false;
+      srslte_cqi_value_t cqi_value = {0};
+      bool cqi_enabled = false;
 #if 0
       if (ue_db[rnti].cqi_en && ue_db[rnti].ri_en && srslte_ri_send(ue_db[rnti].pmi_idx, ue_db[rnti].ri_idx, tti_rx) ) {
         uci_data.uci_ri_len = 1; /* Asumes only 1 bit for RI */
@@ -450,13 +450,12 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         }
       } else
 #endif
-        if (grants[i].grant.cqi_request) {
+      if (grants[i].grant.cqi_request) {
         cqi_value.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
         cqi_value.subband_hl.N = (phy->cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(phy->cell.nof_prb) : 0;
+        cqi_value.subband_hl.four_antenna_ports = (phy->cell.nof_ports == 4);
+        cqi_value.subband_hl.pmi_present = (ue_db[rnti].dedicated.cqi_report_cnfg.report_mode_aperiodic == LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31);
         cqi_enabled = true;
-      }
-      if (cqi_enabled) {
-        uci_data.uci_cqi_len = srslte_cqi_size(&cqi_value);
       }
 
       // mark this tti as having an ul grant to avoid pucch
@@ -473,6 +472,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
                                                 rnti, grants[i].rv_idx,
                                                 grants[i].current_tx_nb,
                                                 grants[i].data,
+                                                (cqi_enabled) ? &cqi_value : NULL,
                                                 &uci_data,
                                                 sf_rx);
       } else {
@@ -494,11 +494,24 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
 
       char cqi_str[64];
       if (cqi_enabled) {
-        srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
         if (ue_db[rnti].cqi_en) {
           wideband_cqi_value = cqi_value.wideband.wideband_cqi;
         } else if (grants[i].grant.cqi_request) {
           wideband_cqi_value = cqi_value.subband_hl.wideband_cqi_cw0;
+          if (cqi_value.subband_hl.pmi_present) {
+            if (cqi_value.subband_hl.rank_is_not_one) {
+              Info("PUSCH: Aperiodic ri~1, CQI=%02d/%02d, pmi=%d for %d subbands\n",
+                   cqi_value.subband_hl.wideband_cqi_cw0, cqi_value.subband_hl.wideband_cqi_cw1,
+                   cqi_value.subband_hl.pmi, cqi_value.subband_hl.N);
+            } else {
+              Info("PUSCH: Aperiodic ri=1, CQI=%02d, pmi=%d for %d subbands\n",
+                   cqi_value.subband_hl.wideband_cqi_cw0, cqi_value.subband_hl.pmi, cqi_value.subband_hl.N);
+            }
+          } else {
+            Info("PUSCH: Aperiodic ri%s, CQI=%02d for %d subbands\n",
+                 cqi_value.subband_hl.rank_is_not_one?"~1":"=1",
+                 cqi_value.subband_hl.wideband_cqi_cw0, cqi_value.subband_hl.N);
+          }
         }
         snprintf(cqi_str, 64, ", cqi=%d", wideband_cqi_value);
       }
@@ -551,12 +564,18 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         }
       }
 
-      // Notify MAC of UL SNR and DL CQI
+      // Notify MAC of UL SNR, DL CQI and DL RI
       if (snr_db >= PUSCH_RL_SNR_DB_TH) {
         phy->mac->snr_info(tti_rx, rnti, snr_db);
       }
       if (uci_data.uci_cqi_len>0 && crc_res) {
         phy->mac->cqi_info(tti_rx, rnti, wideband_cqi_value);
+      }
+      if (uci_data.uci_ri_len > 0 && crc_res) {
+        phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
+      }
+      if (cqi_value.subband_hl.pmi_present && crc_res) {
+        phy->mac->pmi_info(tti_rx, rnti, cqi_value.subband_hl.pmi);
       }
 
       // Save metrics stats
