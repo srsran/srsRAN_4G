@@ -1,4 +1,4 @@
-/*ection COPYRIGHT
+/* \section COPYRIGHT
  *
  * Copyright 2013-2017 Software Radio Systems Limited
  *
@@ -21,10 +21,11 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#ifndef GTPC_V2_H
+#define GTPC_V2_H
+
 #include <stdint.h>
 
-#ifdef  GTPC_V2
-#define GTPC_V2
 
 namespace srslte{
 
@@ -34,7 +35,7 @@ const uint8_t GTPC_V2 = 2;
 /****************************************************************
  *
  * GTP-C Message Types
- * Ref: TS 29.274 Table 6.1-1 
+ * Ref: TS 29.274 v10.14.0 Table 6.1-1 
  *
  ****************************************************************/
 const uint8_t GTPC_MSG_TYPE_RESERVED = 0;
@@ -57,16 +58,16 @@ const uint8_t GTPC_MSG_TYPE_CHANGE_NOTIFICATION_RESPONSE = 39;
 const uint8_t GTPC_MSG_TYPE_RESUME_NOTIFICATION = 164;
 const uint8_t GTPC_MSG_TYPE_RESUME_ACKNOWLEDGE = 165;
 //Messages without explicit response
-const uint8_t GTPC_MSG_TYPE_MODIFY_BEARER_COMMAND = 64;					//(MME/SGSN/ePDG to PGW – S11/S4, S5/S8, S2b)
-const uint8_t GTPC_MSG_TYPE_MODIFY_BEARER_FAILURE_INDICATION = 65;			//(PGW to MME/SGSN/ePDG – S5/S8, S11/S4, S2b)
-const uint8_t GTPC_MSG_TYPE_DELETE_BEARER_COMMAND = 66;					//(MME/SGSN to PGW – S11/S4, S5/S8)
-const uint8_t GTPC_MSG_TYPE_DELETE_BEARER_FAILURE_INDICATION = 67; 			//(PGW to MME/SGSN – S5/S8, S11/S4))
-const uint8_t GTPC_MSG_TYPE_BEARER_RESOURCE_COMMAND = 68;  				//(MME/SGSN to PGW – S11/S4, S5/S8)
-const uint8_t GTPC_MSG_TYPE_BEARER_RESOURCE_FAILURE_INDICATION = 69; 			//(PGW to MME/SGSN – S5/S8, S11/S4)
-const uint8_t GTPC_MSG_TYPE_DOWNLINK_DATA_NOTIFICATION_FAILURE_INDICATION = 70;		//(SGSN/MME to SGW – S4/S11)
-const uint8_t GTPC_MSG_TYPE_TRACE_SESSION_ACTIVATION = 71; 				//(MME/SGSN/ePDG to PGW – S11/S4, S5/S8, S2b)
-const uint8_t GTPC_MSG_TYPE_TRACE_SESSION_DEACTIVATION = 72;				//(MME/SGSN/ePDG to PGW – S11/S4, S5/S8, S2b)
-const uint8_t GTPC_MSG_TYPE_STOP_PAGING_INDICATION = 73;				//(SGW to MME/SGSN – S11/S4)
+const uint8_t GTPC_MSG_TYPE_MODIFY_BEARER_COMMAND = 64;				//(MME/SGSN/ePDG to PGW – S11/S4, S5/S8, S2b)
+const uint8_t GTPC_MSG_TYPE_MODIFY_BEARER_FAILURE_INDICATION = 65;		//(PGW to MME/SGSN/ePDG – S5/S8, S11/S4, S2b)
+const uint8_t GTPC_MSG_TYPE_DELETE_BEARER_COMMAND = 66;				//(MME/SGSN to PGW – S11/S4, S5/S8)
+const uint8_t GTPC_MSG_TYPE_DELETE_BEARER_FAILURE_INDICATION = 67; 		//(PGW to MME/SGSN – S5/S8, S11/S4))
+const uint8_t GTPC_MSG_TYPE_BEARER_RESOURCE_COMMAND = 68;  			//(MME/SGSN to PGW – S11/S4, S5/S8)
+const uint8_t GTPC_MSG_TYPE_BEARER_RESOURCE_FAILURE_INDICATION = 69; 		//(PGW to MME/SGSN – S5/S8, S11/S4)
+const uint8_t GTPC_MSG_TYPE_DOWNLINK_DATA_NOTIFICATION_FAILURE_INDICATION = 70;	//(SGSN/MME to SGW – S4/S11)
+const uint8_t GTPC_MSG_TYPE_TRACE_SESSION_ACTIVATION = 71; 			//(MME/SGSN/ePDG to PGW – S11/S4, S5/S8, S2b)
+const uint8_t GTPC_MSG_TYPE_TRACE_SESSION_DEACTIVATION = 72;			//(MME/SGSN/ePDG to PGW – S11/S4, S5/S8, S2b)
+const uint8_t GTPC_MSG_TYPE_STOP_PAGING_INDICATION = 73;			//(SGW to MME/SGSN – S11/S4)
 //74-94 For future use
 //P-GW to SGSN/MME/ePDG
 const uint8_t GTPC_MSG_TYPE_CREATE_BEARER_REQUEST = 95;
@@ -108,7 +109,7 @@ const uint8_t GTPC_MSG_TYPE_UE_ACTIVITY_ACKNOWLEDGE = 156;
 //GSN/MME to SGW, SGSN to MME (S4/S11/S3) SGSN to SGSN (S16), SGW to PGW (S5/S8)
 const uint8_t GTPC_MSG_TYPE_SUSPEND_NOTIFICATION = 162;
 const uint8_t GTPC_MSG_TYPE_SUSPEND_ACKNOWLEDGE = 163;
-//SGSN/MME to SGW (S4/S11)
+//SGSN/MME to SGW (S4/S11) const uint8_t GTPC_IE_TYPE_
 const uint8_t GTPC_MSG_TYPE_CREATE_FORWARDING_TUNNEL_REQUEST = 160;
 const uint8_t GTPC_MSG_TYPE_CREATE_FORWARDING_TUNNEL_RESPONSE = 161;
 const uint8_t GTPC_MSG_TYPE_CREATE_INDIRECT_DATA_FORWARDING_TUNNEL_REQUEST = 166;
@@ -184,40 +185,74 @@ typedef struct gtpc_header
  ***************************************************************************/
 typedef struct gtpc_create_session_request
 {
-  uint64_t imsi; 
-  uint64_t msisdn;        
-  uint64_t mei;
-  struct user_location_info_ uli;
-  struct serving_network_ serving_network;
-  enum rat_type_ rat_type;
-  struct indication_flags_ indication_flags;
-  struct fteid_ sender_f_teid;
-  struct fteid_ pgw_addr;
-  uint64_t apn;
-  enum selection_mode_ selection_mode;
-  enum pdn_type_ pdn_type;
-  struct pdn_addr_alloc_ pdn_addr_alloc;
-  maximum apn_restriction;
-  apn_ambr;
-  linked_eps_bearer_id;
-  pco;
-  bearer_context_created;
-  bearer_context_deleted;
-  trace_information;
-  recovery;
-  mme_fq_csid;
-  sgw_fq_csid; 
-  epdg_fq_csid;
-  ue_time_zone;
-  uci;
-  charging_caracteristics;
-  mme_ldn;
-  sgw_ldn;
-  epdg_ldn;
-  signalling_priority_indication;
-  apco;
-  bool ext;
+  bool imsi_present; 
+  uint64_t imsi;   						// C
+  bool msidn_present; 
+  uint64_t msisdn;        					// C
+  bool mei_present;
+  uint64_t mei;							// C/CO
+  bool user_location_info_present;
+  struct user_location_info_ uli;				// C/CO
+  bool serving_network_present;
+  struct serving_network_ serving_network;			// C/CO
+  
+  enum rat_type_ rat_type;					// M
+  bool indication_flags_present;
+  struct indication_flags_ indication_flags;			// C
+  
+  struct fteid_ sender_f_teid;					// M
+  bool pgw_addr_present;
+  struct fteid_ pgw_addr;					// C
+
+  uint64_t apn;							// M
+  bool selection_mode_present;
+  enum selection_mode_ selection_mode;				// C/CO
+  bool pdn_type_present;
+  enum pdn_type_ pdn_type;					// C
+  bool pdn_addr_alloc_present;
+  struct pdn_addr_alloc_ pdn_addr_alloc;			// C/CO
+  bool max_apn_restriction_present;
+  enum apn_restriction_ max_apn_restriction;			// C
+  bool apn_ambr_present; 
+  struct ambr_ apn_ambr;					// C
+  bool linked_eps_bearer_id_present;
+  uint8_t linked_eps_bearer_id;					// C
+  bool pco_present;
+  uint8_t pco;							// C
+  
+  struct bearer_context_ bearer_context_created;		// M
+  bool bearer_context_deleted_present;
+  struct bearer_context_ bearer_context_deleted;		// C
+  bool trace_information_present;
+  struct trace_infromation_ trace_information;			// C
+  bool recovery_present
+  uint8_t recovery;						// C
+  bool mme_fq_csid_present;
+  struct fq_csid_ mme_fq_csid;					// C
+  bool sgw_fq_csid_present;
+  struct fq_csid_ sgw_fq_csid; 					// C
+  bool epdg_fq_csid_present;
+  struct fq_csid_ epdg_fq_csid;					// C
+  bool ue_time_zone_present;
+  struct ue_time_zone_ ue_time_zone;				// CO
+  bool uci_present;
+  struct uci_ uci;						// CO
+  bool charging_caracteristics_present;
+  enum charging_characteristics_ charging_caracteristics;	// O
+  bool mme_ldn_present;
+  uint8_t mme_ldn[LDN_MAX_SIZE];				// O
+  bool sgw_ldn_present;
+  uint8_t sgw_ldn[LDN_MAX_SIZE];				// O
+  bool epgd_ldn_present;
+  uint8_t epdg_ldn[LDN_MAX_SIZE];				// O
+  bool signaling_priority_indication;
+  enum signalling_priority_indication_ spi;			// CO
+  bool acpo_present;
+  uint8_t apco;							// CO
+  bool ext;							// O
 } gtpc_create_session_request_t;
 
 
 };
+
+#endif

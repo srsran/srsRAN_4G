@@ -24,37 +24,18 @@
  *
  */
 #include <stdint.h>
+#include "srslte/asn1/gtpc.h"
+
 
 namespace srslte{
 
-/****************************************************************************
- * GTP-C Header
- * Ref: 3GPP TS 29.274 v10.14.0 Section 5
- *
- *        | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
- *
- * 1      |  Version  | P | T | S | S | S |
- * 2      |           Message Type        |
- * 3      |         Length (1st Octet)    |
- * 4      |         Length (2nd Octet)    |
- * m      |   If T=1, TEID (1st Octet)    |
- * m+1    |   If T=1, TEID (2nd Octet)    |
- * m+2    |   If T=1, TEID (3st Octet)    |
- * m+3    |   If T=1, TEID (4st Octet)    |
- * n      |           Sequence            |
- * n+1    |           Sequence            |
- * n+2    |           Sequence            |
- * n+3    |            Spare              |
- ***************************************************************************/
 
-typedef struct gtpc_header
+int
+gtpc_pack_create_session_request(gtpc_create_session_request_t, srslte::byte_buffer_t)
 {
-  enum gtpc_version version;
-  bool piggyback;
-  bool tied_present;
-  enum gtpc_msg_type msg_type;
-  uint64_t teid;
-  uint64_t sequence;
-} gtpc_header_t;
+  if (imsi_present)
+    
+  return 0;
+}
 
 };
