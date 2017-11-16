@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
   }
   
   gettimeofday(&t[1], NULL);
-  int r = srslte_pusch_decode(&pusch_rx, &cfg, &softbuffer_rx, sf_symbols, ce, 0, rnti, data, &uci_data_rx);
+  int r = srslte_pusch_decode(&pusch_rx, &cfg, &softbuffer_rx, sf_symbols, ce, 0, rnti, data, NULL, &uci_data_rx);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   if (r) {

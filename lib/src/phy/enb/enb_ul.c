@@ -290,10 +290,9 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
                             srslte_uci_data_t *uci_data)
 {
   uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS];
-  uint8_t *pucch_bits_ptr = pucch_bits;
 
   if (q->users[rnti]) {
-    uint32_t nof_uci_bits = (uci_data->uci_ri_len > 0) ? uci_data->uci_ri_len : (uci_data->uci_cqi_len +
+    uint32_t nof_uci_bits = uci_data->ri_periodic_report ? uci_data->uci_ri_len : (uci_data->uci_cqi_len +
                                                                                  uci_data->uci_dif_cqi_len +
                                                                                  uci_data->uci_pmi_len);
     int ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits, nof_uci_bits);
@@ -312,11 +311,11 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
     
     // Save ACK bits 
     if (uci_data->uci_ack_len > 0) {
-      uci_data->uci_ack = *(pucch_bits_ptr++);
+      uci_data->uci_ack = pucch_bits[0];
     }
 
     if (uci_data->uci_ack_len > 1) {
-      uci_data->uci_ack_2 = *(pucch_bits_ptr++);
+      uci_data->uci_ack_2 = pucch_bits[1];
     }
     
     // PUCCH2 CQI bits are decoded inside srslte_pucch_decode() 
@@ -355,7 +354,7 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
 
 int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
                             uint16_t rnti, uint32_t rv_idx, uint32_t current_tx_nb, 
-                            uint8_t *data, srslte_uci_data_t *uci_data, uint32_t tti)
+                            uint8_t *data, srslte_cqi_value_t *cqi_value, srslte_uci_data_t *uci_data, uint32_t tti)
 {
   if (q->users[rnti]) {
     if (srslte_pusch_cfg(&q->pusch, 
@@ -391,6 +390,7 @@ int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srs
                               softbuffer, q->sf_symbols, 
                               q->ce, noise_power, 
                               rnti, data, 
+                              cqi_value,
                               uci_data);
 }
 
