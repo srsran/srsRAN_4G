@@ -655,7 +655,7 @@ int phch_worker::decode_pucch()
           phy->mac->sr_detected(tti_rx, rnti);
         }
         
-        char cqi_ri_str[64];
+        char cqi_ri_str[64] = {0};
         if (srslte_pucch_get_last_corr(&enb_ul.pucch) > PUCCH_RL_CORR_TH) {
           if (uci_data.uci_ri_len && needs_ri) {
             phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
