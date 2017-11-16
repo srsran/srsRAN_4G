@@ -859,7 +859,9 @@ void phch_worker::set_uci_periodic_cqi()
   
   if (period_cqi.configured && rnti_is_set) {
     if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, TTI_TX(tti))) {
+      /* Compute RI, PMI and SINR */
       compute_ri();
+
       uci_data.ri_periodic_report = true;
       Info("PUCCH: Periodic RI=%d\n", uci_data.uci_ri);
     } else if (srslte_cqi_send(period_cqi.pmi_idx, TTI_TX(tti))) {
@@ -902,6 +904,9 @@ void phch_worker::set_uci_periodic_cqi()
 void phch_worker::set_uci_aperiodic_cqi()
 {
   if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
+    /* Compute RI, PMI and SINR */
+    compute_ri();
+
     switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
         /* only Higher Layer-configured subband feedback support right now, according to TS36.213 section 7.2.1
@@ -939,9 +944,6 @@ void phch_worker::set_uci_aperiodic_cqi()
             other transmission modes they are reported conditioned on rank 1.
         */
         if (rnti_is_set) {
-          /* Compute RI, PMI and SINR */
-          compute_ri();
-
           /* Select RI, PMI and SINR */
           uint32_t ri = ue_dl.ri;       // Select RI (0: 1 layer, 1: 2 layer, otherwise: not implemented)
           uint32_t pmi = ue_dl.pmi[ri]; // Select PMI
@@ -972,9 +974,9 @@ void phch_worker::set_uci_aperiodic_cqi()
                  cqi_report.subband_hl.wideband_cqi_cw0, cqi_report.subband_hl.wideband_cqi_cw1,
                  sinr_db, sinr_db, pmi, cqi_report.subband_hl.N);
           } else {
-            Info("PUSCH: Aperiodic ri=1, CQI=%d/%d, SINR=%2.1f dB, for %d subbands\n",
-                 cqi_report.wideband.wideband_cqi,
-                 phy->avg_snr_db, cqi_report.subband_hl.N);
+            Info("PUSCH: Aperiodic ri=1, CQI=%02d, SINR=%2.1f, pmi=%d for %d subbands\n",
+                 cqi_report.subband_hl.wideband_cqi_cw0,
+                 sinr_db, pmi, cqi_report.subband_hl.N);
           }
           uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
         }
