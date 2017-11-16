@@ -199,7 +199,6 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, int len) {
   }
 }
 
-/* Modified from volk_32f_s32f_convert_16i_a_simd2. Removed clipping */
 void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, int len) {
   int i = 0;
 
