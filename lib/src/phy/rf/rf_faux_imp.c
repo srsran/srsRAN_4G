@@ -41,10 +41,34 @@ static bool g_logStdout = true;
 
 #define LOG_FUNC_TODO printf("XXX_TODO file:%s func:%s line:%d\n", __FILE__, __func__, __LINE__)
 
+#define BOOL_TO_STR(x) (x) ? "yes" : "no"
 
+#define UDELAY 1000000
+
+void TV_TO_TS(struct timeval *tv, time_t *s, double *f)
+{
+  *s = tv->tv_sec; 
+  *f = tv->tv_usec / 1.0e6;
+}
+
+void TS_TO_TV(struct timeval *tv, time_t s, double f)
+{
+  tv->tv_sec  = s;
+  tv->tv_usec = f * 1.0e6;
+}
+
+void TS_OFFSET(struct timeval tv[3], time_t secs, double frac)
+{
+   gettimeofday(&tv[0], NULL);
+
+   TS_TO_TV(&tv[1], secs, frac);
+
+   timersub(&tv[0], &tv[1], &tv[2]);
+}
+ 
 typedef struct 
  {
-   char *devName;
+   char  *devName;
    double rxGain;
    double txGain;
    double rxRate;
@@ -54,8 +78,8 @@ typedef struct
    double txCal;
    double rxCal;
    double clockRate;
-   void (*error_handler)(srslte_rf_error_t error);
-   bool  rxStream;
+   void   (*error_handler)(srslte_rf_error_t error);
+   bool   rxStream;
  } faux_rf_info_t;
 
 static void faux_rf_handle_error(srslte_rf_error_t error)
@@ -91,6 +115,7 @@ char* rf_faux_devname(void *h)
    return p->devName;
  }
 
+
 bool rf_faux_rx_wait_lo_locked(void *h)
  {
    LOG_FUNC_TODO;
@@ -98,28 +123,36 @@ bool rf_faux_rx_wait_lo_locked(void *h)
    return false;
  }
 
+
 int rf_faux_start_rx_stream(void *h)
  {
    GET_FAUX_INFO(h)
+   
+   FAUX_DEBUG("");
 
    p->rxStream = true;
 
    return 0;
  }
 
+
 int rf_faux_stop_rx_stream(void *h)
  {
    GET_FAUX_INFO(h)
+
+   FAUX_DEBUG("");
 
    p->rxStream = false;
 
    return 0;
  }
 
+
 void rf_faux_flush_buffer(void *h)
  {
    LOG_FUNC_TODO;
  }
+
 
 bool rf_faux_has_rssi(void *h)
  {
@@ -128,6 +161,7 @@ bool rf_faux_has_rssi(void *h)
    return false;
  }
 
+
 float rf_faux_get_rssi(void *h)
  {
    LOG_FUNC_TODO;
@@ -135,10 +169,12 @@ float rf_faux_get_rssi(void *h)
    return 0.0;
  }
 
+
 void rf_faux_suppress_stdout(void *h)
  {
    // g_logStdout = false;
  }
+
 
 void rf_faux_register_error_handler(void *h, srslte_rf_error_handler_t error_handler)
  {
@@ -147,10 +183,12 @@ void rf_faux_register_error_handler(void *h, srslte_rf_error_handler_t error_han
    p->error_handler = error_handler;
  }
 
+
 int rf_faux_open(char *args, void **h)
  {
    return rf_faux_open_multi(args, h, 1);
  }
+
 
 int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
  {
@@ -170,12 +208,14 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
     }
  }
 
+
 int rf_faux_close(void *h)
  {
    LOG_FUNC_TODO;
 
    return 0;
  }
+
 
 void rf_faux_set_master_clock_rate(void *h, double rate)
  {
@@ -186,12 +226,14 @@ void rf_faux_set_master_clock_rate(void *h, double rate)
    p->clockRate = rate;
  }
 
+
 bool rf_faux_is_master_clock_dynamic(void *h)
  {
    LOG_FUNC_TODO;
 
    return false;
  }
+
 
 double rf_faux_set_rx_srate(void *h, double rate)
  {
@@ -204,6 +246,7 @@ double rf_faux_set_rx_srate(void *h, double rate)
    return p->rxRate;
  }
 
+
 double rf_faux_set_rx_gain(void *h, double gain)
  {
    GET_FAUX_INFO(h)
@@ -214,6 +257,7 @@ double rf_faux_set_rx_gain(void *h, double gain)
 
    return p->rxGain;
  }
+
 
 double rf_faux_set_tx_gain(void *h, double gain)
  {
@@ -226,6 +270,7 @@ double rf_faux_set_tx_gain(void *h, double gain)
    return p->txGain;
  }
 
+
 double rf_faux_get_rx_gain(void *h)
  {
    GET_FAUX_INFO(h)
@@ -235,6 +280,7 @@ double rf_faux_get_rx_gain(void *h)
    return p->rxGain;
  }
 
+
 double rf_faux_get_tx_gain(void *h)
  {
    GET_FAUX_INFO(h)
@@ -243,6 +289,7 @@ double rf_faux_get_tx_gain(void *h)
 
    return p->txGain;
  }
+
 
 double rf_faux_set_rx_freq(void *h, double freq)
  {
@@ -255,6 +302,7 @@ double rf_faux_set_rx_freq(void *h, double freq)
    return p->rxFreq;
  }
 
+
 double rf_faux_set_tx_srate(void *h, double rate)
  {
    GET_FAUX_INFO(h)
@@ -265,6 +313,7 @@ double rf_faux_set_tx_srate(void *h, double rate)
 
    return p->txRate;
  }
+
 
 double rf_faux_set_tx_freq(void *h, double freq)
  {
@@ -277,67 +326,100 @@ double rf_faux_set_tx_freq(void *h, double freq)
    return p->txFreq;
  }
 
+
 void rf_faux_get_time(void *h, time_t *secs, double *frac_secs)
  {
-   FAUX_DEBUG("secs %ld, frac %lf", 
-           *secs,
-           *frac_secs);
- }
-
-int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples, 
-                           bool blocking, time_t *secs, double *frac_secs)
- {
-   GET_FAUX_INFO(h)
-
    struct timeval tv;
 
    gettimeofday(&tv, NULL);
 
-   *secs = tv.tv_sec;
+   TV_TO_TS(&tv, secs, frac_secs);
 
-   *frac_secs = tv.tv_usec / 1000000.0;
-
-   FAUX_DEBUG("nsmaples %u, blocking %s, secs %ld, frac %lf", 
-           nsamples, 
-           blocking ? "yes" : "no",
-           *secs,
-           *frac_secs);
-
-   usleep(100000);
-
-   return 0;
+   FAUX_DEBUG("secs %ld, frac %lf", 
+              *secs,
+              *frac_secs);
  }
+
+
+int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples, 
+                           bool blocking, time_t *secs, double *frac_secs)
+ {
+   struct timeval tv[3];
+
+   TS_OFFSET(tv, *secs, *frac_secs);
+
+   FAUX_DEBUG("nsamples %u, blocking %s, offset %ld:%06ld", 
+              nsamples, 
+              blocking ? "yes" : "no",
+              tv[2].tv_sec,
+              tv[2].tv_usec);
+
+   usleep(UDELAY);
+
+   gettimeofday(&tv[0], NULL);
+
+   TV_TO_TS(&tv[0], secs, frac_secs);
+
+   return nsamples;
+ }
+
 
 int rf_faux_recv_with_time_multi(void *h, void **data, uint32_t nsamples, 
                                  bool blocking, time_t *secs, double *frac_secs)
 {
-   return rf_faux_recv_with_time(h, data[0], nsamples, 
-                                 blocking, secs, frac_secs);
+   return rf_faux_recv_with_time(h, 
+                                 data[0],
+                                 nsamples, 
+                                 blocking,
+                                 secs,
+                                 frac_secs);
 }
+
 
 int rf_faux_send_timed(void *h, void *data, int nsamples,
                        time_t secs, double frac_secs, bool has_time_spec,
                        bool blocking, bool is_start_of_burst, bool is_end_of_burst)
 {
-   LOG_FUNC_TODO;
+   struct timeval tv[3];
 
-   return 0;
+   TS_OFFSET(tv, secs, frac_secs);
+
+   FAUX_DEBUG("nsamples %u, blocking %s, offset %ld:%06ld, sob %s, eob %s", 
+              nsamples, 
+              BOOL_TO_STR(blocking),
+              tv[2].tv_sec,
+              tv[2].tv_usec,
+              BOOL_TO_STR(is_start_of_burst),
+              BOOL_TO_STR(is_end_of_burst));
+
+   usleep(UDELAY);
+
+   return nsamples;
 }
+
 
 int rf_faux_send_timed_multi(void *h, void *data[4], int nsamples,
                              time_t secs, double frac_secs, bool has_time_spec,
                              bool blocking, bool is_start_of_burst, bool is_end_of_burst)
 {
-   LOG_FUNC_TODO;
-
-   return 0;
+  return rf_faux_send_timed(h, 
+                            data[0], 
+                            nsamples,
+                            secs,
+                            frac_secs,
+                            has_time_spec,
+                            blocking,
+                            is_start_of_burst,
+                            is_end_of_burst);
 }
+
 
 void rf_faux_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
    FAUX_DEBUG("gain %f, phase %f, i %f, q %f", 
            cal->dc_gain, cal->dc_phase, cal->iq_i, cal->iq_q);
 }
+
 
 void rf_faux_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 {
