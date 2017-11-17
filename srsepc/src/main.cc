@@ -29,6 +29,7 @@
 #include "srslte/common/bcd_helpers.h"
 #include "mme/mme.h"
 #include "hss/hss.h"
+#include "spgw/spgw.h"
 
 using namespace std;
 using namespace srsepc;
@@ -49,9 +50,10 @@ typedef struct {
 
 
 typedef struct{
-  mme_args_t mme_args;
-  hss_args_t hss_args;
-  log_args_t log_args;
+  mme_args_t   mme_args;
+  hss_args_t   hss_args;
+  spgw_args_t  spgw_args;
+  log_args_t   log_args;
 }all_args_t;
 
 /**********************************************************************
@@ -197,6 +199,11 @@ main (int argc,char * argv[] )
   hss_log.init("HSS ",logger);
   hss_log.set_level(srslte::LOG_LEVEL_DEBUG);
   hss_log.set_hex_limit(32);
+
+  srslte::log_filter spgw_log;
+  spgw_log.init("SPGW",logger);
+  spgw_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  spgw_log.set_hex_limit(32);
   
   mme *mme = mme::get_instance();
   if (mme->init(&args.mme_args, &s1ap_log)) {
@@ -209,15 +216,24 @@ main (int argc,char * argv[] )
     cout << "Error initializing HSS" << endl;
     exit(1);
   }
-  
+ 
+  spgw *spgw = spgw::get_instance();
+  if (spgw->init(&args.spgw_args,&spgw_log)) {
+    cout << "Error initializing SP-GW" << endl;
+    exit(1);
+  } 
+
   mme->start(); 
+  spgw->start();
   while(running) {
     sleep(1);
   }
 
   mme->stop();
   mme->cleanup();   
-  
-  cout << "---  exiting  ---" << endl;  
+  spgw->stop();
+  spgw->cleanup();
+
+  cout << std::endl <<"---  exiting  ---" << endl;  
   return 0;
 }

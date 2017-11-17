@@ -68,6 +68,7 @@ private:
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
 
+  bool m_if_up;
   int m_sgi_if;
   int m_sgi_sock;
   /*Logs*/

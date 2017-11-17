@@ -40,7 +40,8 @@ spgw*          spgw::m_instance = NULL;
 boost::mutex  spgw_instance_mutex;
 
 spgw::spgw():
-  m_running(false)
+  m_running(false),
+  m_if_up(false)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();     
   return;
@@ -92,6 +93,13 @@ spgw::stop()
     m_running = false;
     thread_cancel();
     wait_thread_finish();
+ 
+    //Clean up interface
+    if(m_if_up)
+    {
+      close(m_sgi_if);
+      close(m_sgi_sock);
+    }
   }
   return;
 }
@@ -113,6 +121,12 @@ spgw::init_sgi_if()
 {
   char dev[IFNAMSIZ] = "srs_spgw_sgi";
   struct ifreq ifr;
+
+  if(m_if_up)
+  {
+    return(srslte::ERROR_ALREADY_STARTED);
+  }
+
 
   // Construct the TUN device
   m_sgi_if = open("/dev/net/tun", O_RDWR);
@@ -149,10 +163,8 @@ spgw::init_sgi_if()
       return(srslte::ERROR_CANT_START);
   }
   
-  //if_up = true;
-  
+  m_if_up = true;
   return(srslte::ERROR_NONE);
-
 }
 
 } //namespace srsepc
