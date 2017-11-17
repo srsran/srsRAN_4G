@@ -1,0 +1,50 @@
+mac_cnfg =
+{
+  phr_cnfg = 
+  {
+    dl_pathloss_change = "3dB"; // Valid: 1, 3, 6 or INFINITY
+    periodic_phr_timer = 50;
+    prohibit_phr_timer = 0;
+  };
+  ulsch_cnfg = 
+  {
+    max_harq_tx = 4;
+    periodic_bsr_timer = 40; // in ms 
+    retx_bsr_timer = 320;   // in ms
+  };
+  
+  time_alignment_timer = -1; // -1 is infinity
+};
+
+phy_cnfg =
+{
+  phich_cnfg = 
+  {
+    duration  = "Normal";
+    resources = "1/6"; 
+  };
+
+  pusch_cnfg_ded =
+  {
+    beta_offset_ack_idx = 10;
+    beta_offset_ri_idx  = 5;
+    beta_offset_cqi_idx = 10;
+  };
+  
+  // PUCCH-SR resources are scheduled on time-frequeny domain first, then multiplexed in the same resource. 
+  sched_request_cnfg =
+  {
+    dsr_trans_max = 64;
+    period = 20;       // in ms
+    subframe = [1];    // vector of subframe indices allowed for SR transmissions 
+    nof_prb = 2;       // number of PRBs on each extreme used for SR (total prb is twice this number)
+  };
+  cqi_report_cnfg =
+  { 
+    mode = "periodic";
+    simultaneousAckCQI = true; 
+    period = 40; // in ms
+    subframe = [0];
+    nof_prb = 2; 
+  };
+};
