@@ -25,13 +25,13 @@
  */
 
 /******************************************************************************
- * File:        sgw.h
- * Description: Top-level S-GW class. Creates and links all
+ * File:        spgw.h
+ * Description: Top-level SP-GW class. Creates and links all
  *              interfaces and helpers.
  *****************************************************************************/
 
-#ifndef SGW_H
-#define SGW_H
+#ifndef SPGW_H
+#define SPGW_H
 
 #include <cstddef>
 #include "srslte/common/log.h"
@@ -44,30 +44,30 @@ namespace srsepc{
 
 typedef struct {
   std::string gtpc_bind_addr;
-} sgw_args_t;
+} spgw_args_t;
 
 
-class sgw:
+class spgw:
   public thread
 {
 public:
-  static sgw* get_instance(void);
+  static spgw* get_instance(void);
   static void cleanup(void);
-  int init(sgw_args_t* args, srslte::log_filter *sgw_log);
+  int init(spgw_args_t* args, srslte::log_filter *spgw_log);
   void stop();
   void run_thread();
 
 private:
 
-  sgw();
-  virtual ~sgw();
-  static sgw *m_instance;
+  spgw();
+  virtual ~spgw();
+  static spgw *m_instance;
 
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
 
   /*Logs*/
-  srslte::log_filter  *m_sgw_log;
+  srslte::log_filter  *m_spgw_log;
  
 };
 

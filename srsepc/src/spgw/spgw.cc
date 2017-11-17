@@ -26,39 +26,39 @@
 
 #include <iostream> 
 #include <boost/thread/mutex.hpp>
-#include "sgw/sgw.h"
+#include "spgw/spgw.h"
 
 namespace srsepc{
 
-sgw*          sgw::m_instance = NULL;
-boost::mutex  sgw_instance_mutex;
+spgw*          spgw::m_instance = NULL;
+boost::mutex  spgw_instance_mutex;
 
-sgw::sgw():
+spgw::spgw():
   m_running(false)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();     
   return;
 }
 
-sgw::~sgw()
+spgw::~spgw()
 {
   return;
 }
 
-sgw*
-sgw::get_instance(void)
+spgw*
+spgw::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(sgw_instance_mutex);
+  boost::mutex::scoped_lock lock(spgw_instance_mutex);
   if(NULL == m_instance) {
-    m_instance = new sgw();
+    m_instance = new spgw();
   }
   return(m_instance);
 }
 
 void
-sgw::cleanup(void)
+spgw::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(sgw_instance_mutex);
+  boost::mutex::scoped_lock lock(spgw_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
@@ -66,17 +66,17 @@ sgw::cleanup(void)
 }
 
 int
-sgw::init(sgw_args_t* args, srslte::log_filter *sgw_log)
+spgw::init(spgw_args_t* args, srslte::log_filter *spgw_log)
 {
   
-  m_sgw_log = sgw_log;
-  m_sgw_log->info("S-GW Initialized.\n");
-  m_sgw_log->console("S-GW Initialized.\n");
+  m_spgw_log = spgw_log;
+  m_spgw_log->info("SP-GW Initialized.\n");
+  m_spgw_log->console("SP-GW Initialized.\n");
   return 0;
 }
 
 void
-sgw::stop()
+spgw::stop()
 {
   if(m_running)
   {
@@ -88,7 +88,7 @@ sgw::stop()
 }
 
 void
-sgw::run_thread()
+spgw::run_thread()
 {
   //Mark the thread as running
   m_running=true;

@@ -1,7 +1,7 @@
 
 add_subdirectory(mme)
 add_subdirectory(hss)
-add_subdirectory(sgw)
+add_subdirectory(spgw)
 
 # Link libstdc++ and libgcc
 if(BUILD_STATIC)
