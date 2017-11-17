@@ -63,9 +63,13 @@ private:
   virtual ~spgw();
   static spgw *m_instance;
 
+  srslte::error_t init_sgi_if();
+
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
 
+  int m_sgi_if;
+  int m_sgi_sock;
   /*Logs*/
   srslte::log_filter  *m_spgw_log;
  

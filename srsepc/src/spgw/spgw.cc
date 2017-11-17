@@ -26,6 +26,12 @@
 
 #include <iostream> 
 #include <boost/thread/mutex.hpp>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
 #include "spgw/spgw.h"
 
 namespace srsepc{
@@ -68,8 +74,11 @@ spgw::cleanup(void)
 int
 spgw::init(spgw_args_t* args, srslte::log_filter *spgw_log)
 {
-  
+  //Init log
   m_spgw_log = spgw_log;
+    
+  //Init Si interface
+  init_sgi_if();
   m_spgw_log->info("SP-GW Initialized.\n");
   m_spgw_log->console("SP-GW Initialized.\n");
   return 0;
@@ -97,6 +106,53 @@ spgw::run_thread()
     sleep(1);
   }
   return;
+}
+
+srslte::error_t
+spgw::init_sgi_if()
+{
+  char dev[IFNAMSIZ] = "srs_spgw_sgi";
+  struct ifreq ifr;
+
+  // Construct the TUN device
+  m_sgi_if = open("/dev/net/tun", O_RDWR);
+  m_spgw_log->info("TUN file descriptor = %d\n", m_sgi_if);
+  if(m_sgi_if < 0)
+  {
+      m_spgw_log->debug("Failed to open TUN device: %s\n", strerror(errno));
+      return(srslte::ERROR_CANT_START);
+  }
+  
+  memset(&ifr, 0, sizeof(ifr));
+  ifr.ifr_flags = IFF_TUN | IFF_NO_PI; 
+  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ);
+  if(ioctl(m_sgi_if, TUNSETIFF, &ifr) < 0)
+  {
+      m_spgw_log->debug("Failed to set TUN device name: %s\n", strerror(errno));
+      close(m_sgi_if);
+      return(srslte::ERROR_CANT_START);
+  }
+
+  // Bring up the interface
+  m_sgi_sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if(ioctl(m_sgi_sock, SIOCGIFFLAGS, &ifr) < 0)
+  {
+      m_spgw_log->debug("Failed to bring up socket: %s\n", strerror(errno));
+      close(m_sgi_if);
+      return(srslte::ERROR_CANT_START);
+  }
+  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+  if(ioctl(m_sgi_sock, SIOCSIFFLAGS, &ifr) < 0)
+  {
+      m_spgw_log->debug("Failed to set socket flags: %s\n", strerror(errno));
+      close(m_sgi_if);
+      return(srslte::ERROR_CANT_START);
+  }
+  
+  //if_up = true;
+  
+  return(srslte::ERROR_NONE);
+
 }
 
 } //namespace srsepc
