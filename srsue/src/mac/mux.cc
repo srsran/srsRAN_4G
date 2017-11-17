@@ -236,8 +236,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
   // Now allocate the SDUs from the RLC 
   for (uint32_t i=0;i<lch.size();i++) {
     if (lch[i].sched_len != 0) {
-      log_h->info("Allocating scheduled lch=%d len=%d\n", lch[i].id, lch[i].sched_len);
-      allocate_sdu(lch[i].id, &pdu_msg, lch[i].sched_len);    
+      allocate_sdu(lch[i].id, &pdu_msg, lch[i].sched_len);
     }
   }
 
@@ -285,7 +284,7 @@ bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz)
         sched_len = *sdu_space;
       }        
 
-      log_h->info("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d/%d\n", 
+      log_h->debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d/%d\n",
                    ch->id, ch->buffer_len, sched_len, sdu_space?*sdu_space:0);
       
       *sdu_space     -= sched_len; 
@@ -317,7 +316,7 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
         sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc);
         if (sdu_len > 0) { // new SDU could be added
           
-          Info("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n", 
+          Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n",
                  lcid, buffer_state, sdu_len, sdu_space, max_sdu_sz, pdu_msg->rem_size());
           return true;               
         } else {

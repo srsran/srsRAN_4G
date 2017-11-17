@@ -57,9 +57,5 @@ set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
 add_library(srslte_phy STATIC ${srslte_srcs})
 target_link_libraries(srslte_phy ${FFT_LIBRARIES})
 
-if(VOLK_FOUND)
-  target_link_libraries(srslte_phy ${VOLK_LIBRARIES})
-endif(VOLK_FOUND)
-
 target_link_libraries(srslte_phy pthread m)
 install(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})

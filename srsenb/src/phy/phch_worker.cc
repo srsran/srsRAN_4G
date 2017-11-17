@@ -441,16 +441,16 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       if (ue_db[rnti].cqi_en && ue_db[rnti].ri_en && srslte_ri_send(ue_db[rnti].pmi_idx, ue_db[rnti].ri_idx, tti_rx) ) {
         uci_data.uci_ri_len = 1; /* Asumes only 1 bit for RI */
         ri_enabled = true;
-      } else if (ue_db[rnti].cqi_en && srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
+      } else
+#endif
+      if (ue_db[rnti].cqi_en && srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
         cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND;
         cqi_enabled = true;
         if (ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
           //uci_data.uci_dif_cqi_len = 3;
           uci_data.uci_pmi_len = 2;
         }
-      } else
-#endif
-      if (grants[i].grant.cqi_request) {
+      } else if (grants[i].grant.cqi_request) {
         cqi_value.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
         cqi_value.subband_hl.N = (phy->cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(phy->cell.nof_prb) : 0;
         cqi_value.subband_hl.four_antenna_ports = (phy->cell.nof_ports == 4);
@@ -464,6 +464,22 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       srslte_ra_ul_grant_t phy_grant;
       int res = -1;
       if (!srslte_ra_ul_dci_to_grant(&grants[i].grant, enb_ul.cell.nof_prb, n_rb_ho, &phy_grant)) {
+
+        // Handle Format0 adaptive retx
+        // Use last TBS for this TB in case of mcs>28
+        if (phy_grant.mcs.idx > 28) {
+          phy_grant.mcs.tbs = ue_db[rnti].last_ul_tbs[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)];
+          Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", phy_grant.mcs.idx, phy_grant.mcs.tbs, TTI_TX(tti_rx)%(2*HARQ_DELAY_MS));
+        }
+        ue_db[rnti].last_ul_tbs[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)] = phy_grant.mcs.tbs;
+
+        if (phy_grant.mcs.mod == SRSLTE_MOD_LAST) {
+          phy_grant.mcs.mod = ue_db[rnti].last_ul_mod[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)];
+          phy_grant.Qm      = srslte_mod_bits_x_symbol(phy_grant.mcs.mod);
+        }
+        ue_db[rnti].last_ul_mod[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)] = phy_grant.mcs.mod;
+
+
         if (phy_grant.mcs.mod == SRSLTE_MOD_64QAM) {
           phy_grant.mcs.mod = SRSLTE_MOD_16QAM;
         }
