@@ -29,7 +29,7 @@
 
 namespace srslte{
 
-
+/*
 int
 gtpc_pack_create_session_request(gtpc_create_session_request_t, srslte::byte_buffer_t)
 {
@@ -37,5 +37,5 @@ gtpc_pack_create_session_request(gtpc_create_session_request_t, srslte::byte_buf
     
   return 0;
 }
-
+*/
 };

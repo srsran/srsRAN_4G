@@ -134,3 +134,17 @@ const uint8_t GTPC_IE_TYPE_APCO = 163;
 const uint8_t GTPC_IE_TYPE_CHANGE_TO_REPORT_FLAGS = 165;
 //168 TO 254 SPARE. FOR FUTURE USE.
 const uint8_t GTPC_IE_TYPE_PRIVATE_EXTENSION = 255;
+
+
+/****************************************************************
+ *
+ * GTP-C IMSI IE
+ * Ref: TS 29.274 v10.14.0 Table 8.3-1
+ *
+ ****************************************************************/
+/*
+The IMSI should be kept as a uint64_t.
+The responsibility to convert from uint64_t to BCD coded is on 
+the pack_imsi_ie function
+*/
+pack_imsi_ie(uint64_t imsi, **ptr);

@@ -183,6 +183,7 @@ typedef struct gtpc_header
  * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.1-1
  *
  ***************************************************************************/
+/*
 typedef struct gtpc_create_session_request
 {
   bool imsi_present; 
@@ -251,7 +252,7 @@ typedef struct gtpc_create_session_request
   uint8_t apco;							// CO
   bool ext;							// O
 } gtpc_create_session_request_t;
-
+*/
 
 };
 
