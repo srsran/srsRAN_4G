@@ -50,6 +50,8 @@
 #define TTI_TX(tti)     ((tti+HARQ_DELAY_MS)%10240)
 #define TTI_RX_ACK(tti) ((tti+(2*HARQ_DELAY_MS))%10240)
 
+#define UL_PIDOF(tti)   (tti%(2*HARQ_DELAY_MS))
+
 #define TTIMOD_SZ       (((2*HARQ_DELAY_MS) < 10)?10:20)
 #define TTIMOD(tti)     (tti%TTIMOD_SZ)
 

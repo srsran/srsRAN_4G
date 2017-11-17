@@ -97,7 +97,7 @@ private:
   srslte_enb_dl_t enb_dl;
   srslte_enb_ul_t enb_ul;
   
-  srslte_timestamp_t tx_time; 
+  srslte_timestamp_t tx_time;
 
   // Class to store user information 
   class ue {
@@ -119,6 +119,11 @@ private:
     void metrics_read(phy_metrics_t *metrics);
     void metrics_dl(uint32_t mcs);
     void metrics_ul(uint32_t mcs, float rssi, float sinr, uint32_t turbo_iters);
+
+    int last_dl_tbs[2*HARQ_DELAY_MS][SRSLTE_MAX_CODEWORDS];
+    int last_ul_tbs[2*HARQ_DELAY_MS];
+    srslte_mod_t last_ul_mod[2*HARQ_DELAY_MS];
+
   private:
     phy_metrics_t metrics; 
   }; 
