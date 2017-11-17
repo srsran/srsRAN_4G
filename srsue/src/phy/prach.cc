@@ -49,8 +49,10 @@ prach::~prach() {
         free(buffer[i]);
       }
     }
-    if (signal_buffer) {
-      free(signal_buffer);
+    for (uint32_t p = 0; p < SRSLTE_MAX_PORTS; p++) {
+      if (signal_buffer[p]) {
+        free(signal_buffer[p]);
+      }
     }
     srslte_cfo_free(&cfo_h);
     srslte_prach_free(&prach_obj);
