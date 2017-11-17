@@ -760,6 +760,7 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   if (uci_data.uci_ri_len > 0 || uci_data.uci_cqi_len > 0) {
     /* If no RI is reported set it to zero as specified in 3GPP 36.213 clause 7.2.1 */
     if (uci_data.uci_ri_len == 0) {
+      uci_data.uci_ri_len = 1;
       uci_data.uci_ri = 0;
     }
     float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
