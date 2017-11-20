@@ -37,13 +37,27 @@
 
 static bool g_logStdout = true;
 
-#define FAUX_DEBUG(fmt, ...) if(g_logStdout) fprintf(stdout, "[DEBUG]: %s, " fmt "\n", __func__, ##__VA_ARGS__)
+#define FAUX_DEBUG(fmt, ...) do { \
+                                 if(g_logStdout) {                                           \
+                                   struct timeval _tv_now;                                   \
+                                   struct tm tm;                                             \
+                                   gettimeofday(&_tv_now, NULL);                             \
+                                   localtime_r(&_tv_now.tv_sec, &tm);                        \
+                                   fprintf(stdout, "%d.%d.%d.%06ld %s [DEBUG], " fmt "\n",   \
+                                           tm.tm_hour,                                       \
+                                           tm.tm_sec,                                        \
+                                           tm.tm_sec,                                        \
+                                           _tv_now.tv_usec,                                  \
+                                           __func__,                                         \
+                                           ##__VA_ARGS__);                                   \
+                                 }                                                           \
+                             } while(0);
 
 #define LOG_FUNC_TODO printf("XXX_TODO file:%s func:%s line:%d\n", __FILE__, __func__, __LINE__)
 
 #define BOOL_TO_STR(x) (x) ? "yes" : "no"
 
-#define UDELAY 1000000
+#define UDELAY 100000
 
 void TV_TO_TS(struct timeval *tv, time_t *s, double *f)
 {
@@ -63,7 +77,10 @@ void TS_OFFSET(struct timeval tv[3], time_t secs, double frac)
 
    TS_TO_TV(&tv[1], secs, frac);
 
-   timersub(&tv[0], &tv[1], &tv[2]);
+   if(secs)
+     timersub(&tv[0], &tv[1], &tv[2]);
+   else
+     memset(&tv[2], 0x0, sizeof(tv[2]));
 }
  
 typedef struct 
@@ -354,13 +371,9 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
               tv[2].tv_sec,
               tv[2].tv_usec);
 
-   usleep(UDELAY);
-
-   gettimeofday(&tv[0], NULL);
-
    TV_TO_TS(&tv[0], secs, frac_secs);
 
-   return nsamples;
+   return 0;
  }
 
 
