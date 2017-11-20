@@ -61,7 +61,6 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 
-option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          OFF)
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 
@@ -188,21 +187,6 @@ if(ENABLE_GUI)
     link_directories(${SRSGUI_LIBRARY_DIRS})
   endif(SRSGUI_FOUND)
 endif(ENABLE_GUI)
-
-# VOLK
-include(CheckFunctionExistsMath)
-if(ENABLE_VOLK)
-  find_package(Volk)
-  if(VOLK_FOUND)
-    include_directories(${VOLK_INCLUDE_DIRS})
-    link_directories(${VOLK_LIBRARY_DIRS})
-    message(STATUS "Compiling with VOLK SIMD library.")
-  else(VOLK_FOUND)
-    message(STATUS "VOLK SIMD library NOT found. Using generic implementation.")
-  endif(VOLK_FOUND)
-else(ENABLE_VOLK)
-  message(STATUS "VOLK library disabled")
-endif(ENABLE_VOLK)
 
 ########################################################################
 # Install Dirs

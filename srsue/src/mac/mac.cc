@@ -180,6 +180,8 @@ void mac::run_thread() {
       ra_procedure.start_mac_order();
     }
     ra_procedure.step(tti);
+
+    rrc_h->run_tti(tti);
   }
 }
 

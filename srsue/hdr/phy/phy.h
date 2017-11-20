@@ -40,8 +40,8 @@
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
-    
-typedef _Complex float cf_t; 
+
+typedef _Complex float cf_t;
 
 class phy
     : public phy_interface_mac
@@ -78,7 +78,6 @@ public:
   void set_earfcn(std::vector<uint32_t> earfcns);
   void force_freq(float dl_freq, float ul_freq);
 
-  void    scell_enable(bool enable);
 
   /********** RRC INTERFACE ********************/
   void    reset();
@@ -88,6 +87,10 @@ public:
   void    cell_search_stop();
   void    cell_search_next();
   bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
+
+  void    meas_reset();
+  int     meas_start(uint32_t earfcn, int pci);
+  int     meas_stop(uint32_t earfcn, int pci);
 
   /********** MAC INTERFACE ********************/
   /* Functions to synchronize with a cell */
@@ -133,7 +136,7 @@ public:
   float   get_pathloss_db();
     
   uint32_t get_current_tti();
-  void     get_current_cell(srslte_cell_t *cell);
+  void     get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL);
   
   void    start_plot();
     

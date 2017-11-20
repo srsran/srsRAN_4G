@@ -65,7 +65,9 @@ namespace srsue {
     float avg_snr_db; 
     float avg_noise; 
     float avg_rsrp; 
-  
+
+    uint32_t serving_cell_report_period;
+
     phch_common(uint32_t max_mutex = 3);
     void init(phy_interface_rrc::phy_cfg_t *config, 
               phy_args_t  *args, 

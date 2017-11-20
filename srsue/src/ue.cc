@@ -215,11 +215,6 @@ void ue::pregenerate_signals(bool enable)
   phy.enable_pregen_signals(enable);
 }
 
-void ue::test_scell()
-{
-  phy.scell_enable(true);
-};
-
 void ue::stop()
 {
   if(started)

@@ -243,13 +243,20 @@ void phy::cell_search_next()
   sf_recv.cell_search_next();
 }
 
-void phy::scell_enable(bool enable)
-{
-  sf_recv.scell_enable(enable);
-}
-
 void phy::sync_reset() {
   sf_recv.reset_sync();
+}
+
+void phy::meas_reset() {
+  sf_recv.meas_reset();
+}
+
+int phy::meas_start(uint32_t earfcn, int pci) {
+  return sf_recv.meas_start(earfcn, pci);
+}
+
+int phy::meas_stop(uint32_t earfcn, int pci) {
+  return sf_recv.meas_stop(earfcn, pci);
 }
 
 bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
@@ -288,9 +295,9 @@ void phy::pdcch_ul_search_reset()
   workers_common.set_ul_rnti(SRSLTE_RNTI_USER, 0);
 }
 
-void phy::get_current_cell(srslte_cell_t *cell)
+void phy::get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn)
 {
-  sf_recv.get_current_cell(cell);
+  sf_recv.get_current_cell(cell, current_earfcn);
 }
 
 void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)

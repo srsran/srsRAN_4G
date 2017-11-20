@@ -134,6 +134,7 @@ class rrc_interface_mac : public rrc_interface_mac_common
 {
 public:
   virtual void release_pucch_srs() = 0;
+  virtual void run_tti(uint32_t tti) = 0;
 };
 
 // RRC interface for PHY
@@ -144,6 +145,7 @@ public:
   virtual void out_of_sync() = 0;
   virtual void earfcn_end() = 0;
   virtual void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) = 0;
+  virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn = 0, uint32_t pci = 0) = 0;
 };
 
 // RRC interface for NAS
@@ -521,13 +523,18 @@ public:
     bool                                        enable_64qam; 
   } phy_cfg_t; 
 
-  virtual void get_current_cell(srslte_cell_t *cell) = 0;
+  virtual void get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL) = 0;
   virtual void get_config(phy_cfg_t *phy_cfg) = 0; 
   virtual void set_config(phy_cfg_t *phy_cfg) = 0; 
   virtual void set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated) = 0;
   virtual void set_config_common(phy_cfg_common_t *common) = 0; 
   virtual void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd) = 0; 
   virtual void set_config_64qam_en(bool enable) = 0;
+
+  /* Measurements interface */
+  virtual void meas_reset() = 0;
+  virtual int  meas_start(uint32_t earfcn, int pci = -1) = 0;
+  virtual int  meas_stop(uint32_t earfcn, int pci = -1) = 0;
 
   /* Cell search and selection procedures */
   virtual void cell_search_start() = 0;

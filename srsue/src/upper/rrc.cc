@@ -109,11 +109,17 @@ void rrc::init(phy_interface_rrc *phy_,
   set_rrc_default();
   set_phy_default();
   set_mac_default();
+
+  measurements.init(this);
 }
 
 void rrc::stop() {
   thread_running = false;
   wait_thread_finish();
+}
+
+void rrc::run_tti(uint32_t tti) {
+  measurements.run_tti(tti);
 }
 
 rrc_state_t rrc::get_state() {
@@ -418,6 +424,10 @@ void rrc::select_next_cell_in_plmn() {
   rrc_log->info("No more known cells...\n");
 }
 
+void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, uint32_t pci) {
+  measurements.new_phy_meas(earfcn, pci, rsrp, rsrq, tti);
+}
+
 void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
   // find if cell_id-earfcn combination already exists
@@ -562,7 +572,8 @@ void rrc::timer_expired(uint32_t timeout_id) {
   } else if (timeout_id == t301) {
     rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
     state = RRC_STATE_LEAVE_CONNECTED;
-  } else {
+  // fw to measurement
+  } else if (!measurements.timer_expired(timeout_id)) {
     rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
   }
 }
@@ -717,32 +728,22 @@ void rrc::con_restablish_cell_reselected()
 
 void rrc::send_con_restablish_complete() {
   rrc_log->debug("Preparing RRC Connection Reestablishment Complete\n");
-  LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
+
+  rrc_log->console("RRC Connected\n");
+  state = RRC_STATE_CONNECTED;
 
   // Prepare ConnectionSetupComplete packet
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_REEST_COMPLETE;
   ul_dcch_msg.msg.rrc_con_reest_complete.rrc_transaction_id = transaction_id;
-  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  // Byte align and pack the message bits for PDCP
-  if ((bit_buf.N_bits % 8) != 0) {
-    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
-      bit_buf.msg[bit_buf.N_bits + i] = 0;
-    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
-  }
-  byte_buffer_t *pdcp_buf = pool_allocate;;
-  srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
-  pdcp_buf->N_bytes = bit_buf.N_bits / 8;
-
-  state = RRC_STATE_CONNECTED;
-  rrc_log->console("RRC Connected\n");
-  rrc_log->info("Sending RRC Connection Reestablishment Complete\n");
-  pdcp->write_sdu(RB_ID_SRB1, pdcp_buf);
+  send_ul_dcch_msg();
 }
 
 void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   rrc_log->debug("Preparing RRC Connection Setup Complete\n");
-  LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
+
+  state = RRC_STATE_CONNECTED;
+  rrc_log->console("RRC Connected\n");
 
   // Prepare ConnectionSetupComplete packet
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_SETUP_COMPLETE;
@@ -751,96 +752,38 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   ul_dcch_msg.msg.rrc_con_setup_complete.selected_plmn_id = 1;
   memcpy(ul_dcch_msg.msg.rrc_con_setup_complete.dedicated_info_nas.msg, nas_msg->msg, nas_msg->N_bytes);
   ul_dcch_msg.msg.rrc_con_setup_complete.dedicated_info_nas.N_bytes = nas_msg->N_bytes;
-  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  // Byte align and pack the message bits for PDCP
-  if ((bit_buf.N_bits % 8) != 0) {
-    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
-      bit_buf.msg[bit_buf.N_bits + i] = 0;
-    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
-  }
-  byte_buffer_t *pdcp_buf = pool_allocate;;
-  srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
-  pdcp_buf->N_bytes = bit_buf.N_bits / 8;
-  pdcp_buf->set_timestamp();
-
-  state = RRC_STATE_CONNECTED;
-  rrc_log->console("RRC Connected\n");
-  rrc_log->info("Sending RRC Connection Setup Complete\n");
-  pdcp->write_sdu(RB_ID_SRB1, pdcp_buf);
+  send_ul_dcch_msg();
 }
 
 void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu) {
   rrc_log->debug("Preparing RX Info Transfer\n");
-  LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
 
   // Prepare RX INFO packet
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_UL_INFO_TRANSFER;
   ul_dcch_msg.msg.ul_info_transfer.dedicated_info_type = LIBLTE_RRC_UL_INFORMATION_TRANSFER_TYPE_NAS;
   memcpy(ul_dcch_msg.msg.ul_info_transfer.dedicated_info.msg, sdu->msg, sdu->N_bytes);
   ul_dcch_msg.msg.ul_info_transfer.dedicated_info.N_bytes = sdu->N_bytes;
-  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  // Reset and reuse sdu buffer
-  byte_buffer_t *pdu = sdu;
-  pdu->reset();
-
-  // Byte align and pack the message bits for PDCP
-  if ((bit_buf.N_bits % 8) != 0) {
-    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
-      bit_buf.msg[bit_buf.N_bits + i] = 0;
-    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
-  }
-  srslte_bit_pack_vector(bit_buf.msg, pdu->msg, bit_buf.N_bits);
-  pdu->N_bytes = bit_buf.N_bits / 8;
-  pdu->set_timestamp();
-  pdu->set_timestamp();
-
-  rrc_log->info("Sending RX Info Transfer\n");
-  pdcp->write_sdu(lcid, pdu);
+  send_ul_dcch_msg(sdu);
 }
 
 void rrc::send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu) {
   rrc_log->debug("Preparing Security Mode Complete\n");
-  LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
+
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_SECURITY_MODE_COMPLETE;
   ul_dcch_msg.msg.security_mode_complete.rrc_transaction_id = transaction_id;
-  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  // Byte align and pack the message bits for PDCP
-  if ((bit_buf.N_bits % 8) != 0) {
-    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
-      bit_buf.msg[bit_buf.N_bits + i] = 0;
-    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
-  }
-  srslte_bit_pack_vector(bit_buf.msg, pdu->msg, bit_buf.N_bits);
-  pdu->N_bytes = bit_buf.N_bits / 8;
-  pdu->set_timestamp();
-
-  rrc_log->info("Sending Security Mode Complete\n");
-  pdcp->write_sdu(lcid, pdu);
+  send_ul_dcch_msg(pdu);
 }
 
 void rrc::send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu) {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
-  LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
 
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_RECONFIG_COMPLETE;
   ul_dcch_msg.msg.rrc_con_reconfig_complete.rrc_transaction_id = transaction_id;
-  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  // Byte align and pack the message bits for PDCP
-  if ((bit_buf.N_bits % 8) != 0) {
-    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
-      bit_buf.msg[bit_buf.N_bits + i] = 0;
-    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
-  }
-  srslte_bit_pack_vector(bit_buf.msg, pdu->msg, bit_buf.N_bits);
-  pdu->N_bytes = bit_buf.N_bits / 8;
-  pdu->set_timestamp();
-
-  rrc_log->info("Sending RRC Connection Reconfig Complete\n");
-  pdcp->write_sdu(lcid, pdu);
+  send_ul_dcch_msg();
 }
 
 
@@ -854,7 +797,7 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
     printf("received con reconfig no rr confg present\n");
   }
   if (reconfig->meas_cnfg_present) {
-    //TODO: handle meas_cnfg
+    measurements.parse_meas_config(&reconfig->meas_cnfg);
   }
   if (reconfig->mob_ctrl_info_present) {
     //TODO: handle mob_ctrl_info
@@ -864,7 +807,7 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
 
   byte_buffer_t *nas_sdu;
   for (i = 0; i < reconfig->N_ded_info_nas; i++) {
-    nas_sdu = pool_allocate;;
+    nas_sdu = pool_allocate;
     memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
     nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
     nas->write_pdu(lcid, nas_sdu);
@@ -1051,6 +994,33 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
 *
 *
 *******************************************************************************/
+void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
+{
+  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
+
+  // Byte align and pack the message bits for PDCP
+  if ((bit_buf.N_bits % 8) != 0) {
+    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
+      bit_buf.msg[bit_buf.N_bits + i] = 0;
+    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
+  }
+  // Reset and reuse sdu buffer if provided
+  byte_buffer_t *pdcp_buf = pdu;
+
+  if (pdcp_buf) {
+    pdcp_buf->reset();
+  } else {
+    pdcp_buf = pool_allocate;
+  }
+
+  srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
+  pdcp_buf->N_bytes = bit_buf.N_bits / 8;
+  pdcp_buf->set_timestamp();
+
+  rrc_log->info("Sending %s\n", liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
+  pdcp->write_sdu(RB_ID_SRB1, pdcp_buf);
+}
+
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
   rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", get_rb_name(lcid).c_str());
   switch (state) {
@@ -1762,6 +1732,584 @@ void rrc::set_rrc_default() {
   mac_timers->timer_get(t310)->set(this, 1000);
   mac_timers->timer_get(t311)->set(this, 1000);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/************************************************************************
+ *
+ *
+ * RRC Measurements
+ *
+ *
+ ************************************************************************/
+
+void rrc::rrc_meas::init(rrc *parent) {
+  this->parent      = parent;
+  this->log_h       = parent->rrc_log;
+  this->phy         = parent->phy;
+  this->mac_timers  = parent->mac_timers;
+  s_measure_enabled = false;
+  reset();
+}
+
+void rrc::rrc_meas::reset()
+{
+  bzero(&pcell_measurement, sizeof(meas_value_t));
+  filter_k_rsrp = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
+  filter_k_rsrq = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
+  objects.clear();
+  active.clear();
+  reports_cfg.clear();
+  phy->meas_reset();
+}
+
+/* L3 filtering 5.5.3.2 */
+void rrc::rrc_meas::L3_filter(meas_value_t *value, float values[NOF_MEASUREMENTS])
+{
+  for (int i=0;i<NOF_MEASUREMENTS;i++) {
+    if (value->ms[i]) {
+      value->ms[i] = SRSLTE_VEC_EMA(values[i], value->ms[i], filter_a[i]);
+    } else {
+      value->ms[i] = values[i];
+    }
+  }
+}
+
+void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, float rsrq, uint32_t tti)
+{
+  log_h->info("MEAS:  New measurement earfcn=%d, pci=%d, rsrp=%f, rsrq=%f, tti=%d\n", earfcn, pci, rsrp, rsrq, tti);
+
+  float values[NOF_MEASUREMENTS] = {rsrp, rsrq};
+  // This indicates serving cell
+  if (earfcn == 0) {
+    L3_filter(&pcell_measurement, values);
+  } else {
+    // Save PHY measurement for all active measurements whose earfcn/pci matches
+    for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
+      meas_t *m = &iter->second;
+      if (objects[m->object_id].earfcn == earfcn) {
+        // If it's a newly discovered cell, add it to objects
+        if (!m->cell_values.count(pci)) {
+          uint32_t cell_idx = objects[m->object_id].cells.size();
+          objects[m->object_id].cells[cell_idx].pci      = pci;
+          objects[m->object_id].cells[cell_idx].q_offset = 0;
+        }
+        // Update or add cell
+        L3_filter(&m->cell_values[pci], values);
+        return;
+      }
+    }
+    parent->rrc_log->warning("MEAS:  Received measurement from unknown EARFCN=%d\n", earfcn);
+  }
+}
+
+void rrc::rrc_meas::run_tti(uint32_t tti) {
+  // Measurement Report Triggering Section 5.5.4
+  calculate_triggers(tti);
+}
+
+bool rrc::rrc_meas::find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t **object, int *cell_idx) {
+  if (object) {
+    *object = NULL;
+  }
+  for (std::map<uint32_t, meas_obj_t>::iterator obj = objects.begin(); obj != objects.end(); ++obj) {
+    if (obj->second.earfcn == earfcn) {
+      if (object) {
+        *object = &obj->second;
+      }
+      for (std::map<uint32_t, meas_cell_t>::iterator c = obj->second.cells.begin(); c != obj->second.cells.end(); ++c) {
+        if (c->second.pci == pci) {
+          if (cell_idx) {
+            *cell_idx = c->first;
+            return true;
+          }
+        }
+      }
+      // return true if cell idx not found but frequency is found
+      if (cell_idx) {
+        *cell_idx = -1;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+/* Generate report procedure 5.5.5 */
+void rrc::rrc_meas::generate_report(uint32_t meas_id)
+{
+  parent->ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_MEASUREMENT_REPORT;
+  LIBLTE_RRC_MEASUREMENT_REPORT_STRUCT *report = &parent->ul_dcch_msg.msg.measurement_report;
+
+  bzero(report, sizeof(LIBLTE_RRC_MEASUREMENT_REPORT_STRUCT));
+
+  meas_t       *m   = &active[meas_id];
+  report_cfg_t *cfg = &reports_cfg[m->report_id];
+
+  report->meas_id = meas_id;
+  report->pcell_rsrp_result = value_to_range(RSRP, pcell_measurement.ms[RSRP]);
+  report->pcell_rsrq_result = value_to_range(RSRQ, pcell_measurement.ms[RSRQ]);
+
+  log_h->console("MEAS:  Generate report MeasId=%d, rsrp=%f rsrq=%f\n",
+              report->meas_id, pcell_measurement.ms[RSRP], pcell_measurement.ms[RSRQ]);
+
+  // TODO: report up to 8 best cells
+  for (std::map<uint32_t, meas_value_t>::iterator cell = m->cell_values.begin(); cell != m->cell_values.end(); ++cell)
+  {
+    if (cell->second.triggered && report->meas_result_neigh_cells.eutra.n_result < 8)
+    {
+      LIBLTE_RRC_MEAS_RESULT_EUTRA_STRUCT *rc = &report->meas_result_neigh_cells.eutra.result_eutra_list[report->meas_result_neigh_cells.eutra.n_result];
+
+      rc->phys_cell_id = cell->first;
+      rc->meas_result.have_rsrp   = cfg->report_quantity==RSRP || cfg->report_quantity==BOTH;
+      rc->meas_result.have_rsrq   = cfg->report_quantity==RSRQ || cfg->report_quantity==BOTH;
+      rc->meas_result.rsrp_result = value_to_range(RSRP, cell->second.ms[RSRP]);
+      rc->meas_result.rsrq_result = value_to_range(RSRQ, cell->second.ms[RSRQ]);
+
+      log_h->console("MEAS:  Add neigh=%d, pci=%d, rsrp=%f, rsrq=%f\n",
+                     report->meas_result_neigh_cells.eutra.n_result, rc->phys_cell_id,
+                     cell->second.ms[RSRP], cell->second.ms[RSRQ]);
+
+      report->meas_result_neigh_cells.eutra.n_result++;
+    }
+  }
+  report->have_meas_result_neigh_cells = report->meas_result_neigh_cells.eutra.n_result > 0;
+
+  m->nof_reports_sent++;
+  mac_timers->timer_get(m->periodic_timer)->stop();
+
+  if (m->nof_reports_sent < cfg->amount) {
+    mac_timers->timer_get(m->periodic_timer)->reset();
+    mac_timers->timer_get(m->periodic_timer)->run();
+  } else {
+    if (cfg->trigger_type == report_cfg_t::PERIODIC) {
+      m->triggered = false;
+    }
+  }
+
+  // Send to lower layers
+  parent->send_ul_dcch_msg();
+}
+
+/* Handle entering/leaving event conditions 5.5.4.1 */
+bool rrc::rrc_meas::process_event(LIBLTE_RRC_EVENT_EUTRA_STRUCT *event, uint32_t tti,
+                                  bool enter_condition, bool exit_condition,
+                                  meas_t *m, meas_value_t *cell)
+{
+  bool generate_report = false;
+  if (enter_condition && (!m->triggered || !cell->triggered)) {
+    if (!cell->timer_enter_triggered) {
+      cell->timer_enter_triggered = true;
+      cell->enter_tti     = tti;
+    } else if (srslte_tti_interval(tti, cell->enter_tti) >= event->time_to_trigger) {
+      m->triggered        = true;
+      cell->triggered     = true;
+      m->nof_reports_sent = 0;
+      generate_report     = true;
+    }
+  } else if (exit_condition) {
+    if (!cell->timer_exit_triggered) {
+      cell->timer_exit_triggered = true;
+      cell->exit_tti      = tti;
+    } else if (srslte_tti_interval(tti, cell->exit_tti) >= event->time_to_trigger) {
+      m->triggered        = false;
+      cell->triggered     = false;
+      mac_timers->timer_get(m->periodic_timer)->stop();
+      if (event) {
+        if (event->event_id == LIBLTE_RRC_EVENT_ID_EUTRA_A3 && event->event_a3.report_on_leave) {
+          generate_report = true;
+        }
+      }
+    }
+  }
+  if (!enter_condition) {
+    cell->timer_enter_triggered = false;
+  }
+  if (!enter_condition) {
+    cell->timer_exit_triggered = false;
+  }
+  return generate_report;
+}
+
+/* Calculate trigger conditions for each cell 5.5.4 */
+void rrc::rrc_meas::calculate_triggers(uint32_t tti)
+{
+  float Ofp = 0, Ocp = 0;
+  meas_obj_t *serving_object   = NULL;
+  int         serving_cell_idx = 0;
+
+  // Get serving cell
+  if (active.size()) {
+    uint32_t current_earfcn = 0;
+    srslte_cell_t current_cell;
+    phy->get_current_cell(&current_cell, &current_earfcn);
+    if (find_earfcn_cell(current_earfcn, current_cell.id, &serving_object, &serving_cell_idx)) {
+      Ofp = serving_object->q_offset;
+      if (serving_cell_idx >= 0) {
+        Ocp = serving_object->cells[serving_cell_idx].q_offset;
+      }
+    } else {
+      log_h->warning("Can't find current eafcn=%d, pci=%d in objects list. Using Ofp=0, Ocp=0\n", current_earfcn, current_cell.id);
+    }
+  }
+
+  for (std::map<uint32_t, meas_t>::iterator m = active.begin(); m != active.end(); ++m) {
+    report_cfg_t *cfg = &reports_cfg[m->second.report_id];
+    float hyst = 0.5*cfg->event.hysteresis;
+    float Mp   = pcell_measurement.ms[cfg->trigger_quantity];
+
+    LIBLTE_RRC_EVENT_ID_EUTRA_ENUM event_id = cfg->event.event_id;
+    const char *event_str = liblte_rrc_event_id_eutra_text[event_id];
+
+    bool gen_report = false;
+
+    if (cfg->trigger_type == report_cfg_t::EVENT) {
+
+      // A1 & A2 are for serving cell only
+      if (event_id < LIBLTE_RRC_EVENT_ID_EUTRA_A3) {
+
+        bool enter_condition;
+        bool exit_condition;
+        if (event_id == LIBLTE_RRC_EVENT_ID_EUTRA_A1) {
+          enter_condition = Mp - hyst > range_to_value(cfg->trigger_quantity, cfg->event.event_a1.eutra.range);
+          exit_condition  = Mp + hyst < range_to_value(cfg->trigger_quantity, cfg->event.event_a1.eutra.range);
+        } else {
+          enter_condition = Mp + hyst < range_to_value(cfg->trigger_quantity, cfg->event.event_a1.eutra.range);
+          exit_condition  = Mp - hyst > range_to_value(cfg->trigger_quantity, cfg->event.event_a1.eutra.range);
+        }
+        gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
+                                        &m->second, &m->second.cell_values[serving_cell_idx]);
+
+      // Rest are evaluated for every cell in frequency
+      } else {
+        meas_obj_t *obj = &objects[m->second.object_id];
+        for (std::map<uint32_t, meas_cell_t>::iterator cell = obj->cells.begin(); cell != obj->cells.end(); ++cell) {
+          float Ofn = obj->q_offset;
+          float Ocn = cell->second.q_offset;
+          float Mn = m->second.cell_values[cell->second.pci].ms[cfg->trigger_quantity];
+          float Off=0, th=0, th1=0, th2=0;
+          bool enter_condition = false;
+          bool exit_condition  = false;
+          switch (event_id) {
+            case LIBLTE_RRC_EVENT_ID_EUTRA_A3:
+              Off = 0.5*cfg->event.event_a3.offset;
+              enter_condition = Mn + Ofn + Ocn - hyst > Mp + Ofp + Ocp + Off;
+              exit_condition  = Mn + Ofn + Ocn + hyst < Mp + Ofp + Ocp + Off;
+              break;
+            case LIBLTE_RRC_EVENT_ID_EUTRA_A4:
+              th = range_to_value(cfg->trigger_quantity, cfg->event.event_a4.eutra.range);
+              enter_condition = Mn + Ofn + Ocn - hyst > th;
+              exit_condition  = Mn + Ofn + Ocn + hyst < th;
+              break;
+            case LIBLTE_RRC_EVENT_ID_EUTRA_A5:
+              th1 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra1.range);
+              th2 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra2.range);
+              enter_condition = (Mp + hyst < th1) && (Mn + Ofn + Ocn - hyst > th2);
+              exit_condition  = (Mp - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
+              break;
+            default:
+              log_h->error("Error event %s not implemented\n", event_str);
+          }
+          gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
+                                      &m->second, &m->second.cell_values[cell->second.pci]);
+        }
+      }
+    }
+    if (gen_report) {
+      generate_report(m->first);
+    }
+  }
+}
+
+// 5.5.4.1 expiry of periodical reporting timer
+bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
+  for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
+    if (iter->second.periodic_timer == timer_id) {
+      generate_report(iter->first);
+      return true;
+    }
+  }
+  return false;
+}
+
+void rrc::rrc_meas::stop_reports_object(uint32_t object_id) {
+  for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
+    meas_t *m = &iter->second;
+    if (m->object_id == object_id) {
+      mac_timers->timer_get(m->periodic_timer)->stop();
+      m->triggered = false;
+    }
+  }
+}
+
+void rrc::rrc_meas::remove_meas_object(uint32_t object_id) {
+  // CHECKME: Is the delete from the map correct?
+  for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
+    meas_t m = iter->second;
+    if (m.object_id == object_id) {
+      remove_meas_id(iter->first);
+    }
+  }
+}
+
+void rrc::rrc_meas::remove_meas_report(uint32_t report_id) {
+  // CHECKME: Is the delete from the map correct?
+  for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
+    meas_t m = iter->second;
+    if (m.report_id == report_id) {
+      remove_meas_id(iter->first);
+    }
+  }
+}
+
+void rrc::rrc_meas::remove_meas_id(uint32_t meas_id) {
+  mac_timers->timer_get(active[meas_id].periodic_timer)->stop();
+  mac_timers->timer_release_id(active[meas_id].periodic_timer);
+  active.erase(meas_id);
+  log_h->info("MEAS: Removed measId=%d\n", meas_id);
+}
+
+/* Parses MeasConfig object from RRCConnectionReconfiguration message and applies configuration
+ * as per section 5.5.2
+ */
+void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
+{
+
+  // Measurement identity removal 5.5.2.2
+  for (uint32_t i=0;i<cfg->N_meas_id_to_remove;i++) {
+    remove_meas_id(cfg->meas_id_to_remove_list[i]);
+  }
+
+  // Measurement identity addition/modification 5.5.2.3
+  if (cfg->meas_id_to_add_mod_list_present) {
+    for (uint32_t i=0;i<cfg->meas_id_to_add_mod_list.N_meas_id;i++) {
+      LIBLTE_RRC_MEAS_ID_TO_ADD_MOD_STRUCT *measId = &cfg->meas_id_to_add_mod_list.meas_id_list[i];
+      // Stop the timer if the entry exists or create the timer if not
+      if (active.count(measId->meas_id)) {
+        mac_timers->timer_get(active[measId->meas_id].periodic_timer)->stop();
+      } else {
+        active[measId->meas_id].periodic_timer   = mac_timers->timer_get_unique_id();
+      }
+      active[measId->meas_id].object_id = measId->meas_obj_id;
+      active[measId->meas_id].report_id = measId->rep_cnfg_id;
+      log_h->info("MEAS: Added measId=%d, measObjectId=%d, reportConfigId=%d\n",
+                  measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id);
+    }
+  }
+
+  // Measurement object removal 5.5.2.4
+  for (uint32_t i=0;i<cfg->N_meas_obj_to_remove;i++) {
+    objects.erase(cfg->meas_obj_to_remove_list[i]);
+    remove_meas_object(cfg->meas_obj_to_remove_list[i]);
+    log_h->info("MEAS: Removed measObjectId=%d\n", cfg->meas_obj_to_remove_list[i]);
+  }
+
+  // Measurement object addition/modification Section 5.5.2.5
+  if (cfg->meas_obj_to_add_mod_list_present) {
+    for (uint32_t i=0;i<cfg->meas_obj_to_add_mod_list.N_meas_obj;i++) {
+      if (cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_type == LIBLTE_RRC_MEAS_OBJECT_TYPE_EUTRA) {
+        LIBLTE_RRC_MEAS_OBJECT_EUTRA_STRUCT *src_obj = &cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_eutra;
+
+        // Access the object if exists or create it
+        meas_obj_t *dst_obj = &objects[cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_id];
+
+        dst_obj->earfcn   = src_obj->carrier_freq;;
+        if (src_obj->offset_freq_not_default) {
+          dst_obj->q_offset = liblte_rrc_q_offset_range_num[src_obj->offset_freq];
+        } else {
+          dst_obj->q_offset = 0;
+        }
+
+        if (src_obj->black_cells_to_remove_list_present) {
+          for (uint32_t j=0;j<src_obj->black_cells_to_remove_list.N_cell_idx;j++) {
+            dst_obj->cells.erase(src_obj->black_cells_to_remove_list.cell_idx[j]);
+          }
+        }
+
+        for (uint32_t j=0;j<src_obj->N_cells_to_add_mod;j++) {
+          dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset = liblte_rrc_q_offset_range_num[src_obj->cells_to_add_mod_list[j].cell_offset];
+          dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci      = src_obj->cells_to_add_mod_list[j].pci;
+
+          log_h->info("MEAS: Added measObjectId=%d, earfcn=%d, q_offset=%f, pci=%d, offset_cell=%f\n",
+                      cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_id, dst_obj->earfcn, dst_obj->q_offset,
+                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset,
+                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci);
+
+        }
+
+        // Untrigger reports and stop timers
+        stop_reports_object(cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_id);
+
+        // TODO: Blackcells
+        // TODO: meassubframepattern
+
+      } else {
+        log_h->warning("MEAS: Unsupported MeasObject type %s\n",
+                       liblte_rrc_meas_object_type_text[cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_type]);
+      }
+    }
+  }
+
+  // Reporting configuration removal 5.5.2.6
+  for (uint32_t i=0;i<cfg->N_rep_cnfg_to_remove;i++) {
+    reports_cfg.erase(cfg->rep_cnfg_to_remove_list[i]);
+    remove_meas_report(cfg->rep_cnfg_to_remove_list[i]);
+    log_h->info("MEAS: Removed reportConfigId=%d\n", cfg->rep_cnfg_to_remove_list[i]);
+  }
+
+  // Reporting configuration addition/modification 5.5.2.7
+  if (cfg->rep_cnfg_to_add_mod_list_present) {
+    for (uint32_t i=0;i<cfg->rep_cnfg_to_add_mod_list.N_rep_cnfg;i++) {
+      if (cfg->rep_cnfg_to_add_mod_list.rep_cnfg_list[i].rep_cnfg_type == LIBLTE_RRC_REPORT_CONFIG_TYPE_EUTRA) {
+        LIBLTE_RRC_REPORT_CONFIG_EUTRA_STRUCT *src_rep = &cfg->rep_cnfg_to_add_mod_list.rep_cnfg_list[i].rep_cnfg_eutra;
+        // Access the object if exists or create it
+        report_cfg_t *dst_rep = &reports_cfg[cfg->rep_cnfg_to_add_mod_list.rep_cnfg_list[i].rep_cnfg_id];
+
+        dst_rep->trigger_type = src_rep->trigger_type==LIBLTE_RRC_TRIGGER_TYPE_EUTRA_EVENT?report_cfg_t::EVENT:report_cfg_t::PERIODIC;
+        dst_rep->event    = src_rep->event;
+        dst_rep->amount   = liblte_rrc_report_amount_num[src_rep->report_amount];
+        dst_rep->interval = liblte_rrc_report_interval_num[src_rep->report_interval];
+        dst_rep->max_cell = src_rep->max_report_cells;
+        dst_rep->trigger_quantity = (quantity_t) src_rep->trigger_quantity;
+        dst_rep->report_quantity  = src_rep->report_quantity==LIBLTE_RRC_REPORT_QUANTITY_SAME_AS_TRIGGER_QUANTITY?dst_rep->trigger_quantity:BOTH;
+
+        log_h->info("MEAS: Added reportConfigId=%d, event=%s, amount=%d, interval=%d\n",
+                    cfg->rep_cnfg_to_add_mod_list.rep_cnfg_list[i].rep_cnfg_id,
+                    liblte_rrc_event_id_eutra_text[dst_rep->event.event_id],
+                    dst_rep->amount, dst_rep->interval);
+
+        // Reset reports counter
+        for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
+          meas_t m = iter->second;
+          if (m.report_id == cfg->rep_cnfg_to_add_mod_list.rep_cnfg_list[i].rep_cnfg_id) {
+            iter->second.nof_reports_sent = 0;
+            m.triggered = false;
+            mac_timers->timer_get(m.periodic_timer)->stop();
+          }
+        }
+      } else {
+        log_h->warning("MEAS: Unsupported reportConfigType %s\n", liblte_rrc_report_config_type_text[cfg->rep_cnfg_to_add_mod_list.rep_cnfg_list[i].rep_cnfg_type]);
+      }
+    }
+  }
+
+  // Quantity configuration 5.5.2.8
+  if (cfg->quantity_cnfg_present && cfg->quantity_cnfg.qc_eutra_present) {
+    if (cfg->quantity_cnfg.qc_eutra.fc_rsrp_not_default) {
+      filter_k_rsrp = liblte_rrc_filter_coefficient_num[cfg->quantity_cnfg.qc_eutra.fc_rsrp];
+    } else {
+      filter_k_rsrp = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
+    }
+    if (cfg->quantity_cnfg.qc_eutra.fc_rsrq_not_default) {
+      filter_k_rsrq = liblte_rrc_filter_coefficient_num[cfg->quantity_cnfg.qc_eutra.fc_rsrq];
+    } else {
+      filter_k_rsrq = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
+    }
+    filter_a[RSRP] = pow(0.5, (float) filter_k_rsrp/4);
+    filter_a[RSRQ] = pow(0.5, (float) filter_k_rsrq/4);
+
+    log_h->info("MEAS: Quantity configuration k_rsrp=%d, k_rsrq=%d\n", filter_k_rsrp, filter_k_rsrq);
+  }
+
+  // S-Measure
+  if (cfg->s_meas_present) {
+    if (cfg->s_meas) {
+      s_measure_enabled = true;
+      s_measure_value   = range_to_value(RSRP, cfg->s_meas);
+    } else {
+      s_measure_enabled = false;
+    }
+  }
+
+  update_phy();
+}
+
+/* Instruct PHY to start measurement */
+void rrc::rrc_meas::update_phy()
+{
+  phy->meas_reset();
+  if (pcell_measurement.ms[RSRP] < s_measure_value || !s_measure_enabled) {
+    for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
+      meas_t m = iter->second;
+      meas_obj_t o = objects[m.object_id];
+      // Instruct PHY to look for neighbour cells on this frequency
+      phy->meas_start(o.earfcn);
+      for(std::map<uint32_t, meas_cell_t>::iterator iter=o.cells.begin(); iter!=o.cells.end(); ++iter) {
+        // Instruct PHY to look for cells IDs on this frequency
+        phy->meas_start(o.earfcn, iter->second.pci);
+      }
+    }
+  }
+}
+
+
+uint8_t rrc::rrc_meas::value_to_range(quantity_t quant, float value) {
+  uint8_t range = 0;
+  switch(quant) {
+    case RSRP:
+      if (value < -140) {
+        range = 0;
+      } else if (-140 <= value && value < -44) {
+        range = 1 + (uint8_t) (value + 140);
+      } else {
+        range = 97;
+      }
+      break;
+    case RSRQ:
+      if (value < -19.5) {
+        range = 0;
+      } else if (-19.5 <= value && value < -3) {
+        range = 1 + (uint8_t) (2*(value + 19.5));
+      } else {
+        range = 34;
+      }
+      break;
+    case BOTH:
+      printf("Error quantity both not supported in value_to_range\n");
+      break;
+  }
+  return range;
+}
+
+float rrc::rrc_meas::range_to_value(quantity_t quant, uint8_t range) {
+  float val = 0;
+  switch(quant) {
+    case RSRP:
+      val = -140+(float) range;
+      break;
+    case RSRQ:
+      val = -19.5+(float) range/2;
+      break;
+    case BOTH:
+      printf("Error quantity both not supported in range_to_value\n");
+      break;
+  }
+  return val;
+}
+
+
+
+
+
+
+
+
 
 
 } // namespace srsue
