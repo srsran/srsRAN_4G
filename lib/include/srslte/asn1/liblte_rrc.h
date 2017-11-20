@@ -1218,6 +1218,9 @@ typedef enum{
 }LIBLTE_RRC_REPORT_AMOUNT_ENUM;
 static const char liblte_rrc_report_amount_text[LIBLTE_RRC_REPORT_AMOUNT_N_ITEMS][20] = {      "r1",       "r2",       "r4",       "r8",
                                                                                               "r16",      "r32",      "r64", "INFINITY"};
+
+static const int8 liblte_rrc_report_amount_num[LIBLTE_RRC_REPORT_AMOUNT_N_ITEMS] = {1, 2, 4, 8, 16, 32, 64, -1};
+
 typedef enum{
     LIBLTE_RRC_THRESHOLD_UTRA_TYPE_RSCP = 0,
     LIBLTE_RRC_THRESHOLD_UTRA_TYPE_ECNO,

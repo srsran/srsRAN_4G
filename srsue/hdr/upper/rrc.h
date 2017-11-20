@@ -38,6 +38,7 @@
 #include "srslte/common/threads.h"
 
 #include <map>
+#include <queue>
 
 using srslte::byte_buffer_t;
 
@@ -80,6 +81,46 @@ public:
 
   void liblte_rrc_log(char *str);
 
+
+  // NAS interface
+  void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+
+  uint16_t get_mcc();
+
+  uint16_t get_mnc();
+
+  void enable_capabilities();
+  void plmn_search();
+  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
+
+  // PHY interface
+  void in_sync();
+  void out_of_sync();
+  void earfcn_end();
+  void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
+  void new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, uint32_t pci);
+
+  // MAC interface
+  void release_pucch_srs();
+  void run_tti(uint32_t tti);
+
+  void ra_problem();
+
+  // GW interface
+  bool is_connected();
+
+  bool have_drb();
+
+  // PDCP interface
+  void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
+
+  void write_pdu_bcch_bch(byte_buffer_t *pdu);
+
+  void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
+
+  void write_pdu_pcch(byte_buffer_t *pdu);
+
+
 private:
   srslte::byte_buffer_pool *pool;
   srslte::log *rrc_log;
@@ -90,7 +131,9 @@ private:
   nas_interface_rrc *nas;
   usim_interface_rrc *usim;
 
-  srslte::bit_buffer_t bit_buf;
+  void send_ul_dcch_msg(byte_buffer_t *pdu = NULL);
+  LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
+  srslte::bit_buffer_t          bit_buf;
 
   pthread_mutex_t mutex;
 
@@ -166,42 +209,6 @@ private:
   bool thread_running;
   void run_thread();
 
-  // NAS interface
-  void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
-
-  uint16_t get_mcc();
-
-  uint16_t get_mnc();
-
-  void enable_capabilities();
-  void plmn_search();
-  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
-
-  // PHY interface
-  void in_sync();
-  void out_of_sync();
-  void earfcn_end();
-  void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
-
-  // MAC interface
-  void release_pucch_srs();
-
-  void ra_problem();
-
-  // GW interface
-  bool is_connected();
-
-  bool have_drb();
-
-  // PDCP interface
-  void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
-
-  void write_pdu_bcch_bch(byte_buffer_t *pdu);
-
-  void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
-
-  void write_pdu_pcch(byte_buffer_t *pdu);
-
   // Radio bearers
   typedef enum{
     RB_ID_SRB0 = 0,
@@ -225,6 +232,97 @@ private:
       return std::string("INVALID_RB");
     }
   }
+
+  // Measurements sub-class
+  class rrc_meas {
+  public:
+    void init(rrc *parent);
+    void reset();
+    void parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *meas_config);
+    void new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, float rsrq, uint32_t tti);
+    void run_tti(uint32_t tti);
+    bool timer_expired(uint32_t timer_id);
+  private:
+
+    const static int NOF_MEASUREMENTS = 3;
+
+    typedef enum {RSRP = 0, RSRQ = 1, BOTH = 2} quantity_t;
+
+    typedef struct {
+      uint32_t pci;
+      float    q_offset;
+    } meas_cell_t;
+
+    typedef struct {
+      uint32_t                        earfcn;
+      float                           q_offset;
+      std::map<uint32_t, meas_cell_t> cells;
+    } meas_obj_t;
+
+    typedef struct {
+      uint32_t   interval;
+      uint32_t   max_cell;
+      uint32_t   amount;
+      quantity_t trigger_quantity;
+      quantity_t report_quantity;
+      LIBLTE_RRC_EVENT_EUTRA_STRUCT event;
+      enum {EVENT, PERIODIC} trigger_type;
+    } report_cfg_t;
+
+    typedef struct {
+      float    ms[NOF_MEASUREMENTS];
+      bool     triggered;
+      bool     timer_enter_triggered;
+      bool     timer_exit_triggered;
+      uint32_t enter_tti;
+      uint32_t exit_tti;
+    } meas_value_t;
+
+    typedef struct {
+      uint32_t nof_reports_sent;
+      uint32_t report_id;
+      uint32_t object_id;
+      bool     triggered;
+      uint32_t periodic_timer;
+      std::map<uint32_t, meas_value_t> cell_values; // Value for each PCI in this object
+    } meas_t;
+
+    std::map<uint32_t, meas_obj_t>    objects;
+    std::map<uint32_t, report_cfg_t>  reports_cfg;
+    std::map<uint32_t, meas_t>        active;
+
+    rrc               *parent;
+    srslte::log       *log_h;
+    phy_interface_rrc *phy;
+    srslte::mac_interface_timers *mac_timers;
+
+    uint32_t filter_k_rsrp, filter_k_rsrq;
+    float    filter_a[NOF_MEASUREMENTS];
+
+    meas_value_t pcell_measurement;
+
+    bool  s_measure_enabled;
+    float s_measure_value;
+
+    void stop_reports_object(uint32_t object_id);
+    void remove_meas_object(uint32_t object_id);
+    void remove_meas_report(uint32_t report_id);
+    void remove_meas_id(uint32_t meas_id);
+    void calculate_triggers(uint32_t tti);
+    void update_phy();
+    void L3_filter(meas_value_t *value, float rsrp[NOF_MEASUREMENTS]);
+    bool find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t **object, int *cell_idx);
+    float   range_to_value(quantity_t quant, uint8_t range);
+    uint8_t value_to_range(quantity_t quant, float value);
+    bool process_event(LIBLTE_RRC_EVENT_EUTRA_STRUCT *event, uint32_t tti,
+                       bool enter_condition, bool exit_condition,
+                       meas_t *m, meas_value_t *cell);
+
+    void generate_report(uint32_t meas_id);
+  };
+
+  rrc_meas measurements;
+
 
   // RLC interface
   void          max_retx_attempted();

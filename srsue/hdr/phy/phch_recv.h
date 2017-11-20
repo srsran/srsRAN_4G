@@ -27,10 +27,13 @@
 #ifndef UEPHYRECV_H
 #define UEPHYRECV_H
 
+#include <map>
+
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/thread_pool.h"
+#include "srslte/common/tti_sync_cv.h"
 #include "srslte/radio/radio_multi.h"
 #include "phy/prach.h"
 #include "phy/phch_worker.h"
@@ -39,7 +42,8 @@
 
 namespace srsue {
     
-typedef _Complex float cf_t; 
+typedef _Complex float cf_t;
+
 
 class phch_recv : public thread
 {
@@ -61,14 +65,17 @@ public:
   void    cell_search_next(bool reset = false);
   bool    cell_select(uint32_t earfcn, srslte_cell_t cell);
 
+  void    meas_reset();
+  int     meas_start(uint32_t earfcn, int pci);
+  int     meas_stop(uint32_t earfcn, int pci);
+
   uint32_t get_current_tti();
   
   bool    status_is_sync();
 
   void    set_time_adv_sec(float time_adv_sec);
-  void    get_current_cell(srslte_cell_t *cell);
+  void    get_current_cell(srslte_cell_t *cell, uint32_t *earfcn = NULL);
 
-  void    scell_enable(bool enable);
 
   const static int MUTEX_X_WORKER = 4;
 
@@ -125,13 +132,13 @@ private:
   // Class to synchronize system frame number
   class sfn_sync {
   public:
-    typedef enum {IDLE, SFN_FOUND, ERROR, TIMEOUT} ret_code;
+    typedef enum {IDLE, SFN_FOUND, SFX0_FOUND, ERROR, TIMEOUT} ret_code;
 
     ~sfn_sync();
     void     init(srslte_ue_sync_t *ue_sync, cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, uint32_t timeout = SYNC_SFN_TIMEOUT);
     void     reset();
     bool     set_cell(srslte_cell_t cell);
-    ret_code run_subframe(srslte_cell_t *cell, uint32_t *tti_cnt);
+    ret_code run_subframe(srslte_cell_t *cell, uint32_t *tti_cnt, bool sfidx_only = false);
 
   private:
     srslte::log      *log_h;
@@ -145,74 +152,106 @@ private:
 
   // Class to perform cell measurements
   class measure {
+
+    // TODO: This class could early stop once the variance between the last N measurements is below 3GPP requirements
+
   public:
     typedef enum {IDLE, MEASURE_OK, ERROR} ret_code;
 
     ~measure();
-    void      init(srslte_ue_sync_t *ue_sync, cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h,
+    void      init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h,
                    uint32_t nof_rx_antennas, uint32_t nof_subframes = RSRP_MEASURE_NOF_FRAMES);
     void      reset();
     void      set_cell(srslte_cell_t cell);
     ret_code  run_subframe(uint32_t sf_idx);
+    ret_code  run_subframe_sync(srslte_ue_sync_t *ue_sync, uint32_t sf_idx);
+    ret_code  run_multiple_subframes(cf_t *buffer, uint32_t sf_idx, uint32_t nof_sf);
     float     rsrp();
     float     rsrq();
     float     snr();
-    float     cfo();
   private:
     srslte::log      *log_h;
     srslte_ue_dl_t    ue_dl;
-    srslte_ue_sync_t *ue_sync;
     cf_t              *buffer[SRSLTE_MAX_PORTS];
     uint32_t cnt;
     uint32_t nof_subframes;
-    float mean_rsrp, mean_rsrq, mean_snr, mean_cfo;
+    uint32_t current_prb;
+    float mean_rsrp, mean_rsrq, mean_snr;
     const static int RSRP_MEASURE_NOF_FRAMES = 5;
   };
 
-
   // Class to receive secondary cell
-  class scell_recv : public thread {
+  class scell_recv {
   public:
-    void init(phch_recv *parent, srslte::log *log_h, uint32_t nof_rx_antennas, uint32_t prio, int cpu_affinity = -1);
-    void stop();
+    const static int MAX_CELLS = 8;
+    typedef struct {
+      uint32_t pci;
+      float    rsrp;
+      float    rsrq;
+      uint32_t offset;
+    } cell_info_t;
+    void init(srslte::log *log_h);
     void reset();
-    int  recv(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
-    void write(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
-    bool is_enabled();
-    void set_cell(srslte_cell_t scell);
+    int find_cells(cf_t *input_buffer, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
   private:
-    void run_thread();
 
-    enum {
-      IDLE = 0,
-      SCELL_SELECT,
-      SCELL_MEASURE,
-      SCELL_CAMPING
-    } scell_state;
+    const static int DEFAULT_MEASUREMENT_LEN = 10;
 
-    srslte::log        *log_h;
-    phch_recv          *p;
-    bool                running;
-    srslte_ringbuffer_t ring_buffer[SRSLTE_MAX_PORTS];
     cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
-    srslte_ue_sync_t    ue_sync;
-    srslte_cell_t       cell;
-    uint32_t            nof_rx_antennas;
-    uint32_t            current_sflen;
+    srslte::log        *log_h;
+    srslte_sync_t       sync_find;
 
     measure    measure_p;
-    sfn_sync   sfn_p;
-    uint32_t   tti;
   };
 
+  /* TODO: Intra-freq measurements can be improved by capturing 200 ms length signal and run cell search +
+   * measurements offline using sync object and finding multiple cells for each N_id_2
+   */
+
+  // Class to perform intra-frequency measurements
+  class intra_measure : public thread {
+  public:
+    void init(phch_common *common, rrc_interface_phy *rrc, srslte::log *log_h);
+    void stop();
+    void add_cell(int pci);
+    void rem_cell(int pci);
+    void set_primay_cell(uint32_t earfcn, srslte_cell_t cell);
+    void clear_cells();
+    void write(uint32_t tti, cf_t *data, uint32_t nsamples);
+  private:
+    void run_thread();
+    const static int CAPTURE_LEN_SF = 15;
+    const static int INTRA_FREQ_MEAS_PERIOD_MS = 200;
+    scell_recv         scell;
+    rrc_interface_phy  *rrc;
+    srslte::log        *log_h;
+    phch_common        *common;
+    uint32_t           current_earfcn;
+    uint32_t           current_sflen;
+    srslte_cell_t      primary_cell;
+    std::vector<int> active_pci;
+
+    srslte::tti_sync_cv tti_sync;
+
+    cf_t               *search_buffer;
+
+    scell_recv::cell_info_t info[scell_recv::MAX_CELLS];
+
+    bool                running;
+    bool                receive_enabled;
+    bool                receiving;
+    uint32_t            measure_tti;
+    uint32_t            receive_cnt;
+    srslte_ringbuffer_t ring_buffer;
+  };
 
 
 
   // Objects for internal use
-  scell_recv            scell;
   measure               measure_p;
   search                search_p;
   sfn_sync              sfn_p;
+  intra_measure         intra_freq_meas;
 
   uint32_t              current_sflen;
   int                   next_offset;

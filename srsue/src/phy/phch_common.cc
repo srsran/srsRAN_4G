@@ -59,6 +59,9 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   rx_gain_offset = 0; 
   sr_last_tx_tti = -1;
   cur_pusch_power = 0;
+
+  serving_cell_report_period = 20;
+
   bzero(zeros, 50000*sizeof(cf_t));
 
   // FIXME: This is an ungly fix to avoid the TX filters to empty

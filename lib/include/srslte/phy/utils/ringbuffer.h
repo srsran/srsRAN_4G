@@ -20,8 +20,9 @@ typedef struct {
 SRSLTE_API int  srslte_ringbuffer_init(srslte_ringbuffer_t *q,
                                        int capacity);
 
-SRSLTE_API void srslte_ringbuffer_free(srslte_ringbuffer_t *q, 
-                                       int capacity);
+SRSLTE_API void srslte_ringbuffer_free(srslte_ringbuffer_t *q);
+
+SRSLTE_API void srslte_ringbuffer_reset(srslte_ringbuffer_t *q);
 
 SRSLTE_API int  srslte_ringbuffer_status(srslte_ringbuffer_t *q);
 

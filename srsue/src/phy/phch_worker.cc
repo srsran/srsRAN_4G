@@ -1210,8 +1210,8 @@ void phch_worker::update_measurements()
 {
   float snr_ema_coeff = phy->args->snr_ema_coeff;
   if (chest_done) {
-    /* Compute ADC/RX gain offset every 20 ms */
-    if ((tti%20) == 0 || phy->rx_gain_offset == 0) {
+    /* Compute ADC/RX gain offset every ~10s  */
+    if (tti== 0 || phy->rx_gain_offset == 0) {
       float rx_gain_offset = 0; 
       if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
         float rssi_all_signal = srslte_chest_dl_get_rssi(&ue_dl.chest);          
@@ -1224,7 +1224,7 @@ void phch_worker::update_measurements()
         rx_gain_offset = phy->get_radio()->get_rx_gain();
       }
       if (phy->rx_gain_offset) {
-        phy->rx_gain_offset = SRSLTE_VEC_EMA(phy->rx_gain_offset, rx_gain_offset, 0.1);
+        phy->rx_gain_offset = SRSLTE_VEC_EMA(phy->rx_gain_offset, rx_gain_offset, 0.5);
       } else {
         phy->rx_gain_offset = rx_gain_offset; 
       }
@@ -1246,15 +1246,16 @@ void phch_worker::update_measurements()
     float rsrp = 10*log10(srslte_chest_dl_get_rsrp(&ue_dl.chest)) + 30 - phy->rx_gain_offset;
     float rssi = 10*log10(srslte_chest_dl_get_rssi(&ue_dl.chest)) + 30 - phy->rx_gain_offset;
     
-    // TODO: Send UE measurements to RRC where filtering is done. Now do filtering here
+    // Serving cell measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
     if (isnormal(rsrp)) {
       if (!phy->avg_rsrp_db) {
         phy->avg_rsrp_db = rsrp;
       } else {
-        uint32_t k = 4; // Set by RRC reconfiguration message
-        float coeff = pow(0.5,(float) k/4);
-        phy->avg_rsrp_db = SRSLTE_VEC_EMA(phy->avg_rsrp_db, rsrp, coeff);          
+        phy->avg_rsrp_db = SRSLTE_VEC_EMA(phy->avg_rsrp_db, rsrp, 0.8);
       }    
+      if ((tti%phy->serving_cell_report_period) == 0) {
+        phy->rrc->new_phy_meas(phy->avg_rsrp_db, phy->avg_rsrq_db, tti);
+      }
     }
     // Compute PL
     float tx_crs_power = phy->config->common.pdsch_cnfg.rs_power;
