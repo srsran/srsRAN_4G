@@ -71,6 +71,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string mcc;
   string mnc;
   string mme_bind_addr;
+  string spgw_bind_addr;
+  string sgi_if_addr;
 
   // Command line only options
   bpo::options_description general("General options");
@@ -90,6 +92,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("mme.mcc",             bpo::value<string>(&mcc)->default_value("001"),                          "Mobile Country Code")
     ("mme.mnc",             bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
     ("mme.mme_bind_addr",   bpo::value<string>(&mme_bind_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connnection")
+    ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"),"IP address of SP-GW for the S1-U connection")
+    ("spgw.sgi_if_addr",    bpo::value<string>(&sgi_if_addr)->default_value("176.16.0.1"),"IP address of TUN interface for the SGi connection")
     ;
   
   
@@ -162,6 +166,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   }
   
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
+  args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
+  args->spgw_args.sgi_if_addr = sgi_if_addr;
   return;
 }
 

@@ -46,6 +46,7 @@ const uint16_t GTPU_RX_PORT = 2152;
 
 typedef struct {
   std::string gtpu_bind_addr;
+  std::string sgi_if_addr;
 } spgw_args_t;
 
 

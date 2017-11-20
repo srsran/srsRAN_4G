@@ -22,5 +22,5 @@ mnc = 01
 mme_bind_addr = 127.0.0.0/24
 
 [spgw]
-s1u_bind_addr=127.0.0.1
-
+gtpu_bind_addr=127.0.0.1
+sgi_if_addr=172.0.0.1

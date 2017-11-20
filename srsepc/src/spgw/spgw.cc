@@ -25,6 +25,7 @@
  */
 
 #include <iostream> 
+#include <algorithm>
 #include <boost/thread/mutex.hpp>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -38,6 +39,8 @@ namespace srsepc{
 
 spgw*          spgw::m_instance = NULL;
 boost::mutex  spgw_instance_mutex;
+
+const uint16_t SPGW_BUFFER_SIZE = 2500;
 
 spgw::spgw():
   m_running(false),
@@ -130,10 +133,53 @@ spgw::run_thread()
 {
   //Mark the thread as running
   m_running=true;
+  srslte::byte_buffer_t *msg;
+  msg = m_pool->allocate();
+  
+  struct sockaddr src_addr;
+  socklen_t addrlen;
+
+  int sgi = m_sgi_if;
+
+  fd_set set;
+  //struct timeval to;
+  int max_fd = std::max(m_s1u,sgi);
   while (m_running)
   {
-    sleep(1);
+    msg->reset();
+    FD_ZERO(&set);
+    FD_SET(m_s1u, &set);
+    FD_SET(sgi, &set);
+    
+    m_spgw_log->info("Waiting for S1-U or SGi packets.\n");
+    int n = select(max_fd+1, &set, NULL, NULL, NULL);
+    if (n == -1)
+    {
+      m_spgw_log->error("Error from select\n");
+    }
+    else if (n)
+    {
+      m_spgw_log->info("Data is available now.\n");
+      if (FD_ISSET(m_s1u, &set))
+      {
+          msg->N_bytes = recvfrom(m_s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen );
+          m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
+          m_spgw_log->debug("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
+      }
+      if (FD_ISSET(m_sgi_if, &set))
+      {
+          m_spgw_log->console("Received PDU from SGi\n");
+          msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+          m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
+          m_spgw_log->debug("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
+      }
+    }
+    else
+    {
+      m_spgw_log->debug("No data from select.\n");
+    }
   }
+  m_pool->deallocate(msg);
   return;
 }
 
@@ -170,6 +216,7 @@ spgw::init_sgi_if(spgw_args_t *args)
 
   // Bring up the interface
   m_sgi_sock = socket(AF_INET, SOCK_DGRAM, 0);
+
   if(ioctl(m_sgi_sock, SIOCGIFFLAGS, &ifr) < 0)
   {
       m_spgw_log->error("Failed to bring up socket: %s\n", strerror(errno));
@@ -184,6 +231,28 @@ spgw::init_sgi_if(spgw_args_t *args)
       return(srslte::ERROR_CANT_START);
   }
   
+  //Set IP of the interface
+  struct sockaddr_in *addr = (struct sockaddr_in*)&ifr.ifr_addr;
+  addr->sin_family = AF_INET;
+  addr->sin_addr.s_addr = inet_addr(args->sgi_if_addr.c_str());
+  addr->sin_port = 0;  
+  
+  if (ioctl(m_sgi_sock, SIOCSIFADDR, &ifr) < 0) {
+    m_spgw_log->error("Failed to set TUN interface IP. Address: %s, Error: %s\n", args->sgi_if_addr.c_str(), strerror(errno));
+    close(m_sgi_if);
+    close(m_sgi_sock);
+    return srslte::ERROR_CANT_START;
+  }
+
+  ifr.ifr_netmask.sa_family                                 = AF_INET;
+  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+  if (ioctl(m_sgi_sock, SIOCSIFNETMASK, &ifr) < 0) {
+    m_spgw_log->error("Failed to set TUN interface Netmask. Error: %s\n", strerror(errno));
+    close(m_sgi_if);
+    close(m_sgi_sock);
+    return srslte::ERROR_CANT_START;
+  }
+ 
   m_sgi_up = true;
   return(srslte::ERROR_NONE);
 }
@@ -210,6 +279,7 @@ spgw::init_s1u(spgw_args_t *args)
     m_spgw_log->error("Failed to bind socket: %s\n", strerror(errno));
     return srslte::ERROR_CANT_START;
   }
+  m_spgw_log->info("S1-U socket = %d\n", m_s1u);
   return srslte::ERROR_NONE;
 }
 
