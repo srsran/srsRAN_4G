@@ -42,8 +42,10 @@
 
 namespace srsepc{
 
+const uint16_t GTPU_RX_PORT = 2152;
+
 typedef struct {
-  std::string gtpc_bind_addr;
+  std::string gtpu_bind_addr;
 } spgw_args_t;
 
 
@@ -63,14 +65,19 @@ private:
   virtual ~spgw();
   static spgw *m_instance;
 
-  srslte::error_t init_sgi_if();
+  srslte::error_t init_sgi_if(spgw_args_t *args);
+  srslte::error_t init_s1u(spgw_args_t *args);
 
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
 
-  bool m_if_up;
+  bool m_sgi_up;
   int m_sgi_if;
   int m_sgi_sock;
+
+  bool m_s1u_up;
+  int m_s1u;
+
   /*Logs*/
   srslte::log_filter  *m_spgw_log;
  

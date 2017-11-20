@@ -41,7 +41,8 @@ boost::mutex  spgw_instance_mutex;
 
 spgw::spgw():
   m_running(false),
-  m_if_up(false)
+  m_sgi_up(false),
+  m_s1u_up(false)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();     
   return;
@@ -75,11 +76,26 @@ spgw::cleanup(void)
 int
 spgw::init(spgw_args_t* args, srslte::log_filter *spgw_log)
 {
+  srslte::error_t err;
+
   //Init log
   m_spgw_log = spgw_log;
     
-  //Init Si interface
-  init_sgi_if();
+  //Init SGi interface
+  err = init_sgi_if(args);
+  if (err != srslte::ERROR_NONE)
+  {
+    m_spgw_log->console("Could not initialize the SGi interface.\n");
+    return -1;
+  }
+
+  //Init S1-U
+  err = init_s1u(args);
+  if (err != srslte::ERROR_NONE)
+  {
+    m_spgw_log->console("Could not initialize the S1-U interface.\n");
+    return -1;
+  }
   m_spgw_log->info("SP-GW Initialized.\n");
   m_spgw_log->console("SP-GW Initialized.\n");
   return 0;
@@ -94,11 +110,16 @@ spgw::stop()
     thread_cancel();
     wait_thread_finish();
  
-    //Clean up interface
-    if(m_if_up)
+    //Clean up SGi interface
+    if(m_sgi_up)
     {
       close(m_sgi_if);
       close(m_sgi_sock);
+    }
+    //Clean up S1-U socket
+    if(m_s1u_up)
+    {
+      close(m_s1u);
     }
   }
   return;
@@ -117,12 +138,12 @@ spgw::run_thread()
 }
 
 srslte::error_t
-spgw::init_sgi_if()
+spgw::init_sgi_if(spgw_args_t *args)
 {
   char dev[IFNAMSIZ] = "srs_spgw_sgi";
   struct ifreq ifr;
 
-  if(m_if_up)
+  if(m_sgi_up)
   {
     return(srslte::ERROR_ALREADY_STARTED);
   }
@@ -133,7 +154,7 @@ spgw::init_sgi_if()
   m_spgw_log->info("TUN file descriptor = %d\n", m_sgi_if);
   if(m_sgi_if < 0)
   {
-      m_spgw_log->debug("Failed to open TUN device: %s\n", strerror(errno));
+      m_spgw_log->error("Failed to open TUN device: %s\n", strerror(errno));
       return(srslte::ERROR_CANT_START);
   }
   
@@ -142,7 +163,7 @@ spgw::init_sgi_if()
   strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ);
   if(ioctl(m_sgi_if, TUNSETIFF, &ifr) < 0)
   {
-      m_spgw_log->debug("Failed to set TUN device name: %s\n", strerror(errno));
+      m_spgw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
       close(m_sgi_if);
       return(srslte::ERROR_CANT_START);
   }
@@ -151,20 +172,45 @@ spgw::init_sgi_if()
   m_sgi_sock = socket(AF_INET, SOCK_DGRAM, 0);
   if(ioctl(m_sgi_sock, SIOCGIFFLAGS, &ifr) < 0)
   {
-      m_spgw_log->debug("Failed to bring up socket: %s\n", strerror(errno));
+      m_spgw_log->error("Failed to bring up socket: %s\n", strerror(errno));
       close(m_sgi_if);
       return(srslte::ERROR_CANT_START);
   }
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   if(ioctl(m_sgi_sock, SIOCSIFFLAGS, &ifr) < 0)
   {
-      m_spgw_log->debug("Failed to set socket flags: %s\n", strerror(errno));
+      m_spgw_log->error("Failed to set socket flags: %s\n", strerror(errno));
       close(m_sgi_if);
       return(srslte::ERROR_CANT_START);
   }
   
-  m_if_up = true;
+  m_sgi_up = true;
   return(srslte::ERROR_NONE);
+}
+
+srslte::error_t
+spgw::init_s1u(spgw_args_t *args)
+{
+  //Open S1-U socket
+  m_s1u = socket(AF_INET,SOCK_DGRAM,0);
+  if (m_s1u == -1)
+  {
+    m_spgw_log->error("Failed to open socket: %s\n", strerror(errno));
+    return srslte::ERROR_CANT_START;
+  }
+  m_s1u_up = true;
+
+  //Bind the socket
+  struct sockaddr_in servaddr;
+  servaddr.sin_family = AF_INET;
+  servaddr.sin_addr.s_addr=inet_addr(args->gtpu_bind_addr.c_str());
+  servaddr.sin_port=htons(GTPU_RX_PORT);
+
+  if (bind(m_s1u,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in))) {
+    m_spgw_log->error("Failed to bind socket: %s\n", strerror(errno));
+    return srslte::ERROR_CANT_START;
+  }
+  return srslte::ERROR_NONE;
 }
 
 } //namespace srsepc
