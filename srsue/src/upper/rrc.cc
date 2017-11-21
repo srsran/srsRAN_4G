@@ -1550,8 +1550,10 @@ void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT
   }
   if (phy_cnfg->pdsch_cnfg_ded_present) {
     current_cfg->pdsch_cnfg_ded = phy_cnfg->pdsch_cnfg_ded;
+    rrc_log->info("Set PDSCH-Config=%s (present)\n", liblte_rrc_pdsch_config_p_a_text[(int) current_cfg->pdsch_cnfg_ded]);
   } else if (apply_defaults) {
     current_cfg->pdsch_cnfg_ded = LIBLTE_RRC_PDSCH_CONFIG_P_A_DB_0;
+    rrc_log->info("Set PDSCH-Config=%s (default)\n", liblte_rrc_pdsch_config_p_a_text[(int) current_cfg->pdsch_cnfg_ded]);
   }
 
   if (phy_cnfg->cqi_report_cnfg_present) {

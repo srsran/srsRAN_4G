@@ -485,9 +485,9 @@ int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MA
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, nof_symbols, noise_estimate/2);
+      srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, nof_symbols, 1.0f, noise_estimate/2);
     } else {
-      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, nof_symbols);
+      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, nof_symbols, 1.0f);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
     }
 
@@ -618,7 +618,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
       /* layer mapping & precoding */
       if (q->cell.nof_ports > 1) {
         srslte_layermap_diversity(q->d, x, q->cell.nof_ports, nof_symbols);
-        srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
+        srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports, 1.0f);
       } else {
         memcpy(q->symbols[0], q->d, nof_symbols * sizeof(cf_t));
       }
