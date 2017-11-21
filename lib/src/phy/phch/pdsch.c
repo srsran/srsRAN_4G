@@ -688,7 +688,7 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
 
     float pdsch_scaling = 1.0f;
     if (q->rho_a != 0.0f) {
-      pdsch_scaling = 1/q->rho_a;
+      pdsch_scaling = q->rho_a;
     }
 
     // Pre-decoder
