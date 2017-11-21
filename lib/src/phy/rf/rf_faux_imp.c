@@ -37,27 +37,27 @@
 
 static bool g_logStdout = true;
 
-#define FAUX_DEBUG(fmt, ...) do { \
-                                 if(g_logStdout) {                                           \
-                                   struct timeval _tv_now;                                   \
-                                   struct tm tm;                                             \
-                                   gettimeofday(&_tv_now, NULL);                             \
-                                   localtime_r(&_tv_now.tv_sec, &tm);                        \
-                                   fprintf(stdout, "%d.%d.%d.%06ld %s [DEBUG], " fmt "\n",   \
-                                           tm.tm_hour,                                       \
-                                           tm.tm_sec,                                        \
-                                           tm.tm_sec,                                        \
-                                           _tv_now.tv_usec,                                  \
-                                           __func__,                                         \
-                                           ##__VA_ARGS__);                                   \
-                                 }                                                           \
+#define FAUX_DEBUG(fmt, ...) do {                                                           \
+                                 if(g_logStdout) {                                          \
+                                   struct timeval _tv_now;                                  \
+                                   struct tm tm;                                            \
+                                   gettimeofday(&_tv_now, NULL);                            \
+                                   localtime_r(&_tv_now.tv_sec, &tm);                       \
+                                   fprintf(stdout, "%02d.%02d.%02d.%06ld %s [DEBUG], " fmt "\n",  \
+                                           tm.tm_hour,                                      \
+                                           tm.tm_min,                                       \
+                                           tm.tm_sec,                                       \
+                                           _tv_now.tv_usec,                                 \
+                                           __func__,                                        \
+                                           ##__VA_ARGS__);                                  \
+                                 }                                                          \
                              } while(0);
 
 #define LOG_FUNC_TODO printf("XXX_TODO file:%s func:%s line:%d\n", __FILE__, __func__, __LINE__)
 
 #define BOOL_TO_STR(x) (x) ? "yes" : "no"
 
-#define UDELAY 100000
+#define USEC_X_SEC 1000000
 
 void TV_TO_TS(struct timeval *tv, time_t *s, double *f)
 {
@@ -71,21 +71,30 @@ void TS_TO_TV(struct timeval *tv, time_t s, double f)
   tv->tv_usec = f * 1.0e6;
 }
 
-void TS_OFFSET(struct timeval tv[3], time_t secs, double frac)
+void TS_DIFF(time_t secs, double frac, struct timeval * tv_dif)
 {
-   gettimeofday(&tv[0], NULL);
+   struct timeval tv_now, tv_nxt;
 
-   TS_TO_TV(&tv[1], secs, frac);
+   gettimeofday(&tv_now, NULL);
 
-   if(secs)
-     timersub(&tv[0], &tv[1], &tv[2]);
+   TS_TO_TV(&tv_nxt, secs, frac);
+
+   if(secs || frac)
+    {
+      timersub(&tv_nxt, &tv_now, tv_dif);
+    }
    else
-     memset(&tv[2], 0x0, sizeof(tv[2]));
+    {
+      tv_dif->tv_sec = 0;
+      tv_dif->tv_usec = 0;
+    }
 }
- 
+
+#define FAUX_RF_DEV_NAMELEN 16
+
 typedef struct 
  {
-   char  *devName;
+   char   devName[FAUX_RF_DEV_NAMELEN];
    double rxGain;
    double txGain;
    double rxRate;
@@ -109,7 +118,12 @@ static void faux_rf_handle_error(srslte_rf_error_t error)
          "unknown error");
 }
 
-static  faux_rf_info_t _info = { .devName       = "fauxRf0",
+static bool faux_rf_is_enb(faux_rf_info_t * h)
+{
+  return strncmp(h->devName, "enb", FAUX_RF_DEV_NAMELEN) == 0;
+}
+
+static  faux_rf_info_t _info = { .devName       =  {0},
                                  .rxGain        =  0.0,
                                  .txGain        =  0.0,
                                  .rxRate        =  0.0,
@@ -209,8 +223,23 @@ int rf_faux_open(char *args, void **h)
 
 int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
  {
-   FAUX_DEBUG("args %s, channels %u", args, nof_channels);
+   FAUX_DEBUG("channels %u, args [%s]", nof_channels, args);
 
+   if(strncmp(args, "enb", FAUX_RF_DEV_NAMELEN) == 0)
+    {
+      strncpy(_info.devName, "faux_enb", strlen("faux_enb"));
+    }
+   else if(strncmp(args, "ue", FAUX_RF_DEV_NAMELEN) == 0)
+    {
+      strncpy(_info.devName, "faux_ue", strlen("faux_eu"));
+    }
+   else
+    {
+      FAUX_DEBUG("expected arg [ue or enb]", args);
+   
+      return -1;
+    }
+      
    if(nof_channels == 1)
     {
       *h = &_info;
@@ -219,7 +248,7 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
     }
    else
     {
-      *h = NULL;
+      FAUX_DEBUG("only supporting 1 channel, not %d", nof_channels);
 
       return -1;
     }
@@ -351,27 +380,19 @@ void rf_faux_get_time(void *h, time_t *secs, double *frac_secs)
    gettimeofday(&tv, NULL);
 
    TV_TO_TS(&tv, secs, frac_secs);
-
-   FAUX_DEBUG("secs %ld, frac %lf", 
-              *secs,
-              *frac_secs);
  }
 
 
 int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples, 
                            bool blocking, time_t *secs, double *frac_secs)
  {
-   struct timeval tv[3];
-
-   TS_OFFSET(tv, *secs, *frac_secs);
-
-   FAUX_DEBUG("nsamples %u, blocking %s, offset %ld:%06ld", 
+   FAUX_DEBUG("nsamples %u, blocking %s", 
               nsamples, 
-              blocking ? "yes" : "no",
-              tv[2].tv_sec,
-              tv[2].tv_usec);
+              blocking ? "yes" : "no");
 
-   TV_TO_TS(&tv[0], secs, frac_secs);
+   usleep(USEC_X_SEC/2);
+  
+   rf_faux_get_time(h, secs, frac_secs);
 
    return 0;
  }
@@ -393,19 +414,19 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
                        time_t secs, double frac_secs, bool has_time_spec,
                        bool blocking, bool is_start_of_burst, bool is_end_of_burst)
 {
-   struct timeval tv[3];
+   struct timeval tv_dif;
 
-   TS_OFFSET(tv, secs, frac_secs);
+   TS_DIFF(secs, frac_secs, &tv_dif);
 
    FAUX_DEBUG("nsamples %u, blocking %s, offset %ld:%06ld, sob %s, eob %s", 
               nsamples, 
               BOOL_TO_STR(blocking),
-              tv[2].tv_sec,
-              tv[2].tv_usec,
+              tv_dif.tv_sec,
+              tv_dif.tv_usec,
               BOOL_TO_STR(is_start_of_burst),
               BOOL_TO_STR(is_end_of_burst));
 
-   usleep(UDELAY);
+   usleep((tv_dif.tv_sec * 1e6) + tv_dif.tv_usec);
 
    return nsamples;
 }
@@ -430,7 +451,7 @@ int rf_faux_send_timed_multi(void *h, void *data[4], int nsamples,
 void rf_faux_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
    FAUX_DEBUG("gain %f, phase %f, i %f, q %f", 
-           cal->dc_gain, cal->dc_phase, cal->iq_i, cal->iq_q);
+              cal->dc_gain, cal->dc_phase, cal->iq_i, cal->iq_q);
 }
 
 
@@ -440,5 +461,3 @@ void rf_faux_set_rx_cal(void *h, srslte_rf_cal_t *cal)
            cal->dc_gain, cal->dc_phase, cal->iq_i, cal->iq_q);
 
 }
-
-
