@@ -395,7 +395,7 @@ bool rlc_am::poll_required()
   if(poll_retx())
     return true;
 
-  if(tx_window.size() == 0 && retx_queue.size() == 0)
+  if(tx_sdu_queue.size() == 0 && retx_queue.size() == 0)
     return true;
 
   /* According to 5.2.2.1 in 36.322 v13.3.0 a poll should be requested if
