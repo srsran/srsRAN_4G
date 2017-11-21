@@ -308,7 +308,12 @@ void srslte_ue_dl_set_non_mbsfn_region(srslte_ue_dl_t *q,
   srslte_ofdm_set_non_mbsfn_region(&q->fft_mbsfn, non_mbsfn_region_length);
 }
 
-
+void srslte_ue_dl_set_power_alloc (srslte_ue_dl_t *q, float rho_a, float rho_b) {
+  if (q) {
+    srslte_pdsch_set_power_allocation(&q->pdsch, rho_a);
+    q->rho_b = rho_b;
+  }
+}
 
 void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
   for(int i = 0; i < SRSLTE_MAX_CODEWORDS; i++){

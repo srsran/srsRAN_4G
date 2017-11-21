@@ -239,9 +239,9 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS],
   /* in control channels, only diversity is supported */
   if (q->cell.nof_ports == 1) {
     /* no need for layer demapping */
-    srslte_predecoding_single_multi(q_sf_symbols, q_ce[0], q->d0, q->nof_rx_antennas, SRSLTE_PHICH_MAX_NSYMB, noise_estimate);
+    srslte_predecoding_single_multi(q_sf_symbols, q_ce[0], q->d0, q->nof_rx_antennas, SRSLTE_PHICH_MAX_NSYMB, 1.0f, noise_estimate);
   } else {
-    srslte_predecoding_diversity_multi(q_sf_symbols, q_ce, x, q->nof_rx_antennas, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB);
+    srslte_predecoding_diversity_multi(q_sf_symbols, q_ce, x, q->nof_rx_antennas, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB, 1.0f);
     srslte_layerdemap_diversity(x, q->d0, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports);
   }
   DEBUG("Recv!!: \n", 0);
@@ -405,7 +405,7 @@ int srslte_phich_encode(srslte_phich_t *q, uint8_t ack, uint32_t ngroup, uint32_
   if (q->cell.nof_ports > 1) {
     srslte_layermap_diversity(q->d0, x, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB);
     srslte_precoding_diversity(x, symbols_precoding, q->cell.nof_ports,
-    SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports);
+    SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports, 1.0f);
     /**FIXME: According to 6.9.2, Precoding for 4 tx ports is different! */
   } else {
     memcpy(q->sf_symbols[0], q->d0, SRSLTE_PHICH_MAX_NSYMB * sizeof(cf_t));
