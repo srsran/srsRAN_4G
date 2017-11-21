@@ -308,10 +308,36 @@ void srslte_ue_dl_set_non_mbsfn_region(srslte_ue_dl_t *q,
   srslte_ofdm_set_non_mbsfn_region(&q->fft_mbsfn, non_mbsfn_region_length);
 }
 
-void srslte_ue_dl_set_power_alloc (srslte_ue_dl_t *q, float rho_a, float rho_b) {
+void srslte_ue_dl_set_power_alloc(srslte_ue_dl_t *q, float rho_a, float rho_b) {
   if (q) {
     srslte_pdsch_set_power_allocation(&q->pdsch, rho_a);
     q->rho_b = rho_b;
+
+    uint32_t nof_symbols_slot = SRSLTE_CP_NSYMB(q->cell.cp);
+    uint32_t nof_re_symbol = SRSLTE_NRE * q->cell.nof_prb;
+
+    /* Apply rho_b if required according to 3GPP 36.213 Table 5.2-2 */
+    if (rho_b != 0.0f && rho_b != 1.0f) {
+      float scaling = 1.0f / rho_b;
+      for (uint32_t i = 0; i < q->nof_rx_antennas; i++) {
+        for (uint32_t j = 0; j < 2; j++) {
+          cf_t *ptr;
+          ptr = q->sf_symbols_m[i] + nof_re_symbol * (j * nof_symbols_slot + 0);
+          srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+          if (q->cell.cp == SRSLTE_CP_NORM) {
+            ptr = q->sf_symbols_m[i] + nof_re_symbol * (j * nof_symbols_slot + 4);
+            srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+          } else {
+            ptr = q->sf_symbols_m[i] + nof_re_symbol * (j * nof_symbols_slot + 3);
+            srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+          }
+          if (q->cell.nof_ports == 4) {
+            ptr = q->sf_symbols_m[i] + nof_re_symbol * (j * nof_symbols_slot + 1);
+            srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+          }
+        }
+      }
+    }
   }
 }
 
