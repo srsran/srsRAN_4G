@@ -104,6 +104,9 @@ typedef struct SRSLTE_API {
   uint32_t pmi[SRSLTE_MAX_LAYERS];
   uint32_t ri;
 
+  /* Power allocation parameter 3GPP 36.213 Clause 5.2 Rho_b */
+  float rho_b;
+
   srslte_dci_format_t dci_format;
   uint64_t pkt_errors; 
   uint64_t pkts_total;
@@ -244,6 +247,9 @@ SRSLTE_API int srslte_ue_dl_set_mbsfn_area_id(srslte_ue_dl_t *q,
 SRSLTE_API void srslte_ue_dl_set_non_mbsfn_region(srslte_ue_dl_t *q,
                                                   uint8_t non_mbsfn_region_length);
 
+SRSLTE_API void srslte_ue_dl_set_power_alloc(srslte_ue_dl_t *q,
+                                              float rho_a,
+                                              float rho_b);
 
 
 SRSLTE_API void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, 
