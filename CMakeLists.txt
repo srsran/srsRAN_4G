@@ -103,6 +103,7 @@ else(MKL_FOUND)
     else(BUILD_STATIC)
       set(FFT_LIBRARIES "${FFTW3F_LIBRARIES}")
     endif(BUILD_STATIC)
+    message(STATUS "FFT_LIBRARIES: " ${FFT_LIBRARIES})
   endif(FFTW3F_FOUND)
 endif(MKL_FOUND)
 
