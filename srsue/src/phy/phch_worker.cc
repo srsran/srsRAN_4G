@@ -601,6 +601,19 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       valid_config = false;
   }
 
+  /* Set power allocation according to 3GPP 36.213 clause 5.2 Downlink power allocation */
+  float rho_a = 1.0f, rho_b = 1.0f;
+  if (phy->config->dedicated.pdsch_cnfg_ded < LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
+    float rho_a_db = liblte_rrc_pdsch_config_p_a_num[(int) phy->config->dedicated.pdsch_cnfg_ded];
+    rho_a = powf(10.0f, rho_a_db / 20.0f) * ((cell.nof_ports == 1) ? 1.0f : sqrtf(2.0f));
+  }
+  if (phy->config->common.pdsch_cnfg.p_b < 4) {
+    uint32_t idx0 = (cell.nof_ports == 1) ? 0 : 1;
+    float cell_specific_ratio = pdsch_cfg_cell_specific_ratio_table[idx0][phy->config->common.pdsch_cnfg.p_b];
+    rho_b = sqrtf(cell_specific_ratio);
+  }
+  srslte_ue_dl_set_power_alloc(&ue_dl, rho_a, rho_b);
+
   Debug("DL Buffer TTI %d: Decoding PDSCH\n", tti);
 
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */

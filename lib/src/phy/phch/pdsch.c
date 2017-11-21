@@ -386,6 +386,12 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
   return SRSLTE_SUCCESS;
 }
 
+void srslte_pdsch_set_power_allocation(srslte_pdsch_t *q, float rho_a) {
+  if (q) {
+    q->rho_a = rho_a;
+  }
+}
+
 void srslte_pdsch_free_rnti(srslte_pdsch_t* q, uint16_t rnti)
 {
   uint32_t rnti_idx = q->is_ue?0:rnti;
@@ -680,9 +686,14 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
       memset(&x[cfg->nof_layers], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - cfg->nof_layers));
     }
 
+    float pdsch_scaling = 1.0f;
+    if (q->rho_a != 0.0f) {
+      pdsch_scaling = q->rho_a;
+    }
+
     // Pre-decoder
-    if (srslte_predecoding_type_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
-                                      cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, noise_estimate)<0) {
+    if (srslte_predecoding_type(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
+                                      cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, pdsch_scaling, noise_estimate)<0) {
       return -1;
     }
 
@@ -822,7 +833,7 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
 
       /* Precode */
       srslte_precoding_type(x, q->symbols, cfg->nof_layers, q->cell.nof_ports, cfg->codebook_idx,
-                            nof_symbols, cfg->mimo_type);
+                            nof_symbols, 1.0f, cfg->mimo_type);
     } else {
       memcpy(q->symbols[0], q->d[0], cfg->nbits[0].nof_re * sizeof(cf_t));
     }

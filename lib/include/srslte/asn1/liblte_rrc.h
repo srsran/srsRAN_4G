@@ -3926,7 +3926,7 @@ typedef enum{
 }LIBLTE_RRC_PDSCH_CONFIG_P_A_ENUM;
 static const char liblte_rrc_pdsch_config_p_a_text[LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS][20] = {   "-6", "-4.77",    "-3", "-1.77",
                                                                                                    "0",     "1",     "2",     "3"};
-static const double liblte_rrc_pdsch_config_p_a_num[LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS] = {-6, -4.77, -3, -1.77, 0, 1, 2, 3};
+static const float liblte_rrc_pdsch_config_p_a_num[LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS] = {-6, -4.77f, -3, -1.77f, 0, 1, 2, 3};
 // Structs
 // PDSCH Config Common struct defined above
 // Functions
