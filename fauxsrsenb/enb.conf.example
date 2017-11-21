@@ -61,10 +61,10 @@ dl_earfcn = 3400
 tx_gain = 70
 rx_gain = 40
 
-#device_name = auto
-#device_args = auto
-#time_adv_nsamples = auto
-#burst_preamble_us = auto
+device_name = faux
+device_args = enb
+time_adv_nsamples = 100
+burst_preamble_us = 400
 
 
 #####################################################################
@@ -80,8 +80,8 @@ rx_gain = 40
 # filename: File path to use for packet captures
 #####################################################################
 [pcap]
-enable = false
-filename = /tmp/enb.pcap
+enable = true
+filename = enb.pcap
 
 #####################################################################
 # Log configuration
@@ -102,9 +102,9 @@ filename = /tmp/enb.pcap
 #           to print logs to standard output
 #####################################################################
 [log]
-all_level = info
+all_level = debug
 all_hex_limit = 32
-filename = /tmp/enb.log
+filename = enb.log
 
 [gui]
 enable = false
@@ -141,7 +141,7 @@ nof_ctrl_symbols = 3
 #####################################################################
 [expert]
 #pdsch_max_its        = 4
-#nof_phy_threads      = 2
+nof_phy_threads      = 1
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #link_failure_nof_err = 50
