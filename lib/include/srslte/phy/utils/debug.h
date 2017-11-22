@@ -70,4 +70,6 @@ SRSLTE_API extern int srslte_verbose;
 #define ERROR(_fmt, ...) fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /* CMAKE_BUILD_TYPE==Debug */
 
+void srslte_debug_handle_crash(int argc, char **argv);
+
 #endif // DEBUG_H

@@ -341,6 +341,8 @@ int main(int argc, char **argv) {
   int sfn_offset;
   float cfo = 0; 
   
+  srslte_debug_handle_crash(argc, argv);
+
   parse_args(&prog_args, argc, argv);
   
   for (int i = 0; i< SRSLTE_MAX_CODEWORDS; i++) {
