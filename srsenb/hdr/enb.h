@@ -68,6 +68,7 @@ typedef struct {
   uint32_t    pci; 
   uint32_t    nof_ports;
   uint32_t    transmission_mode;
+  float       p_a;
 }enb_args_t;
 
 typedef struct {

@@ -1148,7 +1148,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->ul_pwr_ctrl_ded.p_srs_offset = 3; 
   
   phy_cfg->pdsch_cnfg_ded_present = true; 
-  phy_cfg->pdsch_cnfg_ded = LIBLTE_RRC_PDSCH_CONFIG_P_A_DB_0; 
+  phy_cfg->pdsch_cnfg_ded = parent->cfg.pdsch_cfg;
   
   phy_cfg->cqi_report_cnfg_present = true; 
   if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {

@@ -866,6 +866,18 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
     rrc_cfg->antenna_info.codebook_subset_restriction_present = true;
   }
 
+  /* Parse power allocation */
+  rrc_cfg->pdsch_cfg = LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS;
+  for (int i = 0; i < LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS; i++) {
+    if (args->enb.p_a == liblte_rrc_pdsch_config_p_a_num[i]) {
+      rrc_cfg->pdsch_cfg = (LIBLTE_RRC_PDSCH_CONFIG_P_A_ENUM) i;
+    }
+  }
+  if (rrc_cfg->pdsch_cfg == LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
+    ERROR("Invalid p_a value (%f) only -6, -4.77, -3, -1.77, 0, 1, 2, 3 values allowed.", args->enb.p_a);
+    return SRSLTE_ERROR;
+  }
+
   /* MAC config section */
   parser::section mac_cnfg("mac_cnfg");
 
