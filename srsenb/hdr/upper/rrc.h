@@ -80,6 +80,7 @@ typedef struct {
   LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT        mac_cnfg; 
   LIBLTE_RRC_PUSCH_CONFIG_DEDICATED_STRUCT pusch_cfg;   
   LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT antenna_info;
+  LIBLTE_RRC_PDSCH_CONFIG_P_A_ENUM         pdsch_cfg;
   rrc_cfg_sr_t                             sr_cfg; 
   rrc_cfg_cqi_t                            cqi_cfg; 
   rrc_cfg_qci_t                            qci_cfg[MAX_NOF_QCI]; 

@@ -80,7 +80,10 @@ void phy::parse_config(phy_cfg_t* cfg)
   workers_common.pucch_cfg.N_cs               = cfg->pucch_cnfg.n_cs_an;
   workers_common.pucch_cfg.n_rb_2             = cfg->pucch_cnfg.n_rb_cqi;
   workers_common.pucch_cfg.srs_configured     = false;
-  workers_common.pucch_cfg.n1_pucch_an        = cfg->pucch_cnfg.n1_pucch_an;; 
+  workers_common.pucch_cfg.n1_pucch_an        = cfg->pucch_cnfg.n1_pucch_an;
+
+  // PDSCH configuration
+  workers_common.pdsch_p_b                    = cfg->pdsch_cnfg.p_b;
 }
 
 bool phy::init(phy_args_t *args, 

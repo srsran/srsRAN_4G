@@ -72,6 +72,7 @@ public:
   srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg; 
   srslte_pusch_hopping_cfg_t        hopping_cfg;
   srslte_pucch_cfg_t                pucch_cfg; 
+  uint8_t                           pdsch_p_b;
   phy_args_t                        params; 
 
   srslte::radio     *radio;
