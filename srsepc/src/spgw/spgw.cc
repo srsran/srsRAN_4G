@@ -83,7 +83,7 @@ spgw::init(spgw_args_t* args, srslte::log_filter *spgw_log)
 
   //Init log
   m_spgw_log = spgw_log;
-    
+
   //Init SGi interface
   err = init_sgi_if(args);
   if (err != srslte::ERROR_NONE)
@@ -112,7 +112,7 @@ spgw::stop()
     m_running = false;
     thread_cancel();
     wait_thread_finish();
- 
+
     //Clean up SGi interface
     if(m_sgi_up)
     {
@@ -135,7 +135,7 @@ spgw::run_thread()
   m_running=true;
   srslte::byte_buffer_t *msg;
   msg = m_pool->allocate();
-  
+
   struct sockaddr src_addr;
   socklen_t addrlen;
 
@@ -150,7 +150,7 @@ spgw::run_thread()
     FD_ZERO(&set);
     FD_SET(m_s1u, &set);
     FD_SET(sgi, &set);
-    
+
     m_spgw_log->info("Waiting for S1-U or SGi packets.\n");
     int n = select(max_fd+1, &set, NULL, NULL, NULL);
     if (n == -1)

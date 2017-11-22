@@ -147,6 +147,20 @@ const uint8_t GTPC_MSG_TYPE_MBMS_SESSION_STOP_RESPONSE = 236;
 //240 - 255 For future use
 
 /****************************************************************************
+ * GTP-C v2 Message
+ * Ref: 3GPP TS 29.274 v10.14.0
+ *
+ * This is the main structure to represent a GTP-C message. It is composed
+ * of one GTP-C header and one union of structures, which can hold
+ * all the possible GTP-C messages
+ ***************************************************************************/
+typedef struct gtpc_pdu
+{
+  struct gtpc_header;
+  union gtpc_msg_choice;
+} gtpc_pdu_t;
+
+/****************************************************************************
  * GTP-C v2 Header
  * Ref: 3GPP TS 29.274 v10.14.0 Section 5
  *
@@ -176,6 +190,16 @@ typedef struct gtpc_header
   uint64_t sequence;
 } gtpc_header_t;
 
+/****************************************************************************
+ * GTP-C v2 Header
+ * Ref: 3GPP TS 29.274 v10.14.0 Section 5
+ *
+ * Union that hold the different structures for the possible message types.
+ ***************************************************************************/
+typedef union gtpc_msg_choice
+{
+  struct gtpc_create_session_request create_session_request;
+};
 
 /****************************************************************************
  *
@@ -186,9 +210,9 @@ typedef struct gtpc_header
 /*
 typedef struct gtpc_create_session_request
 {
-  bool imsi_present; 
+  bool imsi_present;
   uint64_t imsi;   						// C
-  bool msidn_present; 
+  bool msidn_present;
   uint64_t msisdn;        					// C
   bool mei_present;
   uint64_t mei;							// C/CO
@@ -196,11 +220,11 @@ typedef struct gtpc_create_session_request
   struct user_location_info_ uli;				// C/CO
   bool serving_network_present;
   struct serving_network_ serving_network;			// C/CO
-  
+
   enum rat_type_ rat_type;					// M
   bool indication_flags_present;
   struct indication_flags_ indication_flags;			// C
-  
+
   struct fteid_ sender_f_teid;					// M
   bool pgw_addr_present;
   struct fteid_ pgw_addr;					// C

@@ -42,6 +42,7 @@
 #include "mme/s1ap_common.h"
 #include "mme/s1ap_mngmt_proc.h"
 #include "mme/s1ap_nas_transport.h"
+#include "mme/mme_gtpc.h"
 #include "hss/hss.h"
 
 namespace srsepc{
@@ -53,30 +54,28 @@ class s1ap
 public:
   s1ap();
   virtual ~s1ap();
-  int enb_listen(); 
+  int enb_listen();
   int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log);
   void stop();
 
   int get_s1_mme();
-  
+
   void delete_enb_ctx(int32_t assoc_id);
   void delete_ues_in_enb(uint16_t enb_id);
 
-  
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri);
   bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
 
   bool handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
   bool send_s1_setup_failure(struct sctp_sndrcvinfo *enb_sri);
   bool send_s1_setup_response(struct sctp_sndrcvinfo *enb_sri);
- 
-  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri); 
+
+  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri);
   bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri);
   bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri);
 
   bool handle_nas_authentication_response(srslte::byte_buffer_t *nas_buffer, srslte::byte_buffer_t *reply_buffer, ue_ctx_t *ue_ctx);
   bool handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
-
 
   void print_enb_ctx_info(const enb_ctx_t &enb_ctx);
 
@@ -95,9 +94,12 @@ private:
   std::map<uint32_t, ue_ctx_t*>            m_active_ues;
   std::map<uint16_t,std::set<uint32_t> >   m_enb_id_to_ue_ids;
   uint32_t                                 m_next_mme_ue_s1ap_id;
- 
+
   s1ap_mngmt_proc                m_s1ap_mngmt_proc;
   s1ap_nas_transport             m_s1ap_nas_transport;
+
+  //FIXME the GTP-C should be moved to the MME class, the the packaging of GTP-C messages is done.
+  mme_gtpc *m_gtpc;
 };
 
 

@@ -44,6 +44,7 @@ s1ap::~s1ap()
 int
 s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
 {
+  m_pool = srslte::byte_buffer_pool::get_instance();
 
   m_s1ap_args = s1ap_args;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
@@ -51,8 +52,8 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
   m_s1ap_log = s1ap_log;
   m_s1ap_nas_transport.set_log(s1ap_log);
 
-  m_hss = hss::get_instance(); 
-  m_pool = srslte::byte_buffer_pool::get_instance();
+  m_hss = hss::get_instance();
+  m_gtpc = mme_gtpc::get_instance();
 
   m_s1mme = enb_listen();
 
@@ -445,7 +446,7 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
 
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
   bool ue_valid=true;
- 
+
   //Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
   if(err != LIBLTE_SUCCESS){
@@ -469,7 +470,7 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
       std::cout << std::hex <<(uint16_t)ue_ctx->xres[i];
     }
     std::cout<<std::endl;
-   
+
     m_s1ap_log->console("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     m_s1ap_log->warning("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     //Send back Athentication Reject
@@ -483,7 +484,11 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     //Send Security Mode Command
     m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
 
-    //m_gtpc->send_create_session_request(ue_ctx->imsi);
+    //FIXME The packging of GTP-C messages is not ready
+    //This means that GTP-U tunnels are created with function calls, as oposed to GTP-C.
+    //In future send_create_session_request will return void and the handle_create_session_response will be called from the GTP-C class itself.
+    struct gtpc_create_session_response *cs_resp = m_gtpc->send_create_session_request(ue_ctx->imsi);
+    m_gtpc->handle_create_session_response(cs_resp);
   }
   return true;
 }
