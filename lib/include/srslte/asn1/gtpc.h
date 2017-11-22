@@ -147,67 +147,12 @@ const uint8_t GTPC_MSG_TYPE_MBMS_SESSION_STOP_RESPONSE = 236;
 //240 - 255 For future use
 
 /****************************************************************************
- * GTP-C v2 Message
- * Ref: 3GPP TS 29.274 v10.14.0
- *
- * This is the main structure to represent a GTP-C message. It is composed
- * of one GTP-C header and one union of structures, which can hold
- * all the possible GTP-C messages
- ***************************************************************************/
-typedef struct gtpc_pdu
-{
-  struct gtpc_header;
-  union gtpc_msg_choice;
-} gtpc_pdu_t;
-
-/****************************************************************************
- * GTP-C v2 Header
- * Ref: 3GPP TS 29.274 v10.14.0 Section 5
- *
- *        | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
- *
- * 1      |  Version  | P | T | S | S | S |
- * 2      |           Message Type        |
- * 3      |         Length (1st Octet)    |
- * 4      |         Length (2nd Octet)    |
- * m      |   If T=1, TEID (1st Octet)    |
- * m+1    |   If T=1, TEID (2nd Octet)    |
- * m+2    |   If T=1, TEID (3st Octet)    |
- * m+3    |   If T=1, TEID (4st Octet)    |
- * n      |           Sequence            |
- * n+1    |           Sequence            |
- * n+2    |           Sequence            |
- * n+3    |            Spare              |
- ***************************************************************************/
-
-typedef struct gtpc_header
-{
-  uint8_t version;
-  bool piggyback;
-  bool tied_present;
-  uint8_t msg_type;
-  uint64_t teid;
-  uint64_t sequence;
-} gtpc_header_t;
-
-/****************************************************************************
- * GTP-C v2 Header
- * Ref: 3GPP TS 29.274 v10.14.0 Section 5
- *
- * Union that hold the different structures for the possible message types.
- ***************************************************************************/
-typedef union gtpc_msg_choice
-{
-  struct gtpc_create_session_request create_session_request;
-};
-
-/****************************************************************************
  *
  * GTP-C v2 Create Session Request
  * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.1-1
  *
  ***************************************************************************/
-/*
+
 typedef struct gtpc_create_session_request
 {
   bool imsi_present;
@@ -216,6 +161,7 @@ typedef struct gtpc_create_session_request
   uint64_t msisdn;        					// C
   bool mei_present;
   uint64_t mei;							// C/CO
+  /*
   bool user_location_info_present;
   struct user_location_info_ uli;				// C/CO
   bool serving_network_present;
@@ -244,7 +190,7 @@ typedef struct gtpc_create_session_request
   uint8_t linked_eps_bearer_id;					// C
   bool pco_present;
   uint8_t pco;							// C
-  
+
   struct bearer_context_ bearer_context_created;		// M
   bool bearer_context_deleted_present;
   struct bearer_context_ bearer_context_deleted;		// C
@@ -275,8 +221,68 @@ typedef struct gtpc_create_session_request
   bool acpo_present;
   uint8_t apco;							// CO
   bool ext;							// O
+  */
 } gtpc_create_session_request_t;
-*/
+
+
+/****************************************************************************
+ * GTP-C v2 Header
+ * Ref: 3GPP TS 29.274 v10.14.0 Section 5
+ *
+ *        | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
+ *
+ * 1      |  Version  | P | T | S | S | S |
+ * 2      |           Message Type        |
+ * 3      |         Length (1st Octet)    |
+ * 4      |         Length (2nd Octet)    |
+ * m      |   If T=1, TEID (1st Octet)    |
+ * m+1    |   If T=1, TEID (2nd Octet)    |
+ * m+2    |   If T=1, TEID (3st Octet)    |
+ * m+3    |   If T=1, TEID (4st Octet)    |
+ * n      |           Sequence            |
+ * n+1    |           Sequence            |
+ * n+2    |           Sequence            |
+ * n+3    |            Spare              |
+ ***************************************************************************/
+
+  typedef struct gtpc_header
+  {
+    uint8_t version;
+    bool piggyback;
+    bool teid_present;
+    uint8_t type;
+    uint64_t teid;
+    uint64_t sequence;
+  } gtpc_header_t;
+
+/****************************************************************************
+ * GTP-C v2 Payload
+ * Ref: 3GPP TS 29.274 v10.14.0 Section 5
+ *
+ * Union that hold the different structures for the possible message types.
+ ***************************************************************************/
+
+typedef union gtpc_msg_choice
+{
+  struct gtpc_create_session_request create_session_request;
+} gtpc_msg_choice_t;
+
+/****************************************************************************
+ * GTP-C v2 Message
+ * Ref: 3GPP TS 29.274 v10.14.0
+ *
+ * This is the main structure to represent a GTP-C message. It is composed
+ * of one GTP-C header and one union of structures, which can hold
+ * all the possible GTP-C messages
+ ***************************************************************************/
+
+typedef struct gtpc_pdu
+{
+  struct gtpc_header header;
+  union gtpc_msg_choice choice;
+} gtpc_pdu_t;
+
+
 
 };
 

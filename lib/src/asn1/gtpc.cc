@@ -25,17 +25,16 @@
  */
 #include <stdint.h>
 #include "srslte/asn1/gtpc.h"
-
+#include "srslte/common/common.h"
 
 namespace srslte{
 
-/*
+
 int
 gtpc_pack_create_session_request(gtpc_create_session_request_t, srslte::byte_buffer_t)
 {
-  if (imsi_present)
-    
+  //FIXME    
   return 0;
 }
-*/
+
 };

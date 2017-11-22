@@ -26,22 +26,33 @@
 #ifndef    MME_GTPC_H
 #define    MME_GTPC_H
 
+#include "srslte/common/buffer_pool.h"
+#include <boost/thread/mutex.hpp>
+#include "spgw/spgw.h"
+
 namespace srsepc
 {
 
 class mme_gtpc
 {
 public:
-  mme_gtpc();
-  ~mme_gtpc();
 
   static mme_gtpc* get_instance(void);
   static void cleanup(void);
 
   void init();
-
   void send_create_session_request(uint64_t imsi, struct create_session_response *cs_resp);
 
+private:
+
+  mme_gtpc();
+  virtual ~mme_gtpc();
+  static mme_gtpc *m_instance;
+
+  srslte::byte_buffer_pool *m_pool;
+
+  spgw* m_spgw;
+  in_addr_t m_mme_gtpc_ip;
 };
 
 }

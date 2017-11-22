@@ -25,13 +25,15 @@
  */
 
 #include <iostream>
+#include "srslte/asn1/gtpc.h"
+#include "mme/mme_gtpc.h"
 
 namespace srsepc{
 
 mme_gtpc*          mme_gtpc::m_instance = NULL;
 boost::mutex  mme_gtpc_instance_mutex;
 
-mme_gtpc::mme_gtpc():
+mme_gtpc::mme_gtpc()
 {
 }
 
@@ -63,32 +65,33 @@ mme_gtpc::cleanup(void)
 void
 mme_gtpc::init()
 {
+  m_mme_gtpc_ip = inet_addr("127.0.0.1");//FIXME At the moment, the GTP-C messages are not sent over the wire. So this parameter is not used.
   m_spgw = spgw::get_instance();
 }
 
 void
 mme_gtpc::send_create_session_request(uint64_t imsi, struct create_session_response *cs_resp)
 {
-  uint64_t imsi;
-  struct gtpc_pdu cs_req;
+  struct srslte::gtpc_pdu cs_req_pdu;
+  struct srslte::gtpc_create_session_request *cs_req = &cs_req_pdu.choice.create_session_request;
 
   //Setup GTP-C Header. FIXME: Length, sequence and other fields need to be added.
-  cs_req.header.piggyback = false;
-  cs_req.header.teid_present = true;
-  cs_req.header.type = GTPC_MSG_TYPE_CREATE_SESSION_REQUEST;
-  cs_req.header.teid = 0; //Send create session request to the butler TEID
+  cs_req_pdu.header.piggyback = false;
+  cs_req_pdu.header.teid_present = true;
+  cs_req_pdu.header.teid = 0; //Send create session request to the butler TEID
+  cs_req_pdu.header.type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST;
 
   //Setup GTP-C Create Session Request IEs
   // Control TEID allocated \\
-  cs_req.create_session_request.sender_f_teid.tied = get_new_ctrl_teid();
-  cs_req.create_session_request.sender_f_teid.ip = htonl(m_mme_ip);
+  cs_req->sender_f_teid.tied = get_new_ctrl_teid();
+  cs_req->sender_f_teid.ip = m_mme_gtpc_ip;
   // APN \\
-  memcpy(cs_req.create_session_request.apn, "internet", sizeof("internet"));
+  memcpy(cs_req->apn, "internet", sizeof("internet"));
   // RAT Type \\
-  cs_req.create_session_request.rat_type = GTPC_RAT_TYPE::EUTRAN;
+  cs_req->rat_type = GTPC_RAT_TYPE::EUTRAN;
 
   //Save RX Control TEID
-  create_rx_control_teid(create_session_request.sender_f_tied);
+  create_rx_control_teid(cs_req->sender_f_tied);
 
   spgw->handle_create_session_request(&cs_req, cs_resp);
   return;
