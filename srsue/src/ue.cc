@@ -32,7 +32,9 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 #include <ue_base.h>
+#include "srslte/build_info.h"
 
 using namespace srslte;
 
@@ -51,6 +53,10 @@ ue::~ue()
 
 bool ue::init(all_args_t *args_)
 {
+  std::stringstream ss;
+  ss << "Built in " << srslte_get_build_mode() << " mode using " << srslte_get_build_info() << "." << std::endl << std::endl;
+  std::cout << ss.str();
+
   args     = args_;
 
   if (!args->log.filename.compare("stdout")) {
@@ -58,6 +64,7 @@ bool ue::init(all_args_t *args_)
   } else {
     logger_file.init(args->log.filename);
     logger_file.log("\n\n");
+    logger_file.log(ss.str().c_str());
     logger = &logger_file;
   }
 
