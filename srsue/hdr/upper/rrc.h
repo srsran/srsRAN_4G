@@ -40,8 +40,6 @@
 #include <map>
 
 typedef struct {
-  bool                          stmsi_attach;
-  LIBLTE_RRC_S_TMSI_STRUCT      stmsi_value;
   uint32_t                      ue_category;
   uint32_t                      feature_group;
   uint8_t                       supported_bands[LIBLTE_RRC_BAND_N_ITEMS];
@@ -198,21 +196,16 @@ private:
 
   // MAC interface
   void release_pucch_srs();
-
   void ra_problem();
 
   // GW interface
   bool is_connected();
-
   bool have_drb();
 
   // PDCP interface
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
-
   void write_pdu_bcch_bch(byte_buffer_t *pdu);
-
   void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
-
   void write_pdu_pcch(byte_buffer_t *pdu);
 
   // Radio bearers
@@ -280,11 +273,6 @@ private:
   void          set_mac_default();
   void          set_rrc_default(); 
   void          set_bearers();
-
-  // s-tmsi persistent file
-  bool read_stimsi_file(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
-  bool write_stimsi_file(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi);
-
 };
 
 } // namespace srsue

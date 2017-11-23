@@ -27,8 +27,9 @@
 
 #include <unistd.h>
 #include <iostream>
-#include <fstream>
 #include <sstream>
+#include <stdlib.h>
+#include <time.h>
 #include "upper/rrc.h"
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
@@ -99,7 +100,6 @@ void rrc::init(phy_interface_rrc *phy_,
   args.supported_bands[0] = 7;
   args.nof_supported_bands = 1;
   args.feature_group = 0xe6041c00;
-  args.stmsi_attach = false;
 
   t301 = mac_timers->timer_get_unique_id();
   t310 = mac_timers->timer_get_unique_id();
@@ -117,6 +117,9 @@ void rrc::init(phy_interface_rrc *phy_,
   set_rrc_default();
   set_phy_default();
   set_mac_default();
+
+  // set seed for rand (used in attach)
+  srand(time(NULL));
 }
 
 void rrc::stop() {
@@ -592,66 +595,6 @@ void rrc::timer_expired(uint32_t timeout_id) {
 *
 *******************************************************************************/
 
-bool rrc::read_stimsi_file(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) {
-  std::ifstream file;
-  std::string   line;
-  if (!s_tmsi) {
-    return false;
-  }
-
-  const char *mmec_str  = "mmec=";
-  size_t mmec_str_len   = strlen(mmec_str);
-  const char *mtmsi_str = "mtmsi=";
-  size_t mtmsi_str_len  = strlen(mtmsi_str);
-
-  file.open(".stmsi", std::ios::in);
-  if (file.is_open()) {
-    bool read_ok = true;
-    if (std::getline(file, line)) {
-      if (!line.substr(0,mmec_str_len).compare(mmec_str)) {
-        s_tmsi->mmec = atoi(line.substr(5).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,mtmsi_str_len).compare(mtmsi_str)) {
-        s_tmsi->m_tmsi = atoi(line.substr(mtmsi_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    file.close();
-    if (read_ok) {
-      rrc_log->info("Read S-TMSI value: %x:%x\n", s_tmsi->mmec, s_tmsi->m_tmsi);
-      return true;
-    } else {
-      rrc_log->error("Invalid s-tmsi persistent file format\n");
-      return false;
-    }
-  } else {
-    return false;
-  }
-}
-
-bool rrc::write_stimsi_file(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi) {
-  std::ofstream file;
-  file.open(".stmsi", std::ios::out | std::ios::trunc);
-  if (file.is_open()) {
-    file << "mmec="  << (int) s_tmsi.mmec << std::endl;
-    file << "mtmsi=" << (int) s_tmsi.m_tmsi << std::endl;
-    rrc_log->info("Saved S-TMSI in persistent file: %x:%x\n", s_tmsi.mmec, s_tmsi.m_tmsi);
-    file.close();
-    return true;
-  } else {
-    return false;
-  }
-}
-
 void rrc::send_con_request() {
   rrc_log->debug("Preparing RRC Connection Request\n");
   LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
@@ -659,30 +602,13 @@ void rrc::send_con_request() {
 
   // Prepare ConnectionRequest packet
   ul_ccch_msg.msg_type = LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REQ;
-  bool valid_stmsi = false;
 
-  if (nas->get_s_tmsi(&s_tmsi) || (args.stmsi_attach && !first_stimsi_attempt)) {
+  if (nas->get_s_tmsi(&s_tmsi)) {
     ul_ccch_msg.msg.rrc_con_req.ue_id_type = LIBLTE_RRC_CON_REQ_UE_ID_TYPE_S_TMSI;
-    if (nas->get_s_tmsi(&s_tmsi)) {
-      ul_ccch_msg.msg.rrc_con_req.ue_id.s_tmsi = s_tmsi;
-      valid_stmsi = true;
-    } else {
-      first_stimsi_attempt = true;
-      if (args.stmsi_value.m_tmsi) {
-        ul_ccch_msg.msg.rrc_con_req.ue_id.s_tmsi = args.stmsi_value;
-        valid_stmsi = true;
-      } else {
-        if (!read_stimsi_file(&ul_ccch_msg.msg.rrc_con_req.ue_id.s_tmsi)) {
-          rrc_log->warning("Could not read S-TMSI from persistent file. Trying normal attach.\n");
-        } else {
-          valid_stmsi = true;
-        }
-      }
-    }
-  }
-  if (!valid_stmsi) {
+    ul_ccch_msg.msg.rrc_con_req.ue_id.s_tmsi = s_tmsi;
+  } else {
     ul_ccch_msg.msg.rrc_con_req.ue_id_type = LIBLTE_RRC_CON_REQ_UE_ID_TYPE_RANDOM_VALUE;
-    ul_ccch_msg.msg.rrc_con_req.ue_id.random = 1000;
+    ul_ccch_msg.msg.rrc_con_req.ue_id.random = rand() % 2^40;
   }
 
   ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;
@@ -955,14 +881,6 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
     memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
     nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
     nas->write_pdu(lcid, nas_sdu);
-  }
-
-  // Get S-TMSI from NAS and store it in persistent file
-  LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
-  if (nas->get_s_tmsi(&s_tmsi)) {
-    if (!write_stimsi_file(s_tmsi)) {
-      rrc_log->warning("Could not store S-TMSI in persistent file\n");
-    }
   }
 }
 
@@ -1247,7 +1165,9 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM) dl_dcch_msg.msg.security_mode_cmd.sec_algs.int_alg;
 
       // Configure PDCP for security
-      usim->generate_as_keys(nas->get_ul_count(), k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+      uint8_t k_asme[32];
+      nas->get_k_asme(k_asme, 32);
+      usim->generate_as_keys(k_asme, nas->get_ul_count()-1, k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
       pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
       send_security_mode_complete(lcid, pdu);
       break;

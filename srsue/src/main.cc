@@ -77,17 +77,12 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Transmission time advance")
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
 
-    ("rrc.stmsi_attach", bpo::value<bool>(&args->rrc.stmsi_attach)->default_value(false),"If enabled, always tries first an S-TMSI attach using the\n"
-                                                                                           "S-TMSI value stored in .stimsi file generated in previous run")
-    ("rrc.mmec_value",    bpo::value<uint8_t>(&args->rrc.stmsi_value.mmec)->default_value(0),    "If defined (non-zero), overwrites the value stored in .stimsi file")
-    ("rrc.mtmsi_value",  bpo::value<uint32_t>(&args->rrc.stmsi_value.m_tmsi)->default_value(0), "If defined (non-zero), overwrites the value stored in .stimsi file")
-
     ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041c00), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041c00")
     ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
 
 
-       ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false),
+    ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false),
      "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
 
