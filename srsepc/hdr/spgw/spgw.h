@@ -39,6 +39,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/threads.h"
+#include "srslte/asn1/gtpc.h"
 
 namespace srsepc{
 
@@ -50,6 +51,15 @@ typedef struct {
 } spgw_args_t;
 
 
+typedef struct {
+  uint64_t imsi;
+  in_addr_t ue_ipv4;
+  struct gtpc_f_teid_ie uplink_ctrl;
+  struct gtpc_f_teid_ie uplink_user;
+  struct gtpc_f_teid_ie downlink_ctrl;
+  struct gtpc_f_teid_ie downlink_user;
+} spgw_ue_ctxr;
+
 class spgw:
   public thread
 {
@@ -59,6 +69,8 @@ public:
   int init(spgw_args_t* args, srslte::log_filter *spgw_log);
   void stop();
   void run_thread();
+
+  void handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_create_session_response *cs_resp);
 
 private:
 
@@ -81,7 +93,7 @@ private:
 
   /*Logs*/
   srslte::log_filter  *m_spgw_log;
- 
+
 };
 
 } // namespace srsepc

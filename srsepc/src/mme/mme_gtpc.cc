@@ -34,6 +34,7 @@ mme_gtpc*          mme_gtpc::m_instance = NULL;
 boost::mutex  mme_gtpc_instance_mutex;
 
 mme_gtpc::mme_gtpc()
+  :m_next_ctrl_teid(1)
 {
 }
 
@@ -69,11 +70,19 @@ mme_gtpc::init()
   m_spgw = spgw::get_instance();
 }
 
+uint64_t
+mme_gtpc::get_new_ctrl_teid()
+{
+  return m_next_ctrl_teid++; //FIXME Use a Id pool?
+}
 void
 mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_create_session_response *cs_resp)
 {
   struct srslte::gtpc_pdu cs_req_pdu;
   struct srslte::gtpc_create_session_request *cs_req = &cs_req_pdu.choice.create_session_request;
+
+  //Initialize GTP-C message to zero
+  bzero(&cs_req_pdu, sizeof(struct srslte::gtpc_pdu));
 
   //Setup GTP-C Header. FIXME: Length, sequence and other fields need to be added.
   cs_req_pdu.header.piggyback = false;
@@ -93,7 +102,7 @@ mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_create_
   //Save RX Control TEID
   //create_rx_control_teid(cs_req->sender_f_teid);
 
-  //spgw->handle_create_session_request(&cs_req, cs_resp);
+  m_spgw->handle_create_session_request(cs_req, cs_resp);
   return;
 }
 } //namespace srsepc

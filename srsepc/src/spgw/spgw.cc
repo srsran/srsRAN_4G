@@ -35,6 +35,7 @@
 #include <linux/if_tun.h>
 #include "spgw/spgw.h"
 
+
 namespace srsepc{
 
 spgw*          spgw::m_instance = NULL;
@@ -128,6 +129,106 @@ spgw::stop()
   return;
 }
 
+srslte::error_t
+spgw::init_sgi_if(spgw_args_t *args)
+{
+  char dev[IFNAMSIZ] = "srs_spgw_sgi";
+  struct ifreq ifr;
+
+  if(m_sgi_up)
+  {
+    return(srslte::ERROR_ALREADY_STARTED);
+  }
+
+
+  // Construct the TUN device
+  m_sgi_if = open("/dev/net/tun", O_RDWR);
+  m_spgw_log->info("TUN file descriptor = %d\n", m_sgi_if);
+  if(m_sgi_if < 0)
+  {
+      m_spgw_log->error("Failed to open TUN device: %s\n", strerror(errno));
+      return(srslte::ERROR_CANT_START);
+  }
+
+  memset(&ifr, 0, sizeof(ifr));
+  ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ);
+  if(ioctl(m_sgi_if, TUNSETIFF, &ifr) < 0)
+  {
+      m_spgw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
+      close(m_sgi_if);
+      return(srslte::ERROR_CANT_START);
+  }
+
+  // Bring up the interface
+  m_sgi_sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+  if(ioctl(m_sgi_sock, SIOCGIFFLAGS, &ifr) < 0)
+  {
+      m_spgw_log->error("Failed to bring up socket: %s\n", strerror(errno));
+      close(m_sgi_if);
+      return(srslte::ERROR_CANT_START);
+  }
+  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+  if(ioctl(m_sgi_sock, SIOCSIFFLAGS, &ifr) < 0)
+  {
+      m_spgw_log->error("Failed to set socket flags: %s\n", strerror(errno));
+      close(m_sgi_if);
+      return(srslte::ERROR_CANT_START);
+  }
+
+  //Set IP of the interface
+  struct sockaddr_in *addr = (struct sockaddr_in*)&ifr.ifr_addr;
+  addr->sin_family = AF_INET;
+  addr->sin_addr.s_addr = inet_addr(args->sgi_if_addr.c_str());
+  addr->sin_port = 0;
+
+  if (ioctl(m_sgi_sock, SIOCSIFADDR, &ifr) < 0) {
+    m_spgw_log->error("Failed to set TUN interface IP. Address: %s, Error: %s\n", args->sgi_if_addr.c_str(), strerror(errno));
+    close(m_sgi_if);
+    close(m_sgi_sock);
+    return srslte::ERROR_CANT_START;
+  }
+
+  ifr.ifr_netmask.sa_family                                 = AF_INET;
+  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+  if (ioctl(m_sgi_sock, SIOCSIFNETMASK, &ifr) < 0) {
+    m_spgw_log->error("Failed to set TUN interface Netmask. Error: %s\n", strerror(errno));
+    close(m_sgi_if);
+    close(m_sgi_sock);
+    return srslte::ERROR_CANT_START;
+  }
+
+  m_sgi_up = true;
+  return(srslte::ERROR_NONE);
+}
+
+srslte::error_t
+spgw::init_s1u(spgw_args_t *args)
+{
+  //Open S1-U socket
+  m_s1u = socket(AF_INET,SOCK_DGRAM,0);
+  if (m_s1u == -1)
+  {
+    m_spgw_log->error("Failed to open socket: %s\n", strerror(errno));
+    return srslte::ERROR_CANT_START;
+  }
+  m_s1u_up = true;
+
+  //Bind the socket
+  struct sockaddr_in servaddr;
+  servaddr.sin_family = AF_INET;
+  servaddr.sin_addr.s_addr=inet_addr(args->gtpu_bind_addr.c_str());
+  servaddr.sin_port=htons(GTPU_RX_PORT);
+
+  if (bind(m_s1u,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in))) {
+    m_spgw_log->error("Failed to bind socket: %s\n", strerror(errno));
+    return srslte::ERROR_CANT_START;
+  }
+  m_spgw_log->info("S1-U socket = %d\n", m_s1u);
+  return srslte::ERROR_NONE;
+}
+
 void
 spgw::run_thread()
 {
@@ -183,104 +284,42 @@ spgw::run_thread()
   return;
 }
 
-srslte::error_t
-spgw::init_sgi_if(spgw_args_t *args)
+
+
+
+void
+spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_create_session_response *cs_resp)
 {
-  char dev[IFNAMSIZ] = "srs_spgw_sgi";
-  struct ifreq ifr;
+  //Setup uplink control TEID
+  uint64_t spgw_uplink_ctrl_teid = get_new_ctrl_teid();
+  //Setup uplink user TEID
+  uint64_t spgw_uplink_user_teid = get_new_user_teid();
+  //Allocate UE IP
+  in_addr_t ue_ip = get_new_ue_ipv4();
 
-  if(m_sgi_up)
-  {
-    return(srslte::ERROR_ALREADY_STARTED);
-  }
+  //Save the UE context //TODO!!!
 
-
-  // Construct the TUN device
-  m_sgi_if = open("/dev/net/tun", O_RDWR);
-  m_spgw_log->info("TUN file descriptor = %d\n", m_sgi_if);
-  if(m_sgi_if < 0)
-  {
-      m_spgw_log->error("Failed to open TUN device: %s\n", strerror(errno));
-      return(srslte::ERROR_CANT_START);
-  }
+  //Create session response message
+  //Initialize to zero\\
+  bzero(cs_resp,sizeof(struct srslte::gtpc_create_session_response));
+  //Setup Cause\\
+  cs_resp->cause = ;
+  //Setup sender F-TEID (ctrl)\\
+  cs_resp->sender_f_teid.teid_present = true;
+  cs_resp->sender_f_teid.teid = spgw_uplink_ctrl_teid;
+  cs_resp->sender_f_teid.ipv4 = m_gtpu_bind_addr;//FIXME This is not relevant, as the GTP-C is not transmitted over sockets yet.
+  //Bearer context created\\
+  cs_resp->eps_bearer_context_created.ebi = 5;
+  cs_resp->eps_bearer_context_created.cause = ;
+  cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present=true;
+  cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid = spgw_uplink_user_teid;
+  //Fill in the PDA\\
+  cs_resp->pda_present = true;
+  cs_resp->pda.pdn_type = srslte::GTPC_IPV4;
+  cs_resp->ipv4_present = true;
+  cs_resp->ipv4 = ue_ip;
   
-  memset(&ifr, 0, sizeof(ifr));
-  ifr.ifr_flags = IFF_TUN | IFF_NO_PI; 
-  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ);
-  if(ioctl(m_sgi_if, TUNSETIFF, &ifr) < 0)
-  {
-      m_spgw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
-      close(m_sgi_if);
-      return(srslte::ERROR_CANT_START);
-  }
-
-  // Bring up the interface
-  m_sgi_sock = socket(AF_INET, SOCK_DGRAM, 0);
-
-  if(ioctl(m_sgi_sock, SIOCGIFFLAGS, &ifr) < 0)
-  {
-      m_spgw_log->error("Failed to bring up socket: %s\n", strerror(errno));
-      close(m_sgi_if);
-      return(srslte::ERROR_CANT_START);
-  }
-  ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-  if(ioctl(m_sgi_sock, SIOCSIFFLAGS, &ifr) < 0)
-  {
-      m_spgw_log->error("Failed to set socket flags: %s\n", strerror(errno));
-      close(m_sgi_if);
-      return(srslte::ERROR_CANT_START);
-  }
-  
-  //Set IP of the interface
-  struct sockaddr_in *addr = (struct sockaddr_in*)&ifr.ifr_addr;
-  addr->sin_family = AF_INET;
-  addr->sin_addr.s_addr = inet_addr(args->sgi_if_addr.c_str());
-  addr->sin_port = 0;  
-  
-  if (ioctl(m_sgi_sock, SIOCSIFADDR, &ifr) < 0) {
-    m_spgw_log->error("Failed to set TUN interface IP. Address: %s, Error: %s\n", args->sgi_if_addr.c_str(), strerror(errno));
-    close(m_sgi_if);
-    close(m_sgi_sock);
-    return srslte::ERROR_CANT_START;
-  }
-
-  ifr.ifr_netmask.sa_family                                 = AF_INET;
-  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
-  if (ioctl(m_sgi_sock, SIOCSIFNETMASK, &ifr) < 0) {
-    m_spgw_log->error("Failed to set TUN interface Netmask. Error: %s\n", strerror(errno));
-    close(m_sgi_if);
-    close(m_sgi_sock);
-    return srslte::ERROR_CANT_START;
-  }
- 
-  m_sgi_up = true;
-  return(srslte::ERROR_NONE);
-}
-
-srslte::error_t
-spgw::init_s1u(spgw_args_t *args)
-{
-  //Open S1-U socket
-  m_s1u = socket(AF_INET,SOCK_DGRAM,0);
-  if (m_s1u == -1)
-  {
-    m_spgw_log->error("Failed to open socket: %s\n", strerror(errno));
-    return srslte::ERROR_CANT_START;
-  }
-  m_s1u_up = true;
-
-  //Bind the socket
-  struct sockaddr_in servaddr;
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr=inet_addr(args->gtpu_bind_addr.c_str());
-  servaddr.sin_port=htons(GTPU_RX_PORT);
-
-  if (bind(m_s1u,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in))) {
-    m_spgw_log->error("Failed to bind socket: %s\n", strerror(errno));
-    return srslte::ERROR_CANT_START;
-  }
-  m_spgw_log->info("S1-U socket = %d\n", m_s1u);
-  return srslte::ERROR_NONE;
+  return;
 }
 
 } //namespace srsepc

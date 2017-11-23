@@ -42,6 +42,7 @@ public:
 
   void init();
   void send_create_session_request(uint64_t imsi, struct srslte::gtpc_create_session_response *cs_resp);
+  uint64_t get_new_ctrl_teid();
 
 private:
 
@@ -53,6 +54,8 @@ private:
 
   spgw* m_spgw;
   in_addr_t m_mme_gtpc_ip;
+
+  uint64_t m_next_ctrl_teid;
 };
 
 }
