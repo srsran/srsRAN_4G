@@ -2721,6 +2721,10 @@ typedef struct{
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req,
                                                      LIBLTE_BYTE_MSG_STRUCT               *msg);
+LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req,
+                                                     uint8                                 sec_hdr_type,
+                                                     uint32                                count,
+                                                     LIBLTE_BYTE_MSG_STRUCT               *msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_request_msg(LIBLTE_BYTE_MSG_STRUCT               *msg,
                                                        LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req);
 
