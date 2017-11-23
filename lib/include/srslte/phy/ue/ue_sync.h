@@ -88,7 +88,12 @@ typedef struct SRSLTE_API {
   bool file_mode; 
   float file_cfo; 
   srslte_cfo_t file_cfo_correct; 
-  
+
+  bool  mean_cfo_isunset;
+  float cfo;
+  float mean_cfo;
+  float cfo_ema_alpha;
+
   srslte_ue_sync_state_t state;
   
   uint32_t frame_len; 

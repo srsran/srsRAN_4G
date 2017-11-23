@@ -128,6 +128,7 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
 
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
+  srslte_ue_ul_set_cfo_tol(&ue_ul, phy->args->cfo_correct_tol_hz);
 
   mem_initiated = true;
 

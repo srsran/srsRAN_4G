@@ -47,6 +47,10 @@
 #define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  0
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
+
+//#define DO_CFO_IN_SYNC
+
+
 cf_t dummy_buffer0[15*2048/2];
 cf_t dummy_buffer1[15*2048/2];
 
@@ -182,6 +186,9 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     q->sample_offset_correct_period = DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD; 
     q->sfo_ema                      = DEFAULT_SFO_EMA_COEFF; 
 
+    q->mean_cfo_isunset = true;
+    q->mean_cfo         = 0;
+    q->cfo_ema_alpha    = 0.4;
     q->max_prb = max_prb;
 
     if (search_cell) {
@@ -217,6 +224,11 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
         goto clean_exit;
       }
     }
+
+#ifndef DO_CFO_IN_SYNC
+    // Disable CFO correction in sync object and do it here every subframe
+    srslte_sync_set_cfo_enable(&q->strack, false);
+#endif
 
     ret = SRSLTE_SUCCESS;
   }
@@ -362,6 +374,7 @@ uint32_t srslte_ue_sync_peak_idx(srslte_ue_sync_t *q) {
 void srslte_ue_sync_set_cfo_ema(srslte_ue_sync_t *q, float ema) {
   srslte_sync_set_cfo_ema_alpha(&q->sfind, ema);
   srslte_sync_set_cfo_ema_alpha(&q->strack, ema);
+  q->cfo_ema_alpha = ema;
 }
 
 srslte_ue_sync_state_t srslte_ue_sync_get_state(srslte_ue_sync_t *q) {
@@ -377,7 +390,11 @@ void srslte_ue_sync_cfo_i_detec_en(srslte_ue_sync_t *q, bool enable) {
 }
 
 float srslte_ue_sync_get_cfo(srslte_ue_sync_t *q) {
+#ifdef DO_CFO_IN_SYNC
   return 15000 * srslte_sync_get_cfo(&q->strack);
+#else
+  return 15000 * q->mean_cfo;
+#endif
 }
 
 void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, float cfo) {  
@@ -661,6 +678,23 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           srslte_sync_sss_en(&q->strack, q->decode_sss_on_track);
           
           q->sf_idx = (q->sf_idx + q->nof_recv_sf) % 10;
+
+#ifndef DO_CFO_IN_SYNC
+          /* We found that CP-based correction performs better in low SNR than PSS-based.
+           *
+           * Estimate, average and correct here instead of inside sync object
+           */
+          q->cfo = srslte_sync_cfo_estimate(&q->strack, input_buffer[0], 0);
+          if (q->mean_cfo_isunset) {
+            q->mean_cfo = q->cfo;
+            q->mean_cfo_isunset = false;
+          } else {
+            /* compute exponential moving average CFO */
+            q->mean_cfo = SRSLTE_VEC_EMA(q->cfo, q->mean_cfo, q->cfo_ema_alpha);
+          }
+          srslte_cfo_correct(&q->strack.cfocorr2, input_buffer[0], input_buffer[0], -q->mean_cfo / q->fft_size);
+
+#endif
 
           /* Every SF idx 0 and 5, find peak around known position q->peak_idx */
           if (q->sf_idx == 0 || q->sf_idx == 5) {
