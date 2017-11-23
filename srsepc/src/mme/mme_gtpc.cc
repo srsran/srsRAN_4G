@@ -91,9 +91,9 @@ mme_gtpc::send_create_session_request(uint64_t imsi, struct create_session_respo
   cs_req->rat_type = GTPC_RAT_TYPE::EUTRAN;
 
   //Save RX Control TEID
-  create_rx_control_teid(cs_req->sender_f_tied);
+  //create_rx_control_teid(cs_req->sender_f_teid);
 
-  spgw->handle_create_session_request(&cs_req, cs_resp);
+  //spgw->handle_create_session_request(&cs_req, cs_resp);
   return;
 }
 } //namespace srsepc

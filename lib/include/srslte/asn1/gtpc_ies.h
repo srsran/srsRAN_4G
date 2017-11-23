@@ -27,8 +27,6 @@
 
 
 #include "srslte/phy/io/netsource.h"
-//#include <linux/in.h>
-//#include <linux/in6.h>
 
 /****************************************************************
  *
@@ -135,7 +133,7 @@ enum gtpc_ie_type
   GTPC_IE_TYPE_TMGI = 158,
   GTPC_IE_TYPE_ADDITIONAL_MM_CONTEXT_FOR_SRVCC = 159,
   GTPC_IE_TYPE_ADDITIONAL_FLAGS_FOR_SRVCC = 160,
-//161 RESERVED 
+//161 RESERVED
   GTPC_IE_TYPE_MDT_CONFIGURATION = 162,
   GTPC_IE_TYPE_APCO = 163,
 //164 RESERVED
@@ -241,7 +239,7 @@ struct gtpc_ambr_ie
  *
  ***************************************************************************/
 /*
- * IP addresses should the sockaddr_storage struct, which can hold IPv4
+ * IP addresse IEs should the sockaddr_storage struct, which can hold IPv4
  * and IPv6 addresses.
  */
 
@@ -321,8 +319,22 @@ struct gtpc_f_teid_ie
   bool v6_present;
   enum gtpc_interface_type interface_type;
   uint32_t teid;
-  struct in_addr  ipv4;
-  struct in6_addr ipv6;
+  in_addr_t  ipv4;
+  struct in6_addr ipv6; //FIXME
 };
+
+//TODO
+//TODO IEs between 8.22 and 8.28 missing
+//TODO
+
+/****************************************************************************
+ *
+ * GTP-C Bearer Context IE
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 8.28-1
+ *
+ ***************************************************************************/
+//The usage of this grouped IE is specific to the GTP-C message being sent.
+//As such, each GTP-C message will define it's bearer context structures
+//locally, according to the rules of  TS 29.274 v10.14.0 Section 7.
 
 #endif //GTPC_IES_H

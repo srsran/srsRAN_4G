@@ -170,7 +170,7 @@ typedef struct gtpc_create_session_request
   bool pgw_addr_present;
   struct gtpc_f_teid_ie pgw_addr;					// C
 
-  char[MAX_APN_LENGTH] apn;							// M
+  char apn[MAX_APN_LENGTH];							// M
   //bool selection_mode_present;
   //enum selection_mode_ selection_mode;				// C/CO
   //bool pdn_type_present;
@@ -186,7 +186,23 @@ typedef struct gtpc_create_session_request
   //bool pco_present;
   //uint8_t pco;							// C
 
-  struct gtpc_bearer_context_ie bearer_context_created;		// M
+  struct gtpc_bearer_context_created_ie //see  TS 29.274 v10.14.0 Table 7.2.1-2
+  {
+    uint8_t ebi;
+    bool tft_present;
+    bool s1_u_enodeb_f_teid_present;
+    struct gtpc_f_teid_ie s1_u_enodeb_f_teid;
+    bool s4_u_sgsn_f_teid_present;
+    struct gtpc_f_teid_ie s4_u_sgsn_f_teid;
+    bool s5_s8_u_sgw_f_teid_present;
+    struct gtpc_f_teid_ie s5_s8_u_sgw_f_teid;
+    bool s5_s8_u_pgw_f_teid_present;
+    struct gtpc_f_teid_ie s5_s8_u_pgw_f_teid;
+    bool s12_rnc_f_teid_present;
+    struct gtpc_f_teid_ie s12_rnc_f_teid;
+    bool s2b_u_epdg_f_teid_present;
+    struct gtpc_f_teid_ie s2b_u_epdg_f_teid;
+  } bearer_context_created;		// M
   //bool bearer_context_deleted_present;
   //struct bearer_context_ bearer_context_deleted;		// C
   //bool trace_information_present;
