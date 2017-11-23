@@ -449,7 +449,12 @@ static inline simd_f_t srslte_simd_f_sqrt(simd_f_t a) {
 #ifdef HAVE_NEON
   float32x4_t sqrt_reciprocal = vrsqrteq_f32(a);
   sqrt_reciprocal = vmulq_f32(vrsqrtsq_f32(vmulq_f32(a,sqrt_reciprocal), sqrt_reciprocal),sqrt_reciprocal);
-  return vmulq_f32(a,sqrt_reciprocal);
+  float32x4_t result = vmulq_f32(a,sqrt_reciprocal);
+
+  /* Detect zeros in NEON 1/sqrtf for preventing NaN */
+  float32x4_t zeros = vmovq_n_f32(0);    /* Zero vector */
+  uint32x4_t mask = vceqq_f32(a, zeros); /* Zero vector mask */
+  return vbslq_f32(mask, zeros, result); /* Force zero results and return */
 #endif /* HAVE_NEON */  
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
