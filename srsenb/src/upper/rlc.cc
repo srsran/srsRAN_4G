@@ -160,6 +160,14 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
   }
 }
 
+bool rlc::rb_is_um(uint16_t rnti, uint32_t lcid) {
+  if (users.count(rnti)) {
+    return users[rnti].rlc->rb_is_um(lcid);
+  } else {
+    return false;
+  }
+}
+
 void rlc::user_interface::max_retx_attempted()
 {
   rrc->max_retx_attempted(rnti);

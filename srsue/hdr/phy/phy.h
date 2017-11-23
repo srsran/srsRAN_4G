@@ -87,6 +87,7 @@ public:
   void    cell_search_stop();
   void    cell_search_next();
   bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
+  bool    cell_handover(srslte_cell_t cell);
 
   void    meas_reset();
   int     meas_start(uint32_t earfcn, int pci);

@@ -94,10 +94,11 @@ void phch_worker::reset()
   bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
   bzero(&srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
   bzero(&period_cqi, sizeof(srslte_cqi_periodic_cfg_t));
-  I_sr = 0; 
+  sr_configured   = false;
   rnti_is_set     = false; 
   rar_cqi_request = false;
-  cfi = 0;
+  I_sr = 0;
+  cfi  = 0;
 }
 
 void phch_worker::set_common(phch_common* phy_)
@@ -801,7 +802,7 @@ void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_
 void phch_worker::set_uci_sr()
 {
   uci_data.scheduling_request = false; 
-  if (phy->sr_enabled) {
+  if (phy->sr_enabled && sr_configured) {
     uint32_t sr_tx_tti = TTI_TX(tti);
     // Get I_sr parameter   
     if (srslte_ue_ul_sr_send_tti(I_sr, sr_tx_tti)) {
@@ -944,7 +945,8 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   snprintf(timestr, 64, ", tot_time=%4d us", (int) logtime_start[0].tv_usec);
 #endif
 
-  Info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d, ack=%s, ri=%s, cfo=%.1f KHz%s\n",
+  uint8_t dummy[2] = {0,0};
+  log_h->info_hex(payload?payload:dummy, payload?grant->mcs.tbs/8:1,"PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d, ack=%s, ri=%s, cfo=%.1f KHz%s\n",
        (tti+HARQ_DELAY_MS)%10240,
        grant->n_prb[0], grant->n_prb[0]+grant->L_prb,
        grant->mcs.tbs/8, grant->mcs.idx, rv,
@@ -1144,7 +1146,7 @@ void phch_worker::set_ul_params(bool pregen_disabled)
 
   /* SR configuration */
   I_sr                         = dedicated->sched_request_cnfg.sr_cnfg_idx;
-  
+  sr_configured                = true;
   
   if (pregen_enabled && !pregen_disabled) { 
     Info("Pre-generating UL signals worker=%d\n", get_id());
@@ -1253,7 +1255,7 @@ void phch_worker::update_measurements()
       } else {
         phy->avg_rsrp_db = SRSLTE_VEC_EMA(phy->avg_rsrp_db, rsrp, 0.8);
       }    
-      if ((tti%phy->serving_cell_report_period) == 0) {
+      if ((tti%phy->pcell_report_period) == 0 && phy->pcell_meas_enabled) {
         phy->rrc->new_phy_meas(phy->avg_rsrp_db, phy->avg_rsrq_db, tti);
       }
     }

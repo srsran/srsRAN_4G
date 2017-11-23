@@ -54,6 +54,7 @@ public:
   bool is_drb_enabled(uint32_t lcid);
 
   // RRC interface
+  void reestablish();
   void reset();
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
   void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());

@@ -96,6 +96,7 @@ void rrc::init(phy_interface_rrc *phy_,
   t301 = mac_timers->timer_get_unique_id();
   t310 = mac_timers->timer_get_unique_id();
   t311 = mac_timers->timer_get_unique_id();
+  t304 = mac_timers->timer_get_unique_id();
 
   transaction_id = 0;
 
@@ -104,6 +105,8 @@ void rrc::init(phy_interface_rrc *phy_,
 
   nof_sib1_trials = 0;
   last_win_start  = 0;
+
+  pending_mob_reconf = false;
 
   // Set default values for all layers
   set_rrc_default();
@@ -231,6 +234,13 @@ void rrc::run_thread() {
         break;
       case RRC_STATE_CONNECTED:
         // Take measurements, cell reselection, etc
+        break;
+      case RRC_STATE_HO_PREPARE:
+        ho_prepare();
+        state = RRC_STATE_HO_PROCESS;
+        break;
+      case RRC_STATE_HO_PROCESS:
+        // wait for HO to finish
         break;
       case RRC_STATE_LEAVE_CONNECTED:
         usleep(60000);
@@ -412,6 +422,9 @@ void rrc::select_next_cell_in_plmn() {
           {
             last_selected_cell = i;
             current_cell = &known_cells[i];
+            rrc_log->info("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x, addr=0x%x\n",
+                          current_cell->phy_cell.id, current_cell->earfcn,
+                          current_cell->sib1.cell_id, current_cell);
             return;
           } else {
             rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x.\n",
@@ -433,17 +446,17 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
   // find if cell_id-earfcn combination already exists
   for (uint32_t i = 0; i < known_cells.size(); i++) {
     if (earfcn == known_cells[i].earfcn && phy_cell.id == known_cells[i].phy_cell.id) {
-      known_cells[i].rsrp    = rsrp;
-      known_cells[i].in_sync = true;
       current_cell = &known_cells[i];
-      rrc_log->info("Updating cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n", known_cells[i].earfcn,
-                    known_cells[i].phy_cell.id, known_cells[i].rsrp);
+      current_cell->rsrp    = rsrp;
+      current_cell->in_sync = true;
+      rrc_log->info("Updating cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n", current_cell->earfcn,
+                    current_cell->phy_cell.id, current_cell->rsrp);
 
-      if (!known_cells[i].has_valid_sib1) {
+      if (!current_cell->has_valid_sib1) {
         si_acquire_state = SI_ACQUIRE_SIB1;
       } else if (state == RRC_STATE_PLMN_SELECTION) {
-        for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
-          nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
+        for (uint32_t j = 0; j < current_cell->sib1.N_plmn_ids; j++) {
+          nas->plmn_found(current_cell->sib1.plmn_id[j].id, current_cell->sib1.tracking_area_code);
         }
         usleep(5000);
         phy->cell_search_next();
@@ -465,9 +478,9 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
   si_acquire_state = SI_ACQUIRE_SIB1;
 
-  rrc_log->info("New Cell: PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm\n",
-                cell.phy_cell.id, cell.phy_cell.nof_prb, cell.phy_cell.nof_ports,
-                cell.earfcn, cell.rsrp);
+  rrc_log->info("New Cell: PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm, addr=0x%x\n",
+                current_cell->phy_cell.id, current_cell->phy_cell.nof_prb, current_cell->phy_cell.nof_ports,
+                current_cell->earfcn, current_cell->rsrp, current_cell);
 }
 
 // PHY indicates that has gone through all known EARFCN
@@ -480,7 +493,22 @@ void rrc::earfcn_end() {
   }
 }
 
-
+void rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
+  for (uint32_t i = 0; i < known_cells.size(); i++) {
+    if (earfcn == known_cells[i].earfcn && pci == known_cells[i].phy_cell.id) {
+      known_cells[i].rsrp = rsrp;
+      return;
+    }
+  }
+  rrc_log->info("Added neighbour cell earfcn=%d, pci=%d, rsrp=%f\n", earfcn, pci, rsrp);
+  cell_t c;
+  bzero(&c, sizeof(cell_t));
+  c.earfcn = earfcn;
+  c.rsrp   = rsrp;
+  memcpy(&c.phy_cell, &current_cell->phy_cell, sizeof(srslte_cell_t));
+  c.phy_cell.id = pci;
+  known_cells.push_back(c);
+}
 
 
 
@@ -572,6 +600,8 @@ void rrc::timer_expired(uint32_t timeout_id) {
   } else if (timeout_id == t301) {
     rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
     state = RRC_STATE_LEAVE_CONNECTED;
+  } else if (timeout_id == t304) {
+    rrc_log->console("Timer T304 expired: Handover failed\n");
   // fw to measurement
   } else if (!measurements.timer_expired(timeout_id)) {
     rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
@@ -777,40 +807,134 @@ void rrc::send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu) {
   send_ul_dcch_msg(pdu);
 }
 
-void rrc::send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu) {
+void rrc::send_rrc_con_reconfig_complete(byte_buffer_t *pdu) {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_RECONFIG_COMPLETE;
   ul_dcch_msg.msg.rrc_con_reconfig_complete.rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg();
+  send_ul_dcch_msg(pdu);
 }
 
+void rrc::ho_prepare() {
+  if (pending_mob_reconf) {
+    rrc_log->info("Processing HO command to target PCell=%d\n", mob_reconf.mob_ctrl_info.target_pci);
+
+    // Section 5.3.5.4
+    mac_timers->timer_get(t310)->stop();
+    mac_timers->timer_get(t304)->set(this, liblte_rrc_t304_num[mob_reconf.mob_ctrl_info.t304]);
+    if (mob_reconf.mob_ctrl_info.carrier_freq_eutra_present &&
+        mob_reconf.mob_ctrl_info.carrier_freq_eutra.dl_carrier_freq != current_cell->earfcn) {
+      rrc_log->warning("Received mobilityControlInfo for inter-frequency handover\n");
+    }
+
+    phy->meas_reset();
+    mac->wait_uplink();
+    pdcp->reestablish();
+    rlc->reestablish();
+    mac->reset();
+    phy->reset();
+    mac->set_ho_rnti(mob_reconf.mob_ctrl_info.new_ue_id, mob_reconf.mob_ctrl_info.target_pci);
+    apply_rr_config_common_dl(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
+
+    uint32_t current_earfcn = 0;
+    phy->get_current_cell(NULL, &current_earfcn);
+
+    bool found = false;
+    for (uint32_t i = 0; i < known_cells.size(); i++) {
+      rrc_log->info("cell[%d]=%d:%d, cur_earfcn=%d\n", i, known_cells[i].earfcn, known_cells[i].phy_cell.id,
+                    current_cell->earfcn);
+      if (known_cells[i].earfcn == current_earfcn &&
+          known_cells[i].phy_cell.id == mob_reconf.mob_ctrl_info.target_pci) {
+        rrc_log->info("Selecting new cell pci=%d\n", known_cells[i].phy_cell.id);
+        if (!phy->cell_handover(known_cells[i].phy_cell)) {
+          rrc_log->error("Could not synchronize with target cell pci=%d\n", known_cells[i].phy_cell.id);
+        }
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      rrc_log->error("Could not find target cell pci=%d\n", mob_reconf.mob_ctrl_info.target_pci);
+      return;
+    }
+
+    if (mob_reconf.mob_ctrl_info.rach_cnfg_ded_present) {
+      mac->start_noncont_ho(mob_reconf.mob_ctrl_info.rach_cnfg_ded.preamble_index,
+                            mob_reconf.mob_ctrl_info.rach_cnfg_ded.prach_mask_index);
+    } else {
+      mac->start_cont_ho();
+    }
+
+    printf("ncc=%d\n", mob_reconf.sec_cnfg_ho.intra_lte.next_hop_chaining_count);
+    usim->generate_as_keys_ho(mob_reconf.mob_ctrl_info.target_pci, current_earfcn,
+                              k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+    pdcp->config_security(1, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+    send_rrc_con_reconfig_complete(NULL);
+  }
+}
+
+void rrc::ho_ra_completed(bool ra_successful) {
+  if (pending_mob_reconf) {
+
+    measurements.ho_finish();
+
+    if (mob_reconf.meas_cnfg_present) {
+      measurements.parse_meas_config(&mob_reconf.meas_cnfg);
+    }
+
+    if (ra_successful) {
+      mac_timers->timer_get(t304)->stop();
+
+      apply_rr_config_common_ul(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
+      if (mob_reconf.rr_cnfg_ded_present) {
+        apply_rr_config_dedicated(&mob_reconf.rr_cnfg_ded);
+      }
+    }
+
+    rrc_log->info("HO %ssuccessful\n", ra_successful?"":"un");
+    rrc_log->console("HO %ssuccessful\n", ra_successful?"":"un");
+
+    pending_mob_reconf = false;
+    state = RRC_STATE_CONNECTED;
+  } else {
+    rrc_log->error("Received HO random access completed but no pending mobility reconfiguration info\n");
+  }
+}
 
 void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig,
                                   byte_buffer_t *pdu) {
   uint32_t i;
 
-  if (reconfig->rr_cnfg_ded_present) {
-    apply_rr_config_dedicated(&reconfig->rr_cnfg_ded);
-  } else {
-    printf("received con reconfig no rr confg present\n");
-  }
-  if (reconfig->meas_cnfg_present) {
-    measurements.parse_meas_config(&reconfig->meas_cnfg);
-  }
   if (reconfig->mob_ctrl_info_present) {
-    //TODO: handle mob_ctrl_info
-  }
 
-  send_rrc_con_reconfig_complete(lcid, pdu);
+    rrc_log->info("Received HO command to target PCell=%d\n", reconfig->mob_ctrl_info.target_pci);
+    rrc_log->console("Received HO command to target PCell=%d\n", reconfig->mob_ctrl_info.target_pci);
 
-  byte_buffer_t *nas_sdu;
-  for (i = 0; i < reconfig->N_ded_info_nas; i++) {
-    nas_sdu = pool_allocate;
-    memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
-    nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
-    nas->write_pdu(lcid, nas_sdu);
+    // store mobilityControlInfo
+    memcpy(&mob_reconf, reconfig, sizeof(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT));
+    pending_mob_reconf = true;
+
+    state = RRC_STATE_HO_PREPARE;
+
+  } else {
+    // Section 5.3.5.3
+    if (reconfig->rr_cnfg_ded_present) {
+      apply_rr_config_dedicated(&reconfig->rr_cnfg_ded);
+    }
+    if (reconfig->meas_cnfg_present) {
+      measurements.parse_meas_config(&reconfig->meas_cnfg);
+    }
+
+    send_rrc_con_reconfig_complete(pdu);
+
+    byte_buffer_t *nas_sdu;
+    for (i = 0; i < reconfig->N_ded_info_nas; i++) {
+      nas_sdu = pool_allocate;
+      memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
+      nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
+      nas->write_pdu(lcid, nas_sdu);
+    }
   }
 }
 
@@ -1022,7 +1146,7 @@ void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
 }
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", get_rb_name(lcid).c_str());
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
   switch (state) {
     case RRC_STATE_CONNECTING:
       send_con_setup_complete(sdu);
@@ -1037,8 +1161,8 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 }
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", get_rb_name(lcid).c_str());
-  rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid).c_str());
+  rrc_log->info("RX PDU Stack latency: %ld us\n", pdu->get_latency_us());
 
   switch (lcid) {
     case RB_ID_SRB0:
@@ -1049,7 +1173,7 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
       parse_dl_dcch(lcid, pdu);
       break;
     default:
-      rrc_log->error("TX PDU with invalid bearer id: %s", lcid);
+      rrc_log->error("RX PDU with invalid bearer id: %s", lcid);
       break;
   }
 }
@@ -1264,6 +1388,54 @@ void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu) {
 *
 *
 *******************************************************************************/
+
+void rrc::apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config) {
+  mac_interface_rrc::mac_cfg_t mac_cfg;
+  mac->get_config(&mac_cfg);
+  if (config->rach_cnfg_present) {
+    memcpy(&mac_cfg.rach, &config->rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT));
+  }
+  mac_cfg.prach_config_index = config->prach_cnfg.root_sequence_index;
+  mac_cfg.ul_harq_params.max_harq_msg3_tx = config->rach_cnfg.max_harq_msg3_tx;
+
+  mac->set_config(&mac_cfg);
+
+  phy_interface_rrc::phy_cfg_t phy_cfg;
+  phy->get_config(&phy_cfg);
+  phy_interface_rrc::phy_cfg_common_t *common = &phy_cfg.common;
+
+  if (config->pdsch_cnfg_present) {
+    memcpy(&common->pdsch_cnfg, &config->pdsch_cnfg, sizeof(LIBLTE_RRC_PDSCH_CONFIG_COMMON_STRUCT));
+  }
+  common->prach_cnfg.root_sequence_index = config->prach_cnfg.root_sequence_index;
+  if (config->prach_cnfg.prach_cnfg_info_present) {
+    memcpy(&common->prach_cnfg.prach_cnfg_info, &config->prach_cnfg.prach_cnfg_info, sizeof(LIBLTE_RRC_PRACH_CONFIG_INFO_STRUCT));
+  }
+
+  phy->set_config_common(common);
+}
+
+void rrc::apply_rr_config_common_ul(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config) {
+  phy_interface_rrc::phy_cfg_t phy_cfg;
+  phy->get_config(&phy_cfg);
+  phy_interface_rrc::phy_cfg_common_t *common = &phy_cfg.common;
+
+  memcpy(&common->pusch_cnfg, &config->pusch_cnfg, sizeof(LIBLTE_RRC_PUSCH_CONFIG_COMMON_STRUCT));
+  if (config->pucch_cnfg_present) {
+    memcpy(&common->pucch_cnfg, &config->pucch_cnfg, sizeof(LIBLTE_RRC_PUCCH_CONFIG_COMMON_STRUCT));
+  }
+  if (config->ul_pwr_ctrl_present) {
+    memcpy(&common->ul_pwr_ctrl, &config->ul_pwr_ctrl, sizeof(LIBLTE_RRC_UL_POWER_CONTROL_COMMON_STRUCT));
+  }
+  if (config->srs_ul_cnfg.present) {
+    memcpy(&common->srs_ul_cnfg, &config->srs_ul_cnfg, sizeof(LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT));
+  } else {
+    // default is release
+    common->srs_ul_cnfg.present = false;
+  }
+  phy->set_config_common(common);
+  phy->configure_ul_params();
+}
 
 void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
 
@@ -1800,6 +1972,9 @@ void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, floa
   if (earfcn == 0) {
     L3_filter(&pcell_measurement, values);
   } else {
+    // Add to known cells
+    parent->add_neighbour_cell(earfcn, pci, rsrp);
+
     // Save PHY measurement for all active measurements whose earfcn/pci matches
     for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
       meas_t *m = &iter->second;
@@ -1815,6 +1990,7 @@ void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, floa
         return;
       }
     }
+
     parent->rrc_log->warning("MEAS:  Received measurement from unknown EARFCN=%d\n", earfcn);
   }
 }
@@ -1866,7 +2042,7 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   report->pcell_rsrp_result = value_to_range(RSRP, pcell_measurement.ms[RSRP]);
   report->pcell_rsrq_result = value_to_range(RSRQ, pcell_measurement.ms[RSRQ]);
 
-  log_h->console("MEAS:  Generate report MeasId=%d, rsrp=%f rsrq=%f\n",
+  log_h->info("MEAS:  Generate report MeasId=%d, rsrp=%f rsrq=%f\n",
               report->meas_id, pcell_measurement.ms[RSRP], pcell_measurement.ms[RSRQ]);
 
   // TODO: report up to 8 best cells
@@ -1882,7 +2058,7 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
       rc->meas_result.rsrp_result = value_to_range(RSRP, cell->second.ms[RSRP]);
       rc->meas_result.rsrq_result = value_to_range(RSRQ, cell->second.ms[RSRQ]);
 
-      log_h->console("MEAS:  Add neigh=%d, pci=%d, rsrp=%f, rsrq=%f\n",
+      log_h->info("MEAS:  Add neigh=%d, pci=%d, rsrp=%f, rsrq=%f\n",
                      report->meas_result_neigh_cells.eutra.n_result, rc->phys_cell_id,
                      cell->second.ms[RSRP], cell->second.ms[RSRQ]);
 
@@ -2037,6 +2213,26 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
   }
 }
 
+// Procedure upon handover or reestablishment 5.5.6.1
+void rrc::rrc_meas::ho_finish() {
+  // Remove all measId with trigger periodic
+  std::map<uint32_t, meas_t>::iterator iter = active.begin();
+  while (iter != active.end()) {
+    if (reports_cfg[iter->second.report_id].trigger_type == report_cfg_t::PERIODIC) {
+      remove_meas_id(iter++);
+    } else {
+      ++iter;
+    }
+  }
+
+  //TODO: Inter-frequency handover
+
+  // Stop all reports
+  for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
+    stop_reports(&iter->second);
+  }
+}
+
 // 5.5.4.1 expiry of periodical reporting timer
 bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
@@ -2048,41 +2244,53 @@ bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
   return false;
 }
 
+void rrc::rrc_meas::stop_reports(meas_t *m) {
+  mac_timers->timer_get(m->periodic_timer)->stop();
+  m->triggered = false;
+}
+
 void rrc::rrc_meas::stop_reports_object(uint32_t object_id) {
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-    meas_t *m = &iter->second;
-    if (m->object_id == object_id) {
-      mac_timers->timer_get(m->periodic_timer)->stop();
-      m->triggered = false;
+    if (iter->second.object_id == object_id) {
+      stop_reports(&iter->second);
     }
   }
 }
 
 void rrc::rrc_meas::remove_meas_object(uint32_t object_id) {
-  // CHECKME: Is the delete from the map correct?
-  for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
-    meas_t m = iter->second;
-    if (m.object_id == object_id) {
-      remove_meas_id(iter->first);
+  std::map<uint32_t, meas_t>::iterator iter = active.begin();
+  while (iter != active.end()) {
+    if (iter->second.object_id == object_id) {
+      remove_meas_id(iter++);
+    } else {
+      ++iter;
     }
   }
 }
 
 void rrc::rrc_meas::remove_meas_report(uint32_t report_id) {
-  // CHECKME: Is the delete from the map correct?
-  for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
-    meas_t m = iter->second;
-    if (m.report_id == report_id) {
-      remove_meas_id(iter->first);
+  std::map<uint32_t, meas_t>::iterator iter = active.begin();
+  while (iter != active.end()) {
+    if (iter->second.report_id == report_id) {
+      remove_meas_id(iter++);
+    } else {
+      ++iter;
     }
   }
 }
 
-void rrc::rrc_meas::remove_meas_id(uint32_t meas_id) {
-  mac_timers->timer_get(active[meas_id].periodic_timer)->stop();
-  mac_timers->timer_release_id(active[meas_id].periodic_timer);
-  active.erase(meas_id);
-  log_h->info("MEAS: Removed measId=%d\n", meas_id);
+void rrc::rrc_meas::remove_meas_id(uint32_t measId) {
+  mac_timers->timer_get(active[measId].periodic_timer)->stop();
+  mac_timers->timer_release_id(active[measId].periodic_timer);
+  log_h->info("MEAS: Removed measId=%d\n", measId);
+  active.erase(measId);
+}
+
+void rrc::rrc_meas::remove_meas_id(std::map<uint32_t, meas_t>::iterator it) {
+  mac_timers->timer_get(it->second.periodic_timer)->stop();
+  mac_timers->timer_release_id(it->second.periodic_timer);
+  log_h->info("MEAS: Removed measId=%d\n", it->first);
+  active.erase(it);
 }
 
 /* Parses MeasConfig object from RRCConnectionReconfiguration message and applies configuration
@@ -2090,28 +2298,6 @@ void rrc::rrc_meas::remove_meas_id(uint32_t meas_id) {
  */
 void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 {
-
-  // Measurement identity removal 5.5.2.2
-  for (uint32_t i=0;i<cfg->N_meas_id_to_remove;i++) {
-    remove_meas_id(cfg->meas_id_to_remove_list[i]);
-  }
-
-  // Measurement identity addition/modification 5.5.2.3
-  if (cfg->meas_id_to_add_mod_list_present) {
-    for (uint32_t i=0;i<cfg->meas_id_to_add_mod_list.N_meas_id;i++) {
-      LIBLTE_RRC_MEAS_ID_TO_ADD_MOD_STRUCT *measId = &cfg->meas_id_to_add_mod_list.meas_id_list[i];
-      // Stop the timer if the entry exists or create the timer if not
-      if (active.count(measId->meas_id)) {
-        mac_timers->timer_get(active[measId->meas_id].periodic_timer)->stop();
-      } else {
-        active[measId->meas_id].periodic_timer   = mac_timers->timer_get_unique_id();
-      }
-      active[measId->meas_id].object_id = measId->meas_obj_id;
-      active[measId->meas_id].report_id = measId->rep_cnfg_id;
-      log_h->info("MEAS: Added measId=%d, measObjectId=%d, reportConfigId=%d\n",
-                  measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id);
-    }
-  }
 
   // Measurement object removal 5.5.2.4
   for (uint32_t i=0;i<cfg->N_meas_obj_to_remove;i++) {
@@ -2196,11 +2382,9 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 
         // Reset reports counter
         for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
-          meas_t m = iter->second;
-          if (m.report_id == cfg->rep_cnfg_to_add_mod_list.rep_cnfg_list[i].rep_cnfg_id) {
+          if (iter->second.report_id == cfg->rep_cnfg_to_add_mod_list.rep_cnfg_list[i].rep_cnfg_id) {
             iter->second.nof_reports_sent = 0;
-            m.triggered = false;
-            mac_timers->timer_get(m.periodic_timer)->stop();
+            stop_reports(&iter->second);
           }
         }
       } else {
@@ -2225,6 +2409,28 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
     filter_a[RSRQ] = pow(0.5, (float) filter_k_rsrq/4);
 
     log_h->info("MEAS: Quantity configuration k_rsrp=%d, k_rsrq=%d\n", filter_k_rsrp, filter_k_rsrq);
+  }
+
+  // Measurement identity removal 5.5.2.2
+  for (uint32_t i=0;i<cfg->N_meas_id_to_remove;i++) {
+    remove_meas_id(cfg->meas_id_to_remove_list[i]);
+  }
+
+  // Measurement identity addition/modification 5.5.2.3
+  if (cfg->meas_id_to_add_mod_list_present) {
+    for (uint32_t i=0;i<cfg->meas_id_to_add_mod_list.N_meas_id;i++) {
+      LIBLTE_RRC_MEAS_ID_TO_ADD_MOD_STRUCT *measId = &cfg->meas_id_to_add_mod_list.meas_id_list[i];
+      // Stop the timer if the entry exists or create the timer if not
+      if (active.count(measId->meas_id)) {
+        mac_timers->timer_get(active[measId->meas_id].periodic_timer)->stop();
+      } else {
+        active[measId->meas_id].periodic_timer   = mac_timers->timer_get_unique_id();
+      }
+      active[measId->meas_id].object_id = measId->meas_obj_id;
+      active[measId->meas_id].report_id = measId->rep_cnfg_id;
+      log_h->info("MEAS: Added measId=%d, measObjectId=%d, reportConfigId=%d\n",
+                  measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id);
+    }
   }
 
   // S-Measure

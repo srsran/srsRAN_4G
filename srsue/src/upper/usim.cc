@@ -222,10 +222,44 @@ void usim::generate_as_keys(uint32_t count_ul,
                             CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                             INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
+
   // Generate K_enb
   security_generate_k_enb( k_asme,
                            count_ul,
                            k_enb);
+
+  // Generate K_rrc_enc and K_rrc_int
+  security_generate_k_rrc( k_enb,
+                           cipher_algo,
+                           integ_algo,
+                           k_rrc_enc,
+                           k_rrc_int);
+
+  // Generate K_up_enc and K_up_int
+  security_generate_k_up( k_enb,
+                          cipher_algo,
+                          integ_algo,
+                          k_up_enc,
+                          k_up_int);
+}
+
+void usim::generate_as_keys_ho(uint32_t pci,
+                               uint32_t earfcn,
+                               uint8_t *k_rrc_enc,
+                               uint8_t *k_rrc_int,
+                               uint8_t *k_up_enc,
+                               uint8_t *k_up_int,
+                               CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                               INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+{
+
+  // Generate K_enb
+  security_generate_k_enb_star( k_enb,
+                                pci,
+                                earfcn,
+                                k_enb_star);
+
+  memcpy(k_enb, k_enb_star, 32);
 
   // Generate K_rrc_enc and K_rrc_int
   security_generate_k_rrc( k_enb,

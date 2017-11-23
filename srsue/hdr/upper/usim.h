@@ -84,6 +84,15 @@ public:
                         srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                         srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
+  void generate_as_keys_ho(uint32_t pci,
+                           uint32_t earfcn,
+                           uint8_t *k_rrc_enc,
+                           uint8_t *k_rrc_int,
+                           uint8_t *k_up_enc,
+                           uint8_t *k_up_int,
+                           srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                           srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+
 
 private:
   void gen_auth_res_milenage( uint8_t  *rand,
@@ -119,6 +128,7 @@ private:
   uint8_t     autn[16];
   uint8_t     k_asme[32];
   uint8_t     k_enb[32];
+  uint8_t     k_enb_star[32];
 
   bool initiated;
 

@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
 
   printf("N_id_2: %d\n", N_id_2);  
 
-  srslte_rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf, false);
   
   printf("Frame length %d samples\n", flen);
   printf("PSS detection threshold: %.2f\n", threshold);

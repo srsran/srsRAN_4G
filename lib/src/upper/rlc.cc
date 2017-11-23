@@ -95,6 +95,14 @@ void rlc::get_metrics(rlc_metrics_t &m)
   reset_metrics();
 }
 
+void rlc::reestablish() {
+  for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
+    if(rlc_array[i].active()) {
+      rlc_array[i].reestablish();
+    }
+  }
+}
+
 void rlc::reset()
 {
   for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
@@ -121,6 +129,10 @@ void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
   if(valid_lcid(lcid)) {
     rlc_array[lcid].write_sdu(sdu);
   }
+}
+
+bool rlc::rb_is_um(uint32_t lcid) {
+  return rlc_array[lcid].get_mode()==RLC_MODE_UM;
 }
 
 std::string rlc::get_rb_name(uint32_t lcid)

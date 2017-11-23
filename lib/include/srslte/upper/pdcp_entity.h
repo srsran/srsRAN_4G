@@ -69,6 +69,7 @@ public:
             uint32_t                       lcid_,
             srslte_pdcp_config_t           cfg_);
   void reset();
+  void reestablish();
 
   bool is_active();
 
@@ -94,8 +95,8 @@ private:
   uint32_t            lcid;
   srslte_pdcp_config_t cfg;
 
-  uint32_t            rx_count;
   uint32_t            tx_count;
+  uint32_t            tx_sn;
   uint8_t             k_rrc_enc[32];
   uint8_t             k_rrc_int[32];
 

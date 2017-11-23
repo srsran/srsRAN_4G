@@ -552,7 +552,7 @@ int main(int argc, char **argv) {
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-    srslte_rf_start_rx_stream(&rf);    
+    srslte_rf_start_rx_stream(&rf, false);
   }
 #endif
     

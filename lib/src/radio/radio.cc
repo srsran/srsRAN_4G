@@ -392,9 +392,9 @@ void radio::set_tx_srate(double srate)
   tx_adv_sec = nsamples/cur_tx_srate;
 }
 
-void radio::start_rx()
+void radio::start_rx(bool now)
 {
-  srslte_rf_start_rx_stream(&rf_device);
+  srslte_rf_start_rx_stream(&rf_device, now);
 }
 
 void radio::stop_rx()

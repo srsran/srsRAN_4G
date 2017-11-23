@@ -299,6 +299,43 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_enb(uint8  *k_asme,
 }
 
 /*********************************************************************
+    Name: liblte_security_generate_k_enb_star
+
+    Description: Generate the security key Kenb*.
+
+    Document Reference: 33.401 v10.0.0 Annex A.5
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_generate_k_enb_star(uint8  *k_enb,
+                                                      uint32  pci,
+                                                      uint32_t earfcn,
+                                                      uint8  *k_enb_star)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8 s[9];
+
+    if (k_enb_star != NULL &&
+        k_enb != NULL) {
+        // Construct S
+        s[0] = 0x13; // FC
+        s[1] = (pci >> 8) & 0xFF; // First byte of P0
+        s[2] = pci & 0xFF; // Second byte of P0
+        s[3] = 0x00; // First byte of L0
+        s[4] = 0x02; // Second byte of L0
+        s[5] = (earfcn >> 8) & 0xFF; // First byte of P0
+        s[6] = earfcn & 0xFF; // Second byte of P0
+        s[7] = 0x00; // First byte of L0
+        s[8] = 0x02; // Second byte of L0
+
+        // Derive Kenb
+        sha256(k_enb, 32, s, 9, k_enb_star, 0);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return (err);
+}
+
+/*********************************************************************
     Name: liblte_security_generate_k_nas
 
     Description: Generate the NAS security keys KNASenc and KNASint.

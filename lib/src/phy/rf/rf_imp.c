@@ -149,9 +149,9 @@ bool srslte_rf_rx_wait_lo_locked(srslte_rf_t *rf)
   return ((rf_dev_t*) rf->dev)->srslte_rf_rx_wait_lo_locked(rf->handler);  
 }
 
-int srslte_rf_start_rx_stream(srslte_rf_t *rf)
+int srslte_rf_start_rx_stream(srslte_rf_t *rf, bool now)
 {
-  return ((rf_dev_t*) rf->dev)->srslte_rf_start_rx_stream(rf->handler);  
+  return ((rf_dev_t*) rf->dev)->srslte_rf_start_rx_stream(rf->handler, now);
 }
 
 int srslte_rf_stop_rx_stream(srslte_rf_t *rf)

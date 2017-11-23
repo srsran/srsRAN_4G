@@ -67,8 +67,9 @@ private:
     uint16_t rnti; 
     srsenb::rlc_interface_pdcp *rlc; 
     // rlc_interface_pdcp
-    void write_sdu(uint32_t lcid,  srslte::byte_buffer_t *sdu); 
-  }; 
+    void write_sdu(uint32_t lcid,  srslte::byte_buffer_t *sdu);
+    bool rb_is_um(uint32_t lcid);
+  };
   
   class user_interface_gtpu : public srsue::gw_interface_pdcp
   {

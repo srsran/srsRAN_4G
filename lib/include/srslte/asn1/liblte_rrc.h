@@ -2684,6 +2684,7 @@ typedef enum{
 }LIBLTE_RRC_T304_ENUM;
 static const char liblte_rrc_t304_text[LIBLTE_RRC_T304_N_ITEMS][20] = {   "50",   "100",   "150",   "200",
                                                                          "500",  "1000",  "2000", "SPARE"};
+static const int32 liblte_rrc_t304_num[LIBLTE_RRC_T304_N_ITEMS] = {50, 100, 150, 200, 500, 1000, 2000, -1};
 // Structs
 typedef struct{
     uint8 p_b;
