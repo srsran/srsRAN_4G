@@ -33,7 +33,6 @@ namespace srslte {
 pdcp_entity::pdcp_entity()
   :active(false)
   ,tx_count(0)
-  ,rx_count(0)
 {
   pool = byte_buffer_pool::get_instance();
 }
@@ -54,9 +53,21 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
   active    = true;
 
   tx_count    = 0;
-  rx_count    = 0;
 
   log->debug("Init %s\n", rrc->get_rb_name(lcid).c_str());
+}
+
+// Reestablishment procedure: 36.323 5.2
+void pdcp_entity::reestablish() {
+  // For SRBs
+  if (cfg.is_control) {
+    tx_count = 0;
+    cfg.do_security = false;
+  } else {
+    if (rlc->rb_is_um(lcid)) {
+      tx_count = 0;
+    }
+  }
 }
 
 void pdcp_entity::reset()
@@ -80,6 +91,7 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu)
     pdcp_pack_control_pdu(tx_count, sdu);
     if(cfg.do_security)
     {
+      log->info("rrc_int[0]=0x%x, tx_count=%d\n", k_rrc_int[0], tx_count);
       integrity_generate(&k_rrc_int[16],
                          tx_count,
                          lcid-1,

@@ -86,6 +86,11 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_enb(uint8  *k_asme,
                                                  uint32  nas_count,
                                                  uint8  *k_enb);
 
+LIBLTE_ERROR_ENUM liblte_security_generate_k_enb_star(uint8  *k_enb,
+                                                      uint32  pci,
+                                                      uint32_t earfcn,
+                                                      uint8  *k_enb_star);
+
 /*********************************************************************
     Name: liblte_security_generate_k_nas
 

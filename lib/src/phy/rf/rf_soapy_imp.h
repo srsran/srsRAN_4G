@@ -45,7 +45,7 @@ SRSLTE_API void rf_soapy_set_tx_cal(void *h, srslte_rf_cal_t *cal);
 
 SRSLTE_API void rf_soapy_set_rx_cal(void *h, srslte_rf_cal_t *cal);
 
-SRSLTE_API int rf_soapy_start_rx_stream(void *h);
+SRSLTE_API int rf_soapy_start_rx_stream(void *h, bool now);
 
 SRSLTE_API int rf_soapy_stop_rx_stream(void *h);
 

@@ -41,13 +41,17 @@ void mac_pcap::enable(bool en)
 void mac_pcap::open(const char* filename, uint32_t ue_id)
 {
   pcap_file = MAC_LTE_PCAP_Open(filename);
-  ue_id = ue_id; 
-  enable_write = true; 
+  this->ue_id = ue_id;
+  enable_write = true;
 }
 void mac_pcap::close()
 {
   fprintf(stdout, "Saving PCAP file\n");
   MAC_LTE_PCAP_Close(pcap_file);
+}
+
+void mac_pcap::set_ue_id(uint16_t ue_id) {
+  this->ue_id = ue_id;
 }
 
 void mac_pcap::pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti, 

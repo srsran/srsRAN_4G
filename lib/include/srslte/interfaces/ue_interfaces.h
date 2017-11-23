@@ -78,6 +78,14 @@ public:
                                 uint8_t *k_up_int,
                                 srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                 srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
+  virtual void generate_as_keys_ho(uint32_t pci,
+                                   uint32_t earfcn,
+                                   uint8_t *k_rrc_enc,
+                                   uint8_t *k_rrc_int,
+                                   uint8_t *k_up_enc,
+                                   uint8_t *k_up_int,
+                                   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
 };
 
 // GW interface for NAS
@@ -133,6 +141,7 @@ public:
 class rrc_interface_mac : public rrc_interface_mac_common
 {
 public:
+  virtual void ho_ra_completed(bool ra_successful) = 0;
   virtual void release_pucch_srs() = 0;
   virtual void run_tti(uint32_t tti) = 0;
 };
@@ -192,6 +201,7 @@ public:
 class pdcp_interface_rrc
 {
 public:
+  virtual void reestablish() = 0;
   virtual void reset() = 0;
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
@@ -218,6 +228,7 @@ class rlc_interface_rrc
 {
 public:
   virtual void reset() = 0;
+  virtual void reestablish() = 0;
   virtual void add_bearer(uint32_t lcid) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
 };
@@ -229,6 +240,7 @@ public:
   /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
    * RLC PDUs according to TB size. */
   virtual void write_sdu(uint32_t lcid,  srslte::byte_buffer_t *sdu) = 0;
+  virtual bool rb_is_um(uint32_t lcid) = 0;
 };
 
 //RLC interface for MAC
@@ -392,8 +404,8 @@ public:
     LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT        rach;     
     LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT sr; 
     ul_harq_params_t                            ul_harq_params;
-    uint32_t prach_config_index; 
-  } mac_cfg_t; 
+    uint32_t prach_config_index;
+  } mac_cfg_t;
 
   /* Instructs the MAC to start receiving BCCH */
   virtual void    bcch_start_rx() = 0; 
@@ -408,7 +420,7 @@ public:
   virtual void    setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;
 
   virtual uint32_t get_current_tti() = 0;
-  
+
   virtual void set_config(mac_cfg_t *mac_cfg) = 0;
   virtual void set_config_main(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *main_cfg) = 0;
   virtual void set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT *rach_cfg, uint32_t prach_config_index) = 0;
@@ -417,10 +429,14 @@ public:
   
   virtual void get_rntis(ue_rnti_t *rntis) = 0;
   virtual void set_contention_id(uint64_t uecri) = 0;
+  virtual void set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
 
-  
+  virtual void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask) = 0;
+  virtual void start_cont_ho() = 0;
+
   virtual void reconfiguration() = 0;
   virtual void reset() = 0;
+  virtual void wait_uplink() = 0;
 };
 
 
@@ -541,6 +557,7 @@ public:
   virtual void cell_search_stop() = 0;
   virtual void cell_search_next() = 0;
   virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
+  virtual bool cell_handover(srslte_cell_t cell) = 0;
 
   /* Is the PHY downlink synchronized? */
   virtual bool sync_status() = 0;

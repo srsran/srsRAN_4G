@@ -96,9 +96,15 @@ void ra_proc::read_params() {
   
   // Read initialization parameters   
   configIndex               = mac_cfg->prach_config_index;
-  preambleIndex             = 0; // pass when called from higher layers for non-contention based RA
-  maskIndex                 = 0; // same 
-  nof_preambles             = liblte_rrc_number_of_ra_preambles_num[mac_cfg->rach.num_ra_preambles]; 
+  if (noncontention_enabled) {
+    preambleIndex             = next_preamble_idx;
+    maskIndex                 = next_prach_mask;
+    noncontention_enabled     = false;
+  } else {
+    preambleIndex             = 0; // pass when called from higher layers for non-contention based RA
+    maskIndex                 = 0; // same
+  }
+  nof_preambles             = liblte_rrc_number_of_ra_preambles_num[mac_cfg->rach.num_ra_preambles];
   if (mac_cfg->rach.preambles_group_a_cnfg.present) {
     nof_groupA_preambles    = liblte_rrc_size_of_ra_preambles_group_a_num[mac_cfg->rach.preambles_group_a_cnfg.size_of_ra];
   } else {
@@ -386,8 +392,13 @@ void ra_proc::step_response_reception() {
   }
 }
 
-void ra_proc::step_response_error() {
-  
+void ra_proc::step_response_error()
+{
+  if (ra_is_ho) {
+    state = RA_PROBLEM;
+    rrc->ho_ra_completed(false);
+    return;
+  }
   preambleTransmissionCounter++;
   if (preambleTransmissionCounter >= preambleTransMax + 1) {
     rError("Maximum number of transmissions reached (%d)\n", preambleTransMax);
@@ -495,8 +506,11 @@ void ra_proc::step_completition() {
 
   phy_h->set_crnti(rntis->crnti);
 
-  msg3_transmitted = false;  
+  msg3_transmitted = false;
   state = COMPLETION_DONE;
+  if (ra_is_ho) {
+    rrc->ho_ra_completed(true);
+  }
 }
 
 void ra_proc::step(uint32_t tti_)
@@ -536,9 +550,17 @@ void ra_proc::step(uint32_t tti_)
   }
 }
 
-void ra_proc::start_mac_order(uint32_t msg_len_bits)
+void ra_proc::start_noncont(uint32_t preamble_index, uint32_t prach_mask) {
+  next_preamble_idx = preamble_index;
+  next_prach_mask   = prach_mask;
+  noncontention_enabled = true;
+  start_mac_order(56, true);
+}
+
+void ra_proc::start_mac_order(uint32_t msg_len_bits, bool is_ho)
 {
   if (state == IDLE || state == COMPLETION_DONE || state == RA_PROBLEM) {
+    ra_is_ho = is_ho;
     started_by_pdcch = false;
     new_ra_msg_len = msg_len_bits; 
     state = INITIALIZATION;    

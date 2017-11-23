@@ -117,7 +117,7 @@ namespace srslte {
       
       void start_trace();
       void write_trace(std::string filename);
-      void start_rx();
+      void start_rx(bool now = false);
       void stop_rx();
       
       void set_tti(uint32_t tti);

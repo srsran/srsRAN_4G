@@ -64,6 +64,7 @@ public:
   void    cell_search_stop();
   void    cell_search_next(bool reset = false);
   bool    cell_select(uint32_t earfcn, srslte_cell_t cell);
+  bool    cell_handover(srslte_cell_t cell);
 
   void    meas_reset();
   int     meas_start(uint32_t earfcn, int pci);
@@ -97,11 +98,11 @@ private:
   bool   set_cell();
 
   void   cell_search_inc();
-  void   resync_sfn(bool is_connected = false);
+  void   resync_sfn(bool is_connected = false, bool rx_now = false);
   bool   stop_sync();
 
   void   stop_rx();
-  void   start_rx();
+  void   start_rx(bool now = false);
   bool   radio_is_rx;
 
   bool   radio_is_resetting;
@@ -169,6 +170,7 @@ private:
     float     rsrp();
     float     rsrq();
     float     snr();
+    void      set_rx_gain_offset(float rx_gain_offset);
   private:
     srslte::log      *log_h;
     srslte_ue_dl_t    ue_dl;
@@ -176,6 +178,7 @@ private:
     uint32_t cnt;
     uint32_t nof_subframes;
     uint32_t current_prb;
+    float rx_gain_offset;
     float mean_rsrp, mean_rsrq, mean_snr;
     const static int RSRP_MEASURE_NOF_FRAMES = 5;
   };
@@ -192,7 +195,7 @@ private:
     } cell_info_t;
     void init(srslte::log *log_h);
     void reset();
-    int find_cells(cf_t *input_buffer, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
+    int find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
   private:
 
     const static int DEFAULT_MEASUREMENT_LEN = 10;
@@ -217,6 +220,7 @@ private:
     void rem_cell(int pci);
     void set_primay_cell(uint32_t earfcn, srslte_cell_t cell);
     void clear_cells();
+    int  get_offset(uint32_t pci);
     void write(uint32_t tti, cf_t *data, uint32_t nsamples);
   private:
     void run_thread();

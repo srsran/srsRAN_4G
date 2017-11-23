@@ -64,9 +64,10 @@ namespace srsue {
     float rx_gain_offset;
     float avg_snr_db; 
     float avg_noise; 
-    float avg_rsrp; 
+    float avg_rsrp;
 
-    uint32_t serving_cell_report_period;
+    bool     pcell_meas_enabled;
+    uint32_t pcell_report_period;
 
     phch_common(uint32_t max_mutex = 3);
     void init(phy_interface_rrc::phy_cfg_t *config, 
@@ -92,7 +93,8 @@ namespace srsue {
     void set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs);   
     bool get_pending_ack(uint32_t tti);    
     bool get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_dmrs);
-        
+    bool is_any_pending_ack();
+
     void worker_end(uint32_t tti, bool tx_enable, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
     
     void set_nof_mutex(uint32_t nof_mutex);
@@ -112,6 +114,7 @@ namespace srsue {
     void get_sync_metrics(sync_metrics_t &m);
 
     void reset_ul();
+    void reset();
     
   private: 
     

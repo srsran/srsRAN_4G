@@ -95,7 +95,7 @@ SRSLTE_API void srslte_rf_set_tx_cal(srslte_rf_t *h, srslte_rf_cal_t *cal);
 
 SRSLTE_API void srslte_rf_set_rx_cal(srslte_rf_t *h, srslte_rf_cal_t *cal);
 
-SRSLTE_API int srslte_rf_start_rx_stream(srslte_rf_t *h);
+SRSLTE_API int srslte_rf_start_rx_stream(srslte_rf_t *h, bool now);
 
 SRSLTE_API int srslte_rf_stop_rx_stream(srslte_rf_t *h);
 

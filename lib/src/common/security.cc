@@ -61,6 +61,17 @@ uint8_t security_generate_k_enb( uint8_t  *k_asme,
                                         k_enb);
 }
 
+uint8_t security_generate_k_enb_star( uint8_t  *k_enb,
+                                      uint32_t  pci,
+                                      uint32_t earfcn,
+                                      uint8_t  *k_enb_star)
+{
+  return liblte_security_generate_k_enb_star(k_enb,
+                                             pci,
+                                             earfcn,
+                                             k_enb_star);
+}
+
 uint8_t security_generate_k_nas( uint8_t                       *k_asme,
                                  CIPHERING_ALGORITHM_ID_ENUM    enc_alg_id,
                                  INTEGRITY_ALGORITHM_ID_ENUM    int_alg_id,

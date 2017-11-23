@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
     return -1;
   }
   
-  srslte_rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf, false);
   
   float rx_gain_offset = 0;
 

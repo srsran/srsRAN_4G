@@ -53,6 +53,14 @@ void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_
 void pdcp::stop()
 {}
 
+void pdcp::reestablish() {
+  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
+    if (pdcp_array[i].is_active()) {
+      pdcp_array[i].reestablish();
+    }
+  }
+}
+
 void pdcp::reset()
 {
   for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {

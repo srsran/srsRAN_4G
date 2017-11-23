@@ -206,15 +206,11 @@ void phy::set_timeadv(uint32_t ta_cmd) {
 
 void phy::configure_prach_params()
 {
-  if (sf_recv.status_is_sync()) {
-    Debug("Configuring PRACH parameters\n");
-    srslte_cell_t cell; 
-    sf_recv.get_current_cell(&cell);
-    if (!prach_buffer.set_cell(cell)) {
-      Error("Configuring PRACH parameters\n");
-    } 
-  } else {
-    Error("Cell is not synchronized\n");
+  Debug("Configuring PRACH parameters\n");
+  srslte_cell_t cell;
+  sf_recv.get_current_cell(&cell);
+  if (!prach_buffer.set_cell(cell)) {
+    Error("Configuring PRACH parameters\n");
   }
 }
 
@@ -262,6 +258,10 @@ int phy::meas_stop(uint32_t earfcn, int pci) {
 bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
 {
   return sf_recv.cell_select(earfcn, phy_cell);
+}
+
+bool phy::cell_handover(srslte_cell_t cell) {
+  return sf_recv.cell_handover(cell);
 }
 
 float phy::get_phr()
@@ -321,6 +321,7 @@ void phy::reset()
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();
   }
+  workers_common.reset();
   workers_common.reset_ul();
 }
 

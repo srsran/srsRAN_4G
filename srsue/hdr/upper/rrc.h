@@ -101,6 +101,7 @@ public:
   void new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, uint32_t pci);
 
   // MAC interface
+  void ho_ra_completed(bool ra_successful);
   void release_pucch_srs();
   void run_tti(uint32_t tti);
 
@@ -143,6 +144,9 @@ private:
 
   bool reestablishment_in_progress;
 
+  bool pending_mob_reconf;
+  LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT mob_reconf;
+
   // timeouts in ms
 
   uint32_t connecting_timeout;
@@ -172,7 +176,7 @@ private:
   srslte::mac_interface_timers *mac_timers;
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
-  uint32_t t301, t310, t311;
+  uint32_t t301, t310, t311, t304;
   int ue_category;
 
   typedef struct {
@@ -188,7 +192,6 @@ private:
 
   std::vector<cell_t> known_cells;
   cell_t *current_cell;
-
 
   typedef enum {
     SI_ACQUIRE_IDLE = 0,
@@ -242,6 +245,7 @@ private:
     void new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, float rsrq, uint32_t tti);
     void run_tti(uint32_t tti);
     bool timer_expired(uint32_t timer_id);
+    void ho_finish();
   private:
 
     const static int NOF_MEASUREMENTS = 3;
@@ -304,10 +308,12 @@ private:
     bool  s_measure_enabled;
     float s_measure_value;
 
+    void stop_reports(meas_t *m);
     void stop_reports_object(uint32_t object_id);
     void remove_meas_object(uint32_t object_id);
     void remove_meas_report(uint32_t report_id);
-    void remove_meas_id(uint32_t meas_id);
+    void remove_meas_id(uint32_t measId);
+    void remove_meas_id(std::map<uint32_t, meas_t>::iterator it);
     void calculate_triggers(uint32_t tti);
     void update_phy();
     void L3_filter(meas_value_t *value, float rsrp[NOF_MEASUREMENTS]);
@@ -334,7 +340,7 @@ private:
   void          send_con_setup_complete(byte_buffer_t *nas_msg);
   void          send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu);
   void          send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu);
-  void          send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu);
+  void          send_rrc_con_reconfig_complete(byte_buffer_t *pdu);
   void          send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu);
 
   // Parsers
@@ -343,11 +349,15 @@ private:
   void          parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
 
   // Helpers
+  void          ho_prepare();
+  void          add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
   void          rrc_connection_release();
   void          con_restablish_cell_reselected();
   void          radio_link_failure();
   static void*  start_sib_thread(void *rrc_);
   void          sib_search();
+  void          apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
+  void          apply_rr_config_common_ul(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
   void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
   void          handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
   void          handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);

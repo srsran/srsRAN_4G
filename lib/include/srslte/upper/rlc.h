@@ -64,6 +64,7 @@ public:
 
   // PDCP interface
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  bool rb_is_um(uint32_t lcid);
   std::string get_rb_name(uint32_t lcid);
 
   // MAC interface
@@ -76,6 +77,7 @@ public:
   void     write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes);
 
   // RRC interface
+  void reestablish();
   void reset();
   void empty_queue();
   void add_bearer(uint32_t lcid);
