@@ -122,6 +122,8 @@ int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(voi
   q->do_agc = n==0?true:false;
   if (q->do_agc) {
     srslte_agc_set_gain(&q->agc, init_gain_value);
+    srslte_agc_set_target(&q->agc, 0.3);
+    srslte_agc_set_bandwidth(&q->agc, 0.8);
   }
   return n; 
 }

@@ -57,8 +57,9 @@ int radio_recv_wrapper_cs(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsam
 }
 
 double callback_set_rx_gain(void *h, double gain) {
-  srslte::radio_multi *radio_handler = (srslte::radio_multi *) h;
-  return radio_handler->set_rx_gain_th(gain);
+  phch_recv *obj = (phch_recv*) h;
+  srslte::radio_multi *radio_h = obj->radio_h;
+  return radio_h->set_rx_gain_th(gain);
 }
 
 
@@ -100,6 +101,7 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
   // Set options defined in expert section
   set_ue_sync_opts(&cs.ue_sync);
 
+  last_gain = 40;
   if (do_agc) {
     srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, last_gain);
   }
@@ -553,8 +555,6 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
     current_earfcn = earfcn;
 
-    printf("cell select called set frequency\n");
-
     if (set_frequency()) {
       this->cell = cell;
       log_h->info("Cell Select: Configuring cell...\n");
@@ -670,7 +670,7 @@ void phch_recv::run_thread() {
 
         switch (cell_sync_sfn()) {
           case 1:
-            srslte_ue_sync_set_agc_period(&ue_sync, 20);
+            srslte_ue_sync_set_agc_period(&ue_sync, 4);
             if (!cell_search_in_progress) {
               phy_state = CELL_CAMP;
               log_h->info("Sync OK. Camping on cell PCI=%d...\n", cell.id);
