@@ -84,7 +84,7 @@ mme_gtpc::send_create_session_request(uint64_t imsi, struct create_session_respo
   //Setup GTP-C Create Session Request IEs
   // Control TEID allocated \\
   cs_req->sender_f_teid.tied = get_new_ctrl_teid();
-  cs_req->sender_f_teid.ip = m_mme_gtpc_ip;
+  cs_req->sender_f_teid.ipv4 = m_mme_gtpc_ip;
   // APN \\
   memcpy(cs_req->apn, "internet", sizeof("internet"));
   // RAT Type \\
