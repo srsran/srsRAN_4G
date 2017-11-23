@@ -876,10 +876,11 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
       int rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, grants[i].grant.rv_idx_1};
 
       /* Set power allocation */
-      float rho_a = 1.0f, rho_b = 1.0f;
-      if (ue_db[rnti].dedicated.pdsch_cnfg_ded < LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
-        float rho_a_db = liblte_rrc_pdsch_config_p_a_num[ue_db[rnti].dedicated.pdsch_cnfg_ded];
-        rho_a = powf(10.0f, rho_a_db / 20.0f) * ((enb_dl.cell.nof_ports == 1) ? 1.0f : sqrtf(2.0f));
+      float rho_a = ((enb_dl.cell.nof_ports == 1) ? 1.0f : sqrtf(2.0f)), rho_b = 1.0f;
+      uint32_t pdsch_cnfg_ded = ue_db[rnti].dedicated.pdsch_cnfg_ded;
+      if (pdsch_cnfg_ded < (uint32_t) LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
+        float rho_a_db = liblte_rrc_pdsch_config_p_a_num[pdsch_cnfg_ded];
+        rho_a *= powf(10.0f, rho_a_db / 20.0f);
       }
       if (phy->pdsch_p_b < 4) {
         uint32_t idx0 = (phy->cell.nof_ports == 1) ? 0 : 1;
