@@ -28,6 +28,7 @@
 #include <cmath>
 #include "srslte/common/bcd_helpers.h"
 #include "mme/s1ap.h"
+#include "srslte/asn1/gtpc.h"
 
 namespace srsepc{
 
@@ -484,12 +485,11 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     //Send Security Mode Command
     m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
 
-    //FIXME The packging of GTP-C messages is not ready
-    //This means that GTP-U tunnels are created with function calls, as oposed to GTP-C.
-    //In future send_create_session_request will return void and the handle_create_session_response will be called from the GTP-C class itself.
-    struct gtpc_create_session_response cs_resp;
+    //FIXME The packging of GTP-C messages is not ready.
+    //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
+    struct srslte::gtpc_create_session_response cs_resp;
     m_gtpc->send_create_session_request(ue_ctx->imsi, &cs_resp);
-    m_gtpc->handle_create_session_response(cs_resp);
+    //m_gtpc->handle_create_session_response(cs_resp);
   }
   return true;
 }

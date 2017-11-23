@@ -149,7 +149,7 @@ const uint8_t GTPC_MSG_TYPE_MBMS_SESSION_STOP_RESPONSE = 236;
  *
  ***************************************************************************/
 
-typedef struct gtpc_create_session_request
+struct gtpc_create_session_request
 {
   bool imsi_present;
   uint64_t imsi;   						// C
@@ -232,8 +232,50 @@ typedef struct gtpc_create_session_request
   //bool acpo_present;
   //uint8_t apco;							// CO
   //bool ext;							// O
-} gtpc_create_session_request_t;
+};
 
+  /****************************************************************************
+   *
+   * GTP-C v2 Create Session Response
+   * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.2-1
+   *
+   ***************************************************************************/
+struct gtpc_create_session_response
+{
+  struct gtpc_cause_ie cause; //M
+  //Change Reporting Action //C
+  //CSG Information Reporting Action //CO
+  bool sender_f_teid_present;
+  struct gtpc_f_teid_ie sender_f_teid; //C
+  //PGW S5/S8/S2b F-TEID //C
+  //struct gtpc_pdn_address_allocation_ie pdn_address_allocation; //C
+  //apn_restriction
+  //apn_ambr
+  //linked_eps_bearer_id
+  //pco
+  struct gtpc_bearer_context_created_ie
+  {
+    uint8_t ebi;
+    //
+  } bearer_context_created; //M
+
+  /*
+  struct gtpc_bearer_context_removed_ie
+  {
+    uint8_t ebi;
+    //
+  } bearer_context_removed; //C
+  */
+  //recovery; //C
+  //charging_gateway_name; //C
+  //charging_gateway_address; //C
+  //PGW-FQ-CSID //C
+  //SGW-FQ-CSID //C
+  //SGW LDN //O
+  //PGW LDN //O
+  //PGW Back-Off Time //O
+  //acpo //CO
+};
 
 }; //namespace
 #endif //GTPC_V2_MSG_H

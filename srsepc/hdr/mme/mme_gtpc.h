@@ -29,7 +29,7 @@
 #include "srslte/common/buffer_pool.h"
 #include <boost/thread/mutex.hpp>
 #include "spgw/spgw.h"
-
+#include "srslte/asn1/gtpc.h"
 namespace srsepc
 {
 
@@ -41,7 +41,7 @@ public:
   static void cleanup(void);
 
   void init();
-  void send_create_session_request(uint64_t imsi, struct create_session_response *cs_resp);
+  void send_create_session_request(uint64_t imsi, struct srslte::gtpc_create_session_response *cs_resp);
 
 private:
 

@@ -70,7 +70,7 @@ mme_gtpc::init()
 }
 
 void
-mme_gtpc::send_create_session_request(uint64_t imsi, struct create_session_response *cs_resp)
+mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_create_session_response *cs_resp)
 {
   struct srslte::gtpc_pdu cs_req_pdu;
   struct srslte::gtpc_create_session_request *cs_req = &cs_req_pdu.choice.create_session_request;
