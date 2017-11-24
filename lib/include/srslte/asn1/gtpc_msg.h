@@ -248,7 +248,7 @@ struct gtpc_create_session_response
   bool sender_f_teid_present;
   struct gtpc_f_teid_ie sender_f_teid; //C
   //PGW S5/S8/S2b F-TEID //C
-  //struct gtpc_pdn_address_allocation_ie pdn_address_allocation; //C
+  struct gtpc_pdn_address_allocation_ie paa; //C
   //apn_restriction
   //apn_ambr
   //linked_eps_bearer_id

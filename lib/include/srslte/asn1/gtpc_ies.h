@@ -25,8 +25,10 @@
 #ifndef GTPC_IES_H
 #define GTPC_IES_H
 
-
 #include "srslte/phy/io/netsource.h"
+
+namespace srslte
+{
 
 /****************************************************************
  *
@@ -303,7 +305,33 @@ struct gtpc_ambr_ie
  */
 
 //TODO
-//TODO IEs between 8.10 and 8.17 missing
+//TODO IEs between 8.10 and 8.13 missing
+//TODO
+
+/****************************************************************************
+ *
+ * GTP-C PAA Type IE
+ * Ref: 3GPP TS 29.274 v10.14.0 Figure 8.14-1
+ *
+ ***************************************************************************/
+enum gtpc_pdn_type
+{
+  GTPC_PDN_TYPE_IPV4 = 1,
+  GTPC_PDN_TYPE_IPV6 = 2,
+  GTPC_PDN_TYPE_IPV4V6 = 3
+};
+
+struct gtpc_pdn_address_allocation_ie
+{
+  enum gtpc_pdn_type pdn_type;
+  bool ipv4_present;
+  bool ipv6_present;
+  in_addr_t ipv4;
+  struct in6_addr;
+};
+
+//TODO
+//TODO IEs between 8.15 and 8.17 missing
 //TODO
 
 /****************************************************************************
@@ -396,4 +424,5 @@ struct gtpc_f_teid_ie
 //As such, each GTP-C message will define it's bearer context structures
 //locally, according to the rules of  TS 29.274 v10.14.0 Section 7.
 
+} //namespace
 #endif //GTPC_IES_H

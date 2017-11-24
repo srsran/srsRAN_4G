@@ -54,10 +54,10 @@ typedef struct {
 typedef struct {
   uint64_t imsi;
   in_addr_t ue_ipv4;
-  struct gtpc_f_teid_ie uplink_ctrl;
-  struct gtpc_f_teid_ie uplink_user;
-  struct gtpc_f_teid_ie downlink_ctrl;
-  struct gtpc_f_teid_ie downlink_user;
+  struct srslte::gtpc_f_teid_ie uplink_ctrl;
+  struct srslte::gtpc_f_teid_ie uplink_user;
+  struct srslte::gtpc_f_teid_ie downlink_ctrl;
+  struct srslte::gtpc_f_teid_ie downlink_user;
 } spgw_ue_ctxr;
 
 class spgw:

@@ -321,21 +321,21 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   //Initialize to zero\\
   bzero(cs_resp,sizeof(struct srslte::gtpc_create_session_response));
   //Setup Cause\\
-  cs_resp->cause = ;
+  cs_resp->cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   //Setup sender F-TEID (ctrl)\\
   cs_resp->sender_f_teid.teid_present = true;
   cs_resp->sender_f_teid.teid = spgw_uplink_ctrl_teid;
   cs_resp->sender_f_teid.ipv4 = 0;//FIXME This is not relevant, as the GTP-C is not transmitted over sockets yet.
   //Bearer context created\\
   cs_resp->eps_bearer_context_created.ebi = 5;
-  cs_resp->eps_bearer_context_created.cause = ;
+  cs_resp->eps_bearer_context_created.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present=true;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid = spgw_uplink_user_teid;
   //Fill in the PDA\\
-  cs_resp->pda_present = true;
-  cs_resp->pda.pdn_type = srslte::GTPC_IPV4;
-  cs_resp->ipv4_present = true;
-  cs_resp->ipv4 = ue_ip;
+  cs_resp->paa_present = true;
+  cs_resp->paa.pdn_type = srslte::GTPC_PDN_TYPE_IPV4;
+  cs_resp->paa.ipv4_present = true;
+  cs_resp->paa.ipv4 = ue_ip;
 
   return;
 }
