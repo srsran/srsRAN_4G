@@ -709,7 +709,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   
     /* Indicate PHICH acknowledgment if needed */
     if (h->has_pending_ack()) {
-      sched_result->phich[nof_phich_elems].phich = h->get_ack()?ul_sched_phich_t::ACK:ul_sched_phich_t::NACK; 
+      sched_result->phich[nof_phich_elems].phich = h->get_ack()?ul_sched_phich_t::ACK:ul_sched_phich_t::NACK;
       sched_result->phich[nof_phich_elems].rnti = rnti;
       nof_phich_elems++;
     }
@@ -767,7 +767,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     {   
       ul_harq_proc::ul_alloc_t alloc = h->get_alloc(); 
       bool is_newtx = h->is_empty(); 
-      bool needs_pdcch = !h->is_adaptive_retx() && !is_rar;
+      bool needs_pdcch = h->is_adaptive_retx() && !is_rar;
 
       // Set number of retx
       if (is_newtx) {

@@ -43,8 +43,7 @@ int radio_recv_callback(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsampl
 }
 
 double callback_set_rx_gain(void *h, double gain) {
-  srslte::radio_multi *radio_handler = (srslte::radio_multi *) h;
-  return radio_handler->set_rx_gain_th(gain);
+  return ((phch_recv*) h)->set_rx_gain(gain);
 }
 
 
@@ -395,8 +394,6 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
     current_earfcn = earfcn;
 
-    printf("cell select called set frequency\n");
-
     if (set_frequency()) {
       this->cell = cell;
       log_h->info("Cell Select: Configuring cell...\n");
@@ -519,6 +516,9 @@ int phch_recv::radio_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, s
   }
 }
 
+double phch_recv::set_rx_gain(double gain) {
+  return radio_h->set_rx_gain_th(gain);
+}
 
 
 

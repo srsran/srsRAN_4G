@@ -38,6 +38,7 @@
 #include "srslte/radio/radio_multi.h"
 #include "phy/phy.h"
 #include "upper/usim.h"
+#include "upper/rrc.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 #include "srslte/common/logger.h"
@@ -104,12 +105,11 @@ typedef struct {
 
 typedef struct {
   std::string   ip_netmask;
-  phy_args_t phy;
-  float      metrics_period_secs;
-  bool pregenerate_signals;
-  std::string ue_cateogry;
-  bool metrics_csv_enable;
-  std::string metrics_csv_filename;
+  phy_args_t    phy;
+  float         metrics_period_secs;
+  bool          pregenerate_signals;
+  bool          metrics_csv_enable;
+  std::string   metrics_csv_filename;
 }expert_args_t;
 
 typedef struct {
@@ -120,6 +120,8 @@ typedef struct {
   log_args_t    log;
   gui_args_t    gui;
   usim_args_t   usim;
+  rrc_args_t    rrc;
+  std::string   ue_category_str;
   expert_args_t expert;
 }all_args_t;
 
@@ -161,6 +163,10 @@ public:
   srslte::log_filter rf_log;
   rf_metrics_t     rf_metrics;
   srslte::LOG_LEVEL_ENUM level(std::string l);
+
+  std::string get_build_mode();
+  std::string get_build_info();
+  std::string get_build_string();
 };
 
 } // namespace srsue

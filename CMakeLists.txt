@@ -55,6 +55,12 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
+# Generate CMake to include build information
+configure_file(
+  ${CMAKE_SOURCE_DIR}/cmake/modules/SRSLTEbuildinfo.cmake.in
+  ${CMAKE_BINARY_DIR}/SRSLTEbuildinfo.cmake
+)
+
 ########################################################################
 # Options
 ########################################################################

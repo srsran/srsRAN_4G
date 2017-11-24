@@ -502,6 +502,7 @@ TEST(srslte_vec_abs_cf,
   for (int i = 0; i < block_size; i++) {
     x[i] = RANDOM_CF();
   }
+  x[0] = 0.0f;
 
   TEST_CALL(srslte_vec_abs_cf(x, z, block_size))
 

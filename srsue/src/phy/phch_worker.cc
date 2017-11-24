@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "phy/phch_worker.h"
+#include "srslte/srslte.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/asn1/liblte_rrc.h"
 
@@ -40,8 +41,6 @@
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
-#include "srslte/srslte.h"
-#include "srslte/interfaces/ue_interfaces.h"
 
 void init_plots(srsue::phch_worker *worker);
 pthread_t plot_thread; 
@@ -130,6 +129,7 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
 
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
+  srslte_ue_ul_set_cfo_tol(&ue_ul, phy->args->cfo_correct_tol_hz);
 
   mem_initiated = true;
 
@@ -324,7 +324,7 @@ void phch_worker::work_imp()
   ul_action.tti_offset = HARQ_DELAY_MS;
 
   /* Send UL grant or HARQ information (from PHICH) to MAC */
-  if (ul_grant_available         && ul_ack_available)  {    
+  if (ul_grant_available         && ul_ack_available)  {
     phy->mac->new_grant_ul_ack(ul_mac_grant, ul_ack, &ul_action);      
   } else if (ul_grant_available  && !ul_ack_available) {
     phy->mac->new_grant_ul(ul_mac_grant, &ul_action);
@@ -479,15 +479,19 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
       return false;   
     }
 
-    grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(tti%(2*HARQ_DELAY_MS));
+    grant->pid = ASYNC_DL_SCHED?dci_unpacked.harq_process:(UL_PIDOF(TTI_TX(tti)));
 
-    // Set last TBS for this TB (pid) in case of mcs>29 (7.1.7.2 of 36.213)
+    // Set last TBS for this TB (pid) in case of mcs>28 (7.1.7.2 of 36.213)
     for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
-      if (grant->phy_grant.dl.mcs[i].tbs < 0) {
-        grant->phy_grant.dl.mcs[i].tbs = last_dl_tbs[grant->pid%(2*HARQ_DELAY_MS)][i];
+      if (grant->phy_grant.dl.mcs[i].idx > 28) {
+        grant->phy_grant.dl.mcs[i].tbs = phy->last_dl_tbs[grant->pid][i];
+      }
+      if(grant->phy_grant.dl.mcs[i].tbs < 0) {
+        Info("Invalid TBS size for PDSCH grant\n");
+        grant->phy_grant.dl.mcs[i].tbs = 0;
       }
       // save it
-      last_dl_tbs[grant->pid%(2*HARQ_DELAY_MS)][i] = grant->phy_grant.dl.mcs[i].tbs;
+      phy->last_dl_tbs[grant->pid][i] = grant->phy_grant.dl.mcs[i].tbs;
     }
 
     /* Fill MAC grant structure */
@@ -536,14 +540,19 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     if (grant->tb_en[tb] && (rv[tb] < 0 || rv[tb] > 3)) {
       valid_config = false;
-      Error("Wrong RV (%d) for TB index %d", rv[tb], tb);
+      Error("Wrong RV (%d) for TB index %d\n", rv[tb], tb);
     }
   }
 
+  uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
   switch(phy->config->dedicated.antenna_info_explicit_value.tx_mode) {
     /* Implemented Tx Modes */
     case LIBLTE_RRC_TRANSMISSION_MODE_1:
       mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+      if (nof_tb != 1) {
+        Error("Wrong number of transport blocks (%d) for single antenna.", nof_tb);
+        valid_config = false;
+      }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_2:
       if (cell.nof_ports > 1) {
@@ -551,26 +560,30 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       } else {
         mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
       }
+      if (nof_tb != 1) {
+        Error("Wrong number of transport blocks (%d) for transmit diversity.", nof_tb);
+        valid_config = false; 
+      }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_3:
-      if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
+      if (nof_tb == 1) {
         mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-      } else if (ue_dl.nof_rx_antennas > 1 && SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
+      } else if (ue_dl.nof_rx_antennas > 1 && nof_tb == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_CDD;
       } else {
         Error("Wrong combination of antennas (%d) or transport blocks (%d) for TM3\n", ue_dl.nof_rx_antennas,
-              SRSLTE_RA_DL_GRANT_NOF_TB(grant));
+              nof_tb);
         valid_config = false;
       }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_4:
-      if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
+      if (nof_tb == 1) {
         mimo_type = (grant->pinfo == 0) ? SRSLTE_MIMO_TYPE_TX_DIVERSITY : SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
-      } else if (ue_dl.nof_rx_antennas > 1 && SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
+      } else if (ue_dl.nof_rx_antennas > 1 && nof_tb == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
       } else {
         Error("Wrong combination of antennas (%d) or transport blocks (%d) for TM3\n", ue_dl.nof_rx_antennas,
-              SRSLTE_RA_DL_GRANT_NOF_TB(grant));
+              nof_tb);
         valid_config = false;
       }
     break;
@@ -589,6 +602,19 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       Error("Wrong Tx mode (%d)\n", phy->config->dedicated.antenna_info_explicit_value.tx_mode);
       valid_config = false;
   }
+
+  /* Set power allocation according to 3GPP 36.213 clause 5.2 Downlink power allocation */
+  float rho_a = 1.0f, rho_b = 1.0f;
+  if (phy->config->dedicated.pdsch_cnfg_ded < LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
+    float rho_a_db = liblte_rrc_pdsch_config_p_a_num[(int) phy->config->dedicated.pdsch_cnfg_ded];
+    rho_a = powf(10.0f, rho_a_db / 20.0f) * ((cell.nof_ports == 1) ? 1.0f : sqrtf(2.0f));
+  }
+  if (phy->config->common.pdsch_cnfg.p_b < 4) {
+    uint32_t idx0 = (cell.nof_ports == 1) ? 0 : 1;
+    float cell_specific_ratio = pdsch_cfg_cell_specific_ratio_table[idx0][phy->config->common.pdsch_cnfg.p_b];
+    rho_b = sqrtf(cell_specific_ratio);
+  }
+  srslte_ue_dl_set_power_alloc(&ue_dl, rho_a, rho_b);
 
   Debug("DL Buffer TTI %d: Decoding PDSCH\n", tti);
 
@@ -646,6 +672,9 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       Error("Error configuring DL grant\n");
       ret = SRSLTE_ERROR;
     }
+  } else {
+    Error("Error invalid DL config\n");
+    ret = SRSLTE_ERROR;
   }
   return ret;
 }
@@ -729,29 +758,30 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
     }
   }
 
+
+  // Handle Format0 adaptive retx
   if (ret) {
-
     // Use last TBS for this TB in case of mcs>28
-    if (grant->phy_grant.ul.mcs.tbs < 0) {
-      grant->phy_grant.ul.mcs.tbs = last_ul_tbs[tti%(2*HARQ_DELAY_MS)];
-    }
-    last_ul_tbs[tti%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.tbs;
-
-    if (grant->phy_grant.ul.mcs.mod == SRSLTE_MOD_LAST) {
-      grant->phy_grant.ul.mcs.mod = last_ul_mod[tti%(2*HARQ_DELAY_MS)];
+    if (grant->phy_grant.ul.mcs.idx > 28) {
+      // Make sure we received a grant in the previous TTI for this PID
+      grant->phy_grant.ul.mcs.tbs = phy->last_ul_tbs[UL_PIDOF(TTI_TX(tti))];
+      grant->phy_grant.ul.mcs.mod = phy->last_ul_mod[UL_PIDOF(TTI_TX(tti))];
       grant->phy_grant.ul.Qm      = srslte_mod_bits_x_symbol(grant->phy_grant.ul.mcs.mod);
     }
-    last_ul_mod[tti%(2*HARQ_DELAY_MS)] = grant->phy_grant.ul.mcs.mod;
   }
-
-  /* Limit UL modulation if not supported by the UE or disabled by higher layers */
-  if (!phy->config->enable_64qam) {
-    if (grant->phy_grant.ul.mcs.mod >= SRSLTE_MOD_64QAM) {
-      grant->phy_grant.ul.mcs.mod = SRSLTE_MOD_16QAM;
-      grant->phy_grant.ul.Qm      = 4;
+  if (ret) {
+    phy->last_ul_tbs[UL_PIDOF(TTI_TX(tti))] = grant->phy_grant.ul.mcs.tbs;
+    phy->last_ul_mod[UL_PIDOF(TTI_TX(tti))] = grant->phy_grant.ul.mcs.mod;
+    phy->last_ul_tti[UL_PIDOF(TTI_TX(tti))] = TTI_RX_ACK(tti);
+    /* Limit UL modulation if not supported by the UE or disabled by higher layers */
+    if (!phy->config->enable_64qam) {
+      if (grant->phy_grant.ul.mcs.mod >= SRSLTE_MOD_64QAM) {
+        grant->phy_grant.ul.mcs.mod = SRSLTE_MOD_16QAM;
+        grant->phy_grant.ul.Qm      = 4;
+      }
     }
   }
-  
+
   /* Make sure the grant is valid */
   if (ret && !srslte_dft_precoding_valid_prb(grant->phy_grant.ul.L_prb) && grant->phy_grant.ul.L_prb <= cell.nof_prb) {
     Warning("Received invalid UL grant. L=%d\n", grant->phy_grant.ul.L_prb);
@@ -768,11 +798,9 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
     if (SRSLTE_VERBOSE_ISINFO()) {
       srslte_ra_pusch_fprint(stdout, &dci_unpacked, cell.nof_prb);
     }
-    
-    return true;     
-  } else {
-    return false; 
-  }    
+  }
+
+  return ret;
 }
 
 void phch_worker::reset_uci()

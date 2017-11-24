@@ -497,10 +497,10 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
         /* in control channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
-          srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, q->nof_symbols, noise_estimate);
+          srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, q->nof_symbols, 1.0f, noise_estimate);
         } else {
           srslte_predecoding_diversity(q->symbols[0], q->ce, x, nant,
-                                       q->nof_symbols);
+                                       q->nof_symbols, 1.0f);
           srslte_layerdemap_diversity(x, q->d, nant, q->nof_symbols / nant);
         }
 
@@ -591,7 +591,7 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
     if (q->cell.nof_ports > 1) {
       srslte_layermap_diversity(q->d, x, q->cell.nof_ports, q->nof_symbols);
       srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports,
-                                 q->nof_symbols / q->cell.nof_ports);
+                                 q->nof_symbols / q->cell.nof_ports, 1.0f);
     } else {
       memcpy(q->symbols[0], q->d, q->nof_symbols * sizeof(cf_t));
     }
