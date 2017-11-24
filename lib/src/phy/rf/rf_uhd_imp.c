@@ -293,11 +293,29 @@ int rf_uhd_open(char *args, void **h)
   return rf_uhd_open_multi(args, h, 1);
 }
 
+#define REMOVE_SUBSTRING_WITHCOMAS(S, TOREMOVE) \
+  remove_substring(S, TOREMOVE ",");\
+  remove_substring(S, TOREMOVE ", ");\
+  remove_substring(S, "," TOREMOVE);\
+  remove_substring(S, ", " TOREMOVE);\
+  remove_substring(S, TOREMOVE)
+
 static void remove_substring(char *s,const char *toremove)
 {
   while((s=strstr(s,toremove))) {
     memmove(s,s+strlen(toremove),1+strlen(s+strlen(toremove)));
   }
+}
+
+static void copy_subdev_string(char *dst, char *src) {
+  int n = 0;
+  size_t len = strlen(src);
+  /* Copy until end of string or comma */
+  while (n < len && src[n] != '\0' && src[n] != ',') {
+    dst[n] = src[n];
+    n++;
+  }
+  dst[n] = '\0';
 }
 
 int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
@@ -338,11 +356,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     // Check external clock argument
     enum {DEFAULT, EXTERNAL, GPSDO} clock_src;
     if (strstr(args, "clock=external")) {
-      remove_substring(args, "clock=external");
+      REMOVE_SUBSTRING_WITHCOMAS(args, "clock=external");
       clock_src = EXTERNAL;
     } else if (strstr(args, "clock=gpsdo")) {
       printf("Using GPSDO clock\n");
-      remove_substring(args, "clock=gpsdo");
+      REMOVE_SUBSTRING_WITHCOMAS(args, "clock=gpsdo");
       clock_src = GPSDO;
     } else {
       clock_src = DEFAULT;
@@ -351,12 +369,40 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     // Set over the wire format
     char *otw_format = "sc16";
     if (strstr(args, "otw_format=sc12")) {
+      REMOVE_SUBSTRING_WITHCOMAS(args, "otw_format=sc12");
       otw_format = "sc12";
     } else if (strstr(args, "otw_format=sc16")) {
+      REMOVE_SUBSTRING_WITHCOMAS(args, "otw_format=sc16");
       /* Do nothing */
     } else if (strstr(args, "otw_format=")) {
       fprintf(stderr, "Wrong over the wire format. Valid formats: sc12, sc16\n");
       return -1;
+    }
+
+    // Set transmitter subdevice spec string
+    const char tx_subdev_arg[] = "tx_subdev_spec=";
+    char tx_subdev_str[64] = {0};
+    char *tx_subdev_ptr = strstr(args, tx_subdev_arg);
+    if (tx_subdev_ptr) {
+      copy_subdev_string(tx_subdev_str, tx_subdev_ptr + strlen(tx_subdev_arg));
+    }
+
+    // Set receiver subdevice spec string
+    const char rx_subdev_arg[] = "rx_subdev_spec=";
+    char rx_subdev_str[64] = {0};
+    char *rx_subdev_ptr = strstr(args, rx_subdev_arg);
+    if (rx_subdev_ptr) {
+      copy_subdev_string(rx_subdev_str, rx_subdev_ptr + strlen(rx_subdev_arg));
+    }
+
+    if (tx_subdev_ptr) {
+      remove_substring(args, tx_subdev_arg);
+      remove_substring(args, tx_subdev_str);
+    }
+
+    if (rx_subdev_ptr) {
+      remove_substring(args, rx_subdev_arg);
+      remove_substring(args, rx_subdev_str);
     }
 
     /* If device type or name not given in args, choose a B200 */
@@ -398,7 +444,29 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       fprintf(stderr, "Error opening UHD: code %d\n", error);
       return -1; 
     }
-    
+
+    /* Set transmitter subdev spec if specified */
+    if (strlen(tx_subdev_str)) {
+      uhd_subdev_spec_handle subdev_spec_handle = {0};
+
+      printf("Setting tx_subdev_spec to '%s'\n", tx_subdev_str);
+
+      uhd_subdev_spec_make(&subdev_spec_handle, tx_subdev_str);
+      uhd_usrp_set_tx_subdev_spec(handler->usrp, subdev_spec_handle, 0);
+      uhd_subdev_spec_free(&subdev_spec_handle);
+    }
+
+    /* Set receiver subdev spec if specified */
+    if (strlen(rx_subdev_str)) {
+      uhd_subdev_spec_handle subdev_spec_handle = {0};
+
+      printf("Setting rx_subdev_spec to '%s'\n", rx_subdev_str);
+
+      uhd_subdev_spec_make(&subdev_spec_handle, rx_subdev_str);
+      uhd_usrp_set_rx_subdev_spec(handler->usrp, subdev_spec_handle, 0);
+      uhd_subdev_spec_free(&subdev_spec_handle);
+    }
+
     if (!handler->devname) {
       char dev_str[1024];
       uhd_usrp_get_mboard_name(handler->usrp, 0, dev_str, 1024);

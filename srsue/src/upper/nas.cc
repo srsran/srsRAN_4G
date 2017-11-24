@@ -25,6 +25,11 @@
  */
 
 
+#include <unistd.h>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
 #include "srslte/asn1/liblte_rrc.h"
 #include "upper/nas.h"
 #include "srslte/common/bcd_helpers.h"
@@ -33,9 +38,78 @@ using namespace srslte;
 
 namespace srsue {
 
+/*********************************************************************
+ *   Conversion helpers
+ ********************************************************************/
+std::string hex_to_string(uint8_t *hex, int size)
+{
+  std::stringstream ss;
+
+  ss << std::hex << std::setfill('0');
+  for(int i=0; i<size; i++) {
+    ss << std::setw(2) << static_cast<unsigned>(hex[i]);
+  }
+  return ss.str();
+}
+
+bool string_to_hex(std::string hex_str, uint8_t *hex, uint32_t len)
+{
+  static const char* const lut = "0123456789abcdef";
+  uint32_t str_len = hex_str.length();
+  if(str_len & 1) {
+    return false; // uneven hex_str length
+  }
+  if(str_len > len*2) {
+    return false; // not enough space in hex buffer
+  }
+
+  for(uint32_t i=0; i<str_len; i+=2)
+  {
+    char a = hex_str[i];
+    const char* p = std::lower_bound(lut, lut + 16, a);
+    if (*p != a) {
+      return false; // invalid char
+    }
+
+    char b = hex_str[i+1];
+    const char* q = std::lower_bound(lut, lut + 16, b);
+    if (*q != b) {
+      return false; // invalid char
+    }
+
+    hex[i/2] = ((p - lut) << 4) | (q - lut);
+  }
+  return true;
+}
+
+std::string emm_info_str(LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT *info)
+{
+  std::stringstream ss;
+  if(info->full_net_name_present) {
+    ss << info->full_net_name.name;
+  }
+  if(info->short_net_name_present) {
+    ss << " (" << info->short_net_name.name << ")";
+  }
+  if(info->utc_and_local_time_zone_present) {
+    ss << " " << (int)info->utc_and_local_time_zone.day;
+    ss << "/" << (int)info->utc_and_local_time_zone.month;
+    ss << "/" << (int)info->utc_and_local_time_zone.year;
+    ss << " " << (int)info->utc_and_local_time_zone.hour;
+    ss << ":" << (int)info->utc_and_local_time_zone.minute;
+    ss << ":" << (int)info->utc_and_local_time_zone.second;
+    ss << " TZ:" << (int)info->utc_and_local_time_zone.tz;
+  }
+  return ss.str();
+}
+
+
 nas::nas()
-  : state(EMM_STATE_DEREGISTERED), plmn_selection(PLMN_SELECTED), is_guti_set(false), ip_addr(0), eps_bearer_id(0),
-    count_ul(0), count_dl(0) {}
+  : state(EMM_STATE_DEREGISTERED), plmn_selection(PLMN_SELECTED), have_guti(false), ip_addr(0), eps_bearer_id(0)
+{
+  ctxt.rx_count = 0;
+  ctxt.tx_count = 0;
+}
 
 void nas::init(usim_interface_nas *usim_,
                rrc_interface_nas *rrc_,
@@ -51,15 +125,26 @@ void nas::init(usim_interface_nas *usim_,
   state = EMM_STATE_DEREGISTERED;
   plmn_selection = PLMN_NOT_SELECTED;
 
-  if (usim->get_home_plmn_id(&home_plmn)) {
+  if (!usim->get_home_plmn_id(&home_plmn)) {
     nas_log->error("Getting Home PLMN Id from USIM. Defaulting to 001-01\n");
     home_plmn.mcc = 61441; // This is 001
     home_plmn.mnc = 65281; // This is 01
   }
   cfg     = cfg_;
+
+  if((have_guti = read_guti_file(&guti))) {
+    if((have_ctxt = read_ctxt_file(&ctxt))) {
+      usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int,
+                              ctxt.cipher_algo, ctxt.integ_algo);
+      nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
+      nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
+    }
+  }
 }
 
-void nas::stop() {}
+void nas::stop() {
+  write_ctxt_file(ctxt);
+}
 
 emm_state_t nas::get_state() {
   return state;
@@ -207,11 +292,11 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 uint32_t nas::get_ul_count() {
-  return count_ul;
+  return ctxt.tx_count;
 }
 
 bool nas::get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) {
-  if (is_guti_set) {
+  if (have_guti) {
     s_tmsi->mmec   = guti.mme_code;
     s_tmsi->m_tmsi = guti.m_tmsi;
     return true;
@@ -220,11 +305,26 @@ bool nas::get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) {
   }
 }
 
+bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
+  if(!have_ctxt) {
+    nas_log->error("K_asme requested before security context established\n");
+    return false;
+  }
+  if(NULL == k_asme_ || n < 32) {
+    nas_log->error("Invalid parameters to get_k_asme");
+    return false;
+  }
+
+  memcpy(k_asme_, ctxt.k_asme, 32);
+  return true;
+}
+
 /*******************************************************************************
 Security
 *******************************************************************************/
 
-void nas::integrity_generate(uint8_t *key_128,
+void nas::integrity_generate(uint8_t integ_algo,
+                             uint8_t *key_128,
                              uint32_t count,
                              uint8_t rb_id,
                              uint8_t direction,
@@ -269,6 +369,16 @@ void nas::cipher_decrypt() {
 
 }
 
+bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps)
+{
+  for(uint32_t i=0; i<8; i++) {
+    if(caps->eea[i] != eea_caps[i] || caps->eia[i] != eia_caps[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 
 /*******************************************************************************
 Parsers
@@ -289,8 +399,8 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     //FIXME: Handle tai_list
     if (attach_accept.guti_present) {
       memcpy(&guti, &attach_accept.guti.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
-      is_guti_set = true;
-      // TODO: log message to console
+      have_guti = true;
+      write_guti_file(guti);
     }
     if (attach_accept.lai_present) {
     }
@@ -358,10 +468,9 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     state = EMM_STATE_REGISTERED;
     current_plmn = selecting_plmn;
 
-    count_dl++;
+    ctxt.rx_count++;
 
     // Send EPS bearer context accept and attach complete
-    count_ul++;
     act_def_eps_bearer_context_accept.eps_bearer_id = eps_bearer_id;
     act_def_eps_bearer_context_accept.proc_transaction_id = transaction_id;
     act_def_eps_bearer_context_accept.protocol_cnfg_opts_present = false;
@@ -369,10 +478,11 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
                                                                    &attach_complete.esm_msg);
     liblte_mme_pack_attach_complete_msg(&attach_complete,
                                         LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                        count_ul,
+                                        ctxt.tx_count,
                                         (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-    integrity_generate(&k_nas_int[16],
-                       count_ul,
+    integrity_generate(ctxt.integ_algo,
+                       &k_nas_int[16],
+                       ctxt.tx_count,
                        lcid - 1,
                        SECURITY_DIRECTION_UPLINK,
                        &pdu->msg[5],
@@ -384,6 +494,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 
     nas_log->info("Sending Attach Complete\n");
     rrc->write_sdu(lcid, pdu);
+    ctxt.tx_count++;
 
   } else {
     nas_log->info("Not handling attach type %u\n", attach_accept.eps_attach_result);
@@ -407,7 +518,7 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res;
 
-  nas_log->info("Received Authentication Request\n");;
+  nas_log->info("Received Authentication Request\n");
   liblte_mme_unpack_authentication_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &auth_req);
 
   // Reuse the pdu for the response message
@@ -422,7 +533,15 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
 
   bool net_valid;
   uint8_t res[16];
-  usim->generate_authentication_response(auth_req.rand, auth_req.autn, mcc, mnc, &net_valid, res);
+  usim->generate_authentication_response(auth_req.rand, auth_req.autn, mcc, mnc,
+                                         &net_valid, res, ctxt.k_asme);
+  nas_log->info("Generated k_asme=%s\n", hex_to_string(ctxt.k_asme, 32).c_str());
+  if(LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE == auth_req.nas_ksi.tsc_flag) {
+    ctxt.ksi = auth_req.nas_ksi.nas_ksi;
+  } else {
+    nas_log->error("NAS mapped security context not currently supported\n");
+    nas_log->console("Warning: NAS mapped security context not currently supported\n");
+  }
 
   if (net_valid) {
     nas_log->info("Network authentication successful\n");
@@ -438,9 +557,6 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
     nas_log->console("Warning: Network authentication failure\n");
     pool->deallocate(pdu);
   }
-
-  // Reset DL counter (as per 24.301 5.4.3.2)
-  count_dl = 0;
 }
 
 void nas::parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu) {
@@ -451,107 +567,154 @@ void nas::parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
-  nas_log->error("TODO:parse_identity_request\n");
+  LIBLTE_MME_ID_REQUEST_MSG_STRUCT  id_req;
+  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
+
+  liblte_mme_unpack_identity_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &id_req);
+  nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
+
+  switch(id_req.id_type) {
+  case LIBLTE_MME_MOBILE_ID_TYPE_IMSI:
+    id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMSI;
+    usim->get_imsi_vec(id_resp.mobile_id.imsi, 15);
+    break;
+  case LIBLTE_MME_MOBILE_ID_TYPE_IMEI:
+    id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEI;
+    usim->get_imei_vec(id_resp.mobile_id.imei, 15);
+    break;
+  default:
+    nas_log->error("Unhandled ID type: %d\n");
+    pool->deallocate(pdu);
+    return;
+  }
+
+  pdu->reset();
+  liblte_mme_pack_identity_response_msg(&id_resp, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
+  rrc->write_sdu(lcid, pdu);
 }
 
-void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu) {
-  bool success;
+void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
+{
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sec_mode_cmd;
   LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sec_mode_comp;
-  LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT sec_mode_rej;
 
-  nas_log->info("Received Security Mode Command\n");
   liblte_mme_unpack_security_mode_command_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &sec_mode_cmd);
+  nas_log->info("Received Security Mode Command ksi: %d, eea: %s, eia: %s\n",
+                sec_mode_cmd.nas_ksi.nas_ksi,
+                ciphering_algorithm_id_text[sec_mode_cmd.selected_nas_sec_algs.type_of_eea],
+                integrity_algorithm_id_text[sec_mode_cmd.selected_nas_sec_algs.type_of_eia]);
 
-  ksi = sec_mode_cmd.nas_ksi.nas_ksi;
-  cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) sec_mode_cmd.selected_nas_sec_algs.type_of_eea;
-  integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM) sec_mode_cmd.selected_nas_sec_algs.type_of_eia;
-  // FIXME: Handle nonce_ue, nonce_mme
-  // FIXME: Currently only handling ciphering EEA0 (null) and integrity EIA1,EIA2
-  // FIXME: Use selected_nas_sec_algs to choose correct algos
+  if(sec_mode_cmd.nas_ksi.tsc_flag != LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE) {
+    nas_log->error("Mapped security context not supported\n");
+    pool->deallocate(pdu);
+    return;
+  }
 
-  nas_log->debug("Security details: ksi=%d, eea=%s, eia=%s\n",
-                 ksi, ciphering_algorithm_id_text[cipher_algo], integrity_algorithm_id_text[integ_algo]);
+  if(sec_mode_cmd.nas_ksi.nas_ksi != ctxt.ksi)
+  {
+    nas_log->warning("Sending Security Mode Reject due to key set ID mismatch\n");
+    send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED);
+    pool->deallocate(pdu);
+    return;
+  }
+  // MME is setting up security context
 
+  // TODO: check nonce (not sent by Amari)
 
-  if (CIPHERING_ALGORITHM_ID_EEA0 != cipher_algo ||
-      (INTEGRITY_ALGORITHM_ID_128_EIA2 != integ_algo &&
-       INTEGRITY_ALGORITHM_ID_128_EIA1 != integ_algo) ||
-      sec_mode_cmd.nas_ksi.tsc_flag != LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE) {
-    sec_mode_rej.emm_cause = LIBLTE_MME_EMM_CAUSE_UE_SECURITY_CAPABILITIES_MISMATCH;
+  // Check capabilities replay
+  if(!check_cap_replay(&sec_mode_cmd.ue_security_cap)) {
     nas_log->warning("Sending Security Mode Reject due to security capabilities mismatch\n");
-    success = false;
+    send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_UE_SECURITY_CAPABILITIES_MISMATCH);
+    pool->deallocate(pdu);
+    return;
+  }
+
+  // Reset counterd (as per 24.301 5.4.3.2)
+  ctxt.rx_count = 0;
+  ctxt.tx_count = 0;
+
+  ctxt.cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) sec_mode_cmd.selected_nas_sec_algs.type_of_eea;
+  ctxt.integ_algo  = (INTEGRITY_ALGORITHM_ID_ENUM) sec_mode_cmd.selected_nas_sec_algs.type_of_eia;
+
+  // Check capabilities
+  if(!eea_caps[ctxt.cipher_algo] || !eia_caps[ctxt.integ_algo]) {
+    nas_log->warning("Sending Security Mode Reject due to security capabilities mismatch\n");
+    send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_UE_SECURITY_CAPABILITIES_MISMATCH);
+    pool->deallocate(pdu);
+    return;
+  }
+
+  // Generate NAS keys
+  usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int, ctxt.cipher_algo, ctxt.integ_algo);
+  nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
+  nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
+
+  nas_log->debug("Generating integrity check. integ_algo:%d, count_dl:%d, lcid:%d\n",
+                 ctxt.integ_algo, ctxt.rx_count, lcid);
+
+  // Check incoming MAC
+  uint8_t *inMAC = &pdu->msg[1];
+  uint8_t genMAC[4];
+  integrity_generate(ctxt.integ_algo,
+                     &k_nas_int[16],
+                     ctxt.rx_count,
+                     lcid - 1,
+                     SECURITY_DIRECTION_DOWNLINK,
+                     &pdu->msg[5],
+                     pdu->N_bytes - 5,
+                     genMAC);
+
+  nas_log->info_hex(inMAC, 4, "Incoming PDU MAC:");
+  nas_log->info_hex(genMAC, 4, "Generated PDU MAC:");
+
+  ctxt.rx_count++;
+
+  bool match = true;
+  for (int i = 0; i < 4; i++) {
+    if (inMAC[i] != genMAC[i]) {
+      match = false;
+    }
+  }
+  if(!match) {
+    nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
+    send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED);
+    pool->deallocate(pdu);
+    return;
+  }
+
+  // Take security context into use
+  have_ctxt = true;
+
+  if (sec_mode_cmd.imeisv_req_present && LIBLTE_MME_IMEISV_REQUESTED == sec_mode_cmd.imeisv_req) {
+    sec_mode_comp.imeisv_present = true;
+    sec_mode_comp.imeisv.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEISV;
+    usim->get_imei_vec(sec_mode_comp.imeisv.imeisv, 15);
+    sec_mode_comp.imeisv.imeisv[14] = 5;
+    sec_mode_comp.imeisv.imeisv[15] = 3;
   } else {
-    // Generate NAS encryption key and integrity protection key
-    usim->generate_nas_keys(k_nas_enc, k_nas_int, cipher_algo, integ_algo);
-    nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
-    nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
-
-    // Check incoming MAC
-    uint8_t *inMAC = &pdu->msg[1];
-    uint8_t genMAC[4];
-    integrity_generate(&k_nas_int[16],
-                       count_dl,
-                       lcid - 1,
-                       SECURITY_DIRECTION_DOWNLINK,
-                       &pdu->msg[5],
-                       pdu->N_bytes - 5,
-                       genMAC);
-
-    nas_log->info_hex(inMAC, 4, "Incoming PDU MAC:");
-    nas_log->info_hex(genMAC, 4, "Generated PDU MAC:");
-
-    bool match = true;
-    for (int i = 0; i < 4; i++) {
-      if (inMAC[i] != genMAC[i]) {
-        match = false;
-      }
-    }
-    if (!match) {
-      sec_mode_rej.emm_cause = LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED;
-      nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
-      success = false;
-    } else {
-
-      if (sec_mode_cmd.imeisv_req_present && LIBLTE_MME_IMEISV_REQUESTED == sec_mode_cmd.imeisv_req) {
-        sec_mode_comp.imeisv_present = true;
-        sec_mode_comp.imeisv.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEISV;
-        usim->get_imei_vec(sec_mode_comp.imeisv.imeisv, 15);
-        sec_mode_comp.imeisv.imeisv[14] = 5;
-        sec_mode_comp.imeisv.imeisv[15] = 3;
-      } else {
-        sec_mode_comp.imeisv_present = false;
-      }
-
-      // Reuse pdu for response
-      pdu->reset();
-      liblte_mme_pack_security_mode_complete_msg(&sec_mode_comp,
-                                                 LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                                 count_ul,
-                                                 (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-      integrity_generate(&k_nas_int[16],
-                         count_ul,
-                         lcid - 1,
-                         SECURITY_DIRECTION_UPLINK,
-                         &pdu->msg[5],
-                         pdu->N_bytes - 5,
-                         &pdu->msg[1]);
-      nas_log->info("Sending Security Mode Complete nas_count_ul=%d, RB=%s\n",
-                    count_ul,
-                    rrc->get_rb_name(lcid).c_str());
-      success = true;
-    }
+    sec_mode_comp.imeisv_present = false;
   }
 
-  count_dl++;
-
-  if (!success) {
-    // Reuse pdu for response
-    pdu->reset();
-    liblte_mme_pack_security_mode_reject_msg(&sec_mode_rej, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-  }
-
-  rrc->write_sdu(lcid, pdu);
+  // Send response
+  byte_buffer_t *sdu = pool_allocate;
+  liblte_mme_pack_security_mode_complete_msg(&sec_mode_comp,
+                                             LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                             ctxt.tx_count,
+                                             (LIBLTE_BYTE_MSG_STRUCT *) sdu);
+  integrity_generate(ctxt.integ_algo,
+                     &k_nas_int[16],
+                     ctxt.tx_count,
+                     lcid - 1,
+                     SECURITY_DIRECTION_UPLINK,
+                     &sdu->msg[5],
+                     sdu->N_bytes - 5,
+                     &sdu->msg[1]);
+  nas_log->info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s\n",
+                ctxt.tx_count,
+                rrc->get_rb_name(lcid).c_str());
+  rrc->write_sdu(lcid, sdu);
+  ctxt.tx_count++;
+  pool->deallocate(pdu);
 }
 
 void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
@@ -560,10 +723,15 @@ void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
 
 void nas::parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu) {
   nas_log->error("TODO:parse_esm_information_request\n");
+
 }
 
 void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
-  nas_log->error("TODO:parse_emm_information\n");
+  liblte_mme_unpack_emm_information_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &emm_info);
+  std::string str = emm_info_str(&emm_info);
+  nas_log->info("Received EMM Information: %s\n", str.c_str());
+  nas_log->console("%s\n", str.c_str());
+  ctxt.rx_count++;
 }
 
 /*******************************************************************************
@@ -578,25 +746,13 @@ void nas::send_attach_request() {
   attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
 
   for (i = 0; i < 8; i++) {
-    attach_req.ue_network_cap.eea[i] = false;
-    attach_req.ue_network_cap.eia[i] = false;
+    attach_req.ue_network_cap.eea[i] = eea_caps[i];
+    attach_req.ue_network_cap.eia[i] = eia_caps[i];
   }
-  attach_req.ue_network_cap.eea[0] = true; // EEA0 supported
-  attach_req.ue_network_cap.eia[0] = true; // EIA0 supported
-  attach_req.ue_network_cap.eia[1] = true; // EIA1 supported
-  attach_req.ue_network_cap.eia[2] = true; // EIA2 supported
 
-  attach_req.ue_network_cap.uea_present = false; // UMTS encryption algos
-  attach_req.ue_network_cap.uia_present = false; // UMTS integrity algos
-
-  attach_req.ms_network_cap_present = false; // A/Gb mode (2G) or Iu mode (3G)
-
-  attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
-  usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
-
-  // ESM message (PDN connectivity request) for first default bearer
-  gen_pdn_connectivity_request(&attach_req.esm_msg);
-
+  attach_req.ue_network_cap.uea_present = false;  // UMTS encryption algos
+  attach_req.ue_network_cap.uia_present = false;  // UMTS integrity algos
+  attach_req.ms_network_cap_present = false;      // A/Gb mode (2G) or Iu mode (3G)
   attach_req.old_p_tmsi_signature_present = false;
   attach_req.additional_guti_present = false;
   attach_req.last_visited_registered_tai_present = false;
@@ -612,11 +768,47 @@ void nas::send_attach_request() {
   attach_req.device_properties_present = false;
   attach_req.old_guti_type_present = false;
 
-  // Pack the message
-  liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT *) msg);
+  // ESM message (PDN connectivity request) for first default bearer
+  gen_pdn_connectivity_request(&attach_req.esm_msg);
+
+  // GUTI or IMSI attach
+  if(have_guti && have_ctxt) {
+    attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI;
+    memcpy(&attach_req.eps_mobile_id.guti, &guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
+    attach_req.old_guti_type         = LIBLTE_MME_GUTI_TYPE_NATIVE;
+    attach_req.old_guti_type_present = true;
+    attach_req.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+    attach_req.nas_ksi.nas_ksi       = ctxt.ksi;
+    nas_log->info("Requesting GUTI attach. "
+                  "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
+                  guti.m_tmsi, guti.mcc, guti.mnc, guti.mme_group_id, guti.mme_code);
+    liblte_mme_pack_attach_request_msg(&attach_req,
+                                       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
+                                       ctxt.tx_count,
+                                       (LIBLTE_BYTE_MSG_STRUCT *) msg);
+
+    // Add MAC
+    integrity_generate(ctxt.integ_algo,
+                       &k_nas_int[16],
+                       ctxt.tx_count,
+                       cfg.lcid-1,
+                       SECURITY_DIRECTION_UPLINK,
+                       &msg->msg[5],
+                       msg->N_bytes - 5,
+                       &msg->msg[1]);
+  } else {
+    attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
+    usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
+    nas_log->info("Requesting IMSI attach. imsi: %s\n", usim->get_imsi_str());
+    liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT *) msg);
+  }
 
   nas_log->info("Sending attach request\n");
   rrc->write_sdu(cfg.lcid, msg);
+
+  if(have_ctxt) {
+    ctxt.tx_count++;
+  }
 }
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
@@ -640,27 +832,36 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
   liblte_mme_pack_pdn_connectivity_request_msg(&pdn_con_req, msg);
 }
 
+void nas::send_security_mode_reject(uint8_t cause) {
+  byte_buffer_t *msg = pool_allocate;
+
+  LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT sec_mode_rej;
+  sec_mode_rej.emm_cause = cause;
+  liblte_mme_pack_security_mode_reject_msg(&sec_mode_rej, (LIBLTE_BYTE_MSG_STRUCT *) msg);
+  rrc->write_sdu(cfg.lcid, msg);
+}
+
 void nas::send_identity_response() {}
 
 void nas::send_service_request() {
   byte_buffer_t *msg = pool_allocate;
-  count_ul++;
 
   // Pack the service request message directly
   msg->msg[0] = (LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
   msg->N_bytes++;
-  msg->msg[1] = (ksi & 0x07) << 5;
-  msg->msg[1] |= count_ul & 0x1F;
+  msg->msg[1] = (ctxt.ksi & 0x07) << 5;
+  msg->msg[1] |= ctxt.tx_count & 0x1F;
   msg->N_bytes++;
 
   uint8_t mac[4];
-  integrity_generate(&k_nas_int[16],
-                      count_ul,
-                      cfg.lcid-1,
-                      SECURITY_DIRECTION_UPLINK,
-                      &msg->msg[0],
-                      2,
-                      &mac[0]);
+  integrity_generate(ctxt.integ_algo,
+                     &k_nas_int[16],
+                     ctxt.tx_count,
+                     cfg.lcid-1,
+                     SECURITY_DIRECTION_UPLINK,
+                     &msg->msg[0],
+                     2,
+                     &mac[0]);
   // Set the short MAC
   msg->msg[2] = mac[2];
   msg->N_bytes++;
@@ -668,8 +869,239 @@ void nas::send_service_request() {
   msg->N_bytes++;
   nas_log->info("Sending service request\n");
   rrc->write_sdu(cfg.lcid, msg);
+  ctxt.tx_count++;
 }
 
 void nas::send_esm_information_response() {}
+
+bool nas::read_guti_file(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT *guti)
+{
+  std::ifstream file;
+  std::string   line;
+  if (!guti) {
+    return false;
+  }
+
+  const char *m_tmsi_str         = "m_tmsi=";
+  size_t m_tmsi_str_len         = strlen(m_tmsi_str);
+  const char *mcc_str           = "mcc=";
+  size_t mcc_str_len            = strlen(mcc_str);
+  const char *mnc_str           = "mnc=";
+  size_t mnc_str_len            = strlen(mnc_str);
+  const char *mme_group_id_str  = "mme_group_id=";
+  size_t mme_group_id_str_len   = strlen(mme_group_id_str);
+  const char *mme_code_str      = "mme_code=";
+  size_t mme_code_str_len       = strlen(mme_code_str);
+
+  file.open(".guti", std::ios::in);
+  if (file.is_open()) {
+    bool read_ok = true;
+    if (std::getline(file, line)) {
+      if (!line.substr(0,m_tmsi_str_len).compare(m_tmsi_str)) {
+        guti->m_tmsi = atoi(line.substr(m_tmsi_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,mcc_str_len).compare(mcc_str)) {
+        guti->mcc = atoi(line.substr(mcc_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,mnc_str_len).compare(mnc_str)) {
+        guti->mnc = atoi(line.substr(mnc_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,mme_group_id_str_len).compare(mme_group_id_str)) {
+        guti->mme_group_id = atoi(line.substr(mme_group_id_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,mme_code_str_len).compare(mme_code_str)) {
+        guti->mme_code = atoi(line.substr(mme_code_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    file.close();
+    if (read_ok) {
+      nas_log->info("Read GUTI from file .guti. "
+                    "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
+                    guti->m_tmsi, guti->mcc, guti->mnc, guti->mme_group_id, guti->mme_code);
+      return true;
+    } else {
+      nas_log->error("Invalid GUTI file format\n");
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+bool nas::write_guti_file(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti) {
+  std::ofstream file;
+  if (!have_guti) {
+    return false;
+  }
+  file.open(".guti", std::ios::out | std::ios::trunc);
+  if (file.is_open()) {
+    file << "m_tmsi="       << (int) guti.m_tmsi << std::endl;
+    file << "mcc="          << (int) guti.mcc << std::endl;
+    file << "mnc="          << (int) guti.mnc << std::endl;
+    file << "mme_group_id=" << (int) guti.mme_group_id << std::endl;
+    file << "mme_code="     << (int) guti.mme_code << std::endl;
+    nas_log->info("Saved GUTI to file .guti. "
+                  "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
+                  guti.m_tmsi, guti.mcc, guti.mnc, guti.mme_group_id, guti.mme_code);
+    file.close();
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool nas::read_ctxt_file(nas_sec_ctxt *ctxt)
+{
+  std::ifstream file;
+  std::string   line;
+  if (!ctxt) {
+    return false;
+  }
+
+  const char *ksi_str       = "ksi=";
+  size_t ksi_str_len        = strlen(ksi_str);
+  const char *k_asme_str    = "k_asme=";
+  size_t k_asme_str_len     = strlen(k_asme_str);
+  const char *tx_count_str  = "tx_count=";
+  size_t tx_count_str_len   = strlen(tx_count_str);
+  const char *rx_count_str  = "rx_count=";
+  size_t rx_count_str_len   = strlen(rx_count_str);
+  const char *int_alg_str  = "int_alg=";
+  size_t int_alg_str_len   = strlen(int_alg_str);
+  const char *enc_alg_str  = "enc_alg=";
+  size_t enc_alg_str_len   = strlen(enc_alg_str);
+
+  file.open(".ctxt", std::ios::in);
+  if (file.is_open()) {
+    bool read_ok = true;
+    if (std::getline(file, line)) {
+      if (!line.substr(0,ksi_str_len).compare(ksi_str)) {
+        ctxt->ksi = atoi(line.substr(ksi_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,k_asme_str_len).compare(k_asme_str)) {
+        std::string tmp = line.substr(k_asme_str_len);
+        if(!string_to_hex(tmp, ctxt->k_asme, 32)) {
+          read_ok = false;
+        }
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,tx_count_str_len).compare(tx_count_str)) {
+        ctxt->tx_count = atoi(line.substr(tx_count_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,rx_count_str_len).compare(rx_count_str)) {
+        ctxt->rx_count = atoi(line.substr(rx_count_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,int_alg_str_len).compare(int_alg_str)) {
+        ctxt->integ_algo = (srslte::INTEGRITY_ALGORITHM_ID_ENUM)atoi(line.substr(int_alg_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    if (std::getline(file, line)) {
+      if (!line.substr(0,enc_alg_str_len).compare(enc_alg_str)) {
+        ctxt->cipher_algo = (srslte::CIPHERING_ALGORITHM_ID_ENUM)atoi(line.substr(enc_alg_str_len).c_str());
+      } else {
+        read_ok = false;
+      }
+    } else {
+      read_ok = false;
+    }
+    file.close();
+    if (read_ok) {
+      nas_log->info("Read security ctxt from file .ctxt. "
+                    "ksi: %x, k_asme: %s, "
+                    "tx_count: %x, rx_count: %x, "
+                    "int_alg: %d, enc_alg: %d\n",
+                    ctxt->ksi, hex_to_string(ctxt->k_asme,32).c_str(),
+                    ctxt->tx_count, ctxt->rx_count,
+                    ctxt->integ_algo, ctxt->cipher_algo);
+      return true;
+    } else {
+      nas_log->error("Invalid security ctxt file format\n");
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+bool nas::write_ctxt_file(nas_sec_ctxt ctxt)
+{
+  std::ofstream file;
+  file.open(".ctxt", std::ios::out | std::ios::trunc);
+  if (file.is_open()) {
+    file << "ksi="      << (int) ctxt.ksi << std::endl;
+    file << "k_asme="   << hex_to_string(ctxt.k_asme, 32) << std::endl;
+    file << "tx_count=" << (int) ctxt.tx_count << std::endl;
+    file << "rx_count=" << (int) ctxt.rx_count << std::endl;
+    file << "int_alg="  << (int) ctxt.integ_algo << std::endl;
+    file << "enc_alg="  << (int) ctxt.cipher_algo << std::endl;
+    nas_log->info("Saved security ctxt to file .ctxt. "
+                  "ksi: %x, k_asme: %s, "
+                  "tx_count: %x, rx_count: %x, "
+                  "int_alg: %d, enc_alg: %d\n",
+                  ctxt.ksi, hex_to_string(ctxt.k_asme,32).c_str(),
+                  ctxt.tx_count, ctxt.rx_count,
+                  ctxt.integ_algo, ctxt.cipher_algo);
+    file.close();
+    return true;
+  } else {
+    return false;
+  }
+}
+
 
 } // namespace srsue

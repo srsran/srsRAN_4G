@@ -26,12 +26,12 @@
 
 
 #include <unistd.h>
+#include <iostream>
 #include <sstream>
-#include "srslte/asn1/liblte_rrc.h"
+#include <stdlib.h>
+#include <time.h>
 #include "upper/rrc.h"
-#include <boost/assign.hpp>
-#include <upper/rrc.h>
-#include <srslte/asn1/liblte_rrc.h>
+#include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 
@@ -48,6 +48,9 @@ rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
 {
+  sync_reset_cnt = 0;
+  n310_cnt       = 0;
+  n311_cnt       = 0;
 }
 
 static void liblte_rrc_handler(void *ctx, char *str) {
@@ -90,9 +93,14 @@ void rrc::init(phy_interface_rrc *phy_,
 
   pthread_mutex_init(&mutex, NULL);
 
+  first_stimsi_attempt = false;
   reestablishment_in_progress = false;
 
-  ue_category = SRSLTE_UE_CATEGORY;
+  args.ue_category = SRSLTE_UE_CATEGORY;
+  args.supported_bands[0] = 7;
+  args.nof_supported_bands = 1;
+  args.feature_group = 0xe6041c00;
+
   t301 = mac_timers->timer_get_unique_id();
   t310 = mac_timers->timer_get_unique_id();
   t311 = mac_timers->timer_get_unique_id();
@@ -114,6 +122,8 @@ void rrc::init(phy_interface_rrc *phy_,
   set_mac_default();
 
   measurements.init(this);
+  // set seed for rand (used in attach)
+  srand(time(NULL));
 }
 
 void rrc::stop() {
@@ -137,12 +147,8 @@ bool rrc::have_drb() {
   return drb_up;
 }
 
-void rrc::set_ue_category(int category) {
-  if (category >= 1 && category <= 5) {
-    ue_category = category;
-  } else {
-    rrc_log->error("Unsupported UE category %d\n", category);
-  }
+void rrc::set_args(rrc_args_t *args) {
+  memcpy(&this->args, args, sizeof(rrc_args_t));
 }
 
 /*
@@ -527,13 +533,17 @@ void rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
+  // attempt resync
+  sync_reset_cnt++;
+  if (sync_reset_cnt >= SYNC_RESET_TIMEOUT) {
+    rrc_log->info("Detected %d out-of-sync from PHY. Resynchronizing PHY.\n", sync_reset_cnt);
+    phy->sync_reset();
+    sync_reset_cnt = 0;
+  }
   current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
     if (n310_cnt == N310) {
-      // attempt resync
-      //phy->sync_reset();
-
       mac_timers->timer_get(t310)->reset();
       mac_timers->timer_get(t310)->run();
       n310_cnt = 0;
@@ -632,13 +642,15 @@ void rrc::send_con_request() {
 
   // Prepare ConnectionRequest packet
   ul_ccch_msg.msg_type = LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REQ;
+
   if (nas->get_s_tmsi(&s_tmsi)) {
     ul_ccch_msg.msg.rrc_con_req.ue_id_type = LIBLTE_RRC_CON_REQ_UE_ID_TYPE_S_TMSI;
     ul_ccch_msg.msg.rrc_con_req.ue_id.s_tmsi = s_tmsi;
   } else {
     ul_ccch_msg.msg.rrc_con_req.ue_id_type = LIBLTE_RRC_CON_REQ_UE_ID_TYPE_RANDOM_VALUE;
-    ul_ccch_msg.msg.rrc_con_req.ue_id.random = 1000;
+    ul_ccch_msg.msg.rrc_con_req.ue_id.random = rand() % 2^40;
   }
+
   ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;
   liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
@@ -1082,10 +1094,12 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
     LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi_paged;
     for (uint32_t i = 0; i < pcch_msg.paging_record_list_size; i++) {
       s_tmsi_paged = &pcch_msg.paging_record_list[i].ue_identity.s_tmsi;
-      rrc_log->info("Received paging (%d/%d) for UE 0x%x\n", i + 1, pcch_msg.paging_record_list_size,
-                    pcch_msg.paging_record_list[i].ue_identity.s_tmsi);
-      rrc_log->console("Received paging (%d/%d) for UE 0x%x\n", i + 1, pcch_msg.paging_record_list_size,
-                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi);
+      rrc_log->info("Received paging (%d/%d) for UE %x:%x\n", i + 1, pcch_msg.paging_record_list_size,
+                    pcch_msg.paging_record_list[i].ue_identity.s_tmsi.mmec,
+                    pcch_msg.paging_record_list[i].ue_identity.s_tmsi.m_tmsi);
+      rrc_log->console("Received paging (%d/%d) for UE %x:%x\n", i + 1, pcch_msg.paging_record_list_size,
+                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi.mmec,
+                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi.m_tmsi);
       if (s_tmsi.mmec == s_tmsi_paged->mmec && s_tmsi.m_tmsi == s_tmsi_paged->m_tmsi) {
         rrc_log->info("S-TMSI match in paging message\n");
         rrc_log->console("S-TMSI match in paging message\n");
@@ -1244,7 +1258,9 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM) dl_dcch_msg.msg.security_mode_cmd.sec_algs.int_alg;
 
       // Configure PDCP for security
-      usim->generate_as_keys(nas->get_ul_count(), k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+      uint8_t k_asme[32];
+      nas->get_k_asme(k_asme, 32);
+      usim->generate_as_keys(k_asme, nas->get_ul_count()-1, k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
       pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
       send_security_mode_complete(lcid, pdu);
       break;
@@ -1287,7 +1303,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
 *
 *******************************************************************************/
 void rrc::enable_capabilities() {
-  bool enable_ul_64 = ue_category >= 5 && current_cell->sib2.rr_config_common_sib.pusch_cnfg.enable_64_qam;
+  bool enable_ul_64 = args.ue_category >= 5 && current_cell->sib2.rr_config_common_sib.pusch_cnfg.enable_64_qam;
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64 ? "Enabling" : "Disabling");
   phy->set_config_64qam_en(enable_ul_64);
 }
@@ -1305,7 +1321,7 @@ void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu) {
 
   LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *cap = &info->ue_capability_rat[0].eutra_capability;
   cap->access_stratum_release = LIBLTE_RRC_ACCESS_STRATUM_RELEASE_REL8;
-  cap->ue_category = ue_category;
+  cap->ue_category = args.ue_category;
 
   cap->pdcp_params.max_rohc_ctxts_present = false;
   cap->pdcp_params.supported_rohc_profiles[0] = false;
@@ -1321,31 +1337,17 @@ void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu) {
   cap->phy_params.specific_ref_sigs_supported = false;
   cap->phy_params.tx_antenna_selection_supported = false;
 
-  //TODO: Generate this from user input?
-  cap->rf_params.N_supported_band_eutras = 3;
-  cap->rf_params.supported_band_eutra[0].band_eutra = 3;
-  cap->rf_params.supported_band_eutra[0].half_duplex = false;
-  cap->rf_params.supported_band_eutra[1].band_eutra = 7;
-  cap->rf_params.supported_band_eutra[1].half_duplex = false;
-  cap->rf_params.supported_band_eutra[2].band_eutra = 20;
-  cap->rf_params.supported_band_eutra[2].half_duplex = false;
-
-  cap->meas_params.N_band_list_eutra = 3;
-  cap->meas_params.band_list_eutra[0].N_inter_freq_need_for_gaps = 3;
-  cap->meas_params.band_list_eutra[0].inter_freq_need_for_gaps[0] = true;
-  cap->meas_params.band_list_eutra[0].inter_freq_need_for_gaps[1] = true;
-  cap->meas_params.band_list_eutra[0].inter_freq_need_for_gaps[2] = true;
-  cap->meas_params.band_list_eutra[1].N_inter_freq_need_for_gaps = 3;
-  cap->meas_params.band_list_eutra[1].inter_freq_need_for_gaps[0] = true;
-  cap->meas_params.band_list_eutra[1].inter_freq_need_for_gaps[1] = true;
-  cap->meas_params.band_list_eutra[1].inter_freq_need_for_gaps[2] = true;
-  cap->meas_params.band_list_eutra[2].N_inter_freq_need_for_gaps = 3;
-  cap->meas_params.band_list_eutra[2].inter_freq_need_for_gaps[0] = true;
-  cap->meas_params.band_list_eutra[2].inter_freq_need_for_gaps[1] = true;
-  cap->meas_params.band_list_eutra[2].inter_freq_need_for_gaps[2] = true;
+  cap->rf_params.N_supported_band_eutras = args.nof_supported_bands;
+  cap->meas_params.N_band_list_eutra     = args.nof_supported_bands;
+  for (uint32_t i=0;i<args.nof_supported_bands;i++) {
+    cap->rf_params.supported_band_eutra[i].band_eutra = args.supported_bands[i];
+    cap->rf_params.supported_band_eutra[i].half_duplex = false;
+    cap->meas_params.band_list_eutra[i].N_inter_freq_need_for_gaps = 1;
+    cap->meas_params.band_list_eutra[i].inter_freq_need_for_gaps[0] = true;
+  }
 
   cap->feature_group_indicator_present = true;
-  cap->feature_group_indicator = 0x62001000;
+  cap->feature_group_indicator = args.feature_group;
   cap->inter_rat_params.utra_fdd_present = false;
   cap->inter_rat_params.utra_tdd128_present = false;
   cap->inter_rat_params.utra_tdd384_present = false;
@@ -1607,8 +1609,10 @@ void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT
   }
   if (phy_cnfg->pdsch_cnfg_ded_present) {
     current_cfg->pdsch_cnfg_ded = phy_cnfg->pdsch_cnfg_ded;
+    rrc_log->info("Set PDSCH-Config=%s (present)\n", liblte_rrc_pdsch_config_p_a_text[(int) current_cfg->pdsch_cnfg_ded]);
   } else if (apply_defaults) {
     current_cfg->pdsch_cnfg_ded = LIBLTE_RRC_PDSCH_CONFIG_P_A_DB_0;
+    rrc_log->info("Set PDSCH-Config=%s (default)\n", liblte_rrc_pdsch_config_p_a_text[(int) current_cfg->pdsch_cnfg_ded]);
   }
 
   if (phy_cnfg->cqi_report_cnfg_present) {

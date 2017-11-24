@@ -25,11 +25,6 @@
  */
 
 #include <string.h>
-#include <boost/concept_check.hpp>
-#include <srslte/interfaces/sched_interface.h>
-#include <srslte/phy/phch/pucch.h>
-#include <srslte/srslte.h>
-#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
@@ -395,32 +390,32 @@ int sched_ue::generate_format1(dl_harq_proc *h,
       mcs = fixed_mcs_dl; 
     }
 
-    h->new_tx(tti, mcs, tbs, data->dci_location.ncce);  
-    
+    h->new_tx(tti, mcs, tbs, data->dci_location.ncce);
+
+    // Allocate MAC ConRes CE
+    if (need_conres_ce) {
+      data->pdu[0].lcid = srslte::sch_subh::CON_RES_ID;
+      data->nof_pdu_elems++;
+      Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
+    }
+
+    int rem_tbs = tbs;
+    int x = 0;
+    do {
+      x = alloc_pdu(rem_tbs, &data->pdu[data->nof_pdu_elems]);
+      rem_tbs -= x;
+      if (x) {
+        data->nof_pdu_elems++;
+      }
+    } while(rem_tbs > 0 && x > 0);
+
     Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
   } else {
     h->new_retx(tti, &mcs, &tbs);  
     Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
   }
- 
-  // Allocate MAC ConRes CE
-  if (need_conres_ce) {
-    data->pdu[0].lcid = srslte::sch_subh::CON_RES_ID;
-    data->nof_pdu_elems++;
-    Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
-  }
-  
-  int rem_tbs = tbs; 
-  int x = 0; 
-  do {
-    x = alloc_pdu(rem_tbs, &data->pdu[data->nof_pdu_elems]); 
-    rem_tbs -= x; 
-    if (x) {
-      data->nof_pdu_elems++;
-    }
-  } while(rem_tbs > 0 && x > 0);
-  
-  data->rnti    = rnti; 
+
+  data->rnti    = rnti;
 
   if (tbs > 0) {
     dci->harq_process = h->get_id(); 
@@ -449,7 +444,8 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   int tbs = 0; 
   
   ul_harq_proc::ul_alloc_t allocation = h->get_alloc();
-  
+
+  bool is_newtx = true;
   if (h->get_rar_mcs(&mcs)) {
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
     h->new_tx(tti, mcs, tbs); 
@@ -468,7 +464,8 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     
     h->new_tx(tti, mcs, tbs);  
 
-  } else {    
+  } else {
+    is_newtx = false;
     h->new_retx(tti, &mcs, NULL);  
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
   }
@@ -479,9 +476,13 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   if (tbs > 0) {
     dci->type2_alloc.L_crb = allocation.L;
     dci->type2_alloc.RB_start = allocation.RB_start;
-    dci->mcs_idx     = mcs; 
-    dci->rv_idx      = sched::get_rvidx(h->nof_retx()); 
-    dci->ndi         = h->get_ndi(); 
+    dci->rv_idx      = sched::get_rvidx(h->nof_retx());
+    if (!is_newtx && h->is_adaptive_retx()) {
+      dci->mcs_idx     = 28+dci->rv_idx;
+    } else {
+      dci->mcs_idx     = mcs;
+    }
+    dci->ndi         = h->get_ndi();
     dci->cqi_request = cqi_request; 
     dci->freq_hop_fl = srslte_ra_ul_dci_t::SRSLTE_RA_PUSCH_HOP_DISABLED; 
     dci->tpc_pusch   = next_tpc_pusch; 

@@ -75,8 +75,12 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rf.device_args", bpo::value<string>(&args->rf.device_args)->default_value("auto"), "Front-end device arguments")
     ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"),
      "Transmission time advance")
-    ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"),
-     "Transmission time advance")
+    ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
+
+    ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041c00), "Hex value of the featureGroupIndicators field in the"
+                                                                                           "UECapabilityInformation message. Default 0xe6041c00")
+    ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
+
 
     ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false),
      "Enable MAC packet captures for wireshark")
@@ -133,10 +137,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.phy.sync_cpu_affinity",
      bpo::value<int>(&args->expert.phy.sync_cpu_affinity)->default_value(-1),
      "index of the core used by the sync thread")
-
-    ("expert.ue_category",
-     bpo::value<string>(&args->expert.ue_cateogry)->default_value("4"),
-     "UE Category (1 to 5)")
 
     ("expert.metrics_period_secs",
      bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
@@ -203,7 +203,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Tolerance (in Hz) for digial CFO compensation.")
 
     ("expert.cfo_ema",
-     bpo::value<float>(&args->expert.phy.cfo_ema)->default_value(0.4),
+     bpo::value<float>(&args->expert.phy.cfo_ema)->default_value(0.3),
      "CFO Exponential Moving Average coefficient. Lower makes it more robust to noise "
      "but vulnerable to periodic interruptions due to VCO corrections.")
 
@@ -369,6 +369,9 @@ int main(int argc, char *argv[])
   srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
   all_args_t args;
+
+  srslte_debug_handle_crash(argc, argv);
+
   parse_args(&args, argc, argv);
 
   srsue_instance_type_t type = LTE;

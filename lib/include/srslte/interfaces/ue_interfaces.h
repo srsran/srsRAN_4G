@@ -52,16 +52,20 @@ class ue_interface
 class usim_interface_nas
 {
 public:
-  virtual void get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
-  virtual void get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
-  virtual int  get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id) = 0;
+  virtual std::string get_imsi_str() = 0;
+  virtual std::string get_imei_str() = 0;
+  virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
+  virtual bool get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
+  virtual bool get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id) = 0;
   virtual void generate_authentication_response(uint8_t  *rand,
                                                 uint8_t  *autn_enb,
                                                 uint16_t  mcc,
                                                 uint16_t  mnc,
                                                 bool     *net_valid,
-                                                uint8_t  *res) = 0;
-  virtual void generate_nas_keys(uint8_t *k_nas_enc,
+                                                uint8_t  *res,
+                                                uint8_t  *k_asme) = 0;
+  virtual void generate_nas_keys(uint8_t *k_asme,
+                                 uint8_t *k_nas_enc,
                                  uint8_t *k_nas_int,
                                  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
@@ -71,7 +75,8 @@ public:
 class usim_interface_rrc
 {
 public:
-  virtual void generate_as_keys(uint32_t count_ul,
+  virtual void generate_as_keys(uint8_t *k_asme,
+                                uint32_t count_ul,
                                 uint8_t *k_rrc_enc,
                                 uint8_t *k_rrc_int,
                                 uint8_t *k_up_enc,
@@ -112,6 +117,7 @@ public:
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
+  virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
   virtual void      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
   virtual void      plmn_search_end() = 0;
 };

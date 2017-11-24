@@ -53,7 +53,7 @@ srslte_cell_t cell = {
 
 char mimo_type_str [32] = "single";
 srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
-uint32_t cfi = 2;
+uint32_t cfi = 1;
 uint32_t mcs[SRSLTE_MAX_CODEWORDS] = {0, 0};
 uint32_t subframe = 1;
 int rv_idx[SRSLTE_MAX_CODEWORDS] = {0, 1};
@@ -496,7 +496,9 @@ int main(int argc, char **argv) {
     if (grant.tb_en[tb]) {
       for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
         if (data_tx[tb][byte] != data_rx[tb][byte]) {
-          ERROR("Found BYTE error in TB %d (%02X != %02X), quiting...", tb, data_tx[tb][byte], data_rx[tb][byte]);
+          ERROR("Found BYTE (%d) error in TB %d (%02X != %02X), quiting...", byte, tb, data_tx[tb][byte], data_rx[tb][byte]);
+          printf("Tx: "); srslte_vec_fprint_byte(stdout, data_tx[tb], grant.mcs[tb].tbs / 8);
+          printf("Rx: "); srslte_vec_fprint_byte(stdout, data_rx[tb], grant.mcs[tb].tbs / 8);
           ret = SRSLTE_ERROR;
           goto quit;
         }

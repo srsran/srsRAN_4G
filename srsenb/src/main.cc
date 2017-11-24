@@ -350,6 +350,8 @@ int main(int argc, char *argv[])
   metrics_stdout    metrics;
   enb              *enb = enb::get_instance();
 
+  srslte_debug_handle_crash(argc, argv);
+
   cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
 
   parse_args(&args, argc, argv);

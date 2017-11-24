@@ -32,7 +32,6 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
-#include <ue_base.h>
 
 using namespace srslte;
 
@@ -58,6 +57,7 @@ bool ue::init(all_args_t *args_)
   } else {
     logger_file.init(args->log.filename);
     logger_file.log("\n\n");
+    logger_file.log(get_build_string().c_str());
     logger = &logger_file;
   }
 
@@ -117,7 +117,11 @@ bool ue::init(all_args_t *args_)
   
   // Init layers
 
-  // PHY initis in background, start before radio
+  if (args->rf.rx_gain < 0) {
+    phy.set_agc_enable(true);
+  }
+
+    // PHY initis in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
   phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
 
@@ -160,8 +164,6 @@ bool ue::init(all_args_t *args_)
 
   if (args->rf.rx_gain < 0) {
     radio.start_agc(false);    
-    radio.set_tx_rx_gain_offset(10);
-    phy.set_agc_enable(true);
   } else {
     radio.set_rx_gain(args->rf.rx_gain);
   }
@@ -188,7 +190,12 @@ bool ue::init(all_args_t *args_)
   gw.set_netmask(args->expert.ip_netmask);
 
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
-  rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
+
+  // Get current band from provided EARFCN
+  args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
+  args->rrc.nof_supported_bands = 1;
+  args->rrc.ue_category = atoi(args->ue_category_str.c_str());
+  rrc.set_args(&args->rrc);
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;

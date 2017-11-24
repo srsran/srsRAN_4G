@@ -153,6 +153,8 @@ int main(int argc, char **argv) {
   uint32_t freq;
   uint32_t n_found_cells=0;
   
+  srslte_debug_handle_crash(argc, argv);
+
   parse_args(argc, argv);
     
   printf("Opening RF device...\n");

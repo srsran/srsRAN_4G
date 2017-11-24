@@ -163,6 +163,8 @@ int main(int argc, char **argv) {
   float cfo = 0;
   bool acks[SRSLTE_MAX_CODEWORDS] = {false};
 
+  srslte_debug_handle_crash(argc, argv);
+
   if (parse_args(&prog_args, argc, argv)) {
     exit(-1);
   }

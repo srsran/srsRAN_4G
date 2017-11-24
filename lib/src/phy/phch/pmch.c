@@ -378,7 +378,7 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
     }
      
     // No tx diversity in MBSFN
-    srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, cfg->nbits[0].nof_re, noise_estimate);
+    srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, cfg->nbits[0].nof_re, 1.0f, noise_estimate);
     
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       DEBUG("SAVED FILE subframe.dat: received subframe symbols\n");
