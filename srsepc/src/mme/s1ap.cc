@@ -54,7 +54,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
   m_s1ap_nas_transport.set_log(s1ap_log);
 
   m_hss = hss::get_instance();
-  m_gtpc = mme_gtpc::get_instance();
+  m_mme_gtpc = mme_gtpc::get_instance();
 
   m_s1mme = enb_listen();
 
@@ -387,7 +387,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
   ue_ctx_t *ue_ctx;
 
-  srslte::byte_buffer_t *reply_msg = m_pool->allocate();  
+  srslte::byte_buffer_t *reply_msg = m_pool->allocate();
 
   m_s1ap_log->console("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
   m_s1ap_log->info("Received Uplink NAS Transport message. MME-UE S1AP Id: %d\n",mme_ue_s1ap_id);
@@ -409,7 +409,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   memcpy(nas_msg->msg, &ul_xport->NAS_PDU.buffer, ul_xport->NAS_PDU.n_octets);
   nas_msg->N_bytes = ul_xport->NAS_PDU.n_octets;
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
-    
+
   switch (msg_type) {
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
       handle_nas_authentication_response(nas_msg, reply_msg, ue_ctx);
@@ -424,7 +424,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
       m_s1ap_log->info("Unhandled NAS message");
       return false; //FIXME (nas_msg deallocate needs to be called)
   }
-    
+
 
   //Send Reply to eNB
   ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
@@ -485,11 +485,6 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     //Send Security Mode Command
     m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
 
-    //FIXME The packging of GTP-C messages is not ready.
-    //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-    struct srslte::gtpc_create_session_response cs_resp;
-    m_gtpc->send_create_session_request(ue_ctx->imsi, &cs_resp);
-    //m_gtpc->handle_create_session_response(cs_resp);
   }
   return true;
 }
@@ -517,9 +512,93 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
   m_s1ap_log->info("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
   m_s1ap_log->console("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
 
+  //FIXME The packging of GTP-C messages is not ready.
+  //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
+  struct srslte::gtpc_create_session_response cs_resp;
+  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, &cs_resp);
+  if (cs_resp.cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED){
+    m_s1ap_log->warning("Could not create GTPC session.\n");
+    //TODO Handle error
+  }
+  else{
+    send_initial_context_setup_request(&cs_resp);
+  }
   return true;
 }
 
+bool
+s1ap::send_initial_context_setup_request(struct srslte::create_session_response *cs_resp)
+{
+
+  LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT in_ctxt_req;
+  bzero(&in_ctxt_req, sizeof(in_ctxt_req));
+
+  in_ctxt_req.MME_UE_S1AP_ID =;
+  in_ctxt_req.eNB_UE_S1AP_ID =;
+  in_ctxt_req.uEaggregateMaximumBitrate =;
+
+  //eRAB context to setup
+  LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT *erab_ctxt = &in_ctxt_req.E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME?
+  erab_ctxt->e_RAB_ID = cs_resp->bearer_context_created.ebi;
+  erab_ctxt->transportLayerAddress = cs_resp->bearer_context_created.sender_f_teid.ipv4;
+  erab_ctxt->gTP_TEID = cs_resp->bearer_context_created.sender_f_teid.teid;
+
+  in_ctxt_req->UESecurityCapabilities =;
+  in_ctxt_req->SecurityKey = ;
+
+  
+  /*
+  typedef struct{
+    uint32_t                                                     len;
+    LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT                   buffer[32]; //WARNING: Artificial limit to reduce memory footprint
+  }LIBLTE_S1AP_E_RABSETUPLISTCTXTSURES_STRUCT;
+  */
+  /*typedef struct{
+    bool                                                         ext;
+    LIBLTE_S1AP_E_RAB_ID_STRUCT                                  e_RAB_ID;
+    LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     transportLayerAddress;
+    LIBLTE_S1AP_GTP_TEID_STRUCT                                  gTP_TEID;
+    LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
+    bool                                                         iE_Extensions_present;
+  }LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT;
+  */
+  /*typedef struct{
+  bool                                                         ext;
+  LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
+  LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
+  LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT                 uEaggregateMaximumBitrate;
+  LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT               E_RABToBeSetupListCtxtSUReq;
+  LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT                    UESecurityCapabilities;
+  LIBLTE_S1AP_SECURITYKEY_STRUCT                               SecurityKey;
+  LIBLTE_S1AP_TRACEACTIVATION_STRUCT                           TraceActivation;
+  bool                                                         TraceActivation_present;
+  LIBLTE_S1AP_HANDOVERRESTRICTIONLIST_STRUCT                   HandoverRestrictionList;
+  bool                                                         HandoverRestrictionList_present;
+  LIBLTE_S1AP_UERADIOCAPABILITY_STRUCT                         UERadioCapability;
+  bool                                                         UERadioCapability_present;
+  LIBLTE_S1AP_SUBSCRIBERPROFILEIDFORRFP_STRUCT                 SubscriberProfileIDforRFP;
+  bool                                                         SubscriberProfileIDforRFP_present;
+  LIBLTE_S1AP_CSFALLBACKINDICATOR_ENUM_EXT                     CSFallbackIndicator;
+  bool                                                         CSFallbackIndicator_present;
+  LIBLTE_S1AP_SRVCCOPERATIONPOSSIBLE_ENUM_EXT                  SRVCCOperationPossible;
+  bool                                                         SRVCCOperationPossible_present;
+  LIBLTE_S1AP_CSGMEMBERSHIPSTATUS_ENUM                         CSGMembershipStatus;
+  bool                                                         CSGMembershipStatus_present;
+  LIBLTE_S1AP_LAI_STRUCT                                       RegisteredLAI;
+  bool                                                         RegisteredLAI_present;
+  LIBLTE_S1AP_GUMMEI_STRUCT                                    GUMMEI_ID;
+  bool                                                         GUMMEI_ID_present;
+  LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID_2;
+  bool                                                         MME_UE_S1AP_ID_2_present;
+  LIBLTE_S1AP_MANAGEMENTBASEDMDTALLOWED_ENUM_EXT               ManagementBasedMDTAllowed;
+  bool                                                         ManagementBasedMDTAllowed_present;
+  LIBLTE_S1AP_MDTPLMNLIST_STRUCT                               ManagementBasedMDTPLMNList;
+  bool                                                         ManagementBasedMDTPLMNList_present;
+  LIBLTE_S1AP_ADDITIONALCSFALLBACKINDICATOR_ENUM_EXT           AdditionalCSFallbackIndicator;
+  bool                                                         AdditionalCSFallbackIndicator_present;
+  }LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT;*/
+  return true;
+}
 bool
 s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri)
 {

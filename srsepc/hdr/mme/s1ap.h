@@ -99,7 +99,7 @@ private:
   s1ap_nas_transport             m_s1ap_nas_transport;
 
   //FIXME the GTP-C should be moved to the MME class, the the packaging of GTP-C messages is done.
-  mme_gtpc *m_gtpc;
+  mme_gtpc *m_mme_gtpc;
 };
 
 
