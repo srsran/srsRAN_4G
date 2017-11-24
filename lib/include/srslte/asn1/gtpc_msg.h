@@ -256,8 +256,24 @@ struct gtpc_create_session_response
   struct gtpc_bearer_context_created_ie
   {
     uint8_t ebi;
-    //
-  } bearer_context_created; //M
+    gtpc_cause_ie cause;
+    bool s1_u_sgw_f_teid_present;
+    struct gtpc_f_teid_ie s1_u_sgw_f_teid;
+    bool s4_u_sgw_f_teid_present;
+    struct gtpc_f_teid_ie s4_u_sgw_f_teid;
+    bool s5_s8_u_pgw_f_teid_present;
+    struct gtpc_f_teid_ie s5_s8_u_pgw_f_teid;
+    bool s12_sgw_f_teid_present;
+    struct gtpc_f_teid_ie s12_sgw_f_teid;
+    bool s2b_u_pgw_f_teid_present;
+    struct gtpc_f_teid_ie s2b_u_pgw_f_teid;
+    //bearer_level_qos_present
+    //bearer_level_qos
+    //charging_id_present
+    //charging_id
+    //bearer_flags_present
+    //bearer_flags
+  } eps_bearer_context_created; //M
 
   /*
   struct gtpc_bearer_context_removed_ie

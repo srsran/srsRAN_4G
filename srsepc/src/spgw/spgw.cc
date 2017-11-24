@@ -46,9 +46,11 @@ const uint16_t SPGW_BUFFER_SIZE = 2500;
 spgw::spgw():
   m_running(false),
   m_sgi_up(false),
-  m_s1u_up(false)
+  m_s1u_up(false),
+  m_next_ctrl_teid(1),
+  m_next_user_teid(1)
 {
-  m_pool = srslte::byte_buffer_pool::get_instance();     
+  m_pool = srslte::byte_buffer_pool::get_instance();
   return;
 }
 
@@ -285,7 +287,23 @@ spgw::run_thread()
 }
 
 
+uint64_t
+spgw::get_new_ctrl_teid()
+{
+  return m_next_ctrl_teid++;
+}
 
+uint64_t
+spgw::get_new_user_teid()
+{
+  return m_next_user_teid++;
+}
+
+in_addr_t
+spgw::get_new_ue_ipv4()
+{
+  return inet_addr("172.0.0.2");//FIXME Tmp hack
+}
 
 void
 spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_create_session_response *cs_resp)
@@ -307,7 +325,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   //Setup sender F-TEID (ctrl)\\
   cs_resp->sender_f_teid.teid_present = true;
   cs_resp->sender_f_teid.teid = spgw_uplink_ctrl_teid;
-  cs_resp->sender_f_teid.ipv4 = m_gtpu_bind_addr;//FIXME This is not relevant, as the GTP-C is not transmitted over sockets yet.
+  cs_resp->sender_f_teid.ipv4 = 0;//FIXME This is not relevant, as the GTP-C is not transmitted over sockets yet.
   //Bearer context created\\
   cs_resp->eps_bearer_context_created.ebi = 5;
   cs_resp->eps_bearer_context_created.cause = ;
@@ -318,7 +336,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   cs_resp->pda.pdn_type = srslte::GTPC_IPV4;
   cs_resp->ipv4_present = true;
   cs_resp->ipv4 = ue_ip;
-  
+
   return;
 }
 

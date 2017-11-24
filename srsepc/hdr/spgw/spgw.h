@@ -80,6 +80,9 @@ private:
 
   srslte::error_t init_sgi_if(spgw_args_t *args);
   srslte::error_t init_s1u(spgw_args_t *args);
+  uint64_t get_new_ctrl_teid();
+  uint64_t get_new_user_teid();
+  in_addr_t get_new_ue_ipv4();
 
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
@@ -91,6 +94,8 @@ private:
   bool m_s1u_up;
   int m_s1u;
 
+  uint64_t m_next_ctrl_teid;
+  uint64_t m_next_user_teid;
   /*Logs*/
   srslte::log_filter  *m_spgw_log;
 
