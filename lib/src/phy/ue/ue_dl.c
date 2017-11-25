@@ -359,20 +359,20 @@ void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, float sample_offset) {
  *    - PDCCH decoding: Find DCI for RNTI given by previous call to srslte_ue_dl_set_rnti()
  *    - PDSCH decoding: Decode TB scrambling with RNTI given by srslte_ue_dl_set_rnti()
  */
-int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data[SRSLTE_MAX_CODEWORDS],
+int srslte_ue_dl_decode(srslte_ue_dl_t *q, uint8_t *data[SRSLTE_MAX_CODEWORDS],
                               uint32_t tm, uint32_t tti, bool acks[SRSLTE_MAX_CODEWORDS]) {
-    return srslte_ue_dl_decode_rnti(q, input, data, tm, tti, q->current_rnti, acks);
+    return srslte_ue_dl_decode_rnti(q, data, tm, tti, q->current_rnti, acks);
 }
 
 
-int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t *cfi){
+int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *cfi){
   
-  return srslte_ue_dl_decode_fft_estimate_mbsfn(q, input, sf_idx, cfi, SRSLTE_SF_NORM);
+  return srslte_ue_dl_decode_fft_estimate_mbsfn(q, sf_idx, cfi, SRSLTE_SF_NORM);
 } 
 
-int srslte_ue_dl_decode_fft_estimate_mbsfn(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t *cfi, srslte_sf_t sf_type)
+int srslte_ue_dl_decode_fft_estimate_mbsfn(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *cfi, srslte_sf_t sf_type)
 {
-  if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
+  if (q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Run FFT for all subframe data */
     for (int j=0;j<q->nof_rx_antennas;j++) {
@@ -398,6 +398,32 @@ int srslte_ue_dl_decode_fft_estimate_mbsfn(srslte_ue_dl_t *q, cf_t *input[SRSLTE
     return SRSLTE_ERROR_INVALID_INPUTS; 
   }
 }
+
+int srslte_ue_dl_decode_fft_estimate_noguru(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t *cfi)
+{
+  if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
+
+    /* Run FFT for all subframe data */
+    for (int j=0;j<q->nof_rx_antennas;j++) {
+      srslte_ofdm_rx_sf_ng(&q->fft[j], input[j], q->sf_symbols_m[j]);
+
+      /* Correct SFO multiplying by complex exponential in the time domain */
+      if (q->sample_offset) {
+        int nsym = SRSLTE_CP_NSYMB(q->cell.cp);
+        for (int i=0;i<2*nsym;i++) {
+          srslte_cfo_correct(&q->sfo_correct,
+                             &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE],
+                             &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE],
+                             q->sample_offset / q->fft[j].symbol_sz);
+        }
+      }
+    }
+    return srslte_ue_dl_decode_estimate_mbsfn(q, sf_idx, cfi, SRSLTE_SF_NORM);
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
 int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *cfi) {
   
   return srslte_ue_dl_decode_estimate_mbsfn(q, sf_idx, cfi, SRSLTE_SF_NORM);
@@ -468,7 +494,7 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
   }
 }
 
-int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
+int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
                              uint8_t *data[SRSLTE_MAX_CODEWORDS], uint32_t tm, uint32_t tti, uint16_t rnti,
                              bool acks[SRSLTE_MAX_CODEWORDS]) {
   srslte_mimo_type_t mimo_type;
@@ -479,7 +505,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
   uint32_t cfi;
   uint32_t sf_idx = tti%10;
   
-  if ((ret = srslte_ue_dl_decode_fft_estimate_mbsfn(q, input, sf_idx, &cfi, SRSLTE_SF_NORM)) < 0) {
+  if ((ret = srslte_ue_dl_decode_fft_estimate_mbsfn(q, sf_idx, &cfi, SRSLTE_SF_NORM)) < 0) {
     return ret; 
   }
   
@@ -621,16 +647,15 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
 
 
 int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
-                                    cf_t *input[SRSLTE_MAX_PORTS],
-                                    uint8_t *data,
-                                    uint32_t tti)
+                              uint8_t *data,
+                              uint32_t tti)
 {
   srslte_ra_dl_grant_t grant; 
   int ret = SRSLTE_ERROR; 
   uint32_t cfi;
   uint32_t sf_idx = tti%10; 
   
-  if ((ret = srslte_ue_dl_decode_fft_estimate_mbsfn(q, input, sf_idx, &cfi, SRSLTE_SF_MBSFN)) < 0) {
+  if ((ret = srslte_ue_dl_decode_fft_estimate_mbsfn(q, sf_idx, &cfi, SRSLTE_SF_MBSFN)) < 0) {
     return ret; 
   }
   

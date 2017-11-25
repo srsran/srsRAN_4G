@@ -420,7 +420,7 @@ bool phch_worker::extract_fft_and_pdcch_llr() {
       srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_PSS);      
     }
   
-    if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
+    if (srslte_ue_dl_decode_fft_estimate(&ue_dl, tti%10, &cfi) < 0) {
       Error("Getting PDCCH FFT estimate\n");
       return false; 
     }        
