@@ -663,26 +663,25 @@ int main(int argc, char **argv) {
             if(sfidx != 1 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
               if (cell.nof_ports == 1) {
                 /* Transmission mode 1 */
-                n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
+                n = srslte_ue_dl_decode(&ue_dl, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
               } else {
                 if (prog_args.rf_nof_rx_ant == 1) {
                   /* Transmission mode 2 */
-                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                  n = srslte_ue_dl_decode(&ue_dl, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                           acks);
                 } else {
                   /* Transmission mode 3 */
-                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                  n = srslte_ue_dl_decode(&ue_dl, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                           acks);
                   if (n < 1) {
                     /* Transmission mode 4 */
-                    n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                    n = srslte_ue_dl_decode(&ue_dl, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                             acks);
                   }
                 }
               }
             }else{ // MBSFN subframe
               n = srslte_ue_dl_decode_mbsfn(&ue_dl, 
-                                          sf_buffer,
                                           data[0],
                                           sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
               if(n>0){

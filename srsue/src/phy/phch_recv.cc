@@ -1054,7 +1054,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
 phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
 {
   uint32_t cfi = 0;
-  if (srslte_ue_dl_decode_fft_estimate(&ue_dl, buffer, sf_idx, &cfi)) {
+  if (srslte_ue_dl_decode_fft_estimate(&ue_dl, sf_idx, &cfi)) {
     log_h->error("SYNC:  Measuring RSRP: Estimating channel\n");
     return ERROR;
   }
