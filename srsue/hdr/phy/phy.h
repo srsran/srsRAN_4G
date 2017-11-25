@@ -137,7 +137,10 @@ public:
   float   get_pathloss_db();
     
   uint32_t get_current_tti();
+
   void     get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL);
+  uint32_t get_current_earfcn();
+  uint32_t get_current_pci();
   
   void    start_plot();
     

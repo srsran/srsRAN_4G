@@ -301,6 +301,18 @@ void phy::get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn)
   sf_recv.get_current_cell(cell, current_earfcn);
 }
 
+uint32_t phy::get_current_pci() {
+  srslte_cell_t cell;
+  sf_recv.get_current_cell(&cell);
+  return cell.id;
+}
+
+uint32_t phy::get_current_earfcn() {
+  uint32_t earfcn;
+  sf_recv.get_current_cell(NULL, &earfcn);
+  return earfcn;
+}
+
 void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
 {
   

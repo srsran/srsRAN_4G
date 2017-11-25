@@ -255,6 +255,7 @@ void rrc::run_thread() {
         rrc_log->info("Leaving RRC_CONNECTED state\n");
         drb_up = false;
         reestablishment_in_progress = false;
+        measurements.reset();
         pdcp->reset();
         rlc->reset();
         phy->reset();
@@ -264,6 +265,11 @@ void rrc::run_thread() {
         mac->pcch_start_rx();
         mac_timers->timer_get(t310)->stop();
         mac_timers->timer_get(t311)->stop();
+
+        // Instruct PHY to measure serving cell for cell reselection
+        phy->meas_start(phy->get_current_earfcn(), phy->get_current_pci());
+
+        // Move to RRC_IDLE
         state = RRC_STATE_IDLE;
         break;
       default:
@@ -460,7 +466,11 @@ void rrc::select_next_cell_in_plmn() {
 }
 
 void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, uint32_t pci) {
-  measurements.new_phy_meas(earfcn, pci, rsrp, rsrq, tti);
+  if (state == RRC_STATE_CONNECTED) {
+    measurements.new_phy_meas(earfcn, pci, rsrp, rsrq, tti);
+  } else {
+    cell_reselection_eval(rsrp, rsrq);
+  }
 }
 
 void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
@@ -493,6 +503,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
   cell.earfcn = earfcn;
   cell.has_valid_sib1 = false;
   cell.has_valid_sib2 = false;
+  cell.has_valid_sib3 = false;
   known_cells.push_back(cell);
 
   // save current cell
@@ -532,8 +543,31 @@ void rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
   known_cells.push_back(c);
 }
 
+// Cell reselection in IDLE Section 5.2.4 of 36.304
+void rrc::cell_reselection_eval(float rsrp, float rsrq)
+{
+  // Intra-frequency cell-reselection criteria
 
+  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP && get_squal(rsrq) > cell_resel_cfg.s_intrasearchQ) {
+    // UE may not perform intra-frequency measurements
+    phy->meas_reset();
+  } else {
+    // UE must start intra-frequency measurements
+    phy->meas_start(phy->get_current_earfcn(), -1);
+  }
 
+  // TODO: Inter-frequency cell reselection
+}
+
+float rrc::get_srxlev(float Qrxlevmeas) {
+  // TODO: Do max power limitation
+  float Pcompensation = 0;
+  return Qrxlevmeas - (cell_resel_cfg.Qrxlevmin + cell_resel_cfg.Qrxlevminoffset) - Pcompensation;
+}
+
+float rrc::get_squal(float Qqualmeas) {
+  return Qqualmeas - (cell_resel_cfg.Qqualmin + cell_resel_cfg.Qqualminoffset);
+}
 
 
 
@@ -865,14 +899,11 @@ void rrc::ho_prepare() {
     mac->set_ho_rnti(mob_reconf.mob_ctrl_info.new_ue_id, mob_reconf.mob_ctrl_info.target_pci);
     apply_rr_config_common_dl(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
 
-    uint32_t current_earfcn = 0;
-    phy->get_current_cell(NULL, &current_earfcn);
-
     bool found = false;
     for (uint32_t i = 0; i < known_cells.size(); i++) {
       rrc_log->info("cell[%d]=%d:%d, cur_earfcn=%d\n", i, known_cells[i].earfcn, known_cells[i].phy_cell.id,
                     current_cell->earfcn);
-      if (known_cells[i].earfcn == current_earfcn &&
+      if (known_cells[i].earfcn == phy->get_current_earfcn() &&
           known_cells[i].phy_cell.id == mob_reconf.mob_ctrl_info.target_pci) {
         rrc_log->info("Selecting new cell pci=%d\n", known_cells[i].phy_cell.id);
         if (!phy->cell_handover(known_cells[i].phy_cell)) {
@@ -895,7 +926,7 @@ void rrc::ho_prepare() {
     }
 
     printf("ncc=%d\n", mob_reconf.sec_cnfg_ho.intra_lte.next_hop_chaining_count);
-    usim->generate_as_keys_ho(mob_reconf.mob_ctrl_info.target_pci, current_earfcn,
+    usim->generate_as_keys_ho(mob_reconf.mob_ctrl_info.target_pci, phy->get_current_earfcn(),
                               k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
     pdcp->config_security(1, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     send_rrc_con_reconfig_complete(NULL);
@@ -1094,6 +1125,8 @@ void rrc::handle_sib2()
 void rrc::handle_sib3()
 {
   rrc_log->info("SIB3 received\n");
+
+
 }
 
 void rrc::handle_sib13()
@@ -1591,8 +1624,8 @@ void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT
            sizeof(LIBLTE_RRC_UL_POWER_CONTROL_DEDICATED_STRUCT));
   } else if (apply_defaults) {
     current_cfg->ul_pwr_ctrl_ded.p0_ue_pusch     = 0;
-    current_cfg->ul_pwr_ctrl_ded.delta_mcs_en    = LIBLTE_RRC_DELTA_MCS_ENABLED_EN0; 
-    current_cfg->ul_pwr_ctrl_ded.accumulation_en = true; 
+    current_cfg->ul_pwr_ctrl_ded.delta_mcs_en    = LIBLTE_RRC_DELTA_MCS_ENABLED_EN0;
+    current_cfg->ul_pwr_ctrl_ded.accumulation_en = true;
     current_cfg->ul_pwr_ctrl_ded.p0_ue_pucch     = 0;
     current_cfg->ul_pwr_ctrl_ded.p_srs_offset    = 7;
   }
@@ -1741,7 +1774,7 @@ void rrc::apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cnfg
     default_cfg.time_alignment_timer = mac_cnfg->time_alignment_timer;
   }
 
-  // Setup MAC configuration 
+  // Setup MAC configuration
   mac->set_config_main(&default_cfg);
 
   // Update UL HARQ config
@@ -2099,7 +2132,7 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   report->pcell_rsrp_result = value_to_range(RSRP, pcell_measurement.ms[RSRP]);
   report->pcell_rsrq_result = value_to_range(RSRQ, pcell_measurement.ms[RSRQ]);
 
-  log_h->info("MEAS:  Generate report MeasId=%d, rsrp=%f rsrq=%f\n",
+  log_h->console("MEAS:  Generate report MeasId=%d, rsrp=%f rsrq=%f\n",
               report->meas_id, pcell_measurement.ms[RSRP], pcell_measurement.ms[RSRQ]);
 
   // TODO: report up to 8 best cells
@@ -2189,16 +2222,14 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
 
   // Get serving cell
   if (active.size()) {
-    uint32_t current_earfcn = 0;
-    srslte_cell_t current_cell;
-    phy->get_current_cell(&current_cell, &current_earfcn);
-    if (find_earfcn_cell(current_earfcn, current_cell.id, &serving_object, &serving_cell_idx)) {
+    if (find_earfcn_cell(phy->get_current_earfcn(), phy->get_current_pci(), &serving_object, &serving_cell_idx)) {
       Ofp = serving_object->q_offset;
       if (serving_cell_idx >= 0) {
         Ocp = serving_object->cells[serving_cell_idx].q_offset;
       }
     } else {
-      log_h->warning("Can't find current eafcn=%d, pci=%d in objects list. Using Ofp=0, Ocp=0\n", current_earfcn, current_cell.id);
+      log_h->warning("Can't find current eafcn=%d, pci=%d in objects list. Using Ofp=0, Ocp=0\n",
+                     phy->get_current_earfcn(), phy->get_current_pci());
     }
   }
 

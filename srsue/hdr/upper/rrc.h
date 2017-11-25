@@ -346,6 +346,27 @@ private:
   rrc_meas measurements;
 
 
+  // Cell selection/reselection functions/variables
+  typedef struct {
+    float Qrxlevmin;
+    float Qrxlevminoffset;
+    float Qqualmin;
+    float Qqualminoffset;
+    float s_intrasearchP;
+    float s_intrasearchQ;
+    float q_hyst;
+    float threshservinglow;
+
+  } cell_resel_cfg_t;
+
+  cell_resel_cfg_t cell_resel_cfg;
+
+  float         get_srxlev(float Qrxlevmeas);
+  float         get_squal(float Qqualmeas);
+  void          cell_reselection_eval(float rsrp, float rsrq);
+
+
+
   // RLC interface
   void          max_retx_attempted();
 
