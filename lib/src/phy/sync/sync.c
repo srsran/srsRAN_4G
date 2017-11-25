@@ -539,7 +539,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
       /* Correct CFO with the averaged CFO estimation */
       srslte_cfo_correct(&q->cfocorr2, input, q->temp, -q->mean_cfo / q->fft_size);
       
-      input_cfo = q->temp; 
+      input_cfo = q->temp;
     }
     
     /* If integer CFO is enabled, find max PSS correlation for shifted +1/0/-1 integer versions */
@@ -549,20 +549,21 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
         srslte_vec_prod_ccc(input_cfo, q->cfo_i_corr[q->cfo_i<0?0:1], input_cfo, q->frame_size);
         INFO("Compensating cfo_i=%d\n", q->cfo_i);
       }
-    } else {      
-      srslte_pss_synch_set_N_id_2(&q->pss, q->N_id_2);
-      peak_pos = srslte_pss_synch_find_pss(&q->pss, &input_cfo[find_offset], &q->peak_value);
-      // this compensates for the constant time shift caused by the low pass filter
-      if(q->decimate && peak_pos < 0)
-      {
-              peak_pos  =  0 ;//peak_pos + q->decimate*(2);// replace 2 with q->filter_size -2;
-      }
-      if (peak_pos < 0) {
-        fprintf(stderr, "Error calling finding PSS sequence at : %d  \n", peak_pos);
-        return SRSLTE_ERROR; 
-      }      
     }
-    
+
+    srslte_pss_synch_set_N_id_2(&q->pss, q->N_id_2);
+    peak_pos = srslte_pss_synch_find_pss(&q->pss, &input_cfo[find_offset], &q->peak_value);
+
+    // this compensates for the constant time shift caused by the low pass filter
+    if(q->decimate && peak_pos < 0)
+    {
+      peak_pos  =  0 ;//peak_pos + q->decimate*(2);// replace 2 with q->filter_size -2;
+    }
+    if (peak_pos < 0) {
+      fprintf(stderr, "Error calling finding PSS sequence at : %d  \n", peak_pos);
+      return SRSLTE_ERROR;
+    }
+
     if (peak_position) {
       *peak_position = (uint32_t) peak_pos;
     }
@@ -579,12 +580,15 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
     
     /* If peak is over threshold, compute CFO and SSS */
     if (q->peak_value >= q->threshold) {
-      
+
+      ret = SRSLTE_SYNC_FOUND;
+
       if (q->detect_cp) {
         if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
           srslte_sync_set_cp(q, srslte_sync_detect_cp(q, input_cfo, peak_pos + find_offset));
         } else {
           DEBUG("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
+          ret = SRSLTE_SYNC_FOUND_NOSPACE;
         }
       }
 
@@ -597,8 +601,6 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
           } else {
             q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
           }
-
-          ret = SRSLTE_SYNC_FOUND;
         } else {
           ret = SRSLTE_SYNC_FOUND_NOSPACE;
         }
