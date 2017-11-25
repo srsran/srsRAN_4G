@@ -213,9 +213,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
     for (uint32_t i=0;i<lch.size();i++) {
       lch[i].buffer_len = rlc->get_buffer_state(lch[i].id);
       lch[i].sched_len  = 0;
-      Info("lch[%d].buffer_len=%d\n",i,lch[i].buffer_len);
     }
-
 
     // data from any Logical Channel, except data from UL-CCCH;
     // first only those with positive Bj

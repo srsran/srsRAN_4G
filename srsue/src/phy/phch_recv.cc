@@ -1063,14 +1063,20 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
   float rsrq   = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
   float snr    = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest));
 
-  mean_rsrp = SRSLTE_VEC_CMA(rsrp, mean_rsrp, cnt);
-  mean_rsrq = SRSLTE_VEC_CMA(rsrq, mean_rsrq, cnt);
-  mean_snr  = SRSLTE_VEC_CMA(snr,  mean_snr, cnt);
+  if (cnt == 0) {
+    mean_rsrp = rsrp;
+    mean_rsrq  = rsrq;
+    mean_snr   = snr;
+  } else {
+    mean_rsrp = SRSLTE_VEC_CMA(rsrp, mean_rsrp, cnt);
+    mean_rsrq = SRSLTE_VEC_CMA(rsrq, mean_rsrq, cnt);
+    mean_snr  = SRSLTE_VEC_CMA(snr,  mean_snr, cnt);
+
+  }
   cnt++;
 
   log_h->info("SYNC:  Measuring RSRP %d/%d, sf_idx=%d, RSRP=%.1f dBm, SNR=%.1f dB\n",
-              cnt, nof_subframes, sf_idx,
-              rsrp, snr);
+              cnt, nof_subframes, sf_idx, rsrp, snr);
 
   if (cnt >= nof_subframes) {
     return MEASURE_OK;
@@ -1107,7 +1113,7 @@ void phch_recv::scell_recv::init(srslte::log *log_h)
   }
   srslte_sync_cp_en(&sync_find, false);
   srslte_sync_set_cfo_ema_alpha(&sync_find, 0.8);
-  srslte_sync_set_threshold(&sync_find, 2.0);
+  srslte_sync_set_threshold(&sync_find, 1.2);
 
   reset();
 }
@@ -1126,6 +1132,7 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
     fprintf(stderr, "Error resizing sync\n");
     return SRSLTE_ERROR;
   }
+
   int nof_cells = 0;
   uint32_t peak_idx = 0;
   uint32_t sf_idx   = 0;
@@ -1143,7 +1150,9 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
     if (current_cell.id%3 != n_id_2) {
       srslte_sync_set_N_id_2(&sync_find, n_id_2);
 
-      switch(srslte_sync_find(&sync_find, input_buffer, 0, &peak_idx)) {
+      srslte_sync_find_ret_t sync_res = srslte_sync_find(&sync_find, input_buffer, 0, &peak_idx);
+
+      switch(sync_res) {
         case SRSLTE_SYNC_ERROR:
           return SRSLTE_ERROR;
           fprintf(stderr, "Error finding correlation peak\n");
@@ -1155,6 +1164,7 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
                  peak_idx, n_id_2, cell_id, sf_idx);
 
           found_cell.id = cell_id;
+          found_cell.nof_ports = 1;  // Use port 0 only for measurement
           measure_p.set_cell(found_cell);
 
           offset = peak_idx-sf_len/2;
@@ -1208,7 +1218,9 @@ void phch_recv::meas_reset() {
 int phch_recv::meas_start(uint32_t earfcn, int pci) {
   if (earfcn == current_earfcn) {
     worker_com->pcell_meas_enabled = true;
-    intra_freq_meas.add_cell(pci);
+    if (pci != (int) cell.id) {
+      intra_freq_meas.add_cell(pci);
+    }
     return 0;
   } else {
     Warning("INTRA:  Inter-frequency measurements not supported (current EARFCN=%d, requested measurement for %d)\n",
@@ -1331,7 +1343,7 @@ void phch_recv::intra_measure::run_thread()
     }
 
     if (running) {
-      Info("INTRA:  Running intra-frequency measurement for %d cells\n", active_pci.size());
+      Info("INTRA:  Running intra-frequency measurements\n");
 
       // Read 5 ms data from buffer
       srslte_ringbuffer_read(&ring_buffer, search_buffer, CAPTURE_LEN_SF*current_sflen*sizeof(cf_t));

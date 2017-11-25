@@ -546,7 +546,10 @@ public:
   } phy_cfg_t; 
 
   virtual void get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL) = 0;
-  virtual void get_config(phy_cfg_t *phy_cfg) = 0; 
+  virtual uint32_t get_current_earfcn() = 0;
+  virtual uint32_t get_current_pci() = 0;
+
+  virtual void get_config(phy_cfg_t *phy_cfg) = 0;
   virtual void set_config(phy_cfg_t *phy_cfg) = 0; 
   virtual void set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated) = 0;
   virtual void set_config_common(phy_cfg_common_t *common) = 0; 
