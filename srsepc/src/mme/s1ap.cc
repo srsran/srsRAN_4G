@@ -571,8 +571,12 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
     return false;
   }
+
   erab_ctxt->transportLayerAddress = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
-  memcpy(erab_ctxt->gTP_TEID.buffer, cs_resp->eps_bearer_context_created.sender_f_teid.teid, sizeof(uint64_t));
+
+  uint64_t tmp_teid;
+  tmp_teid = HTONLL(cs_resp->eps_bearer_context_created.sender_f_teid.teid);
+  memcpy(erab_ctxt->gTP_TEID.buffer, tmp_teid, sizeof(uint64_t));
 
   in_ctxt_req->UESecurityCapabilities =;
   in_ctxt_req->SecurityKey = ;
