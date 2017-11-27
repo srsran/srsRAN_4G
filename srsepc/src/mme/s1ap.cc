@@ -50,7 +50,7 @@ s1ap::get_instance(void)
 {
   boost::mutex::scoped_lock lock(s1ap_instance_mutex);
   if(NULL == m_instance) {
-    m_instance = new mme();
+    m_instance = new s1ap();
   }
   return(m_instance);
 }
@@ -538,37 +538,41 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
 
   //FIXME The packging of GTP-C messages is not ready.
   //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-  struct srslte::gtpc_pdu cs_resp_pdu;
-  struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu.choice.create_session_response;
+  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, ue_ctx->mme_ue_s1ap_id);
 
-  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, &cs_resp_pdu);
-  if (cs_resp->cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED){
-    m_s1ap_log->warning("Could not create GTPC session.\n");
-    //TODO Handle error
-  }
-  else{
-    send_initial_context_setup_request(cs_resp);
-  }
   return true;
 }
 
 bool
-s1ap::send_initial_context_setup_request(struct srslte::gtpc_create_session_response *cs_resp)
+s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp)
 {
 
+  //Find UE Context
+  ue_ctx_t *ue_ctx;
+  std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
+  if(ue_ctx_it == m_active_ues.end())
+  {
+    m_s1ap_log->error("Could not find UE to send Setup Context Request. MME S1AP Id: %d", mme_ue_s1ap_id);
+    return false;
+  }
+  ue_ctx = ue_ctx_it->second;
+
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT in_ctxt_req;
-  uint64_t imsi = m_mme_gtpc->ctrl_teid_to_imsi();
   bzero(&in_ctxt_req, sizeof(in_ctxt_req));
 
-  in_ctxt_req.MME_UE_S1AP_ID = ;
-  in_ctxt_req.eNB_UE_S1AP_ID =;
-  in_ctxt_req.uEaggregateMaximumBitrate =;
-
+  in_ctxt_req.MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
+  in_ctxt_req.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  in_ctxt_req.uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=4294967295;//2^32-1
+  in_ctxt_req.uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=4294967295;//FIXME Get UE-AMBR from HSS
   //eRAB context to setup
-  LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT *erab_ctxt = &in_ctxt_req.E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME?
-  erab_ctxt->e_RAB_ID = cs_resp->bearer_context_created.ebi;
-  erab_ctxt->transportLayerAddress = cs_resp->bearer_context_created.sender_f_teid.ipv4;
-  erab_ctxt->gTP_TEID = cs_resp->bearer_context_created.sender_f_teid.teid;
+  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req.E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME?
+  erab_ctxt->e_RAB_ID.E_RAB_ID = cs_resp->eps_bearer_context_created.ebi;
+  if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
+    m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
+    return false;
+  }
+  erab_ctxt->transportLayerAddress = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
+  memcpy(erab_ctxt->gTP_TEID.buffer, cs_resp->eps_bearer_context_created.sender_f_teid.teid, sizeof(uint64_t));
 
   in_ctxt_req->UESecurityCapabilities =;
   in_ctxt_req->SecurityKey = ;
@@ -588,6 +592,17 @@ s1ap::send_initial_context_setup_request(struct srslte::gtpc_create_session_resp
     LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
     bool                                                         iE_Extensions_present;
   }LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT;
+  */
+  /*typedef struct{
+    bool     ext;
+    uint32_t n_bits;
+    uint8_t  buffer[160];
+  }LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT;
+  */
+  /*
+  typedef struct{
+    uint8_t  buffer[4];
+  }LIBLTE_S1AP_GTP_TEID_STRUCT;
   */
   /*typedef struct{
   bool                                                         ext;

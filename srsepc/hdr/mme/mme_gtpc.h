@@ -46,7 +46,7 @@ public:
   void init();
 
   uint64_t get_new_ctrl_teid();
-  void send_create_session_request(uint64_t imsi, struct srslte::gtpc_pdu *cs_resp_pdu);
+  void send_create_session_request(uint64_t imsi, uint32_t mme_s1ap_id);
   void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
 
 private:

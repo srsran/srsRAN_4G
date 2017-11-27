@@ -79,10 +79,13 @@ mme_gtpc::get_new_ctrl_teid()
   return m_next_ctrl_teid++; //FIXME Use a Id pool?
 }
 void
-mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_pdu *cs_resp_pdu)
+mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
 {
   struct srslte::gtpc_pdu cs_req_pdu;
   struct srslte::gtpc_create_session_request *cs_req = &cs_req_pdu.choice.create_session_request;
+
+  struct srslte::gtpc_pdu cs_resp_pdu;
+ 
 
   //Initialize GTP-C message to zero
   bzero(&cs_req_pdu, sizeof(struct srslte::gtpc_pdu));
@@ -95,7 +98,7 @@ mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_pdu *cs
 
   //Setup GTP-C Create Session Request IEs
   // Control TEID allocated \\
-  cs_req->sender_f_teid.tied = get_new_ctrl_teid();
+  cs_req->sender_f_teid.teid = get_new_ctrl_teid();
   cs_req->sender_f_teid.ipv4 = m_mme_gtpc_ip;
   // APN \\
   memcpy(cs_req->apn, "internet", sizeof("internet"));
@@ -103,20 +106,39 @@ mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_pdu *cs
   cs_req->rat_type = GTPC_RAT_TYPE::EUTRAN;
 
   //Save RX Control TEID
-  //create_rx_control_teid(cs_req->sender_f_teid);
+  m_teid_to_mme_s1ap_id.insert(std::pair<uint64_t,uint32_t>(cs_req->sender_f_teid.teid, mme_ue_s1ap_id));
 
-  m_spgw->handle_create_session_request(cs_req, cs_resp_pdu);
-  return;
+  m_spgw->handle_create_session_request(cs_req, &cs_resp_pdu);
+  handle_create_session_response(&cs_resp_pdu);
+ 
 }
 
 void
 mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
 {
+  struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu->choice.create_session_response;
+
+  if (cs_resp_pdu->header.type != srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE)
+  {
+     //m_mme_gtpc_log->warning("Could not create GTPC session.\n");
+     //TODO Handle err
+     return;
+  }
+  if (cs_resp->cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED){
+    //m_mme_gtpc_log->warning("Could not create GTPC session.\n");
+    //TODO Handle error
+    return;
+  }
+
   //Get MME_UE_S1AP_ID from the Ctrl TEID
   std::map<uint64_t,uint32_t>::iterator id_it = m_teid_to_mme_s1ap_id.find(cs_resp_pdu->header.teid);
+  if(id_it == m_teid_to_mme_s1ap_id.end())
+  {
+    //Could not find MME UE S1AP TEID
+    return;
+  }
   uint32_t mme_s1ap_id = id_it->second;
-
-  m_s1ap->send_intial_context_setup_request(mme_s1ap_id, &cs_resp_pdu->choice.create_session_request);
+  m_s1ap->send_initial_context_setup_request(mme_s1ap_id, cs_resp);
 }
 
 } //namespace srsepc

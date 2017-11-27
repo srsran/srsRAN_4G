@@ -202,7 +202,7 @@ struct gtpc_create_session_request
     struct gtpc_f_teid_ie s12_rnc_f_teid;
     bool s2b_u_epdg_f_teid_present;
     struct gtpc_f_teid_ie s2b_u_epdg_f_teid;
-  } bearer_context_created;		// M
+  } eps_bearer_context_created;		// M
   //bool bearer_context_deleted_present;
   //struct bearer_context_ bearer_context_deleted;		// C
   //bool trace_information_present;
