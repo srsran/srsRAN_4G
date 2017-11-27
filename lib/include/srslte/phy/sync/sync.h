@@ -139,10 +139,6 @@ SRSLTE_API srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q,
                                                    uint32_t find_offset,
                                                    uint32_t *peak_position);
 
-SRSLTE_API float srslte_sync_cfo_estimate(srslte_sync_t *q,
-                                          cf_t *input,
-                                          int find_offset);
-
 /* Estimates the CP length */
 SRSLTE_API srslte_cp_t srslte_sync_detect_cp(srslte_sync_t *q, 
                                              cf_t *input, 
