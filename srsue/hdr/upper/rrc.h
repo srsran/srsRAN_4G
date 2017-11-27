@@ -205,8 +205,10 @@ private:
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
   } cell_t;
 
-  std::vector<cell_t> known_cells;
+  const static int MAX_KNOWN_CELLS = 64;
+  cell_t known_cells[MAX_KNOWN_CELLS];
   cell_t *current_cell;
+  void add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
 
   typedef enum {
     SI_ACQUIRE_IDLE = 0,
@@ -353,7 +355,6 @@ private:
     float Qqualmin;
     float Qqualminoffset;
     float s_intrasearchP;
-    float s_intrasearchQ;
     float q_hyst;
     float threshservinglow;
 

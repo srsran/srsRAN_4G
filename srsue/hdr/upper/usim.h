@@ -92,6 +92,7 @@ public:
 
   void generate_as_keys_ho(uint32_t pci,
                            uint32_t earfcn,
+                           int ncc,
                            uint8_t *k_rrc_enc,
                            uint8_t *k_rrc_int,
                            uint8_t *k_up_enc,
@@ -137,8 +138,12 @@ private:
   uint8_t     ak[6];
   uint8_t     mac[8];
   uint8_t     autn[16];
+  uint8_t     k_asme[32];
+  uint8_t     nh[32];
   uint8_t     k_enb[32];
   uint8_t     k_enb_star[32];
+
+  uint32_t    current_ncc;
 
   bool initiated;
 

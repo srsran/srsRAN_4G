@@ -51,20 +51,19 @@ namespace srsue {
     phy_args_t                   *args;
     rrc_interface_phy *rrc;
     mac_interface_phy *mac;
-    srslte_ue_ul_t     ue_ul; 
-    
+
     /* Power control variables */
     float pathloss;
     float cur_pathloss;
     float p0_preamble;     
     float cur_radio_power; 
     float cur_pusch_power;
-    float avg_rsrp_db;
+    float avg_rsrp;
+    float avg_rsrp_dbm;
     float avg_rsrq_db; 
     float rx_gain_offset;
     float avg_snr_db; 
     float avg_noise; 
-    float avg_rsrp;
 
     bool     pcell_meas_enabled;
     uint32_t pcell_report_period;

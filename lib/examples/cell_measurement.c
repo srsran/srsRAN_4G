@@ -369,7 +369,7 @@ int main(int argc, char **argv) {
         
         if ((nframes%100) == 0 || rx_gain_offset == 0) {
           if (srslte_rf_has_rssi(&rf)) {
-            rx_gain_offset = 10*log10(rssi*1000)-srslte_rf_get_rssi(&rf);
+            rx_gain_offset = 30+10*log10(rssi*1000)-srslte_rf_get_rssi(&rf);
           } else {
             rx_gain_offset = srslte_rf_get_rx_gain(&rf);            
           }

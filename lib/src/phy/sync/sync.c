@@ -554,8 +554,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
     peak_pos = srslte_pss_synch_find_pss(&q->pss, &input_cfo[find_offset], &q->peak_value);
 
     // this compensates for the constant time shift caused by the low pass filter
-    if(q->decimate && peak_pos < 0)
-    {
+    if(q->decimate && peak_pos < 0) {
       peak_pos  =  0 ;//peak_pos + q->decimate*(2);// replace 2 with q->filter_size -2;
     }
     if (peak_pos < 0) {
@@ -591,17 +590,15 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
         }
       }
 
-      if (q->enable_cfo_corr) {
+      if (q->enable_cfo_pss) {
         if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
-          float cfo2   = srslte_pss_synch_cfo_compute(&q->pss, &input[find_offset + peak_pos - q->fft_size]);
+          float cfo2 = srslte_pss_synch_cfo_compute(&q->pss, &input[find_offset + peak_pos - q->fft_size]);
           if (q->mean_cfo2_isunset) {
             q->mean_cfo2 = cfo2;
             q->mean_cfo2_isunset = true;
           } else {
             q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
           }
-        } else {
-          ret = SRSLTE_SYNC_FOUND_NOSPACE;
         }
       }
     } else {

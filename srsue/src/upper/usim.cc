@@ -244,6 +244,8 @@ void usim::generate_as_keys(uint8_t *k_asme,
                            count_ul,
                            k_enb);
 
+  memcpy(this->k_asme, k_asme, 32);
+
   // Generate K_rrc_enc and K_rrc_int
   security_generate_k_rrc( k_enb,
                            cipher_algo,
@@ -257,10 +259,13 @@ void usim::generate_as_keys(uint8_t *k_asme,
                           integ_algo,
                           k_up_enc,
                           k_up_int);
+
+  current_ncc = 0;
 }
 
 void usim::generate_as_keys_ho(uint32_t pci,
                                uint32_t earfcn,
+                               int ncc,
                                uint8_t *k_rrc_enc,
                                uint8_t *k_rrc_int,
                                uint8_t *k_up_enc,
@@ -268,13 +273,39 @@ void usim::generate_as_keys_ho(uint32_t pci,
                                CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
+  uint8_t *enb_star_key = k_enb;
+
+  if (ncc < 0) {
+    ncc = current_ncc;
+  }
+
+  // Generate successive NH
+  while(current_ncc != (uint32_t) ncc) {
+    uint8_t *sync = NULL;
+    if (current_ncc) {
+      sync = nh;
+    } else {
+      sync = k_enb;
+    }
+    // Generate NH
+    security_generate_nh(k_asme,
+                         sync,
+                         nh);
+
+    current_ncc++;
+    if (current_ncc == 7) {
+      current_ncc = 0;
+    }
+    enb_star_key = nh;
+  }
 
   // Generate K_enb
-  security_generate_k_enb_star( k_enb,
+  security_generate_k_enb_star( enb_star_key,
                                 pci,
                                 earfcn,
                                 k_enb_star);
 
+  // K_enb becomes K_enb*
   memcpy(k_enb, k_enb_star, 32);
 
   // Generate K_rrc_enc and K_rrc_int

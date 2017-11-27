@@ -91,6 +91,10 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_enb_star(uint8  *k_enb,
                                                       uint32_t earfcn,
                                                       uint8  *k_enb_star);
 
+LIBLTE_ERROR_ENUM liblte_security_generate_nh( uint8_t *k_asme,
+                                               uint8_t *sync,
+                                               uint8_t *nh);
+
 /*********************************************************************
     Name: liblte_security_generate_k_nas
 
@@ -125,6 +129,8 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_nas(uint8                          
                                                  LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM  int_alg_id,
                                                  uint8                                       *k_nas_enc,
                                                  uint8                                       *k_nas_int);
+
+
 
 /*********************************************************************
     Name: liblte_security_generate_k_rrc
