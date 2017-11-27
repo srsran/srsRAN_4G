@@ -60,10 +60,8 @@ void srslte_scrambling_c_offset(srslte_sequence_t *s, cf_t *data, int offset, in
 }
 
 void scrambling_b(uint8_t *c, uint8_t *data, int len) {
-  int i;  
-  for (i = 0; i < len; i++) {
-    data[i] = (data[i] ^ c[i]);
-  }  
+
+  srslte_vec_xor_bbb((int8_t*)c,(int8_t*)data,(int8_t*)data,len);  
 }
 
 void scrambling_b_word(uint8_t *c, uint8_t *data, int len) {

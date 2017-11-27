@@ -53,6 +53,10 @@ extern "C" {
 #endif /* LV_HAVE_AVX */
 #endif /* LV_HAVE_AVX512 */
 
+
+/*SIMD Logical operations*/
+SRSLTE_API void srslte_vec_xor_bbb_simd(int8_t *x, int8_t *y, int8_t *z, int len);
+
 /* SIMD Basic vector math */
 SRSLTE_API void srslte_vec_sum_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len);
 

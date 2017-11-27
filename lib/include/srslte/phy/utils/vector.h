@@ -53,6 +53,10 @@ extern "C" {
 // Exponential moving average
 #define SRSLTE_VEC_EMA(data, average, alpha) ((alpha)*(data)+(1-alpha)*(average))
 
+
+/*logical operations */
+SRSLTE_API void srslte_vec_xor_bbb(int8_t *x,int8_t *y,int8_t *z, uint32_t len);
+
 /** Return the sum of all the elements */
 SRSLTE_API float srslte_vec_acc_ff(float *x, uint32_t len);
 SRSLTE_API cf_t srslte_vec_acc_cc(cf_t *x, uint32_t len);
