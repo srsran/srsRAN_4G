@@ -67,9 +67,17 @@ static bool _faux_rf_logStdout = true;
 #define FAUX_RF_ENB_PORT 43001
 #define FAUX_RF_UE_PORT  43002
 
+#define SAMPLES_TO_BYTES(x) ((x) * sizeof(cf_t))
+
+cf_t _faux_rf_fill[SAMPLES_TO_BYTES(0x4000)] = {0.0, 0.0};
+cf_t _faux_rf_over[SAMPLES_TO_BYTES(0x4000)] = {0.0, 0.0};
+
 static void _faux_rf_tv_to_ts(struct timeval *tv, time_t *s, double *f)
 {
-  *s = tv->tv_sec; 
+  if(s)
+    *s = tv->tv_sec; 
+
+  if(f)
   *f = tv->tv_usec / 1.0e6;
 }
 
@@ -93,7 +101,7 @@ static void _faux_rf_dif_time(time_t secs, double frac, struct timeval * tv_dif)
     }
    else
     {
-      tv_dif->tv_sec = 0;
+      tv_dif->tv_sec  = 0;
       tv_dif->tv_usec = 0;
     }
 }
@@ -131,73 +139,74 @@ static bool _faux_rf_is_enb(faux_rf_info_t * h)
 
 static int _faux_rf_open_ipc(faux_rf_info_t * h)
 {
-   if((h->rxSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
-      { 
-       FAUX_RF_DEBUG("error opening rx sock %s\n", strerror(errno));
+  if((h->rxSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
+   { 
+     FAUX_RF_DEBUG("error opening rx sock %s\n", strerror(errno));
 
-       return -1;
-      }
+     return -1;
+    }
  
-   if((h->txSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
-      { 
-       FAUX_RF_DEBUG("error opening tx sock %s\n", strerror(errno));
+  if((h->txSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
+   { 
+     FAUX_RF_DEBUG("error opening tx sock %s\n", strerror(errno));
 
-       return -1;
-      }
+     return -1;
+   }
 
-   const int rxPort = _faux_rf_is_enb(h) ? 
-                      FAUX_RF_ENB_PORT : 
-                      FAUX_RF_UE_PORT;
+  const int rxPort = _faux_rf_is_enb(h) ? 
+                     FAUX_RF_ENB_PORT : 
+                     FAUX_RF_UE_PORT;
 
-   const int txPort = _faux_rf_is_enb(h) ? 
-                      FAUX_RF_UE_PORT : 
-                      FAUX_RF_ENB_PORT;
+  const int txPort = _faux_rf_is_enb(h) ? 
+                     FAUX_RF_UE_PORT : 
+                     FAUX_RF_ENB_PORT;
 
 
-   struct sockaddr_in sin;
+  struct sockaddr_in sin;
 
-   bzero(&sin, sizeof(sin));
-   sin.sin_family      = AF_INET;
-   sin.sin_port        = htons(rxPort);
-   sin.sin_addr.s_addr = htonl(0x7f000001);
+  bzero(&sin, sizeof(sin));
+  sin.sin_family      = AF_INET;
+  sin.sin_port        = htons(rxPort);
+  sin.sin_addr.s_addr = htonl(0x7f000001);
 
-   const int reuse = 1;
+  const int reuse = 1;
 
-   if(setsockopt(h->rxSock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0)
-     {
-       FAUX_RF_DEBUG("error set reuse option %s\n", strerror(errno));
+  if(setsockopt(h->rxSock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0)
+    {
+      FAUX_RF_DEBUG("error set reuse option %s\n", strerror(errno));
 
-       return -1;
-     }
+      return -1;
+    }
 
-   if(bind(h->rxSock, (const struct sockaddr *)&sin, sizeof(sin)) < 0)
-     {
-       FAUX_RF_DEBUG("error %s binding to rxPort %d\n", strerror(errno), rxPort);
+  if(bind(h->rxSock, (const struct sockaddr *)&sin, sizeof(sin)) < 0)
+    {
+      FAUX_RF_DEBUG("error %s binding to rxPort %d\n", strerror(errno), rxPort);
 
-       return -1;
-     }
+      return -1;
+    }
 
-   sin.sin_port = htons(txPort);
+  sin.sin_port = htons(txPort);
 
-   // connect so we can use read/write 
-   if(connect(h->txSock, (const struct sockaddr *)&sin, sizeof(sin)) < 0)
-     {
-       FAUX_RF_DEBUG("error %s connect to txPort %d\n", strerror(errno), txPort);
+  // connect so we can use read/write 
+  if(connect(h->txSock, (const struct sockaddr *)&sin, sizeof(sin)) < 0)
+    {
+      FAUX_RF_DEBUG("error %s connect to txPort %d\n", strerror(errno), txPort);
 
-       return -1;
-     }
+      return -1;
+    }
 
-   const int md = IP_PMTUDISC_DO;
+  const int md = IP_PMTUDISC_DO;
 
-   if(setsockopt(h->txSock, IPPROTO_IP, IP_MTU_DISCOVER, &md, sizeof(md)) < 0)
+  if(setsockopt(h->txSock, IPPROTO_IP, IP_MTU_DISCOVER, &md, sizeof(md)) < 0)
     {
        FAUX_RF_DEBUG("error set no_df option %s\n", strerror(errno));
 
        return -1;
     }
 
-   return 0;
+  return 0;
 }
+
 
 static void faux_rf_handle_error(srslte_rf_error_t error)
 {
@@ -325,11 +334,11 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
     }
    else
     {
-      FAUX_RF_DEBUG("expected arg [ue or enb]", args);
-   
-      return -1;
+      FAUX_RF_DEBUG("default type is ue");
+
+      _faux_rf_info.type = FAUX_RF_TYPE_UE;
     }
-      
+       
    if(nof_channels != 1)
     {
       FAUX_RF_DEBUG("only supporting 1 channel, not %d", nof_channels);
@@ -487,22 +496,43 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
               nsamples, 
               blocking ? "yes" : "no");
 
-   const int flags = _faux_rf_is_enb(h) ? MSG_DONTWAIT : 0;
+   fd_set fdset;
 
-   const int result = recv(p->rxSock, data, nsamples * sizeof(cf_t), flags);
+   FD_ZERO(&fdset); 
+   FD_SET(p->rxSock, &fdset);
 
-   if(result <= 0)
+   struct timeval timeout;
+   timeout.tv_sec  = 0;
+   timeout.tv_usec = blocking ? 100000 : 0;
+
+   int avail = 0;
+
+   if(select(p->rxSock + 1, &fdset, NULL, NULL, &timeout) > 0)
      {
-       usleep(100000);
+       avail = recv(p->rxSock, data, SAMPLES_TO_BYTES(nsamples), MSG_DONTWAIT);
+     }
+
+   if(avail < 0)
+     {
+       FAUX_RF_DEBUG("read error %s", strerror(errno));
+
+       return -1;
      }
    else
      {
-       FAUX_RF_DEBUG("recv %d bytes", result);
+       int pending = SAMPLES_TO_BYTES(nsamples) - avail;
+
+       if(pending > 0)
+         {
+           memcpy(data + avail, _faux_rf_fill, pending);
+         }
+
+        rf_faux_get_time(h, secs, frac_secs);
+
+        FAUX_RF_DEBUG("avail %d, filled %d", avail, pending);
+
+        return nsamples;
      }
-
-   rf_faux_get_time(h, secs, frac_secs);
-
-   return result;
  }
 
 
@@ -535,7 +565,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
               FAUX_RF_BOOL_TO_STR(is_start_of_burst),
               FAUX_RF_BOOL_TO_STR(is_end_of_burst));
 
-   const int result = write(p->txSock, data, nsamples * sizeof(cf_t));
+   const int result = write(p->txSock, data, SAMPLES_TO_BYTES(nsamples));
    
    FAUX_RF_DEBUG("sent %d bytes", result);
 
