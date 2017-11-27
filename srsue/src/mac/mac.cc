@@ -385,7 +385,6 @@ void mac::set_ho_rnti(uint16_t crnti, uint16_t target_pci) {
   phy_h->pdcch_ul_search_reset();
   uernti.crnti = crnti;
   if (pcap) {
-    printf("set_ue_id=%d\n", target_pci);
     pcap->set_ue_id(target_pci);
   }
 }

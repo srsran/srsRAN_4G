@@ -75,6 +75,7 @@ typedef struct SRSLTE_API {
   uint32_t frame_size;
   uint32_t max_offset;
   bool enable_cfo_corr;
+  bool enable_cfo_pss;
   bool mean_cfo2_isunset;
   bool mean_cfo_isunset;
   float mean_cfo;

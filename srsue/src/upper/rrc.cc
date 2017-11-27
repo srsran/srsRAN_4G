@@ -89,6 +89,8 @@ void rrc::init(phy_interface_rrc *phy_,
   state = RRC_STATE_IDLE;
   si_acquire_state = SI_ACQUIRE_IDLE;
 
+  bzero(known_cells, MAX_KNOWN_CELLS*sizeof(cell_t));
+
   thread_running = true;
   start();
 
@@ -433,7 +435,7 @@ void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
 }
 
 void rrc::select_next_cell_in_plmn() {
-  for (uint32_t i = last_selected_cell + 1; i < known_cells.size(); i++) {
+  for (uint32_t i = last_selected_cell + 1; i < MAX_KNOWN_CELLS && known_cells[i].earfcn; i++) {
     for (uint32_t j = 0; j < known_cells[i].sib1.N_plmn_ids; j++) {
       if (known_cells[i].sib1.plmn_id[j].id.mcc == selected_plmn_id.mcc ||
           known_cells[i].sib1.plmn_id[j].id.mnc == selected_plmn_id.mnc) {
@@ -476,7 +478,7 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, ui
 void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
   // find if cell_id-earfcn combination already exists
-  for (uint32_t i = 0; i < known_cells.size(); i++) {
+  for (uint32_t i = 0; i < MAX_KNOWN_CELLS && known_cells[i].earfcn; i++) {
     if (earfcn == known_cells[i].earfcn && phy_cell.id == known_cells[i].phy_cell.id) {
       current_cell = &known_cells[i];
       current_cell->rsrp    = rsrp;
@@ -497,23 +499,31 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
     }
   }
   // add to list of known cells
-  cell_t cell;
-  cell.phy_cell = phy_cell;
-  cell.rsrp = rsrp;
-  cell.earfcn = earfcn;
-  cell.has_valid_sib1 = false;
-  cell.has_valid_sib2 = false;
-  cell.has_valid_sib3 = false;
-  known_cells.push_back(cell);
-
-  // save current cell
-  current_cell = &known_cells.back();
+  add_new_cell(earfcn, phy_cell, rsrp);
 
   si_acquire_state = SI_ACQUIRE_SIB1;
 
   rrc_log->info("New Cell: PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm, addr=0x%x\n",
                 current_cell->phy_cell.id, current_cell->phy_cell.nof_prb, current_cell->phy_cell.nof_ports,
                 current_cell->earfcn, current_cell->rsrp, current_cell);
+}
+
+void rrc::add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
+  int i=0;
+  while(i<MAX_KNOWN_CELLS && known_cells[i].earfcn) {
+    i++;
+  }
+  if (i==MAX_KNOWN_CELLS) {
+    rrc_log->error("Can't add more cells\n");
+    return;
+  }
+  current_cell = &known_cells[i];
+  current_cell->phy_cell = phy_cell;
+  current_cell->rsrp = rsrp;
+  current_cell->earfcn = earfcn;
+  current_cell->has_valid_sib1 = false;
+  current_cell->has_valid_sib2 = false;
+  current_cell->has_valid_sib3 = false;
 }
 
 // PHY indicates that has gone through all known EARFCN
@@ -527,20 +537,18 @@ void rrc::earfcn_end() {
 }
 
 void rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
-  for (uint32_t i = 0; i < known_cells.size(); i++) {
+  for (uint32_t i = 0; i < MAX_KNOWN_CELLS && known_cells[i].earfcn; i++) {
     if (earfcn == known_cells[i].earfcn && pci == known_cells[i].phy_cell.id) {
       known_cells[i].rsrp = rsrp;
       return;
     }
   }
   rrc_log->info("Added neighbour cell earfcn=%d, pci=%d, rsrp=%f\n", earfcn, pci, rsrp);
-  cell_t c;
-  bzero(&c, sizeof(cell_t));
-  c.earfcn = earfcn;
-  c.rsrp   = rsrp;
-  memcpy(&c.phy_cell, &current_cell->phy_cell, sizeof(srslte_cell_t));
-  c.phy_cell.id = pci;
-  known_cells.push_back(c);
+
+  srslte_cell_t cell;
+  cell = current_cell->phy_cell;
+  cell.id = pci;
+  add_new_cell(earfcn, cell, rsrp);
 }
 
 // Cell reselection in IDLE Section 5.2.4 of 36.304
@@ -548,7 +556,7 @@ void rrc::cell_reselection_eval(float rsrp, float rsrq)
 {
   // Intra-frequency cell-reselection criteria
 
-  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP && get_squal(rsrq) > cell_resel_cfg.s_intrasearchQ) {
+  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP) {
     // UE may not perform intra-frequency measurements
     phy->meas_reset();
   } else {
@@ -900,9 +908,7 @@ void rrc::ho_prepare() {
     apply_rr_config_common_dl(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
 
     bool found = false;
-    for (uint32_t i = 0; i < known_cells.size(); i++) {
-      rrc_log->info("cell[%d]=%d:%d, cur_earfcn=%d\n", i, known_cells[i].earfcn, known_cells[i].phy_cell.id,
-                    current_cell->earfcn);
+    for (uint32_t i = 0; i < MAX_KNOWN_CELLS && known_cells[i].earfcn; i++) {
       if (known_cells[i].earfcn == phy->get_current_earfcn() &&
           known_cells[i].phy_cell.id == mob_reconf.mob_ctrl_info.target_pci) {
         rrc_log->info("Selecting new cell pci=%d\n", known_cells[i].phy_cell.id);
@@ -925,8 +931,13 @@ void rrc::ho_prepare() {
       mac->start_cont_ho();
     }
 
-    printf("ncc=%d\n", mob_reconf.sec_cnfg_ho.intra_lte.next_hop_chaining_count);
+    int ncc = -1;
+    if (mob_reconf.sec_cnfg_ho_present) {
+      ncc = mob_reconf.sec_cnfg_ho.intra_lte.next_hop_chaining_count;
+    }
+
     usim->generate_as_keys_ho(mob_reconf.mob_ctrl_info.target_pci, phy->get_current_earfcn(),
+                              ncc,
                               k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
     pdcp->config_security(1, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     send_rrc_con_reconfig_complete(NULL);
@@ -968,7 +979,8 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
   if (reconfig->mob_ctrl_info_present) {
 
     rrc_log->info("Received HO command to target PCell=%d\n", reconfig->mob_ctrl_info.target_pci);
-    rrc_log->console("Received HO command to target PCell=%d\n", reconfig->mob_ctrl_info.target_pci);
+    rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
+                     reconfig->mob_ctrl_info.target_pci, reconfig->sec_cnfg_ho.intra_lte.next_hop_chaining_count);
 
     // store mobilityControlInfo
     memcpy(&mob_reconf, reconfig, sizeof(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT));
@@ -1126,6 +1138,21 @@ void rrc::handle_sib3()
 {
   rrc_log->info("SIB3 received\n");
 
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *sib3 = &current_cell->sib3;
+
+  // cellReselectionInfoCommon
+  cell_resel_cfg.q_hyst = liblte_rrc_q_hyst_num[sib3->q_hyst];
+
+  // cellReselectionServingFreqInfo
+  cell_resel_cfg.threshservinglow = 2*sib3->thresh_serving_low;
+
+  // intraFreqCellReselectionInfo
+  cell_resel_cfg.Qrxlevmin       = 2*sib3->q_rx_lev_min;
+  if (sib3->s_intra_search_present) {
+    cell_resel_cfg.s_intrasearchP  = 2*sib3->s_intra_search;
+  } else {
+    cell_resel_cfg.s_intrasearchP  = INFINITY;
+  }
 
 }
 
@@ -2055,15 +2082,18 @@ void rrc::rrc_meas::L3_filter(meas_value_t *value, float values[NOF_MEASUREMENTS
 
 void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, float rsrq, uint32_t tti)
 {
-  log_h->info("MEAS:  New measurement earfcn=%d, pci=%d, rsrp=%f, rsrq=%f, tti=%d\n", earfcn, pci, rsrp, rsrq, tti);
-
   float values[NOF_MEASUREMENTS] = {rsrp, rsrq};
   // This indicates serving cell
   if (earfcn == 0) {
+
+    log_h->info("MEAS:  New measurement serving cell, rsrp=%f, rsrq=%f, tti=%d\n", rsrp, rsrq, tti);
+
     L3_filter(&pcell_measurement, values);
   } else {
     // Add to known cells
     parent->add_neighbour_cell(earfcn, pci, rsrp);
+
+    log_h->info("MEAS:  New measurement earfcn=%d, pci=%d, rsrp=%f, rsrq=%f, tti=%d\n", earfcn, pci, rsrp, rsrq, tti);
 
     // Save PHY measurement for all active measurements whose earfcn/pci matches
     for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {

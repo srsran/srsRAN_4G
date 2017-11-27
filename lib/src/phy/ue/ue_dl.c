@@ -401,7 +401,7 @@ int srslte_ue_dl_decode_fft_estimate_mbsfn(srslte_ue_dl_t *q, uint32_t sf_idx, u
 
 int srslte_ue_dl_decode_fft_estimate_noguru(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t *cfi)
 {
-  if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
+  if (input && q && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
 
     /* Run FFT for all subframe data */
     for (int j=0;j<q->nof_rx_antennas;j++) {

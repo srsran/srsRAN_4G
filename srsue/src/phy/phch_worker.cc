@@ -221,7 +221,7 @@ void phch_worker::work_imp()
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   bool chest_ok = extract_fft_and_pdcch_llr();
 
-  bool snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>1.0;
+  bool snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>-10.0;
 
   if (chest_ok && snr_th_ok) {
 
@@ -381,7 +381,7 @@ void phch_worker::work_imp()
       log_h->debug("SYNC:  Sending in-sync to RRC\n");
     } else {
       phy->rrc->out_of_sync();
-      log_h->debug("SNR=%.1f dB under threshold. Sending out-of-sync to RRC\n",
+      log_h->info("SNR=%.1f dB under threshold. Sending out-of-sync to RRC\n",
                    10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
     }
   }
@@ -974,7 +974,7 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 #endif
 
   uint8_t dummy[2] = {0,0};
-  log_h->info_hex(payload?payload:dummy, payload?grant->mcs.tbs/8:1,"PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d, ack=%s, ri=%s, cfo=%.1f KHz%s\n",
+  log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d, ack=%s, ri=%s, cfo=%.1f KHz%s\n",
        (tti+HARQ_DELAY_MS)%10240,
        grant->n_prb[0], grant->n_prb[0]+grant->L_prb,
        grant->mcs.tbs/8, grant->mcs.idx, rv,
@@ -1244,52 +1244,49 @@ void phch_worker::update_measurements()
     if (tti== 0 || phy->rx_gain_offset == 0) {
       float rx_gain_offset = 0; 
       if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
-        float rssi_all_signal = srslte_chest_dl_get_rssi(&ue_dl.chest);          
-        if (rssi_all_signal) {
-          rx_gain_offset = 10*log10(rssi_all_signal)-phy->get_radio()->get_rssi();
-        } else {
-          rx_gain_offset = 0; 
-        }
+        float rssi_all_signal = 30+10*log10(srslte_vec_avg_power_cf(signal_buffer[0],SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))));
+        rx_gain_offset = 30+rssi_all_signal-phy->get_radio()->get_rssi();
       } else {
         rx_gain_offset = phy->get_radio()->get_rx_gain();
       }
       if (phy->rx_gain_offset) {
-        phy->rx_gain_offset = SRSLTE_VEC_EMA(phy->rx_gain_offset, rx_gain_offset, 0.5);
+        phy->rx_gain_offset = SRSLTE_VEC_EMA(rx_gain_offset, phy->rx_gain_offset, 0.5);
       } else {
         phy->rx_gain_offset = rx_gain_offset; 
       }
     }
     
     // Average RSRQ
-    float cur_rsrq = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
-    if (isnormal(cur_rsrq)) {
-      phy->avg_rsrq_db = SRSLTE_VEC_EMA(phy->avg_rsrq_db, cur_rsrq, snr_ema_coeff);
+    float rsrq_db = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
+    if (isnormal(rsrq_db)) {
+      phy->avg_rsrq_db = SRSLTE_VEC_EMA(rsrq_db, phy->avg_rsrq_db, snr_ema_coeff);
     }
-    
+
     // Average RSRP
-    float cur_rsrp = srslte_chest_dl_get_rsrp(&ue_dl.chest);
-    if (isnormal(cur_rsrp)) {
-      phy->avg_rsrp = SRSLTE_VEC_EMA(phy->avg_rsrp, cur_rsrp, snr_ema_coeff);
+    float rsrp_lin = srslte_chest_dl_get_rsrp(&ue_dl.chest);
+    if (isnormal(rsrp_lin)) {
+      phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
     }
     
     /* Correct absolute power measurements by RX gain offset */
-    float rsrp = 10*log10(srslte_chest_dl_get_rsrp(&ue_dl.chest)) + 30 - phy->rx_gain_offset;
-    float rssi = 10*log10(srslte_chest_dl_get_rssi(&ue_dl.chest)) + 30 - phy->rx_gain_offset;
-    
+    float rsrp_dbm = 10*log10(rsrp_lin) + 30 - phy->rx_gain_offset;
+    float rssi_db = 10*log10(srslte_chest_dl_get_rssi(&ue_dl.chest)) + 30 - phy->rx_gain_offset;
+
     // Serving cell measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
-    if (isnormal(rsrp)) {
-      if (!phy->avg_rsrp_db) {
-        phy->avg_rsrp_db = rsrp;
+    if (isnormal(rsrp_dbm)) {
+      if (!phy->avg_rsrp_dbm) {
+        phy->avg_rsrp_dbm= rsrp_dbm;
       } else {
-        phy->avg_rsrp_db = SRSLTE_VEC_EMA(phy->avg_rsrp_db, rsrp, 0.8);
+        phy->avg_rsrp_dbm = SRSLTE_VEC_EMA(rsrp_dbm, phy->avg_rsrp_dbm, snr_ema_coeff);
       }    
       if ((tti%phy->pcell_report_period) == 0 && phy->pcell_meas_enabled) {
-        phy->rrc->new_phy_meas(phy->avg_rsrp_db, phy->avg_rsrq_db, tti);
+        phy->rrc->new_phy_meas(phy->avg_rsrp_dbm, phy->avg_rsrq_db, tti);
       }
     }
+
     // Compute PL
     float tx_crs_power = phy->config->common.pdsch_cnfg.rs_power;
-    phy->pathloss = tx_crs_power - phy->avg_rsrp_db;
+    phy->pathloss = tx_crs_power - phy->avg_rsrp_dbm;
 
     // Average noise 
     float cur_noise = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);
@@ -1297,7 +1294,7 @@ void phch_worker::update_measurements()
       if (!phy->avg_noise) {  
         phy->avg_noise = cur_noise;          
       } else {
-        phy->avg_noise = SRSLTE_VEC_EMA(phy->avg_noise, cur_noise, snr_ema_coeff);                      
+        phy->avg_noise = SRSLTE_VEC_EMA(cur_noise, phy->avg_noise, snr_ema_coeff);
       }
     }
     
@@ -1306,9 +1303,9 @@ void phch_worker::update_measurements()
     
     // Store metrics
     dl_metrics.n      = phy->avg_noise;
-    dl_metrics.rsrp   = phy->avg_rsrp_db;
+    dl_metrics.rsrp   = phy->avg_rsrp_dbm;
     dl_metrics.rsrq   = phy->avg_rsrq_db;
-    dl_metrics.rssi   = rssi;
+    dl_metrics.rssi   = rssi_db;
     dl_metrics.pathloss = phy->pathloss;
     dl_metrics.sinr   = phy->avg_snr_db;
     dl_metrics.turbo_iters = srslte_pdsch_last_noi(&ue_dl.pdsch);

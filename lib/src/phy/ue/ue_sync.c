@@ -682,19 +682,21 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           q->sf_idx = (q->sf_idx + q->nof_recv_sf) % 10;
 
 #ifndef DO_CFO_IN_SYNC
-          /* We found that CP-based correction performs better in low SNR than PSS-based.
-           *
-           * Estimate, average and correct here instead of inside sync object
-           */
-          q->cfo = srslte_sync_cfo_estimate(&q->strack, input_buffer[0], 0);
-          if (q->mean_cfo_isunset) {
-            q->mean_cfo = q->cfo;
-            q->mean_cfo_isunset = false;
-          } else {
-            /* compute exponential moving average CFO */
-            q->mean_cfo = SRSLTE_VEC_EMA(q->cfo, q->mean_cfo, q->cfo_ema_alpha);
+          if (q->correct_cfo) {
+            /* We found that CP-based correction performs better in low SNR than PSS-based.
+             *
+             * Estimate, average and correct here instead of inside sync object
+             */
+            q->cfo = srslte_sync_cfo_estimate(&q->strack, input_buffer[0], 0);
+            if (q->mean_cfo_isunset) {
+              q->mean_cfo = q->cfo;
+              q->mean_cfo_isunset = false;
+            } else {
+              /* compute exponential moving average CFO */
+              q->mean_cfo = SRSLTE_VEC_EMA(q->cfo, q->mean_cfo, q->cfo_ema_alpha);
+            }
+            srslte_cfo_correct(&q->strack.cfocorr2, input_buffer[0], input_buffer[0], -q->mean_cfo / q->fft_size);
           }
-          srslte_cfo_correct(&q->strack.cfocorr2, input_buffer[0], input_buffer[0], -q->mean_cfo / q->fft_size);
 
 #endif
 
@@ -754,14 +756,6 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
                       
             q->frame_total_cnt++;       
           } 
-          if (q->correct_cfo) {
-            for (int i=0;i<q->nof_rx_antennas;i++) {
-              srslte_cfo_correct(&q->strack.cfocorr,
-                          input_buffer[i], 
-                          input_buffer[i], 
-                          -srslte_sync_get_cfo(&q->strack) / q->fft_size);                         
-            }
-          }          
         break;
       }
       

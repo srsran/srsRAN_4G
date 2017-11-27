@@ -167,7 +167,7 @@ private:
     void      set_cell(srslte_cell_t cell);
     ret_code  run_subframe(uint32_t sf_idx);
     ret_code  run_subframe_sync(srslte_ue_sync_t *ue_sync, uint32_t sf_idx);
-    ret_code  run_multiple_subframes(cf_t *buffer, uint32_t sf_idx, uint32_t nof_sf);
+    ret_code  run_multiple_subframes(cf_t *buffer, uint32_t offset, uint32_t sf_idx, uint32_t nof_sf);
     float     rsrp();
     float     rsrq();
     float     snr();
@@ -205,6 +205,7 @@ private:
     srslte::log        *log_h;
     srslte_sync_t       sync_find;
 
+    uint32_t   current_fft_sz;
     measure    measure_p;
   };
 

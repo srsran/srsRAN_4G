@@ -85,6 +85,7 @@ public:
                                 srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
   virtual void generate_as_keys_ho(uint32_t pci,
                                    uint32_t earfcn,
+                                   int ncc,
                                    uint8_t *k_rrc_enc,
                                    uint8_t *k_rrc_int,
                                    uint8_t *k_up_enc,

@@ -81,6 +81,10 @@ uint8_t security_generate_k_enb_star( uint8_t  *k_enb,
                                       uint32_t earfcn,
                                       uint8_t  *k_enb_star);
 
+uint8_t security_generate_nh( uint8_t *k_asme,
+                              uint8_t *sync,
+                              uint8_t *nh);
+
 uint8_t security_generate_k_nas( uint8_t                       *k_asme,
                                  CIPHERING_ALGORITHM_ID_ENUM    enc_alg_id,
                                  INTEGRITY_ALGORITHM_ID_ENUM    int_alg_id,

@@ -335,6 +335,34 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_enb_star(uint8  *k_enb,
     return (err);
 }
 
+LIBLTE_ERROR_ENUM liblte_security_generate_nh( uint8_t *k_asme,
+                                               uint8_t *sync,
+                                               uint8_t *nh)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8 s[35];
+
+    if (k_asme != NULL &&
+        sync   != NULL &&
+        nh     != NULL)
+    {
+        // Construct S
+        s[0] = 0x12; // FC
+        for (int i=0;i<32;i++) {
+            s[1+i] = sync[i];
+        }
+        s[33] = 0x00; // First byte of L0
+        s[34] = 0x20, // Second byte of L0
+
+        // Derive NH
+        sha256(k_asme, 32, s, 35, nh, 0);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return (err);
+}
+
 /*********************************************************************
     Name: liblte_security_generate_k_nas
 
