@@ -34,6 +34,7 @@
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include "spgw/spgw.h"
+#include "mme/mme_gtpc.h"
 
 
 namespace srsepc{
@@ -86,6 +87,7 @@ spgw::init(spgw_args_t* args, srslte::log_filter *spgw_log)
 
   //Init log
   m_spgw_log = spgw_log;
+  m_mme_gtpc = mme_gtpc::get_instance();
 
   //Init SGi interface
   err = init_sgi_if(args);
@@ -306,8 +308,18 @@ spgw::get_new_ue_ipv4()
 }
 
 void
-spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_create_session_response *cs_resp)
+spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu)
 {
+  srslte::gtpc_header *header = &cs_resp_pdu->header;
+  srslte::gtpc_create_session_response *cs_resp = &cs_resp_pdu->choice.create_session_response;
+
+  //Setup GTP-C header
+  header->piggyback = false;
+  header->teid_present = true;
+  header->teid = cs_req->sender_f_teid.teid;  //Send create session requesponse to the CS Request TEID
+  header->type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE;
+
+
   //Setup uplink control TEID
   uint64_t spgw_uplink_ctrl_teid = get_new_ctrl_teid();
   //Setup uplink user TEID
@@ -315,7 +327,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   //Allocate UE IP
   in_addr_t ue_ip = get_new_ue_ipv4();
 
-  //Save the UE context //TODO!!!
+  //Save the UE IMSI to Ctrl TEID map //TODO!!!
 
   //Create session response message
   //Initialize to zero\\
@@ -337,7 +349,10 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   cs_resp->paa.ipv4_present = true;
   cs_resp->paa.ipv4 = ue_ip;
 
+  m_mme_gtpc->handle_create_session_response(cs_resp_pdu);
   return;
 }
+
+
 
 } //namespace srsepc

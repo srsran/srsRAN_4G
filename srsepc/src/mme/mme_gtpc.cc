@@ -27,6 +27,8 @@
 #include <iostream>
 #include "srslte/asn1/gtpc.h"
 #include "mme/mme_gtpc.h"
+#include "mme/s1ap.h"
+#include "spgw/spgw.h"
 
 namespace srsepc{
 
@@ -66,6 +68,7 @@ mme_gtpc::cleanup(void)
 void
 mme_gtpc::init()
 {
+  m_s1ap = s1ap::get_instance();
   m_mme_gtpc_ip = inet_addr("127.0.0.1");//FIXME At the moment, the GTP-C messages are not sent over the wire. So this parameter is not used.
   m_spgw = spgw::get_instance();
 }
@@ -76,7 +79,7 @@ mme_gtpc::get_new_ctrl_teid()
   return m_next_ctrl_teid++; //FIXME Use a Id pool?
 }
 void
-mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_create_session_response *cs_resp)
+mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_pdu *cs_resp_pdu)
 {
   struct srslte::gtpc_pdu cs_req_pdu;
   struct srslte::gtpc_create_session_request *cs_req = &cs_req_pdu.choice.create_session_request;
@@ -102,7 +105,18 @@ mme_gtpc::send_create_session_request(uint64_t imsi, struct srslte::gtpc_create_
   //Save RX Control TEID
   //create_rx_control_teid(cs_req->sender_f_teid);
 
-  m_spgw->handle_create_session_request(cs_req, cs_resp);
+  m_spgw->handle_create_session_request(cs_req, cs_resp_pdu);
   return;
 }
+
+void
+mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
+{
+  //Get MME_UE_S1AP_ID from the Ctrl TEID
+  std::map<uint64_t,uint32_t>::iterator id_it = m_teid_to_mme_s1ap_id.find(cs_resp_pdu->header.teid);
+  uint32_t mme_s1ap_id = id_it->second;
+
+  m_s1ap->send_intial_context_setup_request(mme_s1ap_id, &cs_resp_pdu->choice.create_session_request);
+}
+
 } //namespace srsepc

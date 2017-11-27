@@ -72,9 +72,10 @@ mme::cleanup(void)
 int
 mme::init(mme_args_t* args, srslte::log_filter *s1ap_log)
 {
-  
-  /*Init S1AP*/ 
-  if(m_s1ap.init(args->s1ap_args, s1ap_log)){
+
+  /*Init S1AP*/
+  m_s1ap = s1ap::get_instance();
+  if(m_s1ap->init(args->s1ap_args, s1ap_log)){
     m_s1ap_log->error("Error initializing MME S1APP\n");
     exit(-1);
   }
@@ -91,7 +92,8 @@ mme::stop()
 {
   if(m_running)
   {
-    m_s1ap.stop();
+    m_s1ap->stop();
+    m_s1ap->cleanup();
     m_running = false;
     thread_cancel();
     wait_thread_finish();
@@ -116,7 +118,7 @@ mme::run_thread()
   m_running=true;
 
   //Get S1-MME socket
-  int s1mme = m_s1ap.get_s1_mme();
+  int s1mme = m_s1ap->get_s1_mme();
   while(m_running)
   {
     m_s1ap_log->debug("Waiting for SCTP Msg\n");
@@ -138,7 +140,7 @@ mme::run_thread()
         {
           m_s1ap_log->info("SCTP Association Shutdown. Association: %d\n",sri.sinfo_assoc_id);
           m_s1ap_log->console("SCTP Association Shutdown. Association: %d\n",sri.sinfo_assoc_id);
-          m_s1ap.delete_enb_ctx(sri.sinfo_assoc_id);
+          m_s1ap->delete_enb_ctx(sri.sinfo_assoc_id);
         }
       }
       else
@@ -146,7 +148,7 @@ mme::run_thread()
         //Received data
         pdu->N_bytes = rd_sz;
         m_s1ap_log->info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
-        m_s1ap.handle_s1ap_rx_pdu(pdu,&sri);
+        m_s1ap->handle_s1ap_rx_pdu(pdu,&sri);
       }
     }
   }

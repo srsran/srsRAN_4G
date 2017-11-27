@@ -26,6 +26,7 @@
 #ifndef S1AP_H
 #define S1AP_H
 
+#include "srslte/asn1/gtpc.h"
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/common.h"
@@ -54,6 +55,10 @@ class s1ap
 public:
   s1ap();
   virtual ~s1ap();
+
+  static s1ap* get_instance();
+  static void cleanup();
+
   int enb_listen();
   int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log);
   void stop();
@@ -76,10 +81,13 @@ public:
 
   bool handle_nas_authentication_response(srslte::byte_buffer_t *nas_buffer, srslte::byte_buffer_t *reply_buffer, ue_ctx_t *ue_ctx);
   bool handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
+  bool send_initial_context_setup_request(struct srslte::gtpc_create_session_response *cs_resp);
 
   void print_enb_ctx_info(const enb_ctx_t &enb_ctx);
 
 private:
+
+  static s1ap *m_instance;
 
   s1ap_args_t                    m_s1ap_args;
   uint32_t                       m_plmn;

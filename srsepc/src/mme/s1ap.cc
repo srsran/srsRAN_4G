@@ -32,6 +32,9 @@
 
 namespace srsepc{
 
+s1ap*          s1ap::m_instance = NULL;
+boost::mutex   s1ap_instance_mutex;
+
 s1ap::s1ap():
   m_s1mme(-1),
   m_next_mme_ue_s1ap_id(1)
@@ -41,6 +44,27 @@ s1ap::s1ap():
 s1ap::~s1ap()
 {
 }
+
+s1ap*
+s1ap::get_instance(void)
+{
+  boost::mutex::scoped_lock lock(s1ap_instance_mutex);
+  if(NULL == m_instance) {
+    m_instance = new mme();
+  }
+  return(m_instance);
+}
+
+void
+s1ap::cleanup(void)
+{
+  boost::mutex::scoped_lock lock(s1ap_instance_mutex);
+  if(NULL != m_instance) {
+    delete m_instance;
+    m_instance = NULL;
+  }
+}
+
 
 int
 s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
@@ -514,26 +538,29 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
 
   //FIXME The packging of GTP-C messages is not ready.
   //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-  struct srslte::gtpc_create_session_response cs_resp;
-  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, &cs_resp);
-  if (cs_resp.cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED){
+  struct srslte::gtpc_pdu cs_resp_pdu;
+  struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu.choice.create_session_response;
+
+  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, &cs_resp_pdu);
+  if (cs_resp->cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED){
     m_s1ap_log->warning("Could not create GTPC session.\n");
     //TODO Handle error
   }
   else{
-    send_initial_context_setup_request(&cs_resp);
+    send_initial_context_setup_request(cs_resp);
   }
   return true;
 }
 
 bool
-s1ap::send_initial_context_setup_request(struct srslte::create_session_response *cs_resp)
+s1ap::send_initial_context_setup_request(struct srslte::gtpc_create_session_response *cs_resp)
 {
 
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT in_ctxt_req;
+  uint64_t imsi = m_mme_gtpc->ctrl_teid_to_imsi();
   bzero(&in_ctxt_req, sizeof(in_ctxt_req));
 
-  in_ctxt_req.MME_UE_S1AP_ID =;
+  in_ctxt_req.MME_UE_S1AP_ID = ;
   in_ctxt_req.eNB_UE_S1AP_ID =;
   in_ctxt_req.uEaggregateMaximumBitrate =;
 

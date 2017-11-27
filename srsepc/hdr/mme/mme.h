@@ -76,7 +76,7 @@ private:
   mme();
   virtual ~mme();
   static mme *m_instance;
-  s1ap m_s1ap;
+  s1ap *m_s1ap;
 
   bool m_running;
   srslte::byte_buffer_pool *m_pool;

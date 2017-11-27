@@ -28,10 +28,13 @@
 
 #include "srslte/common/buffer_pool.h"
 #include <boost/thread/mutex.hpp>
-#include "spgw/spgw.h"
 #include "srslte/asn1/gtpc.h"
+
 namespace srsepc
 {
+
+class spgw;
+class s1ap;
 
 class mme_gtpc
 {
@@ -41,8 +44,10 @@ public:
   static void cleanup(void);
 
   void init();
-  void send_create_session_request(uint64_t imsi, struct srslte::gtpc_create_session_response *cs_resp);
+
   uint64_t get_new_ctrl_teid();
+  void send_create_session_request(uint64_t imsi, struct srslte::gtpc_pdu *cs_resp_pdu);
+  void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
 
 private:
 
@@ -52,10 +57,13 @@ private:
 
   srslte::byte_buffer_pool *m_pool;
 
+  s1ap* m_s1ap;
   spgw* m_spgw;
   in_addr_t m_mme_gtpc_ip;
 
   uint64_t m_next_ctrl_teid;
+  std::map<uint64_t,uint32_t> m_teid_to_mme_s1ap_id;
+
 };
 
 }

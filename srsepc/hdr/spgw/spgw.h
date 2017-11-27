@@ -43,6 +43,8 @@
 
 namespace srsepc{
 
+class mme_gtpc;
+
 const uint16_t GTPU_RX_PORT = 2152;
 
 typedef struct {
@@ -70,7 +72,7 @@ public:
   void stop();
   void run_thread();
 
-  void handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_create_session_response *cs_resp);
+  void handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu);
 
 private:
 
@@ -86,6 +88,8 @@ private:
 
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
+  mme_gtpc *m_mme_gtpc;
+
 
   bool m_sgi_up;
   int m_sgi_if;
@@ -96,6 +100,7 @@ private:
 
   uint64_t m_next_ctrl_teid;
   uint64_t m_next_user_teid;
+
   /*Logs*/
   srslte::log_filter  *m_spgw_log;
 
