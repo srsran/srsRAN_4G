@@ -37,6 +37,35 @@
 #include "srslte/phy/utils/simd.h"
 
 
+void srslte_vec_xor_bbb_simd(int8_t *x, int8_t *y, int8_t *z, int len) {
+  int i = 0;
+#if SRSLTE_SIMD_B_SIZE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_B_SIZE + 1; i += SRSLTE_SIMD_B_SIZE) {
+      simd_b_t a = srslte_simd_b_load(&x[i]);
+      simd_b_t b = srslte_simd_b_load(&y[i]);
+
+      simd_b_t r = srslte_simd_b_xor(a, b);
+
+      srslte_simd_b_store(&z[i], r);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_B_SIZE + 1; i += SRSLTE_SIMD_B_SIZE) {
+      simd_b_t a = srslte_simd_b_loadu(&x[i]);
+      simd_b_t b = srslte_simd_b_loadu(&y[i]);
+
+      simd_s_t r = srslte_simd_b_xor(a, b);
+
+      srslte_simd_b_storeu(&z[i], r);
+    }
+  }
+#endif /* SRSLTE_SIMD_B_SIZE */
+  
+    for(; i < len; i++){
+    z[i] = x[i] ^ y[i];
+  }
+}
+
 int srslte_vec_dot_prod_sss_simd(int16_t *x, int16_t *y, int len) {
   int i = 0;
   int result = 0;

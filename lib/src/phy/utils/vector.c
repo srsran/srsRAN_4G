@@ -37,6 +37,10 @@
 
 
 
+void srslte_vec_xor_bbb(int8_t *x,int8_t *y,int8_t *z, uint32_t len) {
+  srslte_vec_xor_bbb_simd(x, y, z, len);
+}
+
 // Used in PRACH detector, AGC and chest_dl for noise averaging
 float srslte_vec_acc_ff(float *x, uint32_t len) {
   return srslte_vec_acc_ff_simd(x, len);
