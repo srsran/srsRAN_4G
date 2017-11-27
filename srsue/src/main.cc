@@ -203,7 +203,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Tolerance (in Hz) for digial CFO compensation.")
 
     ("expert.cfo_ema",
-     bpo::value<float>(&args->expert.phy.cfo_ema)->default_value(0.3),
+     bpo::value<float>(&args->expert.phy.cfo_ema)->default_value(0.4),
      "CFO Exponential Moving Average coefficient. Lower makes it more robust to noise "
      "but vulnerable to periodic interruptions due to VCO corrections.")
 

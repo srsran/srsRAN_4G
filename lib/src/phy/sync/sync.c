@@ -581,29 +581,25 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
     /* If peak is over threshold, compute CFO and SSS */
     if (q->peak_value >= q->threshold) {
 
-      ret = SRSLTE_SYNC_FOUND;
-
       if (q->detect_cp) {
         if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
           srslte_sync_set_cp(q, srslte_sync_detect_cp(q, input_cfo, peak_pos + find_offset));
         } else {
           DEBUG("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
-          ret = SRSLTE_SYNC_FOUND_NOSPACE;
         }
       }
-
-      if (q->enable_cfo_corr) {
-        if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
-          float cfo2   = srslte_pss_synch_cfo_compute(&q->pss, &input[find_offset + peak_pos - q->fft_size]);
-          if (q->mean_cfo2_isunset) {
-            q->mean_cfo2 = cfo2;
-            q->mean_cfo2_isunset = true;
-          } else {
-            q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
-          }
+      if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
+        float cfo2   = srslte_pss_synch_cfo_compute(&q->pss, &input[find_offset + peak_pos - q->fft_size]);
+        if (q->mean_cfo2_isunset) {
+          q->mean_cfo2 = cfo2;
+          q->mean_cfo2_isunset = true;
         } else {
-          ret = SRSLTE_SYNC_FOUND_NOSPACE;
+          q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
         }
+
+        ret = SRSLTE_SYNC_FOUND;
+      } else {
+        ret = SRSLTE_SYNC_FOUND_NOSPACE; 
       }
     } else {
       ret = SRSLTE_SYNC_NOFOUND;
