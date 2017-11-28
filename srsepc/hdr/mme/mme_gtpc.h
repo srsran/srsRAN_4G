@@ -43,7 +43,7 @@ public:
   static mme_gtpc* get_instance(void);
   static void cleanup(void);
 
-  void init();
+  bool init();
 
   uint64_t get_new_ctrl_teid();
   void send_create_session_request(uint64_t imsi, uint32_t mme_s1ap_id);

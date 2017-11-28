@@ -65,12 +65,14 @@ mme_gtpc::cleanup(void)
 }
 
 
-void
+bool
 mme_gtpc::init()
 {
   m_s1ap = s1ap::get_instance();
   m_mme_gtpc_ip = inet_addr("127.0.0.1");//FIXME At the moment, the GTP-C messages are not sent over the wire. So this parameter is not used.
   m_spgw = spgw::get_instance();
+
+  return true;
 }
 
 uint64_t

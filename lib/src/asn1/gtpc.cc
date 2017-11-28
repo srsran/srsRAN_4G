@@ -31,7 +31,7 @@ namespace srslte{
 
 
 int
-gtpc_pack_create_session_request(gtpc_create_session_request_t, srslte::byte_buffer_t)
+gtpc_pack_create_session_request(struct gtpc_create_session_request *cs_req, srslte::byte_buffer_t)
 {
   //FIXME    
   return 0;

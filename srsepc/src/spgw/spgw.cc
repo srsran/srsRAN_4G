@@ -51,7 +51,6 @@ spgw::spgw():
   m_next_ctrl_teid(1),
   m_next_user_teid(1)
 {
-  m_pool = srslte::byte_buffer_pool::get_instance();
   return;
 }
 
@@ -84,6 +83,7 @@ int
 spgw::init(spgw_args_t* args, srslte::log_filter *spgw_log)
 {
   srslte::error_t err;
+  m_pool = srslte::byte_buffer_pool::get_instance();
 
   //Init log
   m_spgw_log = spgw_log;

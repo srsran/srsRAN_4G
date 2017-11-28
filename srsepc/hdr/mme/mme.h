@@ -77,6 +77,7 @@ private:
   virtual ~mme();
   static mme *m_instance;
   s1ap *m_s1ap;
+  mme_gtpc *m_mme_gtpc;
 
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
