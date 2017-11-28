@@ -293,7 +293,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   uint8_t k_nas_enc[32];
   uint8_t k_nas_int[32];
 
-  srslte::security_generate_k_nas( ue_ctx->k_asme,
+  srslte::security_generate_k_nas( ue_ctx->security_ctxt.k_asme,
                            srslte::CIPHERING_ALGORITHM_ID_EEA0,
                            srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
                            k_nas_enc,

@@ -29,6 +29,7 @@
 #include "srslte/common/bcd_helpers.h"
 #include "mme/s1ap.h"
 #include "srslte/asn1/gtpc.h"
+#include "srslte/common/liblte_security.h"
 
 namespace srsepc{
 
@@ -365,7 +366,7 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
 
   //Get Authentication Vectors from HSS
-  if(!m_hss->gen_auth_info_answer_milenage(imsi, ue_ctx.k_asme, autn, rand, ue_ctx.xres))
+  if(!m_hss->gen_auth_info_answer_milenage(imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
   {
     m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
@@ -481,7 +482,7 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
 
   for(int i=0; i<8;i++)
   {
-    if(auth_resp.res[i] != ue_ctx->xres[i])
+    if(auth_resp.res[i] != ue_ctx->security_ctxt.xres[i])
     {
       ue_valid = false;
     }
@@ -492,7 +493,7 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     std::cout<<"XRES: ";
     for(int i=0;i<8;i++)
     {
-      std::cout << std::hex <<(uint16_t)ue_ctx->xres[i];
+      std::cout << std::hex <<(uint16_t)ue_ctx->security_ctxt.xres[i];
     }
     std::cout<<std::endl;
 
@@ -571,17 +572,26 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
     return false;
   }
+  uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
+  uint8_t *tmp_ptr =  erab_ctxt->transportLayerAddress.buffer;
+  liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
 
-  erab_ctxt->transportLayerAddress = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
+  uint32_t tmp_teid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid; 
+  memcpy(erab_ctxt->gTP_TEID.buffer, &tmp_teid, sizeof(uint32_t));
 
-  uint64_t tmp_teid;
-  tmp_teid = HTONLL(cs_resp->eps_bearer_context_created.sender_f_teid.teid);
-  memcpy(erab_ctxt->gTP_TEID.buffer, tmp_teid, sizeof(uint64_t));
+  in_ctxt_req.UESecurityCapabilities.encryptionAlgorithms.buffer[0] = 0;          //EEA0
+  in_ctxt_req.UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
 
-  in_ctxt_req->UESecurityCapabilities =;
-  in_ctxt_req->SecurityKey = ;
-
-  
+  uint8_t key_enb[32];
+  liblte_security_generate_k_enb(ue_ctx->security_ctxt.k_asme, ue_ctx->security_ctxt.dl_nas_count, key_enb);
+  liblte_unpack(key_enb, 32, in_ctxt_req.SecurityKey.buffer);
+  //liblte_value_2_bits(key_enb,,LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN);
+  /*
+  typedef struct{
+    bool     ext;
+    uint8_t  buffer[16];
+  }LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_STRUCT;
+  */
   /*
   typedef struct{
     uint32_t                                                     len;
@@ -607,6 +617,15 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   typedef struct{
     uint8_t  buffer[4];
   }LIBLTE_S1AP_GTP_TEID_STRUCT;
+  */
+  /*
+  typedef struct{
+    bool                                                         ext;
+    LIBLTE_S1AP_ENCRYPTIONALGORITHMS_STRUCT                      encryptionAlgorithms;
+    LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_STRUCT             integrityProtectionAlgorithms;
+    LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
+    bool                                                         iE_Extensions_present;
+  }LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT;
   */
   /*typedef struct{
   bool                                                         ext;

@@ -21,6 +21,10 @@
 #ifndef S1AP_COMMON_H
 #define S1AP_COMMON_H
 
+#include "srslte/common/security.h"
+
+namespace srsepc{
+  
 static const uint8_t MAX_TA=255;  //Maximum TA supported
 static const uint8_t MAX_BPLMN=6; //Maximum broadcasted PLMNs per TAC
 
@@ -52,8 +56,14 @@ typedef struct{
   uint64_t imsi;
   uint32_t enb_ue_s1ap_id;
   uint32_t mme_ue_s1ap_id;
-  uint8_t  xres[8];
-  uint8_t  k_asme[32];
+  struct eps_security_ctxt{
+    uint8_t  k_asme[32]; 
+    uint8_t  xres[8];
+    uint32_t dl_nas_count;
+    uint32_t ul_nas_count;
+    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+  } security_ctxt;
 } ue_ctx_t;
-
+}//namespace
 #endif
