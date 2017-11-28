@@ -548,7 +548,6 @@ bool
 s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp)
 {
   ue_ctx_t *ue_ctx;
-
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT in_ctxt_req;
   LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req.E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
@@ -597,8 +596,11 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   //TODO
   
   //Pack everything and send it to the eNB
+  LIBLTE_S1AP_S1AP_PDU pdu;
 
-  LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&in_ctxt_req, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
+
+
+  LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
