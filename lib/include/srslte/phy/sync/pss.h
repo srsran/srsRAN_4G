@@ -70,7 +70,9 @@
 
 /* Low-level API */
 typedef struct SRSLTE_API {
-
+  
+  srslte_dft_plan_t dftp_input; 
+  
 #ifdef CONVOLUTION_FFT
   srslte_conv_fft_cc_t conv_fft;
   srslte_filt_cc_t filter;
@@ -85,22 +87,16 @@ typedef struct SRSLTE_API {
   uint32_t N_id_2;
   uint32_t fft_size;
   cf_t *pss_signal_freq_full[3];
-
+  
   cf_t *pss_signal_time[3];
-
+  
   cf_t pss_signal_freq[3][SRSLTE_PSS_LEN]; // One sequence for each N_id_2
   cf_t *tmp_input;
   cf_t *conv_output;
   float *conv_output_abs;
-  float ema_alpha;
+  float ema_alpha; 
   float *conv_output_avg;
   float peak_value;
-
-  srslte_dft_plan_t dftp_input;
-  srslte_dft_plan_t idftp_input;
-  cf_t tmp_fft[SRSLTE_SYMBOL_SZ_MAX];
-  cf_t yr[SRSLTE_PSS_LEN];
-
 }srslte_pss_synch_t;
 
 typedef enum { PSS_TX, PSS_RX } pss_direction_t;
