@@ -547,9 +547,12 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
 bool
 s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp)
 {
-
-  //Find UE Context
   ue_ctx_t *ue_ctx;
+
+  LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT in_ctxt_req;
+  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req.E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
+  srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
+  //Find UE Context
   std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
   if(ue_ctx_it == m_active_ues.end())
   {
@@ -558,20 +561,23 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   }
   ue_ctx = ue_ctx_it->second;
 
-  LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT in_ctxt_req;
+  //Add MME and eNB S1AP Ids
   bzero(&in_ctxt_req, sizeof(in_ctxt_req));
-
   in_ctxt_req.MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
   in_ctxt_req.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+
+  //Set UE-AMBR
   in_ctxt_req.uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=4294967295;//2^32-1
   in_ctxt_req.uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=4294967295;//FIXME Get UE-AMBR from HSS
+
   //eRAB context to setup
-  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req.E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME?
   erab_ctxt->e_RAB_ID.E_RAB_ID = cs_resp->eps_bearer_context_created.ebi;
   if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
     m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
     return false;
   }
+
+  //Set S-GW F-TEID
   uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
   uint8_t *tmp_ptr =  erab_ctxt->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
@@ -579,96 +585,42 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   uint32_t tmp_teid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid; 
   memcpy(erab_ctxt->gTP_TEID.buffer, &tmp_teid, sizeof(uint32_t));
 
+  //Set UE security capabilities and k_enb
   in_ctxt_req.UESecurityCapabilities.encryptionAlgorithms.buffer[0] = 0;          //EEA0
   in_ctxt_req.UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
 
   uint8_t key_enb[32];
   liblte_security_generate_k_enb(ue_ctx->security_ctxt.k_asme, ue_ctx->security_ctxt.dl_nas_count, key_enb);
   liblte_unpack(key_enb, 32, in_ctxt_req.SecurityKey.buffer);
-  //liblte_value_2_bits(key_enb,,LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN);
-  /*
-  typedef struct{
-    bool     ext;
-    uint8_t  buffer[16];
-  }LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_STRUCT;
-  */
-  /*
-  typedef struct{
-    uint32_t                                                     len;
-    LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT                   buffer[32]; //WARNING: Artificial limit to reduce memory footprint
-  }LIBLTE_S1AP_E_RABSETUPLISTCTXTSURES_STRUCT;
-  */
-  /*typedef struct{
-    bool                                                         ext;
-    LIBLTE_S1AP_E_RAB_ID_STRUCT                                  e_RAB_ID;
-    LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     transportLayerAddress;
-    LIBLTE_S1AP_GTP_TEID_STRUCT                                  gTP_TEID;
-    LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
-    bool                                                         iE_Extensions_present;
-  }LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT;
-  */
-  /*typedef struct{
-    bool     ext;
-    uint32_t n_bits;
-    uint8_t  buffer[160];
-  }LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT;
-  */
-  /*
-  typedef struct{
-    uint8_t  buffer[4];
-  }LIBLTE_S1AP_GTP_TEID_STRUCT;
-  */
-  /*
-  typedef struct{
-    bool                                                         ext;
-    LIBLTE_S1AP_ENCRYPTIONALGORITHMS_STRUCT                      encryptionAlgorithms;
-    LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_STRUCT             integrityProtectionAlgorithms;
-    LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
-    bool                                                         iE_Extensions_present;
-  }LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT;
-  */
-  /*typedef struct{
-  bool                                                         ext;
-  LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
-  LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
-  LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT                 uEaggregateMaximumBitrate;
-  LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT               E_RABToBeSetupListCtxtSUReq;
-  LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT                    UESecurityCapabilities;
-  LIBLTE_S1AP_SECURITYKEY_STRUCT                               SecurityKey;
-  LIBLTE_S1AP_TRACEACTIVATION_STRUCT                           TraceActivation;
-  bool                                                         TraceActivation_present;
-  LIBLTE_S1AP_HANDOVERRESTRICTIONLIST_STRUCT                   HandoverRestrictionList;
-  bool                                                         HandoverRestrictionList_present;
-  LIBLTE_S1AP_UERADIOCAPABILITY_STRUCT                         UERadioCapability;
-  bool                                                         UERadioCapability_present;
-  LIBLTE_S1AP_SUBSCRIBERPROFILEIDFORRFP_STRUCT                 SubscriberProfileIDforRFP;
-  bool                                                         SubscriberProfileIDforRFP_present;
-  LIBLTE_S1AP_CSFALLBACKINDICATOR_ENUM_EXT                     CSFallbackIndicator;
-  bool                                                         CSFallbackIndicator_present;
-  LIBLTE_S1AP_SRVCCOPERATIONPOSSIBLE_ENUM_EXT                  SRVCCOperationPossible;
-  bool                                                         SRVCCOperationPossible_present;
-  LIBLTE_S1AP_CSGMEMBERSHIPSTATUS_ENUM                         CSGMembershipStatus;
-  bool                                                         CSGMembershipStatus_present;
-  LIBLTE_S1AP_LAI_STRUCT                                       RegisteredLAI;
-  bool                                                         RegisteredLAI_present;
-  LIBLTE_S1AP_GUMMEI_STRUCT                                    GUMMEI_ID;
-  bool                                                         GUMMEI_ID_present;
-  LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID_2;
-  bool                                                         MME_UE_S1AP_ID_2_present;
-  LIBLTE_S1AP_MANAGEMENTBASEDMDTALLOWED_ENUM_EXT               ManagementBasedMDTAllowed;
-  bool                                                         ManagementBasedMDTAllowed_present;
-  LIBLTE_S1AP_MDTPLMNLIST_STRUCT                               ManagementBasedMDTPLMNList;
-  bool                                                         ManagementBasedMDTPLMNList_present;
-  LIBLTE_S1AP_ADDITIONALCSFALLBACKINDICATOR_ENUM_EXT           AdditionalCSFallbackIndicator;
-  bool                                                         AdditionalCSFallbackIndicator_present;
-  }LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT;*/
+
+  //Set Attach accepted and activate defaulte bearer NAS messages
+  //TODO
+  
+  //Pack everything and send it to the eNB
+
+  LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&in_ctxt_req, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
+    return false;
+  }
+  //Send Reply to eNB
+  ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
+  if(n_sent == -1)
+  {
+      m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
+      return false;
+  }
+
+
+  m_pool->deallocate(reply_buffer);
   return true;
 }
-bool
-s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri)
-{
+  bool
+  s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri)
+  {
 
-  uint32_t mme_ue_s1ap_id = ue_rel->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+    uint32_t mme_ue_s1ap_id = ue_rel->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
   m_s1ap_log->info("Received UE Context Release Request. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
   m_s1ap_log->console("Received UE Context Release Request. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
 
