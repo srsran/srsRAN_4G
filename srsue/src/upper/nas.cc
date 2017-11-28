@@ -38,71 +38,10 @@ using namespace srslte;
 
 namespace srsue {
 
+
 /*********************************************************************
- *   Conversion helpers
+ *   NAS
  ********************************************************************/
-std::string hex_to_string(uint8_t *hex, int size)
-{
-  std::stringstream ss;
-
-  ss << std::hex << std::setfill('0');
-  for(int i=0; i<size; i++) {
-    ss << std::setw(2) << static_cast<unsigned>(hex[i]);
-  }
-  return ss.str();
-}
-
-bool string_to_hex(std::string hex_str, uint8_t *hex, uint32_t len)
-{
-  static const char* const lut = "0123456789abcdef";
-  uint32_t str_len = hex_str.length();
-  if(str_len & 1) {
-    return false; // uneven hex_str length
-  }
-  if(str_len > len*2) {
-    return false; // not enough space in hex buffer
-  }
-
-  for(uint32_t i=0; i<str_len; i+=2)
-  {
-    char a = hex_str[i];
-    const char* p = std::lower_bound(lut, lut + 16, a);
-    if (*p != a) {
-      return false; // invalid char
-    }
-
-    char b = hex_str[i+1];
-    const char* q = std::lower_bound(lut, lut + 16, b);
-    if (*q != b) {
-      return false; // invalid char
-    }
-
-    hex[i/2] = ((p - lut) << 4) | (q - lut);
-  }
-  return true;
-}
-
-std::string emm_info_str(LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT *info)
-{
-  std::stringstream ss;
-  if(info->full_net_name_present) {
-    ss << info->full_net_name.name;
-  }
-  if(info->short_net_name_present) {
-    ss << " (" << info->short_net_name.name << ")";
-  }
-  if(info->utc_and_local_time_zone_present) {
-    ss << " " << (int)info->utc_and_local_time_zone.day;
-    ss << "/" << (int)info->utc_and_local_time_zone.month;
-    ss << "/" << (int)info->utc_and_local_time_zone.year;
-    ss << " " << (int)info->utc_and_local_time_zone.hour;
-    ss << ":" << (int)info->utc_and_local_time_zone.minute;
-    ss << ":" << (int)info->utc_and_local_time_zone.second;
-    ss << " TZ:" << (int)info->utc_and_local_time_zone.tz;
-  }
-  return ss.str();
-}
-
 
 nas::nas()
   : state(EMM_STATE_DEREGISTERED), plmn_selection(PLMN_SELECTED), have_guti(false), ip_addr(0), eps_bearer_id(0)
@@ -132,13 +71,13 @@ void nas::init(usim_interface_nas *usim_,
   }
   cfg     = cfg_;
 
-  if((have_guti = read_guti_file(&guti))) {
-    if((have_ctxt = read_ctxt_file(&ctxt))) {
-      usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int,
-                              ctxt.cipher_algo, ctxt.integ_algo);
-      nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
-      nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
-    }
+  if((read_ctxt_file(&ctxt))) {
+    usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int,
+                            ctxt.cipher_algo, ctxt.integ_algo);
+    nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
+    nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
+    have_guti = true;
+    have_ctxt = true;
   }
 }
 
@@ -151,8 +90,8 @@ emm_state_t nas::get_state() {
 }
 
 /*******************************************************************************
-UE interface
-*******************************************************************************/
+ * UE interface
+ ******************************************************************************/
 
 void nas::attach_request() {
   nas_log->info("Attach Request\n");
@@ -181,8 +120,8 @@ void nas::deattach_request() {
 }
 
 /*******************************************************************************
-RRC interface
-*******************************************************************************/
+ * RRC interface
+ ******************************************************************************/
 
 void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
 
@@ -297,8 +236,8 @@ uint32_t nas::get_ul_count() {
 
 bool nas::get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) {
   if (have_guti) {
-    s_tmsi->mmec   = guti.mme_code;
-    s_tmsi->m_tmsi = guti.m_tmsi;
+    s_tmsi->mmec   = ctxt.guti.mme_code;
+    s_tmsi->m_tmsi = ctxt.guti.m_tmsi;
     return true;
   } else {
     return false;
@@ -320,8 +259,8 @@ bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
 }
 
 /*******************************************************************************
-Security
-*******************************************************************************/
+ * Security
+ ******************************************************************************/
 
 void nas::integrity_generate(uint8_t integ_algo,
                              uint8_t *key_128,
@@ -381,8 +320,8 @@ bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps)
 
 
 /*******************************************************************************
-Parsers
-*******************************************************************************/
+ * Parsers
+ ******************************************************************************/
 
 void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
@@ -398,21 +337,19 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     //FIXME: Handle t3412.unit
     //FIXME: Handle tai_list
     if (attach_accept.guti_present) {
-      memcpy(&guti, &attach_accept.guti.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
+      memcpy(&ctxt.guti, &attach_accept.guti.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
       have_guti = true;
-      write_guti_file(guti);
     }
-    if (attach_accept.lai_present) {
-    }
+    if (attach_accept.lai_present) {}
     if (attach_accept.ms_id_present) {}
     if (attach_accept.emm_cause_present) {}
     if (attach_accept.t3402_present) {}
+    if (attach_accept.t3412_ext_present) {}
     if (attach_accept.t3423_present) {}
     if (attach_accept.equivalent_plmns_present) {}
     if (attach_accept.emerg_num_list_present) {}
     if (attach_accept.eps_network_feature_support_present) {}
     if (attach_accept.additional_update_result_present) {}
-    if (attach_accept.t3412_ext_present) {}
 
     liblte_mme_unpack_activate_default_eps_bearer_context_request_msg(&attach_accept.esm_msg,
                                                                       &act_def_eps_bearer_context_req);
@@ -735,8 +672,8 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 /*******************************************************************************
-Senders
-*******************************************************************************/
+ * Senders
+ ******************************************************************************/
 
 void nas::send_attach_request() {
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
@@ -774,14 +711,14 @@ void nas::send_attach_request() {
   // GUTI or IMSI attach
   if(have_guti && have_ctxt) {
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI;
-    memcpy(&attach_req.eps_mobile_id.guti, &guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
+    memcpy(&attach_req.eps_mobile_id.guti, &ctxt.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
     attach_req.old_guti_type         = LIBLTE_MME_GUTI_TYPE_NATIVE;
     attach_req.old_guti_type_present = true;
     attach_req.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
     attach_req.nas_ksi.nas_ksi       = ctxt.ksi;
     nas_log->info("Requesting GUTI attach. "
                   "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
-                  guti.m_tmsi, guti.mcc, guti.mnc, guti.mme_group_id, guti.mme_code);
+                  ctxt.guti.m_tmsi, ctxt.guti.mcc, ctxt.guti.mnc, ctxt.guti.mme_group_id, ctxt.guti.mme_code);
     liblte_mme_pack_attach_request_msg(&attach_req,
                                        LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
                                        ctxt.tx_count,
@@ -874,205 +811,53 @@ void nas::send_service_request() {
 
 void nas::send_esm_information_response() {}
 
-bool nas::read_guti_file(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT *guti)
-{
-  std::ifstream file;
-  std::string   line;
-  if (!guti) {
-    return false;
-  }
 
-  const char *m_tmsi_str         = "m_tmsi=";
-  size_t m_tmsi_str_len         = strlen(m_tmsi_str);
-  const char *mcc_str           = "mcc=";
-  size_t mcc_str_len            = strlen(mcc_str);
-  const char *mnc_str           = "mnc=";
-  size_t mnc_str_len            = strlen(mnc_str);
-  const char *mme_group_id_str  = "mme_group_id=";
-  size_t mme_group_id_str_len   = strlen(mme_group_id_str);
-  const char *mme_code_str      = "mme_code=";
-  size_t mme_code_str_len       = strlen(mme_code_str);
-
-  file.open(".guti", std::ios::in);
-  if (file.is_open()) {
-    bool read_ok = true;
-    if (std::getline(file, line)) {
-      if (!line.substr(0,m_tmsi_str_len).compare(m_tmsi_str)) {
-        guti->m_tmsi = atoi(line.substr(m_tmsi_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,mcc_str_len).compare(mcc_str)) {
-        guti->mcc = atoi(line.substr(mcc_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,mnc_str_len).compare(mnc_str)) {
-        guti->mnc = atoi(line.substr(mnc_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,mme_group_id_str_len).compare(mme_group_id_str)) {
-        guti->mme_group_id = atoi(line.substr(mme_group_id_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,mme_code_str_len).compare(mme_code_str)) {
-        guti->mme_code = atoi(line.substr(mme_code_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    file.close();
-    if (read_ok) {
-      nas_log->info("Read GUTI from file .guti. "
-                    "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
-                    guti->m_tmsi, guti->mcc, guti->mnc, guti->mme_group_id, guti->mme_code);
-      return true;
-    } else {
-      nas_log->error("Invalid GUTI file format\n");
-      return false;
-    }
-  } else {
-    return false;
-  }
-}
-
-bool nas::write_guti_file(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti) {
-  std::ofstream file;
-  if (!have_guti) {
-    return false;
-  }
-  file.open(".guti", std::ios::out | std::ios::trunc);
-  if (file.is_open()) {
-    file << "m_tmsi="       << (int) guti.m_tmsi << std::endl;
-    file << "mcc="          << (int) guti.mcc << std::endl;
-    file << "mnc="          << (int) guti.mnc << std::endl;
-    file << "mme_group_id=" << (int) guti.mme_group_id << std::endl;
-    file << "mme_code="     << (int) guti.mme_code << std::endl;
-    nas_log->info("Saved GUTI to file .guti. "
-                  "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
-                  guti.m_tmsi, guti.mcc, guti.mnc, guti.mme_group_id, guti.mme_code);
-    file.close();
-    return true;
-  } else {
-    return false;
-  }
-}
+/*******************************************************************************
+ * Security context persistence file
+ ******************************************************************************/
 
 bool nas::read_ctxt_file(nas_sec_ctxt *ctxt)
 {
   std::ifstream file;
-  std::string   line;
-  if (!ctxt) {
+  if(!ctxt) {
     return false;
   }
 
-  const char *ksi_str       = "ksi=";
-  size_t ksi_str_len        = strlen(ksi_str);
-  const char *k_asme_str    = "k_asme=";
-  size_t k_asme_str_len     = strlen(k_asme_str);
-  const char *tx_count_str  = "tx_count=";
-  size_t tx_count_str_len   = strlen(tx_count_str);
-  const char *rx_count_str  = "rx_count=";
-  size_t rx_count_str_len   = strlen(rx_count_str);
-  const char *int_alg_str  = "int_alg=";
-  size_t int_alg_str_len   = strlen(int_alg_str);
-  const char *enc_alg_str  = "enc_alg=";
-  size_t enc_alg_str_len   = strlen(enc_alg_str);
-
   file.open(".ctxt", std::ios::in);
-  if (file.is_open()) {
-    bool read_ok = true;
-    if (std::getline(file, line)) {
-      if (!line.substr(0,ksi_str_len).compare(ksi_str)) {
-        ctxt->ksi = atoi(line.substr(ksi_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,k_asme_str_len).compare(k_asme_str)) {
-        std::string tmp = line.substr(k_asme_str_len);
-        if(!string_to_hex(tmp, ctxt->k_asme, 32)) {
-          read_ok = false;
-        }
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,tx_count_str_len).compare(tx_count_str)) {
-        ctxt->tx_count = atoi(line.substr(tx_count_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,rx_count_str_len).compare(rx_count_str)) {
-        ctxt->rx_count = atoi(line.substr(rx_count_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,int_alg_str_len).compare(int_alg_str)) {
-        ctxt->integ_algo = (srslte::INTEGRITY_ALGORITHM_ID_ENUM)atoi(line.substr(int_alg_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
-    if (std::getline(file, line)) {
-      if (!line.substr(0,enc_alg_str_len).compare(enc_alg_str)) {
-        ctxt->cipher_algo = (srslte::CIPHERING_ALGORITHM_ID_ENUM)atoi(line.substr(enc_alg_str_len).c_str());
-      } else {
-        read_ok = false;
-      }
-    } else {
-      read_ok = false;
-    }
+  if(file.is_open()) {
+    if(!readvar(file, "m_tmsi=",        &ctxt->guti.m_tmsi))        {return false;}
+    if(!readvar(file, "mcc=",           &ctxt->guti.mcc))           {return false;}
+    if(!readvar(file, "mnc=",           &ctxt->guti.mnc))           {return false;}
+    if(!readvar(file, "mme_group_id=",  &ctxt->guti.mme_group_id))  {return false;}
+    if(!readvar(file, "mme_code=",      &ctxt->guti.mme_code))      {return false;}
+    if(!readvar(file, "tx_count=",      &ctxt->tx_count))           {return false;}
+    if(!readvar(file, "rx_count=",      &ctxt->rx_count))           {return false;}
+    if(!readvar(file, "int_alg=",       &ctxt->integ_algo))         {return false;}
+    if(!readvar(file, "enc_alg=",       &ctxt->cipher_algo))        {return false;}
+    if(!readvar(file, "ksi=",           &ctxt->ksi))                {return false;}
+
+    if(!readvar(file, "k_asme=",        ctxt->k_asme, 32))          {return false;}
+
     file.close();
-    if (read_ok) {
-      nas_log->info("Read security ctxt from file .ctxt. "
-                    "ksi: %x, k_asme: %s, "
-                    "tx_count: %x, rx_count: %x, "
-                    "int_alg: %d, enc_alg: %d\n",
-                    ctxt->ksi, hex_to_string(ctxt->k_asme,32).c_str(),
-                    ctxt->tx_count, ctxt->rx_count,
-                    ctxt->integ_algo, ctxt->cipher_algo);
-      return true;
-    } else {
-      nas_log->error("Invalid security ctxt file format\n");
-      return false;
-    }
+    have_guti = true;
+    nas_log->info("Read GUTI from file "
+                  "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
+                  ctxt->guti.m_tmsi,
+                  ctxt->guti.mcc,
+                  ctxt->guti.mnc,
+                  ctxt->guti.mme_group_id,
+                  ctxt->guti.mme_code);
+    have_ctxt = true;
+    nas_log->info("Read security ctxt from file .ctxt. "
+                  "ksi: %x, k_asme: %s, tx_count: %x, rx_count: %x, int_alg: %d, enc_alg: %d\n",
+                  ctxt->ksi,
+                  hex_to_string(ctxt->k_asme,32).c_str(),
+                  ctxt->tx_count,
+                  ctxt->rx_count,
+                  ctxt->integ_algo,
+                  ctxt->cipher_algo);
+    return true;
+
   } else {
     return false;
   }
@@ -1080,27 +865,107 @@ bool nas::read_ctxt_file(nas_sec_ctxt *ctxt)
 
 bool nas::write_ctxt_file(nas_sec_ctxt ctxt)
 {
+  if (!have_guti || !have_ctxt) {
+    return false;
+  }
   std::ofstream file;
   file.open(".ctxt", std::ios::out | std::ios::trunc);
   if (file.is_open()) {
-    file << "ksi="      << (int) ctxt.ksi << std::endl;
-    file << "k_asme="   << hex_to_string(ctxt.k_asme, 32) << std::endl;
-    file << "tx_count=" << (int) ctxt.tx_count << std::endl;
-    file << "rx_count=" << (int) ctxt.rx_count << std::endl;
-    file << "int_alg="  << (int) ctxt.integ_algo << std::endl;
-    file << "enc_alg="  << (int) ctxt.cipher_algo << std::endl;
+    file << "m_tmsi="       << (int) ctxt.guti.m_tmsi         << std::endl;
+    file << "mcc="          << (int) ctxt.guti.mcc            << std::endl;
+    file << "mnc="          << (int) ctxt.guti.mnc            << std::endl;
+    file << "mme_group_id=" << (int) ctxt.guti.mme_group_id   << std::endl;
+    file << "mme_code="     << (int) ctxt.guti.mme_code       << std::endl;
+    file << "tx_count="     << (int) ctxt.tx_count            << std::endl;
+    file << "rx_count="     << (int) ctxt.rx_count            << std::endl;
+    file << "int_alg="      << (int) ctxt.integ_algo          << std::endl;
+    file << "enc_alg="      << (int) ctxt.cipher_algo         << std::endl;
+    file << "ksi="          << (int) ctxt.ksi                 << std::endl;
+
+    file << "k_asme="       << hex_to_string(ctxt.k_asme, 32) << std::endl;
+
+    nas_log->info("Saved GUTI to file "
+                  "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
+                  ctxt.guti.m_tmsi,
+                  ctxt.guti.mcc,
+                  ctxt.guti.mnc,
+                  ctxt.guti.mme_group_id,
+                  ctxt.guti.mme_code);
     nas_log->info("Saved security ctxt to file .ctxt. "
-                  "ksi: %x, k_asme: %s, "
-                  "tx_count: %x, rx_count: %x, "
-                  "int_alg: %d, enc_alg: %d\n",
-                  ctxt.ksi, hex_to_string(ctxt.k_asme,32).c_str(),
-                  ctxt.tx_count, ctxt.rx_count,
-                  ctxt.integ_algo, ctxt.cipher_algo);
+                  "ksi: %x, k_asme: %s, tx_count: %x, rx_count: %x, int_alg: %d, enc_alg: %d\n",
+                  ctxt.ksi,
+                  hex_to_string(ctxt.k_asme,32).c_str(),
+                  ctxt.tx_count,
+                  ctxt.rx_count,
+                  ctxt.integ_algo,
+                  ctxt.cipher_algo);
     file.close();
     return true;
   } else {
     return false;
   }
+}
+
+/*********************************************************************
+ *   Conversion helpers
+ ********************************************************************/
+std::string nas::hex_to_string(uint8_t *hex, int size)
+{
+  std::stringstream ss;
+
+  ss << std::hex << std::setfill('0');
+  for(int i=0; i<size; i++) {
+    ss << std::setw(2) << static_cast<unsigned>(hex[i]);
+  }
+  return ss.str();
+}
+
+bool nas::string_to_hex(std::string hex_str, uint8_t *hex, uint32_t len)
+{
+  static const char* const lut = "0123456789abcdef";
+  uint32_t str_len = hex_str.length();
+  if(str_len & 1) {
+    return false; // uneven hex_str length
+  }
+  if(str_len > len*2) {
+    return false; // not enough space in hex buffer
+  }
+  for(uint32_t i=0; i<str_len; i+=2)
+  {
+    char a = hex_str[i];
+    const char* p = std::lower_bound(lut, lut + 16, a);
+    if (*p != a) {
+      return false; // invalid char
+    }
+    char b = hex_str[i+1];
+    const char* q = std::lower_bound(lut, lut + 16, b);
+    if (*q != b) {
+      return false; // invalid char
+    }
+    hex[i/2] = ((p - lut) << 4) | (q - lut);
+  }
+  return true;
+}
+
+std::string nas::emm_info_str(LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT *info)
+{
+  std::stringstream ss;
+  if(info->full_net_name_present) {
+    ss << info->full_net_name.name;
+  }
+  if(info->short_net_name_present) {
+    ss << " (" << info->short_net_name.name << ")";
+  }
+  if(info->utc_and_local_time_zone_present) {
+    ss << " " << (int)info->utc_and_local_time_zone.day;
+    ss << "/" << (int)info->utc_and_local_time_zone.month;
+    ss << "/" << (int)info->utc_and_local_time_zone.year;
+    ss << " " << (int)info->utc_and_local_time_zone.hour;
+    ss << ":" << (int)info->utc_and_local_time_zone.minute;
+    ss << ":" << (int)info->utc_and_local_time_zone.second;
+    ss << " TZ:" << (int)info->utc_and_local_time_zone.tz;
+  }
+  return ss.str();
 }
 
 
