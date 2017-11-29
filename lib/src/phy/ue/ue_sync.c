@@ -48,7 +48,9 @@
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
 #define DEFAULT_CFO_BW      0.7
-#define DEFAULT_CFO_PSS_TOL 80 // typical accuracy of PSS estimation
+#define DEFAULT_CFO_PSS_TOL 80  // typical accuracy of PSS estimation. Avoids ping-pong effect
+#define DEFAULT_CFO_REF_TOL 5  // typical accuracy of REF estimation
+#define DEFAULT_CFO_REF_MAX 300 // Maximum detection offset of REF based estimation
 
 cf_t dummy_buffer0[15*2048/2];
 cf_t dummy_buffer1[15*2048/2];
@@ -215,6 +217,8 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
 
     q->max_prb = max_prb;
 
+    q->cfo_ref_max = DEFAULT_CFO_REF_MAX;
+    q->cfo_ref_tol = DEFAULT_CFO_REF_TOL;
     q->cfo_pss_tol = DEFAULT_CFO_PSS_TOL;
     q->cfo_loop_bw = DEFAULT_CFO_BW;
     q->cfo_correct_enable = true;
@@ -398,14 +402,23 @@ void srslte_ue_sync_get_last_timestamp(srslte_ue_sync_t *q, srslte_timestamp_t *
   memcpy(timestamp, &q->last_timestamp, sizeof(srslte_timestamp_t));
 }
 
-void srslte_ue_sync_set_cfo_loop_bw(srslte_ue_sync_t *q, float bw, float pss_tol) {
+void srslte_ue_sync_set_cfo_loop_bw(srslte_ue_sync_t *q, float bw, float pss_tol, float ref_tol, float ref_max) {
   q->cfo_loop_bw = bw;
   q->cfo_pss_tol = pss_tol;
+  q->cfo_ref_tol = ref_tol;
+  q->cfo_ref_max = ref_max;
 }
 
 void srslte_ue_sync_set_cfo_ema(srslte_ue_sync_t *q, float ema) {
   srslte_sync_set_cfo_ema_alpha(&q->sfind,  ema);
   srslte_sync_set_cfo_ema_alpha(&q->strack, ema);
+}
+
+void srslte_ue_sync_set_cfo_ref(srslte_ue_sync_t *q, float ref_cfo)
+{
+  if (fabsf(ref_cfo)*15000 > q->cfo_ref_tol && fabsf(ref_cfo)*15000 < q->cfo_ref_max) {
+    q->cfo_current_value += ref_cfo*q->cfo_loop_bw;
+  }
 }
 
 uint32_t srslte_ue_sync_get_sfidx(srslte_ue_sync_t *q) {
