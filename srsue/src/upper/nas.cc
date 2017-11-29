@@ -360,13 +360,14 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[2] << 8;
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[3];
 
-      nas_log->info("IP allocated by network %u.%u.%u.%u\n",
+      nas_log->info("Network attach successful. APN: %s, IP: %u.%u.%u.%u\n",
+                    act_def_eps_bearer_context_req.apn.apn.c_str(),
                     act_def_eps_bearer_context_req.pdn_addr.addr[0],
                     act_def_eps_bearer_context_req.pdn_addr.addr[1],
                     act_def_eps_bearer_context_req.pdn_addr.addr[2],
                     act_def_eps_bearer_context_req.pdn_addr.addr[3]);
 
-      nas_log->console("Network attach successful.   IP: %u.%u.%u.%u\n",
+      nas_log->console("Network attach successful. IP: %u.%u.%u.%u\n",
                        act_def_eps_bearer_context_req.pdn_addr.addr[0],
                        act_def_eps_bearer_context_req.pdn_addr.addr[1],
                        act_def_eps_bearer_context_req.pdn_addr.addr[2],
