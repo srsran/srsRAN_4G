@@ -365,6 +365,9 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
   m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
 
+  //Add eNB info to UE ctxt
+  memcpy(&ue_ctx.enb_sri, &enb_sri, sizeof(struct sctp_sndrcvinfo));
+
   //Get Authentication Vectors from HSS
   if(!m_hss->gen_auth_info_answer_milenage(imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
   {
@@ -548,9 +551,19 @@ bool
 s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp)
 {
   ue_ctx_t *ue_ctx;
-  LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT in_ctxt_req;
-  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req.E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
+
+  //Prepare reply PDU
+  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
+  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_INITIALCONTEXTSETUP;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALCONTEXTSETUPREQUEST;
+
+  LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *in_ctxt_req = &init->choice.InitialContextSetupRequest;
+  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
+
   //Find UE Context
   std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
   if(ue_ctx_it == m_active_ues.end())
@@ -562,12 +575,12 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
 
   //Add MME and eNB S1AP Ids
   bzero(&in_ctxt_req, sizeof(in_ctxt_req));
-  in_ctxt_req.MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
-  in_ctxt_req.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
+  in_ctxt_req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
 
   //Set UE-AMBR
-  in_ctxt_req.uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=4294967295;//2^32-1
-  in_ctxt_req.uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=4294967295;//FIXME Get UE-AMBR from HSS
+  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=4294967295;//2^32-1
+  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=4294967295;//FIXME Get UE-AMBR from HSS
 
   //eRAB context to setup
   erab_ctxt->e_RAB_ID.E_RAB_ID = cs_resp->eps_bearer_context_created.ebi;
@@ -585,20 +598,16 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   memcpy(erab_ctxt->gTP_TEID.buffer, &tmp_teid, sizeof(uint32_t));
 
   //Set UE security capabilities and k_enb
-  in_ctxt_req.UESecurityCapabilities.encryptionAlgorithms.buffer[0] = 0;          //EEA0
-  in_ctxt_req.UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
+  in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[0] = 0;          //EEA0
+  in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
 
   uint8_t key_enb[32];
   liblte_security_generate_k_enb(ue_ctx->security_ctxt.k_asme, ue_ctx->security_ctxt.dl_nas_count, key_enb);
-  liblte_unpack(key_enb, 32, in_ctxt_req.SecurityKey.buffer);
+  liblte_unpack(key_enb, 32, in_ctxt_req->SecurityKey.buffer);
 
   //Set Attach accepted and activate defaulte bearer NAS messages
   //TODO
   
-  //Pack everything and send it to the eNB
-  LIBLTE_S1AP_S1AP_PDU pdu;
-
-
 
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if(err != LIBLTE_SUCCESS)
@@ -607,13 +616,13 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     return false;
   }
   //Send Reply to eNB
-  ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
+  ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ctx->enb_sri, 0);
   if(n_sent == -1)
   {
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
       return false;
   }
-
+  
 
   m_pool->deallocate(reply_buffer);
   return true;
