@@ -172,7 +172,7 @@ typedef float32x4_t simd_f_t;
 #endif /* LV_HAVE_AVX512 */
 
 /* Single precision Floating point functions */
-static inline simd_f_t srslte_simd_f_load(float *ptr) {
+static inline simd_f_t srslte_simd_f_load(const float *ptr) {
 #ifdef LV_HAVE_AVX512
   return _mm512_load_ps(ptr);
 #else /* LV_HAVE_AVX512 */
@@ -190,7 +190,7 @@ static inline simd_f_t srslte_simd_f_load(float *ptr) {
 #endif /* LV_HAVE_AVX512 */
 }
 
-static inline simd_f_t srslte_simd_f_loadu(float *ptr) {
+static inline simd_f_t srslte_simd_f_loadu(const float *ptr) {
 #ifdef LV_HAVE_AVX512
   return _mm512_loadu_ps(ptr);
 #else /* LV_HAVE_AVX512 */
@@ -477,7 +477,7 @@ typedef struct {
 #endif
 
 /* Complex Single precission Floating point functions */
-static inline simd_cf_t srslte_simd_cfi_load(cf_t *ptr) {
+static inline simd_cf_t srslte_simd_cfi_load(const cf_t *ptr) {
   simd_cf_t ret;
 #ifdef LV_HAVE_AVX512
   __m512 in1 = _mm512_load_ps((float*)(ptr));
@@ -513,7 +513,7 @@ static inline simd_cf_t srslte_simd_cfi_load(cf_t *ptr) {
 }
 
 /* Complex Single precission Floating point functions */
-static inline simd_cf_t srslte_simd_cfi_loadu(cf_t *ptr) {
+static inline simd_cf_t srslte_simd_cfi_loadu(const cf_t *ptr) {
   simd_cf_t ret;
 #ifdef LV_HAVE_AVX512
   __m512 in1 = _mm512_loadu_ps((float*)(ptr));
@@ -548,7 +548,7 @@ static inline simd_cf_t srslte_simd_cfi_loadu(cf_t *ptr) {
   return ret;
 }
 
-static inline simd_cf_t srslte_simd_cf_load(float *re, float *im) {
+static inline simd_cf_t srslte_simd_cf_load(const float *re, const float *im) {
   simd_cf_t ret;
 #ifdef LV_HAVE_AVX512
   ret.re = _mm512_load_ps(re);
@@ -572,7 +572,7 @@ static inline simd_cf_t srslte_simd_cf_load(float *re, float *im) {
   return ret;
 }
 
-static inline simd_cf_t srslte_simd_cf_loadu(float *re, float *im) {
+static inline simd_cf_t srslte_simd_cf_loadu(const float *re, const float *im) {
   simd_cf_t ret;
 #ifdef LV_HAVE_AVX512
   ret.re = _mm512_loadu_ps(re);
@@ -1074,7 +1074,7 @@ typedef int16x8_t simd_s_t;
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
 
-static inline simd_s_t srslte_simd_s_load(int16_t *ptr) {
+static inline simd_s_t srslte_simd_s_load(const int16_t *ptr) {
 #ifdef LV_HAVE_AVX512
   return _mm512_load_si512(ptr);
 #else /* LV_HAVE_AVX512 */
@@ -1092,7 +1092,7 @@ static inline simd_s_t srslte_simd_s_load(int16_t *ptr) {
 #endif /* LV_HAVE_AVX512 */
 }
 
-static inline simd_s_t srslte_simd_s_loadu(int16_t *ptr) {
+static inline simd_s_t srslte_simd_s_loadu(const int16_t *ptr) {
 #ifdef LV_HAVE_AVX512
   return _mm512_loadu_si512(ptr);
 #else /* LV_HAVE_AVX512 */
@@ -1267,7 +1267,7 @@ typedef
 } simd_c16_t;
 
 /* Fixed point precision (16-bit) functions */
-static inline simd_c16_t srslte_simd_c16i_load(c16_t *ptr) {
+static inline simd_c16_t srslte_simd_c16i_load(const c16_t *ptr) {
   simd_c16_t ret;
 #ifdef LV_HAVE_AVX512
   __m512i in1 = _mm512_load_si512((__m512i*)(ptr));
@@ -1296,7 +1296,7 @@ static inline simd_c16_t srslte_simd_c16i_load(c16_t *ptr) {
   return ret;
 }
 
-static inline simd_c16_t srslte_simd_c16_load(int16_t *re, int16_t *im) {
+static inline simd_c16_t srslte_simd_c16_load(const int16_t *re, const int16_t *im) {
   simd_c16_t ret;
 #ifdef LV_HAVE_AVX2
   ret.re.m256 = _mm256_load_si256((__m256i*)(re));
@@ -1315,7 +1315,7 @@ static inline simd_c16_t srslte_simd_c16_load(int16_t *re, int16_t *im) {
   return ret;
 }
 
-static inline simd_c16_t srslte_simd_c16_loadu(int16_t *re, int16_t *im) {
+static inline simd_c16_t srslte_simd_c16_loadu(const int16_t *re, const int16_t *im) {
   simd_c16_t ret;
 #ifdef LV_HAVE_AVX2
   ret.re.m256 = _mm256_loadu_si256((__m256i*)(re));

@@ -245,7 +245,7 @@ static void copy_post(uint8_t *dst, uint8_t *src, int size_d, int len,
   }
 }
 
-void srslte_dft_run(srslte_dft_plan_t *plan, void *in, void *out) {
+void srslte_dft_run(srslte_dft_plan_t *plan, const void *in, void *out) {
   if(plan->mode == SRSLTE_DFT_COMPLEX) {
     srslte_dft_run_c(plan,in,out);
   } else {
@@ -253,11 +253,11 @@ void srslte_dft_run(srslte_dft_plan_t *plan, void *in, void *out) {
   }
 }
 
-void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan, cf_t *in, cf_t *out) {
-  fftwf_execute_dft(plan->p, in, out);  
+void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan, const cf_t *in, cf_t *out) {
+  fftwf_execute_dft(plan->p, (cf_t*) in, out);
 }
 
-void srslte_dft_run_c(srslte_dft_plan_t *plan, cf_t *in, cf_t *out) {
+void srslte_dft_run_c(srslte_dft_plan_t *plan, const cf_t *in, cf_t *out) {
   float norm;
   int i;
   fftwf_complex *f_out = plan->out;
@@ -286,7 +286,7 @@ void srslte_dft_run_guru_c(srslte_dft_plan_t *plan) {
   }
 }
 
-void srslte_dft_run_r(srslte_dft_plan_t *plan, float *in, float *out) {
+void srslte_dft_run_r(srslte_dft_plan_t *plan, const float *in, float *out) {
   float norm;
   int i;
   int len = plan->size;

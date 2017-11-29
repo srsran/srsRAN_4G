@@ -579,11 +579,8 @@ int main(int argc, char **argv) {
   srslte_ra_dl_dci_t old_dl_dci; 
   bzero(&old_dl_dci, sizeof(srslte_ra_dl_dci_t));
 #endif
-  
-  ue_sync.correct_cfo = !prog_args.disable_cfo;
-  
-  // Set initial CFO for ue_sync
-  srslte_ue_sync_set_cfo(&ue_sync, cfo); 
+
+  ue_sync.cfo_correct_enable = !prog_args.disable_cfo;
   
   srslte_pbch_decode_reset(&ue_mib.pbch);
             
@@ -776,7 +773,7 @@ int main(int argc, char **argv) {
             /* Print basic Parameters */
             PRINT_LINE("   nof layers: %d", ue_dl.pdsch_cfg.nof_layers);
             PRINT_LINE("nof codewords: %d", SRSLTE_RA_DL_GRANT_NOF_TB(&ue_dl.pdsch_cfg.grant));
-            PRINT_LINE("          CFO: %+5.2f kHz", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
+            PRINT_LINE("          CFO: %+7.2f kHz", srslte_ue_sync_get_cfo(&ue_sync));
             PRINT_LINE("          SNR: %+5.1f dB | %+5.1f dB", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
             PRINT_LINE("           Rb: %6.2f / %6.2f / %6.2f Mbps (net/maximum/processing)", uerate, enodebrate, procrate);
             PRINT_LINE("   PDCCH-Miss: %5.2f%%", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));

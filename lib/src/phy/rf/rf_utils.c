@@ -123,12 +123,7 @@ int rf_mib_decoder(srslte_rf_t *rf, uint32_t nof_rx_antennas,cell_search_cfg_t *
   
   INFO("Starting receiver...\n", 0);
   srslte_rf_start_rx_stream(rf);
-    
-  // Set CFO if available
-  if (cfo) {
-    srslte_ue_sync_set_cfo(&ue_mib.ue_sync, *cfo);
-  }
-  
+
   /* Find and decody MIB */
   ret = srslte_ue_mib_sync_decode(&ue_mib, config->max_frames_pbch, bch_payload, &cell->nof_ports, NULL); 
   if (ret < 0) {

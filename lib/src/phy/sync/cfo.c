@@ -83,7 +83,7 @@ int srslte_cfo_resize(srslte_cfo_t *h, uint32_t samples) {
   return SRSLTE_SUCCESS;
 }
 
-void srslte_cfo_correct(srslte_cfo_t *h, cf_t *input, cf_t *output, float freq) {
+void srslte_cfo_correct(srslte_cfo_t *h, const cf_t *input, cf_t *output, float freq) {
   if (fabs(h->last_freq - freq) > h->tol) {
     h->last_freq = freq;
     srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);

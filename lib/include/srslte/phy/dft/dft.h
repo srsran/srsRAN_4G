@@ -139,22 +139,22 @@ SRSLTE_API void srslte_dft_plan_set_dc(srslte_dft_plan_t *plan,
 
 /* Compute DFT */
 
-SRSLTE_API void srslte_dft_run(srslte_dft_plan_t *plan, 
-                               void *in, 
+SRSLTE_API void srslte_dft_run(srslte_dft_plan_t *plan,
+                               const void *in,
                                void *out);
 
-SRSLTE_API void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan, 
-                                          cf_t *in, 
+SRSLTE_API void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan,
+                                          const cf_t *in,
                                           cf_t *out); 
 
-SRSLTE_API void srslte_dft_run_c(srslte_dft_plan_t *plan, 
-                                 cf_t *in, 
+SRSLTE_API void srslte_dft_run_c(srslte_dft_plan_t *plan,
+                                 const cf_t *in,
                                  cf_t *out);
 
 SRSLTE_API void srslte_dft_run_guru_c(srslte_dft_plan_t *plan);
 
 SRSLTE_API void srslte_dft_run_r(srslte_dft_plan_t *plan, 
-                                 float *in, 
+                                 const float *in,
                                  float *out);
 
 #endif // DFT_H_

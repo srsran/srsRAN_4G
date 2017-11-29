@@ -115,7 +115,7 @@ void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q) {
 
 }
 
-uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, cf_t *input, cf_t *filter_freq, cf_t *output) 
+uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, const cf_t *input, const cf_t *filter_freq, cf_t *output)
 {
     srslte_dft_run_c(&q->input_plan, input, q->input_fft);
     srslte_vec_prod_ccc(q->input_fft, filter_freq, q->output_fft, q->output_len);
@@ -125,7 +125,7 @@ uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, cf_t *input, cf_t *
 
 }
 
-uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *output) {
+uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q, const cf_t *input, const cf_t *filter, cf_t *output) {
   
   srslte_dft_run_c(&q->filter_plan, filter, q->filter_fft);
 
@@ -133,7 +133,7 @@ uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q, cf_t *input, cf_t *filt
 
 }
 
-uint32_t srslte_conv_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
+uint32_t srslte_conv_cc(const cf_t *input, const cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
   uint32_t i;
   uint32_t M = filter_len; 
   uint32_t N = input_len; 
