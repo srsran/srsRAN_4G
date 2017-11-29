@@ -410,6 +410,30 @@ float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) 
   return rssi/nsymbols; 
 }
 
+// CFO estimation algorithm taken from "Carrier Frequency Synchronization in the
+// Downlink of 3GPP LTE", Qi Wang, C. Mehlfuhrer, M. Rupp
+float chest_estimate_cfo(srslte_chest_dl_t *q)
+{
+  float n  = (float) srslte_symbol_sz(q->cell.nof_prb);
+  float ns = (float) SRSLTE_CP_NSYMB(q->cell.cp);
+  float ng = (float) SRSLTE_CP_LEN_NORM(1, n);
+
+  uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, 0);
+
+  // Compute angles between slots
+  for (int i=0;i<2;i++) {
+    srslte_vec_prod_conj_ccc(&q->pilot_estimates[i*npilots/4],
+                             &q->pilot_estimates[(i+2)*npilots/4],
+                             &q->tmp_noise[i*npilots/4],
+                             npilots/4);
+  }
+  // Average all angles
+  cf_t sum = srslte_vec_acc_cc(q->tmp_noise, npilots/2);
+
+  // Compute CFO
+  return -cargf(sum)*n/(ns*(n+ng))/2/M_PI;
+}
+
 void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id, srslte_sf_t ch_mode){
  if (ce != NULL) {
     /* Smooth estimates (if applicable) and interpolate */
@@ -433,6 +457,10 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
       }
     } 
   }
+
+  if (q->cfo_estimate_enable && ((1<<sf_idx) & q->cfo_estimate_sf_mask)) {
+    q->cfo = chest_estimate_cfo(q);
+  }
     
   /* Compute RSRP for the channel estimates in this port */
   q->rsrp[rxant_id][port_id] = srslte_vec_avg_power_cf(q->pilot_recv_signal, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));     
@@ -451,8 +479,9 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->csr_refs.pilots[port_id/2][sf_idx], 
               q->pilot_estimates, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
 
+
   chest_interpolate_noise_est(q, input, ce, sf_idx, port_id, rxant_id, SRSLTE_SF_NORM);
-  
+
   return 0;
 }
 int srslte_chest_dl_estimate_port_mbsfn(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id, uint16_t mbsfn_area_id)
@@ -473,10 +502,6 @@ int srslte_chest_dl_estimate_port_mbsfn(srslte_chest_dl_t *q, cf_t *input, cf_t 
       
   return 0;
 }
-
-
-
-
 
 int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t nof_rx_antennas) 
 {
@@ -517,7 +542,15 @@ int srslte_chest_dl_estimate_multi_mbsfn(srslte_chest_dl_t *q, cf_t *input[SRSLT
   return SRSLTE_SUCCESS;
 }
 
+void srslte_chest_dl_cfo_estimate_enable(srslte_chest_dl_t *q, bool enable, uint32_t mask)
+{
+  q->cfo_estimate_enable  = enable;
+  q->cfo_estimate_sf_mask = mask;
+}
 
+float srslte_chest_dl_get_cfo(srslte_chest_dl_t *q) {
+  return q->cfo;
+}
 
 float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
   float n = 0; 
