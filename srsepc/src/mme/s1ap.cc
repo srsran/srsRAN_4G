@@ -366,7 +366,7 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
 
   //Add eNB info to UE ctxt
-  memcpy(&ue_ctx.enb_sri, &enb_sri, sizeof(struct sctp_sndrcvinfo));
+  memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
   //Get Authentication Vectors from HSS
   if(!m_hss->gen_auth_info_answer_milenage(imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
@@ -554,6 +554,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
 
   //Prepare reply PDU
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
+  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
   pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
 
   LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &pdu.choice.initiatingMessage;
@@ -561,6 +562,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALCONTEXTSETUPREQUEST;
 
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *in_ctxt_req = &init->choice.InitialContextSetupRequest;
+  
   LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
 
@@ -576,7 +578,6 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   ue_ctx = ue_ctx_it->second;
 
   //Add MME and eNB S1AP Ids
-  bzero(&in_ctxt_req, sizeof(in_ctxt_req));
   in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
   in_ctxt_req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
 
@@ -584,14 +585,41 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=4294967295;//2^32-1
   in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=4294967295;//FIXME Get UE-AMBR from HSS
 
-  //eRAB context to setup
+  /*
+  typedef struct{
+    bool                                                         ext;
+    LIBLTE_S1AP_E_RAB_ID_STRUCT                                  e_RAB_ID;
+    LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT                   e_RABlevelQoSParameters;
+    LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     transportLayerAddress;
+    LIBLTE_S1AP_GTP_TEID_STRUCT                                  gTP_TEID;
+    LIBLTE_S1AP_NAS_PDU_STRUCT                                   nAS_PDU;
+    bool                                                         nAS_PDU_present;
+    LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
+    bool                                                         iE_Extensions_present;
+  }LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT;
+  */
+  /*
+    typedef struct{
+    bool                                                         ext;
+    LIBLTE_S1AP_QCI_STRUCT                                       qCI;
+    LIBLTE_S1AP_ALLOCATIONANDRETENTIONPRIORITY_STRUCT            allocationRetentionPriority;
+    LIBLTE_S1AP_GBR_QOSINFORMATION_STRUCT                        gbrQosInformation;
+    bool                                                         gbrQosInformation_present;
+    LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
+    bool                                                         iE_Extensions_present;
+    }LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT;
+   */
+  //Setup eRAB context
+  in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
   erab_ctxt->e_RAB_ID.E_RAB_ID = cs_resp->eps_bearer_context_created.ebi;
+  //Setup E-RAB QoS parameters
+
+  //Set E-RAB S-GW F-TEID
   if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
     m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
     return false;
-  }
-
-  //Set S-GW F-TEID
+  } 
+  erab_ctxt->transportLayerAddress.n_bits = 32; //IPv4
   uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
   uint8_t *tmp_ptr =  erab_ctxt->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
@@ -612,6 +640,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   
 
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
+  //reply_buffer->N_bytes = pdu->NAS_PDU.n_octets;
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
