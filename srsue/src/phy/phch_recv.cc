@@ -208,7 +208,7 @@ void phch_recv::set_time_adv_sec(float _time_adv_sec) {
 
 void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
   if (worker_com->args->cfo_integer_enabled) {
-    srslte_ue_sync_cfo_i_detec_en(q, true);
+    srslte_ue_sync_set_cfo_i_enable(q, true);
   }
 
   srslte_ue_sync_set_cfo_ema(q, worker_com->args->cfo_ema);
@@ -328,7 +328,7 @@ int phch_recv::cell_search(int force_N_id_2) {
   }
 
   srslte_ue_sync_reset(&ue_mib_sync.ue_sync);
-  srslte_ue_sync_set_cfo(&ue_mib_sync.ue_sync, cellsearch_cfo);
+  srslte_ue_sync_copy_cfo(&ue_mib_sync.ue_sync, &cs.ue_sync);
 
   /* Find and decode MIB */
   int sfn_offset;
@@ -340,7 +340,7 @@ int phch_recv::cell_search(int force_N_id_2) {
   cellsearch_cfo = srslte_ue_sync_get_cfo(&ue_mib_sync.ue_sync);
 
   srslte_ue_sync_reset(&ue_sync);
-  srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
+  srslte_ue_sync_copy_cfo(&ue_sync, &ue_mib_sync.ue_sync);
 
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, &cell, NULL);

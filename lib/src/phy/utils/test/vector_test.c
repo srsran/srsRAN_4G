@@ -441,7 +441,7 @@ TEST(srslte_vec_convert_fi,
     x[i] = (float) RANDOM_F();
   }
 
-  TEST_CALL(srslte_vec_convert_fi(x, z, scale, block_size))
+  TEST_CALL(srslte_vec_convert_fi(x, scale, z, block_size))
 
   for (int i = 0; i < block_size; i++) {
       gold = (short) ((x[i] * scale));

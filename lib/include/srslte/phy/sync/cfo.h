@@ -66,7 +66,7 @@ SRSLTE_API void srslte_cfo_set_tol(srslte_cfo_t *h,
                                    float tol);
 
 SRSLTE_API void srslte_cfo_correct(srslte_cfo_t *h, 
-                                   cf_t *input,
+                                   const cf_t *input,
                                    cf_t *output,
                                    float freq);
 

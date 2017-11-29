@@ -63,8 +63,6 @@
 
 #define SRSLTE_PSS_ACCUMULATE_ABS   // If enabled, accumulates the correlation absolute value on consecutive calls to srslte_pss_synch_find_pss
 
-#define SRSLTE_PSS_ABS_SQUARE   // If enabled, compute abs square, otherwise computes absolute value only 
-
 #define SRSLTE_PSS_RETURN_PSR  // If enabled returns peak to side-lobe ratio, otherwise returns absolute peak value
 
 
@@ -137,7 +135,7 @@ SRSLTE_API void srslte_pss_synch_filter_enable(srslte_pss_synch_t *q,
                                                bool enable);
 
 SRSLTE_API void srslte_pss_synch_filter(srslte_pss_synch_t *q,
-                                        cf_t *input,
+                                        const cf_t *input,
                                         cf_t *output);
 
 SRSLTE_API int srslte_pss_generate(cf_t *signal, 
@@ -160,14 +158,14 @@ SRSLTE_API int srslte_pss_synch_set_N_id_2(srslte_pss_synch_t *q,
                                            uint32_t N_id_2);
 
 SRSLTE_API int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, 
-                                         cf_t *input, 
+                                         const cf_t *input,
                                          float *corr_peak_value);
 
 SRSLTE_API int srslte_pss_synch_chest(srslte_pss_synch_t *q, 
-                                      cf_t *input, 
+                                      const cf_t *input,
                                       cf_t ce[SRSLTE_PSS_LEN]); 
 
-SRSLTE_API float srslte_pss_synch_cfo_compute(srslte_pss_synch_t* q, 
-                                              cf_t *pss_recv);
+SRSLTE_API float srslte_pss_synch_cfo_compute(srslte_pss_synch_t* q,
+                                              const cf_t *pss_recv);
 
 #endif // PSS_
