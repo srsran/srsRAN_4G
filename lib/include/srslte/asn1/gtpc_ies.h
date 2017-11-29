@@ -402,8 +402,8 @@ enum gtpc_interface_type
 
 struct gtpc_f_teid_ie
 {
-  bool v4_present;
-  bool v6_present;
+  bool ipv4_present;
+  bool ipv6_present;
   enum gtpc_interface_type interface_type;
   uint32_t teid;
   in_addr_t  ipv4;

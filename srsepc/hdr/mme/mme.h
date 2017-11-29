@@ -66,7 +66,7 @@ class mme:
 public:
   static mme* get_instance(void);
   static void cleanup(void);
-  int init(mme_args_t* args, srslte::log_filter *s1ap_log);
+  int init(mme_args_t* args, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log);
   void stop();
   int get_s1_mme();
   void run_thread();
@@ -84,7 +84,7 @@ private:
 
   /*Logs*/
   srslte::log_filter  *m_s1ap_log;
- 
+  srslte::log_filter  *m_mme_gtpc_log;
 };
 
 } // namespace srsepc

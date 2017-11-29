@@ -313,12 +313,13 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   srslte::gtpc_header *header = &cs_resp_pdu->header;
   srslte::gtpc_create_session_response *cs_resp = &cs_resp_pdu->choice.create_session_response;
 
+
+  m_spgw_log->info("Received Create Session Request\n");
   //Setup GTP-C header
   header->piggyback = false;
   header->teid_present = true;
   header->teid = cs_req->sender_f_teid.teid;  //Send create session requesponse to the CS Request TEID
   header->type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE;
-
 
   //Setup uplink control TEID
   uint64_t spgw_uplink_ctrl_teid = get_new_ctrl_teid();
@@ -327,28 +328,28 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   //Allocate UE IP
   in_addr_t ue_ip = get_new_ue_ipv4();
 
-  //Save the UE IMSI to Ctrl TEID map //TODO!!!
+  //Save the UE IP to User TEID map //TODO!!!
 
   //Create session response message
   //Initialize to zero\\
   bzero(cs_resp,sizeof(struct srslte::gtpc_create_session_response));
-  //Setup Cause\\
+  //Setup Cause
   cs_resp->cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
-  //Setup sender F-TEID (ctrl)\\
-  cs_resp->sender_f_teid.teid_present = true;
+  //Setup sender F-TEID (ctrl)
+  cs_resp->sender_f_teid.ipv4_present = true;
   cs_resp->sender_f_teid.teid = spgw_uplink_ctrl_teid;
   cs_resp->sender_f_teid.ipv4 = 0;//FIXME This is not relevant, as the GTP-C is not transmitted over sockets yet.
-  //Bearer context created\\
+  //Bearer context created
   cs_resp->eps_bearer_context_created.ebi = 5;
   cs_resp->eps_bearer_context_created.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present=true;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid = spgw_uplink_user_teid;
-  //Fill in the PDA\\
+  //Fill in the PDA
   cs_resp->paa_present = true;
   cs_resp->paa.pdn_type = srslte::GTPC_PDN_TYPE_IPV4;
   cs_resp->paa.ipv4_present = true;
   cs_resp->paa.ipv4 = ue_ip;
-
+  m_spgw_log->info("Sending Create Session Response\n");
   m_mme_gtpc->handle_create_session_response(cs_resp_pdu);
   return;
 }

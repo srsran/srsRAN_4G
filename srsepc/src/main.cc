@@ -201,6 +201,11 @@ main (int argc,char * argv[] )
   s1ap_log.set_level(srslte::LOG_LEVEL_DEBUG);
   s1ap_log.set_hex_limit(32);
 
+  srslte::log_filter mme_gtpc_log;
+  mme_gtpc_log.init("GTPC",logger);
+  mme_gtpc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  mme_gtpc_log.set_hex_limit(32);
+
   srslte::log_filter hss_log;
   hss_log.init("HSS ",logger);
   hss_log.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -212,7 +217,7 @@ main (int argc,char * argv[] )
   spgw_log.set_hex_limit(32);
   
   mme *mme = mme::get_instance();
-  if (mme->init(&args.mme_args, &s1ap_log)) {
+  if (mme->init(&args.mme_args, &s1ap_log, &mme_gtpc_log)) {
     cout << "Error initializing MME" << endl;
     exit(1);
   }

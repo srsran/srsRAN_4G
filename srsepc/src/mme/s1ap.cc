@@ -428,7 +428,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
     m_s1ap_log->warning("Could not find UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
     return false;
   }
-  m_s1ap_log->debug("Found UE. MME-UE S1AP id: %lu",mme_ue_s1ap_id);
+  m_s1ap_log->debug("Found UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
 
   //Get NAS message type
   uint8_t pd, msg_type;
@@ -564,6 +564,8 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
 
+  m_s1ap_log->info("Preparing to send Initial Context Setup request\n");
+
   //Find UE Context
   std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
   if(ue_ctx_it == m_active_ues.end())
@@ -622,7 +624,8 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
       return false;
   }
-  
+  m_s1ap_log->info("Sent Intial Context Setup Request\n");
+  m_s1ap_log->console("Sent Intial Context Setup Request\n");
 
   m_pool->deallocate(reply_buffer);
   return true;

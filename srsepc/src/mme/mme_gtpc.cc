@@ -36,7 +36,6 @@ mme_gtpc*          mme_gtpc::m_instance = NULL;
 boost::mutex  mme_gtpc_instance_mutex;
 
 mme_gtpc::mme_gtpc()
-  :m_next_ctrl_teid(1)
 {
 }
 
@@ -66,16 +65,24 @@ mme_gtpc::cleanup(void)
 
 
 bool
-mme_gtpc::init()
+mme_gtpc::init(srslte::log_filter *mme_gtpc_log)
 {
+
+  /*Init log*/
+  m_mme_gtpc_log = mme_gtpc_log;
+
+  m_next_ctrl_teid = 1;
+
   m_s1ap = s1ap::get_instance();
   m_mme_gtpc_ip = inet_addr("127.0.0.1");//FIXME At the moment, the GTP-C messages are not sent over the wire. So this parameter is not used.
   m_spgw = spgw::get_instance();
 
+  m_mme_gtpc_log->info("MME GTP-C Initialized\n");
+  m_mme_gtpc_log->console("MME GTP-C Initialized\n");
   return true;
 }
 
-uint64_t
+uint32_t
 mme_gtpc::get_new_ctrl_teid()
 {
   return m_next_ctrl_teid++; //FIXME Use a Id pool?
@@ -83,6 +90,8 @@ mme_gtpc::get_new_ctrl_teid()
 void
 mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
 {
+  m_mme_gtpc_log->info("Preparing Create Session Request. IMSI %lu\n", imsi);
+  m_mme_gtpc_log->console("Preparing Create Session Request. IMSI %lu\n", imsi);
   struct srslte::gtpc_pdu cs_req_pdu;
   struct srslte::gtpc_create_session_request *cs_req = &cs_req_pdu.choice.create_session_request;
 
@@ -99,19 +108,22 @@ mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
   cs_req_pdu.header.type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST;
 
   //Setup GTP-C Create Session Request IEs
-  // Control TEID allocated \\
+  // Control TEID allocated
   cs_req->sender_f_teid.teid = get_new_ctrl_teid();
   cs_req->sender_f_teid.ipv4 = m_mme_gtpc_ip;
-  // APN \\
+
+  m_mme_gtpc_log->info("Next control TEID: %lu \n", m_next_ctrl_teid);
+  m_mme_gtpc_log->info("Allocated control TEID: %lu \n", cs_req->sender_f_teid.teid);
+  m_mme_gtpc_log->console("Allocated control TEID: %lu \n", cs_req->sender_f_teid.teid);
+  // APN
   memcpy(cs_req->apn, "internet", sizeof("internet"));
-  // RAT Type \\
-  cs_req->rat_type = GTPC_RAT_TYPE::EUTRAN;
+  // RAT Type
+  //cs_req->rat_type = srslte::GTPC_RAT_TYPE::EUTRAN;
 
   //Save RX Control TEID
-  m_teid_to_mme_s1ap_id.insert(std::pair<uint64_t,uint32_t>(cs_req->sender_f_teid.teid, mme_ue_s1ap_id));
+  m_teid_to_mme_s1ap_id.insert(std::pair<uint32_t,uint32_t>(cs_req->sender_f_teid.teid, mme_ue_s1ap_id));
 
   m_spgw->handle_create_session_request(cs_req, &cs_resp_pdu);
-  handle_create_session_response(&cs_resp_pdu);
  
 }
 
@@ -119,24 +131,25 @@ void
 mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
 {
   struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu->choice.create_session_response;
-
+  m_mme_gtpc_log->info("Received Create Session Response\n");
   if (cs_resp_pdu->header.type != srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE)
   {
-     //m_mme_gtpc_log->warning("Could not create GTPC session.\n");
+     m_mme_gtpc_log->warning("Could not create GTPC session. Not a create session response\n");
      //TODO Handle err
      return;
   }
   if (cs_resp->cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED){
-    //m_mme_gtpc_log->warning("Could not create GTPC session.\n");
+    m_mme_gtpc_log->warning("Could not create GTPC session. Create Session Request not accepted\n");
     //TODO Handle error
     return;
   }
 
   //Get MME_UE_S1AP_ID from the Ctrl TEID
-  std::map<uint64_t,uint32_t>::iterator id_it = m_teid_to_mme_s1ap_id.find(cs_resp_pdu->header.teid);
+  std::map<uint32_t,uint32_t>::iterator id_it = m_teid_to_mme_s1ap_id.find(cs_resp_pdu->header.teid);
   if(id_it == m_teid_to_mme_s1ap_id.end())
   {
     //Could not find MME UE S1AP TEID
+    m_mme_gtpc_log->warning("Could not find MME UE S1AP TEID.\n");
     return;
   }
   uint32_t mme_s1ap_id = id_it->second;

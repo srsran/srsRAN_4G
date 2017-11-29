@@ -70,12 +70,12 @@ mme::cleanup(void)
 }
 
 int
-mme::init(mme_args_t* args, srslte::log_filter *s1ap_log)
+mme::init(mme_args_t* args, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log)
 {
 
   /*Init logger*/
   m_s1ap_log = s1ap_log;
-
+  m_mme_gtpc_log = mme_gtpc_log;
   /*Init S1AP*/
   m_s1ap = s1ap::get_instance();
   if(m_s1ap->init(args->s1ap_args, s1ap_log)){
@@ -85,7 +85,7 @@ mme::init(mme_args_t* args, srslte::log_filter *s1ap_log)
 
   /*Init GTP-C*/
   m_mme_gtpc = mme_gtpc::get_instance();
-  if(!m_mme_gtpc->init())
+  if(!m_mme_gtpc->init(m_mme_gtpc_log))
   {
     m_s1ap_log->console("Error initializing GTP-C\n");
     exit(-1);

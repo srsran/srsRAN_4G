@@ -26,6 +26,8 @@
 #ifndef    MME_GTPC_H
 #define    MME_GTPC_H
 
+#include "srslte/common/log.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
 #include <boost/thread/mutex.hpp>
 #include "srslte/asn1/gtpc.h"
@@ -43,9 +45,9 @@ public:
   static mme_gtpc* get_instance(void);
   static void cleanup(void);
 
-  bool init();
+  bool init(srslte::log_filter *mme_gtpc_log);
 
-  uint64_t get_new_ctrl_teid();
+  uint32_t get_new_ctrl_teid();
   void send_create_session_request(uint64_t imsi, uint32_t mme_s1ap_id);
   void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
 
@@ -55,14 +57,15 @@ private:
   virtual ~mme_gtpc();
   static mme_gtpc *m_instance;
 
+  srslte::log_filter *m_mme_gtpc_log;
   srslte::byte_buffer_pool *m_pool;
 
   s1ap* m_s1ap;
   spgw* m_spgw;
   in_addr_t m_mme_gtpc_ip;
 
-  uint64_t m_next_ctrl_teid;
-  std::map<uint64_t,uint32_t> m_teid_to_mme_s1ap_id;
+  uint32_t m_next_ctrl_teid;
+  std::map<uint32_t,uint32_t> m_teid_to_mme_s1ap_id;
 
 };
 
