@@ -47,8 +47,8 @@
 #define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  0
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
-#define DEFAULT_CFO_BW      0.2
-#define DEFAULT_CFO_PSS_TOL 100 // typical accuracy of PSS estimation
+#define DEFAULT_CFO_BW      0.7
+#define DEFAULT_CFO_PSS_TOL 80 // typical accuracy of PSS estimation
 
 cf_t dummy_buffer0[15*2048/2];
 cf_t dummy_buffer1[15*2048/2];
@@ -538,7 +538,7 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
    * Since sync track has enabled only PSS-based correlation, get_cfo() returns that value only, already filtered.
    */
   INFO("TRACK: cfo_current: %f, cfo_strack=%f\n", 15000*q->cfo_current_value, 15000*srslte_sync_get_cfo(&q->strack));
-  if (abs(srslte_sync_get_cfo(&q->strack)*q->cfo_loop_bw) > q->cfo_pss_tol) {
+  if (15000*fabsf(srslte_sync_get_cfo(&q->strack)) > q->cfo_pss_tol) {
     q->cfo_current_value += srslte_sync_get_cfo(&q->strack)*q->cfo_loop_bw;
   }
 
