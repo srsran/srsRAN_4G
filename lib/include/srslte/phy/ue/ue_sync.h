@@ -115,6 +115,8 @@ typedef struct SRSLTE_API {
   float cfo_current_value;
   float cfo_loop_bw;
   float cfo_pss_tol;
+  float cfo_ref_tol;
+  float cfo_ref_max;
 
   uint32_t peak_idx;
   int next_rf_sample_offset;
@@ -197,10 +199,14 @@ SRSLTE_API void srslte_ue_sync_copy_cfo(srslte_ue_sync_t *q,
 
 SRSLTE_API void srslte_ue_sync_set_cfo_loop_bw(srslte_ue_sync_t *q,
                                                float bw,
-                                               float pss_tol);
+                                               float pss_tol,
+                                               float ref_tol,
+                                               float ref_max);
 
 SRSLTE_API void srslte_ue_sync_set_cfo_ema(srslte_ue_sync_t *q,
                                            float ema);
+
+SRSLTE_API void srslte_ue_sync_set_cfo_ref(srslte_ue_sync_t *q, float res_cfo);
 
 SRSLTE_API void srslte_ue_sync_set_cfo_i_enable(srslte_ue_sync_t *q,
                                                 bool enable);
