@@ -223,6 +223,8 @@ void usim::generate_nas_keys(uint8_t *k_asme,
                            integ_algo,
                            k_nas_enc,
                            k_nas_int);
+
+
 }
 
 /*******************************************************************************
@@ -239,9 +241,9 @@ void usim::generate_as_keys(uint8_t *k_asme,
                             INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   // Generate K_enb
-  security_generate_k_enb( k_asme,
-                           count_ul,
-                           k_enb);
+   security_generate_k_enb( k_asme,
+                            count_ul,
+                            k_enb);
 
   // Generate K_rrc_enc and K_rrc_int
   security_generate_k_rrc( k_enb,

@@ -1067,7 +1067,7 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
 *
 *******************************************************************************/
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", get_rb_name(lcid).c_str());
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", get_rb_name(lcid));
   switch (state) {
     case RRC_STATE_CONNECTING:
       send_con_setup_complete(sdu);
@@ -1082,7 +1082,7 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 }
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", get_rb_name(lcid).c_str());
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", get_rb_name(lcid));
   rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
 
   switch (lcid) {
@@ -1145,7 +1145,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
-                get_rb_name(lcid).c_str(),
+                get_rb_name(lcid),
                 liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
   // Reset and reuse pdu buffer if possible
@@ -1170,6 +1170,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       usim->generate_as_keys(k_asme, nas->get_ul_count()-1, k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
       pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
       send_security_mode_complete(lcid, pdu);
+      pdcp->enable_encryption(lcid);
       break;
     case LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG:
       transaction_id = dl_dcch_msg.msg.rrc_con_reconfig.rrc_transaction_id;
@@ -1663,7 +1664,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
   }
 
   srbs[srb_cnfg->srb_id] = *srb_cnfg;
-  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg->srb_id).c_str());
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg->srb_id));
 }
 
 void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
@@ -1721,7 +1722,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
 
   drbs[lcid] = *drb_cnfg;
   drb_up     = true;
-  rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid).c_str());
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid));
 }
 
 void rrc::release_drb(uint8_t lcid) {

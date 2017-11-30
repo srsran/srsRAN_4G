@@ -118,15 +118,15 @@ public:
 class nas_interface_ue
 {
 public:
-  virtual void      attach_request() = 0;
-  virtual void      deattach_request() = 0;
+  virtual void attach_request() = 0;
+  virtual void deattach_request() = 0;
 };
 
 // NAS interface for UE
 class nas_interface_gw
 {
 public:
-  virtual void      attach_request() = 0;
+  virtual void attach_request() = 0;
 };
 
 // RRC interface for MAC
@@ -162,7 +162,6 @@ public:
   virtual void enable_capabilities() = 0;
   virtual void plmn_search() = 0;
   virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // RRC interface for PDCP
@@ -173,7 +172,6 @@ public:
   virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_pcch(srslte::byte_buffer_t *pdu) = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // RRC interface for RLC
@@ -181,7 +179,6 @@ class rrc_interface_rlc
 {
 public:
   virtual void max_retx_attempted() = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // PDCP interface for GW
@@ -204,6 +201,7 @@ public:
                                uint8_t *k_rrc_int_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
+  virtual void enable_encryption(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RLC

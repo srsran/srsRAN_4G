@@ -50,11 +50,6 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
-static std::string rb_id_str[] = {"SRB0", "SRB1", "SRB2",
-                                    "DRB1","DRB2","DRB3",
-                                    "DRB4","DRB5","DRB6",
-                                    "DRB7","DRB8"};
-
 class rrc
   :public rrc_interface_nas
   ,public rrc_interface_phy
@@ -207,30 +202,6 @@ private:
   void write_pdu_bcch_bch(byte_buffer_t *pdu);
   void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
   void write_pdu_pcch(byte_buffer_t *pdu);
-
-  // Radio bearers
-  typedef enum{
-    RB_ID_SRB0 = 0,
-    RB_ID_SRB1,
-    RB_ID_SRB2,
-    RB_ID_DRB1,
-    RB_ID_DRB2,
-    RB_ID_DRB3,
-    RB_ID_DRB4,
-    RB_ID_DRB5,
-    RB_ID_DRB6,
-    RB_ID_DRB7,
-    RB_ID_DRB8,
-    RB_ID_MAX
-  } rb_id_t;
-
-  std::string get_rb_name(uint32_t lcid) {
-    if (lcid < RB_ID_MAX) {
-      return rb_id_str[lcid];
-    } else {
-      return std::string("INVALID_RB");
-    }
-  }
 
   // RLC interface
   void          max_retx_attempted();

@@ -64,7 +64,6 @@ public:
 
   // PDCP interface
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
-  std::string get_rb_name(uint32_t lcid);
 
   // MAC interface
   uint32_t get_buffer_state(uint32_t lcid);
