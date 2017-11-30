@@ -622,12 +622,13 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
   erab_ctxt->e_RAB_ID.E_RAB_ID = cs_resp->eps_bearer_context_created.ebi;
   //Setup E-RAB QoS parameters
-  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI = 9;
+  /*erab_ctxt->e_RABlevelQoSParameters.qCI.QCI = 9;
   erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.priorityLevel.PriorityLevel = 15 //Lowest
   erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionCapability = LIBLTE_S1AP_PRE_EMPTIONCAPABILITY_SHALL_NOT_TRIGGER_PRE_EMPTION;
   erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionVulnerability = LIBLTE_S1AP_PRE_EMPTIONVULNERABILITY_PRE_EMPTABLE;
 
   erab_ctxt->e_RABlevelQoSParameter.gbrQosInformation_present=false;
+  */
   //Set E-RAB S-GW F-TEID
   if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
     m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
@@ -661,14 +662,14 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     return false;
   }
   //Send Reply to eNB
-  /*
+  
   ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ctx->enb_sri, 0);
   if(n_sent == -1)
   {
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
       return false;
   }
-  */
+  
   m_s1ap_log->info("Sent Intial Context Setup Request\n");
   m_s1ap_log->console("Sent Intial Context Setup Request\n");
 
