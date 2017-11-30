@@ -608,12 +608,26 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
     bool                                                         iE_Extensions_present;
     }LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT;
+    
+    typedef struct{
+    bool                                                         ext;
+    LIBLTE_S1AP_PRIORITYLEVEL_STRUCT                             priorityLevel;
+    LIBLTE_S1AP_PRE_EMPTIONCAPABILITY_ENUM                       pre_emptionCapability;
+    LIBLTE_S1AP_PRE_EMPTIONVULNERABILITY_ENUM                    pre_emptionVulnerability;
+    LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
+    bool                                                          iE_Extensions_present;
+    }LIBLTE_S1AP_ALLOCATIONANDRETENTIONPRIORITY_STRUCT;
    */
   //Setup eRAB context
   in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
   erab_ctxt->e_RAB_ID.E_RAB_ID = cs_resp->eps_bearer_context_created.ebi;
   //Setup E-RAB QoS parameters
+  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI = 9;
+  erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.priorityLevel.PriorityLevel = 15 //Lowest
+  erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionCapability = LIBLTE_S1AP_PRE_EMPTIONCAPABILITY_SHALL_NOT_TRIGGER_PRE_EMPTION;
+  erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionVulnerability = LIBLTE_S1AP_PRE_EMPTIONVULNERABILITY_PRE_EMPTABLE;
 
+  erab_ctxt->e_RABlevelQoSParameter.gbrQosInformation_present=false;
   //Set E-RAB S-GW F-TEID
   if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
     m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
