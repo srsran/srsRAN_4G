@@ -344,7 +344,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   cs_resp->eps_bearer_context_created.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present=true;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid = spgw_uplink_user_teid;
-  //Fill in the PDA
+  //Fill in the PAA
   cs_resp->paa_present = true;
   cs_resp->paa.pdn_type = srslte::GTPC_PDN_TYPE_IPV4;
   cs_resp->paa.ipv4_present = true;

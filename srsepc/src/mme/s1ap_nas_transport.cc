@@ -290,17 +290,14 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   //TODO which is the RB ID? Standard says a constant, but which?
   uint8_t mac[4];
 
-  uint8_t k_nas_enc[32];
-  uint8_t k_nas_int[32];
-
   srslte::security_generate_k_nas( ue_ctx->security_ctxt.k_asme,
                            srslte::CIPHERING_ALGORITHM_ID_EEA0,
                            srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
-                           k_nas_enc,
-                           k_nas_int
+                           ue_ctx->security_ctxt.k_nas_enc,
+                           ue_ctx->security_ctxt.k_nas_int
                          );
 
-  srslte::security_128_eia1 (&k_nas_int[16],
+  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
                      count,
                      0,
                      SECURITY_DIRECTION_DOWNLINK,
@@ -429,7 +426,7 @@ s1ap_nas_transport::log_unhandled_initial_ue_message_ies(LIBLTE_S1AP_MESSAGE_INI
   }
   if(init_ue->CellAccessMode_present){
     m_s1ap_log->warning("Cell Access Mode present, but not handled.");
-  }
+  } 
   if(init_ue->GW_TransportLayerAddress_present){
     m_s1ap_log->warning("GW Transport Layer present, but not handled.");
   }
@@ -455,6 +452,64 @@ s1ap_nas_transport::log_unhandled_initial_ue_message_ies(LIBLTE_S1AP_MESSAGE_INI
 }
 
 
+bool
+s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer) {
+  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
 
+  m_s1ap_log->info("Packing Attach Accept\n");
+  bzero(&attach_accept, sizeof(LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT));
+  bzero(&act_def_eps_bearer_context_req, sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
+
+  //Attach accept
+  attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
+  //Mandatory
+  //FIXME: Set t3412.unit
+  //FIXME: Set tai_list
+  //FIXME: Set esm_msg
+  act_def_eps_bearer_context_req.pdn_addr.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
+  memcpy(act_def_eps_bearer_context_req.pdn_addr.addr, &paa->ipv4, 4);
+  /*
+  act_def_eps_bearer_context_req.pdn_addr.addr[0]  |= ip_addr << 24;
+  act_def_eps_bearer_context_req.pdn_addr.addr[1]  |= ip_addr << 16;
+  act_def_eps_bearer_context_req.pdn_addr.addr[2]  |= ip_addr << 8;
+  act_def_eps_bearer_context_req.pdn_addr.addr[3]  |= ip_addr;
+  */
+  //Activate default EPS bearer context
+  act_def_eps_bearer_context_req.eps_bearer_id = erab_ctxt->e_RAB_ID.E_RAB_ID;
+  act_def_eps_bearer_context_req.transaction_id_present = false;
+  liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
+
+    //FIXME: Set the following parameters
+//    act_def_eps_bearer_context_req.eps_qos.qci
+//    act_def_eps_bearer_context_req.eps_qos.br_present
+//    act_def_eps_bearer_context_req.eps_qos.br_ext_present
+//    act_def_eps_bearer_context_req.apn.apn
+//    act_def_eps_bearer_context_req.negotiated_qos_present
+//    act_def_eps_bearer_context_req.llc_sapi_present
+//    act_def_eps_bearer_context_req.radio_prio_present
+//    act_def_eps_bearer_context_req.packet_flow_id_present
+//    act_def_eps_bearer_context_req.apn_ambr_present
+//    act_def_eps_bearer_context_req.protocol_cnfg_opts_present
+//    act_def_eps_bearer_context_req.connectivity_type_present
+
+    // FIXME: Setup the default EPS bearer context
+
+  //Integrity protect NAS message
+  uint8_t mac[4];
+  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
+                             ue_ctx->security_ctxt.dl_nas_count,
+                             0,
+                             SECURITY_DIRECTION_DOWNLINK,
+                             &nas_buffer->msg[5],
+                             nas_buffer->N_bytes - 5,
+                             mac
+                             );
+
+  memcpy(&nas_buffer->msg[1],mac,4);
+  m_s1ap_log->info("Packed Attach Complete\n");
+ 
+  return true;
+}
 
 } //namespace srsepc

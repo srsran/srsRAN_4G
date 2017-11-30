@@ -29,6 +29,7 @@
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/buffer_pool.h"
 #include "mme/s1ap_common.h"
+#include "srslte/asn1/gtpc.h"
 
 namespace srsepc{
 
@@ -45,6 +46,7 @@ public:
 
   bool unpack_authentication_response(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT *auth_resp);
   bool pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
+  bool pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
 
   void log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req);
   void log_unhandled_pdn_con_request_ies(const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);

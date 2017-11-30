@@ -310,7 +310,7 @@ struct gtpc_ambr_ie
 
 /****************************************************************************
  *
- * GTP-C PAA Type IE
+ * GTP-C PDN Type IE
  * Ref: 3GPP TS 29.274 v10.14.0 Figure 8.14-1
  *
  ***************************************************************************/
@@ -327,7 +327,7 @@ struct gtpc_pdn_address_allocation_ie
   bool ipv4_present;
   bool ipv6_present;
   in_addr_t ipv4;
-  struct in6_addr;
+  struct in6_addr ipv6;
 };
 
 //TODO

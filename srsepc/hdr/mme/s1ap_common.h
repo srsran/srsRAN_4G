@@ -65,6 +65,8 @@ typedef struct{
     uint32_t ul_nas_count;
     srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
     srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+    uint8_t k_nas_enc[32];
+    uint8_t k_nas_int[32];
   } security_ctxt;
 } ue_ctx_t;
 }//namespace
