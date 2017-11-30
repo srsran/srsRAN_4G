@@ -452,7 +452,15 @@ typedef struct {
   std::string snr_estim_alg; 
   bool cfo_integer_enabled; 
   float cfo_correct_tol_hz;
-  float cfo_ema;
+  float cfo_pss_ema;
+  float cfo_ref_ema;
+  float cfo_loop_bw_pss;
+  float cfo_loop_bw_ref;
+  float cfo_loop_ref_min;
+  float cfo_loop_pss_tol;
+  uint32_t cfo_loop_pss_conv;
+  uint32_t cfo_ref_mask;
+  bool average_subframe_enabled;
   int time_correct_period; 
   bool sfo_correct_disable; 
   std::string sss_algorithm; 

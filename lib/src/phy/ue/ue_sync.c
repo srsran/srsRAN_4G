@@ -47,10 +47,14 @@
 #define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  0
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
-#define DEFAULT_CFO_BW      0.7
-#define DEFAULT_CFO_PSS_TOL 80  // typical accuracy of PSS estimation. Avoids ping-pong effect
-#define DEFAULT_CFO_REF_TOL 5  // typical accuracy of REF estimation
-#define DEFAULT_CFO_REF_MAX 300 // Maximum detection offset of REF based estimation
+#define DEFAULT_CFO_BW      0.2
+#define DEFAULT_CFO_PSS_MIN 500  // typical bias of PSS estimation.
+#define DEFAULT_CFO_REF_MIN 0    // typical bias of REF estimation
+#define DEFAULT_CFO_REF_MAX 500  // Maximum detection offset of REF based estimation
+
+#define DEFAULT_PSS_STABLE_TIMEOUT     100  // Time after which the PSS is considered to be stable and we accept REF-CFO
+
+#define DEFAULT_CFO_EMA_TRACK 0.1
 
 cf_t dummy_buffer0[15*2048/2];
 cf_t dummy_buffer1[15*2048/2];
@@ -116,6 +120,7 @@ clean_exit:
 
 void srslte_ue_sync_cfo_reset(srslte_ue_sync_t *q)
 {
+  q->cfo_is_copied     = false;
   q->cfo_current_value = 0;
   srslte_sync_cfo_reset(&q->strack);
   srslte_sync_cfo_reset(&q->sfind);
@@ -129,6 +134,7 @@ void srslte_ue_sync_reset(srslte_ue_sync_t *q) {
   } else {
     q->sf_idx = 9;
   }
+  q->pss_stable_timeout = false;
   q->state = SF_FIND;
   q->frame_ok_cnt = 0;
   q->frame_no_cnt = 0;
@@ -218,10 +224,14 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     q->max_prb = max_prb;
 
     q->cfo_ref_max = DEFAULT_CFO_REF_MAX;
-    q->cfo_ref_tol = DEFAULT_CFO_REF_TOL;
-    q->cfo_pss_tol = DEFAULT_CFO_PSS_TOL;
-    q->cfo_loop_bw = DEFAULT_CFO_BW;
+    q->cfo_ref_min = DEFAULT_CFO_REF_MIN;
+    q->cfo_pss_min = DEFAULT_CFO_PSS_MIN;
+    q->cfo_loop_bw_pss = DEFAULT_CFO_BW;
+    q->cfo_loop_bw_ref = DEFAULT_CFO_BW;
     q->cfo_correct_enable = true;
+
+    q->pss_stable_cnt     = 0;
+    q->pss_stable_timeout = DEFAULT_PSS_STABLE_TIMEOUT;
 
     if (search_cell) {
       
@@ -269,11 +279,11 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     srslte_sync_set_cfo_cp_enable(&q->strack,   false);
     srslte_sync_set_cfo_pss_enable(&q->strack,  true);
     srslte_sync_set_pss_filt_enable(&q->strack, true);
-    srslte_sync_set_sss_filt_enable(&q->strack, true);
+    srslte_sync_set_sss_filt_enable(&q->strack, false);
 
     // FIXME: CP detection not working very well. Not supporting Extended CP right now
     srslte_sync_cp_en(&q->strack, false);
-    srslte_sync_cp_en(&q->sfind, false);
+    srslte_sync_cp_en(&q->sfind,  false);
 
 
     srslte_sync_sss_en(&q->strack, true);
@@ -368,6 +378,9 @@ int srslte_ue_sync_set_cell(srslte_ue_sync_t *q, srslte_cell_t cell)
       srslte_sync_set_threshold(&q->sfind,  2.0);
       srslte_sync_set_threshold(&q->strack, 1.2);
 
+      srslte_sync_set_cfo_ema_alpha(&q->sfind,  0.1);
+      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
+
     } else {
       q->sfind.cp  = cell.cp;
       q->strack.cp = cell.cp;
@@ -376,7 +389,7 @@ int srslte_ue_sync_set_cell(srslte_ue_sync_t *q, srslte_cell_t cell)
       srslte_sync_set_N_id_2(&q->strack, cell.id%3);
 
       srslte_sync_set_cfo_ema_alpha(&q->sfind,  0.1);
-      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
+      srslte_sync_set_cfo_ema_alpha(&q->strack, DEFAULT_CFO_EMA_TRACK);
 
       /* In find phase and if the cell is known, do not average pss correlation
        * because we only capture 1 subframe and do not know where the peak is.
@@ -402,22 +415,31 @@ void srslte_ue_sync_get_last_timestamp(srslte_ue_sync_t *q, srslte_timestamp_t *
   memcpy(timestamp, &q->last_timestamp, sizeof(srslte_timestamp_t));
 }
 
-void srslte_ue_sync_set_cfo_loop_bw(srslte_ue_sync_t *q, float bw, float pss_tol, float ref_tol, float ref_max) {
-  q->cfo_loop_bw = bw;
-  q->cfo_pss_tol = pss_tol;
-  q->cfo_ref_tol = ref_tol;
+void srslte_ue_sync_set_cfo_loop_bw(srslte_ue_sync_t *q, float bw_pss, float bw_ref,
+                                    float pss_tol, float ref_tol, float ref_max,
+                                    uint32_t pss_stable_conv_time) {
+  q->cfo_loop_bw_pss = bw_pss;
+  q->cfo_loop_bw_ref = bw_ref;
+  q->cfo_pss_min = pss_tol;
+  q->cfo_ref_min = ref_tol;
   q->cfo_ref_max = ref_max;
+  q->pss_stable_timeout = pss_stable_conv_time;
 }
 
 void srslte_ue_sync_set_cfo_ema(srslte_ue_sync_t *q, float ema) {
-  srslte_sync_set_cfo_ema_alpha(&q->sfind,  ema);
   srslte_sync_set_cfo_ema_alpha(&q->strack, ema);
 }
 
 void srslte_ue_sync_set_cfo_ref(srslte_ue_sync_t *q, float ref_cfo)
 {
-  if (fabsf(ref_cfo)*15000 > q->cfo_ref_tol && fabsf(ref_cfo)*15000 < q->cfo_ref_max) {
-    q->cfo_current_value += ref_cfo*q->cfo_loop_bw;
+  // Accept REF-based CFO adjustments only after PSS CFO is stable
+  if (q->pss_is_stable) {
+    if (fabsf(ref_cfo)*15000 > q->cfo_ref_min) {
+      if (fabsf(ref_cfo)*15000 > q->cfo_ref_max) {
+        ref_cfo = (ref_cfo>0?q->cfo_ref_max:-q->cfo_ref_max)/15000;
+      }
+      q->cfo_current_value += ref_cfo*q->cfo_loop_bw_ref;
+    }
   }
 }
 
@@ -437,12 +459,16 @@ float srslte_ue_sync_get_cfo(srslte_ue_sync_t *q) {
 
 void srslte_ue_sync_copy_cfo(srslte_ue_sync_t *q, srslte_ue_sync_t *src_obj) {
   // Copy find object internal CFO averages
-  srslte_sync_copy_cfo(&q->sfind, &src_obj->sfind);
+  srslte_sync_copy_cfo(&q->sfind,  &src_obj->sfind);
   // Current CFO is tracking-phase CFO of previous object
-  q->cfo_current_value = srslte_ue_sync_get_cfo(src_obj);
+  q->cfo_current_value = src_obj->cfo_current_value;
+  q->cfo_is_copied = true;
 }
 
-void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t *q, float cfo_tol) {}
+void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t *q, float cfo_tol) {
+  srslte_sync_set_cfo_tol(&q->strack, cfo_tol);
+  srslte_sync_set_cfo_tol(&q->sfind, cfo_tol);
+}
 
 float srslte_ue_sync_get_sfo(srslte_ue_sync_t *q) {
   return q->mean_sfo/5e-3;
@@ -507,10 +533,12 @@ static int find_peak_ok(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PORTS
     q->mean_sample_offset = 0; 
     
     /* Goto Tracking state */
-    q->state = SF_TRACK;     
-    
+    q->state = SF_TRACK;
+
     /* Set CFO values. Since we correct before track, the initial track state is CFO=0 Hz */
-    q->cfo_current_value = srslte_sync_get_cfo(&q->sfind);
+    if (!q->cfo_is_copied) {
+      q->cfo_current_value = srslte_sync_get_cfo(&q->sfind);
+    }
     srslte_sync_cfo_reset(&q->strack);
   }
     
@@ -550,9 +578,18 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
   /* Adjust current CFO estimation with PSS
    * Since sync track has enabled only PSS-based correlation, get_cfo() returns that value only, already filtered.
    */
-  INFO("TRACK: cfo_current: %f, cfo_strack=%f\n", 15000*q->cfo_current_value, 15000*srslte_sync_get_cfo(&q->strack));
-  if (15000*fabsf(srslte_sync_get_cfo(&q->strack)) > q->cfo_pss_tol) {
-    q->cfo_current_value += srslte_sync_get_cfo(&q->strack)*q->cfo_loop_bw;
+  INFO("TRACK: cfo_current=%f, cfo_strack=%f\n", 15000*q->cfo_current_value, 15000*srslte_sync_get_cfo(&q->strack));
+  if (15000*fabsf(srslte_sync_get_cfo(&q->strack)) > q->cfo_pss_min) {
+    q->cfo_current_value += srslte_sync_get_cfo(&q->strack)*q->cfo_loop_bw_pss;
+    q->pss_stable_cnt = 0;
+    q->pss_is_stable  = false;
+  } else {
+    if (!q->pss_is_stable) {
+      q->pss_stable_cnt++;
+      if (q->pss_stable_cnt >= q->pss_stable_timeout) {
+        q->pss_is_stable = true;
+      }
+    }
   }
 
   // Compute cumulative moving average time offset */
@@ -694,7 +731,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
               ret = SRSLTE_ERROR; 
               fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
               return SRSLTE_ERROR;
-            case SRSLTE_SYNC_FOUND: 
+            case SRSLTE_SYNC_FOUND:
               ret = find_peak_ok(q, input_buffer);
               break;
             case SRSLTE_SYNC_FOUND_NOSPACE:
@@ -769,9 +806,9 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
               fprintf(stderr, "Error processing tracking peak\n");
               q->state = SF_FIND; 
               return SRSLTE_SUCCESS;
-            } 
-                      
-            q->frame_total_cnt++;       
+            }
+
+            q->frame_total_cnt++;
           }
         break;
       }
