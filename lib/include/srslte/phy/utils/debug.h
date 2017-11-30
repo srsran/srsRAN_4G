@@ -70,4 +70,11 @@ SRSLTE_API extern int srslte_verbose;
 #define ERROR(_fmt, ...) fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /* CMAKE_BUILD_TYPE==Debug */
 
+#define X_TRACE(_fmt, ...) do { \
+                           struct timeval _tv; \
+                           gettimeofday(&_tv, NULL); \
+                           fprintf(stderr, "%ld:%06ld XXXXX_%s:%d: " _fmt "\n", \
+                              _tv.tv_sec, _tv.tv_usec, __func__, __LINE__, ##__VA_ARGS__); \
+                           } while(0);
+
 #endif // DEBUG_H

@@ -44,6 +44,8 @@ namespace srsenb {
 
 txrx::txrx()
 {
+  X_TRACE("TXRX:BEGIN");
+
   running = false;   
   radio_h = NULL; 
   log_h   = NULL; 
@@ -53,6 +55,8 @@ txrx::txrx()
 
 bool txrx::init(srslte::radio* radio_h_, srslte::thread_pool* workers_pool_, phch_common* worker_com_, prach_worker *prach_, srslte::log* log_h_, uint32_t prio_)
 {
+  X_TRACE("TXRX:BEGIN");
+
   radio_h      = radio_h_;
   log_h        = log_h_;     
   workers_pool = workers_pool_;
@@ -70,6 +74,8 @@ bool txrx::init(srslte::radio* radio_h_, srslte::thread_pool* workers_pool_, phc
 
 void txrx::stop()
 {
+  X_TRACE("TXRX:BEGIN");
+
   running = false; 
   wait_thread_finish();
 }
@@ -106,6 +112,8 @@ void txrx::run_thread()
   printf("Type <t> to view trace\n");
   // Main loop
   while (running) {
+    X_TRACE("TXRX:BEGIN");
+
     tti = (tti+1)%10240;        
     worker = (phch_worker*) workers_pool->wait_worker(tti);
     if (worker) {          

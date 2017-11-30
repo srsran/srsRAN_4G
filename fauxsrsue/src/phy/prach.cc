@@ -43,6 +43,8 @@ namespace srsue {
  
 
 prach::~prach() {
+  X_TRACE("PRACH:BEGIN");
+
   if (mem_initiated) {
     for (int i=0;i<64;i++) {
       if (buffer[i]) {
@@ -59,6 +61,8 @@ prach::~prach() {
 
 void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, phy_args_t *args_, srslte::log* log_h_)
 {
+  X_TRACE("PRACH:BEGIN");
+
   log_h  = log_h_;
   config = config_;
   args   = args_;
@@ -89,6 +93,8 @@ void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, 
 
 bool prach::set_cell(srslte_cell_t cell_)
 {
+  X_TRACE("PRACH:BEGIN");
+
   if (mem_initiated) {
     // TODO: Check if other PRACH parameters changed
     if (cell_.id != cell.id || !cell_initiated) {
@@ -135,6 +141,8 @@ bool prach::set_cell(srslte_cell_t cell_)
 
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm_)
 {
+  X_TRACE("PRACH:BEGIN");
+
   if (cell_initiated && preamble_idx_ < 64) {
     preamble_idx = preamble_idx_;
     target_power_dbm = target_power_dbm_;
@@ -153,6 +161,8 @@ bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float
 }
 
 bool prach::is_ready_to_send(uint32_t current_tti_) {
+  X_TRACE("PRACH:BEGIN");
+
   if (cell_initiated && preamble_idx >= 0 && preamble_idx < 64) {
     // consider the number of subframes the transmission must be anticipated 
     uint32_t current_tti = (current_tti_ + tx_advance_sf)%10240;
@@ -166,17 +176,22 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
 }
 
 int prach::tx_tti() {
+  X_TRACE("PRACH:BEGIN");
+
   return transmitted_tti; 
 }
 
 float prach::get_p0_preamble()
 {
+  X_TRACE("PRACH:BEGIN");
+
   return target_power_dbm; 
 }
 
 
 void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte_timestamp_t tx_time)
 {
+  X_TRACE("PRACH:BEGIN");
   
   // Get current TX gain 
   float old_gain = radio_handler->get_tx_gain(); 

@@ -47,6 +47,8 @@ namespace srsenb {
 
 void harq_proc::config(uint32_t id_, uint32_t max_retx_, srslte::log* log_h_)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   log_h    = log_h_; 
   id       = id_; 
   max_retx = max_retx_; 
@@ -54,17 +56,23 @@ void harq_proc::config(uint32_t id_, uint32_t max_retx_, srslte::log* log_h_)
 }
 
 void harq_proc::set_max_retx(uint32_t max_retx_) {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   log_h->debug("Set max_retx=%d pid=%d\n", max_retx_, id);
   max_retx = max_retx_; 
 }
 
 uint32_t harq_proc::get_id()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return id; 
 }
 
 void harq_proc::reset()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   active = false; 
   ack = true; 
   ack_received = false; 
@@ -77,26 +85,36 @@ void harq_proc::reset()
 
 bool harq_proc::is_empty()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return !active || (active && ack && ack_received);
 }
 
 bool harq_proc::has_pending_retx_common()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return !ack && n_rtx < max_retx; 
 }
 
 uint32_t harq_proc::get_tti()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return tti; 
 }
 
 bool harq_proc::get_ack()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return ack; 
 }
 
 void harq_proc::set_ack(bool ack_)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   ack = ack_;   
   ack_received = true;
   log_h->debug("ACK=%d received pid=%d, n_rtx=%d, max_retx=%d\n", ack_, id, n_rtx, max_retx);
@@ -108,6 +126,8 @@ void harq_proc::set_ack(bool ack_)
 
 void harq_proc::new_tx_common(uint32_t tti_, int mcs, int tbs)
 {  
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   reset();
   ndi = !ndi; 
   tti = tti_;   
@@ -124,6 +144,8 @@ void harq_proc::new_tx_common(uint32_t tti_, int mcs, int tbs)
 
 void harq_proc::new_retx(uint32_t tti_, int *mcs, int *tbs)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   ack_received = false; 
   tti = tti_; 
   n_rtx++;
@@ -137,16 +159,22 @@ void harq_proc::new_retx(uint32_t tti_, int *mcs, int *tbs)
 
 uint32_t harq_proc::nof_tx()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return tx_cnt; 
 }
 
 uint32_t harq_proc::nof_retx()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return n_rtx; 
 }
 
 bool harq_proc::get_ndi() 
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return ndi; 
 }
 
@@ -156,32 +184,44 @@ bool harq_proc::get_ndi()
 
 void dl_harq_proc::new_tx(uint32_t tti, int mcs, int tbs, uint32_t n_cce_)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   n_cce = n_cce_; 
   new_tx_common(tti, mcs, tbs);
 }
 
 uint32_t dl_harq_proc::get_n_cce()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return n_cce; 
 }
 
 uint32_t dl_harq_proc::get_rbgmask()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return rbgmask;
 }
 
 void dl_harq_proc::set_rbgmask(uint32_t new_mask)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   rbgmask = new_mask;
 }
 
 bool dl_harq_proc::has_pending_retx(uint32_t current_tti)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return srslte_tti_interval(current_tti, tti) >= 8 && has_pending_retx_common(); 
 }
 
 int dl_harq_proc::get_tbs()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return last_tbs; 
 }
 
@@ -193,27 +233,37 @@ int dl_harq_proc::get_tbs()
 
 ul_harq_proc::ul_alloc_t ul_harq_proc::get_alloc()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return allocation;
 }
 
 void ul_harq_proc::set_alloc(ul_harq_proc::ul_alloc_t alloc)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   is_adaptive = false; 
   memcpy(&allocation, &alloc, sizeof(ul_alloc_t));
 }
 
 void ul_harq_proc::same_alloc()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   is_adaptive = true; 
 }
 
 bool ul_harq_proc::is_adaptive_retx()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return is_adaptive; 
 }
 
 void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs)
 {  
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   need_ack = true; 
   new_tx_common(tti_, mcs, tbs);
   pending_data = tbs; 
@@ -222,6 +272,8 @@ void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs)
 
 bool ul_harq_proc::has_pending_ack()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   bool ret = need_ack; 
   
   // Reset if already received a positive ACK
@@ -238,6 +290,8 @@ bool ul_harq_proc::has_pending_ack()
 
 void ul_harq_proc::reset_pending_data()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   if (!active) {
     pending_data = 0;
   }
@@ -246,17 +300,23 @@ void ul_harq_proc::reset_pending_data()
 
   uint32_t ul_harq_proc::get_pending_data()
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   return pending_data; 
 }
 
 void ul_harq_proc::set_rar_mcs(uint32_t mcs)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   rar_mcs     = mcs; 
   has_rar_mcs = true; 
 }
 
 bool ul_harq_proc::get_rar_mcs(int *mcs)
 {
+  X_TRACE("SCHEDHARQ:BEGIN");
+
   if (has_rar_mcs) {
     if (mcs) {
       *mcs = (int) rar_mcs; 

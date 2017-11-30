@@ -58,6 +58,8 @@ namespace srsue {
 
 phch_worker::phch_worker() : tr_exec(10240)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   phy = NULL; 
   bzero(signal_buffer, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
 
@@ -72,6 +74,8 @@ phch_worker::phch_worker() : tr_exec(10240)
 
 phch_worker::~phch_worker()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   if (mem_initiated) {
     for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
       if (signal_buffer[i]) {
@@ -86,6 +90,8 @@ phch_worker::~phch_worker()
 
 void phch_worker::reset()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   bzero(&ul_metrics, sizeof(ul_metrics_t));
   bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
@@ -103,11 +109,15 @@ void phch_worker::reset()
 
 void phch_worker::set_common(phch_common* phy_)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   phy = phy_;   
 }
 
 bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   this->log_h = log_h;
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
@@ -138,6 +148,8 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
 
 bool phch_worker::set_cell(srslte_cell_t cell_)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   if (cell.id != cell_.id || !cell_initiated) {
     memcpy(&cell, &cell_, sizeof(srslte_cell_t));
 
@@ -160,11 +172,15 @@ bool phch_worker::set_cell(srslte_cell_t cell_)
 
 cf_t* phch_worker::get_buffer(uint32_t antenna_idx)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   return signal_buffer[antenna_idx]; 
 }
 
 void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   tti    = tti_; 
   tx_tti = tx_tti_;
   log_h->step(tti);
@@ -172,11 +188,15 @@ void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
 
 void phch_worker::set_cfo(float cfo_)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   cfo = cfo_;
 }
 
 void phch_worker::set_sample_offset(float sample_offset)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   if (phy->args->sfo_correct_disable) {
     sample_offset = 0; 
   }
@@ -185,6 +205,8 @@ void phch_worker::set_sample_offset(float sample_offset)
 
 void phch_worker::set_crnti(uint16_t rnti)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
   rnti_is_set = true; 
@@ -192,6 +214,8 @@ void phch_worker::set_crnti(uint16_t rnti)
 
 void phch_worker::work_imp()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   if (!cell_initiated) {
     return; 
   }
@@ -389,6 +413,8 @@ void phch_worker::work_imp()
 
 
 bool phch_worker::extract_fft_and_pdcch_llr() {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   bool decode_pdcch = false; 
   if (phy->get_ul_rnti(tti) || phy->get_dl_rnti(tti) || phy->get_pending_rar(tti)) {
     decode_pdcch = true; 
@@ -449,6 +475,8 @@ bool phch_worker::extract_fft_and_pdcch_llr() {
 
 bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   char timestr[64];
   timestr[0]='\0';
 
@@ -513,6 +541,8 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
                                      srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS],
                                      int rv[SRSLTE_MAX_CODEWORDS],
                                      uint16_t rnti, uint32_t harq_pid, bool acks[SRSLTE_MAX_CODEWORDS]) {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   char timestr[64];
   char commonstr[128];
   char tbstr[2][128];
@@ -640,6 +670,8 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
 
 bool phch_worker::decode_phich(bool *ack)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   uint32_t I_lowest, n_dmrs; 
   if (phy->get_pending_ack(tti, &I_lowest, &n_dmrs)) {
     if (ack) {
@@ -660,6 +692,8 @@ bool phch_worker::decode_phich(bool *ack)
 
 bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   char timestr[64];
   timestr[0]='\0';
 
@@ -750,11 +784,15 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
 
 void phch_worker::reset_uci()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   bzero(&uci_data, sizeof(srslte_uci_data_t));
 }
 
 void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS])
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   uint32_t nof_tb = 0;
   if (tb_en[0]) {
     uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
@@ -774,6 +812,8 @@ void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_
 
 void phch_worker::set_uci_sr()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   uci_data.scheduling_request = false; 
   if (phy->sr_enabled) {
     uint32_t sr_tx_tti = (tti+4)%10240;
@@ -789,6 +829,8 @@ void phch_worker::set_uci_sr()
 
 void phch_worker::set_uci_periodic_cqi()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   int cqi_fixed     = phy->args->cqi_fixed;
   int cqi_max       = phy->args->cqi_max;
   
@@ -831,6 +873,8 @@ void phch_worker::set_uci_periodic_cqi()
 
 void phch_worker::set_uci_aperiodic_cqi()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
     switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
@@ -867,6 +911,8 @@ void phch_worker::set_uci_aperiodic_cqi()
 }
 
 bool phch_worker::srs_is_ready_to_send() {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   if (srs_cfg.configured) {
     if (srslte_refsignal_srs_send_cs(srs_cfg.subframe_config, (tti+4)%10) == 1 && 
         srslte_refsignal_srs_send_ue(srs_cfg.I_srs, (tti+4)%10240)        == 1)
@@ -879,6 +925,8 @@ bool phch_worker::srs_is_ready_to_send() {
 
 void phch_worker::set_tx_time(srslte_timestamp_t _tx_time, uint32_t next_offset)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   this->next_offset = next_offset;
   memcpy(&tx_time, &_tx_time, sizeof(srslte_timestamp_t));
 }
@@ -886,6 +934,8 @@ void phch_worker::set_tx_time(srslte_timestamp_t _tx_time, uint32_t next_offset)
 void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, uint32_t current_tx_nb, 
                                srslte_softbuffer_tx_t* softbuffer, uint32_t rv, uint16_t rnti, bool is_from_rar)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   char timestr[64];
   timestr[0]='\0';
   
@@ -934,6 +984,8 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 
 void phch_worker::encode_pucch()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   char timestr[64];
   timestr[0]='\0';
 
@@ -984,6 +1036,8 @@ void phch_worker::encode_pucch()
 
 void phch_worker::encode_srs()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   char timestr[64];
   timestr[0]='\0';
   
@@ -1008,6 +1062,8 @@ void phch_worker::encode_srs()
 
 void phch_worker::enable_pregen_signals(bool enabled)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   pregen_enabled = enabled; 
   if (enabled) {
     Info("Pre-generating UL signals worker=%d\n", get_id());
@@ -1018,6 +1074,8 @@ void phch_worker::enable_pregen_signals(bool enabled)
 
 void phch_worker::set_ul_params(bool pregen_disabled)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   phy_interface_rrc::phy_cfg_common_t         *common    = &phy->config->common;
   LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &phy->config->dedicated;
   
@@ -1128,6 +1186,8 @@ void phch_worker::set_ul_params(bool pregen_disabled)
 }
 
 float phch_worker::set_power(float tx_power) {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   float gain = 0; 
   /* Check if UL power control is enabled */
   if(phy->args->ul_pwr_ctrl_en) {    
@@ -1142,6 +1202,8 @@ float phch_worker::set_power(float tx_power) {
 }
 
 void phch_worker::start_plot() {
+  X_TRACE("PHCHWORKER:BEGIN");
+
 #ifdef ENABLE_GUI
   if (plot_worker_id == -1) {
     plot_worker_id = get_id();
@@ -1156,6 +1218,8 @@ void phch_worker::start_plot() {
 }
 
 int phch_worker::read_ce_abs(float *ce_abs) {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   uint32_t i=0;
   int sz = srslte_symbol_sz(cell.nof_prb);
   bzero(ce_abs, sizeof(float)*sz);
@@ -1171,6 +1235,7 @@ int phch_worker::read_ce_abs(float *ce_abs) {
 
 int phch_worker::read_pdsch_d(cf_t* pdsch_d)
 {
+  X_TRACE("PHCHWORKER:BEGIN");
 
   memcpy(pdsch_d, ue_dl.pdsch.d[0], ue_dl.pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
   return ue_dl.pdsch_cfg.nbits[0].nof_re;
@@ -1182,6 +1247,8 @@ int phch_worker::read_pdsch_d(cf_t* pdsch_d)
 
 void phch_worker::update_measurements() 
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   float snr_ema_coeff = phy->args->snr_ema_coeff;
   if (chest_done) {
     /* Compute ADC/RX gain offset every 20 ms */
@@ -1264,15 +1331,21 @@ void phch_worker::update_measurements()
 /********** Execution time trace function ************/
 
 void phch_worker::start_trace() {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   trace_enabled = true; 
 }
 
 void phch_worker::write_trace(std::string filename) {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   tr_exec.writeToBinary(filename + ".exec");
 }
 
 void phch_worker::tr_log_start()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   if (trace_enabled) {
     gettimeofday(&tr_time[1], NULL);
   }
@@ -1280,6 +1353,8 @@ void phch_worker::tr_log_start()
 
 void phch_worker::tr_log_end()
 {
+  X_TRACE("PHCHWORKER:BEGIN");
+
   if (trace_enabled) {
     gettimeofday(&tr_time[2], NULL);
     get_time_interval(tr_time);
@@ -1332,6 +1407,8 @@ void *plot_thread_run(void *arg) {
   int n; 
   int readed_pdsch_re=0; 
   while(1) {
+  X_TRACE("PHCHWORKER:BEGIN");
+
     sem_wait(&plot_sem);    
     
     if (readed_pdsch_re < SCATTER_PDSCH_PLOT_LEN) {
@@ -1353,6 +1430,7 @@ void *plot_thread_run(void *arg) {
 
 
 void init_plots(srsue::phch_worker *worker) {
+  X_TRACE("PHCHWORKER:BEGIN");
 
   if (sem_init(&plot_sem, 0, 0)) {
     perror("sem_init");
