@@ -661,12 +661,14 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     return false;
   }
   //Send Reply to eNB
+  /*
   ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ctx->enb_sri, 0);
   if(n_sent == -1)
   {
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
       return false;
   }
+  */
   m_s1ap_log->info("Sent Intial Context Setup Request\n");
   m_s1ap_log->console("Sent Intial Context Setup Request\n");
 
