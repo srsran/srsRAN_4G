@@ -116,20 +116,18 @@ private:
 
   LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
 
-  // Identifiers
-  LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
-  bool have_guti;
-
   // Security context
   struct nas_sec_ctxt{
     uint8_t  ksi;
     uint8_t  k_asme[32];
     uint32_t tx_count;
     uint32_t rx_count;
-    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+    srslte::CIPHERING_ALGORITHM_ID_ENUM  cipher_algo;
+    srslte::INTEGRITY_ALGORITHM_ID_ENUM  integ_algo;
+    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
   };
 
+  bool have_guti;
   bool have_ctxt;
   nas_sec_ctxt ctxt;
 
@@ -174,13 +172,42 @@ private:
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
   void send_security_mode_reject(uint8_t cause);
 
-  // guti persistence file
-  bool read_guti_file(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT *guti);
-  bool write_guti_file(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti);
-
   // security context persistence file
   bool read_ctxt_file(nas_sec_ctxt *ctxt);
   bool write_ctxt_file(nas_sec_ctxt ctxt);
+
+  // ctxt file helpers
+  std::string hex_to_string(uint8_t *hex, int size);
+  bool        string_to_hex(std::string hex_str, uint8_t *hex, uint32_t len);
+  std::string emm_info_str(LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT *info);
+
+  template <class T>
+  bool readvar(std::istream &file, const char *key, T *var)
+  {
+    std::string line;
+    size_t len = strlen(key);
+    std::getline(file, line);
+    if(line.substr(0,len).compare(key)) {
+      return false;
+    }
+    *var = (T)atoi(line.substr(len).c_str());
+    return true;
+  }
+
+  bool readvar(std::istream &file, const char *key, uint8_t *var, int varlen)
+  {
+    std::string line;
+    size_t len = strlen(key);
+    std::getline(file, line);
+    if(line.substr(0,len).compare(key)) {
+      return false;
+    }
+    std::string tmp = line.substr(len);
+    if(!string_to_hex(tmp, var, varlen)) {
+      return false;
+    }
+    return true;
+  }
 };
 
 } // namespace srsue

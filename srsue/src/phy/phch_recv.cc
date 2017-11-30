@@ -154,8 +154,12 @@ void phch_recv::radio_error()
   radio_is_resetting=false;
 }
 
-bool phch_recv::wait_radio_reset()
-{
+void phch_recv::set_cfo(float cfo) {
+  Debug("set_ref_cfo=%f\n",cfo*15000);
+  srslte_ue_sync_set_cfo_ref(&ue_sync, cfo);
+}
+
+bool phch_recv::wait_radio_reset() {
   int cnt=0;
   while(cnt < 20 && radio_is_resetting) {
     sleep(1);
@@ -182,10 +186,16 @@ void phch_recv::set_time_adv_sec(float _time_adv_sec)
 void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q)
 {
   if (worker_com->args->cfo_integer_enabled) {
-    srslte_ue_sync_cfo_i_detec_en(q, true);
+    srslte_ue_sync_set_cfo_i_enable(q, true);
   }
 
+  srslte_ue_sync_set_cfo_ema(q, worker_com->args->cfo_pss_ema);
   srslte_ue_sync_set_cfo_tol(q, worker_com->args->cfo_correct_tol_hz);
+  srslte_ue_sync_set_cfo_loop_bw(q, worker_com->args->cfo_loop_bw_pss, worker_com->args->cfo_loop_bw_ref,
+                                 worker_com->args->cfo_loop_pss_tol,
+                                 worker_com->args->cfo_loop_ref_min,
+                                 worker_com->args->cfo_loop_pss_tol,
+                                 worker_com->args->cfo_loop_pss_conv);
 
   int time_correct_period = worker_com->args->time_correct_period;
   if (time_correct_period > 0) {
@@ -231,10 +241,6 @@ bool phch_recv::set_cell() {
 
   // Reset ue_sync and set CFO/gain from search procedure
   srslte_ue_sync_reset(&ue_sync);
-  srslte_ue_sync_set_cfo(&ue_sync, search_p.get_last_cfo());
-  if (do_agc) {
-    srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, search_p.get_last_gain());
-  }
 
   cell_is_set = true;
 
@@ -634,6 +640,9 @@ void phch_recv::run_thread()
               worker->set_cfo(ul_dl_factor * metrics.cfo / 15000);
               worker_com->set_sync_metrics(metrics);
 
+              Debug("current_cfo=%f, pss_stable_cnt=%d, cfo_pss=%f Hz\n",
+                      metrics.cfo, ue_sync.pss_stable_cnt, srslte_sync_get_cfo(&ue_sync.strack)*15000);
+
               worker->set_sample_offset(srslte_ue_sync_get_sfo(&ue_sync)/1000);
 
               /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
@@ -827,7 +836,6 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
   }
 
   srslte_ue_sync_reset(&ue_mib_sync.ue_sync);
-  srslte_ue_sync_set_cfo(&ue_mib_sync.ue_sync, cfo);
 
   /* Find and decode MIB */
   int sfn_offset;
@@ -1157,10 +1165,16 @@ void phch_recv::scell_recv::init(srslte::log *log_h)
     return;
   }
   srslte_sync_cp_en(&sync_find, false);
-  srslte_sync_set_cfo_enable(&sync_find, false);
-  srslte_sync_set_cfo_ema_alpha(&sync_find, 0.8);
   srslte_sync_set_threshold(&sync_find, 1.2);
   srslte_sync_set_em_alpha(&sync_find, 0.0);
+
+  // Configure FIND object behaviour (this configuration is always the same)
+  srslte_sync_set_cfo_ema_alpha(&sync_find,    0.2);
+  srslte_sync_set_cfo_i_enable(&sync_find,     false);
+  srslte_sync_set_cfo_cp_enable(&sync_find,    true);
+  srslte_sync_set_cfo_pss_enable(&sync_find,   true);
+  srslte_sync_set_pss_filt_enable(&sync_find,  true);
+  srslte_sync_set_sss_filt_enable(&sync_find,  true);
 
   reset();
 }
@@ -1201,7 +1215,6 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
     if (cell.id%3 != n_id_2) {
       srslte_sync_set_N_id_2(&sync_find, n_id_2);
 
-      sync_find.enable_cfo_pss = true;
       srslte_sync_find_ret_t sync_res = srslte_sync_find(&sync_find, input_buffer, 0, &peak_idx);
 
       switch(sync_res) {

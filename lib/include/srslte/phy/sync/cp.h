@@ -47,7 +47,7 @@ SRSLTE_API int srslte_cp_synch_resize(srslte_cp_synch_t *q,
                                       uint32_t symbol_sz);
 
 SRSLTE_API uint32_t srslte_cp_synch(srslte_cp_synch_t *q, 
-                                    cf_t *input, 
+                                    const cf_t *input,
                                     uint32_t max_offset, 
                                     uint32_t nof_symbols, 
                                     uint32_t cp_len);

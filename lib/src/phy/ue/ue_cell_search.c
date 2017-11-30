@@ -116,7 +116,7 @@ int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t * q, uint32_t max_fra
       goto clean_exit; 
     }
     if (srslte_ue_sync_set_cell(&q->ue_sync, cell)) {
-      fprintf(stderr, "Error initiating ue_sync\n");
+      fprintf(stderr, "Error setting cell in ue_sync\n");
       goto clean_exit;
     }
 
@@ -292,6 +292,8 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
 
     srslte_ue_sync_set_N_id_2(&q->ue_sync, N_id_2);
     srslte_ue_sync_reset(&q->ue_sync);
+    srslte_ue_sync_cfo_reset(&q->ue_sync);
+
     do {
       
       ret = srslte_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);

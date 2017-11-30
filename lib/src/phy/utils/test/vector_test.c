@@ -47,8 +47,10 @@ bool verbose = false;
 #define MAX_FUNCTIONS (64)
 #define MAX_BLOCKS (16)
 
+
 #define RANDOM_F() ((float)rand())/((float)RAND_MAX)
 #define RANDOM_S() ((int16_t)(rand() && 0x800F))
+#define RANDOM_B() ((int8_t)(rand() && 0x8008))
 #define RANDOM_CF() (RANDOM_F() + _Complex_I*RANDOM_F())
 
 #define TEST_CALL(TEST_CODE)   gettimeofday(&start, NULL);\
@@ -86,6 +88,29 @@ float squared_error (cf_t a, cf_t b) {
   float diff_im = __imag__ a - __imag__ b;
   return diff_re*diff_re + diff_im*diff_im;
 }
+
+ TEST(srslte_vec_xor_bbb,
+     MALLOC(int8_t, x);
+         MALLOC(int8_t, y);
+         MALLOC(int8_t, z);
+
+         cf_t gold = 0.0f;
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_B();
+           y[i] = RANDOM_B();
+         }
+
+         TEST_CALL(srslte_vec_xor_bbb(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] ^ y[i];
+           mse += cabsf(gold - z[i]);
+         }
+
+         free(x);
+         free(y);
+         free(z);
+)
 
 TEST(srslte_vec_acc_ff,
      MALLOC(float, x);
@@ -416,7 +441,7 @@ TEST(srslte_vec_convert_fi,
     x[i] = (float) RANDOM_F();
   }
 
-  TEST_CALL(srslte_vec_convert_fi(x, z, scale, block_size))
+  TEST_CALL(srslte_vec_convert_fi(x, scale, z, block_size))
 
   for (int i = 0; i < block_size; i++) {
       gold = (short) ((x[i] * scale));
@@ -613,8 +638,8 @@ TEST(srslte_vec_div_fff,
 
          cf_t gold;
          for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_F();
-           y[i] = RANDOM_F();
+           x[i] = RANDOM_F() + 0.0001;
+           y[i] = RANDOM_F()+ 0.0001;
          }
 
          TEST_CALL(srslte_vec_div_fff(x, y, z, block_size))
@@ -689,6 +714,11 @@ int main(int argc, char **argv) {
 
   for (uint32_t block_size = 1; block_size <= 1024*8; block_size *= 2) {
     func_count = 0;
+
+
+    passed[func_count][size_count] = test_srslte_vec_xor_bbb(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
 
     passed[func_count][size_count] = test_srslte_vec_acc_ff(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;

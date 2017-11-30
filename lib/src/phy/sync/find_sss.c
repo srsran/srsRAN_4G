@@ -68,7 +68,7 @@ static void corr_all_sz_partial(cf_t z[SRSLTE_SSS_N], float s[SRSLTE_SSS_N][SRSL
   }    
 }
 
-static void extract_pair_sss(srslte_sss_synch_t *q, cf_t *input, cf_t *ce, cf_t y[2][SRSLTE_SSS_N]) {
+static void extract_pair_sss(srslte_sss_synch_t *q, const cf_t *input, cf_t *ce, cf_t y[2][SRSLTE_SSS_N]) {
   cf_t input_fft[SRSLTE_SYMBOL_SZ_MAX];
 
   srslte_dft_run_c(&q->dftp_input, input, input_fft);
@@ -88,7 +88,7 @@ static void extract_pair_sss(srslte_sss_synch_t *q, cf_t *input, cf_t *ce, cf_t 
 
 }    
 
-int srslte_sss_synch_m0m1_diff(srslte_sss_synch_t *q, cf_t *input, uint32_t *m0, float *m0_value,
+int srslte_sss_synch_m0m1_diff(srslte_sss_synch_t *q, const cf_t *input, uint32_t *m0, float *m0_value,
     uint32_t *m1, float *m1_value) 
 {
   return srslte_sss_synch_m0m1_diff_coh(q, input, NULL, m0, m0_value, m1, m1_value);
@@ -102,7 +102,7 @@ int srslte_sss_synch_m0m1_diff(srslte_sss_synch_t *q, cf_t *input, uint32_t *m0,
 
  *
  */
-int srslte_sss_synch_m0m1_diff_coh(srslte_sss_synch_t *q, cf_t *input, cf_t ce[2*SRSLTE_SSS_N], uint32_t *m0, float *m0_value,
+int srslte_sss_synch_m0m1_diff_coh(srslte_sss_synch_t *q, const cf_t *input, cf_t ce[2*SRSLTE_SSS_N], uint32_t *m0, float *m0_value,
     uint32_t *m1, float *m1_value) 
 {
 
@@ -145,7 +145,7 @@ int srslte_sss_synch_m0m1_diff_coh(srslte_sss_synch_t *q, cf_t *input, cf_t ce[2
  *       Jung-In Kim, Jung-Su Han, Hee-Jin Roh and Hyung-Jin Choi
 
  */
-int srslte_sss_synch_m0m1_partial(srslte_sss_synch_t *q, cf_t *input, uint32_t M, cf_t ce[2*SRSLTE_SSS_N], uint32_t *m0, float *m0_value,
+int srslte_sss_synch_m0m1_partial(srslte_sss_synch_t *q, const cf_t *input, uint32_t M, cf_t ce[2*SRSLTE_SSS_N], uint32_t *m0, float *m0_value,
     uint32_t *m1, float *m1_value) 
 {
 
