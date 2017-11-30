@@ -107,8 +107,8 @@ SRSLTE_API void srslte_sss_put_slot(float *sss,
 SRSLTE_API int srslte_sss_synch_set_N_id_2(srslte_sss_synch_t *q, 
                                            uint32_t N_id_2);
 
-SRSLTE_API int srslte_sss_synch_m0m1_partial(srslte_sss_synch_t *q, 
-                                             cf_t *input, 
+SRSLTE_API int srslte_sss_synch_m0m1_partial(srslte_sss_synch_t *q,
+                                             const cf_t *input,
                                              uint32_t M, 
                                              cf_t ce[2*SRSLTE_SSS_N],
                                              uint32_t *m0, 
@@ -117,15 +117,15 @@ SRSLTE_API int srslte_sss_synch_m0m1_partial(srslte_sss_synch_t *q,
                                              float *m1_value);
 
 SRSLTE_API int srslte_sss_synch_m0m1_diff_coh(srslte_sss_synch_t *q, 
-                                              cf_t *input, 
+                                              const cf_t *input,
                                               cf_t ce[2*SRSLTE_SSS_N],
                                               uint32_t *m0, 
                                               float *m0_value, 
                                               uint32_t *m1, 
                                               float *m1_value);
 
-SRSLTE_API int srslte_sss_synch_m0m1_diff(srslte_sss_synch_t *q, 
-                                          cf_t *input, 
+SRSLTE_API int srslte_sss_synch_m0m1_diff(srslte_sss_synch_t *q,
+                                          const cf_t *input,
                                           uint32_t *m0, 
                                           float *m0_value, 
                                           uint32_t *m1, 

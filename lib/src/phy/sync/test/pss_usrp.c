@@ -221,7 +221,9 @@ int main(int argc, char **argv) {
   uint32_t max_peak = 0; 
   uint32_t max_peak_ = 0; 
   uint32_t min_peak = fft_size; 
-  uint32_t min_peak_ = fft_size; 
+  uint32_t min_peak_ = fft_size;
+
+  pss.filter_pss_enable = true;
   
   while(frame_cnt < nof_frames || nof_frames == -1) {
     n = srslte_rf_recv(&rf, buffer, flen - peak_offset, 1);
@@ -243,7 +245,7 @@ int main(int argc, char **argv) {
         
       if (peak_idx >= fft_size) {
 
-        // Estimate CFO 
+        // Estimate CFO
         cfo = srslte_pss_synch_cfo_compute(&pss, &buffer[peak_idx-fft_size]);
         mean_cfo = SRSLTE_VEC_CMA(cfo, mean_cfo, frame_cnt);        
 
@@ -255,10 +257,14 @@ int main(int argc, char **argv) {
           fprintf(stderr, "Error computing channel estimation\n");
           exit(-1);
         }
-        
-        // Find SSS 
+
+        // Find SSS
         int sss_idx = peak_idx-2*fft_size-(SRSLTE_CP_ISNORM(cp)?SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN):SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));             
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
+
+          // Filter SSS
+          srslte_pss_synch_filter(&pss, &buffer[sss_idx], &buffer[sss_idx]);
+
           INFO("Full N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
           srslte_sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 1, ce, &m0, &m0_value, &m1, &m1_value);
           if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
@@ -301,12 +307,12 @@ int main(int argc, char **argv) {
     }
 
     printf("[%5d]: Pos: %5d (%d-%d), PSR: %4.1f (~%4.1f) Pdet: %4.2f, "
-           "FA: %4.2f, CFO: %+4.1f kHz, SFO: %+.2f Hz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f%%\r", 
+           "FA: %4.2f, CFO: %+7.1f Hz, SFO: %+.2f Hz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f%%\r",
            frame_cnt, 
            peak_idx, min_peak_, max_peak_,
            peak_value, mean_peak,
            (float) nof_det/frame_cnt, 
-           (float) nof_nopeakdet/frame_cnt, mean_cfo*15, sfo,
+           (float) nof_nopeakdet/frame_cnt, mean_cfo*15000, sfo,
            (float) sss_error1/nof_det,(float) sss_error2/nof_det,(float) sss_error3/nof_det,
            (float) cp_is_norm/nof_det * 100);
     

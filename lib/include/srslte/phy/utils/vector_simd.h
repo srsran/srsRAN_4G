@@ -53,75 +53,80 @@ extern "C" {
 #endif /* LV_HAVE_AVX */
 #endif /* LV_HAVE_AVX512 */
 
+
+/*SIMD Logical operations*/
+SRSLTE_API void srslte_vec_xor_bbb_simd(const int8_t *x, const int8_t *y, int8_t *z, int len);
+
 /* SIMD Basic vector math */
-SRSLTE_API void srslte_vec_sum_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len);
+SRSLTE_API void srslte_vec_sum_sss_simd(const int16_t *x, const int16_t *y, int16_t *z, int len);
 
-SRSLTE_API void srslte_vec_sub_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len);
+SRSLTE_API void srslte_vec_sub_sss_simd(const int16_t *x, const int16_t *y, int16_t *z, int len);
 
-SRSLTE_API float srslte_vec_acc_ff_simd(float *x, int len);
+SRSLTE_API float srslte_vec_acc_ff_simd(const float *x, int len);
 
-SRSLTE_API cf_t srslte_vec_acc_cc_simd(cf_t *x, int len);
+SRSLTE_API cf_t srslte_vec_acc_cc_simd(const cf_t *x, int len);
 
-SRSLTE_API void srslte_vec_add_fff_simd(float *x, float *y, float *z, int len);
+SRSLTE_API void srslte_vec_add_fff_simd(const float *x, const float *y, float *z, int len);
 
-SRSLTE_API void srslte_vec_sub_fff_simd(float *x, float *y, float *z, int len);
+SRSLTE_API void srslte_vec_sub_fff_simd(const float *x, const float *y, float *z, int len);
 
 /* SIMD Vector Scalar Product */
-SRSLTE_API void srslte_vec_sc_prod_cfc_simd(const cf_t *x,const float h,cf_t *y,const int len);
+SRSLTE_API void srslte_vec_sc_prod_cfc_simd(const cf_t *x, const float h,cf_t *y, const int len);
 
-SRSLTE_API void srslte_vec_sc_prod_fff_simd(float *x, float h, float *z, int len);
+SRSLTE_API void srslte_vec_sc_prod_fff_simd(const float *x, const float h, float *z, const int len);
 
-SRSLTE_API void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, int len);
+SRSLTE_API void srslte_vec_sc_prod_ccc_simd(const cf_t *x, const cf_t h, cf_t *z, const int len);
 
 /* SIMD Vector Product */
-SRSLTE_API void srslte_vec_prod_ccc_split_simd(float *a_re, float *a_im, float *b_re, float *b_im, float *r_re, float *r_im, int len);
+SRSLTE_API void srslte_vec_prod_ccc_split_simd(const float *a_re, const float *a_im, const float *b_re, const float *b_im,
+                                               float *r_re, float *r_im, const int len);
 
-SRSLTE_API void srslte_vec_prod_ccc_c16_simd(int16_t *a_re, int16_t *a_im, int16_t *b_re, int16_t *b_im, int16_t *r_re,
-                                             int16_t *r_im, int len);
+SRSLTE_API void srslte_vec_prod_ccc_c16_simd(const int16_t *a_re, const int16_t *a_im, const int16_t *b_re, const int16_t *b_im,
+                                             int16_t *r_re, int16_t *r_im, const int len);
 
-SRSLTE_API void srslte_vec_prod_sss_simd(int16_t *x, int16_t *y, int16_t *z, int len);
+SRSLTE_API void srslte_vec_prod_sss_simd(const int16_t *x, const int16_t *y, int16_t *z, const int len);
 
-SRSLTE_API void srslte_vec_prod_cfc_simd(cf_t *x, float *y, cf_t *z, int len);
+SRSLTE_API void srslte_vec_prod_cfc_simd(const cf_t *x, const float *y, cf_t *z, const int len);
 
-SRSLTE_API void srslte_vec_prod_fff_simd(float *x, float *y, float *z, int len);
+SRSLTE_API void srslte_vec_prod_fff_simd(const float *x, const float *y, float *z, const int len);
 
-SRSLTE_API void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, int len);
+SRSLTE_API void srslte_vec_prod_ccc_simd(const cf_t *x, const cf_t *y, cf_t *z, const int len);
 
-SRSLTE_API void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, int len);
+SRSLTE_API void srslte_vec_prod_conj_ccc_simd(const cf_t *x, const cf_t *y, cf_t *z, const int len);
 
 /* SIMD Division */
-SRSLTE_API void srslte_vec_div_ccc_simd(cf_t *x,cf_t *y, cf_t *z, int len);
+SRSLTE_API void srslte_vec_div_ccc_simd(const cf_t *x, const cf_t *y, cf_t *z, const int len);
 
-SRSLTE_API void srslte_vec_div_cfc_simd(cf_t *x, float *y, cf_t *z, int len);
+SRSLTE_API void srslte_vec_div_cfc_simd(const cf_t *x, const float *y, cf_t *z, const int len);
 
-SRSLTE_API void srslte_vec_div_fff_simd(float *x, float *y, float *z, int len);
+SRSLTE_API void srslte_vec_div_fff_simd(const float *x, const float *y, float *z, const int len);
 
 /* SIMD Dot product */
-SRSLTE_API cf_t srslte_vec_dot_prod_conj_ccc_simd(cf_t *x, cf_t *y, int len);
+SRSLTE_API cf_t srslte_vec_dot_prod_conj_ccc_simd(const cf_t *x, const cf_t *y, const int len);
 
-SRSLTE_API cf_t srslte_vec_dot_prod_ccc_simd(cf_t *x, cf_t *y, int len);
+SRSLTE_API cf_t srslte_vec_dot_prod_ccc_simd(const cf_t *x, const cf_t *y, const int len);
 
-SRSLTE_API c16_t srslte_vec_dot_prod_ccc_c16i_simd(c16_t *x, c16_t *y, int len);
+SRSLTE_API c16_t srslte_vec_dot_prod_ccc_c16i_simd(const c16_t *x, const c16_t *y, const int len);
 
-SRSLTE_API int srslte_vec_dot_prod_sss_simd(int16_t *x, int16_t *y, int len);
+SRSLTE_API int srslte_vec_dot_prod_sss_simd(const int16_t *x, const int16_t *y, const int len);
 
 /* SIMD Modulus functions */
-SRSLTE_API void srslte_vec_abs_cf_simd(cf_t *x, float *z, int len);
+SRSLTE_API void srslte_vec_abs_cf_simd(const cf_t *x, float *z, const int len);
 
-SRSLTE_API void srslte_vec_abs_square_cf_simd(cf_t *x, float *z, int len);
+SRSLTE_API void srslte_vec_abs_square_cf_simd(const cf_t *x, float *z, const int len);
 
 /* Other Functions */
-SRSLTE_API void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, int len);
+SRSLTE_API void srslte_vec_lut_sss_simd(const short *x, const unsigned short *lut, short *y, const int len);
 
-SRSLTE_API void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, int len);
+SRSLTE_API void srslte_vec_convert_fi_simd(const float *x, int16_t *z, const float scale, const int len);
 
-SRSLTE_API void srslte_vec_cp_simd(cf_t *src, cf_t *dst, int len);
+SRSLTE_API void srslte_vec_cp_simd(const cf_t *src, cf_t *dst, int len);
 
 
 /* SIMD Find Max functions */
-SRSLTE_API uint32_t srslte_vec_max_fi_simd(float *x, int len);
+SRSLTE_API uint32_t srslte_vec_max_fi_simd(const float *x, const int len);
 
-SRSLTE_API uint32_t srslte_vec_max_ci_simd(cf_t *x, int len);
+SRSLTE_API uint32_t srslte_vec_max_ci_simd(const cf_t *x, const int len);
 
 #ifdef __cplusplus
 }
