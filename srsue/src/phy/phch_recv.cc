@@ -98,9 +98,6 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
 
   srslte_ue_cellsearch_set_nof_valid_frames(&cs, 2);
 
-  // Set options defined in expert section
-  set_ue_sync_opts(&cs.ue_sync);
-
   last_gain = 40;
   if (do_agc) {
     srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, last_gain);
@@ -184,6 +181,11 @@ void phch_recv::radio_error() {
   radio_is_resetting=false;
 }
 
+void phch_recv::set_cfo(float cfo) {
+  Debug("set_ref_cfo=%f\n",cfo*15000);
+  srslte_ue_sync_set_cfo_ref(&ue_sync, cfo);
+}
+
 bool phch_recv::wait_radio_reset() {
   int cnt=0;
   while(cnt < 20 && radio_is_resetting) {
@@ -211,8 +213,13 @@ void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
     srslte_ue_sync_set_cfo_i_enable(q, true);
   }
 
-  srslte_ue_sync_set_cfo_ema(q, worker_com->args->cfo_ema);
+  srslte_ue_sync_set_cfo_ema(q, worker_com->args->cfo_pss_ema);
   srslte_ue_sync_set_cfo_tol(q, worker_com->args->cfo_correct_tol_hz);
+  srslte_ue_sync_set_cfo_loop_bw(q, worker_com->args->cfo_loop_bw_pss, worker_com->args->cfo_loop_bw_ref,
+                                 worker_com->args->cfo_loop_pss_tol,
+                                 worker_com->args->cfo_loop_ref_min,
+                                 worker_com->args->cfo_loop_pss_tol,
+                                 worker_com->args->cfo_loop_pss_conv);
 
   int time_correct_period = worker_com->args->time_correct_period;
   if (time_correct_period > 0) {
@@ -320,15 +327,13 @@ int phch_recv::cell_search(int force_N_id_2) {
     return false;
   }
 
-  // Set options defined in expert section
-  set_ue_sync_opts(&ue_mib_sync.ue_sync);
-
   if (do_agc) {
     srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync, callback_set_rx_gain, last_gain);
   }
 
   srslte_ue_sync_reset(&ue_mib_sync.ue_sync);
   srslte_ue_sync_copy_cfo(&ue_mib_sync.ue_sync, &cs.ue_sync);
+  Info("Copied cfo=%f Hz from cs_sync to ue_mib\n", srslte_ue_sync_get_cfo(&ue_mib_sync.ue_sync));
 
   /* Find and decode MIB */
   int sfn_offset;
@@ -341,6 +346,7 @@ int phch_recv::cell_search(int force_N_id_2) {
 
   srslte_ue_sync_reset(&ue_sync);
   srslte_ue_sync_copy_cfo(&ue_sync, &ue_mib_sync.ue_sync);
+  Info("Copied cfo=%f Hz from ue_mib_sync to ue_sync\n", srslte_ue_sync_get_cfo(&ue_sync));
 
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, &cell, NULL);
@@ -730,6 +736,9 @@ void phch_recv::run_thread() {
               metrics.cfo = srslte_ue_sync_get_cfo(&ue_sync);
               worker->set_cfo(ul_dl_factor * metrics.cfo / 15000);
               worker_com->set_sync_metrics(metrics);
+
+              Debug("current_cfo=%f, pss_stable_cnt=%d, cfo_pss=%f Hz\n",
+                      metrics.cfo, ue_sync.pss_stable_cnt, srslte_sync_get_cfo(&ue_sync.strack)*15000);
 
               worker->set_sample_offset(srslte_ue_sync_get_sfo(&ue_sync)/1000);
 

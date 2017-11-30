@@ -37,7 +37,6 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/log.h"
 #include "phy/phy.h"
-#include "phy/phch_worker.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
@@ -134,7 +133,7 @@ void phy::run_thread() {
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_common(&workers_common);
-    workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i]);
+    workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i], &sf_recv);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);
   }
 

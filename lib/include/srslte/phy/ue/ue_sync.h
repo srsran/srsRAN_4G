@@ -111,12 +111,18 @@ typedef struct SRSLTE_API {
       
   bool decode_sss_on_track; 
 
+  bool  cfo_is_copied;
   bool  cfo_correct_enable;
   float cfo_current_value;
-  float cfo_loop_bw;
-  float cfo_pss_tol;
-  float cfo_ref_tol;
+  float cfo_loop_bw_pss;
+  float cfo_loop_bw_ref;
+  float cfo_pss_min;
+  float cfo_ref_min;
   float cfo_ref_max;
+
+  uint32_t pss_stable_cnt;
+  uint32_t pss_stable_timeout;
+  bool     pss_is_stable;
 
   uint32_t peak_idx;
   int next_rf_sample_offset;
@@ -198,10 +204,12 @@ SRSLTE_API void srslte_ue_sync_copy_cfo(srslte_ue_sync_t *q,
                                         srslte_ue_sync_t *src_obj);
 
 SRSLTE_API void srslte_ue_sync_set_cfo_loop_bw(srslte_ue_sync_t *q,
-                                               float bw,
+                                               float bw_pss,
+                                               float bw_ref,
                                                float pss_tol,
                                                float ref_tol,
-                                               float ref_max);
+                                               float ref_max,
+                                               uint32_t pss_stable_timeout);
 
 SRSLTE_API void srslte_ue_sync_set_cfo_ema(srslte_ue_sync_t *q,
                                            float ema);

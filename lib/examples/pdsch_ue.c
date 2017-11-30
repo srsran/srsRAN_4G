@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, prog_args.enable_cfo_ref, 0xff, 0.1);
+  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, prog_args.enable_cfo_ref, 0xff, 0.005);
   srslte_chest_dl_average_subframe(&ue_dl.chest, prog_args.average_subframe);
 
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
@@ -959,7 +959,7 @@ void *plot_thread_run(void *arg) {
     plot_real_init(&pce);
     plot_real_setTitle(&pce, "Channel Response - Magnitude");
     plot_real_setLabels(&pce, "Index", "dB");
-    plot_real_setYAxisScale(&pce, -40, 40);
+    plot_real_setYAxisScale(&pce, -M_PI, M_PI);
     
     plot_real_init(&p_sync);
     plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
@@ -995,7 +995,11 @@ void *plot_thread_run(void *arg) {
           tmp_plot2[g+i] = -80;
         }
       }
-      plot_real_setNewData(&pce, tmp_plot2, sz);
+      uint32_t nrefs = 2*ue_dl.cell.nof_prb;
+      for (i=0;i<nrefs;i++) {
+        tmp_plot2[i] = cargf(ue_dl.chest.tmp_cfo_estimate[i]);
+      }
+      plot_real_setNewData(&pce, tmp_plot2, nrefs);
       
       if (!prog_args.input_file_name) {
         if (plot_track) {

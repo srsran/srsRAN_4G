@@ -40,7 +40,7 @@
 #define CFO_EMA_ALPHA   0.1
 #define CP_EMA_ALPHA    0.1
 
-#define DEFAULT_CFO_TOL 50.0 // Hz
+#define DEFAULT_CFO_TOL 0.0 // Hz
 
 static bool fft_size_isvalid(uint32_t fft_size) {
   if (fft_size >= SRSLTE_SYNC_FFT_SZ_MIN && fft_size <= SRSLTE_SYNC_FFT_SZ_MAX && (fft_size%64) == 0) {
