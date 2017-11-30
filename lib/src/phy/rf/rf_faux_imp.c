@@ -69,9 +69,6 @@ static bool _faux_rf_logStdout = true;
 
 #define SAMPLES_TO_BYTES(x) ((x) * sizeof(cf_t))
 
-cf_t _faux_rf_fill[SAMPLES_TO_BYTES(0x4000)] = {0.0, 0.0};
-cf_t _faux_rf_over[SAMPLES_TO_BYTES(0x4000)] = {0.0, 0.0};
-
 static void _faux_rf_tv_to_ts(struct timeval *tv, time_t *s, double *f)
 {
   if(s)
@@ -137,7 +134,7 @@ static bool _faux_rf_is_enb(faux_rf_info_t * h)
 }
 
 
-static int _faux_rf_open_ipc(faux_rf_info_t * h)
+static int _faux_rf_open_ipc_dgram(faux_rf_info_t * h)
 {
   if((h->rxSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
    { 
@@ -346,7 +343,7 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
       return -1;
     }
 
-   if(_faux_rf_open_ipc(&_faux_rf_info) < 0)
+   if(_faux_rf_open_ipc_dgram(&_faux_rf_info) < 0)
      {
        FAUX_RF_DEBUG("could not creat ipc channel\n");
 
@@ -492,47 +489,70 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
  {
    GET_FAUX_INFO(h);
 
-   FAUX_RF_DEBUG("request nsamples %u, blocking %s", 
-              nsamples, 
-              blocking ? "yes" : "no");
-
    fd_set fdset;
 
-   FD_ZERO(&fdset); 
-   FD_SET(p->rxSock, &fdset);
+   int numTries = 0;
 
-   struct timeval timeout;
-   timeout.tv_sec  = 0;
-   timeout.tv_usec = blocking ? 100000 : 0;
+   int bytesRequested = SAMPLES_TO_BYTES(nsamples);
 
-   int avail = 0;
+   int bytesPending   = bytesRequested;
 
-   if(select(p->rxSock + 1, &fdset, NULL, NULL, &timeout) > 0)
+   uint8_t rxBuff[1 << 20] = {0};
+
+   uint8_t * dp = rxBuff;
+
+   FAUX_RF_DEBUG("request samples %u, bytes %d, blocking %s", 
+                 nsamples,
+                 bytesRequested,
+                 blocking ? "yes" : "no");
+
+   while((numTries++ < 10) && (bytesPending > 0))
      {
-       avail = recv(p->rxSock, data, SAMPLES_TO_BYTES(nsamples), MSG_DONTWAIT);
-     }
+       FD_ZERO(&fdset); 
+       FD_SET(p->rxSock, &fdset);
 
-   if(avail < 0)
-     {
-       FAUX_RF_DEBUG("read error %s", strerror(errno));
+       int bytesRx = 0;
 
-       return -1;
-     }
-   else
-     {
-       int pending = SAMPLES_TO_BYTES(nsamples) - avail;
+       struct timeval timeout = {0, 0};
+ 
+       if(blocking)
+        {
+          timeout.tv_sec  = 0;
+          timeout.tv_usec = 100000;
+        }
 
-       if(pending > 0)
-         {
-           memcpy(data + avail, _faux_rf_fill, pending);
-         }
+       if(select(p->rxSock + 1, &fdset, NULL, NULL, &timeout) > 0)
+        {
+          bytesRx = recv(p->rxSock, 
+                         dp, 
+                         bytesPending,
+                         MSG_DONTWAIT);
+        }
 
-        rf_faux_get_time(h, secs, frac_secs);
+       if(bytesRx < 0)
+        {
+          FAUX_RF_DEBUG("read error %s", strerror(errno));
 
-        FAUX_RF_DEBUG("avail %d, filled %d", avail, pending);
+          return -1;
+        }
+       else
+        {
+          dp += bytesRx;
 
-        return nsamples;
-     }
+          bytesPending -= bytesRx;
+
+          FAUX_RF_DEBUG("read %d, pending %d", bytesRx, bytesPending);
+        }
+      }
+
+     // give'em what we got
+     memcpy(data, rxBuff, bytesRequested);
+
+     rf_faux_get_time(h, secs, frac_secs);
+
+     FAUX_RF_DEBUG("requested %d, filled %d", bytesRequested, bytesPending);
+
+    return nsamples;
  }
 
 
@@ -558,18 +578,39 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    _faux_rf_dif_time(secs, frac_secs, &tv_dif);
 
-   FAUX_RF_DEBUG("nsamples %u, offset %ld:%06ld, sob %s, eob %s", 
-              nsamples, 
+   int numPending = SAMPLES_TO_BYTES(nsamples);
+
+   FAUX_RF_DEBUG("nsamples %u, bytes %d, offset %ld:%06ld, sob %s, eob %s", 
+              nsamples,
+              numPending,
               tv_dif.tv_sec,
               tv_dif.tv_usec,
               FAUX_RF_BOOL_TO_STR(is_start_of_burst),
               FAUX_RF_BOOL_TO_STR(is_end_of_burst));
 
-   const int result = write(p->txSock, data, SAMPLES_TO_BYTES(nsamples));
-   
-   FAUX_RF_DEBUG("sent %d bytes", result);
+   uint8_t * dp = (uint8_t*) data;
 
-   return nsamples;
+   while (numPending > 0) 
+     {
+       const int result = write(p->txSock, dp, numPending);
+
+       if(result < 0)
+         {
+           FAUX_RF_DEBUG("write error %s", strerror(errno));
+
+           break;
+         }
+       else
+         {
+           FAUX_RF_DEBUG("sent %d bytes", result);
+
+           numPending -= result;
+
+           dp += result;
+         }
+     }
+
+   return nsamples - numPending;
 }
 
 
