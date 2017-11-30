@@ -276,9 +276,9 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   sm_cmd.nonce_mme_present=false;
 
   uint8_t  sec_hdr_type=3;
-  uint32_t count=0;
-
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  
+  ue_ctx->security_ctxt.dl_nas_count = 0;
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->console("Error packing Athentication Request\n");
@@ -298,7 +298,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
                          );
 
   srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
-                     count,
+                     ue_ctx->security_ctxt.dl_nas_count,
                      0,
                      SECURITY_DIRECTION_DOWNLINK,
                      &nas_buffer->msg[5],
@@ -318,9 +318,8 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
     m_s1ap_log->console("Error packing Athentication Request\n");
     return false;
   }
-   
-  m_pool->deallocate(nas_buffer);
 
+  m_pool->deallocate(nas_buffer);
   return true;
 }
   
@@ -456,10 +455,9 @@ bool
 s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer) {
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
+  bzero(&act_def_eps_bearer_context_req,sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
 
   m_s1ap_log->info("Packing Attach Accept\n");
-  bzero(&attach_accept, sizeof(LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT));
-  bzero(&act_def_eps_bearer_context_req, sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
 
   //Attach accept
   attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
@@ -472,6 +470,19 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   attach_accept.tai_list.tai[0].mcc = 1;
   attach_accept.tai_list.tai[0].mnc = 1;
   attach_accept.tai_list.tai[0].tac = 1;
+
+  //Make sure all unused options are set to false
+  attach_accept.guti_present=false;
+  attach_accept.lai_present=false;
+  attach_accept.ms_id_present=false;
+  attach_accept.emm_cause_present=false;
+  attach_accept.t3402_present=false;
+  attach_accept.t3423_present=false;
+  attach_accept.equivalent_plmns_present=false;
+  attach_accept.emerg_num_list_present=false;
+  attach_accept.eps_network_feature_support_present=false;
+  attach_accept.additional_update_result_present=false;
+  attach_accept.t3412_ext_present=false;
 
   //Set activate default eps bearer (esm_ms)
   //Set pdn_addr
@@ -491,6 +502,10 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   std::string apn("internet");
   act_def_eps_bearer_context_req.apn.apn = apn; //FIXME
 
+  act_def_eps_bearer_context_req.proc_transaction_id = 1; //FIXME
+
+  //Make sure unused options are set to false
+  
   /*
   typedef struct{
   LIBLTE_MME_EPS_QUALITY_OF_SERVICE_STRUCT         eps_qos; //TODO
@@ -513,8 +528,10 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
     bool  br_ext_present;
   }LIBLTE_MME_EPS_QUALITY_OF_SERVICE_STRUCT;
   */
-
+  uint8_t sec_hdr_type =3;
+  ue_ctx->security_ctxt.dl_nas_count++;
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
+  liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   //Integrity protect NAS message
   uint8_t mac[4];
   srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
@@ -529,6 +546,11 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   memcpy(&nas_buffer->msg[1],mac,4);
   m_s1ap_log->info("Packed Attach Complete\n");
  
+  //Add nas message to context setup request
+  erab_ctxt->nAS_PDU_present = true;
+  memcpy(erab_ctxt->nAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  erab_ctxt->nAS_PDU.n_octets = nas_buffer->N_bytes;
+
   return true;
 }
 
