@@ -464,37 +464,57 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   //Attach accept
   attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
   //Mandatory
-  //FIXME: Set t3412.unit
-  //FIXME: Set tai_list
-  //FIXME: Set esm_msg
+  //FIXME: Set t3412 from config
+  attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_DEACTIVATED;   // 111 -> Timer deactivated
+  attach_accept.t3412.unit = 0;                                   // No periodic tracking update
+  //FIXME: Set tai_list from config
+  attach_accept.tai_list.N_tais = 1;
+  attach_accept.tai_list.tai[0].mcc = 1;
+  attach_accept.tai_list.tai[0].mnc = 1;
+  attach_accept.tai_list.tai[0].tac = 1;
+
+  //Set activate default eps bearer (esm_ms)
+  //Set pdn_addr
   act_def_eps_bearer_context_req.pdn_addr.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   memcpy(act_def_eps_bearer_context_req.pdn_addr.addr, &paa->ipv4, 4);
-  /*
-  act_def_eps_bearer_context_req.pdn_addr.addr[0]  |= ip_addr << 24;
-  act_def_eps_bearer_context_req.pdn_addr.addr[1]  |= ip_addr << 16;
-  act_def_eps_bearer_context_req.pdn_addr.addr[2]  |= ip_addr << 8;
-  act_def_eps_bearer_context_req.pdn_addr.addr[3]  |= ip_addr;
-  */
-  //Activate default EPS bearer context
+  //Set eps bearer id
   act_def_eps_bearer_context_req.eps_bearer_id = erab_ctxt->e_RAB_ID.E_RAB_ID;
   act_def_eps_bearer_context_req.transaction_id_present = false;
+  //set eps_qos
+  act_def_eps_bearer_context_req.eps_qos.qci =  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI;
+  act_def_eps_bearer_context_req.eps_qos.mbr_ul = 254; //FIXME
+  act_def_eps_bearer_context_req.eps_qos.mbr_dl = 254; //FIXME
+  act_def_eps_bearer_context_req.eps_qos.mbr_ul_ext = 250; //FIXME
+  act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
+  //set apn
+  //act_def_eps_bearer_context_req.apn
+  std::string apn("internet");
+  act_def_eps_bearer_context_req.apn.apn = apn; //FIXME
+
+  /*
+  typedef struct{
+  LIBLTE_MME_EPS_QUALITY_OF_SERVICE_STRUCT         eps_qos; //TODO
+  LIBLTE_MME_ACCESS_POINT_NAME_STRUCT              apn;   //TODO
+  LIBLTE_MME_PDN_ADDRESS_STRUCT                    pdn_addr; //DONE
+  uint8                                            eps_bearer_id; //DONE
+  uint8                                            proc_transaction_id; 
+}LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT;
+  typedef struct{
+    uint8 qci;
+    uint8 mbr_ul;
+    uint8 mbr_dl;
+    uint8 gbr_ul;
+    uint8 gbr_dl;
+    uint8 mbr_ul_ext;
+    uint8 mbr_dl_ext;
+    uint8 gbr_ul_ext;
+    uint8 gbr_dl_ext;
+    bool  br_present;
+    bool  br_ext_present;
+  }LIBLTE_MME_EPS_QUALITY_OF_SERVICE_STRUCT;
+  */
+
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
-
-    //FIXME: Set the following parameters
-//    act_def_eps_bearer_context_req.eps_qos.qci
-//    act_def_eps_bearer_context_req.eps_qos.br_present
-//    act_def_eps_bearer_context_req.eps_qos.br_ext_present
-//    act_def_eps_bearer_context_req.apn.apn
-//    act_def_eps_bearer_context_req.negotiated_qos_present
-//    act_def_eps_bearer_context_req.llc_sapi_present
-//    act_def_eps_bearer_context_req.radio_prio_present
-//    act_def_eps_bearer_context_req.packet_flow_id_present
-//    act_def_eps_bearer_context_req.apn_ambr_present
-//    act_def_eps_bearer_context_req.protocol_cnfg_opts_present
-//    act_def_eps_bearer_context_req.connectivity_type_present
-
-    // FIXME: Setup the default EPS bearer context
-
   //Integrity protect NAS message
   uint8_t mac[4];
   srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
