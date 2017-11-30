@@ -147,6 +147,46 @@ uint8_t security_128_eia2( uint8_t  *key,
 }
 
 /******************************************************************************
+ * Encryption / Decryption
+ *****************************************************************************/
+
+uint8_t security_128_eea1(uint8_t  *key,
+                           uint32_t count,
+                           uint8_t  bearer,
+                           uint8_t direction,
+                           uint8_t *msg,
+                           uint32_t msg_len,
+                           uint8_t *msg_out){
+
+    return liblte_security_encryption_eea1(key,
+                                           count,
+                                           bearer,
+                                           direction,
+                                           msg,
+                                           msg_len * 8,
+                                           msg_out);
+
+}
+
+
+uint8_t security_128_eea2(uint8_t  *key,
+                           uint32_t count,
+                           uint8_t  bearer,
+                           uint8_t direction,
+                           uint8_t *msg,
+                           uint32_t msg_len,
+                           uint8_t *msg_out){
+
+    return liblte_security_encryption_eea2(key,
+                                           count,
+                                           bearer,
+                                           direction,
+                                           msg,
+                                           msg_len * 8,
+                                           msg_out);
+}
+
+/******************************************************************************
  * Authentication
  *****************************************************************************/
 

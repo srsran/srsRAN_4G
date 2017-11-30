@@ -51,7 +51,11 @@ void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_
 }
 
 void pdcp::stop()
-{}
+{
+  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
+    pdcp_array[i].stop();
+  }
+}
 
 void pdcp::reset()
 {
@@ -88,9 +92,9 @@ void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
   }
   if (!pdcp_array[lcid].is_active()) {
     pdcp_array[lcid].init(rlc, rrc, gw, pdcp_log, lcid, cfg);
-    pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
+    pdcp_log->info("Added bearer %s\n", get_rb_name(lcid));
   } else {
-    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
+    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", get_rb_name(lcid));
   }
 }
 
@@ -102,6 +106,12 @@ void pdcp::config_security(uint32_t lcid,
 {
   if(valid_lcid(lcid))
     pdcp_array[lcid].config_security(k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+}
+
+void pdcp::enable_encryption(uint32_t lcid)
+{
+  if(valid_lcid(lcid))
+    pdcp_array[lcid].enable_encryption();
 }
 
 /*******************************************************************************

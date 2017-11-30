@@ -186,6 +186,73 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(uint8                 *key,
                                            uint8                 *mac);
 
 /*********************************************************************
+    Name: liblte_security_encryption_eea1
+
+    Description: 128-bit encryption algorithm EEA1.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.2
+                        35.215 v13.0.0 References
+                        Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D1 v2.1
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(uint8  *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *msg,
+                                                  uint32  msg_len,
+                                                  uint8  *out);
+
+/*********************************************************************
+    Name: liblte_security_decryption_eea1
+
+    Description: 128-bit decryption algorithm EEA1.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.2
+                        35.215 v13.0.0 References
+                        Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D1 v2.1
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(uint8  *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *ct,
+                                                  uint32  ct_len,
+                                                  uint8  *out);
+
+/*********************************************************************
+    Name: liblte_security_encryption_eea2
+
+    Description: 128-bit encryption algorithm EEA2.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.3
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(uint8  *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *msg,
+                                                  uint32  msg_len,
+                                                  uint8  *out);
+
+/*********************************************************************
+    Name: liblte_security_decryption_eea2
+
+    Description: 128-bit decryption algorithm EEA2.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.3
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(uint8  *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *ct,
+                                                  uint32  ct_len,
+                                                  uint8  *out);
+
+
+/*********************************************************************
     Name: liblte_security_milenage_f1
 
     Description: Milenage security function F1.  Computes network

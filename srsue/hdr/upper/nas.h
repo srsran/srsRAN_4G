@@ -33,6 +33,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 #include "srslte/asn1/liblte_mme.h"
+#include "srslte/common/nas_pcap.h"
 
 using srslte::byte_buffer_t;
 
@@ -57,8 +58,8 @@ static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
                                                             "DEREGISTERED INITIATED",
                                                             "TRACKING AREA UPDATE INITIATED"};
 
-static const bool eia_caps[8] = {false, true,  true,  false, false, false, false, false};
-static const bool eea_caps[8] = {true,  false, false, false, false, false, false, false};
+static const bool eia_caps[8] = {false, true, true, false, false, false, false, false};
+static const bool eea_caps[8] = {true,  true, true, false, false, false, false, false};
 
 typedef enum {
   PLMN_NOT_SELECTED = 0,
@@ -95,6 +96,9 @@ public:
   // UE interface
   void attach_request();
   void deattach_request();
+
+  // PCAP
+  void start_pcap(srslte::nas_pcap *pcap_);
 
 private:
   srslte::byte_buffer_pool *pool;
@@ -140,17 +144,20 @@ private:
   uint8_t k_nas_enc[32];
   uint8_t k_nas_int[32];
 
-  void integrity_generate(uint8_t integ_algo,
-                          uint8_t *key_128,
+  // PCAP
+  srslte::nas_pcap *pcap = NULL;
+
+  void integrity_generate(uint8_t *key_128,
                           uint32_t count,
                           uint8_t rb_id,
                           uint8_t direction,
                           uint8_t *msg,
                           uint32_t msg_len,
                           uint8_t *mac);
-  void integrity_check();
-  void cipher_encrypt();
-  void cipher_decrypt();
+  bool integrity_check(uint32 lcid, byte_buffer_t *pdu);
+  void cipher_encrypt(uint32 lcid, byte_buffer_t *pdu);
+  void cipher_decrypt(uint32 lcid, byte_buffer_t *pdu);
+
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps);
 
   // Parsers
