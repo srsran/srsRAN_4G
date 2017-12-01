@@ -96,8 +96,6 @@ void rrc::init(phy_interface_rrc *phy_,
   pthread_mutex_init(&mutex, NULL);
 
   first_stimsi_attempt = false;
-  reestablishment_in_progress = false;
-  connection_requested = false;
 
   args.ue_category = SRSLTE_UE_CATEGORY;
   args.supported_bands[0] = 7;
@@ -176,14 +174,14 @@ void rrc::run_thread() {
           if (nas->is_attaching()) {
             sleep(1);
             rrc_log->info("RRC IDLE: NAS is attaching and camping on cell, reselecting...\n");
-            plmn_select(selected_plmn_id);
+            plmn_select_rrc(selected_plmn_id);
           }
         // If not camping on a cell
         } else {
           // If NAS is attached, perform cell reselection on current PLMN
           if (nas->is_attached()) {
             rrc_log->info("RRC IDLE: NAS is attached, PHY not synchronized. Re-selecting cell...\n");
-            plmn_select(selected_plmn_id);
+            plmn_select_rrc(selected_plmn_id);
           } else if (nas->is_attaching()) {
             sleep(1);
             rrc_log->info("RRC IDLE: NAS is attaching, searching again PLMN\n");
@@ -204,6 +202,10 @@ void rrc::run_thread() {
         }
         break;
       case RRC_STATE_CELL_SELECTING:
+
+        /* During cell selection, apply SIB configurations if available or receive them if not.
+         * Cell is selected when all SIBs downloaded or applied.
+         */
         if (phy->sync_status()) {
           if (!current_cell->has_valid_sib1) {
             si_acquire_state = SI_ACQUIRE_SIB1;
@@ -216,29 +218,36 @@ void rrc::run_thread() {
             state = RRC_STATE_CELL_SELECTED;
           }
         }
-        if (!reestablishment_in_progress) {
+        // Don't time out during restablishment (T311 running)
+        if (!mac_timers->timer_get(t311)->is_running()) {
           select_cell_timeout++;
           if (select_cell_timeout >= RRC_SELECT_CELL_TIMEOUT) {
             rrc_log->info("RRC Cell Selecting: timeout expired. Starting Cell Search...\n");
-            state = RRC_STATE_PLMN_SELECTION;
             plmn_select_timeout = 0;
+            select_cell_timeout = 0;
             phy->cell_search_start();
           }
         }
         break;
       case RRC_STATE_CELL_SELECTED:
 
+        /* The cell is selected when the SIBs are received and applied.
+         * If we were in RRC_CONNECTED and arrive here it means a RLF occurred and we are in Reestablishment procedure.
+         * If T311 is running means there is a reestablishment in progress, send ConnectionReestablishmentRequest.
+         * If not, do a ConnectionRequest if NAS is established or go to IDLE an camp on cell otherwise.
+         */
         if (mac_timers->timer_get(t311)->is_running()) {
+          //
           rrc_log->info("RRC Cell Selected: Sending connection reestablishment...\n");
           con_restablish_cell_reselected();
           state = RRC_STATE_CONNECTING;
           connecting_timeout = 0;
         } else if (connection_requested) {
+          connection_requested = false;
           rrc_log->info("RRC Cell Selected: Sending connection request...\n");
           send_con_request();
           state = RRC_STATE_CONNECTING;
           connecting_timeout = 0;
-          connection_requested = false;
         } else {
           rrc_log->info("RRC Cell Selected: Starting paging and going to IDLE...\n");
           mac->pcch_start_rx();
@@ -265,9 +274,9 @@ void rrc::run_thread() {
         break;
       case RRC_STATE_LEAVE_CONNECTED:
         usleep(60000);
+        rrc_log->console("RRC IDLE\n");
         rrc_log->info("Leaving RRC_CONNECTED state\n");
         drb_up = false;
-        reestablishment_in_progress = false;
         measurements.reset();
         pdcp->reset();
         rlc->reset();
@@ -275,12 +284,14 @@ void rrc::run_thread() {
         mac->reset();
         set_phy_default();
         set_mac_default();
-        mac->pcch_start_rx();
         mac_timers->timer_get(t310)->stop();
         mac_timers->timer_get(t311)->stop();
-
-        // Instruct PHY to measure serving cell for cell reselection
-        phy->meas_start(phy->get_current_earfcn(), phy->get_current_pci());
+        if (phy->sync_status()) {
+          // Instruct MAC to look for P-RNTI
+          mac->pcch_start_rx();
+          // Instruct PHY to measure serving cell for cell reselection
+          phy->meas_start(phy->get_current_earfcn(), phy->get_current_pci());
+        }
 
         // Move to RRC_IDLE
         state = RRC_STATE_IDLE;
@@ -421,15 +432,24 @@ void rrc::plmn_search() {
   plmn_select_timeout = 0;
 }
 
+/* This is the NAS interface. When NAS requests to select a PLMN we have to
+ * connect to either register or because there is pending higher layer traffic.
+ */
 void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
+  connection_requested = true;
+  plmn_select_rrc(plmn_id);
+}
 
+/* This is called by RRC only. In this case, we do not want to connect, just camp on the
+ * selected PLMN
+ */
+void rrc::plmn_select_rrc(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
   // If already camping on the selected PLMN, select this cell
   if (state == RRC_STATE_IDLE || state == RRC_STATE_CONNECTED || state == RRC_STATE_PLMN_SELECTION) {
     if (phy->sync_status() && selected_plmn_id.mcc == plmn_id.mcc && selected_plmn_id.mnc == plmn_id.mnc) {
       rrc_log->info("Already camping on selected PLMN, connecting...\n");
       state = RRC_STATE_CELL_SELECTING;
       select_cell_timeout = 0;
-      connection_requested = true;
     } else {
       rrc_log->info("PLMN Id=%s selected\n", plmn_id_to_string(plmn_id).c_str());
       // Sort cells according to RSRP
@@ -438,7 +458,6 @@ void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
       last_selected_cell = -1;
       select_cell_timeout = 0;
 
-      connection_requested = true;
       state = RRC_STATE_CELL_SELECTING;
       select_next_cell_in_plmn();
     }
@@ -477,7 +496,8 @@ void rrc::select_next_cell_in_plmn() {
       }
     }
   }
-  rrc_log->info("No more known cells...\n");
+  rrc_log->info("No more known cells. Starting again\n");
+  last_selected_cell = -1;
 }
 
 void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, uint32_t pci) {
@@ -603,11 +623,15 @@ rrc::cell_t* rrc::add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rs
 
 // PHY indicates that has gone through all known EARFCN
 void rrc::earfcn_end() {
-  rrc_log->debug("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
+  rrc_log->info("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
 
   // If searching for PLMN, indicate NAS we scanned all frequencies
   if (state == RRC_STATE_PLMN_SELECTION) {
     nas->plmn_search_end();
+  } else if (state == RRC_STATE_CELL_SELECTING) {
+    select_cell_timeout = 0;
+    rrc_log->info("Starting cell search again\n");
+    phy->cell_search_start();
   }
 }
 
@@ -631,7 +655,7 @@ void rrc::cell_reselection_eval(float rsrp, float rsrq)
 {
   // Intra-frequency cell-reselection criteria
 
-  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP && rsrp > -80.0) {
+  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP && rsrp > -70.0) {
     // UE may not perform intra-frequency measurements.
     phy->meas_reset();
     // keep measuring serving cell
@@ -864,8 +888,6 @@ void rrc::send_con_restablish_request() {
   ul_ccch_msg.msg.rrc_con_reest_req.cause = LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE;
   liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  reestablishment_in_progress = true;
-
   rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
   rrc_log->console("RRC Connection Reestablishment\n");
   mac_timers->timer_get(t310)->stop();
@@ -882,7 +904,6 @@ void rrc::send_con_restablish_request() {
 // Actions following cell reselection 5.3.7.3
 void rrc::con_restablish_cell_reselected()
 {
-  reestablishment_in_progress = false;
   rrc_log->info("Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
   mac_timers->timer_get(t301)->reset();
   mac_timers->timer_get(t301)->run();
@@ -1218,6 +1239,7 @@ void rrc::handle_sib2()
   rrc_log->info("SIB2 received\n");
 
   apply_sib2_configs(&current_cell->sib2);
+
 }
 
 void rrc::handle_sib3()

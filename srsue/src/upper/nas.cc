@@ -108,7 +108,6 @@ void nas::attach_request() {
   } else if (state == EMM_STATE_REGISTERED) {
     nas_log->info("NAS state is registered, connecting to same PLMN\n");
     rrc->plmn_select(current_plmn);
-    selecting_plmn = current_plmn;
   } else {
     nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
   }
@@ -124,6 +123,11 @@ void nas::deattach_request() {
  ******************************************************************************/
 
 void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
+
+  // Do not process new PLMN if already selected
+  if (plmn_selection == PLMN_SELECTED) {
+    return;
+  }
 
   // Check if already registered
   for (uint32_t i=0;i<known_plmns.size();i++) {
