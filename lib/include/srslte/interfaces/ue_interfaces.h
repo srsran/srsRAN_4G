@@ -197,10 +197,11 @@ public:
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
   virtual void config_security(uint32_t lcid,
-                               uint8_t *k_rrc_enc_,
-                               uint8_t *k_rrc_int_,
+                               uint8_t *k_enc_,
+                               uint8_t *k_int_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
+  virtual void enable_integrity(uint32_t lcid) = 0;
   virtual void enable_encryption(uint32_t lcid) = 0;
 };
 

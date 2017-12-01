@@ -40,14 +40,14 @@ void mac_pcap::enable(bool en)
 }
 void mac_pcap::open(const char* filename, uint32_t ue_id)
 {
-  pcap_file = MAC_LTE_PCAP_Open(filename);
+  pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, filename);
   ue_id = ue_id; 
   enable_write = true; 
 }
 void mac_pcap::close()
 {
   fprintf(stdout, "Saving MAC PCAP file\n");
-  MAC_LTE_PCAP_Close(pcap_file);
+  LTE_PCAP_Close(pcap_file);
 }
 
 void mac_pcap::pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti, 
@@ -65,7 +65,7 @@ void mac_pcap::pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reT
         (uint16_t)(tti%10)        /* Subframe number */
     };
     if (pdu) {
-      MAC_LTE_PCAP_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
+      LTE_PCAP_MAC_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
     }
   }
 }
