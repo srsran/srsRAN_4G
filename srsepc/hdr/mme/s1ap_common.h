@@ -22,11 +22,13 @@
 #define S1AP_COMMON_H
 
 #include "srslte/common/security.h"
+#include "srslte/asn1/gtpc_ies.h"
 
 namespace srsepc{
   
 static const uint8_t MAX_TA=255;  //Maximum TA supported
 static const uint8_t MAX_BPLMN=6; //Maximum broadcasted PLMNs per TAC
+static const uint8_t MAX_ERABS_PER_UE = 16;
 
 typedef struct{
   uint8_t       mme_code;
@@ -53,21 +55,31 @@ typedef struct{
 } enb_ctx_t;
 
 typedef struct{
+  uint8_t  k_asme[32]; 
+  uint8_t  xres[8];
+  uint32_t dl_nas_count;
+  uint32_t ul_nas_count;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+  uint8_t k_nas_enc[32];
+  uint8_t k_nas_int[32];
+} eps_security_ctx_t;
+
+typedef struct{
+    bool active;
+    uint8_t erab_id;
+    srslte::gtpc_f_teid_ie enb_fteid;
+    //gtpc_f_teid_ie sgw_fteid; //?
+} erab_ctx_t;
+
+typedef struct{
   uint64_t imsi;
   uint32_t enb_ue_s1ap_id;
   uint32_t mme_ue_s1ap_id;
   uint16_t enb_id;
   struct   sctp_sndrcvinfo enb_sri;
-  struct eps_security_ctxt{
-    uint8_t  k_asme[32]; 
-    uint8_t  xres[8];
-    uint32_t dl_nas_count;
-    uint32_t ul_nas_count;
-    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
-    uint8_t k_nas_enc[32];
-    uint8_t k_nas_int[32];
-  } security_ctxt;
+  eps_security_ctx_t security_ctxt;
+  erab_ctx_t erabs[MAX_ERABS_PER_UE];
 } ue_ctx_t;
 }//namespace
 #endif

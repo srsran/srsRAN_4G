@@ -707,18 +707,32 @@ s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSE
   bool                                                         iE_Extensions_present;
   }LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT;
   */
-  erabs_it = m_active_erabs.find(in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID);
-  if (erabs_it == m_active_erabs.end())
+  uint32_t mme_ue_s1ap_id = in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  std::map<uint32_t,ue_ctx_t*> ue_ctx_it = m_acive_ues.find(mme_ue_s1ap_id);
+  if (ue_ctx_it == m_active_ues.end())
   {
-    m_s1ap_log->error("Could not find UE's in UE active bearers map\n");
+    m_s1ap_log->error("Could not find UE's context in active UE's map\n");
     return false;
   }
-  else{
-    for(int i; i<E_RABSetupListCtxtSURes;i++)
+  for(uint32_t i; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
+  {
+    uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
+    if (erab_ctx->active == false)
     {
-      erabs_it->second.insert(std::pair<>());
+      m_s1ap_log->error("E-RAB requested was not active %d\n",);
+      return false;
     }
-  }
+    erab_ctx_t *erab_ctx = &ue_ctx_it->second->erab_ctx[i];
+    for(uint32_t i; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
+    {
+      uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
+      std::set<uint8_t, > ue_erab_it = erabs_it->second.find(erab_id);
+      if(ue_erab_it == erabs_it->second.end() )
+      {
+        m_s1ap_log->error("Could not find UE's in UE active bearers map\n");
+        return false;
+      }
+    }
   return true;
 }
 

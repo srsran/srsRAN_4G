@@ -101,11 +101,11 @@ private:
 
   hss *m_hss;
   int m_s1mme;
-  std::map<uint16_t, enb_ctx_t*>           m_active_enbs;
-  std::map<int32_t, uint16_t>              m_sctp_to_enb_id;
-  std::map<uint32_t, ue_ctx_t*>            m_active_ues;
-  std::map<uint16_t,std::set<uint32_t> >   m_enb_id_to_ue_ids;
-  uint32_t                                 m_next_mme_ue_s1ap_id;
+  std::map<uint16_t, enb_ctx_t*>                    m_active_enbs;
+  std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
+  std::map<uint32_t, ue_ctx_t*>                     m_active_ues;
+  std::map<uint16_t,std::set<uint32_t> >            m_enb_id_to_ue_ids;
+  uint32_t                                          m_next_mme_ue_s1ap_id;
 
   s1ap_mngmt_proc                m_s1ap_mngmt_proc;
   s1ap_nas_transport             m_s1ap_nas_transport;
