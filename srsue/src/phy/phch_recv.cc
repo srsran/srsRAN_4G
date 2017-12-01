@@ -549,6 +549,9 @@ void phch_recv::run_thread()
   phy_state  = IDLE;
   is_in_idle = true;
 
+  uint32_t hf_len;
+  uint32_t fft_sz;
+
   while (running)
   {
     if (phy_state != IDLE) {
@@ -677,6 +680,24 @@ void phch_recv::run_thread()
               }
               workers_pool->start_worker(worker);
 
+              // Substract PSS/SSS from current cell before computing intrafrequency
+              hf_len = SRSLTE_SF_LEN_PRB(cell.nof_prb)/2;
+              fft_sz = srslte_symbol_sz(cell.nof_prb);
+
+              if ((tti%5) == 0) {
+                srslte_vec_sc_prod_cfc(ue_sync.strack.pss_filt, 1.0/sqrtf(fft_sz), ue_sync.strack.pss_filt, fft_sz);
+                srslte_vec_sc_prod_cfc(ue_sync.strack.sss_filt, 1.0/sqrtf(fft_sz), ue_sync.strack.pss_filt, fft_sz);
+
+                srslte_vec_sub_ccc(&buffer[0][hf_len-fft_sz],
+                                   ue_sync.strack.pss_filt,
+                                   &buffer[0][hf_len-fft_sz],
+                                   fft_sz);
+
+                srslte_vec_sub_ccc(&buffer[0][hf_len-2*fft_sz-SRSLTE_CP_LEN(fft_sz, SRSLTE_CP_NORM_LEN)],
+                                   ue_sync.strack.sss_filt,
+                                   &buffer[0][hf_len-2*fft_sz-SRSLTE_CP_LEN(fft_sz, SRSLTE_CP_NORM_LEN)],
+                                   fft_sz);
+              }
               intra_freq_meas.write(tti, buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb));
               out_of_sync_cnt = 0;
               break;
@@ -718,7 +739,15 @@ void phch_recv::run_thread()
   }
 }
 
-
+void phch_recv::out_of_sync() {
+  out_of_sync2_cnt++;
+  Info("SYNC:  Received out_of_sync from channel estimator (%d)\n", out_of_sync2_cnt);
+  if (out_of_sync2_cnt >= 2) {
+    out_of_sync2_cnt = 0;
+    Info("SYNC:  Trying to resync signal\n");
+    resync_sfn(true, true);
+  }
+}
 
 
 
@@ -1068,6 +1097,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
 
   ret_code ret = IDLE;
 
+  Info("INTRA: Here offset=%d\n", offset);
   offset = offset-sf_len/2;
   if (offset < 0) {
     offset += sf_len;
@@ -1103,6 +1133,10 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
     }
   }
 
+  if (found_best) {
+    Info("INTRA: fine-tuned offset=%d\n", best_test_offset);
+  }
+
   offset = found_best?best_test_offset:offset;
   if (offset >= 0 && offset < sf_len*max_sf) {
     uint32_t nof_sf = (sf_len*max_sf - offset)/sf_len;
@@ -1116,6 +1150,8 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
         return ret;
       }
     }
+  } else {
+    Info("INTRA: not running because offset=%d, sf_len*max_sf=%d*%d\n", offset, sf_len, max_sf);
   }
   return ret;
 }
@@ -1176,18 +1212,18 @@ void phch_recv::scell_recv::init(srslte::log *log_h)
 
   measure_p.init(sf_buffer, log_h, 1, DEFAULT_MEASUREMENT_LEN);
 
-  if(srslte_sync_init(&sync_find, 5*max_sf_size, 5*max_sf_size, max_fft_sz)) {
+  if(srslte_sync_init(&sync_find, 15*max_sf_size, 5*max_sf_size, max_fft_sz)) {
     fprintf(stderr, "Error initiating sync_find\n");
     return;
   }
   srslte_sync_cp_en(&sync_find, false);
-  srslte_sync_set_threshold(&sync_find, 1.2);
+  srslte_sync_set_threshold(&sync_find, 1.3);
   srslte_sync_set_em_alpha(&sync_find, 0.0);
 
   // Configure FIND object behaviour (this configuration is always the same)
-  srslte_sync_set_cfo_ema_alpha(&sync_find,    0.2);
+  srslte_sync_set_cfo_ema_alpha(&sync_find,    0.5);
   srslte_sync_set_cfo_i_enable(&sync_find,     false);
-  srslte_sync_set_cfo_cp_enable(&sync_find,    true);
+  srslte_sync_set_cfo_cp_enable(&sync_find,    false);
   srslte_sync_set_cfo_pss_enable(&sync_find,   true);
   srslte_sync_set_pss_filt_enable(&sync_find,  true);
   srslte_sync_set_sss_filt_enable(&sync_find,  true);
@@ -1208,13 +1244,14 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
 
   if (fft_sz != current_fft_sz) {
     if (srslte_sync_resize(&sync_find, nof_sf*sf_len, 5*sf_len, fft_sz)) {
-      fprintf(stderr, "Error resizing sync\n");
+      fprintf(stderr, "Error resizing sync nof_sf=%d, sf_len=%d, fft_sz=%d\n", nof_sf, sf_len, fft_sz);
       return SRSLTE_ERROR;
     }
     current_fft_sz = fft_sz;
   }
 
   srslte_sync_reset(&sync_find);
+  srslte_sync_cfo_reset(&sync_find);
 
   int nof_cells = 0;
   uint32_t peak_idx = 0;
@@ -1243,8 +1280,15 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
           cell_id = srslte_sync_get_cell_id(&sync_find);
 
           if (cell_id != -1) {
-            Info("INTRA: found peak_idx=%d, n_id_2=%d, cell_id=%d, sf=%d\n",
-                 peak_idx, n_id_2, cell_id, sf_idx);
+            Info("INTRA: found peak_idx=%d, n_id_2=%d, cell_id=%d, sf=%d, cfo=%.1f Hz, psr=%f\n",
+                 peak_idx, n_id_2, cell_id, sf_idx, 15000*srslte_sync_get_cfo(&sync_find), sync_find.peak_value);
+
+            /*
+            if (cell_id == 342) {
+              srslte_vec_save_file("input", input_buffer, 5*sf_len*sizeof(cf_t));
+              srslte_vec_save_file("conv", sync_find.pss.conv_output, sync_find.pss.frame_size*sizeof(cf_t));
+              exit(-1);
+            }*/
 
             found_cell.id = cell_id;
             found_cell.nof_ports = 1;  // Use port 0 only for measurement

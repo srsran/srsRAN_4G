@@ -257,7 +257,6 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
   }
   // Trigger next transmission 
   pthread_mutex_unlock(&tx_mutex[(tti+1)%nof_mutex]);
-
 }    
 
 

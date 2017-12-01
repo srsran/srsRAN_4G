@@ -75,6 +75,7 @@ public:
   bool    status_is_sync();
 
   // from chest_feedback_itf
+  void    out_of_sync();
   void    set_cfo(float cfo);
 
   void    set_time_adv_sec(float time_adv_sec);
@@ -319,6 +320,7 @@ private:
   bool          cell_search_in_progress;
 
   uint32_t      out_of_sync_cnt;
+  uint32_t      out_of_sync2_cnt;
 
   float         dl_freq;
   float         ul_freq;
