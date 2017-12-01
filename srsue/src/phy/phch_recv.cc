@@ -301,15 +301,16 @@ void phch_recv::cell_search_inc()
 {
   cur_earfcn_index++;
   if (cur_earfcn_index >= 0) {
-    if (cur_earfcn_index >= (int) earfcn.size() - 1) {
+    if (cur_earfcn_index >= (int) earfcn.size()) {
       cur_earfcn_index = 0;
       rrc->earfcn_end();
+    } else {
+      Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
+      if (current_earfcn != earfcn[cur_earfcn_index]) {
+        current_earfcn = earfcn[cur_earfcn_index];
+        set_frequency();
+      }
     }
-  }
-  Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
-  if (current_earfcn != earfcn[cur_earfcn_index]) {
-    current_earfcn = earfcn[cur_earfcn_index];
-    set_frequency();
   }
 }
 
@@ -329,12 +330,16 @@ void phch_recv::cell_search_next(bool reset) {
 }
 
 void phch_recv::cell_search_start() {
-  if (earfcn.size() > 0) {
-    Info("SYNC:  Starting Cell Search procedure in %d EARFCNs...\n", earfcn.size());
-    cell_search_next(true);
+  if (phy_state == CELL_CAMP) {
+    Warning("SYNC:  Can't start cell search procedure while camping on cell\n");
   } else {
-    Info("SYNC:  Empty EARFCN list. Stopping cell search...\n");
-    log_h->console("Empty EARFCN list. Stopping cell search...\n");
+    if (earfcn.size() > 0) {
+      Info("SYNC:  Starting Cell Search procedure in %d EARFCNs...\n", earfcn.size());
+      cell_search_next(true);
+    } else {
+      Info("SYNC:  Empty EARFCN list. Stopping cell search...\n");
+      log_h->console("Empty EARFCN list. Stopping cell search...\n");
+    }
   }
 }
 

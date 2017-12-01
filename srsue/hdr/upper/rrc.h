@@ -152,9 +152,6 @@ private:
   rrc_args_t args;
   bool first_stimsi_attempt;
 
-  bool reestablishment_in_progress;
-  bool connection_requested;
-
   bool pending_mob_reconf;
   LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT mob_reconf;
 
@@ -367,7 +364,8 @@ private:
   void          cell_reselection_eval(float rsrp, float rsrq);
   bool          cell_selection_eval(float rsrp, float rsrq = 0);
 
-
+  bool connection_requested;
+  void plmn_select_rrc(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
 
   // RLC interface
   void          max_retx_attempted();
