@@ -224,7 +224,7 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb
     break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME:
     m_s1ap_log->info("Received Succeseful Outcome PDU\n");
-    return true;//TODO handle_successfuloutcome(&rx_pdu.choice.successfulOutcome);
+    return handle_successful_outcome(&rx_pdu.choice.successfulOutcome);
     break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME:
     m_s1ap_log->info("Received Unsucceseful Outcome PDU\n");
@@ -261,6 +261,18 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
   return true;
 }
 
+bool 
+s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
+{
+  switch(msg->choice_type) {
+  case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_INITIALCONTEXTSETUPRESPONSE:
+    m_s1ap_log->info("Received Initial Context Setup Response.\n");
+    return handle_initial_context_setup_response(&msg->choice.InitialContextSetupResponse);
+  default:
+    m_s1ap_log->error("Unhandled successful outcome message: %s\n", liblte_s1ap_successfuloutcome_choice_text[msg->choice_type]);
+  }
+  return true;
+}
 bool 
 s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
 {
@@ -655,13 +667,13 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   return true;
 }
 
-  /*
+
 bool
-s1ap::handle_initial_context_setup_response(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp)
+s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp)
 {
  return true;
 }
-  */
+
 
 bool
 s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri)

@@ -256,7 +256,7 @@ spgw::run_thread()
     FD_SET(m_s1u, &set);
     FD_SET(sgi, &set);
 
-    m_spgw_log->info("Waiting for S1-U or SGi packets.\n");
+    //m_spgw_log->info("Waiting for S1-U or SGi packets.\n");
     int n = select(max_fd+1, &set, NULL, NULL, NULL);
     if (n == -1)
     {
@@ -264,19 +264,19 @@ spgw::run_thread()
     }
     else if (n)
     {
-      m_spgw_log->info("Data is available now.\n");
+      //m_spgw_log->info("Data is available now.\n");
       if (FD_ISSET(m_s1u, &set))
       {
           msg->N_bytes = recvfrom(m_s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen );
-          m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
-          m_spgw_log->debug("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
+          //m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
+          //m_spgw_log->debug("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
       }
       if (FD_ISSET(m_sgi_if, &set))
       {
-          m_spgw_log->console("Received PDU from SGi\n");
+          //m_spgw_log->console("Received PDU from SGi\n");
           msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-          m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
-          m_spgw_log->debug("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
+          //m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
+          //m_spgw_log->debug("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
       }
     }
     else
