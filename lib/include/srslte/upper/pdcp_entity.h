@@ -78,10 +78,11 @@ public:
 
   // RRC interface
   void write_sdu(byte_buffer_t *sdu);
-  void config_security(uint8_t *k_rrc_enc_,
-                       uint8_t *k_rrc_int_,
+  void config_security(uint8_t *k_enc_,
+                       uint8_t *k_int_,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
+  void enable_integrity();
   void enable_encryption();
 
   // RLC interface
@@ -102,13 +103,14 @@ private:
   bool                active;
   uint32_t            lcid;
   srslte_pdcp_config_t cfg;
+  uint8_t             sn_len_bytes;
   bool                do_integrity;
   bool                do_encryption;
 
   uint32_t            rx_count;
   uint32_t            tx_count;
-  uint8_t             k_rrc_enc[32];
-  uint8_t             k_rrc_int[32];
+  uint8_t             k_enc[32];
+  uint8_t             k_int[32];
 
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
@@ -133,6 +135,7 @@ private:
 
   void run_thread();
 
+  uint8_t  get_bearer_id(uint8_t lcid);
 };
 
 /****************************************************************************
