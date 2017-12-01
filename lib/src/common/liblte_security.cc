@@ -903,7 +903,7 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(uint8  *key,
         s3g_generate_keystream(state_ptr, msg_len_block_32, ks);
 
         // Generate output except last block
-        for (i = 0; i < msg_len_block_32 - 1; i++) {
+        for (i = 0; i < (int32_t)msg_len_block_32 - 1; i++) {
             out[4 * i + 0] = msg[4 * i + 0] ^ ((ks[i] >> 24) & 0xFF);
             out[4 * i + 1] = msg[4 * i + 1] ^ ((ks[i] >> 16) & 0xFF);
             out[4 * i + 2] = msg[4 * i + 2] ^ ((ks[i] >>  8) & 0xFF);
@@ -911,8 +911,7 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(uint8  *key,
         }
 
         // Process last bytes
-        for (i = (msg_len_block_32 - 1) * 4; i < msg_len_block_8;
-                i++) {
+        for (i = (msg_len_block_32 - 1) * 4; i < (int32_t)msg_len_block_8; i++) {
             out[i] = msg[i] ^ ((ks[i / 4] >> ((3 - (i % 4)) * 8)) & 0xFF);
         }
 

@@ -149,14 +149,13 @@ private:
 
   void integrity_generate(uint8_t *key_128,
                           uint32_t count,
-                          uint8_t rb_id,
                           uint8_t direction,
                           uint8_t *msg,
                           uint32_t msg_len,
                           uint8_t *mac);
-  bool integrity_check(uint32 lcid, byte_buffer_t *pdu);
-  void cipher_encrypt(uint32 lcid, byte_buffer_t *pdu);
-  void cipher_decrypt(uint32 lcid, byte_buffer_t *pdu);
+  bool integrity_check(byte_buffer_t *pdu);
+  void cipher_encrypt(byte_buffer_t *pdu);
+  void cipher_decrypt(byte_buffer_t *pdu);
 
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps);
 

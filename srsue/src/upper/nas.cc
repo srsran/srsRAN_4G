@@ -206,8 +206,8 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY:
         break;
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED:
-        mac_valid = integrity_check(lcid, pdu);
-        cipher_decrypt(lcid, pdu);
+        mac_valid = integrity_check(pdu);
+        cipher_decrypt(pdu);
         break;
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT:
         break;
@@ -305,7 +305,6 @@ void nas::start_pcap(srslte::nas_pcap *pcap_)
 
 void nas::integrity_generate(uint8_t *key_128,
                              uint32_t count,
-                             uint8_t rb_id,
                              uint8_t direction,
                              uint8_t *msg,
                              uint32_t msg_len,
@@ -316,7 +315,7 @@ void nas::integrity_generate(uint8_t *key_128,
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
       security_128_eia1(key_128,
                         count,
-                        rb_id,
+                        0,            // Bearer always 0 for NAS
                         direction,
                         msg,
                         msg_len,
@@ -325,7 +324,7 @@ void nas::integrity_generate(uint8_t *key_128,
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(key_128,
                         count,
-                        rb_id,
+                        0,            // Bearer always 0 for NAS
                         direction,
                         msg,
                         msg_len,
@@ -339,16 +338,14 @@ void nas::integrity_generate(uint8_t *key_128,
 // This function depends to a valid k_nas_int.
 // This key is generated in the security mode command.
 
-bool nas::integrity_check(uint32 lcid,
-                          byte_buffer_t *pdu)
+bool nas::integrity_check(byte_buffer_t *pdu)
 {
-
   uint8_t exp_mac[4];
   uint8_t *mac = &pdu->msg[1];
   int i;
+
   integrity_generate(&k_nas_int[16],
                      ctxt.rx_count,
-                     lcid-1,
                      SECURITY_DIRECTION_DOWNLINK,
                      &pdu->msg[5],
                      pdu->N_bytes-5,
@@ -357,16 +354,19 @@ bool nas::integrity_check(uint32 lcid,
   // Check if expected mac equals the sent mac
   for(i=0; i<4; i++){
     if(exp_mac[i] != mac[i]){
-     nas_log->warning("Expected MAC [%02x %02x %02x %02x] does not match sent MAC [%02x %02x %02x %02x]\n", exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3], mac[0], mac[1], mac[2], mac[3]);
+     nas_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
+                      "Received: count=%d, [%02x %02x %02x %02x]\n",
+                      ctxt.rx_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                      pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
      return false;
     }
   }
-  nas_log->info("Expected MAC [%02x %02x %02x %02x] equals sent MAC [%02x %02x %02x %02x]\n", exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3], mac[0], mac[1], mac[2], mac[3]);
+  nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
+                ctxt.rx_count, pdu->msg[5]);
   return true;
 }
 
-void nas::cipher_encrypt(uint32 lcid,
-                       byte_buffer_t *pdu)
+void nas::cipher_encrypt(byte_buffer_t *pdu)
 {
   byte_buffer_t pdu_tmp;
   switch(ctxt.cipher_algo)
@@ -376,7 +376,7 @@ void nas::cipher_encrypt(uint32 lcid,
   case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&k_nas_enc[16],
                         pdu->msg[5],
-                        lcid-1,
+                        0,            // Bearer always 0 for NAS
                         SECURITY_DIRECTION_UPLINK,
                         &pdu->msg[6],
                         pdu->N_bytes-6,
@@ -386,7 +386,7 @@ void nas::cipher_encrypt(uint32 lcid,
   case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&k_nas_enc[16],
                         pdu->msg[5],
-                        lcid-1,
+                        0,            // Bearer always 0 for NAS
                         SECURITY_DIRECTION_UPLINK,
                         &pdu->msg[6],
                         pdu->N_bytes-6,
@@ -399,8 +399,7 @@ void nas::cipher_encrypt(uint32 lcid,
   }
 }
 
-void nas::cipher_decrypt(uint32 lcid,
-                         byte_buffer_t *pdu)
+void nas::cipher_decrypt(byte_buffer_t *pdu)
 {
   byte_buffer_t tmp_pdu;
   switch(ctxt.cipher_algo)
@@ -410,7 +409,7 @@ void nas::cipher_decrypt(uint32 lcid,
   case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&k_nas_enc[16],
                         pdu->msg[5],
-                        lcid-1,
+                        0,            // Bearer always 0 for NAS
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[6],
                         pdu->N_bytes-6,
@@ -420,7 +419,7 @@ void nas::cipher_decrypt(uint32 lcid,
   case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&k_nas_enc[16],
                         pdu->msg[5],
-                        lcid-1,
+                        0,            // Bearer always 0 for NAS
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[6],
                         pdu->N_bytes-6,
@@ -549,10 +548,9 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       pcap->write_nas(pdu->msg, pdu->N_bytes);
     }
 
-    cipher_encrypt(lcid, pdu);
+    cipher_encrypt(pdu);
     integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,
-                       lcid - 1,
                        SECURITY_DIRECTION_UPLINK,
                        &pdu->msg[5],
                        pdu->N_bytes - 5,
@@ -726,7 +724,7 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   nas_log->debug("Generating integrity check. integ_algo:%d, count_dl:%d, lcid:%d\n",
                  ctxt.integ_algo, ctxt.rx_count, lcid);
 
-  if (integrity_check(lcid, pdu) != true) {
+  if (integrity_check(pdu) != true) {
     nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
     send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE);
     pool->deallocate(pdu);
@@ -757,10 +755,9 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   if(pcap != NULL) {
     pcap->write_nas(sdu->msg, sdu->N_bytes);
   }
-  cipher_encrypt(lcid, sdu);
+  cipher_encrypt(sdu);
   integrity_generate(&k_nas_int[16],
                      ctxt.tx_count,
-                     lcid - 1,
                      SECURITY_DIRECTION_UPLINK,
                      &sdu->msg[5],
                      sdu->N_bytes - 5,
@@ -846,7 +843,6 @@ void nas::send_attach_request() {
     // Add MAC
     integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,
-                       cfg.lcid-1,
                        SECURITY_DIRECTION_UPLINK,
                        &msg->msg[5],
                        msg->N_bytes - 5,
@@ -919,7 +915,6 @@ void nas::send_service_request() {
   uint8_t mac[4];
   integrity_generate(&k_nas_int[16],
                      ctxt.tx_count,
-                     cfg.lcid-1,
                      SECURITY_DIRECTION_UPLINK,
                      &msg->msg[0],
                      2,
