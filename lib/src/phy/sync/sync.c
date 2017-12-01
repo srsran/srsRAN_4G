@@ -620,7 +620,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
 
       }
 
-      // If there is enough space for CP and PSS-based CFO estimation
+      // If there is enough space for CP and SSS estimation
       if (peak_pos + find_offset >= 2 * (q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
 
         // If SSS search is enabled, correlate SSS sequence

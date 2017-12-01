@@ -395,6 +395,7 @@ void phch_worker::work_imp()
       phy->rrc->in_sync();
       log_h->debug("SYNC:  Sending in-sync to RRC\n");
     } else if (snr_th_err) {
+      chest_loop->out_of_sync();
       phy->rrc->out_of_sync();
       log_h->info("SNR=%.1f dB under threshold. Sending out-of-sync to RRC\n",
                    10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));

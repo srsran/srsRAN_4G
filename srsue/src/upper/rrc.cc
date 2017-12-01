@@ -1322,8 +1322,8 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
         mac->pcch_stop_rx();
         if (RRC_STATE_IDLE == state) {
           rrc_log->info("RRC in IDLE state - sending connection request.\n");
-          send_con_request();
-          state = RRC_STATE_CONNECTING;
+          connection_requested = true;
+          state = RRC_STATE_CELL_SELECTED;
         }
       }
     }
@@ -1386,7 +1386,7 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
       send_ul_info_transfer(lcid, sdu);
       break;
     default:
-      rrc_log->error("SDU received from NAS while RRC state = %s", rrc_state_text[state]);
+      rrc_log->error("SDU received from NAS while RRC state = %s\n", rrc_state_text[state]);
       break;
   }
 }

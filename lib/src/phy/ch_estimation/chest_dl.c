@@ -434,10 +434,10 @@ float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) 
   uint32_t l;
   
   float rssi = 0;
-  uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id);   
+  uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id);
   for (l=0;l<nsymbols;l++) {
     cf_t *tmp = &input[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE];
-    rssi += srslte_vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * SRSLTE_NRE);    
+    rssi += srslte_vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * SRSLTE_NRE);
   }    
   return rssi/nsymbols; 
 }
