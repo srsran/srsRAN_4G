@@ -49,7 +49,6 @@ rrc::rrc()
   ,drb_up(false)
   ,sysinfo_index(0)
 {
-  sync_reset_cnt = 0;
   n310_cnt       = 0;
   n311_cnt       = 0;
 }
@@ -98,6 +97,7 @@ void rrc::init(phy_interface_rrc *phy_,
 
   first_stimsi_attempt = false;
   reestablishment_in_progress = false;
+  connection_requested = false;
 
   args.ue_category = SRSLTE_UE_CATEGORY;
   args.supported_bands[0] = 7;
@@ -216,28 +216,31 @@ void rrc::run_thread() {
             state = RRC_STATE_CELL_SELECTED;
           }
         }
-        select_cell_timeout++;
-        if (select_cell_timeout >= RRC_SELECT_CELL_TIMEOUT) {
-          rrc_log->info("RRC Cell Selecting: timeout expired. Starting Cell Search...\n");
-          state = RRC_STATE_PLMN_SELECTION;
-          plmn_select_timeout = 0;
-          phy->cell_search_start();
+        if (!reestablishment_in_progress) {
+          select_cell_timeout++;
+          if (select_cell_timeout >= RRC_SELECT_CELL_TIMEOUT) {
+            rrc_log->info("RRC Cell Selecting: timeout expired. Starting Cell Search...\n");
+            state = RRC_STATE_PLMN_SELECTION;
+            plmn_select_timeout = 0;
+            phy->cell_search_start();
+          }
         }
         break;
       case RRC_STATE_CELL_SELECTED:
-        if (!nas->is_attached() || paging_received) {
-          paging_received = false;
-          rrc_log->info("RRC Cell Selected: Sending connection request...\n");
-          send_con_request();
-          state = RRC_STATE_CONNECTING;
-          connecting_timeout = 0;
-        } else if (reestablishment_in_progress) {
+
+        if (mac_timers->timer_get(t311)->is_running()) {
           rrc_log->info("RRC Cell Selected: Sending connection reestablishment...\n");
           con_restablish_cell_reselected();
           state = RRC_STATE_CONNECTING;
           connecting_timeout = 0;
+        } else if (connection_requested) {
+          rrc_log->info("RRC Cell Selected: Sending connection request...\n");
+          send_con_request();
+          state = RRC_STATE_CONNECTING;
+          connecting_timeout = 0;
+          connection_requested = false;
         } else {
-          rrc_log->console("RRC Cell Selected: New PCI=%d\n", current_cell->phy_cell.id);
+          rrc_log->info("RRC Cell Selected: Starting paging and going to IDLE...\n");
           mac->pcch_start_rx();
           state = RRC_STATE_IDLE;
         }
@@ -426,6 +429,7 @@ void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
       rrc_log->info("Already camping on selected PLMN, connecting...\n");
       state = RRC_STATE_CELL_SELECTING;
       select_cell_timeout = 0;
+      connection_requested = true;
     } else {
       rrc_log->info("PLMN Id=%s selected\n", plmn_id_to_string(plmn_id).c_str());
       // Sort cells according to RSRP
@@ -434,6 +438,7 @@ void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
       last_selected_cell = -1;
       select_cell_timeout = 0;
 
+      connection_requested = true;
       state = RRC_STATE_CELL_SELECTING;
       select_next_cell_in_plmn();
     }
@@ -499,7 +504,7 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, ui
 
     // Verify cell selection criteria
     if (cell_selection_eval(known_cells[best_cell_idx].rsrp)     &&
-      known_cells[best_cell_idx].rsrp > current_cell->rsrp + 5 &&
+        known_cells[best_cell_idx].rsrp > current_cell->rsrp + 5 &&
         best_cell.id != phy->get_current_pci())
     {
       rrc_log->info("Selecting best neighbour cell PCI=%d, rsrp=%.1f dBm\n", best_cell.id, known_cells[best_cell_idx].rsrp);
@@ -674,12 +679,6 @@ float rrc::get_squal(float Qqualmeas) {
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
   // attempt resync
-  sync_reset_cnt++;
-  if (sync_reset_cnt >= SYNC_RESET_TIMEOUT) {
-    rrc_log->info("Detected %d out-of-sync from PHY. Resynchronizing PHY.\n", sync_reset_cnt);
-    phy->sync_reset();
-    sync_reset_cnt = 0;
-  }
   current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
@@ -748,8 +747,12 @@ void rrc::timer_expired(uint32_t timeout_id) {
     rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
     state = RRC_STATE_LEAVE_CONNECTED;
   } else if (timeout_id == t301) {
-    rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
-    state = RRC_STATE_LEAVE_CONNECTED;
+    if (state == RRC_STATE_IDLE) {
+      rrc_log->info("Timer T301 expired: Already in IDLE.\n");
+    } else {
+      rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
+      state = RRC_STATE_LEAVE_CONNECTED;
+    }
   } else if (timeout_id == t304) {
     rrc_log->console("Timer T304 expired: Handover failed\n");
   // fw to measurement
@@ -873,6 +876,7 @@ void rrc::send_con_restablish_request() {
   set_phy_default();
   mac->reset();
   set_mac_default();
+  state = RRC_STATE_CELL_SELECTING;
 }
 
 // Actions following cell reselection 5.3.7.3
@@ -890,7 +894,7 @@ void rrc::con_restablish_cell_reselected()
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool_allocate;;
+  byte_buffer_t *pdcp_buf = pool_allocate;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits / 8;
 
@@ -1296,8 +1300,8 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
         mac->pcch_stop_rx();
         if (RRC_STATE_IDLE == state) {
           rrc_log->info("RRC in IDLE state - sending connection request.\n");
-          paging_received = true;
-          state = RRC_STATE_CELL_SELECTING;
+          send_con_request();
+          state = RRC_STATE_CONNECTING;
         }
       }
     }

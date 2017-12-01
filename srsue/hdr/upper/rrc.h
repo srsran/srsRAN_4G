@@ -149,12 +149,11 @@ private:
   uint8_t transaction_id;
   bool drb_up;
 
-  bool paging_received;
-
   rrc_args_t args;
   bool first_stimsi_attempt;
 
   bool reestablishment_in_progress;
+  bool connection_requested;
 
   bool pending_mob_reconf;
   LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT mob_reconf;
@@ -186,8 +185,6 @@ private:
 
   // RRC constants and timers
   srslte::mac_interface_timers *mac_timers;
-  uint32_t sync_reset_cnt;
-  const static uint32_t SYNC_RESET_TIMEOUT = 10;
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
   uint32_t t301, t310, t311, t304;

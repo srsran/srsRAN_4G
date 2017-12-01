@@ -162,8 +162,7 @@ void mac::run_thread() {
   while(started) {
 
     /* Warning: Here order of invocation of procedures is important!! */
-    ttisync.wait();
-    tti = phy_h->get_current_tti();
+    tti = ttisync.wait();
 
     log_h->step(tti);
     timers.step_all();
@@ -229,7 +228,7 @@ void mac::pcch_stop_rx()
 
 void mac::tti_clock(uint32_t tti)
 {
-  ttisync.increase();
+  ttisync.increase(tti);
 }
 
 void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)

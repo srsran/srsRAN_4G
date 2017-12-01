@@ -259,7 +259,7 @@ private:
         memcpy(&cur_grant, &grant, sizeof(Tgrant));
 
         // If data has not yet been successfully decoded
-        if (!ack || (grant.rv[tid]==0 && grant.phy_grant.dl.mcs[tid].idx < 29)) {
+        if (!ack) {
 
           // Instruct the PHY To combine the received data and attempt to decode it
           if (pid == HARQ_BCCH_PID) {

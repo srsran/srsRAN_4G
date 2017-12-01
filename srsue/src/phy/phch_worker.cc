@@ -230,14 +230,15 @@ void phch_worker::work_imp()
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   bool chest_ok = extract_fft_and_pdcch_llr();
 
-  bool snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>-20.0;
+  bool snr_th_err = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))<-20.0;
+  bool snr_th_ok  = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>-15.0;
 
   // Call feedback loop for chest
   if (chest_loop && ((1<<(tti%10)) & phy->args->cfo_ref_mask)) {
     chest_loop->set_cfo(srslte_chest_dl_get_cfo(&ue_dl.chest));
   }
 
-  if (chest_ok && snr_th_ok) {
+  if (chest_ok && !snr_th_err) {
 
     /***** Downlink Processing *******/
 
@@ -267,7 +268,7 @@ void phch_worker::work_imp()
           }
         }
       }
-      Debug("dl_ack={%d, %d}, generate_ack=%d\n", dl_ack[0], dl_ack[1], dl_action.generate_ack);
+      Info("dl_ack={%d, %d}, generate_ack=%d\n", dl_ack[0], dl_ack[1], dl_action.generate_ack);
       if (dl_action.generate_ack) {
         set_uci_ack(dl_ack, dl_mac_grant.tb_en);
       }
@@ -393,7 +394,7 @@ void phch_worker::work_imp()
     if (snr_th_ok) {
       phy->rrc->in_sync();
       log_h->debug("SYNC:  Sending in-sync to RRC\n");
-    } else {
+    } else if (snr_th_err) {
       phy->rrc->out_of_sync();
       log_h->info("SNR=%.1f dB under threshold. Sending out-of-sync to RRC\n",
                    10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));

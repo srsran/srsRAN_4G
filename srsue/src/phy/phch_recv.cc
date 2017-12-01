@@ -596,10 +596,12 @@ void phch_recv::run_thread()
             }
             break;
           case sfn_sync::TIMEOUT:
-            if (phy_state == CELL_SELECT) {
+            if (cell_search_in_progress) {
+              log_h->warning("SYNC:  Timeout while synchronizing SFN. Going back to cell search\n");
               phy_state = CELL_SEARCH;
             } else {
-              phy_state = IDLE;
+              log_h->warning("SYNC:  Timeout while synchronizing SFN. Reselecting cell\n");
+              resync_sfn(true, true);
             }
             break;
           case sfn_sync::IDLE:
@@ -706,8 +708,8 @@ void phch_recv::run_thread()
     }
 
     // Increase TTI counter and trigger MAC clock (lower priority)
-    tti = (tti+1) % 10240;
     mac->tti_clock(tti);
+    tti = (tti+1) % 10240;
   }
 }
 
@@ -973,7 +975,6 @@ phch_recv::sfn_sync::ret_code phch_recv::sfn_sync::run_subframe(srslte_cell_t *c
   cnt++;
   if (cnt >= timeout) {
     cnt = 0;
-    log_h->warning("SYNC:  Timeout while synchronizing SFN\n");
     return TIMEOUT;
   }
 

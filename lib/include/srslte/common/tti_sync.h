@@ -50,6 +50,7 @@ class tti_sync
       init_counters(0);
     }
     virtual void     increase() = 0;
+    virtual void     increase(uint32_t cnt) = 0;
     virtual void     resync() = 0;
     virtual uint32_t wait() = 0; 
     virtual void     set_producer_cntr(uint32_t) = 0; 
@@ -60,6 +61,7 @@ class tti_sync
     }
   protected: 
     void increase_producer() { producer_cntr = (producer_cntr + increment)%modulus; }
+    void increase_producer(uint32_t cnt) { producer_cntr = cnt%modulus; }
     void increase_consumer() { consumer_cntr = (consumer_cntr + increment)%modulus; }
     bool wait_condition() { return producer_cntr == consumer_cntr; }
     void init_counters(uint32_t val) 
