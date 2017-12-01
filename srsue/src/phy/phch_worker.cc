@@ -230,7 +230,7 @@ void phch_worker::work_imp()
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   bool chest_ok = extract_fft_and_pdcch_llr();
 
-  bool snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>-10.0;
+  bool snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>-20.0;
 
   // Call feedback loop for chest
   if (chest_loop && ((1<<(tti%10)) & phy->args->cfo_ref_mask)) {
@@ -1227,18 +1227,13 @@ int phch_worker::read_ce_abs(float *ce_abs) {
   int sz = srslte_symbol_sz(cell.nof_prb);
   bzero(ce_abs, sizeof(float)*sz);
   int g = (sz - 12*cell.nof_prb)/2;
-/*  for (i = 0; i < 12*cell.nof_prb; i++) {
+  for (i = 0; i < 12*cell.nof_prb; i++) {
     ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[0][0][i]));
     if (isinf(ce_abs[g+i])) {
       ce_abs[g+i] = -80;
     }
   }
-*/
-  uint32_t nrefs = 2*ue_dl.cell.nof_prb;
-  for (i=0;i<nrefs;i++) {
-    ce_abs[i] = 15000*0.463208685*cargf(ue_dl.chest.tmp_cfo_estimate[i])/M_PI;
-  }
-  return nrefs;
+  return sz;
 }
 
 int phch_worker::read_pdsch_d(cf_t* pdsch_d)
@@ -1294,7 +1289,7 @@ void phch_worker::update_measurements()
         phy->avg_rsrp_dbm= rsrp_dbm;
       } else {
         phy->avg_rsrp_dbm = SRSLTE_VEC_EMA(rsrp_dbm, phy->avg_rsrp_dbm, snr_ema_coeff);
-      }    
+      }
       if ((tti%phy->pcell_report_period) == 0 && phy->pcell_meas_enabled) {
         phy->rrc->new_phy_meas(phy->avg_rsrp_dbm, phy->avg_rsrq_db, tti);
       }
@@ -1388,7 +1383,7 @@ void *plot_thread_run(void *arg) {
   plot_real_init(&pce);
   plot_real_setTitle(&pce, (char*) "Channel Response - Magnitude");
   plot_real_setLabels(&pce, (char*) "Index", (char*) "dB");
-  plot_real_setYAxisScale(&pce, -1000, 1000);
+  plot_real_setYAxisScale(&pce, -40, 40);
   
   plot_scatter_init(&pconst);
   plot_scatter_setTitle(&pconst, (char*) "PDSCH - Equalized Symbols");

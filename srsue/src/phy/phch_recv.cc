@@ -399,22 +399,24 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
       log_h->warning("Still not in idle\n");
     }
 
-    current_earfcn = earfcn;
-
-    if (set_frequency()) {
-      this->cell = cell;
-      log_h->info("Cell Select: Configuring cell...\n");
-
-      if (set_cell()) {
-        log_h->info("Cell Select: Synchronizing on cell...\n");
-
-        resync_sfn();
-
-        usleep(500000); // Time offset we set start_rx to start receiving samples
-        return true;
-      } else {
+    if (earfcn != current_earfcn) {
+      if (set_frequency()) {
         log_h->error("Cell Select: Configuring cell in EARFCN=%d, PCI=%d\n", earfcn, cell.id);
+        return false;
       }
+      current_earfcn = earfcn;
+    }
+
+    this->cell = cell;
+    log_h->info("Cell Select: Configuring cell...\n");
+
+    if (set_cell()) {
+      log_h->info("Cell Select: Synchronizing on cell...\n");
+
+      resync_sfn();
+
+      usleep(500000); // Time offset we set start_rx to start receiving samples
+      return true;
     }
     return false;
   }
@@ -669,13 +671,21 @@ void phch_recv::run_thread()
               workers_pool->start_worker(worker);
 
               intra_freq_meas.write(tti, buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb));
+              out_of_sync_cnt = 0;
               break;
             case 0:
-              log_h->error("SYNC:  Sync error. Sending out-of-sync to RRC\n");
-              // Notify RRC of out-of-sync frame
-              rrc->out_of_sync();
+              // Signal every 5 errors only (PSS is every 5)
+              if (out_of_sync_cnt == 0) {
+                // Notify RRC of out-of-sync frame
+                log_h->error("SYNC:  Sync error. Sending out-of-sync to RRC\n");
+                rrc->out_of_sync();
+              }
               worker->release();
               worker_com->reset_ul();
+              out_of_sync_cnt++;
+              if (out_of_sync_cnt >= 5) {
+                out_of_sync_cnt = 0;
+              }
               break;
             default:
               radio_error();
@@ -1203,7 +1213,7 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
   int nof_cells = 0;
   uint32_t peak_idx = 0;
   uint32_t sf_idx   = 0;
-  uint32_t cell_id  = 0;
+  int      cell_id  = 0;
 
   srslte_cell_t found_cell;
   memcpy(&found_cell, &cell, sizeof(srslte_cell_t));
@@ -1226,29 +1236,28 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
           sf_idx  = srslte_sync_get_sf_idx(&sync_find);
           cell_id = srslte_sync_get_cell_id(&sync_find);
 
-          Info("INTRA: found peak_idx=%d, n_id_2=%d, cell_id=%d, sf=%d\n",
+          if (cell_id != -1) {
+            Info("INTRA: found peak_idx=%d, n_id_2=%d, cell_id=%d, sf=%d\n",
                  peak_idx, n_id_2, cell_id, sf_idx);
 
-          found_cell.id = cell_id;
-          found_cell.nof_ports = 1;  // Use port 0 only for measurement
-          measure_p.set_cell(found_cell);
+            found_cell.id = cell_id;
+            found_cell.nof_ports = 1;  // Use port 0 only for measurement
+            measure_p.set_cell(found_cell);
 
-          //printf("cell_id=%d, correcting cfo=%f Hz\n", cell_id, 15000*sync_find.mean_cfo2);
-          //srslte_cfo_correct(&sync_find.cfocorr, input_buffer, input_buffer, -sync_find.mean_cfo2 / sync_find.fft_size);
-
-          switch(measure_p.run_multiple_subframes(input_buffer, peak_idx, sf_idx, nof_sf)) {
-            case measure::MEASURE_OK:
-              cells[nof_cells].pci    = found_cell.id;
-              cells[nof_cells].rsrp   = measure_p.rsrp();
-              cells[nof_cells].rsrq   = measure_p.rsrq();
-              cells[nof_cells].offset = peak_idx;
-              nof_cells++;
-              break;
-            case measure::ERROR:
-              Error("Measuring neighbour cell\n");
-              return SRSLTE_ERROR;
-            default:
-              break;
+            switch(measure_p.run_multiple_subframes(input_buffer, peak_idx, sf_idx, nof_sf)) {
+              case measure::MEASURE_OK:
+                cells[nof_cells].pci    = found_cell.id;
+                cells[nof_cells].rsrp   = measure_p.rsrp();
+                cells[nof_cells].rsrq   = measure_p.rsrq();
+                cells[nof_cells].offset = peak_idx;
+                nof_cells++;
+                break;
+              case measure::ERROR:
+                Error("Measuring neighbour cell\n");
+                return SRSLTE_ERROR;
+              default:
+                break;
+            }
           }
           break;
         case SRSLTE_SYNC_FOUND_NOSPACE:
@@ -1347,7 +1356,7 @@ void phch_recv::intra_measure::add_cell(int pci) {
     receive_enabled = true;
     Info("INTRA: Starting intra-frequency measurement for pci=%d\n", pci);
   } else {
-    Warning("INTRA: Requested to start already existing intra-frequency measurement for PCI=%d\n", pci);
+    Debug("INTRA: Requested to start already existing intra-frequency measurement for PCI=%d\n", pci);
   }
 }
 

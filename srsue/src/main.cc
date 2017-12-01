@@ -237,7 +237,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
 
     ("expert.average_subframe_enabled",
-     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
+     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(false),
      "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
     ("expert.time_correct_period",

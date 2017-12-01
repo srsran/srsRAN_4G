@@ -178,7 +178,7 @@ int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
     }
     ret = SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
+    fprintf(stderr, "Invalid cell properties ue_ul: Id=%d, Ports=%d, PRBs=%d\n",
             cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;

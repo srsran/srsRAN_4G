@@ -149,6 +149,8 @@ private:
   uint8_t transaction_id;
   bool drb_up;
 
+  bool paging_received;
+
   rrc_args_t args;
   bool first_stimsi_attempt;
 
@@ -208,7 +210,8 @@ private:
   const static int MAX_KNOWN_CELLS = 64;
   cell_t known_cells[MAX_KNOWN_CELLS];
   cell_t *current_cell;
-  void add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
+  cell_t* add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
+  uint32_t   find_best_cell(uint32_t earfcn, srslte_cell_t *cell);
 
   typedef enum {
     SI_ACQUIRE_IDLE = 0,
@@ -365,6 +368,7 @@ private:
   float         get_srxlev(float Qrxlevmeas);
   float         get_squal(float Qqualmeas);
   void          cell_reselection_eval(float rsrp, float rsrq);
+  bool          cell_selection_eval(float rsrp, float rsrq = 0);
 
 
 

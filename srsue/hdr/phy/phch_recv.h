@@ -318,6 +318,8 @@ private:
   int           cur_earfcn_index;
   bool          cell_search_in_progress;
 
+  uint32_t      out_of_sync_cnt;
+
   float         dl_freq;
   float         ul_freq;
 

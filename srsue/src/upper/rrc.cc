@@ -225,14 +225,22 @@ void rrc::run_thread() {
         }
         break;
       case RRC_STATE_CELL_SELECTED:
-        rrc_log->info("RRC Cell Selected: Sending connection request...\n");
-        if (reestablishment_in_progress) {
-          con_restablish_cell_reselected();
-        } else {
+        if (!nas->is_attached() || paging_received) {
+          paging_received = false;
+          rrc_log->info("RRC Cell Selected: Sending connection request...\n");
           send_con_request();
+          state = RRC_STATE_CONNECTING;
+          connecting_timeout = 0;
+        } else if (reestablishment_in_progress) {
+          rrc_log->info("RRC Cell Selected: Sending connection reestablishment...\n");
+          con_restablish_cell_reselected();
+          state = RRC_STATE_CONNECTING;
+          connecting_timeout = 0;
+        } else {
+          rrc_log->console("RRC Cell Selected: New PCI=%d\n", current_cell->phy_cell.id);
+          mac->pcch_start_rx();
+          state = RRC_STATE_IDLE;
         }
-        state = RRC_STATE_CONNECTING;
-        connecting_timeout = 0;
         break;
       case RRC_STATE_CONNECTING:
         connecting_timeout++;
@@ -471,7 +479,34 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, ui
   if (state == RRC_STATE_CONNECTED) {
     measurements.new_phy_meas(earfcn, pci, rsrp, rsrq, tti);
   } else {
-    cell_reselection_eval(rsrp, rsrq);
+    // If measurement is of the serving cell, evaluate cell reselection criteria
+    if ((earfcn == phy->get_current_earfcn() && pci == phy->get_current_pci()) || (earfcn == 0 && pci == 0)) {
+      cell_reselection_eval(rsrp, rsrq);
+      current_cell->rsrp = rsrp;
+      rrc_log->info("MEAS:  New measurement serving cell, rsrp=%f, rsrq=%f, tti=%d\n", rsrp, rsrq, tti);
+    } else {
+      // Add/update cell measurement
+      srslte_cell_t cell;
+      phy->get_current_cell(&cell, NULL);
+      cell.id = pci;
+      add_new_cell(earfcn, cell, rsrp);
+
+      rrc_log->info("MEAS:  New measurement PCI=%d, RSRP=%.1f dBm.\n", pci, rsrp);
+    }
+
+    srslte_cell_t best_cell;
+    uint32_t best_cell_idx = find_best_cell(phy->get_current_earfcn(), &best_cell);
+
+    // Verify cell selection criteria
+    if (cell_selection_eval(known_cells[best_cell_idx].rsrp)     &&
+      known_cells[best_cell_idx].rsrp > current_cell->rsrp + 5 &&
+        best_cell.id != phy->get_current_pci())
+    {
+      rrc_log->info("Selecting best neighbour cell PCI=%d, rsrp=%.1f dBm\n", best_cell.id, known_cells[best_cell_idx].rsrp);
+      state = RRC_STATE_CELL_SELECTING;
+      current_cell = &known_cells[best_cell_idx];
+      phy->cell_select(phy->get_current_earfcn(), best_cell);
+    }
   }
 }
 
@@ -498,8 +533,13 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
       return;
     }
   }
-  // add to list of known cells
-  add_new_cell(earfcn, phy_cell, rsrp);
+  // add to list of known cells and set current_cell
+  current_cell = add_new_cell(earfcn, phy_cell, rsrp);
+  if(!current_cell) {
+    current_cell = &known_cells[0];
+    rrc_log->error("Couldn't add new cell\n");
+    return;
+  }
 
   si_acquire_state = SI_ACQUIRE_SIB1;
 
@@ -508,22 +548,52 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
                 current_cell->earfcn, current_cell->rsrp, current_cell);
 }
 
-void rrc::add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
+uint32_t rrc::find_best_cell(uint32_t earfcn, srslte_cell_t *cell) {
+  float    best_rsrp = -INFINITY;
+  uint32_t best_cell_idx = 0;
+  for (int i=0;i<MAX_KNOWN_CELLS;i++) {
+    if (known_cells[i].earfcn == earfcn) {
+      if (known_cells[i].rsrp > best_rsrp) {
+        best_rsrp     = known_cells[i].rsrp;
+        best_cell_idx = i;
+      }
+    }
+  }
+  if (cell) {
+    memcpy(cell, &known_cells[best_cell_idx].phy_cell, sizeof(srslte_cell_t));
+  }
+  return best_cell_idx;
+}
+
+rrc::cell_t* rrc::add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
+  if (earfcn == 0) {
+    return NULL;
+  }
+  // First check it does not exist already
+  int j=0;
+  while(j<MAX_KNOWN_CELLS && (known_cells[j].earfcn != earfcn || known_cells[j].phy_cell.id != phy_cell.id)) {
+    j++;
+  }
+  if (j<MAX_KNOWN_CELLS) {
+    known_cells[j].rsrp = rsrp;
+    return &known_cells[j];
+  }
   int i=0;
   while(i<MAX_KNOWN_CELLS && known_cells[i].earfcn) {
     i++;
   }
   if (i==MAX_KNOWN_CELLS) {
     rrc_log->error("Can't add more cells\n");
-    return;
+    return NULL;
   }
-  current_cell = &known_cells[i];
-  current_cell->phy_cell = phy_cell;
-  current_cell->rsrp = rsrp;
-  current_cell->earfcn = earfcn;
-  current_cell->has_valid_sib1 = false;
-  current_cell->has_valid_sib2 = false;
-  current_cell->has_valid_sib3 = false;
+
+  known_cells[i].phy_cell = phy_cell;
+  known_cells[i].rsrp = rsrp;
+  known_cells[i].earfcn = earfcn;
+  known_cells[i].has_valid_sib1 = false;
+  known_cells[i].has_valid_sib2 = false;
+  known_cells[i].has_valid_sib3 = false;
+  return &known_cells[i];
 }
 
 // PHY indicates that has gone through all known EARFCN
@@ -551,20 +621,32 @@ void rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
   add_new_cell(earfcn, cell, rsrp);
 }
 
-// Cell reselection in IDLE Section 5.2.4 of 36.304
+// Cell reselction in IDLE Section 5.2.4 of 36.304
 void rrc::cell_reselection_eval(float rsrp, float rsrq)
 {
   // Intra-frequency cell-reselection criteria
 
-  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP) {
-    // UE may not perform intra-frequency measurements
+  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP && rsrp > -80.0) {
+    // UE may not perform intra-frequency measurements.
     phy->meas_reset();
+    // keep measuring serving cell
+    phy->meas_start(phy->get_current_earfcn(), phy->get_current_pci());
   } else {
     // UE must start intra-frequency measurements
     phy->meas_start(phy->get_current_earfcn(), -1);
   }
 
   // TODO: Inter-frequency cell reselection
+}
+
+// Cell selection in IDLE Section 5.2.3.2 of 36.304
+bool rrc::cell_selection_eval(float rsrp, float rsrq)
+{
+  if (get_srxlev(rsrp) > 0) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 float rrc::get_srxlev(float Qrxlevmeas) {
@@ -1144,12 +1226,12 @@ void rrc::handle_sib3()
   cell_resel_cfg.q_hyst = liblte_rrc_q_hyst_num[sib3->q_hyst];
 
   // cellReselectionServingFreqInfo
-  cell_resel_cfg.threshservinglow = 2*sib3->thresh_serving_low;
+  cell_resel_cfg.threshservinglow = sib3->thresh_serving_low;
 
   // intraFreqCellReselectionInfo
-  cell_resel_cfg.Qrxlevmin       = 2*sib3->q_rx_lev_min;
+  cell_resel_cfg.Qrxlevmin       = sib3->q_rx_lev_min;
   if (sib3->s_intra_search_present) {
-    cell_resel_cfg.s_intrasearchP  = 2*sib3->s_intra_search;
+    cell_resel_cfg.s_intrasearchP  = sib3->s_intra_search;
   } else {
     cell_resel_cfg.s_intrasearchP  = INFINITY;
   }
@@ -1214,6 +1296,7 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
         mac->pcch_stop_rx();
         if (RRC_STATE_IDLE == state) {
           rrc_log->info("RRC in IDLE state - sending connection request.\n");
+          paging_received = true;
           state = RRC_STATE_CELL_SELECTING;
         }
       }
