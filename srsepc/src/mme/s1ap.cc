@@ -460,6 +460,11 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
       handle_nas_security_mode_complete(nas_msg, reply_msg, ue_ctx);
       return true; //no need for reply. FIXME this should be better structured...
       break;
+    case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
+       m_s1ap_log->info("UL NAS: Received Attach Complete\n");
+       handle_nas_attach_complete(nas_msg, reply_msg, ue_ctx);
+       return true; //no need for reply. FIXME this should be better structured...
+    break;
     default:
       m_s1ap_log->info("Unhandled NAS message");
       return false; //FIXME (nas_msg deallocate needs to be called)
@@ -558,6 +563,14 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
 
   return true;
 }
+
+
+bool
+s1ap::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
+{
+   return true;
+}
+
 
 bool
 s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp)
@@ -671,7 +684,42 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
 bool
 s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp)
 {
- return true;
+  /*typedef struct{
+    bool                                                         ext;
+    LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
+    LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
+    LIBLTE_S1AP_E_RABSETUPLISTCTXTSURES_STRUCT                   E_RABSetupListCtxtSURes;
+    LIBLTE_S1AP_E_RABLIST_STRUCT                                 E_RABFailedToSetupListCtxtSURes;
+    bool                                                         E_RABFailedToSetupListCtxtSURes_present;
+    LIBLTE_S1AP_CRITICALITYDIAGNOSTICS_STRUCT                    CriticalityDiagnostics;
+    bool                                                         CriticalityDiagnostics_present;
+  }LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT;
+  typedef struct{
+  uint32_t                                                     len;
+  LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT                   buffer[32]; //WARNING: Artificial limit to reduce memory footprint
+  }LIBLTE_S1AP_E_RABSETUPLISTCTXTSURES_STRUCT;
+  typedef struct{
+  bool                                                         ext;
+  LIBLTE_S1AP_E_RAB_ID_STRUCT                                  e_RAB_ID;
+  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     transportLayerAddress;
+  LIBLTE_S1AP_GTP_TEID_STRUCT                                  gTP_TEID;
+  LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
+  bool                                                         iE_Extensions_present;
+  }LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT;
+  */
+  erabs_it = m_active_erabs.find(in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID);
+  if (erabs_it == m_active_erabs.end())
+  {
+    m_s1ap_log->error("Could not find UE's in UE active bearers map\n");
+    return false;
+  }
+  else{
+    for(int i; i<E_RABSetupListCtxtSURes;i++)
+    {
+      erabs_it->second.insert(std::pair<>());
+    }
+  }
+  return true;
 }
 
 

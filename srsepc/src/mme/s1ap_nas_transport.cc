@@ -220,7 +220,7 @@ s1ap_nas_transport::unpack_authentication_response(LIBLTE_S1AP_MESSAGE_UPLINKNAS
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
 
   if(msg_type!=LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE){
-    m_s1ap_log->error("Unhandled NAS message within UL NAS Transport message\n");
+    m_s1ap_log->error("Error unpacking NAS authentication response\n");
     return false;
   }
 
