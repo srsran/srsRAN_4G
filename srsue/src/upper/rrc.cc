@@ -514,7 +514,7 @@ void rrc::select_next_cell_in_plmn() {
 }
 
 void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, uint32_t pci) {
-  if (state == RRC_STATE_CONNECTED) {
+  if (state != RRC_STATE_IDLE) {
     measurements.new_phy_meas(earfcn, pci, rsrp, rsrq, tti);
   } else {
     // If measurement is of the serving cell, evaluate cell reselection criteria
