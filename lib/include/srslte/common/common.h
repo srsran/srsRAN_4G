@@ -96,6 +96,35 @@ static const char error_text[ERROR_N_ITEMS][20] = { "None",
                                                     "Can't start",
                                                     "Already started"};
 
+// Radio bearers
+typedef enum{
+  RB_ID_SRB0 = 0,
+  RB_ID_SRB1,
+  RB_ID_SRB2,
+  RB_ID_DRB1,
+  RB_ID_DRB2,
+  RB_ID_DRB3,
+  RB_ID_DRB4,
+  RB_ID_DRB5,
+  RB_ID_DRB6,
+  RB_ID_DRB7,
+  RB_ID_DRB8,
+  RB_ID_MAX
+} rb_id_t;
+
+static const char rb_id_str[RB_ID_MAX][8] = {"SRB0", "SRB1", "SRB2",
+                                             "DRB1", "DRB2", "DRB3",
+                                             "DRB4", "DRB5", "DRB6",
+                                             "DRB7", "DRB8"};
+
+inline const char* get_rb_name(uint32_t lcid) {
+  if (lcid < RB_ID_MAX) {
+    return rb_id_str[lcid];
+  } else {
+    return "INVALID_RB";
+  }
+}
+
 /******************************************************************************
  * Byte and Bit buffers
  *
