@@ -141,8 +141,14 @@ private:
   nas_interface_rrc *nas;
   usim_interface_rrc *usim;
 
-  void send_ul_dcch_msg(byte_buffer_t *pdu = NULL);
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
+  LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
+  LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
+  LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
+
+  byte_buffer_t* byte_align_and_pack(byte_buffer_t *pdu = NULL);
+  void send_ul_ccch_msg(byte_buffer_t *pdu = NULL);
+  void send_ul_dcch_msg(byte_buffer_t *pdu = NULL);
   srslte::bit_buffer_t          bit_buf;
 
   pthread_mutex_t mutex;
@@ -154,6 +160,10 @@ private:
   rrc_args_t args;
   bool first_stimsi_attempt;
 
+  uint16_t ho_src_rnti;
+  int      ho_src_cell_idx;
+  phy_interface_rrc::phy_cfg_t ho_src_phy_cfg;
+  mac_interface_rrc::mac_cfg_t ho_src_mac_cfg;
   bool pending_mob_reconf;
   LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT mob_reconf;
 
@@ -179,9 +189,6 @@ private:
   std::map<uint32_t, LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT> srbs;
   std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT> drbs;
 
-  LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
-  LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
-
   // RRC constants and timers
   srslte::mac_interface_timers *mac_timers;
   uint32_t n310_cnt, N310;
@@ -206,7 +213,9 @@ private:
   const static int MAX_KNOWN_CELLS = 64;
   cell_t known_cells[MAX_KNOWN_CELLS];
   cell_t *current_cell;
-  cell_t* add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
+
+  int        find_cell_idx(uint32_t earfcn, uint32_t pci);
+  cell_t*    add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
   uint32_t   find_best_cell(uint32_t earfcn, srslte_cell_t *cell);
 
   typedef enum {
@@ -374,13 +383,13 @@ private:
 
   // Senders
   void          send_con_request();
-  void          send_con_restablish_request();
+  void          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause, uint16_t crnti);
   void          send_con_restablish_complete();
   void          send_con_setup_complete(byte_buffer_t *nas_msg);
   void          send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu);
   void          send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu);
   void          send_rrc_con_reconfig_complete(byte_buffer_t *pdu);
-  void          send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu);
+  void          send_rrc_ue_cap_info(byte_buffer_t *pdu);
 
   // Parsers
   void          parse_dl_ccch(byte_buffer_t *pdu);
@@ -388,7 +397,8 @@ private:
   void          parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
 
   // Helpers
-  void          ho_prepare();
+  void          ho_failed();
+  bool          ho_prepare();
   void          add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
   void          rrc_connection_release();
   void          con_restablish_cell_reselected();
