@@ -81,6 +81,7 @@ void pdcp_entity::reestablish() {
   // For SRBs
   if (cfg.is_control) {
     tx_count = 0;
+    rx_count = 0;
   } else {
     if (rlc->rb_is_um(lcid)) {
       tx_count = 0;
