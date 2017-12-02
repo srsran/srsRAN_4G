@@ -353,12 +353,6 @@ void phch_recv::cell_search_stop() {
 
 bool phch_recv::cell_handover(srslte_cell_t cell)
 {
-  int offset = intra_freq_meas.get_offset(cell.id);
-  if (offset < 0) {
-    log_h->error("Cell HO: Can't find PCI=%d\n", cell.id);
-    return false;
-  }
-
   int cnt = 0;
   while(worker_com->is_any_pending_ack() && cnt < 10) {
     usleep(1000);

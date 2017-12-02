@@ -159,6 +159,8 @@ void rrc::set_args(rrc_args_t *args) {
  */
 void rrc::run_thread() {
 
+  uint32_t failure_test = 0;
+
   while (thread_running) {
 
     if (state >= RRC_STATE_IDLE && state < RRC_STATE_CONNECTING) {
@@ -263,11 +265,20 @@ void rrc::run_thread() {
         }
         break;
       case RRC_STATE_CONNECTED:
+        failure_test++;
+        if (failure_test >= 100) {
+          mac_interface_rrc::ue_rnti_t ue_rnti;
+          mac->get_rntis(&ue_rnti);
+          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE, ue_rnti.crnti);
+        }
         // Take measurements, cell reselection, etc
         break;
       case RRC_STATE_HO_PREPARE:
-        ho_prepare();
-        state = RRC_STATE_HO_PROCESS;
+        if (ho_prepare()) {
+          state = RRC_STATE_HO_PROCESS;
+        } else {
+          state = RRC_STATE_CONNECTED;
+        }
         break;
       case RRC_STATE_HO_PROCESS:
         // wait for HO to finish
@@ -594,15 +605,13 @@ rrc::cell_t* rrc::add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rs
   if (earfcn == 0) {
     return NULL;
   }
-  // First check it does not exist already
-  int j=0;
-  while(j<MAX_KNOWN_CELLS && (known_cells[j].earfcn != earfcn || known_cells[j].phy_cell.id != phy_cell.id)) {
-    j++;
+  int idx = find_cell_idx(earfcn, phy_cell.id);
+  if (idx >= 0) {
+    known_cells[idx].rsrp = rsrp;
+    return &known_cells[idx];
   }
-  if (j<MAX_KNOWN_CELLS) {
-    known_cells[j].rsrp = rsrp;
-    return &known_cells[j];
-  }
+
+  // if does not exist, find empty slot
   int i=0;
   while(i<MAX_KNOWN_CELLS && known_cells[i].earfcn) {
     i++;
@@ -621,6 +630,30 @@ rrc::cell_t* rrc::add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rs
   return &known_cells[i];
 }
 
+void rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
+  int idx = find_cell_idx(earfcn, pci);
+  if (idx >= 0) {
+    known_cells[idx].rsrp = rsrp;
+    return;
+  }
+
+  rrc_log->info("Added neighbour cell earfcn=%d, pci=%d, rsrp=%f\n", earfcn, pci, rsrp);
+
+  srslte_cell_t cell;
+  cell = current_cell->phy_cell;
+  cell.id = pci;
+  add_new_cell(earfcn, cell, rsrp);
+}
+
+int rrc::find_cell_idx(uint32_t earfcn, uint32_t pci) {
+  for (uint32_t i = 0; i < MAX_KNOWN_CELLS; i++) {
+    if (earfcn == known_cells[i].earfcn && pci == known_cells[i].phy_cell.id) {
+      return (int) i;
+    }
+  }
+  return -1;
+}
+
 // PHY indicates that has gone through all known EARFCN
 void rrc::earfcn_end() {
   rrc_log->info("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
@@ -635,22 +668,7 @@ void rrc::earfcn_end() {
   }
 }
 
-void rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
-  for (uint32_t i = 0; i < MAX_KNOWN_CELLS && known_cells[i].earfcn; i++) {
-    if (earfcn == known_cells[i].earfcn && pci == known_cells[i].phy_cell.id) {
-      known_cells[i].rsrp = rsrp;
-      return;
-    }
-  }
-  rrc_log->info("Added neighbour cell earfcn=%d, pci=%d, rsrp=%f\n", earfcn, pci, rsrp);
-
-  srslte_cell_t cell;
-  cell = current_cell->phy_cell;
-  cell.id = pci;
-  add_new_cell(earfcn, cell, rsrp);
-}
-
-// Cell reselction in IDLE Section 5.2.4 of 36.304
+// Cell reselection in IDLE Section 5.2.4 of 36.304
 void rrc::cell_reselection_eval(float rsrp, float rsrq)
 {
   // Intra-frequency cell-reselection criteria
@@ -740,7 +758,9 @@ void rrc::radio_link_failure() {
   if (state != RRC_STATE_CONNECTED) {
     state = RRC_STATE_LEAVE_CONNECTED;
   } else {
-    send_con_restablish_request();
+    mac_interface_rrc::ue_rnti_t uernti;
+    mac->get_rntis(&uernti);
+    send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE, uernti.crnti);
   }
 }
 
@@ -779,6 +799,7 @@ void rrc::timer_expired(uint32_t timeout_id) {
     }
   } else if (timeout_id == t304) {
     rrc_log->console("Timer T304 expired: Handover failed\n");
+    ho_failed();
   // fw to measurement
   } else if (!measurements.timer_expired(timeout_id)) {
     rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
@@ -804,7 +825,6 @@ void rrc::timer_expired(uint32_t timeout_id) {
 
 void rrc::send_con_request() {
   rrc_log->debug("Preparing RRC Connection Request\n");
-  LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
   LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
 
   // Prepare ConnectionRequest packet
@@ -819,74 +839,63 @@ void rrc::send_con_request() {
   }
 
   ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;
-  liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  // Byte align and pack the message bits for PDCP
-  if ((bit_buf.N_bits % 8) != 0) {
-    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
-      bit_buf.msg[bit_buf.N_bits + i] = 0;
-    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
-  }
-  byte_buffer_t *pdcp_buf = pool_allocate;;
-  srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
-  pdcp_buf->N_bytes = bit_buf.N_bits / 8;
-  pdcp_buf->set_timestamp();
+  send_ul_ccch_msg();
 
-  // Set UE contention resolution ID in MAC
-  uint64_t uecri = 0;
-  uint8_t *ue_cri_ptr = (uint8_t *) &uecri;
-  uint32_t nbytes = 6;
-  for (uint32_t i = 0; i < nbytes; i++) {
-    ue_cri_ptr[nbytes - i - 1] = pdcp_buf->msg[i];
-  }
-  rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
-
-  mac->set_contention_id(uecri);
-
-  rrc_log->info("Sending RRC Connection Request on SRB0\n");
-  pdcp->write_sdu(RB_ID_SRB0, pdcp_buf);
 }
 
 /* RRC connection re-establishment procedure (5.3.7) */
-void rrc::send_con_restablish_request() {
-
-  srslte_cell_t cell;
-  phy->get_current_cell(&cell);
-
-  LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
-  LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
-
+void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause, uint16_t crnti)
+{
   // Compute shortMAC-I
   uint8_t varShortMAC[128], varShortMAC_packed[16];
   bzero(varShortMAC, 128);
   bzero(varShortMAC_packed, 16);
   uint8_t *msg_ptr = varShortMAC;
-  liblte_rrc_pack_cell_identity_ie(0x1a2d0, &msg_ptr);
-  liblte_rrc_pack_phys_cell_id_ie(cell.id, &msg_ptr);
-  mac_interface_rrc::ue_rnti_t ue_rnti;
-  mac->get_rntis(&ue_rnti);
-  liblte_rrc_pack_c_rnti_ie(ue_rnti.crnti, &msg_ptr);
-  srslte_bit_pack_vector(varShortMAC, varShortMAC_packed, msg_ptr - varShortMAC);
 
+  // ASN.1 encode byte-aligned VarShortMAC-Input
+  liblte_rrc_pack_cell_identity_ie(current_cell->sib1.cell_id, &msg_ptr);
+  msg_ptr = &varShortMAC[4];
+  liblte_rrc_pack_phys_cell_id_ie(phy->get_current_pci(), &msg_ptr);
+  msg_ptr = &varShortMAC[4+2];
+  liblte_rrc_pack_c_rnti_ie(crnti, &msg_ptr);
+  srslte_bit_pack_vector(varShortMAC, varShortMAC_packed, (4+2+4)*8);
+
+  rrc_log->info("Generated varShortMAC: cellId=0x%x, PCI=%d, rnti=%d\n",
+                current_cell->sib1.cell_id, phy->get_current_pci(), crnti);
+
+  // Compute MAC-I
   uint8_t mac_key[4];
-  security_128_eia2(&k_rrc_int[16],
-                    1,
-                    1,
-                    1,
-                    varShortMAC_packed,
-                    7,
-                    mac_key);
-
-  mac_interface_rrc::ue_rnti_t uernti;
-  mac->get_rntis(&uernti);
+  switch(integ_algo) {
+    case INTEGRITY_ALGORITHM_ID_128_EIA1:
+      security_128_eia1(&k_rrc_int[16],
+                        1,
+                        1,
+                        1,
+                        varShortMAC_packed,
+                        10,
+                        mac_key);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA2:
+      security_128_eia2(&k_rrc_int[16],
+                        1,
+                        1,
+                        1,
+                        varShortMAC_packed,
+                        10,
+                        mac_key);
+      break;
+    default:
+      rrc_log->info("Unsupported integrity algorithm during reestablishment\n");
+      return;
+  }
 
   // Prepare ConnectionRestalishmentRequest packet
   ul_ccch_msg.msg_type = LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REEST_REQ;
-  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti = uernti.crnti;
-  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.phys_cell_id = cell.id;
-  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.short_mac_i = mac_key[2] << 8 | mac_key[3];
-  ul_ccch_msg.msg.rrc_con_reest_req.cause = LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE;
-  liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
+  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti = crnti;
+  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.phys_cell_id = phy->get_current_pci();
+  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.short_mac_i = mac_key[1] << 8 | mac_key[0];
+  ul_ccch_msg.msg.rrc_con_reest_req.cause = cause;
 
   rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
   rrc_log->console("RRC Connection Reestablishment\n");
@@ -904,33 +913,15 @@ void rrc::send_con_restablish_request() {
 // Actions following cell reselection 5.3.7.3
 void rrc::con_restablish_cell_reselected()
 {
+  liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
+
   rrc_log->info("Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
   mac_timers->timer_get(t301)->reset();
   mac_timers->timer_get(t301)->run();
   mac_timers->timer_get(t311)->stop();
 
-  // Byte align and pack the message bits for PDCP
-  if ((bit_buf.N_bits % 8) != 0) {
-    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
-      bit_buf.msg[bit_buf.N_bits + i] = 0;
-    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
-  }
-  byte_buffer_t *pdcp_buf = pool_allocate;
-  srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
-  pdcp_buf->N_bytes = bit_buf.N_bits / 8;
+  send_ul_ccch_msg();
 
-  // Set UE contention resolution ID in MAC
-  uint64_t uecri = 0;
-  uint8_t *ue_cri_ptr = (uint8_t *) &uecri;
-  uint32_t nbytes = 6;
-  for (uint32_t i = 0; i < nbytes; i++) {
-    ue_cri_ptr[nbytes - i - 1] = pdcp_buf->msg[i];
-  }
-  rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
-  mac->set_contention_id(uecri);
-
-  rrc_log->info("Sending RRC Connection Reestablishment Request on SRB0\n");
-  pdcp->write_sdu(RB_ID_SRB0, pdcp_buf);
 }
 
 void rrc::send_con_restablish_complete() {
@@ -993,9 +984,15 @@ void rrc::send_rrc_con_reconfig_complete(byte_buffer_t *pdu) {
   send_ul_dcch_msg(pdu);
 }
 
-void rrc::ho_prepare() {
+bool rrc::ho_prepare() {
   if (pending_mob_reconf) {
     rrc_log->info("Processing HO command to target PCell=%d\n", mob_reconf.mob_ctrl_info.target_pci);
+
+    int cell_idx = find_cell_idx(phy->get_current_earfcn(), mob_reconf.mob_ctrl_info.target_pci);
+    if (cell_idx < 0) {
+      rrc_log->error("Could not find target cell pci=%d\n", mob_reconf.mob_ctrl_info.target_pci);
+      return false;
+    }
 
     // Section 5.3.5.4
     mac_timers->timer_get(t310)->stop();
@@ -1005,6 +1002,19 @@ void rrc::ho_prepare() {
       rrc_log->warning("Received mobilityControlInfo for inter-frequency handover\n");
     }
 
+    // Save cell and current configuration
+    ho_src_cell_idx = find_cell_idx(phy->get_current_earfcn(), phy->get_current_pci());
+    if (ho_src_cell_idx < 0) {
+      rrc_log->error("Source cell not found in known cells. Reconnecting to cell 0 in case of failure\n");
+      ho_src_cell_idx = 0;
+    }
+    phy->get_config(&ho_src_phy_cfg);
+    mac->get_config(&ho_src_mac_cfg);
+    mac_interface_rrc::ue_rnti_t uernti;
+    mac->get_rntis(&uernti);
+    ho_src_rnti = uernti.crnti;
+
+    // Reset/Reestablish stack
     phy->meas_reset();
     mac->wait_uplink();
     pdcp->reestablish();
@@ -1014,21 +1024,10 @@ void rrc::ho_prepare() {
     mac->set_ho_rnti(mob_reconf.mob_ctrl_info.new_ue_id, mob_reconf.mob_ctrl_info.target_pci);
     apply_rr_config_common_dl(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
 
-    bool found = false;
-    for (uint32_t i = 0; i < MAX_KNOWN_CELLS && known_cells[i].earfcn; i++) {
-      if (known_cells[i].earfcn == phy->get_current_earfcn() &&
-          known_cells[i].phy_cell.id == mob_reconf.mob_ctrl_info.target_pci) {
-        rrc_log->info("Selecting new cell pci=%d\n", known_cells[i].phy_cell.id);
-        if (!phy->cell_handover(known_cells[i].phy_cell)) {
-          rrc_log->error("Could not synchronize with target cell pci=%d\n", known_cells[i].phy_cell.id);
-        }
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      rrc_log->error("Could not find target cell pci=%d\n", mob_reconf.mob_ctrl_info.target_pci);
-      return;
+    rrc_log->info("Selecting new cell pci=%d\n", known_cells[cell_idx].phy_cell.id);
+    if (!phy->cell_handover(known_cells[cell_idx].phy_cell)) {
+      rrc_log->error("Could not synchronize with target cell pci=%d\n", known_cells[cell_idx].phy_cell.id);
+      return false;
     }
 
     if (mob_reconf.mob_ctrl_info.rach_cnfg_ded_present) {
@@ -1049,6 +1048,7 @@ void rrc::ho_prepare() {
     pdcp->config_security(1, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     send_rrc_con_reconfig_complete(NULL);
   }
+  return true;
 }
 
 void rrc::ho_ra_completed(bool ra_successful) {
@@ -1077,6 +1077,23 @@ void rrc::ho_ra_completed(bool ra_successful) {
   } else {
     rrc_log->error("Received HO random access completed but no pending mobility reconfiguration info\n");
   }
+}
+
+// This is T304 expiry 5.3.5.6
+void rrc::ho_failed() {
+
+  // Instruct PHY to resync with source PCI
+  if (!phy->cell_handover(known_cells[ho_src_cell_idx].phy_cell)) {
+    rrc_log->error("Could not synchronize with target cell pci=%d\n", known_cells[ho_src_cell_idx].phy_cell.id);
+    return;
+  }
+
+  // Set previous PHY/MAC configuration
+  phy->set_config(&ho_src_phy_cfg);
+  mac->set_config(&ho_src_mac_cfg);
+
+  // Start the Reestablishment Procedure
+  send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_HANDOVER_FAILURE, ho_src_rnti);
 }
 
 void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig,
@@ -1347,18 +1364,16 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
 * Packet processing
 *
 *
-*
 *******************************************************************************/
-void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
+byte_buffer_t* rrc::byte_align_and_pack(byte_buffer_t *pdu)
 {
-  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
-
   // Byte align and pack the message bits for PDCP
   if ((bit_buf.N_bits % 8) != 0) {
     for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
+
   // Reset and reuse sdu buffer if provided
   byte_buffer_t *pdcp_buf = pdu;
 
@@ -1372,8 +1387,37 @@ void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
   pdcp_buf->N_bytes = bit_buf.N_bits / 8;
   pdcp_buf->set_timestamp();
 
+  return pdcp_buf;
+}
+
+void rrc::send_ul_ccch_msg(byte_buffer_t *pdu)
+{
+  liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
+  pdu = byte_align_and_pack(pdu);
+
+  // Set UE contention resolution ID in MAC
+  uint64_t uecri = 0;
+  uint8_t *ue_cri_ptr = (uint8_t *) &uecri;
+  uint32_t nbytes = 6;
+  for (uint32_t i = 0; i < nbytes; i++) {
+    ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
+  }
+
+  rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
+  mac->set_contention_id(uecri);
+
+  rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
+  pdcp->write_sdu(RB_ID_SRB0, pdu);
+}
+
+void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
+{
+  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
+
+  pdu = byte_align_and_pack(pdu);
+
   rrc_log->info("Sending %s\n", liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
-  pdcp->write_sdu(RB_ID_SRB1, pdcp_buf);
+  pdcp->write_sdu(RB_ID_SRB1, pdu);
 }
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
@@ -1489,7 +1533,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       transaction_id = dl_dcch_msg.msg.ue_cap_enquiry.rrc_transaction_id;
       for (uint32_t i = 0; i < dl_dcch_msg.msg.ue_cap_enquiry.N_ue_cap_reqs; i++) {
         if (LIBLTE_RRC_RAT_TYPE_EUTRA == dl_dcch_msg.msg.ue_cap_enquiry.ue_capability_request[i]) {
-          send_rrc_ue_cap_info(lcid, pdu);
+          send_rrc_ue_cap_info(pdu);
           break;
         }
       }
@@ -1525,9 +1569,8 @@ void rrc::enable_capabilities() {
   phy->set_config_64qam_en(enable_ul_64);
 }
 
-void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu) {
+void rrc::send_rrc_ue_cap_info(byte_buffer_t *pdu) {
   rrc_log->debug("Preparing UE Capability Info\n");
-  LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
 
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_UE_CAPABILITY_INFO;
   ul_dcch_msg.msg.ue_capability_info.rrc_transaction_id = transaction_id;
@@ -1575,18 +1618,7 @@ void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu) {
 
   liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  // Byte align and pack the message bits for PDCP
-  if ((bit_buf.N_bits % 8) != 0) {
-    for (uint32_t i = 0; i < 8 - (bit_buf.N_bits % 8); i++)
-      bit_buf.msg[bit_buf.N_bits + i] = 0;
-    bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
-  }
-  srslte_bit_pack_vector(bit_buf.msg, pdu->msg, bit_buf.N_bits);
-  pdu->N_bytes = bit_buf.N_bits / 8;
-  pdu->set_timestamp();
-
-  rrc_log->info("Sending UE Capability Info\n");
-  pdcp->write_sdu(lcid, pdu);
+  send_ul_dcch_msg(pdu);
 }
 
 
