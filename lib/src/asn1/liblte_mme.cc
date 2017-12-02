@@ -4923,6 +4923,32 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_transaction_identifier_ie(uint8             
 *******************************************************************************/
 
 /*********************************************************************
+    Message Name: Security Message Header (Plain NAS Message)
+
+    Description: Security header for NAS messages.
+
+    Document Reference: 24.301 v10.2.0 Section 9.1
+*********************************************************************/
+
+LIBLTE_ERROR_ENUM liblte_mme_parse_msg_sec_header(LIBLTE_BYTE_MSG_STRUCT *msg,
+                               uint8 *pd,
+                               uint8 *sec_hdr_type)
+{
+
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+    if (msg != NULL &&
+        pd != NULL &&
+        sec_hdr_type != NULL)
+    {
+        *sec_hdr_type = (uint8) ((msg->msg[0] & 0xF0) >> 4);
+         err = LIBLTE_SUCCESS;
+    }
+    return(err);
+}
+
+
+/*********************************************************************
     Message Name: Message Header (Plain NAS Message)
 
     Description: Message header for plain NAS messages.

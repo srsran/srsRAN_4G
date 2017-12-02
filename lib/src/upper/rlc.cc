@@ -229,11 +229,10 @@ void rlc::add_bearer(uint32_t lcid)
       cnfg.dl_am_rlc.t_status_prohibit  = LIBLTE_RRC_T_STATUS_PROHIBIT_MS0;
       add_bearer(lcid, srslte_rlc_config_t(&cnfg));
     } else {
-      rlc_log->warning("Bearer %s already configured. Reconfiguration not supported\n", get_rb_name(lcid).c_str());
+      rlc_log->warning("Bearer %s already configured. Reconfiguration not supported\n", get_rb_name(lcid));
     }
   }else{
-    rlc_log->error("Radio bearer %s does not support default RLC configuration.\n",
-                   get_rb_name(lcid).c_str());
+    rlc_log->error("Radio bearer %s does not support default RLC configuration.\n", get_rb_name(lcid));
   }
 }
 
@@ -246,7 +245,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
 
   if (!rlc_array[lcid].active()) {
     rlc_log->info("Adding radio bearer %s with mode %s\n",
-                  get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg.rlc_mode]);
+                  get_rb_name(lcid), liblte_rrc_rlc_mode_text[cnfg.rlc_mode]);
     switch(cnfg.rlc_mode)
     {
     case LIBLTE_RRC_RLC_MODE_AM:
@@ -266,7 +265,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
       return;
     }
   } else {
-    rlc_log->warning("Bearer %s already created.\n", get_rb_name(lcid).c_str());
+    rlc_log->warning("Bearer %s already created.\n", get_rb_name(lcid));
   }
   rlc_array[lcid].configure(cnfg);    
 

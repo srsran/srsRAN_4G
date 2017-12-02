@@ -1377,6 +1377,7 @@ void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
 }
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
+
   rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
   switch (state) {
     case RRC_STATE_CONNECTING:
@@ -1393,7 +1394,6 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid).c_str());
-  rrc_log->info("RX PDU Stack latency: %ld us\n", pdu->get_latency_us());
 
   switch (lcid) {
     case RB_ID_SRB0:
@@ -1455,7 +1455,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
-                get_rb_name(lcid).c_str(),
+                get_rb_name(lcid),
                 liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
   // Reset and reuse pdu buffer if possible
@@ -1474,12 +1474,23 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) dl_dcch_msg.msg.security_mode_cmd.sec_algs.cipher_alg;
       integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM) dl_dcch_msg.msg.security_mode_cmd.sec_algs.int_alg;
 
-      // Configure PDCP for security
+      rrc_log->info("Received Security Mode Command eea: %s, eia: %s\n",
+                    ciphering_algorithm_id_text[cipher_algo],
+                    integrity_algorithm_id_text[integ_algo]);
+
+      // Generate AS security keys
       uint8_t k_asme[32];
       nas->get_k_asme(k_asme, 32);
       usim->generate_as_keys(k_asme, nas->get_ul_count()-1, k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+      rrc_log->debug_hex(k_rrc_enc, 32, "RRC encryption key - k_rrc_enc");
+      rrc_log->debug_hex(k_rrc_int, 32, "RRC integrity key - k_rrc_int");
+      rrc_log->debug_hex(k_up_enc, 32, "UP encryption key - k_up_enc");
+
+      // Configure PDCP for security
       pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+      pdcp->enable_integrity(lcid);
       send_security_mode_complete(lcid, pdu);
+      pdcp->enable_encryption(lcid);
       break;
     case LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG:
       transaction_id = dl_dcch_msg.msg.rrc_con_reconfig.rrc_transaction_id;
@@ -1988,6 +1999,8 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
   pdcp->add_bearer(srb_cnfg->srb_id, srslte_pdcp_config_t(true)); // Set PDCP config control flag
   if(RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+    pdcp->enable_integrity(srb_cnfg->srb_id);
+    pdcp->enable_encryption(srb_cnfg->srb_id);
   }
 
   // Setup RLC
@@ -2026,7 +2039,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
   }
 
   srbs[srb_cnfg->srb_id] = *srb_cnfg;
-  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg->srb_id).c_str());
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg->srb_id));
 }
 
 void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
@@ -2054,7 +2067,8 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
     }
   }
   pdcp->add_bearer(lcid, pdcp_cfg);
-  // TODO: setup PDCP security (using k_up_enc)
+  pdcp->config_security(lcid, k_up_enc, k_up_int, cipher_algo, integ_algo);
+  pdcp->enable_encryption(lcid);
 
   // Setup RLC
   rlc->add_bearer(lcid, srslte_rlc_config_t(&drb_cnfg->rlc_cnfg));
@@ -2084,7 +2098,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
 
   drbs[lcid] = *drb_cnfg;
   drb_up     = true;
-  rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid).c_str());
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid));
 }
 
 void rrc::release_drb(uint8_t lcid) {

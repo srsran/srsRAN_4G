@@ -49,12 +49,14 @@ typedef struct {
 
 using srslte::byte_buffer_t;
 
-namespace srsue {
 
 static std::string rb_id_str[] = {"SRB0", "SRB1", "SRB2",
-                                    "DRB1","DRB2","DRB3",
-                                    "DRB4","DRB5","DRB6",
-                                    "DRB7","DRB8"};
+                                  "DRB1","DRB2","DRB3",
+                                  "DRB4","DRB5","DRB6",
+                                  "DRB7","DRB8"};
+
+
+namespace srsue {
 
 class rrc
   :public rrc_interface_nas
