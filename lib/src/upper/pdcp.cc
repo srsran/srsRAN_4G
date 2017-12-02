@@ -116,6 +116,18 @@ void pdcp::config_security(uint32_t lcid,
     pdcp_array[lcid].config_security(k_enc, k_int, cipher_algo, integ_algo);
 }
 
+void pdcp::config_security_all(uint8_t *k_enc,
+                               uint8_t *k_int,
+                               CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                               INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+{
+  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
+    if (pdcp_array[i].is_active()) {
+      pdcp_array[i].config_security(k_enc, k_int, cipher_algo, integ_algo);
+    }
+  }
+}
+
 void pdcp::enable_integrity(uint32_t lcid)
 {
   if(valid_lcid(lcid))

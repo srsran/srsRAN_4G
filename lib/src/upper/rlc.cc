@@ -135,11 +135,6 @@ bool rlc::rb_is_um(uint32_t lcid) {
   return rlc_array[lcid].get_mode()==RLC_MODE_UM;
 }
 
-std::string rlc::get_rb_name(uint32_t lcid)
-{
-  return rrc->get_rb_name(lcid);
-}
-
 /*******************************************************************************
   MAC interface
 *******************************************************************************/

@@ -672,9 +672,9 @@ void phch_recv::run_thread()
               workers_pool->start_worker(worker);
 
               // Substract PSS/SSS from current cell before computing intra-frequency
-              if ((tti%5) == 0) {
+              /*if ((tti%5) == 0) {
                 substract_sync(buffer[0], cell.nof_prb, &ue_sync.strack);
-              }
+              }*/
               intra_freq_meas.write(tti, buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb));
               out_of_sync_cnt = 0;
               break;
@@ -1164,7 +1164,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
   float snr    = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest));
 
   if (cnt == 0) {
-    mean_rsrp = rsrp;
+    mean_rsrp  = rsrp;
     mean_rsrq  = rsrq;
     mean_snr   = snr;
   } else {
@@ -1175,7 +1175,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
   }
   cnt++;
 
-  log_h->info("SYNC:  Measuring RSRP %d/%d, sf_idx=%d, RSRP=%.1f dBm, SNR=%.1f dB\n",
+  log_h->debug("SYNC:  Measuring RSRP %d/%d, sf_idx=%d, RSRP=%.1f dBm, SNR=%.1f dB\n",
               cnt, nof_subframes, sf_idx, rsrp, snr);
 
   if (cnt >= nof_subframes) {
@@ -1259,76 +1259,76 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
 
   for (uint32_t n_id_2=0;n_id_2<3;n_id_2++) {
 
-    if (cell.id%3 != n_id_2) {
-      srslte_sync_set_N_id_2(&sync_find, n_id_2);
+    srslte_sync_set_N_id_2(&sync_find, n_id_2);
 
-      srslte_sync_find_ret_t sync_res;
-      do {
+    srslte_sync_find_ret_t sync_res;
+    //do {
 
-        srslte_sync_reset(&sync_find);
-        srslte_sync_cfo_reset(&sync_find);
+      srslte_sync_reset(&sync_find);
+      srslte_sync_cfo_reset(&sync_find);
 
-        sync_res = srslte_sync_find(&sync_find, input_buffer, 0, &peak_idx);
+      sync_res = srslte_sync_find(&sync_find, input_buffer, 0, &peak_idx);
 
-        switch(sync_res) {
-          case SRSLTE_SYNC_ERROR:
-            return SRSLTE_ERROR;
-            fprintf(stderr, "Error finding correlation peak\n");
-            return SRSLTE_ERROR;
-          case SRSLTE_SYNC_FOUND:
-            sf_idx  = srslte_sync_get_sf_idx(&sync_find);
-            cell_id = srslte_sync_get_cell_id(&sync_find);
+      switch(sync_res) {
+        case SRSLTE_SYNC_ERROR:
+          return SRSLTE_ERROR;
+          fprintf(stderr, "Error finding correlation peak\n");
+          return SRSLTE_ERROR;
+        case SRSLTE_SYNC_FOUND:
+          sf_idx  = srslte_sync_get_sf_idx(&sync_find);
+          cell_id = srslte_sync_get_cell_id(&sync_find);
 
-            if (cell_id >= 0) {
-              // We found the same cell as before, look another N_id_2
-              if ((uint32_t) cell_id == found_cell.id) {
-                sync_res = SRSLTE_SYNC_NOFOUND;
-              } else {
-                // We found a new cell ID
-                found_cell.id = cell_id;
-                found_cell.nof_ports = 1;  // Use port 0 only for measurement
-                measure_p.set_cell(found_cell);
-
-                // Correct CFO
-                srslte_cfo_correct(&sync_find.cfo_corr_frame,
-                                   input_buffer,
-                                   input_cfo_corrected,
-                                   -srslte_sync_get_cfo(&sync_find)/sync_find.fft_size);
-
-                switch(measure_p.run_multiple_subframes(input_cfo_corrected, peak_idx, sf_idx, nof_sf)) {
-                  case measure::MEASURE_OK:
-                    cells[nof_cells].pci    = found_cell.id;
-                    cells[nof_cells].rsrp   = measure_p.rsrp();
-                    cells[nof_cells].rsrq   = measure_p.rsrq();
-                    cells[nof_cells].offset = measure_p.frame_st_idx();
-                    nof_cells++;
-
-                    // Substract interference from input buffer (for the next cell)
-                    substract_sync(&input_buffer[measure_p.frame_st_idx()], cell.nof_prb, &sync_find);
-
-                    Info("INTRA: Found neighbour cell: pci=%d, rsrp=%.1f dBm, peak_idx=%d, n_id_2=%d, cfo=%.1f Hz\n",
-                         cell_id, measure_p.rsrq(), peak_idx, n_id_2, 15000*srslte_sync_get_cfo(&sync_find));
-
-                    break;
-                  case measure::ERROR:
-                    Error("Measuring neighbour cell\n");
-                    return SRSLTE_ERROR;
-                  default:
-                    break;
-                }
-              }
-            } else {
+          if (cell_id >= 0) {
+            // We found the same cell as before, look another N_id_2
+            if ((uint32_t) cell_id == found_cell.id || (uint32_t) cell_id == cell.id) {
               sync_res = SRSLTE_SYNC_NOFOUND;
+            } else {
+              // We found a new cell ID
+              found_cell.id = cell_id;
+              found_cell.nof_ports = 1;  // Use port 0 only for measurement
+              measure_p.set_cell(found_cell);
+
+              // Correct CFO
+              /*
+              srslte_cfo_correct(&sync_find.cfo_corr_frame,
+                                 input_buffer,
+                                 input_cfo_corrected,
+                                 -srslte_sync_get_cfo(&sync_find)/sync_find.fft_size);
+              */
+
+              switch(measure_p.run_multiple_subframes(input_buffer, peak_idx, sf_idx, nof_sf)) {
+                case measure::MEASURE_OK:
+                  cells[nof_cells].pci    = found_cell.id;
+                  cells[nof_cells].rsrp   = measure_p.rsrp();
+                  cells[nof_cells].rsrq   = measure_p.rsrq();
+                  cells[nof_cells].offset = measure_p.frame_st_idx();
+                  nof_cells++;
+
+                  // Substract interference from input buffer (for the next cell)
+                  //substract_sync(&input_buffer[measure_p.frame_st_idx()], cell.nof_prb, &sync_find);
+
+                  Info("INTRA: Found neighbour cell: PCI=%03d, RSRP=%5.1f dBm, peak_idx=%5d, peak_value=%3.2f n_id_2=%d, CFO=%6.1f Hz\n",
+                       cell_id, measure_p.rsrp(), measure_p.frame_st_idx(), sync_find.peak_value, n_id_2, 15000*srslte_sync_get_cfo(&sync_find));
+
+                  break;
+                case measure::ERROR:
+                  Error("Measuring neighbour cell\n");
+                  return SRSLTE_ERROR;
+                default:
+                  break;
+              }
             }
-            break;
-          case SRSLTE_SYNC_FOUND_NOSPACE:
-            /* If a peak was found but there is not enough space for SSS/CP detection, discard a few samples */
-            break;
-          default:
-            break;
-        }
-      } while(sync_res == SRSLTE_SYNC_FOUND);
-    }
+          } else {
+            sync_res = SRSLTE_SYNC_NOFOUND;
+          }
+          break;
+        case SRSLTE_SYNC_FOUND_NOSPACE:
+          /* If a peak was found but there is not enough space for SSS/CP detection, discard a few samples */
+          break;
+        default:
+          break;
+      }
+    //} while(sync_res == SRSLTE_SYNC_FOUND);
   }
   return nof_cells;
 }
@@ -1476,8 +1476,6 @@ void phch_recv::intra_measure::run_thread()
     }
 
     if (running) {
-      Info("INTRA: Running intra-frequency measurements\n");
-
       // Read 15 ms data from buffer
       srslte_ringbuffer_read(&ring_buffer, search_buffer, CAPTURE_LEN_SF*current_sflen*sizeof(cf_t));
       int found_cells = scell.find_cells(search_buffer, common->rx_gain_offset, primary_cell, CAPTURE_LEN_SF, info);

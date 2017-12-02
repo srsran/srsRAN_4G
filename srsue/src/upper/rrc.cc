@@ -30,6 +30,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <time.h>
+#include <srslte/asn1/liblte_rrc.h>
 #include "upper/rrc.h"
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
@@ -1041,12 +1042,24 @@ bool rrc::ho_prepare() {
     int ncc = -1;
     if (mob_reconf.sec_cnfg_ho_present) {
       ncc = mob_reconf.sec_cnfg_ho.intra_lte.next_hop_chaining_count;
+      if (mob_reconf.sec_cnfg_ho.intra_lte.key_change_ind) {
+        rrc_log->console("keyChangeIndicator in securityConfigHO not supported\n");
+        return false;
+      }
+      if (mob_reconf.sec_cnfg_ho.intra_lte.sec_alg_cnfg_present) {
+        cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) mob_reconf.sec_cnfg_ho.intra_lte.sec_alg_cnfg.cipher_alg;
+        integ_algo  = (INTEGRITY_ALGORITHM_ID_ENUM) mob_reconf.sec_cnfg_ho.intra_lte.sec_alg_cnfg.int_alg;
+        rrc_log->console("Warning changed Cipering to %s and Integrity to %s\n",
+                         ciphering_algorithm_id_text[cipher_algo],
+                         integrity_algorithm_id_text[integ_algo]);
+      }
     }
 
     usim->generate_as_keys_ho(mob_reconf.mob_ctrl_info.target_pci, phy->get_current_earfcn(),
                               ncc,
                               k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
-    pdcp->config_security(1, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+
+    pdcp->config_security_all(k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     send_rrc_con_reconfig_complete(NULL);
   }
   return true;
@@ -1423,7 +1436,7 @@ void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid));
   switch (state) {
     case RRC_STATE_CONNECTING:
       send_con_setup_complete(sdu);
@@ -1438,7 +1451,7 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 }
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid).c_str());
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid));
 
   switch (lcid) {
     case RB_ID_SRB0:
@@ -1528,8 +1541,8 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       nas->get_k_asme(k_asme, 32);
       usim->generate_as_keys(k_asme, nas->get_ul_count()-1, k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
       rrc_log->debug_hex(k_rrc_enc, 32, "RRC encryption key - k_rrc_enc");
-      rrc_log->debug_hex(k_rrc_int, 32, "RRC integrity key - k_rrc_int");
-      rrc_log->debug_hex(k_up_enc, 32, "UP encryption key - k_up_enc");
+      rrc_log->debug_hex(k_rrc_int, 32, "RRC integrity key  - k_rrc_int");
+      rrc_log->debug_hex(k_up_enc, 32,  "UP encryption key  - k_up_enc");
 
       // Configure PDCP for security
       pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);

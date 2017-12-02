@@ -191,7 +191,6 @@ class rrc_interface_rlc
 {
 public:
   virtual void max_retx_attempted() = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // PDCP interface for GW
@@ -215,6 +214,10 @@ public:
                                uint8_t *k_int_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
+  virtual void config_security_all(uint8_t *k_enc_,
+                                   uint8_t *k_int_,
+                                   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
   virtual void enable_integrity(uint32_t lcid) = 0;
   virtual void enable_encryption(uint32_t lcid) = 0;
 };
