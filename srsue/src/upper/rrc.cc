@@ -265,12 +265,13 @@ void rrc::run_thread() {
         }
         break;
       case RRC_STATE_CONNECTED:
+        /*
         failure_test++;
         if (failure_test >= 100) {
           mac_interface_rrc::ue_rnti_t ue_rnti;
           mac->get_rntis(&ue_rnti);
           send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE, ue_rnti.crnti);
-        }
+        }*/
         // Take measurements, cell reselection, etc
         break;
       case RRC_STATE_HO_PREPARE:
@@ -2015,7 +2016,7 @@ void rrc::handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup) {
 void rrc::handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup) {
   mac_timers->timer_get(t301)->stop();
 
-  // TODO: Restablish DRB1. Not done because never was suspended
+  // TODO: Reestablish DRB1. Not done because never was suspended
 
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->rr_cnfg);
