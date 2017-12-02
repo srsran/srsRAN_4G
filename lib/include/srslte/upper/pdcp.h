@@ -63,6 +63,10 @@ public:
                        uint8_t *k_int,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  void config_security_all(uint8_t *k_enc,
+                           uint8_t *k_int,
+                           CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                           INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
   void enable_integrity(uint32_t lcid);
   void enable_encryption(uint32_t lcid);
 

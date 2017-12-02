@@ -84,6 +84,7 @@ void pdcp_entity::reestablish() {
   } else {
     if (rlc->rb_is_um(lcid)) {
       tx_count = 0;
+      rx_count = 0;
     }
   }
 }
