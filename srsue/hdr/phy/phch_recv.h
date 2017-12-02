@@ -102,6 +102,8 @@ private:
   bool   set_frequency();
   bool   set_cell();
 
+  static void substract_sync(cf_t *buffer, uint32_t nof_prb, srslte_sync_t *sync_obj);
+
   void   cell_search_inc();
   void   resync_sfn(bool is_connected = false, bool rx_now = false);
   bool   stop_sync();
@@ -175,6 +177,7 @@ private:
     float     rsrp();
     float     rsrq();
     float     snr();
+    uint32_t  frame_st_idx();
     void      set_rx_gain_offset(float rx_gain_offset);
   private:
     srslte::log      *log_h;
@@ -185,6 +188,7 @@ private:
     uint32_t current_prb;
     float rx_gain_offset;
     float mean_rsrp, mean_rsrq, mean_snr;
+    uint32_t final_offset;
     const static int RSRP_MEASURE_NOF_FRAMES = 5;
   };
 
@@ -205,6 +209,7 @@ private:
 
     const static int DEFAULT_MEASUREMENT_LEN = 10;
 
+    cf_t               *input_cfo_corrected;
     cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
     srslte::log        *log_h;
     srslte_sync_t       sync_find;
