@@ -301,6 +301,7 @@ void pdcp_entity::cipher_decrypt(uint8_t  *ct,
                       ct,
                       ct_len,
                       msg_tmp.msg);
+    memcpy(msg, msg_tmp.msg, ct_len);
     break;
   case CIPHERING_ALGORITHM_ID_128_EEA2:
     security_128_eea2(&(k_enc[16]),
@@ -311,9 +312,9 @@ void pdcp_entity::cipher_decrypt(uint8_t  *ct,
                       ct_len,
                       msg_tmp.msg);
     memcpy(msg, msg_tmp.msg, ct_len);
-      break;
-    default:
-      break;
+    break;
+  default:
+    break;
   }
 }
 
@@ -325,7 +326,8 @@ void pdcp_entity::run_thread()
 
   while(running) {
     rx_pdu_queue.read(&pdu);
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid));
+    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU, do_integrity = %s, do_encryption = %s",
+    get_rb_name(lcid), (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
     // Handle SRB messages
     switch(lcid)
