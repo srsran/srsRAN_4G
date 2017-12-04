@@ -488,6 +488,7 @@ typedef struct {
   std::string sss_algorithm; 
   float estimator_fil_w;   
   bool rssi_sensor_enabled;
+  bool sic_pss_enabled;
 } phy_args_t; 
 
 

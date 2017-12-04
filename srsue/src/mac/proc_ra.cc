@@ -394,16 +394,14 @@ void ra_proc::step_response_reception() {
 
 void ra_proc::step_response_error()
 {
-  if (ra_is_ho) {
-    state = RA_PROBLEM;
-    rrc->ho_ra_completed(false);
-    return;
-  }
   preambleTransmissionCounter++;
   if (preambleTransmissionCounter >= preambleTransMax + 1) {
     rError("Maximum number of transmissions reached (%d)\n", preambleTransMax);
     rrc->ra_problem();
     state = RA_PROBLEM;
+    if (ra_is_ho) {
+      rrc->ho_ra_completed(false);
+    }
   } else {
     backoff_interval_start = phy_h->get_current_tti(); 
     if (backoff_param_ms) {

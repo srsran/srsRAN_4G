@@ -102,8 +102,6 @@ private:
   bool   set_frequency();
   bool   set_cell();
 
-  static void substract_sync(cf_t *buffer, uint32_t nof_prb, srslte_sync_t *sync_obj);
-
   void   cell_search_inc();
   void   resync_sfn(bool is_connected = false, bool rx_now = false);
   bool   stop_sync();
@@ -202,7 +200,7 @@ private:
       float    rsrq;
       uint32_t offset;
     } cell_info_t;
-    void init(srslte::log *log_h);
+    void init(srslte::log *log_h, bool sic_pss_enabled);
     void reset();
     int find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
   private:
@@ -214,6 +212,7 @@ private:
     srslte::log        *log_h;
     srslte_sync_t       sync_find;
 
+    bool       sic_pss_enabled;
     uint32_t   current_fft_sz;
     measure    measure_p;
   };

@@ -29,9 +29,9 @@
  *
  *  Description:  Primary synchronization signal (PSS) generation and detection.
  *
- *                The srslte_pss_synch_t object provides functions for fast
+ *                The srslte_pss_t object provides functions for fast
  *                computation of the crosscorrelation between the PSS and received
- *                signal and CFO estimation. Also, the function srslte_pss_synch_tperiodic()
+ *                signal and CFO estimation. Also, the function srslte_pss_tperiodic()
  *                is designed to be called periodically every subframe, taking
  *                care of the correct data alignment with respect to the PSS sequence.
  *
@@ -61,7 +61,7 @@
 
 /* PSS processing options */
 
-#define SRSLTE_PSS_ACCUMULATE_ABS   // If enabled, accumulates the correlation absolute value on consecutive calls to srslte_pss_synch_find_pss
+#define SRSLTE_PSS_ACCUMULATE_ABS   // If enabled, accumulates the correlation absolute value on consecutive calls to srslte_pss_find_pss
 
 #define SRSLTE_PSS_RETURN_PSR  // If enabled returns peak to side-lobe ratio, otherwise returns absolute peak value
 
@@ -85,6 +85,7 @@ typedef struct SRSLTE_API {
   cf_t *pss_signal_freq_full[3];
 
   cf_t *pss_signal_time[3];
+  cf_t *pss_signal_time_scale[3];
 
   cf_t pss_signal_freq[3][SRSLTE_PSS_LEN]; // One sequence for each N_id_2
   cf_t *tmp_input;
@@ -100,41 +101,48 @@ typedef struct SRSLTE_API {
   cf_t tmp_fft[SRSLTE_SYMBOL_SZ_MAX];
   cf_t tmp_fft2[SRSLTE_SYMBOL_SZ_MAX];
 
-}srslte_pss_synch_t;
+  cf_t tmp_ce[SRSLTE_PSS_LEN];
+
+  bool chest_on_filter;
+
+}srslte_pss_t;
 
 typedef enum { PSS_TX, PSS_RX } pss_direction_t;
 
 /* Basic functionality */
-SRSLTE_API int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, 
+SRSLTE_API int srslte_pss_init_fft(srslte_pss_t *q,
                                          uint32_t frame_size, 
                                          uint32_t fft_size);
 
-SRSLTE_API int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, 
+SRSLTE_API int srslte_pss_init_fft_offset(srslte_pss_t *q,
                                                 uint32_t frame_size, 
                                                 uint32_t fft_size, 
                                                 int cfo_i);
 
-SRSLTE_API int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q,
+SRSLTE_API int srslte_pss_init_fft_offset_decim(srslte_pss_t *q,
                                                 uint32_t frame_size, 
                                                 uint32_t fft_size, 
                                                 int cfo_i,
                                                 int decimate);
 
-SRSLTE_API int srslte_pss_synch_resize(srslte_pss_synch_t *q, uint32_t frame_size,
+SRSLTE_API int srslte_pss_resize(srslte_pss_t *q, uint32_t frame_size,
                                        uint32_t fft_size,
                                        int offset);
 
-SRSLTE_API int srslte_pss_synch_init(srslte_pss_synch_t *q, 
+SRSLTE_API int srslte_pss_init(srslte_pss_t *q,
                                      uint32_t frame_size);
 
-SRSLTE_API void srslte_pss_synch_free(srslte_pss_synch_t *q);
+SRSLTE_API void srslte_pss_free(srslte_pss_t *q);
 
-SRSLTE_API void srslte_pss_synch_reset(srslte_pss_synch_t *q); 
+SRSLTE_API void srslte_pss_reset(srslte_pss_t *q);
 
-SRSLTE_API void srslte_pss_synch_filter_enable(srslte_pss_synch_t *q,
+SRSLTE_API void srslte_pss_filter_enable(srslte_pss_t *q,
                                                bool enable);
 
-SRSLTE_API void srslte_pss_synch_filter(srslte_pss_synch_t *q,
+SRSLTE_API void srslte_pss_sic(srslte_pss_t *q,
+                                     cf_t *input);
+
+SRSLTE_API void srslte_pss_filter(srslte_pss_t *q,
                                         const cf_t *input,
                                         cf_t *output);
 
@@ -151,21 +159,21 @@ SRSLTE_API void srslte_pss_put_slot(cf_t *pss_signal,
                                     uint32_t nof_prb, 
                                     srslte_cp_t cp);
 
-SRSLTE_API void srslte_pss_synch_set_ema_alpha(srslte_pss_synch_t *q, 
+SRSLTE_API void srslte_pss_set_ema_alpha(srslte_pss_t *q,
                                                float alpha); 
 
-SRSLTE_API int srslte_pss_synch_set_N_id_2(srslte_pss_synch_t *q, 
+SRSLTE_API int srslte_pss_set_N_id_2(srslte_pss_t *q,
                                            uint32_t N_id_2);
 
-SRSLTE_API int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, 
+SRSLTE_API int srslte_pss_find_pss(srslte_pss_t *q,
                                          const cf_t *input,
                                          float *corr_peak_value);
 
-SRSLTE_API int srslte_pss_synch_chest(srslte_pss_synch_t *q, 
+SRSLTE_API int srslte_pss_chest(srslte_pss_t *q,
                                       const cf_t *input,
                                       cf_t ce[SRSLTE_PSS_LEN]); 
 
-SRSLTE_API float srslte_pss_synch_cfo_compute(srslte_pss_synch_t* q,
+SRSLTE_API float srslte_pss_cfo_compute(srslte_pss_t* q,
                                               const cf_t *pss_recv);
 
 #endif // PSS_
