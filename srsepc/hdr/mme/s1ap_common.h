@@ -79,7 +79,7 @@ typedef struct{
   uint16_t enb_id;
   struct   sctp_sndrcvinfo enb_sri;
   eps_security_ctx_t security_ctxt;
-  erab_ctx_t erabs[MAX_ERABS_PER_UE];
+  erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
 } ue_ctx_t;
 }//namespace
 #endif

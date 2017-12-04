@@ -663,15 +663,14 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
     return false;
   }
-  //Send Reply to eNB
-  
+  //Send Reply to eNB 
   ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ctx->enb_sri, 0);
   if(n_sent == -1)
   {
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
       return false;
   }
-  
+
   m_s1ap_log->info("Sent Intial Context Setup Request\n");
   m_s1ap_log->console("Sent Intial Context Setup Request\n");
 
@@ -708,7 +707,7 @@ s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSE
   }LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT;
   */
   uint32_t mme_ue_s1ap_id = in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
-  std::map<uint32_t,ue_ctx_t*> ue_ctx_it = m_acive_ues.find(mme_ue_s1ap_id);
+  std::map<uint32_t,ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
   if (ue_ctx_it == m_active_ues.end())
   {
     m_s1ap_log->error("Could not find UE's context in active UE's map\n");
@@ -717,22 +716,16 @@ s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSE
   for(uint32_t i; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
   {
     uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
+    erab_ctx_t *erab_ctx = &ue_ctx_it->second->erabs_ctx[erab_id];
     if (erab_ctx->active == false)
     {
-      m_s1ap_log->error("E-RAB requested was not active %d\n",);
+      m_s1ap_log->error("E-RAB requested was not active %d\n",erab_id);
       return false;
     }
-    erab_ctx_t *erab_ctx = &ue_ctx_it->second->erab_ctx[i];
-    for(uint32_t i; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
-    {
-      uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
-      std::set<uint8_t, > ue_erab_it = erabs_it->second.find(erab_id);
-      if(ue_erab_it == erabs_it->second.end() )
-      {
-        m_s1ap_log->error("Could not find UE's in UE active bearers map\n");
-        return false;
-      }
-    }
+    //Set the GTP information
+    memcpy(&erab_ctx->enb_fteid.ipv4, in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].transportLayerAddress.buffer,4);
+    memcpy(&erab_ctx->enb_fteid.teid, in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].gTP_TEID.buffer, 4);
+  }
   return true;
 }
 
