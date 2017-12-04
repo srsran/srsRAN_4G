@@ -219,7 +219,7 @@ private:
 
       // Receive and route HARQ feedbacks
       if (grant) {
-        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi() && ack) ||
+        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi() && harq_feedback) ||
             (grant->rnti_type == SRSLTE_RNTI_USER && !has_grant())                  ||
              grant->is_from_rar)
         {
@@ -327,11 +327,11 @@ private:
           current_irv = irv_of_rv[grant->rv[0]%4];
         }
 
+        Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d, HI=%s, ndi=%d, prev_ndi=%d\n",
+             pid, current_tx_nb, get_rv(), grant->n_bytes[0], harq_feedback?"ACK":"NACK", grant->ndi[0], cur_grant.ndi[0]);
+
         memcpy(&cur_grant, grant, sizeof(Tgrant));
         harq_feedback = false;
-
-        Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d, HI=%s\n",
-             pid, current_tx_nb, get_rv(), grant->n_bytes[0], harq_feedback?"ACK":"NACK");
 
         generate_tx(tti_tx, action);
 
