@@ -30,6 +30,14 @@ static const uint8_t MAX_TA=255;  //Maximum TA supported
 static const uint8_t MAX_BPLMN=6; //Maximum broadcasted PLMNs per TAC
 static const uint8_t MAX_ERABS_PER_UE = 16;
 
+enum erab_state
+{
+  ERAB_DEACTIVATED,
+  ERAB_CTX_REQUESTED,
+  ERAB_CTX_SETUP,
+  ERAB_ACTIVE
+};
+
 typedef struct{
   uint8_t       mme_code;
   uint16_t      mme_group;
@@ -66,7 +74,7 @@ typedef struct{
 } eps_security_ctx_t;
 
 typedef struct{
-    bool active;
+    enum erab_state state;
     uint8_t erab_id;
     srslte::gtpc_f_teid_ie enb_fteid;
     //gtpc_f_teid_ie sgw_fteid; //?

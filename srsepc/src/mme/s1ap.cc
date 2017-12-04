@@ -391,7 +391,12 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   //Save UE context
   ue_ctx.imsi = imsi;
   ue_ctx.mme_ue_s1ap_id = m_next_mme_ue_s1ap_id++; 
-  
+  for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
+  {
+    ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
+    ue_ctx.erabs_ctx[i].erab_id = i;
+  }
+
   ue_ctx_t *ue_ptr = new ue_ctx_t;
   memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
   m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
@@ -568,7 +573,48 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
 bool
 s1ap::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
 {
-   return true;
+  /*
+  typedef struct{
+  LIBLTE_BYTE_MSG_STRUCT  esm_msg;
+  }LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT;
+  */
+  /*
+  typedef struct{
+    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT protocol_cnfg_opts;
+    uint8                                     eps_bearer_id;
+    uint8                                     proc_transaction_id;
+    bool                                      protocol_cnfg_opts_present;
+  }LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT;
+  */
+  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_comp;
+  uint8_t pd, msg_type;
+  srslte::byte_buffer_t *esm_msg = m_pool->allocate();
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_bearer;
+
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_comp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  memcpy(esm_msg->msg, attach_comp.esm_msg.buffer, attach_comp.esm_msg.N_bytes);
+  esm_msg->N_bytes = attach_comp.esm_msg.N_bytes;
+  /*liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) esm_msg, &pd, &msg_type);
+  if(msg_type!= LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_ACCEPT){
+    m_s1ap_log->error("Error unpacking activate default eps bearer context accept\n");
+    return false;
+    }*/
+
+  err = liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_bearer, (LIBLTE_BYTE_MSG_STRUCT *) esm_msg);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking Activate EPS Bearer Context Accept Msg. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  m_s1ap_log->console("Unpacked Attached Complete Message\n");
+  m_s1ap_log->console("Unpacked Activavate Default EPS Bearer message\n");
+  return true;
 }
 
 
@@ -657,7 +703,6 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   m_s1ap_nas_transport.pack_attach_accept(ue_ctx, erab_ctxt, &cs_resp->paa, nas_buffer); 
 
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
-  //reply_buffer->N_bytes = pdu->NAS_PDU.n_octets;
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
@@ -671,6 +716,9 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
       return false;
   }
 
+  //Change E-RAB state to Context Setup Requested
+  ue_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
+
   m_s1ap_log->info("Sent Intial Context Setup Request\n");
   m_s1ap_log->console("Sent Intial Context Setup Request\n");
 
@@ -683,29 +731,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
 bool
 s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp)
 {
-  /*typedef struct{
-    bool                                                         ext;
-    LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
-    LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
-    LIBLTE_S1AP_E_RABSETUPLISTCTXTSURES_STRUCT                   E_RABSetupListCtxtSURes;
-    LIBLTE_S1AP_E_RABLIST_STRUCT                                 E_RABFailedToSetupListCtxtSURes;
-    bool                                                         E_RABFailedToSetupListCtxtSURes_present;
-    LIBLTE_S1AP_CRITICALITYDIAGNOSTICS_STRUCT                    CriticalityDiagnostics;
-    bool                                                         CriticalityDiagnostics_present;
-  }LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT;
-  typedef struct{
-  uint32_t                                                     len;
-  LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT                   buffer[32]; //WARNING: Artificial limit to reduce memory footprint
-  }LIBLTE_S1AP_E_RABSETUPLISTCTXTSURES_STRUCT;
-  typedef struct{
-  bool                                                         ext;
-  LIBLTE_S1AP_E_RAB_ID_STRUCT                                  e_RAB_ID;
-  LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT                     transportLayerAddress;
-  LIBLTE_S1AP_GTP_TEID_STRUCT                                  gTP_TEID;
-  LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
-  bool                                                         iE_Extensions_present;
-  }LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT;
-  */
+
   uint32_t mme_ue_s1ap_id = in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
   std::map<uint32_t,ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
   if (ue_ctx_it == m_active_ues.end())
@@ -717,14 +743,32 @@ s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSE
   {
     uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
     erab_ctx_t *erab_ctx = &ue_ctx_it->second->erabs_ctx[erab_id];
-    if (erab_ctx->active == false)
+    if (erab_ctx->state != ERAB_CTX_REQUESTED)
     {
       m_s1ap_log->error("E-RAB requested was not active %d\n",erab_id);
       return false;
     }
+    //Mark E-RAB with context setup
+    erab_ctx->state = ERAB_CTX_SETUP;
+
     //Set the GTP information
-    memcpy(&erab_ctx->enb_fteid.ipv4, in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].transportLayerAddress.buffer,4);
+    uint8_t *bit_ptr = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].transportLayerAddress.buffer;
+    erab_ctx->enb_fteid.ipv4 = htonl(liblte_bits_2_value(&bit_ptr,32));
     memcpy(&erab_ctx->enb_fteid.teid, in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].gTP_TEID.buffer, 4);
+    erab_ctx->enb_fteid.teid = ntohl(erab_ctx->enb_fteid.teid);
+
+    char enb_addr_str[INET_ADDRSTRLEN+1];
+    const char *err = inet_ntop(AF_INET, &erab_ctx->enb_fteid.ipv4,enb_addr_str,sizeof(enb_addr_str));
+    if(err == NULL)
+    {
+      m_s1ap_log->error("Error converting IP to string\n");
+    }
+
+    m_s1ap_log->info("E-RAB Context Setup. E-RAB id %d\n",erab_ctx->erab_id);
+    m_s1ap_log->info("E-RAB Context -- eNB TEID 0x%x, eNB Address %s\n", erab_ctx->enb_fteid.teid, enb_addr_str);
+    m_s1ap_log->console("E-RAB Context Setup. E-RAB id %d\n",erab_ctx->erab_id);
+    m_s1ap_log->console("E-RAB Context -- eNB TEID 0x%x; eNB GTP-U Address %s\n", erab_ctx->enb_fteid.teid, enb_addr_str);
+
   }
   return true;
 }
