@@ -1040,8 +1040,8 @@ int dci_format2AB_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
 
   }
 
-  // pack TPC command for PUCCH (not implemented) 
-  y+=2; 
+  /* TCP command for PUCCH */
+  srslte_bit_unpack(data->tpc_pucch, &y, 2);
 
   /* harq process number */
   srslte_bit_unpack(data->harq_process, &y, HARQ_PID_LEN);
