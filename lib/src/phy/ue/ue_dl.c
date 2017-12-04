@@ -725,8 +725,7 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint8_t *ri, uint8_t *pmi, flo
     /* Select the best Rank indicator (RI) and Precoding Matrix Indicator (PMI) */
     for (uint32_t nof_layers = 1; nof_layers <= SRSLTE_MAX_LAYERS; nof_layers++) {
       float _sinr = q->sinr[nof_layers - 1][q->pmi[nof_layers - 1]] * nof_layers * nof_layers;
-      /* Find best SINR, force maximum number of layers if SNR is higher than 30 dB */
-      if (_sinr > best_sinr + 0.1 || _sinr > 1.0e+3) {
+      if (_sinr > best_sinr + 0.1) {
         best_sinr = _sinr;
         best_pmi = (uint8_t) q->pmi[nof_layers - 1];
         best_ri = (uint8_t) (nof_layers - 1);

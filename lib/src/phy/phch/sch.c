@@ -658,7 +658,7 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_decode_ack_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, acks, uci_data->uci_ack_len, false);
+    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, acks, uci_data->uci_ack_len);
     if (ret < 0) {
       return ret; 
     }
@@ -678,7 +678,7 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_decode_ack_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ri, uci_data->uci_ri_len, true);
+    ret = srslte_uci_decode_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ri);
     if (ret < 0) {
       return ret; 
     }
@@ -756,18 +756,13 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   uint32_t nb_q = cfg->nbits.nof_bits; 
   uint32_t Qm = cfg->grant.Qm; 
   
-  // Encode RI if CQI enabled
-  if (uci_data.uci_ri_len > 0 || uci_data.uci_cqi_len > 0) {
-    /* If no RI is reported set it to zero as specified in 3GPP 36.213 clause 7.2.1 */
-    if (uci_data.uci_ri_len == 0) {
-      uci_data.uci_ri = 0;
-    }
+  // Encode RI
+  if (uci_data.uci_ri_len > 0) {
     float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    uint8_t ri[2] = {uci_data.uci_ri, 0};
-    ret = srslte_uci_encode_ack_ri(cfg, ri, uci_data.uci_ri_len, uci_data.uci_cqi_len, beta, nb_q/Qm, q->ack_ri_bits, true);
+    ret = srslte_uci_encode_ri(cfg, uci_data.uci_ri, uci_data.uci_cqi_len, beta, nb_q/Qm, q->ack_ri_bits);
     if (ret < 0) {
       return ret; 
     }
@@ -814,8 +809,8 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ack_ri(cfg, acks, uci_data.uci_ack_len, uci_data.uci_cqi_len,
-                                beta, nb_q / Qm, &q->ack_ri_bits[Q_prime_ri * Qm], false);
+    ret = srslte_uci_encode_ack(cfg, acks, uci_data.uci_ack_len, uci_data.uci_cqi_len,
+                                beta, nb_q / Qm, &q->ack_ri_bits[Q_prime_ri * Qm]);
     if (ret < 0) {
       return ret; 
     }
