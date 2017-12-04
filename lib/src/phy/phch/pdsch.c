@@ -473,7 +473,7 @@ int srslte_pdsch_cfg_mimo(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra
     for (int cw = 0; cw < SRSLTE_MAX_CODEWORDS; cw++) {
       if (grant->tb_en[cw]) {
         if (srslte_cbsegm(&cfg->cb_segm[cw], (uint32_t) cfg->grant.mcs[cw].tbs)) {
-          fprintf(stderr, "Error computing Codeblock (1) segmentation for TBS=%d\n", cfg->grant.mcs[cw].tbs);
+          fprintf(stderr, "Error computing Codeword (%d) segmentation for TBS=%d\n", cw, cfg->grant.mcs[cw].tbs);
           return SRSLTE_ERROR;
         }
       }
@@ -554,8 +554,14 @@ static int srslte_pdsch_codeword_encode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
   srslte_ra_nbits_t *nbits = &cfg->nbits[tb_idx];
   srslte_ra_mcs_t *mcs = &cfg->grant.mcs[tb_idx];
   uint32_t rv = cfg->rv[tb_idx];
+  bool valid_inputs = true;
 
-  if (nbits->nof_bits) {
+  if (!softbuffer) {
+    ERROR("Error encoding (TB%d -> CW%d), softbuffer=NULL", tb_idx, codeword_idx);
+    valid_inputs = false;
+  }
+
+  if (nbits->nof_bits && valid_inputs) {
     INFO("Encoding PDSCH SF: %d (TB%d -> CW%d), Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
          cfg->sf_idx, tb_idx, codeword_idx, srslte_mod_string(mcs->mod), mcs->tbs,
          nbits->nof_re, nbits->nof_bits, rv);
@@ -577,6 +583,8 @@ static int srslte_pdsch_codeword_encode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
                               (uint8_t *) q->e[codeword_idx],
                               q->d[codeword_idx], nbits->nof_bits);
 
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   return SRSLTE_SUCCESS;

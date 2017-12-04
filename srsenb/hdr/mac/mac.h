@@ -72,9 +72,13 @@ public:
   int sr_detected(uint32_t tti, uint16_t rnti); 
   int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv); 
   
+  int set_dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info);
+
+  int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
+  int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
   int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
   int snr_info(uint32_t tti, uint16_t rnti, float snr); 
-  int ack_info(uint32_t tti, uint16_t rnti, bool ack); 
+  int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res); 
     
   int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res);

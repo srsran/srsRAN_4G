@@ -31,7 +31,6 @@
 #include <string.h>
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/srslte.h>
-#include <srslte/phy/dft/ofdm.h>
 
 
 #define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
@@ -224,15 +223,19 @@ void srslte_enb_dl_clear_sf(srslte_enb_dl_t *q)
 void srslte_enb_dl_put_sync(srslte_enb_dl_t *q, uint32_t sf_idx) 
 {
   if (sf_idx == 0 || sf_idx == 5) {
-    srslte_pss_put_slot(q->pss_signal, q->sf_symbols[0], q->cell.nof_prb, q->cell.cp);
-    srslte_sss_put_slot(sf_idx ? q->sss_signal5 : q->sss_signal0, q->sf_symbols[0], 
-                        q->cell.nof_prb, SRSLTE_CP_NORM);
+    for (int p = 0; p < q->cell.nof_ports; p++) {
+      srslte_pss_put_slot(q->pss_signal, q->sf_symbols[p], q->cell.nof_prb, q->cell.cp);
+      srslte_sss_put_slot(sf_idx ? q->sss_signal5 : q->sss_signal0, q->sf_symbols[p],
+                          q->cell.nof_prb, SRSLTE_CP_NORM);
+    }
   }  
 }
 
 void srslte_enb_dl_put_refs(srslte_enb_dl_t *q, uint32_t sf_idx)
 {
-  srslte_refsignal_cs_put_sf(q->cell, 0, q->csr_signal.pilots[0][sf_idx], q->sf_symbols[0]);
+  for (int p = 0; p < q->cell.nof_ports; p++) {
+    srslte_refsignal_cs_put_sf(q->cell, (uint32_t) p, q->csr_signal.pilots[p / 2][sf_idx], q->sf_symbols[p]);
+  }
 }
 
 void srslte_enb_dl_put_mib(srslte_enb_dl_t *q, uint32_t tti)
@@ -327,11 +330,41 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
 
 int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer[SRSLTE_MAX_CODEWORDS],
                             uint16_t rnti, int rv_idx[SRSLTE_MAX_CODEWORDS], uint32_t sf_idx,
-                            uint8_t *data[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type, uint32_t pmi)
+                            uint8_t *data[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type)
 {  
+  uint32_t pmi = 0;
+  uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
+
+  /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
+  if (mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
+    switch(nof_tb) {
+      case 1:
+        if (grant->pinfo == 0) {
+          mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+        } else if (grant->pinfo > 0 && grant->pinfo < 5) {
+          pmi = grant->pinfo - 1;
+        } else {
+          ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+          return SRSLTE_ERROR;
+        }
+        break;
+      case 2:
+        if (grant->pinfo < 2) {
+          pmi = grant->pinfo;
+        } else {
+          ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+          return SRSLTE_ERROR;
+        }
+        break;
+      default:
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+        return SRSLTE_ERROR;
+    }
+  }
+
   /* Configure pdsch_cfg parameters */
   if (srslte_pdsch_cfg_mimo(&q->pdsch_cfg, q->cell, grant, q->cfi, sf_idx, rv_idx, mimo_type, pmi)) {
-    fprintf(stderr, "Error configuring PDSCH\n");
+    ERROR("Error configuring PDSCH (rnti=0x%04x)", rnti);
     return SRSLTE_ERROR;
   }
 

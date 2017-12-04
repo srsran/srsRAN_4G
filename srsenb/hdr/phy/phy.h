@@ -66,6 +66,7 @@ public:
   static uint32_t tti_to_subf(uint32_t tti);
   
   void start_plot();
+  void set_conf_dedicated_ack(uint16_t rnti, bool dedicated_ack);
   void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated);
   
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
