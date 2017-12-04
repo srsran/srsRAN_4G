@@ -73,7 +73,6 @@ typedef struct SRSLTE_API {
   uint8_t  uci_ack;   // 1st codeword bit for HARQ-ACK
   uint8_t  uci_ack_2; // 2st codeword bit for HARQ-ACK
   uint32_t uci_ack_len;
-  bool ri_periodic_report;
   bool scheduling_request; 
   bool channel_selection; 
   bool cqi_ack; 
