@@ -75,10 +75,12 @@ void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, 
     return;
   }
   srslte_cfo_set_tol(&cfo_h, 0);
-  signal_buffer = (cf_t*) srslte_vec_malloc(SRSLTE_PRACH_MAX_LEN*sizeof(cf_t));
-  if (!signal_buffer) {
-    perror("malloc");
-    return;
+  for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
+    signal_buffer[p] = (cf_t *) srslte_vec_malloc(SRSLTE_PRACH_MAX_LEN * sizeof(cf_t));
+    if (!signal_buffer[p]) {
+      perror("malloc");
+      return;
+    }
   }
   if (srslte_prach_init(&prach_obj, srslte_symbol_sz(max_prb))) {
     Error("Initiating PRACH library\n");
@@ -181,8 +183,8 @@ void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte
   // Get current TX gain 
   float old_gain = radio_handler->get_tx_gain(); 
   
-  // Correct CFO before transmission
-  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));            
+  // Correct CFO before transmission FIXME: UL SISO Only
+  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer[0], cfo / srslte_symbol_sz(cell.nof_prb));
 
   // If power control is enabled, choose amplitude and power 
   if (args->ul_pwr_ctrl_en) {
@@ -193,10 +195,10 @@ void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte
     radio_handler->set_tx_power(tx_power);
         
     // Scale signal
-    float digital_power = srslte_vec_avg_power_cf(signal_buffer, len);
+    float digital_power = srslte_vec_avg_power_cf(signal_buffer[0], len);
     float scale = sqrtf(pow(10,tx_power/10)/digital_power);
     
-    srslte_vec_sc_prod_cfc(signal_buffer, scale, signal_buffer, len);
+    srslte_vec_sc_prod_cfc(signal_buffer[0], scale, signal_buffer[0], len);
     log_h->console("PRACH: Pathloss=%.2f dB, Target power %.2f dBm, TX_power %.2f dBm, TX_gain %.1f dB\n",
           pathloss, target_power_dbm, tx_power, radio_handler->get_tx_gain(), scale);
     
@@ -207,8 +209,8 @@ void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte
     }
     Debug("TX PRACH: Power control for PRACH is disabled, setting gain to %.0f dB\n", prach_gain);
   }
-    
-  radio_handler->tx(signal_buffer, len, tx_time);
+
+  radio_handler->tx((void **) signal_buffer, len, tx_time);
   radio_handler->tx_end();
   
   Info("PRACH: Transmitted preamble=%d, CFO=%.2f KHz, tx_time=%f\n", 

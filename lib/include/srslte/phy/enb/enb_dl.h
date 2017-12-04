@@ -95,10 +95,11 @@ typedef struct SRSLTE_API {
 
 typedef struct {
   uint16_t                rnti; 
+  srslte_dci_format_t     dci_format;
   srslte_ra_dl_dci_t      grant;
   srslte_dci_location_t   location; 
-  srslte_softbuffer_tx_t *softbuffer;
-  uint8_t                *data; 
+  srslte_softbuffer_tx_t *softbuffers[SRSLTE_MAX_TB];
+  uint8_t                *data[SRSLTE_MAX_TB];
 } srslte_enb_dl_pdsch_t; 
 
 typedef struct {
@@ -162,8 +163,7 @@ SRSLTE_API int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q,
                                        int rv_idx[SRSLTE_MAX_CODEWORDS],
                                        uint32_t sf_idx, 
                                        uint8_t *data[SRSLTE_MAX_CODEWORDS],
-                                       srslte_mimo_type_t mimo_type,
-                                       uint32_t pmi);
+                                       srslte_mimo_type_t mimo_type);
 
 SRSLTE_API int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, 
                                           srslte_ra_dl_dci_t *grant, 

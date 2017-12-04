@@ -136,7 +136,7 @@ bool enb::init(all_args_t *args_)
     dev_args = (char*) args->rf.device_args.c_str();
   }
 
-  if(!radio.init(dev_args, dev_name))
+  if(!radio.init(dev_args, dev_name, args->enb.nof_ports))
   {
     printf("Failed to find device %s with args %s\n",
            args->rf.device_name.c_str(), args->rf.device_args.c_str());

@@ -272,39 +272,6 @@ void phch_worker::work_imp()
       if (dl_action.generate_ack) {
         set_uci_ack(dl_ack, dl_mac_grant.tb_en);
       }
-
-      /* Select Rank Indicator by computing Condition Number */
-      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
-        if (ue_dl.nof_rx_antennas > 1) {
-          /* If 2 ort more receiving antennas, select RI */
-          float cn = 0.0f;
-          srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
-          uci_data.uci_ri_len = 1;
-        } else {
-          /* If only one receiving antenna, force RI for 1 layer */
-          uci_data.uci_ri = 0;
-          uci_data.uci_ri_len = 1;
-          Warning("Only one receiving antenna with TM3. Forcing RI=1 layer.\n");
-        }
-      } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4){
-        float sinr = 0.0f;
-        uint8 packed_pmi = 0;
-        srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
-        srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, 2);
-        uci_data.uci_ri_len = 1;
-        if (uci_data.uci_ri == 0) {
-          uci_data.uci_pmi_len = 2;
-          uci_data.uci_dif_cqi_len = 0;
-        } else {
-          uci_data.uci_pmi_len = 1;
-          uci_data.uci_dif_cqi_len = 3;
-        }
-
-        /* If only one antenna in TM4 print limitation warning */
-        if (ue_dl.nof_rx_antennas < 2) {
-          Warning("Only one receiving antenna with TM4. Forcing RI=1 layer (PMI=%d).\n", packed_pmi);
-        }
-      }
     }
   }
 
@@ -360,7 +327,7 @@ void phch_worker::work_imp()
       phy->set_pending_ack(TTI_RX_ACK(tti), ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
     }
 
-  } else if (dl_action.generate_ack || uci_data.scheduling_request || uci_data.uci_cqi_len > 0) {
+  } else if (dl_action.generate_ack || uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ri_len > 0) {
     encode_pucch();
     signal_ready = true; 
   } else if (srs_is_ready_to_send()) {
@@ -410,6 +377,42 @@ void phch_worker::work_imp()
 #endif
 }
 
+void phch_worker::compute_ri() {
+  if (uci_data.uci_ri_len > 0) {
+    /* Do nothing */
+  } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+    if (ue_dl.nof_rx_antennas > 1) {
+      /* If 2 ort more receiving antennas, select RI */
+      float cn = 0.0f;
+      srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
+      Info("RI select %d layers, κ=%fdB\n", uci_data.uci_ri + 1, cn);
+    } else {
+      /* If only one receiving antenna, force RI for 1 layer */
+      uci_data.uci_ri = 0;
+      Warning("Only one receiving antenna with TM3. Forcing RI=1 layer.\n");
+    }
+    uci_data.uci_ri_len = 1;
+  } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+    float sinr = 0.0f;
+    uint8 packed_pmi = 0;
+    srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
+    if (uci_data.uci_ri == 0) {
+      uci_data.uci_pmi_len = 2;
+      uci_data.uci_dif_cqi_len = 0;
+    } else {
+      uci_data.uci_pmi_len = 1;
+      uci_data.uci_dif_cqi_len = 3;
+    }
+    srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, uci_data.uci_pmi_len);
+    Info("ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
+
+    /* If only one antenna in TM4 print limitation warning */
+    if (ue_dl.nof_rx_antennas < 2) {
+      Warning("Only one receiving antenna with TM4. Forcing RI=1 layer (PMI=%d).\n", packed_pmi);
+    }
+    uci_data.uci_ri_len = 1;
+  }
+}
 
 bool phch_worker::extract_fft_and_pdcch_llr() {
   bool decode_pdcch = true;
@@ -634,7 +637,8 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
   if (valid_config) {
     if (!srslte_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, rv, mimo_type)) {
-      if (ue_dl.pdsch_cfg.grant.mcs[0].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[0].tbs >= 0) {
+      if ((ue_dl.pdsch_cfg.grant.mcs[0].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[0].tbs >= 0) ||
+          (ue_dl.pdsch_cfg.grant.mcs[1].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[1].tbs >= 0)) {
         
         float noise_estimate = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);
         
@@ -663,8 +667,13 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
 
-        snprintf(commonstr, 128, "PDSCH: l_crb=%2d, harq=%d, snr=%.1f dB", grant->nof_prb, harq_pid,
-                 10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
+        char pinfo_str[16] = {0};
+        if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+          snprintf(pinfo_str, 15, ", pinfo=%x", grant->pinfo);
+        }
+
+        snprintf(commonstr, 128, "PDSCH: l_crb=%2d, harq=%d, snr=%.1f dB, tx_scheme=%s%s", grant->nof_prb, harq_pid,
+                 10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)), srslte_mimotype2str(mimo_type), pinfo_str);
 
         for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
           if (grant->tb_en[i]) {
@@ -823,21 +832,15 @@ void phch_worker::reset_uci()
 
 void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS])
 {
-  uint32_t nof_tb = 0;
-  if (tb_en[0]) {
-    uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
-    nof_tb = 1;
-  } else {
-    uci_data.uci_ack = 1;
+  /* Map ACK according to 3GPP 36.212 clause 5.2.3.1 */
+  uint32_t nof_ack = 0;
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    if (tb_en[tb]) {
+      ((nof_ack == 0)?uci_data.uci_ack:uci_data.uci_ack_2) = (uint8_t)(ack[tb]?1:0);
+      nof_ack++;
+    }
   }
-
-  if (tb_en[1]) {
-    uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
-    nof_tb = 2;
-  }
-
-  uci_data.uci_ack_len = nof_tb;
-
+  uci_data.uci_ack_len = nof_ack;
 }
 
 void phch_worker::set_uci_sr()
@@ -862,14 +865,11 @@ void phch_worker::set_uci_periodic_cqi()
   
   if (period_cqi.configured && rnti_is_set) {
     if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, TTI_TX(tti))) {
-      if (uci_data.uci_ri_len) {
-        uci_data.uci_cqi[0] = uci_data.uci_ri;
-        uci_data.uci_cqi_len = uci_data.uci_ri_len;
-        uci_data.uci_ri_len = 0;
-        uci_data.uci_dif_cqi_len = 0;
-        uci_data.uci_pmi_len = 0;
-        Info("PUCCH: Periodic RI=%d\n", uci_data.uci_cqi[0]);
-      }
+      /* Compute RI, PMI and SINR */
+      compute_ri();
+
+      uci_data.ri_periodic_report = true;
+      Info("PUCCH: Periodic RI=%d\n", uci_data.uci_ri);
     } else if (srslte_cqi_send(period_cqi.pmi_idx, TTI_TX(tti))) {
       srslte_cqi_value_t cqi_report;
       if (period_cqi.format_is_subband) {
@@ -891,6 +891,16 @@ void phch_worker::set_uci_periodic_cqi()
         }
         Info("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db);
       }
+      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+        if (ue_dl.ri == 0) {
+          uci_data.uci_pmi_len = 2;
+        } else {
+          uci_data.uci_pmi_len = 1;
+          uci_data.uci_dif_cqi_len = 3;
+        }
+        uint8_t *ptr = uci_data.uci_pmi;
+        srslte_bit_unpack(ue_dl.pmi[ue_dl.ri], &ptr, uci_data.uci_pmi_len);
+      }
       uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
       rar_cqi_request = false;       
     }
@@ -900,6 +910,9 @@ void phch_worker::set_uci_periodic_cqi()
 void phch_worker::set_uci_aperiodic_cqi()
 {
   if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
+    /* Compute RI, PMI and SINR */
+    compute_ri();
+
     switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
         /* only Higher Layer-configured subband feedback support right now, according to TS36.213 section 7.2.1
@@ -912,15 +925,65 @@ void phch_worker::set_uci_aperiodic_cqi()
             reported RI. For other transmission modes they are reported conditioned on rank 1.
         */
         if (rnti_is_set) {
-          srslte_cqi_value_t cqi_report;
+          srslte_cqi_value_t cqi_report = {0};
           cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
-          cqi_report.subband_hl.wideband_cqi = srslte_cqi_from_snr(phy->avg_snr_db);
+          cqi_report.subband_hl.wideband_cqi_cw0 = srslte_cqi_from_snr(phy->avg_snr_db);
 
           // TODO: implement subband CQI properly
-          cqi_report.subband_hl.subband_diff_cqi = 0; // Always report zero offset on all subbands
+          cqi_report.subband_hl.subband_diff_cqi_cw0 = 0; // Always report zero offset on all subbands
           cqi_report.subband_hl.N = (cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0;
 
           Info("PUSCH: Aperiodic CQI=%d, SNR=%.1f dB, for %d subbands\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db, cqi_report.subband_hl.N);
+          uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+        }
+        break;
+      case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
+        /* only Higher Layer-configured subband feedback support right now, according to TS36.213 section 7.2.1
+          - A single precoding matrix is selected from the codebook subset assuming transmission on set S subbands
+          - A UE shall report one subband CQI value per codeword for each set S subband which are calculated assuming
+            the use of the single precoding matrix in all subbands and assuming transmission in the corresponding
+            subband.
+          - A UE shall report a wideband CQI value per codeword which is calculated assuming the use of the single
+            precoding matrix in all subbands and transmission on set S subbands
+          - The UE shall report the single selected precoding matrix indicator.
+          - For transmission mode 4 the reported PMI and CQI values are calculated conditioned on the reported RI. For
+            other transmission modes they are reported conditioned on rank 1.
+        */
+        if (rnti_is_set) {
+          /* Select RI, PMI and SINR */
+          uint32_t ri = ue_dl.ri;       // Select RI (0: 1 layer, 1: 2 layer, otherwise: not implemented)
+          uint32_t pmi = ue_dl.pmi[ri]; // Select PMI
+          float sinr_db = 10 * log10(ue_dl.sinr[ri][pmi]);
+
+          /* Fill CQI Report */
+          srslte_cqi_value_t cqi_report = {0};
+          cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
+
+          cqi_report.subband_hl.wideband_cqi_cw0 = srslte_cqi_from_snr(sinr_db);
+          cqi_report.subband_hl.subband_diff_cqi_cw0 = 0; // Always report zero offset on all subbands
+
+          if (ri > 0) {
+            cqi_report.subband_hl.rank_is_not_one = true;
+            cqi_report.subband_hl.wideband_cqi_cw1 = srslte_cqi_from_snr(sinr_db);
+            cqi_report.subband_hl.subband_diff_cqi_cw1 = 0; // Always report zero offset on all subbands
+          }
+
+          cqi_report.subband_hl.pmi = pmi;
+          cqi_report.subband_hl.pmi_present = true;
+          cqi_report.subband_hl.four_antenna_ports = (cell.nof_ports == 4);
+
+          // TODO: implement subband CQI properly
+          cqi_report.subband_hl.N = (uint32_t) ((cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0);
+
+          if (cqi_report.subband_hl.rank_is_not_one) {
+            Info("PUSCH: Aperiodic ri~1, CQI=%02d/%02d, SINR=%2.1f/%2.1fdB, pmi=%d for %d subbands\n",
+                 cqi_report.subband_hl.wideband_cqi_cw0, cqi_report.subband_hl.wideband_cqi_cw1,
+                 sinr_db, sinr_db, pmi, cqi_report.subband_hl.N);
+          } else {
+            Info("PUSCH: Aperiodic ri=1, CQI=%02d, SINR=%2.1f, pmi=%d for %d subbands\n",
+                 cqi_report.subband_hl.wideband_cqi_cw0,
+                 sinr_db, pmi, cqi_report.subband_hl.N);
+          }
           uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
         }
         break;
@@ -1006,7 +1069,7 @@ void phch_worker::encode_pucch()
   char timestr[64];
   timestr[0]='\0';
 
-  if (uci_data.scheduling_request || uci_data.uci_ack_len > 0 || uci_data.uci_cqi_len > 0) 
+  if (uci_data.scheduling_request || uci_data.uci_ack_len > 0 || uci_data.uci_cqi_len > 0 || uci_data.uci_ri_len > 0)
   {
     
     // Drop CQI if there is collision with ACK 

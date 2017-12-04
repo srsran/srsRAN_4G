@@ -234,6 +234,7 @@ add_executable(pucch_test pucch_test.c)
 target_link_libraries(pucch_test srslte_phy)
 
 add_test(pucch_test pucch_test)
+add_test(pucch_test_uci_cqi_decoder pucch_test -q)
 
 ########################################################################
 # PRACH TEST  

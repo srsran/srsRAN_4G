@@ -142,6 +142,7 @@ SRSLTE_API int srslte_pusch_decode(srslte_pusch_t *q,
                                    float noise_estimate, 
                                    uint16_t rnti,
                                    uint8_t *data, 
+                                   srslte_cqi_value_t *cqi_value,
                                    srslte_uci_data_t *uci_data);
 
 SRSLTE_API float srslte_pusch_average_noi(srslte_pusch_t *q); 
