@@ -998,7 +998,7 @@ void *plot_thread_run(void *arg) {
       
       if (!prog_args.input_file_name) {
         if (plot_track) {
-          srslte_pss_synch_t *pss_obj = srslte_sync_get_cur_pss_obj(&ue_sync.strack);
+          srslte_pss_t *pss_obj = srslte_sync_get_cur_pss_obj(&ue_sync.strack);
           int max = srslte_vec_max_fi(pss_obj->conv_output_avg, pss_obj->frame_size+pss_obj->fft_size-1);
           srslte_vec_sc_prod_fff(pss_obj->conv_output_avg, 
                           1/pss_obj->conv_output_avg[max], 

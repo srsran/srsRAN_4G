@@ -1087,7 +1087,9 @@ void rrc::ho_ra_completed(bool ra_successful) {
     rrc_log->console("HO %ssuccessful\n", ra_successful?"":"un");
 
     pending_mob_reconf = false;
-    state = RRC_STATE_CONNECTED;
+    if (ra_successful) {
+      state = RRC_STATE_CONNECTED;
+    }
   } else {
     rrc_log->error("Received HO random access completed but no pending mobility reconfiguration info\n");
   }

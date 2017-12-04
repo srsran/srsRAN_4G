@@ -233,10 +233,13 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<float>(&args->expert.phy.cfo_loop_ref_min)->default_value(0),
      "Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop")
 
-
     ("expert.cfo_loop_pss_conv",
      bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(20),
      "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
+
+    ("expert.sic_pss_enabled",
+     bpo::value<bool>(&args->expert.phy.sic_pss_enabled)->default_value(true),
+     "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
 
     ("expert.average_subframe_enabled",
      bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(false),

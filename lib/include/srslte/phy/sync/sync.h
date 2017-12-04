@@ -60,9 +60,9 @@
 typedef enum {SSS_DIFF=0, SSS_PARTIAL_3=2, SSS_FULL=1} sss_alg_t; 
 
 typedef struct SRSLTE_API {
-  srslte_pss_synch_t pss; 
-  srslte_pss_synch_t pss_i[2]; 
-  srslte_sss_synch_t sss;
+  srslte_pss_t pss;
+  srslte_pss_t pss_i[2];
+  srslte_sss_t sss;
   srslte_cp_synch_t cp_synch;
   cf_t *cfo_i_corr[2];
   int decimate;
@@ -110,7 +110,7 @@ typedef struct SRSLTE_API {
   srslte_cfo_t cfo_corr_frame;
   srslte_cfo_t cfo_corr_symbol;
 
-  bool sss_filtering_enabled;
+  bool sss_channel_equalize;
   bool pss_filtering_enabled;
   cf_t sss_filt[SRSLTE_SYMBOL_SZ_MAX];
   cf_t pss_filt[SRSLTE_SYMBOL_SZ_MAX];
@@ -186,8 +186,8 @@ SRSLTE_API int srslte_sync_get_cell_id(srslte_sync_t *q);
 SRSLTE_API void srslte_sync_set_pss_filt_enable(srslte_sync_t *q,
                                                 bool enable);
 
-SRSLTE_API void srslte_sync_set_sss_filt_enable(srslte_sync_t *q,
-                                                bool enable);
+SRSLTE_API void srslte_sync_set_sss_eq_enable(srslte_sync_t *q,
+                                              bool enable);
 
 /* Gets the CFO estimation from the last call to synch_run() */
 SRSLTE_API float srslte_sync_get_cfo(srslte_sync_t *q);
@@ -227,7 +227,7 @@ SRSLTE_API void srslte_sync_set_cp(srslte_sync_t *q,
 SRSLTE_API void srslte_sync_sss_en(srslte_sync_t *q, 
                                    bool enabled);
 
-SRSLTE_API srslte_pss_synch_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q); 
+SRSLTE_API srslte_pss_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q);
 
 SRSLTE_API bool srslte_sync_sss_detected(srslte_sync_t *q);
 
