@@ -49,7 +49,7 @@ namespace srsue {
       target_power_dbm  = 0;
       mem_initiated     = false;
       cell_initiated    = false;
-      bzero(signal_buffer, sizeof(signal_buffer));
+      signal_buffer     = NULL;   
     }
     ~prach();
     void           init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config, uint32_t max_prb, phy_args_t *args, srslte::log *log_h);
@@ -78,7 +78,7 @@ namespace srsue {
     srslte_prach_t prach_obj; 
     int            transmitted_tti;
     srslte_cell_t  cell;
-    cf_t          *signal_buffer[SRSLTE_MAX_PORTS];
+    cf_t          *signal_buffer;
     srslte_cfo_t   cfo_h; 
     float target_power_dbm;
     
