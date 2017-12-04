@@ -55,22 +55,13 @@ typedef struct {
 } srslte_cqi_periodic_cfg_t; 
   
 /* Table 5.2.2.6.2-1: Fields for channel quality information feedback for higher layer configured subband
-   CQI reports  (transmission mode 1, transmission mode 2, transmission mode 3, transmission mode 7 and
-   transmission mode 8 configured without PMI/RI reporting). */
-
-/* Table 5.2.2.6.2-2: Fields for channel quality information (CQI) feedback for higher layer configured subband CQI
-   reports (transmission mode 4, transmission mode 5 and transmission mode 6). */
-
+CQI reports
+(transmission mode 1, transmission mode 2, transmission mode 3, transmission mode 7 and
+transmission mode 8 configured without PMI/RI reporting). */
 typedef struct SRSLTE_API {
-  uint8_t  wideband_cqi_cw0;      // 4-bit width
-  uint32_t subband_diff_cqi_cw0;  // 2N-bit width
-  uint8_t  wideband_cqi_cw1;      // if RI > 1 then 4-bit width otherwise 0-bit width
-  uint32_t subband_diff_cqi_cw1;  // if RI > 1 then 2N-bit width otherwise 0-bit width
-  uint32_t pmi;                   // if RI > 1 then 2-bit width otherwise 1-bit width
-  uint32_t N;
-  bool pmi_present;
-  bool four_antenna_ports;        // If cell has 4 antenna ports then true otherwise false
-  bool rank_is_not_one;           // If rank > 1 then true otherwise false
+  uint8_t  wideband_cqi; // 4-bit width
+  uint32_t subband_diff_cqi; // 2N-bit width
+  uint32_t N; 
 } srslte_cqi_hl_subband_t;
 
 /* Table 5.2.2.6.3-1: Fields for channel quality information feedback for UE selected subband CQI
