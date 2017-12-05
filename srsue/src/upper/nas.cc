@@ -697,7 +697,6 @@ void nas::send_attach_request() {
   attach_req.additional_guti_present = false;
   attach_req.last_visited_registered_tai_present = false;
   attach_req.drx_param_present = false;
-  attach_req.ms_network_cap_present = false;
   attach_req.old_lai_present = false;
   attach_req.tmsi_status_present = false;
   attach_req.ms_cm2_present = false;
@@ -739,7 +738,7 @@ void nas::send_attach_request() {
   } else {
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
     usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
-    nas_log->info("Requesting IMSI attach. imsi: %s\n", usim->get_imsi_str());
+    nas_log->info("Requesting IMSI attach (IMSI=%s)\n", usim->get_imsi_str().c_str());
     liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT *) msg);
   }
 
