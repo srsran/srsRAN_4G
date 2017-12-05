@@ -44,7 +44,7 @@ namespace srsue {
  ********************************************************************/
 
 nas::nas()
-  : state(EMM_STATE_DEREGISTERED), plmn_selection(PLMN_SELECTED), have_guti(false), ip_addr(0), eps_bearer_id(0)
+  : state(EMM_STATE_DEREGISTERED), plmn_selection(PLMN_SELECTED), have_guti(false), have_ctxt(false), ip_addr(0), eps_bearer_id(0)
 {
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
@@ -548,13 +548,15 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
     return;
   }
 
-  if(sec_mode_cmd.nas_ksi.nas_ksi != ctxt.ksi)
-  {
-    nas_log->warning("Sending Security Mode Reject due to key set ID mismatch\n");
-    send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED);
-    pool->deallocate(pdu);
-    return;
+  if (have_ctxt) {
+    if(sec_mode_cmd.nas_ksi.nas_ksi != ctxt.ksi) {
+      nas_log->warning("Sending Security Mode Reject due to key set ID mismatch\n");
+      send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED);
+      pool->deallocate(pdu);
+      return;
+    }
   }
+
   // MME is setting up security context
 
   // TODO: check nonce (not sent by Amari)
@@ -744,7 +746,7 @@ void nas::send_attach_request() {
   nas_log->info("Sending attach request\n");
   rrc->write_sdu(cfg.lcid, msg);
 
-  if(have_ctxt) {
+  if (have_ctxt) {
     ctxt.tx_count++;
   }
 }
