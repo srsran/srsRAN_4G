@@ -167,7 +167,7 @@ void
 mme_gtpc::send_modify_bearer_request(erab_ctx_t *erab_ctx)
 {
   m_mme_gtpc_log->info("Sending GTP-C Modify bearer request\n");
-  srslte::gtpc_pdu pdu;
+  srslte::gtpc_pdu mb_req_pdu;
   srslte::gtpc_f_teid_ie *enb_fteid = &erab_ctx->enb_fteid; 
   srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = &erab_ctx->sgw_ctrl_fteid; 
 
@@ -176,14 +176,16 @@ mme_gtpc::send_modify_bearer_request(erab_ctx_t *erab_ctx)
   header->teid = sgw_ctrl_fteid->teid;
   header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_REQUEST;
 
-  srslte::gtpc_modify_bearer_request mb_req;
-  mb_req.eps_bearer_context_to_modify.ebi = erab_ctx->erab_id;
-  mb_req.eps_bearer_context_to_modify.s1_u_enb_f_teid.ipv4 = enb_fteid->ipv4;
-  mb_req.eps_bearer_context_to_modify.s1_u_enb_f_teid.teid = enb_fteid->teid;
+  srslte::gtpc_modify_bearer_request *mb_req = &mb_req_pdu.modify_bearer_request;
+  mb_req->eps_bearer_context_to_modify.ebi = erab_ctx->erab_id;
+  mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.ipv4 = enb_fteid->ipv4;
+  mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.teid = enb_fteid->teid;
 
   m_mme_gtpc_log->info("GTP-C Modify bearer request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
   m_mme_gtpc_log->info("GTP-C Modify bearer request -- S1-U TEID 0x%x\n", enb_fteid->teid );
 
-  
+  //
+  srslte::gtpc_pdu mb_resp_pdu;
+  m_spgw->handle_modify_bearer_request(&mb_req_pdu,&mb_resp_pdu); 
 }
 } //namespace srsepc

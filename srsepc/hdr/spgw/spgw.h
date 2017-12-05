@@ -56,11 +56,11 @@ typedef struct {
 typedef struct {
   uint64_t imsi;
   in_addr_t ue_ipv4;
-  struct srslte::gtpc_f_teid_ie uplink_ctrl;
-  struct srslte::gtpc_f_teid_ie uplink_user;
-  struct srslte::gtpc_f_teid_ie downlink_ctrl;
-  struct srslte::gtpc_f_teid_ie downlink_user;
-} spgw_ue_ctxr;
+  struct srslte::gtpc_f_teid_ie up_ctrl_fteid;
+  struct srslte::gtpc_f_teid_ie up_user_fteid;
+  struct srslte::gtpc_f_teid_ie dw_ctrl_fteid;
+  struct srslte::gtpc_f_teid_ie dw_user_fteid;
+} spgw_ue_ctx;
 
 class spgw:
   public thread
@@ -100,6 +100,9 @@ private:
 
   uint64_t m_next_ctrl_teid;
   uint64_t m_next_user_teid;
+
+  std::map<uint32_t,spgw_ue_ctx*> m_teid_to_ue_ctx;      //Map control TEID to ue_ctx. Usefull to get reply ctrl TEID
+  std::map<in_addr_t,gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
 
   /*Logs*/
   srslte::log_filter  *m_spgw_log;

@@ -315,13 +315,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
 
 
   m_spgw_log->info("Received Create Session Request\n");
-  //Setup GTP-C header
-  header->piggyback = false;
-  header->teid_present = true;
-  header->teid = cs_req->sender_f_teid.teid;  //Send create session requesponse to the CS Request TEID
-  header->type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE;
-
-  //Setup uplink control TEID
+    //Setup uplink control TEID
   uint64_t spgw_uplink_ctrl_teid = get_new_ctrl_teid();
   //Setup uplink user TEID
   uint64_t spgw_uplink_user_teid = get_new_user_teid();
@@ -329,9 +323,19 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   in_addr_t ue_ip = get_new_ue_ipv4();
 
   //Save the UE IP to User TEID map //TODO!!!
+  struct sgw_ue_ctx *ue_ctx = new sgw_ue_ctx;
+  sgw_ue_ctx->imsi = cs_req->imsi;
+  sgw_ue_ctx->ul_user_fteid.teid = spgw_uplink_user_teid;
+  sgw_ue_ctx->ul_ctrl_fteid = spgw_uplink_ctrl_teid;
+  sgw_ue_ctx->ue_ipv4 = ue_ip; 
 
   //Create session response message
-  //Initialize to zero\\
+  //Setup GTP-C header
+  header->piggyback = false;
+  header->teid_present = true;
+  header->teid = cs_req->sender_f_teid.teid;  //Send create session requesponse to the CS Request TEID
+  header->type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE;
+  //Initialize to zero
   bzero(cs_resp,sizeof(struct srslte::gtpc_create_session_response));
   //Setup Cause
   cs_resp->cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
@@ -354,6 +358,21 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   return;
 }
 
+void
+spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu)
+{
+  m_spgw_log->info("Received Modified Bearer Request\n");
 
+  //Get control tunnel info from  
+  //Setting up Modify bearer request PDU
+  //Header
+  srslte::gtpc_header *header = &mb_req_pdu->header;
+  header->piggyback = false;
+  header->teid_present = true;
+  header->teid = ;  //
+  header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_RESPONSE;
 
+  //PDU
+  srslte::gtpc_modify_bearer_response *mb_resp = mb_req_pdu.choice.modify_bearer_response;
+}
 } //namespace srsepc
