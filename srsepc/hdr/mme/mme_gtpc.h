@@ -31,7 +31,7 @@
 #include "srslte/common/buffer_pool.h"
 #include <boost/thread/mutex.hpp>
 #include "srslte/asn1/gtpc.h"
-
+#include "mme/s1ap_common.h"
 namespace srsepc
 {
 
@@ -50,6 +50,7 @@ public:
   uint32_t get_new_ctrl_teid();
   void send_create_session_request(uint64_t imsi, uint32_t mme_s1ap_id);
   void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
+  void send_modify_bearer_request(erab_ctx_t *bearer_ctx);
 
 private:
 

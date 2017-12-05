@@ -23,6 +23,8 @@
 
 #include "srslte/common/security.h"
 #include "srslte/asn1/gtpc_ies.h"
+#include "srslte/asn1/liblte_s1ap.h"
+#include <netinet/sctp.h>
 
 namespace srsepc{
   
@@ -77,7 +79,7 @@ typedef struct{
     enum erab_state state;
     uint8_t erab_id;
     srslte::gtpc_f_teid_ie enb_fteid;
-    //gtpc_f_teid_ie sgw_fteid; //?
+    srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
 } erab_ctx_t;
 
 typedef struct{

@@ -490,6 +490,7 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   memcpy(act_def_eps_bearer_context_req.pdn_addr.addr, &paa->ipv4, 4);
   //Set eps bearer id
   act_def_eps_bearer_context_req.eps_bearer_id = erab_ctxt->e_RAB_ID.E_RAB_ID;
+  printf("%d\n",act_def_eps_bearer_context_req.eps_bearer_id);
   act_def_eps_bearer_context_req.transaction_id_present = false;
   //set eps_qos
   act_def_eps_bearer_context_req.eps_qos.qci =  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI;

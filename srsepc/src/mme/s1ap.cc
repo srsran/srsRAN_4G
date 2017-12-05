@@ -570,56 +570,9 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
 }
 
 
-bool
-s1ap::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
-{
-  /*
-  typedef struct{
-  LIBLTE_BYTE_MSG_STRUCT  esm_msg;
-  }LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT;
-  */
-  /*
-  typedef struct{
-    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT protocol_cnfg_opts;
-    uint8                                     eps_bearer_id;
-    uint8                                     proc_transaction_id;
-    bool                                      protocol_cnfg_opts_present;
-  }LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT;
-  */
-  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_comp;
-  uint8_t pd, msg_type;
-  srslte::byte_buffer_t *esm_msg = m_pool->allocate();
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_bearer;
-
-  //Get NAS authentication response
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_comp);
-  if(err != LIBLTE_SUCCESS){
-    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
-    return false;
-  }
-
-  memcpy(esm_msg->msg, attach_comp.esm_msg.buffer, attach_comp.esm_msg.N_bytes);
-  esm_msg->N_bytes = attach_comp.esm_msg.N_bytes;
-  /*liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) esm_msg, &pd, &msg_type);
-  if(msg_type!= LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_ACCEPT){
-    m_s1ap_log->error("Error unpacking activate default eps bearer context accept\n");
-    return false;
-    }*/
-
-  err = liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_bearer, (LIBLTE_BYTE_MSG_STRUCT *) esm_msg);
-  if(err != LIBLTE_SUCCESS){
-    m_s1ap_log->error("Error unpacking Activate EPS Bearer Context Accept Msg. Error: %s\n", liblte_error_text[err]);
-    return false;
-  }
-
-  m_s1ap_log->console("Unpacked Attached Complete Message\n");
-  m_s1ap_log->console("Unpacked Activavate Default EPS Bearer message\n");
-  return true;
-}
-
 
 bool
-s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp)
+s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid)
 {
   ue_ctx_t *ue_ctx;
 
@@ -701,7 +654,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   }
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
   m_s1ap_nas_transport.pack_attach_accept(ue_ctx, erab_ctxt, &cs_resp->paa, nas_buffer); 
-
+  
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if(err != LIBLTE_SUCCESS)
   {
@@ -716,11 +669,13 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
       return false;
   }
 
-  //Change E-RAB state to Context Setup Requested
+  //Change E-RAB state to Context Setup Requested and save S-GW control F-TEID
   ue_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
+  ue_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.teid = sgw_ctrl_fteid.teid;
+  ue_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
 
-  m_s1ap_log->info("Sent Intial Context Setup Request\n");
-  m_s1ap_log->console("Sent Intial Context Setup Request\n");
+  m_s1ap_log->info("Sent Intial Context Setup Request. E-RAB id %d \n",erab_ctxt->e_RAB_ID.E_RAB_ID);
+  m_s1ap_log->console("Sent Intial Context Setup Request, E-RAB id %d\n",erab_ctxt->e_RAB_ID.E_RAB_ID);
 
   m_pool->deallocate(reply_buffer);
   m_pool->deallocate(nas_buffer);
@@ -772,6 +727,58 @@ s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSE
   }
   return true;
 }
+
+bool
+s1ap::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
+{
+  /*
+  typedef struct{
+  LIBLTE_BYTE_MSG_STRUCT  esm_msg;
+  }LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT;
+  */
+  /*
+  typedef struct{
+    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT protocol_cnfg_opts;
+    uint8                                     eps_bearer_id;
+    uint8                                     proc_transaction_id;
+    bool                                      protocol_cnfg_opts_present;
+  }LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT;
+  */
+  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_comp;
+  uint8_t pd, msg_type;
+  srslte::byte_buffer_t *esm_msg = m_pool->allocate();
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_bearer;
+
+  m_s1ap_log->info_hex(nas_msg->msg, nas_msg->N_bytes, "NAS Attach complte");
+
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_comp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  //  memcpy(esm_msg->msg, attach_comp.esm_msg.buffer, attach_comp.esm_msg.N_bytes);
+  //esm_msg->N_bytes = attach_comp.esm_msg.N_bytes;
+
+  err = liblte_mme_unpack_activate_default_eps_bearer_context_accept_msg( (LIBLTE_BYTE_MSG_STRUCT *) &attach_comp.esm_msg, &act_bearer);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking Activate EPS Bearer Context Accept Msg. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+  
+  m_s1ap_log->console("Unpacked Attached Complete Message\n");
+  m_s1ap_log->console("Unpacked Activavate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
+  //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
+  if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 16)
+  {
+    m_s1ap_log->error("EPS Bearer ID out of range\n");
+    return false;
+  }
+  m_mme_gtpc->send_modify_bearer_request(&ue_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
+  return true;
+}
+
 
 
 bool

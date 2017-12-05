@@ -143,8 +143,8 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
     //TODO Handle error
     return;
   }
-
-  //Get MME_UE_S1AP_ID from the Ctrl TEID
+  
+  //Get MME_UE_S1AP_ID from the control TEID
   std::map<uint32_t,uint32_t>::iterator id_it = m_teid_to_mme_s1ap_id.find(cs_resp_pdu->header.teid);
   if(id_it == m_teid_to_mme_s1ap_id.end())
   {
@@ -153,7 +153,37 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
     return;
   }
   uint32_t mme_s1ap_id = id_it->second;
-  m_s1ap->send_initial_context_setup_request(mme_s1ap_id, cs_resp);
+
+  //Get S-GW Control F-TEID
+  srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
+  sgw_ctrl_fteid.teid = cs_resp_pdu->header.teid;
+  sgw_ctrl_fteid.ipv4 = 0; //FIXME This is not used for now. In the future it will be obtained from the socket addr_info
+
+  m_s1ap->send_initial_context_setup_request(mme_s1ap_id, cs_resp, sgw_ctrl_fteid);
 }
 
+
+void
+mme_gtpc::send_modify_bearer_request(erab_ctx_t *erab_ctx)
+{
+  m_mme_gtpc_log->info("Sending GTP-C Modify bearer request\n");
+  srslte::gtpc_pdu pdu;
+  srslte::gtpc_f_teid_ie *enb_fteid = &erab_ctx->enb_fteid; 
+  srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = &erab_ctx->sgw_ctrl_fteid; 
+
+  srslte::gtpc_header *header = &pdu.header;
+  header->teid_present = true;
+  header->teid = sgw_ctrl_fteid->teid;
+  header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_REQUEST;
+
+  srslte::gtpc_modify_bearer_request mb_req;
+  mb_req.eps_bearer_context_to_modify.ebi = erab_ctx->erab_id;
+  mb_req.eps_bearer_context_to_modify.s1_u_enb_f_teid.ipv4 = enb_fteid->ipv4;
+  mb_req.eps_bearer_context_to_modify.s1_u_enb_f_teid.teid = enb_fteid->teid;
+
+  m_mme_gtpc_log->info("GTP-C Modify bearer request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
+  m_mme_gtpc_log->info("GTP-C Modify bearer request -- S1-U TEID 0x%x\n", enb_fteid->teid );
+
+  
+}
 } //namespace srsepc

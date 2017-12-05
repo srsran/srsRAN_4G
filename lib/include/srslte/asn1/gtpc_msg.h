@@ -234,12 +234,12 @@ struct gtpc_create_session_request
   //bool ext;							// O
 };
 
-  /****************************************************************************
-   *
-   * GTP-C v2 Create Session Response
-   * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.2-1
-   *
-   ***************************************************************************/
+/****************************************************************************
+ *
+ * GTP-C v2 Create Session Response
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.2-1
+ *
+ ***************************************************************************/
 struct gtpc_create_session_response
 {
   struct gtpc_cause_ie cause; //M
@@ -292,6 +292,46 @@ struct gtpc_create_session_response
   //PGW LDN //O
   //PGW Back-Off Time //O
   //acpo //CO
+};
+
+/****************************************************************************
+ *
+ * GTP-C v2 Modify Bearer Request
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.7-1, 7.2.7-2 and 7.2.7-3
+ *
+ ***************************************************************************/
+
+struct gtpc_modify_bearer_request
+{
+  //ME Identity (MEI)//C
+  //User Location Information (ULI)//C
+  //Serving Network //CO
+  //RAT Type //C/CO
+  //Indication Flags
+  //Sender F-TEID for Control Plane
+  //APN-AMBR
+  //Delay Downlink Packet Notification Request
+  struct gtpc_bearer_context_modified_ie
+  {
+    uint8_t ebi;
+    gtpc_cause_ie cause;
+    bool s1_u_enb_f_teid_present;
+    struct gtpc_f_teid_ie s1_u_enb_f_teid;
+    bool s5_s8_u_sgw_f_teid_present;
+    struct gtpc_f_teid_ie s5_s8_u_sgw_f_teid;
+    bool s12_rnc_f_teid_present;
+    struct gtpc_f_teid_ie s12_rnc_f_teid;
+    bool s4_u_sgsn_f_teid_present;
+    struct gtpc_f_teid_ie s4_u_sgsn_f_teid;
+  } eps_bearer_context_to_modify;
+  //Bearer Contexts to be removed
+  //Recovery
+  //UE Time Zone
+  //MME-FQ-CSID
+  //SGW-FQ-CSID
+  //User CSG Information (UCI)
+  //MME/S4-SGSN LDN
+  //SGW LDN
 };
 
 }; //namespace
