@@ -854,9 +854,11 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
 
   if (rrc_cfg->antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
     rrc_cfg->antenna_info.ue_tx_antenna_selection_setup = LIBLTE_RRC_UE_TX_ANTENNA_SELECTION_OPEN_LOOP;
-    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup_present = true;
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup_present = false;
 
     rrc_cfg->antenna_info.codebook_subset_restriction_choice = LIBLTE_RRC_CODEBOOK_SUBSET_RESTRICTION_N2_TM3;
+    rrc_cfg->antenna_info.codebook_subset_restriction = 0b11;
+    rrc_cfg->antenna_info.codebook_subset_restriction_present = true;
   } else if (rrc_cfg->antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
     rrc_cfg->antenna_info.ue_tx_antenna_selection_setup = LIBLTE_RRC_UE_TX_ANTENNA_SELECTION_CLOSED_LOOP;
     rrc_cfg->antenna_info.ue_tx_antenna_selection_setup_present = true;

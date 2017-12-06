@@ -219,23 +219,8 @@ void phy::set_conf_dedicated_ack(uint16_t rnti, bool ack)
 
 void phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
-  // Parse RRC config 
-  srslte_uci_cfg_t uci_cfg;
-  srslte_pucch_sched_t pucch_sched;
-  
-  /* PUSCH UCI configuration */
-  bzero(&uci_cfg, sizeof(srslte_uci_cfg_t));
-  uci_cfg.I_offset_ack         = dedicated->pusch_cnfg_ded.beta_offset_ack_idx;
-  uci_cfg.I_offset_cqi         = dedicated->pusch_cnfg_ded.beta_offset_cqi_idx;
-  uci_cfg.I_offset_ri          = dedicated->pusch_cnfg_ded.beta_offset_ri_idx;
-  
-  /* PUCCH Scheduling configuration */
-  bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
-  pucch_sched.n_pucch_2        = dedicated->cqi_report_cnfg.report_periodic.pucch_resource_idx;
-  pucch_sched.n_pucch_sr       = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
-  
   for (uint32_t i=0;i<nof_workers;i++) {
-    workers[i].set_config_dedicated(rnti, &uci_cfg, &pucch_sched, NULL, dedicated);
+    workers[i].set_config_dedicated(rnti, NULL, dedicated);
   }
 }
 

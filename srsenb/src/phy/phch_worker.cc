@@ -228,45 +228,81 @@ void phch_worker::set_conf_dedicated_ack(uint16_t rnti, bool ack){
 }
 
 void phch_worker::set_config_dedicated(uint16_t rnti,
-                                       srslte_uci_cfg_t *uci_cfg,
-                                       srslte_pucch_sched_t *pucch_sched,
                                        srslte_refsignal_srs_cfg_t *srs_cfg, 
                                        LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
-  uint32_t  I_sr = dedicated->sched_request_cnfg.sr_cnfg_idx;
-  bool pucch_cqi = dedicated->cqi_report_cnfg.report_periodic_setup_present;
-  uint32_t pmi_idx = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
   bool pucch_cqi_ack = dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi;
   bool pucch_ri = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present;
-  uint32_t ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
 
   pthread_mutex_lock(&mutex);
   if (ue_db.count(rnti)) {
-    pucch_sched->N_pucch_1 = phy->pucch_cfg.n1_pucch_an;
-    srslte_enb_ul_cfg_ue(&enb_ul, rnti, uci_cfg, pucch_sched, srs_cfg);
+    /* PUSCH UCI and scheduling configuration */
+    srslte_uci_cfg_t uci_cfg = {0};
+    if (dedicated->pusch_cnfg_ded_present && dedicated->sched_request_cnfg_present) {
+      uci_cfg.I_offset_ack = dedicated->pusch_cnfg_ded.beta_offset_ack_idx;
+      uci_cfg.I_offset_cqi = dedicated->pusch_cnfg_ded.beta_offset_cqi_idx;
+      uci_cfg.I_offset_ri = dedicated->pusch_cnfg_ded.beta_offset_ri_idx;
 
-    ue_db[rnti].I_sr    = I_sr;
-    ue_db[rnti].I_sr_en = true;
+      srslte_pucch_sched_t pucch_sched = {false};
+      pucch_sched.N_pucch_1 = phy->pucch_cfg.n1_pucch_an;
+      pucch_sched.n_pucch_2 = dedicated->cqi_report_cnfg.report_periodic.pucch_resource_idx;
+      pucch_sched.n_pucch_sr = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
+      srslte_enb_ul_cfg_ue(&enb_ul, rnti, &uci_cfg, &pucch_sched, srs_cfg);
 
-    if (pucch_cqi) {
-      ue_db[rnti].pmi_idx = pmi_idx;
-      ue_db[rnti].cqi_en  = true;
+      ue_db[rnti].I_sr = dedicated->sched_request_cnfg.sr_cnfg_idx;
+      ue_db[rnti].I_sr_en = true;
+    }
+
+    /* CQI Reporting */
+    if (dedicated->cqi_report_cnfg.report_periodic_setup_present) {
+      ue_db[rnti].pmi_idx = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
+      ue_db[rnti].cqi_en = true;
       ue_db[rnti].pucch_cqi_ack = pucch_cqi_ack;
     } else {
       ue_db[rnti].pmi_idx = 0;
-      ue_db[rnti].cqi_en  = false;
+      ue_db[rnti].cqi_en = false;
     }
 
+    /* RI reporting */
     if (pucch_ri) {
-      ue_db[rnti].ri_idx = ri_idx;
-      ue_db[rnti].ri_en  = true;
+      ue_db[rnti].ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
+      ue_db[rnti].ri_en = true;
     } else {
       ue_db[rnti].ri_idx = 0;
-      ue_db[rnti].ri_en  = false;
+      ue_db[rnti].ri_en = false;
     }
 
-    /* Copy all dedicated RRC configuration to UE */
-    memcpy(&ue_db[rnti].dedicated, dedicated, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
+    if (dedicated->antenna_info_present) {
+      /* If default antenna info then follow 3GPP 36.331 clause 9.2.4 Default physical channel configuration */
+      if (dedicated->antenna_info_default_value) {
+        if (enb_dl.cell.nof_ports == 1) {
+          ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode = LIBLTE_RRC_TRANSMISSION_MODE_1;
+        } else {
+          ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode = LIBLTE_RRC_TRANSMISSION_MODE_2;
+        }
+        ue_db[rnti].dedicated.antenna_info_explicit_value.codebook_subset_restriction_present = false;
+        ue_db[rnti].dedicated.antenna_info_explicit_value.ue_tx_antenna_selection_setup_present = false;
+        ue_db[rnti].ri_idx = 0;
+        ue_db[rnti].ri_en = false;
+      } else {
+        /* Physical channel reconfiguration according to 3GPP 36.331 clause 5.3.10.6 */
+        memcpy(&ue_db[rnti].dedicated.antenna_info_explicit_value,
+               &dedicated->antenna_info_explicit_value,
+               sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+        if (dedicated->antenna_info_explicit_value.tx_mode != LIBLTE_RRC_TRANSMISSION_MODE_3 &&
+            dedicated->antenna_info_explicit_value.tx_mode != LIBLTE_RRC_TRANSMISSION_MODE_4 &&
+            ue_db[rnti].ri_en) {
+          ue_db[rnti].ri_idx = 0;
+          ue_db[rnti].ri_en = false;
+        }
+      }
+    }
+
+    /* Set PDSCH power allocation */
+    if (dedicated->pdsch_cnfg_ded_present) {
+      ue_db[rnti].dedicated.pdsch_cnfg_ded_present = true;
+      ue_db[rnti].dedicated.pdsch_cnfg_ded = dedicated->pdsch_cnfg_ded;
+    }
   } else {
     Error("Setting config dedicated: rnti=0x%x does not exist\n");
   }
@@ -856,13 +892,11 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
         char tbstr[SRSLTE_MAX_TB][128];
         for (int tb = 0; tb < SRSLTE_MAX_TB; tb++) {
           if (phy_grant.tb_en[tb]) {
-            snprintf(tbstr[tb], 128, ", TB%d: tbs=%d, mcs=%d, rv=%d%s%s",
+            snprintf(tbstr[tb], 128, ", TB%d: tbs=%d, mcs=%d, rv=%d",
                      tb,
                      phy_grant.mcs[tb].tbs / 8,
                      phy_grant.mcs[tb].idx,
-                     (tb == 0) ? grants[i].grant.rv_idx : grants[i].grant.rv_idx_1,
-                     grants[i].softbuffers[tb]==NULL?", \e[31msoftbuffer=NULL\e[0m":"",
-                     grants[i].data[tb]==NULL?", \e[31mdata=NULL\e[0m":"");
+                     (tb == 0) ? grants[i].grant.rv_idx : grants[i].grant.rv_idx_1);
           } else {
             tbstr[tb][0] = '\0';
           }
@@ -984,11 +1018,32 @@ int phch_worker::read_ce_abs(float *ce_abs) {
   return sz;
 }
 
+int phch_worker::read_ce_arg(float *ce_arg) {
+  uint32_t i=0;
+  int sz = srslte_symbol_sz(phy->cell.nof_prb);
+  bzero(ce_arg, sizeof(float)*sz);
+  int g = (sz - 12*phy->cell.nof_prb)/2;
+  for (i = 0; i < 12*phy->cell.nof_prb; i++) {
+    ce_arg[g+i] = cargf(enb_ul.ce[i]) * 180.0f / (float) M_PI;
+    if (isinf(ce_arg[g+i])) {
+      ce_arg[g+i] = -80;
+    }
+  }
+  return sz;
+}
+
 int phch_worker::read_pusch_d(cf_t* pdsch_d)
 {
   int nof_re = 400;//enb_ul.pusch_cfg.nbits.nof_re
   memcpy(pdsch_d, enb_ul.pusch.d, nof_re*sizeof(cf_t));
   return nof_re; 
+}
+
+int phch_worker::read_pucch_d(cf_t* pdsch_d)
+{
+  int nof_re = SRSLTE_PUCCH_MAX_BITS/2;//enb_ul.pusch_cfg.nbits.nof_re
+  memcpy(pdsch_d, enb_ul.pucch.z_tmp, nof_re*sizeof(cf_t));
+  return nof_re;
 }
 
 
@@ -1003,12 +1058,15 @@ int phch_worker::read_pusch_d(cf_t* pdsch_d)
 
 
 #ifdef ENABLE_GUI
-plot_real_t    pce;
+plot_real_t    pce, pce_arg;
 plot_scatter_t pconst;
+plot_scatter_t pconst2;
 #define SCATTER_PUSCH_BUFFER_LEN   (20*6*SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM))
 #define SCATTER_PUSCH_PLOT_LEN    4000
 float tmp_plot[SCATTER_PUSCH_BUFFER_LEN];
+float tmp_plot_arg[SCATTER_PUSCH_BUFFER_LEN];
 cf_t  tmp_plot2[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+cf_t  tmp_pucch_plot[SRSLTE_PUCCH_MAX_BITS/2];
 
 void *plot_thread_run(void *arg) {
   srsenb::phch_worker *worker = (srsenb::phch_worker*) arg; 
@@ -1018,24 +1076,42 @@ void *plot_thread_run(void *arg) {
   plot_real_setTitle(&pce, (char*) "Channel Response - Magnitude");
   plot_real_setLabels(&pce, (char*) "Index", (char*) "dB");
   plot_real_setYAxisScale(&pce, -40, 40);
+
+  plot_real_init(&pce_arg);
+  plot_real_setTitle(&pce_arg, (char*) "Channel Response - Argument");
+  plot_real_setLabels(&pce_arg, (char*) "Angle", (char*) "deg");
+  plot_real_setYAxisScale(&pce_arg, -180, 180);
   
   plot_scatter_init(&pconst);
   plot_scatter_setTitle(&pconst, (char*) "PUSCH - Equalized Symbols");
   plot_scatter_setXAxisScale(&pconst, -4, 4);
   plot_scatter_setYAxisScale(&pconst, -4, 4);
+
+  plot_scatter_init(&pconst2);
+  plot_scatter_setTitle(&pconst2, (char*) "PUCCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pconst2, -4, 4);
+  plot_scatter_setYAxisScale(&pconst2, -4, 4);
   
   plot_real_addToWindowGrid(&pce, (char*)"srsenb", 0, 0);
+  plot_real_addToWindowGrid(&pce_arg, (char*)"srsenb", 1, 0);
   plot_scatter_addToWindowGrid(&pconst, (char*)"srsenb", 0, 1);
+  plot_scatter_addToWindowGrid(&pconst2, (char*)"srsenb", 1, 1);
 
-  int n; 
+  int n, n_arg, n_pucch;
   int readed_pusch_re=0; 
   while(1) {
     sem_wait(&plot_sem);    
     
     n = worker->read_pusch_d(tmp_plot2);
+    n_pucch = worker->read_pucch_d(tmp_pucch_plot);
     plot_scatter_setNewData(&pconst, tmp_plot2, n);
+    plot_scatter_setNewData(&pconst2, tmp_pucch_plot, n_pucch);
+
     n = worker->read_ce_abs(tmp_plot);
-    plot_real_setNewData(&pce, tmp_plot, n);             
+    plot_real_setNewData(&pce, tmp_plot, n);
+
+    n_arg = worker->read_ce_arg(tmp_plot_arg);
+    plot_real_setNewData(&pce_arg, tmp_plot_arg, n_arg);
     
   }  
   return NULL;
