@@ -54,15 +54,15 @@ public:
   
   /* These are used by the GUI plotting tools */
   int read_ce_abs(float *ce_abs);
+  int read_ce_arg(float *ce_abs);
   int read_pusch_d(cf_t *pusch_d);
+  int read_pucch_d(cf_t *pusch_d);
   void start_plot();
 
   void set_conf_dedicated_ack(uint16_t rnti,
                          bool rrc_completed);
   
   void set_config_dedicated(uint16_t rnti, 
-                            srslte_uci_cfg_t *uci_cfg, 
-                            srslte_pucch_sched_t *pucch_sched,
                             srslte_refsignal_srs_cfg_t *srs_cfg, 
                             LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated);
   
