@@ -37,75 +37,73 @@
 
 
 
+void srslte_vec_xor_bbb(int8_t *x,int8_t *y,int8_t *z, const uint32_t len) {
+  srslte_vec_xor_bbb_simd(x, y, z, len);
+}
+
 // Used in PRACH detector, AGC and chest_dl for noise averaging
-float srslte_vec_acc_ff(float *x, uint32_t len) {
+float srslte_vec_acc_ff(const float *x, const uint32_t len) {
   return srslte_vec_acc_ff_simd(x, len);
 }
 
-void srslte_vec_ema_filter(cf_t *new_data, cf_t *average, cf_t *output, float coeff, uint32_t len) {
-  srslte_vec_sc_prod_cfc(new_data, coeff, new_data, len);
-  srslte_vec_sc_prod_cfc(average, 1-coeff, output, len);
-  srslte_vec_sum_ccc(output, new_data, output, len);
-}
-
-cf_t srslte_vec_acc_cc(cf_t *x, uint32_t len) {
+cf_t srslte_vec_acc_cc(const cf_t *x, const uint32_t len) {
   return srslte_vec_acc_cc_simd(x, len);
 }
 
-void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
+void srslte_vec_sub_fff(const float *x, const float *y, float *z, const uint32_t len) {
   srslte_vec_sub_fff_simd(x, y, z, len);
 }
 
-void srslte_vec_sub_sss(int16_t *x, int16_t *y, int16_t *z, uint32_t len) {
+void srslte_vec_sub_sss(const int16_t *x, const int16_t *y, int16_t *z, const uint32_t len) {
   srslte_vec_sub_sss_simd(x, y, z, len);
 }
 
 // Noise estimation in chest_dl, interpolation 
-void srslte_vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
-  return srslte_vec_sub_fff((float*) x,(float*) y,(float*) z, 2*len);
+void srslte_vec_sub_ccc(const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len) {
+  return srslte_vec_sub_fff((const float*) x,(const float*) y,(float*) z, 2*len);
 }
 
 // Used in PSS/SSS and sum_ccc
-void srslte_vec_sum_fff(float *x, float *y, float *z, uint32_t len) {
+void srslte_vec_sum_fff(const float *x, const float *y, float *z, const uint32_t len) {
   srslte_vec_add_fff_simd(x, y, z, len);
 }
 
-void srslte_vec_sum_sss(int16_t *x, int16_t *y, int16_t *z, uint32_t len) {
+void srslte_vec_sum_sss(const int16_t *x, const int16_t *y, int16_t *z, const uint32_t len) {
   srslte_vec_sum_sss_simd(x, y, z, len);
 }
 
-void srslte_vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+void srslte_vec_sum_ccc(const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len) {
   srslte_vec_sum_fff((float*) x,(float*) y,(float*) z,2*len);
 }
 
 // PSS, PBCH, DEMOD, FFTW, etc.
-void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
+void srslte_vec_sc_prod_fff(const float *x, const float h, float *z, const uint32_t len) {
   srslte_vec_sc_prod_fff_simd(x, h, z, len);
 }
 
 // Used throughout 
-void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) { 
+void srslte_vec_sc_prod_cfc(const const cf_t *x, const float h, cf_t *z, const uint32_t len) {
   srslte_vec_sc_prod_cfc_simd(x,h,z,len);
 }
 
 // Chest UL 
-void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
+void srslte_vec_sc_prod_ccc(const cf_t *x, const cf_t h, cf_t *z, const uint32_t len) {
   srslte_vec_sc_prod_ccc_simd(x,h,z,len);
 }
 
 // Used in turbo decoder 
-void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len) {
+void srslte_vec_convert_if(const int16_t *x, const float scale, float *z, const uint32_t len) {
   int i;
   for (i=0;i<len;i++) {
     z[i] = ((float) x[i])/scale;
   }
 }
 
-void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
+void srslte_vec_convert_fi(const float *x, const float scale, int16_t *z, const uint32_t len) {
   srslte_vec_convert_fi_simd(x, z, scale, len);
 }
 
-void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len) {
+void srslte_vec_lut_sss(const short *x, const unsigned short *lut, short *y, const uint32_t len) {
   srslte_vec_lut_sss_simd(x, lut, y, len);
 }
 
@@ -134,7 +132,7 @@ void *srslte_vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
 }
 
 
-void srslte_vec_fprint_c(FILE *stream, cf_t *x, uint32_t len) {
+void srslte_vec_fprint_c(FILE *stream, cf_t *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -143,7 +141,7 @@ void srslte_vec_fprint_c(FILE *stream, cf_t *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_f(FILE *stream, float *x, uint32_t len) {
+void srslte_vec_fprint_f(FILE *stream, float *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -153,7 +151,7 @@ void srslte_vec_fprint_f(FILE *stream, float *x, uint32_t len) {
 }
 
 
-void srslte_vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len) {
+void srslte_vec_fprint_b(FILE *stream, uint8_t *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -162,7 +160,7 @@ void srslte_vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len) {
+void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -171,7 +169,7 @@ void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_i(FILE *stream, int *x, uint32_t len) {
+void srslte_vec_fprint_i(FILE *stream, int *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -180,7 +178,7 @@ void srslte_vec_fprint_i(FILE *stream, int *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_s(FILE *stream, short *x, uint32_t len) {
+void srslte_vec_fprint_s(FILE *stream, short *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -189,7 +187,7 @@ void srslte_vec_fprint_s(FILE *stream, short *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
+void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, const uint32_t len) {
   uint32_t i, nbytes; 
   uint8_t byte;
   nbytes = len/8;
@@ -205,7 +203,7 @@ void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_sprint_hex(char *str, uint8_t *x, uint32_t len) {
+void srslte_vec_sprint_hex(char *str, uint8_t *x, const uint32_t len) {
   uint32_t i, nbytes; 
   uint8_t byte;
   nbytes = len/8;
@@ -222,7 +220,7 @@ void srslte_vec_sprint_hex(char *str, uint8_t *x, uint32_t len) {
   n+=sprintf(&str[n], "]");
 }
 
-void srslte_vec_save_file(char *filename, void *buffer, uint32_t len) {
+void srslte_vec_save_file(char *filename, const void *buffer, const uint32_t len) {
   FILE *f; 
   f = fopen(filename, "w");
   if (f) {
@@ -233,7 +231,7 @@ void srslte_vec_save_file(char *filename, void *buffer, uint32_t len) {
   }  
 }
 
-void srslte_vec_load_file(char *filename, void *buffer, uint32_t len) {
+void srslte_vec_load_file(char *filename, void *buffer, const uint32_t len) {
   FILE *f; 
   f = fopen(filename, "r");
   if (f) {
@@ -245,7 +243,7 @@ void srslte_vec_load_file(char *filename, void *buffer, uint32_t len) {
 }
 
 // Used in PSS
-void srslte_vec_conj_cc(cf_t *x, cf_t *y, uint32_t len) {
+void srslte_vec_conj_cc(const cf_t *x, cf_t *y, const uint32_t len) {
   /* This function is used in initialisation only, then no optimisation is required */
   int i;
   for (i=0;i<len;i++) {
@@ -254,57 +252,58 @@ void srslte_vec_conj_cc(cf_t *x, cf_t *y, uint32_t len) {
 }
 
 // Used in scrambling complex 
-void srslte_vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
+void srslte_vec_prod_cfc(const cf_t *x, const float *y, cf_t *z, const uint32_t len) {
   srslte_vec_prod_cfc_simd(x, y, z, len);
 }
 
 // Used in scrambling float
-void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len) {
+void srslte_vec_prod_fff(const float *x, const float *y, float *z, const uint32_t len) {
   srslte_vec_prod_fff_simd(x, y, z, len);
 }
 
 // Scrambling Short
-void srslte_vec_prod_sss(int16_t *x, int16_t *y, int16_t *z, uint32_t len) {
+void srslte_vec_prod_sss(const int16_t *x, const int16_t *y, int16_t *z, const uint32_t len) {
   srslte_vec_prod_sss_simd(x,y,z,len);
 }
 
 // CFO and OFDM processing
-void srslte_vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
+void srslte_vec_prod_ccc(const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len) {
   srslte_vec_prod_ccc_simd(x,y,z,len);
 }
 
-void srslte_vec_prod_ccc_split(float *x_re, float *x_im, float *y_re, float *y_im, float *z_re, float *z_im, uint32_t len) {
+void srslte_vec_prod_ccc_split(const float *x_re, const float *x_im, const float *y_re, const float *y_im,
+                               float *z_re, float *z_im, const uint32_t len) {
   srslte_vec_prod_ccc_split_simd(x_re, x_im, y_re , y_im, z_re,z_im, len);
 }
 
 // PRACH, CHEST UL, etc. 
-void srslte_vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
+void srslte_vec_prod_conj_ccc(const const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len) {
   srslte_vec_prod_conj_ccc_simd(x,y,z,len);
 }
 
 //#define DIV_USE_VEC
 
 // Used in SSS 
-void srslte_vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+void srslte_vec_div_ccc(const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len) {
   srslte_vec_div_ccc_simd(x, y, z, len);
 }
 
 /* Complex division by float z=x/y */
-void srslte_vec_div_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
+void srslte_vec_div_cfc(const cf_t *x, const float *y, cf_t *z, const uint32_t len) {
   srslte_vec_div_cfc_simd(x, y, z, len);
 }
 
-void srslte_vec_div_fff(float *x, float *y, float *z, uint32_t len) {
+void srslte_vec_div_fff(const float *x, const float *y, float *z, const uint32_t len) {
   srslte_vec_div_fff_simd(x, y, z, len);
 }
 
 // PSS. convolution 
-cf_t srslte_vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len) {
+cf_t srslte_vec_dot_prod_ccc(const const cf_t *x, const cf_t *y, const uint32_t len) {
   return srslte_vec_dot_prod_ccc_simd(x, y, len);
 }
 
 // Convolution filter and in SSS search 
-cf_t srslte_vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len) {
+cf_t srslte_vec_dot_prod_cfc(const const cf_t *x, const float *y, const uint32_t len) {
   uint32_t i;
   cf_t res = 0;
   for (i=0;i<len;i++) {
@@ -314,12 +313,12 @@ cf_t srslte_vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len) {
 }
 
 // SYNC 
-cf_t srslte_vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len) {
+cf_t srslte_vec_dot_prod_conj_ccc(const cf_t *x, const cf_t *y, const uint32_t len) {
   return srslte_vec_dot_prod_conj_ccc_simd(x, y, len);
 }
 
 // PHICH 
-float srslte_vec_dot_prod_fff(float *x, float *y, uint32_t len) {
+float srslte_vec_dot_prod_fff(const float *x, const float *y, const uint32_t len) {
   uint32_t i;
   float res = 0;
   for (i=0;i<len;i++) {
@@ -328,16 +327,16 @@ float srslte_vec_dot_prod_fff(float *x, float *y, uint32_t len) {
   return res;
 }
 
-int32_t srslte_vec_dot_prod_sss(int16_t *x, int16_t *y, uint32_t len) {
+int32_t srslte_vec_dot_prod_sss(const int16_t *x, const int16_t *y, const uint32_t len) {
   return srslte_vec_dot_prod_sss_simd(x, y, len);
 }
 
-float srslte_vec_avg_power_cf(cf_t *x, uint32_t len) {
+float srslte_vec_avg_power_cf(const cf_t *x, const uint32_t len) {
   return crealf(srslte_vec_dot_prod_conj_ccc(x,x,len)) / len;
 }
 
 // Correlation assumes zero-mean x and y
-float srslte_vec_corr_ccc(cf_t *x, cf_t *y, uint32_t len) {
+float srslte_vec_corr_ccc(const cf_t *x, cf_t *y, const uint32_t len) {
 //  return crealf(srslte_vec_dot_prod_conj_ccc(x,y,len)) / len;
   float s_x = crealf(srslte_vec_dot_prod_conj_ccc(x, x, len))/len;
   float s_y = crealf(srslte_vec_dot_prod_conj_ccc(y, y, len))/len;
@@ -346,25 +345,25 @@ float srslte_vec_corr_ccc(cf_t *x, cf_t *y, uint32_t len) {
 }
 
 // PSS (disabled and using abs_square )
-void srslte_vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
+void srslte_vec_abs_cf(const cf_t *x, float *abs, const uint32_t len) {
   srslte_vec_abs_cf_simd(x, abs, len);
 }
 
 // PRACH 
-void srslte_vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len) {
+void srslte_vec_abs_square_cf(const cf_t *x, float *abs_square, const uint32_t len) {
   srslte_vec_abs_square_cf_simd(x,abs_square,len);
 }
 
-uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
+uint32_t srslte_vec_max_fi(const float *x, const uint32_t len) {
   return srslte_vec_max_fi_simd(x, len);
 }
 
 // CP autocorr
-uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
+uint32_t srslte_vec_max_abs_ci(const cf_t *x, const uint32_t len) {
   return srslte_vec_max_ci_simd(x, len);
 }
 
-void srslte_vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len) {
+void srslte_vec_quant_fuc(const float *in, uint8_t *out, const float gain, const float offset, const float clip, const uint32_t len) {
   int i;
   int tmp;
   
@@ -378,7 +377,7 @@ void srslte_vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, flo
   }
 }
 
-void srslte_vec_quant_suc(int16_t *in, uint8_t *out, float gain, int16_t offset, int16_t clip, uint32_t len) {
+void srslte_vec_quant_suc(const int16_t *in, uint8_t *out, const float gain, const int16_t offset, const int16_t clip, const uint32_t len) {
   int i;
   int16_t tmp;
   
@@ -392,6 +391,6 @@ void srslte_vec_quant_suc(int16_t *in, uint8_t *out, float gain, int16_t offset,
   }
 }
 
-void srs_vec_cf_cpy(cf_t *dst, cf_t *src, int len) {
+void srs_vec_cf_cpy(const cf_t *dst, cf_t *src, int len) {
   srslte_vec_cp_simd(dst, src, len);
 }

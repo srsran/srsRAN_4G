@@ -70,6 +70,7 @@ int main(int argc, char **argv)
   srslte::log_filter usim_log("USIM");
   bool    net_valid;
   uint8_t res[16];
+  uint8_t k_asme[32];
 
   usim_args_t args;
   args.algo = "milenage";
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
 
   srsue::usim usim;
   usim.init(&args, &usim_log);
-  usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, &net_valid, res);
+  usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, &net_valid, res, k_asme);
 
   assert(net_valid == true);
 }

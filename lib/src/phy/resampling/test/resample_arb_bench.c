@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 
   clock_t start = clock(), diff;
   for(int xx = 0; xx<ITERATIONS;xx++){
-     int n_out = srslte_resample_arb_compute(&r, in, out, N);
+     srslte_resample_arb_compute(&r, in, out, N);
   }
   diff = clock() - start;
 

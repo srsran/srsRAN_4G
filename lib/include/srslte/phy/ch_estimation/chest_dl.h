@@ -68,7 +68,8 @@ typedef struct {
   cf_t *pilot_estimates_average; 
   cf_t *pilot_recv_signal; 
   cf_t *tmp_noise; 
-  
+  cf_t *tmp_cfo_estimate;
+
 #ifdef FREQ_SEL_SNR  
   float snr_vector[12000];
   float pilot_power[12000];
@@ -82,7 +83,12 @@ typedef struct {
   float rssi[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
   float rsrp[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
   float noise_estimate[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  
+  float cfo;
+
+  bool     cfo_estimate_enable;
+  uint32_t cfo_estimate_sf_mask;
+  float    cfo_ema;
+
   /* Use PSS for noise estimation in LS linear interpolation mode */
   cf_t pss_signal[SRSLTE_PSS_LEN];
   cf_t tmp_pss[SRSLTE_PSS_LEN];
@@ -91,6 +97,7 @@ typedef struct {
   srslte_chest_dl_noise_alg_t noise_alg; 
   int last_nof_antennas;
 
+  bool average_subframe;
 } srslte_chest_dl_t;
 
 
@@ -144,7 +151,17 @@ SRSLTE_API int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q,
                                              uint32_t port_id, 
                                              uint32_t rxant_id);
 
+SRSLTE_API void srslte_chest_dl_cfo_estimate_enable(srslte_chest_dl_t *q,
+                                                    bool enable,
+                                                    uint32_t mask,
+                                                    float ema);
+
+SRSLTE_API void srslte_chest_dl_average_subframe(srslte_chest_dl_t *q,
+                                                 bool enable);
+
 SRSLTE_API float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q); 
+
+SRSLTE_API float srslte_chest_dl_get_cfo(srslte_chest_dl_t *q);
 
 SRSLTE_API float srslte_chest_dl_get_snr(srslte_chest_dl_t *q);
 

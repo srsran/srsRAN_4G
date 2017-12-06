@@ -110,8 +110,20 @@ typedef struct SRSLTE_API {
   uint32_t sf_idx;
       
   bool decode_sss_on_track; 
-  bool correct_cfo; 
-  
+
+  bool  cfo_is_copied;
+  bool  cfo_correct_enable;
+  float cfo_current_value;
+  float cfo_loop_bw_pss;
+  float cfo_loop_bw_ref;
+  float cfo_pss_min;
+  float cfo_ref_min;
+  float cfo_ref_max;
+
+  uint32_t pss_stable_cnt;
+  uint32_t pss_stable_timeout;
+  bool     pss_is_stable;
+
   uint32_t peak_idx;
   int next_rf_sample_offset;
   int last_sample_offset; 
@@ -165,6 +177,10 @@ SRSLTE_API void srslte_ue_sync_free(srslte_ue_sync_t *q);
 SRSLTE_API int srslte_ue_sync_set_cell(srslte_ue_sync_t *q,
                                        srslte_cell_t cell);
 
+SRSLTE_API void srslte_ue_sync_cfo_reset(srslte_ue_sync_t *q);
+
+SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
+
 SRSLTE_API int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, 
                                         double (set_gain_callback)(void*, double), 
                                         float init_gain_value); 
@@ -175,33 +191,39 @@ SRSLTE_API void srslte_ue_sync_set_agc_period(srslte_ue_sync_t *q,
                                               uint32_t period); 
 
 /* CAUTION: input_buffer MUST have space for 2 subframes */
-SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, 
+SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q,
                                        cf_t *input_buffer);
 
-SRSLTE_API int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, 
+SRSLTE_API int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q,
                                              cf_t *input_buffer[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t *q,
                                            float tol);
 
-SRSLTE_API void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, 
-                                       float cfo);
+SRSLTE_API void srslte_ue_sync_copy_cfo(srslte_ue_sync_t *q,
+                                        srslte_ue_sync_t *src_obj);
+
+SRSLTE_API void srslte_ue_sync_set_cfo_loop_bw(srslte_ue_sync_t *q,
+                                               float bw_pss,
+                                               float bw_ref,
+                                               float pss_tol,
+                                               float ref_tol,
+                                               float ref_max,
+                                               uint32_t pss_stable_timeout);
 
 SRSLTE_API void srslte_ue_sync_set_cfo_ema(srslte_ue_sync_t *q,
                                            float ema);
 
-SRSLTE_API void srslte_ue_sync_cfo_i_detec_en(srslte_ue_sync_t *q, 
-                                              bool enable); 
+SRSLTE_API void srslte_ue_sync_set_cfo_ref(srslte_ue_sync_t *q, float res_cfo);
 
-SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
+SRSLTE_API void srslte_ue_sync_set_cfo_i_enable(srslte_ue_sync_t *q,
+                                                bool enable);
 
-SRSLTE_API void srslte_ue_sync_set_N_id_2(srslte_ue_sync_t *q, 
+SRSLTE_API void srslte_ue_sync_set_N_id_2(srslte_ue_sync_t *q,
                                           uint32_t N_id_2);
 
 SRSLTE_API void srslte_ue_sync_decode_sss_on_track(srslte_ue_sync_t *q, 
                                                    bool enabled);
-
-SRSLTE_API srslte_ue_sync_state_t srslte_ue_sync_get_state(srslte_ue_sync_t *q);
 
 SRSLTE_API uint32_t srslte_ue_sync_get_sfidx(srslte_ue_sync_t *q);
 
@@ -216,9 +238,6 @@ SRSLTE_API void srslte_ue_sync_set_sample_offset_correct_period(srslte_ue_sync_t
 
 SRSLTE_API void srslte_ue_sync_get_last_timestamp(srslte_ue_sync_t *q, 
                                                   srslte_timestamp_t *timestamp);
-
-
-
 
 
 #endif // SYNC_FRAME_

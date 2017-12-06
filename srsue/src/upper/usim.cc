@@ -39,9 +39,11 @@ usim::usim() : initiated(false)
 void usim::init(usim_args_t *args, srslte::log *usim_log_)
 {
   usim_log = usim_log_;
+  imsi_str = args->imsi;
+  imei_str = args->imei;
 
-  const char *imsi_str = args->imsi.c_str();
-  const char *imei_str = args->imei.c_str();
+  const char *imsi_c = args->imsi.c_str();
+  const char *imei_c = args->imei.c_str();
   uint32_t    i;
 
   if(32 == args->op.length()) {
@@ -63,7 +65,7 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
     for(i=0; i<15; i++)
     {
       imsi *= 10;
-      imsi += imsi_str[i] - '0';
+      imsi += imsi_c[i] - '0';
     }
   } else {
     usim_log->error("Invalid length for ISMI: %d should be %d", args->imsi.length(), 15);
@@ -75,7 +77,7 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
     for(i=0; i<15; i++)
     {
       imei *= 10;
-      imei += imei_str[i] - '0';
+      imei += imei_c[i] - '0';
     }
   } else {
     usim_log->error("Invalid length for IMEI: %d should be %d", args->imei.length(), 15);
@@ -103,16 +105,25 @@ void usim::stop()
   NAS interface
 *******************************************************************************/
 
-void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
+std::string usim::get_imsi_str()
+{
+  return imsi_str;
+}
+std::string usim::get_imei_str()
+{
+  return imei_str;
+}
+
+bool usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 {
   if (!initiated) {
     fprintf(stderr, "USIM not initiated!\n");
-    return;
+    return false;
   }
 
   if(NULL == imsi_ || n < 15) {
     usim_log->error("Invalid parameters to get_imsi_vec");
-    return;
+    return false;
   }
 
   uint64_t temp = imsi;
@@ -120,18 +131,19 @@ void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
     imsi_[i] = temp % 10;
     temp /= 10;
   }
+  return true;
 }
 
-void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
+bool usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 {
   if (!initiated) {
     fprintf(stderr, "USIM not initiated!\n");
-    return;
+    return false;
   }
 
   if(NULL == imei_ || n < 15) {
     usim_log->error("Invalid parameters to get_imei_vec");
-    return;
+    return false;
   }
 
   uint64 temp = imei;
@@ -140,13 +152,14 @@ void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
     imei_[i] = temp % 10;
     temp /= 10;
   }
+  return true;
 }
 
-int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
+bool usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
 {
   if (!initiated) {
     fprintf(stderr, "USIM not initiated!\n");
-    return -1;
+    return false;
   }
 
   int mcc_len = 3;
@@ -180,7 +193,7 @@ int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
   usim_log->info("Read Home PLMN Id=%s\n",
                  plmn_id_to_string(*home_plmn_id).c_str());
 
-  return 0;
+  return true;
 }
 
 void usim::generate_authentication_response(uint8_t  *rand,
@@ -188,16 +201,18 @@ void usim::generate_authentication_response(uint8_t  *rand,
                                             uint16_t  mcc,
                                             uint16_t  mnc,
                                             bool     *net_valid,
-                                            uint8_t  *res)
+                                            uint8_t  *res,
+                                            uint8_t  *k_asme)
 {
   if(auth_algo_xor == auth_algo) {
-    gen_auth_res_xor(rand, autn_enb, mcc, mnc, net_valid, res);
+    gen_auth_res_xor(rand, autn_enb, mcc, mnc, net_valid, res, k_asme);
   } else {
-    gen_auth_res_milenage(rand, autn_enb, mcc, mnc, net_valid, res);
+    gen_auth_res_milenage(rand, autn_enb, mcc, mnc, net_valid, res, k_asme);
   }
 }
 
-void usim::generate_nas_keys(uint8_t *k_nas_enc,
+void usim::generate_nas_keys(uint8_t *k_asme,
+                             uint8_t *k_nas_enc,
                              uint8_t *k_nas_int,
                              CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                              INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
@@ -214,7 +229,8 @@ void usim::generate_nas_keys(uint8_t *k_nas_enc,
   RRC interface
 *******************************************************************************/
 
-void usim::generate_as_keys(uint32_t count_ul,
+void usim::generate_as_keys(uint8_t *k_asme,
+                            uint32_t count_ul,
                             uint8_t *k_rrc_enc,
                             uint8_t *k_rrc_int,
                             uint8_t *k_up_enc,
@@ -251,7 +267,8 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
                                   uint16_t  mcc,
                                   uint16_t  mnc,
                                   bool     *net_valid,
-                                  uint8_t  *res)
+                                  uint8_t  *res,
+                                  uint8_t  *k_asme)
 {
   uint32_t i;
   uint8_t  sqn[6];
@@ -320,7 +337,8 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
                             uint16_t  mcc,
                             uint16_t  mnc,
                             bool     *net_valid,
-                            uint8_t  *res)
+                            uint8_t  *res,
+                            uint8_t  *k_asme)
 {
   uint32_t i;
   uint8_t  sqn[6];

@@ -57,11 +57,11 @@ void demod_bpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
 }
 
 void demod_qpsk_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
-  srslte_vec_convert_fi((float*) symbols, llr, -SCALE_SHORT_CONV_QPSK*sqrt(2), nsymbols*2);
+  srslte_vec_convert_fi((const float*) symbols, -SCALE_SHORT_CONV_QPSK*sqrt(2), llr, nsymbols*2);
 }
 
 void demod_qpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
-  srslte_vec_sc_prod_fff((float*) symbols, -sqrt(2), llr, nsymbols*2);
+  srslte_vec_sc_prod_fff((const float*) symbols, -sqrt(2), llr, nsymbols*2);
 }
 
 void demod_16qam_lte(const cf_t *symbols, float *llr, int nsymbols) {

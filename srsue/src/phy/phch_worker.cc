@@ -57,7 +57,9 @@ namespace srsue {
 
 phch_worker::phch_worker() : tr_exec(10240)
 {
-  phy = NULL; 
+  phy = NULL;
+  chest_loop = NULL;
+
   bzero(signal_buffer, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
 
   mem_initiated   = false;
@@ -104,9 +106,11 @@ void phch_worker::set_common(phch_common* phy_)
   phy = phy_;   
 }
 
-bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
+bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, chest_feedback_itf *chest_loop)
 {
   this->log_h = log_h;
+  this->chest_loop = chest_loop;
+
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
     signal_buffer[i] = (cf_t*) srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(max_prb));
@@ -126,12 +130,18 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
     return false;
   }
 
+  srslte_chest_dl_average_subframe(&ue_dl.chest, phy->args->average_subframe_enabled);
+  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask, phy->args->cfo_ref_ema);
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
 
   mem_initiated = true;
 
   return true;
+}
+
+float phch_worker::get_ref_cfo() {
+  return srslte_chest_dl_get_cfo(&ue_dl.chest);
 }
 
 bool phch_worker::set_cell(srslte_cell_t cell_)
@@ -220,6 +230,11 @@ void phch_worker::work_imp()
   bool chest_ok = extract_fft_and_pdcch_llr();
 
   bool snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>1.0;
+
+  // Call feedback loop for chest
+  if (chest_loop && ((1<<(tti%10)) & phy->args->cfo_ref_mask)) {
+    chest_loop->set_cfo(srslte_chest_dl_get_cfo(&ue_dl.chest));
+  }
 
   if (chest_ok && snr_th_ok) {
 
@@ -397,11 +412,8 @@ void phch_worker::compute_ri() {
 }
 
 bool phch_worker::extract_fft_and_pdcch_llr() {
-  bool decode_pdcch = false; 
-  if (phy->get_ul_rnti(tti) || phy->get_dl_rnti(tti) || phy->get_pending_rar(tti)) {
-    decode_pdcch = true; 
-  } 
-  
+  bool decode_pdcch = true;
+
   /* Without a grant, we might need to do fft processing if need to decode PHICH */
   if (phy->get_pending_ack(tti) || decode_pdcch) {
     
@@ -1276,13 +1288,18 @@ int phch_worker::read_ce_abs(float *ce_abs) {
   int sz = srslte_symbol_sz(cell.nof_prb);
   bzero(ce_abs, sizeof(float)*sz);
   int g = (sz - 12*cell.nof_prb)/2;
-  for (i = 0; i < 12*cell.nof_prb; i++) {
+/*  for (i = 0; i < 12*cell.nof_prb; i++) {
     ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[0][0][i]));
     if (isinf(ce_abs[g+i])) {
       ce_abs[g+i] = -80;
     }
   }
-  return sz;
+*/
+  uint32_t nrefs = 2*ue_dl.cell.nof_prb;
+  for (i=0;i<nrefs;i++) {
+    ce_abs[i] = 15000*0.463208685*cargf(ue_dl.chest.tmp_cfo_estimate[i])/M_PI;
+  }
+  return nrefs;
 }
 
 int phch_worker::read_pdsch_d(cf_t* pdsch_d)
@@ -1361,7 +1378,7 @@ void phch_worker::update_measurements()
     }
     
     // Compute SNR
-    phy->avg_snr_db = 10*log10(phy->avg_rsrp/phy->avg_noise);      
+    phy->avg_snr_db = 10*log10(phy->avg_rsrp/phy->avg_noise);
     
     // Store metrics
     dl_metrics.n      = phy->avg_noise;
@@ -1434,7 +1451,7 @@ void *plot_thread_run(void *arg) {
   plot_real_init(&pce);
   plot_real_setTitle(&pce, (char*) "Channel Response - Magnitude");
   plot_real_setLabels(&pce, (char*) "Index", (char*) "dB");
-  plot_real_setYAxisScale(&pce, -40, 40);
+  plot_real_setYAxisScale(&pce, -1000, 1000);
   
   plot_scatter_init(&pconst);
   plot_scatter_setTitle(&pconst, (char*) "PDSCH - Equalized Symbols");

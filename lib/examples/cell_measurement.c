@@ -299,9 +299,6 @@ int main(int argc, char **argv) {
   
   float rx_gain_offset = 0;
 
-  // Set initial CFO for ue_sync
-  srslte_ue_sync_set_cfo(&ue_sync, cfo); 
-
   /* Main loop */
   while ((sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) && !go_exit) {
     

@@ -41,7 +41,7 @@ namespace srsue {
     
 typedef _Complex float cf_t; 
 
-class phch_recv : public thread
+class phch_recv : public thread, public chest_feedback_itf
 {
 public:
   phch_recv();
@@ -64,6 +64,9 @@ public:
   uint32_t get_current_tti();
   
   bool    status_is_sync();
+
+  // from chest_feedback_itf
+  void    set_cfo(float cfo);
 
   void    set_time_adv_sec(float time_adv_sec);
   void    get_current_cell(srslte_cell_t *cell);

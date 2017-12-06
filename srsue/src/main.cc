@@ -77,17 +77,12 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Transmission time advance")
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
 
-    ("rrc.stmsi_attach", bpo::value<bool>(&args->rrc.stmsi_attach)->default_value(false),"If enabled, always tries first an S-TMSI attach using the\n"
-                                                                                           "S-TMSI value stored in .stimsi file generated in previous run")
-    ("rrc.mmec_value",    bpo::value<uint8_t>(&args->rrc.stmsi_value.mmec)->default_value(0),    "If defined (non-zero), overwrites the value stored in .stimsi file")
-    ("rrc.mtmsi_value",  bpo::value<uint32_t>(&args->rrc.stmsi_value.m_tmsi)->default_value(0), "If defined (non-zero), overwrites the value stored in .stimsi file")
-
     ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041c00), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041c00")
     ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
 
 
-       ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false),
+    ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false),
      "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
 
@@ -204,13 +199,46 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Enables integer CFO estimation and correction.")
 
     ("expert.cfo_correct_tol_hz",
-     bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(50.0),
-     "Tolerance (in Hz) for digial CFO compensation.")
+     bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(0.0),
+     "Tolerance (in Hz) for digital CFO compensation (needs to be low if average_subframe_enabled=true.")
 
-    ("expert.cfo_ema",
-     bpo::value<float>(&args->expert.phy.cfo_ema)->default_value(0.4),
-     "CFO Exponential Moving Average coefficient. Lower makes it more robust to noise "
-     "but vulnerable to periodic interruptions due to VCO corrections.")
+    ("expert.cfo_pss_ema",
+     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(0.1),
+     "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
+
+    ("expert.cfo_ref_ema",
+     bpo::value<float>(&args->expert.phy.cfo_ref_ema)->default_value(0.01),
+     "CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition")
+
+    ("expert.cfo_ref_mask",
+     bpo::value<uint32_t>(&args->expert.phy.cfo_ref_mask)->default_value(1023),
+     "Bitmask for subframes on which to run RS estimation (set to 0 to disable, default all sf)")
+
+    ("expert.cfo_loop_bw_pss",
+     bpo::value<float>(&args->expert.phy.cfo_loop_bw_pss)->default_value(0.05),
+     "CFO feedback loop bandwidth for samples from PSS")
+
+    ("expert.cfo_loop_bw_ref",
+     bpo::value<float>(&args->expert.phy.cfo_loop_bw_ref)->default_value(0.01),
+     "CFO feedback loop bandwidth for samples from RS")
+
+    ("expert.cfo_loop_pss_tol",
+     bpo::value<float>(&args->expert.phy.cfo_loop_pss_tol)->default_value(300),
+     "Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop"
+       "and RS estimations are used instead (when available)")
+
+    ("expert.cfo_loop_ref_min",
+     bpo::value<float>(&args->expert.phy.cfo_loop_ref_min)->default_value(0),
+     "Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop")
+
+
+    ("expert.cfo_loop_pss_conv",
+     bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(50),
+     "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
+
+    ("expert.average_subframe_enabled",
+     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
+     "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
     ("expert.time_correct_period",
      bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
