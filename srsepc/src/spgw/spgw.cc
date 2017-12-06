@@ -323,11 +323,11 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   in_addr_t ue_ip = get_new_ue_ipv4();
 
   //Save the UE IP to User TEID map //TODO!!!
-  struct sgw_ue_ctx *ue_ctx = new sgw_ue_ctx;
-  sgw_ue_ctx->imsi = cs_req->imsi;
-  sgw_ue_ctx->ul_user_fteid.teid = spgw_uplink_user_teid;
-  sgw_ue_ctx->ul_ctrl_fteid = spgw_uplink_ctrl_teid;
-  sgw_ue_ctx->ue_ipv4 = ue_ip; 
+  spgw_tunnel_ctx_t *tunnel_ctx = new spgw_tunnel_ctx_t;
+  tunnel_ctx->imsi = cs_req->imsi;
+  tunnel_ctx->up_user_fteid.teid = spgw_uplink_user_teid;
+  tunnel_ctx->up_ctrl_fteid.teid = spgw_uplink_ctrl_teid;
+  tunnel_ctx->ue_ipv4 = ue_ip;
 
   //Create session response message
   //Setup GTP-C header
@@ -363,13 +363,28 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
 {
   m_spgw_log->info("Received Modified Bearer Request\n");
 
-  //Get control tunnel info from  
-  //Setting up Modify bearer request PDU
+  //Get control tunnel info from mb_req PDU
+  uint32_t ctrl_teid = mb_req_pdu->header.teid;
+  std::map<uint32_t,spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
+  if(tunnel_it == m_teid_to_tunnel_ctx.end())
+  {
+    m_spgw_log->warning("Could not find TEID %d to modify",ctrl_teid);
+    return;
+  }
+  spgw_tunnel_ctx_t *tunnel_ctx = tunnel_it->second;
+
+  //Store user DW link TEID
+  srslte::gtpc_modify_bearer_request *mb_req = &mb_req_pdu->choice.modify_bearer_request;
+  tunnel_ctx->dw_user_fteid = mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid;
+  //Set up actual tunnel
+  //TODO!!!
+
+  //Setting up Modify bearer response PDU
   //Header
   srslte::gtpc_header *header = &mb_req_pdu->header;
   header->piggyback = false;
   header->teid_present = true;
-  header->teid = ;  //
+  header->teid = tunnel_ctx->dw_ctrl_fteid.teid;  //
   header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_RESPONSE;
 
   //PDU

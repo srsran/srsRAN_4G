@@ -53,14 +53,14 @@ typedef struct {
 } spgw_args_t;
 
 
-typedef struct {
+typedef struct spgw_tunnel_ctx {
   uint64_t imsi;
   in_addr_t ue_ipv4;
   struct srslte::gtpc_f_teid_ie up_ctrl_fteid;
   struct srslte::gtpc_f_teid_ie up_user_fteid;
   struct srslte::gtpc_f_teid_ie dw_ctrl_fteid;
   struct srslte::gtpc_f_teid_ie dw_user_fteid;
-} spgw_ue_ctx;
+} spgw_tunnel_ctx_t;
 
 class spgw:
   public thread
@@ -73,6 +73,7 @@ public:
   void run_thread();
 
   void handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu);
+  void handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu);
 
 private:
 
@@ -101,8 +102,8 @@ private:
   uint64_t m_next_ctrl_teid;
   uint64_t m_next_user_teid;
 
-  std::map<uint32_t,spgw_ue_ctx*> m_teid_to_ue_ctx;      //Map control TEID to ue_ctx. Usefull to get reply ctrl TEID
-  std::map<in_addr_t,gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
+  std::map<uint32_t,spgw_tunnel_ctx*> m_teid_to_tunnel_ctx;         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
+  std::map<in_addr_t,srslte::gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
 
   /*Logs*/
   srslte::log_filter  *m_spgw_log;
