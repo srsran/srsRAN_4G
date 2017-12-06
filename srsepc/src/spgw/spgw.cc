@@ -220,16 +220,17 @@ spgw::init_s1u(spgw_args_t *args)
   m_s1u_up = true;
 
   //Bind the socket
-  struct sockaddr_in servaddr;
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr=inet_addr(args->gtpu_bind_addr.c_str());
-  servaddr.sin_port=htons(GTPU_RX_PORT);
+  m_s1u_addr.sin_family = AF_INET;
+  m_s1u_addr.sin_addr.s_addr=inet_addr(args->gtpu_bind_addr.c_str());
+  m_s1u_addr.sin_port=htons(GTPU_RX_PORT);
 
-  if (bind(m_s1u,(struct sockaddr *)&servaddr,sizeof(struct sockaddr_in))) {
+  if (bind(m_s1u,(struct sockaddr *)&m_s1u_addr,sizeof(struct sockaddr_in))) {
     m_spgw_log->error("Failed to bind socket: %s\n", strerror(errno));
     return srslte::ERROR_CANT_START;
   }
   m_spgw_log->info("S1-U socket = %d\n", m_s1u);
+  m_spgw_log->info("S1-U IP = %s, Port = %d \n", inet_ntoa(m_s1u_addr.sin_addr),ntohs(m_s1u_addr.sin_port));
+
   return srslte::ERROR_NONE;
 }
 
@@ -326,9 +327,13 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   spgw_tunnel_ctx_t *tunnel_ctx = new spgw_tunnel_ctx_t;
   tunnel_ctx->imsi = cs_req->imsi;
   tunnel_ctx->up_user_fteid.teid = spgw_uplink_user_teid;
+  tunnel_ctx->up_user_fteid.ipv4 = m_s1u_addr.sin_addr.s_addr;
+  tunnel_ctx->dw_ctrl_fteid.teid = cs_req->sender_f_teid.teid;
+  tunnel_ctx->dw_ctrl_fteid.ipv4 = cs_req->sender_f_teid.ipv4;
+
   tunnel_ctx->up_ctrl_fteid.teid = spgw_uplink_ctrl_teid;
   tunnel_ctx->ue_ipv4 = ue_ip;
-
+  m_teid_to_tunnel_ctx.insert(std::pair<uint32_t,spgw_tunnel_ctx_t*>(spgw_uplink_ctrl_teid,tunnel_ctx));
   //Create session response message
   //Setup GTP-C header
   header->piggyback = false;
@@ -348,6 +353,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   cs_resp->eps_bearer_context_created.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present=true;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid = spgw_uplink_user_teid;
+  cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4 = m_s1u_addr.sin_addr.s_addr;
   //Fill in the PAA
   cs_resp->paa_present = true;
   cs_resp->paa.pdn_type = srslte::GTPC_PDN_TYPE_IPV4;
@@ -368,15 +374,30 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   std::map<uint32_t,spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
   if(tunnel_it == m_teid_to_tunnel_ctx.end())
   {
-    m_spgw_log->warning("Could not find TEID %d to modify",ctrl_teid);
+    m_spgw_log->warning("Could not find TEID %d to modify\n",ctrl_teid);
     return;
   }
   spgw_tunnel_ctx_t *tunnel_ctx = tunnel_it->second;
 
   //Store user DW link TEID
   srslte::gtpc_modify_bearer_request *mb_req = &mb_req_pdu->choice.modify_bearer_request;
-  tunnel_ctx->dw_user_fteid = mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid;
+  tunnel_ctx->dw_user_fteid.teid = mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.teid;
+  tunnel_ctx->dw_user_fteid.ipv4 = mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.ipv4;
   //Set up actual tunnel
+  m_spgw_log->info("Setting Up GTP-U tunnel. Tunnel info: \n");
+  struct in_addr addr;
+  addr.s_addr = tunnel_ctx->ue_ipv4;
+  m_spgw_log->info("IMSI: %lu, UE IP, %s \n",tunnel_ctx->imsi, inet_ntoa(addr));
+  m_spgw_log->info("S-GW Rx Ctrl TEID 0x%x, MME Rx Ctrl TEID 0x%x\n", tunnel_ctx->up_ctrl_fteid.teid, tunnel_ctx->dw_ctrl_fteid.teid);
+  m_spgw_log->info("S-GW Rx Ctrl IP (NA), MME Rx Ctrl IP (NA)\n");
+  
+  struct in_addr addr2;
+  addr2.s_addr = tunnel_ctx->up_user_fteid.ipv4;
+  m_spgw_log->info("S-GW Rx User TEID 0x%x, S-GW Rx User IP %s\n", tunnel_ctx->up_user_fteid.teid, inet_ntoa(addr2));
+
+  struct in_addr addr3;
+  addr3.s_addr = tunnel_ctx->dw_user_fteid.ipv4;
+  m_spgw_log->info("eNB Rx User TEID 0x%x, eNB Rx User IP %s\n", tunnel_ctx->dw_user_fteid.teid, inet_ntoa(addr3));
   //TODO!!!
 
   //Setting up Modify bearer response PDU
@@ -388,6 +409,6 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_RESPONSE;
 
   //PDU
-  srslte::gtpc_modify_bearer_response *mb_resp = mb_req_pdu.choice.modify_bearer_response;
+  srslte::gtpc_modify_bearer_response *mb_resp = &mb_req_pdu->choice.modify_bearer_response;
 }
 } //namespace srsepc

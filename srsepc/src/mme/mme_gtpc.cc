@@ -108,6 +108,7 @@ mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
   cs_req_pdu.header.type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST;
 
   //Setup GTP-C Create Session Request IEs
+  cs_req->imsi = imsi;
   // Control TEID allocated
   cs_req->sender_f_teid.teid = get_new_ctrl_teid();
   cs_req->sender_f_teid.ipv4 = m_mme_gtpc_ip;
@@ -171,7 +172,7 @@ mme_gtpc::send_modify_bearer_request(erab_ctx_t *erab_ctx)
   srslte::gtpc_f_teid_ie *enb_fteid = &erab_ctx->enb_fteid; 
   srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = &erab_ctx->sgw_ctrl_fteid; 
 
-  srslte::gtpc_header *header = &pdu.header;
+  srslte::gtpc_header *header = &mb_req_pdu.header;
   header->teid_present = true;
   header->teid = sgw_ctrl_fteid->teid;
   header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_REQUEST;
@@ -182,7 +183,9 @@ mme_gtpc::send_modify_bearer_request(erab_ctx_t *erab_ctx)
   mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.teid = enb_fteid->teid;
 
   m_mme_gtpc_log->info("GTP-C Modify bearer request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
-  m_mme_gtpc_log->info("GTP-C Modify bearer request -- S1-U TEID 0x%x\n", enb_fteid->teid );
+  struct in_addr addr;
+  addr.s_addr = enb_fteid->ipv4;
+  m_mme_gtpc_log->info("GTP-C Modify bearer request -- S1-U TEID 0x%x, IP %s\n", enb_fteid->teid, inet_ntoa(addr) );
 
   //
   srslte::gtpc_pdu mb_resp_pdu;

@@ -102,6 +102,8 @@ private:
   uint64_t m_next_ctrl_teid;
   uint64_t m_next_user_teid;
 
+  sockaddr_in m_s1u_addr;
+
   std::map<uint32_t,spgw_tunnel_ctx*> m_teid_to_tunnel_ctx;         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
   std::map<in_addr_t,srslte::gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
 

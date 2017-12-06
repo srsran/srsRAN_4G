@@ -334,5 +334,48 @@ struct gtpc_modify_bearer_request
   //SGW LDN
 };
 
-}; //namespace
+/****************************************************************************
+ *
+ * GTP-C v2 Modify Bearer Response
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.8-1
+ *
+ ***************************************************************************/
+
+struct gtpc_modify_bearer_response
+{
+  struct gtpc_cause_ie cause;
+  //MSISDN
+  //Linked EPS Bearer ID
+  //APN-AMBR
+  //APN Restriction
+  //Protocol Configuration Options
+
+  struct gtpc_bearer_context_modified_ie
+  {
+    uint8_t ebi;
+    struct gtpc_cause_ie cause;
+    bool s1_u_sgw_f_teid_present;
+    struct gtpc_f_teid_ie s1_u_sgw_f_teid;
+    bool s12_sgw_f_teid_present;
+    struct gtpc_f_teid_ie s12_sgw_f_teid;
+    bool s4_u_sgw_f_teid_present;
+    struct gtpc_f_teid_ie s4_u_sgw_f_teid;
+    //charging id
+    //bearer flags
+  } eps_bearer_context_modified;
+  //Bearer Contexts marked for removal
+  //Change Reporting action
+  //CSG information reporting action
+  //Charging gateway name
+  //charging gateway address
+  //P-GW FQ-CSID
+  //S-GW FQ-CSID
+  //Recovery
+  //S-GW LDN
+  //P-GW LDN
+  //indication Flags
+  //ext
+};
+
+} //namespace
 #endif //GTPC_V2_MSG_H
