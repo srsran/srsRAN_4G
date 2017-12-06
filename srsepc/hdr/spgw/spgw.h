@@ -56,6 +56,7 @@ typedef struct {
 typedef struct spgw_tunnel_ctx {
   uint64_t imsi;
   in_addr_t ue_ipv4;
+  uint8_t ebi;
   struct srslte::gtpc_f_teid_ie up_ctrl_fteid;
   struct srslte::gtpc_f_teid_ie up_user_fteid;
   struct srslte::gtpc_f_teid_ie dw_ctrl_fteid;

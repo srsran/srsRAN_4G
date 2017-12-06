@@ -823,6 +823,26 @@ s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQU
   return true;
 }
 
+void
+s1ap::activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi)
+{
+  std::map<uint32_t,ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_s1ap_id);
+  if(ue_ctx_it == m_active_ues.end())
+  {
+    m_s1ap_log->error("Could not find UE context\n");
+    return;
+  }
+  ue_ctx_t * ue_ctx = ue_ctx_it->second;
+  if (ue_ctx->erabs_ctx[ebi].state != ERAB_CTX_REQUESTED)
+  {
+    m_s1ap_log->error("EPS Bearer could not be activated. EPS Bearer id %d\n",ebi);
+    return;
+  }
+
+  ue_ctx->erabs_ctx[ebi].state = ERAB_ACTIVE;
+  m_s1ap_log->info("Activated EPS Bearer\n");
+  return;
+}
 
 void
 s1ap::print_enb_ctx_info(const enb_ctx_t &enb_ctx)

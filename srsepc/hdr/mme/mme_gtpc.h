@@ -51,6 +51,7 @@ public:
   void send_create_session_request(uint64_t imsi, uint32_t mme_s1ap_id);
   void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
   void send_modify_bearer_request(erab_ctx_t *bearer_ctx);
+  void handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu);
 
 private:
 

@@ -323,14 +323,16 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   //Allocate UE IP
   in_addr_t ue_ip = get_new_ue_ipv4();
 
+  uint8_t default_bearer_id = 5;
   //Save the UE IP to User TEID map //TODO!!!
   spgw_tunnel_ctx_t *tunnel_ctx = new spgw_tunnel_ctx_t;
   tunnel_ctx->imsi = cs_req->imsi;
+  tunnel_ctx->ebi = default_bearer_id;
   tunnel_ctx->up_user_fteid.teid = spgw_uplink_user_teid;
   tunnel_ctx->up_user_fteid.ipv4 = m_s1u_addr.sin_addr.s_addr;
   tunnel_ctx->dw_ctrl_fteid.teid = cs_req->sender_f_teid.teid;
   tunnel_ctx->dw_ctrl_fteid.ipv4 = cs_req->sender_f_teid.ipv4;
-
+  
   tunnel_ctx->up_ctrl_fteid.teid = spgw_uplink_ctrl_teid;
   tunnel_ctx->ue_ipv4 = ue_ip;
   m_teid_to_tunnel_ctx.insert(std::pair<uint32_t,spgw_tunnel_ctx_t*>(spgw_uplink_ctrl_teid,tunnel_ctx));
@@ -349,7 +351,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   cs_resp->sender_f_teid.teid = spgw_uplink_ctrl_teid;
   cs_resp->sender_f_teid.ipv4 = 0;//FIXME This is not relevant, as the GTP-C is not transmitted over sockets yet.
   //Bearer context created
-  cs_resp->eps_bearer_context_created.ebi = 5;
+  cs_resp->eps_bearer_context_created.ebi = default_bearer_id;
   cs_resp->eps_bearer_context_created.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present=true;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid = spgw_uplink_user_teid;
@@ -402,13 +404,17 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
 
   //Setting up Modify bearer response PDU
   //Header
-  srslte::gtpc_header *header = &mb_req_pdu->header;
+  srslte::gtpc_header *header = &mb_resp_pdu->header;
   header->piggyback = false;
   header->teid_present = true;
   header->teid = tunnel_ctx->dw_ctrl_fteid.teid;  //
   header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_RESPONSE;
 
   //PDU
-  srslte::gtpc_modify_bearer_response *mb_resp = &mb_req_pdu->choice.modify_bearer_response;
+  srslte::gtpc_modify_bearer_response *mb_resp = &mb_resp_pdu->choice.modify_bearer_response;
+  mb_resp->cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
+  mb_resp->eps_bearer_context_modified.ebi = tunnel_ctx->ebi;
+  printf("%d %d\n",mb_resp->eps_bearer_context_modified.ebi, tunnel_ctx->ebi);
+  mb_resp->eps_bearer_context_modified.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
 }
 } //namespace srsepc
