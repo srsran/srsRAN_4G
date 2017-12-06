@@ -163,6 +163,10 @@ public:
   srslte::log_filter rf_log;
   rf_metrics_t     rf_metrics;
   srslte::LOG_LEVEL_ENUM level(std::string l);
+
+  std::string get_build_mode();
+  std::string get_build_info();
+  std::string get_build_string();
 };
 
 } // namespace srsue

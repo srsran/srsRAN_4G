@@ -57,6 +57,9 @@ static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
                                                             "DEREGISTERED INITIATED",
                                                             "TRACKING AREA UPDATE INITIATED"};
 
+static const bool eia_caps[8] = {false, true,  true,  false, false, false, false, false};
+static const bool eea_caps[8] = {true,  false, false, false, false, false, false, false};
+
 typedef enum {
   PLMN_NOT_SELECTED = 0,
   PLMN_SELECTED
@@ -80,16 +83,12 @@ public:
 
   // RRC interface
   void notify_connection_setup();
-
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
-
   uint32_t get_ul_count();
-
   bool is_attached();
   bool is_attaching();
-
   bool get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
-
+  bool get_k_asme(uint8_t *k_asme_, uint32_t n);
   void plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code);
   void plmn_search_end();
 
@@ -115,72 +114,100 @@ private:
 
   std::vector<LIBLTE_RRC_PLMN_IDENTITY_STRUCT > known_plmns;
 
-  // Save short MAC
+  LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
 
-  // Identifiers
-  LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
-  bool is_guti_set;
+  // Security context
+  struct nas_sec_ctxt{
+    uint8_t  ksi;
+    uint8_t  k_asme[32];
+    uint32_t tx_count;
+    uint32_t rx_count;
+    srslte::CIPHERING_ALGORITHM_ID_ENUM  cipher_algo;
+    srslte::INTEGRITY_ALGORITHM_ID_ENUM  integ_algo;
+    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
+  };
+
+  bool have_guti;
+  bool have_ctxt;
+  nas_sec_ctxt ctxt;
 
   uint32_t ip_addr;
   uint8_t eps_bearer_id;
 
   uint8_t transaction_id;
 
-  // NAS counters - incremented for each security-protected message recvd/sent
-  uint32_t count_ul;
-  uint32_t count_dl;
-
   // Security
-  uint8_t ksi;
   uint8_t k_nas_enc[32];
   uint8_t k_nas_int[32];
 
-  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
-
-  void integrity_generate(uint8_t *key_128,
+  void integrity_generate(uint8_t integ_algo,
+                          uint8_t *key_128,
                           uint32_t count,
                           uint8_t rb_id,
                           uint8_t direction,
                           uint8_t *msg,
                           uint32_t msg_len,
                           uint8_t *mac);
-
   void integrity_check();
-
   void cipher_encrypt();
-
   void cipher_decrypt();
+  bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps);
 
   // Parsers
   void parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu);
-
   void parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu);
-
   void parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu);
-
   void parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu);
-
   void parse_identity_request(uint32_t lcid, byte_buffer_t *pdu);
-
   void parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu);
-
   void parse_service_reject(uint32_t lcid, byte_buffer_t *pdu);
-
   void parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu);
-
   void parse_emm_information(uint32_t lcid, byte_buffer_t *pdu);
 
   // Senders
   void send_attach_request();
-
   void send_identity_response();
-
   void send_service_request();
-
   void send_esm_information_response();
-
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
+  void send_security_mode_reject(uint8_t cause);
+
+  // security context persistence file
+  bool read_ctxt_file(nas_sec_ctxt *ctxt);
+  bool write_ctxt_file(nas_sec_ctxt ctxt);
+
+  // ctxt file helpers
+  std::string hex_to_string(uint8_t *hex, int size);
+  bool        string_to_hex(std::string hex_str, uint8_t *hex, uint32_t len);
+  std::string emm_info_str(LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT *info);
+
+  template <class T>
+  bool readvar(std::istream &file, const char *key, T *var)
+  {
+    std::string line;
+    size_t len = strlen(key);
+    std::getline(file, line);
+    if(line.substr(0,len).compare(key)) {
+      return false;
+    }
+    *var = (T)atoi(line.substr(len).c_str());
+    return true;
+  }
+
+  bool readvar(std::istream &file, const char *key, uint8_t *var, int varlen)
+  {
+    std::string line;
+    size_t len = strlen(key);
+    std::getline(file, line);
+    if(line.substr(0,len).compare(key)) {
+      return false;
+    }
+    std::string tmp = line.substr(len);
+    if(!string_to_hex(tmp, var, varlen)) {
+      return false;
+    }
+    return true;
+  }
 };
 
 } // namespace srsue

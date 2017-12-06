@@ -90,6 +90,8 @@ typedef struct {
   uint32_t file_nof_prb;
   uint32_t file_nof_ports;
   uint32_t file_cell_id;
+  bool enable_cfo_ref;
+  bool average_subframe;
   char *rf_args; 
   uint32_t rf_nof_rx_ant; 
   double rf_freq; 
@@ -120,7 +122,9 @@ void args_default(prog_args_t *args) {
   args->file_offset_freq = 0; 
   args->rf_args = "";
   args->rf_freq = -1.0;
-  args->rf_nof_rx_ant = 1; 
+  args->rf_nof_rx_ant = 1;
+  args->enable_cfo_ref = false;
+  args->average_subframe = false;
 #ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0; 
 #else
@@ -137,7 +141,7 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agpPoOcildDnruMNv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [agpPoOcildFRDnruMNv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", args->rf_args);
   printf("\t-A Number of RX antennas [Default %d]\n", args->rf_nof_rx_ant);
@@ -158,6 +162,8 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-r RNTI in Hex [Default 0x%x]\n",args->rnti);
   printf("\t-l Force N_id_2 [Default best]\n");
   printf("\t-C Disable CFO correction [Default %s]\n", args->disable_cfo?"Disabled":"Enabled");
+  printf("\t-F Enable RS-based CFO correction [Default %s]\n", args->enable_cfo_ref?"Disabled":"Enabled");
+  printf("\t-R Average channel estimates on 1 ms [Default %s]\n", args->average_subframe?"Disabled":"Enabled");
   printf("\t-t Add time offset [Default %d]\n", args->time_offset);
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
@@ -179,7 +185,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsSZyWMN")) != -1) {
+  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDFRnvrfuUsSZyWMN")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -210,6 +216,12 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'C':
       args->disable_cfo = true;
+      break;
+    case 'F':
+      args->enable_cfo_ref = true;
+      break;
+    case 'R':
+      args->average_subframe = true;
       break;
     case 't':
       args->time_offset = atoi(argv[optind]);
@@ -533,7 +545,10 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
-  
+
+  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, prog_args.enable_cfo_ref, 0xff, 0.005);
+  srslte_chest_dl_average_subframe(&ue_dl.chest, prog_args.average_subframe);
+
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
   srslte_ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
   
@@ -579,11 +594,8 @@ int main(int argc, char **argv) {
   srslte_ra_dl_dci_t old_dl_dci; 
   bzero(&old_dl_dci, sizeof(srslte_ra_dl_dci_t));
 #endif
-  
-  ue_sync.correct_cfo = !prog_args.disable_cfo;
-  
-  // Set initial CFO for ue_sync
-  srslte_ue_sync_set_cfo(&ue_sync, cfo); 
+
+  ue_sync.cfo_correct_enable = !prog_args.disable_cfo;
   
   srslte_pbch_decode_reset(&ue_mib.pbch);
             
@@ -658,6 +670,7 @@ int main(int argc, char **argv) {
               decode_pdsch = false; 
             }
           }
+
           gettimeofday(&t[1], NULL);
           if (decode_pdsch) {
             if(sfidx != 1 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
@@ -680,6 +693,12 @@ int main(int argc, char **argv) {
                   }
                 }
               }
+
+              // Feed-back ue_sync with chest_dl CFO estimation
+              if (sfidx == 5 && prog_args.enable_cfo_ref) {
+                srslte_ue_sync_set_cfo_ref(&ue_sync, srslte_chest_dl_get_cfo(&ue_dl.chest));
+              }
+
             }else{ // MBSFN subframe
               n = srslte_ue_dl_decode_mbsfn(&ue_dl, 
                                           sf_buffer,
@@ -776,7 +795,7 @@ int main(int argc, char **argv) {
             /* Print basic Parameters */
             PRINT_LINE("   nof layers: %d", ue_dl.pdsch_cfg.nof_layers);
             PRINT_LINE("nof codewords: %d", SRSLTE_RA_DL_GRANT_NOF_TB(&ue_dl.pdsch_cfg.grant));
-            PRINT_LINE("          CFO: %+5.2f kHz", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
+            PRINT_LINE("          CFO: %+7.2f Hz", srslte_ue_sync_get_cfo(&ue_sync));
             PRINT_LINE("          SNR: %+5.1f dB | %+5.1f dB", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
             PRINT_LINE("           Rb: %6.2f / %6.2f / %6.2f Mbps (net/maximum/processing)", uerate, enodebrate, procrate);
             PRINT_LINE("   PDCCH-Miss: %5.2f%%", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
@@ -940,7 +959,7 @@ void *plot_thread_run(void *arg) {
     plot_real_init(&pce);
     plot_real_setTitle(&pce, "Channel Response - Magnitude");
     plot_real_setLabels(&pce, "Index", "dB");
-    plot_real_setYAxisScale(&pce, -40, 40);
+    plot_real_setYAxisScale(&pce, -M_PI, M_PI);
     
     plot_real_init(&p_sync);
     plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
@@ -976,7 +995,11 @@ void *plot_thread_run(void *arg) {
           tmp_plot2[g+i] = -80;
         }
       }
-      plot_real_setNewData(&pce, tmp_plot2, sz);        
+      uint32_t nrefs = 2*ue_dl.cell.nof_prb;
+      for (i=0;i<nrefs;i++) {
+        tmp_plot2[i] = cargf(ue_dl.chest.tmp_cfo_estimate[i]);
+      }
+      plot_real_setNewData(&pce, tmp_plot2, nrefs);
       
       if (!prog_args.input_file_name) {
         if (plot_track) {

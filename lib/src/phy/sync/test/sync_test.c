@@ -124,8 +124,7 @@ int main(int argc, char **argv) {
   /* Set a very high threshold to make sure the correlation is ok */
   srslte_sync_set_threshold(&syncobj, 5.0);
   srslte_sync_set_sss_algorithm(&syncobj, SSS_PARTIAL_3);
-  srslte_sync_set_cfo_enable(&syncobj, false); 
-
+  
   if (cell_id == -1) {
     cid = 0;
     max_cid = 49;
