@@ -365,6 +365,19 @@ void
 spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
 {
   m_spgw_log->console("Received PDU from S1-U. Bytes=%d\n",msg->N_bytes);
+  srslte::gtpu_header_t header;
+  srslte::gtpu_read_header(msg, &header);
+ 
+  m_spgw_log->console("TEID 0x%x. Bytes=%d\n", header.teid, msg->N_bytes);
+  int n = write(m_sgi_if, msg->msg, msg->N_bytes);
+  if(n<0)
+  {
+    m_spgw_log->error("Could not write to TUN interface.\n",n);
+  }
+  else
+  {
+    m_spgw_log->console("Forwarded packet to TUN interface\n");
+  }
   return;
 }
 uint64_t
