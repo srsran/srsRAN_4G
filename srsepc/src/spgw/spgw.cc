@@ -35,7 +35,7 @@
 #include <linux/if_tun.h>
 #include "spgw/spgw.h"
 #include "mme/mme_gtpc.h"
-
+#include "srslte/upper/gtpu.h"
 
 namespace srsepc{
 
@@ -263,7 +263,7 @@ spgw::run_thread()
     //m_spgw_log->info("Waiting for S1-U or SGi packets.\n");
     int n = select(max_fd+1, &set, NULL, NULL, NULL);
     if (n == -1)
-    {
+    { 
       m_spgw_log->error("Error from select\n");
     }
     else if (n)
@@ -328,11 +328,34 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
     m_spgw_log->console("IP Packet is not for any UE\n");
     return;
   }
-  struct in_addr enb_addr;
-  enb_addr.s_addr = enb_fteid.ipv4;
-  m_spgw_log->console("UE F-TEID found, TEID 0x%x, eNB IP %s\n", enb_fteid.teid, inet_ntoa(enb_addr));
+  struct sockaddr_in enb_addr;
+  enb_addr.sin_family = AF_INET;
+  enb_addr.sin_port = htons(GTPU_RX_PORT);
+  enb_addr.sin_addr.s_addr = enb_fteid.ipv4;
+  m_spgw_log->console("UE F-TEID found, TEID 0x%x, eNB IP %s\n", enb_fteid.teid, inet_ntoa(enb_addr.sin_addr));
+
+  //Setup GTP-U header
+  srslte::gtpu_header_t header;
+  header.flags        = 0x30;
+  header.message_type = 0xFF;
+  header.length       = msg->N_bytes;
+  header.teid         = enb_fteid.teid;
+
+  //Write header into packet
+  if(!srslte::gtpu_write_header(&header, msg))
+  {
+    m_spgw_log->console("Error writing GTP-U header on PDU\n");
+  }
 
 
+  //Send packet to destination
+  int n = sendto(m_s1u,msg->msg,msg->N_bytes,0,(struct sockaddr*) &enb_addr,sizeof(enb_addr));
+  if(n<0)
+  {
+    m_spgw_log->console("Error sending packet to eNB\n");
+    return;
+  }
+  m_spgw_log->console("Sent packet to %s:%d. Bytes=%d\n",inet_ntoa(enb_addr.sin_addr), GTPU_RX_PORT,n);
   return;
 }
 

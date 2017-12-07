@@ -698,7 +698,7 @@ s1ap::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSE
     m_s1ap_log->error("Could not find UE's context in active UE's map\n");
     return false;
   }
-  for(uint32_t i; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
+  for(uint32_t i=0; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
   {
     uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
     erab_ctx_t *erab_ctx = &ue_ctx_it->second->erabs_ctx[erab_id];
