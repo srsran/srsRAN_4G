@@ -488,6 +488,12 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         }
       } else if (grants[i].grant.cqi_request) {
         cqi_value.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
+        if (ue_db[rnti].dedicated.antenna_info_present && (
+            ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+            ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4
+        )) {
+          cqi_value.subband_hl.ri_present = true;
+        }
         cqi_value.subband_hl.N = (phy->cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(phy->cell.nof_prb) : 0;
         cqi_value.subband_hl.four_antenna_ports = (phy->cell.nof_ports == 4);
         cqi_value.subband_hl.pmi_present = (ue_db[rnti].dedicated.cqi_report_cnfg.report_mode_aperiodic == LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31);
@@ -583,14 +589,15 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       }
       */
       log_h->info_hex(grants[i].data, phy_grant.mcs.tbs/8,
-          "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s\n",
+          "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s\n",
           rnti, phy_grant.n_prb[0], phy_grant.n_prb[0]+phy_grant.L_prb,
           phy_grant.mcs.tbs/8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
           snr_db,
           srslte_pusch_last_noi(&enb_ul.pusch),
           crc_res?"OK":"KO",
-          (uci_data.uci_ack_len)?(uci_data.uci_ack?"1":"0"):"",
-          (uci_data.uci_ack_len > 1)?(uci_data.uci_ack_2?"1":"0"):"",
+          (acks_pending[0] || acks_pending[1])?", ack=":"",
+          (acks_pending[0])?(uci_data.uci_ack?"1":"0"):"",
+          (acks_pending[1])?(uci_data.uci_ack_2?"1":"0"):"",
           uci_data.uci_cqi_len>0?cqi_str:"",
           uci_data.uci_ri_len>0?(uci_data.uci_ri?", ri=0":", ri=1"):"",
           timestr);

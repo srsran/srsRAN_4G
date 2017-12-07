@@ -68,6 +68,7 @@ typedef struct SRSLTE_API {
   uint32_t subband_diff_cqi_cw1;  // if RI > 1 then 2N-bit width otherwise 0-bit width
   uint32_t pmi;                   // if RI > 1 then 2-bit width otherwise 1-bit width
   uint32_t N;
+  bool ri_present;
   bool pmi_present;
   bool four_antenna_ports;        // If cell has 4 antenna ports then true otherwise false
   bool rank_is_not_one;           // If rank > 1 then true otherwise false

@@ -1165,7 +1165,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->cqi_report_cnfg_present = true; 
   if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
     phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true; 
-    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31;
+    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
   } else {
     phy_cfg->cqi_report_cnfg.report_periodic_present = true; 
     phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true; 
