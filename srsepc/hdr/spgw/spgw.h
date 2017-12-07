@@ -77,6 +77,7 @@ public:
   void handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu);
 
   void handle_sgi_pdu(srslte::byte_buffer_t *msg);
+  void handle_s1u_pdu(srslte::byte_buffer_t *msg);
 
 private:
 

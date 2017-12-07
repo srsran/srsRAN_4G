@@ -274,6 +274,7 @@ spgw::run_thread()
           msg->N_bytes = recvfrom(m_s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen );
           //m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
           //m_spgw_log->debug("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
+          handle_s1u_pdu(msg);
       }
       if (FD_ISSET(m_sgi_if, &set))
       {
@@ -359,6 +360,13 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   return;
 }
 
+
+void
+spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
+{
+  m_spgw_log->console("Received PDU from S1-U. Bytes=%d\n",msg->N_bytes);
+  return;
+}
 uint64_t
 spgw::get_new_ctrl_teid()
 {

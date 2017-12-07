@@ -626,7 +626,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     return false;
   } 
   erab_ctxt->transportLayerAddress.n_bits = 32; //IPv4
-  uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
+  uint32_t sgw_s1u_ip = htonl(cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4);
   uint8_t *tmp_ptr =  erab_ctxt->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
 
