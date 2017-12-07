@@ -76,6 +76,8 @@ public:
   void handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu);
   void handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu);
 
+  void handle_sgi_pdu(srslte::byte_buffer_t *msg);
+
 private:
 
   spgw();
@@ -105,6 +107,7 @@ private:
 
   sockaddr_in m_s1u_addr;
 
+  pthread_mutex_t m_mutex;
   std::map<uint32_t,spgw_tunnel_ctx*> m_teid_to_tunnel_ctx;         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
   std::map<in_addr_t,srslte::gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
 

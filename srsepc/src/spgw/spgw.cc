@@ -104,6 +104,9 @@ spgw::init(spgw_args_t* args, srslte::log_filter *spgw_log)
     m_spgw_log->console("Could not initialize the S1-U interface.\n");
     return -1;
   }
+
+  //Init mutex
+  pthread_mutex_init(&m_mutex,NULL);
   m_spgw_log->info("SP-GW Initialized.\n");
   m_spgw_log->console("SP-GW Initialized.\n");
   return 0;
@@ -278,6 +281,7 @@ spgw::run_thread()
           msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
           //m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
           //m_spgw_log->debug("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
+          handle_sgi_pdu(msg);
       }
     }
     else
@@ -289,6 +293,48 @@ spgw::run_thread()
   return;
 }
 
+void
+spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
+{
+  uint8_t version=0;
+  uint32_t dest_ip;
+  struct in_addr dest_addr;
+  std::map<uint32_t,srslte::gtpc_f_teid_ie>::iterator gtp_fteid_it;
+  bool ip_found = false;
+  srslte::gtpc_f_teid_ie enb_fteid;
+
+  version = msg->msg[0]>>4;
+  ((uint8_t*)&dest_ip)[0] = msg->msg[16]; 
+  ((uint8_t*)&dest_ip)[1] = msg->msg[17];
+  ((uint8_t*)&dest_ip)[2] = msg->msg[18];
+  ((uint8_t*)&dest_ip)[3] = msg->msg[19];
+
+  dest_addr.s_addr = dest_ip;
+
+  m_spgw_log->console("IP version: %d\n", version);
+  m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(dest_addr));
+
+  pthread_mutex_lock(&m_mutex);
+  gtp_fteid_it = m_ip_to_teid.find(dest_ip);
+  if(gtp_fteid_it != m_ip_to_teid.end())
+  {
+    ip_found = true;
+    enb_fteid = gtp_fteid_it->second;
+  }
+  pthread_mutex_unlock(&m_mutex);
+
+  if(ip_found == false)
+  {
+    m_spgw_log->console("IP Packet is not for any UE\n");
+    return;
+  }
+  struct in_addr enb_addr;
+  enb_addr.s_addr = enb_fteid.ipv4;
+  m_spgw_log->console("UE F-TEID found, TEID 0x%x, eNB IP %s\n", enb_fteid.teid, inet_ntoa(enb_addr));
+
+
+  return;
+}
 
 uint64_t
 spgw::get_new_ctrl_teid()
@@ -400,7 +446,11 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   struct in_addr addr3;
   addr3.s_addr = tunnel_ctx->dw_user_fteid.ipv4;
   m_spgw_log->info("eNB Rx User TEID 0x%x, eNB Rx User IP %s\n", tunnel_ctx->dw_user_fteid.teid, inet_ntoa(addr3));
-  //TODO!!!
+
+  //Setup IP to F-TEID map
+  pthread_mutex_lock(&m_mutex);
+  m_ip_to_teid.insert(std::pair<uint32_t,srslte::gtpc_f_teid_ie>(tunnel_ctx->ue_ipv4, tunnel_ctx->dw_user_fteid));
+  pthread_mutex_unlock(&m_mutex);
 
   //Setting up Modify bearer response PDU
   //Header
