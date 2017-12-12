@@ -361,6 +361,84 @@ public:
   
 };
 
+class mac_interface_fauxphy
+{
+public:
+    
+  typedef struct {
+    uint32_t    pid;    
+    uint32_t    tti;
+    uint32_t    last_tti;
+    bool        ndi[SRSLTE_MAX_CODEWORDS];
+    bool        last_ndi[SRSLTE_MAX_CODEWORDS];
+    uint32_t    n_bytes[SRSLTE_MAX_CODEWORDS];
+    int         rv[SRSLTE_MAX_CODEWORDS];
+    bool        tb_en[SRSLTE_MAX_CODEWORDS];
+    bool        tb_cw_swap;
+    uint16_t    rnti; 
+    bool        is_from_rar;
+    bool        is_sps_release;
+    bool        has_cqi_request;
+    srslte_rnti_type_t rnti_type; 
+    srslte_phy_grant_t phy_grant; 
+  } mac_grant_t; 
+  
+  typedef struct {
+    bool                    decode_enabled[SRSLTE_MAX_TB];
+    int                     rv[SRSLTE_MAX_TB];
+    uint16_t                rnti; 
+    bool                    generate_ack; 
+    bool                    default_ack[SRSLTE_MAX_TB];
+    // If non-null, called after tb_decoded_ok to determine if ack needs to be sent
+    bool                  (*generate_ack_callback)(void*); 
+    void                   *generate_ack_callback_arg;
+    uint8_t                *payload_ptr[SRSLTE_MAX_TB];
+    srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_TB];
+    srslte_phy_grant_t      phy_grant;
+  } tb_action_dl_t;
+
+  typedef struct {
+    bool                    tx_enabled;
+    bool                    expect_ack;
+    uint32_t                rv[SRSLTE_MAX_TB];
+    uint16_t                rnti; 
+    uint32_t                current_tx_nb;
+    int32_t                 tti_offset;     // relative offset between grant and UL tx/HARQ rx
+    srslte_softbuffer_tx_t *softbuffers;
+    srslte_phy_grant_t      phy_grant;
+    uint8_t                *payload_ptr[SRSLTE_MAX_TB];
+  } tb_action_ul_t;
+  
+  /* Indicate reception of UL grant. 
+   * payload_ptr points to memory where MAC PDU must be written by MAC layer */
+  virtual void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action) = 0;
+
+  /* Indicate reception of UL grant + HARQ information throught PHICH in the same TTI. */
+  virtual void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action) = 0;
+
+  /* Indicate reception of HARQ information only through PHICH.   */
+  virtual void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action) = 0;
+  
+  /* Indicate reception of DL grant. */ 
+  virtual void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) = 0;
+  
+  /* Indicate successfull decoding of PDSCH TB. */
+  virtual void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid) = 0;
+  
+  /* Indicate successfull decoding of BCH TB through PBCH */
+  virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;  
+  
+  /* Indicate successfull decoding of PCH TB through PDSCH */
+  virtual void pch_decoded_ok(uint32_t len) = 0;  
+  
+  /* Function called every start of a subframe (TTI). Warning, this function is called 
+   * from a high priority thread and should terminate asap 
+   */
+  virtual void tti_clock(uint32_t tti) = 0;
+  
+};
+
+
 /* Interface RRC -> MAC shared between different RATs */
 class mac_interface_rrc_common
 {

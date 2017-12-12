@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENBPHYWORKER_H
-#define ENBPHYWORKER_H
+#ifndef FAUX_ENBPHYWORKER_H
+#define FAUX_ENBPHYWORKER_H
 
 #include <string.h>
 
@@ -75,10 +75,10 @@ private:
   
   void work_imp();
   
-  int encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
+  int encode_pdsch(srslte_fauxenb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
   int decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti_rx);
-  int encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx);
-  int encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
+  int encode_phich(srslte_fauxenb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx);
+  int encode_pdcch_dl(srslte_fauxenb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
   int encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx); 
   int decode_pucch(uint32_t tti_rx);
   
@@ -93,7 +93,7 @@ private:
   cf_t          *signal_buffer_tx; 
   uint32_t       tti_rx, tti_tx, tti_sched_ul, sf_rx, sf_tx, sf_sched_ul, tx_mutex_cnt;
 
-  srslte_enb_dl_t enb_dl;
+  srslte_fauxenb_dl_t enb_dl;
   srslte_enb_ul_t enb_ul;
   
   srslte_timestamp_t tx_time; 

@@ -88,7 +88,7 @@ void fauxphy::parse_config(phy_cfg_t* cfg)
 bool fauxphy::init(phy_args_t *args, 
                phy_cfg_t *cfg, 
                srslte::radio* radio_handler_, 
-               mac_interface_phy *mac, 
+               mac_interface_fauxphy *mac, 
                srslte::log* log_h)
 {
   X_TRACE("PHY:BEGIN");
@@ -103,7 +103,7 @@ bool fauxphy::init(phy_args_t *args,
 bool fauxphy::init(phy_args_t *args, 
                phy_cfg_t *cfg, 
                srslte::radio* radio_handler_, 
-               mac_interface_phy *mac, 
+               mac_interface_fauxphy *mac, 
                std::vector<void*> log_vec)
 {
   X_TRACE("PHY:BEGIN");

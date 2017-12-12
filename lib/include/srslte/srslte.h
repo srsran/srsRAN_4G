@@ -121,6 +121,8 @@
 #include "srslte/phy/sync/cfo.h"
 #include "srslte/phy/sync/cp.h"
 
+#include "srslte/phy/enb/fauxenb_dl.h"
+
 #ifdef __cplusplus
 }
 #undef I // Fix complex.h #define I nastiness when using C++

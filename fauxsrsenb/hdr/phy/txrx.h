@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENBTXRX_H
-#define ENBTXRX_H
+#ifndef FAUX_ENBTXRX_H
+#define FAUX_ENBTXRX_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/threads.h"

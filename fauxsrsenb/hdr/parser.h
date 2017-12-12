@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef FAUX_PARSER_H
+#define FAUX_PARSER_H
 
 #include <stdarg.h>
 #include <string>

@@ -29,8 +29,8 @@
  * Description: Base class for UEs.
  *****************************************************************************/
 
-#ifndef UE_BASE_H
-#define UE_BASE_H
+#ifndef FAUX_UE_BASE_H
+#define FAUX_UE_BASE_H
 
 #include <stdarg.h>
 #include <string>

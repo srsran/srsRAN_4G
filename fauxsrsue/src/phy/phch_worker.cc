@@ -222,13 +222,13 @@ void phch_worker::work_imp()
   bool ul_grant_available = false;
   bool dl_ack[SRSLTE_MAX_CODEWORDS] = {false};
 
-  mac_interface_phy::mac_grant_t    dl_mac_grant;
-  mac_interface_phy::tb_action_dl_t dl_action; 
-  bzero(&dl_action, sizeof(mac_interface_phy::tb_action_dl_t));
+  mac_interface_fauxphy::mac_grant_t    dl_mac_grant;
+  mac_interface_fauxphy::tb_action_dl_t dl_action; 
+  bzero(&dl_action, sizeof(mac_interface_fauxphy::tb_action_dl_t));
 
-  mac_interface_phy::mac_grant_t    ul_mac_grant;
-  mac_interface_phy::tb_action_ul_t ul_action; 
-  bzero(&ul_action, sizeof(mac_interface_phy::tb_action_ul_t));
+  mac_interface_fauxphy::mac_grant_t    ul_mac_grant;
+  mac_interface_fauxphy::tb_action_ul_t ul_action; 
+  bzero(&ul_action, sizeof(mac_interface_fauxphy::tb_action_ul_t));
 
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   bool chest_ok = extract_fft_and_pdcch_llr();
@@ -460,7 +460,7 @@ bool phch_worker::extract_fft_and_pdcch_llr() {
 
 /********************* Downlink processing functions ****************************/
 
-bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
+bool phch_worker::decode_pdcch_dl(srsue::mac_interface_fauxphy::mac_grant_t* grant)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   char timestr[64];
@@ -674,7 +674,7 @@ bool phch_worker::decode_phich(bool *ack)
 
 /********************* Uplink processing functions ****************************/
 
-bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
+bool phch_worker::decode_pdcch_ul(mac_interface_fauxphy::mac_grant_t* grant)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   char timestr[64];

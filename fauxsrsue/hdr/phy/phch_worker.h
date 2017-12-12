@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHYWORKER_H
-#define UEPHYWORKER_H
+#ifndef FAUX_UEPHYWORKER_H
+#define FAUX_UEPHYWORKER_H
 
 #include <string.h>
 #include "srslte/srslte.h"
@@ -78,8 +78,8 @@ private:
   bool extract_fft_and_pdcch_llr(); 
   
   /* ... for DL */
-  bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);
-  bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
+  bool decode_pdcch_ul(mac_interface_fauxphy::mac_grant_t *grant);
+  bool decode_pdcch_dl(mac_interface_fauxphy::mac_grant_t *grant);
   bool decode_phich(bool *ack);
 
   int decode_pdsch(srslte_ra_dl_grant_t *grant,

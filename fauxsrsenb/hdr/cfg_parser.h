@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef CFG_PARSER_H
-#define CFG_PARSER_H
+#ifndef FAUX_CFG_PARSER_H
+#define FAUX_CFG_PARSER_H
 
 #include "enb.h"
 

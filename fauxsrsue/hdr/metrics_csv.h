@@ -29,8 +29,8 @@
  * Description: Metrics class writing to CSV file.
  *****************************************************************************/
 
-#ifndef METRICS_CSV_H
-#define METRICS_CSV_H
+#ifndef FAUX_METRICS_CSV_H
+#define FAUX_METRICS_CSV_H
 
 #include <pthread.h>
 #include <stdint.h>

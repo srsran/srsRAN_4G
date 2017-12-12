@@ -55,7 +55,7 @@ typedef struct {
 } mac_args_t; 
 
 class mac
-    :public mac_interface_phy, 
+    :public mac_interface_fauxphy, 
      public mac_interface_rlc, 
      public mac_interface_rrc,     
      public srslte::mac_interface_timers, 

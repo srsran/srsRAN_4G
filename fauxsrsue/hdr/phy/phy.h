@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHY_H
-#define UEPHY_H
+#ifndef FAUX_UEPHY_H
+#define FAUX_UEPHY_H
 
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
@@ -51,7 +51,7 @@ class fauxphy
 public:
   fauxphy();
   bool init(srslte::radio_multi *radio_handler, 
-            mac_interface_phy *mac, 
+            mac_interface_fauxphy *mac, 
             rrc_interface_phy *rrc,
             std::vector<void*> log_vec,
             phy_args_t *args = NULL);
@@ -150,7 +150,7 @@ private:
   srslte::radio_multi      *radio_handler;
   std::vector<void*>        log_vec;
   srslte::log              *log_h;
-  srsue::mac_interface_phy *mac;
+  srsue::mac_interface_fauxphy *mac;
   srsue::rrc_interface_phy *rrc;
 
   srslte::thread_pool      workers_pool;
@@ -168,7 +168,7 @@ private:
   /* Current time advance */
   uint32_t     n_ta;
     
-  bool init_(srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log *log_h, bool do_agc, uint32_t nof_workers);
+  bool init_(srslte::radio *radio_handler, mac_interface_fauxphy *mac, srslte::log *log_h, bool do_agc, uint32_t nof_workers);
   void set_default_args(phy_args_t *args);
   bool check_args(phy_args_t *args); 
 

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHYWORKERCOMMON_H
-#define UEPHYWORKERCOMMON_H
+#ifndef FAUX_UEPHYWORKERCOMMON_H
+#define FAUX_UEPHYWORKERCOMMON_H
 
 #define TX_MODE_CONTINUOUS 1
 
@@ -50,7 +50,7 @@ namespace srsue {
     phy_interface_rrc::phy_cfg_t *config; 
     phy_args_t                   *args;
     rrc_interface_phy *rrc;
-    mac_interface_phy *mac;
+    mac_interface_fauxphy *mac;
     srslte_ue_ul_t     ue_ul; 
     
     /* Power control variables */
@@ -72,7 +72,7 @@ namespace srsue {
               srslte::log *_log, 
               srslte::radio *_radio,
               rrc_interface_phy *rrc,
-              mac_interface_phy *_mac);
+              mac_interface_fauxphy *_mac);
     
     /* For RNTI searches, -1 means now or forever */    
     void               set_ul_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start = -1, int tti_end = -1);

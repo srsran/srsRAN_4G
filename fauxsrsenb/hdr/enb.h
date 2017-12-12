@@ -30,8 +30,8 @@
  *              layers and helpers.
  *****************************************************************************/
 
-#ifndef ENB_H
-#define ENB_H
+#ifndef FAUX_ENB_H
+#define FAUX_ENB_H
 
 #include <stdarg.h>
 #include <string>

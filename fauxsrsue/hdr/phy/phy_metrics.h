@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UE_PHY_METRICS_H
-#define UE_PHY_METRICS_H
+#ifndef FAUX_UE_PHY_METRICS_H
+#define FAUX_UE_PHY_METRICS_H
 
 
 namespace srsue {

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENBPHCHCOMMON_H
-#define ENBPHCHCOMMON_H
+#ifndef FAUX_ENBPHCHCOMMON_H
+#define FAUX_ENBPHCHCOMMON_H
 
 #include <map>
 #include "srslte/interfaces/enb_interfaces.h"
@@ -59,7 +59,7 @@ public:
     params.max_prach_offset_us = 20; 
   }
   
-  bool init(srslte_cell_t *cell, srslte::radio *radio_handler, mac_interface_phy *mac);  
+  bool init(srslte_cell_t *cell, srslte::radio *radio_handler, mac_interface_fauxphy *mac);  
   void reset(); 
   void stop();
   
@@ -75,11 +75,11 @@ public:
   phy_args_t                        params; 
 
   srslte::radio     *radio;
-  mac_interface_phy *mac; 
+  mac_interface_fauxphy *mac; 
   
   // Common objects for schedulign grants 
-  mac_interface_phy::ul_sched_t ul_grants[10];
-  mac_interface_phy::dl_sched_t dl_grants[10];
+  mac_interface_fauxphy::ul_sched_t ul_grants[10];
+  mac_interface_fauxphy::dl_sched_t dl_grants[10];
   
   // Map of pending ACKs for each user 
   typedef struct {

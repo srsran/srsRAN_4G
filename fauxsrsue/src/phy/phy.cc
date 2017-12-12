@@ -98,7 +98,7 @@ bool fauxphy::check_args(phy_args_t *args)
   return true; 
 }
 
-bool fauxphy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_interface_phy *rrc,
+bool fauxphy::init(srslte::radio_multi* radio_handler, mac_interface_fauxphy *mac, rrc_interface_phy *rrc,
                std::vector<void*> log_vec, phy_args_t *phy_args) {
   X_TRACE("PHY:BEGIN");
 

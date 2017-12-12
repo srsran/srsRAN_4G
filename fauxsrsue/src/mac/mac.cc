@@ -276,7 +276,7 @@ void mac::tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, ui
   }
 }
 
-void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action)
+void mac::new_grant_dl(mac_interface_fauxphy::mac_grant_t grant, mac_interface_fauxphy::tb_action_dl_t* action)
 {
   X_TRACE("MAC:BEGIN");
   if (grant.rnti_type == SRSLTE_RNTI_RAR) {
@@ -310,7 +310,7 @@ uint32_t mac::get_current_tti()
   return phy_h->get_current_tti();
 }
 
-void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_ul_t* action)
+void mac::new_grant_ul(mac_interface_fauxphy::mac_grant_t grant, mac_interface_fauxphy::tb_action_ul_t* action)
 {
   X_TRACE("MAC:BEGIN");
   /* Start PHR Periodic timer on first UL grant */
@@ -325,7 +325,7 @@ void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
   metrics.tx_pkts++;
 }
 
-void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t* action)
+void mac::new_grant_ul_ack(mac_interface_fauxphy::mac_grant_t grant, bool ack, mac_interface_fauxphy::tb_action_ul_t* action)
 {
   X_TRACE("MAC:BEGIN");
   int tbs = ul_harq.get_current_tbs(tti);
@@ -344,7 +344,7 @@ void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_i
   }
 }
 
-void mac::harq_recv(uint32_t tti, bool ack, mac_interface_phy::tb_action_ul_t* action)
+void mac::harq_recv(uint32_t tti, bool ack, mac_interface_fauxphy::tb_action_ul_t* action)
 {
   X_TRACE("MAC:BEGIN");
   int tbs = ul_harq.get_current_tbs(tti);

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHYRECV_H
-#define UEPHYRECV_H
+#ifndef FAUX_UEPHYRECV_H
+#define FAUX_UEPHYRECV_H
 
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
@@ -46,7 +46,7 @@ class phch_recv : public thread
 public:
   phch_recv();
   ~phch_recv();
-  void init(srslte::radio_multi* radio_handler, mac_interface_phy *mac,rrc_interface_phy *rrc,
+  void init(srslte::radio_multi* radio_handler, mac_interface_fauxphy *mac,rrc_interface_phy *rrc,
             prach *prach_buffer, srslte::thread_pool *_workers_pool,
             phch_common *_worker_com, srslte::log* _log_h, uint32_t nof_rx_antennas, uint32_t prio, int sync_cpu_affinity = -1);
   void stop();
@@ -103,7 +103,7 @@ private:
 
   bool   running; 
   
-  mac_interface_phy    *mac;
+  mac_interface_fauxphy    *mac;
   rrc_interface_phy    *rrc;
   srslte::log          *log_h;
   srslte::thread_pool  *workers_pool;

@@ -100,11 +100,11 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     fprintf(stderr, "Error allocating memory\n");
     return; 
   }
-  if (srslte_enb_dl_init(&enb_dl, phy->cell.nof_prb)) {
+  if (srslte_fauxenb_dl_init(&enb_dl, phy->cell.nof_prb)) {
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
-  if (srslte_enb_dl_set_cell(&enb_dl, phy->cell)) {
+  if (srslte_fauxenb_dl_set_cell(&enb_dl, phy->cell)) {
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
@@ -136,7 +136,7 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
 
   srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
-  srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
+  srslte_fauxenb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
   
   Info("Worker %d configured cell %d PRB\n", get_id(), phy->cell.nof_prb);
   
@@ -154,7 +154,7 @@ void phch_worker::stop()
   running = false;
   pthread_mutex_lock(&mutex);
 
-  srslte_enb_dl_free(&enb_dl);
+  srslte_fauxenb_dl_free(&enb_dl);
   srslte_enb_ul_free(&enb_ul);
   if (signal_buffer_rx) {
     free(signal_buffer_rx);
@@ -195,7 +195,7 @@ int phch_worker::add_rnti(uint16_t rnti)
 {
   X_TRACE("PHCHWORKER:BEGIN");
 
-  if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
+  if (srslte_fauxenb_dl_add_rnti(&enb_dl, rnti)) {
     return -1; 
   }
   if (srslte_enb_ul_add_rnti(&enb_ul, rnti)) {
@@ -251,7 +251,7 @@ void phch_worker::rem_rnti(uint16_t rnti)
   if (ue_db.count(rnti)) {
     ue_db.erase(rnti);
     
-    srslte_enb_dl_rem_rnti(&enb_dl, rnti); 
+    srslte_fauxenb_dl_rem_rnti(&enb_dl, rnti); 
     srslte_enb_ul_rem_rnti(&enb_ul, rnti);
     
     // remove any pending grant for each subframe 
@@ -284,9 +284,9 @@ void phch_worker::work_imp()
 
   pthread_mutex_lock(&mutex);
   
-  mac_interface_phy::ul_sched_t *ul_grants = phy->ul_grants;
-  mac_interface_phy::dl_sched_t *dl_grants = phy->dl_grants; 
-  mac_interface_phy *mac = phy->mac; 
+  mac_interface_fauxphy::ul_sched_t *ul_grants = phy->ul_grants;
+  mac_interface_fauxphy::dl_sched_t *dl_grants = phy->dl_grants; 
+  mac_interface_fauxphy *mac = phy->mac; 
   
   log_h->step(tti_rx);
   
@@ -324,9 +324,9 @@ void phch_worker::work_imp()
   } 
   
   // Put base signals (references, PBCH, PCFICH and PSS/SSS) into the resource grid
-  srslte_enb_dl_clear_sf(&enb_dl);
-  srslte_enb_dl_set_cfi(&enb_dl, dl_grants[sf_tx].cfi);
-  srslte_enb_dl_put_base(&enb_dl, tti_tx);
+  srslte_fauxenb_dl_clear_sf(&enb_dl);
+  srslte_fauxenb_dl_set_cfi(&enb_dl, dl_grants[sf_tx].cfi);
+  srslte_fauxenb_dl_put_base(&enb_dl, tti_tx);
 
   // Put UL/DL grants to resource grid. PDSCH data will be encoded as well. 
   encode_pdcch_dl(dl_grants[sf_tx].sched_grants, dl_grants[sf_tx].nof_grants, sf_tx);  
@@ -347,7 +347,7 @@ void phch_worker::work_imp()
   }
   
   // Generate signal and transmit
-  srslte_enb_dl_gen_signal(&enb_dl, signal_buffer_tx);  
+  srslte_fauxenb_dl_gen_signal(&enb_dl, signal_buffer_tx);  
   Debug("Sending to radio\n");
   phy->worker_end(tx_mutex_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
 
@@ -594,13 +594,13 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
 }
 
 
-int phch_worker::encode_phich(srslte_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
+int phch_worker::encode_phich(srslte_fauxenb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   for (uint32_t i=0;i<nof_acks;i++) {
     uint16_t rnti = acks[i].rnti;
     if (rnti) {
-      srslte_enb_dl_put_phich(&enb_dl, acks[i].ack, 
+      srslte_fauxenb_dl_put_phich(&enb_dl, acks[i].ack, 
                               ue_db[rnti].phich_info.n_prb_lowest, 
                               ue_db[rnti].phich_info.n_dmrs, 
                               sf_idx);
@@ -621,7 +621,7 @@ int phch_worker::encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_gra
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (grants[i].needs_pdcch && rnti) {
-      if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &grants[i].grant, grants[i].location, rnti, sf_idx)) {
+      if (srslte_fauxenb_dl_put_pdcch_ul(&enb_dl, &grants[i].grant, grants[i].location, rnti, sf_idx)) {
         fprintf(stderr, "Error putting PUSCH %d\n",i);
         return SRSLTE_ERROR; 
       }
@@ -633,7 +633,7 @@ int phch_worker::encode_pdcch_ul(srslte_enb_ul_pusch_t *grants, uint32_t nof_gra
   return SRSLTE_SUCCESS; 
 }
 
-int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int phch_worker::encode_pdcch_dl(srslte_fauxenb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   for (uint32_t i=0;i<nof_grants;i++) {
@@ -649,7 +649,7 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
           format = SRSLTE_DCI_FORMAT1A; 
         break;
       }
-      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &grants[i].grant, format, grants[i].location, rnti, sf_idx)) {
+      if (srslte_fauxenb_dl_put_pdcch_dl(&enb_dl, &grants[i].grant, format, grants[i].location, rnti, sf_idx)) {
         fprintf(stderr, "Error putting PDCCH %d\n",i);
         return SRSLTE_ERROR; 
       }      
@@ -663,7 +663,7 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
   return 0; 
 }
 
-int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int phch_worker::encode_pdsch(srslte_fauxenb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   for (uint32_t i=0;i<nof_grants;i++) {
@@ -710,7 +710,7 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
       int                     rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, 0};
 
 
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, rv, sf_idx, d, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0))
+      if (srslte_fauxenb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, rv, sf_idx, d, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0))
       {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 

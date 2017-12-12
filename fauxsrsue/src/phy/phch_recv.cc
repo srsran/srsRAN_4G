@@ -70,7 +70,7 @@ phch_recv::phch_recv() {
   running = false;
 }
 
-void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_mac, rrc_interface_phy *_rrc,
+void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_fauxphy *_mac, rrc_interface_phy *_rrc,
                      prach *_prach_buffer, srslte::thread_pool *_workers_pool,
                      phch_common *_worker_com, srslte::log *_log_h, uint32_t nof_rx_antennas_, uint32_t prio,
                      int sync_cpu_affinity) {

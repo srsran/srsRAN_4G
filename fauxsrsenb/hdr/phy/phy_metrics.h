@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENB_PHY_METRICS_H
-#define ENB_PHY_METRICS_H
+#ifndef FAUX_ENB_PHY_METRICS_H
+#define FAUX_ENB_PHY_METRICS_H
 
 
 namespace srsenb {

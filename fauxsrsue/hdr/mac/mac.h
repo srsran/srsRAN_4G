@@ -46,7 +46,7 @@
 namespace srsue {
   
 class mac
-    :public mac_interface_phy
+    :public mac_interface_fauxphy
     ,public mac_interface_rrc
     ,public srslte::timer_callback
     ,public srslte::mac_interface_timers

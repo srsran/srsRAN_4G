@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UE_METRICS_INTERFACE_H
-#define UE_METRICS_INTERFACE_H
+#ifndef FAUX_UE_METRICS_INTERFACE_H
+#define FAUX_UE_METRICS_INTERFACE_H
 
 #include <stdint.h>
 

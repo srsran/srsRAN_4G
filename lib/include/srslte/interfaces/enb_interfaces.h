@@ -79,6 +79,44 @@ public:
   virtual void tti_clock() = 0; 
 };
 
+class mac_interface_fauxphy
+{
+public:
+  const static int MAX_GRANTS = 64; 
+  
+  typedef struct {
+    srslte_fauxenb_dl_pdsch_t sched_grants[MAX_GRANTS];
+    uint32_t nof_grants; 
+    uint32_t cfi; 
+  } dl_sched_t; 
+
+  typedef struct {
+    srslte_enb_ul_pusch_t sched_grants[MAX_GRANTS];
+    srslte_fauxenb_dl_phich_t phich[MAX_GRANTS];
+    uint32_t nof_grants; 
+    uint32_t nof_phich; 
+  } ul_sched_t; 
+
+  
+  virtual int sr_detected(uint32_t tti, uint16_t rnti) = 0; 
+  virtual int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv) = 0; 
+  
+  virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 
+  virtual int snr_info(uint32_t tti, uint16_t rnti, float snr_db) = 0; 
+  virtual int ack_info(uint32_t tti, uint16_t rnti, bool ack) = 0;
+  virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res) = 0; 
+  
+  virtual int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res) = 0;
+  virtual int get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res) = 0;
+  
+  // Radio-Link status 
+  virtual void rl_failure(uint16_t rnti) = 0;
+  virtual void rl_ok(uint16_t rnti) = 0;
+
+  virtual void tti_clock() = 0; 
+};
+
+
 /* Interface MAC -> PHY */
 class phy_interface_mac
 {

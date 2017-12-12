@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPRACH_H
-#define UEPRACH_H
+#ifndef FAUX_UEPRACH_H
+#define FAUX_UEPRACH_H
 
 #include <string.h>
 
