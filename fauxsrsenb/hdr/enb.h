@@ -169,7 +169,7 @@ private:
   virtual ~enb();
 
   srslte::radio radio;
-  srsenb::fauxphy phy;
+  srsenb::faux_phy phy;
   srsenb::mac mac;
   srslte::mac_pcap mac_pcap;
   srsenb::rlc rlc;

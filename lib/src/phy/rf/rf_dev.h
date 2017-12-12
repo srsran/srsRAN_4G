@@ -231,7 +231,7 @@ static rf_dev_t dev_dummy = {
 #include "rf_faux_imp.h"
 
 static rf_dev_t dev_faux = {
-  .name                              = "fauxRf", 
+  .name                              = "faux", 
   .srslte_rf_devname                 = rf_faux_devname,
   .srslte_rf_rx_wait_lo_locked       = rf_faux_rx_wait_lo_locked,
   .srslte_rf_start_rx_stream         = rf_faux_start_rx_stream,

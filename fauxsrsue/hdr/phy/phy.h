@@ -43,15 +43,15 @@ namespace srsue {
     
 typedef _Complex float cf_t; 
 
-class fauxphy
+class faux_phy
     : public phy_interface_mac
     , public phy_interface_rrc
     , public thread
 {
 public:
-  fauxphy();
+  faux_phy();
   bool init(srslte::radio_multi *radio_handler, 
-            mac_interface_fauxphy *mac, 
+            mac_interface_faux_phy *mac, 
             rrc_interface_phy *rrc,
             std::vector<void*> log_vec,
             phy_args_t *args = NULL);
@@ -150,7 +150,7 @@ private:
   srslte::radio_multi      *radio_handler;
   std::vector<void*>        log_vec;
   srslte::log              *log_h;
-  srsue::mac_interface_fauxphy *mac;
+  srsue::mac_interface_faux_phy *mac;
   srsue::rrc_interface_phy *rrc;
 
   srslte::thread_pool      workers_pool;
@@ -168,7 +168,7 @@ private:
   /* Current time advance */
   uint32_t     n_ta;
     
-  bool init_(srslte::radio *radio_handler, mac_interface_fauxphy *mac, srslte::log *log_h, bool do_agc, uint32_t nof_workers);
+  bool init_(srslte::radio *radio_handler, mac_interface_faux_phy *mac, srslte::log *log_h, bool do_agc, uint32_t nof_workers);
   void set_default_args(phy_args_t *args);
   bool check_args(phy_args_t *args); 
 

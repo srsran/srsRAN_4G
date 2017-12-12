@@ -50,11 +50,11 @@ void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
 
 void phch_common::reset() {
   X_TRACE("PHCHCOMMON:BEGIN");
-  bzero(ul_grants, sizeof(mac_interface_fauxphy::ul_sched_t)*10);
-  bzero(dl_grants, sizeof(mac_interface_fauxphy::dl_sched_t)*10);
+  bzero(ul_grants, sizeof(mac_interface_faux_phy::ul_sched_t)*10);
+  bzero(dl_grants, sizeof(mac_interface_faux_phy::dl_sched_t)*10);
 }
 
-bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interface_fauxphy *mac_)
+bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interface_faux_phy *mac_)
 {
   X_TRACE("PHCHCOMMON:BEGIN");
   radio = radio_h_;

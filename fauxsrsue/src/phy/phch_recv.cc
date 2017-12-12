@@ -70,7 +70,7 @@ phch_recv::phch_recv() {
   running = false;
 }
 
-void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_fauxphy *_mac, rrc_interface_phy *_rrc,
+void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_faux_phy *_mac, rrc_interface_phy *_rrc,
                      prach *_prach_buffer, srslte::thread_pool *_workers_pool,
                      phch_common *_worker_com, srslte::log *_log_h, uint32_t nof_rx_antennas_, uint32_t prio,
                      int sync_cpu_affinity) {
@@ -106,7 +106,7 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_fauxph
     srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, last_gain);
   }
 
-  if (srslte_ue_dl_init(&ue_dl_measure, SRSLTE_MAX_PRB, nof_rx_antennas)) {
+  if (srslte_faux_ue_dl_init(&ue_dl_measure, SRSLTE_MAX_PRB, nof_rx_antennas)) {
     Error("SYNC:  Initiating ue_dl_measure\n");
     return;
   }
@@ -143,7 +143,7 @@ phch_recv::~phch_recv() {
     }
   }
   srslte_ue_sync_free(&ue_sync);
-  srslte_ue_dl_free(&ue_dl_measure);
+  srslte_faux_ue_dl_free(&ue_dl_measure);
   srslte_ue_mib_free(&ue_mib);
   srslte_ue_mib_sync_free(&ue_mib_sync);
   srslte_ue_cellsearch_free(&cs);
@@ -255,7 +255,7 @@ bool phch_recv::set_cell() {
   // Set options defined in expert section
   set_ue_sync_opts(&ue_sync);
 
-  if (srslte_ue_dl_set_cell(&ue_dl_measure, cell)) {
+  if (srslte_faux_ue_dl_set_cell(&ue_dl_measure, cell)) {
     Error("SYNC:  Setting cell: initiating ue_dl_measure\n");
     return false;
   }
@@ -424,7 +424,7 @@ int phch_recv::cell_meas_rsrp() {
 
   int sync_res = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
   if (sync_res == 1) {
-    if (srslte_ue_dl_decode_fft_estimate(&ue_dl_measure, sf_buffer, sf_idx, &cfi)) {
+    if (srslte_faux_ue_dl_decode_fft_estimate(&ue_dl_measure, sf_buffer, sf_idx, &cfi)) {
       log_h->error("SYNC:  Measuring RSRP: Estimating channel\n");
       return -1;
     }

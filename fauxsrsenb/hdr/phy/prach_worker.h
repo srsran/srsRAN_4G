@@ -38,7 +38,7 @@ class prach_worker : thread
 public:
   prach_worker() : initiated(false),max_prach_offset_us(0) {}
   
-  int  init(srslte_cell_t *cell, srslte_prach_cfg_t *prach_cfg, mac_interface_fauxphy *mac, srslte::log *log_h, int priority);
+  int  init(srslte_cell_t *cell, srslte_prach_cfg_t *prach_cfg, mac_interface_faux_phy *mac, srslte::log *log_h, int priority);
   int  new_tti(uint32_t tti, cf_t *buffer);
   void set_max_prach_offset_us(float delay_us);
   void stop();
@@ -62,7 +62,7 @@ private:
   cf_t *signal_buffer_rx;
   
   srslte::log* log_h;
-  mac_interface_fauxphy *mac;
+  mac_interface_faux_phy *mac;
   float max_prach_offset_us;
   bool initiated;
   uint32_t pending_tti;

@@ -112,7 +112,7 @@ uint32_t sib_start_tti(uint32_t tti, uint32_t period, uint32_t x) {
   return (period*10*(1+tti/(period*10))+x)%10240; // the 1 means next opportunity
 }
 
-void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srsue::mac *mac, srsue::fauxphy *phy) {
+void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srsue::mac *mac, srsue::faux_phy *phy) {
 
   // Apply RACH configuration 
   srsue::mac_interface_rrc::mac_cfg_t mac_cfg; 
@@ -168,7 +168,7 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srsue::ma
     
 }
 
-void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srsue::mac *mac, srsue::fauxphy *phy) {
+void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srsue::mac *mac, srsue::faux_phy *phy) {
   
   // FIXME: There's an error parsing the connectionSetup message. This value is hard-coded: 
  
@@ -243,7 +243,7 @@ uint8_t reply[2] = {0x00, 0x04};
 
 
 srslte::radio_multi radio; 
-srsue::fauxphy phy; 
+srsue::faux_phy phy; 
 srsue::mac mac; 
 srslte::mac_pcap mac_pcap; 
 

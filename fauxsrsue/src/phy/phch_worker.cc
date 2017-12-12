@@ -80,7 +80,7 @@ phch_worker::~phch_worker()
         free(signal_buffer[i]);
       }
     }
-    srslte_ue_dl_free(&ue_dl);
+    srslte_faux_ue_dl_free(&ue_dl);
     srslte_ue_ul_free(&ue_ul);
     mem_initiated = false;
   }
@@ -123,7 +123,7 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h)
     }
   }
 
-  if (srslte_ue_dl_init(&ue_dl, max_prb, phy->args->nof_rx_ant)) {
+  if (srslte_faux_ue_dl_init(&ue_dl, max_prb, phy->args->nof_rx_ant)) {
     Error("Initiating UE DL\n");
     return false;
   }
@@ -147,7 +147,7 @@ bool phch_worker::set_cell(srslte_cell_t cell_)
   if (cell.id != cell_.id || !cell_initiated) {
     memcpy(&cell, &cell_, sizeof(srslte_cell_t));
 
-    if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+    if (srslte_faux_ue_dl_set_cell(&ue_dl, cell)) {
       Error("Initiating UE DL\n");
       return false;
     }
@@ -190,13 +190,13 @@ void phch_worker::set_sample_offset(float sample_offset)
   if (phy->args->sfo_correct_disable) {
     sample_offset = 0; 
   }
-  srslte_ue_dl_set_sample_offset(&ue_dl, sample_offset);
+  srslte_faux_ue_dl_set_sample_offset(&ue_dl, sample_offset);
 }
 
 void phch_worker::set_crnti(uint16_t rnti)
 {
   X_TRACE("PHCHWORKER:BEGIN");
-  srslte_ue_dl_set_rnti(&ue_dl, rnti);
+  srslte_faux_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
   rnti_is_set = true; 
 }
@@ -222,13 +222,13 @@ void phch_worker::work_imp()
   bool ul_grant_available = false;
   bool dl_ack[SRSLTE_MAX_CODEWORDS] = {false};
 
-  mac_interface_fauxphy::mac_grant_t    dl_mac_grant;
-  mac_interface_fauxphy::tb_action_dl_t dl_action; 
-  bzero(&dl_action, sizeof(mac_interface_fauxphy::tb_action_dl_t));
+  mac_interface_faux_phy::mac_grant_t    dl_mac_grant;
+  mac_interface_faux_phy::tb_action_dl_t dl_action; 
+  bzero(&dl_action, sizeof(mac_interface_faux_phy::tb_action_dl_t));
 
-  mac_interface_fauxphy::mac_grant_t    ul_mac_grant;
-  mac_interface_fauxphy::tb_action_ul_t ul_action; 
-  bzero(&ul_action, sizeof(mac_interface_fauxphy::tb_action_ul_t));
+  mac_interface_faux_phy::mac_grant_t    ul_mac_grant;
+  mac_interface_faux_phy::tb_action_ul_t ul_action; 
+  bzero(&ul_action, sizeof(mac_interface_faux_phy::tb_action_ul_t));
 
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   bool chest_ok = extract_fft_and_pdcch_llr();
@@ -275,7 +275,7 @@ void phch_worker::work_imp()
         if (ue_dl.nof_rx_antennas > 1) {
           /* If 2 ort more receiving antennas, select RI */
           float cn = 0.0f;
-          srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
+          srslte_faux_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
           uci_data.uci_ri_len = 1;
         } else {
           /* If only one receiving antenna, force RI for 1 layer */
@@ -286,7 +286,7 @@ void phch_worker::work_imp()
       } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4){
         float sinr = 0.0f;
         uint8 packed_pmi = 0;
-        srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
+        srslte_faux_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
         srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, 2);
         uci_data.uci_ri_len = 1;
         if (uci_data.uci_ri == 0) {
@@ -426,7 +426,7 @@ bool phch_worker::extract_fft_and_pdcch_llr() {
       srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_PSS);      
     }
   
-    if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
+    if (srslte_faux_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
       Error("Getting PDCCH FFT estimate\n");
       return false; 
     }        
@@ -460,7 +460,7 @@ bool phch_worker::extract_fft_and_pdcch_llr() {
 
 /********************* Downlink processing functions ****************************/
 
-bool phch_worker::decode_pdcch_dl(srsue::mac_interface_fauxphy::mac_grant_t* grant)
+bool phch_worker::decode_pdcch_dl(srsue::mac_interface_faux_phy::mac_grant_t* grant)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   char timestr[64];
@@ -476,7 +476,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_fauxphy::mac_grant_t* gra
     
     Debug("Looking for RNTI=0x%x\n", dl_rnti);
     
-    if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
+    if (srslte_faux_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
                                       dl_rnti, type, &dci_msg) != 1) {
       return false; 
     }
@@ -507,7 +507,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_fauxphy::mac_grant_t* gra
       printf("tb_cw_swap = true\n");
     }
 
-    last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
+    last_dl_pdcch_ncce = srslte_faux_ue_dl_get_ncce(&ue_dl);
 
     char hexstr[16];
     hexstr[0]='\0';
@@ -597,7 +597,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
 
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
   if (valid_config) {
-    if (!srslte_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, rv, mimo_type)) {
+    if (!srslte_faux_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, rv, mimo_type)) {
       if (ue_dl.pdsch_cfg.grant.mcs[0].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[0].tbs >= 0) {
         
         float noise_estimate = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);
@@ -659,7 +659,7 @@ bool phch_worker::decode_phich(bool *ack)
   uint32_t I_lowest, n_dmrs; 
   if (phy->get_pending_ack(tti, &I_lowest, &n_dmrs)) {
     if (ack) {
-      *ack = srslte_ue_dl_decode_phich(&ue_dl, tti%10, I_lowest, n_dmrs);     
+      *ack = srslte_faux_ue_dl_decode_phich(&ue_dl, tti%10, I_lowest, n_dmrs);     
       Info("PHICH: hi=%d, I_lowest=%d, n_dmrs=%d\n", *ack, I_lowest, n_dmrs);
     }
     phy->reset_pending_ack(tti);
@@ -674,7 +674,7 @@ bool phch_worker::decode_phich(bool *ack)
 
 /********************* Uplink processing functions ****************************/
 
-bool phch_worker::decode_pdcch_ul(mac_interface_fauxphy::mac_grant_t* grant)
+bool phch_worker::decode_pdcch_ul(mac_interface_faux_phy::mac_grant_t* grant)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   char timestr[64];
@@ -704,7 +704,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_fauxphy::mac_grant_t* grant)
   } else {
     ul_rnti = phy->get_ul_rnti(tti);
     if (ul_rnti) {
-      if (srslte_ue_dl_find_ul_dci(&ue_dl, cfi, tti%10, ul_rnti, &dci_msg) != 1) {
+      if (srslte_faux_ue_dl_find_ul_dci(&ue_dl, cfi, tti%10, ul_rnti, &dci_msg) != 1) {
         return false; 
       }
       

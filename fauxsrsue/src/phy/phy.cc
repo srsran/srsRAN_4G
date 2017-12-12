@@ -51,14 +51,14 @@ using namespace std;
 
 namespace srsue {
 
-fauxphy::fauxphy() : workers_pool(MAX_WORKERS), 
+faux_phy::faux_phy() : workers_pool(MAX_WORKERS), 
              workers(MAX_WORKERS), 
              workers_common(phch_recv::MUTEX_X_WORKER*MAX_WORKERS)
 {
   X_TRACE("PHY:BEGIN");
 }
 
-void fauxphy::set_default_args(phy_args_t *args)
+void faux_phy::set_default_args(phy_args_t *args)
 {
   X_TRACE("PHY:BEGIN");
   args->nof_rx_ant          = 1;
@@ -80,7 +80,7 @@ void fauxphy::set_default_args(phy_args_t *args)
   args->estimator_fil_w     = 0.1; 
 }
 
-bool fauxphy::check_args(phy_args_t *args) 
+bool faux_phy::check_args(phy_args_t *args) 
 {
   X_TRACE("PHY:BEGIN");
   if (args->nof_phy_threads > 3) {
@@ -98,7 +98,7 @@ bool fauxphy::check_args(phy_args_t *args)
   return true; 
 }
 
-bool fauxphy::init(srslte::radio_multi* radio_handler, mac_interface_fauxphy *mac, rrc_interface_phy *rrc,
+bool faux_phy::init(srslte::radio_multi* radio_handler, mac_interface_faux_phy *mac, rrc_interface_phy *rrc,
                std::vector<void*> log_vec, phy_args_t *phy_args) {
   X_TRACE("PHY:BEGIN");
 
@@ -130,7 +130,7 @@ bool fauxphy::init(srslte::radio_multi* radio_handler, mac_interface_fauxphy *ma
 }
 
 // Initializes PHY in a thread
-void fauxphy::run_thread() {
+void faux_phy::run_thread() {
   X_TRACE("PHY:BEGIN");
 
   prach_buffer.init(&config.common.prach_cnfg, SRSLTE_MAX_PRB, args, log_h);
@@ -152,23 +152,23 @@ void fauxphy::run_thread() {
   initiated = true;
 }
 
-void fauxphy::wait_initialize() {
+void faux_phy::wait_initialize() {
   X_TRACE("PHY:BEGIN");
   wait_thread_finish();
 }
 
-bool fauxphy::is_initiated() {
+bool faux_phy::is_initiated() {
   X_TRACE("PHY:BEGIN");
   return initiated;
 }
 
-void fauxphy::set_agc_enable(bool enabled)
+void faux_phy::set_agc_enable(bool enabled)
 {
   X_TRACE("PHY:BEGIN");
   sf_recv.set_agc_enable(enabled);
 }
 
-void fauxphy::start_trace()
+void faux_phy::start_trace()
 {
   X_TRACE("PHY:BEGIN");
   for (uint32_t i=0;i<nof_workers;i++) {
@@ -176,7 +176,7 @@ void fauxphy::start_trace()
   }
 }
 
-void fauxphy::write_trace(std::string filename)
+void faux_phy::write_trace(std::string filename)
 {
   X_TRACE("PHY:BEGIN");
   for (uint32_t i=0;i<nof_workers;i++) {
@@ -185,14 +185,14 @@ void fauxphy::write_trace(std::string filename)
   }
 }
 
-void fauxphy::stop()
+void faux_phy::stop()
 {  
   X_TRACE("PHY:BEGIN");
   sf_recv.stop();
   workers_pool.stop();
 }
 
-void fauxphy::get_metrics(phy_metrics_t &m) {
+void faux_phy::get_metrics(phy_metrics_t &m) {
   X_TRACE("PHY:BEGIN");
   workers_common.get_dl_metrics(m.dl);
   workers_common.get_ul_metrics(m.ul);
@@ -204,21 +204,21 @@ void fauxphy::get_metrics(phy_metrics_t &m) {
   Info("PHY:   MABR estimates. DL: %4.6f Mbps. UL: %4.6f Mbps.\n", m.dl.mabr_mbps, m.ul.mabr_mbps);
 }
 
-void fauxphy::set_timeadv_rar(uint32_t ta_cmd) {
+void faux_phy::set_timeadv_rar(uint32_t ta_cmd) {
   X_TRACE("PHY:BEGIN");
   n_ta = srslte_N_ta_new_rar(ta_cmd);
   sf_recv.set_time_adv_sec(((float) n_ta)*SRSLTE_LTE_TS);
   Info("PHY:   Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, ((float) n_ta)*SRSLTE_LTE_TS*1e6);
 }
 
-void fauxphy::set_timeadv(uint32_t ta_cmd) {
+void faux_phy::set_timeadv(uint32_t ta_cmd) {
   X_TRACE("PHY:BEGIN");
   n_ta = srslte_N_ta_new(n_ta, ta_cmd);
   //sf_recv.set_time_adv_sec(((float) n_ta)*SRSLTE_LTE_TS);  
   Warning("Not supported: Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, ((float) n_ta)*SRSLTE_LTE_TS*1e6);
 }
 
-void fauxphy::configure_prach_params()
+void faux_phy::configure_prach_params()
 {
   X_TRACE("PHY:BEGIN");
   if (sf_recv.status_is_sync()) {
@@ -233,7 +233,7 @@ void fauxphy::configure_prach_params()
   }
 }
 
-void fauxphy::configure_ul_params(bool pregen_disabled)
+void faux_phy::configure_ul_params(bool pregen_disabled)
 {
   X_TRACE("PHY:BEGIN");
   Info("PHY:   Configuring UL parameters\n");
@@ -244,80 +244,80 @@ void fauxphy::configure_ul_params(bool pregen_disabled)
   }
 }
 
-void fauxphy::cell_search_start()
+void faux_phy::cell_search_start()
 {
   X_TRACE("PHY:BEGIN");
   sf_recv.cell_search_start();
 }
 
-void fauxphy::cell_search_stop()
+void faux_phy::cell_search_stop()
 {
   X_TRACE("PHY:BEGIN");
   sf_recv.cell_search_stop();
 }
 
-void fauxphy::cell_search_next()
+void faux_phy::cell_search_next()
 {
   X_TRACE("PHY:BEGIN");
   sf_recv.cell_search_next();
 }
 
-void fauxphy::sync_reset() {
+void faux_phy::sync_reset() {
   X_TRACE("PHY:BEGIN");
   sf_recv.reset_sync();
 }
 
-bool fauxphy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
+bool faux_phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
 {
   X_TRACE("PHY:BEGIN");
   return sf_recv.cell_select(earfcn, phy_cell);
 }
 
-float fauxphy::get_phr()
+float faux_phy::get_phr()
 {
   X_TRACE("PHY:BEGIN");
   float phr = radio_handler->get_max_tx_power() - workers_common.cur_pusch_power; 
   return phr; 
 }
 
-float fauxphy::get_pathloss_db()
+float faux_phy::get_pathloss_db()
 {
   X_TRACE("PHY:BEGIN");
   return workers_common.cur_pathloss;
 }
 
-void fauxphy::pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start, int tti_end)
+void faux_phy::pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start, int tti_end)
 {
   X_TRACE("PHY:BEGIN");
   workers_common.set_ul_rnti(rnti_type, rnti, tti_start, tti_end);
 }
 
-void fauxphy::pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start, int tti_end)
+void faux_phy::pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start, int tti_end)
 {
   X_TRACE("PHY:BEGIN");
   workers_common.set_dl_rnti(rnti_type, rnti, tti_start, tti_end);
 }
 
-void fauxphy::pdcch_dl_search_reset()
+void faux_phy::pdcch_dl_search_reset()
 {
   X_TRACE("PHY:BEGIN");
   workers_common.set_dl_rnti(SRSLTE_RNTI_USER, 0);
 }
 
-void fauxphy::pdcch_ul_search_reset()
+void faux_phy::pdcch_ul_search_reset()
 {
   X_TRACE("PHY:BEGIN");
 
   workers_common.set_ul_rnti(SRSLTE_RNTI_USER, 0);
 }
 
-void fauxphy::get_current_cell(srslte_cell_t *cell)
+void faux_phy::get_current_cell(srslte_cell_t *cell)
 {
   X_TRACE("PHY:BEGIN");
   sf_recv.get_current_cell(cell);
 }
 
-void fauxphy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
+void faux_phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
 {
   X_TRACE("PHY:BEGIN");
   
@@ -326,13 +326,13 @@ void fauxphy::prach_send(uint32_t preamble_idx, int allowed_subframe, float targ
   }
 }
 
-int fauxphy::prach_tx_tti()
+int faux_phy::prach_tx_tti()
 {
   X_TRACE("PHY:BEGIN");
   return prach_buffer.tx_tti();
 }
 
-void fauxphy::reset()
+void faux_phy::reset()
 {
   X_TRACE("PHY:BEGIN");
   Info("Resetting PHY\n");
@@ -343,44 +343,44 @@ void fauxphy::reset()
   }    
 }
 
-uint32_t fauxphy::get_current_tti()
+uint32_t faux_phy::get_current_tti()
 {
   X_TRACE("PHY:BEGIN");
   return sf_recv.get_current_tti();
 }
 
-void fauxphy::sr_send()
+void faux_phy::sr_send()
 {
   X_TRACE("PHY:BEGIN");
   workers_common.sr_enabled = true;
   workers_common.sr_last_tx_tti = -1;
 }
 
-int fauxphy::sr_last_tx_tti()
+int faux_phy::sr_last_tx_tti()
 {
   X_TRACE("PHY:BEGIN");
   return workers_common.sr_last_tx_tti;
 }
 
-void fauxphy::set_earfcn(vector< uint32_t > earfcns)
+void faux_phy::set_earfcn(vector< uint32_t > earfcns)
 {
   X_TRACE("PHY:BEGIN");
   sf_recv.set_earfcn(earfcns);
 }
 
-bool fauxphy::sync_status()
+bool faux_phy::sync_status()
 {
   X_TRACE("PHY:BEGIN");
   return sf_recv.status_is_sync();
 }
 
-void fauxphy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])
+void faux_phy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])
 {
   X_TRACE("PHY:BEGIN");
   workers_common.set_rar_grant(tti, grant_payload);
 }
 
-void fauxphy::set_crnti(uint16_t rnti) {
+void faux_phy::set_crnti(uint16_t rnti) {
   X_TRACE("PHY:BEGIN crnti %u", rnti);
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_crnti(rnti);
@@ -388,12 +388,12 @@ void fauxphy::set_crnti(uint16_t rnti) {
 }
 
 // Start GUI 
-void fauxphy::start_plot() {
+void faux_phy::start_plot() {
   X_TRACE("PHY:BEGIN");
   workers[0].start_plot();
 }
 
-void fauxphy::enable_pregen_signals(bool enable)
+void faux_phy::enable_pregen_signals(bool enable)
 {  
   X_TRACE("PHY:BEGIN");
   for(uint32_t i=0;i<nof_workers;i++) {
@@ -401,48 +401,48 @@ void fauxphy::enable_pregen_signals(bool enable)
   }
 }
 
-uint32_t fauxphy::tti_to_SFN(uint32_t tti) {
+uint32_t faux_phy::tti_to_SFN(uint32_t tti) {
   X_TRACE("PHY:BEGIN tti %u, SFN %u", tti, tti/10);
   return tti/10; 
 }
 
-uint32_t fauxphy::tti_to_subf(uint32_t tti) {
+uint32_t faux_phy::tti_to_subf(uint32_t tti) {
   X_TRACE("PHY:BEGIN tti %u, subf %u", tti, tti%10);
   return tti%10; 
 }
 
 
-void fauxphy::get_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
+void faux_phy::get_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
 {
   X_TRACE("PHY:BEGIN");
   memcpy(phy_cfg, &config, sizeof(phy_cfg_t));
 }
 
-void fauxphy::set_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
+void faux_phy::set_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
 {
   X_TRACE("PHY:BEGIN");
   memcpy(&config, phy_cfg, sizeof(phy_cfg_t));
 }
 
-void fauxphy::set_config_64qam_en(bool enable)
+void faux_phy::set_config_64qam_en(bool enable)
 {
   X_TRACE("PHY:BEGIN");
   config.enable_64qam = enable; 
 }
 
-void fauxphy::set_config_common(phy_interface_rrc::phy_cfg_common_t* common)
+void faux_phy::set_config_common(phy_interface_rrc::phy_cfg_common_t* common)
 {
   X_TRACE("PHY:BEGIN");
   memcpy(&config.common, common, sizeof(phy_cfg_common_t));
 }
 
-void fauxphy::set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
+void faux_phy::set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
   X_TRACE("PHY:BEGIN");
   memcpy(&config.dedicated, dedicated, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
 }
 
-void fauxphy::set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT* tdd)
+void faux_phy::set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT* tdd)
 {
   X_TRACE("PHY:BEGIN");
   memcpy(&config.common.tdd_cnfg, tdd, sizeof(LIBLTE_RRC_TDD_CONFIG_STRUCT));

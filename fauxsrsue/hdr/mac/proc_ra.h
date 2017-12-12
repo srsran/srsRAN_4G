@@ -98,7 +98,7 @@ class ra_proc : public srslte::timer_callback
     void pdcch_to_crnti(bool contains_uplink_grant);
     void timer_expired(uint32_t timer_id);
     
-    void new_grant_dl(mac_interface_fauxphy::mac_grant_t grant, mac_interface_fauxphy::tb_action_dl_t* action);
+    void new_grant_dl(mac_interface_faux_phy::mac_grant_t grant, mac_interface_faux_phy::tb_action_dl_t* action);
     void tb_decoded_ok();
     
     void start_pcap(srslte::mac_pcap* pcap);

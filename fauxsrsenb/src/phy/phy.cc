@@ -46,14 +46,14 @@ using namespace std;
 
 namespace srsenb {
 
-fauxphy::fauxphy() : workers_pool(MAX_WORKERS), 
+faux_phy::faux_phy() : workers_pool(MAX_WORKERS), 
              workers(MAX_WORKERS), 
              workers_common(txrx::MUTEX_X_WORKER*MAX_WORKERS)
 {
   X_TRACE("PHY:BEGIN");
 }
 
-void fauxphy::parse_config(phy_cfg_t* cfg)
+void faux_phy::parse_config(phy_cfg_t* cfg)
 {
   X_TRACE("PHY:BEGIN");
   
@@ -85,10 +85,10 @@ void fauxphy::parse_config(phy_cfg_t* cfg)
   workers_common.pucch_cfg.n1_pucch_an        = cfg->pucch_cnfg.n1_pucch_an;; 
 }
 
-bool fauxphy::init(phy_args_t *args, 
+bool faux_phy::init(phy_args_t *args, 
                phy_cfg_t *cfg, 
                srslte::radio* radio_handler_, 
-               mac_interface_fauxphy *mac, 
+               mac_interface_faux_phy *mac, 
                srslte::log* log_h)
 {
   X_TRACE("PHY:BEGIN");
@@ -100,10 +100,10 @@ bool fauxphy::init(phy_args_t *args,
   return true; 
 }
 
-bool fauxphy::init(phy_args_t *args, 
+bool faux_phy::init(phy_args_t *args, 
                phy_cfg_t *cfg, 
                srslte::radio* radio_handler_, 
-               mac_interface_fauxphy *mac, 
+               mac_interface_faux_phy *mac, 
                std::vector<void*> log_vec)
 {
   X_TRACE("PHY:BEGIN");
@@ -134,7 +134,7 @@ bool fauxphy::init(phy_args_t *args,
   return true; 
 }
 
-void fauxphy::stop()
+void faux_phy::stop()
 {  
   X_TRACE("PHY:BEGIN");
   tx_rx.stop();  
@@ -146,18 +146,18 @@ void fauxphy::stop()
   prach.stop();
 }
 
-uint32_t fauxphy::tti_to_SFN(uint32_t tti) {
+uint32_t faux_phy::tti_to_SFN(uint32_t tti) {
   X_TRACE("PHY:BEGIN");
   return tti/10; 
 }
 
-uint32_t fauxphy::tti_to_subf(uint32_t tti) {
+uint32_t faux_phy::tti_to_subf(uint32_t tti) {
   X_TRACE("PHY:BEGIN");
   return tti%10; 
 }
 
 /***** MAC->PHY interface **********/
-int fauxphy::add_rnti(uint16_t rnti)
+int faux_phy::add_rnti(uint16_t rnti)
 {
   X_TRACE("PHY:BEGIN");
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
@@ -171,7 +171,7 @@ int fauxphy::add_rnti(uint16_t rnti)
   return SRSLTE_SUCCESS;
 }
 
-void fauxphy::rem_rnti(uint16_t rnti)
+void faux_phy::rem_rnti(uint16_t rnti)
 {
   X_TRACE("PHY:BEGIN");
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
@@ -182,7 +182,7 @@ void fauxphy::rem_rnti(uint16_t rnti)
   }
 }
 
-void fauxphy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
+void faux_phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
   X_TRACE("PHY:BEGIN");
   phy_metrics_t metrics_tmp[ENB_METRICS_MAX_USERS];
@@ -217,7 +217,7 @@ void fauxphy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 /***** RRC->PHY interface **********/
 
-void fauxphy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
+void faux_phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
   X_TRACE("PHY:BEGIN");
   // Parse RRC config 
@@ -245,7 +245,7 @@ void fauxphy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DED
 }
 
 // Start GUI 
-void fauxphy::start_plot() {
+void faux_phy::start_plot() {
   ((phch_worker) workers[0]).start_plot();
 }
 

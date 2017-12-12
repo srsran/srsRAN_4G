@@ -361,7 +361,7 @@ public:
   
 };
 
-class mac_interface_fauxphy
+class mac_interface_faux_phy
 {
 public:
     

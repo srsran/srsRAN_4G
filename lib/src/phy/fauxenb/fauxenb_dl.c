@@ -24,7 +24,7 @@
  *
  */
 
-#include "srslte/phy/enb/fauxenb_dl.h"
+#include "srslte/phy/fauxenb/enb_dl.h"
 
 #include <complex.h>
 #include <math.h>
@@ -41,7 +41,7 @@
 
 #define SRSLTE_ENB_RF_AMP 0.1
 
-int srslte_fauxenb_dl_init(srslte_fauxenb_dl_t *q, uint32_t max_prb)
+int srslte_faux_enb_dl_init(srslte_faux_enb_dl_t *q, uint32_t max_prb)
 {
   X_TRACE("PHY:BEGIN");
 
@@ -51,7 +51,7 @@ int srslte_fauxenb_dl_init(srslte_fauxenb_dl_t *q, uint32_t max_prb)
   {
     ret = SRSLTE_ERROR;
     
-    bzero(q, sizeof(srslte_fauxenb_dl_t));
+    bzero(q, sizeof(srslte_faux_enb_dl_t));
     
     q->cfi  = 3;
     q->tx_amp = SRSLTE_ENB_RF_AMP;
@@ -108,12 +108,12 @@ int srslte_fauxenb_dl_init(srslte_fauxenb_dl_t *q, uint32_t max_prb)
 
 clean_exit: 
   if (ret == SRSLTE_ERROR) {
-    srslte_fauxenb_dl_free(q);
+    srslte_faux_enb_dl_free(q);
   }
   return ret;
 }
 
-void srslte_fauxenb_dl_free(srslte_fauxenb_dl_t *q)
+void srslte_faux_enb_dl_free(srslte_faux_enb_dl_t *q)
 {
   X_TRACE("PHY:BEGIN");
 
@@ -133,11 +133,11 @@ void srslte_fauxenb_dl_free(srslte_fauxenb_dl_t *q)
         free(q->sf_symbols[i]);
       }
     }
-    bzero(q, sizeof(srslte_fauxenb_dl_t));
+    bzero(q, sizeof(srslte_faux_enb_dl_t));
   }  
 }
 
-int srslte_fauxenb_dl_set_cell(srslte_fauxenb_dl_t *q, srslte_cell_t cell)
+int srslte_faux_enb_dl_set_cell(srslte_faux_enb_dl_t *q, srslte_cell_t cell)
 {
   X_TRACE("PHY:BEGIN");
 
@@ -146,7 +146,7 @@ int srslte_fauxenb_dl_set_cell(srslte_fauxenb_dl_t *q, srslte_cell_t cell)
   if (q                 != NULL &&
       srslte_cell_isvalid(&cell))
   {
-    srslte_fauxenb_dl_set_cfi(q, 3);
+    srslte_faux_enb_dl_set_cfi(q, 3);
     q->tx_amp = SRSLTE_ENB_RF_AMP;
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
@@ -204,14 +204,14 @@ int srslte_fauxenb_dl_set_cell(srslte_fauxenb_dl_t *q, srslte_cell_t cell)
 
 
 
-void srslte_fauxenb_dl_set_amp(srslte_fauxenb_dl_t *q, float amp)
+void srslte_faux_enb_dl_set_amp(srslte_faux_enb_dl_t *q, float amp)
 {
   X_TRACE("PHY: amp %u", amp);
 
   q->tx_amp = amp; 
 }
 
-void srslte_fauxenb_dl_set_cfi(srslte_fauxenb_dl_t *q, uint32_t cfi) 
+void srslte_faux_enb_dl_set_cfi(srslte_faux_enb_dl_t *q, uint32_t cfi) 
 {
   X_TRACE("PHY: cfi %u", cfi);
 
@@ -219,7 +219,7 @@ void srslte_fauxenb_dl_set_cfi(srslte_fauxenb_dl_t *q, uint32_t cfi)
   srslte_regs_set_cfi(&q->regs, cfi);
 }
 
-void srslte_fauxenb_dl_clear_sf(srslte_fauxenb_dl_t *q)
+void srslte_faux_enb_dl_clear_sf(srslte_faux_enb_dl_t *q)
 {
   X_TRACE("sf_len is %d bytes", CURRENT_SFLEN_RE * sizeof(cf_t));
 
@@ -228,7 +228,7 @@ void srslte_fauxenb_dl_clear_sf(srslte_fauxenb_dl_t *q)
   }
 }
 
-void srslte_fauxenb_dl_put_sync(srslte_fauxenb_dl_t *q, uint32_t sf_idx) 
+void srslte_faux_enb_dl_put_sync(srslte_faux_enb_dl_t *q, uint32_t sf_idx) 
 {
   X_TRACE("PHY: sf_idx %u", sf_idx);
 
@@ -239,14 +239,14 @@ void srslte_fauxenb_dl_put_sync(srslte_fauxenb_dl_t *q, uint32_t sf_idx)
   }  
 }
 
-void srslte_fauxenb_dl_put_refs(srslte_fauxenb_dl_t *q, uint32_t sf_idx)
+void srslte_faux_enb_dl_put_refs(srslte_faux_enb_dl_t *q, uint32_t sf_idx)
 {
   X_TRACE("PHY: sf_idx %u", sf_idx);
 
   srslte_refsignal_cs_put_sf(q->cell, 0, q->csr_signal.pilots[0][sf_idx], q->sf_symbols[0]);
 }
 
-void srslte_fauxenb_dl_put_mib(srslte_fauxenb_dl_t *q, uint32_t tti)
+void srslte_faux_enb_dl_put_mib(srslte_faux_enb_dl_t *q, uint32_t tti)
 {
   X_TRACE("PHY: tti %u", tti);
 
@@ -258,14 +258,14 @@ void srslte_fauxenb_dl_put_mib(srslte_fauxenb_dl_t *q, uint32_t tti)
   }  
 }
 
-void srslte_fauxenb_dl_put_pcfich(srslte_fauxenb_dl_t *q, uint32_t sf_idx)
+void srslte_faux_enb_dl_put_pcfich(srslte_faux_enb_dl_t *q, uint32_t sf_idx)
 {
   X_TRACE("PHY:BEGIN sf_idx %u", sf_idx);
 
   srslte_pcfich_encode(&q->pcfich, q->cfi, q->sf_symbols, sf_idx);         
 }
 
-void srslte_fauxenb_dl_put_phich(srslte_fauxenb_dl_t *q, uint8_t ack, uint32_t n_prb_lowest, 
+void srslte_faux_enb_dl_put_phich(srslte_faux_enb_dl_t *q, uint8_t ack, uint32_t n_prb_lowest, 
                              uint32_t n_dmrs, uint32_t sf_idx)
 {
   X_TRACE("PHY:BEGIN");
@@ -275,20 +275,20 @@ void srslte_fauxenb_dl_put_phich(srslte_fauxenb_dl_t *q, uint8_t ack, uint32_t n
   srslte_phich_encode(&q->phich, ack, ngroup, nseq, sf_idx, q->sf_symbols);
 }
 
-void srslte_fauxenb_dl_put_base(srslte_fauxenb_dl_t *q, uint32_t tti) 
+void srslte_faux_enb_dl_put_base(srslte_faux_enb_dl_t *q, uint32_t tti) 
 {
   X_TRACE("PHY:BEGIN tti %u", tti);
 
   uint32_t sf_idx = tti%10;
   
-  srslte_fauxenb_dl_put_sync(q, sf_idx);
-  srslte_fauxenb_dl_put_refs(q, sf_idx);
-  srslte_fauxenb_dl_put_mib(q, tti);
-  srslte_fauxenb_dl_put_pcfich(q, sf_idx);
+  srslte_faux_enb_dl_put_sync(q, sf_idx);
+  srslte_faux_enb_dl_put_refs(q, sf_idx);
+  srslte_faux_enb_dl_put_mib(q, tti);
+  srslte_faux_enb_dl_put_pcfich(q, sf_idx);
   
 }
 
-void srslte_fauxenb_dl_gen_signal(srslte_fauxenb_dl_t *q, cf_t *signal_buffer) 
+void srslte_faux_enb_dl_gen_signal(srslte_faux_enb_dl_t *q, cf_t *signal_buffer) 
 {
   X_TRACE("PHY:BEGIN");
   
@@ -299,21 +299,21 @@ void srslte_fauxenb_dl_gen_signal(srslte_fauxenb_dl_t *q, cf_t *signal_buffer)
   srslte_vec_sc_prod_cfc(signal_buffer, q->tx_amp*norm_factor, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
 }
 
-int srslte_fauxenb_dl_add_rnti(srslte_fauxenb_dl_t *q, uint16_t rnti)
+int srslte_faux_enb_dl_add_rnti(srslte_faux_enb_dl_t *q, uint16_t rnti)
 {
   X_TRACE("PHY:BEGIN");
 
   return srslte_pdsch_set_rnti(&q->pdsch, rnti);
 }
 
-void srslte_fauxenb_dl_rem_rnti(srslte_fauxenb_dl_t *q, uint16_t rnti)
+void srslte_faux_enb_dl_rem_rnti(srslte_faux_enb_dl_t *q, uint16_t rnti)
 {
   X_TRACE("PHY:BEGIN");
 
   srslte_pdsch_free_rnti(&q->pdsch, rnti);
 }
 
-int srslte_fauxenb_dl_put_pdcch_dl(srslte_fauxenb_dl_t *q, srslte_ra_dl_dci_t *grant, 
+int srslte_faux_enb_dl_put_pdcch_dl(srslte_faux_enb_dl_t *q, srslte_ra_dl_dci_t *grant, 
                                srslte_dci_format_t format, srslte_dci_location_t location,
                                uint16_t rnti, uint32_t sf_idx) 
 {
@@ -335,7 +335,7 @@ int srslte_fauxenb_dl_put_pdcch_dl(srslte_fauxenb_dl_t *q, srslte_ra_dl_dci_t *g
   return SRSLTE_SUCCESS;
 }
 
-int srslte_fauxenb_dl_put_pdcch_ul(srslte_fauxenb_dl_t *q, srslte_ra_ul_dci_t *grant, 
+int srslte_faux_enb_dl_put_pdcch_ul(srslte_faux_enb_dl_t *q, srslte_ra_ul_dci_t *grant, 
                                srslte_dci_location_t location,
                                uint16_t rnti, uint32_t sf_idx) 
 {
@@ -352,7 +352,7 @@ int srslte_fauxenb_dl_put_pdcch_ul(srslte_fauxenb_dl_t *q, srslte_ra_ul_dci_t *g
   return SRSLTE_SUCCESS;
 }
 
-int srslte_fauxenb_dl_put_pdsch(srslte_fauxenb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer[SRSLTE_MAX_CODEWORDS],
+int srslte_faux_enb_dl_put_pdsch(srslte_faux_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer[SRSLTE_MAX_CODEWORDS],
                             uint16_t rnti, int rv_idx[SRSLTE_MAX_CODEWORDS], uint32_t sf_idx,
                             uint8_t *data[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type, uint32_t pmi)
 {  
@@ -374,7 +374,7 @@ int srslte_fauxenb_dl_put_pdsch(srslte_fauxenb_dl_t *q, srslte_ra_dl_grant_t *gr
 
 
 
-void srslte_fauxenb_dl_save_signal(srslte_fauxenb_dl_t *q, srslte_softbuffer_tx_t *softbuffer, uint8_t *data, uint32_t tti, uint32_t rv_idx, uint16_t rnti, uint32_t cfi)
+void srslte_faux_enb_dl_save_signal(srslte_faux_enb_dl_t *q, srslte_softbuffer_tx_t *softbuffer, uint8_t *data, uint32_t tti, uint32_t rv_idx, uint16_t rnti, uint32_t cfi)
 {
   X_TRACE("PHY:BEGIN");
 

@@ -121,7 +121,11 @@
 #include "srslte/phy/sync/cfo.h"
 #include "srslte/phy/sync/cp.h"
 
-#include "srslte/phy/enb/fauxenb_dl.h"
+#include "srslte/phy/fauxenb/enb_dl.h"
+#include "srslte/phy/fauxenb/enb_ul.h"
+
+#include "srslte/phy/fauxue/ue_dl.h"
+#include "srslte/phy/fauxue/ue_ul.h"
 
 #ifdef __cplusplus
 }

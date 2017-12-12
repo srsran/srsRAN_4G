@@ -79,20 +79,20 @@ public:
   virtual void tti_clock() = 0; 
 };
 
-class mac_interface_fauxphy
+class mac_interface_faux_phy
 {
 public:
   const static int MAX_GRANTS = 64; 
   
   typedef struct {
-    srslte_fauxenb_dl_pdsch_t sched_grants[MAX_GRANTS];
+    srslte_faux_enb_dl_pdsch_t sched_grants[MAX_GRANTS];
     uint32_t nof_grants; 
     uint32_t cfi; 
   } dl_sched_t; 
 
   typedef struct {
-    srslte_enb_ul_pusch_t sched_grants[MAX_GRANTS];
-    srslte_fauxenb_dl_phich_t phich[MAX_GRANTS];
+    srslte_faux_enb_ul_pusch_t sched_grants[MAX_GRANTS];
+    srslte_faux_enb_dl_phich_t phich[MAX_GRANTS];
     uint32_t nof_grants; 
     uint32_t nof_phich; 
   } ul_sched_t; 

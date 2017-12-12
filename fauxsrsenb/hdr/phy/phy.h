@@ -48,14 +48,14 @@ typedef struct {
   LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT      srs_ul_cnfg;    
 } phy_cfg_t; 
 
-class fauxphy : public phy_interface_mac,
+class faux_phy : public phy_interface_mac,
                 public phy_interface_rrc
 {
 public:
 
-  fauxphy();
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_fauxphy *mac, srslte::log* log_h);
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_fauxphy *mac, std::vector<void*> log_vec);
+  faux_phy();
+  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_faux_phy *mac, srslte::log* log_h);
+  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_faux_phy *mac, std::vector<void*> log_vec);
   void stop();
   
   /* MAC->PHY interface */

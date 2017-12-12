@@ -85,7 +85,7 @@ private:
   virtual ~ue();
 
   srslte::radio_multi radio;
-  srsue::fauxphy         phy;
+  srsue::faux_phy         phy;
   srsue::mac         mac;
   srslte::mac_pcap   mac_pcap;
   srslte::rlc        rlc;

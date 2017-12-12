@@ -43,7 +43,7 @@ public:
 
   void           clear() {}
   void           reset(uint32_t tti) {}
-  bool           get_pending_grant(uint32_t tti, mac_interface_fauxphy::mac_grant_t *grant) { return false; }
+  bool           get_pending_grant(uint32_t tti, mac_interface_faux_phy::mac_grant_t *grant) { return false; }
 private:  
   
 };

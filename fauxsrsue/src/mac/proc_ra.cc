@@ -289,7 +289,7 @@ void ra_proc::step_pdcch_setup() {
   }
 }
 
-void ra_proc::new_grant_dl(mac_interface_fauxphy::mac_grant_t grant, mac_interface_fauxphy::tb_action_dl_t* action) 
+void ra_proc::new_grant_dl(mac_interface_faux_phy::mac_grant_t grant, mac_interface_faux_phy::tb_action_dl_t* action) 
 {
   X_TRACE("RA_PROC:BEGIN");
   if (grant.n_bytes[0] < MAX_RAR_PDU_LEN) {

@@ -78,8 +78,8 @@ private:
   bool extract_fft_and_pdcch_llr(); 
   
   /* ... for DL */
-  bool decode_pdcch_ul(mac_interface_fauxphy::mac_grant_t *grant);
-  bool decode_pdcch_dl(mac_interface_fauxphy::mac_grant_t *grant);
+  bool decode_pdcch_ul(mac_interface_faux_phy::mac_grant_t *grant);
+  bool decode_pdcch_dl(mac_interface_faux_phy::mac_grant_t *grant);
   bool decode_phich(bool *ack);
 
   int decode_pdsch(srslte_ra_dl_grant_t *grant,
@@ -129,7 +129,7 @@ private:
   uint32_t next_offset;
 
   /* Objects for DL */
-  srslte_ue_dl_t ue_dl; 
+  srslte_faux_ue_dl_t ue_dl; 
   uint32_t       cfi; 
   uint16_t       dl_rnti;
   

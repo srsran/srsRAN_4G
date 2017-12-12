@@ -24,7 +24,7 @@
  *
  */
 
-#include "srslte/phy/enb/enb_ul.h"
+#include "srslte/phy/fauxenb/enb_ul.h"
 
 #include <complex.h>
 #include <math.h>
@@ -39,7 +39,7 @@
 
 #define MAX_CANDIDATES  16
 
-int srslte_enb_ul_init(srslte_enb_ul_t *q,
+int srslte_faux_enb_ul_init(srslte_faux_enb_ul_t *q,
                        uint32_t max_prb)
 {
   X_TRACE("PHY:BEGIN");
@@ -50,9 +50,9 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
   {
     ret = SRSLTE_ERROR;
     
-    bzero(q, sizeof(srslte_enb_ul_t));
+    bzero(q, sizeof(srslte_faux_enb_ul_t));
     
-    q->users = calloc(sizeof(srslte_enb_ul_user_t*), (1+SRSLTE_SIRNTI));
+    q->users = calloc(sizeof(srslte_faux_enb_ul_user_t*), (1+SRSLTE_SIRNTI));
     if (!q->users) {
       perror("malloc");
       goto clean_exit;
@@ -102,12 +102,12 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
 
 clean_exit: 
   if (ret == SRSLTE_ERROR) {
-    srslte_enb_ul_free(q);
+    srslte_faux_enb_ul_free(q);
   }
   return ret;
 }
 
-void srslte_enb_ul_free(srslte_enb_ul_t *q)
+void srslte_faux_enb_ul_free(srslte_faux_enb_ul_t *q)
 {
   X_TRACE("PHY:BEGIN");
 
@@ -133,11 +133,11 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
     if (q->ce) {
       free(q->ce);
     }
-    bzero(q, sizeof(srslte_enb_ul_t));
+    bzero(q, sizeof(srslte_faux_enb_ul_t));
   }  
 }
 
-int srslte_enb_ul_set_cell(srslte_enb_ul_t *q, srslte_cell_t cell,
+int srslte_faux_enb_ul_set_cell(srslte_faux_enb_ul_t *q, srslte_cell_t cell,
                            srslte_prach_cfg_t *prach_cfg,
                            srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
                            srslte_pusch_hopping_cfg_t *hopping_cfg,
@@ -199,12 +199,12 @@ int srslte_enb_ul_set_cell(srslte_enb_ul_t *q, srslte_cell_t cell,
 }
 
 
-int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, uint16_t rnti)
+int srslte_faux_enb_ul_add_rnti(srslte_faux_enb_ul_t *q, uint16_t rnti)
 {
   X_TRACE("PHY:BEGIN");
 
   if (!q->users[rnti]) {
-    q->users[rnti] = calloc(1, sizeof(srslte_enb_ul_user_t));
+    q->users[rnti] = calloc(1, sizeof(srslte_faux_enb_ul_user_t));
 
     if (srslte_pucch_set_crnti(&q->pucch, rnti)) {
       fprintf(stderr, "Error setting PUCCH rnti\n");
@@ -221,7 +221,7 @@ int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, uint16_t rnti)
   }
 }
 
-void srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, uint16_t rnti)
+void srslte_faux_enb_ul_rem_rnti(srslte_faux_enb_ul_t *q, uint16_t rnti)
 {
   X_TRACE("PHY:BEGIN");
 
@@ -232,7 +232,7 @@ void srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, uint16_t rnti)
   }
 }
 
-int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint16_t rnti, 
+int srslte_faux_enb_ul_cfg_ue(srslte_faux_enb_ul_t *q, uint16_t rnti, 
                          srslte_uci_cfg_t *uci_cfg, 
                          srslte_pucch_sched_t *pucch_sched,
                          srslte_refsignal_srs_cfg_t *srs_cfg) 
@@ -262,14 +262,14 @@ int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint16_t rnti,
   }
 }
 
-void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer) 
+void srslte_faux_enb_ul_fft(srslte_faux_enb_ul_t *q, cf_t *signal_buffer) 
 {
   X_TRACE("PHY:BEGIN");
 
   srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
 }
 
-int get_pucch(srslte_enb_ul_t *q, uint16_t rnti, 
+int get_pucch(srslte_faux_enb_ul_t *q, uint16_t rnti, 
               uint32_t pdcch_n_cce, uint32_t sf_rx, 
               srslte_uci_data_t *uci_data, uint8_t bits[SRSLTE_PUCCH_MAX_BITS]) 
 {
@@ -294,7 +294,7 @@ int get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
   return ret_val;
 }
 
-int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti, 
+int srslte_faux_enb_ul_get_pucch(srslte_faux_enb_ul_t *q, uint16_t rnti, 
                             uint32_t pdcch_n_cce, uint32_t sf_rx, 
                             srslte_uci_data_t *uci_data)
 {
@@ -341,7 +341,7 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
   }
 }
 
-int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
+int srslte_faux_enb_ul_get_pusch(srslte_faux_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
                             uint16_t rnti, uint32_t rv_idx, uint32_t current_tx_nb, 
                             uint8_t *data, srslte_uci_data_t *uci_data, uint32_t tti)
 {
@@ -385,7 +385,7 @@ int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srs
 }
 
 
-int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q, uint32_t tti, 
+int srslte_faux_enb_ul_detect_prach(srslte_faux_enb_ul_t *q, uint32_t tti, 
                                uint32_t freq_offset, cf_t *signal, 
                                uint32_t *indices, float *offsets, float *peak2avg)
 {

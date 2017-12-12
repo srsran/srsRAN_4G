@@ -124,7 +124,7 @@ public:
     read_enable = true; 
   }
   
-  void init(srsue::fauxphy *phy_, srsue::mac *mac_, srslte::rlc *rlc_, srslte::log *log_h_, std::string ip_address) {
+  void init(srsue::faux_phy *phy_, srsue::mac *mac_, srslte::rlc *rlc_, srslte::log *log_h_, std::string ip_address) {
     log_h = log_h_; 
     rlc   = rlc_; 
     mac   = mac_; 
@@ -336,7 +336,7 @@ private:
   srslte::byte_buffer_pool *pool;
   srslte::rlc *rlc; 
   srsue::mac *mac; 
-  srsue::fauxphy *phy;  
+  srsue::faux_phy *phy;  
   srslte::bit_buffer_t bit_buf;
   srsue::rrc_state_t state; 
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT sib1;
@@ -471,7 +471,7 @@ srslte::log_filter  log_mac;
 srslte::log_filter  log_rlc;
 srslte::log_filter  log_tester;
 srslte::mac_pcap    mac_pcap;
-srsue::fauxphy my_phy;
+srsue::faux_phy my_phy;
 srsue::mac my_mac;
 srslte::rlc rlc;
 srslte::radio_multi my_radio; 

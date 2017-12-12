@@ -29,7 +29,7 @@
 
 namespace srsenb {
 
-int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac_interface_fauxphy* mac_, srslte::log* log_h_, int priority)
+int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac_interface_faux_phy* mac_, srslte::log* log_h_, int priority)
 {
   X_TRACE("PHARCHWORKER:BEGIN");
   log_h = log_h_; 
