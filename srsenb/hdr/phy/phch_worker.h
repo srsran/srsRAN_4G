@@ -32,7 +32,9 @@
 #include "srslte/srslte.h"
 #include "phy/phch_common.h"
 
+#ifndef LOG_EXECTIME
 #define LOG_EXECTIME
+#endif
 
 namespace srsenb {
 

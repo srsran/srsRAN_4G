@@ -44,7 +44,6 @@ demux::demux(uint8_t nof_harq_proc_) : mac_msg(20), pending_mac_msg(20), nof_har
 void demux::init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc_, srslte::log* log_h_, srslte::timers::timer* time_alignment_timer_)
 {
   X_TRACE("DEMUX:BEGIN");
-
   phy_h     = phy_h_; 
   log_h     = log_h_; 
   rlc       = rlc_;
@@ -54,21 +53,18 @@ void demux::init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc_, srsl
 
 void demux::set_uecrid_callback(bool (*callback)(void*,uint64_t), void *arg) {
   X_TRACE("DEMUX:BEGIN");
-
   uecrid_callback     = callback;
   uecrid_callback_arg = arg; 
 }
 
 bool demux::get_uecrid_successful() {
   X_TRACE("DEMUX:BEGIN");
-
   return is_uecrid_successful;
 }
 
 void demux::deallocate(uint8_t* payload_buffer_ptr)
 {
   X_TRACE("DEMUX:BEGIN");
-
   if (payload_buffer_ptr != bcch_buffer) {
     pdus.deallocate(payload_buffer_ptr);
   }
@@ -77,7 +73,6 @@ void demux::deallocate(uint8_t* payload_buffer_ptr)
 uint8_t* demux::request_buffer(uint32_t pid, uint32_t len)
 {  
   X_TRACE("DEMUX:BEGIN");
-
   uint8_t *buff = NULL; 
   if (pid < nof_harq_proc) {
     return pdus.request(len);
@@ -101,7 +96,6 @@ uint8_t* demux::request_buffer(uint32_t pid, uint32_t len)
 void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes) 
 {
   X_TRACE("DEMUX:BEGIN");
-
   if (nof_bytes > 0) {
     // Unpack DLSCH MAC PDU 
     pending_mac_msg.init_rx(nof_bytes);
@@ -133,7 +127,6 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
 void demux::push_pdu(uint32_t pid, uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp)
 {
   X_TRACE("DEMUX:BEGIN");
-
   if (pid < nof_harq_proc) {
     return pdus.push(buff, nof_bytes, tstamp);
   } else if (pid == nof_harq_proc) {
@@ -152,14 +145,12 @@ void demux::push_pdu(uint32_t pid, uint8_t *buff, uint32_t nof_bytes, uint32_t t
 bool demux::process_pdus()
 {
   X_TRACE("DEMUX:BEGIN");
-
   return pdus.process_pdus();
 }
 
 void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, uint32_t tstamp)
 {
   X_TRACE("DEMUX:BEGIN");
-
   // Unpack DLSCH MAC PDU 
   mac_msg.init_rx(nof_bytes);
   mac_msg.parse_packet(mac_pdu);
@@ -172,7 +163,6 @@ void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, uint32_t tstamp)
 void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
 {  
   X_TRACE("DEMUX:BEGIN");
-
   while(pdu_msg->next()) {
     if (pdu_msg->get()->is_sdu()) {
       bool route_pdu = true; 
@@ -203,7 +193,6 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
 
 bool demux::process_ce(srslte::sch_subh *subh) {
   X_TRACE("DEMUX:BEGIN");
-
   switch(subh->ce_type()) {
     case srslte::sch_subh::CON_RES_ID:
       // Do nothing

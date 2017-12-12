@@ -44,14 +44,12 @@ gw::gw()
   :if_up(false)
 {
   X_TRACE("GW:BEGIN");
-
   current_ip_addr = 0;
 }
 
 void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, uint32_t lcid_)
 {
   X_TRACE("GW:BEGIN");
-
   pool    = srslte::byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
   nas     = nas_;
@@ -67,7 +65,6 @@ void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_
 void gw::stop()
 {
   X_TRACE("GW:BEGIN");
-
   if(run_enable)
   {
     run_enable = false;
@@ -96,7 +93,6 @@ void gw::stop()
 void gw::get_metrics(gw_metrics_t &m)
 {
   X_TRACE("GW:BEGIN");
-
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
   double secs = (double) metrics_time[0].tv_sec+metrics_time[0].tv_usec*1e-6;
@@ -117,7 +113,6 @@ void gw::get_metrics(gw_metrics_t &m)
 void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
   X_TRACE("GW:BEGIN");
-
   gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU");
   gw_log->info("RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
   dl_tput_bytes += pdu->N_bytes;
@@ -140,7 +135,6 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
 {
   X_TRACE("GW:BEGIN");
-
   if (ip_addr != current_ip_addr) {
     if(!if_up)
     {
@@ -184,7 +178,6 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
 srslte::error_t gw::init_if(char *err_str)
 {
   X_TRACE("GW:BEGIN");
-
   if(if_up)
   {
     return(srslte::ERROR_ALREADY_STARTED);
@@ -256,7 +249,6 @@ void gw::run_thread()
   while(run_enable)
   {
     X_TRACE("GW:BEGIN");
-
     if (SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET > idx) {
       N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);
     } else {

@@ -33,7 +33,9 @@
 #include "srslte/common/trace.h"
 #include "phy/phch_common.h"
 
+#ifndef LOG_EXECTIME
 #define LOG_EXECTIME
+#endif
 
 namespace srsue {
 

@@ -43,17 +43,20 @@ using namespace std;
 namespace srsenb {
 
 void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
+  X_TRACE("PHCHCOMMON:BEGIN");
   nof_mutex = nof_mutex_; 
   assert(nof_mutex <= max_mutex);
 }
 
 void phch_common::reset() {
+  X_TRACE("PHCHCOMMON:BEGIN");
   bzero(ul_grants, sizeof(mac_interface_phy::ul_sched_t)*10);
   bzero(dl_grants, sizeof(mac_interface_phy::dl_sched_t)*10);
 }
 
 bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interface_phy *mac_)
 {
+  X_TRACE("PHCHCOMMON:BEGIN");
   radio = radio_h_;
   mac   = mac_; 
   memcpy(&cell, cell_, sizeof(srslte_cell_t));
@@ -68,6 +71,7 @@ bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interf
 }
 
 void phch_common::stop() {
+  X_TRACE("PHCHCOMMON:BEGIN");
   for (uint32_t i=0;i<nof_mutex;i++) {
     pthread_mutex_trylock(&tx_mutex[i]);
     pthread_mutex_unlock(&tx_mutex[i]);
@@ -76,6 +80,7 @@ void phch_common::stop() {
 
 void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
+  X_TRACE("PHCHCOMMON:BEGIN");
 
   // Wait previous TTIs to be transmitted 
   if (is_first_tx) {
@@ -96,6 +101,7 @@ void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_s
 
 void phch_common::ack_clear(uint32_t sf_idx)
 {
+  X_TRACE("PHCHCOMMON:BEGIN");
   for(std::map<uint16_t,pending_ack_t>::iterator iter=pending_ack.begin(); iter!=pending_ack.end(); ++iter) {
     pending_ack_t *p = (pending_ack_t*) &iter->second;
     p->is_pending[sf_idx] = false;     
@@ -104,6 +110,7 @@ void phch_common::ack_clear(uint32_t sf_idx)
 
 void phch_common::ack_add_rnti(uint16_t rnti)
 {
+  X_TRACE("PHCHCOMMON:BEGIN");
   for (int sf_idx=0;sf_idx<10;sf_idx++) {
     pending_ack[rnti].is_pending[sf_idx] = false; 
   }
@@ -111,11 +118,13 @@ void phch_common::ack_add_rnti(uint16_t rnti)
 
 void phch_common::ack_rem_rnti(uint16_t rnti)
 {
+  X_TRACE("PHCHCOMMON:BEGIN");
   pending_ack.erase(rnti);
 }
 
 void phch_common::ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t last_n_pdcch)
 {
+  X_TRACE("PHCHCOMMON:BEGIN");
   if (pending_ack.count(rnti)) {
     pending_ack[rnti].is_pending[sf_idx] = true; 
     pending_ack[rnti].n_pdcch[sf_idx]    = last_n_pdcch;
@@ -124,6 +133,7 @@ void phch_common::ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t last_
 
 bool phch_common::ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t *last_n_pdcch)
 {
+  X_TRACE("PHCHCOMMON:BEGIN");
   if (pending_ack.count(rnti)) {
     bool ret = pending_ack[rnti].is_pending[sf_idx];  
     pending_ack[rnti].is_pending[sf_idx] = false; 

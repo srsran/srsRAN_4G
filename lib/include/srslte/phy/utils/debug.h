@@ -73,8 +73,10 @@ SRSLTE_API extern int srslte_verbose;
 #define X_TRACE(_fmt, ...) do { \
                            struct timeval _tv; \
                            gettimeofday(&_tv, NULL); \
-                           fprintf(stderr, "%ld:%06ld XXXXX_%s:%d: " _fmt "\n", \
-                              _tv.tv_sec, _tv.tv_usec, __func__, __LINE__, ##__VA_ARGS__); \
+                           const char *_pos = strrchr(__FILE__, '/'); \
+                           fprintf(stderr, "%ld:%06ld [XXXXX] %s:%s:%d: " _fmt "\n", \
+                              _tv.tv_sec, _tv.tv_usec, _pos ? _pos+1 : "", __func__, __LINE__, ##__VA_ARGS__); \
                            } while(0);
+
 
 #endif // DEBUG_H

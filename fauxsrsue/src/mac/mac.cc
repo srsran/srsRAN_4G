@@ -48,7 +48,6 @@ mac::mac() : ttisync(10240),
              pdu_process_thread(&demux_unit)
 {
   X_TRACE("MAC:BEGIN");
-
   started = false;
   pcap    = NULL;
   bzero(&metrics, sizeof(mac_metrics_t));
@@ -57,7 +56,6 @@ mac::mac() : ttisync(10240),
 bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
 {
   X_TRACE("MAC:BEGIN");
-
   started = false;
   phy_h = phy;
   rlc_h = rlc;
@@ -94,7 +92,6 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
 void mac::stop()
 {
   X_TRACE("MAC:BEGIN");
-
   srslte_softbuffer_rx_free(&pch_softbuffer);
 
   started = false;
@@ -106,7 +103,6 @@ void mac::stop()
 void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
   X_TRACE("MAC:BEGIN");
-
   pcap = pcap_;
   dl_harq.start_pcap(pcap);
   ul_harq.start_pcap(pcap);
@@ -118,14 +114,12 @@ void mac::reconfiguration()
 {
   X_TRACE("MAC:BEGIN");
 
-
 }
 
 // Implement Section 5.9
 void mac::reset()
 {
   X_TRACE("MAC:BEGIN");
-
   bzero(&metrics, sizeof(mac_metrics_t));
 
   Info("Resetting MAC\n");
@@ -156,7 +150,7 @@ void mac::run_thread() {
 
   while (!phy_h->sync_status() && started) {
     X_TRACE("MAC:BEGIN:snooze");
-    usleep(5000 * 100);
+    usleep(5000); // XXX_EMANE
     if (phy_h->sync_status()) {
       Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
       ttisync.set_producer_cntr(phy_h->get_current_tti());
@@ -200,14 +194,12 @@ void mac::run_thread() {
 void mac::bcch_start_rx()
 {
   X_TRACE("MAC:BEGIN");
-
   bcch_start_rx(tti, -1);
 }
 
 void mac::bcch_start_rx(int si_window_start, int si_window_length)
 {
   X_TRACE("MAC:BEGIN");
-
   if (si_window_length >= 0 && si_window_start >= 0) {
     dl_harq.set_si_window_start(si_window_start);
     phy_h->pdcch_dl_search(SRSLTE_RNTI_SI, SRSLTE_SIRNTI, si_window_start, si_window_start+si_window_length);
@@ -220,14 +212,12 @@ void mac::bcch_start_rx(int si_window_start, int si_window_length)
 void mac::bcch_stop_rx()
 {
   X_TRACE("MAC:BEGIN");
-
   phy_h->pdcch_dl_search_reset();
 }
 
 void mac::pcch_start_rx()
 {
   X_TRACE("MAC:BEGIN");
-
   phy_h->pdcch_dl_search(SRSLTE_RNTI_PCH, SRSLTE_PRNTI);
   Info("SCHED: Searching for DL grant for P-RNTI\n");
 }
@@ -235,22 +225,19 @@ void mac::pcch_start_rx()
 void mac::pcch_stop_rx()
 {
   X_TRACE("MAC:BEGIN");
-
   phy_h->pdcch_dl_search_reset();
 }
 
 
 void mac::tti_clock(uint32_t tti)
 {
-  X_TRACE("MAC:BEGIN");
-
+  X_TRACE("MAC:BEGIN tti %u", tti);
   ttisync.increase();
 }
 
 void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)
 {
   X_TRACE("MAC:BEGIN");
-
   // Send MIB to RLC
   rlc_h->write_pdu_bcch_bch(payload, len);
 
@@ -262,7 +249,6 @@ void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)
 void mac::pch_decoded_ok(uint32_t len)
 {
   X_TRACE("MAC:BEGIN");
-
   // Send PCH payload to RLC
   rlc_h->write_pdu_pcch(pch_payload_buffer, len);
 
@@ -274,7 +260,6 @@ void mac::pch_decoded_ok(uint32_t len)
 void mac::tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
 {
   X_TRACE("MAC:BEGIN");
-
   if (rnti_type == SRSLTE_RNTI_RAR) {
     if (ack) {
       ra_procedure.tb_decoded_ok();
@@ -294,7 +279,6 @@ void mac::tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, ui
 void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action)
 {
   X_TRACE("MAC:BEGIN");
-
   if (grant.rnti_type == SRSLTE_RNTI_RAR) {
     ra_procedure.new_grant_dl(grant, action);
   } else if (grant.rnti_type == SRSLTE_RNTI_PCH) {
@@ -323,14 +307,12 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
 uint32_t mac::get_current_tti()
 {
   X_TRACE("MAC:BEGIN");
-
   return phy_h->get_current_tti();
 }
 
 void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_ul_t* action)
 {
   X_TRACE("MAC:BEGIN");
-
   /* Start PHR Periodic timer on first UL grant */
   if (is_first_ul_grant) {
     is_first_ul_grant = false;
@@ -346,7 +328,6 @@ void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
 void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
   X_TRACE("MAC:BEGIN");
-
   int tbs = ul_harq.get_current_tbs(tti);
   ul_harq.new_grant_ul_ack(grant, ack, action);
   if (!ack) {
@@ -366,7 +347,6 @@ void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_i
 void mac::harq_recv(uint32_t tti, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
   X_TRACE("MAC:BEGIN");
-
   int tbs = ul_harq.get_current_tbs(tti);
   ul_harq.harq_recv(tti, ack, action);
   if (!ack) {
@@ -383,7 +363,6 @@ void mac::harq_recv(uint32_t tti, bool ack, mac_interface_phy::tb_action_ul_t* a
 void mac::setup_timers()
 {
   X_TRACE("MAC:BEGIN");
-
   int value = liblte_rrc_time_alignment_timer_num[config.main.time_alignment_timer];
   if (value > 0) {
     timers.get(timer_alignment)->set(this, value);
@@ -393,7 +372,6 @@ void mac::setup_timers()
 void mac::timer_expired(uint32_t timer_id)
 {
   X_TRACE("MAC:BEGIN");
-
   if(timer_id == timer_alignment) {
     timer_alignment_expire();
   } else {
@@ -405,7 +383,6 @@ void mac::timer_expired(uint32_t timer_id)
 void mac::timer_alignment_expire()
 {
   X_TRACE("MAC:BEGIN");
-
   printf("TimeAlignment timer has expired value=%d ms\n", timers.get(timer_alignment)->get_timeout());
   rrc_h->release_pucch_srs();
   dl_harq.reset();
@@ -415,28 +392,24 @@ void mac::timer_alignment_expire()
 void mac::get_rntis(ue_rnti_t* rntis)
 {
   X_TRACE("MAC:BEGIN");
-
   memcpy(rntis, &uernti, sizeof(ue_rnti_t));
 }
 
 void mac::set_contention_id(uint64_t uecri)
 {
   X_TRACE("MAC:BEGIN");
-
   uernti.contention_id = uecri;
 }
 
 void mac::get_config(mac_cfg_t* mac_cfg)
 {
   X_TRACE("MAC:BEGIN");
-
   memcpy(mac_cfg, &config, sizeof(mac_cfg_t));
 }
 
 void mac::set_config(mac_cfg_t* mac_cfg)
 {
   X_TRACE("MAC:BEGIN");
-
   memcpy(&config, mac_cfg, sizeof(mac_cfg_t));
   setup_timers();
 }
@@ -444,7 +417,6 @@ void mac::set_config(mac_cfg_t* mac_cfg)
 void mac::set_config_main(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT* main_cfg)
 {
   X_TRACE("MAC:BEGIN");
-
   memcpy(&config.main, main_cfg, sizeof(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT));
   setup_timers();
 }
@@ -452,7 +424,6 @@ void mac::set_config_main(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT* main_cfg)
 void mac::set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT* rach_cfg, uint32_t prach_config_index)
 {
   X_TRACE("MAC:BEGIN");
-
   memcpy(&config.rach, rach_cfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT));
   config.prach_config_index = prach_config_index;
 }
@@ -460,14 +431,12 @@ void mac::set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT* rach_cfg, uint32
 void mac::set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT* sr_cfg)
 {
   X_TRACE("MAC:BEGIN");
-
   memcpy(&config.sr, sr_cfg, sizeof(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT));
 }
 
 void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)
 {
   X_TRACE("MAC:BEGIN");
-
   Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSd=%d\n",
        lcid, lcg, priority, PBR_x_tti, BSD);
   mux_unit.set_priority(lcid, priority, PBR_x_tti, BSD);
@@ -478,7 +447,6 @@ void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_t
 void mac::get_metrics(mac_metrics_t &m)
 {
   X_TRACE("MAC:BEGIN");
-
   Info("DL retx: %.2f \%%, perpkt: %.2f, UL retx: %.2f \%% perpkt: %.2f\n", 
        metrics.rx_pkts?((float) 100*metrics.rx_errors/metrics.rx_pkts):0.0, 
        dl_harq.get_average_retx(),
@@ -501,21 +469,18 @@ void mac::get_metrics(mac_metrics_t &m)
 srslte::timers::timer* mac::timer_get(uint32_t timer_id)
 {
   X_TRACE("MAC:BEGIN");
-
   return timers.get(timer_id);
 }
 
 void mac::timer_release_id(uint32_t timer_id)
 {
   X_TRACE("MAC:BEGIN");
-
   timers.release_id(timer_id);
 }
 
 uint32_t mac::timer_get_unique_id()
 {
   X_TRACE("MAC:BEGIN");
-
   return timers.get_unique_id();
 }
 
@@ -529,7 +494,6 @@ uint32_t mac::timer_get_unique_id()
 mac::pdu_process::pdu_process(demux *demux_unit_)
 {
   X_TRACE("MAC:BEGIN");
-
   demux_unit = demux_unit_;
   pthread_mutex_init(&mutex, NULL);
   pthread_cond_init(&cvar, NULL);
@@ -540,7 +504,6 @@ mac::pdu_process::pdu_process(demux *demux_unit_)
 void mac::pdu_process::stop()
 {
   X_TRACE("MAC:BEGIN");
-
   pthread_mutex_lock(&mutex);
   running = false; 
   pthread_cond_signal(&cvar);
@@ -552,7 +515,6 @@ void mac::pdu_process::stop()
 void mac::pdu_process::notify()
 {
   X_TRACE("MAC:BEGIN");
-
   pthread_mutex_lock(&mutex);
   have_data = true; 
   pthread_cond_signal(&cvar);
@@ -564,7 +526,6 @@ void mac::pdu_process::run_thread()
   running = true; 
   while(running) {
     X_TRACE("MAC:BEGIN");
-
     have_data = demux_unit->process_pdus();
     if (!have_data) {
       pthread_mutex_lock(&mutex);

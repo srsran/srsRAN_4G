@@ -35,7 +35,6 @@ sched::~sched()
 void sched::init(rrc_interface_mac *rrc_, srslte::log* log)
 {
   X_TRACE("SCHED:BEGIN");
-
   sched_cfg.pdsch_max_mcs = 28; 
   sched_cfg.pdsch_mcs     = -1;
   sched_cfg.pusch_max_mcs = 28; 
@@ -49,7 +48,6 @@ void sched::init(rrc_interface_mac *rrc_, srslte::log* log)
 int sched::reset()
 {
   X_TRACE("SCHED:BEGIN");
-
   bzero(pending_msg3, sizeof(pending_msg3_t)*10);
   bzero(pending_rar, sizeof(sched_rar_t)*SCHED_MAX_PENDING_RAR);
   bzero(pending_sibs, sizeof(sched_sib_t)*MAX_SIBS); 
@@ -61,7 +59,6 @@ int sched::reset()
 void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
 {
   X_TRACE("SCHED:BEGIN");
-
   if (sched_cfg_) {
     memcpy(&sched_cfg, sched_cfg_, sizeof(sched_args_t));
   }
@@ -70,7 +67,6 @@ void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
 void sched::set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_)
 {
   X_TRACE("SCHED:BEGIN");
-
   dl_metric = dl_metric_; 
   ul_metric = ul_metric_; 
 }
@@ -78,7 +74,6 @@ void sched::set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric
 int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
 {
   X_TRACE("SCHED:BEGIN");
-
   // Basic cell config checks
   if (cell_cfg->si_window_ms == 0) {
     Error("SCHED: Invalid si-window length 0 ms\n");
@@ -126,7 +121,6 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
 int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t *ue_cfg)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   
    // Add or config user 
@@ -141,7 +135,6 @@ int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t *ue_cfg)
 int sched::ue_rem(uint16_t rnti)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -157,14 +150,12 @@ int sched::ue_rem(uint16_t rnti)
 bool sched::ue_exists(uint16_t rnti) 
 {
   X_TRACE("SCHED:BEGIN");
-
   return (ue_db.count(rnti) == 1); 
 }
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   if (ue_db.count(rnti)) {         
     ue_db[rnti].phy_config_enabled(current_tti, enabled);
@@ -177,7 +168,6 @@ void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t *cfg)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -193,7 +183,6 @@ int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bear
 int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -209,7 +198,6 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   uint32_t ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -224,7 +212,6 @@ uint32_t sched::get_dl_buffer(uint16_t rnti)
 uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   uint32_t ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -239,7 +226,6 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
 int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -255,7 +241,6 @@ int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue,
 int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -271,7 +256,6 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, bool ack)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -287,7 +271,6 @@ int sched::dl_ack_info(uint32_t tti, uint16_t rnti, bool ack)
 int sched::ul_crc_info(uint32_t tti, uint16_t rnti, bool crc)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -303,7 +286,6 @@ int sched::ul_crc_info(uint32_t tti, uint16_t rnti, bool crc)
 int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -319,7 +301,6 @@ int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 int sched::dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size)
 {
   X_TRACE("SCHED:BEGIN");
-
   for (int i=0;i<SCHED_MAX_PENDING_RAR;i++) {
     if (!pending_rar[i].buf_rar) {
       pending_rar[i].ra_id   = ra_id; 
@@ -337,7 +318,6 @@ int sched::dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t es
 int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -353,7 +333,6 @@ int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch
 int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -369,7 +348,6 @@ int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
 int sched::ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -385,7 +363,6 @@ int sched::ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)
 int sched::ul_phr(uint16_t rnti, int phr)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -401,7 +378,6 @@ int sched::ul_phr(uint16_t rnti, int phr)
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 {
   X_TRACE("SCHED:BEGIN");
-
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
@@ -417,7 +393,6 @@ int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 void sched::tpc_inc(uint16_t rnti)
 {
   X_TRACE("SCHED:BEGIN");
-
   if (ue_db.count(rnti)) {         
     ue_db[rnti].tpc_inc();
   } else {
@@ -428,7 +403,6 @@ void sched::tpc_inc(uint16_t rnti)
 void sched::tpc_dec(uint16_t rnti)
 {
   X_TRACE("SCHED:BEGIN");
-
   if (ue_db.count(rnti)) {         
     ue_db[rnti].tpc_dec();
   } else {
@@ -448,7 +422,6 @@ int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST])
   // TODO: Enable multipe SIBs per SI
   
   X_TRACE("SCHED:BEGIN");
-
   int nof_bc_elems = 0; 
   for (int i=0;i<MAX_SIBS;i++) {
     if (cfg.sibs[i].len) {
@@ -644,7 +617,6 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
 int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST]) 
 {
   X_TRACE("SCHED:BEGIN");
-
   uint32_t nof_ctrl_symbols = (cfg.cell.nof_prb<10)?(current_cfi+1):current_cfi; 
   dl_metric->new_tti(ue_db, start_rbg, avail_rbg, nof_ctrl_symbols, current_tti); 
   
@@ -689,7 +661,6 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
 int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
 {
   X_TRACE("SCHED:BEGIN");
-
   if (!configured) {
     return 0; 
   }
@@ -731,7 +702,6 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
 int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched_result)
 {
   X_TRACE("SCHED:BEGIN");
-
   if (!configured) {
     return 0; 
   }
@@ -915,7 +885,6 @@ void sched::generate_cce_location(srslte_regs_t *regs_, sched_ue::sched_dci_cce_
                                    uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
 {
   X_TRACE("SCHED:BEGIN");
-
   srslte_dci_location_t loc[64];
   uint32_t nloc = 0; 
   if (rnti == 0) {
@@ -945,7 +914,6 @@ void sched::generate_cce_location(srslte_regs_t *regs_, sched_ue::sched_dci_cce_
 bool sched::generate_dci(srslte_dci_location_t *sched_location, sched_ue::sched_dci_cce_t *locations, uint32_t aggr_level, sched_ue *user) 
 {
   X_TRACE("SCHED:BEGIN");
-
   uint32_t ncand=0;
   bool allocated=false; 
   while(ncand<locations->nof_loc[aggr_level] && !allocated) {

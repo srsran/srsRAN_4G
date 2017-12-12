@@ -41,7 +41,6 @@ cf_t zeros[50000];
 phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
 {
   X_TRACE("PHCHCOMM:BEGIN");
-
   config    = NULL; 
   args      = NULL; 
   log_h     = NULL; 
@@ -81,7 +80,6 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
 void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, rrc_interface_phy *_rrc, mac_interface_phy *_mac)
 {
   X_TRACE("PHCHCOMM:BEGIN");
-
   log_h     = _log; 
   radio_h   = _radio;
   rrc       = _rrc;
@@ -98,14 +96,12 @@ void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args,
 
 void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   nof_mutex = nof_mutex_; 
   assert(nof_mutex <= max_mutex);
 }
 
 bool phch_common::ul_rnti_active(uint32_t tti) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   if ((((int)tti >= ul_rnti_start && ul_rnti_start >= 0) || ul_rnti_start < 0) &&
       (((int)tti <  ul_rnti_end   && ul_rnti_end   >= 0) || ul_rnti_end   < 0))
   {
@@ -117,7 +113,6 @@ bool phch_common::ul_rnti_active(uint32_t tti) {
 
 bool phch_common::dl_rnti_active(uint32_t tti) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   Debug("tti=%d, dl_rnti_start=%d, dl_rnti_end=%d, dl_rnti=0x%x\n", tti, dl_rnti_start, dl_rnti_end, dl_rnti);
   if ((((int)tti >= dl_rnti_start && dl_rnti_start >= 0)  || dl_rnti_start < 0) &&
       (((int)tti <  dl_rnti_end   && dl_rnti_end   >= 0)  || dl_rnti_end   < 0))
@@ -140,7 +135,6 @@ bool phch_common::dl_rnti_active(uint32_t tti) {
 srslte::radio* phch_common::get_radio()
 {
   X_TRACE("PHCHCOMM:BEGIN");
-
   return radio_h;
 }
 
@@ -148,7 +142,6 @@ srslte::radio* phch_common::get_radio()
 void phch_common::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])
 {
   X_TRACE("PHCHCOMM:BEGIN");
-
   srslte_dci_rar_grant_unpack(&rar_grant, grant_payload);
   rar_grant_pending = true; 
   // PUSCH is at n+6 or n+7 and phch_worker assumes default delay of 4 ttis
@@ -162,7 +155,6 @@ void phch_common::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_G
 bool phch_common::get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_grant_)
 {
   X_TRACE("PHCHCOMM:BEGIN");
-
   if (rar_grant_pending && tti >= rar_grant_tti) {
     if (rar_grant_) {
       rar_grant_pending = false; 
@@ -176,7 +168,6 @@ bool phch_common::get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_gran
 /* Common variables used by all phy workers */
 uint16_t phch_common::get_ul_rnti(uint32_t tti) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   if (ul_rnti_active(tti)) {
     return ul_rnti; 
   } else {
@@ -185,12 +176,10 @@ uint16_t phch_common::get_ul_rnti(uint32_t tti) {
 }
 srslte_rnti_type_t phch_common::get_ul_rnti_type() {
   X_TRACE("PHCHCOMM:BEGIN");
-
   return ul_rnti_type; 
 }
 void phch_common::set_ul_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start, int tti_end) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   ul_rnti = rnti_value;
   ul_rnti_type = type;
   ul_rnti_start = tti_start;
@@ -198,7 +187,6 @@ void phch_common::set_ul_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int 
 }
 uint16_t phch_common::get_dl_rnti(uint32_t tti) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   if (dl_rnti_active(tti)) {
     return dl_rnti; 
   } else {
@@ -207,12 +195,10 @@ uint16_t phch_common::get_dl_rnti(uint32_t tti) {
 }
 srslte_rnti_type_t phch_common::get_dl_rnti_type() {
   X_TRACE("PHCHCOMM:BEGIN");
-
   return dl_rnti_type; 
 }
 void phch_common::set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start, int tti_end) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   dl_rnti       = rnti_value;
   dl_rnti_type  = type;
   dl_rnti_start = tti_start;
@@ -224,13 +210,11 @@ void phch_common::set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int 
 
 void phch_common::reset_pending_ack(uint32_t tti) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   pending_ack[tti%10].enabled = false; 
 }
 
 void phch_common::set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   pending_ack[tti%10].enabled  = true; 
   pending_ack[tti%10].I_lowest = I_lowest;       
   pending_ack[tti%10].n_dmrs = n_dmrs;            
@@ -239,13 +223,11 @@ void phch_common::set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dm
 
 bool phch_common::get_pending_ack(uint32_t tti) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   return get_pending_ack(tti, NULL, NULL); 
 }
 
 bool phch_common::get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_dmrs) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   if (I_lowest) {
     *I_lowest = pending_ack[tti%10].I_lowest;
   }
@@ -299,19 +281,16 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
 
 void phch_common::set_cell(const srslte_cell_t &c) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   cell = c;
 }
 
 uint32_t phch_common::get_nof_prb() {
   X_TRACE("PHCHCOMM:BEGIN");
-
   return cell.nof_prb;
 }
 
 void phch_common::set_dl_metrics(const dl_metrics_t &m) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   if(dl_metrics_read) {
     dl_metrics       = m;
     dl_metrics_count = 1;
@@ -331,14 +310,12 @@ void phch_common::set_dl_metrics(const dl_metrics_t &m) {
 
 void phch_common::get_dl_metrics(dl_metrics_t &m) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   m = dl_metrics;
   dl_metrics_read = true;
 }
 
 void phch_common::set_ul_metrics(const ul_metrics_t &m) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   if(ul_metrics_read) {
     ul_metrics       = m;
     ul_metrics_count = 1;
@@ -352,14 +329,12 @@ void phch_common::set_ul_metrics(const ul_metrics_t &m) {
 
 void phch_common::get_ul_metrics(ul_metrics_t &m) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   m = ul_metrics;
   ul_metrics_read = true;
 }
 
 void phch_common::set_sync_metrics(const sync_metrics_t &m) {
   X_TRACE("PHCHCOMM:BEGIN");
-
 
   if(sync_metrics_read) {
     sync_metrics = m;
@@ -374,7 +349,6 @@ void phch_common::set_sync_metrics(const sync_metrics_t &m) {
 
 void phch_common::get_sync_metrics(sync_metrics_t &m) {
   X_TRACE("PHCHCOMM:BEGIN");
-
   m = sync_metrics;
   sync_metrics_read = true;
 }
@@ -382,7 +356,6 @@ void phch_common::get_sync_metrics(sync_metrics_t &m) {
 void phch_common::reset_ul()
 {
   X_TRACE("PHCHCOMM:BEGIN");
-
   is_first_tx = true; 
   is_first_of_burst = true; 
   for (uint32_t i=0;i<nof_mutex;i++) {

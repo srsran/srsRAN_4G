@@ -41,7 +41,6 @@ namespace srsue {
 
 int radio_recv_wrapper_cs(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
   X_TRACE("PHCHRX:BEGIN");
-
   phch_recv *h = (phch_recv*) obj;
   srslte::radio_multi *radio_h = h->radio_h;
 
@@ -60,7 +59,6 @@ int radio_recv_wrapper_cs(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsam
 
 double callback_set_rx_gain(void *h, double gain) {
   X_TRACE("PHCHRX:BEGIN");
-
   srslte::radio_multi *radio_handler = (srslte::radio_multi *) h;
   return radio_handler->set_rx_gain_th(gain);
 }
@@ -68,7 +66,6 @@ double callback_set_rx_gain(void *h, double gain) {
 
 phch_recv::phch_recv() {
   X_TRACE("PHCHRX:BEGIN");
-
   bzero(&cell, sizeof(srslte_cell_t));
   running = false;
 }
@@ -78,7 +75,6 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
                      phch_common *_worker_com, srslte::log *_log_h, uint32_t nof_rx_antennas_, uint32_t prio,
                      int sync_cpu_affinity) {
   X_TRACE("PHCHRX:BEGIN");
-
   radio_h = _radio_handler;
   log_h = _log_h;
   mac = _mac;
@@ -141,7 +137,6 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
 
 phch_recv::~phch_recv() {
   X_TRACE("PHCHRX:BEGIN");
-
   for (uint32_t i = 0; i < nof_rx_antennas; i++) {
     if (sf_buffer[i]) {
       free(sf_buffer[i]);
@@ -157,14 +152,12 @@ phch_recv::~phch_recv() {
 void phch_recv::stop() {
   X_TRACE("PHCHRX:BEGIN");
 
-
   running = false;
   wait_thread_finish();
 }
 
 void phch_recv::reset() {
   X_TRACE("PHCHRX:BEGIN");
-
   tx_mutex_cnt = 0;
   running = true;
   phy_state = IDLE;
@@ -180,7 +173,6 @@ void phch_recv::reset() {
 
 void phch_recv::radio_error() {
   X_TRACE("PHCHRX:BEGIN");
-
   log_h->error("SYNC:  Receiving from radio.\n");
   phy_state = IDLE;
   radio_is_resetting=true;
@@ -198,7 +190,6 @@ void phch_recv::radio_error() {
 
 bool phch_recv::wait_radio_reset() {
   X_TRACE("PHCHRX:BEGIN");
-
   int cnt=0;
   while(cnt < 20 && radio_is_resetting) {
     sleep(1);
@@ -209,13 +200,11 @@ bool phch_recv::wait_radio_reset() {
 
 void phch_recv::set_agc_enable(bool enable) {
   X_TRACE("PHCHRX:BEGIN");
-
   do_agc = enable;
 }
 
 void phch_recv::set_time_adv_sec(float _time_adv_sec) {
   X_TRACE("PHCHRX:BEGIN");
-
   if (TX_MODE_CONTINUOUS && !radio_h->is_first_of_burst()) {
     int nsamples = ceil(current_srate*_time_adv_sec);
     next_offset = -nsamples;
@@ -226,7 +215,6 @@ void phch_recv::set_time_adv_sec(float _time_adv_sec) {
 
 void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
   X_TRACE("PHCHRX:BEGIN");
-
   if (worker_com->args->cfo_integer_enabled) {
     srslte_ue_sync_cfo_i_detec_en(q, true);
   }
@@ -254,7 +242,6 @@ void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
 
 bool phch_recv::set_cell() {
   X_TRACE("PHCHRX:BEGIN");
-
   cell_is_set = false;
   if (srslte_ue_mib_set_cell(&ue_mib, cell)) {
     Error("SYNC:  Setting cell: initiating ue_mib\n");
@@ -291,7 +278,6 @@ bool phch_recv::set_cell() {
 
 int phch_recv::cell_search(int force_N_id_2) {
   X_TRACE("PHCHRX:BEGIN");
-
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
 
   srslte_ue_cellsearch_result_t found_cells[3];
@@ -474,7 +460,6 @@ void phch_recv::resync_sfn(bool is_connected) {
 
 void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
   X_TRACE("PHCHRX:BEGIN");
-
   this->earfcn = earfcn;
 }
 
@@ -511,7 +496,6 @@ void phch_recv::reset_sync() {
 void phch_recv::cell_search_inc()
 {
   X_TRACE("PHCHRX:BEGIN");
-
   cur_earfcn_index++;
   if (cur_earfcn_index >= 0) {
     if (cur_earfcn_index >= (int) earfcn.size() - 1) {
@@ -528,7 +512,6 @@ void phch_recv::cell_search_inc()
 
 void phch_recv::cell_search_next(bool reset) {
   X_TRACE("PHCHRX:BEGIN");
-
   if (cell_search_in_progress || reset) {
     cell_search_in_progress = false;
     if (!stop_sync()) {
@@ -545,7 +528,6 @@ void phch_recv::cell_search_next(bool reset) {
 
 void phch_recv::cell_search_start() {
   X_TRACE("PHCHRX:BEGIN");
-
   if (earfcn.size() > 0) {
     Info("SYNC:  Starting Cell Search procedure in %d EARFCNs...\n", earfcn.size());
     cell_search_next(true);
@@ -557,7 +539,6 @@ void phch_recv::cell_search_start() {
 
 void phch_recv::cell_search_stop() {
   X_TRACE("PHCHRX:BEGIN");
-
   Info("SYNC:  Stopping Cell Search procedure...\n");
   if (!stop_sync()) {
     Error("SYNC:  Stopping cell search\n");
@@ -613,7 +594,6 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 bool phch_recv::set_frequency()
 {
   X_TRACE("PHCHRX:BEGIN");
-
   double dl_freq = 1e6*srslte_band_fd(current_earfcn);
   double ul_freq = 1e6*srslte_band_fu(srslte_band_ul_earfcn(current_earfcn));
   if (dl_freq > 0 && ul_freq > 0) {
@@ -639,7 +619,6 @@ bool phch_recv::set_frequency()
 void phch_recv::set_sampling_rate()
 {
   X_TRACE("PHCHRX:BEGIN");
-
   current_srate = (float) srslte_sampling_freq_hz(cell.nof_prb);
   current_sflen = SRSLTE_SF_LEN_PRB(cell.nof_prb);
   if (current_srate != -1) {
@@ -666,7 +645,6 @@ void phch_recv::run_thread() {
 
   while (running) {
     X_TRACE("PHCHRX:BEGIN");
-
     if (phy_state != IDLE) {
       is_in_idle = false;
       Debug("SYNC:  state=%d\n", phy_state);
@@ -823,7 +801,6 @@ void phch_recv::run_thread() {
 
 void phch_recv::stop_rx() {
   X_TRACE("PHCHRX:BEGIN");
-
   if (radio_is_rx) {
     Info("SYNC:  Stopping RX streaming\n");
     radio_h->stop_rx();
@@ -833,7 +810,6 @@ void phch_recv::stop_rx() {
 
 void phch_recv::start_rx() {
   X_TRACE("PHCHRX:BEGIN");
-
   if (!radio_is_rx) {
     Info("SYNC:  Starting RX streaming\n");
     radio_h->start_rx();
@@ -842,20 +818,17 @@ void phch_recv::start_rx() {
 }
 
 uint32_t phch_recv::get_current_tti() {
-  X_TRACE("PHCHRX:BEGIN");
-
+  X_TRACE("PHCHRX:BEGIN tti %u", tti);
   return tti;
 }
 
 bool phch_recv::status_is_sync() {
   X_TRACE("PHCHRX:BEGIN");
-
   return phy_state == CELL_CAMP;
 }
 
 void phch_recv::get_current_cell(srslte_cell_t *cell_) {
   X_TRACE("PHCHRX:BEGIN");
-
   if (cell_) {
     memcpy(cell_, &cell, sizeof(srslte_cell_t));
   }

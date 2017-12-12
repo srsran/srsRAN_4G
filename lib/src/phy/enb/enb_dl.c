@@ -206,14 +206,14 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
 
 void srslte_enb_dl_set_amp(srslte_enb_dl_t *q, float amp)
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: amp %u", amp);
 
   q->tx_amp = amp; 
 }
 
 void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, uint32_t cfi) 
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: cfi %u", cfi);
 
   q->cfi = cfi; 
   srslte_regs_set_cfi(&q->regs, cfi);
@@ -221,7 +221,7 @@ void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, uint32_t cfi)
 
 void srslte_enb_dl_clear_sf(srslte_enb_dl_t *q)
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("sf_len is %d bytes", CURRENT_SFLEN_RE * sizeof(cf_t));
 
   for (int i=0;i<q->cell.nof_ports;i++) {
     bzero(q->sf_symbols[i], CURRENT_SFLEN_RE * sizeof(cf_t));  
@@ -230,7 +230,7 @@ void srslte_enb_dl_clear_sf(srslte_enb_dl_t *q)
 
 void srslte_enb_dl_put_sync(srslte_enb_dl_t *q, uint32_t sf_idx) 
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: sf_idx %u", sf_idx);
 
   if (sf_idx == 0 || sf_idx == 5) {
     srslte_pss_put_slot(q->pss_signal, q->sf_symbols[0], q->cell.nof_prb, q->cell.cp);
@@ -241,14 +241,14 @@ void srslte_enb_dl_put_sync(srslte_enb_dl_t *q, uint32_t sf_idx)
 
 void srslte_enb_dl_put_refs(srslte_enb_dl_t *q, uint32_t sf_idx)
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: sf_idx %u", sf_idx);
 
   srslte_refsignal_cs_put_sf(q->cell, 0, q->csr_signal.pilots[0][sf_idx], q->sf_symbols[0]);
 }
 
 void srslte_enb_dl_put_mib(srslte_enb_dl_t *q, uint32_t tti)
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: tti %u", tti);
 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
 
@@ -320,7 +320,7 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant,
   X_TRACE("PHY:BEGIN");
 
   srslte_dci_msg_t dci_msg;
-
+  
   bool rnti_is_user = true; 
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || (rnti >= SRSLTE_RARNTI_START && rnti <= SRSLTE_RARNTI_END)) {
     rnti_is_user = false; 

@@ -50,10 +50,12 @@ fauxphy::fauxphy() : workers_pool(MAX_WORKERS),
              workers(MAX_WORKERS), 
              workers_common(txrx::MUTEX_X_WORKER*MAX_WORKERS)
 {
+  X_TRACE("PHY:BEGIN");
 }
 
 void fauxphy::parse_config(phy_cfg_t* cfg)
 {
+  X_TRACE("PHY:BEGIN");
   
   // PRACH configuration
   prach_cfg.config_idx     = cfg->prach_cnfg.prach_cnfg_info.prach_config_index;
@@ -89,6 +91,7 @@ bool fauxphy::init(phy_args_t *args,
                mac_interface_phy *mac, 
                srslte::log* log_h)
 {
+  X_TRACE("PHY:BEGIN");
   std::vector<void*> log_vec;
   for (int i=0;i<args->nof_phy_threads;i++) {
     log_vec.push_back((void*)log_h);
@@ -103,6 +106,7 @@ bool fauxphy::init(phy_args_t *args,
                mac_interface_phy *mac, 
                std::vector<void*> log_vec)
 {
+  X_TRACE("PHY:BEGIN");
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
   
@@ -132,6 +136,7 @@ bool fauxphy::init(phy_args_t *args,
 
 void fauxphy::stop()
 {  
+  X_TRACE("PHY:BEGIN");
   tx_rx.stop();  
   workers_common.stop();
   for (uint32_t i=0;i<nof_workers;i++) {
@@ -142,16 +147,19 @@ void fauxphy::stop()
 }
 
 uint32_t fauxphy::tti_to_SFN(uint32_t tti) {
+  X_TRACE("PHY:BEGIN");
   return tti/10; 
 }
 
 uint32_t fauxphy::tti_to_subf(uint32_t tti) {
+  X_TRACE("PHY:BEGIN");
   return tti%10; 
 }
 
 /***** MAC->PHY interface **********/
 int fauxphy::add_rnti(uint16_t rnti)
 {
+  X_TRACE("PHY:BEGIN");
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
     workers_common.ack_add_rnti(rnti);
   }
@@ -165,6 +173,7 @@ int fauxphy::add_rnti(uint16_t rnti)
 
 void fauxphy::rem_rnti(uint16_t rnti)
 {
+  X_TRACE("PHY:BEGIN");
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
     workers_common.ack_rem_rnti(rnti);
   }
@@ -175,6 +184,7 @@ void fauxphy::rem_rnti(uint16_t rnti)
 
 void fauxphy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
+  X_TRACE("PHY:BEGIN");
   phy_metrics_t metrics_tmp[ENB_METRICS_MAX_USERS];
 
   uint32_t nof_users = workers[0].get_nof_rnti(); 
@@ -209,6 +219,7 @@ void fauxphy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 void fauxphy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
+  X_TRACE("PHY:BEGIN");
   // Parse RRC config 
   srslte_uci_cfg_t uci_cfg;
   srslte_pucch_sched_t pucch_sched;

@@ -39,7 +39,6 @@
 bsr_proc::bsr_proc()
 {
   X_TRACE("BSRPROC:BEGIN");
-
   initiated = false; 
   last_print = 0; 
   next_tx_tti = 0; 
@@ -50,7 +49,6 @@ bsr_proc::bsr_proc()
 void bsr_proc::init(rlc_interface_mac *rlc_, srslte::log* log_h_, mac_interface_rrc::mac_cfg_t *mac_cfg_, srslte::timers *timers_db_)
 {
   X_TRACE("BSRPROC:BEGIN");
-
   log_h     = log_h_; 
   rlc       = rlc_; 
   mac_cfg   = mac_cfg_;
@@ -66,7 +64,6 @@ void bsr_proc::init(rlc_interface_mac *rlc_, srslte::log* log_h_, mac_interface_
 void bsr_proc::reset()
 {
   X_TRACE("BSRPROC:BEGIN");
-
   timers_db->get(timer_periodic_id)->stop();
   timers_db->get(timer_periodic_id)->reset();
   timers_db->get(timer_retx_id)->stop();
@@ -88,7 +85,6 @@ void bsr_proc::reset()
 /* Process Periodic BSR */
 void bsr_proc::timer_expired(uint32_t timer_id) {
   X_TRACE("BSRPROC:BEGIN");
-
   if(timer_id == timer_periodic_id) {
     if (triggered_bsr_type == NONE) {
       // Check condition 4 in Sec 5.4.5
@@ -109,7 +105,6 @@ void bsr_proc::timer_expired(uint32_t timer_id) {
 // Checks if data is available for a a channel with higher priority than others 
 bool bsr_proc::check_highest_channel() {
   X_TRACE("BSRPROC:BEGIN");
-
   int pending_data_lcid = -1; 
   
   for (int i=0;i<MAX_LCID && pending_data_lcid == -1;i++) {
@@ -143,7 +138,6 @@ bool bsr_proc::check_highest_channel() {
 
 uint32_t bsr_proc::get_buffer_state() {
   X_TRACE("BSRPROC:BEGIN");
-
   uint32_t buffer = 0; 
   for (int i=0;i<MAX_LCID;i++) {
     if (lcg[i] >= 0) {
@@ -156,7 +150,6 @@ uint32_t bsr_proc::get_buffer_state() {
 // Checks if only one logical channel has data avaiable for Tx
 bool bsr_proc::check_single_channel() {    
   X_TRACE("BSRPROC:BEGIN");
-
   uint32_t pending_data_lcid = 0; 
   uint32_t nof_nonzero_lcid = 0; 
   
@@ -182,7 +175,6 @@ bool bsr_proc::check_single_channel() {
 
 void bsr_proc::update_pending_data() {
   X_TRACE("BSRPROC:BEGIN");
-
   for (int i=0;i<MAX_LCID;i++) {
     last_pending_data[i] = rlc->get_buffer_state(i); 
   }
@@ -190,7 +182,6 @@ void bsr_proc::update_pending_data() {
 
 bool bsr_proc::generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes) {
   X_TRACE("BSRPROC:BEGIN");
-
   bool ret = false; 
   uint32_t nof_lcg=0;
   bzero(bsr, sizeof(bsr_t));    
@@ -237,7 +228,6 @@ bool bsr_proc::generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes) {
 void bsr_proc::step(uint32_t tti)
 {
   X_TRACE("BSRPROC:BEGIN");
-
   if (!initiated) {
     return;
   }  
@@ -281,7 +271,6 @@ void bsr_proc::step(uint32_t tti)
 
 char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type) {
   X_TRACE("BSRPROC:BEGIN");
-
   switch(type) {
     case bsr_proc::REGULAR: 
       return (char*) "Regular";
@@ -296,7 +285,6 @@ char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type) {
 
 char* bsr_proc::bsr_format_tostring(bsr_format_t format) {
   X_TRACE("BSRPROC:BEGIN");
-
   switch(format) {
     case bsr_proc::LONG_BSR: 
       return (char*) "Long";
@@ -312,7 +300,6 @@ char* bsr_proc::bsr_format_tostring(bsr_format_t format) {
 bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr) 
 {
   X_TRACE("BSRPROC:BEGIN");
-
   bool ret = false; 
 
   uint32_t bsr_sz = 0; 
@@ -355,7 +342,6 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr)
 bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr) 
 {
   X_TRACE("BSRPROC:BEGIN");
-
   bool ret = false; 
 
   if (triggered_bsr_type != NONE || nof_padding_bytes >= 2) {
@@ -380,14 +366,12 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr)
 
 void bsr_proc::set_tx_tti(uint32_t tti) {
   X_TRACE("BSRPROC:BEGIN");
-
   Debug("BSR:   Set next_tx_tti=%d\n", tti);
   next_tx_tti = tti;  
 }
 
 bool bsr_proc::need_to_reset_sr() {
   X_TRACE("BSRPROC:BEGIN");
-
   if (reset_sr) {
     reset_sr = false; 
     sr_is_sent = false; 
@@ -400,7 +384,6 @@ bool bsr_proc::need_to_reset_sr() {
 
 bool bsr_proc::need_to_send_sr(uint32_t tti) {
   X_TRACE("BSRPROC:BEGIN");
-
   if (!sr_is_sent && triggered_bsr_type == REGULAR) {
     if (srslte_tti_interval(tti,next_tx_tti)>0 && srslte_tti_interval(tti,next_tx_tti) < 10240-4) {
       reset_sr = false; 
@@ -417,7 +400,6 @@ bool bsr_proc::need_to_send_sr(uint32_t tti) {
 void bsr_proc::setup_lcg(uint32_t lcid, uint32_t new_lcg)
 {
   X_TRACE("BSRPROC:BEGIN");
-
   if (lcid < MAX_LCID && new_lcg < 4) {
     lcg[lcid] = new_lcg; 
   }      
@@ -425,7 +407,6 @@ void bsr_proc::setup_lcg(uint32_t lcid, uint32_t new_lcg)
 
 void bsr_proc::set_priority(uint32_t lcid, uint32_t priority) {
   X_TRACE("BSRPROC:BEGIN");
-
   if (lcid < MAX_LCID) {
     priorities[lcid] = priority;     
   }
@@ -433,7 +414,6 @@ void bsr_proc::set_priority(uint32_t lcid, uint32_t priority) {
 
 uint32_t bsr_proc::find_max_priority_lcid() {
   X_TRACE("BSRPROC:BEGIN");
-
   int32_t max_prio = 0;
   uint32_t max_idx = 0;
   for (int i=0;i<MAX_LCID;i++) {

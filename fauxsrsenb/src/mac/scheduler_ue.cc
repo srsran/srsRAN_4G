@@ -57,7 +57,6 @@ namespace srsenb {
 sched_ue::sched_ue()
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   reset(); 
 }
 
@@ -65,7 +64,6 @@ void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_in
                             srslte_regs_t *regs, srslte::log *log_h_) 
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   reset();
   
   rnti  = rnti_; 
@@ -101,7 +99,6 @@ void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_in
 void sched_ue::reset()
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   bzero(&cfg, sizeof(sched_interface::ue_cfg_t));
   sr = false; 
   next_tpc_pusch = 1;
@@ -125,14 +122,12 @@ void sched_ue::reset()
 
 void sched_ue::set_fixed_mcs(int mcs_ul, int mcs_dl) {
   X_TRACE("SCHEDUE:BEGIN");
-
   fixed_mcs_ul = mcs_ul; 
   fixed_mcs_dl = mcs_dl; 
 }
 
 void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl) {
   X_TRACE("SCHEDUE:BEGIN");
-
   if (mcs_ul < 0) {
     max_mcs_ul = 28;     
   } else {
@@ -155,7 +150,6 @@ void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl) {
 void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   if (lc_id < sched_interface::MAX_LC) {
     memcpy(&lch[lc_id].cfg, cfg, sizeof(sched_interface::ue_bearer_cfg_t));
     lch[lc_id].buf_tx = 0; 
@@ -169,7 +163,6 @@ void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* 
 void sched_ue::rem_bearer(uint32_t lc_id)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   if (lc_id < sched_interface::MAX_LC) {
     bzero(&lch[lc_id], sizeof(ue_bearer_t));
   }
@@ -178,7 +171,6 @@ void sched_ue::rem_bearer(uint32_t lc_id)
 void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   dl_cqi_tti = tti; 
   phy_config_dedicated_enabled = enabled; 
 }
@@ -186,7 +178,6 @@ void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
 void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   if (lc_id < sched_interface::MAX_LC) {
     if (set_value) {
       lch[lc_id].bsr = bsr;
@@ -201,14 +192,12 @@ void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
 void sched_ue::ul_phr(int phr)
 { 
   X_TRACE("SCHEDUE:BEGIN");
-
   power_headroom= phr; 
 }
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  X_TRACE("SCHEDUE:BEGIN");
-
+  X_TRACE("SCHEDUE:BEGIN")
   if (lc_id < sched_interface::MAX_LC) {
     lch[lc_id].buf_retx = retx_queue;
     lch[lc_id].buf_tx   = tx_queue;
@@ -219,28 +208,24 @@ void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_q
 void sched_ue::mac_buffer_state(uint32_t ce_code)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   buf_mac++; 
 }
 
 void sched_ue::set_sr()
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   sr = true; 
 }
 
 void sched_ue::unset_sr()
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   sr = false; 
 }
 
 bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   if (!phy_config_dedicated_enabled) {
     return false; 
   }
@@ -267,7 +252,6 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
 bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   if (!phy_config_dedicated_enabled) {
     return false; 
   }
@@ -321,7 +305,6 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
 int sched_ue::set_ack_info(uint32_t tti, bool ack)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     if (((dl_harq[i].get_tti()+4)%10240) == tti) {
       Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tti=%d\n", ack, rnti, i, tti);
@@ -336,7 +319,6 @@ int sched_ue::set_ack_info(uint32_t tti, bool ack)
 void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   // Remove PDCP header??
   if (len > 4) {
     len -= 4; 
@@ -357,14 +339,12 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
 void sched_ue::set_ul_crc(uint32_t tti, bool crc_res)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   get_ul_harq(tti)->set_ack(crc_res);
 }
 
 void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cqi)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   dl_cqi     = cqi; 
   dl_cqi_tti = tti; 
 }
@@ -372,14 +352,12 @@ void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cqi)
 void sched_ue::set_ul_cqi(uint32_t tti, uint32_t cqi, uint32_t ul_ch_code)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   ul_cqi     = cqi; 
   ul_cqi_tti = tti; 
 }
 
 void sched_ue::tpc_inc() {
   X_TRACE("SCHEDUE:BEGIN");
-
   if (power_headroom > 0) {
     next_tpc_pusch = 3;
     next_tpc_pucch = 3;    
@@ -389,7 +367,6 @@ void sched_ue::tpc_inc() {
 
 void sched_ue::tpc_dec() {
   X_TRACE("SCHEDUE:BEGIN");
-
   next_tpc_pusch = 0;
   next_tpc_pucch = 0;
   log_h->info("SCHED: Set TCP=%d for rnti=0x%x\n", next_tpc_pucch, rnti);
@@ -409,7 +386,6 @@ int sched_ue::generate_format1(dl_harq_proc *h,
                          uint32_t cfi) 
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   srslte_ra_dl_dci_t *dci = &data->dci;
   bzero(dci, sizeof(srslte_ra_dl_dci_t));
   
@@ -491,7 +467,6 @@ int sched_ue::generate_format0(ul_harq_proc *h,
                          bool cqi_request) 
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   srslte_ra_ul_dci_t *dci = &data->dci; 
   bzero(dci, sizeof(srslte_ra_ul_dci_t));
   
@@ -549,26 +524,22 @@ int sched_ue::generate_format0(ul_harq_proc *h,
 
 bool sched_ue::bearer_is_ul(ue_bearer_t *lch) {
   X_TRACE("SCHEDUE:BEGIN");
-
   return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::UL || lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
 }
 
 bool sched_ue::bearer_is_dl(ue_bearer_t *lch) {
   X_TRACE("SCHEDUE:BEGIN");
-
   return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::DL || lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
 }
 
 uint32_t sched_ue::get_max_retx() {
   X_TRACE("SCHEDUE:BEGIN");
-
   return cfg.maxharq_tx; 
 }
 
 bool sched_ue::is_first_dl_tx()
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     if (dl_harq[i].nof_tx() > 0) {
       return false; 
@@ -580,7 +551,6 @@ bool sched_ue::is_first_dl_tx()
 bool sched_ue::needs_cqi(uint32_t tti, bool will_be_sent)
 {  
   X_TRACE("SCHEDUE:BEGIN");
-
   bool ret = false; 
   if (phy_config_dedicated_enabled && 
       cfg.aperiodic_cqi_period     && 
@@ -605,7 +575,6 @@ bool sched_ue::needs_cqi(uint32_t tti, bool will_be_sent)
 uint32_t sched_ue::get_pending_dl_new_data(uint32_t tti)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   uint32_t pending_data = 0; 
   for (int i=0;i<sched_interface::MAX_LC;i++) {
     if (bearer_is_dl(&lch[i])) {
@@ -618,7 +587,6 @@ uint32_t sched_ue::get_pending_dl_new_data(uint32_t tti)
 uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   uint32_t pending_data = 0; 
   for (int i=0;i<sched_interface::MAX_LC;i++) {
     if (bearer_is_ul(&lch[i])) {
@@ -647,7 +615,6 @@ uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
 uint32_t sched_ue::get_pending_ul_old_data()
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   uint32_t pending_data = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     pending_data += ul_harq[i].get_pending_data();
@@ -659,7 +626,6 @@ uint32_t sched_ue::get_pending_ul_old_data()
 uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols) 
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   int mcs = 0; 
   uint32_t nbytes = 0; 
   uint32_t n = 0; 
@@ -688,7 +654,6 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
 uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes) 
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   int mcs = 0; 
   int tbs = 0; 
   uint32_t nbytes = 0; 
@@ -722,7 +687,6 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
 bool sched_ue::is_sr_triggered()
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   return sr; 
 }
 
@@ -730,7 +694,6 @@ bool sched_ue::is_sr_triggered()
 dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   int oldest_idx=-1; 
   uint32_t oldest_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
@@ -752,7 +715,6 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 dl_harq_proc* sched_ue::get_empty_dl_harq()
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     if (dl_harq[i].is_empty()) {
       return &dl_harq[i]; 
@@ -764,7 +726,6 @@ dl_harq_proc* sched_ue::get_empty_dl_harq()
 ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   return &ul_harq[tti%SCHED_MAX_HARQ_PROC];
 }
 
@@ -772,7 +733,6 @@ ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti)
 uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   uint32_t l=0;
   float max_coderate = srslte_cqi_to_coderate(dl_cqi);
   float coderate = 99;
@@ -793,7 +753,6 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
 sched_ue::sched_dci_cce_t* sched_ue::get_locations(uint32_t cfi, uint32_t sf_idx)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   if (cfi > 0 && cfi <= 3) {
     return &dci_locations[cfi-1][sf_idx];
   } else {
@@ -806,7 +765,6 @@ sched_ue::sched_dci_cce_t* sched_ue::get_locations(uint32_t cfi, uint32_t sf_idx
 int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   // TODO: Implement lcid priority (now lowest index is lowest priority)
   int x = 0; 
   int i = 0; 
@@ -829,7 +787,6 @@ int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
 
 uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb) {
   X_TRACE("SCHEDUE:BEGIN");
-
   uint32_t P = srslte_ra_type0_P(cell_nof_prb);
   uint32_t nb = (int) ceilf((float) cell_nof_prb / P);
   
@@ -848,7 +805,6 @@ uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb) {
 
 int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, uint32_t *mcs) {
   X_TRACE("SCHEDUE:BEGIN");
-
   float max_coderate = srslte_cqi_to_coderate(cqi);
   int sel_mcs = max_mcs+1; 
   float coderate = 99;
@@ -876,7 +832,6 @@ int sched_ue::alloc_tbs_dl(uint32_t nof_prb,
                         int *mcs)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   return alloc_tbs(nof_prb, nof_re, req_bytes, false, mcs);
 }
 
@@ -886,7 +841,6 @@ int sched_ue::alloc_tbs_ul(uint32_t nof_prb,
                            int *mcs)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   return alloc_tbs(nof_prb, nof_re, req_bytes, true, mcs);
 }
 
@@ -900,7 +854,6 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
                         int *mcs)
 {
   X_TRACE("SCHEDUE:BEGIN");
-
   uint32_t sel_mcs = 0;
 
   uint32_t cqi     = is_ul?ul_cqi:dl_cqi;

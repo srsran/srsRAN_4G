@@ -33,7 +33,6 @@ void rlc::init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface
                srslte::mac_interface_timers *mac_timers_, srslte::log* log_h_)
 {
   X_TRACE("RLC:BEGIN");
-
   pdcp       = pdcp_; 
   rrc        = rrc_, 
   log_h      = log_h_; 
@@ -47,7 +46,6 @@ void rlc::init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface
 void rlc::stop()
 {
   X_TRACE("RLC:BEGIN");
-
   for(std::map<uint32_t, user_interface>::iterator iter=users.begin(); iter!=users.end(); ++iter) {
     rem_user((uint32_t) iter->first);
   }
@@ -57,7 +55,6 @@ void rlc::stop()
 void rlc::add_user(uint16_t rnti)
 {
   X_TRACE("RLC:BEGIN");
-
   if (users.count(rnti) == 0) {    
     srslte::rlc *obj = new srslte::rlc;     
     obj->init(&users[rnti], &users[rnti], &users[rnti], log_h, mac_timers, RB_ID_SRB0);
@@ -72,7 +69,6 @@ void rlc::add_user(uint16_t rnti)
 void rlc::rem_user(uint16_t rnti)
 {
   X_TRACE("RLC:BEGIN");
-
   if (users.count(rnti)) {
     users[rnti].rlc->stop();
     delete users[rnti].rlc; 
@@ -84,7 +80,6 @@ void rlc::rem_user(uint16_t rnti)
 void rlc::reset(uint16_t rnti)
 {
   X_TRACE("RLC:BEGIN");
-
   if (users.count(rnti)) {
     users[rnti].rlc->reset();
   }
@@ -93,7 +88,6 @@ void rlc::reset(uint16_t rnti)
 void rlc::clear_buffer(uint16_t rnti)
 {
   X_TRACE("RLC:BEGIN");
-
   if (users.count(rnti)) {
     users[rnti].rlc->empty_queue();
     for (int i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
@@ -106,7 +100,6 @@ void rlc::clear_buffer(uint16_t rnti)
 void rlc::add_bearer(uint16_t rnti, uint32_t lcid)
 {
   X_TRACE("RLC:BEGIN");
-
   if (users.count(rnti)) {
     users[rnti].rlc->add_bearer(lcid);
   }
@@ -115,7 +108,6 @@ void rlc::add_bearer(uint16_t rnti, uint32_t lcid)
 void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg)
 {
   X_TRACE("RLC:BEGIN");
-
   if (users.count(rnti)) {
     users[rnti].rlc->add_bearer(lcid, cnfg);
   }
@@ -124,14 +116,12 @@ void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t c
 void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 {
   X_TRACE("RLC:BEGIN");
-
   rrc->read_pdu_pcch(payload, buffer_size);
 }
 
 int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   X_TRACE("RLC:BEGIN");
-
   int ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
 
   // In the eNodeB, there is no polling for buffer state from the scheduler, thus
@@ -147,7 +137,6 @@ int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_b
 void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   X_TRACE("RLC:BEGIN");
-
   if (users.count(rnti)) {
     users[rnti].rlc->write_pdu(lcid, payload, nof_bytes);
     
@@ -163,7 +152,6 @@ void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof
 void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload)
 {
   X_TRACE("RLC:BEGIN");
-
   // RLC is transparent for BCCH
   rrc->read_pdu_bcch_dlsch(sib_index, payload);
 }
@@ -171,7 +159,6 @@ void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload)
 void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
   X_TRACE("RLC:BEGIN");
-
   if (users.count(rnti)) {
     users[rnti].rlc->write_sdu(lcid, sdu);
 
@@ -189,42 +176,36 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 void rlc::user_interface::max_retx_attempted()
 {
   X_TRACE("RLC:BEGIN");
-
   rrc->max_retx_attempted(rnti);
 }
 
 void rlc::user_interface::write_pdu(uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
   X_TRACE("RLC:BEGIN");
-
   pdcp->write_pdu(rnti, lcid, sdu);
 }
 
 void rlc::user_interface::write_pdu_bcch_bch(srslte::byte_buffer_t* sdu)
 {
   X_TRACE("RLC:BEGIN");
-
   fprintf(stderr, "Error: Received BCCH from ue=%d\n", rnti);
 }
 
 void rlc::user_interface::write_pdu_bcch_dlsch(srslte::byte_buffer_t* sdu)
 {
   X_TRACE("RLC:BEGIN");
-
   fprintf(stderr, "Error: Received BCCH from ue=%d\n", rnti);
 }
 
 void rlc::user_interface::write_pdu_pcch(srslte::byte_buffer_t* sdu)
 {
   X_TRACE("RLC:BEGIN");
-
   fprintf(stderr, "Error: Received PCCH from ue=%d\n", rnti);
 }
 
 std::string rlc::user_interface::get_rb_name(uint32_t lcid)
 {
   X_TRACE("RLC:BEGIN");
-
   return std::string(rb_id_text[lcid]);
 }
 

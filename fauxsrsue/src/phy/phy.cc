@@ -61,7 +61,6 @@ fauxphy::fauxphy() : workers_pool(MAX_WORKERS),
 void fauxphy::set_default_args(phy_args_t *args)
 {
   X_TRACE("PHY:BEGIN");
-
   args->nof_rx_ant          = 1;
   args->ul_pwr_ctrl_en      = false; 
   args->prach_gain          = -1;
@@ -84,7 +83,6 @@ void fauxphy::set_default_args(phy_args_t *args)
 bool fauxphy::check_args(phy_args_t *args) 
 {
   X_TRACE("PHY:BEGIN");
-
   if (args->nof_phy_threads > 3) {
     log_h->console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
     return false; 
@@ -156,27 +154,23 @@ void fauxphy::run_thread() {
 
 void fauxphy::wait_initialize() {
   X_TRACE("PHY:BEGIN");
-
   wait_thread_finish();
 }
 
 bool fauxphy::is_initiated() {
   X_TRACE("PHY:BEGIN");
-
   return initiated;
 }
 
 void fauxphy::set_agc_enable(bool enabled)
 {
   X_TRACE("PHY:BEGIN");
-
   sf_recv.set_agc_enable(enabled);
 }
 
 void fauxphy::start_trace()
 {
   X_TRACE("PHY:BEGIN");
-
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].start_trace();
   }
@@ -185,7 +179,6 @@ void fauxphy::start_trace()
 void fauxphy::write_trace(std::string filename)
 {
   X_TRACE("PHY:BEGIN");
-
   for (uint32_t i=0;i<nof_workers;i++) {
     string i_str = static_cast<ostringstream*>( &(ostringstream() << i) )->str();
     workers[i].write_trace(filename + "_" + i_str);
@@ -195,14 +188,12 @@ void fauxphy::write_trace(std::string filename)
 void fauxphy::stop()
 {  
   X_TRACE("PHY:BEGIN");
-
   sf_recv.stop();
   workers_pool.stop();
 }
 
 void fauxphy::get_metrics(phy_metrics_t &m) {
   X_TRACE("PHY:BEGIN");
-
   workers_common.get_dl_metrics(m.dl);
   workers_common.get_ul_metrics(m.ul);
   workers_common.get_sync_metrics(m.sync);
@@ -215,7 +206,6 @@ void fauxphy::get_metrics(phy_metrics_t &m) {
 
 void fauxphy::set_timeadv_rar(uint32_t ta_cmd) {
   X_TRACE("PHY:BEGIN");
-
   n_ta = srslte_N_ta_new_rar(ta_cmd);
   sf_recv.set_time_adv_sec(((float) n_ta)*SRSLTE_LTE_TS);
   Info("PHY:   Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, ((float) n_ta)*SRSLTE_LTE_TS*1e6);
@@ -223,7 +213,6 @@ void fauxphy::set_timeadv_rar(uint32_t ta_cmd) {
 
 void fauxphy::set_timeadv(uint32_t ta_cmd) {
   X_TRACE("PHY:BEGIN");
-
   n_ta = srslte_N_ta_new(n_ta, ta_cmd);
   //sf_recv.set_time_adv_sec(((float) n_ta)*SRSLTE_LTE_TS);  
   Warning("Not supported: Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, ((float) n_ta)*SRSLTE_LTE_TS*1e6);
@@ -232,7 +221,6 @@ void fauxphy::set_timeadv(uint32_t ta_cmd) {
 void fauxphy::configure_prach_params()
 {
   X_TRACE("PHY:BEGIN");
-
   if (sf_recv.status_is_sync()) {
     Debug("Configuring PRACH parameters\n");
     srslte_cell_t cell; 
@@ -248,7 +236,6 @@ void fauxphy::configure_prach_params()
 void fauxphy::configure_ul_params(bool pregen_disabled)
 {
   X_TRACE("PHY:BEGIN");
-
   Info("PHY:   Configuring UL parameters\n");
   if (is_initiated()) {
     for (uint32_t i=0;i<nof_workers;i++) {
@@ -260,41 +247,35 @@ void fauxphy::configure_ul_params(bool pregen_disabled)
 void fauxphy::cell_search_start()
 {
   X_TRACE("PHY:BEGIN");
-
   sf_recv.cell_search_start();
 }
 
 void fauxphy::cell_search_stop()
 {
   X_TRACE("PHY:BEGIN");
-
   sf_recv.cell_search_stop();
 }
 
 void fauxphy::cell_search_next()
 {
   X_TRACE("PHY:BEGIN");
-
   sf_recv.cell_search_next();
 }
 
 void fauxphy::sync_reset() {
   X_TRACE("PHY:BEGIN");
-
   sf_recv.reset_sync();
 }
 
 bool fauxphy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
 {
   X_TRACE("PHY:BEGIN");
-
   return sf_recv.cell_select(earfcn, phy_cell);
 }
 
 float fauxphy::get_phr()
 {
   X_TRACE("PHY:BEGIN");
-
   float phr = radio_handler->get_max_tx_power() - workers_common.cur_pusch_power; 
   return phr; 
 }
@@ -302,28 +283,24 @@ float fauxphy::get_phr()
 float fauxphy::get_pathloss_db()
 {
   X_TRACE("PHY:BEGIN");
-
   return workers_common.cur_pathloss;
 }
 
 void fauxphy::pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start, int tti_end)
 {
   X_TRACE("PHY:BEGIN");
-
   workers_common.set_ul_rnti(rnti_type, rnti, tti_start, tti_end);
 }
 
 void fauxphy::pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start, int tti_end)
 {
   X_TRACE("PHY:BEGIN");
-
   workers_common.set_dl_rnti(rnti_type, rnti, tti_start, tti_end);
 }
 
 void fauxphy::pdcch_dl_search_reset()
 {
   X_TRACE("PHY:BEGIN");
-
   workers_common.set_dl_rnti(SRSLTE_RNTI_USER, 0);
 }
 
@@ -337,7 +314,6 @@ void fauxphy::pdcch_ul_search_reset()
 void fauxphy::get_current_cell(srslte_cell_t *cell)
 {
   X_TRACE("PHY:BEGIN");
-
   sf_recv.get_current_cell(cell);
 }
 
@@ -353,14 +329,12 @@ void fauxphy::prach_send(uint32_t preamble_idx, int allowed_subframe, float targ
 int fauxphy::prach_tx_tti()
 {
   X_TRACE("PHY:BEGIN");
-
   return prach_buffer.tx_tti();
 }
 
 void fauxphy::reset()
 {
   X_TRACE("PHY:BEGIN");
-
   Info("Resetting PHY\n");
   n_ta = 0;
   pdcch_dl_search_reset();
@@ -372,14 +346,12 @@ void fauxphy::reset()
 uint32_t fauxphy::get_current_tti()
 {
   X_TRACE("PHY:BEGIN");
-
   return sf_recv.get_current_tti();
 }
 
 void fauxphy::sr_send()
 {
   X_TRACE("PHY:BEGIN");
-
   workers_common.sr_enabled = true;
   workers_common.sr_last_tx_tti = -1;
 }
@@ -387,34 +359,29 @@ void fauxphy::sr_send()
 int fauxphy::sr_last_tx_tti()
 {
   X_TRACE("PHY:BEGIN");
-
   return workers_common.sr_last_tx_tti;
 }
 
 void fauxphy::set_earfcn(vector< uint32_t > earfcns)
 {
   X_TRACE("PHY:BEGIN");
-
   sf_recv.set_earfcn(earfcns);
 }
 
 bool fauxphy::sync_status()
 {
   X_TRACE("PHY:BEGIN");
-
   return sf_recv.status_is_sync();
 }
 
 void fauxphy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])
 {
   X_TRACE("PHY:BEGIN");
-
   workers_common.set_rar_grant(tti, grant_payload);
 }
 
 void fauxphy::set_crnti(uint16_t rnti) {
-  X_TRACE("PHY:BEGIN");
-
+  X_TRACE("PHY:BEGIN crnti %u", rnti);
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_crnti(rnti);
   }    
@@ -423,28 +390,24 @@ void fauxphy::set_crnti(uint16_t rnti) {
 // Start GUI 
 void fauxphy::start_plot() {
   X_TRACE("PHY:BEGIN");
-
   workers[0].start_plot();
 }
 
 void fauxphy::enable_pregen_signals(bool enable)
 {  
   X_TRACE("PHY:BEGIN");
-
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].enable_pregen_signals(enable);
   }
 }
 
 uint32_t fauxphy::tti_to_SFN(uint32_t tti) {
-  X_TRACE("PHY:BEGIN");
-
+  X_TRACE("PHY:BEGIN tti %u, SFN %u", tti, tti/10);
   return tti/10; 
 }
 
 uint32_t fauxphy::tti_to_subf(uint32_t tti) {
-  X_TRACE("PHY:BEGIN");
-
+  X_TRACE("PHY:BEGIN tti %u, subf %u", tti, tti%10);
   return tti%10; 
 }
 
@@ -452,42 +415,36 @@ uint32_t fauxphy::tti_to_subf(uint32_t tti) {
 void fauxphy::get_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
 {
   X_TRACE("PHY:BEGIN");
-
   memcpy(phy_cfg, &config, sizeof(phy_cfg_t));
 }
 
 void fauxphy::set_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
 {
   X_TRACE("PHY:BEGIN");
-
   memcpy(&config, phy_cfg, sizeof(phy_cfg_t));
 }
 
 void fauxphy::set_config_64qam_en(bool enable)
 {
   X_TRACE("PHY:BEGIN");
-
   config.enable_64qam = enable; 
 }
 
 void fauxphy::set_config_common(phy_interface_rrc::phy_cfg_common_t* common)
 {
   X_TRACE("PHY:BEGIN");
-
   memcpy(&config.common, common, sizeof(phy_cfg_common_t));
 }
 
 void fauxphy::set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
   X_TRACE("PHY:BEGIN");
-
   memcpy(&config.dedicated, dedicated, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
 }
 
 void fauxphy::set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT* tdd)
 {
   X_TRACE("PHY:BEGIN");
-
   memcpy(&config.common.tdd_cnfg, tdd, sizeof(LIBLTE_RRC_TDD_CONFIG_STRUCT));
 }
 

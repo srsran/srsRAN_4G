@@ -104,7 +104,7 @@ filename = enb.pcap
 [log]
 all_level = debug
 all_hex_limit = 32
-filename = enb.log
+filename = ./enb.log
 
 [gui]
 enable = false

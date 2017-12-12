@@ -41,7 +41,6 @@ usim::usim() : initiated(false)
 void usim::init(usim_args_t *args, srslte::log *usim_log_)
 {
   X_TRACE("UISM:BEGIN");
-
   usim_log = usim_log_;
 
   const char *imsi_str = args->imsi.c_str();
@@ -112,7 +111,6 @@ void usim::stop()
 void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 {
   X_TRACE("UISM:BEGIN");
-
   if (!initiated)
   {
     usim_log->error("Getting IMSI: USIM not initiated\n");
@@ -135,7 +133,6 @@ void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 {
   X_TRACE("UISM:BEGIN");
-
   if (!initiated)
   {
     usim_log->error("Getting IMEI: USIM not initiated\n");
@@ -158,7 +155,6 @@ void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
 {
   X_TRACE("UISM:BEGIN");
-
   if (!initiated)
   {
     usim_log->error("Getting Home PLMN Id: USIM not initiated\n");
@@ -207,7 +203,6 @@ void usim::generate_authentication_response(uint8_t  *rand,
                                             uint8_t  *res)
 {
   X_TRACE("UISM:BEGIN");
-
   if(auth_algo_xor == auth_algo) {
     gen_auth_res_xor(rand, autn_enb, mcc, mnc, net_valid, res);
   } else {
@@ -221,7 +216,6 @@ void usim::generate_nas_keys(uint8_t *k_nas_enc,
                              INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   X_TRACE("UISM:BEGIN");
-
   // Generate K_nas_enc and K_nas_int
   security_generate_k_nas( k_asme,
                            cipher_algo,
@@ -243,7 +237,6 @@ void usim::generate_as_keys(uint32_t count_ul,
                             INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   X_TRACE("UISM:BEGIN");
-
   // Generate K_enb
   security_generate_k_enb( k_asme,
                            count_ul,
@@ -276,7 +269,6 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
                                   uint8_t  *res)
 {
   X_TRACE("UISM:BEGIN");
-
   uint32_t i;
   uint8_t  sqn[6];
 
@@ -347,7 +339,6 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
                             uint8_t  *res)
 {
   X_TRACE("UISM:BEGIN");
-
   uint32_t i;
   uint8_t  sqn[6];
   uint8_t  xdout[16];

@@ -7,8 +7,8 @@ target_link_libraries(ip_test_enb srsenb_upper
                                   srslte_phy
                                   srslte_upper
                                   srslte_radio
-                                  ${CMAKE_THREAD_LIBS_INIT}
-                                  ${Boost_LIBRARIES}
+                                  ${CMAKE_THREAD_LIBS_INIT} 
+                                  ${Boost_LIBRARIES} 
                                   ${SEC_LIBRARIES})
 
 # Simple PLMN -> MCC/MNC test
