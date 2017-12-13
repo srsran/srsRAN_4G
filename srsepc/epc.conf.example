@@ -21,6 +21,23 @@ mcc = 001
 mnc = 01
 mme_bind_addr = 127.0.0.0/24
 
+#####################################################################
+# HSS configuration
+#
+# db_file:         Location of .csv file that stores UEs information.
+#
+#####################################################################
+[hss]
+db_file = user_db.csv
+
+
+#####################################################################
+# SP-GW configuration
+#
+# gtpu_bind_addr:   Location of .csv file that stores UEs information.
+#
+#####################################################################
+
 [spgw]
 gtpu_bind_addr=127.0.0.2
 sgi_if_addr=172.0.0.1

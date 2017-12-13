@@ -627,6 +627,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   } 
   erab_ctxt->transportLayerAddress.n_bits = 32; //IPv4
   uint32_t sgw_s1u_ip = htonl(cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4);
+  //uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
   uint8_t *tmp_ptr =  erab_ctxt->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
 
@@ -833,9 +834,10 @@ s1ap::activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi)
     return;
   }
   ue_ctx_t * ue_ctx = ue_ctx_it->second;
-  if (ue_ctx->erabs_ctx[ebi].state != ERAB_CTX_REQUESTED)
+  if (ue_ctx->erabs_ctx[ebi].state != ERAB_CTX_SETUP)
   {
-    m_s1ap_log->error("EPS Bearer could not be activated. EPS Bearer id %d\n",ebi);
+    m_s1ap_log->error("EPS Bearer could not be activated. MME S1AP Id %d, EPS Bearer id %d, state %d\n",mme_s1ap_id,ebi,ue_ctx->erabs_ctx[ebi].state);
+    m_s1ap_log->console("EPS Bearer could not be activated. MME S1AP Id %d, EPS Bearer id %d\n",mme_s1ap_id,ebi,ue_ctx->erabs_ctx[ebi].state);
     return;
   }
 

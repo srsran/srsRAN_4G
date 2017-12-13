@@ -38,13 +38,21 @@
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
-
+#include <fstream>
 
 namespace srsepc{
 
 typedef struct{
-  std::string ue_file;
+  std::string db_file;
 }hss_args_t;
+
+typedef struct{
+    std::string name;
+    uint64_t imsi;
+    uint8_t key[16];
+    uint8_t op[16];
+    uint8_t amf[2];
+}hss_ue_ctx_t;
 
 
 
@@ -54,12 +62,16 @@ public:
   static hss* get_instance(void);
   static void cleanup(void);
   int init(hss_args_t *hss_args, srslte::log_filter* hss_log);
- 
+  bool read_db_file(std::string db_file);
+
   void get_sqn(uint8_t sqn[6]);
   void gen_rand(uint8_t rand_[16]);
   bool get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op);
   bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
-  
+
+  std::vector<std::string> split_string(const std::string &str, char delimiter);
+  void get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint len);
+
 private:
 
   hss();
@@ -68,6 +80,9 @@ private:
 
   uint64_t                  m_sqn; //48 bits
   srslte::byte_buffer_pool *m_pool;
+  std::ifstream m_db_file;
+
+  std::map<uint64_t,hss_ue_ctx_t*> m_imsi_to_ue_ctx;
 
   /*Logs*/
   srslte::log_filter       *m_hss_log;

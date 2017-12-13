@@ -41,12 +41,16 @@ boost::mutex  hss_instance_mutex;
 hss::hss()
  :m_sqn(0x112233445566)
 {
-  m_pool = srslte::byte_buffer_pool::get_instance();     
+  m_pool = srslte::byte_buffer_pool::get_instance();
   return;
 }
 
 hss::~hss()
 {
+  if(m_db_file.is_open())
+  {
+    m_db_file.close();
+  }
   return;
 }
 
@@ -73,13 +77,55 @@ hss::cleanup(void)
 int
 hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
 {
-  /*Init loggers*/
   srand(time(NULL));
-
+  /*Init loggers*/
   m_hss_log = hss_log;
   m_hss_log->info("HSS Initialized\n");
   m_hss_log->console("HSS Initialized\n");
+
+  /*Read user information from DB*/
+  read_db_file(hss_args->db_file);
   return 0;
+}
+
+bool
+hss::read_db_file(std::string db_filename)
+{
+  m_db_file.open(db_filename.c_str());
+  if(!m_db_file.is_open())
+  {
+    return false;
+  }
+  m_hss_log->info("Opended DB file: %s\n", db_filename.c_str() );
+
+  std::string line;
+  while (std::getline(m_db_file, line))
+  {
+    if(line[0] != '#')
+    {
+      std::vector<std::string> split = split_string(line,','); 
+      if(split.size()!=5)
+      {
+        m_hss_log->error("Error parsing .csv file %d\n");
+        return false;
+      }
+      hss_ue_ctx_t *ue_ctx = new hss_ue_ctx_t;
+      ue_ctx->name = split[0];
+      ue_ctx->imsi = atoll(split[1].c_str());
+      get_uint_vec_from_hex_str(split[2],ue_ctx->key,16);
+      get_uint_vec_from_hex_str(split[3],ue_ctx->op,16);
+      get_uint_vec_from_hex_str(split[4],ue_ctx->amf,2);
+
+      m_hss_log->debug("Added user from DB, IMSI: %015lu\n", ue_ctx->imsi);
+      m_hss_log->debug_hex(ue_ctx->key, 16, "User Key : ");
+      m_hss_log->debug_hex(ue_ctx->op, 16, "User OP : ");
+      m_hss_log->debug_hex(ue_ctx->amf, 2, "AMF : ");
+
+      m_imsi_to_ue_ctx.insert(std::pair<uint64_t,hss_ue_ctx_t*>(ue_ctx->imsi,ue_ctx));
+    }
+  }
+
+  return true;
 }
 
 bool
@@ -154,22 +200,24 @@ bool
 hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
 {
 
+  /*
   uint8_t k_tmp[16] ={0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff};
   uint8_t amf_tmp[2]={0x80,0x00};
   uint8_t op_tmp[16]={0x63,0xbf,0xA5,0x0E,0xE6,0x52,0x33,0x65,0xFF,0x14,0xC1,0xF4,0x5F,0x88,0x73,0x7D};
-  
-  if(imsi != 1010123456789)
+  */
+  std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
+  if(ue_ctx_it == m_imsi_to_ue_ctx.end())
   {
     m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
     m_hss_log->console("User not found. IMSI: %015lu\n",imsi);
     return false;
   }
-
+  hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
   m_hss_log->info("Found User %015lu\n",imsi);
   m_hss_log->console("Found User %015lu\n",imsi);
-  memcpy(k,k_tmp,16);
-  memcpy(amf,amf_tmp,2);
-  memcpy(op,op_tmp,16);
+  memcpy(k,ue_ctx->key,16);
+  memcpy(amf,ue_ctx->amf,2);
+  memcpy(op,ue_ctx->op,16);
 
   return true;
 }
@@ -195,4 +243,43 @@ hss::gen_rand(uint8_t rand_[16])
   return;
 }
 
+/* Helper functions*/
+std::vector<std::string>
+hss::split_string(const std::string &str, char delimiter)
+{
+  std::vector<std::string> tokens;
+  std::string token;
+  std::istringstream tokenStream(str);
+
+  while (std::getline(tokenStream, token, delimiter))
+  {
+    tokens.push_back(token); 
+  }
+  return tokens;
+}
+
+void
+hss::get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint len)
+{
+  const char *pos =  key_str.c_str();
+
+  for (uint count = 0; count < len; count++) {
+    sscanf(pos, "%2hhx", &key[count]);
+    pos += 2;
+  }
+
+  return;
+}
+
+  /*
+uint64_t
+string_to_imsi()
+{
+  uint64_t imsi = 0;
+  for(int i=0;i<=14;i++){
+    imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
+  }
+  return imsi;
+}
+  */
 } //namespace srsepc
