@@ -43,18 +43,20 @@ srslte_cell_t cell = {
 };
 
 uint32_t subframe = 0;
+bool test_cqi_only = false;
 
 void usage(char *prog) {
   printf("Usage: %s [csNnv]\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
   printf("\t-n nof_prb [Default %d]\n", cell.nof_prb);
+  printf("\t-q Test CQI encoding/decoding only [Default %s].\n", test_cqi_only?"yes":"no");
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "csNnv")) != -1) {
+  while ((opt = getopt(argc, argv, "csNnqv")) != -1) {
     switch(opt) {
     case 's':
       subframe = atoi(argv[optind]);
@@ -65,6 +67,9 @@ void parse_args(int argc, char **argv) {
     case 'c':
       cell.id = atoi(argv[optind]);
       break;
+    case 'q':
+      test_cqi_only = true;
+      break;
     case 'v':
       srslte_verbose++;
       break;
@@ -73,6 +78,59 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
+}
+
+int test_uci_cqi_pucch(void) {
+  int ret = SRSLTE_SUCCESS;
+  __attribute__((aligned(256))) uint8_t o_bits[SRSLTE_UCI_MAX_CQI_LEN_PUCCH] = {0};
+  __attribute__((aligned(256))) uint8_t e_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B] = {0};
+  __attribute__((aligned(256))) int16_t e_symb[SRSLTE_UCI_CQI_CODED_PUCCH_B] = {0};
+  __attribute__((aligned(256))) uint8_t d_bits[SRSLTE_UCI_MAX_CQI_LEN_PUCCH] = {0};
+
+  srslte_uci_cqi_pucch_t uci_cqi_pucch = {0};
+
+  srslte_uci_cqi_pucch_init(&uci_cqi_pucch);
+
+  for (uint32_t nof_bits = 1; nof_bits <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH-1; nof_bits++) {
+    for (uint32_t cqi = 0; cqi < (1 <<nof_bits); cqi++) {
+      uint32_t recv;
+
+      uint8_t *ptr = o_bits;
+      srslte_bit_unpack(cqi, &ptr, nof_bits);
+
+      srslte_uci_encode_cqi_pucch(o_bits, nof_bits, e_bits);
+      //srslte_uci_encode_cqi_pucch_from_table(&uci_cqi_pucch, o_bits, nof_bits, e_bits);
+      for (int i = 0; i < SRSLTE_UCI_CQI_CODED_PUCCH_B; i++) {
+        e_symb[i] = 2*e_bits[i] - 1;
+      }
+
+      srslte_uci_decode_cqi_pucch(&uci_cqi_pucch, e_symb, d_bits, nof_bits);
+
+      ptr = d_bits;
+      recv = srslte_bit_pack(&ptr, nof_bits);
+
+      if (recv != cqi) {
+        printf("Error! cqi = %d (len: %d), %X!=%X \n", cqi, nof_bits, cqi, recv);
+        if (srslte_verbose) {
+          printf("original: ");
+          srslte_vec_fprint_b(stdout, o_bits, nof_bits);
+          printf(" decoded: ");
+          srslte_vec_fprint_b(stdout, d_bits, nof_bits);
+        }
+        ret = SRSLTE_ERROR;
+      }
+    }
+  }
+
+  srslte_uci_cqi_pucch_free(&uci_cqi_pucch);
+
+  if (ret) {
+    printf("Error\n");
+  } else {
+    printf("Ok\n");
+  }
+
+  return ret;
 }
 
 int main(int argc, char **argv) {
@@ -86,6 +144,10 @@ int main(int argc, char **argv) {
   int ret = -1;
   
   parse_args(argc,argv);
+
+  if (test_cqi_only) {
+    return test_uci_cqi_pucch();
+  }
 
   if (srslte_pucch_init(&pucch)) {
     fprintf(stderr, "Error creating PDSCH object\n");

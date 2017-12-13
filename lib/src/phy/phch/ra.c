@@ -559,16 +559,16 @@ void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srsl
                                  srslte_ra_nbits_t nbits [SRSLTE_MAX_CODEWORDS])
 {
   // Compute number of RE 
-  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+  for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+    /* Compute number of RE for first transport block */
     nbits[i].nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb < 10 ? (cfi + 1) : cfi);
     nbits[i].lstart = cell.nof_prb < 10 ? (cfi + 1) : cfi;
+    if (SRSLTE_SF_NORM == grant->sf_type) {
+      nbits[i].nof_symb = 2 * SRSLTE_CP_NSYMB(cell.cp) - nbits[0].lstart;
+    } else if (SRSLTE_SF_MBSFN == grant->sf_type) {
+      nbits[i].nof_symb = 2 * SRSLTE_CP_EXT_NSYMB - nbits[0].lstart;
+    }
     if (grant->tb_en[i]) {
-      /* Compute number of RE for first transport block */
-      if (SRSLTE_SF_NORM == grant->sf_type) {
-        nbits[i].nof_symb = 2 * SRSLTE_CP_NSYMB(cell.cp) - nbits[0].lstart;
-      } else if (SRSLTE_SF_MBSFN == grant->sf_type) {
-        nbits[i].nof_symb = 2 * SRSLTE_CP_EXT_NSYMB - nbits[0].lstart;
-      }
       nbits[i].nof_bits = nbits[i].nof_re * grant->Qm[i];
     }
   }

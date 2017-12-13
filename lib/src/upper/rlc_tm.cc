@@ -84,7 +84,7 @@ uint32_t rlc_tm::get_bearer()
 // PDCP interface
 void rlc_tm::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU", rrc->get_rb_name(lcid).c_str());
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU", get_rb_name(lcid));
   ul_queue.write(sdu);
 }
 
@@ -104,7 +104,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint32_t pdu_size = ul_queue.size_tail_bytes();
   if(pdu_size > nof_bytes)
   {
-    log->error("TX %s PDU size larger than MAC opportunity\n", rrc->get_rb_name(lcid).c_str());
+    log->error("TX %s PDU size larger than MAC opportunity\n", get_rb_name(lcid));
     return 0;
   }
   byte_buffer_t *buf;
@@ -112,9 +112,9 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   pdu_size = buf->N_bytes;
   memcpy(payload, buf->msg, buf->N_bytes);
   log->info("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
-            rrc->get_rb_name(lcid).c_str(), buf->get_latency_us());
+            get_rb_name(lcid), buf->get_latency_us());
   pool->deallocate(buf);
-  log->info_hex(payload, pdu_size, "TX %s, %s PDU", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[RLC_MODE_TM]);
+  log->info_hex(payload, pdu_size, "TX %s, %s PDU", get_rb_name(lcid), rlc_mode_text[RLC_MODE_TM]);
   return pdu_size;
 }
 

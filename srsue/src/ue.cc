@@ -104,13 +104,15 @@ bool ue::init(all_args_t *args_)
   usim_log.set_hex_limit(args->log.usim_hex_limit);
 
   // Set up pcap and trace
-  if(args->pcap.enable)
-  {
+  if(args->pcap.enable) {
     mac_pcap.open(args->pcap.filename.c_str());
     mac.start_pcap(&mac_pcap);
   }
-  if(args->trace.enable)
-  {
+  if(args->pcap.nas_enable) {
+    nas_pcap.open(args->pcap.nas_filename.c_str());
+    nas.start_pcap(&nas_pcap);
+  }
+  if(args->trace.enable) {
     phy.start_trace();
     radio.start_trace();
   }
@@ -137,8 +139,7 @@ bool ue::init(all_args_t *args_)
   }
   
   printf("Opening RF device with %d RX antennas...\n", args->rf.nof_rx_ant);
-  if(!radio.init_multi(args->rf.nof_rx_ant, dev_args, dev_name))
-  {
+  if(!radio.init_multi(args->rf.nof_rx_ant, dev_args, dev_name)) {
     printf("Failed to find device %s with args %s\n",
            args->rf.device_name.c_str(), args->rf.device_args.c_str());
     return false;
@@ -244,12 +245,13 @@ void ue::stop()
     radio.stop();
     
     usleep(1e5);
-    if(args->pcap.enable)
-    {
+    if(args->pcap.enable) {
        mac_pcap.close();
     }
-    if(args->trace.enable)
-    {
+    if(args->pcap.nas_enable) {
+       nas_pcap.close();
+    }
+    if(args->trace.enable) {
       phy.write_trace(args->trace.phy_filename);
       radio.write_trace(args->trace.radio_filename);
     }

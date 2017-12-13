@@ -77,7 +77,7 @@ void txrx::stop()
 void txrx::run_thread()
 {
   phch_worker *worker = NULL;
-  cf_t *buffer = NULL;
+  cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL};
   srslte_timestamp_t rx_time, tx_time; 
   uint32_t sf_len = SRSLTE_SF_LEN_PRB(worker_com->cell.nof_prb);
   
@@ -108,10 +108,12 @@ void txrx::run_thread()
   while (running) {
     tti = (tti+1)%10240;        
     worker = (phch_worker*) workers_pool->wait_worker(tti);
-    if (worker) {          
-      buffer = worker->get_buffer_rx();
+    if (worker) {
+      for (int p = 0; p < SRSLTE_MAX_PORTS; p++){
+        buffer[p] = worker->get_buffer_rx(p);
+      }
       
-      radio_h->rx_now(buffer, sf_len, &rx_time);
+      radio_h->rx_now((void **) buffer, sf_len, &rx_time);
                     
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);
@@ -129,7 +131,7 @@ void txrx::run_thread()
       workers_pool->start_worker(worker);       
 
       // Trigger prach worker execution 
-      prach->new_tti(tti, buffer);
+      prach->new_tti(tti, buffer[0]);
       
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here

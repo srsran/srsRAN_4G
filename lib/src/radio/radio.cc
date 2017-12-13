@@ -34,9 +34,9 @@ extern "C" {
 
 namespace srslte {
 
-bool radio::init(char *args, char *devname)
+bool radio::init(char *args, char *devname, uint32_t nof_channels)
 {
-  if (srslte_rf_open_devname(&rf_device, devname, args)) {
+  if (srslte_rf_open_devname(&rf_device, devname, args, nof_channels)) {
     fprintf(stderr, "Error opening RF device\n");
     return false;
   }
@@ -69,6 +69,7 @@ bool radio::init(char *args, char *devname)
   if (devname) {
     strncpy(saved_devname, devname, 127);
   }
+  saved_nof_channels = nof_channels;
 
   return true;    
 }
@@ -83,7 +84,7 @@ void radio::reset()
   printf("Resetting Radio...\n");
   srslte_rf_close(&rf_device);
   sleep(3);
-  if (srslte_rf_open_devname(&rf_device, saved_devname, saved_args)) {
+  if (srslte_rf_open_devname(&rf_device, saved_devname, saved_args, saved_nof_channels)) {
     fprintf(stderr, "Error opening RF device\n");
   }
 }
@@ -138,9 +139,9 @@ bool radio::rx_at(void* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time
   return false; 
 }
 
-bool radio::rx_now(void* buffer, uint32_t nof_samples, srslte_timestamp_t* rxd_time)
+bool radio::rx_now(void* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time)
 {
-  if (srslte_rf_recv_with_time(&rf_device, buffer, nof_samples, true, 
+  if (srslte_rf_recv_with_time_multi(&rf_device, buffer, nof_samples, true,
     rxd_time?&rxd_time->full_secs:NULL, rxd_time?&rxd_time->frac_secs:NULL) > 0) {
     return true; 
   } else {
@@ -187,10 +188,18 @@ bool radio::is_first_of_burst() {
 
 #define BLOCKING_TX true
 
-bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
-{
-  void *iq_samples[4] = {(void *) zeros, (void *) zeros, (void *) zeros, (void *) zeros};
+bool radio::tx_single(void *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time) {
+  void *_buffer[SRSLTE_MAX_PORTS];
 
+  _buffer[0] = buffer;
+  for (int p = 1; p < SRSLTE_MAX_PORTS; p++) {
+    _buffer[p] = zeros;
+  }
+
+  return this->tx(_buffer, nof_samples, tx_time);
+}
+
+bool radio::tx(void *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time) {
   if (!tx_adv_negative) {
     srslte_timestamp_sub(&tx_time, 0, tx_adv_sec);
   } else {
@@ -203,7 +212,7 @@ bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
       srslte_timestamp_copy(&tx_time_pad, &tx_time);
       srslte_timestamp_sub(&tx_time_pad, 0, burst_preamble_time_rounded); 
       save_trace(1, &tx_time_pad);
-      srslte_rf_send_timed_multi(&rf_device, iq_samples, burst_preamble_samples, tx_time_pad.full_secs, tx_time_pad.frac_secs, true, true, false);
+      srslte_rf_send_timed_multi(&rf_device, buffer, burst_preamble_samples, tx_time_pad.full_secs, tx_time_pad.frac_secs, true, true, false);
       is_start_of_burst = false; 
     }
   }
@@ -213,8 +222,7 @@ bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
   srslte_timestamp_add(&end_of_burst_time, 0, (double) nof_samples/cur_tx_srate); 
   
   save_trace(0, &tx_time);
-  iq_samples[0] = buffer;
-  int ret = srslte_rf_send_timed_multi(&rf_device, (void**) iq_samples, nof_samples,
+  int ret = srslte_rf_send_timed_multi(&rf_device, buffer, nof_samples,
                                        tx_time.full_secs, tx_time.frac_secs,
                                        BLOCKING_TX, is_start_of_burst, false);
   is_start_of_burst = false;
@@ -433,9 +441,9 @@ void radio::set_tx_srate(double srate)
   tx_adv_sec = nsamples/cur_tx_srate;
 }
 
-void radio::start_rx()
+void radio::start_rx(bool now)
 {
-  srslte_rf_start_rx_stream(&rf_device);
+  srslte_rf_start_rx_stream(&rf_device, now);
 }
 
 void radio::stop_rx()

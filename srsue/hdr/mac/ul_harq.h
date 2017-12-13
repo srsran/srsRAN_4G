@@ -205,23 +205,26 @@ private:
             *ack = false;
           }
         }
-        set_harq_feedback(*ack);
+        harq_feedback = *ack;
       }
 
-      uint32_t max_retx;
-      if (is_msg3) {
-        max_retx = harq_entity->params->max_harq_msg3_tx;
-      } else {
-        max_retx = harq_entity->params->max_harq_tx;
+      // Reset HARQ process if TB has changed
+      if (harq_feedback && has_grant() && grant) {
+        if (grant->n_bytes[0] != cur_grant.n_bytes[0] && cur_grant.n_bytes[0] > 0) {
+          Debug("UL %d: Reset due to change of grant size last_grant=%d, new_grant=%d\n",
+               pid, cur_grant.n_bytes[0], grant->n_bytes[0]);
+          reset();
+        }
       }
 
       // Receive and route HARQ feedbacks
       if (grant) {
-        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi() && ack) ||
+        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi() && harq_feedback) ||
             (grant->rnti_type == SRSLTE_RNTI_USER && !has_grant())                  ||
              grant->is_from_rar)
         {
           // New transmission
+          reset();
 
           // Uplink grant in a RAR
           if (grant->is_from_rar) {
@@ -245,43 +248,19 @@ private:
           }
         } else if (has_grant()) {
           // Adaptive Re-TX
-          if (current_tx_nb >= max_retx) {
-            Info("UL %d:  Maximum number of ReTX reached (%d). Discarting TB.\n", pid, max_retx);
-            reset();
-            action->expect_ack = false;
-          } else {
-            generate_retx(tti_tx, grant, action);
-          }
+          generate_retx(tti_tx, grant, action);
         } else {
           Warning("UL %d: Received retransmission but no previous grant available for this PID.\n", pid);
         }
       } else if (has_grant()) {
         // Non-Adaptive Re-Tx
-        if (current_tx_nb >= max_retx) {
-          Info("UL %d:  Maximum number of ReTX reached (%d). Discarting TB.\n", pid, max_retx);
-          reset();
-          action->expect_ack = false;
-        } else {
-          generate_retx(tti_tx, action);
-        }
+        generate_retx(tti_tx, action);
       }
       if (harq_entity->pcap && grant) {
         if (grant->is_from_rar) {
           grant->rnti = harq_entity->rntis->temp_rnti;
         }
         harq_entity->pcap->write_ul_crnti(pdu_ptr, grant->n_bytes[0], grant->rnti, get_nof_retx(), tti_tx);
-      }
-    }
-
-    void set_harq_feedback(bool ack)
-    {
-      harq_feedback = ack;
-      // UL packet successfully delivered
-      if (ack) {
-        Info("UL %d:  HARQ = ACK for UL transmission. Discarting TB.\n", pid);
-        reset();
-      } else {
-        Info("UL %d:  HARQ = NACK for UL transmission\n", pid);
       }
     }
 
@@ -326,24 +305,43 @@ private:
     void generate_retx(uint32_t tti_tx, Tgrant *grant,
                                         Taction *action)
     {
+      uint32_t max_retx;
+      if (is_msg3) {
+        max_retx = harq_entity->params->max_harq_msg3_tx;
+      } else {
+        max_retx = harq_entity->params->max_harq_tx;
+      }
+
+      if (current_tx_nb >= max_retx) {
+        Info("UL %d:  Maximum number of ReTX reached (%d). Discarting TB.\n", pid, max_retx);
+        reset();
+        action->expect_ack = false;
+        return;
+      }
+
       int irv_of_rv[4] = {0, 3, 1, 2};
+
+      // HARQ entity requests an adaptive transmission
       if (grant) {
-        // HARQ entity requests an adaptive transmission
         if (grant->rv) {
           current_irv = irv_of_rv[grant->rv[0]%4];
         }
+
+        Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d, HI=%s, ndi=%d, prev_ndi=%d\n",
+             pid, current_tx_nb, get_rv(), grant->n_bytes[0], harq_feedback?"ACK":"NACK", grant->ndi[0], cur_grant.ndi[0]);
+
         memcpy(&cur_grant, grant, sizeof(Tgrant));
         harq_feedback = false;
-        Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d\n",
-             pid, current_tx_nb, get_rv(), grant->n_bytes[0]);
+
         generate_tx(tti_tx, action);
-      } else {
-        Info("UL %d:  Non-Adaptive retx=%d, RV=%d, TBS=%d\n",
-             pid, current_tx_nb, get_rv(), cur_grant.n_bytes[0]);
-        // HARQ entity requests a non-adaptive transmission
-        if (!harq_feedback) {
-          generate_tx(tti_tx, action);
-        }
+
+      // HARQ entity requests a non-adaptive transmission
+      } else if (!harq_feedback) {
+        // Non-adaptive retx are only sent if HI=NACK. If HI=ACK but no grant was received do not reset PID
+        Info("UL %d:  Non-Adaptive retx=%d, RV=%d, TBS=%d, HI=%s\n",
+             pid, current_tx_nb, get_rv(), cur_grant.n_bytes[0], harq_feedback?"ACK":"NACK");
+
+        generate_tx(tti_tx, action);
       }
 
       // On every Msg3 retransmission, restart mac-ContentionResolutionTimer as defined in Section 5.1.5

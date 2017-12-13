@@ -82,9 +82,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
 
 
-    ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false),
-     "Enable MAC packet captures for wireshark")
+    ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
+    ("pcap.nas_enable",   bpo::value<bool>(&args->pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
+    ("pcap.nas_filename", bpo::value<string>(&args->pcap.nas_filename)->default_value("ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
+
 
     ("trace.enable", bpo::value<bool>(&args->trace.enable)->default_value(false), "Enable PHY and radio timing traces")
     ("trace.phy_filename", bpo::value<string>(&args->trace.phy_filename)->default_value("ue.phy_trace"),
@@ -203,7 +205,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Tolerance (in Hz) for digital CFO compensation (needs to be low if average_subframe_enabled=true.")
 
     ("expert.cfo_pss_ema",
-     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(0.1),
+     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(0.01),
      "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
 
     ("expert.cfo_ref_ema",
@@ -231,13 +233,16 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<float>(&args->expert.phy.cfo_loop_ref_min)->default_value(0),
      "Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop")
 
-
     ("expert.cfo_loop_pss_conv",
-     bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(50),
+     bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(20),
      "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
 
+    ("expert.sic_pss_enabled",
+     bpo::value<bool>(&args->expert.phy.sic_pss_enabled)->default_value(true),
+     "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
+
     ("expert.average_subframe_enabled",
-     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
+     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(false),
      "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
     ("expert.time_correct_period",
@@ -436,6 +441,7 @@ int main(int argc, char *argv[])
 
   bool plot_started = false;
   bool signals_pregenerated = false;
+
   while (running) {
     if (ue->is_attached()) {
       if (!signals_pregenerated && args.expert.pregenerate_signals) {

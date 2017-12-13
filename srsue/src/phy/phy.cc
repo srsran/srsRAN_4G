@@ -206,15 +206,11 @@ void phy::set_timeadv(uint32_t ta_cmd) {
 
 void phy::configure_prach_params()
 {
-  if (sf_recv.status_is_sync()) {
-    Debug("Configuring PRACH parameters\n");
-    srslte_cell_t cell; 
-    sf_recv.get_current_cell(&cell);
-    if (!prach_buffer.set_cell(cell)) {
-      Error("Configuring PRACH parameters\n");
-    } 
-  } else {
-    Error("Cell is not synchronized\n");
+  Debug("Configuring PRACH parameters\n");
+  srslte_cell_t cell;
+  sf_recv.get_current_cell(&cell);
+  if (!prach_buffer.set_cell(cell)) {
+    Error("Configuring PRACH parameters\n");
   }
 }
 
@@ -247,9 +243,25 @@ void phy::sync_reset() {
   sf_recv.reset_sync();
 }
 
+void phy::meas_reset() {
+  sf_recv.meas_reset();
+}
+
+int phy::meas_start(uint32_t earfcn, int pci) {
+  return sf_recv.meas_start(earfcn, pci);
+}
+
+int phy::meas_stop(uint32_t earfcn, int pci) {
+  return sf_recv.meas_stop(earfcn, pci);
+}
+
 bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
 {
   return sf_recv.cell_select(earfcn, phy_cell);
+}
+
+bool phy::cell_handover(srslte_cell_t cell) {
+  return sf_recv.cell_handover(cell);
 }
 
 float phy::get_phr()
@@ -283,9 +295,21 @@ void phy::pdcch_ul_search_reset()
   workers_common.set_ul_rnti(SRSLTE_RNTI_USER, 0);
 }
 
-void phy::get_current_cell(srslte_cell_t *cell)
+void phy::get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn)
 {
-  sf_recv.get_current_cell(cell);
+  sf_recv.get_current_cell(cell, current_earfcn);
+}
+
+uint32_t phy::get_current_pci() {
+  srslte_cell_t cell;
+  sf_recv.get_current_cell(&cell);
+  return cell.id;
+}
+
+uint32_t phy::get_current_earfcn() {
+  uint32_t earfcn;
+  sf_recv.get_current_cell(NULL, &earfcn);
+  return earfcn;
 }
 
 void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
@@ -309,6 +333,8 @@ void phy::reset()
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();
   }
+  workers_common.reset();
+  usleep(4000);
   workers_common.reset_ul();
 }
 

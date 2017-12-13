@@ -39,6 +39,7 @@
 #include "srslte/version.h"
 
 #include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/ringbuffer.h"
 #include "srslte/phy/utils/convolution.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/cexptab.h"

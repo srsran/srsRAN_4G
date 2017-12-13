@@ -50,7 +50,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
   srslte_cell_t cell; 
-  srslte_sss_synch_t sss; 
+  srslte_sss_t sss;
   cf_t *input_symbols;
   int frame_len; 
   uint32_t m0, m1;
@@ -80,12 +80,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  if (srslte_sss_synch_init(&sss, srslte_symbol_sz(cell.nof_prb))) {
+  if (srslte_sss_init(&sss, srslte_symbol_sz(cell.nof_prb))) {
     mexErrMsgTxt("Error initializing SSS object\n");
     return;
   }
 
-  srslte_sss_synch_set_N_id_2(&sss, cell.id%3);
+  srslte_sss_set_N_id_2(&sss, cell.id%3);
       
   // Find SSS 
   uint32_t sss_idx = SRSLTE_SLOT_IDX_CPNORM(5,srslte_symbol_sz(cell.nof_prb));     
@@ -95,23 +95,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   //mexPrintf("SSS begins at %d/%d. Running algorithm %s\n", sss_idx, frame_len, alg);
   if (!strcmp(alg, "partial")) {
-    srslte_sss_synch_m0m1_partial(&sss, &input_symbols[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);      
+    srslte_sss_m0m1_partial(&sss, &input_symbols[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);
   } else if (!strcmp(alg, "diff")) {
-    srslte_sss_synch_m0m1_diff(&sss, &input_symbols[sss_idx], &m0, &m0_value, &m1, &m1_value);      
+    srslte_sss_m0m1_diff(&sss, &input_symbols[sss_idx], &m0, &m0_value, &m1, &m1_value);
   } else if (!strcmp(alg, "full")) {
-    srslte_sss_synch_m0m1_partial(&sss, &input_symbols[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);      
+    srslte_sss_m0m1_partial(&sss, &input_symbols[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
   } else {
     mexErrMsgTxt("Unsupported algorithm type\n");
     return;
   }
   
-  //mexPrintf("m0: %d, m1: %d, N_id_1: %d\n", m0, m1, srslte_sss_synch_N_id_1(&sss, m0, m1));
+  //mexPrintf("m0: %d, m1: %d, N_id_1: %d\n", m0, m1, srslte_sss_N_id_1(&sss, m0, m1));
   
   if (nlhs >= 1) { 
-    plhs[0] = mxCreateDoubleScalar(srslte_sss_synch_N_id_1(&sss, m0, m1));
+    plhs[0] = mxCreateDoubleScalar(srslte_sss_N_id_1(&sss, m0, m1));
   }
   if (nlhs >= 2) {
-    plhs[1] = mxCreateDoubleScalar(srslte_sss_synch_subframe(m0, m1));
+    plhs[1] = mxCreateDoubleScalar(srslte_sss_subframe(m0, m1));
   }
   if (nlhs >= 3) {
     mexutils_write_f(sss.corr_output_m0, &plhs[2], SRSLTE_SSS_N, 1);  
@@ -119,7 +119,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nlhs >= 4) {
     mexutils_write_f(sss.corr_output_m1, &plhs[3], SRSLTE_SSS_N, 1);  
   }
-  srslte_sss_synch_free(&sss);
+  srslte_sss_free(&sss);
   free(input_symbols);
 
   return;

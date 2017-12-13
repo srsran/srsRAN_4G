@@ -32,6 +32,7 @@
 #include <sstream>
 #include "srslte/asn1/liblte_rrc.h"
 #include "upper/nas.h"
+#include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 
 using namespace srslte;
@@ -108,7 +109,6 @@ void nas::attach_request() {
   } else if (state == EMM_STATE_REGISTERED) {
     nas_log->info("NAS state is registered, connecting to same PLMN\n");
     rrc->plmn_select(current_plmn);
-    selecting_plmn = current_plmn;
   } else {
     nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
   }
@@ -124,6 +124,11 @@ void nas::deattach_request() {
  ******************************************************************************/
 
 void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
+
+  // Do not process new PLMN if already selected
+  if (plmn_selection == PLMN_SELECTED) {
+    return;
+  }
 
   // Check if already registered
   for (uint32_t i=0;i<known_plmns.size();i++) {
@@ -190,11 +195,42 @@ void nas::notify_connection_setup() {
 void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   uint8 pd;
   uint8 msg_type;
+  uint8 sec_hdr_type;
+  bool  mac_valid = false;
 
-  nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s PDU", rrc->get_rb_name(lcid).c_str());
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s PDU", get_rb_name(lcid));
 
-  // Parse the message
+  // Parse the message security header
+  liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)pdu, &pd, &sec_hdr_type);
+  switch(sec_hdr_type)
+  {
+    case LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS:
+    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT:
+    case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
+    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY:
+        break;
+    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED:
+        mac_valid = integrity_check(pdu);
+        cipher_decrypt(pdu);
+        break;
+    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT:
+        break;
+    default:
+      nas_log->error("Not handling NAS message with SEC_HDR_TYPE=%02X\n",msg_type);
+      pool->deallocate(pdu);
+      break;
+  }
+
+  // Write NAS pcap
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  // Parse the message header
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) pdu, &pd, &msg_type);
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s Decrypted PDU", get_rb_name(lcid));
+  // TODO: Check if message type requieres specical security header type and if it isvalid
+
   switch (msg_type) {
     case LIBLTE_MME_MSG_TYPE_ATTACH_ACCEPT:
       parse_attach_accept(lcid, pdu);
@@ -259,24 +295,31 @@ bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
 }
 
 /*******************************************************************************
+  PCAP
+*******************************************************************************/
+
+void nas::start_pcap(srslte::nas_pcap *pcap_)
+{
+  pcap = pcap_;
+}
+
+/*******************************************************************************
  * Security
  ******************************************************************************/
 
-void nas::integrity_generate(uint8_t integ_algo,
-                             uint8_t *key_128,
+void nas::integrity_generate(uint8_t *key_128,
                              uint32_t count,
-                             uint8_t rb_id,
                              uint8_t direction,
                              uint8_t *msg,
                              uint32_t msg_len,
                              uint8_t *mac) {
-  switch (integ_algo) {
+  switch (ctxt.integ_algo) {
     case INTEGRITY_ALGORITHM_ID_EIA0:
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
       security_128_eia1(key_128,
                         count,
-                        rb_id,
+                        0,            // Bearer always 0 for NAS
                         direction,
                         msg,
                         msg_len,
@@ -285,7 +328,7 @@ void nas::integrity_generate(uint8_t integ_algo,
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(key_128,
                         count,
-                        rb_id,
+                        0,            // Bearer always 0 for NAS
                         direction,
                         msg,
                         msg_len,
@@ -296,16 +339,102 @@ void nas::integrity_generate(uint8_t integ_algo,
   }
 }
 
-void nas::integrity_check() {
+// This function depends to a valid k_nas_int.
+// This key is generated in the security mode command.
 
+bool nas::integrity_check(byte_buffer_t *pdu)
+{
+  uint8_t exp_mac[4];
+  uint8_t *mac = &pdu->msg[1];
+  int i;
+
+  integrity_generate(&k_nas_int[16],
+                     ctxt.rx_count,
+                     SECURITY_DIRECTION_DOWNLINK,
+                     &pdu->msg[5],
+                     pdu->N_bytes-5,
+                     &exp_mac[0]);
+
+  // Check if expected mac equals the sent mac
+  for(i=0; i<4; i++){
+    if(exp_mac[i] != mac[i]){
+     nas_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
+                      "Received: count=%d, [%02x %02x %02x %02x]\n",
+                      ctxt.rx_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                      pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
+     return false;
+    }
+  }
+  nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
+                ctxt.rx_count, pdu->msg[5]);
+  return true;
 }
 
-void nas::cipher_encrypt() {
-
+void nas::cipher_encrypt(byte_buffer_t *pdu)
+{
+  byte_buffer_t pdu_tmp;
+  switch(ctxt.cipher_algo)
+  {
+  case CIPHERING_ALGORITHM_ID_EEA0:
+      break;
+  case CIPHERING_ALGORITHM_ID_128_EEA1:
+      security_128_eea1(&k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_UPLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &pdu_tmp.msg[6]);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+      break;
+  case CIPHERING_ALGORITHM_ID_128_EEA2:
+      security_128_eea2(&k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_UPLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &pdu_tmp.msg[6]);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+      break;
+  default:
+      nas_log->error("Ciphering algorithmus not known");
+      break;
+  }
 }
 
-void nas::cipher_decrypt() {
-
+void nas::cipher_decrypt(byte_buffer_t *pdu)
+{
+  byte_buffer_t tmp_pdu;
+  switch(ctxt.cipher_algo)
+  {
+  case CIPHERING_ALGORITHM_ID_EEA0:
+      break;
+  case CIPHERING_ALGORITHM_ID_128_EEA1:
+      security_128_eea1(&k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &tmp_pdu.msg[6]);
+      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+      break;
+  case CIPHERING_ALGORITHM_ID_128_EEA2:
+      security_128_eea2(&k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &tmp_pdu.msg[6]);
+      nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+      break;
+    default:
+      nas_log->error("Ciphering algorithmus not known");
+      break;
+  }
 }
 
 bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps)
@@ -418,10 +547,14 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
                                         LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
                                         ctxt.tx_count,
                                         (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-    integrity_generate(ctxt.integ_algo,
-                       &k_nas_int[16],
+    // Write NAS pcap
+    if (pcap != NULL) {
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
+
+    cipher_encrypt(pdu);
+    integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,
-                       lcid - 1,
                        SECURITY_DIRECTION_UPLINK,
                        &pdu->msg[5],
                        pdu->N_bytes - 5,
@@ -489,6 +622,10 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
     liblte_mme_pack_authentication_response_msg(&auth_res, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
 
     nas_log->info("Sending Authentication Response\n");
+    // Write NAS pcap
+    if (pcap != NULL) {
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
     rrc->write_sdu(lcid, pdu);
   } else {
     nas_log->warning("Network authentication failure\n");
@@ -569,7 +706,7 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
     return;
   }
 
-  // Reset counterd (as per 24.301 5.4.3.2)
+  // Reset counters (as per 24.301 5.4.3.2)
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
 
@@ -585,42 +722,22 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   }
 
   // Generate NAS keys
-  usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int, ctxt.cipher_algo, ctxt.integ_algo);
+  usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int,
+                          ctxt.cipher_algo, ctxt.integ_algo);
   nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
   nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
 
   nas_log->debug("Generating integrity check. integ_algo:%d, count_dl:%d, lcid:%d\n",
                  ctxt.integ_algo, ctxt.rx_count, lcid);
 
-  // Check incoming MAC
-  uint8_t *inMAC = &pdu->msg[1];
-  uint8_t genMAC[4];
-  integrity_generate(ctxt.integ_algo,
-                     &k_nas_int[16],
-                     ctxt.rx_count,
-                     lcid - 1,
-                     SECURITY_DIRECTION_DOWNLINK,
-                     &pdu->msg[5],
-                     pdu->N_bytes - 5,
-                     genMAC);
-
-  nas_log->info_hex(inMAC, 4, "Incoming PDU MAC:");
-  nas_log->info_hex(genMAC, 4, "Generated PDU MAC:");
-
-  ctxt.rx_count++;
-
-  bool match = true;
-  for (int i = 0; i < 4; i++) {
-    if (inMAC[i] != genMAC[i]) {
-      match = false;
-    }
-  }
-  if(!match) {
+  if (integrity_check(pdu) != true) {
     nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
-    send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED);
+    send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE);
     pool->deallocate(pdu);
     return;
   }
+
+  ctxt.rx_count++;
 
   // Take security context into use
   have_ctxt = true;
@@ -638,20 +755,22 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   // Send response
   byte_buffer_t *sdu = pool_allocate;
   liblte_mme_pack_security_mode_complete_msg(&sec_mode_comp,
-                                             LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                             LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT,
                                              ctxt.tx_count,
                                              (LIBLTE_BYTE_MSG_STRUCT *) sdu);
-  integrity_generate(ctxt.integ_algo,
-                     &k_nas_int[16],
+  if(pcap != NULL) {
+    pcap->write_nas(sdu->msg, sdu->N_bytes);
+  }
+  cipher_encrypt(sdu);
+  integrity_generate(&k_nas_int[16],
                      ctxt.tx_count,
-                     lcid - 1,
                      SECURITY_DIRECTION_UPLINK,
                      &sdu->msg[5],
                      sdu->N_bytes - 5,
                      &sdu->msg[1]);
   nas_log->info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s\n",
                 ctxt.tx_count,
-                rrc->get_rb_name(lcid).c_str());
+                get_rb_name(lcid));
   rrc->write_sdu(lcid, sdu);
   ctxt.tx_count++;
   pool->deallocate(pdu);
@@ -727,10 +846,8 @@ void nas::send_attach_request() {
                                        (LIBLTE_BYTE_MSG_STRUCT *) msg);
 
     // Add MAC
-    integrity_generate(ctxt.integ_algo,
-                       &k_nas_int[16],
+    integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,
-                       cfg.lcid-1,
                        SECURITY_DIRECTION_UPLINK,
                        &msg->msg[5],
                        msg->N_bytes - 5,
@@ -740,6 +857,10 @@ void nas::send_attach_request() {
     usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
     nas_log->info("Requesting IMSI attach (IMSI=%s)\n", usim->get_imsi_str().c_str());
     liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT *) msg);
+  }
+
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
   }
 
   nas_log->info("Sending attach request\n");
@@ -777,6 +898,10 @@ void nas::send_security_mode_reject(uint8_t cause) {
   LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT sec_mode_rej;
   sec_mode_rej.emm_cause = cause;
   liblte_mme_pack_security_mode_reject_msg(&sec_mode_rej, (LIBLTE_BYTE_MSG_STRUCT *) msg);
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+  nas_log->info("Sending security mode reject\n");
   rrc->write_sdu(cfg.lcid, msg);
 }
 
@@ -793,10 +918,8 @@ void nas::send_service_request() {
   msg->N_bytes++;
 
   uint8_t mac[4];
-  integrity_generate(ctxt.integ_algo,
-                     &k_nas_int[16],
+  integrity_generate(&k_nas_int[16],
                      ctxt.tx_count,
-                     cfg.lcid-1,
                      SECURITY_DIRECTION_UPLINK,
                      &msg->msg[0],
                      2,
@@ -806,6 +929,11 @@ void nas::send_service_request() {
   msg->N_bytes++;
   msg->msg[3] = mac[3];
   msg->N_bytes++;
+
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+
   nas_log->info("Sending service request\n");
   rrc->write_sdu(cfg.lcid, msg);
   ctxt.tx_count++;

@@ -55,6 +55,11 @@ typedef struct{
     uint8 state[4][4];
 }STATE_STRUCT;
 
+typedef struct{
+    uint32 * lfsr;
+    uint32 * fsm;
+}S3G_STATE;
+
 /*******************************************************************************
                               GLOBAL VARIABLES
 *******************************************************************************/
@@ -75,6 +80,35 @@ static const uint8 S[256] = { 99,124,119,123,242,107,111,197, 48,  1,103, 43,254
                              112, 62,181,102, 72,  3,246, 14, 97, 53, 87,185,134,193, 29,158,
                              225,248,152, 17,105,217,142,148,155, 30,135,233,206, 85, 40,223,
                              140,161,137, 13,191,230, 66,104, 65,153, 45, 15,176, 84,187, 22};
+
+/* S-box SQ */
+static const uint8 SQ[256] = {  0x25, 0x24, 0x73, 0x67, 0xD7, 0xAE,
+        0x5C, 0x30, 0xA4, 0xEE, 0x6E, 0xCB, 0x7D, 0xB5, 0x82, 0xDB,
+        0xE4, 0x8E, 0x48, 0x49, 0x4F, 0x5D, 0x6A, 0x78, 0x70, 0x88,
+        0xE8, 0x5F, 0x5E, 0x84, 0x65, 0xE2, 0xD8, 0xE9, 0xCC, 0xED,
+        0x40, 0x2F, 0x11, 0x28, 0x57, 0xD2, 0xAC, 0xE3, 0x4A, 0x15,
+        0x1B, 0xB9, 0xB2, 0x80, 0x85, 0xA6, 0x2E, 0x02, 0x47, 0x29,
+        0x07, 0x4B, 0x0E, 0xC1, 0x51, 0xAA, 0x89, 0xD4, 0xCA, 0x01,
+        0x46, 0xB3, 0xEF, 0xDD, 0x44, 0x7B, 0xC2, 0x7F, 0xBE, 0xC3,
+        0x9F, 0x20, 0x4C, 0x64, 0x83, 0xA2, 0x68, 0x42, 0x13, 0xB4,
+        0x41, 0xCD, 0xBA, 0xC6, 0xBB, 0x6D, 0x4D, 0x71, 0x21, 0xF4,
+        0x8D, 0xB0, 0xE5, 0x93, 0xFE, 0x8F, 0xE6, 0xCF, 0x43, 0x45,
+        0x31, 0x22, 0x37, 0x36, 0x96, 0xFA, 0xBC, 0x0F, 0x08, 0x52,
+        0x1D, 0x55, 0x1A, 0xC5, 0x4E, 0x23, 0x69, 0x7A, 0x92, 0xFF,
+        0x5B, 0x5A, 0xEB, 0x9A, 0x1C, 0xA9, 0xD1, 0x7E, 0x0D, 0xFC,
+        0x50, 0x8A, 0xB6, 0x62, 0xF5, 0x0A, 0xF8, 0xDC, 0x03, 0x3C,
+        0x0C, 0x39, 0xF1, 0xB8, 0xF3, 0x3D, 0xF2, 0xD5, 0x97, 0x66,
+        0x81, 0x32, 0xA0, 0x00, 0x06, 0xCE, 0xF6, 0xEA, 0xB7, 0x17,
+        0xF7, 0x8C, 0x79, 0xD6, 0xA7, 0xBF, 0x8B, 0x3F, 0x1F, 0x53,
+        0x63, 0x75, 0x35, 0x2C, 0x60, 0xFD, 0x27, 0xD3, 0x94, 0xA5,
+        0x7C, 0xA1, 0x05, 0x58, 0x2D, 0xBD, 0xD9, 0xC7, 0xAF, 0x6B,
+        0x54, 0x0B, 0xE0, 0x38, 0x04, 0xC8, 0x9D, 0xE7, 0x14, 0xB1,
+        0x87, 0x9C, 0xDF, 0x6F, 0xF9, 0xDA, 0x2A, 0xC4, 0x59, 0x16,
+        0x74, 0x91, 0xAB, 0x26, 0x61, 0x76, 0x34, 0x2B, 0xAD, 0x99,
+        0xFB, 0x72, 0xEC, 0x33, 0x12, 0xDE, 0x98, 0x3B, 0xC0, 0x9B,
+        0x3E, 0x18, 0x10, 0x3A, 0x56, 0xE1, 0x77, 0xC9, 0x1E, 0x9E,
+        0x95, 0xA3, 0x90, 0x19, 0xA8, 0x6C, 0x09, 0xD0, 0xF0, 0x86 };
+
 
 static const uint8 X_TIME[256] = {  0,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30,
                                    32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62,
@@ -195,6 +229,136 @@ void shift_row(STATE_STRUCT *state);
 // Functions
 void mix_column(STATE_STRUCT *state);
 
+/*********************************************************************
+    Name: zero_tailing_bits
+
+    Description: Fill tailing bits with zeros.
+
+    Document Reference: -
+*********************************************************************/
+void zero_tailing_bits(uint8 * data, uint32 length_bits);
+
+/*********************************************************************
+    Name: s3g_mul_x
+
+    Description: Multiplication with reduction.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.1.1
+*********************************************************************/
+uint8 s3g_mul_x(uint8 v, uint8 c);
+
+/*********************************************************************
+    Name: s3g_mul_x_pow
+
+    Description: Recursive multiplication with reduction.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.1.2
+*********************************************************************/
+uint8 s3g_mul_x_pow(uint8 v, uint8 i, uint8 c);
+
+/*********************************************************************
+    Name: s3g_mul_alpha
+
+    Description: Multiplication with alpha.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.4.2
+*********************************************************************/
+uint32 s3g_mul_alpha(uint8 c);
+
+/*********************************************************************
+    Name: s3g_div_alpha
+
+    Description: Division by alpha.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.4.3
+*********************************************************************/
+uint32 s3g_div_alpha(uint8 c);
+
+/*********************************************************************
+    Name: s3g_s1
+
+    Description: S-Box S1.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.3.1
+*********************************************************************/
+uint32 s3g_s1(uint32 w);
+
+/*********************************************************************
+    Name: s3g_s2
+
+    Description: S-Box S2.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.3.2
+*********************************************************************/
+uint32 s3g_s2(uint32 w);
+
+/*********************************************************************
+    Name: s3g_clock_lfsr
+
+    Description: Clocking LFSR.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.4.4 and Section 3.4.5
+*********************************************************************/
+void s3g_clock_lfsr(S3G_STATE * state, uint32 f);
+
+/*********************************************************************
+    Name: s3g_clock_fsm
+
+    Description: Clocking FSM.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.4.6
+*********************************************************************/
+uint32 s3g_clock_fsm(S3G_STATE * state);
+
+/*********************************************************************
+    Name: s3g_initialize
+
+    Description: Initialization.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 4.1
+*********************************************************************/
+void s3g_initialize(S3G_STATE * state, uint32 k[4], uint32 iv[4]);
+
+/*********************************************************************
+    Name: s3g_deinitialize
+
+    Description: Deinitialization.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+*********************************************************************/
+void s3g_deinitialize(S3G_STATE * state);
+
+/*********************************************************************
+    Name: s3g_generate_keystream
+
+    Description: Generation of Keystream.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 4.2
+*********************************************************************/
+void s3g_generate_keystream(S3G_STATE * state, uint32 n, uint32 *ks);
+
+
 /*******************************************************************************
                               FUNCTIONS
 *******************************************************************************/
@@ -296,6 +460,71 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_enb(uint8  *k_asme,
     }
 
     return(err);
+}
+
+/*********************************************************************
+    Name: liblte_security_generate_k_enb_star
+
+    Description: Generate the security key Kenb*.
+
+    Document Reference: 33.401 v10.0.0 Annex A.5
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_generate_k_enb_star(uint8  *k_enb,
+                                                      uint32  pci,
+                                                      uint32_t earfcn,
+                                                      uint8  *k_enb_star)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8 s[9];
+
+    if (k_enb_star != NULL &&
+        k_enb != NULL) {
+        // Construct S
+        s[0] = 0x13; // FC
+        s[1] = (pci >> 8) & 0xFF; // First byte of P0
+        s[2] = pci & 0xFF; // Second byte of P0
+        s[3] = 0x00; // First byte of L0
+        s[4] = 0x02; // Second byte of L0
+        s[5] = (earfcn >> 8) & 0xFF; // First byte of P0
+        s[6] = earfcn & 0xFF; // Second byte of P0
+        s[7] = 0x00; // First byte of L0
+        s[8] = 0x02; // Second byte of L0
+
+        // Derive Kenb
+        sha256(k_enb, 32, s, 9, k_enb_star, 0);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return (err);
+}
+
+LIBLTE_ERROR_ENUM liblte_security_generate_nh( uint8_t *k_asme,
+                                               uint8_t *sync,
+                                               uint8_t *nh)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8 s[35];
+
+    if (k_asme != NULL &&
+        sync   != NULL &&
+        nh     != NULL)
+    {
+        // Construct S
+        s[0] = 0x12; // FC
+        for (int i=0;i<32;i++) {
+            s[1+i] = sync[i];
+        }
+        s[33] = 0x00; // First byte of L0
+        s[34] = 0x20, // Second byte of L0
+
+        // Derive NH
+        sha256(k_asme, 32, s, 35, nh, 0);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return (err);
 }
 
 /*********************************************************************
@@ -681,6 +910,183 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(uint8                 *key,
 
     return(err);
 }
+
+/*********************************************************************
+    Name: liblte_security_encryption_eea1
+
+    Description: 128-bit encryption algorithm EEA1.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.2
+                        35.215 v13.0.0 References
+                        Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D1 v2.1
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(uint8  *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *msg,
+                                                  uint32  msg_len,
+                                                  uint8  *out)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    S3G_STATE state, *state_ptr;
+    uint32 k[] = {0,0,0,0};
+    uint32 iv[] = {0,0,0,0};
+    uint32 *ks;
+    int32 i;
+    uint32 msg_len_block_8, msg_len_block_32, m;
+
+    if (key != NULL &&
+        msg != NULL &&
+        out != NULL)
+    {
+        state_ptr = &state;
+        msg_len_block_8 = (msg_len + 7) / 8;
+        msg_len_block_32 = (msg_len + 31) / 32;
+
+        // Transform key
+        for (i = 3; i >= 0; i--) {
+            k[i] = (key[4 * (3 - i) + 0] << 24) |
+                   (key[4 * (3 - i) + 1] << 16) |
+                   (key[4 * (3 - i) + 2] <<  8) |
+                   (key[4 * (3 - i) + 3]);
+        }
+
+        // Construct iv
+        iv[3] = count;
+        iv[2] = ((bearer & 0x1F) << 27) | ((direction & 0x01) << 26);
+        iv[1] = iv[3];
+        iv[0] = iv[2];
+
+        // Initialize keystream
+        s3g_initialize(state_ptr, k, iv);
+
+        // Generate keystream
+
+        ks = (uint32 *) calloc(msg_len_block_32, sizeof(uint32));
+        s3g_generate_keystream(state_ptr, msg_len_block_32, ks);
+
+        // Generate output except last block
+        for (i = 0; i < (int32_t)msg_len_block_32 - 1; i++) {
+            out[4 * i + 0] = msg[4 * i + 0] ^ ((ks[i] >> 24) & 0xFF);
+            out[4 * i + 1] = msg[4 * i + 1] ^ ((ks[i] >> 16) & 0xFF);
+            out[4 * i + 2] = msg[4 * i + 2] ^ ((ks[i] >>  8) & 0xFF);
+            out[4 * i + 3] = msg[4 * i + 3] ^ ((ks[i]        & 0xFF));
+        }
+
+        // Process last bytes
+        for (i = (msg_len_block_32 - 1) * 4; i < (int32_t)msg_len_block_8; i++) {
+            out[i] = msg[i] ^ ((ks[i / 4] >> ((3 - (i % 4)) * 8)) & 0xFF);
+        }
+
+        // Zero tailing bits
+        zero_tailing_bits(out, msg_len);
+
+        // Clean up
+        free(ks);
+        s3g_deinitialize(state_ptr);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+
+/*********************************************************************
+    Name: liblte_security_decryption_eea1
+
+    Description: 128-bit decryption algorithm EEA1.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.2
+                        35.215 v13.0.0 References
+                        Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D1 v2.1
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(uint8  *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *ct,
+                                                  uint32  ct_len,
+                                                  uint8  *out) {
+    return liblte_security_encryption_eea1(key, count, bearer,
+            direction, ct, ct_len, out);
+}
+
+/*********************************************************************
+    Name: liblte_security_encryption_eea2
+
+    Description: 128-bit encryption algorithm EEA2.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.3
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(uint8 *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *msg,
+                                                  uint32  msg_len,
+                                                  uint8   *out)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    aes_context ctx;
+    unsigned char stream_blk[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    unsigned char nonce_cnt[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    int32 i;
+    int ret;
+    size_t nc_off = 0;
+
+    if(key != NULL &&
+       msg != NULL &&
+       out != NULL)
+    {
+        ret = aes_setkey_enc(&ctx, key, 128);
+
+        if (ret == 0) {
+            // Construct nonce
+            nonce_cnt[0] = (count >> 24) & 0xFF;
+            nonce_cnt[1] = (count >> 16) & 0xFF;
+            nonce_cnt[2] = (count >>  8) & 0xFF;
+            nonce_cnt[3] = (count) & 0xFF;
+            nonce_cnt[4] = ((bearer & 0x1F) << 3) |
+                           ((direction & 0x01) << 2);
+
+            // Encryption
+            ret = aes_crypt_ctr(&ctx, (msg_len + 7) / 8, &nc_off, nonce_cnt,
+                    stream_blk, msg, out);
+        }
+
+        if (ret == 0) {
+            // Zero tailing bits
+            zero_tailing_bits(out, msg_len);
+            err = LIBLTE_SUCCESS;
+        }
+    }
+
+    return(err);
+}
+
+/*********************************************************************
+    Name: liblte_security_decryption_eea2
+
+    Description: 128-bit decryption algorithm EEA2.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.3
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(uint8 *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *ct,
+                                                  uint32  ct_len,
+                                                  uint8   *out)
+{
+    return liblte_security_encryption_eea2(key, count, bearer,
+            direction, ct,    ct_len, out);
+}
+
+
 
 /*********************************************************************
     Name: liblte_security_milenage_f1
@@ -1241,5 +1647,295 @@ void mix_column(STATE_STRUCT *state)
 
         tmp                 = X_TIME[state->state[3][i] ^ tmp0];
         state->state[3][i] ^= temp ^ tmp;
+    }
+}
+
+/*********************************************************************
+    Name: zero_tailing_bits
+
+    Description: Fill tailing bits with zeros.
+
+    Document Reference: -
+*********************************************************************/
+void zero_tailing_bits(uint8 * data, uint32 length_bits) {
+    uint8 bits = (8 - (length_bits & 0x07)) & 0x07;
+    data[(length_bits + 7) / 8 - 1] &= (uint8) (0xFF << bits);
+}
+
+/*********************************************************************
+    Name: s3g_mul_x
+
+    Description: Multiplication with reduction.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.1.1
+*********************************************************************/
+uint8 s3g_mul_x(uint8 v, uint8 c) {
+    if (v & 0x80)
+        return ((v << 1) ^ c);
+    else
+        return (v << 1);
+}
+
+/*********************************************************************
+    Name: s3g_mul_x_pow
+
+    Description: Recursive multiplication with reduction.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.1.2
+*********************************************************************/
+uint8 s3g_mul_x_pow(uint8 v, uint8 i, uint8 c) {
+    if (i == 0)
+        return v;
+    else
+        return s3g_mul_x(s3g_mul_x_pow(v, i - 1, c), c);
+}
+
+/*********************************************************************
+    Name: s3g_mul_alpha
+
+    Description: Multiplication with alpha.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.4.2
+*********************************************************************/
+uint32 s3g_mul_alpha(uint8 c) {
+    return ((((uint32) s3g_mul_x_pow(c,  23, 0xa9)) << 24) |
+            (((uint32) s3g_mul_x_pow(c, 245, 0xa9)) << 16) |
+            (((uint32) s3g_mul_x_pow(c,  48, 0xa9)) <<  8) |
+            (((uint32) s3g_mul_x_pow(c, 239, 0xa9))));
+}
+
+/*********************************************************************
+    Name: s3g_div_alpha
+
+    Description: Division by alpha.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.4.3
+*********************************************************************/
+uint32 s3g_div_alpha(uint8 c) {
+    return ((((uint32) s3g_mul_x_pow(c, 16, 0xa9)) << 24) |
+            (((uint32) s3g_mul_x_pow(c, 39, 0xa9)) << 16) |
+            (((uint32) s3g_mul_x_pow(c,  6, 0xa9)) <<  8) |
+            (((uint32) s3g_mul_x_pow(c, 64, 0xa9))));
+}
+
+/*********************************************************************
+    Name: s3g_s1
+
+    Description: S-Box S1.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.3.1
+*********************************************************************/
+uint32 s3g_s1(uint32 w) {
+    uint8 r0 = 0, r1 = 0, r2 = 0, r3 = 0;
+    uint8 srw0 = S[(uint8) ((w >> 24) & 0xff)];
+    uint8 srw1 = S[(uint8) ((w >> 16) & 0xff)];
+    uint8 srw2 = S[(uint8) ((w >>  8) & 0xff)];
+    uint8 srw3 = S[(uint8) ((w)       & 0xff)];
+
+    r0 = ((s3g_mul_x(srw0, 0x1b)) ^
+          (srw1) ^
+          (srw2) ^
+          ((s3g_mul_x(srw3, 0x1b)) ^ srw3));
+
+    r1 = (((s3g_mul_x(srw0, 0x1b)) ^ srw0) ^
+          (s3g_mul_x(srw1, 0x1b)) ^
+          (srw2) ^
+          (srw3));
+
+    r2 = ((srw0) ^
+          ((s3g_mul_x(srw1, 0x1b)) ^ srw1) ^
+          (s3g_mul_x(srw2, 0x1b)) ^
+          (srw3));
+
+    r3 = ((srw0) ^
+          (srw1) ^
+          ((s3g_mul_x(srw2, 0x1b)) ^ srw2) ^
+          (s3g_mul_x(srw3, 0x1b)));
+
+    return ((((uint32) r0) << 24) |
+            (((uint32) r1) << 16) |
+            (((uint32) r2) <<  8) |
+            (((uint32) r3)));
+}
+
+/*********************************************************************
+    Name: s3g_s2
+
+    Description: S-Box S2.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.3.2
+*********************************************************************/
+uint32 s3g_s2(uint32 w) {
+    uint8 r0 = 0, r1 = 0, r2 = 0, r3 = 0;
+    uint8 sqw0 = SQ[(uint8) ((w >> 24) & 0xff)];
+    uint8 sqw1 = SQ[(uint8) ((w >> 16) & 0xff)];
+    uint8 sqw2 = SQ[(uint8) ((w >>  8) & 0xff)];
+    uint8 sqw3 = SQ[(uint8) ((w)       & 0xff)];
+
+    r0 = ((s3g_mul_x(sqw0, 0x69)) ^
+          (sqw1) ^
+          (sqw2) ^
+          ((s3g_mul_x(sqw3, 0x69)) ^ sqw3));
+
+    r1 = (((s3g_mul_x(sqw0, 0x69)) ^ sqw0) ^
+          (s3g_mul_x(sqw1, 0x69)) ^
+          (sqw2) ^
+          (sqw3));
+
+    r2 = ((sqw0) ^
+          ((s3g_mul_x(sqw1, 0x69)) ^ sqw1) ^
+          (s3g_mul_x(sqw2, 0x69)) ^
+          (sqw3));
+
+    r3 = ((sqw0) ^
+          (sqw1) ^
+          ((s3g_mul_x(sqw2, 0x69)) ^ sqw2) ^
+          (s3g_mul_x(sqw3, 0x69)));
+
+    return ((((uint32) r0) << 24) |
+            (((uint32) r1) << 16) |
+            (((uint32) r2) <<  8) |
+            (((uint32) r3)));
+}
+
+/*********************************************************************
+    Name: s3g_clock_lfsr
+
+    Description: Clocking LFSR.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.4.4 and Section 3.4.5
+*********************************************************************/
+void s3g_clock_lfsr(S3G_STATE * state, uint32 f) {
+    uint32 v = (
+            ((state->lfsr[0] << 8) & 0xffffff00) ^
+            (s3g_mul_alpha((uint8) ((state->lfsr[0] >> 24) & 0xff))) ^
+            (state->lfsr[2]) ^
+            ((state->lfsr[11] >> 8) & 0x00ffffff) ^
+            (s3g_div_alpha((uint8) ((state->lfsr[11]) & 0xff))) ^
+            (f)
+            );
+    uint8 i;
+
+    for (i = 0; i < 15; i++) {
+        state->lfsr[i] = state->lfsr[i + 1];
+    }
+    state->lfsr[15] = v;
+}
+
+/*********************************************************************
+    Name: s3g_clock_fsm
+
+    Description: Clocking FSM.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 3.4.6
+*********************************************************************/
+uint32 s3g_clock_fsm(S3G_STATE * state) {
+    uint32 f = ((state->lfsr[15] + state->fsm[0]) & 0xffffffff) ^
+               state->fsm[1];
+    uint32 r = (state->fsm[1] + (state->fsm[2] ^ state->lfsr[5])) &
+               0xffffffff;
+
+    state->fsm[2] = s3g_s2(state->fsm[1]);
+    state->fsm[1] = s3g_s1(state->fsm[0]);
+    state->fsm[0] = r;
+
+    return f;
+}
+
+/*********************************************************************
+    Name: s3g_initialize
+
+    Description: Initialization.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 4.1
+*********************************************************************/
+void s3g_initialize(S3G_STATE * state, uint32 k[4], uint32 iv[4]) {
+    uint8 i = 0;
+    uint32 f = 0x0;
+
+    state->lfsr = (uint32 *) calloc(16, sizeof(uint32));
+    state->fsm  = (uint32 *) calloc( 3, sizeof(uint32));
+
+    state->lfsr[15] = k[3] ^ iv[0];
+    state->lfsr[14] = k[2];
+    state->lfsr[13] = k[1];
+    state->lfsr[12] = k[0] ^ iv[1];
+
+    state->lfsr[11] = k[3] ^ 0xffffffff;
+    state->lfsr[10] = k[2] ^ 0xffffffff ^ iv[2];
+    state->lfsr[ 9] = k[1] ^ 0xffffffff ^ iv[3];
+    state->lfsr[ 8] = k[0] ^ 0xffffffff;
+    state->lfsr[ 7] = k[3];
+    state->lfsr[ 6] = k[2];
+    state->lfsr[ 5] = k[1];
+    state->lfsr[ 4] = k[0];
+    state->lfsr[ 3] = k[3] ^ 0xffffffff;
+    state->lfsr[ 2] = k[2] ^ 0xffffffff;
+    state->lfsr[ 1] = k[1] ^ 0xffffffff;
+    state->lfsr[ 0] = k[0] ^ 0xffffffff;
+
+    state->fsm[0] = 0x0;
+    state->fsm[1] = 0x0;
+    state->fsm[2] = 0x0;
+    for (i = 0; i < 32; i++) {
+        f = s3g_clock_fsm(state);
+        s3g_clock_lfsr(state, f);
+    }
+}
+
+/*********************************************************************
+    Name: s3g_deinitialize
+
+    Description: Deinitialization.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+*********************************************************************/
+void s3g_deinitialize(S3G_STATE * state) {
+    free(state->lfsr);
+    free(state->fsm);
+}
+
+/*********************************************************************
+    Name: s3g_generate_keystream
+
+    Description: Generation of Keystream.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+                            Section 4.2
+*********************************************************************/
+void s3g_generate_keystream(S3G_STATE * state, uint32 n, uint32 *ks) {
+    uint32 t = 0;
+    uint32 f = 0x0;
+
+    // Clock FSM once. Discard the output.
+    s3g_clock_fsm(state);
+    //  Clock LFSR in keystream mode once.
+    s3g_clock_lfsr(state, 0x0);
+
+    for (t = 0; t < n; t++) {
+        f = s3g_clock_fsm(state);
+        // Note that ks[t] corresponds to z_{t+1} in section 4.2
+        ks[t] = f ^ state->lfsr[0];
+        s3g_clock_lfsr(state, 0x0);
     }
 }

@@ -238,12 +238,25 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
   return ret; 
 }
 
-int sched::dl_ack_info(uint32_t tti, uint16_t rnti, bool ack)
+int sched::dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) {
+  pthread_mutex_lock(&mutex);
+  int ret = 0;
+  if (ue_db.count(rnti)) {
+    ue_db[rnti].set_dl_ant_info(dl_ant_info);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    ret = -1;
+  }
+  pthread_mutex_unlock(&mutex);
+  return ret;
+}
+
+int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
-    ret = ue_db[rnti].set_ack_info(tti, ack);
+    ret = ue_db[rnti].set_ack_info(tti, tb_idx, ack);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
@@ -266,18 +279,46 @@ int sched::ul_crc_info(uint32_t tti, uint16_t rnti, bool crc)
   return ret; 
 }
 
-int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
-    ue_db[rnti].set_dl_cqi(tti, cqi_value);
+    ue_db[rnti].set_dl_ri(tti, cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
   pthread_mutex_unlock(&mutex);
   return ret; 
+}
+
+int sched::dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
+{
+  pthread_mutex_lock(&mutex);
+  int ret = 0;
+  if (ue_db.count(rnti)) {
+    ue_db[rnti].set_dl_pmi(tti, pmi_value);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    ret = -1;
+  }
+  pthread_mutex_unlock(&mutex);
+  return ret;
+}
+
+int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+{
+  pthread_mutex_lock(&mutex);
+  int ret = 0;
+  if (ue_db.count(rnti)) {
+    ue_db[rnti].set_dl_cqi(tti, cqi_value);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    ret = -1;
+  }
+  pthread_mutex_unlock(&mutex);
+  return ret;
 }
 
 int sched::dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size)
@@ -597,6 +638,8 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
     uint16_t rnti = (uint16_t) iter->first; 
 
     dl_harq_proc *h = dl_metric->get_user_allocation(user); 
+    srslte_dci_format_t dci_format = user->get_dci_format();
+    data[nof_data_elems].dci_format = dci_format;
 
     uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, cfg.cell.nof_prb, cfg.cell.nof_ports));
     if (h) {
@@ -605,13 +648,27 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
                        user->get_locations(current_cfi, sf_idx),
                        aggr_level, user))
       {     
-        bool is_newtx = h->is_empty();
-        int tbs = user->generate_format1(h, &data[nof_data_elems], current_tti, current_cfi);
+        bool is_newtx = h->is_empty(0);
+        int tbs = 0;
+        switch(dci_format) {
+          case SRSLTE_DCI_FORMAT1:
+            tbs = user->generate_format1(h, &data[nof_data_elems], current_tti, current_cfi);
+            break;
+          case SRSLTE_DCI_FORMAT2:
+            tbs = user->generate_format2(h, &data[nof_data_elems], current_tti, current_cfi);
+            break;
+          case SRSLTE_DCI_FORMAT2A:
+            tbs = user->generate_format2a(h, &data[nof_data_elems], current_tti, current_cfi);
+            break;
+          default:
+            Error("DCI format (%d) not implemented\n", dci_format);
+        }
         if (tbs >= 0) {
-          log_h->info("SCHED: DL %s rnti=0x%x, pid=%d, mask=0x%x, dci=%d,%d, n_rtx=%d, tbs=%d, buffer=%d\n", 
+          log_h->info("SCHED: DL %s rnti=0x%x, pid=%d, mask=0x%x, dci=%d,%d, n_rtx=%d, tbs=%d, buffer=%d, tb_en={%s,%s}\n",
                       !is_newtx?"retx":"tx", rnti, h->get_id(), h->get_rbgmask(), 
-                      data[nof_data_elems].dci_location.L, data[nof_data_elems].dci_location.ncce, h->nof_retx(),
-                      tbs, user->get_pending_dl_new_data(current_tti));          
+                      data[nof_data_elems].dci_location.L, data[nof_data_elems].dci_location.ncce, h->nof_retx(0) + h->nof_retx(1),
+                      tbs, user->get_pending_dl_new_data(current_tti), data[nof_data_elems].dci.tb_en[0]?"y":"n",
+                      data[nof_data_elems].dci.tb_en[1]?"y":"n");
           nof_data_elems++;
         } else {
           log_h->warning("SCHED: Error DL %s rnti=0x%x, pid=%d, mask=0x%x, dci=%d,%d, tbs=%d, buffer=%d\n", 
@@ -620,9 +677,10 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
                       tbs, user->get_pending_dl_new_data(current_tti));          
         }      
       } else {
-        h->reset();
-        Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d, L=%d, nof_candidates=%d\n",
-                rnti, h->get_id(), aggr_level, user->get_locations(current_cfi, sf_idx)->nof_loc[aggr_level] );
+        for(uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+          h->reset(tb);
+        }
+        Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d\n", rnti, h->get_id());              
       }      
     }    
   } 
@@ -709,7 +767,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   
     /* Indicate PHICH acknowledgment if needed */
     if (h->has_pending_ack()) {
-      sched_result->phich[nof_phich_elems].phich = h->get_ack()?ul_sched_phich_t::ACK:ul_sched_phich_t::NACK;
+      sched_result->phich[nof_phich_elems].phich = h->get_ack(0)?ul_sched_phich_t::ACK:ul_sched_phich_t::NACK;
       sched_result->phich[nof_phich_elems].rnti = rnti;
       nof_phich_elems++;
     }
@@ -766,8 +824,8 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     if (h) 
     {   
       ul_harq_proc::ul_alloc_t alloc = h->get_alloc(); 
-      bool is_newtx = h->is_empty(); 
-      bool needs_pdcch = h->is_adaptive_retx() && !is_rar;
+      bool is_newtx = h->is_empty(0);
+      bool needs_pdcch = !h->is_adaptive_retx() && !is_rar;
 
       // Set number of retx
       if (is_newtx) {
@@ -785,7 +843,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
             user->get_locations(current_cfi, sf_idx), 
             aggr_level)) 
         {
-          h->reset();
+          h->reset(0);
           log_h->warning("SCHED: Could not schedule UL DCI rnti=0x%x, pid=%d, L=%d\n", 
                           rnti, h->get_id(), aggr_level);          
           sched_result->pusch[nof_dci_elems].needs_pdcch = false; 
@@ -812,7 +870,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
                       is_newtx?"tx":"retx",                
                       rnti, h->get_id(), 
                       sched_result->pusch[nof_dci_elems].dci_location.L, sched_result->pusch[nof_dci_elems].dci_location.ncce,
-                      alloc.RB_start, alloc.RB_start+alloc.L, h->nof_retx(), sched_result->pusch[nof_dci_elems].tbs,
+                      alloc.RB_start, alloc.RB_start+alloc.L, h->nof_retx(0), sched_result->pusch[nof_dci_elems].tbs,
                       user->get_pending_ul_new_data(current_tti),pending_data_before, user->get_pending_ul_old_data());
 
           nof_dci_elems++;          
