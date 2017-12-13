@@ -264,7 +264,7 @@ public:
     uint32_t cqi_idx; 
     bool cqi_allocated; 
     int cqi_sched_sf_idx; 
-    bool cqi_sched_prb_idx; 
+    int cqi_sched_prb_idx;
     int get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drbid);
   }; 
   
