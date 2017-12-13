@@ -675,7 +675,7 @@ void rrc::cell_reselection_eval(float rsrp, float rsrq)
 {
   // Intra-frequency cell-reselection criteria
 
-  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP && rsrp > -70.0) {
+  if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP && rsrp > -95.0) {
     // UE may not perform intra-frequency measurements.
     phy->meas_reset();
     // keep measuring serving cell
@@ -1033,9 +1033,13 @@ bool rrc::ho_prepare() {
     }
 
     if (mob_reconf.mob_ctrl_info.rach_cnfg_ded_present) {
+      rrc_log->info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
+                    mob_reconf.mob_ctrl_info.rach_cnfg_ded.preamble_index,
+                    mob_reconf.mob_ctrl_info.rach_cnfg_ded.prach_mask_index);
       mac->start_noncont_ho(mob_reconf.mob_ctrl_info.rach_cnfg_ded.preamble_index,
                             mob_reconf.mob_ctrl_info.rach_cnfg_ded.prach_mask_index);
     } else {
+      rrc_log->info("Starting contention-based RA\n");
       mac->start_cont_ho();
     }
 
@@ -1049,7 +1053,7 @@ bool rrc::ho_prepare() {
       if (mob_reconf.sec_cnfg_ho.intra_lte.sec_alg_cnfg_present) {
         cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) mob_reconf.sec_cnfg_ho.intra_lte.sec_alg_cnfg.cipher_alg;
         integ_algo  = (INTEGRITY_ALGORITHM_ID_ENUM) mob_reconf.sec_cnfg_ho.intra_lte.sec_alg_cnfg.int_alg;
-        rrc_log->console("Warning changed Cipering to %s and Integrity to %s\n",
+        rrc_log->info("Changed Ciphering to %s and Integrity to %s\n",
                          ciphering_algorithm_id_text[cipher_algo],
                          integrity_algorithm_id_text[integ_algo]);
       }
@@ -2237,13 +2241,13 @@ void rrc::rrc_meas::init(rrc *parent) {
 
 void rrc::rrc_meas::reset()
 {
-  bzero(&pcell_measurement, sizeof(meas_value_t));
   filter_k_rsrp = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
   filter_k_rsrq = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
   objects.clear();
   active.clear();
   reports_cfg.clear();
   phy->meas_reset();
+  bzero(&pcell_measurement, sizeof(meas_value_t));
 }
 
 /* L3 filtering 5.5.3.2 */
