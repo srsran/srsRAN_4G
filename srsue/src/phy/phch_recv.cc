@@ -155,7 +155,6 @@ void phch_recv::radio_error()
 }
 
 void phch_recv::set_cfo(float cfo) {
-  Debug("set_ref_cfo=%f\n",cfo*15000);
   srslte_ue_sync_set_cfo_ref(&ue_sync, cfo);
 }
 
@@ -644,9 +643,6 @@ void phch_recv::run_thread()
               metrics.cfo = srslte_ue_sync_get_cfo(&ue_sync);
               worker->set_cfo(ul_dl_factor * metrics.cfo / 15000);
               worker_com->set_sync_metrics(metrics);
-
-              Debug("current_cfo=%f, pss_stable_cnt=%d, cfo_pss=%f Hz\n",
-                      metrics.cfo, ue_sync.pss_stable_cnt, srslte_sync_get_cfo(&ue_sync.strack)*15000);
 
               worker->set_sample_offset(srslte_ue_sync_get_sfo(&ue_sync)/1000);
 
@@ -1193,7 +1189,8 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled)
 
   measure_p.init(sf_buffer, log_h, 1, DEFAULT_MEASUREMENT_LEN);
 
-  if(srslte_sync_init(&sync_find, 15*max_sf_size, 5*max_sf_size, max_fft_sz)) {
+  //do this different we don't need all this search window.
+  if(srslte_sync_init(&sync_find, 50*max_sf_size, 5*max_sf_size, max_fft_sz)) {
     fprintf(stderr, "Error initiating sync_find\n");
     return;
   }
@@ -1210,6 +1207,10 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled)
   srslte_sync_set_sss_eq_enable(&sync_find,    true);
 
   sync_find.pss.chest_on_filter = true;
+
+  if (!sic_pss_enabled) {
+    sync_find.sss_channel_equalize = false;
+  }
 
   reset();
 }
@@ -1255,7 +1256,10 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
         srslte_sync_reset(&sync_find);
         srslte_sync_cfo_reset(&sync_find);
 
-        sync_res = srslte_sync_find(&sync_find, input_buffer, 0, &peak_idx);
+        int sf5_cnt=0;
+        do {
+          sync_res = srslte_sync_find(&sync_find, input_buffer, sf5_cnt*5*sf_len, &peak_idx);
+        } while(sync_res != SRSLTE_SYNC_FOUND && sf5_cnt < nof_sf/5);
 
         switch(sync_res) {
           case SRSLTE_SYNC_ERROR:
