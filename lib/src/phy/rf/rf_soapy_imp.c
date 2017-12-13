@@ -115,7 +115,7 @@ void rf_soapy_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 }
 
 
-int rf_soapy_start_rx_stream(void *h)
+int rf_soapy_start_rx_stream(void *h, bool now)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   if(handler->rx_stream_active == false){

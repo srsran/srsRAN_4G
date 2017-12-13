@@ -99,11 +99,7 @@ const char* srslte_rf_get_devname(srslte_rf_t *rf) {
   return ((rf_dev_t*) rf->dev)->name;
 }
 
-int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args) {
-  return srslte_rf_open_devname_multi(rf, devname, args, 1);
-}
-
-int srslte_rf_open_devname_multi(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_channels) {
+int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_channels) {
   /* Try to open the device if name is provided */
   if (devname) {
     if (devname[0] != '\0') {
@@ -150,9 +146,9 @@ bool srslte_rf_rx_wait_lo_locked(srslte_rf_t *rf)
   return ((rf_dev_t*) rf->dev)->srslte_rf_rx_wait_lo_locked(rf->handler);  
 }
 
-int srslte_rf_start_rx_stream(srslte_rf_t *rf)
+int srslte_rf_start_rx_stream(srslte_rf_t *rf, bool now)
 {
-  return ((rf_dev_t*) rf->dev)->srslte_rf_start_rx_stream(rf->handler);  
+  return ((rf_dev_t*) rf->dev)->srslte_rf_start_rx_stream(rf->handler, now);
 }
 
 int srslte_rf_stop_rx_stream(srslte_rf_t *rf)
@@ -187,12 +183,12 @@ void srslte_rf_register_error_handler(srslte_rf_t *rf, srslte_rf_error_handler_t
 
 int srslte_rf_open(srslte_rf_t *h, char *args) 
 {
-  return srslte_rf_open_devname_multi(h, NULL, args, 1);
+  return srslte_rf_open_devname(h, NULL, args, 1);
 }
 
-int srslte_rf_open_multi(srslte_rf_t *h, char *args, uint32_t nof_rx_antennas) 
+int srslte_rf_open_multi(srslte_rf_t *h, char *args, uint32_t nof_channels)
 {
-  return srslte_rf_open_devname_multi(h, NULL, args, nof_rx_antennas);
+  return srslte_rf_open_devname(h, NULL, args, nof_channels);
 }
 
 int srslte_rf_close(srslte_rf_t *rf)

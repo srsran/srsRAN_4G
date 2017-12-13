@@ -76,7 +76,8 @@ private:
   
   /* Internal methods */
   bool extract_fft_and_pdcch_llr(); 
-  
+  void compute_ri();
+
   /* ... for DL */
   bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);
   bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
@@ -149,7 +150,8 @@ private:
   srslte_uci_cfg_t                  uci_cfg; 
   srslte_cqi_periodic_cfg_t         period_cqi; 
   srslte_ue_ul_powerctrl_t          power_ctrl;           
-  uint32_t                          I_sr; 
+  uint32_t                          I_sr;
+  bool                              sr_configured;
   float                             cfo;
   bool                              rar_cqi_request;
 

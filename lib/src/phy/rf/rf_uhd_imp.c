@@ -219,21 +219,23 @@ void rf_uhd_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 }
 
 
-int rf_uhd_start_rx_stream(void *h)
+int rf_uhd_start_rx_stream(void *h, bool now)
 {
  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
 
   uhd_stream_cmd_t stream_cmd = {
         .stream_mode = UHD_STREAM_MODE_START_CONTINUOUS,
-        .stream_now = false
+        .stream_now = now
   };
-  uhd_usrp_get_time_now(handler->usrp, 0, &stream_cmd.time_spec_full_secs, &stream_cmd.time_spec_frac_secs);
-  stream_cmd.time_spec_frac_secs += 0.1;
-  if (stream_cmd.time_spec_frac_secs > 1) {
-    stream_cmd.time_spec_frac_secs -= 1;
-    stream_cmd.time_spec_full_secs += 1; 
+  if (!now) {
+    uhd_usrp_get_time_now(handler->usrp, 0, &stream_cmd.time_spec_full_secs, &stream_cmd.time_spec_frac_secs);
+    stream_cmd.time_spec_frac_secs += 0.1;
+    if (stream_cmd.time_spec_frac_secs > 1) {
+      stream_cmd.time_spec_frac_secs -= 1;
+      stream_cmd.time_spec_full_secs += 1;
+    }
   }
-  uhd_rx_streamer_issue_stream_cmd(handler->rx_stream, &stream_cmd);  
+  uhd_rx_streamer_issue_stream_cmd(handler->rx_stream, &stream_cmd);
   return 0;
 }
 

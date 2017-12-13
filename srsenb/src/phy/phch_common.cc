@@ -30,7 +30,6 @@
 #include "phy/txrx.h"
 
 #include <assert.h>
-#include <string.h>
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
@@ -74,7 +73,7 @@ void phch_common::stop() {
   }
 }
 
-void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
+void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
 
   // Wait previous TTIs to be transmitted 
@@ -84,8 +83,8 @@ void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_s
     pthread_mutex_lock(&tx_mutex[tx_mutex_cnt%nof_mutex]);
   }
 
-  radio->set_tti(tx_mutex_cnt); 
-  radio->tx(buffer, nof_samples, tx_time);
+  radio->set_tti(tx_mutex_cnt);
+  radio->tx((void **) buffer, nof_samples, tx_time);
   
   // Trigger next transmission 
   pthread_mutex_unlock(&tx_mutex[(tx_mutex_cnt+1)%nof_mutex]);
@@ -98,14 +97,18 @@ void phch_common::ack_clear(uint32_t sf_idx)
 {
   for(std::map<uint16_t,pending_ack_t>::iterator iter=pending_ack.begin(); iter!=pending_ack.end(); ++iter) {
     pending_ack_t *p = (pending_ack_t*) &iter->second;
-    p->is_pending[sf_idx] = false;     
+    for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
+      p->is_pending[sf_idx][tb_idx] = false;
+    }
   }
 }
 
 void phch_common::ack_add_rnti(uint16_t rnti)
 {
   for (int sf_idx=0;sf_idx<TTIMOD_SZ;sf_idx++) {
-    pending_ack[rnti].is_pending[sf_idx] = false; 
+    for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
+      pending_ack[rnti].is_pending[sf_idx][tb_idx] = false;
+    }
   }
 }
 
@@ -114,19 +117,18 @@ void phch_common::ack_rem_rnti(uint16_t rnti)
   pending_ack.erase(rnti);
 }
 
-void phch_common::ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t last_n_pdcch)
+void phch_common::ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t last_n_pdcch)
 {
   if (pending_ack.count(rnti)) {
-    pending_ack[rnti].is_pending[sf_idx] = true; 
-    pending_ack[rnti].n_pdcch[sf_idx]    = last_n_pdcch;
+    pending_ack[rnti].is_pending[sf_idx][tb_idx] = true;
+    pending_ack[rnti].n_pdcch[sf_idx]            = (uint16_t) last_n_pdcch;
   }
 }
 
-bool phch_common::ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t *last_n_pdcch)
-{
+bool phch_common::ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t *last_n_pdcch) {
   if (pending_ack.count(rnti)) {
-    bool ret = pending_ack[rnti].is_pending[sf_idx];  
-    pending_ack[rnti].is_pending[sf_idx] = false;
+    bool ret = pending_ack[rnti].is_pending[sf_idx][tb_idx];
+    pending_ack[rnti].is_pending[sf_idx][tb_idx] = false;
 
     if (ret && last_n_pdcch) {
       *last_n_pdcch = pending_ack[rnti].n_pdcch[sf_idx];
