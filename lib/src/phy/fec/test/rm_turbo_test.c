@@ -197,6 +197,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  srslte_rm_turbo_free_tables();
   free(rm_bits);
   free(rm_bits2);
   free(rm_bits2_bytes);

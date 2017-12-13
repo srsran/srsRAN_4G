@@ -147,6 +147,8 @@ clean:
 }
 
 void srslte_sch_free(srslte_sch_t *q) {
+  srslte_rm_turbo_free_tables();
+
   if (q->cb_in) {
     free(q->cb_in);
   }
