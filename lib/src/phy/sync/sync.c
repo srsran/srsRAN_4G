@@ -42,6 +42,8 @@
 
 #define DEFAULT_CFO_TOL 0.0 // Hz
 
+#define MAX_CFO_PSS_OFFSET 7000
+
 static bool fft_size_isvalid(uint32_t fft_size) {
   if (fft_size >= SRSLTE_SYNC_FFT_SZ_MIN && fft_size <= SRSLTE_SYNC_FFT_SZ_MAX && (fft_size%64) == 0) {
     return true;
@@ -614,7 +616,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
         if (!q->cfo_pss_is_set) {
           q->cfo_pss_mean   = cfo_pss;
           q->cfo_pss_is_set = true;
-        } else {
+        } else if (15000*fabsf(cfo_pss) < MAX_CFO_PSS_OFFSET) {
           q->cfo_pss_mean = SRSLTE_VEC_EMA(cfo_pss, q->cfo_pss_mean, q->cfo_ema_alpha);
         }
 

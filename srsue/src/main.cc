@@ -205,7 +205,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Tolerance (in Hz) for digital CFO compensation (needs to be low if average_subframe_enabled=true.")
 
     ("expert.cfo_pss_ema",
-     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(0.1),
+     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(0.01),
      "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
 
     ("expert.cfo_ref_ema",
