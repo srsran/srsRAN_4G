@@ -43,6 +43,7 @@
 uint8_t tcod_lut_next_state[188][8][256];
 uint8_t tcod_lut_output[188][8][256];
 uint16_t tcod_per_fw[188][6144];
+static srslte_bit_interleaver_t tcod_interleavers[188];
 
 static bool table_initiated = false; 
 
@@ -62,6 +63,9 @@ void srslte_tcod_free(srslte_tcod_t *h) {
   h->max_long_cb = 0;
   if (h->temp) {
     free(h->temp);
+  }
+  for (int i = 0; i < 188; i++) {
+    srslte_bit_interleaver_free(&tcod_interleavers[i]);
   }
 }
 
@@ -198,8 +202,9 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *parity, ui
     }
     parity[long_cb/8] = 0;  // will put tail here later
     
-    /* Interleave input */  
-    srslte_bit_interleave(input, h->temp, tcod_per_fw[cblen_idx], long_cb);
+    /* Interleave input */
+    srslte_bit_interleaver_run(&tcod_interleavers[cblen_idx], input, h->temp, 0);
+    //srslte_bit_interleave(input, h->temp, tcod_per_fw[cblen_idx], long_cb);
 
     /* Parity bits for the 2nd constituent encoders */
     uint8_t state1 = 0;
@@ -297,6 +302,7 @@ void srslte_tcod_gentable() {
     for (uint32_t i=0;i<long_cb;i++) {
       tcod_per_fw[len][i] = interl.forward[i];
     }
+    srslte_bit_interleaver_init(&tcod_interleavers[len], tcod_per_fw[len], long_cb);
     for (uint32_t i=long_cb;i<6144;i++) {
       tcod_per_fw[len][i] = 0;
     }

@@ -58,6 +58,8 @@ SRSLTE_API int srslte_rm_turbo_tx(uint8_t *w_buff,
 
 SRSLTE_API void srslte_rm_turbo_gentables(); 
 
+SRSLTE_API void srslte_rm_turbo_free_tables();
+
 SRSLTE_API int srslte_rm_turbo_tx_lut(uint8_t *w_buff, 
                                       uint8_t *systematic, 
                                       uint8_t *parity, 
