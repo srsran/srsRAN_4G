@@ -205,7 +205,7 @@ void parse_args(int argc, char **argv) {
     }
   }
 #ifdef DISABLE_RF
-  if (!output_file_name) {
+  if (!output_file_name && !strlen(rf_args)) {
     usage(argv[0]);
     exit(-1);
   }

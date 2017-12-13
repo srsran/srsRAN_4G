@@ -119,7 +119,7 @@ void args_default(prog_args_t *args) {
   args->file_offset_time = 0; 
   args->file_offset_freq = 0; 
   args->rf_args = "";
-  args->rf_freq = -1.0;
+  args->rf_freq = 2400000000.0;
   args->rf_nof_rx_ant = 1; 
 #ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0; 
@@ -420,6 +420,7 @@ int main(int argc, char **argv) {
     srslte_rf_rx_wait_lo_locked(&rf);
 
 
+    if(prog_args.rnti == SRSLTE_SIRNTI) {
     uint32_t ntrial=0; 
     do {
       ret = rf_search_and_decode_mib(&rf, prog_args.rf_nof_rx_ant, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
@@ -459,6 +460,15 @@ int main(int argc, char **argv) {
     }
 
     INFO("Stopping RF and flushing buffer...\r",0);
+   } else {
+    cell.id = prog_args.file_cell_id; 
+    cell.cp = SRSLTE_CP_NORM; 
+    cell.phich_length = SRSLTE_PHICH_NORM;
+    cell.phich_resources = SRSLTE_PHICH_R_1;
+    cell.nof_ports = prog_args.file_nof_ports; 
+    cell.nof_prb = prog_args.file_nof_prb; 
+   }
+
   }
 #endif
   

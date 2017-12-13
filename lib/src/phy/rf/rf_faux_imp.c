@@ -31,6 +31,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <zmq.h>
+
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -45,13 +47,13 @@ static bool _faux_rf_logStdout = true;
 #define FAUX_RF_DEBUG(fmt, ...) do {                                                              \
                                  if(_faux_rf_logStdout) {                                         \
                                    struct timeval _tv_now;                                        \
-                                   struct tm tm;                                                  \
+                                   struct tm _tm;                                                 \
                                    gettimeofday(&_tv_now, NULL);                                  \
-                                   localtime_r(&_tv_now.tv_sec, &tm);                             \
+                                   localtime_r(&_tv_now.tv_sec, &_tm);                            \
                                    fprintf(stdout, "%02d.%02d.%02d.%06ld %s [DEBUG], " fmt "\n",  \
-                                           tm.tm_hour,                                            \
-                                           tm.tm_min,                                             \
-                                           tm.tm_sec,                                             \
+                                           _tm.tm_hour,                                           \
+                                           _tm.tm_min,                                            \
+                                           _tm.tm_sec,                                            \
                                            _tv_now.tv_usec,                                       \
                                            __func__,                                              \
                                            ##__VA_ARGS__);                                        \
@@ -71,17 +73,20 @@ static bool _faux_rf_logStdout = true;
 
 static void _faux_rf_tv_to_ts(struct timeval *tv, time_t *s, double *f)
 {
-  if(s)
-    *s = tv->tv_sec; 
-
-  if(f)
-  *f = tv->tv_usec / 1.0e6;
+  if(s && f)
+    {
+      *s = tv->tv_sec; 
+      *f = tv->tv_usec / 1.0e6;
+    }
 }
 
 static void _faux_rf_ts_to_tv(struct timeval *tv, time_t s, double f)
 {
-  tv->tv_sec  = s;
-  tv->tv_usec = f * 1.0e6;
+  if(tv)
+    {
+      tv->tv_sec  = s;
+      tv->tv_usec = f * 1.0e6;
+    }
 }
 
 static void _faux_rf_dif_time(time_t secs, double frac, struct timeval * tv_dif)
@@ -122,9 +127,10 @@ typedef struct
    double clockRate;
    void   (*error_handler)(srslte_rf_error_t error);
    bool   rxStream;
-   int    rxSock;
-   int    txSock;
    int    type;
+   void * zmqctx;
+   void * req;
+   void * rep;
  } faux_rf_info_t;
 
 
@@ -133,76 +139,63 @@ static bool _faux_rf_is_enb(faux_rf_info_t * h)
   return (h->type == FAUX_RF_TYPE_ENB);
 }
 
-
-static int _faux_rf_open_ipc_dgram(faux_rf_info_t * h)
+static const char * make_endpoint(char buff[64], 
+                                  const char * type,
+                                  const char * addr,
+                                  unsigned short port)
 {
-  if((h->rxSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
-   { 
-     FAUX_RF_DEBUG("error opening rx sock %s\n", strerror(errno));
+  snprintf(buff, 64, "%s://%s:%hu", type, addr, port); 
 
-     return -1;
-    }
- 
-  if((h->txSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
-   { 
-     FAUX_RF_DEBUG("error opening tx sock %s\n", strerror(errno));
+  FAUX_RF_DEBUG("create endpoint %s\n", buff);
 
-     return -1;
-   }
+  return buff;
+}
 
-  const int rxPort = _faux_rf_is_enb(h) ? 
-                     FAUX_RF_ENB_PORT : 
-                     FAUX_RF_UE_PORT;
+static int _faux_rf_open_ipc_zmq(faux_rf_info_t * h)
+{
+  h->zmqctx = zmq_ctx_new();
 
-  const int txPort = _faux_rf_is_enb(h) ? 
-                     FAUX_RF_UE_PORT : 
-                     FAUX_RF_ENB_PORT;
+  const unsigned short rxPort = _faux_rf_is_enb(h) ? 
+                                FAUX_RF_ENB_PORT : 
+                                FAUX_RF_UE_PORT;
 
+  const unsigned short txPort = _faux_rf_is_enb(h) ? 
+                                FAUX_RF_UE_PORT : 
+                                FAUX_RF_ENB_PORT;
 
-  struct sockaddr_in sin;
-
-  bzero(&sin, sizeof(sin));
-  sin.sin_family      = AF_INET;
-  sin.sin_port        = htons(rxPort);
-  sin.sin_addr.s_addr = htonl(0x7f000001);
-
-  const int reuse = 1;
-
-  if(setsockopt(h->rxSock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse)) < 0)
+  if((h->req = zmq_socket(h->zmqctx, ZMQ_REQ)) == NULL)
     {
-      FAUX_RF_DEBUG("error set reuse option %s\n", strerror(errno));
+      FAUX_RF_DEBUG("error opening REQ sock %s\n", strerror(errno));
 
       return -1;
     }
 
-  if(bind(h->rxSock, (const struct sockaddr *)&sin, sizeof(sin)) < 0)
+  if((h->rep = zmq_socket(h->zmqctx, ZMQ_REP)) == NULL)
     {
-      FAUX_RF_DEBUG("error %s binding to rxPort %d\n", strerror(errno), rxPort);
+      FAUX_RF_DEBUG("error opening REP sock %s\n", strerror(errno));
 
       return -1;
     }
 
-  sin.sin_port = htons(txPort);
+  char ep[64] = {0};
 
-  // connect so we can use read/write 
-  if(connect(h->txSock, (const struct sockaddr *)&sin, sizeof(sin)) < 0)
+  if(zmq_connect(h->req, make_endpoint(ep, "tcp", "127.0.0.1", txPort)) < 0)
     {
-      FAUX_RF_DEBUG("error %s connect to txPort %d\n", strerror(errno), txPort);
+      FAUX_RF_DEBUG("error connecting REQ sock %s\n", strerror(errno));
 
       return -1;
     }
 
-  const int md = IP_PMTUDISC_DO;
-
-  if(setsockopt(h->txSock, IPPROTO_IP, IP_MTU_DISCOVER, &md, sizeof(md)) < 0)
+   if(zmq_bind(h->rep, make_endpoint(ep, "tcp", "*", rxPort)) < 0)
     {
-       FAUX_RF_DEBUG("error set no_df option %s\n", strerror(errno));
+      FAUX_RF_DEBUG("error binding REP sock %s\n", strerror(errno));
 
-       return -1;
+      return -1;
     }
 
   return 0;
 }
+
 
 
 static void faux_rf_handle_error(srslte_rf_error_t error)
@@ -227,9 +220,10 @@ static  faux_rf_info_t _faux_rf_info = { .devName       = "faux",
                                          .clockRate     = 0.0,
                                          .error_handler = faux_rf_handle_error,
                                          .rxStream      = false,
-                                         .rxSock        = -1,
-                                         .txSock        = -1,
                                          .type          = FAUX_RF_TYPE_NONE,
+                                         .zmqctx        = NULL,
+                                         .req           = NULL,
+                                         .rep           = NULL,
                                        };
 
 // could just as well use _faux_rf_info for single antenna mode
@@ -343,7 +337,7 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
       return -1;
     }
 
-   if(_faux_rf_open_ipc_dgram(&_faux_rf_info) < 0)
+   if(_faux_rf_open_ipc_zmq(&_faux_rf_info) < 0)
      {
        FAUX_RF_DEBUG("could not creat ipc channel\n");
 
@@ -358,7 +352,9 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
 
 int rf_faux_close(void *h)
  {
-   FAUX_RF_LOG_FUNC_TODO;
+   GET_FAUX_INFO(h);
+
+   zmq_ctx_destroy(p->zmqctx);
 
    return 0;
  }
@@ -489,70 +485,34 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
  {
    GET_FAUX_INFO(h);
 
-   fd_set fdset;
-
-   int numTries = 0;
-
-   int bytesRequested = SAMPLES_TO_BYTES(nsamples);
-
-   int bytesPending   = bytesRequested;
-
-   uint8_t rxBuff[1 << 20] = {0};
-
-   uint8_t * dp = rxBuff;
+   int bytesToRecv = SAMPLES_TO_BYTES(nsamples);
 
    FAUX_RF_DEBUG("request samples %u, bytes %d, blocking %s", 
                  nsamples,
-                 bytesRequested,
+                 bytesToRecv,
                  blocking ? "yes" : "no");
 
-   while((numTries++ < 10) && (bytesPending > 0))
+   int rc = zmq_recv(p->rep, data, bytesToRecv, 0);
+
+   if(rc < 0)
      {
-       FD_ZERO(&fdset); 
-       FD_SET(p->rxSock, &fdset);
+       FAUX_RF_DEBUG("read error %s", strerror(errno));
 
-       int bytesRx = 0;
+       return 0;
+     }
+   else
+    {
+      FAUX_RF_DEBUG("read %d, of %d", rc, bytesToRecv);
 
-       struct timeval timeout = {0, 0};
- 
-       if(blocking)
+      if(zmq_send(p->rep, "OK", strlen("OK"), 0) < 0)
         {
-          timeout.tv_sec  = 0;
-          timeout.tv_usec = 100000;
+          FAUX_RF_DEBUG("send response error %s", strerror(errno));
         }
+    }
 
-       if(select(p->rxSock + 1, &fdset, NULL, NULL, &timeout) > 0)
-        {
-          bytesRx = recv(p->rxSock, 
-                         dp, 
-                         bytesPending,
-                         MSG_DONTWAIT);
-        }
+   rf_faux_get_time(h, secs, frac_secs);
 
-       if(bytesRx < 0)
-        {
-          FAUX_RF_DEBUG("read error %s", strerror(errno));
-
-          return -1;
-        }
-       else
-        {
-          dp += bytesRx;
-
-          bytesPending -= bytesRx;
-
-          FAUX_RF_DEBUG("read %d, pending %d", bytesRx, bytesPending);
-        }
-      }
-
-     // give'em what we got
-     memcpy(data, rxBuff, bytesRequested);
-
-     rf_faux_get_time(h, secs, frac_secs);
-
-     FAUX_RF_DEBUG("requested %d, filled %d", bytesRequested, bytesPending);
-
-    return nsamples;
+   return nsamples;
  }
 
 
@@ -578,39 +538,37 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    _faux_rf_dif_time(secs, frac_secs, &tv_dif);
 
-   int numPending = SAMPLES_TO_BYTES(nsamples);
+   int bytesToSend = SAMPLES_TO_BYTES(nsamples);
 
    FAUX_RF_DEBUG("nsamples %u, bytes %d, offset %ld:%06ld, sob %s, eob %s", 
               nsamples,
-              numPending,
+              bytesToSend,
               tv_dif.tv_sec,
               tv_dif.tv_usec,
               FAUX_RF_BOOL_TO_STR(is_start_of_burst),
               FAUX_RF_BOOL_TO_STR(is_end_of_burst));
 
-   uint8_t * dp = (uint8_t*) data;
+   int rc = zmq_send(p->req, data, bytesToSend, 0);
 
-   while (numPending > 0) 
+   if(rc < 0)
      {
-       const int result = write(p->txSock, dp, numPending);
+       FAUX_RF_DEBUG("write error %s", strerror(errno));
 
-       if(result < 0)
+       return 0;
+     }
+   else
+     {
+       char response[3] = {0};
+
+       if(zmq_recv(p->req, response, sizeof(response), 0) < 0)
          {
-           FAUX_RF_DEBUG("write error %s", strerror(errno));
-
-           break;
+           FAUX_RF_DEBUG("recv response error %s", strerror(errno));
          }
-       else
-         {
-           FAUX_RF_DEBUG("sent %d bytes", result);
 
-           numPending -= result;
-
-           dp += result;
-         }
+       FAUX_RF_DEBUG("sent %d bytes of %d, response %s", rc, bytesToSend, response);
      }
 
-   return nsamples - numPending;
+   return nsamples;
 }
 
 
