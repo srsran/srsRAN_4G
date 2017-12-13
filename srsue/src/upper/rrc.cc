@@ -1118,15 +1118,20 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
 
   if (reconfig->mob_ctrl_info_present) {
 
-    rrc_log->info("Received HO command to target PCell=%d\n", reconfig->mob_ctrl_info.target_pci);
-    rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
-                     reconfig->mob_ctrl_info.target_pci, reconfig->sec_cnfg_ho.intra_lte.next_hop_chaining_count);
+    if (reconfig->mob_ctrl_info.target_pci == phy->get_current_pci()) {
+      rrc_log->warning("Received HO command to own cell\n");
+      send_rrc_con_reconfig_complete(pdu);
+    } else {
+      rrc_log->info("Received HO command to target PCell=%d\n", reconfig->mob_ctrl_info.target_pci);
+      rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
+                       reconfig->mob_ctrl_info.target_pci, reconfig->sec_cnfg_ho.intra_lte.next_hop_chaining_count);
 
-    // store mobilityControlInfo
-    memcpy(&mob_reconf, reconfig, sizeof(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT));
-    pending_mob_reconf = true;
+      // store mobilityControlInfo
+      memcpy(&mob_reconf, reconfig, sizeof(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT));
+      pending_mob_reconf = true;
 
-    state = RRC_STATE_HO_PREPARE;
+      state = RRC_STATE_HO_PREPARE;
+    }
 
   } else {
     // Section 5.3.5.3
@@ -2741,16 +2746,14 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 void rrc::rrc_meas::update_phy()
 {
   phy->meas_reset();
-  if (pcell_measurement.ms[RSRP] < s_measure_value || !s_measure_enabled) {
-    for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
-      meas_t m = iter->second;
-      meas_obj_t o = objects[m.object_id];
-      // Instruct PHY to look for neighbour cells on this frequency
-      phy->meas_start(o.earfcn);
-      for(std::map<uint32_t, meas_cell_t>::iterator iter=o.cells.begin(); iter!=o.cells.end(); ++iter) {
-        // Instruct PHY to look for cells IDs on this frequency
-        phy->meas_start(o.earfcn, iter->second.pci);
-      }
+  for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
+    meas_t m = iter->second;
+    meas_obj_t o = objects[m.object_id];
+    // Instruct PHY to look for neighbour cells on this frequency
+    phy->meas_start(o.earfcn);
+    for(std::map<uint32_t, meas_cell_t>::iterator iter=o.cells.begin(); iter!=o.cells.end(); ++iter) {
+      // Instruct PHY to look for cells IDs on this frequency
+      phy->meas_start(o.earfcn, iter->second.pci);
     }
   }
 }
