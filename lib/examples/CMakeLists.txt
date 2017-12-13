@@ -24,7 +24,7 @@
 #################################################################
 
 add_executable(synch_file synch_file.c)
-target_link_libraries(synch_file srslte_phy)
+target_link_libraries(synch_file srslte_phy ${FFTW3F_LIBRARY})
 
 #################################################################
 # These can be compiled without UHD or graphics support
@@ -32,18 +32,18 @@ target_link_libraries(synch_file srslte_phy)
 
 if(RF_FOUND)
   add_executable(pdsch_ue pdsch_ue.c)
-  target_link_libraries(pdsch_ue srslte_phy srslte_rf pthread)
+  target_link_libraries(pdsch_ue srslte_phy srslte_rf ${FFTW3F_LIBRARY} pthread)
 
   add_executable(pdsch_enodeb pdsch_enodeb.c)
-  target_link_libraries(pdsch_enodeb srslte_phy srslte_rf pthread)
+  target_link_libraries(pdsch_enodeb srslte_phy srslte_rf ${FFTW3F_LIBRARY} pthread)
 else(RF_FOUND)
   add_definitions(-DDISABLE_RF)
 
   add_executable(pdsch_ue pdsch_ue.c)
-  target_link_libraries(pdsch_ue srslte_phy pthread)
+  target_link_libraries(pdsch_ue srslte_phy ${FFTW3F_LIBRARY} pthread)
 
   add_executable(pdsch_enodeb pdsch_enodeb.c)
-  target_link_libraries(pdsch_enodeb srslte_phy pthread)
+  target_link_libraries(pdsch_enodeb srslte_phy ${FFTW3F_LIBRARY} pthread)
 endif(RF_FOUND)
 
 find_package(SRSGUI)
@@ -63,16 +63,16 @@ endif(SRSGUI_FOUND)
 if(RF_FOUND)
 
   add_executable(cell_search cell_search.c)
-  target_link_libraries(cell_search srslte_phy srslte_rf)
+  target_link_libraries(cell_search srslte_phy srslte_rf ${FFTW3F_LIBRARY})
 
   add_executable(cell_measurement cell_measurement.c)
-  target_link_libraries(cell_measurement srslte_phy srslte_rf)
+  target_link_libraries(cell_measurement srslte_phy srslte_rf ${FFTW3F_LIBRARY})
 
   add_executable(usrp_capture usrp_capture.c)
   target_link_libraries(usrp_capture srslte_phy srslte_rf)
 
   add_executable(usrp_capture_sync usrp_capture_sync.c)
-  target_link_libraries(usrp_capture_sync srslte_phy srslte_rf)
+  target_link_libraries(usrp_capture_sync srslte_phy srslte_rf ${FFTW3F_LIBRARY})
 
   add_executable(usrp_txrx usrp_txrx.c)
   target_link_libraries(usrp_txrx srslte_phy srslte_rf)

@@ -7,6 +7,7 @@ target_link_libraries(ip_test_enb srsenb_upper
                                   srslte_phy
                                   srslte_upper
                                   srslte_radio
+                                  ${FFTW3F_LIBRARY}
                                   ${CMAKE_THREAD_LIBS_INIT} 
                                   ${Boost_LIBRARIES} 
                                   ${SEC_LIBRARIES})
