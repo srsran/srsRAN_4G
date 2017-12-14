@@ -278,6 +278,7 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
     action->generate_ack = false;
     action->decode_enabled[0] = true;
+    action->decode_enabled[1] = false;
     srslte_softbuffer_rx_reset_cb(&pch_softbuffer, 1);
     action->payload_ptr[0] = pch_payload_buffer;
     action->softbuffers[0]  = &pch_softbuffer;
