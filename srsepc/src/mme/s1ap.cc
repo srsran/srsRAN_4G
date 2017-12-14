@@ -107,10 +107,10 @@ s1ap::stop()
 
 void
 s1ap::delete_enb_ctx(int32_t assoc_id)
-{  
+{
   std::map<int32_t,uint16_t>::iterator it_assoc = m_sctp_to_enb_id.find(assoc_id);
   uint16_t enb_id = it_assoc->second;
-  
+
   std::map<uint16_t,enb_ctx_t*>::iterator it_ctx = m_active_enbs.find(enb_id);
   if(it_ctx == m_active_enbs.end() || it_assoc == m_sctp_to_enb_id.end())
   {
@@ -120,10 +120,10 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
 
   m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
   m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
-   
+
   //Delete connected UEs ctx
   delete_ues_in_enb(enb_id);
- 
+
   //Delete eNB
   delete it_ctx->second;
   m_active_enbs.erase(it_ctx);
@@ -148,7 +148,6 @@ s1ap::delete_ues_in_enb(uint16_t enb_id)
   }
 
 }
-
 
 int
 s1ap::get_s1_mme()
@@ -292,8 +291,8 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
   //Log S1 Setup Request Info
   m_s1ap_log->console("Received S1 Setup Request. Association: %d\n",enb_sri->sinfo_assoc_id);
   print_enb_ctx_info(enb_ctx);
-  
-  //Check matching PLMNs  
+
+  //Check matching PLMNs
   if(enb_ctx.plmn!=m_plmn){
     m_s1ap_log->console("Sending S1 Setup Failure - Unkown PLMN\n");
     m_s1ap_log->info("Sending S1 Setup Failure - Unkown PLMN\n");
@@ -316,12 +315,12 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
       m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
       m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
     }
-        
+
     m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
     m_s1ap_log->console("Sending S1 Setup Response\n");
     m_s1ap_log->info("Sending S1 Setup Response\n");
   }
-  
+
   //Send Reply to eNB
   ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0);
   if(n_sent == -1)
@@ -329,9 +328,7 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
     m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
     return false;
   }
-  
   return true;
-  
 }
 
 bool 
