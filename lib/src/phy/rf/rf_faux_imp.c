@@ -50,7 +50,7 @@ static bool _faux_rf_logStdout = true;
                                    struct tm _tm;                                                  \
                                    gettimeofday(&_tv_now, NULL);                                   \
                                    localtime_r(&_tv_now.tv_sec, &_tm);                             \
-                                   fprintf(stdout, "[DEBUG]: %02d.%02d.%02d.%06ld %s, " fmt ".\n", \
+                                   fprintf(stdout, "[DEBUG]: %02d.%02d.%02d.%06ld %s, " fmt "\n",  \
                                            _tm.tm_hour,                                            \
                                            _tm.tm_min,                                             \
                                            _tm.tm_sec,                                             \
@@ -147,7 +147,7 @@ static const char * make_zmq_endpoint(char buff[64],
 {
   snprintf(buff, 64, "%s://%s:%hu", type, addr, port); 
 
-  FAUX_RF_DEBUG("create endpoint %s\n", buff);
+  FAUX_RF_DEBUG("create endpoint %s", buff);
 
   return buff;
 }
@@ -166,14 +166,14 @@ static int _faux_rf_open_ipc_zmq(faux_rf_info_t * h)
 
   if((h->req = zmq_socket(h->zmqctx, ZMQ_REQ)) == NULL)
     {
-      FAUX_RF_DEBUG("error opening REQ sock %s\n", strerror(errno));
+      FAUX_RF_DEBUG("error opening REQ sock %s", strerror(errno));
 
       return -1;
     }
 
   if((h->rep = zmq_socket(h->zmqctx, ZMQ_REP)) == NULL)
     {
-      FAUX_RF_DEBUG("error opening REP sock %s\n", strerror(errno));
+      FAUX_RF_DEBUG("error opening REP sock %s", strerror(errno));
 
       return -1;
     }
@@ -182,14 +182,14 @@ static int _faux_rf_open_ipc_zmq(faux_rf_info_t * h)
 
   if(zmq_connect(h->req, make_zmq_endpoint(ep, "tcp", "127.0.0.1", txPort)) < 0)
     {
-      FAUX_RF_DEBUG("error connecting REQ sock %s\n", strerror(errno));
+      FAUX_RF_DEBUG("error connecting REQ sock %s", strerror(errno));
 
       return -1;
     }
 
   if(zmq_bind(h->rep, make_zmq_endpoint(ep, "tcp", "127.0.0.1", rxPort)) < 0)
     {
-      FAUX_RF_DEBUG("error binding REP sock %s\n", strerror(errno));
+      FAUX_RF_DEBUG("error binding REP sock %s", strerror(errno));
 
       return -1;
     }
@@ -199,19 +199,19 @@ static int _faux_rf_open_ipc_zmq(faux_rf_info_t * h)
 
   if(zmq_setsockopt(h->rep, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) < 0)
     {
-      FAUX_RF_DEBUG("error set rcv timoeout to %d for REP sock %s\n", timeout, strerror(errno));
+      FAUX_RF_DEBUG("error set rcv timoeout to %d for REP sock %s", timeout, strerror(errno));
 
       return -1;
     }
 
   if(zmq_setsockopt(h->rep, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) < 0)
     {
-      FAUX_RF_DEBUG("error set snd timoeout to %d for REP sock %s\n", timeout, strerror(errno));
+      FAUX_RF_DEBUG("error set snd timoeout to %d for REP sock %s", timeout, strerror(errno));
 
       return -1;
     }
 
-  FAUX_RF_DEBUG("set snd/rcv timoeout to %d for REP sock %s\n", timeout);
+  FAUX_RF_DEBUG("set snd/rcv timoeout to %d for REP sock %d", timeout);
  
   return 0;
 }
@@ -360,7 +360,7 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
 
    if(_faux_rf_open_ipc_zmq(&_faux_rf_info) < 0)
      {
-       FAUX_RF_DEBUG("could not creat ipc channel\n");
+       FAUX_RF_DEBUG("could not creat ipc channel");
 
        return -1;
      }

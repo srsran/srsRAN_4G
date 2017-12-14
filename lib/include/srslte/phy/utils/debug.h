@@ -77,7 +77,7 @@ SRSLTE_API extern int srslte_verbose;
                            const char *_pos = strrchr(__FILE__, '/');                          \
                            gettimeofday(&_tv_now, NULL);                                       \
                            localtime_r(&_tv_now.tv_sec, &_tm);                                 \
-                           fprintf(stdout, "[XXXXX]: %02d.%02d.%02d.%06ld %s:%s, " _fmt ".\n", \
+                           fprintf(stdout, "[XXXXX]: %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n",  \
                                    _tm.tm_hour,                                                \
                                    _tm.tm_min,                                                 \
                                    _tm.tm_sec,                                                 \
