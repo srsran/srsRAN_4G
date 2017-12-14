@@ -844,8 +844,16 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
 {
 
   /* Transmission mode config section */
-  if (args->enb.transmission_mode < 0 || args->enb.transmission_mode > LIBLTE_RRC_TRANSMISSION_MODE_N_ITEMS) {
+  if (args->enb.transmission_mode < 0 || args->enb.transmission_mode > 4) {
     ERROR("Invalid transmission mode (%d). Only indexes 1-4 are implemented.\n", args->enb.transmission_mode);
+    return SRSLTE_ERROR;
+  } else if (args->enb.transmission_mode == 1 && args->enb.nof_ports > 1) {
+    ERROR("Invalid number of ports (%d) for transmission mode (%d). Only one antenna port is allowed.\n",
+          args->enb.nof_ports, args->enb.transmission_mode);
+    return SRSLTE_ERROR;
+  } else if (args->enb.transmission_mode > 1 && args->enb.nof_ports != 2) {
+    ERROR("The selected number of ports (%d) are insufficient for the selected transmission mode (%d).\n",
+          args->enb.nof_ports, args->enb.transmission_mode);
     return SRSLTE_ERROR;
   }
 
