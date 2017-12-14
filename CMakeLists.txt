@@ -66,6 +66,7 @@ configure_file(
 ########################################################################
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
+option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
@@ -287,8 +288,15 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
     message(STATUS "have ARM")
+    set(HAVE_NEON "True")
+  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    set(HAVE_NEON "False")
   endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
   set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
+
+ if(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
+  message(FATAL_ERROR "no SIMD instructions found")
+ endif(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
 
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
