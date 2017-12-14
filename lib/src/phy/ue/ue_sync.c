@@ -272,7 +272,7 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     srslte_sync_set_cfo_cp_enable(&q->sfind,    true);
     srslte_sync_set_cfo_pss_enable(&q->sfind,   true);
     srslte_sync_set_pss_filt_enable(&q->sfind,  true);
-    srslte_sync_set_sss_eq_enable(&q->sfind,    true);
+    srslte_sync_set_sss_eq_enable(&q->sfind,    false);
 
     // During track, we do CFO correction outside the sync object
     srslte_sync_set_cfo_i_enable(&q->strack,    false);

@@ -196,7 +196,7 @@ void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q)
                                  worker_com->args->cfo_loop_pss_tol,
                                  worker_com->args->cfo_loop_pss_conv);
 
-  q->strack.pss.chest_on_filter = true;
+  q->strack.pss.chest_on_filter = worker_com->args->sic_pss_enabled;
 
   int time_correct_period = worker_com->args->time_correct_period;
   if (time_correct_period > 0) {
