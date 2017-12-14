@@ -1256,7 +1256,7 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
         srslte_sync_reset(&sync_find);
         srslte_sync_cfo_reset(&sync_find);
 
-        int sf5_cnt=0;
+        uint32_t sf5_cnt=0;
         do {
           sync_res = srslte_sync_find(&sync_find, input_buffer, sf5_cnt*5*sf_len, &peak_idx);
         } while(sync_res != SRSLTE_SYNC_FOUND && sf5_cnt < nof_sf/5);

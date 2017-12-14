@@ -141,10 +141,6 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, chest_feedback_itf 
   return true;
 }
 
-float phch_worker::get_ref_cfo() {
-  return srslte_chest_dl_get_cfo(&ue_dl.chest);
-}
-
 bool phch_worker::set_cell(srslte_cell_t cell_)
 {
   if (cell.id != cell_.id || !cell_initiated) {
