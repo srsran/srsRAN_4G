@@ -790,7 +790,7 @@ int rf_uhd_send_timed_multi(void *h,
     int n = 0;
     cf_t *data_c[4];
     for (int i = 0; i < 4; i++) {
-      data_c[i] = data[i];
+      data_c[i] = data[i] ? data[i] : zero_mem;
     }
     do {
       size_t tx_samples = handler->tx_nof_samples;
