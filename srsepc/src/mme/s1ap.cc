@@ -378,7 +378,7 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
   //Get Authentication Vectors from HSS
-  if(!m_hss->gen_auth_info_answer_milenage(imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
+  if(!m_hss->gen_auth_info_answer(imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
   {
     m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
@@ -468,7 +468,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
        return true; //no need for reply. FIXME this should be better structured...
     break;
     default:
-      m_s1ap_log->info("Unhandled NAS message");
+      m_s1ap_log->info("Unhandled NAS message 0x%x\n", msg_type );
       return false; //FIXME (nas_msg deallocate needs to be called)
   }
 

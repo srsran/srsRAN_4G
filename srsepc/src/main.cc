@@ -74,6 +74,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string spgw_bind_addr;
   string sgi_if_addr;
   string hss_db_file;
+  string hss_auth_algo;
 
   // Command line only options
   bpo::options_description general("General options");
@@ -94,6 +95,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("mme.mnc",             bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
     ("mme.mme_bind_addr",   bpo::value<string>(&mme_bind_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connnection")
     ("hss.db_file",         bpo::value<string>(&hss_db_file)->default_value("ue_db.csv"),".csv file that stores UE's keys")
+    ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),"HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"),"IP address of SP-GW for the S1-U connection")
     ("spgw.sgi_if_addr",    bpo::value<string>(&sgi_if_addr)->default_value("176.16.0.1"),"IP address of TUN interface for the SGi connection")
     ;
@@ -166,11 +168,12 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   if(!srslte::string_to_mnc(mnc, &args->mme_args.s1ap_args.mnc)) {
     cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
-  
+ 
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
   args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
   args->spgw_args.sgi_if_addr = sgi_if_addr;
   args->hss_args.db_file = hss_db_file;
+  args->hss_args.auth_algo = hss_auth_algo;
   return;
 }
 

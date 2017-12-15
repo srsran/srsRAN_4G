@@ -39,10 +39,12 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
 #include <fstream>
+#include <map>
 
 namespace srsepc{
 
 typedef struct{
+  std::string auth_algo;
   std::string db_file;
 }hss_args_t;
 
@@ -54,7 +56,10 @@ typedef struct{
     uint8_t amf[2];
 }hss_ue_ctx_t;
 
-
+enum hss_auth_algo {
+  HSS_ALGO_XOR,
+  HSS_ALGO_MILENAGE
+};
 
 class hss
 {
@@ -62,12 +67,15 @@ public:
   static hss* get_instance(void);
   static void cleanup(void);
   int init(hss_args_t *hss_args, srslte::log_filter* hss_log);
+  bool set_auth_algo(std::string auth_algo);
   bool read_db_file(std::string db_file);
 
   void get_sqn(uint8_t sqn[6]);
   void gen_rand(uint8_t rand_[16]);
   bool get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op);
+  bool gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
   bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
+  bool gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
 
   std::vector<std::string> split_string(const std::string &str, char delimiter);
   void get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint len);
@@ -83,6 +91,8 @@ private:
   std::ifstream m_db_file;
 
   std::map<uint64_t,hss_ue_ctx_t*> m_imsi_to_ue_ctx;
+
+  enum hss_auth_algo m_auth_algo;
 
   /*Logs*/
   srslte::log_filter       *m_hss_log;

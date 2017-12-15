@@ -82,7 +82,7 @@ s1ap_nas_transport::unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     return false;
   }
 
-  if(pdn_con_req->pdn_type != LIBLTE_MME_PDN_TYPE_IPV4)
+  if(pdn_con_req->pdn_type == LIBLTE_MME_PDN_TYPE_IPV6)
   {
     m_s1ap_log->error("PDN Connectivity Request: Only IPv4 connectivity supported.\n");
     return false;
@@ -331,59 +331,59 @@ s1ap_nas_transport::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQ
 {
   if(attach_req->old_p_tmsi_signature_present)
   {
-    m_s1ap_log->warning("NAS attach request: Old P-TMSI signature present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Old P-TMSI signature present, but not handled.\n");
   }
   if(attach_req->additional_guti_present)
   {
-    m_s1ap_log->warning("NAS attach request: Aditional GUTI present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Aditional GUTI present, but not handled.\n");
   }
   if(attach_req->last_visited_registered_tai_present)
   {
-    m_s1ap_log->warning("NAS attach request: Last visited registered TAI present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Last visited registered TAI present, but not handled.\n");
   }
   if(attach_req->drx_param_present)
   {
-    m_s1ap_log->warning("NAS attach request: DRX Param present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: DRX Param present, but not handled.\n");
   }
   if(attach_req->ms_network_cap_present)
   {
-    m_s1ap_log->warning("NAS attach request: MS network cap present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: MS network cap present, but not handled.\n");
   }
   if(attach_req->old_lai_present)
   {
-    m_s1ap_log->warning("NAS attach request: Old LAI present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Old LAI present, but not handled.\n");
   }
   if(attach_req->tmsi_status_present)
   {
-    m_s1ap_log->warning("NAS attach request: TSMI status present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: TSMI status present, but not handled.\n");
   }
   if(attach_req->ms_cm2_present)
   {
-    m_s1ap_log->warning("NAS attach request: MS CM2 present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: MS CM2 present, but not handled.\n");
   }
   if(attach_req->ms_cm3_present)
   {
-    m_s1ap_log->warning("NAS attach request: MS CM3 present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: MS CM3 present, but not handled.\n");
   }
   if(attach_req->supported_codecs_present)
   {
-    m_s1ap_log->warning("NAS attach request: Supported CODECs present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Supported CODECs present, but not handled.\n");
   }
   if(attach_req->additional_update_type_present)
   {
-    m_s1ap_log->warning("NAS attach request: Additional Update Type present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Additional Update Type present, but not handled.\n");
   }
   if(attach_req->voice_domain_pref_and_ue_usage_setting_present)
   {
-    m_s1ap_log->warning("NAS attach request: Voice domain preference and UE usage setting  present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Voice domain preference and UE usage setting  present, but not handled.\n");
   }
   if(attach_req->device_properties_present)
   {
-    m_s1ap_log->warning("NAS attach request: Device properties present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Device properties present, but not handled.\n");
   }
   if(attach_req->old_guti_type_present)
   {
-    m_s1ap_log->warning("NAS attach request: Old GUTI type present, but not handled.");
+    m_s1ap_log->warning("NAS attach request: Old GUTI type present, but not handled.\n");
   }
   return;
 }
@@ -394,19 +394,19 @@ s1ap_nas_transport::log_unhandled_pdn_con_request_ies(const LIBLTE_MME_PDN_CONNE
   //Handle the optional flags
   if(pdn_con_req->esm_info_transfer_flag_present)
   {
-    m_s1ap_log->warning("PDN Connectivity request: ESM info transfer flag properties present, but not handled.");
+    m_s1ap_log->warning("PDN Connectivity request: ESM info transfer flag properties present, but not handled.\n");
   }
   if(pdn_con_req->apn_present)
   {
-    m_s1ap_log->warning("PDN Connectivity request: APN present, but not handled.");
+    m_s1ap_log->warning("PDN Connectivity request: APN present, but not handled.\n");
   }
   if(pdn_con_req->protocol_cnfg_opts_present)
   {
-    m_s1ap_log->warning("PDN Connectivity request: Protocol Cnfg options present, but not handled.");
+    m_s1ap_log->warning("PDN Connectivity request: Protocol Cnfg options present, but not handled.\n");
   }
   if(pdn_con_req->device_properties_present)
   {
-    m_s1ap_log->warning("PDN Connectivity request: Device properties present, but not handled.");
+    m_s1ap_log->warning("PDN Connectivity request: Device properties present, but not handled.\n");
   }
 }
 
@@ -415,37 +415,37 @@ void
 s1ap_nas_transport::log_unhandled_initial_ue_message_ies(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue)
 {
   if(init_ue->S_TMSI_present){
-    m_s1ap_log->warning("S-TMSI present, but not handled.");
+    m_s1ap_log->warning("S-TMSI present, but not handled.\n");
   }
   if(init_ue->CSG_Id_present){
-    m_s1ap_log->warning("S-TMSI present, but not handled.");
+    m_s1ap_log->warning("S-TMSI present, but not handled.\n");
   }
   if(init_ue->GUMMEI_ID_present){
-    m_s1ap_log->warning("GUMMEI ID present, but not handled.");
+    m_s1ap_log->warning("GUMMEI ID present, but not handled.\n");
   }
   if(init_ue->CellAccessMode_present){
-    m_s1ap_log->warning("Cell Access Mode present, but not handled.");
+    m_s1ap_log->warning("Cell Access Mode present, but not handled.\n");
   } 
   if(init_ue->GW_TransportLayerAddress_present){
-    m_s1ap_log->warning("GW Transport Layer present, but not handled.");
+    m_s1ap_log->warning("GW Transport Layer present, but not handled.\n");
   }
   if(init_ue->GW_TransportLayerAddress_present){
-    m_s1ap_log->warning("GW Transport Layer present, but not handled.");
+    m_s1ap_log->warning("GW Transport Layer present, but not handled.\n");
   }
   if(init_ue->RelayNode_Indicator_present){
-    m_s1ap_log->warning("Relay Node Indicator present, but not handled.");
+    m_s1ap_log->warning("Relay Node Indicator present, but not handled.\n");
   }
   if(init_ue->GUMMEIType_present){
-    m_s1ap_log->warning("GUMMEI Type present, but not handled.");
+    m_s1ap_log->warning("GUMMEI Type present, but not handled.\n");
   }
   if(init_ue->Tunnel_Information_for_BBF_present){
-    m_s1ap_log->warning("Tunnel Information for BBF present, but not handled.");
+    m_s1ap_log->warning("Tunnel Information for BBF present, but not handled.\n");
   }
   if(init_ue->SIPTO_L_GW_TransportLayerAddress_present){
-    m_s1ap_log->warning("SIPTO GW Transport Layer Address present, but not handled.");
+    m_s1ap_log->warning("SIPTO GW Transport Layer Address present, but not handled.\n");
   }
   if(init_ue->LHN_ID_present){
-    m_s1ap_log->warning("LHN Id present, but not handled.");
+    m_s1ap_log->warning("LHN Id present, but not handled.\n");
   }
   return;
 }

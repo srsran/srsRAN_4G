@@ -39,7 +39,8 @@ hss*          hss::m_instance = NULL;
 boost::mutex  hss_instance_mutex;
 
 hss::hss()
- :m_sqn(0x112233445566)
+// :m_sqn(0x112233445566)
+  :m_sqn(0)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();
   return;
@@ -80,12 +81,40 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
   srand(time(NULL));
   /*Init loggers*/
   m_hss_log = hss_log;
-  m_hss_log->info("HSS Initialized\n");
-  m_hss_log->console("HSS Initialized\n");
 
+  /*Set authentication algorithm*/
+  if(set_auth_algo(hss_args->auth_algo) == false)
+  {
+    return -1;
+  }
   /*Read user information from DB*/
-  read_db_file(hss_args->db_file);
+  if(read_db_file(hss_args->db_file) == false)
+  {
+    return -1;
+  }
+
+  m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str());
+  m_hss_log->console("HSS Initialized\n");
   return 0;
+}
+
+bool
+hss::set_auth_algo(std::string auth_algo)
+{
+  if(auth_algo != "xor" && auth_algo != "milenage" )
+  {
+    m_hss_log->error("Unrecognized authentication algorithm. auth_algo = %s\n", auth_algo.c_str());
+    return false;
+  }
+  if(auth_algo == "xor")
+  {
+    m_auth_algo = HSS_ALGO_XOR;
+  }
+  else
+  {
+    m_auth_algo = HSS_ALGO_MILENAGE;
+  }
+  return true;
 }
 
 bool
@@ -126,6 +155,23 @@ hss::read_db_file(std::string db_filename)
   }
 
   return true;
+}
+
+bool
+hss::gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres)
+{
+  bool ret = false;
+  switch (m_auth_algo)
+  {
+  case HSS_ALGO_XOR:
+    ret = gen_auth_info_answer_xor(imsi, k_asme, autn, rand, xres);
+    break;
+  case HSS_ALGO_MILENAGE:
+    ret = gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, xres);
+    break;
+  }
+  return ret;
+
 }
 
 bool
@@ -195,6 +241,106 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
 
   return true;
 }
+
+bool
+hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres)
+{
+  uint8_t k[16];
+  uint8_t amf[2];
+  uint8_t op[16];
+  uint8_t sqn[6];
+
+  uint8_t  xdout[16];
+  uint8_t  cdout[8];
+
+  uint8_t     ck[16];
+  uint8_t     ik[16];
+  uint8_t     ak[6];
+  uint8_t     mac[8];
+
+  uint16_t  mcc=61441; //001
+  uint16_t  mnc=65281; //01
+
+  int i = 0;
+
+  if(!get_k_amf_op(imsi,k,amf,op))
+  {
+    return false;
+  }
+  gen_rand(rand);
+  get_sqn(sqn);
+
+  // Use RAND and K to compute RES, CK, IK and AK
+  for(i=0; i<16; i++) {
+    xdout[i] = k[i]^rand[i];
+  }
+
+  for(i=0; i<16; i++) {
+    xres[i]  = xdout[i];
+    ck[i]   = xdout[(i+1)%16];
+    ik[i]   = xdout[(i+2)%16];
+  }
+  for(i=0; i<6; i++) {
+    ak[i] = xdout[i+3];
+  }
+
+  // Generate cdout
+  for(i=0; i<6; i++) {
+    cdout[i] = sqn[i];
+  }
+  for(i=0; i<2; i++) {
+    cdout[6+i] = amf[i];
+  }
+
+  // Generate MAC
+  for(i=0;i<8;i++) {
+    mac[i] = xdout[i] ^ cdout[i];
+  }
+
+  //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
+  for(int i=0;i<6;i++ )
+  {
+      autn[i] = sqn[i]^ak[i];
+  }
+  for(int i=0;i<2;i++)
+  {
+      autn[6+i]=amf[i];
+  }
+  for(int i=0;i<8;i++)
+  {
+      autn[8+i]=mac[i];
+  }
+
+  // Generate K_asme
+  security_generate_k_asme( ck,
+                            ik,
+                            ak,
+                            sqn,
+                            mcc,
+                            mnc,
+                            k_asme);
+
+  //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
+  for(int i=0;i<6;i++ )
+  {
+    autn[i] = sqn[i]^ak[i];
+  }
+  for(int i=0;i<2;i++)
+  {
+    autn[6+i]=amf[i];
+  }
+  for(int i=0;i<8;i++)
+  {
+    autn[8+i]=mac[i];
+  }
+
+  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
+  m_hss_log->debug_hex(autn, 8, "User AUTN: ");
+  m_hss_log->debug_hex(xres, 8, "User XRES: ");
+
+  return true;
+}
+
 
 bool
 hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
