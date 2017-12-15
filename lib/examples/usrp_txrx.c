@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
 
   srslte_timestamp_t tstamp; 
   
-  srslte_rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf, false);
   uint32_t nframe=0;
   
 

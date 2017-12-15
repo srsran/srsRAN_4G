@@ -56,6 +56,7 @@ public:
 
   void configure(srslte_rlc_config_t cnfg);
   void reset();
+  void reestablish();
   void stop();
   void empty_queue();
   bool active();

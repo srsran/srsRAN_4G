@@ -67,9 +67,7 @@ public:
   int read_pdsch_d(cf_t *pdsch_d);
   void start_plot();
 
-  float get_ref_cfo();
-  
-private: 
+private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
   void work_imp();
 
@@ -150,7 +148,8 @@ private:
   srslte_uci_cfg_t                  uci_cfg; 
   srslte_cqi_periodic_cfg_t         period_cqi; 
   srslte_ue_ul_powerctrl_t          power_ctrl;           
-  uint32_t                          I_sr; 
+  uint32_t                          I_sr;
+  bool                              sr_configured;
   float                             cfo;
   bool                              rar_cqi_request;
 

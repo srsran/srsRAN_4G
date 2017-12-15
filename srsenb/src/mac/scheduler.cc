@@ -680,8 +680,7 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
         for(uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
           h->reset(tb);
         }
-        Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d, L=%d, nof_candidates=%d\n",
-                rnti, h->get_id(), aggr_level, user->get_locations(current_cfi, sf_idx)->nof_loc[aggr_level] );
+        Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d\n", rnti, h->get_id());              
       }      
     }    
   } 
@@ -826,7 +825,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     {   
       ul_harq_proc::ul_alloc_t alloc = h->get_alloc(); 
       bool is_newtx = h->is_empty(0);
-      bool needs_pdcch = h->is_adaptive_retx() && !is_rar;
+      bool needs_pdcch = !h->is_adaptive_retx() && !is_rar;
 
       // Set number of retx
       if (is_newtx) {

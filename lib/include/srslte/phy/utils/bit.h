@@ -40,6 +40,25 @@
 
 #include "srslte/config.h"
 
+typedef struct {
+  uint32_t nof_bits;
+  uint16_t *interleaver;
+  uint16_t *byte_idx;
+  uint8_t *bit_mask;
+  uint8_t n_128;
+} srslte_bit_interleaver_t;
+
+SRSLTE_API void srslte_bit_interleaver_init(srslte_bit_interleaver_t *q,
+                                            uint16_t *interleaver,
+                                            uint32_t nof_bits);
+
+SRSLTE_API void srslte_bit_interleaver_free(srslte_bit_interleaver_t *q);
+
+SRSLTE_API void srslte_bit_interleaver_run(srslte_bit_interleaver_t *q,
+                                           uint8_t *input,
+                                           uint8_t *output,
+                                           uint16_t w_offset);
+
 SRSLTE_API void srslte_bit_interleave(uint8_t *input, 
                                       uint8_t *output, 
                                       uint16_t *interleaver, 

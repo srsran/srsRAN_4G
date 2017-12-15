@@ -47,7 +47,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
   srslte_cell_t cell; 
-  srslte_pss_synch_t pss; 
+  srslte_pss_t pss;
   cf_t *input_symbols;
   int frame_len; 
   
@@ -74,17 +74,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     frame_len = (int) mxGetScalar(prhs[NOF_INPUTS]);
   }
   
-  if (srslte_pss_synch_init_fft(&pss, frame_len, srslte_symbol_sz(cell.nof_prb))) {
+  if (srslte_pss_init_fft(&pss, frame_len, srslte_symbol_sz(cell.nof_prb))) {
     fprintf(stderr, "Error initiating PSS\n");
     exit(-1);
   }
-  if (srslte_pss_synch_set_N_id_2(&pss, cell.id%3)) {
+  if (srslte_pss_set_N_id_2(&pss, cell.id%3)) {
     fprintf(stderr, "Error setting N_id_2=%d\n",cell.id%3);
     exit(-1);
   }
-  srslte_pss_synch_set_ema_alpha(&pss, 1.0);     
+  srslte_pss_set_ema_alpha(&pss, 1.0);
       
-  int peak_idx = srslte_pss_synch_find_pss(&pss, input_symbols, NULL);
+  int peak_idx = srslte_pss_find_pss(&pss, input_symbols, NULL);
 
   if (nlhs >= 1) { 
     plhs[0] = mxCreateDoubleScalar(peak_idx);
@@ -93,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(pss.conv_output, &plhs[1], frame_len, 1);  
   }
     
-  srslte_pss_synch_free(&pss);
+  srslte_pss_free(&pss);
   free(input_symbols);
 
   return;

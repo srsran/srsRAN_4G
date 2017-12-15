@@ -32,6 +32,8 @@
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
+#include "srslte/common/msg_queue.h"
+#include "srslte/common/threads.h"
 
 
 namespace srslte {
@@ -59,6 +61,7 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU",
  * Common interface for all PDCP entities
  ***************************************************************************/
 class pdcp_entity
+    :public thread
 {
 public:
   pdcp_entity();
@@ -68,16 +71,20 @@ public:
             srslte::log                   *log_,
             uint32_t                       lcid_,
             srslte_pdcp_config_t           cfg_);
+  void stop();
   void reset();
+  void reestablish();
 
   bool is_active();
 
   // RRC interface
   void write_sdu(byte_buffer_t *sdu);
-  void config_security(uint8_t *k_rrc_enc_,
-                       uint8_t *k_rrc_int_,
+  void config_security(uint8_t *k_enc_,
+                       uint8_t *k_int_,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
+  void enable_integrity();
+  void enable_encryption();
 
   // RLC interface
   void write_pdu(byte_buffer_t *pdu);
@@ -90,26 +97,46 @@ private:
   srsue::rrc_interface_pdcp *rrc;
   srsue::gw_interface_pdcp  *gw;
 
+  static const int    PDCP_THREAD_PRIO = 7;
+  srslte::msg_queue   rx_pdu_queue;
+  bool                running;
+
   bool                active;
   uint32_t            lcid;
   srslte_pdcp_config_t cfg;
+  uint8_t             sn_len_bytes;
+  bool                do_integrity;
+  bool                do_encryption;
 
   uint32_t            rx_count;
   uint32_t            tx_count;
-  uint8_t             k_rrc_enc[32];
-  uint8_t             k_rrc_int[32];
+  uint8_t             k_enc[32];
+  uint8_t             k_int[32];
 
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
-  void integrity_generate(uint8_t  *key_128,
-                          uint32_t  count,
-                          uint8_t   rb_id,
-                          uint8_t   direction,
-                          uint8_t  *msg,
+  void integrity_generate(uint8_t  *msg,
                           uint32_t  msg_len,
                           uint8_t  *mac);
 
+  bool integrity_verify(uint8_t  *msg,
+                        uint32_t  count,
+                        uint32_t  msg_len,
+                        uint8_t  *mac);
+
+  void cipher_encrypt(uint8_t  *msg,
+                      uint32_t  msg_len,
+                      uint8_t  *ct);
+
+  void cipher_decrypt(uint8_t  *ct,
+                      uint32_t  count,
+                      uint32_t  ct_len,
+                      uint8_t  *msg);
+
+  void run_thread();
+
+  uint8_t  get_bearer_id(uint8_t lcid);
 };
 
 /****************************************************************************

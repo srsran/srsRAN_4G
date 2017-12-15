@@ -75,4 +75,11 @@ namespace srslte {
     pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mutex);
   }
+  void tti_sync_cv::increase(uint32_t tti)
+  {
+    pthread_mutex_lock(&mutex);
+    increase_producer(tti);
+    pthread_cond_signal(&cond);
+    pthread_mutex_unlock(&mutex);
+  }
 }

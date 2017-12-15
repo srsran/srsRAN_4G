@@ -113,7 +113,15 @@ SRSLTE_API void srslte_ofdm_rx_free(srslte_ofdm_t *q);
 SRSLTE_API void srslte_ofdm_rx_slot(srslte_ofdm_t *q,
                                     int slot_in_sf);
 
+SRSLTE_API void srslte_ofdm_rx_slot_ng(srslte_ofdm_t *q,
+                                      cf_t *input,
+                                       cf_t *output);
+
 SRSLTE_API void srslte_ofdm_rx_sf(srslte_ofdm_t *q);
+
+SRSLTE_API void srslte_ofdm_rx_sf_ng(srslte_ofdm_t *q,
+                                     cf_t *input,
+                                     cf_t *output);
 
 SRSLTE_API int srslte_ofdm_tx_init(srslte_ofdm_t *q, 
                                     srslte_cp_t cp_type, 

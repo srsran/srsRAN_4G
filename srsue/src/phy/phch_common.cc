@@ -47,24 +47,7 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   mac       = NULL; 
   max_mutex = max_mutex_;
   nof_mutex = 0; 
-  sr_enabled        = false; 
-  is_first_of_burst = true; 
-  is_first_tx       = true; 
-  rar_grant_pending = false; 
-  pathloss = 0; 
-  cur_pathloss = 0; 
-  cur_pusch_power = 0; 
-  p0_preamble = 0; 
-  cur_radio_power = 0; 
-  rx_gain_offset = 0; 
-  sr_last_tx_tti = -1;
-  cur_pusch_power = 0;
-  bzero(zeros, 50000*sizeof(cf_t));
 
-  // FIXME: This is an ungly fix to avoid the TX filters to empty
-  for (int i=0;i<50000;i++) {
-    zeros[i] = 0.01*cexpf(((float) i/50000)*0.1*_Complex_I);
-  }
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   dl_metrics_read = true;
   dl_metrics_count = 0;
@@ -74,6 +57,16 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   bzero(&sync_metrics, sizeof(sync_metrics_t));
   sync_metrics_read = true;
   sync_metrics_count = 0;
+
+  bzero(zeros, 50000*sizeof(cf_t));
+
+  // FIXME: This is an ugly fix to avoid the TX filters to empty
+  for (int i=0;i<50000;i++) {
+    zeros[i] = 0.01*cexpf(((float) i/50000)*0.1*_Complex_I);
+  }
+
+  reset();
+
 }
   
 void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, rrc_interface_phy *_rrc, mac_interface_phy *_mac)
@@ -221,6 +214,15 @@ bool phch_common::get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_
   return pending_ack[TTIMOD(tti)].enabled;
 }
 
+bool phch_common::is_any_pending_ack() {
+  for (int i=0;i<TTIMOD_SZ;i++) {
+    if (pending_ack[i].enabled) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /* The transmisison of UL subframes must be in sequence. Each worker uses this function to indicate
  * that all processing is done and data is ready for transmission or there is no transmission at all (tx_enable). 
  * In that case, the end of burst message will be send to the radio 
@@ -255,10 +257,6 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
   }
   // Trigger next transmission 
   pthread_mutex_unlock(&tx_mutex[(tti+1)%nof_mutex]);
-  
-  // Trigger MAC clock
-  mac->tti_clock(tti);
-
 }    
 
 
@@ -328,9 +326,30 @@ void phch_common::get_sync_metrics(sync_metrics_t &m) {
   sync_metrics_read = true;
 }
 
+void phch_common::reset() {
+  sr_enabled        = false;
+  is_first_of_burst = true;
+  is_first_tx       = true;
+  rar_grant_pending = false;
+  pathloss = 0;
+  cur_pathloss = 0;
+  cur_pusch_power = 0;
+  p0_preamble = 0;
+  cur_radio_power = 0;
+  rx_gain_offset = 0;
+  sr_last_tx_tti = -1;
+  cur_pusch_power = 0;
+
+  pcell_meas_enabled  = false;
+  pcell_report_period = 20;
+
+  bzero(pending_ack, sizeof(pending_ack_t)*TTIMOD_SZ);
+
+}
+
 void phch_common::reset_ul()
 {
-  is_first_tx = true; 
+  is_first_tx = true;
   is_first_of_burst = true; 
   for (uint32_t i=0;i<nof_mutex;i++) {
     pthread_mutex_trylock(&tx_mutex[i]);

@@ -301,7 +301,8 @@ SRSLTE_API int srslte_str2mimotype(char *mimo_type_str,
 
 SRSLTE_API char *srslte_mimotype2str(srslte_mimo_type_t mimo_type);
 
-SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1, 
+/* Returns the interval tti1-tti2 mod 10240 */
+SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1,
                                         uint32_t tti2); 
 
 #endif
