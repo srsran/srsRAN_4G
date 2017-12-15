@@ -64,12 +64,18 @@ static bool _faux_rf_logStdout = true;
 
 #define FAUX_RF_BOOL_TO_STR(x) (x) ? "yes" : "no"
 
-#define FAUX_RF_ENB_PORT 43001
-#define FAUX_RF_UE_PORT  43002
+#define FAUX_RF_DL_PORT 43001
+#define FAUX_RF_UL_PORT 43002
 
 #define SAMPLES_TO_BYTES(x) ((x) * sizeof(cf_t))
 
 static const cf_t _zeros[1 << 20]= {0.0, 0.0};
+
+static const size_t TOPIC_LEN = 12;
+static const char * TOPIC     = "LTE.DOWNLINK";
+
+static const size_t RESPONSE_LEN = 2;
+static const char * RESPONSE     = "OK";
 
 static void _faux_rf_tv_to_ts(struct timeval *tv, time_t *s, double *f)
 {
@@ -129,16 +135,23 @@ typedef struct
    bool   rxStream;
    int    type;
    void * zmqctx;
-   void * req;
-   void * rep;
+   void * txSock;
+   void * rxSock;
    int64_t txseq;
  } faux_rf_info_t;
 
 
-static bool _faux_rf_is_enb(faux_rf_info_t * h)
+static bool _faux_rf_is_enb(faux_rf_info_t * info)
 {
-  return (h->type == FAUX_RF_TYPE_ENB);
+  return (info->type == FAUX_RF_TYPE_ENB);
 }
+
+
+static bool _faux_rf_is_ue(faux_rf_info_t * info)
+{
+  return (info->type == FAUX_RF_TYPE_UE);
+}
+
 
 static const char * make_zmq_endpoint(char buff[64], 
                                       const char * type,
@@ -147,47 +160,107 @@ static const char * make_zmq_endpoint(char buff[64],
 {
   snprintf(buff, 64, "%s://%s:%hu", type, addr, port); 
 
-  FAUX_RF_DEBUG("create endpoint %s", buff);
-
   return buff;
 }
 
-static int _faux_rf_open_ipc_zmq(faux_rf_info_t * h)
+
+static int _faux_rf_vecio_send(const struct iovec * iov, 
+                               int n, 
+                               const faux_rf_info_t * info, 
+                               int flags)
 {
-  h->zmqctx = zmq_ctx_new();
+   int sum = 0;
 
-  const unsigned short rxPort = _faux_rf_is_enb(h) ? 
-                                FAUX_RF_ENB_PORT : 
-                                FAUX_RF_UE_PORT;
+   for(int i = 0; i < n; ++i)
+     {
+        int rc = zmq_send(info->txSock, 
+                          iov[i].iov_base, 
+                          iov[i].iov_len, i < (n - 1) ? flags | ZMQ_SNDMORE : flags);
 
-  const unsigned short txPort = _faux_rf_is_enb(h) ? 
-                                FAUX_RF_UE_PORT : 
-                                FAUX_RF_ENB_PORT;
+        if(rc > 0)
+          {
+            sum += rc;
+          }
+        else
+          {
+            FAUX_RF_DEBUG("send error %s", strerror(errno));
 
-  if((h->req = zmq_socket(h->zmqctx, ZMQ_REQ)) == NULL)
+            break;
+          }
+     }
+
+  return sum;
+}
+
+
+static int _faux_rf_vecio_recv(struct iovec * iov, 
+                               int n, 
+                               const faux_rf_info_t * info, 
+                               int flags)
+{
+   int sum = 0;
+
+   for(int i = 0; i < n; ++i)
+     {
+        int rc = zmq_recv(info->rxSock, 
+                          iov[i].iov_base, 
+                          iov[i].iov_len, flags);
+
+        if(rc > 0)
+          {
+            sum += rc;
+          }
+        else
+          {
+            if(errno != EAGAIN)
+              {
+                FAUX_RF_DEBUG("recv error %s", strerror(errno));
+              }
+
+            break;
+          }
+     }
+
+  return sum;
+}
+
+
+
+
+static int _faux_rf_open_ipc_enb(faux_rf_info_t * info)
+{
+  char ep[64] = {0};
+
+  if((info->txSock = zmq_socket(info->zmqctx, ZMQ_PUB)) == NULL)
     {
-      FAUX_RF_DEBUG("error opening REQ sock %s", strerror(errno));
+      FAUX_RF_DEBUG("error opening PUB sock %s", strerror(errno));
 
       return -1;
     }
 
-  if((h->rep = zmq_socket(h->zmqctx, ZMQ_REP)) == NULL)
+  make_zmq_endpoint(ep, "tcp", "127.0.0.1", FAUX_RF_DL_PORT);
+
+  FAUX_RF_DEBUG("PUB listen for downlink subscribers on %s\n", ep);
+
+  if(zmq_bind(info->txSock, ep) < 0)
+   {
+     FAUX_RF_DEBUG("error binding PUB sock %s", strerror(errno));
+ 
+     return -1;
+   }
+
+  if((info->rxSock = zmq_socket(info->zmqctx, ZMQ_REP)) == NULL)
     {
       FAUX_RF_DEBUG("error opening REP sock %s", strerror(errno));
 
       return -1;
     }
 
-  char ep[64] = {0};
+  make_zmq_endpoint(ep, "tcp", "127.0.0.1", FAUX_RF_UL_PORT);
 
-  if(zmq_connect(h->req, make_zmq_endpoint(ep, "tcp", "127.0.0.1", txPort)) < 0)
-    {
-      FAUX_RF_DEBUG("error connecting REQ sock %s", strerror(errno));
+  FAUX_RF_DEBUG("REP listen to uplink on %s\n", ep);
 
-      return -1;
-    }
-
-  if(zmq_bind(h->rep, make_zmq_endpoint(ep, "tcp", "127.0.0.1", rxPort)) < 0)
+  if(zmq_bind(info->rxSock, ep) < 0)
     {
       FAUX_RF_DEBUG("error binding REP sock %s", strerror(errno));
 
@@ -197,23 +270,102 @@ static int _faux_rf_open_ipc_zmq(faux_rf_info_t * h)
   // timeout 1 msec (1 sf)
   const int timeout = 1;
 
-  if(zmq_setsockopt(h->rep, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) < 0)
-    {
-      FAUX_RF_DEBUG("error set rcv timoeout to %d for REP sock %s", timeout, strerror(errno));
-
-      return -1;
-    }
-
-  if(zmq_setsockopt(h->rep, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) < 0)
+  if(zmq_setsockopt(info->rxSock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) < 0)
     {
       FAUX_RF_DEBUG("error set snd timoeout to %d for REP sock %s", timeout, strerror(errno));
 
       return -1;
     }
 
-  FAUX_RF_DEBUG("set snd/rcv timoeout to %d for REP sock %d", timeout);
+  FAUX_RF_DEBUG("set rcv timoeout to %d for REP sock %d", timeout);
  
   return 0;
+}
+
+static int _faux_rf_open_ipc_ue(faux_rf_info_t * info)
+{
+  char ep[64] = {0};
+
+  if((info->rxSock = zmq_socket(info->zmqctx, ZMQ_SUB)) == NULL)
+    {
+      FAUX_RF_DEBUG("error opening SUB sock %s", strerror(errno));
+
+      return -1;
+    }
+
+  make_zmq_endpoint(ep, "tcp", "127.0.0.1", FAUX_RF_DL_PORT);
+
+  FAUX_RF_DEBUG("SUB connect to downlink publisher on %s\n", ep);
+
+  if(zmq_connect(info->rxSock, ep) < 0)
+    {
+      FAUX_RF_DEBUG("error connect SUB sock %s", strerror(errno));
+ 
+      return -1;
+    }
+
+  if(zmq_setsockopt(info->rxSock, ZMQ_SUBSCRIBE, TOPIC, TOPIC_LEN) < 0)
+    {
+      FAUX_RF_DEBUG("error subscribing to topic %s SUB sock %s", TOPIC, strerror(errno));
+  
+      return -1;
+    }
+
+  if((info->txSock = zmq_socket(info->zmqctx, ZMQ_REQ)) == NULL)
+    {
+      FAUX_RF_DEBUG("error opening REQ sock %s", strerror(errno));
+
+      return -1;
+    }
+
+  make_zmq_endpoint(ep, "tcp", "127.0.0.1", FAUX_RF_UL_PORT);
+
+  FAUX_RF_DEBUG("REQ connect to uplink on %s\n", ep);
+
+  if(zmq_connect(info->txSock, ep) < 0)
+    {
+      FAUX_RF_DEBUG("error connect REQ sock %s", strerror(errno));
+
+      return -1;
+    }
+
+  // timeout 1 msec (1 sf)
+  const int timeout = 1;
+
+  if(zmq_setsockopt(info->rxSock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) < 0)
+    {
+      FAUX_RF_DEBUG("error set rcv timoeout to %d for SUB sock %s", timeout, strerror(errno));
+
+      return -1;
+    }
+
+  FAUX_RF_DEBUG("set snd/rcv timoeout to %d for REQ/SUB sock %d", timeout);
+ 
+  return 0;
+}
+
+
+static int _faux_rf_open_ipc_zmq(faux_rf_info_t * info)
+{
+  info->zmqctx = zmq_ctx_new();
+
+  if(info != NULL)
+    {
+      if(_faux_rf_is_enb(info))
+        {
+          return _faux_rf_open_ipc_enb(info);
+        }
+      else
+        {
+          return _faux_rf_open_ipc_ue(info);
+        }
+    }
+  else
+    {
+      FAUX_RF_DEBUG("zmq context error %s", strerror(errno));
+ 
+      return -1;
+    }
 }
 
 
@@ -242,8 +394,8 @@ static  faux_rf_info_t _faux_rf_info = { .devName       = "faux",
                                          .rxStream      = false,
                                          .type          = FAUX_RF_TYPE_NONE,
                                          .zmqctx        = NULL,
-                                         .req           = NULL,
-                                         .rep           = NULL,
+                                         .txSock        = NULL,
+                                         .rxSock        = NULL,
                                          .txseq         = 0
                                        };
 
@@ -517,21 +669,28 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    int64_t rxseq = -1;
 
-   const int bflags = blocking ? ZMQ_NOBLOCK : 0;
+   char topic[TOPIC_LEN + 1];
 
-   int rc = zmq_recv(_info->rep, &rxseq, sizeof(rxseq), bflags | ZMQ_RCVMORE);
+   memset(topic, 0x0, sizeof(topic));
 
-   if(rc < 0)
-     {
-       if(errno != EAGAIN)
-         {
-           FAUX_RF_DEBUG("recv error %s", strerror(errno));
+   const int flags = !blocking ? ZMQ_NOBLOCK : 0;
 
-           return -1;
-         }
-     }
+   int rc;
 
-   rc = zmq_recv(_info->rep, data, bytesToRecv, bflags);
+   if(_faux_rf_is_ue(_info))
+    {
+      struct iovec iov[3] = {{(void*)topic,  strlen(topic)}, 
+                             {(void*)&rxseq, sizeof(rxseq)},
+                             {(void*)data,   bytesToRecv}};
+
+      rc = _faux_rf_vecio_recv(iov, 3, _info, flags);
+    }
+   else
+    {
+      struct iovec iov[1] = {{(void*)data,   bytesToRecv}};
+
+      rc = _faux_rf_vecio_recv(iov, 1, _info, flags);
+    }
 
    if(rc < 0)
      {
@@ -548,8 +707,17 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
      }
    else
     {
-
-      zmq_send(_info->rep, "OK", strlen("OK"),0);
+      if(rc > 0 && _faux_rf_is_enb(_info))
+        {
+          if(zmq_send(_info->rxSock, RESPONSE, RESPONSE_LEN, 0) < 0)
+            {
+              FAUX_RF_DEBUG("send response error %s", strerror(errno));
+            }
+          else
+            {
+              FAUX_RF_DEBUG("send response %s", RESPONSE);
+            }
+        }
     }
 
    FAUX_RF_DEBUG("recv %d, of %d, seqnum %ld", rc, bytesToRecv, rxseq);
@@ -593,50 +761,56 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
               FAUX_RF_BOOL_TO_STR(is_start_of_burst),
               FAUX_RF_BOOL_TO_STR(is_end_of_burst));
 
-   const int bflags = blocking ? ZMQ_NOBLOCK : 0;
+   const int flags = !blocking ? ZMQ_NOBLOCK : 0;
 
-   int rc = zmq_send(_info->req, &(_info->txseq), sizeof(_info->txseq), bflags | ZMQ_SNDMORE);
+   int rc;
 
-   if(rc < 0)
+   if(_faux_rf_is_enb(_info))
+    {
+      const struct iovec iov[3] = {{(void*)TOPIC,           TOPIC_LEN}, 
+                                   {(void*)&(_info->txseq), sizeof(_info->txseq)},
+                                   {(void*)data,            bytesToSend}};
+
+      rc = _faux_rf_vecio_send(iov, 3, _info, flags);
+    }
+   else
+    {
+      const struct iovec iov[2] = {{(void*)&(_info->txseq), sizeof(_info->txseq)},
+                                   {(void*)data,            bytesToSend}};
+
+      rc = _faux_rf_vecio_send(iov, 2, _info, flags);
+    }
+
+   if(rc <= 0)
      {
-       if(errno != EAGAIN)
-         {
-           FAUX_RF_DEBUG("send error %s", strerror(errno));
+       FAUX_RF_DEBUG("send error %s", strerror(errno));
 
-           return -1;
-         }
-     }
-
-   rc = zmq_send(_info->req, data, bytesToSend, bflags);
-
-   char response[3] = {0};
-
-   if(rc < 0)
-     {
-       if(errno != EAGAIN)
-         {
-           FAUX_RF_DEBUG("send error %s", strerror(errno));
-
-           return -1;
-         }
-       else
-         {
-           rc = 0;
-         }
+       return -1;
      }
    else
      {
-       if(zmq_recv(_info->req, response, 2, 0) < 0)
+       ++_info->txseq;
+
+       if(_faux_rf_is_ue(_info))
          {
-           FAUX_RF_DEBUG("recv response error %s", strerror(errno));
-         }
-       else
-         {
-           ++_info->txseq;
+           char resp[RESPONSE_LEN + 1];
+
+           memset(resp, 0x0, sizeof(resp));
+
+           FAUX_RF_DEBUG("wait for response");
+
+           if(zmq_recv(_info->txSock, resp, RESPONSE_LEN, flags) < 0)
+             {
+               FAUX_RF_DEBUG("recv response error %s", strerror(errno));
+             }
+           else
+             {
+               FAUX_RF_DEBUG("recv response %s", resp);
+             }
          }
      }
 
-   FAUX_RF_DEBUG("sent %d bytes of %d, response %s", rc, bytesToSend, response);
+   FAUX_RF_DEBUG("sent %d bytes of %d", rc, bytesToSend);
 
    return nsamples;
 }

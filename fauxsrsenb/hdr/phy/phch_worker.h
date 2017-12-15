@@ -75,12 +75,12 @@ private:
   
   void work_imp();
   
-  int encode_pdsch(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
-  int decode_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti_rx);
-  int encode_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx);
-  int encode_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
-  int encode_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx); 
-  int decode_pucch(uint32_t tti_rx);
+  int encode_faux_pdsch(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
+  int decode_faux_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti_rx);
+  int encode_faux_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx);
+  int encode_faux_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx);
+  int encode_faux_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx); 
+  int decode_faux_pucch(uint32_t tti_rx);
   
   
   /* Common objects */  

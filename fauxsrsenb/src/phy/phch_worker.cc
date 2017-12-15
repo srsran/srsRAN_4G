@@ -301,10 +301,10 @@ void phch_worker::work_imp()
   srslte_faux_enb_ul_fft(&enb_ul, signal_buffer_rx);
 
   // Decode pending UL grants for the tti they were scheduled
-  decode_pusch(ul_grants[sf_rx].sched_grants, ul_grants[sf_rx].nof_grants, sf_rx);
+  decode_faux_pusch(ul_grants[sf_rx].sched_grants, ul_grants[sf_rx].nof_grants, sf_rx);
   
   // Decode remaining PUCCH ACKs not associated with PUSCH transmission and SR signals
-  decode_pucch(tti_rx);
+  decode_faux_pucch(tti_rx);
       
   // Get DL scheduling for the TX TTI from MAC
   if (mac->get_dl_sched(tti_tx, &dl_grants[sf_tx]) < 0) {
@@ -329,12 +329,12 @@ void phch_worker::work_imp()
   srslte_faux_enb_dl_put_base(&enb_dl, tti_tx);
 
   // Put UL/DL grants to resource grid. PDSCH data will be encoded as well. 
-  encode_pdcch_dl(dl_grants[sf_tx].sched_grants, dl_grants[sf_tx].nof_grants, sf_tx);  
-  encode_pdcch_ul(ul_grants[sf_sched_ul].sched_grants, ul_grants[sf_sched_ul].nof_grants, sf_tx);
-  encode_pdsch(dl_grants[sf_tx].sched_grants, dl_grants[sf_tx].nof_grants, sf_tx);  
+  encode_faux_pdcch_dl(dl_grants[sf_tx].sched_grants, dl_grants[sf_tx].nof_grants, sf_tx);  
+  encode_faux_pdcch_ul(ul_grants[sf_sched_ul].sched_grants, ul_grants[sf_sched_ul].nof_grants, sf_tx);
+  encode_faux_pdsch(dl_grants[sf_tx].sched_grants, dl_grants[sf_tx].nof_grants, sf_tx);  
   
   // Put pending PHICH HARQ ACK/NACK indications into subframe
-  encode_phich(ul_grants[sf_sched_ul].phich, ul_grants[sf_sched_ul].nof_phich, sf_tx);
+  encode_faux_phich(ul_grants[sf_sched_ul].phich, ul_grants[sf_sched_ul].nof_phich, sf_tx);
   
   // Prepare for receive ACK for DL grants in sf_tx+4
   sf_ack = (sf_tx+4)%10; 
@@ -375,7 +375,7 @@ unlock:
 }
 
 
-int phch_worker::decode_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti)
+int phch_worker::decode_faux_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   srslte_uci_data_t uci_data; 
@@ -514,7 +514,7 @@ int phch_worker::decode_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_p
 }
 
 
-int phch_worker::decode_pucch(uint32_t tti_rx)
+int phch_worker::decode_faux_pucch(uint32_t tti_rx)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   uint32_t sf_rx = tti_rx%10;
@@ -594,7 +594,7 @@ int phch_worker::decode_pucch(uint32_t tti_rx)
 }
 
 
-int phch_worker::encode_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
+int phch_worker::encode_faux_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   for (uint32_t i=0;i<nof_acks;i++) {
@@ -615,7 +615,7 @@ int phch_worker::encode_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t nof_ack
 }
 
 
-int phch_worker::encode_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int phch_worker::encode_faux_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   for (uint32_t i=0;i<nof_grants;i++) {
@@ -633,7 +633,7 @@ int phch_worker::encode_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32_t no
   return SRSLTE_SUCCESS; 
 }
 
-int phch_worker::encode_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int phch_worker::encode_faux_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   for (uint32_t i=0;i<nof_grants;i++) {
@@ -663,7 +663,7 @@ int phch_worker::encode_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32_t no
   return 0; 
 }
 
-int phch_worker::encode_pdsch(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int phch_worker::encode_faux_pdsch(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
   X_TRACE("PHCHWORKER:BEGIN");
   for (uint32_t i=0;i<nof_grants;i++) {
