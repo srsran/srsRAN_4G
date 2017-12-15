@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
     return -1;
   }
   
-  srslte_rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf, false);
   
   float rx_gain_offset = 0;
 
@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
+            n = srslte_ue_dl_decode(&ue_dl, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;
@@ -366,7 +366,7 @@ int main(int argc, char **argv) {
         
         if ((nframes%100) == 0 || rx_gain_offset == 0) {
           if (srslte_rf_has_rssi(&rf)) {
-            rx_gain_offset = 10*log10(rssi*1000)-srslte_rf_get_rssi(&rf);
+            rx_gain_offset = 30+10*log10(rssi*1000)-srslte_rf_get_rssi(&rf);
           } else {
             rx_gain_offset = srslte_rf_get_rx_gain(&rf);            
           }

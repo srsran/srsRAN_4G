@@ -434,10 +434,10 @@ float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) 
   uint32_t l;
   
   float rssi = 0;
-  uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id);   
+  uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id);
   for (l=0;l<nsymbols;l++) {
     cf_t *tmp = &input[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE];
-    rssi += srslte_vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * SRSLTE_NRE);    
+    rssi += srslte_vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * SRSLTE_NRE);
   }    
   return rssi/nsymbols; 
 }
@@ -495,7 +495,9 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
   }
     
   /* Compute RSRP for the channel estimates in this port */
-  q->rsrp[rxant_id][port_id] = srslte_vec_avg_power_cf(q->pilot_recv_signal, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));     
+  uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
+  float energy = cabsf(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
+  q->rsrp[rxant_id][port_id] = energy*energy;
   if (port_id == 0) {
     /* compute rssi only for port 0 */
     q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);     

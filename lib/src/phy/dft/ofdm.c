@@ -380,15 +380,8 @@ void srslte_ofdm_tx_free(srslte_ofdm_t *q) {
   srslte_ofdm_free_(q);
 }
 
-/* Transforms input samples into output OFDM symbols.
- * Performs FFT on a each symbol and removes CP.
- */
-void srslte_ofdm_rx_slot(srslte_ofdm_t *q, int slot_in_sf) {
-  cf_t *output = q->out_buffer + slot_in_sf * q->nof_re * q->nof_symbols;
-
-#ifdef AVOID_GURU
+void srslte_ofdm_rx_slot_ng(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   uint32_t i;
-  cf_t *input = q->in_buffer + slot_in_sf * q->slot_sz;
   for (i=0;i<q->nof_symbols;i++) {
     input += SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_LEN_NORM(i, q->symbol_sz):SRSLTE_CP_LEN_EXT(q->symbol_sz);
     srslte_dft_run_c(&q->fft_plan, input, q->tmp);
@@ -396,6 +389,16 @@ void srslte_ofdm_rx_slot(srslte_ofdm_t *q, int slot_in_sf) {
     input += q->symbol_sz;
     output += q->nof_re;
   }
+}
+
+/* Transforms input samples into output OFDM symbols.
+ * Performs FFT on a each symbol and removes CP.
+ */
+void srslte_ofdm_rx_slot(srslte_ofdm_t *q, int slot_in_sf) {
+  cf_t *output = q->out_buffer + slot_in_sf * q->nof_re * q->nof_symbols;
+
+#ifdef AVOID_GURU
+  srslte_ofdm_rx_slot_ng(q, q->in_buffer + slot_in_sf * q->slot_sz, q->out_buffer + slot_in_sf * q->nof_re * q->nof_symbols);
 #else
   float norm = 1.0f/sqrtf(q->fft_plan.size);
   cf_t *tmp = q->tmp + slot_in_sf * q->symbol_sz * q->nof_symbols;
@@ -454,6 +457,22 @@ void srslte_ofdm_rx_sf(srslte_ofdm_t *q) {
   if(!q->mbsfn_subframe){
     for (n=0;n<2;n++) {
       srslte_ofdm_rx_slot(q, n);
+    }
+  }
+  else{
+    srslte_ofdm_rx_slot_mbsfn(q, &q->in_buffer[0*q->slot_sz], &q->out_buffer[0*q->nof_re*q->nof_symbols]);
+    srslte_ofdm_rx_slot(q, 1);
+  }
+}
+
+void srslte_ofdm_rx_sf_ng(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
+  uint32_t n;
+  if (q->freq_shift) {
+    srslte_vec_prod_ccc(q->in_buffer, q->shift_buffer, q->in_buffer, 2*q->slot_sz);
+  }
+  if(!q->mbsfn_subframe){
+    for (n=0;n<2;n++) {
+      srslte_ofdm_rx_slot_ng(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
     }
   }
   else{

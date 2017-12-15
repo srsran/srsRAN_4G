@@ -570,7 +570,7 @@ int main(int argc, char **argv) {
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-    srslte_rf_start_rx_stream(&rf);    
+    srslte_rf_start_rx_stream(&rf, false);
   }
 #endif
     
@@ -676,19 +676,19 @@ int main(int argc, char **argv) {
             if(sfidx != 1 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
               if (cell.nof_ports == 1) {
                 /* Transmission mode 1 */
-                n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
+                n = srslte_ue_dl_decode(&ue_dl, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
               } else {
                 if (prog_args.rf_nof_rx_ant == 1) {
                   /* Transmission mode 2 */
-                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                  n = srslte_ue_dl_decode(&ue_dl, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                           acks);
                 } else {
                   /* Transmission mode 3 */
-                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                  n = srslte_ue_dl_decode(&ue_dl, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                           acks);
                   if (n < 1) {
                     /* Transmission mode 4 */
-                    n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                    n = srslte_ue_dl_decode(&ue_dl, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                             acks);
                   }
                 }
@@ -701,7 +701,6 @@ int main(int argc, char **argv) {
 
             }else{ // MBSFN subframe
               n = srslte_ue_dl_decode_mbsfn(&ue_dl, 
-                                          sf_buffer,
                                           data[0],
                                           sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
               if(n>0){
@@ -959,7 +958,7 @@ void *plot_thread_run(void *arg) {
     plot_real_init(&pce);
     plot_real_setTitle(&pce, "Channel Response - Magnitude");
     plot_real_setLabels(&pce, "Index", "dB");
-    plot_real_setYAxisScale(&pce, -M_PI, M_PI);
+    plot_real_setYAxisScale(&pce, -40, 40);
     
     plot_real_init(&p_sync);
     plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
@@ -995,15 +994,11 @@ void *plot_thread_run(void *arg) {
           tmp_plot2[g+i] = -80;
         }
       }
-      uint32_t nrefs = 2*ue_dl.cell.nof_prb;
-      for (i=0;i<nrefs;i++) {
-        tmp_plot2[i] = cargf(ue_dl.chest.tmp_cfo_estimate[i]);
-      }
-      plot_real_setNewData(&pce, tmp_plot2, nrefs);
+      plot_real_setNewData(&pce, tmp_plot2, sz);
       
       if (!prog_args.input_file_name) {
         if (plot_track) {
-          srslte_pss_synch_t *pss_obj = srslte_sync_get_cur_pss_obj(&ue_sync.strack);
+          srslte_pss_t *pss_obj = srslte_sync_get_cur_pss_obj(&ue_sync.strack);
           int max = srslte_vec_max_fi(pss_obj->conv_output_avg, pss_obj->frame_size+pss_obj->fft_size-1);
           srslte_vec_sc_prod_fff(pss_obj->conv_output_avg, 
                           1/pss_obj->conv_output_avg[max], 

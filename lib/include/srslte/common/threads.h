@@ -78,22 +78,30 @@ class periodic_thread : public thread
 {
 public:
   void start_periodic(int period_us_, int priority = -1) {
+    run_enable = true;
     period_us = period_us_; 
     start(priority);
+  }
+  void stop() {
+    run_enable = false;
+    wait_thread_finish();
   }
 protected:   
   virtual void run_period() = 0; 
 private:
   int wakeups_missed; 
   int timer_fd; 
-  int period_us; 
+  int period_us;
+  bool run_enable;
   void run_thread() {
     if (make_periodic()) {
       return;
     }
-    while(1) {
+    while(run_enable) {
       run_period();
-      wait_period();
+      if (run_enable) {
+        wait_period();
+      }
     }
   }
   int make_periodic() {

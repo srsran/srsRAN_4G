@@ -101,7 +101,7 @@ int rf_blade_start_tx_stream(void *h)
   return 0;
 }
 
-int rf_blade_start_rx_stream(void *h)
+int rf_blade_start_rx_stream(void *h, bool now)
 {
   int status; 
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;

@@ -35,10 +35,13 @@ namespace srslte {
 class mac_pcap
 {
 public: 
-  mac_pcap() {enable_write=false; ue_id=0; pcap_file = NULL; }; 
+  mac_pcap() {enable_write=false; ue_id=0; pcap_file = NULL; };
   void enable(bool en);
   void open(const char *filename, uint32_t ue_id = 0);
-  void close(); 
+  void close();
+
+  void set_ue_id(uint16_t ue_id);
+
   void write_ul_crnti(uint8_t *pdu, uint32_t pdu_len_bytes, uint16_t crnti, uint32_t reTX, uint32_t tti);
   void write_dl_crnti(uint8_t *pdu, uint32_t pdu_len_bytes, uint16_t crnti, bool crc_ok, uint32_t tti);
   void write_dl_ranti(uint8_t *pdu, uint32_t pdu_len_bytes, uint16_t ranti, bool crc_ok, uint32_t tti);
@@ -51,8 +54,8 @@ public:
 private:
   bool enable_write; 
   FILE *pcap_file; 
-  uint32_t ue_id; 
-  void pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti, 
+  uint32_t ue_id;
+  void pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti,
                               uint16_t crnti_, uint8_t direction, uint8_t rnti_type);
 };
 

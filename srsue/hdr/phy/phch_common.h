@@ -46,6 +46,7 @@ namespace srsue {
 class chest_feedback_itf
 {
 public:
+  virtual void out_of_sync() = 0;
   virtual void set_cfo(float cfo) = 0;
 };
 
@@ -58,7 +59,6 @@ public:
   phy_args_t                   *args;
   rrc_interface_phy *rrc;
   mac_interface_phy *mac;
-  srslte_ue_ul_t     ue_ul;
 
   /* Power control variables */
   float pathloss;
@@ -66,12 +66,15 @@ public:
   float p0_preamble;
   float cur_radio_power;
   float cur_pusch_power;
-  float avg_rsrp_db;
+  float avg_rsrp;
+  float avg_rsrp_dbm;
   float avg_rsrq_db;
   float rx_gain_offset;
   float avg_snr_db;
   float avg_noise;
-  float avg_rsrp;
+
+  bool     pcell_meas_enabled;
+  uint32_t pcell_report_period;
 
   // Save last TBS for mcs>28 cases
   int last_dl_tbs[2*HARQ_DELAY_MS][SRSLTE_MAX_CODEWORDS];
@@ -105,6 +108,7 @@ public:
   void set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs);
   bool get_pending_ack(uint32_t tti);
   bool get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_dmrs);
+  bool is_any_pending_ack();
 
   void worker_end(uint32_t tti, bool tx_enable, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
 
@@ -125,6 +129,7 @@ public:
   void get_sync_metrics(sync_metrics_t &m);
 
   void reset_ul();
+  void reset();
 
 private:
 
@@ -173,7 +178,7 @@ private:
   uint32_t        sync_metrics_count;
   bool            sync_metrics_read;
 };
-
+  
 } // namespace srsue
 
 #endif // UEPHYWORKERCOMMON_H

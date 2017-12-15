@@ -83,6 +83,15 @@ public:
                                 uint8_t *k_up_int,
                                 srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                 srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
+  virtual void generate_as_keys_ho(uint32_t pci,
+                                   uint32_t earfcn,
+                                   int ncc,
+                                   uint8_t *k_rrc_enc,
+                                   uint8_t *k_rrc_int,
+                                   uint8_t *k_up_enc,
+                                   uint8_t *k_up_int,
+                                   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
 };
 
 // GW interface for NAS
@@ -118,15 +127,15 @@ public:
 class nas_interface_ue
 {
 public:
-  virtual void      attach_request() = 0;
-  virtual void      deattach_request() = 0;
+  virtual void attach_request() = 0;
+  virtual void deattach_request() = 0;
 };
 
 // NAS interface for UE
 class nas_interface_gw
 {
 public:
-  virtual void      attach_request() = 0;
+  virtual void attach_request() = 0;
 };
 
 // RRC interface for MAC
@@ -139,7 +148,9 @@ public:
 class rrc_interface_mac : public rrc_interface_mac_common
 {
 public:
+  virtual void ho_ra_completed(bool ra_successful) = 0;
   virtual void release_pucch_srs() = 0;
+  virtual void run_tti(uint32_t tti) = 0;
 };
 
 // RRC interface for PHY
@@ -150,6 +161,7 @@ public:
   virtual void out_of_sync() = 0;
   virtual void earfcn_end() = 0;
   virtual void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) = 0;
+  virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn = 0, uint32_t pci = 0) = 0;
 };
 
 // RRC interface for NAS
@@ -162,7 +174,6 @@ public:
   virtual void enable_capabilities() = 0;
   virtual void plmn_search() = 0;
   virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // RRC interface for PDCP
@@ -173,7 +184,6 @@ public:
   virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_pcch(srslte::byte_buffer_t *pdu) = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // RRC interface for RLC
@@ -181,7 +191,6 @@ class rrc_interface_rlc
 {
 public:
   virtual void max_retx_attempted() = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // PDCP interface for GW
@@ -196,14 +205,21 @@ public:
 class pdcp_interface_rrc
 {
 public:
+  virtual void reestablish() = 0;
   virtual void reset() = 0;
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
   virtual void config_security(uint32_t lcid,
-                               uint8_t *k_rrc_enc_,
-                               uint8_t *k_rrc_int_,
+                               uint8_t *k_enc_,
+                               uint8_t *k_int_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
+  virtual void config_security_all(uint8_t *k_enc_,
+                                   uint8_t *k_int_,
+                                   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
+  virtual void enable_integrity(uint32_t lcid) = 0;
+  virtual void enable_encryption(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RLC
@@ -222,6 +238,7 @@ class rlc_interface_rrc
 {
 public:
   virtual void reset() = 0;
+  virtual void reestablish() = 0;
   virtual void add_bearer(uint32_t lcid) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
 };
@@ -233,6 +250,7 @@ public:
   /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
    * RLC PDUs according to TB size. */
   virtual void write_sdu(uint32_t lcid,  srslte::byte_buffer_t *sdu) = 0;
+  virtual bool rb_is_um(uint32_t lcid) = 0;
 };
 
 //RLC interface for MAC
@@ -396,8 +414,8 @@ public:
     LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT        rach;     
     LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT sr; 
     ul_harq_params_t                            ul_harq_params;
-    uint32_t prach_config_index; 
-  } mac_cfg_t; 
+    uint32_t prach_config_index;
+  } mac_cfg_t;
 
   /* Instructs the MAC to start receiving BCCH */
   virtual void    bcch_start_rx() = 0; 
@@ -412,7 +430,7 @@ public:
   virtual void    setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;
 
   virtual uint32_t get_current_tti() = 0;
-  
+
   virtual void set_config(mac_cfg_t *mac_cfg) = 0;
   virtual void set_config_main(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *main_cfg) = 0;
   virtual void set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT *rach_cfg, uint32_t prach_config_index) = 0;
@@ -421,10 +439,14 @@ public:
   
   virtual void get_rntis(ue_rnti_t *rntis) = 0;
   virtual void set_contention_id(uint64_t uecri) = 0;
+  virtual void set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
 
-  
+  virtual void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask) = 0;
+  virtual void start_cont_ho() = 0;
+
   virtual void reconfiguration() = 0;
   virtual void reset() = 0;
+  virtual void wait_uplink() = 0;
 };
 
 
@@ -466,6 +488,7 @@ typedef struct {
   std::string sss_algorithm; 
   float estimator_fil_w;   
   bool rssi_sensor_enabled;
+  bool sic_pss_enabled;
 } phy_args_t; 
 
 
@@ -535,19 +558,28 @@ public:
     bool                                        enable_64qam; 
   } phy_cfg_t; 
 
-  virtual void get_current_cell(srslte_cell_t *cell) = 0;
-  virtual void get_config(phy_cfg_t *phy_cfg) = 0; 
+  virtual void get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL) = 0;
+  virtual uint32_t get_current_earfcn() = 0;
+  virtual uint32_t get_current_pci() = 0;
+
+  virtual void get_config(phy_cfg_t *phy_cfg) = 0;
   virtual void set_config(phy_cfg_t *phy_cfg) = 0; 
   virtual void set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated) = 0;
   virtual void set_config_common(phy_cfg_common_t *common) = 0; 
   virtual void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd) = 0; 
   virtual void set_config_64qam_en(bool enable) = 0;
 
+  /* Measurements interface */
+  virtual void meas_reset() = 0;
+  virtual int  meas_start(uint32_t earfcn, int pci = -1) = 0;
+  virtual int  meas_stop(uint32_t earfcn, int pci = -1) = 0;
+
   /* Cell search and selection procedures */
   virtual void cell_search_start() = 0;
   virtual void cell_search_stop() = 0;
   virtual void cell_search_next() = 0;
   virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
+  virtual bool cell_handover(srslte_cell_t cell) = 0;
 
   /* Is the PHY downlink synchronized? */
   virtual bool sync_status() = 0;
