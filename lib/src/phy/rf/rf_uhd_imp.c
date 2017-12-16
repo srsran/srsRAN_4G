@@ -536,9 +536,17 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_rx_metadata_make(&handler->rx_md);
     uhd_rx_metadata_make(&handler->rx_md_first);
     uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
-  
-    
-    // Start low priority thread to receive async commands 
+
+    // Set starting gain to half maximum in case of using AGC
+    uhd_meta_range_handle gain_range;
+    uhd_meta_range_make(&gain_range);
+    uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, gain_range);
+    double max_gain;
+    uhd_meta_range_stop(gain_range, &max_gain);
+    rf_uhd_set_rx_gain(handler, max_gain*0.7);
+    uhd_meta_range_free(&gain_range);
+
+    // Start low priority thread to receive async commands
     handler->async_thread_running = true; 
     if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
       perror("pthread_create");
