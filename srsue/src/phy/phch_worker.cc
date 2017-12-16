@@ -132,7 +132,7 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, chest_feedback_itf 
   }
 
   srslte_chest_dl_average_subframe(&ue_dl.chest, phy->args->average_subframe_enabled);
-  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask, phy->args->cfo_ref_ema);
+  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask);
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
 
@@ -193,6 +193,11 @@ void phch_worker::set_crnti(uint16_t rnti)
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
   rnti_is_set = true; 
+}
+
+float phch_worker::get_ref_cfo()
+{
+  return srslte_chest_dl_get_cfo(&ue_dl.chest);
 }
 
 void phch_worker::work_imp()

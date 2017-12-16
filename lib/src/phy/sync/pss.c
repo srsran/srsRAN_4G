@@ -120,6 +120,7 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t *q,
     buffer_size = fft_size + frame_size + 1;
 
     q->filter_pss_enable = false;
+    q->chest_on_filter   = false;
 
     if(q->decimate > 1) {
         int filter_order = 3;

@@ -67,6 +67,8 @@ public:
   int read_pdsch_d(cf_t *pdsch_d);
   void start_plot();
 
+  float get_ref_cfo();
+
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
   void work_imp();

@@ -539,6 +539,7 @@ double phch_recv::set_rx_gain(double gain) {
 void phch_recv::run_thread()
 {
   phch_worker *worker = NULL;
+  phch_worker *last_worker = NULL;
   cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL};
   uint32_t sf_idx = 0;
   phy_state  = IDLE;
@@ -636,6 +637,15 @@ void phch_recv::run_thread()
 
           switch(srslte_ue_sync_zerocopy_multi(&ue_sync, buffer)) {
             case 1:
+
+              if (last_worker) {
+                Warning("SF: cfo=%7.1f Hz, ref=%f Hz, pss=%f Hz\n",
+                        srslte_ue_sync_get_cfo(&ue_sync),
+                     15000*last_worker->get_ref_cfo(),
+                     15000*ue_sync.strack.cfo_pss_mean);
+              }
+
+              last_worker = worker;
 
               Debug("SYNC:  Worker %d synchronized\n", worker->get_id());
 

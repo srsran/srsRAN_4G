@@ -37,6 +37,7 @@
 #include <boost/program_options/parsers.hpp>
 
 #include "ue.h"
+#include "srslte/srslte.h"
 #include "metrics_stdout.h"
 #include "metrics_csv.h"
 #include "srslte/common/metrics_hub.h"
@@ -201,40 +202,42 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Enables integer CFO estimation and correction.")
 
     ("expert.cfo_correct_tol_hz",
-     bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(0.0),
+     bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(1.0),
      "Tolerance (in Hz) for digital CFO compensation (needs to be low if average_subframe_enabled=true.")
 
     ("expert.cfo_pss_ema",
-     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(0.01),
+     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(DEFAULT_CFO_EMA_TRACK),
      "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
 
+    /* REF EMA is currently not used
     ("expert.cfo_ref_ema",
      bpo::value<float>(&args->expert.phy.cfo_ref_ema)->default_value(0.01),
      "CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition")
+    */
 
     ("expert.cfo_ref_mask",
      bpo::value<uint32_t>(&args->expert.phy.cfo_ref_mask)->default_value(1023),
      "Bitmask for subframes on which to run RS estimation (set to 0 to disable, default all sf)")
 
     ("expert.cfo_loop_bw_pss",
-     bpo::value<float>(&args->expert.phy.cfo_loop_bw_pss)->default_value(0.05),
+     bpo::value<float>(&args->expert.phy.cfo_loop_bw_pss)->default_value(DEFAULT_CFO_BW_PSS),
      "CFO feedback loop bandwidth for samples from PSS")
 
     ("expert.cfo_loop_bw_ref",
-     bpo::value<float>(&args->expert.phy.cfo_loop_bw_ref)->default_value(0.01),
+     bpo::value<float>(&args->expert.phy.cfo_loop_bw_ref)->default_value(DEFAULT_CFO_BW_REF),
      "CFO feedback loop bandwidth for samples from RS")
 
     ("expert.cfo_loop_pss_tol",
-     bpo::value<float>(&args->expert.phy.cfo_loop_pss_tol)->default_value(300),
+     bpo::value<float>(&args->expert.phy.cfo_loop_pss_tol)->default_value(DEFAULT_CFO_PSS_MIN),
      "Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop"
        "and RS estimations are used instead (when available)")
 
     ("expert.cfo_loop_ref_min",
-     bpo::value<float>(&args->expert.phy.cfo_loop_ref_min)->default_value(0),
+     bpo::value<float>(&args->expert.phy.cfo_loop_ref_min)->default_value(DEFAULT_CFO_REF_MIN),
      "Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop")
 
     ("expert.cfo_loop_pss_conv",
-     bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(20),
+     bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(DEFAULT_PSS_STABLE_TIMEOUT),
      "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
 
     ("expert.sic_pss_enabled",

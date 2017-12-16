@@ -87,7 +87,6 @@ typedef struct {
 
   bool     cfo_estimate_enable;
   uint32_t cfo_estimate_sf_mask;
-  float    cfo_ema;
 
   /* Use PSS for noise estimation in LS linear interpolation mode */
   cf_t pss_signal[SRSLTE_PSS_LEN];
@@ -153,8 +152,7 @@ SRSLTE_API int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q,
 
 SRSLTE_API void srslte_chest_dl_cfo_estimate_enable(srslte_chest_dl_t *q,
                                                     bool enable,
-                                                    uint32_t mask,
-                                                    float ema);
+                                                    uint32_t mask);
 
 SRSLTE_API void srslte_chest_dl_average_subframe(srslte_chest_dl_t *q,
                                                  bool enable);
