@@ -92,6 +92,8 @@ typedef struct{
   eps_security_ctx_t security_ctxt;
   erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
   LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
+  bool ms_network_cap_present;
+  LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
 } ue_ctx_t;
 }//namespace
 #endif

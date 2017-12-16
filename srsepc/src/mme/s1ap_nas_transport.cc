@@ -266,7 +266,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_128_EIA1;
 
   sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  sm_cmd.nas_ksi.nas_ksi=6; //111 no key available
+  sm_cmd.nas_ksi.nas_ksi=0; 
 
   //Replay UE security cap
   memcpy(sm_cmd.ue_security_cap.eea,ue_ctx->ue_network_cap.eea,8*sizeof(bool));
@@ -275,8 +275,8 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   memcpy(sm_cmd.ue_security_cap.uea,ue_ctx->ue_network_cap.uea,8*sizeof(bool));
   sm_cmd.ue_security_cap.uia_present = ue_ctx->ue_network_cap.uia_present;
   memcpy(sm_cmd.ue_security_cap.uia,ue_ctx->ue_network_cap.uia,8*sizeof(bool));
-  sm_cmd.ue_security_cap.gea_present = false;
-  //memcpy(sm_cmd.ue_security_cap.gea,ue_ctx->ue_network_cap.gea,8*sizeof(bool));
+  sm_cmd.ue_security_cap.gea_present = ue_ctx->ms_network_cap_present;
+  memcpy(sm_cmd.ue_security_cap.gea,ue_ctx->ms_network_cap.gea,8*sizeof(bool));
   /*
     typedef struct{
     bool eea[8];

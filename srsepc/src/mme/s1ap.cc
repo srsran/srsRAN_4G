@@ -369,15 +369,17 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   m_s1ap_log->console("Attach request from IMSI: %015lu\n", imsi);
   m_s1ap_log->info("Attach request from IMSI: %015lu\n", imsi);  
 
-  //Get UE security capabilities
+  //Get UE network capabilities
   memcpy(&ue_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
-
+  ue_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
+  if(attach_req.ms_network_cap_present)
+  {
+    memcpy(&ue_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+  }
   //FIXME use this info
   uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
   uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
   m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
-
-
 
   //Add eNB info to UE ctxt
   memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
