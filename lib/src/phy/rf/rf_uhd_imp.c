@@ -55,7 +55,9 @@ typedef struct {
   int nof_tx_channels;
 
   srslte_rf_error_handler_t uhd_error_handler; 
-  
+
+  float current_master_clock;
+
   bool async_thread_running; 
   pthread_t async_thread; 
 } rf_uhd_handler_t;
@@ -229,7 +231,7 @@ int rf_uhd_start_rx_stream(void *h, bool now)
   };
   if (!now) {
     uhd_usrp_get_time_now(handler->usrp, 0, &stream_cmd.time_spec_full_secs, &stream_cmd.time_spec_frac_secs);
-    stream_cmd.time_spec_frac_secs += 0.1;
+    stream_cmd.time_spec_frac_secs += 0.2;
     if (stream_cmd.time_spec_frac_secs > 1) {
       stream_cmd.time_spec_frac_secs -= 1;
       stream_cmd.time_spec_full_secs += 1;
@@ -410,23 +412,27 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
         // If B200 is available, use it
         args = "type=b200,master_clock_rate=30.72e6";
+        handler->current_master_clock = 30720000;
         handler->devname = DEVNAME_B200;
       } else if (find_string(devices_str, "type=x300")) {
         // Else if X300 is available, set master clock rate now (can't be changed later)
         args = "type=x300,master_clock_rate=184.32e6";
-        handler->dynamic_rate = false; 
+        handler->current_master_clock = 184320000;
+        handler->dynamic_rate = false;
         handler->devname = DEVNAME_X300;
       }
     } else {
       // If args is set and x300 type is specified, make sure master_clock_rate is defined
       if (strstr(args, "type=x300") && !strstr(args, "master_clock_rate")) {
         sprintf(args2, "%s,master_clock_rate=184.32e6",args);
-        args = args2;          
-        handler->dynamic_rate = false; 
+        args = args2;
+        handler->current_master_clock = 184320000;
+        handler->dynamic_rate = false;
         handler->devname = DEVNAME_X300;
       } else if (strstr(args, "type=b200")) {
         snprintf(args2, sizeof(args2), "%s,master_clock_rate=30.72e6", args);
         args = args2;
+        handler->current_master_clock = 30720000;
         handler->devname = DEVNAME_B200;
       }
     }        
@@ -434,11 +440,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_string_vector_free(&devices_str);
     
     /* Create UHD handler */
-    if (strstr(args, "silent")) {
-      rf_uhd_suppress_stdout(NULL);
-    } else {
-      printf("Opening USRP with args: %s\n", args);
-    }
+    printf("Opening USRP with args: %s\n", args);
     uhd_error error = uhd_usrp_make(&handler->usrp, args);
     if (error) {
       fprintf(stderr, "Error opening UHD: code %d\n", error);
@@ -578,8 +580,11 @@ int rf_uhd_close(void *h)
 
 void rf_uhd_set_master_clock_rate(void *h, double rate) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  if (handler->dynamic_rate) {
-    uhd_usrp_set_master_clock_rate(handler->usrp, rate, 0);
+  if (rate != handler->current_master_clock) {
+    if (handler->dynamic_rate) {
+      uhd_usrp_set_master_clock_rate(handler->usrp, rate, 0);
+    }
+    handler->current_master_clock = rate;
   }
 }
 
