@@ -29,7 +29,7 @@
 #include <strings.h>
 #include <assert.h>
 #include <unistd.h>
-#include <srslte/srslte.h>
+#include "srslte/srslte.h"
 
 
 #include "srslte/phy/ue/ue_sync.h"
@@ -47,14 +47,6 @@
 #define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  0
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
-#define DEFAULT_CFO_BW      0.2
-#define DEFAULT_CFO_PSS_MIN 500  // typical bias of PSS estimation.
-#define DEFAULT_CFO_REF_MIN 0    // typical bias of REF estimation
-#define DEFAULT_CFO_REF_MAX 500  // Maximum detection offset of REF based estimation
-
-#define DEFAULT_PSS_STABLE_TIMEOUT     100  // Time after which the PSS is considered to be stable and we accept REF-CFO
-
-#define DEFAULT_CFO_EMA_TRACK 0.1
 
 cf_t dummy_buffer0[15*2048/2];
 cf_t dummy_buffer1[15*2048/2];
@@ -226,8 +218,8 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     q->cfo_ref_max = DEFAULT_CFO_REF_MAX;
     q->cfo_ref_min = DEFAULT_CFO_REF_MIN;
     q->cfo_pss_min = DEFAULT_CFO_PSS_MIN;
-    q->cfo_loop_bw_pss = DEFAULT_CFO_BW;
-    q->cfo_loop_bw_ref = DEFAULT_CFO_BW;
+    q->cfo_loop_bw_pss = DEFAULT_CFO_BW_PSS;
+    q->cfo_loop_bw_ref = DEFAULT_CFO_BW_REF;
     q->cfo_correct_enable = true;
 
     q->pss_stable_cnt     = 0;
@@ -679,6 +671,8 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
   return srslte_ue_sync_zerocopy_multi(q, _input_buffer);
 }
 
+int track_time, find_time;
+
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
 int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PORTS]) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -723,10 +717,16 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
         fprintf(stderr, "Error receiving samples\n");
         return SRSLTE_ERROR;
       }
-
+      int n;
+      struct timeval t[3];
       switch (q->state) {
         case SF_FIND:
-          switch(srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx)) {
+          gettimeofday(&t[1], NULL);
+          n = srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx);
+          gettimeofday(&t[2], NULL);
+          get_time_interval(t);
+          find_time = t[0].tv_usec;
+          switch(n) {
             case SRSLTE_SYNC_ERROR: 
               ret = SRSLTE_ERROR; 
               fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
@@ -781,9 +781,14 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
              * In tracking phase, the subframe carrying the PSS is always the last one of the frame
              */
             track_idx = 0;
-            switch(srslte_sync_find(&q->strack, input_buffer[0], 
-                                    q->frame_len - q->sf_len/2 - q->fft_size - q->strack.max_offset/2, 
-                                    &track_idx)) 
+            gettimeofday(&t[1], NULL);
+            int n = srslte_sync_find(&q->strack, input_buffer[0],
+                                     q->frame_len - q->sf_len/2 - q->fft_size - q->strack.max_offset/2,
+                                     &track_idx);
+            gettimeofday(&t[2], NULL);
+            get_time_interval(t);
+            track_time = t[0].tv_usec;
+            switch(n)
             {
               case SRSLTE_SYNC_ERROR:
                 fprintf(stderr, "Error tracking correlation peak\n");

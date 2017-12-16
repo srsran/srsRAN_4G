@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, prog_args.enable_cfo_ref, 0xff, 0.005);
+  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, prog_args.enable_cfo_ref, 1023);
   srslte_chest_dl_average_subframe(&ue_dl.chest, prog_args.average_subframe);
 
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */

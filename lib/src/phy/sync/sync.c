@@ -475,7 +475,7 @@ srslte_pss_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q)
 static float cfo_cp_estimate(srslte_sync_t *q, const cf_t *input)
 {
   uint32_t cp_offset = 0; 
-  cp_offset = srslte_cp_synch(&q->cp_synch, input, q->max_offset, 7, SRSLTE_CP_LEN_NORM(1,q->fft_size));
+  cp_offset = srslte_cp_synch(&q->cp_synch, input, q->max_offset, 1, SRSLTE_CP_LEN_NORM(1,q->fft_size));
   cf_t cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
   float cfo = -carg(cp_corr_max) / M_PI / 2; 
   return cfo; 
@@ -612,16 +612,16 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
         }
 
         // PSS-based CFO estimation
-        float cfo_pss = srslte_pss_cfo_compute(&q->pss, pss_ptr);
+        q->cfo_pss = srslte_pss_cfo_compute(&q->pss, pss_ptr);
         if (!q->cfo_pss_is_set) {
-          q->cfo_pss_mean   = cfo_pss;
+          q->cfo_pss_mean   = q->cfo_pss;
           q->cfo_pss_is_set = true;
-        } else if (15000*fabsf(cfo_pss) < MAX_CFO_PSS_OFFSET) {
-          q->cfo_pss_mean = SRSLTE_VEC_EMA(cfo_pss, q->cfo_pss_mean, q->cfo_ema_alpha);
+        } else if (15000*fabsf(q->cfo_pss) < MAX_CFO_PSS_OFFSET) {
+          q->cfo_pss_mean = SRSLTE_VEC_EMA(q->cfo_pss, q->cfo_pss_mean, q->cfo_ema_alpha);
         }
 
         INFO("PSS-CFO: filter=%s, estimated=%f, mean=%f\n",
-             q->pss_filtering_enabled?"yes":"no", cfo_pss, q->cfo_pss_mean);
+             q->pss_filtering_enabled?"yes":"no", q->cfo_pss, q->cfo_pss_mean);
 
       }
 

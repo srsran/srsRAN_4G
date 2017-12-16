@@ -102,6 +102,7 @@ typedef struct SRSLTE_API {
   bool cfo_i_initiated;
 
   float cfo_cp_mean;
+  float cfo_pss;
   float cfo_pss_mean;
   int   cfo_i_value;
 

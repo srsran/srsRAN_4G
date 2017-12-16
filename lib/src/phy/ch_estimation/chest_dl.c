@@ -467,7 +467,11 @@ float chest_estimate_cfo(srslte_chest_dl_t *q)
 }
 
 void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id, srslte_sf_t ch_mode){
- if (ce != NULL) {
+  if (q->cfo_estimate_enable && ((1<<sf_idx) & q->cfo_estimate_sf_mask)) {
+    q->cfo = chest_estimate_cfo(q);
+  }
+
+  if (ce != NULL) {
     /* Smooth estimates (if applicable) and interpolate */
     if (q->smooth_filter_len == 0 || (q->smooth_filter_len == 3 && q->smooth_filter[0] == 0)) {
       interpolate_pilots(q, q->pilot_estimates, ce, port_id, ch_mode);
@@ -490,10 +494,6 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
     } 
   }
 
-  if (q->cfo_estimate_enable && ((1<<sf_idx) & q->cfo_estimate_sf_mask)) {
-    q->cfo = SRSLTE_VEC_EMA(chest_estimate_cfo(q), q->cfo, q->cfo_ema);
-  }
-    
   /* Compute RSRP for the channel estimates in this port */
   uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
   float energy = cabsf(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
@@ -581,9 +581,8 @@ void srslte_chest_dl_average_subframe(srslte_chest_dl_t *q, bool enable)
   q->average_subframe = enable;
 }
 
-void srslte_chest_dl_cfo_estimate_enable(srslte_chest_dl_t *q, bool enable, uint32_t mask, float ema)
+void srslte_chest_dl_cfo_estimate_enable(srslte_chest_dl_t *q, bool enable, uint32_t mask)
 {
-  q->cfo_ema              = ema;
   q->cfo_estimate_enable  = enable;
   q->cfo_estimate_sf_mask = mask;
 }
