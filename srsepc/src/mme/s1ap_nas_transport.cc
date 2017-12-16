@@ -266,11 +266,29 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_128_EIA1;
 
   sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  sm_cmd.nas_ksi.nas_ksi=0;
+  sm_cmd.nas_ksi.nas_ksi=6; //111 no key available
 
-  //FIXME UE security cap not used by srsUE.
-  //sm_cmd.ue_security_cap;
-
+  //Replay UE security cap
+  memcpy(sm_cmd.ue_security_cap.eea,ue_ctx->ue_network_cap.eea,8*sizeof(bool));
+  memcpy(sm_cmd.ue_security_cap.eia,ue_ctx->ue_network_cap.eia,8*sizeof(bool));
+  sm_cmd.ue_security_cap.uea_present = ue_ctx->ue_network_cap.uea_present;
+  memcpy(sm_cmd.ue_security_cap.uea,ue_ctx->ue_network_cap.uea,8*sizeof(bool));
+  sm_cmd.ue_security_cap.uia_present = ue_ctx->ue_network_cap.uia_present;
+  memcpy(sm_cmd.ue_security_cap.uia,ue_ctx->ue_network_cap.uia,8*sizeof(bool));
+  sm_cmd.ue_security_cap.gea_present = false;
+  //memcpy(sm_cmd.ue_security_cap.gea,ue_ctx->ue_network_cap.gea,8*sizeof(bool));
+  /*
+    typedef struct{
+    bool eea[8];
+    bool eia[8];
+    bool uea[8];
+    bool uea_present;
+    bool uia[8];
+    bool uia_present;
+    bool gea[8];
+    bool gea_present;
+    }LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT;
+   */
   sm_cmd.imeisv_req_present=false;
   sm_cmd.nonce_ue_present=false;
   sm_cmd.nonce_mme_present=false;

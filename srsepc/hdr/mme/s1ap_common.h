@@ -24,6 +24,7 @@
 #include "srslte/common/security.h"
 #include "srslte/asn1/gtpc_ies.h"
 #include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/asn1/liblte_mme.h"
 #include <netinet/sctp.h>
 
 namespace srsepc{
@@ -90,6 +91,7 @@ typedef struct{
   struct   sctp_sndrcvinfo enb_sri;
   eps_security_ctx_t security_ctxt;
   erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
+  LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
 } ue_ctx_t;
 }//namespace
 #endif
