@@ -379,6 +379,9 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   //FIXME use this info
   uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
   uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
+
+  //Save whether ESM information transfer is necessary
+  ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
   m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
 
   //Add eNB info to UE ctxt
@@ -565,15 +568,94 @@ s1ap::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::
 
   m_s1ap_log->info("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
   m_s1ap_log->console("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
-
-  //FIXME The packging of GTP-C messages is not ready.
-  //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, ue_ctx->mme_ue_s1ap_id);
-
+  if(ue_ctx->eit == true)
+  {
+    pack_esm_information_request(reply_msg, ue_ctx);
+    m_s1ap_log->console("Sending ESM information request\n");
+  }
+  else
+  {
+    //FIXME The packging of GTP-C messages is not ready.
+    //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
+    m_mme_gtpc->send_create_session_request(ue_ctx->imsi, ue_ctx->mme_ue_s1ap_id);
+  }
   return true;
 }
 
+bool
+s1ap::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
+{
+  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;//FIXME Change name
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+
+  LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
+  /*typedef struct{
+    uint8 eps_bearer_id;
+    uint8 proc_transaction_id;
+    }LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT;*/
+  uint8_t  sec_hdr_type=3;
+  
+  ue_ctx->security_ctxt.dl_nas_count++;
+ 
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_esm_information_request_msg(&esm_info_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Athentication Reject\n");
+    m_s1ap_log->console("Error packing Athentication Reject\n");
+    return false;
+  }
+
+  uint8_t mac[4];
+  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
+                             ue_ctx->security_ctxt.dl_nas_count,
+                             0,
+                             SECURITY_DIRECTION_DOWNLINK,
+                             &nas_buffer->msg[5],
+                             nas_buffer->N_bytes - 5,
+                             mac
+                             );
+
+  memcpy(&nas_buffer->msg[1],mac,4);
+  //Copy NAS PDU to Downlink NAS Trasport message buffer
+  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
+
+  //Pack Downlink NAS Transport Message
+  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Dw NAS Transport: Athentication Reject\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: Athentication Reject\n");
+    return false;
+  }
+
+  m_pool->deallocate(nas_buffer);
+  ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, &ue_ctx->enb_sri, 0);
+  if(n_sent == -1)
+  {
+      m_s1ap_log->error("Failed to send NAS Attach Request");
+      return false;
+  }
+  return true;
+}
 
 bool
 s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid)

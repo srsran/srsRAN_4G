@@ -94,6 +94,7 @@ typedef struct{
   LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
   bool ms_network_cap_present;
   LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
+  bool eit;
 } ue_ctx_t;
 }//namespace
 #endif

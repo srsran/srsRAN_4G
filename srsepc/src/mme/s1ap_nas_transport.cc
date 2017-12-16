@@ -277,18 +277,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   memcpy(sm_cmd.ue_security_cap.uia,ue_ctx->ue_network_cap.uia,8*sizeof(bool));
   sm_cmd.ue_security_cap.gea_present = ue_ctx->ms_network_cap_present;
   memcpy(sm_cmd.ue_security_cap.gea,ue_ctx->ms_network_cap.gea,8*sizeof(bool));
-  /*
-    typedef struct{
-    bool eea[8];
-    bool eia[8];
-    bool uea[8];
-    bool uea_present;
-    bool uia[8];
-    bool uia_present;
-    bool gea[8];
-    bool gea_present;
-    }LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT;
-   */
+
   sm_cmd.imeisv_req_present=false;
   sm_cmd.nonce_ue_present=false;
   sm_cmd.nonce_mme_present=false;
