@@ -74,8 +74,9 @@ int srslte_ue_sync_init_file_multi(srslte_ue_sync_t *q, uint32_t nof_prb, char *
     q->fft_size = srslte_symbol_sz(nof_prb);
     q->nof_rx_antennas = nof_rx_ant;
 
-    q->cfo_correct_enable = true;
-    
+    q->cfo_correct_enable_find  = false;
+    q->cfo_correct_enable_track = true;
+
     if (srslte_cfo_init(&q->file_cfo_correct, 2*q->sf_len)) {
       fprintf(stderr, "Error initiating CFO\n");
       goto clean_exit; 
@@ -220,7 +221,9 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     q->cfo_pss_min = DEFAULT_CFO_PSS_MIN;
     q->cfo_loop_bw_pss = DEFAULT_CFO_BW_PSS;
     q->cfo_loop_bw_ref = DEFAULT_CFO_BW_REF;
-    q->cfo_correct_enable = true;
+
+    q->cfo_correct_enable_find  = false;
+    q->cfo_correct_enable_track = true;
 
     q->pss_stable_cnt     = 0;
     q->pss_stable_timeout = DEFAULT_PSS_STABLE_TIMEOUT;
@@ -261,14 +264,12 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
 
     // Configure FIND and TRACK sync objects behaviour (this configuration is always the same)
     srslte_sync_set_cfo_i_enable(&q->sfind,     false);
-    srslte_sync_set_cfo_cp_enable(&q->sfind,    true);
     srslte_sync_set_cfo_pss_enable(&q->sfind,   true);
     srslte_sync_set_pss_filt_enable(&q->sfind,  true);
     srslte_sync_set_sss_eq_enable(&q->sfind,    false);
 
     // During track, we do CFO correction outside the sync object
     srslte_sync_set_cfo_i_enable(&q->strack,    false);
-    srslte_sync_set_cfo_cp_enable(&q->strack,   false);
     srslte_sync_set_cfo_pss_enable(&q->strack,  true);
     srslte_sync_set_pss_filt_enable(&q->strack, true);
     srslte_sync_set_sss_eq_enable(&q->strack,   false);
@@ -277,10 +278,8 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     srslte_sync_cp_en(&q->strack, false);
     srslte_sync_cp_en(&q->sfind,  false);
 
-
     srslte_sync_sss_en(&q->strack, true);
     q->decode_sss_on_track = true;
-
 
     ret = SRSLTE_SUCCESS;
   }
@@ -392,7 +391,12 @@ int srslte_ue_sync_set_cell(srslte_ue_sync_t *q, srslte_cell_t cell)
 
       srslte_sync_set_em_alpha(&q->strack,  0.2);
       srslte_sync_set_threshold(&q->strack, 1.2);
+
     }
+
+    // When cell is unknown, do CP CFO correction
+    srslte_sync_set_cfo_cp_enable(&q->sfind, true, q->frame_len<10000?14:3);
+    q->cfo_correct_enable_find  = false;
 
     srslte_ue_sync_reset(q);
 
@@ -671,8 +675,6 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
   return srslte_ue_sync_zerocopy_multi(q, _input_buffer);
 }
 
-int track_time, find_time;
-
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
 int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PORTS]) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -697,7 +699,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           return SRSLTE_ERROR;
         }
       }
-      if (q->cfo_correct_enable) {
+      if (q->cfo_correct_enable_track) {
         for (int i = 0; i < q->nof_rx_antennas; i++) {
           srslte_cfo_correct(&q->file_cfo_correct,
                              input_buffer[i],
@@ -718,14 +720,18 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
         return SRSLTE_ERROR;
       }
       int n;
-      struct timeval t[3];
       switch (q->state) {
         case SF_FIND:
-          gettimeofday(&t[1], NULL);
+          // Correct CFO before PSS/SSS find using the sync object corrector (initialized for 1 ms)
+          if (q->cfo_correct_enable_find) {
+            for (int i=0;i<q->nof_rx_antennas;i++) {
+              srslte_cfo_correct(&q->strack.cfo_corr_frame,
+                                 input_buffer[i],
+                                 input_buffer[i],
+                                 -q->cfo_current_value/q->fft_size);
+            }
+          }
           n = srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx);
-          gettimeofday(&t[2], NULL);
-          get_time_interval(t);
-          find_time = t[0].tv_usec;
           switch(n) {
             case SRSLTE_SYNC_ERROR: 
               ret = SRSLTE_ERROR; 
@@ -758,7 +764,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           q->sf_idx = (q->sf_idx + q->nof_recv_sf) % 10;
 
           // Correct CFO before PSS/SSS tracking using the sync object corrector (initialized for 1 ms)
-          if (q->cfo_correct_enable) {
+          if (q->cfo_correct_enable_track) {
             for (int i=0;i<q->nof_rx_antennas;i++) {
               srslte_cfo_correct(&q->strack.cfo_corr_frame,
                                  input_buffer[i],
@@ -780,14 +786,9 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
             /* Track PSS/SSS around the expected PSS position
              * In tracking phase, the subframe carrying the PSS is always the last one of the frame
              */
-            track_idx = 0;
-            gettimeofday(&t[1], NULL);
-            int n = srslte_sync_find(&q->strack, input_buffer[0],
+            n = srslte_sync_find(&q->strack, input_buffer[0],
                                      q->frame_len - q->sf_len/2 - q->fft_size - q->strack.max_offset/2,
                                      &track_idx);
-            gettimeofday(&t[2], NULL);
-            get_time_interval(t);
-            track_time = t[0].tv_usec;
             switch(n)
             {
               case SRSLTE_SYNC_ERROR:

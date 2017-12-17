@@ -80,6 +80,7 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     q->cfo_i_initiated = false;
     q->pss_filtering_enabled = false;
 
+    q->cfo_cp_nsymbols = 3;
     q->fft_size = fft_size;
     q->frame_size = frame_size;
     q->max_offset = max_offset;
@@ -326,8 +327,9 @@ void srslte_sync_set_pss_filt_enable(srslte_sync_t *q, bool enable) {
   q->pss_filtering_enabled = enable;
 }
 
-void srslte_sync_set_cfo_cp_enable(srslte_sync_t *q, bool enable) {
-  q->cfo_cp_enable = enable;
+void srslte_sync_set_cfo_cp_enable(srslte_sync_t *q, bool enable, uint32_t nof_symbols) {
+  q->cfo_cp_enable   = enable;
+  q->cfo_cp_nsymbols = nof_symbols;
 }
 
 void srslte_sync_set_cfo_pss_enable(srslte_sync_t *q, bool enable) {
@@ -475,7 +477,7 @@ srslte_pss_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q)
 static float cfo_cp_estimate(srslte_sync_t *q, const cf_t *input)
 {
   uint32_t cp_offset = 0; 
-  cp_offset = srslte_cp_synch(&q->cp_synch, input, q->max_offset, 1, SRSLTE_CP_LEN_NORM(1,q->fft_size));
+  cp_offset = srslte_cp_synch(&q->cp_synch, input, q->max_offset, q->cfo_cp_nsymbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
   cf_t cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
   float cfo = -carg(cp_corr_max) / M_PI / 2; 
   return cfo; 

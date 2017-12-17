@@ -182,7 +182,7 @@ void phch_recv::set_time_adv_sec(float _time_adv_sec)
   }
 }
 
-void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q)
+void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q, float cfo)
 {
   if (worker_com->args->cfo_integer_enabled) {
     srslte_ue_sync_set_cfo_i_enable(q, true);
@@ -197,6 +197,14 @@ void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q)
                                  worker_com->args->cfo_loop_pss_conv);
 
   q->strack.pss.chest_on_filter = worker_com->args->sic_pss_enabled;
+
+  // Disable CP based CFO estimation during find
+  if (cfo != 0) {
+    q->cfo_current_value = cfo/15000;
+    q->cfo_is_copied = true;
+    q->cfo_correct_enable_find = true;
+    srslte_sync_set_cfo_cp_enable(&q->sfind, false, 0);
+  }
 
   int time_correct_period = worker_com->args->time_correct_period;
   if (time_correct_period > 0) {
@@ -238,7 +246,7 @@ bool phch_recv::set_cell() {
   }
 
   // Set options defined in expert section
-  set_ue_sync_opts(&ue_sync);
+  set_ue_sync_opts(&ue_sync, search_p.get_last_cfo());
 
   // Reset ue_sync and set CFO/gain from search procedure
   srslte_ue_sync_reset(&ue_sync);
@@ -774,11 +782,7 @@ void phch_recv::search::init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h,
   srslte_ue_cellsearch_set_nof_valid_frames(&cs, 2);
 
   // Set options defined in expert section
-  p->set_ue_sync_opts(&cs.ue_sync);
-
-  if (p->do_agc) {
-    srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, 40);
-  }
+  p->set_ue_sync_opts(&cs.ue_sync, 0);
 
   force_N_id_2 = -1;
 }
@@ -859,10 +863,11 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
   }
 
   // Set options defined in expert section
-  p->set_ue_sync_opts(&ue_mib_sync.ue_sync);
+  p->set_ue_sync_opts(&ue_mib_sync.ue_sync, cfo);
 
+  // Start AGC after initial cell search
   if (p->do_agc) {
-    srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync, callback_set_rx_gain, srslte_agc_get_gain(&cs.ue_sync.agc));
+    srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync, callback_set_rx_gain, p->radio_h->get_rx_gain());
   }
 
   srslte_ue_sync_reset(&ue_mib_sync.ue_sync);
@@ -1211,7 +1216,6 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled)
   // Configure FIND object behaviour (this configuration is always the same)
   srslte_sync_set_cfo_ema_alpha(&sync_find,    1.0);
   srslte_sync_set_cfo_i_enable(&sync_find,     false);
-  srslte_sync_set_cfo_cp_enable(&sync_find,    false);
   srslte_sync_set_cfo_pss_enable(&sync_find,   true);
   srslte_sync_set_pss_filt_enable(&sync_find,  true);
   srslte_sync_set_sss_eq_enable(&sync_find,    true);
