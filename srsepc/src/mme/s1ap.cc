@@ -968,6 +968,9 @@ s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQU
   }
   ue_set->second.erase(mme_ue_s1ap_id);
 
+  //Delete any context at the SPGW
+  m_spgw->delete_session_request(ue_ctx->imsi);
+
   //Delete UE context
   delete ue_ctx->second;
   m_active_ues.erase(ue_ctx);

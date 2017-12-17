@@ -472,6 +472,12 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
 }
 
 void
+spgw::delete_session_request(uint64_t imsi)
+{
+
+}
+
+void
 spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu)
 {
   m_spgw_log->info("Received Modified Bearer Request\n");
