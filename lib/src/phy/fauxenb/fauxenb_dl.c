@@ -43,7 +43,7 @@
 
 int srslte_faux_enb_dl_init(srslte_faux_enb_dl_t *q, uint32_t max_prb)
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY:BEGIN max PRB %u", max_prb);
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   

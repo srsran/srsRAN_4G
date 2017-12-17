@@ -996,6 +996,7 @@ int main(int argc, char **argv) {
         srslte_vec_sc_prod_cfc(output_buffer[i], rf_amp * norm_factor, output_buffer[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
       }
       srslte_rf_send_multi(&rf, (void**) output_buffer, sf_n_samples, true, start_of_burst, false);
+      usleep(1000);
       start_of_burst=false;
 #endif
       }
