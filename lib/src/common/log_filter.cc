@@ -37,7 +37,9 @@ namespace srslte{
 
 log_filter::log_filter()
 {
-  do_tti = false; 
+  do_tti      = false;
+  time_src    = NULL;
+  time_format = TIME;
 }
 
 log_filter::log_filter(std::string layer)
@@ -278,7 +280,10 @@ void log_filter::debug_line(std::string file, int line, std::string message, ...
   }
 }
 
-
+void log_filter::set_time_src(time_itf *source, time_format_t format) {
+  this->time_src    = source;
+  this->time_format = format;
+}
 
 std::string log_filter::now_time()
 {
@@ -286,15 +291,34 @@ std::string log_filter::now_time()
   struct tm * timeinfo;
   char buffer[64];
   char us[16];
-  
-  gettimeofday(&rawtime, NULL);
-  timeinfo = localtime(&rawtime.tv_sec);
-  
-  strftime(buffer,64,"%H:%M:%S",timeinfo);
-  strcat(buffer,".");
-  snprintf(us,16,"%06ld",rawtime.tv_usec);
-  strcat(buffer,us);
-  
+
+  srslte_timestamp_t now;
+  uint64_t usec_epoch;
+
+  if (!time_src) {
+    gettimeofday(&rawtime, NULL);
+    timeinfo = localtime(&rawtime.tv_sec);
+
+    if (time_format == TIME) {
+      strftime(buffer, 64, "%H:%M:%S", timeinfo);
+      strcat(buffer, ".");
+      snprintf(us, 16, "%06ld", rawtime.tv_usec);
+      strcat(buffer, us);
+    } else {
+      usec_epoch = rawtime.tv_sec * 1000000 + rawtime.tv_usec;
+      snprintf(buffer, 64, "%ld", usec_epoch);
+    }
+  } else {
+    now = time_src->get_time();
+
+    if (time_format == TIME) {
+      snprintf(buffer, 64, "%ld:%06u", now.full_secs, (uint32_t) (now.frac_secs * 1e6));
+    } else {
+      usec_epoch = now.full_secs * 1000000 + (uint32_t) (now.frac_secs * 1e6);
+      snprintf(buffer, 64, "%ld", usec_epoch);
+    }
+  }
+
   return std::string(buffer);
 }
 

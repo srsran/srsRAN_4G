@@ -25,7 +25,6 @@
  */
 
 #include <string.h>
-#include <boost/concept_check.hpp>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
