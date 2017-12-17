@@ -250,6 +250,8 @@ main (int argc,char * argv[] )
   mme->cleanup();   
   spgw->stop();
   spgw->cleanup();
+  hss->stop();
+  hss->cleanup();
 
   cout << std::endl <<"---  exiting  ---" << endl;  
   return 0;

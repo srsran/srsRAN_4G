@@ -67,6 +67,8 @@ public:
   static hss* get_instance(void);
   static void cleanup(void);
   int init(hss_args_t *hss_args, srslte::log_filter* hss_log);
+  void stop(void);
+
   bool set_auth_algo(std::string auth_algo);
   bool read_db_file(std::string db_file);
 

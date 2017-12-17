@@ -48,10 +48,6 @@ hss::hss()
 
 hss::~hss()
 {
-  if(m_db_file.is_open())
-  {
-    m_db_file.close();
-  }
   return;
 }
 
@@ -97,6 +93,25 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
   m_hss_log->console("HSS Initialized\n");
   return 0;
 }
+
+void
+hss::stop(void)
+{
+  std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
+  while(it!=m_imsi_to_ue_ctx.end())
+    {
+      m_hss_log->info("Deleting UE context in HSS. IMSI: %lu\n", it->second->imsi);
+      m_hss_log->console("Deleting UE context in HSS. IMSI: %lu\n", it->second->imsi);
+      delete it->second;
+      m_imsi_to_ue_ctx.erase(it++);
+    }
+  if(m_db_file.is_open())
+    {
+      m_db_file.close();
+    }
+  return;
+}
+
 
 bool
 hss::set_auth_algo(std::string auth_algo)
