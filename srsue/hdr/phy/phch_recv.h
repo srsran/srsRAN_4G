@@ -95,7 +95,7 @@ private:
   void   reset();
   void   radio_error();
   bool   wait_radio_reset();
-  void   set_ue_sync_opts(srslte_ue_sync_t *q);
+  void   set_ue_sync_opts(srslte_ue_sync_t *q, float cfo);
   void   run_thread();
 
   void   set_sampling_rate();

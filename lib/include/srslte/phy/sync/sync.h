@@ -108,6 +108,8 @@ typedef struct SRSLTE_API {
 
   float cfo_ema_alpha;
 
+  uint32_t cfo_cp_nsymbols;
+
   srslte_cfo_t cfo_corr_frame;
   srslte_cfo_t cfo_corr_symbol;
 
@@ -204,7 +206,9 @@ SRSLTE_API void srslte_sync_copy_cfo(srslte_sync_t *q,
 SRSLTE_API void srslte_sync_set_cfo_i_enable(srslte_sync_t *q,
                                              bool enable);
 SRSLTE_API void srslte_sync_set_cfo_cp_enable(srslte_sync_t *q,
-                                              bool enable);
+                                              bool enable,
+                                              uint32_t nof_symbols);
+
 SRSLTE_API void srslte_sync_set_cfo_pss_enable(srslte_sync_t *q,
                                                bool enable);
 

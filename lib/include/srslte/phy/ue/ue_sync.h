@@ -122,7 +122,8 @@ typedef struct SRSLTE_API {
   bool decode_sss_on_track; 
 
   bool  cfo_is_copied;
-  bool  cfo_correct_enable;
+  bool  cfo_correct_enable_track;
+  bool  cfo_correct_enable_find;
   float cfo_current_value;
   float cfo_loop_bw_pss;
   float cfo_loop_bw_ref;
