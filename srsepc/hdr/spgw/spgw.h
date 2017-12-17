@@ -87,6 +87,8 @@ private:
 
   srslte::error_t init_sgi_if(spgw_args_t *args);
   srslte::error_t init_s1u(spgw_args_t *args);
+  srslte::error_t init_ue_ip(spgw_args_t *args);
+
   uint64_t get_new_ctrl_teid();
   uint64_t get_new_user_teid();
   in_addr_t get_new_ue_ipv4();
@@ -111,6 +113,8 @@ private:
   pthread_mutex_t m_mutex;
   std::map<uint32_t,spgw_tunnel_ctx*> m_teid_to_tunnel_ctx;         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
   std::map<in_addr_t,srslte::gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
+
+  uint32_t m_h_next_ue_ip;
 
   /*Logs*/
   srslte::log_filter  *m_spgw_log;

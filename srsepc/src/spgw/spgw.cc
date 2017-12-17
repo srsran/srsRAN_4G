@@ -104,6 +104,13 @@ spgw::init(spgw_args_t* args, srslte::log_filter *spgw_log)
     m_spgw_log->console("Could not initialize the S1-U interface.\n");
     return -1;
   }
+  //Initialize UE ip pool
+  err = init_ue_ip(args);
+  if (err != srslte::ERROR_NONE)
+  {
+    m_spgw_log->console("Could not initialize the S1-U interface.\n");
+    return -1;
+  }
 
   //Init mutex
   pthread_mutex_init(&m_mutex,NULL);
@@ -234,6 +241,13 @@ spgw::init_s1u(spgw_args_t *args)
   m_spgw_log->info("S1-U socket = %d\n", m_s1u);
   m_spgw_log->info("S1-U IP = %s, Port = %d \n", inet_ntoa(m_s1u_addr.sin_addr),ntohs(m_s1u_addr.sin_port));
 
+  return srslte::ERROR_NONE;
+}
+
+srslte::error_t
+spgw::init_ue_ip(spgw_args_t *args)
+{
+  m_h_next_ue_ip = ntohl(inet_addr(args->sgi_if_addr.c_str()));
   return srslte::ERROR_NONE;
 }
 
@@ -395,7 +409,8 @@ spgw::get_new_user_teid()
 in_addr_t
 spgw::get_new_ue_ipv4()
 {
-  return inet_addr("172.0.0.2");//FIXME Tmp hack
+  m_h_next_ue_ip++;
+  return ntohl(m_h_next_ue_ip);//FIXME Tmp hack
 }
 
 void

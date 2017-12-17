@@ -41,4 +41,4 @@ db_file = user_db.csv
 
 [spgw]
 gtpu_bind_addr=127.0.1.100
-sgi_if_addr=172.0.0.1
+sgi_if_addr=172.16.0.1
