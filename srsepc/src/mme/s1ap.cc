@@ -378,7 +378,7 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   }
   //FIXME use this info
   uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
-  uint8_t proc_transaction_id = pdn_con_req.proc_transaction_id; //TODO: Transaction ID unused
+  ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
 
   //Save whether ESM information transfer is necessary
   ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
@@ -473,12 +473,17 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
       return true; //no need for reply. FIXME this should be better structured...
       break;
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
-       m_s1ap_log->info("UL NAS: Received Attach Complete\n");
-       handle_nas_attach_complete(nas_msg, reply_msg, ue_ctx);
-       return true; //no need for reply. FIXME this should be better structured...
+      m_s1ap_log->info("UL NAS: Received Attach Complete\n");
+      handle_nas_attach_complete(nas_msg, reply_msg, ue_ctx);
+      return true; //no need for reply. FIXME this should be better structured...
     break;
+    case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
+      m_s1ap_log->info("UL NAS: Received ESM Information Response\n");
+      handle_esm_information_response(nas_msg,reply_msg,ue_ctx);
+      return true;
     default:
-      m_s1ap_log->info("Unhandled NAS message 0x%x\n", msg_type );
+      m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type );
+      m_s1ap_log->console("Unhandled NAS message 0x%x\n", msg_type );
       return false; //FIXME (nas_msg deallocate needs to be called)
   }
 
@@ -611,15 +616,17 @@ s1ap::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_ctx_t *u
     uint8 eps_bearer_id;
     uint8 proc_transaction_id;
     }LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT;*/
-  uint8_t  sec_hdr_type=3;
+  esm_info_req.eps_bearer_id=0;
+  esm_info_req.proc_transaction_id = ue_ctx->procedure_transaction_id;
+  uint8_t  sec_hdr_type=2;
   
   ue_ctx->security_ctxt.dl_nas_count++;
  
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_esm_information_request_msg(&esm_info_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  LIBLTE_ERROR_ENUM err = srslte_mme_pack_esm_information_request_msg(&esm_info_req, sec_hdr_type,ue_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Athentication Reject\n");
-    m_s1ap_log->console("Error packing Athentication Reject\n");
+    m_s1ap_log->error("Error packing ESM information request\n");
+    m_s1ap_log->console("Error packing ESM information request\n");
     return false;
   }
 
@@ -657,6 +664,47 @@ s1ap::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_ctx_t *u
   return true;
 }
 
+
+bool
+s1ap::handle_esm_information_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t* ue_ctx)
+{
+  LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT esm_info_resp;
+  /*
+  typedef struct{
+    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT       apn;
+    LIBLTE_MME_PROTOCOL_CONFIG_OPTIONS_STRUCT protocol_cnfg_opts;
+    uint8                                     eps_bearer_id;
+    uint8                                     proc_transaction_id;
+    bool                                      apn_present;
+    bool                                      protocol_cnfg_opts_present;
+    }LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT;*/
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = srslte_mme_unpack_esm_information_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &esm_info_resp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+  m_s1ap_log->info("ESM Info: EPS bearer id %d\n",esm_info_resp.eps_bearer_id);
+  if(esm_info_resp.apn_present)
+  {
+    m_s1ap_log->info("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
+    m_s1ap_log->console("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
+  }
+  /*
+  m_pool->deallocate(nas_buffer);
+  ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, &ue_ctx->enb_sri, 0);
+  if(n_sent == -1)
+  {
+      m_s1ap_log->error("Failed to send NAS Attach Request");
+      return false;
+  }
+  */
+
+  //FIXME The packging of GTP-C messages is not ready.
+  //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
+  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, ue_ctx->mme_ue_s1ap_id);
+  return true;
+}
 bool
 s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid)
 {
@@ -692,8 +740,8 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   in_ctxt_req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
 
   //Set UE-AMBR
-  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=4294967295;//2^32-1
-  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=4294967295;//FIXME Get UE-AMBR from HSS
+  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=1000000000;//2^32-1
+  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=1000000000;//FIXME Get UE-AMBR from HSS
 
   //Setup eRAB context
   in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
@@ -721,9 +769,26 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   memcpy(erab_ctxt->gTP_TEID.buffer, &tmp_teid, sizeof(uint32_t));
 
   //Set UE security capabilities and k_enb
-  in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[0] = 0;          //EEA0
-  in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
-
+  for(int i = 0; i<16; i++)
+  {
+    if(ue_ctx->ue_network_cap.eea[i] == true)
+    {
+      in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 1;          //EEA supported
+    }
+    else
+    {
+      in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 0;          //EEA not supported
+    }
+    if(ue_ctx->ue_network_cap.eia[i] == true)
+    {
+      in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 1;          //EEA supported
+    }
+    else
+    {
+      in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 0;          //EEA not supported
+    }
+    // in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
+  }
   uint8_t key_enb[32];
   liblte_security_generate_k_enb(ue_ctx->security_ctxt.k_asme, ue_ctx->security_ctxt.dl_nas_count, key_enb);
   liblte_unpack(key_enb, 32, in_ctxt_req->SecurityKey.buffer);

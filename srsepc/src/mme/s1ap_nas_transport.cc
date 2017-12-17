@@ -476,7 +476,7 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   attach_accept.tai_list.N_tais = 1;
   attach_accept.tai_list.tai[0].mcc = 1;
   attach_accept.tai_list.tai[0].mnc = 1;
-  attach_accept.tai_list.tai[0].tac = 1;
+  attach_accept.tai_list.tai[0].tac = 7;
 
   //Make sure all unused options are set to false
   attach_accept.guti_present=false;
@@ -507,10 +507,10 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
   //set apn
   //act_def_eps_bearer_context_req.apn
-  std::string apn("internet");
+  std::string apn("test123");
   act_def_eps_bearer_context_req.apn.apn = apn; //FIXME
 
-  act_def_eps_bearer_context_req.proc_transaction_id = 1; //FIXME
+  act_def_eps_bearer_context_req.proc_transaction_id = ue_ctx->procedure_transaction_id; //FIXME
 
   //Make sure unused options are set to false
   
@@ -536,7 +536,7 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
     bool  br_ext_present;
   }LIBLTE_MME_EPS_QUALITY_OF_SERVICE_STRUCT;
   */
-  uint8_t sec_hdr_type =3;
+  uint8_t sec_hdr_type =2;
   ue_ctx->security_ctxt.dl_nas_count++;
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
   liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);

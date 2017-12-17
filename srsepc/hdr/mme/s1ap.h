@@ -89,6 +89,7 @@ public:
 
   void activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi);
   bool pack_esm_information_request(srslte::byte_buffer_t* reply_msg, srsepc::ue_ctx_t* ue_ctx);
+  bool handle_esm_information_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t* ue_ctx);
 
   void print_enb_ctx_info(const enb_ctx_t &enb_ctx);
 

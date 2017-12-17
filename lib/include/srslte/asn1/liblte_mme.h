@@ -3752,6 +3752,10 @@ typedef struct{
     uint8 proc_transaction_id;
 }LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT;
 // Functions
+LIBLTE_ERROR_ENUM srslte_mme_pack_esm_information_request_msg(LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT *esm_info_req,
+                                                              uint8                                         sec_hdr_type,
+                                                              uint32                                        count,
+                                                              LIBLTE_BYTE_MSG_STRUCT                        *msg);
 LIBLTE_ERROR_ENUM liblte_mme_pack_esm_information_request_msg(LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT *esm_info_req,
                                                               LIBLTE_BYTE_MSG_STRUCT                        *msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_information_request_msg(LIBLTE_BYTE_MSG_STRUCT                        *msg,
@@ -3781,6 +3785,8 @@ typedef struct{
 LIBLTE_ERROR_ENUM liblte_mme_pack_esm_information_response_msg(LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT *esm_info_resp,
                                                                LIBLTE_BYTE_MSG_STRUCT                         *msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT                         *msg,
+                                                                 LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT *esm_info_resp);
+LIBLTE_ERROR_ENUM srslte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT                         *msg,
                                                                  LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT *esm_info_resp);
 
 /*********************************************************************
