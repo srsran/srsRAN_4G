@@ -467,19 +467,41 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   m_s1ap_log->info("Packing Attach Accept\n");
 
   //Attach accept
-  attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
+  attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_COMBINED_EPS_IMSI_ATTACH;
   //Mandatory
   //FIXME: Set t3412 from config
-  attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_DEACTIVATED;   // 111 -> Timer deactivated
-  attach_accept.t3412.unit = 0;                                   // No periodic tracking update
+  attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
+  attach_accept.t3412.value = 30;                                    // 30 minute periodic timer
   //FIXME: Set tai_list from config
   attach_accept.tai_list.N_tais = 1;
   attach_accept.tai_list.tai[0].mcc = 1;
   attach_accept.tai_list.tai[0].mnc = 1;
   attach_accept.tai_list.tai[0].tac = 7;
 
+  //Allocate a GUTI ot the UE
+  attach_accept.guti_present=true;
+  attach_accept.guti.type_of_id = 6; //110 -> GUTI
+  attach_accept.guti.guti.mcc = 1;
+  attach_accept.guti.guti.mnc = 1;
+  attach_accept.guti.guti.mme_group_id = 0x0001;
+  attach_accept.guti.guti.mme_code = 0x1a;
+  attach_accept.guti.guti.m_tmsi = 0x124ae;
+  /*
+  typedef struct{
+    uint32 m_tmsi;
+    uint16 mcc;
+    uint16 mnc;
+    uint16 mme_group_id;
+    uint8  mme_code;
+  }LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT;
+  typedef struct{
+    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
+    uint8                                type_of_id;
+    uint8                                imsi[15];
+    uint8                                imei[15];
+  }LIBLTE_MME_EPS_MOBILE_ID_STRUCT;*/
+
   //Make sure all unused options are set to false
-  attach_accept.guti_present=false;
   attach_accept.lai_present=false;
   attach_accept.ms_id_present=false;
   attach_accept.emm_cause_present=false;
@@ -509,33 +531,18 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   //act_def_eps_bearer_context_req.apn
   std::string apn("test123");
   act_def_eps_bearer_context_req.apn.apn = apn; //FIXME
-
   act_def_eps_bearer_context_req.proc_transaction_id = ue_ctx->procedure_transaction_id; //FIXME
 
-  //Make sure unused options are set to false
-  
-  /*
-  typedef struct{
-  LIBLTE_MME_EPS_QUALITY_OF_SERVICE_STRUCT         eps_qos; //TODO
-  LIBLTE_MME_ACCESS_POINT_NAME_STRUCT              apn;   //TODO
-  LIBLTE_MME_PDN_ADDRESS_STRUCT                    pdn_addr; //DONE
-  uint8                                            eps_bearer_id; //DONE
-  uint8                                            proc_transaction_id; 
-}LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT;
-  typedef struct{
-    uint8 qci;
-    uint8 mbr_ul;
-    uint8 mbr_dl;
-    uint8 gbr_ul;
-    uint8 gbr_dl;
-    uint8 mbr_ul_ext;
-    uint8 mbr_dl_ext;
-    uint8 gbr_ul_ext;
-    uint8 gbr_dl_ext;
-    bool  br_present;
-    bool  br_ext_present;
-  }LIBLTE_MME_EPS_QUALITY_OF_SERVICE_STRUCT;
-  */
+  //Set DNS server
+  act_def_eps_bearer_context_req.protocol_cnfg_opts_present = true;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.N_opts = 1;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].id = 0x0d;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].len = 4;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[0] = 8;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[1] = 8;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[2] = 8;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[3] = 8;
+
   uint8_t sec_hdr_type =2;
   ue_ctx->security_ctxt.dl_nas_count++;
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);

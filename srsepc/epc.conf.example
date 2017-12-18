@@ -16,7 +16,7 @@
 [mme]
 mme_code = 0x1a
 mme_group = 0x0001
-tac = 0x0001
+tac = 0x0007
 mcc = 001
 mnc = 01
 mme_bind_addr = 127.0.1.100
