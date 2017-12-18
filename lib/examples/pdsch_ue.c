@@ -352,7 +352,7 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int sfn_offset;
   float cfo = 0; 
-  
+  srslte_is_example = 1;
   srslte_debug_handle_crash(argc, argv);
 
   parse_args(&prog_args, argc, argv);

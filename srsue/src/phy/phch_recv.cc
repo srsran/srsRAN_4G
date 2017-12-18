@@ -46,6 +46,30 @@ double callback_set_rx_gain(void *h, double gain) {
   return ((phch_recv*) h)->set_rx_gain(gain);
 }
 
+static void srslte_phy_handler(phy_logger_level_t log_level, void *ctx, char *str) {
+  phch_recv *r = (phch_recv *) ctx;
+  r->srslte_phy_logger(log_level, str);
+}
+
+void phch_recv::srslte_phy_logger(phy_logger_level_t log_level, char *str) {
+  if (log_h) {
+    switch(log_level){
+      case LOG_LEVEL_INFO:
+        log_h->info("[PHY_LAYER]: %s", str);
+        break;
+      case LOG_LEVEL_DEBUG:
+        log_h->debug("[PHY_LAYER]: %s", str);
+        break;
+      case LOG_LEVEL_ERROR:
+        log_h->error("[PHY_LAYER]: %s", str);
+        break;
+      default:
+        break;
+    }
+  } else {
+    printf("[PHY_LAYER]: %s\n", str);
+  }
+}
 
 phch_recv::phch_recv() {
   dl_freq = -1;
@@ -94,7 +118,7 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   intra_freq_meas.init(worker_com, rrc, log_h);
 
   reset();
-
+  srslte_phy_log_register_handler(this, srslte_phy_handler);
   // Start main thread
   if (sync_cpu_affinity < 0) {
     start(prio);
