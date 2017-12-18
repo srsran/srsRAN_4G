@@ -384,6 +384,9 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
   m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
 
+  //Initialize NAS count
+  ue_ctx.security_ctxt.ul_nas_count = 0;
+  ue_ctx.security_ctxt.dl_nas_count = 0;
   //Add eNB info to UE ctxt
   memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
@@ -404,8 +407,10 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
     ue_ctx.erabs_ctx[i].erab_id = i;
   }
 
+  printf("UL NAS count %d\n", ue_ctx.security_ctxt.ul_nas_count);
   ue_ctx_t *ue_ptr = new ue_ctx_t;
   memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
+  printf("UL NAS count %d\n",(int) ue_ptr->security_ctxt.ul_nas_count);
   m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
  
   std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(enb_sri->sinfo_assoc_id);
@@ -454,6 +459,7 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
   }
   m_s1ap_log->debug("Found UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
 
+  printf("UL NAS count %d\n", ue_ctx->security_ctxt.ul_nas_count);
   //Get NAS message type
   uint8_t pd, msg_type;
   srslte::byte_buffer_t *nas_msg = m_pool->allocate();
@@ -470,16 +476,19 @@ s1ap::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT 
     case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
       m_s1ap_log->info("UL NAS: Received Security Mode Complete\n");
       handle_nas_security_mode_complete(nas_msg, reply_msg, ue_ctx);
+      //ue_ctx->security_ctxt.ul_nas_count++;
       return true; //no need for reply. FIXME this should be better structured...
       break;
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_s1ap_log->info("UL NAS: Received Attach Complete\n");
       handle_nas_attach_complete(nas_msg, reply_msg, ue_ctx);
+      ue_ctx->security_ctxt.ul_nas_count++;
       return true; //no need for reply. FIXME this should be better structured...
     break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
       m_s1ap_log->info("UL NAS: Received ESM Information Response\n");
       handle_esm_information_response(nas_msg,reply_msg,ue_ctx);
+      ue_ctx->security_ctxt.ul_nas_count++;
       return true;
     default:
       m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type );
@@ -769,9 +778,11 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   memcpy(erab_ctxt->gTP_TEID.buffer, &tmp_teid, sizeof(uint32_t));
 
   //Set UE security capabilities and k_enb
-  for(int i = 0; i<16; i++)
+  bzero(in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer,sizeof(uint8_t)*16); 
+  bzero(in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer,sizeof(uint8_t)*16); 
+  for(int i = 0; i<3; i++)
   {
-    if(ue_ctx->ue_network_cap.eea[i] == true)
+    if(ue_ctx->ue_network_cap.eea[i+1] == true)
     {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 1;          //EEA supported
     }
@@ -779,7 +790,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 0;          //EEA not supported
     }
-    if(ue_ctx->ue_network_cap.eia[i] == true)
+    if(ue_ctx->ue_network_cap.eia[i+1] == true)
     {
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 1;          //EEA supported
     }
@@ -790,9 +801,9 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     // in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
   }
   uint8_t key_enb[32];
-  liblte_security_generate_k_enb(ue_ctx->security_ctxt.k_asme, ue_ctx->security_ctxt.dl_nas_count, key_enb);
+  liblte_security_generate_k_enb(ue_ctx->security_ctxt.k_asme, ue_ctx->security_ctxt.ul_nas_count, key_enb);
   liblte_unpack(key_enb, 32, in_ctxt_req->SecurityKey.buffer);
-
+  m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_ctx->security_ctxt.ul_nas_count);
   //Set Attach accepted and activat default bearer NAS messages
   if(cs_resp->paa_present != true)
   {
@@ -806,6 +817,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
   }
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
   m_s1ap_nas_transport.pack_attach_accept(ue_ctx, erab_ctxt, &cs_resp->paa, nas_buffer); 
+
   
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if(err != LIBLTE_SUCCESS)
@@ -969,7 +981,7 @@ s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQU
   ue_set->second.erase(mme_ue_s1ap_id);
 
   //Delete any context at the SPGW
-  m_spgw->delete_session_request(ue_ctx->imsi);
+  //m_spgw->delete_session_request(ue_ctx->imsi);
 
   //Delete UE context
   delete ue_ctx->second;

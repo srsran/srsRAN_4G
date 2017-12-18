@@ -67,7 +67,7 @@ typedef struct{
 
 typedef struct{
   uint8_t  k_asme[32]; 
-  uint8_t  xres[8];
+  uint8_t  xres[16]; //minimum 6, maximum 16
   uint32_t dl_nas_count;
   uint32_t ul_nas_count;
   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
