@@ -95,7 +95,7 @@ void srslte_tdec_iteration_par(srslte_tdec_t * h, int16_t* input[SRSLTE_TDEC_MAX
 #ifdef LV_HAVE_SSE
   srslte_tdec_simd_iteration(&h->tdec_simd, input, long_cb);      
 #else
-  srslte_vec_convert_if(input[0], h->input_conv, 0.01, 3*long_cb+12);
+  srslte_vec_convert_if(input[0], 0.01, h->input_conv, 3*long_cb+12);
   srslte_tdec_gen_iteration(&h->tdec_gen, h->input_conv, long_cb);
 #endif
 }
@@ -156,7 +156,7 @@ int srslte_tdec_run_all_par(srslte_tdec_t * h, int16_t * input[SRSLTE_TDEC_MAX_N
 #ifdef LV_HAVE_SSE
   return srslte_tdec_simd_run_all(&h->tdec_simd, input, output, nof_iterations, long_cb);  
 #else
-  srslte_vec_convert_if(input[0], h->input_conv, 0.01, 3*long_cb+12);
+  srslte_vec_convert_if(input[0], 0.01, h->input_conv, 3*long_cb+12);
   return srslte_tdec_gen_run_all(&h->tdec_gen, h->input_conv, output[0], nof_iterations, long_cb);
 #endif
 }
