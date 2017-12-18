@@ -64,7 +64,7 @@
 
 #define DEFAULT_CFO_BW_PSS  0.05
 #define DEFAULT_CFO_PSS_MIN 400  // typical bias of PSS estimation.
-#define DEFAULT_CFO_BW_REF  0.01
+#define DEFAULT_CFO_BW_REF  0.08
 #define DEFAULT_CFO_REF_MIN 0    // typical bias of REF estimation
 #define DEFAULT_CFO_REF_MAX DEFAULT_CFO_PSS_MIN  // Maximum detection offset of REF based estimation
 

@@ -647,7 +647,7 @@ void phch_recv::run_thread()
             case 1:
 
               if (last_worker) {
-                Warning("SF: cfo=%7.1f Hz, ref=%f Hz, pss=%f Hz\n",
+                Warning("SF: cfo_tot=%7.1f Hz, ref=%f Hz, pss=%f Hz\n",
                         srslte_ue_sync_get_cfo(&ue_sync),
                      15000*last_worker->get_ref_cfo(),
                      15000*ue_sync.strack.cfo_pss_mean);
