@@ -58,7 +58,7 @@ public:
 
   void    set_earfcn(std::vector<uint32_t> earfcn);
   void    force_freq(float dl_freq, float ul_freq);
-
+  void    srslte_phy_logger(phy_logger_level_t log_level, char *str);
   void    reset_sync();
   void    cell_search_start();
   void    cell_search_stop();
