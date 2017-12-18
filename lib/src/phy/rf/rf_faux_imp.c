@@ -781,11 +781,13 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
     }
 
 rxout:
-   RF_FAUX_DEBUG("req %d/%d, pending %d/%d", 
+   RF_FAUX_DEBUG("req %d/%d, pending %d/%d, out %d/%d", 
                  nsamples,
                  nb_req, 
                  ns_pending, 
-                 nb_pending);
+                 nb_pending,
+                 nsamples - ns_pending,
+                 nb_req - nb_pending);
  
    rf_faux_get_time(h, secs, frac_secs);
 
