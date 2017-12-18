@@ -70,18 +70,18 @@ static bool _rf_faux_logStdout = true;
 
 #define RF_FAUX_DL_PORT 43001
 #define RF_FAUX_UL_PORT 43002
-#define RF_FAUX_EP_LEN 128
+#define RF_FAUX_EP_LEN  128
 
 #define BYTES_X_SAMPLE(x) ((x) * sizeof(cf_t))
 #define SAMPLES_X_BYTE(x) ((x) / sizeof(cf_t))
 
-static const char * RF_FAUX_DL_TOPIC        = "LTE.DOWNLINK";
-#define RF_FAUX_DL_TOPIC_LEN (strlen(RF_FAUX_DL_TOPIC))
+static const char * RF_FAUX_DL_TOPIC = "LTE.DOWNLINK";
+#define RF_FAUX_DL_TOPIC_LEN     (strlen(RF_FAUX_DL_TOPIC))
 
-static const char * RF_FAUX_UL_TOPIC        = "LTE.UPLINK";
-#define RF_FAUX_UL_TOPIC_LEN (strlen(RF_FAUX_UL_TOPIC))
+static const char * RF_FAUX_UL_TOPIC = "LTE.UPLINK";
+#define RF_FAUX_UL_TOPIC_LEN     (strlen(RF_FAUX_UL_TOPIC))
 
-
+// target OTA SR
 #define RF_FAUX_DFL_SRATE (5760000.0)
 
 #define RF_FAUX_SF_LEN 0xFFFF
@@ -107,7 +107,7 @@ static void _rf_faux_ts_to_tv(struct timeval *tv, time_t secs, double frac)
     }
 }
 
-static void _rf_faux_dif_time(time_t secs, double frac, struct timeval * tv_dif)
+static void _rf_faux_diff_time(time_t secs, double frac, struct timeval * tv_diff)
 {
    struct timeval tv_now, tv_nxt;
 
@@ -117,12 +117,12 @@ static void _rf_faux_dif_time(time_t secs, double frac, struct timeval * tv_dif)
 
    if(secs || frac)
     {
-      timersub(&tv_nxt, &tv_now, tv_dif);
+      timersub(&tv_nxt, &tv_now, tv_diff);
     }
    else
     {
-      tv_dif->tv_sec  = 0;
-      tv_dif->tv_usec = 0;
+      tv_diff->tv_sec  = 0;
+      tv_diff->tv_usec = 0;
     }
 }
 
@@ -681,24 +681,27 @@ void rf_faux_get_time(void *h, time_t *secs, double *frac_secs)
  }
 
 
-int rf_faux_recv_with_time(void *h, void *data, uint32_t ns_req, 
+
+int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples, 
                            bool blocking, time_t *secs, double *frac_secs)
  {
    GET_FAUX_INFO(h);
 
    pthread_mutex_lock(&(_info->rmtex));
 
-   RF_FAUX_NORM_SF_LEN(ns_req);
+   // sometimes we get a request for a few extra samples (1922 vs 1920) that 
+   // throws off our pkt based stream
+   RF_FAUX_NORM_SF_LEN(nsamples);
 
-   const int nb_req = BYTES_X_SAMPLE(ns_req);
+   const int nb_req = BYTES_X_SAMPLE(nsamples);
 
    int nb_pending = nb_req;
 
-   int ns_pending = ns_req;
+   int ns_pending = nsamples;
 
    char topic[RF_FAUX_DL_TOPIC_LEN + 1];
 
-   const int flags = !blocking ? ZMQ_NOBLOCK : 0;
+   const int flags = blocking ? 0 : ZMQ_NOBLOCK;
 
    rf_faux_hdr_t hdr;
 
@@ -707,13 +710,15 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t ns_req,
    uint8_t * p = (uint8_t *) data;
 
    RF_FAUX_DEBUG("begin_rx req %u/%d, blocking %s",
-                  ns_req,
+                  nsamples,
                   nb_req,
                   RF_FAUX_BOOL_TO_STR(blocking));
 
+   memset(data, 0x0, nb_req);
+
    while(nb_pending > 0 && n_tries--)
      {   
-       // crude for now to read 1 sf
+       // crude way to read 1 sf
        const int nb_sf = BYTES_X_SAMPLE(RF_FAUX_DFL_SRATE / 1000);
 
        cf_t sf_in [RF_FAUX_SF_LEN] = {0.0, 0.0};
@@ -776,29 +781,35 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t ns_req,
     }
 
 rxout:
-   RF_FAUX_DEBUG("nb_req %d, nb_pending %d", nb_req, nb_pending);
+   RF_FAUX_DEBUG("req %d/%d, pending %d/%d", 
+                 nsamples,
+                 nb_req, 
+                 ns_pending, 
+                 nb_pending);
  
    rf_faux_get_time(h, secs, frac_secs);
 
    pthread_mutex_unlock(&(_info->rmtex));
 
-   return ns_req;
+   return nsamples;
  }
 
 
-int rf_faux_recv_with_time_multi(void *h, void **data, uint32_t ns_req, 
+
+int rf_faux_recv_with_time_multi(void *h, void **data, uint32_t nsamples, 
                                  bool blocking, time_t *secs, double *frac_secs)
 {
    return rf_faux_recv_with_time(h, 
                                  data[0],
-                                 ns_req, 
+                                 nsamples, 
                                  blocking,
                                  secs,
                                  frac_secs);
 }
 
 
-int rf_faux_send_timed(void *h, void *data, int ns_in,
+
+int rf_faux_send_timed(void *h, void *data, int nsamples,
                        time_t secs, double frac_secs, bool has_time_spec,
                        bool blocking, bool is_start_of_burst, bool is_end_of_burst)
 {
@@ -806,29 +817,29 @@ int rf_faux_send_timed(void *h, void *data, int ns_in,
 
    pthread_mutex_lock(&(_info->wmtex));
 
-   struct timeval tv_dif;
+   struct timeval tv_diff;
 
-   _rf_faux_dif_time(secs, frac_secs, &tv_dif);
+   _rf_faux_diff_time(secs, frac_secs, &tv_diff);
 
-   const int flags = !blocking ? ZMQ_NOBLOCK : 0;
+   const int flags = blocking ? 0 : ZMQ_NOBLOCK;
 
    cf_t sf_out[RF_FAUX_SF_LEN] = {0.0, 0.0};
 
-   const int nb_in  = BYTES_X_SAMPLE(ns_in);
+   const int nb_in = BYTES_X_SAMPLE(nsamples);
 
    const int ns_out = _rf_faux_resample(_info->tx_srate,
                                         RF_FAUX_DFL_SRATE,
                                         data,
                                         sf_out, 
-                                        ns_in);
+                                        nsamples);
 
    const int nb_out = BYTES_X_SAMPLE(ns_out);
 
    RF_FAUX_DEBUG("in %u/%d, offset %ld:%06ld, seqnum %ld, sob %s, eob %s, srate %5.4lf, blocking %s, out %d/%d", 
-                 ns_in,
+                 nsamples,
                  nb_in,
-                 tv_dif.tv_sec,
-                 tv_dif.tv_usec,
+                 tv_diff.tv_sec,
+                 tv_diff.tv_usec,
                  _info->txseq,
                  RF_FAUX_BOOL_TO_STR(is_start_of_burst),
                  RF_FAUX_BOOL_TO_STR(is_end_of_burst),
@@ -848,38 +859,43 @@ int rf_faux_send_timed(void *h, void *data, int ns_in,
                            {(void*)&(hdr), sizeof(hdr),   0},
                            {(void*)data,   nb_out,        0}};
 
-   const int rc = _rf_faux_vecio_send(iov, 3, _info, flags);
+   int nb_sent = 0;
 
-   const int nb_sent = iov[2].msg_rc;
+   if(nb_out > 0)
+    {
+      const int rc = _rf_faux_vecio_send(iov, 3, _info, flags);
 
-   if(rc <= 0)
-     {
-       RF_FAUX_DEBUG("send error %s", strerror(errno));
+      nb_sent = iov[2].msg_rc;
 
-       goto txout;
-     }
-   else
-     {
-       ++_info->txseq;
-     }
+      if(rc <= 0)
+        {
+          RF_FAUX_DEBUG("send error %s", strerror(errno));
+
+          goto txout;
+        }
+      else
+        {
+          ++_info->txseq;
+        }
+   }
 
 txout:
-
    RF_FAUX_DEBUG("sent %d bytes of %d", nb_sent, nb_out);
 
    pthread_mutex_unlock(&(_info->wmtex));
 
-   return ns_in;
+   return nsamples;
 }
 
 
-int rf_faux_send_timed_multi(void *h, void *data[4], int ns_in,
+
+int rf_faux_send_timed_multi(void *h, void *data[4], int nsamples,
                              time_t secs, double frac_secs, bool has_time_spec,
                              bool blocking, bool is_start_of_burst, bool is_end_of_burst)
 {
   return rf_faux_send_timed(h, 
                             data[0], 
-                            ns_in,
+                            nsamples,
                             secs,
                             frac_secs,
                             has_time_spec,
