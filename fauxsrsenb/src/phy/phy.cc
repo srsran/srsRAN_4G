@@ -92,6 +92,7 @@ bool faux_phy::init(phy_args_t *args,
                srslte::log* log_h)
 {
   X_TRACE("PHY:BEGIN");
+
   std::vector<void*> log_vec;
   for (int i=0;i<args->nof_phy_threads;i++) {
     log_vec.push_back((void*)log_h);
@@ -137,6 +138,7 @@ bool faux_phy::init(phy_args_t *args,
 void faux_phy::stop()
 {  
   X_TRACE("PHY:BEGIN");
+
   tx_rx.stop();  
   workers_common.stop();
   for (uint32_t i=0;i<nof_workers;i++) {
@@ -147,19 +149,22 @@ void faux_phy::stop()
 }
 
 uint32_t faux_phy::tti_to_SFN(uint32_t tti) {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: %u", tti/10);
+
   return tti/10; 
 }
 
 uint32_t faux_phy::tti_to_subf(uint32_t tti) {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: %u", tti%10);
+
   return tti%10; 
 }
 
 /***** MAC->PHY interface **********/
 int faux_phy::add_rnti(uint16_t rnti)
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: %hu", rnti);
+
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
     workers_common.ack_add_rnti(rnti);
   }
@@ -173,7 +178,8 @@ int faux_phy::add_rnti(uint16_t rnti)
 
 void faux_phy::rem_rnti(uint16_t rnti)
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: %hu", rnti);
+
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
     workers_common.ack_rem_rnti(rnti);
   }
@@ -184,7 +190,6 @@ void faux_phy::rem_rnti(uint16_t rnti)
 
 void faux_phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
-  X_TRACE("PHY:BEGIN");
   phy_metrics_t metrics_tmp[ENB_METRICS_MAX_USERS];
 
   uint32_t nof_users = workers[0].get_nof_rnti(); 
@@ -219,7 +224,7 @@ void faux_phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 void faux_phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
-  X_TRACE("PHY:BEGIN");
+  X_TRACE("PHY: rnti %hu", rnti);
   // Parse RRC config 
   srslte_uci_cfg_t uci_cfg;
   srslte_pucch_sched_t pucch_sched;

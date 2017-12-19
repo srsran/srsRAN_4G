@@ -72,7 +72,6 @@ namespace srsenb {
 
 phch_worker::phch_worker()
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   phy = NULL;
   reset();  
 }
@@ -180,7 +179,6 @@ cf_t* phch_worker::get_buffer_rx()
 
 void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timestamp_t tx_time_)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   tti_rx       = tti_; 
   tti_tx       = (tti_ + 4)%10240; 
   tti_sched_ul = (tti_ + 8)%10240; 
@@ -189,11 +187,21 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timesta
   sf_sched_ul  = tti_sched_ul%10;
   tx_mutex_cnt = tx_mutex_cnt_;
   memcpy(&tx_time, &tx_time_, sizeof(srslte_timestamp_t));
+
+  X_TRACE("PHCHWORKER: n_mtx %u, tx_time %lf, tti_rx/tx %u/%u, tti/sf_sched_ul %u/%u, sf_rx/tx %u/%u",
+          tx_mutex_cnt_,
+          tx_time_.frac_secs,
+          tti_rx,
+          tti_tx,
+          tti_sched_ul,
+          sf_sched_ul,
+          sf_rx,
+          sf_tx);
 }
 
 int phch_worker::add_rnti(uint16_t rnti)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: rnti %hu", rnti);
 
   if (srslte_faux_enb_dl_add_rnti(&enb_dl, rnti)) {
     return -1; 
@@ -210,7 +218,8 @@ int phch_worker::add_rnti(uint16_t rnti)
 }
 
 uint32_t phch_worker::get_nof_rnti() {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: %zu", ue_db.size());
+
   return ue_db.size();
 }
 
@@ -221,6 +230,7 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
                                        uint32_t I_sr, bool pucch_cqi, uint32_t pmi_idx, bool pucch_cqi_ack)
 {
   X_TRACE("PHCHWORKER:BEGIN");
+
   pthread_mutex_lock(&mutex); 
   if (ue_db.count(rnti)) {
     pucch_sched->N_pucch_1 = phy->pucch_cfg.n1_pucch_an;
@@ -246,7 +256,8 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
 
 void phch_worker::rem_rnti(uint16_t rnti)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: %hu", rnti);
+
   pthread_mutex_lock(&mutex); 
   if (ue_db.count(rnti)) {
     ue_db.erase(rnti);
@@ -290,7 +301,8 @@ void phch_worker::work_imp()
   
   log_h->step(tti_rx);
   
-  Debug("Worker %d running\n", get_id());
+  Debug("Worker %d running tti_rx/tx %u/%u, sf_rx/tx %u/%u\n", 
+        get_id(), tti_rx, tti_tx, sf_rx, sf_tx);
   
   for(std::map<uint16_t, ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     uint16_t rnti = (uint16_t) iter->first;
@@ -372,12 +384,14 @@ void phch_worker::work_imp()
 unlock:
   pthread_mutex_unlock(&mutex); 
 
+  X_TRACE("PHCHWORKER:BEGIN");
 }
 
 
 int phch_worker::decode_faux_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: nof_pusch %u, tti %u", nof_pusch, tti);
+
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
   
@@ -516,7 +530,8 @@ int phch_worker::decode_faux_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t 
 
 int phch_worker::decode_faux_pucch(uint32_t tti_rx)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: tti_rx %u", tti_rx);
+
   uint32_t sf_rx = tti_rx%10;
   srslte_uci_data_t uci_data; 
   
@@ -596,7 +611,8 @@ int phch_worker::decode_faux_pucch(uint32_t tti_rx)
 
 int phch_worker::encode_faux_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: acks %u, sf_idx %u", nof_acks, sf_idx);
+
   for (uint32_t i=0;i<nof_acks;i++) {
     uint16_t rnti = acks[i].rnti;
     if (rnti) {
@@ -617,7 +633,8 @@ int phch_worker::encode_faux_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t no
 
 int phch_worker::encode_faux_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: grants %u, sf_idx %u", nof_grants, sf_idx);
+
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (grants[i].needs_pdcch && rnti) {
@@ -635,7 +652,8 @@ int phch_worker::encode_faux_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32
 
 int phch_worker::encode_faux_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: grants %u, sf_idx %u", nof_grants, sf_idx);
+
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {
@@ -665,7 +683,8 @@ int phch_worker::encode_faux_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32
 
 int phch_worker::encode_faux_pdsch(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  X_TRACE("PHCHWORKER: grants %u, sf_idx %u", nof_grants, sf_idx);
+
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {

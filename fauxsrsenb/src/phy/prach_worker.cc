@@ -32,6 +32,7 @@ namespace srsenb {
 int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac_interface_faux_phy* mac_, srslte::log* log_h_, int priority)
 {
   X_TRACE("PHARCHWORKER:BEGIN");
+
   log_h = log_h_; 
   mac   = mac_; 
   memcpy(&prach_cfg, prach_cfg_, sizeof(srslte_prach_cfg_t));
@@ -85,13 +86,15 @@ void prach_worker::stop()
 
 void prach_worker::set_max_prach_offset_us(float delay_us)
 {
-  X_TRACE("PHARCHWORKER:BEGIN");
+  X_TRACE("PHARCHWORKER: delay %f us", delay_us);
+
   max_prach_offset_us = delay_us; 
 }
 
 int prach_worker::new_tti(uint32_t tti_rx, cf_t* buffer_rx)
 {
-  X_TRACE("PHARCHWORKER:BEGIN");
+  X_TRACE("PHARCHWORKER: tti_rx %u", tti_rx);
+
   // Save buffer only if it's a PRACH TTI
   if (srslte_prach_tti_opportunity(&prach, tti_rx, -1) || sf_cnt) {
     memcpy(&signal_buffer_rx[sf_cnt*SRSLTE_SF_LEN_PRB(cell.nof_prb)], buffer_rx, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
@@ -117,7 +120,6 @@ int prach_worker::new_tti(uint32_t tti_rx, cf_t* buffer_rx)
 
 int prach_worker::run_tti(uint32_t tti_rx)
 {
-  X_TRACE("PHARCHWORKER:BEGIN");
   if (srslte_prach_tti_opportunity(&prach, tti_rx, -1)) 
   {
     // Detect possible PRACHs
@@ -134,6 +136,8 @@ int prach_worker::run_tti(uint32_t tti_rx)
       return SRSLTE_ERROR; 
     }
     
+    X_TRACE("PHARCHWORKER: tti_rx %u, num %u", tti_rx, prach_nof_det);
+
     if (prach_nof_det) {
       for (uint32_t i=0;i<prach_nof_det;i++) {
         log_h->info("PRACH: %d/%d, preamble=%d, offset=%.1f us, peak2avg=%.1f, max_offset=%.1f us\n", 
@@ -145,12 +149,13 @@ int prach_worker::run_tti(uint32_t tti_rx)
       }
     }
   }
+
   return 0; 
 }
 
 void prach_worker::run_thread()
 {
-  running = true; 
+  running = true;
   while(running) {
    X_TRACE("PHARCHWORKER:BEGIN");
    pthread_mutex_lock(&mutex);

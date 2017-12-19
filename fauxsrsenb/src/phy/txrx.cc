@@ -109,8 +109,10 @@ void txrx::run_thread()
   printf("Type <t> to view trace\n");
   // Main loop
   while (running) {
-    X_TRACE("TXRX:BEGIN");
     tti = (tti+1)%10240;        
+
+    X_TRACE("TXRX: tti %u", tti);
+
     worker = (phch_worker*) workers_pool->wait_worker(tti);
     if (worker) {          
       buffer = worker->get_buffer_rx();
