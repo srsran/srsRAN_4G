@@ -360,6 +360,71 @@ uint32_t dci_format2B_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
   
 }
 
+uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dci_msg, srslte_dci_format_t format)
+{
+  int n = 0;
+
+  switch(dci_msg->alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      n += snprintf(&info_str[n], len-n, "ra_type0={rbg_mask=0x%x}, ", dci_msg->type0_alloc.rbg_bitmask);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE1:
+      n += snprintf(&info_str[n], len-n, "ra_type1={vrb_mask=0x%x, rbg_subset=%d, shift=%d}, ",
+                    dci_msg->type1_alloc.vrb_bitmask, dci_msg->type1_alloc.rbg_subset, dci_msg->type1_alloc.shift);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE2:
+      n += snprintf(&info_str[n], len-n, "ra_type2={riv=0x%x, rb=(%d,%d), mode=%s",
+                    dci_msg->type2_alloc.riv,
+                    dci_msg->type2_alloc.RB_start, dci_msg->type2_alloc.RB_start+dci_msg->type2_alloc.L_crb-1,
+                    dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC?"local":"dist");
+      if (dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC) {
+        n += snprintf(&info_str[n], len-n, "ngap=%s, nprb1a=%d",
+                      dci_msg->type2_alloc.n_gap==SRSLTE_RA_TYPE2_NG1?"ng1":"ng2",
+                      dci_msg->type2_alloc.n_prb1a==SRSLTE_RA_TYPE2_NPRB1A_2?2:3);
+      }
+      n += snprintf(&info_str[n], len-n, "}, ");
+      break;
+  }
+  n += snprintf(&info_str[n], len-n, "pid=%d, ", dci_msg->harq_process);
+
+  if (dci_msg->tb_en[0]) {
+    n += snprintf(&info_str[n], len-n, "CW0={mcs=%d, rv=%d, ndi=%d}, ", dci_msg->mcs_idx, dci_msg->rv_idx, dci_msg->ndi);
+  }
+  if (dci_msg->tb_en[1]) {
+    n += snprintf(&info_str[n], len-n, "CW1={mcs=%d, rv=%d, ndi=%d}, ", dci_msg->mcs_idx_1, dci_msg->rv_idx_1, dci_msg->ndi_1);
+  }
+
+  if (format == SRSLTE_DCI_FORMAT1 || format == SRSLTE_DCI_FORMAT1A || format == SRSLTE_DCI_FORMAT1B) {
+    n += snprintf(&info_str[n], len-n, "tpc_pucch=%d, ", dci_msg->tpc_pucch);
+  }
+  if (format == SRSLTE_DCI_FORMAT2 || format == SRSLTE_DCI_FORMAT2A || format == SRSLTE_DCI_FORMAT2B) {
+    n += snprintf(&info_str[n], len-n, "tb_swap=%d, pinfo=%d", dci_msg->tb_cw_swap, dci_msg->pinfo);
+  }
+  return n;
+}
+
+uint32_t srslte_dci_ul_info(char *info_str, uint32_t len, srslte_ra_ul_dci_t *dci_msg)
+{
+  int n = 0;
+
+  n += snprintf(&info_str[n], len-n, "riv=0x%x, rb=(%d,%d), ", dci_msg->type2_alloc.riv,
+                dci_msg->type2_alloc.RB_start, dci_msg->type2_alloc.RB_start+dci_msg->type2_alloc.L_crb-1);
+
+  switch(dci_msg->freq_hop_fl) {
+    case SRSLTE_RA_PUSCH_HOP_DISABLED:
+      n += snprintf(&info_str[n], len-n, "freq_hop=n/a, ");
+      break;
+    default:
+      n += snprintf(&info_str[n], len-n, "freq_hop=%d, ", dci_msg->freq_hop_fl);
+      break;
+  }
+  n += snprintf(&info_str[n], len-n, "mcs=%d, rv=%d, ndi=%d, ", dci_msg->mcs_idx, dci_msg->rv_idx, dci_msg->ndi);
+  n += snprintf(&info_str[n], len-n, "tpc_pusch=%d, dmrs_cs=%d, cqi_req=%s",
+                dci_msg->tpc_pusch, dci_msg->n_dmrs, dci_msg->cqi_request?"yes":"no");
+
+  return n;
+}
+
 uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb, uint32_t nof_ports) {
   switch (format) {
   case SRSLTE_DCI_FORMAT0:
