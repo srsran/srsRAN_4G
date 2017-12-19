@@ -31,6 +31,10 @@
 
 namespace srsepc{
 
+s1ap_mngmt_proc*          s1ap_mngmt_proc::m_instance = NULL;
+boost::mutex   s1ap_mngmt_proc_instance_mutex;
+
+
 s1ap_mngmt_proc::s1ap_mngmt_proc()
 {
 }
@@ -39,6 +43,96 @@ s1ap_mngmt_proc::~s1ap_mngmt_proc()
 {
 }
 
+s1ap_mngmt_proc*
+s1ap_mngmt_proc::get_instance(void)
+{
+  boost::mutex::scoped_lock lock(s1ap_mngmt_proc_instance_mutex);
+  if(NULL == m_instance) {
+    m_instance = new s1ap_mngmt_proc();
+  }
+  return(m_instance);
+}
+
+void
+s1ap_mngmt_proc::cleanup(void)
+{
+  boost::mutex::scoped_lock lock(s1ap_mngmt_proc_instance_mutex);
+  if(NULL != m_instance) {
+    delete m_instance;
+    m_instance = NULL;
+  }
+}
+
+void
+s1ap_mngmt_proc::init(void)
+{
+  m_parent = s1ap::get_instance();
+  m_s1ap_log = m_parent->m_s1ap_log;
+}
+  /*
+bool 
+s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
+{
+  
+  std::string mnc_str, mcc_str;
+  enb_ctx_t enb_ctx;
+  srslte::byte_buffer_t reply_msg;
+
+  LIBLTE_S1AP_S1AP_PDU_STRUCT reply_pdu;
+
+  if(!m_s1ap_mngmt_proc.unpack_s1_setup_request(msg, &enb_ctx))
+  {
+    m_s1ap_log->error("Malformed S1 Setup Request\n");
+    return false;
+  }
+
+  //Log S1 Setup Request Info
+  m_s1ap_log->console("Received S1 Setup Request. Association: %d\n",enb_sri->sinfo_assoc_id);
+  print_enb_ctx_info(enb_ctx);
+
+  //Check matching PLMNs
+  if(enb_ctx.plmn!=m_plmn){
+    m_s1ap_log->console("Sending S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_log->info("Sending S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_mngmt_proc.pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
+  }
+  else{
+    std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.find(enb_ctx.enb_id);
+    if(it != m_active_enbs.end())
+    {
+      //eNB already registered
+      //TODO replace enb_ctx
+    }
+    else
+    {
+      //new eNB
+      std::set<uint32_t> ue_set;
+      enb_ctx_t *enb_ptr = new enb_ctx_t;
+      memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx));
+      m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
+      m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
+      m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
+    }
+
+    m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
+    m_s1ap_log->console("Sending S1 Setup Response\n");
+    m_s1ap_log->info("Sending S1 Setup Response\n");
+  }
+
+  //Send Reply to eNB
+  ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0);
+  if(n_sent == -1)
+  {
+    m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
+    return false;
+  }
+  return true;
+}
+  */
+
+/*
+ * Packing/Unpacking helper functions.
+ */
 bool 
 s1ap_mngmt_proc::unpack_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, enb_ctx_t* enb_ctx)
 {

@@ -53,8 +53,6 @@ const uint16_t S1MME_PORT = 36412;
 class s1ap
 {
 public:
-  s1ap();
-  virtual ~s1ap();
 
   static s1ap* get_instance();
   static void cleanup();
@@ -93,15 +91,17 @@ public:
 
   void print_enb_ctx_info(const enb_ctx_t &enb_ctx);
 
+  srslte::log_filter            *m_s1ap_log;
+
 private:
+  s1ap();
+  virtual ~s1ap();
 
   static s1ap *m_instance;
 
   s1ap_args_t                    m_s1ap_args;
   uint32_t                       m_plmn;
   srslte::byte_buffer_pool      *m_pool;
-  srslte::logger                *m_logger;
-  srslte::log_filter            *m_s1ap_log;
 
   hss *m_hss;
   int m_s1mme;
@@ -111,7 +111,7 @@ private:
   std::map<uint16_t,std::set<uint32_t> >            m_enb_id_to_ue_ids;
   uint32_t                                          m_next_mme_ue_s1ap_id;
 
-  s1ap_mngmt_proc                m_s1ap_mngmt_proc;
+  s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
   s1ap_nas_transport             m_s1ap_nas_transport;
 
   //FIXME the GTP-C should be moved to the MME class, the the packaging of GTP-C messages is done.

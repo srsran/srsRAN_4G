@@ -29,18 +29,34 @@
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/common.h"
 #include "mme/s1ap_common.h"
+#include "srslte/common/log_filter.h"
 
 namespace srsepc{
+
+class s1ap;
 
 class s1ap_mngmt_proc
 {
 public:
-  s1ap_mngmt_proc();
-  virtual ~s1ap_mngmt_proc();
 
+  static s1ap_mngmt_proc *m_instance;
+
+  static s1ap_mngmt_proc* get_instance(void);
+  static void cleanup(void);
+
+  void init(void);
+
+  //Packing/unpacking helper functions
   bool unpack_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, enb_ctx_t* enb_ctx);
   bool pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_ENUM cause, srslte::byte_buffer_t* msg);
   bool pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buffer_t* msg);
+
+private:
+  s1ap_mngmt_proc();
+  virtual ~s1ap_mngmt_proc();
+
+  s1ap* m_parent;
+  srslte::log_filter *m_s1ap_log;
 };
 
 } //namespace srsepc

@@ -66,7 +66,6 @@ s1ap::cleanup(void)
   }
 }
 
-
 int
 s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
 {
@@ -75,12 +74,22 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
   m_s1ap_args = s1ap_args;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
 
+  //Init log
   m_s1ap_log = s1ap_log;
-  m_s1ap_nas_transport.set_log(s1ap_log);
 
+  //Init message handlers
+  m_s1ap_mngmt_proc = s1ap_mngmt_proc::get_instance(); //Managment procedures (TS ) 
+  m_s1ap_mngmt_proc->init();
+  m_s1ap_nas_transport = s1ap_nas_transport::get_instance(); //NAS Transport procedures
+  m_s1ap_nas_transport->init();
+
+  //Get pointer to the HSS
   m_hss = hss::get_instance();
+
+  //Get pointer to GTP-C class
   m_mme_gtpc = mme_gtpc::get_instance();
 
+  //Initialize S1-MME
   m_s1mme = enb_listen();
 
   m_s1ap_log->info("S1AP Initialized\n");
@@ -102,6 +111,10 @@ s1ap::stop()
     delete it->second;
     m_active_enbs.erase(it++);
   }
+
+  //Cleanup message handlers
+  s1ap_mngmt_proc::cleanup();
+  s1ap_nas_transport::cleanup();
   return;
 }
 
@@ -272,6 +285,8 @@ s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
   }
   return true;
 }
+
+
 bool 
 s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
 {
@@ -282,7 +297,7 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
 
   LIBLTE_S1AP_S1AP_PDU_STRUCT reply_pdu;
 
-  if(!m_s1ap_mngmt_proc.unpack_s1_setup_request(msg, &enb_ctx))
+  if(!m_s1ap_mngmt_proc->unpack_s1_setup_request(msg, &enb_ctx))
   {
     m_s1ap_log->error("Malformed S1 Setup Request\n");
     return false;
@@ -296,7 +311,7 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
   if(enb_ctx.plmn!=m_plmn){
     m_s1ap_log->console("Sending S1 Setup Failure - Unkown PLMN\n");
     m_s1ap_log->info("Sending S1 Setup Failure - Unkown PLMN\n");
-    m_s1ap_mngmt_proc.pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
+    m_s1ap_mngmt_proc->pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
   }
   else{
     std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.find(enb_ctx.enb_id);
@@ -316,7 +331,7 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
       m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
     }
 
-    m_s1ap_mngmt_proc.pack_s1_setup_response(m_s1ap_args, &reply_msg);
+    m_s1ap_mngmt_proc->pack_s1_setup_response(m_s1ap_args, &reply_msg);
     m_s1ap_log->console("Sending S1 Setup Response\n");
     m_s1ap_log->info("Sending S1 Setup Response\n");
   }
