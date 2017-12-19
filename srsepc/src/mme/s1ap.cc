@@ -366,10 +366,10 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   m_s1ap_log->info("Received Initial UE Message. eNB-UE S1AP Id: %d\n", ue_ctx.enb_ue_s1ap_id);
 
   /*Log unhandled Initial UE message IEs*/
-  m_s1ap_nas_transport.log_unhandled_initial_ue_message_ies(init_ue);
+  m_s1ap_nas_transport->log_unhandled_initial_ue_message_ies(init_ue);
 
   /*Get NAS Attach Request and PDN connectivity request messages*/
-  if(!m_s1ap_nas_transport.unpack_initial_ue_message(init_ue, &attach_req,&pdn_con_req))
+  if(!m_s1ap_nas_transport->unpack_initial_ue_message(init_ue, &attach_req,&pdn_con_req))
   {
     //Could not decode the attach request and the PDN connectivity request.
     m_s1ap_log->error("Could not unpack NAS Attach Request and PDN connectivity request.\n");
@@ -435,7 +435,7 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   srslte::byte_buffer_t *reply_msg = m_pool->allocate();
-  m_s1ap_nas_transport.pack_authentication_request(reply_msg, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
+  m_s1ap_nas_transport->pack_authentication_request(reply_msg, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
   
   //Send Reply to eNB
   ssize_t n_sent = sctp_send(m_s1mme,reply_msg->msg, reply_msg->N_bytes, enb_sri, 0);
@@ -561,7 +561,7 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     m_s1ap_log->console("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     m_s1ap_log->warning("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
     //Send back Athentication Reject
-    m_s1ap_nas_transport.pack_authentication_reject(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id);
+    m_s1ap_nas_transport->pack_authentication_reject(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id);
     return false;
   }
   else
@@ -569,7 +569,7 @@ s1ap::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte:
     m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
     m_s1ap_log->info("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
     //Send Security Mode Command
-    m_s1ap_nas_transport.pack_security_mode_command(reply_msg, ue_ctx);
+    m_s1ap_nas_transport->pack_security_mode_command(reply_msg, ue_ctx);
 
   }
   return true;
@@ -831,7 +831,7 @@ s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte:
     return false;
   }
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-  m_s1ap_nas_transport.pack_attach_accept(ue_ctx, erab_ctxt, &cs_resp->paa, nas_buffer); 
+  m_s1ap_nas_transport->pack_attach_accept(ue_ctx, erab_ctxt, &cs_resp->paa, nas_buffer); 
 
   
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);

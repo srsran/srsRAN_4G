@@ -30,9 +30,11 @@
 
 namespace srsepc{
 
+s1ap_nas_transport*          s1ap_nas_transport::m_instance = NULL;
+boost::mutex                 s1ap_nas_transport_instance_mutex;
+
 s1ap_nas_transport::s1ap_nas_transport()
 {
-  m_pool = srslte::byte_buffer_pool::get_instance();
   return;
 }
 
@@ -40,6 +42,35 @@ s1ap_nas_transport::~s1ap_nas_transport()
 {
   return;
 }
+
+s1ap_nas_transport*
+s1ap_nas_transport::get_instance(void)
+{
+  boost::mutex::scoped_lock lock(s1ap_nas_transport_instance_mutex);
+  if(NULL == m_instance) {
+    m_instance = new s1ap_nas_transport();
+  }
+  return(m_instance);
+}
+
+void
+s1ap_nas_transport::cleanup(void)
+{
+  boost::mutex::scoped_lock lock(s1ap_nas_transport_instance_mutex);
+  if(NULL != m_instance) {
+    delete m_instance;
+    m_instance = NULL;
+  }
+}
+
+void
+s1ap_nas_transport::init(void)
+{
+  m_parent = s1ap::get_instance();
+  m_s1ap_log = m_parent->m_s1ap_log;
+  m_pool = srslte::byte_buffer_pool::get_instance();
+}
+
 
 void
 s1ap_nas_transport::set_log(srslte::log *s1ap_log)

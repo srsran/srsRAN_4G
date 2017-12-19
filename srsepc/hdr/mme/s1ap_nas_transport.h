@@ -36,8 +36,11 @@ namespace srsepc{
 class s1ap_nas_transport
 {
 public:
-  s1ap_nas_transport();
-  virtual ~s1ap_nas_transport();
+
+  static s1ap_nas_transport* m_instance;
+  static s1ap_nas_transport* get_instance(void);
+  static void cleanup(void);
+  void init(void);
 
   void set_log(srslte::log *s1ap_logger);
   bool unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req, LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);
@@ -54,8 +57,14 @@ public:
 
 
 private:
+  s1ap_nas_transport();
+  virtual ~s1ap_nas_transport();
+
   srslte::log *m_s1ap_log;
   srslte::byte_buffer_pool *m_pool;
+
+  s1ap* m_parent;
+
 };
 
 } //namespace srsepc

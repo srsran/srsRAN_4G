@@ -112,7 +112,7 @@ private:
   uint32_t                                          m_next_mme_ue_s1ap_id;
 
   s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
-  s1ap_nas_transport             m_s1ap_nas_transport;
+  s1ap_nas_transport*             m_s1ap_nas_transport;
 
   //FIXME the GTP-C should be moved to the MME class, the the packaging of GTP-C messages is done.
   mme_gtpc *m_mme_gtpc;
