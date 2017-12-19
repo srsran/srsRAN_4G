@@ -68,11 +68,6 @@ public:
   void info_hex(uint8_t *hex, int size, std::string message, ...);
   void debug_hex(uint8_t *hex, int size, std::string message, ...);
 
-  void error_line(std::string file, int line, std::string message, ...);
-  void warning_line(std::string file, int line, std::string message, ...);
-  void info_line(std::string file, int line, std::string message, ...);
-  void debug_line(std::string file, int line, std::string message, ...);
-
   class time_itf {
   public:
     virtual srslte_timestamp_t get_time() = 0;

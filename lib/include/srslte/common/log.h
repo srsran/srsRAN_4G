@@ -75,7 +75,14 @@ public:
   // This function shall be called at the start of every tti for printing tti
   void step(uint32_t tti_) {
     tti = tti_;
+    add_string_en  = false;
   }
+
+  void prepend_string(std::string s) {
+    add_string_en  = true;
+    add_string_val = s;
+  }
+
   uint32_t get_tti() {
     return tti;
   }
@@ -107,18 +114,15 @@ public:
   virtual void info_hex(uint8_t *hex, int size, std::string message, ...){error("info_hex not implemented.\n");}
   virtual void debug_hex(uint8_t *hex, int size, std::string message, ...){error("debug_hex not implemented.\n");}
 
-  // Same with line and file info
-  virtual void error_line(std::string file, int line, std::string message, ...){error("error_line not implemented.\n");}
-  virtual void warning_line(std::string file, int line, std::string message, ...){error("warning_line not implemented.\n");}
-  virtual void info_line(std::string file, int line, std::string message, ...){error("info_line not implemented.\n");}
-  virtual void debug_line(std::string file, int line, std::string message, ...){error("debug_line not implemented.\n");}
-
 protected:
   std::string get_service_name() { return service_name; }
   uint32_t        tti;
   LOG_LEVEL_ENUM  level;
   int             hex_limit;
   std::string     service_name;
+
+  bool        add_string_en;
+  std::string add_string_val;
 };
 
 } // namespace srslte
