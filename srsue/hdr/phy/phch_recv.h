@@ -52,13 +52,13 @@ public:
   ~phch_recv();
   void init(srslte::radio_multi* radio_handler, mac_interface_phy *mac,rrc_interface_phy *rrc,
             prach *prach_buffer, srslte::thread_pool *_workers_pool,
-            phch_common *_worker_com, srslte::log* _log_h, uint32_t nof_rx_antennas, uint32_t prio, int sync_cpu_affinity = -1);
+            phch_common *_worker_com, srslte::log* _log_h, srslte::log *_log_phy_lib_h, uint32_t nof_rx_antennas, uint32_t prio, int sync_cpu_affinity = -1);
   void stop();
   void set_agc_enable(bool enable);
 
   void    set_earfcn(std::vector<uint32_t> earfcn);
   void    force_freq(float dl_freq, float ul_freq);
-  void    srslte_phy_logger(phy_logger_level_t log_level, char *str);
+  
   void    reset_sync();
   void    cell_search_start();
   void    cell_search_stop();
@@ -275,6 +275,7 @@ private:
   mac_interface_phy    *mac;
   rrc_interface_phy    *rrc;
   srslte::log          *log_h;
+  srslte::log          *log_phy_lib_h;
   srslte::thread_pool  *workers_pool;
   srslte::radio_multi  *radio_h;
   phch_common          *worker_com;

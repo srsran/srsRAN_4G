@@ -45,7 +45,7 @@ public:
   ~phch_worker();
   void  reset(); 
   void  set_common(phch_common *phy);
-  bool  init(uint32_t max_prb, srslte::log *log, chest_feedback_itf *chest_loop);
+  bool  init(uint32_t max_prb, srslte::log *log, srslte::log *log_phy_lib_h, chest_feedback_itf *chest_loop);
 
   bool  set_cell(srslte_cell_t cell);
 
@@ -117,6 +117,7 @@ private:
   /* Common objects */  
   phch_common    *phy;
   srslte::log    *log_h;
+  srslte::log    *log_phy_lib_h;
   chest_feedback_itf *chest_loop;
   srslte_cell_t  cell;
   bool           mem_initiated;
