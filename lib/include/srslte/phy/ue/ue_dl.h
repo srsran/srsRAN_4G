@@ -126,7 +126,9 @@ typedef struct SRSLTE_API {
   srslte_dci_msg_t pending_ul_dci_msg; 
   uint16_t pending_ul_dci_rnti; 
   
-  float sample_offset; 
+  float sample_offset;
+
+  float last_phich_corr;
 }srslte_ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
