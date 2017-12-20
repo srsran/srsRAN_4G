@@ -43,8 +43,9 @@ public:
 
   static s1ap_mngmt_proc* get_instance(void);
   static void cleanup(void);
-
   void init(void);
+
+  bool handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
 
   //Packing/unpacking helper functions
   bool unpack_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, enb_ctx_t* enb_ctx);
@@ -55,8 +56,11 @@ private:
   s1ap_mngmt_proc();
   virtual ~s1ap_mngmt_proc();
 
-  s1ap* m_parent;
+  s1ap* m_s1ap;
   srslte::log_filter *m_s1ap_log;
+
+  int m_s1mme;
+  s1ap_args_t m_s1ap_args;
 };
 
 } //namespace srsepc

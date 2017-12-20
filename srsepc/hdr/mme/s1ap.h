@@ -89,8 +89,13 @@ public:
   bool pack_esm_information_request(srslte::byte_buffer_t* reply_msg, srsepc::ue_ctx_t* ue_ctx);
   bool handle_esm_information_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t* ue_ctx);
 
-  void print_enb_ctx_info(const enb_ctx_t &enb_ctx);
+  void print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx);
 
+  uint32_t get_plmn();
+  enb_ctx_t* find_enb_ctx(uint16_t enb_id);
+  void add_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
+
+  s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
 
 private:
@@ -99,7 +104,6 @@ private:
 
   static s1ap *m_instance;
 
-  s1ap_args_t                    m_s1ap_args;
   uint32_t                       m_plmn;
   srslte::byte_buffer_pool      *m_pool;
 
@@ -118,7 +122,11 @@ private:
   mme_gtpc *m_mme_gtpc;
 };
 
-
+inline uint32_t
+s1ap::get_plmn()
+{
+  return m_plmn;
+}
 
 
 } //namespace srsepc

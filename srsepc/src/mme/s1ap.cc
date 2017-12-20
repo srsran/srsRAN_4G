@@ -254,10 +254,13 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb
 bool 
 s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  struct sctp_sndrcvinfo *enb_sri)
 {
+  bool reply_flag = false;
+  srslte::byte_buffer_t * reply_buffer = m_pool->allocate();
+
   switch(msg->choice_type) {
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST:
     m_s1ap_log->info("Received S1 Setup Request.\n");
-    return handle_s1_setup_request(&msg->choice.S1SetupRequest, enb_sri);
+    m_s1ap_mngmt_proc->handle_s1_setup_request(&msg->choice.S1SetupRequest, enb_sri, reply_buffer, &reply_flag);
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALUEMESSAGE:
     m_s1ap_log->info("Received Initial UE Message.\n");
     return handle_initial_ue_message(&msg->choice.InitialUEMessage, enb_sri);
@@ -270,6 +273,18 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
   default:
     m_s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
+  //Send Reply to eNB
+  if(reply_flag == true)
+  {
+    ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, enb_sri, 0);
+    if(n_sent == -1)
+    {
+      m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
+      m_pool->deallocate(reply_buffer);
+      return false;
+    }
+  }
+  m_pool->deallocate(reply_buffer);
   return true;
 }
 
@@ -286,7 +301,7 @@ s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
   return true;
 }
 
-
+  /*
 bool 
 s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
 {
@@ -345,7 +360,7 @@ s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, st
   }
   return true;
 }
-
+  */
 bool 
 s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri)
 {
@@ -1005,6 +1020,32 @@ s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQU
   return true;
 }
 
+
+enb_ctx_t*
+s1ap::find_enb_ctx(uint16_t enb_id)
+{
+  std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.find(enb_id);
+  if(it == m_active_enbs.end())
+  {
+    return NULL;
+  }
+  else
+  {
+    return it->second;
+  }
+}
+
+void
+s1ap::add_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo *enb_sri)
+{
+  std::set<uint32_t> ue_set;
+  enb_ctx_t *enb_ptr = new enb_ctx_t;
+  memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx_t));
+  m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
+  m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
+  m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
+}
+
 void
 s1ap::activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi)
 {
@@ -1028,33 +1069,33 @@ s1ap::activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi)
 }
 
 void
-s1ap::print_enb_ctx_info(const enb_ctx_t &enb_ctx)
+s1ap::print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx)
 {
   std::string mnc_str, mcc_str;
 
   if(enb_ctx.enb_name_present)
   {
-    m_s1ap_log->console("S1 Setup Request - eNB Name: %s, eNB id: 0x%x\n", enb_ctx.enb_name, enb_ctx.enb_id);
-    m_s1ap_log->info("S1 Setup Request - eNB Name: %s, eNB id: 0x%x\n", enb_ctx.enb_name, enb_ctx.enb_id);
+    m_s1ap_log->console("%s - eNB Name: %s, eNB id: 0x%x\n",prefix.c_str(), enb_ctx.enb_name, enb_ctx.enb_id);
+    m_s1ap_log->info("%s - eNB Name: %s, eNB id: 0x%x\n", prefix.c_str(), enb_ctx.enb_name, enb_ctx.enb_id);
   }
   else
   {
-    m_s1ap_log->console("S1 Setup Request - eNB Id 0x%x\n", enb_ctx.enb_id);
-    m_s1ap_log->info("S1 Setup request - eNB Id 0x%x\n", enb_ctx.enb_id);
+    m_s1ap_log->console("%s - eNB Id 0x%x\n",prefix.c_str(), enb_ctx.enb_id);
+    m_s1ap_log->info("%s - eNB Id 0x%x\n", prefix.c_str(), enb_ctx.enb_id);
   }
   srslte::mcc_to_string(enb_ctx.mcc, &mcc_str);
   srslte::mnc_to_string(enb_ctx.mnc, &mnc_str);
-  m_s1ap_log->info("S1 Setup Request - MCC:%s, MNC:%s, PLMN: %d\n", mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
-  m_s1ap_log->console("S1 Setup Request - MCC:%s, MNC:%s, PLMN: %d\n", mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
+  m_s1ap_log->info("%s - MCC:%s, MNC:%s, PLMN: %d\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
+  m_s1ap_log->console("%s - MCC:%s, MNC:%s, PLMN: %d\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
   for(int i=0;i<enb_ctx.nof_supported_ta;i++)
   {
     for(int j=0;i<enb_ctx.nof_supported_ta;i++)
     {
-      m_s1ap_log->info("S1 Setup Request - TAC %d, B-PLMN %d\n",enb_ctx.tac[i],enb_ctx.bplmns[i][j]);
-      m_s1ap_log->console("S1 Setup Request - TAC %d, B-PLMN %d\n",enb_ctx.tac[i],enb_ctx.bplmns[i][j]);
+      m_s1ap_log->info("%s - TAC %d, B-PLMN %d\n",prefix.c_str(), enb_ctx.tac[i],enb_ctx.bplmns[i][j]);
+      m_s1ap_log->console("%s - TAC %d, B-PLMN %d\n",prefix.c_str(), enb_ctx.tac[i],enb_ctx.bplmns[i][j]);
     }
   }
-  m_s1ap_log->console("S1 Setup Request - Paging DRX %d\n",enb_ctx.drx);
+  m_s1ap_log->console("%s - Paging DRX %d\n",prefix.c_str(),enb_ctx.drx);
   return;
 }
 
