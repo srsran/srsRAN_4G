@@ -86,7 +86,7 @@ s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRU
   }
 
   //Log S1 Setup Request Info
-  m_s1ap_log->console("Received S1 Setup Request.");
+  m_s1ap_log->console("Received S1 Setup Request.\n");
   m_s1ap->print_enb_ctx_info(std::string("S1 Setup Request"),enb_ctx);
 
   //Check matching PLMNs
@@ -106,7 +106,7 @@ s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRU
     else
     {
       //new eNB
-      m_s1ap->add_enb_ctx(enb_ctx,enb_sri);
+      m_s1ap->add_new_enb_ctx(enb_ctx,enb_sri);
     }
 
     pack_s1_setup_response(m_s1ap_args, reply_buffer);

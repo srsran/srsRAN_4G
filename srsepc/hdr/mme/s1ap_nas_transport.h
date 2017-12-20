@@ -30,6 +30,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "mme/s1ap_common.h"
 #include "srslte/asn1/gtpc.h"
+#include "hss/hss.h"
 
 namespace srsepc{
 
@@ -42,7 +43,8 @@ public:
   static void cleanup(void);
   void init(void);
 
-  void set_log(srslte::log *s1ap_logger);
+  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+
   bool unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req, LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);
   bool pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t *autn,uint8_t *rand);
   bool pack_authentication_reject(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
@@ -63,8 +65,8 @@ private:
   srslte::log *m_s1ap_log;
   srslte::byte_buffer_pool *m_pool;
 
-  s1ap* m_parent;
-
+  s1ap* m_s1ap;
+  hss*  m_hss;
 };
 
 } //namespace srsepc

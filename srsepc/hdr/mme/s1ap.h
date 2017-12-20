@@ -92,8 +92,10 @@ public:
   void print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx);
 
   uint32_t get_plmn();
+  uint32_t get_next_mme_ue_s1ap_id();
   enb_ctx_t* find_enb_ctx(uint16_t enb_id);
-  void add_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
+  void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
+  void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;

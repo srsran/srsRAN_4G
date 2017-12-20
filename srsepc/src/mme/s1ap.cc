@@ -264,7 +264,8 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     break;
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALUEMESSAGE:
     m_s1ap_log->info("Received Initial UE Message.\n");
-    return handle_initial_ue_message(&msg->choice.InitialUEMessage, enb_sri);
+    m_s1ap_nas_transport->handle_initial_ue_message(&msg->choice.InitialUEMessage, enb_sri, reply_buffer, &reply_flag);
+    break;
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UPLINKNASTRANSPORT:
     m_s1ap_log->info("Received Uplink NAS Transport Message.\n");
     return handle_uplink_nas_transport(&msg->choice.UplinkNASTransport, enb_sri);
@@ -302,66 +303,6 @@ s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
   return true;
 }
 
-  /*
-bool 
-s1ap::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri)
-{
-  
-  std::string mnc_str, mcc_str;
-  enb_ctx_t enb_ctx;
-  srslte::byte_buffer_t reply_msg;
-
-  LIBLTE_S1AP_S1AP_PDU_STRUCT reply_pdu;
-
-  if(!m_s1ap_mngmt_proc->unpack_s1_setup_request(msg, &enb_ctx))
-  {
-    m_s1ap_log->error("Malformed S1 Setup Request\n");
-    return false;
-  }
-
-  //Log S1 Setup Request Info
-  m_s1ap_log->console("Received S1 Setup Request. Association: %d\n",enb_sri->sinfo_assoc_id);
-  print_enb_ctx_info(enb_ctx);
-
-  //Check matching PLMNs
-  if(enb_ctx.plmn!=m_plmn){
-    m_s1ap_log->console("Sending S1 Setup Failure - Unkown PLMN\n");
-    m_s1ap_log->info("Sending S1 Setup Failure - Unkown PLMN\n");
-    m_s1ap_mngmt_proc->pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,&reply_msg);
-  }
-  else{
-    std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.find(enb_ctx.enb_id);
-    if(it != m_active_enbs.end())
-    {
-      //eNB already registered
-      //TODO replace enb_ctx
-    }
-    else
-    {
-      //new eNB
-      std::set<uint32_t> ue_set;
-      enb_ctx_t *enb_ptr = new enb_ctx_t;
-      memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx));
-      m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
-      m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
-      m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
-    }
-
-    m_s1ap_mngmt_proc->pack_s1_setup_response(m_s1ap_args, &reply_msg);
-    m_s1ap_log->console("Sending S1 Setup Response\n");
-    m_s1ap_log->info("Sending S1 Setup Response\n");
-  }
-
-  //Send Reply to eNB
-  ssize_t n_sent = sctp_send(m_s1mme,reply_msg.msg, reply_msg.N_bytes, enb_sri, 0);
-  if(n_sent == -1)
-  {
-    m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
-    return false;
-  }
-  return true;
-}
-  */
 bool 
 s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri)
 {
@@ -438,10 +379,8 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
     ue_ctx.erabs_ctx[i].erab_id = i;
   }
 
-  printf("UL NAS count %d\n", ue_ctx.security_ctxt.ul_nas_count);
   ue_ctx_t *ue_ptr = new ue_ctx_t;
   memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
-  printf("UL NAS count %d\n",(int) ue_ptr->security_ctxt.ul_nas_count);
   m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
  
   std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(enb_sri->sinfo_assoc_id);
@@ -1042,7 +981,7 @@ s1ap::find_enb_ctx(uint16_t enb_id)
 }
 
 void
-s1ap::add_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo *enb_sri)
+s1ap::add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo *enb_sri)
 {
   m_s1ap_log->info("Adding new eNB context. eNB ID %d\n", enb_ctx.enb_id);
   std::set<uint32_t> ue_set;
@@ -1051,6 +990,33 @@ s1ap::add_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo *enb_sr
   m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
   m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
   m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
+
+  return;
+}
+
+void
+s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
+{
+  ue_ctx_t *ue_ptr = new ue_ctx_t;
+  memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
+  m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
+ 
+  std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
+  uint16_t enb_id = it_enb->second;
+  std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
+  if(it_ue_id==m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find eNB's UEs\n");
+    return;
+  }
+  it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
+  return;
+}
+
+uint32_t 
+s1ap::get_next_mme_ue_s1ap_id()
+{
+  return m_next_mme_ue_s1ap_id++;
 }
 
 void

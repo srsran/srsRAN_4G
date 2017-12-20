@@ -66,19 +66,105 @@ s1ap_nas_transport::cleanup(void)
 void
 s1ap_nas_transport::init(void)
 {
-  m_parent = s1ap::get_instance();
-  m_s1ap_log = m_parent->m_s1ap_log;
+  m_s1ap = s1ap::get_instance();
+  m_s1ap_log = m_s1ap->m_s1ap_log;
   m_pool = srslte::byte_buffer_pool::get_instance();
+
+  m_hss = hss::get_instance();
 }
 
 
-void
-s1ap_nas_transport::set_log(srslte::log *s1ap_log)
+bool 
+s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
-  m_s1ap_log=s1ap_log;
-  return;
+  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
+
+  uint64_t    imsi;
+  uint8_t     k_asme[32];
+  uint8_t     autn[16]; 
+  uint8_t     rand[6];
+  uint8_t     xres[8];
+
+  ue_ctx_t ue_ctx;
+
+  m_s1ap_log->console("Received Initial UE Message.\n");
+  m_s1ap_log->info("Received Initial UE Message.\n");
+
+  //Get info from initial UE message
+  ue_ctx.enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+
+  //Log unhandled Initial UE message IEs
+  log_unhandled_initial_ue_message_ies(init_ue);
+
+  //Get NAS Attach Request and PDN connectivity request messages
+  if(!unpack_initial_ue_message(init_ue, &attach_req,&pdn_con_req))
+  {
+    //Could not decode the attach request and the PDN connectivity request.
+    m_s1ap_log->error("Could not unpack NAS Attach Request and PDN connectivity request.\n");
+    return false;
+  }
+
+  //Get IMSI
+  imsi = 0;
+  for(int i=0;i<=14;i++){
+    imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
+  }
+  m_s1ap_log->console("Attach request from IMSI: %015lu\n", imsi);
+  m_s1ap_log->info("Attach request from IMSI: %015lu\n", imsi);  
+
+  //Get UE network capabilities
+  memcpy(&ue_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
+  ue_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
+  if(attach_req.ms_network_cap_present)
+  {
+    memcpy(&ue_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+  }
+  //FIXME use this info
+  uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
+  ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
+
+  //Save whether ESM information transfer is necessary
+  ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
+  m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
+
+  //Initialize NAS count
+  ue_ctx.security_ctxt.ul_nas_count = 0;
+  ue_ctx.security_ctxt.dl_nas_count = 0;
+  //Add eNB info to UE ctxt
+  memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+
+  //Get Authentication Vectors from HSS
+  if(!m_hss->gen_auth_info_answer(imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
+  {
+    m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
+    m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
+    return false;
+  }
+
+  //Save UE context
+  ue_ctx.imsi = imsi;
+  ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+
+  for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
+  {
+    ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
+    ue_ctx.erabs_ctx[i].erab_id = i;
+  }
+  m_s1ap->add_new_ue_ctx(ue_ctx);
+
+  //Pack NAS Authentication Request in Downlink NAS Transport msg
+  pack_authentication_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
+
+  //Send reply to eNB
+  *reply_flag = true;
+   m_s1ap_log->info("DL NAS: Sent Athentication Request\n");
+  //TODO Start T3460 Timer!
+  return true;
 }
 
+
+/*Packing/Unpacking helper functions*/
 bool 
 s1ap_nas_transport::unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue,
                                               LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req,
