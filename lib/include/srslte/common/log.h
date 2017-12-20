@@ -112,9 +112,9 @@ public:
   virtual void warning_line(std::string file, int line, std::string message, ...){error("warning_line not implemented.\n");}
   virtual void info_line(std::string file, int line, std::string message, ...){error("info_line not implemented.\n");}
   virtual void debug_line(std::string file, int line, std::string message, ...){error("debug_line not implemented.\n");}
-  std::string get_service_name() { return service_name; }
-protected:
   
+protected:
+  std::string get_service_name() { return service_name; }
   uint32_t        tti;
   LOG_LEVEL_ENUM  level;
   int             hex_limit;

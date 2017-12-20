@@ -174,8 +174,6 @@ void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
   tti    = tti_; 
   tx_tti = tx_tti_;
   log_h->step(tti);
-  printf("tti\n");
-  printf("out : %s", log_phy_lib_h->get_service_name());
   log_phy_lib_h->step(tti);
   
   
