@@ -54,6 +54,12 @@ static const char log_level_text[LOG_LEVEL_N_ITEMS][16] = {"None   ",
                                                            "Info   ",
                                                            "Debug  "};
 
+static const char log_level_text_short[LOG_LEVEL_N_ITEMS][16] = {"[-]",
+                                                                 "[E]",
+                                                                 "[W]",
+                                                                 "[I]",
+                                                                 "[D]"};
+
 class log
 {
 public:
@@ -100,6 +106,12 @@ public:
   int get_hex_limit() {
     return hex_limit;
   }
+  void set_log_level_short(bool enable) {
+    level_text_short = enable;
+  }
+  void show_layer(bool enable) {
+    show_layer_en = enable;
+  }
 
   // Pure virtual methods for logging
   virtual void console(std::string message, ...) = 0;
@@ -121,6 +133,8 @@ protected:
   int             hex_limit;
   std::string     service_name;
 
+  bool        show_layer_en;
+  bool        level_text_short;
   bool        add_string_en;
   std::string add_string_val;
 };

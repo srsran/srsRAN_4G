@@ -67,8 +67,14 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
     std::stringstream ss;
 
     ss << now_time() << " ";
-    ss << "[" <<get_service_name() << "] ";
-    ss << log_level_text[level] << " ";
+    if (show_layer_en) {
+      ss << "[" <<get_service_name() << "] ";
+    }
+    if (level_text_short) {
+      ss << log_level_text_short[level] << " ";
+    } else {
+      ss << log_level_text[level] << " ";
+    }
     if(do_tti) {
       ss << "[" << std::setfill('0') << std::setw(5) << tti << "] ";
     }
@@ -92,8 +98,14 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
     std::stringstream ss;
 
     ss << now_time() << " ";
-    ss << "[" <<get_service_name() << "] ";
-    ss << log_level_text[level] << " ";
+    if (show_layer_en) {
+      ss << "[" <<get_service_name() << "] ";
+    }
+    if (level_text_short) {
+      ss << log_level_text_short[level] << " ";
+    } else {
+      ss << log_level_text[level] << " ";
+    }
 
     if(do_tti) {
       ss << "[" << std::setfill('0') << std::setw(5) << tti << "] ";
