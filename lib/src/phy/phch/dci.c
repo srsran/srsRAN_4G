@@ -1371,9 +1371,9 @@ char* srslte_dci_format_string(srslte_dci_format_t format) {
 char* srslte_dci_format_string_short(srslte_dci_format_t format) {
   switch (format) {
     case SRSLTE_DCI_FORMAT0:
-      return " 0";
+      return "0";
     case SRSLTE_DCI_FORMAT1:
-      return " 1";
+      return "1";
     case SRSLTE_DCI_FORMAT1A:
       return "1A";
     case SRSLTE_DCI_FORMAT1B:
@@ -1383,7 +1383,7 @@ char* srslte_dci_format_string_short(srslte_dci_format_t format) {
     case SRSLTE_DCI_FORMAT1D:
       return "1D";
     case SRSLTE_DCI_FORMAT2:
-      return " 2";
+      return "2";
     case SRSLTE_DCI_FORMAT2A:
       return "2A";
     case SRSLTE_DCI_FORMAT2B:
