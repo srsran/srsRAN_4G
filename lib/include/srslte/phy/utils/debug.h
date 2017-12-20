@@ -71,7 +71,7 @@ SRSLTE_API extern int srslte_verbose;
 #endif /* CMAKE_BUILD_TYPE==Debug */
 
 #ifndef DEBUG_TRACE
-#define DEBUG_TRACE 1
+#define DEBUG_TRACE 0
 #endif
 
 #include<time.h>
