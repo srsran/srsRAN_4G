@@ -130,9 +130,7 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
   this->radio_handler = radio_handler;
   this->mac           = mac;
   this->rrc           = rrc;
-  
-  
-  
+ 
   if (!phy_args) {
     args = &default_args;
     set_default_args(args);
@@ -145,10 +143,8 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
   }
 
   nof_workers = args->nof_phy_threads;
-  
   this->log_phy_lib_h = (srslte::log*) log_vec[nof_workers];
   srslte_phy_log_register_handler(this, srslte_phy_handler);
-  
   
   initiated = false;
   start();

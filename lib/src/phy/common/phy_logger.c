@@ -31,6 +31,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <stdarg.h>
+#include "srslte/srslte.h"
 #include "srslte/phy/common/phy_logger.h"
 /*********************************************************************
     Functions for external logging 
@@ -41,6 +42,7 @@ static void *callback_ctx = NULL;
 void srslte_phy_log_register_handler(void *ctx, phy_log_handler_t handler) {
   phy_log_handler  = handler; 
   callback_ctx = ctx; 
+  handler_registered++;
 }
 
  void srslte_phy_log_print(phy_logger_level_t log_level, const char *format, ...) {
