@@ -91,6 +91,7 @@ public:
   uint32_t get_next_mme_ue_s1ap_id();
   enb_ctx_t* find_enb_ctx(uint16_t enb_id);
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
+  ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
   void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
 
   s1ap_args_t                    m_s1ap_args;

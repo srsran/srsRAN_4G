@@ -71,6 +71,7 @@ s1ap_nas_transport::init(void)
   m_pool = srslte::byte_buffer_pool::get_instance();
 
   m_hss = hss::get_instance();
+  m_mme_gtpc = mme_gtpc::get_instance();
 }
 
 
@@ -160,6 +161,220 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   *reply_flag = true;
    m_s1ap_log->info("DL NAS: Sent Athentication Request\n");
   //TODO Start T3460 Timer!
+  return true;
+}
+
+bool
+s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
+{
+
+  bool     ue_valid = true;
+  uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+  uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+
+  m_s1ap_log->console("Received Uplink NAS Transport message.\n");
+  m_s1ap_log->info("Received Uplink NAS Transport message.\n");
+
+
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
+  if(ue_ctx == NULL)
+  {
+    //TODO UE not registered, send error message.
+    m_s1ap_log->warning("Could not find UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+    return false;
+  }
+
+  m_s1ap_log->debug("Found UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+
+  //Get NAS message type
+  uint8_t pd, msg_type;
+  srslte::byte_buffer_t *nas_msg = m_pool->allocate();
+
+  memcpy(nas_msg->msg, &ul_xport->NAS_PDU.buffer, ul_xport->NAS_PDU.n_octets);
+  nas_msg->N_bytes = ul_xport->NAS_PDU.n_octets;
+  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
+
+  switch (msg_type) {
+    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
+      handle_nas_authentication_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      m_s1ap_log->info("UL NAS: Received Authentication Response\n");
+      break;
+    case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
+      m_s1ap_log->info("UL NAS: Received Security Mode Complete\n");
+      handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      return true; //no need for reply. FIXME this should be better structured...
+      break;
+    case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
+      m_s1ap_log->info("UL NAS: Received Attach Complete\n");
+      handle_nas_attach_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      ue_ctx->security_ctxt.ul_nas_count++;
+      return true; //no need for reply. FIXME this should be better structured...
+    break;
+    case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
+      m_s1ap_log->info("UL NAS: Received ESM Information Response\n");
+      handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      ue_ctx->security_ctxt.ul_nas_count++;
+      return true;
+    default:
+      m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type );
+      m_s1ap_log->console("Unhandled NAS message 0x%x\n", msg_type );
+      return false; //FIXME (nas_msg deallocate needs to be called)
+  }
+
+  if(*reply_flag == true)
+  {
+    m_s1ap_log->info("DL NAS: Sent Downlink NAS message\n");
+    m_s1ap_log->console("DL NAS: Sent Downlink NAs Message\n");
+  }
+  m_pool->deallocate(nas_msg);
+
+  return true;
+}
+
+bool
+s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
+{
+
+  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
+  bool ue_valid=true;
+
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  for(int i=0; i<8;i++)
+  {
+    if(auth_resp.res[i] != ue_ctx->security_ctxt.xres[i])
+    {
+      ue_valid = false;
+    }
+  }
+  if(!ue_valid)
+  {
+    std::cout<<std::endl;
+    std::cout<<"XRES: ";
+    for(int i=0;i<8;i++)
+    {
+      std::cout << std::hex <<(uint16_t)ue_ctx->security_ctxt.xres[i];
+    }
+    std::cout<<std::endl;
+
+    m_s1ap_log->console("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
+    m_s1ap_log->warning("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
+    //Send back Athentication Reject
+    pack_authentication_reject(reply_buffer, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id);
+    *reply_flag = true;
+    return false;
+  }
+  else
+  {
+    m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
+    m_s1ap_log->info("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
+    //Send Security Mode Command
+    pack_security_mode_command(reply_buffer, ue_ctx);
+    *reply_flag = true;
+  }
+  return true;
+}
+
+bool
+s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
+{
+  LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sm_comp;
+
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_security_mode_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &sm_comp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  //TODO Check integrity
+
+  //TODO Handle imeisv
+  if(sm_comp.imeisv_present)
+  {
+    m_s1ap_log->warning("IMEI-SV present but not handled");
+  }
+
+  m_s1ap_log->info("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
+  m_s1ap_log->console("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
+  if(ue_ctx->eit == true)
+  {
+    pack_esm_information_request(reply_buffer, ue_ctx);
+    m_s1ap_log->console("Sending ESM information request\n");
+    *reply_flag = true;
+  }
+  else
+  {
+    //FIXME The packging of GTP-C messages is not ready.
+    //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
+    m_mme_gtpc->send_create_session_request(ue_ctx->imsi, ue_ctx->mme_ue_s1ap_id);
+    *reply_flag = false; //No reply needed
+  }
+  return true;
+}
+
+bool
+s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+{
+
+  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_comp;
+  uint8_t pd, msg_type;
+  srslte::byte_buffer_t *esm_msg = m_pool->allocate();
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_bearer;
+
+  m_s1ap_log->info_hex(nas_msg->msg, nas_msg->N_bytes, "NAS Attach complte");
+
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_comp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  err = liblte_mme_unpack_activate_default_eps_bearer_context_accept_msg( (LIBLTE_BYTE_MSG_STRUCT *) &attach_comp.esm_msg, &act_bearer);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking Activate EPS Bearer Context Accept Msg. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  m_s1ap_log->console("Unpacked Attached Complete Message\n");
+  m_s1ap_log->console("Unpacked Activavate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
+  //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
+  if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 16)
+  {
+    m_s1ap_log->error("EPS Bearer ID out of range\n");
+    return false;
+  }
+  m_mme_gtpc->send_modify_bearer_request(&ue_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
+  return true;
+}
+
+bool
+s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+{
+  LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT esm_info_resp;
+
+  //Get NAS authentication response
+  LIBLTE_ERROR_ENUM err = srslte_mme_unpack_esm_information_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &esm_info_resp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+  m_s1ap_log->info("ESM Info: EPS bearer id %d\n",esm_info_resp.eps_bearer_id);
+  if(esm_info_resp.apn_present)
+  {
+    m_s1ap_log->info("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
+    m_s1ap_log->console("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
+  }
+
+  //FIXME The packging of GTP-C messages is not ready.
+  //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
+  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, ue_ctx->mme_ue_s1ap_id);
   return true;
 }
 
@@ -446,7 +661,74 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   m_pool->deallocate(nas_buffer);
   return true;
 }
+
+bool
+s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
+{
+  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
+
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;//FIXME Change name
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+
+  LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
+  esm_info_req.eps_bearer_id=0;
+  esm_info_req.proc_transaction_id = ue_ctx->procedure_transaction_id;
+  uint8_t  sec_hdr_type=2;
   
+  ue_ctx->security_ctxt.dl_nas_count++;
+ 
+  LIBLTE_ERROR_ENUM err = srslte_mme_pack_esm_information_request_msg(&esm_info_req, sec_hdr_type,ue_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing ESM information request\n");
+    m_s1ap_log->console("Error packing ESM information request\n");
+    return false;
+  }
+
+  uint8_t mac[4];
+  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
+                             ue_ctx->security_ctxt.dl_nas_count,
+                             0,
+                             SECURITY_DIRECTION_DOWNLINK,
+                             &nas_buffer->msg[5],
+                             nas_buffer->N_bytes - 5,
+                             mac
+                             );
+
+  memcpy(&nas_buffer->msg[1],mac,4);
+  //Copy NAS PDU to Downlink NAS Trasport message buffer
+  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
+
+  //Pack Downlink NAS Transport Message
+  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Dw NAS Transport: Athentication Reject\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: Athentication Reject\n");
+    return false;
+  }
+
+  m_pool->deallocate(nas_buffer);
+  return true;
+}
+
 
 
 /*Helper functions*/
