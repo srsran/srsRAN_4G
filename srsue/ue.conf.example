@@ -73,6 +73,7 @@ nas_filename = /tmp/nas.pcap
 #####################################################################
 [log]
 all_level = info
+phy_lib_level = none
 all_hex_limit = 32
 filename = /tmp/ue.log
 

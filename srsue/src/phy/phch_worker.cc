@@ -107,9 +107,10 @@ void phch_worker::set_common(phch_common* phy_)
   phy = phy_;   
 }
 
-bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, chest_feedback_itf *chest_loop)
+bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_phy_lib_h , chest_feedback_itf *chest_loop)
 {
   this->log_h = log_h;
+  this->log_phy_lib_h =  log_phy_lib_h;
   this->chest_loop = chest_loop;
 
   // ue_sync in phy.cc requires a buffer for 3 subframes
@@ -173,6 +174,11 @@ void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
   tti    = tti_; 
   tx_tti = tx_tti_;
   log_h->step(tti);
+  printf("tti\n");
+  printf("out : %s", log_phy_lib_h->get_service_name());
+  log_phy_lib_h->step(tti);
+  
+  
 }
 
 void phch_worker::set_cfo(float cfo_)
