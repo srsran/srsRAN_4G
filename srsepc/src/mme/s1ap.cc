@@ -261,6 +261,7 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST:
     m_s1ap_log->info("Received S1 Setup Request.\n");
     m_s1ap_mngmt_proc->handle_s1_setup_request(&msg->choice.S1SetupRequest, enb_sri, reply_buffer, &reply_flag);
+    break;
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALUEMESSAGE:
     m_s1ap_log->info("Received Initial UE Message.\n");
     return handle_initial_ue_message(&msg->choice.InitialUEMessage, enb_sri);
@@ -446,6 +447,11 @@ s1ap::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *ini
   std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(enb_sri->sinfo_assoc_id);
   uint16_t enb_id = it_enb->second;
   std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
+  if(it_ue_id==m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find eNB's UEs\n");
+    return false;
+  }
   it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
@@ -1038,6 +1044,7 @@ s1ap::find_enb_ctx(uint16_t enb_id)
 void
 s1ap::add_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo *enb_sri)
 {
+  m_s1ap_log->info("Adding new eNB context. eNB ID %d\n", enb_ctx.enb_id);
   std::set<uint32_t> ue_set;
   enb_ctx_t *enb_ptr = new enb_ctx_t;
   memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx_t));

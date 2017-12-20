@@ -98,7 +98,7 @@ s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRU
   }
   else{
     enb_ctx_t *enb_ptr = m_s1ap->find_enb_ctx(enb_ctx.enb_id);
-    if(enb_ptr == NULL)
+    if(enb_ptr != NULL)
     {
       //eNB already registered
       //TODO replace enb_ctx
