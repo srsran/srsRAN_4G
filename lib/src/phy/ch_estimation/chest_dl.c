@@ -498,10 +498,7 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
   uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
   float energy = cabsf(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
   q->rsrp[rxant_id][port_id] = energy*energy;
-  if (port_id == 0) {
-    /* compute rssi only for port 0 */
-    q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);     
-  }
+  q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);
 }
 
 int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id) 
@@ -599,6 +596,10 @@ float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
   return n/q->last_nof_antennas;
 }
 
+float srslte_chest_dl_get_noise_estimate_ant_port(srslte_chest_dl_t *q, uint32_t ant_idx, uint32_t port_idx) {
+  return q->noise_estimate[ant_idx][port_idx];
+}
+
 float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
 #ifdef FREQ_SEL_SNR
   int nref=SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, 0);
@@ -606,6 +607,11 @@ float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
 #else
   return srslte_chest_dl_get_rsrp(q)/srslte_chest_dl_get_noise_estimate(q);
 #endif
+}
+
+
+float srslte_chest_dl_get_snr_ant_port(srslte_chest_dl_t *q, uint32_t ant_idx, uint32_t port_idx) {
+  return srslte_chest_dl_get_rsrp_ant_port(q, ant_idx, port_idx)/srslte_chest_dl_get_noise_estimate_ant_port(q, ant_idx, port_idx);
 }
 
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {
@@ -626,6 +632,14 @@ float srslte_chest_dl_get_rsrq(srslte_chest_dl_t *q) {
   }
   return n/q->last_nof_antennas;
   
+}
+
+float srslte_chest_dl_get_rsrq_ant_port(srslte_chest_dl_t *q, uint32_t ant_idx, uint32_t port_idx) {
+  return q->cell.nof_prb*q->rsrp[ant_idx][port_idx] / q->rssi[ant_idx][port_idx];
+}
+
+float srslte_chest_dl_get_rsrp_ant_port(srslte_chest_dl_t *q, uint32_t ant_idx, uint32_t port) {
+  return q->rsrp[ant_idx][port];
 }
 
 float srslte_chest_dl_get_rsrp_port(srslte_chest_dl_t *q, uint32_t port) {
