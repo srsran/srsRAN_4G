@@ -562,6 +562,7 @@ spgw::handle_delete_session_request(struct srslte::gtpc_pdu *del_req_pdu, struct
     m_ip_to_teid.erase(data_it);
   }
   pthread_mutex_unlock(&m_mutex);
+  m_teid_to_tunnel_ctx.erase(tunnel_it);
 
   delete tunnel_ctx; 
   return;
