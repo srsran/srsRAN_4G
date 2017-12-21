@@ -973,6 +973,7 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
     srslte_phich_ngroups(&q->phich), srslte_phich_nsf(&q->phich));
   
   if (!srslte_phich_decode(&q->phich, q->sf_symbols_m, q->ce_m, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
+    q->last_phich_corr = distance;
     INFO("Decoded PHICH %d with distance %f\n", ack_bit, distance);    
   } else {
     fprintf(stderr, "Error decoding PHICH\n");

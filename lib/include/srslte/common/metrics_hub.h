@@ -54,7 +54,6 @@ private:
   void run_period() {
     if (m) {
       metrics_t metric;
-      bzero(&metric, sizeof(metrics_t));
       m->get_metrics(metric);
       for (uint32_t i=0;i<listeners.size();i++) {
         listeners[i]->set_metrics(metric);

@@ -56,7 +56,7 @@
 /*
  * AVX Macros
  */
-#ifdef LV_HAVE_AVX2
+#ifdef LV_HAVE_AVX
 
 #define _MM256_MULJ_PS(X) _mm256_permute_ps(_MM256_CONJ_PS(X), 0b10110001)
 #define _MM256_CONJ_PS(X) (_mm256_xor_ps(X, _mm256_set_ps(-0.0f, 0.0f, -0.0f, 0.0f, -0.0f, 0.0f, -0.0f, 0.0f)))
@@ -72,7 +72,7 @@
 #define _MM256_PROD_PS(a, b) _mm256_addsub_ps(_mm256_mul_ps(a,_mm256_moveldup_ps(b)),\
                               _mm256_mul_ps(_mm256_shuffle_ps(a,a,0xB1),_mm256_movehdup_ps(b)))
 #endif /* LV_HAVE_FMA */
-#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX */
 
 
 /*

@@ -31,10 +31,10 @@
 #include "phy/phch_worker.h"
 #include "phy/phch_recv.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
 
@@ -651,7 +651,7 @@ void phch_recv::run_thread()
             case 1:
 
               if (last_worker) {
-                Warning("SF: cfo_tot=%7.1f Hz, ref=%f Hz, pss=%f Hz\n",
+                Debug("SF: cfo_tot=%7.1f Hz, ref=%f Hz, pss=%f Hz\n",
                         srslte_ue_sync_get_cfo(&ue_sync),
                      15000*last_worker->get_ref_cfo(),
                      15000*ue_sync.strack.cfo_pss_mean);

@@ -318,12 +318,18 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
   }
 }
 
+static int  sigcnt = 0;
 static bool running    = true;
 static bool do_metrics = false;
 
 void sig_int_handler(int signo)
 {
+  sigcnt++;
   running = false;
+  printf("Stopping srsENB... Press Ctrl+C %d more times to force stop\n", 10-sigcnt);
+  if (sigcnt >= 10) {
+    exit(-1);
+  }
 }
 
 void *input_loop(void *m)
