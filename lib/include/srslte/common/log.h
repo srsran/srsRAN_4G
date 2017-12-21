@@ -69,6 +69,7 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
+    show_layer_en = true;
   }
 
   log(std::string service_name_) {
@@ -76,6 +77,7 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
+    show_layer_en = true;
   }
 
   // This function shall be called at the start of every tti for printing tti
