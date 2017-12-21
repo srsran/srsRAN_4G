@@ -52,7 +52,6 @@ static int plot_worker_id = -1;
 #endif
 /*********************************************/
 
-
 namespace srsue {
 
 

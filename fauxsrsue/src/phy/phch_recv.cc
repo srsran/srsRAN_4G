@@ -37,6 +37,9 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
+extern uint32_t  g_tti;
+extern uint32_t  g_tti_tx;
+
 namespace srsue {
 
 int radio_recv_wrapper_cs(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
@@ -643,6 +646,8 @@ void phch_recv::run_thread() {
   phy_state  = IDLE;
   is_in_idle = true;
 
+  struct timeval tv_in, tv_out, tv_diff;
+
   while (running) {
     X_TRACE("PHCHRX:BEGIN");
     if (phy_state != IDLE) {
@@ -724,7 +729,15 @@ void phch_recv::run_thread() {
         }
         break;
       case CELL_CAMP:
+        gettimeofday(&tv_in, NULL);
+
         tti = (tti+1) % 10240;
+
+        g_tti    = tti;
+        g_tti_tx = (tti+4)%10240; 
+
+        I_TRACE("tti %u, time_in %ld:%06ld", tti, tv_in.tv_sec, tv_in.tv_usec);
+
         worker = (phch_worker *) workers_pool->wait_worker(tti);
         if (worker) {
           for (uint32_t i = 0; i < nof_rx_antennas; i++) {
@@ -784,6 +797,15 @@ void phch_recv::run_thread() {
           // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
           running = false;
         }
+        gettimeofday(&tv_out, NULL);
+
+        timersub(&tv_out, &tv_in, &tv_diff);
+
+        I_TRACE("time_out %ld:%06ld, delta_t %ld:%06ld",
+                tv_out.tv_sec,
+                tv_out.tv_usec,
+                tv_diff.tv_sec,
+                tv_diff.tv_usec);
         break;
       case IDLE:
         if (!is_in_idle) {
@@ -793,6 +815,10 @@ void phch_recv::run_thread() {
         usleep(1000);
         // Keep running MAC timer from system clock
         tti = (tti+1) % 10240;
+
+        g_tti    = tti;
+        g_tti_tx = 0;
+
         mac->tti_clock(tti);
         break;
     }

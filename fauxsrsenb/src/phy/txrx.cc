@@ -39,6 +39,8 @@
 
 using namespace std; 
 
+extern uint32_t  g_tti;
+extern uint32_t  g_tti_tx;
 
 namespace srsenb {
 
@@ -104,14 +106,26 @@ void txrx::run_thread()
   
   // Set TTI so that first TX is at tti=0
   tti = 10235; 
-    
+   
+  struct timeval tv_in, tv_out, tv_diff;
+
+  gettimeofday(&tv_in, NULL);
+
+  // try to aligin on the top of the second
+  usleep(1000000 - tv_in.tv_usec);
+ 
   printf("\n==== eNodeB started ===\n");
   printf("Type <t> to view trace\n");
   // Main loop
   while (running) {
+    gettimeofday(&tv_in, NULL);
+
     tti = (tti+1)%10240;        
 
-    X_TRACE("TXRX: tti %u", tti);
+    g_tti    = tti;
+    g_tti_tx = (tti+4)%10240; 
+
+    I_TRACE("tti %u, time_in %ld:%06ld", tti, tv_in.tv_sec, tv_in.tv_usec);
 
     worker = (phch_worker*) workers_pool->wait_worker(tti);
     if (worker) {          
@@ -137,6 +151,16 @@ void txrx::run_thread()
       // Trigger prach worker execution 
       prach->new_tti(tti, buffer);
       
+      gettimeofday(&tv_out, NULL);
+
+      timersub(&tv_out, &tv_in, &tv_diff);
+
+      I_TRACE("time_out %ld:%06ld, delta_t %ld:%06ld",
+              tv_out.tv_sec,
+              tv_out.tv_usec,
+              tv_diff.tv_sec,
+              tv_diff.tv_usec);
+
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
       running = false; 

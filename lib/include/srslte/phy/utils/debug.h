@@ -93,5 +93,21 @@ SRSLTE_API extern int srslte_verbose;
                              }                                                                      \
                            } while(0);
 
+#define I_TRACE(_fmt, ...) do {                                                                     \
+                             struct timeval _tv_now;                                                \
+                             struct tm _tm;                                                         \
+                             const char *_pos = strrchr(__FILE__, '/');                             \
+                             gettimeofday(&_tv_now, NULL);                                          \
+                             localtime_r(&_tv_now.tv_sec, &_tm);                                    \
+                             fprintf(stdout, "[IXXXX]: %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n",     \
+                                     _tm.tm_hour,                                                   \
+                                     _tm.tm_min,                                                    \
+                                     _tm.tm_sec,                                                    \
+                                     _tv_now.tv_usec,                                               \
+                                     _pos ? _pos+1 : "",                                            \
+                                     __func__,                                                      \
+                                     ##__VA_ARGS__);                                                \
+                           } while(0);
+
 
 #endif // DEBUG_H

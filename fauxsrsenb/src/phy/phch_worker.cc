@@ -63,12 +63,9 @@ static int plot_worker_id = -1;
 #endif
 /*********************************************/
 
-
-
 //#define DEBUG_WRITE_FILE
 
 namespace srsenb {
-
 
 phch_worker::phch_worker()
 {
@@ -188,7 +185,7 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timesta
   tx_mutex_cnt = tx_mutex_cnt_;
   memcpy(&tx_time, &tx_time_, sizeof(srslte_timestamp_t));
 
-  X_TRACE("PHCHWORKER: n_mtx %u, tx_time %lf, tti_rx/tx %u/%u, tti/sf_sched_ul %u/%u, sf_rx/tx %u/%u",
+  I_TRACE("PHCHWORKER: n_mtx %u, tx_time %lf, tti_rx/tx %u/%u, tti/sf_sched_ul %u/%u, sf_rx/tx %u/%u",
           tx_mutex_cnt_,
           tx_time_.frac_secs,
           tti_rx,
