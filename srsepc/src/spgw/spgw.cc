@@ -140,6 +140,14 @@ spgw::stop()
       close(m_s1u);
     }
   }
+  std::map<uint32_t,spgw_tunnel_ctx*>::iterator it = m_teid_to_tunnel_ctx.begin();         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
+  while(it!=m_teid_to_tunnel_ctx.end())
+  {
+    m_spgw_log->info("Deleting SP-GW Tunnel. IMSI: %lu\n", it->second->imsi);
+    m_spgw_log->console("Deleting SP-GW Tunnel. IMSI: %lu\n", it->second->imsi);
+    delete it->second;
+    m_teid_to_tunnel_ctx.erase(it++);
+  }
   return;
 }
 
