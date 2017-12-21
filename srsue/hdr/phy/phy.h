@@ -64,7 +64,7 @@ public:
   void set_agc_enable(bool enabled);
 
   void get_metrics(phy_metrics_t &m);
-  
+  void srslte_phy_logger(phy_logger_level_t log_level, char *str);
   
   
   static uint32_t tti_to_SFN(uint32_t tti);
@@ -160,6 +160,7 @@ private:
   srslte::radio_multi      *radio_handler;
   std::vector<void*>        log_vec;
   srslte::log              *log_h;
+  srslte::log              *log_phy_lib_h;
   srsue::mac_interface_phy *mac;
   srsue::rrc_interface_phy *rrc;
 

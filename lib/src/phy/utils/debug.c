@@ -34,6 +34,7 @@
 #include "srslte/version.h"
 
 int srslte_verbose = 0;
+int handler_registered = 0;
 
 void get_time_interval(struct timeval * tdata) {
 
