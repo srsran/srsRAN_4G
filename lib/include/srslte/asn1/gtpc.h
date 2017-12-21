@@ -76,6 +76,8 @@ typedef union gtpc_msg_choice
   struct gtpc_create_session_response create_session_response;
   struct gtpc_modify_bearer_request modify_bearer_request;
   struct gtpc_modify_bearer_response modify_bearer_response;
+  struct gtpc_delete_session_request delete_session_request;
+  struct gtpc_delete_session_response delete_session_response;
 } gtpc_msg_choice_t;
 
 /****************************************************************************

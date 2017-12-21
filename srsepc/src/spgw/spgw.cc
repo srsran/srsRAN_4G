@@ -375,7 +375,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   int n = sendto(m_s1u,msg->msg,msg->N_bytes,0,(struct sockaddr*) &enb_addr,sizeof(enb_addr));
   if(n<0)
   {
-    m_spgw_log->console("Error sending packet to eNB\n");
+    m_spgw_log->error("Error sending packet to eNB\n");
     return;
   }
   //m_spgw_log->console("Sent packet to %s:%d. Bytes=%d\n",inet_ntoa(enb_addr.sin_addr), GTPU_RX_PORT,n);
@@ -437,7 +437,8 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   in_addr_t ue_ip = get_new_ue_ipv4();
 
   uint8_t default_bearer_id = 5;
-  //Save the UE IP to User TEID map //TODO!!!
+
+  //Save the UE IP to User TEID map 
   spgw_tunnel_ctx_t *tunnel_ctx = new spgw_tunnel_ctx_t;
   tunnel_ctx->imsi = cs_req->imsi;
   tunnel_ctx->ebi = default_bearer_id;
@@ -449,6 +450,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   tunnel_ctx->up_ctrl_fteid.teid = spgw_uplink_ctrl_teid;
   tunnel_ctx->ue_ipv4 = ue_ip;
   m_teid_to_tunnel_ctx.insert(std::pair<uint32_t,spgw_tunnel_ctx_t*>(spgw_uplink_ctrl_teid,tunnel_ctx));
+
   //Create session response message
   //Setup GTP-C header
   header->piggyback = false;
@@ -479,13 +481,9 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   return;
 }
 
-  /*
-void
-spgw::delete_session_request(uint64_t imsi)
-{
 
-}
-  */
+
+
 void
 spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu)
 {
@@ -541,4 +539,32 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   printf("%d %d\n",mb_resp->eps_bearer_context_modified.ebi, tunnel_ctx->ebi);
   mb_resp->eps_bearer_context_modified.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
 }
+
+void
+spgw::handle_delete_session_request(struct srslte::gtpc_pdu *del_req_pdu, struct srslte::gtpc_pdu *del_resp_pdu)
+{
+  //Find tunel ctxt
+  uint32_t ctrl_teid = del_req_pdu->header.teid;
+  std::map<uint32_t,spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
+  if(tunnel_it == m_teid_to_tunnel_ctx.end())
+  {
+    m_spgw_log->warning("Could not find TEID %d to delete\n",ctrl_teid);
+    return;
+  }
+  spgw_tunnel_ctx_t *tunnel_ctx = tunnel_it->second;
+  in_addr_t ue_ipv4 = tunnel_ctx->ue_ipv4;
+
+  //Delete data tunnel
+  pthread_mutex_lock(&m_mutex);
+  std::map<in_addr_t,srslte::gtpc_f_teid_ie>::iterator data_it = m_ip_to_teid.find(tunnel_ctx->ue_ipv4);
+  if(data_it != m_ip_to_teid.end())
+  {
+    m_ip_to_teid.erase(data_it);
+  }
+  pthread_mutex_unlock(&m_mutex);
+
+  delete tunnel_ctx; 
+  return;
+}
+
 } //namespace srsepc

@@ -212,4 +212,38 @@ mme_gtpc::handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu)
   return;
 }
 
+void
+mme_gtpc::send_delete_session_request(ue_ctx_t *ue_ctx) 
+{
+  m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request\n");
+  srslte::gtpc_pdu del_req_pdu;
+  srslte::gtpc_f_teid_ie *sgw_ctrl_fteid;
+
+  //FIXME the UE control TEID sould be stored in the UE ctxt, not in the E-RAB ctxt
+  //Maybe a mme_s1ap_id to ctrl teid map as well?
+
+  for(int i = 0; i<MAX_ERABS_PER_UE; i++)
+  {
+    if(ue_ctx->erabs_ctx[i].state != ERAB_DEACTIVATED)
+    {
+      sgw_ctrl_fteid = &ue_ctx->erabs_ctx[i].sgw_ctrl_fteid;
+      break;
+    }
+  }
+
+  srslte::gtpc_header *header = &del_req_pdu.header;
+  header->teid_present = true;
+  header->teid = sgw_ctrl_fteid->teid;
+  header->type = srslte::GTPC_MSG_TYPE_DELETE_SESSION_REQUEST;
+
+  srslte::gtpc_delete_session_request *del_req = &del_req_pdu.choice.delete_session_request;
+  del_req->cause.cause_value = srslte::GTPC_CAUSE_VALUE_ISR_DEACTIVATION;
+  m_mme_gtpc_log->info("GTP-C Delete Session Request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
+
+  srslte::gtpc_pdu del_resp_pdu;
+  m_spgw->handle_delete_session_request(&del_req_pdu, &del_resp_pdu);
+
+  //TODO Handle delete session response
+  return;
+}
 } //namespace srsepc

@@ -377,5 +377,38 @@ struct gtpc_modify_bearer_response
   //ext
 };
 
+/****************************************************************************
+ *
+ * GTP-C v2 Delete Session Resquest
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.9.1-1
+ *
+ ***************************************************************************/
+
+struct gtpc_delete_session_request
+{
+  struct gtpc_cause_ie cause;
+  //Linked EPS Bearer ID
+  //User Location Information
+  //Indication Flags
+  //Protocol Configuration Options
+  //Originating Node
+  //Private extension
+};
+
+/****************************************************************************
+  *
+  * GTP-C v2 Delete Session Response
+  * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.10.1-1
+  *
+  ***************************************************************************/
+
+struct gtpc_delete_session_response
+{
+  struct gtpc_cause_ie cause;
+  //Recovery
+  //Protocol Configuration Options
+  //Private extension
+};
+
 } //namespace
 #endif //GTPC_V2_MSG_H

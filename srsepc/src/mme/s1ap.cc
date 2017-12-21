@@ -506,7 +506,7 @@ s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQU
   {
     m_s1ap_log->error("Could not find eNB for this request.\n");
     return false;
-  }  
+  } 
   uint16_t enb_id = it->second; 
   std::map<uint16_t,std::set<uint32_t> >::iterator ue_set = m_enb_id_to_ue_ids.find(enb_id);
   if(ue_set == m_enb_id_to_ue_ids.end())
@@ -517,7 +517,20 @@ s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQU
   ue_set->second.erase(mme_ue_s1ap_id);
 
   //Delete any context at the SPGW
-  //m_spgw->delete_session_request(ue_ctx->imsi);
+  bool active = false;
+  for(int i=0;i<MAX_ERABS_PER_UE;i++)
+  {
+    if(ue_ctx->second->erabs_ctx[i].state != ERAB_DEACTIVATED)
+    {
+      active = true;
+      break;
+    }
+  }
+  if(active == true)
+  {
+    //There are active E-RABs, send delete session request
+    m_mme_gtpc->send_delete_session_request(ue_ctx->second);
+  }
 
   //Delete UE context
   delete ue_ctx->second;
