@@ -378,7 +378,7 @@ uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dc
                     dci_msg->type2_alloc.RB_start, dci_msg->type2_alloc.RB_start+dci_msg->type2_alloc.L_crb-1,
                     dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC?"local":"dist");
       if (dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC) {
-        n += snprintf(&info_str[n], len-n, "ngap=%s, nprb1a=%d",
+        n += snprintf(&info_str[n], len-n, ", ngap=%s, nprb1a=%d",
                       dci_msg->type2_alloc.n_gap==SRSLTE_RA_TYPE2_NG1?"ng1":"ng2",
                       dci_msg->type2_alloc.n_prb1a==SRSLTE_RA_TYPE2_NPRB1A_2?2:3);
       }
