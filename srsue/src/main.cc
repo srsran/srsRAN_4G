@@ -98,6 +98,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 
     ("log.phy_level", bpo::value<string>(&args->log.phy_level), "PHY log level")
+    ("log.phy_lib_level", bpo::value<string>(&args->log.phy_lib_level), "PHY lib log level")
     ("log.phy_hex_limit", bpo::value<int>(&args->log.phy_hex_limit), "PHY log hex dump limit")
     ("log.mac_level", bpo::value<string>(&args->log.mac_level), "MAC log level")
     ("log.mac_hex_limit", bpo::value<int>(&args->log.mac_hex_limit), "MAC log hex dump limit")
@@ -326,6 +327,9 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   if (vm.count("log.all_level")) {
     if (!vm.count("log.phy_level")) {
       args->log.phy_level = args->log.all_level;
+    }
+    if (!vm.count("log.phy_lib_level")) {
+      args->log.phy_lib_level = args->log.all_level;
     }
     if (!vm.count("log.mac_level")) {
       args->log.mac_level = args->log.all_level;

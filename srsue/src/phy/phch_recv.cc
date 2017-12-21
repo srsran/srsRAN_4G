@@ -47,6 +47,7 @@ double callback_set_rx_gain(void *h, double gain) {
 }
 
 
+
 phch_recv::phch_recv() {
   dl_freq = -1;
   ul_freq = -1;
@@ -57,11 +58,12 @@ phch_recv::phch_recv() {
 
 void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_mac, rrc_interface_phy *_rrc,
                      prach *_prach_buffer, srslte::thread_pool *_workers_pool,
-                     phch_common *_worker_com, srslte::log *_log_h, uint32_t nof_rx_antennas_, uint32_t prio,
+                     phch_common *_worker_com, srslte::log *_log_h, srslte::log *_log_phy_lib_h, uint32_t nof_rx_antennas_, uint32_t prio,
                      int sync_cpu_affinity)
 {
   radio_h = _radio_handler;
   log_h   = _log_h;
+  log_phy_lib_h = _log_phy_lib_h;
   mac     = _mac;
   rrc     = _rrc;
   workers_pool    = _workers_pool;
@@ -94,7 +96,7 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   intra_freq_meas.init(worker_com, rrc, log_h);
 
   reset();
-
+  
   // Start main thread
   if (sync_cpu_affinity < 0) {
     start(prio);
@@ -561,6 +563,8 @@ void phch_recv::run_thread()
     }
 
     log_h->step(tti);
+    log_phy_lib_h->step(tti);
+    
     sf_idx = tti%10;
 
     switch (phy_state) {
