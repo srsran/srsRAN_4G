@@ -702,6 +702,7 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
     // Pre-decoder
     if (srslte_predecoding_type(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
                                       cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, pdsch_scaling, noise_estimate)<0) {
+      printf("Error predecoding\n");
       return -1;
     }
 
