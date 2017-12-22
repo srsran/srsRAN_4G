@@ -68,22 +68,13 @@ public:
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri);
   bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
-
-  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri);
-  bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri);
-  bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri);
-
-  bool handle_nas_authentication_response(srslte::byte_buffer_t *nas_buffer, srslte::byte_buffer_t *reply_buffer, ue_ctx_t *ue_ctx);
-  bool handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
-  bool send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid);
   bool handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg);
 
+  bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri);
+  bool send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid);
   bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp);
-  bool handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
 
   void activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi);
-  bool pack_esm_information_request(srslte::byte_buffer_t* reply_msg, srsepc::ue_ctx_t* ue_ctx);
-  bool handle_esm_information_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, ue_ctx_t* ue_ctx);
 
   void print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx);
 

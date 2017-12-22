@@ -6,31 +6,13 @@ Code Structure
 
 The LTE library should include the following functionality that will be common accress multiple nodes.
 
-.. blockdiag::
+.. _epc-overall:
 
-  blockdiag {
-     srsLTE -> lib -> src -> upper -> gtpu.cc;
-                             upper -> gtpc.cc; 
-                             upper -> s1app.cc;
-                             upper -> diameter.cc;
-                      src -> asn1; 
-  }
+.. figure:: _imgs/epc-uml.svg
+
+   EPC overall class architecture
 
 
-The examples should aim to include the following classes  
-
-.. blockdiag::
-
-  blockdiag {
-     srsLTE -> srsepc -> src -> mme -> mme.cc;
-                                mme -> main.cc;
-                         src -> hss -> hss.cc;
-                                hss -> main.cc;
-                         src -> spgw -> spgw.cc;
-                                spgw -> main.cc;
-               srsepc -> src -> main.cc;
-                         src -> epc.cc;
-   }
 
 
 MME Design
@@ -43,8 +25,6 @@ The main loop of the MME will
 HSS Design
 **********
 
-S-GW Design
+SP-GW Design
 ***********
 
-P-GW Design
-***********
