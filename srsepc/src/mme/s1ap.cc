@@ -78,10 +78,13 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
   m_s1ap_log = s1ap_log;
 
   //Init message handlers
-  m_s1ap_mngmt_proc = s1ap_mngmt_proc::get_instance(); //Managment procedures (TS ) 
+  m_s1ap_mngmt_proc = s1ap_mngmt_proc::get_instance(); //Managment procedures
   m_s1ap_mngmt_proc->init();
   m_s1ap_nas_transport = s1ap_nas_transport::get_instance(); //NAS Transport procedures
   m_s1ap_nas_transport->init();
+  m_s1ap_ctx_mngmt_proc = s1ap_ctx_mngmt_proc::get_instance(); //Context Management Procedures
+  m_s1ap_ctx_mngmt_proc->init();
+
 
   //Get pointer to the HSS
   m_hss = hss::get_instance();
@@ -115,6 +118,7 @@ s1ap::stop()
   //Cleanup message handlers
   s1ap_mngmt_proc::cleanup();
   s1ap_nas_transport::cleanup();
+  s1ap_ctx_mngmt_proc::cleanup();
   return;
 }
 
@@ -539,6 +543,40 @@ s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQU
   return true;
 }
 
+bool
+s1ap::delete_ue_ctx(ue_ctx_t *ue_ctx)
+{
+  uint32_t mme_ue_s1ap_id = ue_ctx->mme_ue_s1ap_id;
+  std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
+  if(ue_ctx_it == m_active_ues.end() )
+  {
+    m_s1ap_log->info("UE not found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    return false;
+  }
+
+  //Delete UE within eNB UE set
+  std::map<int32_t,uint16_t>::iterator it = m_sctp_to_enb_id.find(ue_ctx->enb_sri.sinfo_assoc_id);
+  if(it == m_sctp_to_enb_id.end() )
+  {
+    m_s1ap_log->error("Could not find eNB for this request.\n");
+    return false;
+  }
+  uint16_t enb_id = it->second; 
+  std::map<uint16_t,std::set<uint32_t> >::iterator ue_set = m_enb_id_to_ue_ids.find(enb_id);
+  if(ue_set == m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find the eNB's UEs.\n");
+    return false;
+  }
+  ue_set->second.erase(mme_ue_s1ap_id);
+
+  //Delete UE context
+  delete ue_ctx;
+  m_active_ues.erase(ue_ctx_it);
+  m_s1ap_log->info("Deleted UE Context.\n");
+
+  return true;
+}
 
 enb_ctx_t*
 s1ap::find_enb_ctx(uint16_t enb_id)

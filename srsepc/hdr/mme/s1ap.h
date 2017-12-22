@@ -43,6 +43,7 @@
 #include "mme/s1ap_common.h"
 #include "mme/s1ap_mngmt_proc.h"
 #include "mme/s1ap_nas_transport.h"
+#include "mme/s1ap_ctx_mngmt_proc.h"
 #include "mme/mme_gtpc.h"
 #include "hss/hss.h"
 
@@ -84,6 +85,7 @@ public:
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
   ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
   void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
+  bool delete_ue_ctx(ue_ctx_t *ue_ctx);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
@@ -107,6 +109,7 @@ private:
 
   s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
   s1ap_nas_transport*             m_s1ap_nas_transport;
+  s1ap_ctx_mngmt_proc*             m_s1ap_ctx_mngmt_proc;
 
   //FIXME the GTP-C should be moved to the MME class, the the packaging of GTP-C messages is done.
   mme_gtpc *m_mme_gtpc;
