@@ -69,6 +69,8 @@ static bool _rf_faux_logStdout = true;
 
 #define RF_FAUX_BOOL_TO_STR(x) (x) ? "yes" : "no"
 
+#define RF_FAUX_NORM_DIFF(x, y)  abs((x) + (~(y) + 1))
+
 // socket port nums
 #define RF_FAUX_DL_PORT 43001
 #define RF_FAUX_UL_PORT 43002
@@ -76,10 +78,7 @@ static bool _rf_faux_logStdout = true;
 
 // zmq pub/sub info
 #define RF_FAUX_DL_TOPIC      "FAUX.DNLINK"
-#define RF_FAUX_DL_TOPIC_LEN  (strlen(RF_FAUX_DL_TOPIC))
-
 #define RF_FAUX_UL_TOPIC      "FAUX.UPLINK"
-#define RF_FAUX_UL_TOPIC_LEN  (strlen(RF_FAUX_UL_TOPIC))
 
 // bytes per sample
 #define BYTES_X_SAMPLE(x) ((x)*sizeof(cf_t))
@@ -91,14 +90,10 @@ static bool _rf_faux_logStdout = true;
 #define RF_FAUX_OTA_SRATE (5760000.0)
 
 // max sf len
-#define RF_FAUX_SF_LEN 0x4000
+#define RF_FAUX_SF_LEN 0x2000
 
 // tx offset enable
 #define RF_FAUX_TX_DELAY_ENABLE  1
-
-// block -1 or wait in msec
-#define RF_FAUX_UE_RX_WAIT_TIME   -1
-#define RF_FAUX_ENB_RX_WAIT_TIME  0 
 
 // normalize sf req len for pkt i/o
 #define RF_FAUX_NORM_SF_LEN(x) (((x) = ((x)/10)*10))
@@ -109,7 +104,7 @@ static bool _rf_faux_logStdout = true;
 #define RF_FAUX_NTYPE_ENB    2
 
 // tx offset (delay) workers
-#define RF_FAUX_NOF_TX_WORKERS 10
+#define RF_FAUX_NOF_TX_WORKERS 25
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
 
@@ -124,6 +119,7 @@ typedef struct {
   int    flags;
   bool   is_sob;
   bool   is_eob;
+  uint32_t tti_tx;
 } _rf_faux_tx_info_t;
 
 
@@ -153,6 +149,10 @@ typedef struct {
    void *               zmqctx;
    void *               tx_handle;
    void *               rx_handle;
+   int                  rx_fd;
+   int                  rx_timeout;
+   int                  rx_tries;
+   int                  topic_len;
    int64_t              tx_seq;
    int64_t              rx_seq;
    bool                 in_rx;
@@ -208,6 +208,10 @@ static  _rf_faux_info_t _rf_faux_info = { .dev_name        = "faux",
                                           .zmqctx          = NULL,
                                           .tx_handle       = NULL,
                                           .rx_handle       = NULL,
+                                          .rx_timeout      = -1,
+                                          .rx_tries        = 1,
+                                          .topic_len       = 0,
+                                          .rx_fd           = -1,
                                           .tx_seq          = 1,
                                           .rx_seq          = 0,
                                           .in_rx           = false,
@@ -376,9 +380,9 @@ void _rf_faux_tx_msg(_rf_faux_tx_info_t * tx_info)
 
    const int nb_out = BYTES_X_SAMPLE(ns_out);
 
-   RF_FAUX_DEBUG("tti/tti_tx %u/%u, in %u/%d, seqnum %ld, sob %s, eob %s, srate %4.2lf MHz, out %d/%d", 
+   RF_FAUX_DEBUG("my_tti %u, m_tti %u, in %u/%d, seqnum %ld, sob %s, eob %s, srate %4.2lf MHz, out %d/%d", 
                  g_tti,
-                 g_tti_tx,
+                 tx_info->tti_tx,
                  tx_info->nsamples,
                  nb_in,
                  _info->tx_seq,
@@ -429,7 +433,7 @@ txout:
 
 
 
-static void * _rf_faux_tx_worker(void * arg)
+static void * _rf_faux_tx_worker_proc(void * arg)
 {
    _rf_faux_tx_worker_t * worker = (_rf_faux_tx_worker_t*) arg;
 
@@ -445,7 +449,10 @@ static void * _rf_faux_tx_worker(void * arg)
      {
        sem_wait(&(worker->sem));
 
-       pthread_mutex_lock(&(_info->tx_workers_lock));
+       if(! worker->tx_info)
+        {
+          RF_FAUX_DEBUG("worker %d, not tx info", worker->id);
+        }
 
        gettimeofday(&tv_now, NULL);
 
@@ -453,10 +460,9 @@ static void * _rf_faux_tx_worker(void * arg)
 
        if(RF_FAUX_TX_DELAY_ENABLE)
          {
-           RF_FAUX_DEBUG("worker %d, tti/tti_tx %u/%u, apply tx_delay %ld:%06ld", 
+           RF_FAUX_DEBUG("worker %d, my_tti %u, apply tx_delay %ld:%06ld", 
                          worker->id,
                          g_tti,
-                         g_tti_tx,
                          tx_delay.tv_sec,
                          tx_delay.tv_usec);
 
@@ -464,26 +470,33 @@ static void * _rf_faux_tx_worker(void * arg)
          }
        else
          {
-           RF_FAUX_DEBUG("worker %d, tti/tti_tx %u/%u, skip tx_delay %ld:%06ld", 
+           RF_FAUX_DEBUG("worker %d, my_tx %u, skip tx_delay %ld:%06ld", 
                           worker->id, 
                           g_tti,
-                          g_tti_tx,
                           tx_delay.tv_sec,
                           tx_delay.tv_usec);
          }
 
-       RF_FAUX_DEBUG("worker %d, fire", worker->id);
+        int n_diff = RF_FAUX_NORM_DIFF(g_tti, worker->tx_info->tti_tx);
 
-       _rf_faux_tx_msg(worker->tx_info);
+        RF_FAUX_DEBUG("TX worker %d, fire, my/tx/diff_tti %u/%u/%d", 
+                      worker->id, 
+                      g_tti, 
+                      worker->tx_info->tti_tx,
+                      n_diff);
 
-       _info->nof_tx_workers -= 1;
+        _rf_faux_tx_msg(worker->tx_info);
 
-       free(worker->tx_info);
+        pthread_mutex_lock(&(_info->tx_workers_lock));
 
-       worker->tx_info = NULL;
+        _info->nof_tx_workers -= 1;
 
-       pthread_mutex_unlock(&(_info->tx_workers_lock));
-    }
+        free(worker->tx_info);
+
+        worker->tx_info = NULL;
+
+        pthread_mutex_unlock(&(_info->tx_workers_lock));
+     }
 
    return NULL;
 }
@@ -535,9 +548,19 @@ static int _rf_faux_open_ipc_pub_sub(_rf_faux_info_t * info,
     }
   else
     {
+      info->topic_len = strlen(topic);
+
       RF_FAUX_DEBUG("SUB subscribing to topic %s", topic);
     }
 
+  size_t optsize = sizeof(info->rx_fd);
+
+  if(zmq_getsockopt(info->rx_handle, ZMQ_FD, &(info->rx_fd), &optsize) < 0)
+    {
+      RF_FAUX_DEBUG("SUB get sock fd error %s %s", topic, strerror(errno));
+  
+      return -1;
+    }
 
   if((info->tx_handle = zmq_socket(info->zmqctx, ZMQ_PUB)) == NULL)
     {
@@ -557,19 +580,19 @@ static int _rf_faux_open_ipc_pub_sub(_rf_faux_info_t * info,
      return -1;
    }
 
-  // timeout block ue,
-  const int timeout = _rf_faux_is_ue(info)    ? 
-                      RF_FAUX_UE_RX_WAIT_TIME : 
-                      RF_FAUX_ENB_RX_WAIT_TIME;
+  info->rx_tries = _rf_faux_is_ue(info) ? 10 : 1;
 
-  if(zmq_setsockopt(info->rx_handle, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) < 0)
+  // timeout block ue, no block enb
+  info->rx_timeout = _rf_faux_is_ue(info) ? -1 : 0;
+
+  if(zmq_setsockopt(info->rx_handle, ZMQ_RCVTIMEO, &(info->rx_timeout), sizeof(info->rx_timeout)) < 0)
     {
-      RF_FAUX_DEBUG("SUB set rcv timoeout %d error %s", timeout, strerror(errno));
+      RF_FAUX_DEBUG("SUB set rcv timoeout %d error %s", info->rx_timeout, strerror(errno));
 
       return -1;
     }
 
-  RF_FAUX_DEBUG("SUB set rcv timoeout to %d msec", timeout);
+  RF_FAUX_DEBUG("SUB set rcv timoeout to %d msec", info->rx_timeout);
  
   return 0;
 }
@@ -733,7 +756,7 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
 
    for(int id = 0; id < RF_FAUX_NOF_TX_WORKERS; ++id)
      {
-       _rf_faux_tx_worker_t * worker =  &_rf_faux_info.tx_workers[id];
+       _rf_faux_tx_worker_t * worker =  &(_rf_faux_info.tx_workers[id]);
 
        if(sem_init(&(worker->sem), 0, 0) < 0)
          {
@@ -748,7 +771,7 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
 
        if(pthread_create(&(worker->tid), 
                          NULL, 
-                         _rf_faux_tx_worker, 
+                         _rf_faux_tx_worker_proc, 
                          worker) < 0)
         {
            RF_FAUX_DEBUG("could not create tx_worker thread %s", strerror(errno));
@@ -922,17 +945,11 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    int ns_pending = nsamples;
 
-   const int topic_len = _rf_faux_is_ue(_info) ?
-                         RF_FAUX_DL_TOPIC_LEN  :
-                         RF_FAUX_UL_TOPIC_LEN;
-
-   char topic[topic_len + 1];
+   char topic[_info->topic_len + 1];
 
    const int flags = blocking ? 0 : ZMQ_NOBLOCK;
 
    _rf_faux_iohdr_t hdr;
-
-   int max_tries = _rf_faux_is_ue(_info) ? 10 : 1;
 
    int n_tries = 0;
 
@@ -940,8 +957,8 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    struct timeval rx_time, rx_delay;
 
-   RF_FAUX_DEBUG("begin try 1 of %d, tti %u, req %u/%d, blocking %s, streaming %s",
-                  max_tries,
+   RF_FAUX_DEBUG("begin try 1 of %d, my_tti %u, req %u/%d, blocking %s, streaming %s",
+                  _info->rx_tries,
                   g_tti,
                   nsamples,
                   nb_req,
@@ -953,15 +970,30 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
    // crude way to read 1 sf
    const int nb_sf = BYTES_X_SAMPLE(RF_FAUX_OTA_SRATE / 1000);
 
-   while(nb_pending > 0 && (n_tries++ < max_tries))
+   if(_info->rx_timeout == 0)
+     {
+       fd_set fds;
+
+       FD_ZERO(&fds);
+       FD_SET(_info->rx_fd, &fds);
+
+       struct timeval tv_wait = {0, 250};
+
+       if(select(_info->rx_fd + 1, &fds, NULL, NULL, &tv_wait) > 0)
+        {
+          RF_FAUX_DEBUG("wokeup");
+        }
+     }
+
+   while(nb_pending > 0 && (n_tries++ < _info->rx_tries))
      {   
        cf_t sf_in [RF_FAUX_SF_LEN] = {0.0, 0.0};
 
        memset(topic, 0x0, sizeof(topic));
 
-       _rf_faux_iomsg_t iom[3] = {{(void*)topic, topic_len,    0}, 
-                                  {(void*)&hdr,   sizeof(hdr), 0},
-                                  {(void*)sf_in,  nb_sf,       0}};
+       _rf_faux_iomsg_t iom[3] = {{(void*)topic, _info->topic_len, 0}, 
+                                  {(void*)&hdr,   sizeof(hdr),     0},
+                                  {(void*)sf_in,  nb_sf,           0}};
 
        const int rc = _rf_faux_vecio_recv(iom, 3, _info, flags);
 
@@ -974,19 +1006,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
           if(errno != EAGAIN)
             {
               RF_FAUX_DEBUG("recv error %s", strerror(errno));
-            }
-
-          struct timeval tv_now;
-
-          gettimeofday(&tv_now, NULL);
-
-          timersub(&tv_now, &tv_in, &tv_diff);
-
-          time_t us = 950 - tv_diff.tv_usec + tv_diff.tv_sec * 1e6;;
-
-          if(us > 0)
-            {
-              usleep(us);
+          
             }
 
           goto rxout;
@@ -1020,22 +1040,23 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
             _info->rx_seq = hdr.seqnum;
 
-            RF_FAUX_DEBUG("recv %d/%d, my/hdr_tti %u/%u, tx_time :%06ld, rx_delay %ld:%06ld, seqnum %ld, srate %4.2lf MHz, added %d/%d, pending %d/%d, try %d/%d",
-                          ns_in, 
-                          nb_recv,
+            int n_diff = RF_FAUX_NORM_DIFF(g_tti, hdr.tx_tti);
+
+            RF_FAUX_DEBUG("RX my/rx/diff_tti %u/%u/%d, %d/%d, rx_delay %ld:%06ld, seqnum %ld, added %d/%d, pending %d/%d, try %d/%d",
                           g_tti,
                           hdr.tx_tti,
-                          hdr.tx_time.tv_usec,
+                          n_diff,
+                          ns_in, 
+                          nb_recv,
                           rx_delay.tv_sec,
                           rx_delay.tv_usec,
                           hdr.seqnum,
-                          hdr.srate / 1e6,
                           ns_out,
                           nb_out,
                           ns_pending,
                           nb_pending,
                           n_tries,
-                          max_tries);
+                          _info->rx_tries);
           }
        }
     }
@@ -1105,7 +1126,22 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    pthread_mutex_lock(&(_info->tx_workers_lock));
 
+   if(_info->nof_tx_workers >= RF_FAUX_NOF_TX_WORKERS)
+     {
+       RF_FAUX_DEBUG("FAILED worker pool full %d", RF_FAUX_NOF_TX_WORKERS);
+
+       return 0;
+     }
+
    _rf_faux_tx_info_t * e = malloc(sizeof(_rf_faux_tx_info_t));
+
+   if(e == NULL)
+     {
+       RF_FAUX_DEBUG("FAILED to allocate memory for worker");
+
+       return 0;
+     }
+
 
    if(has_time_spec)
      {
@@ -1123,18 +1159,25 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
    e->flags    = blocking ? 0 : ZMQ_NOBLOCK;
    e->is_sob   = is_sob;
    e->is_eob   = is_eob;
+   e->tti_tx   = g_tti_tx;
 
    // get worker
-   _rf_faux_tx_worker_t * worker = &(_info->tx_workers[_info->tx_worker_next]);
+   _rf_faux_tx_worker_t * worker;
 
+
+   while((worker = &(_info->tx_workers[_info->tx_worker_next]))->tx_info)
+    {
+      RF_FAUX_SET_NEXT_WORKER(_info->tx_worker_next);
+    }
    worker->tx_info = e;
 
    _info->nof_tx_workers += 1;
  
    RF_FAUX_SET_NEXT_WORKER(_info->tx_worker_next);
 
-   RF_FAUX_DEBUG("add tx_worker %d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
+   RF_FAUX_DEBUG("add tx_worker %d, next %d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
                   worker->id,
+                  _info->tx_worker_next,
                   RF_FAUX_BOOL_TO_STR(has_time_spec),
                   full_secs,
                   frac_secs,
