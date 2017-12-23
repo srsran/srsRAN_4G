@@ -373,5 +373,7 @@ else(RF_FOUND)
   message(STATUS "srsUE and srsENB builds disabled due to missing RF driver")
 endif(RF_FOUND)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DRF_FAUX")
+
 add_subdirectory(fauxsrsue)
 add_subdirectory(fauxsrsenb)
