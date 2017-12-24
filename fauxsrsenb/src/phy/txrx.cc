@@ -39,8 +39,9 @@
 
 using namespace std; 
 
-extern uint32_t  g_tti;
-extern uint32_t  g_tti_tx;
+extern uint32_t       g_tti;
+extern uint32_t       g_tti_tx;
+extern struct timeval g_tv_next;
 
 namespace srsenb {
 
@@ -107,7 +108,7 @@ void txrx::run_thread()
   // Set TTI so that first TX is at tti=0
   tti = 10235; 
    
-  struct timeval tv_in, tv_out, tv_diff, tv_start, tv_next, tv_step = {0, 1000}, tv_0 = {0, 0};
+  struct timeval tv_in, tv_out, tv_diff, tv_start, tv_step = {0, 1000}, tv_0 = {0, 0};
 
   threads_print_self();
 
@@ -119,7 +120,7 @@ void txrx::run_thread()
   tv_start.tv_sec += 1; 
   tv_start.tv_usec = 0;
 
-  tv_next = tv_start;
+  g_tv_next = tv_start;
  
   I_TRACE("tti %u, time_0 %ld:%06ld", tti, tv_start.tv_sec, tv_start.tv_usec);
 
@@ -127,6 +128,8 @@ void txrx::run_thread()
   printf("Type <t> to view trace\n");
   // Main loop
   while (running) {
+    timeradd(&g_tv_next, &tv_step, &g_tv_next);
+
     gettimeofday(&tv_in, NULL);
 
     tti = (tti+1)%10240;        
@@ -162,9 +165,7 @@ void txrx::run_thread()
       
       gettimeofday(&tv_out, NULL);
 
-      timeradd(&tv_next, &tv_step, &tv_next);
-
-      timersub(&tv_next, &tv_out, &tv_diff);
+      timersub(&g_tv_next, &tv_out, &tv_diff);
 
       I_TRACE("time_out %ld:%06ld, delta_t_next %ld:%06ld",
                   tv_out.tv_sec,
@@ -172,12 +173,10 @@ void txrx::run_thread()
                   tv_diff.tv_sec,
                   tv_diff.tv_usec);
 
-
       if(!timercmp(&tv_diff, &tv_0, <))
         {
           select(0, NULL, NULL, NULL, &tv_diff);
         }
-
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
       running = false; 
