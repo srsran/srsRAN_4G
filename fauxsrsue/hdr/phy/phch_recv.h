@@ -134,6 +134,20 @@ private:
     CELL_CAMP
   } phy_state;
 
+  inline const char * phy_state_to_string(int state)
+   {
+     switch(state)
+      {
+       case IDLE:           return "idle";
+       case CELL_SEARCH:    return "cell_search";
+       case CELL_SELECT:    return "cell_select";
+       case CELL_RESELECT:  return "cell_reselect";
+       case CELL_MEASURE:   return "cell_measure";
+       case CELL_CAMP:      return "cell_camp";
+      }
+      return "unknown";
+   }
+
   bool is_in_idle;
 
   enum {

@@ -79,7 +79,6 @@ FILE *f;
 
 void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   phy   = phy_; 
   log_h = log_h_; 
   
@@ -146,7 +145,6 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
 
 void phch_worker::stop()
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   running = false;
   pthread_mutex_lock(&mutex);
 
@@ -163,14 +161,12 @@ void phch_worker::stop()
 }
 void phch_worker::reset() 
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   initiated  = false; 
   ue_db.clear();
 }
 
 cf_t* phch_worker::get_buffer_rx()
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   return signal_buffer_rx;
 }
 
@@ -185,8 +181,8 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timesta
   tx_mutex_cnt = tx_mutex_cnt_;
   memcpy(&tx_time, &tx_time_, sizeof(srslte_timestamp_t));
 
-  I_TRACE("PHCHWORKER: n_mtx %u, tx_time %lf, tti_rx/tx %u/%u, tti/sf_sched_ul %u/%u, sf_rx/tx %u/%u",
-          tx_mutex_cnt_,
+  I_TRACE("tx_time %ld:%lf, tti_rx/tx %u/%u, tti/sf_sched_ul %u/%u, sf_rx/tx %u/%u",
+          tx_time_.full_secs,
           tx_time_.frac_secs,
           tti_rx,
           tti_tx,
@@ -198,7 +194,7 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timesta
 
 int phch_worker::add_rnti(uint16_t rnti)
 {
-  X_TRACE("PHCHWORKER: rnti %hu", rnti);
+  I_TRACE("rnti %hu", rnti);
 
   if (srslte_faux_enb_dl_add_rnti(&enb_dl, rnti)) {
     return -1; 
@@ -215,7 +211,7 @@ int phch_worker::add_rnti(uint16_t rnti)
 }
 
 uint32_t phch_worker::get_nof_rnti() {
-  X_TRACE("PHCHWORKER: %zu", ue_db.size());
+  I_TRACE("%zu", ue_db.size());
 
   return ue_db.size();
 }
@@ -226,7 +222,7 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
                                        srslte_refsignal_srs_cfg_t *srs_cfg, 
                                        uint32_t I_sr, bool pucch_cqi, uint32_t pmi_idx, bool pucch_cqi_ack)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
+  I_TRACE("rnti %hu", rnti);
 
   pthread_mutex_lock(&mutex); 
   if (ue_db.count(rnti)) {
@@ -253,7 +249,7 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
 
 void phch_worker::rem_rnti(uint16_t rnti)
 {
-  X_TRACE("PHCHWORKER: %hu", rnti);
+  I_TRACE("rnti %hu", rnti);
 
   pthread_mutex_lock(&mutex); 
   if (ue_db.count(rnti)) {
@@ -283,7 +279,6 @@ void phch_worker::rem_rnti(uint16_t rnti)
 
 void phch_worker::work_imp()
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   uint32_t sf_ack;
 
   if (!running) {
@@ -297,10 +292,7 @@ void phch_worker::work_imp()
   mac_interface_faux_phy *mac = phy->mac; 
   
   log_h->step(tti_rx);
-  
-  Debug("Worker %d running tti_rx/tx %u/%u, sf_rx/tx %u/%u\n", 
-        get_id(), tti_rx, tti_tx, sf_rx, sf_tx);
-  
+ 
   for(std::map<uint16_t, ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     uint16_t rnti = (uint16_t) iter->first;
     ue_db[rnti].has_grant_tti = -1; 
@@ -357,7 +349,10 @@ void phch_worker::work_imp()
   
   // Generate signal and transmit
   srslte_faux_enb_dl_gen_signal(&enb_dl, signal_buffer_tx);  
-  Debug("Sending to radio\n");
+
+  I_TRACE("Worker %d send, tti_rx/tx %u/%u, sf_rx/tx %u/%u", 
+          get_id(), tti_rx, tti_tx, sf_rx, sf_tx);
+ 
   phy->worker_end(tx_mutex_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
 
 #ifdef DEBUG_WRITE_FILE
@@ -380,14 +375,12 @@ void phch_worker::work_imp()
 
 unlock:
   pthread_mutex_unlock(&mutex); 
-
-  X_TRACE("PHCHWORKER:BEGIN");
 }
 
 
 int phch_worker::decode_faux_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti)
 {
-  X_TRACE("PHCHWORKER: nof_pusch %u, tti %u", nof_pusch, tti);
+  I_TRACE("nof_pusch %u, tti %u", nof_pusch, tti);
 
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
@@ -527,7 +520,7 @@ int phch_worker::decode_faux_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t 
 
 int phch_worker::decode_faux_pucch(uint32_t tti_rx)
 {
-  X_TRACE("PHCHWORKER: tti_rx %u", tti_rx);
+  I_TRACE("tti_rx %u", tti_rx);
 
   uint32_t sf_rx = tti_rx%10;
   srslte_uci_data_t uci_data; 
@@ -608,7 +601,7 @@ int phch_worker::decode_faux_pucch(uint32_t tti_rx)
 
 int phch_worker::encode_faux_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
 {
-  X_TRACE("PHCHWORKER: acks %u, sf_idx %u", nof_acks, sf_idx);
+  I_TRACE("acks %u, sf_idx %u", nof_acks, sf_idx);
 
   for (uint32_t i=0;i<nof_acks;i++) {
     uint16_t rnti = acks[i].rnti;
@@ -630,7 +623,7 @@ int phch_worker::encode_faux_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t no
 
 int phch_worker::encode_faux_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("PHCHWORKER: grants %u, sf_idx %u", nof_grants, sf_idx);
+  I_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
 
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
@@ -649,7 +642,7 @@ int phch_worker::encode_faux_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32
 
 int phch_worker::encode_faux_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("PHCHWORKER: grants %u, sf_idx %u", nof_grants, sf_idx);
+  I_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
 
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
@@ -680,7 +673,7 @@ int phch_worker::encode_faux_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32
 
 int phch_worker::encode_faux_pdsch(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("PHCHWORKER: grants %u, sf_idx %u", nof_grants, sf_idx);
+  I_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
 
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
@@ -744,7 +737,6 @@ int phch_worker::encode_faux_pdsch(srslte_faux_enb_dl_pdsch_t *grants, uint32_t 
 /************ METRICS interface ********************/
 uint32_t phch_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   uint32_t cnt=0;
   for(std::map<uint16_t, ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     ue *u = (ue*) &iter->second;
@@ -759,14 +751,12 @@ uint32_t phch_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 void phch_worker::ue::metrics_read(phy_metrics_t* metrics_)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   memcpy(metrics_, &metrics, sizeof(phy_metrics_t));
   bzero(&metrics, sizeof(phy_metrics_t));
 }
 
 void phch_worker::ue::metrics_dl(uint32_t mcs)
 {
-  X_TRACE("PHCHWORKER:BEGIN");
   metrics.dl.mcs = SRSLTE_VEC_CMA(mcs, metrics.dl.mcs, metrics.dl.n_samples);
   metrics.dl.n_samples++;
 }

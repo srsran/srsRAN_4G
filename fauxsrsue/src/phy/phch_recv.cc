@@ -38,7 +38,6 @@
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
 extern uint32_t  g_tti;
-extern uint32_t  g_tti_tx;
 
 namespace srsue {
 
@@ -649,7 +648,14 @@ void phch_recv::run_thread() {
   struct timeval tv_in, tv_out, tv_diff;
 
   while (running) {
-    X_TRACE("PHCHRX:BEGIN");
+    gettimeofday(&tv_in, NULL);
+
+    I_TRACE("tti %u, time_in %ld:%06ld, state %s", 
+            tti,
+            tv_in.tv_sec,
+            tv_in.tv_usec,
+            phy_state_to_string(phy_state));
+
     if (phy_state != IDLE) {
       is_in_idle = false;
       Debug("SYNC:  state=%d\n", phy_state);
@@ -729,14 +735,8 @@ void phch_recv::run_thread() {
         }
         break;
       case CELL_CAMP:
-        gettimeofday(&tv_in, NULL);
 
-        tti = (tti+1) % 10240;
-
-        g_tti    = tti;
-        g_tti_tx = (tti+4)%10240; 
-
-        I_TRACE("tti %u, time_in %ld:%06ld", tti, tv_in.tv_sec, tv_in.tv_usec);
+        g_tti = tti = (tti+1) % 10240;
 
         worker = (phch_worker *) workers_pool->wait_worker(tti);
         if (worker) {
@@ -797,15 +797,6 @@ void phch_recv::run_thread() {
           // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
           running = false;
         }
-        gettimeofday(&tv_out, NULL);
-
-        timersub(&tv_out, &tv_in, &tv_diff);
-
-        I_TRACE("time_out %ld:%06ld, delta_t %ld:%06ld",
-                tv_out.tv_sec,
-                tv_out.tv_usec,
-                tv_diff.tv_sec,
-                tv_diff.tv_usec);
         break;
       case IDLE:
         if (!is_in_idle) {
@@ -814,14 +805,22 @@ void phch_recv::run_thread() {
         is_in_idle = true;
         usleep(1000);
         // Keep running MAC timer from system clock
-        tti = (tti+1) % 10240;
-
-        g_tti    = tti;
-        g_tti_tx = 0;
+        g_tti = tti = (tti+1) % 10240;
 
         mac->tti_clock(tti);
         break;
     }
+    gettimeofday(&tv_out, NULL);
+
+    timersub(&tv_out, &tv_in, &tv_diff);
+
+    I_TRACE("tti %d, time_out %ld:%06ld, delta_t %ld:%06ld, state %s",
+            tti,
+            tv_out.tv_sec,
+            tv_out.tv_usec,
+            tv_diff.tv_sec,
+            tv_diff.tv_usec,
+            phy_state_to_string(phy_state));
   }
 }
 

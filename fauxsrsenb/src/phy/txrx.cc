@@ -40,7 +40,6 @@
 using namespace std; 
 
 extern uint32_t       g_tti;
-extern uint32_t       g_tti_tx;
 extern struct timeval g_tv_next;
 
 namespace srsenb {
@@ -108,7 +107,7 @@ void txrx::run_thread()
   // Set TTI so that first TX is at tti=0
   tti = 10235; 
    
-  struct timeval tv_in, tv_out, tv_diff, tv_start, tv_step = {0, 1000}, tv_0 = {0, 0};
+  struct timeval tv_in, tv_out, tv_diff, tv_start, tv_step = {0, 1000}, tv_zero = {0, 0};
 
   threads_print_self();
 
@@ -132,12 +131,10 @@ void txrx::run_thread()
 
     gettimeofday(&tv_in, NULL);
 
-    tti = (tti+1)%10240;        
+    g_tti = tti = (tti+1)%10240;        
 
-    g_tti    = tti;
-    g_tti_tx = (tti+4)%10240; 
-
-    I_TRACE("tti %u, time_in %ld:%06ld", tti, tv_in.tv_sec, tv_in.tv_usec);
+    I_TRACE("----------------- tti %u, time_in %ld:%06ld ---------------------", 
+            tti, tv_in.tv_sec, tv_in.tv_usec);
 
     worker = (phch_worker*) workers_pool->wait_worker(tti);
     if (worker) {          
@@ -148,11 +145,6 @@ void txrx::run_thread()
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);
       srslte_timestamp_add(&tx_time, 0, 4e-3);
-      
-      Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
-            tti, tx_mutex_cnt, 
-            tx_time.full_secs, tx_time.frac_secs,
-            worker->get_id());
       
       worker->set_time(tti, tx_mutex_cnt, tx_time);
       tx_mutex_cnt = (tx_mutex_cnt+1)%nof_tx_mutex;
@@ -167,13 +159,14 @@ void txrx::run_thread()
 
       timersub(&g_tv_next, &tv_out, &tv_diff);
 
-      I_TRACE("time_out %ld:%06ld, delta_t_next %ld:%06ld",
-                  tv_out.tv_sec,
-                  tv_out.tv_usec,
-                  tv_diff.tv_sec,
-                  tv_diff.tv_usec);
+      I_TRACE("tti %u, time_out %ld:%06ld, delta_t_next %ld:%06ld",
+              tti,
+              tv_out.tv_sec,
+              tv_out.tv_usec,
+              tv_diff.tv_sec,
+              tv_diff.tv_usec);
 
-      if(!timercmp(&tv_diff, &tv_0, <))
+      if(timercmp(&tv_diff, &tv_zero, >))
         {
           select(0, NULL, NULL, NULL, &tv_diff);
         }
