@@ -45,10 +45,11 @@
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/resampling/resample_arb.h"
 
-static bool _rf_faux_logStdout = true;
+static bool _rf_faux_log_debug = true;
+static bool _rf_faux_loginfo   = true;
 
-#define RF_FAUX_DEBUG(fmt, ...) do {                                                               \
-                                 if(_rf_faux_logStdout) {                                          \
+#define RF_FAUX_DBUG(fmt, ...) do {                                                                \
+                                 if(_rf_faux_log_debug) {                                          \
                                    struct timeval _tv_now;                                         \
                                    struct tm _tm;                                                  \
                                    gettimeofday(&_tv_now, NULL);                                   \
@@ -62,6 +63,23 @@ static bool _rf_faux_logStdout = true;
                                            ##__VA_ARGS__);                                         \
                                  }                                                                 \
                              } while(0);
+
+#define RF_FAUX_INFO(fmt, ...) do {                                                                \
+                                 if(_rf_faux_loginfo) {                                            \
+                                   struct timeval _tv_now;                                         \
+                                   struct tm _tm;                                                  \
+                                   gettimeofday(&_tv_now, NULL);                                   \
+                                   localtime_r(&_tv_now.tv_sec, &_tm);                             \
+                                   fprintf(stdout, "[DEBUG]: %02d.%02d.%02d.%06ld %s, " fmt "\n",  \
+                                           _tm.tm_hour,                                            \
+                                           _tm.tm_min,                                             \
+                                           _tm.tm_sec,                                             \
+                                           _tv_now.tv_usec,                                        \
+                                           __func__,                                               \
+                                           ##__VA_ARGS__);                                         \
+                                 }                                                                 \
+                             } while(0);
+
 
 #define RF_FAUX_LOG_FUNC_TODO printf("XXX_TODO file:%s func:%s line:%d\n", \
                                      __FILE__,                             \
@@ -78,7 +96,7 @@ static bool _rf_faux_logStdout = true;
 
 #define RF_FAUX_MC_ADDR "224.4.3.2"
 #define RF_FAUX_MC_DEV  "lo"
-
+#define RF_FAUX_SOCK_BUFF_SIZE (2 * 1024 * 1024)
 // bytes per sample
 #define BYTES_X_SAMPLE(x) ((x)*sizeof(cf_t))
 
@@ -173,12 +191,12 @@ typedef struct {
 
 static void _rf_faux_handle_error(srslte_rf_error_t error)
 {
-  RF_FAUX_DEBUG("%s:%s type %s, opt %d, msg %s\b", 
+  RF_FAUX_INFO("%s:%s type %s, opt %d, msg %s\b", 
                 error.type == SRSLTE_RF_ERROR_LATE      ? "late"      :
                 error.type == SRSLTE_RF_ERROR_UNDERFLOW ? "underflow" :
                 error.type == SRSLTE_RF_ERROR_OVERFLOW  ? "overflow"  :
                 error.type == SRSLTE_RF_ERROR_OTHER     ? "other"     :
-                "unknown error");
+                "unknown ERROR");
 }
 
 
@@ -254,7 +272,7 @@ static int _rf_faux_resample(double srate_in,
      memcpy(out, in, BYTES_X_SAMPLE(ns_in));
    }
 
-  RF_FAUX_DEBUG("srate %4.2lf/%4.2lf MHz, sratio %3.3lf, ns_in %d, ns_out %d",
+  RF_FAUX_DBUG("srate %4.2lf/%4.2lf MHz, sratio %3.3lf, ns_in %d, ns_out %d",
                 srate_in  / 1e6,
                 srate_out / 1e6,
                 sratio, 
@@ -305,7 +323,7 @@ static int _rf_faux_vecio_recv(void *h, struct iovec iov[2])
 
        if(timercmp(&tv_timeout, &tv_zero, >))
          {
-           RF_FAUX_DEBUG("RX waiting %ld:%06ld", delta_t.tv_sec, delta_t.tv_usec);
+           RF_FAUX_DBUG("RX waiting %ld:%06ld", delta_t.tv_sec, delta_t.tv_usec);
 
            if(select(_info->rx_handle + 1, &rfds, NULL, NULL, &delta_t) <= 0 ||
                     (! FD_ISSET(_info->rx_handle, &rfds)))
@@ -319,11 +337,11 @@ static int _rf_faux_vecio_recv(void *h, struct iovec iov[2])
 
    if(rc <= 0)
      {
-       RF_FAUX_DEBUG("RX reqlen %d, error %s", nb_req, strerror(errno));
+       RF_FAUX_INFO("RX reqlen %d, ERROR %s", nb_req, strerror(errno));
      }
    else
      { 
-       RF_FAUX_DEBUG("RX ****** %d of %d ******", rc, nb_req);
+       RF_FAUX_DBUG("RX ****** %d of %d ******", rc, nb_req);
      }
 
    return rc;
@@ -340,11 +358,11 @@ static int _rf_faux_vecio_send(void *h, struct iovec iov[2])
 
    if(rc < 0)
      {
-       RF_FAUX_DEBUG("send error %s", strerror(errno));
+       RF_FAUX_INFO("send ERROR %s", strerror(errno));
      }
    else
      {
-       RF_FAUX_DEBUG("sent %d of %d", rc, nb_req);
+       RF_FAUX_DBUG("sent %d of %d", rc, nb_req);
      }
 
   return rc;
@@ -385,11 +403,11 @@ void _rf_faux_tx_msg(_rf_faux_tx_info_t * tx_info, uint64_t seqn)
 
    if(rc <= 0)
      {
-       RF_FAUX_DEBUG("send reqlen %d, error %s", nb_out, strerror(errno));
+       RF_FAUX_INFO("send reqlen %d, ERROR %s", nb_out, strerror(errno));
      }
    else
      {
-       RF_FAUX_DEBUG("TX my_tti %u, in %u/%d, seqn %lu, sob %s, eob %s, srate %4.2lf MHz, out %d/%d", 
+       RF_FAUX_DBUG("TX my_tti %u, in %u/%d, seqn %lu, sob %s, eob %s, srate %4.2lf MHz, out %d/%d", 
                     g_tti,
                     tx_info->nsamples,
                     nb_in,
@@ -404,15 +422,13 @@ void _rf_faux_tx_msg(_rf_faux_tx_info_t * tx_info, uint64_t seqn)
 
 
 
-
-
 static void * _rf_faux_tx_worker_proc(void * arg)
 {
    _rf_faux_tx_worker_t * tx_worker = (_rf_faux_tx_worker_t*) arg;
 
    GET_FAUX_INFO(tx_worker->h);
 
-   RF_FAUX_DEBUG("tx_worker %d created, ready for duty", tx_worker->id);
+   RF_FAUX_DBUG("tx_worker %d created, ready for duty", tx_worker->id);
 
    struct timeval tv_now, delta_t;
 
@@ -428,7 +444,7 @@ static void * _rf_faux_tx_worker_proc(void * arg)
 
        if(RF_FAUX_TX_DELAY_ENABLE && timercmp(&delta_t, &tv_zero, >))
          {
-           RF_FAUX_DEBUG("tx_worker %d, apply tx_delay %ld:%06ld", 
+           RF_FAUX_DBUG("tx_worker %d, apply tx_delay %ld:%06ld", 
                          tx_worker->id,
                          delta_t.tv_sec,
                          delta_t.tv_usec);
@@ -437,7 +453,7 @@ static void * _rf_faux_tx_worker_proc(void * arg)
          }
        else
          {
-           RF_FAUX_DEBUG("tx_worker %d, skip tx_delay %ld:%06ld", 
+           RF_FAUX_DBUG("tx_worker %d, skip tx_delay %ld:%06ld", 
                           tx_worker->id, 
                           delta_t.tv_sec,
                           delta_t.tv_usec);
@@ -449,7 +465,7 @@ static void * _rf_faux_tx_worker_proc(void * arg)
 
         timersub(&tv_now, &(tx_worker->tx_info->tx_time), &delta_t);
 
-        RF_FAUX_DEBUG("TX my_tti %u, --- fire --- tx_worker %d, tx_overrun %ld:%06ld", 
+        RF_FAUX_INFO("TX my_tti %u, --- fire --- tx_worker %d, tx_overrun %ld:%06ld", 
                       g_tti,
                       tx_worker->id,
                       delta_t.tv_sec,
@@ -471,6 +487,66 @@ static void * _rf_faux_tx_worker_proc(void * arg)
 
 
 
+int _rf_faux_set_sock_nonblock(int fd)
+{
+  // set to tx noblock
+  int flags = fcntl(fd, F_GETFL, 0);
+ 
+  if(flags < 0)
+   {
+     RF_FAUX_INFO("get flags ERROR %s", strerror(errno));
+
+     return -1;
+   } 
+  
+  if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
+    {
+      RF_FAUX_INFO("set flags ERROR %s", strerror(errno));
+
+      return -1;
+    }
+ 
+  return 0;
+}
+
+
+static int _rf_faux_set_sock_buff_size(int fd, const int n_req, const int opt)
+{
+  int len = 0;
+
+  socklen_t optlen = sizeof(len);
+
+  if(getsockopt(fd, SOL_SOCKET, opt, &len, &optlen) < 0) 
+    {
+      RF_FAUX_INFO("get size ERROR %s", strerror(errno));
+
+      return -1;
+    }
+
+  if(len < n_req)
+   {
+     len = n_req;
+
+     if(setsockopt(fd, SOL_SOCKET, opt, &len, sizeof(len)) < 0) 
+       {
+         RF_FAUX_DBUG("set buf size to %d, %s", len, strerror(errno));
+
+         return -1;
+       }
+     else
+       {
+         RF_FAUX_DBUG("reset buf size to %d", len);
+       }
+    }
+   else
+    {
+      RF_FAUX_DBUG("keep curernt buf size %d", len);
+    }
+
+   return len;
+}
+
+
 
 
 static int _rf_faux_open_sock(_rf_faux_info_t * info, 
@@ -478,84 +554,46 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
                              uint16_t txport,
                              const char * mcaddr)
 {
-  int rx_fd, tx_fd;
+  int rx_fd, tx_fd, opt_on = 1;
 
   if((rx_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
-      RF_FAUX_DEBUG("rx sock open error %s", strerror(errno));
-
-      return -1;
-    }
-
-
-  int nbytes = 0;
-
-  socklen_t optlen = sizeof(nbytes);
-
-  if(getsockopt(rx_fd, SOL_SOCKET, SO_RCVBUF, &nbytes, &optlen) < 0) 
-    {
-      RF_FAUX_DEBUG("rx sock get rxbuf size %s", strerror(errno));
-
-      return -1;
-    }
-
-  nbytes *= 10;
-
-  if(setsockopt(rx_fd, SOL_SOCKET, SO_RCVBUF, &nbytes, sizeof(nbytes)) < 0) 
-    {
-      RF_FAUX_DEBUG("rx sock set rxbuf size to %d, %s", nbytes, strerror(errno));
-
-      return -1;
-    }
-  else
-    {
-      RF_FAUX_DEBUG("rx sock set rxbuf size to %d", nbytes);
-    }
-
-
-  const int opt_on = 1;
-
-  if(setsockopt(rx_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &opt_on, sizeof(opt_on)) < 0) 
-    {
-      RF_FAUX_DEBUG("rx sock set resue error %s", strerror(errno));
+      RF_FAUX_INFO("rx sock open ERROR %s", strerror(errno));
 
       return -1;
     }
 
   if((tx_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
-      RF_FAUX_DEBUG("tx sock open error %s", strerror(errno));
+      RF_FAUX_INFO("tx sock open ERROR %s", strerror(errno));
 
       return -1;
     }
 
-  nbytes = 0;
-
-  optlen = sizeof(nbytes);
-
-  if(getsockopt(tx_fd, SOL_SOCKET, SO_SNDBUF, &nbytes, &optlen) < 0) 
+  if(setsockopt(rx_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &opt_on, sizeof(opt_on)) < 0) 
     {
-      RF_FAUX_DEBUG("tx sock get txbuf size %s", strerror(errno));
+      RF_FAUX_INFO("rx sock set resue ERROR %s", strerror(errno));
 
       return -1;
-    }
-
-  nbytes *= 10;
-
-  if(setsockopt(tx_fd, SOL_SOCKET, SO_SNDBUF, &nbytes, sizeof(nbytes)) < 0) 
-    {
-      RF_FAUX_DEBUG("tx sock set txbuf size to %d, %s", nbytes, strerror(errno));
-
-      return -1;
-    }
-  else
-    {
-      RF_FAUX_DEBUG("tx sock set txbuf size to %d", nbytes);
     }
 
   if(setsockopt(tx_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &opt_on, sizeof(opt_on)) < 0) 
     {
-      RF_FAUX_DEBUG("rx sock set resue error %s", strerror(errno));
+      RF_FAUX_INFO("rx sock set resue ERROR %s", strerror(errno));
+
+      return -1;
+    }
+
+  if(_rf_faux_set_sock_buff_size(tx_fd, RF_FAUX_SOCK_BUFF_SIZE, SO_SNDBUF) < 0)
+    {
+      RF_FAUX_INFO("rx sock set rxbuf size ERROR %s", strerror(errno));
+
+      return -1;
+    }
+
+  if(_rf_faux_set_sock_buff_size(rx_fd, RF_FAUX_SOCK_BUFF_SIZE, SO_RCVBUF) < 0)
+    {
+      RF_FAUX_INFO("rx sock set rxbuf size ERROR %s", strerror(errno));
 
       return -1;
     }
@@ -567,7 +605,7 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
 
   if(ioctl(tx_fd, SIOCGIFADDR, &ifr) < 0) 
     {
-      RF_FAUX_DEBUG("tx sock get addr error %s", strerror(errno));
+      RF_FAUX_INFO("tx sock get addr ERROR %s", strerror(errno));
 
       return -1;
     }
@@ -576,7 +614,7 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
 
   if(ioctl(tx_fd, SIOCGIFINDEX, &ifr) < 0)
     {
-      RF_FAUX_DEBUG("tx sock get ifindex error %s", strerror(errno));
+      RF_FAUX_INFO("tx sock get ifindex ERROR %s", strerror(errno));
 
       return -1;
     }
@@ -585,7 +623,7 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
 
   if(setsockopt(tx_fd, SOL_SOCKET, SO_BSDCOMPAT, (char *) &opt_on, sizeof(opt_on)) < 0) 
     {
-      RF_FAUX_DEBUG("rx sock set bsdcompat error %s", strerror(errno));
+      RF_FAUX_INFO("rx sock set bsdcompat ERROR %s", strerror(errno));
 
       return -1;
     }
@@ -596,13 +634,11 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
   sin_rx.sin_port        = htons(rxport);
   sin_rx.sin_addr.s_addr = inet_addr(mcaddr);
 
-
   struct sockaddr_in sin_tx;
   memset(&sin_tx, 0x0, sizeof(sin_tx));
   sin_tx.sin_family      = AF_INET;
   sin_tx.sin_port        = htons(txport);
   sin_tx.sin_addr.s_addr = inet_addr(mcaddr);
-
 
   struct ip_mreq mreq;
   memset(&mreq, 0x0, sizeof(mreq));
@@ -611,33 +647,33 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
 
   if(bind(rx_fd, (struct sockaddr*)&sin_rx, sizeof(sin_rx)) < 0)
     {
-      RF_FAUX_DEBUG("rx sock bind error %s", strerror(errno));
+      RF_FAUX_INFO("rx sock bind ERROR %s", strerror(errno));
 
       return -1;
     }
 
   if(setsockopt(rx_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) 
     {
-      RF_FAUX_DEBUG("rx sock add membership error %s", strerror(errno));
+      RF_FAUX_INFO("rx sock add membership ERROR %s", strerror(errno));
 
       return -1;
     }
   else
     {
-      RF_FAUX_DEBUG("joined group %s port %hu, iface %s", 
+      RF_FAUX_INFO("joined group %s port %hu, iface %s", 
                      inet_ntoa(mreq.imr_multiaddr), rxport, RF_FAUX_MC_DEV);
     }
 
 
   if(connect(tx_fd,(struct sockaddr*)&sin_tx, sizeof(sin_tx)) < 0)
     {
-      RF_FAUX_DEBUG("tx sock connect error %s", strerror(errno));
+      RF_FAUX_INFO("tx sock connect ERROR %s", strerror(errno));
 
       return -1;
     }
   else
     {
-      RF_FAUX_DEBUG("connect to group %s port %hu", 
+      RF_FAUX_INFO("connect to group %s port %hu", 
                      inet_ntoa(mreq.imr_multiaddr), txport);
     }
 
@@ -645,7 +681,7 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
 
   if(setsockopt(tx_fd, IPPROTO_IP, IP_MTU_DISCOVER, &no_df, sizeof(no_df)) < 0) 
    {
-     RF_FAUX_DEBUG("tx sock set mtu opt error %s", strerror(errno));
+     RF_FAUX_INFO("tx sock set mtu opt ERROR %s", strerror(errno));
 
      return -1;
    }
@@ -659,20 +695,19 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
 
   if(setsockopt(tx_fd, SOL_IP, IP_MULTICAST_IF, &mreqn, sizeof(mreqn)) < 0) 
    {
-     RF_FAUX_DEBUG("tx sock set mcif error %s", strerror(errno));
+     RF_FAUX_INFO("tx sock set mcif ERROR %s", strerror(errno));
 
      return -1; 
    }
 
-  // set to tx noblock
-  int flags = fcntl(tx_fd, F_GETFL, 0);
+  if(_rf_faux_set_sock_nonblock(tx_fd) < 0)
+    {
+      RF_FAUX_INFO("tx sock set non block ERROR %s", strerror(errno));
 
-  fcntl(tx_fd, F_SETFL, flags | O_NONBLOCK);
+      return -1; 
+    }
 
-  info->tx_handle = tx_fd;
-  info->rx_handle = rx_fd;
-
-  // timeout block ue, no block enb
+  // rx timeout block ue, no block enb
   if(_rf_faux_is_ue(info))
     {
       info->rx_timeout = false;
@@ -681,9 +716,16 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
     {
       info->rx_timeout = true;
 
-      flags = fcntl(rx_fd, F_GETFL, 0);
-      fcntl(rx_fd, F_SETFL, flags | O_NONBLOCK);
+      if(_rf_faux_set_sock_nonblock(rx_fd) < 0)
+       {
+         RF_FAUX_INFO("rx sock set non block ERROR %s", strerror(errno));
+
+         return -1; 
+       }
     }
+
+  info->tx_handle = tx_fd;
+  info->rx_handle = rx_fd;
 
   return 0;
 }
@@ -731,7 +773,7 @@ int rf_faux_start_rx_stream(void *h)
    
    pthread_mutex_lock(&(_info->rx_lock));
 
-   RF_FAUX_DEBUG("");
+   RF_FAUX_DBUG("");
 
    _info->rx_stream = true;
 
@@ -747,7 +789,7 @@ int rf_faux_stop_rx_stream(void *h)
 
    pthread_mutex_lock(&(_info->rx_lock));
 
-   RF_FAUX_DEBUG("");
+   RF_FAUX_DBUG("");
 
    _info->rx_stream = false;
 
@@ -765,7 +807,7 @@ void rf_faux_flush_buffer(void *h)
 
 bool rf_faux_has_rssi(void *h)
  {
-   RF_FAUX_DEBUG("yes");
+   RF_FAUX_DBUG("yes");
 
    return true;
  }
@@ -775,7 +817,7 @@ float rf_faux_get_rssi(void *h)
  {
    const float rssi = -60.0;
 
-   RF_FAUX_DEBUG("rssi %4.3f", rssi);
+   RF_FAUX_INFO("rssi %4.3f", rssi);
 
    return rssi;
  }
@@ -783,7 +825,7 @@ float rf_faux_get_rssi(void *h)
 
 void rf_faux_suppress_stdout(void *h)
  {
-   // _rf_faux_logStdout = false;
+   _rf_faux_log_debug = false;
  }
 
 
@@ -803,7 +845,7 @@ int rf_faux_open(char *args, void **h)
 
 int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
  {
-   RF_FAUX_DEBUG("channels %u, args [%s]", nof_channels, args);
+   RF_FAUX_INFO("channels %u, args [%s]", nof_channels, args);
 
    if(strncmp(args, "enb", strlen("enb")) == 0)
     {
@@ -815,21 +857,21 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
     }
    else
     {
-      RF_FAUX_DEBUG("default ntype is ue");
+      RF_FAUX_INFO("default ntype is ue");
 
       _rf_faux_info.ntype = RF_FAUX_NTYPE_UE;
     }
        
    if(nof_channels != 1)
     {
-      RF_FAUX_DEBUG("only supporting 1 channel, not %d", nof_channels);
+      RF_FAUX_INFO("only supporting 1 channel, not %d", nof_channels);
 
       return -1;
     }
 
    if(_rf_faux_open_ipc(&_rf_faux_info) < 0)
     {
-      RF_FAUX_DEBUG("could not create ipc channel");
+      RF_FAUX_INFO("could not create ipc channel");
 
       return -1;
     }
@@ -840,7 +882,7 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
 
        if(sem_init(&(tx_worker->sem), 0, 0) < 0)
          {
-           RF_FAUX_DEBUG("could not initialize tx_worker semaphore %s", strerror(errno));
+           RF_FAUX_INFO("could not initialize tx_worker semaphore %s", strerror(errno));
 
            return -1;
          }
@@ -854,7 +896,7 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
                          _rf_faux_tx_worker_proc, 
                          tx_worker) < 0)
         {
-           RF_FAUX_DEBUG("could not create tx_worker thread %s", strerror(errno));
+           RF_FAUX_INFO("could not create tx_worker thread %s", strerror(errno));
 
            return -1;
         }
@@ -882,7 +924,7 @@ void rf_faux_set_master_clock_rate(void *h, double rate)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("rate %4.2lf MHz to %4.2lf MHz", 
+   RF_FAUX_INFO("rate %4.2lf MHz to %4.2lf MHz", 
                  _info->clock_rate / 1e6, rate / 1e6);
 
    _info->clock_rate = rate;
@@ -901,7 +943,7 @@ double rf_faux_set_rx_gain(void *h, double gain)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("gain %3.2lf to %3.2lf", _info->rx_gain, gain);
+   RF_FAUX_INFO("gain %3.2lf to %3.2lf", _info->rx_gain, gain);
 
    _info->rx_gain = gain;
 
@@ -913,7 +955,7 @@ double rf_faux_set_tx_gain(void *h, double gain)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("gain %3.2lf to %3.2lf", _info->tx_gain, gain);
+   RF_FAUX_INFO("gain %3.2lf to %3.2lf", _info->tx_gain, gain);
 
    _info->tx_gain = gain;
 
@@ -925,7 +967,7 @@ double rf_faux_get_rx_gain(void *h)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("gain %3.2lf", _info->rx_gain);
+   RF_FAUX_INFO("gain %3.2lf", _info->rx_gain);
 
    return _info->rx_gain;
  }
@@ -935,7 +977,7 @@ double rf_faux_get_tx_gain(void *h)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("gain %3.2lf", _info->tx_gain);
+   RF_FAUX_INFO("gain %3.2lf", _info->tx_gain);
 
    return _info->tx_gain;
  }
@@ -945,7 +987,7 @@ double rf_faux_set_rx_srate(void *h, double rate)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("rate %4.2lf MHz to %4.2lf MHz", 
+   RF_FAUX_INFO("rate %4.2lf MHz to %4.2lf MHz", 
                  _info->rx_srate / 1e6, rate / 1e6);
 
    _info->rx_srate = rate;
@@ -958,7 +1000,7 @@ double rf_faux_set_tx_srate(void *h, double rate)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("freq %4.2lf MHz to %4.2lf MHz", 
+   RF_FAUX_INFO("freq %4.2lf MHz to %4.2lf MHz", 
                  _info->tx_srate / 1e6, rate / 1e6);
 
    _info->tx_srate = rate;
@@ -971,7 +1013,7 @@ double rf_faux_set_rx_freq(void *h, double freq)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("freq %4.2lf MHz to %4.2lf MHz", 
+   RF_FAUX_INFO("freq %4.2lf MHz to %4.2lf MHz", 
                  _info->rx_freq / 1e6, freq / 1e6);
 
    _info->rx_freq = freq;
@@ -984,7 +1026,7 @@ double rf_faux_set_tx_freq(void *h, double freq)
  {
    GET_FAUX_INFO(h);
 
-   RF_FAUX_DEBUG("freq %4.2lf MHz to %4.2lf MHz", 
+   RF_FAUX_INFO("freq %4.2lf MHz to %4.2lf MHz", 
                  _info->tx_freq / 1e6, freq / 1e6);
 
    _info->tx_freq = freq;
@@ -1033,7 +1075,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    struct timeval rx_time, ota_delay, total_delay;
 
-   RF_FAUX_DEBUG("RX begin my_tti %u, req %u/%d",
+   RF_FAUX_DBUG("RX begin my_tti %u, req %u/%d",
                   g_tti,
                   nsamples,
                   nb_req);
@@ -1065,7 +1107,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
         {
           if(rc < 0)
             {
-              RF_FAUX_DEBUG("recv error %s", strerror(errno));
+              RF_FAUX_INFO("recv ERROR %s", strerror(errno));
             }
 
            break;
@@ -1076,7 +1118,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          if(nb_in != hdr.msglen)
            {
-             RF_FAUX_DEBUG("RX seqn %lu, len error expected %d, got %d, DROP", hdr.seqnum, hdr.msglen, nb_in);
+             RF_FAUX_INFO("RX seqn %lu, len ERROR expected %d, got %d, DROP", hdr.seqnum, hdr.msglen, nb_in);
 
              break;
            }
@@ -1103,12 +1145,12 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          if(this_seqn != hdr.seqnum)
            {
-             RF_FAUX_DEBUG("RX OOS pkt, expected %lu, got seqn %lu", this_seqn, hdr.seqnum);
+             RF_FAUX_INFO("RX OOS pkt, expected %lu, got seqn %lu", this_seqn, hdr.seqnum);
            }
 
          const int n_diff = RF_FAUX_NORM_DIFF(g_tti, hdr.tti);
 
-         RF_FAUX_DEBUG("RX my/rx/dif_tti %u/%u/%d, rc %d, %d/%d, ota/total_delay %ld:%06ld, %ld:%06ld, seqn %lu, add %d/%d, pndg %d/%d",
+         RF_FAUX_INFO("RX my/rx/dif_tti %u/%u/%d, rc %d, %d/%d, ota/total_delay %ld:%06ld, %ld:%06ld, seqn %lu, add %d/%d, pndg %d/%d",
                        g_tti,
                        hdr.tti,
                        n_diff,
@@ -1127,7 +1169,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
        }
     }
 
-   RF_FAUX_DEBUG("RX %d/%d, pndg %d/%d, out %d/%d", 
+   RF_FAUX_DBUG("RX %d/%d, pndg %d/%d, out %d/%d", 
                   nsamples,
                   nb_req, 
                   ns_pending, 
@@ -1172,7 +1214,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    if(_info->nof_tx_workers >= RF_FAUX_NOF_TX_WORKERS)
      {
-       RF_FAUX_DEBUG("FAILED tx_worker pool full %d, DROP", RF_FAUX_NOF_TX_WORKERS);
+       RF_FAUX_INFO("FAILED tx_worker pool full %d, DROP", RF_FAUX_NOF_TX_WORKERS);
 
        return 0;
      }
@@ -1181,7 +1223,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    if(e == NULL)
      {
-       RF_FAUX_DEBUG("FAILED to allocate memory for tx_worker, DROP");
+       RF_FAUX_INFO("FAILED to allocate memory for tx_worker, DROP");
 
        return 0;
      }
@@ -1207,7 +1249,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
    // get next available tx_worker
    while((tx_worker = &(_info->tx_workers[_info->tx_worker_next]))->tx_info)
     {
-      RF_FAUX_DEBUG("skipping pending tx_worker %d", tx_worker->id);
+      RF_FAUX_DBUG("skipping pending tx_worker %d", tx_worker->id);
 
       RF_FAUX_SET_NEXT_WORKER(_info->tx_worker_next);
     }
@@ -1216,7 +1258,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    _info->nof_tx_workers += 1;
  
-   RF_FAUX_DEBUG("add tx_worker %d, my_tti %u, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
+   RF_FAUX_DBUG("add tx_worker %d, my_tti %u, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
                   tx_worker->id,
                   g_tti,
                   RF_FAUX_BOOL_TO_STR(has_time_spec),
@@ -1255,7 +1297,7 @@ void rf_faux_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 
    memcpy(&_info->tx_cal, cal, sizeof(srslte_rf_cal_t));
 
-   RF_FAUX_DEBUG("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
+   RF_FAUX_INFO("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
                  cal->dc_gain, 
                  cal->dc_phase, 
                  cal->iq_i,
@@ -1269,7 +1311,7 @@ void rf_faux_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 
    memcpy(&_info->rx_cal, cal, sizeof(srslte_rf_cal_t));
 
-   RF_FAUX_DEBUG("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
+   RF_FAUX_INFO("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
                  cal->dc_gain,
                  cal->dc_phase,
                  cal->iq_i,

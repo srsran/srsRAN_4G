@@ -107,13 +107,14 @@ void txrx::run_thread()
   // Set TTI so that first TX is at tti=0
   tti = 10235; 
    
-  struct timeval tv_in, tv_out, tv_diff, tv_start, tv_step = {0, 1000}, tv_zero = {0, 0};
+  struct timeval tv_in, tv_out, tv_diff, tv_start;
+  const  struct timeval tv_step = {0, 1000}, tv_zero = {0, 0};
 
   threads_print_self();
 
   gettimeofday(&tv_start, NULL);
 
-  // try to aligin on the top of the second
+  // aligin on the top of the second
   usleep(1000000 - tv_start.tv_usec);
 
   tv_start.tv_sec += 1; 
@@ -121,19 +122,19 @@ void txrx::run_thread()
 
   g_tv_next = tv_start;
  
-  I_TRACE("tti %u, time_0 %ld:%06ld", tti, tv_start.tv_sec, tv_start.tv_usec);
+  I_TRACE("begin, tti %u, time_0 %ld:%06ld", tti, tv_start.tv_sec, tv_start.tv_usec);
 
   printf("\n==== eNodeB started ===\n");
   printf("Type <t> to view trace\n");
   // Main loop
   while (running) {
-    timeradd(&g_tv_next, &tv_step, &g_tv_next);
-
     gettimeofday(&tv_in, NULL);
+
+    timeradd(&g_tv_next, &tv_step, &g_tv_next);
 
     g_tti = tti = (tti+1)%10240;        
 
-    I_TRACE("----------------- tti %u, time_in %ld:%06ld ---------------------", 
+    X_TRACE("----------------- tti %u, time_in %ld:%06ld ---------------------", 
             tti, tv_in.tv_sec, tv_in.tv_usec);
 
     worker = (phch_worker*) workers_pool->wait_worker(tti);
@@ -164,10 +165,8 @@ void txrx::run_thread()
 
       timersub(&g_tv_next, &tv_out, &tv_diff);
 
-      I_TRACE("tti %u, time_out %ld:%06ld, delta_t_next %ld:%06ld",
+      I_TRACE("tti %u, --------- next_tti_in %ld:%06ld ----------",
               tti,
-              tv_out.tv_sec,
-              tv_out.tv_usec,
               tv_diff.tv_sec,
               tv_diff.tv_usec);
 

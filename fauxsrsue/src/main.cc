@@ -360,7 +360,9 @@ int main(int argc, char *argv[])
   all_args_t args;
   parse_args(&args, argc, argv);
 
+#if 0
   srslte_verbose = SRSLTE_VERBOSE_DEBUG;
+#endif
 
   srsue_instance_type_t type = LTE;
   ue_base *ue = ue_base::get_instance(type);

@@ -650,7 +650,7 @@ void phch_recv::run_thread() {
   while (running) {
     gettimeofday(&tv_in, NULL);
 
-    I_TRACE("tti %u, time_in %ld:%06ld, state %s", 
+    X_TRACE("tti %u, time_in %ld:%06ld, state %s", 
             tti,
             tv_in.tv_sec,
             tv_in.tv_usec,
@@ -814,10 +814,8 @@ void phch_recv::run_thread() {
 
     timersub(&tv_out, &tv_in, &tv_diff);
 
-    I_TRACE("tti %d, time_out %ld:%06ld, delta_t %ld:%06ld, state %s",
+    I_TRACE("tti %d, ----------- delta_t %ld:%06ld, state %s ----------",
             tti,
-            tv_out.tv_sec,
-            tv_out.tv_usec,
             tv_diff.tv_sec,
             tv_diff.tv_usec,
             phy_state_to_string(phy_state));
