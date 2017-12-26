@@ -149,13 +149,12 @@ int prach_worker::run_tti(uint32_t tti_rx)
       }
     }
   }
-
   return 0; 
 }
 
 void prach_worker::run_thread()
 {
-  running = true;
+  running = true; 
   while(running) {
    X_TRACE("PHARCHWORKER:BEGIN");
    pthread_mutex_lock(&mutex);

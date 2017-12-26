@@ -146,6 +146,11 @@ void txrx::run_thread()
       srslte_timestamp_copy(&tx_time, &rx_time);
       srslte_timestamp_add(&tx_time, 0, 4e-3);
       
+      Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
+            tti, tx_mutex_cnt, 
+            tx_time.full_secs, tx_time.frac_secs,
+            worker->get_id());
+      
       worker->set_time(tti, tx_mutex_cnt, tx_time);
       tx_mutex_cnt = (tx_mutex_cnt+1)%nof_tx_mutex;
       

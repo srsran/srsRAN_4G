@@ -73,8 +73,8 @@ static bool _rf_faux_logStdout = true;
 #define RF_FAUX_NORM_DIFF(x, y)  abs((x) + (~(y) + 1))
 
 // socket port nums
-#define RF_FAUX_DL_PORT (43001)
-#define RF_FAUX_UL_PORT (43002)
+#define RF_FAUX_DL_PORT (43301)
+#define RF_FAUX_UL_PORT (43302)
 
 #define RF_FAUX_MC_ADDR "224.4.3.2"
 #define RF_FAUX_MC_DEV  "lo"
@@ -107,7 +107,7 @@ static bool _rf_faux_logStdout = true;
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
 static const struct timeval tv_rx_window = {0, 750};
-static const struct timeval tv_zero     = {0, 0};
+static const struct timeval tv_zero      = {0, 0};
 
 uint32_t       g_tti     = 0;
 struct timeval g_tv_next = {0, 0};
@@ -210,7 +210,7 @@ static  _rf_faux_info_t _rf_faux_info = { .dev_name        = "faux",
 #define GET_FAUX_INFO(h)  assert(h); _rf_faux_info_t *_info = (_rf_faux_info_t *)(h)
 
 
-static void _rf_faux_tv_to_ts(struct timeval *tv, time_t *full_secs, double *frac_secs)
+static void _rf_faux_tv_to_ts(const struct timeval *tv, time_t *full_secs, double *frac_secs)
 {
   if(full_secs && frac_secs)
     {
@@ -1011,6 +1011,11 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    pthread_mutex_lock(&(_info->rx_lock));
 
+   struct timeval tv_in;
+
+   gettimeofday(&tv_in, NULL);
+
+
    // sometimes we get a request for a few extra samples (1922 vs 1920) that 
    // throws off our pkt based stream
    // XXX FIXME TODO
@@ -1103,7 +1108,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          const int n_diff = RF_FAUX_NORM_DIFF(g_tti, hdr.tti);
 
-         RF_FAUX_DEBUG("RX my/rx/df_tti %u/%u/%d, rc %d, %d/%d, ota/total_delay %ld:%06ld, %ld:%06ld, seqn %lu, add %d/%d, pndg %d/%d",
+         RF_FAUX_DEBUG("RX my/rx/dif_tti %u/%u/%d, rc %d, %d/%d, ota/total_delay %ld:%06ld, %ld:%06ld, seqn %lu, add %d/%d, pndg %d/%d",
                        g_tti,
                        hdr.tti,
                        n_diff,
@@ -1130,13 +1135,9 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
                   nsamples - ns_pending,
                   nb_req - nb_pending);
 
-   struct timeval tv_out;
-
-   gettimeofday(&tv_out, NULL);
-
    pthread_mutex_unlock(&(_info->rx_lock));
 
-   _rf_faux_tv_to_ts(&tv_out, full_secs, frac_secs);
+   _rf_faux_tv_to_ts(&tv_in, full_secs, frac_secs);
 
    return nsamples;
  }
