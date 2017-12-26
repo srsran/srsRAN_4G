@@ -31,6 +31,7 @@
 #include "mme/s1ap_common.h"
 #include "srslte/common/log_filter.h"
 #include "mme/mme_gtpc.h"
+#include "srslte/common/buffer_pool.h"
 
 namespace srsepc{
 
@@ -55,11 +56,13 @@ private:
   virtual ~s1ap_ctx_mngmt_proc();
 
   s1ap* m_s1ap;
+  s1ap_nas_transport* m_s1ap_nas_transport;
   srslte::log_filter *m_s1ap_log;
 
   s1ap_args_t m_s1ap_args;
 
   mme_gtpc* m_mme_gtpc;
+  srslte::byte_buffer_pool      *m_pool;
 };
 
 } //namespace srsepc

@@ -28,6 +28,8 @@
 #include "srslte/common/bcd_helpers.h"
 #include "mme/s1ap.h"
 #include "mme/s1ap_ctx_mngmt_proc.h"
+#include "srslte/common/liblte_security.h"
+
 
 namespace srsepc{
 
@@ -70,12 +72,14 @@ s1ap_ctx_mngmt_proc::init(void)
   m_mme_gtpc = mme_gtpc::get_instance();
   m_s1ap_log = m_s1ap->m_s1ap_log;
   m_s1ap_args = m_s1ap->m_s1ap_args;
+  m_pool = srslte::byte_buffer_pool::get_instance();
+  m_s1ap_nas_transport = s1ap_nas_transport::get_instance();
 }
 
 bool
 s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid)
 {
-  ue_ctx_t *ue_ctx;
+  int s1mme = m_s1ap->get_s1_mme();
 
   //Prepare reply PDU
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
@@ -94,13 +98,12 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
   m_s1ap_log->info("Preparing to send Initial Context Setup request\n");
 
   //Find UE Context
-  std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
-  if(ue_ctx_it == m_active_ues.end())
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
+  if(ue_ctx == NULL)
   {
     m_s1ap_log->error("Could not find UE to send Setup Context Request. MME S1AP Id: %d", mme_ue_s1ap_id);
     return false;
   }
-  ue_ctx = ue_ctx_it->second;
 
   //Add MME and eNB S1AP Ids
   in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
@@ -184,7 +187,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     return false;
   }
   //Send Reply to eNB 
-  ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ctx->enb_sri, 0);
+  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ctx->enb_sri, 0);
   if(n_sent == -1)
   {
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
