@@ -106,7 +106,7 @@ static bool _rf_faux_logStdout = true;
 #define RF_FAUX_NOF_TX_WORKERS (25)
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
-static const struct timeval tv_rx_window = {0, 500};
+static const struct timeval tv_rx_window = {0, 750};
 static const struct timeval tv_zero     = {0, 0};
 
 uint32_t       g_tti     = 0;
@@ -148,7 +148,6 @@ typedef struct {
    int                  tx_handle;
    int                  rx_handle;
    bool                 rx_timeout;
-   int                  rx_tries;
    int64_t              tx_seqn;
    int64_t              rx_seqn;
    pthread_mutex_t      rx_lock;
@@ -166,6 +165,7 @@ typedef struct {
   uint32_t       msglen;
   float          srate;
   struct timeval tx_time;
+  struct timeval act_tx_time;
   uint32_t       tti;
 } _rf_faux_iohdr_t;
 
@@ -198,7 +198,6 @@ static  _rf_faux_info_t _rf_faux_info = { .dev_name        = "faux",
                                           .tx_handle       = -1,
                                           .rx_handle       = -1,
                                           .rx_timeout      = false,
-                                          .rx_tries        = 1,
                                           .tx_seqn         = 1,
                                           .rx_seqn         = 0,
                                           .rx_lock         = PTHREAD_MUTEX_INITIALIZER,
@@ -293,6 +292,7 @@ static int _rf_faux_vecio_recv(void *h, struct iovec iov[2])
        fd_set rfds;
 
        FD_ZERO(&rfds);
+
        FD_SET(_info->rx_handle, &rfds);
 
        struct timeval tv_now, delta_t, tv_timeout;
@@ -319,11 +319,11 @@ static int _rf_faux_vecio_recv(void *h, struct iovec iov[2])
 
    if(rc <= 0)
      {
-       RF_FAUX_DEBUG("recv reqlen %d, error %s", nb_req, strerror(errno));
+       RF_FAUX_DEBUG("RX reqlen %d, error %s", nb_req, strerror(errno));
      }
    else
      { 
-       RF_FAUX_DEBUG("recv %d of %d", rc, nb_req);
+       RF_FAUX_DEBUG("RX ****** %d of %d ******", rc, nb_req);
      }
 
    return rc;
@@ -373,13 +373,13 @@ void _rf_faux_tx_msg(_rf_faux_tx_info_t * tx_info, uint64_t seqn)
 
    const _rf_faux_iohdr_t hdr = { seqn, 
                                   nb_out,
-                                  RF_FAUX_OTA_SRATE, 
+                                  RF_FAUX_OTA_SRATE,
+                                  tx_info->tx_time,
                                   tv_now,
                                   g_tti };
 
    struct iovec iov[2] = { {(void*)&(hdr),        sizeof(hdr)},
                            {(void*)_info->sf_out, nb_out     }};
-
 
    const int rc = _rf_faux_vecio_send(_info, iov);
 
@@ -449,7 +449,7 @@ static void * _rf_faux_tx_worker_proc(void * arg)
 
         timersub(&tv_now, &(tx_worker->tx_info->tx_time), &delta_t);
 
-        RF_FAUX_DEBUG("TX my_tti %u, fire tx_worker %d, tx_delay overrun %ld:%06ld", 
+        RF_FAUX_DEBUG("TX my_tti %u, --- fire --- tx_worker %d, tx_overrun %ld:%06ld", 
                       g_tti,
                       tx_worker->id,
                       delta_t.tv_sec,
@@ -624,7 +624,8 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
     }
   else
     {
-      RF_FAUX_DEBUG("joined group %s port %hu", inet_ntoa(mreq.imr_multiaddr), rxport);
+      RF_FAUX_DEBUG("joined group %s port %hu, iface %s", 
+                     inet_ntoa(mreq.imr_multiaddr), rxport, RF_FAUX_MC_DEV);
     }
 
 
@@ -633,6 +634,11 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
       RF_FAUX_DEBUG("tx sock connect error %s", strerror(errno));
 
       return -1;
+    }
+  else
+    {
+      RF_FAUX_DEBUG("connect to group %s port %hu", 
+                     inet_ntoa(mreq.imr_multiaddr), txport);
     }
 
   int no_df = IP_PMTUDISC_DONT;
@@ -658,6 +664,7 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
      return -1; 
    }
 
+  // set to tx noblock
   int flags = fcntl(tx_fd, F_GETFL, 0);
 
   fcntl(tx_fd, F_SETFL, flags | O_NONBLOCK);
@@ -1017,19 +1024,14 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    _rf_faux_iohdr_t hdr;
 
-   int n_tries = 0;
-
    uint8_t * p = (uint8_t *) data;
 
-   struct timeval rx_time, ota_delay;
+   struct timeval rx_time, ota_delay, total_delay;
 
-   RF_FAUX_DEBUG("begin try 1 of %d, my_tti %u, req %u/%d, blocking %s, streaming %s",
-                  _info->rx_tries,
+   RF_FAUX_DEBUG("RX begin my_tti %u, req %u/%d",
                   g_tti,
                   nsamples,
-                  nb_req,
-                  RF_FAUX_BOOL_TO_STR(blocking),
-                  RF_FAUX_BOOL_TO_STR(_info->rx_stream));
+                  nb_req);
 
    memset(data, 0x0, nb_req);
 
@@ -1040,7 +1042,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    int rc = 0;
 
-   while(nb_pending > 0 && (n_tries++ < _info->rx_tries))
+   while(nb_pending > 0)
      {   
        memset(sf_in, 0x0, BYTES_X_SAMPLE(RF_FAUX_SF_LEN));
 
@@ -1051,7 +1053,8 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
        gettimeofday(&rx_time, NULL);
 
-       timersub(&rx_time, &(hdr.tx_time), &ota_delay);
+       timersub(&rx_time, &(hdr.tx_time), &total_delay);
+       timersub(&rx_time, &(hdr.act_tx_time), &ota_delay);
 
        if(rc <= 0)
         {
@@ -1100,7 +1103,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          const int n_diff = RF_FAUX_NORM_DIFF(g_tti, hdr.tti);
 
-         RF_FAUX_DEBUG("RX my/rx/diff_rxtti %u/%u/%d, rc %d, %d/%d, ota_delay %ld:%06ld, seqn %lu, added %d/%d, pending %d/%d, try %d/%d",
+         RF_FAUX_DEBUG("RX my/rx/df_tti %u/%u/%d, rc %d, %d/%d, ota/total_delay %ld:%06ld, %ld:%06ld, seqn %lu, add %d/%d, pndg %d/%d",
                        g_tti,
                        hdr.tti,
                        n_diff,
@@ -1109,19 +1112,17 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
                        nb_in,
                        ota_delay.tv_sec,
                        ota_delay.tv_usec,
+                       total_delay.tv_sec,
+                       total_delay.tv_usec,
                        hdr.seqnum,
                        ns_out,
                        nb_out,
                        ns_pending,
-                       nb_pending,
-                       n_tries,
-                       _info->rx_tries);
-
-          --n_tries;
+                       nb_pending);
        }
     }
 
-   RF_FAUX_DEBUG("RX %d/%d, pending %d/%d, out %d/%d", 
+   RF_FAUX_DEBUG("RX %d/%d, pndg %d/%d, out %d/%d", 
                   nsamples,
                   nb_req, 
                   ns_pending, 
