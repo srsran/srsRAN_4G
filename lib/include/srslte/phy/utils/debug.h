@@ -74,6 +74,11 @@ SRSLTE_API extern int srslte_verbose;
 #define DEBUG_TRACE 0
 #endif
 
+#ifndef INFO_TRACE
+#define INFO_TRACE 0
+#endif
+
+
 #include<time.h>
 #define X_TRACE(_fmt, ...) do {                                                                     \
                              if(DEBUG_TRACE) {                                                      \
@@ -94,6 +99,7 @@ SRSLTE_API extern int srslte_verbose;
                            } while(0);
 
 #define I_TRACE(_fmt, ...) do {                                                                     \
+                             if(INFO_TRACE) {                                                       \
                              struct timeval _tv_now;                                                \
                              struct tm _tm;                                                         \
                              const char *_pos = strrchr(__FILE__, '/');                             \
@@ -107,6 +113,7 @@ SRSLTE_API extern int srslte_verbose;
                                      _pos ? _pos+1 : "",                                            \
                                      __func__,                                                      \
                                      ##__VA_ARGS__);                                                \
+                             }                                                                      \
                            } while(0);
 
 

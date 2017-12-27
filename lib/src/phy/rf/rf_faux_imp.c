@@ -46,7 +46,7 @@
 #include "srslte/phy/resampling/resample_arb.h"
 
 static bool _rf_faux_log_debug = true;
-static bool _rf_faux_loginfo   = true;
+static bool _rf_faux_log_info  = true;
 
 #define RF_FAUX_DBUG(fmt, ...) do {                                                                \
                                  if(_rf_faux_log_debug) {                                          \
@@ -65,7 +65,7 @@ static bool _rf_faux_loginfo   = true;
                              } while(0);
 
 #define RF_FAUX_INFO(fmt, ...) do {                                                                \
-                                 if(_rf_faux_loginfo) {                                            \
+                                 if(_rf_faux_log_info) {                                           \
                                    struct timeval _tv_now;                                         \
                                    struct tm _tm;                                                  \
                                    gettimeofday(&_tv_now, NULL);                                   \
@@ -109,9 +109,6 @@ static bool _rf_faux_loginfo   = true;
 // max sf len
 #define RF_FAUX_SF_LEN (0x2000)
 
-// tx offset enable
-#define RF_FAUX_TX_DELAY_ENABLE  (1)
-
 // normalize sf req len for pkt i/o
 #define RF_FAUX_NORM_SF_LEN(x) (((x) = ((x)/10)*10))
 
@@ -124,7 +121,7 @@ static bool _rf_faux_loginfo   = true;
 #define RF_FAUX_NOF_TX_WORKERS (25)
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
-static const struct timeval tv_rx_window = {0, 750};
+static const struct timeval tv_rx_window = {0, 333}; // delta_t before next tti  (1/3)
 static const struct timeval tv_zero      = {0, 0};
 
 uint32_t       g_tti     = 0;
@@ -376,7 +373,7 @@ void _rf_faux_tx_msg(_rf_faux_tx_info_t * tx_info, uint64_t seqn)
 
    const int nb_in = BYTES_X_SAMPLE(tx_info->nsamples);
 
-   // resample to match the ota sr if needed
+   // resample to match the SR if needed
    const int ns_out = _rf_faux_resample(_info->tx_srate,
                                         RF_FAUX_OTA_SRATE,
                                         tx_info->data,
@@ -442,7 +439,7 @@ static void * _rf_faux_tx_worker_proc(void * arg)
 
        timersub(&(tx_worker->tx_info->tx_time), &tv_now, &delta_t);
 
-       if(RF_FAUX_TX_DELAY_ENABLE && timercmp(&delta_t, &tv_zero, >))
+       if(timercmp(&delta_t, &tv_zero, >))
          {
            RF_FAUX_DBUG("tx_worker %d, apply tx_delay %ld:%06ld", 
                          tx_worker->id,
@@ -453,7 +450,7 @@ static void * _rf_faux_tx_worker_proc(void * arg)
          }
        else
          {
-           RF_FAUX_DBUG("tx_worker %d, skip tx_delay %ld:%06ld", 
+           RF_FAUX_DBUG("tx_worker %d, time expired, skip tx_delay %ld:%06ld", 
                           tx_worker->id, 
                           delta_t.tv_sec,
                           delta_t.tv_usec);
@@ -465,7 +462,7 @@ static void * _rf_faux_tx_worker_proc(void * arg)
 
         timersub(&tv_now, &(tx_worker->tx_info->tx_time), &delta_t);
 
-        RF_FAUX_INFO("TX my_tti %u, --- fire --- tx_worker %d, tx_overrun %ld:%06ld", 
+        RF_FAUX_INFO("TX my_tti %u, ----- fire ----- tx_worker %d, tx_delay_overrun %ld:%06ld", 
                       g_tti,
                       tx_worker->id,
                       delta_t.tv_sec,
@@ -486,10 +483,31 @@ static void * _rf_faux_tx_worker_proc(void * arg)
 }
 
 
+int _rf_faux_set_sock_block(int fd)
+{
+  int flags = fcntl(fd, F_GETFL, 0);
+ 
+  if(flags < 0)
+   {
+     RF_FAUX_INFO("get flags ERROR %s", strerror(errno));
+
+     return -1;
+   } 
+  
+  if(fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) < 0)
+    {
+      RF_FAUX_INFO("set flags ERROR %s", strerror(errno));
+
+      return -1;
+    }
+ 
+  return 0;
+}
+
+
 
 int _rf_faux_set_sock_nonblock(int fd)
 {
-  // set to tx noblock
   int flags = fcntl(fd, F_GETFL, 0);
  
   if(flags < 0)
@@ -686,7 +704,6 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
      return -1;
    }
 
-
   struct ip_mreqn mreqn;
   memset(&mreqn, 0, sizeof(mreqn));
   mreqn.imr_multiaddr.s_addr = 0;
@@ -711,6 +728,13 @@ static int _rf_faux_open_sock(_rf_faux_info_t * info,
   if(_rf_faux_is_ue(info))
     {
       info->rx_timeout = false;
+
+      if(_rf_faux_set_sock_block(rx_fd) < 0)
+       {
+         RF_FAUX_INFO("rx sock set block ERROR %s", strerror(errno));
+
+         return -1; 
+       }
     }
   else
     {
@@ -826,6 +850,7 @@ float rf_faux_get_rssi(void *h)
 void rf_faux_suppress_stdout(void *h)
  {
    _rf_faux_log_debug = false;
+   _rf_faux_log_info  = false;
  }
 
 
@@ -1060,7 +1085,6 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    // sometimes we get a request for a few extra samples (1922 vs 1920) that 
    // throws off our pkt based stream
-   // XXX FIXME TODO
    RF_FAUX_NORM_SF_LEN(nsamples);
 
    const int nb_req = BYTES_X_SAMPLE(nsamples);
@@ -1075,7 +1099,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    struct timeval rx_time, ota_delay, total_delay;
 
-   RF_FAUX_DBUG("RX begin my_tti %u, req %u/%d",
+   RF_FAUX_DBUG("RX begin my_tti %u, nreq %u/%d",
                   g_tti,
                   nsamples,
                   nb_req);
@@ -1150,7 +1174,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          const int n_diff = RF_FAUX_NORM_DIFF(g_tti, hdr.tti);
 
-         RF_FAUX_INFO("RX my/rx/dif_tti %u/%u/%d, rc %d, %d/%d, ota/total_delay %ld:%06ld, %ld:%06ld, seqn %lu, add %d/%d, pndg %d/%d",
+         RF_FAUX_INFO("RX tti my/rx/diff %u/%u/%d, rc %d, %d/%d, ota/cpu_delay %ld:%06ld, %ld:%06ld, seqn %lu, add %d/%d, pending %d/%d",
                        g_tti,
                        hdr.tti,
                        n_diff,
@@ -1169,11 +1193,9 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
        }
     }
 
-   RF_FAUX_DBUG("RX %d/%d, pndg %d/%d, out %d/%d", 
+   RF_FAUX_DBUG("RX nreq %d/%d, out %d/%d", 
                   nsamples,
                   nb_req, 
-                  ns_pending, 
-                  nb_pending,
                   nsamples - ns_pending,
                   nb_req - nb_pending);
 
@@ -1272,7 +1294,6 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    return nsamples;
 }
-
 
 
 int rf_faux_send_timed_multi(void *h, void *data[4], int nsamples,
