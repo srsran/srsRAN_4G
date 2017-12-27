@@ -814,7 +814,7 @@ void phch_recv::run_thread() {
 
     timersub(&tv_out, &tv_in, &tv_diff);
 
-    X_TRACE("tti %d, ----------- delta_t %ld:%06ld, state %s ----------",
+    I_TRACE("tti %d, ----------- delta_t %ld:%06ld, state %s ----------",
             tti,
             tv_diff.tv_sec,
             tv_diff.tv_usec,

@@ -80,8 +80,11 @@ void logger_file::run_thread() {
     }
     str_ptr s = buffer.front();
     pthread_cond_signal(&not_full);
-    if(logfile)
+    if(logfile) {
       fprintf(logfile, "%s", s->c_str());
+      fflush(logfile);
+    }
+ 
     delete s; 
     buffer.pop_front();
     pthread_mutex_unlock(&mutex);

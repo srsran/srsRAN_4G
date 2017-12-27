@@ -165,7 +165,7 @@ void txrx::run_thread()
 
       timersub(&g_tv_next, &tv_out, &tv_diff);
 
-      X_TRACE("tti %u, --------- next_tti_in %ld:%06ld ----------",
+      I_TRACE("tti %u, --------- next_tti_in %ld:%06ld ----------",
               tti,
               tv_diff.tv_sec,
               tv_diff.tv_usec);

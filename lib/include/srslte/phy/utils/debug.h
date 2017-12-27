@@ -70,18 +70,10 @@ SRSLTE_API extern int srslte_verbose;
 #define ERROR(_fmt, ...) fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__)
 #endif /* CMAKE_BUILD_TYPE==Debug */
 
-#ifndef DEBUG_TRACE
-#define DEBUG_TRACE 0
-#endif
-
-#ifndef INFO_TRACE
-#define INFO_TRACE 0
-#endif
-
-
 #include<time.h>
+
+#ifdef DEBUG_TRACE
 #define X_TRACE(_fmt, ...) do {                                                                     \
-                             if(DEBUG_TRACE) {                                                      \
                              struct timeval _tv_now;                                                \
                              struct tm _tm;                                                         \
                              const char *_pos = strrchr(__FILE__, '/');                             \
@@ -95,11 +87,13 @@ SRSLTE_API extern int srslte_verbose;
                                      _pos ? _pos+1 : "",                                            \
                                      __func__,                                                      \
                                      ##__VA_ARGS__);                                                \
-                             }                                                                      \
                            } while(0);
+#else
+#define X_TRACE(_fmt, ...)
+#endif
 
+#ifdef INFO_TRACE
 #define I_TRACE(_fmt, ...) do {                                                                     \
-                             if(INFO_TRACE) {                                                       \
                              struct timeval _tv_now;                                                \
                              struct tm _tm;                                                         \
                              const char *_pos = strrchr(__FILE__, '/');                             \
@@ -113,8 +107,10 @@ SRSLTE_API extern int srslte_verbose;
                                      _pos ? _pos+1 : "",                                            \
                                      __func__,                                                      \
                                      ##__VA_ARGS__);                                                \
-                             }                                                                      \
                            } while(0);
+#else
+#define I_TRACE(_fmt, ...)
+#endif
 
 
 #endif // DEBUG_H
