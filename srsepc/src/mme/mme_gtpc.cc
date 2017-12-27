@@ -160,7 +160,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   sgw_ctrl_fteid.teid = cs_resp_pdu->header.teid;
   sgw_ctrl_fteid.ipv4 = 0; //FIXME This is not used for now. In the future it will be obtained from the socket addr_info
 
-  m_s1ap->send_initial_context_setup_request(mme_s1ap_id, cs_resp, sgw_ctrl_fteid);
+  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(mme_s1ap_id, cs_resp, sgw_ctrl_fteid);
 }
 
 

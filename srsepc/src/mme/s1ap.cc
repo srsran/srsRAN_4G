@@ -274,7 +274,8 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     break;
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASEREQUEST:
     m_s1ap_log->info("Received UE Context Release Request Message.\n");
-    return handle_ue_context_release_request(&msg->choice.UEContextReleaseRequest, enb_sri);
+    m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(&msg->choice.UEContextReleaseRequest, enb_sri, reply_buffer, &reply_flag);
+    break;
   default:
     m_s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
@@ -299,14 +300,14 @@ s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
   switch(msg->choice_type) {
   case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_INITIALCONTEXTSETUPRESPONSE:
     m_s1ap_log->info("Received Initial Context Setup Response.\n");
-    return handle_initial_context_setup_response(&msg->choice.InitialContextSetupResponse);
+    return m_s1ap_ctx_mngmt_proc->handle_initial_context_setup_response(&msg->choice.InitialContextSetupResponse);
   default:
     m_s1ap_log->error("Unhandled successful outcome message: %s\n", liblte_s1ap_successfuloutcome_choice_text[msg->choice_type]);
   }
   return true;
 }
 
-
+  /*
 bool
 s1ap::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid)
 {
@@ -542,7 +543,7 @@ s1ap::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQU
   m_s1ap_log->info("Deleted UE Context.\n");
   return true;
 }
-
+  */
 bool
 s1ap::delete_ue_ctx(ue_ctx_t *ue_ctx)
 {

@@ -71,9 +71,9 @@ public:
   bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
   bool handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg);
 
-  bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri);
-  bool send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid);
-  bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp);
+  //bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri);
+  //bool send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid);
+  //bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp);
 
   void activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi);
 
@@ -89,6 +89,10 @@ public:
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
+
+  s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
+  s1ap_nas_transport*             m_s1ap_nas_transport;
+  s1ap_ctx_mngmt_proc*             m_s1ap_ctx_mngmt_proc;
 
 private:
   s1ap();
@@ -107,10 +111,7 @@ private:
   std::map<uint16_t,std::set<uint32_t> >            m_enb_id_to_ue_ids;
   uint32_t                                          m_next_mme_ue_s1ap_id;
 
-  s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
-  s1ap_nas_transport*             m_s1ap_nas_transport;
-  s1ap_ctx_mngmt_proc*             m_s1ap_ctx_mngmt_proc;
-
+  
   //FIXME the GTP-C should be moved to the MME class, the the packaging of GTP-C messages is done.
   mme_gtpc *m_mme_gtpc;
 };
