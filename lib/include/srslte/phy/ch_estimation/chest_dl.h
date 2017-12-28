@@ -159,10 +159,6 @@ SRSLTE_API void srslte_chest_dl_average_subframe(srslte_chest_dl_t *q,
 
 SRSLTE_API float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q);
 
-SRSLTE_API float srslte_chest_dl_get_noise_estimate_ant_port(srslte_chest_dl_t *q,
-                                                             uint32_t ant_idx,
-                                                             uint32_t port_idx);
-
 SRSLTE_API float srslte_chest_dl_get_cfo(srslte_chest_dl_t *q);
 
 SRSLTE_API float srslte_chest_dl_get_snr(srslte_chest_dl_t *q);

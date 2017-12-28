@@ -596,22 +596,24 @@ float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
   return n/q->last_nof_antennas;
 }
 
-float srslte_chest_dl_get_noise_estimate_ant_port(srslte_chest_dl_t *q, uint32_t ant_idx, uint32_t port_idx) {
-  return q->noise_estimate[ant_idx][port_idx];
-}
-
 float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
 #ifdef FREQ_SEL_SNR
   int nref=SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, 0);
   return srslte_vec_acc_ff(q->snr_vector, nref)/nref; 
 #else
-  return srslte_chest_dl_get_rsrp(q)/srslte_chest_dl_get_noise_estimate(q);
+  float rsrp  = 0;
+  for (int i=0;i<q->last_nof_antennas;i++) {
+    for (int j=0;j<q->cell.nof_ports;j++) {
+      rsrp += q->rsrp[i][j]/q->cell.nof_ports;
+    }
+  }
+  return rsrp/srslte_chest_dl_get_noise_estimate(q);
 #endif
 }
 
 
 float srslte_chest_dl_get_snr_ant_port(srslte_chest_dl_t *q, uint32_t ant_idx, uint32_t port_idx) {
-  return srslte_chest_dl_get_rsrp_ant_port(q, ant_idx, port_idx)/srslte_chest_dl_get_noise_estimate_ant_port(q, ant_idx, port_idx);
+  return srslte_chest_dl_get_rsrp_ant_port(q, ant_idx, port_idx)/srslte_chest_dl_get_noise_estimate(q);
 }
 
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {
