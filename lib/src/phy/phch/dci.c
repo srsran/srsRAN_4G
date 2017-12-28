@@ -398,7 +398,7 @@ uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dc
     n += snprintf(&info_str[n], len-n, "tpc_pucch=%d, ", dci_msg->tpc_pucch);
   }
   if (format == SRSLTE_DCI_FORMAT2 || format == SRSLTE_DCI_FORMAT2A || format == SRSLTE_DCI_FORMAT2B) {
-    n += snprintf(&info_str[n], len-n, "tb_sw=%d, pinfo=%d", dci_msg->tb_cw_swap, dci_msg->pinfo);
+    n += snprintf(&info_str[n], len-n, "tb_sw=%d, pinfo=%d, ", dci_msg->tb_cw_swap, dci_msg->pinfo);
   }
   return n;
 }
@@ -419,7 +419,7 @@ uint32_t srslte_dci_ul_info(char *info_str, uint32_t len, srslte_ra_ul_dci_t *dc
       break;
   }
   n += snprintf(&info_str[n], len-n, "mcs=%d, rv=%d, ndi=%d, ", dci_msg->mcs_idx, dci_msg->rv_idx, dci_msg->ndi);
-  n += snprintf(&info_str[n], len-n, "tpc_pusch=%d, dmrs_cs=%d, cqi=%s",
+  n += snprintf(&info_str[n], len-n, "tpc_pusch=%d, dmrs_cs=%d, cqi=%s, ",
                 dci_msg->tpc_pusch, dci_msg->n_dmrs, dci_msg->cqi_request?"yes":"no");
 
   return n;
