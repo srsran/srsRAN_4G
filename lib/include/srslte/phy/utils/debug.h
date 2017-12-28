@@ -37,7 +37,8 @@
 
 #include <stdio.h>
 #include "srslte/config.h"
-#include "srslte/srslte.h"
+#include "srslte/phy/common/phy_logger.h"
+
 #define SRSLTE_VERBOSE_DEBUG 2
 #define SRSLTE_VERBOSE_INFO  1
 #define SRSLTE_VERBOSE_NONE  0
