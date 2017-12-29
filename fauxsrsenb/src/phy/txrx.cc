@@ -122,7 +122,7 @@ void txrx::run_thread()
 
   g_tv_next = tv_start;
  
-  I_TRACE("begin, tti %u, time_0 %ld:%06ld", tti, tv_start.tv_sec, tv_start.tv_usec);
+  I_TRACE("begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
 
   printf("\n==== eNodeB started ===\n");
   printf("Type <t> to view trace\n");
@@ -131,11 +131,15 @@ void txrx::run_thread()
     gettimeofday(&tv_in, NULL);
 
     timeradd(&g_tv_next, &tv_step, &g_tv_next);
+    timersub(&g_tv_next, &tv_in,   &tv_diff);
 
     g_tti = tti = (tti+1)%10240;        
 
-    X_TRACE("----------------- tti %u, time_in %ld:%06ld ---------------------", 
-            tti, tv_in.tv_sec, tv_in.tv_usec);
+    I_TRACE("***** time_in %ld:%06ld next in %ld:%06ld *****", 
+            tv_in.tv_sec, 
+            tv_in.tv_usec,
+            tv_diff.tv_sec,
+            tv_diff.tv_usec);
 
     worker = (phch_worker*) workers_pool->wait_worker(tti);
     if (worker) {          
@@ -165,14 +169,25 @@ void txrx::run_thread()
 
       timersub(&g_tv_next, &tv_out, &tv_diff);
 
-      I_TRACE("tti %u, --------- next_tti_in %ld:%06ld ----------",
-              tti,
-              tv_diff.tv_sec,
-              tv_diff.tv_usec);
-
       if(timercmp(&tv_diff, &tv_zero, >))
         {
+          I_TRACE("***** time_out %ld:%06ld remain %ld:%06ld *****", 
+                  tv_out.tv_sec, 
+                  tv_out.tv_usec,
+                  tv_diff.tv_sec,
+                  tv_diff.tv_usec);
+
           select(0, NULL, NULL, NULL, &tv_diff);
+        }
+      else
+        {
+          timersub(&tv_out, &g_tv_next, &tv_diff);
+
+          W_TRACE("***** time_out %ld:%06ld overrun %ld:%06ld *****", 
+                  tv_out.tv_sec, 
+                  tv_out.tv_usec,
+                  tv_diff.tv_sec,
+                  tv_diff.tv_usec);
         }
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here

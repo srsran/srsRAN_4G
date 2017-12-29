@@ -37,7 +37,7 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-extern uint32_t  g_tti;
+extern uint32_t       g_tti;
 
 namespace srsue {
 
@@ -645,16 +645,23 @@ void phch_recv::run_thread() {
   phy_state  = IDLE;
   is_in_idle = true;
 
-  struct timeval tv_in, tv_out, tv_diff;
+  struct timeval tv_in, tv_out, tv_diff, tv_start;
+  const  struct timeval tv_step = {0, 1000}, tv_zero = {0, 0};
+
+  threads_print_self();
+
+  gettimeofday(&tv_start, NULL);
+
+  I_TRACE("begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
 
   while (running) {
     gettimeofday(&tv_in, NULL);
 
-    X_TRACE("tti %u, time_in %ld:%06ld, state %s", 
-            tti,
-            tv_in.tv_sec,
-            tv_in.tv_usec,
-            phy_state_to_string(phy_state));
+    I_TRACE("***** time_in %ld:%06ld  *****", 
+            tv_in.tv_sec, 
+            tv_in.tv_usec);
+
+    I_TRACE("state %s", phy_state_to_string(phy_state));
 
     if (phy_state != IDLE) {
       is_in_idle = false;
@@ -807,18 +814,21 @@ void phch_recv::run_thread() {
         // Keep running MAC timer from system clock
         g_tti = tti = (tti+1) % 10240;
 
+        W_TRACE("Waiting a bit In IDLE state");
+
         mac->tti_clock(tti);
         break;
     }
-    gettimeofday(&tv_out, NULL);
 
-    timersub(&tv_out, &tv_in, &tv_diff);
+   gettimeofday(&tv_out, NULL);
 
-    I_TRACE("tti %d, ----------- delta_t %ld:%06ld, state %s ----------",
-            tti,
-            tv_diff.tv_sec,
-            tv_diff.tv_usec,
-            phy_state_to_string(phy_state));
+   timersub(&tv_out, &tv_in, &tv_diff);
+
+   I_TRACE("***** time_out %ld:%06ld delta_t %ld:%06ld *****", 
+           tv_out.tv_sec, 
+           tv_out.tv_usec,
+           tv_diff.tv_sec,
+           tv_diff.tv_usec);
   }
 }
 

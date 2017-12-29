@@ -71,6 +71,9 @@ SRSLTE_API extern int srslte_verbose;
 #endif /* CMAKE_BUILD_TYPE==Debug */
 
 #include<time.h>
+#include<stdint.h>
+
+extern uint32_t g_tti;
 
 #ifdef DEBUG_TRACE
 #define X_TRACE(_fmt, ...) do {                                                                     \
@@ -92,24 +95,46 @@ SRSLTE_API extern int srslte_verbose;
 #define X_TRACE(_fmt, ...)
 #endif
 
+// #define INFO_TRACE
+
 #ifdef INFO_TRACE
-#define I_TRACE(_fmt, ...) do {                                                                     \
-                             struct timeval _tv_now;                                                \
-                             struct tm _tm;                                                         \
-                             const char *_pos = strrchr(__FILE__, '/');                             \
-                             gettimeofday(&_tv_now, NULL);                                          \
-                             localtime_r(&_tv_now.tv_sec, &_tm);                                    \
-                             fprintf(stdout, "[IXXXX]: %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n",     \
-                                     _tm.tm_hour,                                                   \
-                                     _tm.tm_min,                                                    \
-                                     _tm.tm_sec,                                                    \
-                                     _tv_now.tv_usec,                                               \
-                                     _pos ? _pos+1 : "",                                            \
-                                     __func__,                                                      \
-                                     ##__VA_ARGS__);                                                \
+#define I_TRACE(_fmt, ...) do {                                                                      \
+                             struct timeval _tv_now;                                                 \
+                             struct tm _tm;                                                          \
+                             gettimeofday(&_tv_now, NULL);                                           \
+                             localtime_r(&_tv_now.tv_sec, &_tm);                                     \
+                             fprintf(stdout, "[IXXXX]: [%05hu] %02d.%02d.%02d.%06ld %s, " _fmt "\n", \
+                                     g_tti,                                                          \
+                                     _tm.tm_hour,                                                    \
+                                     _tm.tm_min,                                                     \
+                                     _tm.tm_sec,                                                     \
+                                     _tv_now.tv_usec,                                                \
+                                     __func__,                                                       \
+                                     ##__VA_ARGS__);                                                 \
                            } while(0);
 #else
 #define I_TRACE(_fmt, ...)
+#endif
+
+#define WARN_TRACE
+
+#ifdef WARN_TRACE
+#define W_TRACE(_fmt, ...) do {                                                                      \
+                             struct timeval _tv_now;                                                 \
+                             struct tm _tm;                                                          \
+                             gettimeofday(&_tv_now, NULL);                                           \
+                             localtime_r(&_tv_now.tv_sec, &_tm);                                     \
+                             fprintf(stdout, "[WARNX]: [%05hu] %02d.%02d.%02d.%06ld %s, " _fmt "\n", \
+                                     g_tti,                                                          \
+                                     _tm.tm_hour,                                                    \
+                                     _tm.tm_min,                                                     \
+                                     _tm.tm_sec,                                                     \
+                                     _tv_now.tv_usec,                                                \
+                                     __func__,                                                       \
+                                     ##__VA_ARGS__);                                                 \
+                           } while(0);
+#else
+#define W_TRACE(_fmt, ...)
 #endif
 
 
