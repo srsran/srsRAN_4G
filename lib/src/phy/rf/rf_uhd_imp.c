@@ -50,7 +50,6 @@ typedef struct {
   double tx_rate;
   bool dynamic_rate; 
   bool has_rssi; 
-  uhd_sensor_value_handle rssi_value;
   uint32_t nof_rx_channels;
   int nof_tx_channels;
 
@@ -281,10 +280,15 @@ bool get_has_rssi(void *h) {
 float rf_uhd_get_rssi(void *h) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
   if (handler->has_rssi) {
-    double val_out; 
-    uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &handler->rssi_value);
-    uhd_sensor_value_to_realnum(handler->rssi_value, &val_out);
-    return val_out; 
+    double val_out;
+
+    uhd_sensor_value_handle rssi_value;
+    uhd_sensor_value_make_from_realnum(&rssi_value, "rssi", 0, "dBm", "%f");
+    uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &rssi_value);
+    uhd_sensor_value_to_realnum(rssi_value, &val_out);
+    uhd_sensor_value_free(&rssi_value);
+
+    return val_out;
   } else {
     return 0.0;
   }
@@ -490,10 +494,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     }
 
     handler->has_rssi = get_has_rssi(handler);
-    if (handler->has_rssi) {        
-      uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
-    }
-    
+
     size_t channel[4] = {0, 1, 2, 3};
     uhd_stream_args_t stream_args = {
           .cpu_format = "fc32",
@@ -570,10 +571,7 @@ int rf_uhd_close(void *h)
   uhd_rx_metadata_free(&handler->rx_md_first);
   uhd_rx_metadata_free(&handler->rx_md);
   uhd_meta_range_free(&handler->rx_gain_range);
-  if (handler->has_rssi) {
-    uhd_sensor_value_free(&handler->rssi_value);
-  }
-  handler->async_thread_running = false; 
+  handler->async_thread_running = false;
   pthread_join(handler->async_thread, NULL);
 
   uhd_tx_streamer_free(&handler->tx_stream);
