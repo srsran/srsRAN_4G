@@ -135,7 +135,7 @@ void txrx::run_thread()
 
     g_tti = tti = (tti+1)%10240;        
 
-    I_TRACE("***** time_in %ld:%06ld next in %ld:%06ld *****", 
+    I_TRACE("***** time_in  %ld:%06ld next    %ld:%06ld *****", 
             tv_in.tv_sec, 
             tv_in.tv_usec,
             tv_diff.tv_sec,
@@ -150,6 +150,8 @@ void txrx::run_thread()
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);
       srslte_timestamp_add(&tx_time, 0, 4e-3);
+
+      I_TRACE("Next TX time %ld:%f", tx_time.full_secs, tx_time.frac_secs);
       
       Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
             tti, tx_mutex_cnt, 
@@ -171,7 +173,7 @@ void txrx::run_thread()
 
       if(timercmp(&tv_diff, &tv_zero, >))
         {
-          I_TRACE("***** time_out %ld:%06ld remain %ld:%06ld *****", 
+          I_TRACE("***** time_out %ld:%06ld remain  %ld:%06ld *****", 
                   tv_out.tv_sec, 
                   tv_out.tv_usec,
                   tv_diff.tv_sec,

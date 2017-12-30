@@ -95,7 +95,7 @@ extern uint32_t g_tti;
 #define X_TRACE(_fmt, ...)
 #endif
 
-// #define INFO_TRACE
+//#define INFO_TRACE
 
 #ifdef INFO_TRACE
 #define I_TRACE(_fmt, ...) do {                                                                      \

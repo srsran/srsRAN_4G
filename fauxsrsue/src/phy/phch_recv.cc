@@ -37,7 +37,7 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-extern uint32_t       g_tti;
+extern uint32_t g_tti;
 
 namespace srsue {
 
@@ -771,6 +771,7 @@ void phch_recv::run_thread() {
               srslte_timestamp_copy(&tx_time, &rx_time);
               srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec);
               worker->set_tx_time(tx_time, next_offset);
+              I_TRACE("Next TX time %ld:%f, offset %d", tx_time.full_secs, tx_time.frac_secs, next_offset);
               next_offset = 0;
 
               Debug("SYNC:  Setting TTI=%d, tx_mutex=%d to worker %d\n", tti, tx_mutex_cnt, worker->get_id());
@@ -813,8 +814,6 @@ void phch_recv::run_thread() {
         usleep(1000);
         // Keep running MAC timer from system clock
         g_tti = tti = (tti+1) % 10240;
-
-        W_TRACE("Waiting a bit In IDLE state");
 
         mac->tti_clock(tti);
         break;
