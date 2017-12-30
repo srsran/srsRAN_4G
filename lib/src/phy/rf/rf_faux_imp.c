@@ -149,7 +149,7 @@ struct timeval g_tv_next = {0, 0};
 
 typedef struct {
   void * h;
-  cf_t   data[RF_FAUX_SF_LEN];
+  cf_t   cf_data[2][RF_FAUX_SF_LEN];
   int    nsamples;
   struct timeval tx_time;
   bool   is_sob;
@@ -192,7 +192,6 @@ typedef struct {
    rf_faux_tx_worker_t tx_workers[RF_FAUX_NOF_TX_WORKERS];
    int                  tx_worker_next;
    int                  nof_tx_workers;
-   cf_t                 sf_out[RF_FAUX_SF_LEN];
 } rf_faux_info_t;
 
 
@@ -272,21 +271,11 @@ static int rf_faux_resample(double srate_in,
 {
   const double sratio = srate_out / srate_in;
  
-  int ns_out = ns_in;
-  
-   // resample
-  if(sratio != 1.0)
-   {
-     srslte_resample_arb_t r;
+  srslte_resample_arb_t r;
 
-     srslte_resample_arb_init(&r, sratio);
+  srslte_resample_arb_init(&r, sratio);
 
-     ns_out = srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, ns_in);
-   }
-  else
-   {
-     memcpy(out, in, BYTES_X_SAMPLE(ns_in));
-   }
+  const int ns_out = srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, ns_in);
 
   RF_FAUX_DBUG("srate %4.2lf/%4.2lf MHz, sratio %3.3lf, ns_in %d, ns_out %d",
                 srate_in  / 1e6,
@@ -390,24 +379,33 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
 {
    GET_FAUX_INFO(tx_worker->tx_info->h);
 
-   const int nb_in = BYTES_X_SAMPLE(tx_worker->tx_info->nsamples);
+   rf_faux_tx_info_t * tx_info = tx_worker->tx_info;
 
-   // resample to match the SR if needed
-   const int ns_out = rf_faux_resample(_info->tx_srate,
-                                        RF_FAUX_OTA_SRATE,
-                                        tx_worker->tx_info->data,
-                                        _info->sf_out, 
-                                        tx_worker->tx_info->nsamples);
+   const int nb_in = BYTES_X_SAMPLE(tx_info->nsamples);
+
+   int ns_out = tx_info->nsamples;
+
+   void * p2data = tx_info->cf_data[0];
+
+   if(_info->tx_srate != RF_FAUX_OTA_SRATE)
+     {
+       ns_out = rf_faux_resample(_info->tx_srate,
+                                 RF_FAUX_OTA_SRATE,
+                                 tx_info->cf_data[0],
+                                 tx_info->cf_data[1],
+                                 tx_info->nsamples);
+       p2data = tx_info->cf_data[1];
+     }
 
    const int nb_out = BYTES_X_SAMPLE(ns_out);
 
    const rf_faux_iohdr_t hdr = { seqn, 
                                  nb_out,
                                  RF_FAUX_OTA_SRATE,
-                                 tx_worker->tx_info->tx_time };
+                                 tx_info->tx_time };
 
-   struct iovec iov[2] = { {(void*)&(hdr),        sizeof(hdr)},
-                           {(void*)_info->sf_out, nb_out     }};
+   struct iovec iov[2] = { {(void*)&(hdr),   sizeof(hdr)},
+                           {(void*)p2data,   nb_out     }};
 
    const int rc = rf_faux_vecio_send(_info, iov);
 
@@ -421,14 +419,14 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
      }
    else
      {
-       timersub(&tv_now, &(tx_worker->tx_info->tx_time), &tv_diff);
+       timersub(&tv_now, &(tx_info->tx_time), &tv_diff);
 
        RF_FAUX_INFO("TX seqn %lu, tx_worker %d, tx_overrun %ld:%06ld, in %u/%d, out %d/%d", 
                      seqn,
                      tx_worker->id,
                      tv_diff.tv_sec,
                      tv_diff.tv_usec,
-                     tx_worker->tx_info->nsamples,
+                     tx_info->nsamples,
                      nb_in,
                      ns_out,
                      nb_out);
@@ -1139,7 +1137,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    int n_tries = rf_faux_is_ue(_info) ? 10 : 1;
 
-   uint8_t * p = (uint8_t *) data;
+   uint8_t * p2data = (uint8_t *)data;
 
    while(nb_pending > 0 && ((n_tries--) > 0))
      {   
@@ -1161,7 +1159,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
               RF_FAUX_WARN("recv error %s", strerror(errno));
             }
 
-           break;
+           goto rxout;
         }
       else
        {
@@ -1169,22 +1167,32 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          if(nb_in != hdr.msglen)
            {
-             RF_FAUX_WARN("RX seqn %lu, len error expected %d, got %d, DROP", hdr.seqnum, hdr.msglen, nb_in);
+             RF_FAUX_WARN("RX seqn %lu, len error expected %d, got %d, DROP", 
+                           hdr.seqnum, hdr.msglen, nb_in);
 
-             break;
+             goto rxout;
            }
         
-         const int ns_in  =  SAMPLES_X_BYTE(nb_in);
+         const int ns_in = SAMPLES_X_BYTE(nb_in);
 
-         const int ns_out = rf_faux_resample(hdr.srate,
-                                             _info->rx_srate,
-                                             sf_in,
-                                             p, 
-                                             ns_in);
+         int ns_out = ns_in;
+
+         if(_info->rx_srate != hdr.srate)
+          {
+            ns_out = rf_faux_resample(hdr.srate,
+                                      _info->rx_srate,
+                                      sf_in,
+                                      p2data, 
+                                      ns_in);
+          }
+         else
+          {
+            memcpy(p2data, sf_in, nb_in);
+          }
 
          const int nb_out = BYTES_X_SAMPLE(ns_out);
 
-         p += nb_out;
+         p2data += nb_out;
 
          nb_pending -= nb_out;
 
@@ -1208,6 +1216,8 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
                        rx_delay.tv_usec)
        }
     }
+
+rxout:
 
    RF_FAUX_DBUG("RX nreq %d/%d, out %d/%d",
                   nsamples,
@@ -1254,7 +1264,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
      {
        RF_FAUX_WARN("FAILED tx_worker pool full %d, DROP", RF_FAUX_NOF_TX_WORKERS);
 
-       return 0;
+       goto txout;
      }
 
    rf_faux_tx_worker_t * tx_worker = NULL;
@@ -1285,7 +1295,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    timersub(&(e->tx_time), & tv_now, &tv_diff); 
   
-   memcpy(e->data, data, BYTES_X_SAMPLE(nsamples));
+   memcpy(e->cf_data[0], data, BYTES_X_SAMPLE(nsamples));
    e->h          = h;
    e->nsamples   = nsamples;
    e->is_sob     = is_sob;
@@ -1301,10 +1311,9 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
                   frac_secs,
                  _info->nof_tx_workers);
 
-   RF_FAUX_SET_NEXT_WORKER(_info->tx_worker_next);
-
    sem_post(&(tx_worker->sem));
 
+txout:
    pthread_mutex_unlock(&(_info->tx_workers_lock));
 
    return nsamples;
