@@ -387,11 +387,41 @@ uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dc
   }
   n += snprintf(&info_str[n], len-n, "pid=%d, ", dci_msg->harq_process);
 
+  n += snprintf(&info_str[n], len-n, "mcs={");
   if (dci_msg->tb_en[0]) {
-    n += snprintf(&info_str[n], len-n, "TB0={mcs=%d, rv=%d, ndi=%d}, ", dci_msg->mcs_idx, dci_msg->rv_idx, dci_msg->ndi);
+    n += snprintf(&info_str[n], len-n, "%d", dci_msg->mcs_idx);
+    if (dci_msg->tb_en[1]) {
+      n += snprintf(&info_str[n], len-n, ",");
+    } else {
+      n += snprintf(&info_str[n], len-n, "}, ");
+    }
   }
   if (dci_msg->tb_en[1]) {
-    n += snprintf(&info_str[n], len-n, "TB1={mcs=%d, rv=%d, ndi=%d}, ", dci_msg->mcs_idx_1, dci_msg->rv_idx_1, dci_msg->ndi_1);
+    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->mcs_idx_1);
+  }
+  n += snprintf(&info_str[n], len-n, "rv={");
+  if (dci_msg->tb_en[0]) {
+    n += snprintf(&info_str[n], len-n, "%d", dci_msg->rv_idx);
+    if (dci_msg->tb_en[1]) {
+      n += snprintf(&info_str[n], len-n, ",");
+    } else {
+      n += snprintf(&info_str[n], len-n, "}, ");
+    }
+  }
+  if (dci_msg->tb_en[1]) {
+    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->rv_idx_1);
+  }
+  n += snprintf(&info_str[n], len-n, "ndi={");
+  if (dci_msg->tb_en[0]) {
+    n += snprintf(&info_str[n], len-n, "%d", dci_msg->ndi);
+    if (dci_msg->tb_en[1]) {
+      n += snprintf(&info_str[n], len-n, ",");
+    } else {
+      n += snprintf(&info_str[n], len-n, "}, ");
+    }
+  }
+  if (dci_msg->tb_en[1]) {
+    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->ndi_1);
   }
 
   if (format == SRSLTE_DCI_FORMAT1 || format == SRSLTE_DCI_FORMAT1A || format == SRSLTE_DCI_FORMAT1B) {
