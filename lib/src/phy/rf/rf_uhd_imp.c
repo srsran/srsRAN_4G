@@ -433,7 +433,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
         handler->current_master_clock = 184320000;
         handler->dynamic_rate = false;
         handler->devname = DEVNAME_X300;
-      } else if (strstr(args, "type=b200")) {
+      } else {
         snprintf(args2, sizeof(args2), "%s,master_clock_rate=30.72e6", args);
         args = args2;
         handler->current_master_clock = 30720000;
