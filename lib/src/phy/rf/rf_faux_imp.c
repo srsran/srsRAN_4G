@@ -116,7 +116,7 @@ static bool rf_faux_log_info    = true;
 
 #define RF_FAUX_MC_ADDR "224.4.3.2"
 #define RF_FAUX_MC_DEV  "lo"
-#define RF_FAUX_SOCK_BUFF_SIZE (2 * 1024 * 1024)
+#define RF_FAUX_SOCK_BUFF_SIZE (8 * (1 << 20)) // 8Mb
 // bytes per sample
 #define BYTES_X_SAMPLE(x) ((x)*sizeof(cf_t))
 
@@ -124,7 +124,7 @@ static bool rf_faux_log_info    = true;
 #define SAMPLES_X_BYTE(x) ((x)/sizeof(cf_t))
 
 // target OTA SR
-#define RF_FAUX_OTA_SRATE (5760000.0)
+#define RF_FAUX_OTA_SRATE (5.76e6)
 
 // max sf len
 #define RF_FAUX_SF_LEN (0x2000)
@@ -141,7 +141,7 @@ static bool rf_faux_log_info    = true;
 #define RF_FAUX_NOF_TX_WORKERS (25)
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
-static const struct timeval tv_rx_window = {0, 333}; // delta_t before next tti (1/3)
+static const struct timeval tv_rx_window = {0, 250}; // delta_t before next tti (1/4)
 static const struct timeval tv_zero      = {0, 0};
 
 uint32_t       g_tti     = 0;
@@ -857,7 +857,7 @@ float rf_faux_get_rssi(void *h)
 
 void rf_faux_suppress_stdout(void *h)
  {
-    rf_faux_log_debug   = false;
+    //rf_faux_log_debug   = false;
     rf_faux_log_info    = false;
  }
 
@@ -929,9 +929,11 @@ int rf_faux_open_multi(char *args, void **h, uint32_t nof_channels)
           return -1;
         }
 
+       memset(tx_worker->tx_info, 0x0, sizeof(rf_faux_tx_info_t));
+
        tx_worker->is_pending = false;
-       tx_worker->id      = id;
-       tx_worker->h       = &rf_faux_info;
+       tx_worker->id         = id;
+       tx_worker->h          = &rf_faux_info;
 
        if(pthread_create(&(tx_worker->tid), 
                          NULL, 
@@ -1133,20 +1135,16 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    cf_t sf_in[RF_FAUX_SF_LEN];
 
-   int rc = 0;
-
    int n_tries = rf_faux_is_ue(_info) ? 10 : 1;
 
    uint8_t * p2data = (uint8_t *)data;
 
    while(nb_pending > 0 && ((n_tries--) > 0))
      {   
-       memset(sf_in, 0x0, BYTES_X_SAMPLE(RF_FAUX_SF_LEN));
-
        struct iovec iov[2] = { {(void*)&hdr,  sizeof(hdr)},
                                {(void*)sf_in, nb_sf      }};
 
-       rc = rf_faux_vecio_recv(h, iov);
+       const int rc = rf_faux_vecio_recv(h, iov);
 
        gettimeofday(&rx_time, NULL);
 
