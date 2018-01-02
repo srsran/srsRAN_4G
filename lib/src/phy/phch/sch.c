@@ -493,11 +493,7 @@ static int decode_tb(srslte_sch_t *q,
                ((uint32_t) data[cb_segm->tbs/8+1])<<8   | 
                ((uint32_t) data[cb_segm->tbs/8+2]);
 
-      if (!par_rx) {
-        INFO("Warning: Received all-zero transport block\n\n",0);      
-      }
-
-      if (par_rx == par_tx) {
+      if (par_rx == par_tx && par_rx) {
         INFO("TB decoded OK\n",0);
         return SRSLTE_SUCCESS;
       } else {
