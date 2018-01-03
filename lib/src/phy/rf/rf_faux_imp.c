@@ -129,7 +129,7 @@ struct timeval g_tv_next = {0, 0};
 #define RF_FAUX_OTA_SRATE (5.76e6)
 
 // max sf len
-#define RF_FAUX_SF_LEN (0x2000)
+#define RF_FAUX_SF_LEN (0x3000)
 
 // normalize sf req len for pkt i/o
 #define RF_FAUX_NORM_SF_LEN(x) (((x) = ((x)/10)*10))
@@ -143,7 +143,7 @@ struct timeval g_tv_next = {0, 0};
 #define RF_FAUX_NOF_TX_WORKERS (25)
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
-static const struct timeval tv_rx_window = {0, 250}; // delta_t before next tti (1/4)
+static const struct timeval tv_rx_window = {0, 250}; // delta_t before next tti (1/4 sf)
 static const struct timeval tv_zero      = {0, 0};
 
 typedef struct {
@@ -358,7 +358,7 @@ static int rf_faux_vecio_send(void *h, struct iovec iov[2])
 
    const int nb_req = iov[0].iov_len + iov[1].iov_len;
 
-   int rc = writev(_info->tx_handle, iov, 2);
+   const int rc = writev(_info->tx_handle, iov, 2);
 
    if(rc < 0)
      {
@@ -857,7 +857,7 @@ float rf_faux_get_rssi(void *h)
 void rf_faux_suppress_stdout(void *h)
  {
     rf_faux_log_debug   = false;
-    rf_faux_log_info    = false;
+    // rf_faux_log_info    = false;
  }
 
 
@@ -1114,6 +1114,8 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
    pthread_mutex_lock(&(_info->rx_lock));
 
    gettimeofday(&tv_in, NULL);
+
+   memset(data, 0x0, BYTES_X_SAMPLE(nsamples));
 
    // sometimes we get a request for a few extra samples (1922 vs 1920) that 
    // throws off our pkt based stream

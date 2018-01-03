@@ -39,9 +39,6 @@
 
 using namespace std; 
 
-extern uint32_t       g_tti;
-extern struct timeval g_tv_next;
-
 namespace srsenb {
 
 txrx::txrx()

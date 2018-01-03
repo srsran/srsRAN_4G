@@ -37,8 +37,6 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-extern uint32_t g_tti;
-
 namespace srsue {
 
 int radio_recv_wrapper_cs(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
@@ -662,7 +660,6 @@ void phch_recv::run_thread() {
 
     if (phy_state != IDLE) {
       is_in_idle = false;
-      Debug("SYNC:  state=%d\n", phy_state);
     }
     switch (phy_state) {
       case CELL_SEARCH:

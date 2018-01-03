@@ -76,8 +76,8 @@ SRSLTE_API extern int srslte_verbose;
 #include<stdio.h>
 #include<string.h>
 
-extern uint32_t g_tti;
-
+extern struct timeval g_tv_next;
+extern uint32_t       g_tti;
 
 #define W_TRACE(_fmt, ...) do {                                                                         \
                              struct timeval _tv_now;                                                    \
@@ -85,12 +85,12 @@ extern uint32_t g_tti;
                              gettimeofday(&_tv_now, NULL);                                              \
                              localtime_r(&_tv_now.tv_sec, &_tm);                                        \
                              const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[WARN ]: %02d.%02d.%02d.%06ld [%05hu] %s:%s, " _fmt "\n", \
+                             fprintf(stdout, "[WARN ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
+                                     g_tti,                                                             \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \
                                      _tv_now.tv_usec,                                                   \
-                                     g_tti,                                                             \
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
@@ -102,12 +102,12 @@ extern uint32_t g_tti;
                              gettimeofday(&_tv_now, NULL);                                              \
                              localtime_r(&_tv_now.tv_sec, &_tm);                                        \
                              const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[INFO ]: %02d.%02d.%02d.%06ld [%05hu] %s:%s, " _fmt "\n", \
+                             fprintf(stdout, "[INFO ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
+                                     g_tti,                                                             \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \
                                      _tv_now.tv_usec,                                                   \
-                                     g_tti,                                                             \
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
@@ -119,7 +119,7 @@ extern uint32_t g_tti;
                              gettimeofday(&_tv_now, NULL);                                              \
                              localtime_r(&_tv_now.tv_sec, &_tm);                                        \
                              const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[MAC  ]: %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n",         \
+                             fprintf(stdout, "[MAC  ]: [     ] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \
@@ -135,7 +135,8 @@ extern uint32_t g_tti;
                              gettimeofday(&_tv_now, NULL);                                              \
                              localtime_r(&_tv_now.tv_sec, &_tm);                                        \
                              const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[PHY  ]: %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n",         \
+                             fprintf(stdout, "[PHY  ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
+                                     g_tti,                                                             \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \
@@ -151,7 +152,7 @@ extern uint32_t g_tti;
                              gettimeofday(&_tv_now, NULL);                                              \
                              localtime_r(&_tv_now.tv_sec, &_tm);                                        \
                              const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[UPPER]: %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n",         \
+                             fprintf(stdout, "[UPPER]: [     ] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \
@@ -160,7 +161,5 @@ extern uint32_t g_tti;
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
                            } while(0);
-
-
 
 #endif // DEBUG_H
