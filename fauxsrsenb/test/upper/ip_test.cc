@@ -124,7 +124,7 @@ public:
     rnti = 0; 
   }
   
-  void init(srslte::rlc *rlc_, srsenb::mac *mac_, srsenb::faux_phy *phy_, srslte::log *log_h_, std::string ip_address) {
+  void init(srslte::rlc *rlc_, srsenb::mac *mac_, srsenb::phy *phy_, srslte::log *log_h_, std::string ip_address) {
     log_h = log_h_; 
     rlc   = rlc_; 
     mac   = mac_; 
@@ -255,7 +255,7 @@ private:
   srslte::byte_buffer_pool *pool;
   srslte::rlc *rlc; 
   srsenb::mac *mac;
-  srsenb::faux_phy *phy;
+  srsenb::phy *phy;
   uint16_t rnti; 
   bool read_enable;
 
@@ -326,7 +326,7 @@ srslte::log_filter  log_phy;
 srslte::log_filter  log_mac;
 srslte::log_filter  log_rlc;
 srslte::log_filter  log_tester;
-srsenb::faux_phy my_phy;
+srsenb::phy my_phy;
 srsenb::mac my_mac;
 srslte::rlc  my_rlc;
 srslte::radio my_radio; 

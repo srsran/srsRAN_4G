@@ -647,16 +647,13 @@ void phch_recv::run_thread() {
 
   struct timeval tv_in, tv_out, tv_diff, tv_start;
   const  struct timeval tv_step = {0, 1000}, tv_zero = {0, 0};
-
   threads_print_self();
-
   gettimeofday(&tv_start, NULL);
 
   I_TRACE("begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
 
   while (running) {
     gettimeofday(&tv_in, NULL);
-
     I_TRACE("***** time_in %ld:%06ld  *****", 
             tv_in.tv_sec, 
             tv_in.tv_usec);
@@ -742,9 +739,7 @@ void phch_recv::run_thread() {
         }
         break;
       case CELL_CAMP:
-
         g_tti = tti = (tti+1) % 10240;
-
         worker = (phch_worker *) workers_pool->wait_worker(tti);
         if (worker) {
           for (uint32_t i = 0; i < nof_rx_antennas; i++) {
@@ -814,13 +809,11 @@ void phch_recv::run_thread() {
         usleep(1000);
         // Keep running MAC timer from system clock
         g_tti = tti = (tti+1) % 10240;
-
         mac->tti_clock(tti);
         break;
     }
 
    gettimeofday(&tv_out, NULL);
-
    timersub(&tv_out, &tv_in, &tv_diff);
 
    I_TRACE("***** time_out %ld:%06ld delta_t %ld:%06ld *****", 

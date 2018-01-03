@@ -109,19 +109,13 @@ void txrx::run_thread()
    
   struct timeval tv_in, tv_out, tv_diff, tv_start;
   const  struct timeval tv_step = {0, 1000}, tv_zero = {0, 0};
-
   threads_print_self();
-
   gettimeofday(&tv_start, NULL);
-
   // aligin on the top of the second
   usleep(1000000 - tv_start.tv_usec);
-
   tv_start.tv_sec += 1; 
   tv_start.tv_usec = 0;
-
   g_tv_next = tv_start;
- 
   I_TRACE("begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
 
   printf("\n==== eNodeB started ===\n");
@@ -129,7 +123,6 @@ void txrx::run_thread()
   // Main loop
   while (running) {
     gettimeofday(&tv_in, NULL);
-
     timeradd(&g_tv_next, &tv_step, &g_tv_next);
     timersub(&g_tv_next, &tv_in,   &tv_diff);
 
@@ -150,7 +143,6 @@ void txrx::run_thread()
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);
       srslte_timestamp_add(&tx_time, 0, 4e-3);
-
       I_TRACE("Next TX time %ld:%f", tx_time.full_secs, tx_time.frac_secs);
       
       Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
@@ -168,9 +160,7 @@ void txrx::run_thread()
       prach->new_tti(tti, buffer);
       
       gettimeofday(&tv_out, NULL);
-
       timersub(&g_tv_next, &tv_out, &tv_diff);
-
       if(timercmp(&tv_diff, &tv_zero, >))
         {
           I_TRACE("***** time_out %ld:%06ld remain  %ld:%06ld *****", 

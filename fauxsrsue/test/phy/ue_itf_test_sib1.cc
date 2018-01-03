@@ -82,7 +82,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
   }
 }
 
-srsue::faux_phy my_phy;
+srsue::phy my_phy;
 bool bch_decoded = false; 
 uint32_t total_pkts=0;
 uint32_t total_dci=0;

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef FAUX_ENBPHY_H
-#define FAUX_ENBPHY_H
+#ifndef ENBPHY_H
+#define ENBPHY_H
 
 #include "srslte/common/log.h"
 #include "phy/txrx.h"
@@ -48,12 +48,12 @@ typedef struct {
   LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT      srs_ul_cnfg;    
 } phy_cfg_t; 
 
-class faux_phy : public phy_interface_mac,
-                public phy_interface_rrc
+class phy : public phy_interface_mac,
+            public phy_interface_rrc
 {
 public:
 
-  faux_phy();
+  phy();
   bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_faux_phy *mac, srslte::log* log_h);
   bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_faux_phy *mac, std::vector<void*> log_vec);
   void stop();

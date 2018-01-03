@@ -205,7 +205,7 @@ void parse_args(int argc, char **argv) {
     }
   }
 #ifdef DISABLE_RF
-  if (!output_file_name && !strlen(rf_args)) {
+  if (!output_file_name) {
     usage(argv[0]);
     exit(-1);
   }
@@ -996,7 +996,6 @@ int main(int argc, char **argv) {
         srslte_vec_sc_prod_cfc(output_buffer[i], rf_amp * norm_factor, output_buffer[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
       }
       srslte_rf_send_multi(&rf, (void**) output_buffer, sf_n_samples, true, start_of_burst, false);
-      usleep(1000);
       start_of_burst=false;
 #endif
       }

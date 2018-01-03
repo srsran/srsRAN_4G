@@ -404,6 +404,7 @@ void ra_proc::step_response_reception() {
 }
 
 void ra_proc::step_response_error() {
+  
   X_TRACE("RA_PROC:BEGIN");
   preambleTransmissionCounter++;
   if (preambleTransmissionCounter >= preambleTransMax + 1) {

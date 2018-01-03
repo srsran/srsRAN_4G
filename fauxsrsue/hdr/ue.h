@@ -30,8 +30,8 @@
  *              layers and helpers.
  *****************************************************************************/
 
-#ifndef FAUX_UE_H
-#define FAUX_UE_H
+#ifndef UE_H
+#define UE_H
 
 #include <stdarg.h>
 #include <string>
@@ -85,7 +85,7 @@ private:
   virtual ~ue();
 
   srslte::radio_multi radio;
-  srsue::faux_phy         phy;
+  srsue::phy         phy;
   srsue::mac         mac;
   srslte::mac_pcap   mac_pcap;
   srslte::rlc        rlc;

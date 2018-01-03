@@ -30,8 +30,8 @@
  * Description: Metrics class printing to stdout.
  *****************************************************************************/
 
-#ifndef FAUX_METRICS_STDOUT_H
-#define FAUX_METRICS_STDOUT_H
+#ifndef METRICS_STDOUT_H
+#define METRICS_STDOUT_H
 
 #include <pthread.h>
 #include <stdint.h>

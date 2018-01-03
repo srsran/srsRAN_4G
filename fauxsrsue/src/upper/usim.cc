@@ -34,9 +34,7 @@ using namespace srslte;
 namespace srsue{
 
 usim::usim() : initiated(false)
-{
-  X_TRACE("UISM:BEGIN");
-}
+{}
 
 void usim::init(usim_args_t *args, srslte::log *usim_log_)
 {

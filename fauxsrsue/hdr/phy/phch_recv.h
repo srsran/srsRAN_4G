@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef FAUX_UEPHYRECV_H
-#define FAUX_UEPHYRECV_H
+#ifndef UEPHYRECV_H
+#define UEPHYRECV_H
 
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"

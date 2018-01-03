@@ -92,6 +92,7 @@ void gw::stop()
 
 void gw::get_metrics(gw_metrics_t &m)
 {
+  
   X_TRACE("GW:BEGIN");
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);

@@ -81,7 +81,8 @@ uint32_t dl_metric_rr::get_required_rbg(sched_ue *user, uint32_t tti)
 
 void dl_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t start_rb, uint32_t nof_rb, uint32_t nof_ctrl_symbols_, uint32_t tti)
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  
+X_TRACE("SCHEDMETRIC:BEGIN");
   total_rb = start_rb+nof_rb; 
   for (uint32_t i=0;i<total_rb;i++) {
     if (i<start_rb) {

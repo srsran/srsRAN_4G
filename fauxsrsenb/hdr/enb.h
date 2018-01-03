@@ -30,8 +30,8 @@
  *              layers and helpers.
  *****************************************************************************/
 
-#ifndef FAUX_ENB_H
-#define FAUX_ENB_H
+#ifndef ENB_H
+#define ENB_H
 
 #include <stdarg.h>
 #include <string>
@@ -169,7 +169,7 @@ private:
   virtual ~enb();
 
   srslte::radio radio;
-  srsenb::faux_phy phy;
+  srsenb::phy phy;
   srsenb::mac mac;
   srslte::mac_pcap mac_pcap;
   srsenb::rlc rlc;

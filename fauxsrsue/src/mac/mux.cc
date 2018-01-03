@@ -286,6 +286,7 @@ void mux::append_crnti_ce_next_tx(uint16_t crnti) {
 
 bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz) 
 {
+ 
   X_TRACE("MUX:BEGIN");
   if (*sdu_space > 0) {
     // Get n-th pending SDU pointer and length
@@ -312,6 +313,7 @@ bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz)
 
 bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz) 
 {
+ 
   X_TRACE("MUX:BEGIN");
   // Get n-th pending SDU pointer and length
   int sdu_len = rlc->get_buffer_state(lcid); 

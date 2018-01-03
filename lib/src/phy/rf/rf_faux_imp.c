@@ -857,7 +857,7 @@ float rf_faux_get_rssi(void *h)
 
 void rf_faux_suppress_stdout(void *h)
  {
-    //rf_faux_log_debug   = false;
+    rf_faux_log_debug   = false;
     rf_faux_log_info    = false;
  }
 

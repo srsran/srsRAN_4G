@@ -52,6 +52,7 @@ static int plot_worker_id = -1;
 #endif
 /*********************************************/
 
+
 namespace srsue {
 
 
@@ -207,6 +208,8 @@ void phch_worker::work_imp()
     return; 
   }
   
+  Debug("TTI %d running\n", tti);
+
 #ifdef LOG_EXECTIME
   gettimeofday(&logtime_start[1], NULL);
 #endif

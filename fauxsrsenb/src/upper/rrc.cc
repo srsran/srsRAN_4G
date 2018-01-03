@@ -164,7 +164,8 @@ uint32_t rrc::generate_sibs()
 
 void rrc::config_mac()
 { 
-  X_TRACE("RRC:BEGIN");
+  
+X_TRACE("RRC:BEGIN");
   // Fill MAC scheduler configuration for SIBs 
   sched_interface::cell_cfg_t sched_cfg; 
   bzero(&sched_cfg, sizeof(sched_interface::cell_cfg_t));
@@ -296,7 +297,8 @@ uint32_t rrc::get_nof_users() {
 
 void rrc::max_retx_attempted(uint16_t rnti)
 {
-  X_TRACE("RRC:BEGIN:TODO");
+
+X_TRACE("RRC:BEGIN:TODO");
 }
 
 /*******************************************************************************
@@ -775,7 +777,8 @@ bool rrc::ue::is_idle() {
 
 bool rrc::ue::is_timeout() 
 {
-  X_TRACE("RRC:BEGIN");
+  
+X_TRACE("RRC:BEGIN");
   if (!parent) {
     return false; 
   }
@@ -1330,6 +1333,7 @@ int rrc::ue::get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drb_id)
 
 void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 {
+  
   X_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg; 
   bzero(&dl_dcch_msg, sizeof(LIBLTE_RRC_DL_DCCH_MSG_STRUCT));
@@ -1375,6 +1379,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 
 void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 {
+  
   X_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg; 
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG; 

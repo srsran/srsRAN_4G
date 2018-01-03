@@ -35,7 +35,7 @@ namespace srsue {
 
 nas::nas()
   : state(EMM_STATE_DEREGISTERED), plmn_selection(PLMN_SELECTED), is_guti_set(false), ip_addr(0), eps_bearer_id(0),
-    count_ul(0), count_dl(0) { X_TRACE("NAS:BEGIN"); }
+    count_ul(0), count_dl(0) {}
 
 void nas::init(usim_interface_nas *usim_,
                rrc_interface_nas *rrc_,

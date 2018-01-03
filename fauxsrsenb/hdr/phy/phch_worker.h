@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef FAUX_ENBPHYWORKER_H
-#define FAUX_ENBPHYWORKER_H
+#ifndef ENBPHYWORKER_H
+#define ENBPHYWORKER_H
 
 #include <string.h>
 

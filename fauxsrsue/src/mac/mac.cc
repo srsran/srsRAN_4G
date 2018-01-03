@@ -150,7 +150,7 @@ void mac::run_thread() {
 
   while (!phy_h->sync_status() && started) {
     X_TRACE("MAC:BEGIN:snooze");
-    usleep(5000); // XXX_EMANE
+    usleep(5000);
     if (phy_h->sync_status()) {
       Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
       ttisync.set_producer_cntr(phy_h->get_current_tti());

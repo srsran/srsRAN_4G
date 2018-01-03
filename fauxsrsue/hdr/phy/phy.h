@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef FAUX_UEPHY_H
-#define FAUX_UEPHY_H
+#ifndef UEPHY_H
+#define UEPHY_H
 
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
@@ -43,13 +43,13 @@ namespace srsue {
     
 typedef _Complex float cf_t; 
 
-class faux_phy
+class phy
     : public phy_interface_mac
     , public phy_interface_rrc
     , public thread
 {
 public:
-  faux_phy();
+  phy();
   bool init(srslte::radio_multi *radio_handler, 
             mac_interface_faux_phy *mac, 
             rrc_interface_phy *rrc,

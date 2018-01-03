@@ -124,7 +124,7 @@ public:
     read_enable = true; 
   }
   
-  void init(srsue::faux_phy *phy_, srsue::mac *mac_, srslte::rlc *rlc_, srslte::log *log_h_, std::string ip_address) {
+  void init(srsue::phy *phy_, srsue::mac *mac_, srslte::rlc *rlc_, srslte::log *log_h_, std::string ip_address) {
     log_h = log_h_; 
     rlc   = rlc_; 
     mac   = mac_; 
@@ -336,7 +336,7 @@ private:
   srslte::byte_buffer_pool *pool;
   srslte::rlc *rlc; 
   srsue::mac *mac; 
-  srsue::faux_phy *phy;  
+  srsue::phy *phy;  
   srslte::bit_buffer_t bit_buf;
   srsue::rrc_state_t state; 
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT sib1;
@@ -419,7 +419,7 @@ private:
           liblte_rrc_mac_contention_resolution_timer_num[sib2.rr_config_common_sib.rach_cnfg.mac_con_res_timer]);
 
     // Apply PHY RR Config Common
-    srsue::phy::phy_cfg_common_t common; 
+    srsue::phy_interface_rrc::phy_cfg_common_t common; 
     memcpy(&common.pdsch_cnfg,  &sib2.rr_config_common_sib.pdsch_cnfg,  sizeof(LIBLTE_RRC_PDSCH_CONFIG_COMMON_STRUCT));
     memcpy(&common.pusch_cnfg,  &sib2.rr_config_common_sib.pusch_cnfg,  sizeof(LIBLTE_RRC_PUSCH_CONFIG_COMMON_STRUCT));
     memcpy(&common.pucch_cnfg,  &sib2.rr_config_common_sib.pucch_cnfg,  sizeof(LIBLTE_RRC_PUCCH_CONFIG_COMMON_STRUCT));
@@ -471,7 +471,7 @@ srslte::log_filter  log_mac;
 srslte::log_filter  log_rlc;
 srslte::log_filter  log_tester;
 srslte::mac_pcap    mac_pcap;
-srsue::faux_phy my_phy;
+srsue::phy my_phy;
 srsue::mac my_mac;
 srslte::rlc rlc;
 srslte::radio_multi my_radio; 

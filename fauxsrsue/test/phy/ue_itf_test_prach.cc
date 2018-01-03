@@ -155,7 +155,7 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
 
 
 
-srsue::faux_phy my_phy;
+srsue::phy my_phy;
 bool bch_decoded = false; 
 
 uint8_t payload[SRSLTE_MAX_TB][10240];

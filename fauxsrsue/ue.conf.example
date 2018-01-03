@@ -29,8 +29,8 @@ rx_gain = 40
 #nof_rx_ant = 1
 device_name = faux
 device_args = ue
-time_adv_nsamples = 100
-burst_preamble_us = 400
+#time_adv_nsamples = auto
+#burst_preamble_us = auto
 
 
 #####################################################################
@@ -46,8 +46,8 @@ burst_preamble_us = 400
 # filename: File path to use for packet captures
 #####################################################################
 [pcap]
-enable = true
-filename = ue.pcap
+enable = false
+filename = /tmp/ue.pcap
 
 #####################################################################
 # Log configuration
@@ -144,7 +144,7 @@ enable = false
 #snr_estim_alg       = refs
 #pdsch_max_its       = 4
 #attach_enable_64qam = false
-nof_phy_threads     = 1
+#nof_phy_threads     = 2
 #equalizer_mode      = mmse
 #cfo_integer_enabled = false
 #cfo_correct_tol_hz  = 50
@@ -154,7 +154,7 @@ nof_phy_threads     = 1
 #estimator_fil_w     = 0.1
 #pregenerate_signals = false
 #metrics_csv_enable  = false
-#metrics_csv_filename = ue_metrics.csv
+#metrics_csv_filename = /tmp/ue_metrics.csv
 
 #####################################################################
 # Manual RF calibration

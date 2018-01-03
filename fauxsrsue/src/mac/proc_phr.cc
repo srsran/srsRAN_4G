@@ -68,6 +68,7 @@ void phr_proc::reset()
 }
 
 bool phr_proc::pathloss_changed() {
+  
   X_TRACE("PHRPROC::BEGIN");
   int min_change      = liblte_rrc_dl_pathloss_change_num[mac_cfg->main.phr_cnfg.dl_pathloss_change];
   int cur_pathloss_db = (int) phy_h->get_pathloss_db(); 
@@ -145,6 +146,7 @@ void phr_proc::step(uint32_t tti)
 
 bool phr_proc::generate_phr_on_ul_grant(float *phr) 
 {
+  
   X_TRACE("PHRPROC::BEGIN");
   if (phr_is_triggered) {
     if (phr) {

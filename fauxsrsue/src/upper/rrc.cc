@@ -251,7 +251,7 @@ void rrc::run_thread() {
       default:
         break;
     }
-    usleep(1000); // XXX_EMANE
+    usleep(1000);
     X_TRACE("RRC:END:snooze, state %d", state);
   }
 }

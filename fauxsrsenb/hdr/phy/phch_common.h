@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef FAUX_ENBPHCHCOMMON_H
-#define FAUX_ENBPHCHCOMMON_H
+#ifndef ENBPHCHCOMMON_H
+#define ENBPHCHCOMMON_H
 
 #include <map>
 #include "srslte/interfaces/enb_interfaces.h"

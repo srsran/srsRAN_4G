@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef FAUX_UEPHYWORKER_H
-#define FAUX_UEPHYWORKER_H
+#ifndef UEPHYWORKER_H
+#define UEPHYWORKER_H
 
 #include <string.h>
 #include "srslte/srslte.h"

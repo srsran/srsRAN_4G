@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef FAUX_PRACH_WORKER_H
-#define FAUX_PRACH_WORKER_H
+#ifndef PRACH_WORKER_H
+#define PRACH_WORKER_H
 
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/log.h"
