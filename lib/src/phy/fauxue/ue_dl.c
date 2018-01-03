@@ -56,7 +56,7 @@ int srslte_faux_ue_dl_init(srslte_faux_ue_dl_t *q,
                       uint32_t max_prb,
                       uint32_t nof_rx_antennas)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -165,7 +165,7 @@ clean_exit:
 }
 
 void srslte_faux_ue_dl_free(srslte_faux_ue_dl_t *q) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (q) {
     srslte_ofdm_rx_free(&q->fft);
@@ -200,7 +200,7 @@ void srslte_faux_ue_dl_free(srslte_faux_ue_dl_t *q) {
 
 int srslte_faux_ue_dl_set_cell(srslte_faux_ue_dl_t *q, srslte_cell_t cell)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -267,7 +267,7 @@ int srslte_faux_ue_dl_set_cell(srslte_faux_ue_dl_t *q, srslte_cell_t cell)
  * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
  */
 void srslte_faux_ue_dl_set_rnti(srslte_faux_ue_dl_t *q, uint16_t rnti) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_pdsch_set_rnti(&q->pdsch, rnti);
   
@@ -286,7 +286,7 @@ void srslte_faux_ue_dl_set_rnti(srslte_faux_ue_dl_t *q, uint16_t rnti) {
  */
 int srslte_faux_ue_dl_set_mbsfn_area_id(srslte_faux_ue_dl_t *q,
                                    uint16_t mbsfn_area_id) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if(q != NULL) {
@@ -307,7 +307,7 @@ int srslte_faux_ue_dl_set_mbsfn_area_id(srslte_faux_ue_dl_t *q,
 
 void srslte_faux_ue_dl_set_non_mbsfn_region(srslte_faux_ue_dl_t *q,
                                        uint8_t non_mbsfn_region_length) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_ofdm_set_non_mbsfn_region(&q->fft_mbsfn, non_mbsfn_region_length);
 }
@@ -315,7 +315,7 @@ void srslte_faux_ue_dl_set_non_mbsfn_region(srslte_faux_ue_dl_t *q,
 
 
 void srslte_faux_ue_dl_reset(srslte_faux_ue_dl_t *q) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   for(int i = 0; i < SRSLTE_MAX_CODEWORDS; i++){
     srslte_softbuffer_rx_reset(q->softbuffers[i]);
@@ -324,7 +324,7 @@ void srslte_faux_ue_dl_reset(srslte_faux_ue_dl_t *q) {
 }
 
 void srslte_faux_ue_dl_set_sample_offset(srslte_faux_ue_dl_t * q, float sample_offset) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   q->sample_offset = sample_offset; 
 }
@@ -338,21 +338,21 @@ void srslte_faux_ue_dl_set_sample_offset(srslte_faux_ue_dl_t * q, float sample_o
  */
 int srslte_faux_ue_dl_decode(srslte_faux_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data[SRSLTE_MAX_CODEWORDS],
                               uint32_t tm, uint32_t tti, bool acks[SRSLTE_MAX_CODEWORDS]) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   return srslte_faux_ue_dl_decode_rnti(q, input, data, tm, tti, q->current_rnti, acks);
 }
 
 
 int srslte_faux_ue_dl_decode_fft_estimate(srslte_faux_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t *cfi){
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   return srslte_faux_ue_dl_decode_fft_estimate_mbsfn(q, input, sf_idx, cfi, SRSLTE_SF_NORM);
 } 
 
 int srslte_faux_ue_dl_decode_fft_estimate_mbsfn(srslte_faux_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t *cfi, srslte_sf_t sf_type)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
@@ -381,14 +381,14 @@ int srslte_faux_ue_dl_decode_fft_estimate_mbsfn(srslte_faux_ue_dl_t *q, cf_t *in
   }
 }
 int srslte_faux_ue_dl_decode_estimate(srslte_faux_ue_dl_t *q, uint32_t sf_idx, uint32_t *cfi) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   return srslte_faux_ue_dl_decode_estimate_mbsfn(q, sf_idx, cfi, SRSLTE_SF_NORM);
 }
 
 
 int srslte_faux_ue_dl_decode_estimate_mbsfn(srslte_faux_ue_dl_t *q, uint32_t sf_idx, uint32_t *cfi, srslte_sf_t sf_type) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   float cfi_corr; 
   if (q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
@@ -425,7 +425,7 @@ int srslte_faux_ue_dl_decode_estimate_mbsfn(srslte_faux_ue_dl_t *q, uint32_t sf_
 
 int srslte_faux_ue_dl_cfg_grant(srslte_faux_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx,
                                  int rvidx[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   uint32_t pmi = 0;
   uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
@@ -458,7 +458,7 @@ int srslte_faux_ue_dl_cfg_grant(srslte_faux_ue_dl_t *q, srslte_ra_dl_grant_t *gr
 int srslte_faux_ue_dl_decode_rnti(srslte_faux_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
                              uint8_t *data[SRSLTE_MAX_CODEWORDS], uint32_t tm, uint32_t tti, uint16_t rnti,
                              bool acks[SRSLTE_MAX_CODEWORDS]) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_mimo_type_t mimo_type;
   srslte_dci_msg_t dci_msg;
@@ -619,7 +619,7 @@ int srslte_faux_ue_dl_decode_mbsfn(srslte_faux_ue_dl_t * q,
   uint32_t cfi;
   uint32_t sf_idx = tti%10; 
 
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
   
   if ((ret = srslte_faux_ue_dl_decode_fft_estimate_mbsfn(q, input, sf_idx, &cfi, SRSLTE_SF_MBSFN)) < 0) {
     return ret; 
@@ -674,7 +674,7 @@ int srslte_faux_ue_dl_decode_mbsfn(srslte_faux_ue_dl_t * q,
 /* Compute the Rank Indicator (RI) and Precoder Matrix Indicator (PMI) by computing the Signal to Interference plus
  * Noise Ratio (SINR), valid for TM4 */
 int srslte_faux_ue_dl_ri_pmi_select(srslte_faux_ue_dl_t *q, uint8_t *ri, uint8_t *pmi, float *current_sinr) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
   float best_sinr = -INFINITY;
@@ -735,7 +735,7 @@ int srslte_faux_ue_dl_ri_pmi_select(srslte_faux_ue_dl_t *q, uint8_t *ri, uint8_t
 
 /* Compute the Rank Indicator (RI) by computing the condition number, valid for TM3 */
 int srslte_faux_ue_dl_ri_select(srslte_faux_ue_dl_t *q, uint8_t *ri, float *cn) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   float _cn;
   int ret = srslte_pdsch_cn_compute(&q->pdsch, q->ce_m, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp), &_cn);
@@ -755,14 +755,14 @@ int srslte_faux_ue_dl_ri_select(srslte_faux_ue_dl_t *q, uint8_t *ri, float *cn) 
 
 
 uint32_t srslte_faux_ue_dl_get_ncce(srslte_faux_ue_dl_t *q) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   return q->last_location.ncce; 
 }
 
 static int dci_blind_search(srslte_faux_ue_dl_t *q, dci_faux_blind_search_t *search_space, uint16_t rnti, srslte_dci_msg_t *dci_msg) 
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR; 
   uint16_t crc_rem = 0; 
@@ -807,7 +807,7 @@ static int dci_blind_search(srslte_faux_ue_dl_t *q, dci_faux_blind_search_t *sea
 
 int srslte_faux_ue_dl_find_ul_dci(srslte_faux_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (rnti && cfi > 0 && cfi < 4) {
     /* Do not search if an UL DCI is already pending */    
@@ -839,7 +839,7 @@ int srslte_faux_ue_dl_find_ul_dci(srslte_faux_ue_dl_t *q, uint32_t cfi, uint32_t
 
 int srslte_faux_ue_dl_find_dl_dci(srslte_faux_ue_dl_t *q, uint32_t tm, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_rnti_type_t rnti_type; 
   if (rnti == SRSLTE_SIRNTI) {
@@ -857,7 +857,7 @@ int srslte_faux_ue_dl_find_dl_dci(srslte_faux_ue_dl_t *q, uint32_t tm, uint32_t 
 // Blind search for SI/P/RA-RNTI
 static int find_dl_dci_type_siprarnti(srslte_faux_ue_dl_t *q, uint32_t cfi, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = 0; 
   // Configure and run DCI blind search 
@@ -879,7 +879,7 @@ static int find_dl_dci_type_siprarnti(srslte_faux_ue_dl_t *q, uint32_t cfi, uint
 // Blind search for C-RNTI
 static int find_dl_dci_type_crnti(srslte_faux_ue_dl_t *q, uint32_t tm, uint32_t cfi,
                                   uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_SUCCESS; 
   dci_faux_blind_search_t search_space; 
@@ -934,7 +934,7 @@ static int find_dl_dci_type_crnti(srslte_faux_ue_dl_t *q, uint32_t tm, uint32_t 
 int srslte_faux_ue_dl_find_dl_dci_type(srslte_faux_ue_dl_t *q, uint32_t tm, uint32_t cfi, uint32_t sf_idx,
                                   uint16_t rnti, srslte_rnti_type_t rnti_type, srslte_dci_msg_t *dci_msg)
 {  
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (rnti_type == SRSLTE_RNTI_SI || rnti_type == SRSLTE_RNTI_PCH || rnti_type == SRSLTE_RNTI_RAR) {
     return find_dl_dci_type_siprarnti(q, cfi, rnti, dci_msg);
@@ -945,7 +945,7 @@ int srslte_faux_ue_dl_find_dl_dci_type(srslte_faux_ue_dl_t *q, uint32_t tm, uint
 
 bool srslte_faux_ue_dl_decode_phich(srslte_faux_ue_dl_t *q, uint32_t sf_idx, uint32_t n_prb_lowest, uint32_t n_dmrs)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   uint8_t ack_bit; 
   float distance;
@@ -969,7 +969,7 @@ bool srslte_faux_ue_dl_decode_phich(srslte_faux_ue_dl_t *q, uint32_t sf_idx, uin
 }
 
 void srslte_faux_ue_dl_save_signal(srslte_faux_ue_dl_t *q, srslte_softbuffer_rx_t *softbuffer, uint32_t tti, uint32_t rv_idx, uint16_t rnti, uint32_t cfi) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_vec_save_file("sf_symbols", q->sf_symbols, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   printf("%d samples\n", SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));

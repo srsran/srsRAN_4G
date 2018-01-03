@@ -50,17 +50,17 @@ rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
 }
 
 static void liblte_rrc_handler(void *ctx, char *str) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc *r = (rrc *) ctx;
   r->liblte_rrc_log(str);
 }
 
 void rrc::liblte_rrc_log(char *str) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (rrc_log) {
     rrc_log->warning("[ASN]: %s\n", str);
   } else {
@@ -76,7 +76,7 @@ void rrc::init(phy_interface_rrc *phy_,
                usim_interface_rrc *usim_,
                mac_interface_timers *mac_timers_,
                srslte::log *rrc_log_) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   pool = byte_buffer_pool::get_instance();
   phy = phy_;
   mac = mac_;
@@ -116,28 +116,28 @@ void rrc::init(phy_interface_rrc *phy_,
 }
 
 void rrc::stop() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   thread_running = false;
   wait_thread_finish();
 }
 
 rrc_state_t rrc::get_state() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   return state;
 }
 
 bool rrc::is_connected() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   return (RRC_STATE_CONNECTED == state);
 }
 
 bool rrc::have_drb() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   return drb_up;
 }
 
 void rrc::set_ue_category(int category) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (category >= 1 && category <= 5) {
     ue_category = category;
   } else {
@@ -153,7 +153,7 @@ void rrc::set_ue_category(int category) {
 void rrc::run_thread() {
 
   while (thread_running) {
-    X_TRACE("RRC:BEGIN");
+    U_TRACE("RRC:BEGIN");
 
     if (state >= RRC_STATE_IDLE && state < RRC_STATE_CONNECTING) {
       run_si_acquisition_procedure();
@@ -252,7 +252,7 @@ void rrc::run_thread() {
         break;
     }
     usleep(1000);
-    X_TRACE("RRC:END:snooze, state %d", state);
+    U_TRACE("RRC:END:snooze, state %d", state);
   }
 }
 
@@ -275,13 +275,13 @@ void rrc::run_thread() {
 
 // Determine SI messages scheduling as in 36.331 5.2.3 Acquisition of an SI message
 uint32_t rrc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t x) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   return (period * 10 * (1 + tti / (period * 10)) + x) % 10240; // the 1 means next opportunity
 }
 
 void rrc::run_si_acquisition_procedure()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   uint32_t tti;
   uint32_t si_win_start=0, si_win_len=0;
   uint16_t period;
@@ -349,7 +349,7 @@ void rrc::run_si_acquisition_procedure()
 *******************************************************************************/
 
 uint16_t rrc::get_mcc() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (current_cell) {
     if (current_cell->sib1.N_plmn_ids > 0) {
       return current_cell->sib1.plmn_id[0].id.mcc;
@@ -359,7 +359,7 @@ uint16_t rrc::get_mcc() {
 }
 
 uint16_t rrc::get_mnc() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (current_cell) {
     if (current_cell->sib1.N_plmn_ids > 0) {
       return current_cell->sib1.plmn_id[0].id.mnc;
@@ -369,7 +369,7 @@ uint16_t rrc::get_mnc() {
 }
 
 void rrc::plmn_search() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info("Starting PLMN search procedure\n");
   state = RRC_STATE_PLMN_SELECTION;
   phy->cell_search_start();
@@ -377,7 +377,7 @@ void rrc::plmn_search() {
 }
 
 void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
 
   // If already camping on the selected PLMN, select this cell
   if (state == RRC_STATE_IDLE || state == RRC_STATE_CONNECTED || state == RRC_STATE_PLMN_SELECTION) {
@@ -402,7 +402,7 @@ void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
 }
 
 void rrc::select_next_cell_in_plmn() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   for (uint32_t i = last_selected_cell + 1; i < known_cells.size(); i++) {
     for (uint32_t j = 0; j < known_cells[i].sib1.N_plmn_ids; j++) {
       if (known_cells[i].sib1.plmn_id[j].id.mcc == selected_plmn_id.mcc ||
@@ -433,7 +433,7 @@ void rrc::select_next_cell_in_plmn() {
 }
 
 void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
 
   // find if cell_id-earfcn combination already exists
   for (uint32_t i = 0; i < known_cells.size(); i++) {
@@ -477,7 +477,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
 // PHY indicates that has gone through all known EARFCN
 void rrc::earfcn_end() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->debug("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
 
   // If searching for PLMN, indicate NAS we scanned all frequencies
@@ -505,7 +505,7 @@ void rrc::earfcn_end() {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
     current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
@@ -523,7 +523,7 @@ void rrc::out_of_sync() {
 
 // Recovery of physical layer problems (5.3.11.2)
 void rrc::in_sync() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   current_cell->in_sync = true;
   if (mac_timers->timer_get(t310)->is_running()) {
     n311_cnt++;
@@ -539,7 +539,7 @@ void rrc::in_sync() {
  * Upon T310 expiry, RA problem or RLC max retx
  */
 void rrc::radio_link_failure() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // TODO: Generate and store failure report
 
   phy->sync_reset();
@@ -554,7 +554,7 @@ void rrc::radio_link_failure() {
 
 /* Reception of PUCCH/SRS release procedure (Section 5.3.13) */
 void rrc::release_pucch_srs() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Apply default configuration for PUCCH (CQI and SR) and SRS (release)
   set_phy_default_pucch_srs();
 
@@ -563,19 +563,19 @@ void rrc::release_pucch_srs() {
 }
 
 void rrc::ra_problem() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   radio_link_failure();
 }
 
 void rrc::max_retx_attempted() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   //TODO: Handle the radio link failure
   rrc_log->warning("Max RLC reTx attempted\n");
   radio_link_failure();
 }
 
 void rrc::timer_expired(uint32_t timeout_id) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (timeout_id == t310) {
     rrc_log->info("Timer T310 expired: Radio Link Failure\n");
     radio_link_failure();
@@ -608,7 +608,7 @@ void rrc::timer_expired(uint32_t timeout_id) {
 *******************************************************************************/
 
 void rrc::send_con_request() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->debug("Preparing RRC Connection Request\n");
   LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
   LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
@@ -653,7 +653,7 @@ void rrc::send_con_request() {
 
 /* RRC connection re-establishment procedure (5.3.7) */
 void rrc::send_con_restablish_request() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
 
   srslte_cell_t cell;
   phy->get_current_cell(&cell);
@@ -742,7 +742,7 @@ void rrc::send_con_restablish_request() {
 }
 
 void rrc::send_con_restablish_complete() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->debug("Preparing RRC Connection Reestablishment Complete\n");
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
 
@@ -768,7 +768,7 @@ void rrc::send_con_restablish_complete() {
 }
 
 void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->debug("Preparing RRC Connection Setup Complete\n");
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
 
@@ -799,7 +799,7 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
 }
 
 void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->debug("Preparing RX Info Transfer\n");
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
 
@@ -830,7 +830,7 @@ void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu) {
 }
 
 void rrc::send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->debug("Preparing Security Mode Complete\n");
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_SECURITY_MODE_COMPLETE;
@@ -852,7 +852,7 @@ void rrc::send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void rrc::send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
 
@@ -877,7 +877,7 @@ void rrc::send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu) {
 
 void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig,
                                   byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   uint32_t i;
 
   if (reconfig->rr_cnfg_ded_present) {
@@ -905,7 +905,7 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
 
   /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
 void rrc::rrc_connection_release() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Save idleModeMobilityControlInfo, etc.
   state = RRC_STATE_LEAVE_CONNECTED;
   rrc_log->console("Received RRC Connection Release\n");
@@ -928,7 +928,7 @@ void rrc::rrc_connection_release() {
 *
 *******************************************************************************/
 void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   pool->deallocate(pdu);
   if (state == RRC_STATE_PLMN_SELECTION) {
     // Do we need to do something with BCH?
@@ -939,7 +939,7 @@ void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu) {
 }
 
 void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH DLSCH message received.");
   rrc_log->info("BCCH DLSCH message Stack latency: %ld us\n", pdu->get_latency_us());
   LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
@@ -1026,7 +1026,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 *
 *******************************************************************************/
 void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     rrc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received %d bytes\n", pdu->N_bytes);
     rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
@@ -1088,7 +1088,7 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
 *
 *******************************************************************************/
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", get_rb_name(lcid).c_str());
   switch (state) {
     case RRC_STATE_CONNECTING:
@@ -1104,7 +1104,7 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 }
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", get_rb_name(lcid).c_str());
   rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
 
@@ -1123,7 +1123,7 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
   bit_buf.N_bits = pdu->N_bytes * 8;
   pool->deallocate(pdu);
@@ -1164,7 +1164,7 @@ void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
 }
 
 void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
   bit_buf.N_bits = pdu->N_bytes * 8;
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
@@ -1233,14 +1233,14 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
 *
 *******************************************************************************/
 void rrc::enable_capabilities() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   bool enable_ul_64 = ue_category >= 5 && current_cell->sib2.rr_config_common_sib.pusch_cnfg.enable_64_qam;
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64 ? "Enabling" : "Disabling");
   phy->set_config_64qam_en(enable_ul_64);
 }
 
 void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->debug("Preparing UE Capability Info\n");
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
 
@@ -1338,7 +1338,7 @@ void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu) {
 *******************************************************************************/
 
 void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
 
   // Apply RACH timeAlginmentTimer configuration
   mac_interface_rrc::mac_cfg_t cfg;
@@ -1413,7 +1413,7 @@ void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
 
 // Go through all information elements and apply defaults (9.2.4) if not defined
 void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Get current configuration
   LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *current_cfg;
   phy_interface_rrc::phy_cfg_t c;
@@ -1550,7 +1550,7 @@ void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT
 }
 
 void rrc::apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cnfg, bool apply_defaults) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Set Default MAC main configuration (9.2.2)
   LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT default_cfg;
   bzero(&default_cfg, sizeof(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT));
@@ -1609,7 +1609,7 @@ void rrc::apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cnfg
 }
 
 void rrc::apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (cnfg->phy_cnfg_ded_present) {
     apply_phy_config_dedicated(&cnfg->phy_cnfg_ded, false);
     // Apply SR configuration to MAC
@@ -1642,14 +1642,14 @@ void rrc::apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg)
 }
 
 void rrc::handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->rr_cnfg);
 }
 
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
 void rrc::handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   mac_timers->timer_get(t301)->stop();
 
   // TODO: Restablish DRB1. Not done because never was suspended
@@ -1664,7 +1664,7 @@ void rrc::handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup) 
 
 
 void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Setup PDCP
   pdcp->add_bearer(srb_cnfg->srb_id, srslte_pdcp_config_t(true)); // Set PDCP config control flag
   if(RB_ID_SRB2 == srb_cnfg->srb_id) {
@@ -1711,7 +1711,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
 }
 
 void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
 
   if (!drb_cnfg->pdcp_cnfg_present ||
       !drb_cnfg->rlc_cnfg_present ||
@@ -1770,13 +1770,13 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
 }
 
 void rrc::release_drb(uint8_t lcid) {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // TODO
 }
 
 // PHY CONFIG DEDICATED Defaults (3GPP 36.331 v10 9.2.4)
 void rrc::set_phy_default_pucch_srs() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
 
   phy_interface_rrc::phy_cfg_t current_cfg;
   phy->get_config(&current_cfg);
@@ -1795,14 +1795,14 @@ void rrc::set_phy_default_pucch_srs() {
 }
 
 void rrc::set_phy_default() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT defaults;
   bzero(&defaults, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
   apply_phy_config_dedicated(&defaults, true);
 }
 
 void rrc::set_mac_default() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   apply_mac_config_dedicated(NULL, true);
   LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT sr_cfg;
   bzero(&sr_cfg, sizeof(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT));
@@ -1811,7 +1811,7 @@ void rrc::set_mac_default() {
 }
 
 void rrc::set_rrc_default() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   N310 = 1;
   N311 = 1;
   mac_timers->timer_get(t310)->set(this, 1000);

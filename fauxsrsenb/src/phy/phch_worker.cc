@@ -370,7 +370,7 @@ unlock:
 
 int phch_worker::decode_faux_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_pusch, uint32_t tti)
 {
-  X_TRACE("nof_pusch %u, tti %u", nof_pusch, tti);
+  P_TRACE("nof_pusch %u, tti %u", nof_pusch, tti);
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
   
@@ -509,7 +509,7 @@ int phch_worker::decode_faux_pusch(srslte_faux_enb_ul_pusch_t *grants, uint32_t 
 
 int phch_worker::decode_faux_pucch(uint32_t tti_rx)
 {
-  X_TRACE("tti_rx %u", tti_rx);
+  P_TRACE("tti_rx %u", tti_rx);
   uint32_t sf_rx = tti_rx%10;
   srslte_uci_data_t uci_data; 
   
@@ -589,7 +589,7 @@ int phch_worker::decode_faux_pucch(uint32_t tti_rx)
 
 int phch_worker::encode_faux_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
 {
-  X_TRACE("acks %u, sf_idx %u", nof_acks, sf_idx);
+  P_TRACE("acks %u, sf_idx %u", nof_acks, sf_idx);
   for (uint32_t i=0;i<nof_acks;i++) {
     uint16_t rnti = acks[i].rnti;
     if (rnti) {
@@ -610,7 +610,7 @@ int phch_worker::encode_faux_phich(srslte_faux_enb_dl_phich_t *acks, uint32_t no
 
 int phch_worker::encode_faux_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
+  P_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (grants[i].needs_pdcch && rnti) {
@@ -628,7 +628,7 @@ int phch_worker::encode_faux_pdcch_ul(srslte_faux_enb_ul_pusch_t *grants, uint32
 
 int phch_worker::encode_faux_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
+  P_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {
@@ -658,7 +658,7 @@ int phch_worker::encode_faux_pdcch_dl(srslte_faux_enb_dl_pdsch_t *grants, uint32
 
 int phch_worker::encode_faux_pdsch(srslte_faux_enb_dl_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  X_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
+  P_TRACE("grants %u, sf_idx %u", nof_grants, sf_idx);
   for (uint32_t i=0;i<nof_grants;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {

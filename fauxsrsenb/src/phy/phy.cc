@@ -54,7 +54,7 @@ phy::phy() : workers_pool(MAX_WORKERS),
 
 void phy::parse_config(phy_cfg_t* cfg)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
   
   // PRACH configuration
   prach_cfg.config_idx     = cfg->prach_cnfg.prach_cnfg_info.prach_config_index;
@@ -90,7 +90,7 @@ bool phy::init(phy_args_t *args,
                mac_interface_faux_phy *mac, 
                srslte::log* log_h)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
   std::vector<void*> log_vec;
   for (int i=0;i<args->nof_phy_threads;i++) {
     log_vec.push_back((void*)log_h);
@@ -105,7 +105,7 @@ bool phy::init(phy_args_t *args,
                mac_interface_faux_phy *mac, 
                std::vector<void*> log_vec)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
   
@@ -135,7 +135,7 @@ bool phy::init(phy_args_t *args,
 
 void phy::stop()
 {  
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
   tx_rx.stop();  
   workers_common.stop();
   for (uint32_t i=0;i<nof_workers;i++) {
@@ -146,19 +146,19 @@ void phy::stop()
 }
 
 uint32_t phy::tti_to_SFN(uint32_t tti) {
-  X_TRACE("PHY: %u", tti/10);
+  P_TRACE("PHY: %u", tti/10);
   return tti/10; 
 }
 
 uint32_t phy::tti_to_subf(uint32_t tti) {
-  X_TRACE("PHY: %u", tti%10);
+  P_TRACE("PHY: %u", tti%10);
   return tti%10; 
 }
 
 /***** MAC->PHY interface **********/
 int phy::add_rnti(uint16_t rnti)
 {
-  X_TRACE("PHY: %hu", rnti);
+  P_TRACE("PHY: %hu", rnti);
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
     workers_common.ack_add_rnti(rnti);
   }
@@ -172,7 +172,7 @@ int phy::add_rnti(uint16_t rnti)
 
 void phy::rem_rnti(uint16_t rnti)
 {
-  X_TRACE("PHY: %hu", rnti);
+  P_TRACE("PHY: %hu", rnti);
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
     workers_common.ack_rem_rnti(rnti);
   }
@@ -217,7 +217,7 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 void phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
-  X_TRACE("PHY: rnti %hu", rnti);
+  P_TRACE("PHY: rnti %hu", rnti);
   // Parse RRC config 
   srslte_uci_cfg_t uci_cfg;
   srslte_pucch_sched_t pucch_sched;

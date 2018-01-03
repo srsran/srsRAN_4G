@@ -40,7 +40,7 @@ namespace srsenb {
   
 void ue::config(uint16_t rnti_, uint32_t nof_prb, sched_interface *sched_, rrc_interface_mac *rrc_, rlc_interface_mac *rlc_, srslte::log *log_h_)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   rnti  = rnti_; 
   rlc   = rlc_; 
   rrc   = rrc_; 
@@ -69,7 +69,7 @@ void ue::config(uint16_t rnti_, uint32_t nof_prb, sched_interface *sched_, rrc_i
 
 void ue::reset()
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   bzero(&metrics, sizeof(mac_metrics_t));  
 
   nof_failures = 0; 
@@ -81,26 +81,26 @@ void ue::reset()
 
 void ue::start_pcap(srslte::mac_pcap* pcap_)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   pcap = pcap_; 
 }
 
 uint32_t ue::rl_failure()
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   nof_failures++;
   return nof_failures;
 }
   
 void ue::rl_failure_reset()
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   nof_failures = 0;
 }
 
 void ue::set_lcg(uint32_t lcid, uint32_t lcg)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   // find and remove if already exists
   for (int i=0;i<4;i++) {
     lc_groups[lcg].erase(std::remove(lc_groups[lcg].begin(), lc_groups[lcg].end(), lcid), lc_groups[lcg].end());
@@ -110,19 +110,19 @@ void ue::set_lcg(uint32_t lcid, uint32_t lcg)
 
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   return &softbuffer_rx[tti%NOF_HARQ_PROCESSES];
 }
 
 srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   return &softbuffer_tx[harq_process%NOF_HARQ_PROCESSES];
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
   if (len > 0) {   
@@ -142,12 +142,12 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 
 bool ue::process_pdus()
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   return pdus.process_pdus();  
 }
 
 void ue::set_tti(uint32_t tti) {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   last_tti = tti; 
 }
 
@@ -155,7 +155,7 @@ void ue::set_tti(uint32_t tti) {
 
 void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   // Unpack ULSCH MAC PDU 
   mac_msg_ul.init_rx(nof_bytes, true);
   mac_msg_ul.parse_packet(pdu);
@@ -247,7 +247,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
 
 void ue::deallocate_pdu(uint32_t tti)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   if (pending_buffers[tti%NOF_HARQ_PROCESSES]) {
     pdus.deallocate(pending_buffers[tti%NOF_HARQ_PROCESSES]);
     pending_buffers[tti%NOF_HARQ_PROCESSES] = NULL; 
@@ -258,7 +258,7 @@ void ue::deallocate_pdu(uint32_t tti)
 
 void ue::push_pdu(uint32_t tti, uint32_t len)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   if (pending_buffers[tti%NOF_HARQ_PROCESSES]) {
     pdus.push(pending_buffers[tti%NOF_HARQ_PROCESSES], len);
     pending_buffers[tti%NOF_HARQ_PROCESSES] = NULL; 
@@ -268,7 +268,7 @@ void ue::push_pdu(uint32_t tti, uint32_t len)
 }
 
 bool ue::process_ce(srslte::sch_subh *subh) {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   uint32_t buff_size[4] = {0, 0, 0, 0};
   float phr = 0;
   int idx = 0;
@@ -326,13 +326,13 @@ bool ue::process_ce(srslte::sch_subh *subh) {
 
 int ue::read_pdu(uint32_t lcid, uint8_t *payload, uint32_t requested_bytes) 
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   return rlc->read_pdu(rnti, lcid, payload, requested_bytes);  
 }
 
 void ue::allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t total_sdu_len) 
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   int sdu_space = pdu->get_sdu_space();
   if (sdu_space > 0) {
     int sdu_len = SRSLTE_MIN(total_sdu_len, (uint32_t) sdu_space);
@@ -358,7 +358,7 @@ void ue::allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t total_sdu_le
 
 void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   switch((srslte::sch_subh::cetype) lcid) {
     case srslte::sch_subh::CON_RES_ID: 
       if (pdu->new_subh()) {
@@ -380,7 +380,7 @@ void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
 uint8_t* ue::generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST], 
                       uint32_t nof_pdu_elems, uint32_t grant_size)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
   if (rlc) 
@@ -410,7 +410,7 @@ uint8_t* ue::generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::M
 /******* METRICS interface ***************/
 void ue::metrics_read(mac_metrics_t* metrics_)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   metrics.rnti = rnti; 
   metrics.ul_buffer = sched->get_ul_buffer(rnti);
   metrics.dl_buffer = sched->get_dl_buffer(rnti);
@@ -423,20 +423,20 @@ void ue::metrics_read(mac_metrics_t* metrics_)
 }
 
 void ue::metrics_phr(float phr) {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   metrics.phr = SRSLTE_VEC_CMA(phr, metrics.phr, phr_counter);
   phr_counter++;
 }
 
 void ue::metrics_dl_cqi(uint32_t dl_cqi) {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   metrics.dl_cqi = SRSLTE_VEC_CMA((float) dl_cqi, metrics.dl_cqi, dl_cqi_counter);
   dl_cqi_counter++;
 }
 
 void ue::metrics_rx(bool crc, uint32_t tbs)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   if (crc) {
     metrics.rx_brate += tbs*8; 
   } else {
@@ -447,7 +447,7 @@ void ue::metrics_rx(bool crc, uint32_t tbs)
 
 void ue::metrics_tx(bool crc, uint32_t tbs)
 {
-  X_TRACE("UE:BEGIN");
+  M_TRACE("UE:BEGIN");
   if (crc) {
     metrics.tx_brate += tbs*8; 
   } else {

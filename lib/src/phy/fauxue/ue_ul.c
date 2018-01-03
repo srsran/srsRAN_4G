@@ -43,7 +43,7 @@
 int srslte_ue_ul_init(srslte_ue_ul_t *q,
                       uint32_t max_prb)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
 
@@ -115,7 +115,7 @@ clean_exit:
 }
 
 void srslte_ue_ul_free(srslte_ue_ul_t *q) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (q) {
     srslte_ofdm_tx_free(&q->fft);
@@ -146,7 +146,7 @@ void srslte_ue_ul_free(srslte_ue_ul_t *q) {
 int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
                           srslte_cell_t cell)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -189,28 +189,28 @@ int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
 }
 
 void srslte_ue_ul_set_cfo_tol(srslte_ue_ul_t *q, float tol) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   q->current_cfo_tol = tol;
   srslte_cfo_set_tol(&q->cfo, tol/(15000.0*srslte_symbol_sz(q->cell.nof_prb)));
 }
 
 void srslte_ue_ul_set_cfo(srslte_ue_ul_t *q, float cur_cfo) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   q->current_cfo = cur_cfo; 
 }
 
 void srslte_ue_ul_set_cfo_enable(srslte_ue_ul_t *q, bool enabled)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   q->cfo_en = enabled; 
 }
 
 void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, bool enabled)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   q->normalize_en = enabled;
 }
@@ -221,7 +221,7 @@ void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, bool enabled)
  */
 void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q, uint16_t rnti) {
 
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_pusch_set_rnti(&q->pusch, rnti);
   srslte_pucch_set_crnti(&q->pucch, rnti);
@@ -229,13 +229,13 @@ void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q, uint16_t rnti) {
 }
 
 void srslte_ue_ul_reset(srslte_ue_ul_t *q) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_softbuffer_tx_reset(&q->softbuffer);
 }
 
 int srslte_ue_ul_pregen_signals(srslte_ue_ul_t *q) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (q->signals_pregenerated) {
     srslte_refsignal_dmrs_pusch_pregen_free(&q->signals, &q->pregen_drms);
@@ -261,7 +261,7 @@ void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
                           srslte_pusch_hopping_cfg_t        *hopping_cfg, 
                           srslte_ue_ul_powerctrl_t          *power_ctrl)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_refsignal_ul_set_cfg(&q->signals, dmrs_cfg, pucch_cfg, srs_cfg);
   if (pucch_cfg && dmrs_cfg) {
@@ -287,7 +287,7 @@ void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
 int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *grant,
                            uint32_t tti, uint32_t rvidx, uint32_t current_tx_nb) 
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   return srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, grant, &q->uci_cfg, &q->hopping_cfg, &q->srs_cfg, tti, rvidx, current_tx_nb);
 }
@@ -297,7 +297,7 @@ void pucch_encode_bits(srslte_uci_data_t *uci_data, srslte_pucch_format_t format
                        uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS], 
                        uint8_t pucch2_bits[SRSLTE_PUCCH_MAX_BITS]) 
 {  
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (format == SRSLTE_PUCCH_FORMAT_1A || format == SRSLTE_PUCCH_FORMAT_1B) {
     pucch_bits[0] = uci_data->uci_ack; 
@@ -327,7 +327,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
                               uint32_t tti, 
                               cf_t *output_signal)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -394,7 +394,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
 
 int srslte_ue_ul_pusch_encode(srslte_ue_ul_t *q, uint8_t *data, cf_t *output_signal) 
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_uci_data_t uci_data;
   bzero(&uci_data, sizeof(srslte_uci_data_t));
@@ -403,7 +403,7 @@ int srslte_ue_ul_pusch_encode(srslte_ue_ul_t *q, uint8_t *data, cf_t *output_sig
 
 int srslte_ue_ul_pusch_encode_rnti(srslte_ue_ul_t *q, uint8_t *data, uint16_t rnti, cf_t *output_signal)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_uci_data_t uci_data;
   bzero(&uci_data, sizeof(srslte_uci_data_t));
@@ -412,7 +412,7 @@ int srslte_ue_ul_pusch_encode_rnti(srslte_ue_ul_t *q, uint8_t *data, uint16_t rn
 
 int srslte_ue_ul_pusch_uci_encode(srslte_ue_ul_t *q, uint8_t *data, srslte_uci_data_t uci_data, cf_t *output_signal)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   return srslte_ue_ul_pusch_uci_encode_rnti(q, data, uci_data, q->current_rnti, output_signal);
 }
@@ -422,7 +422,7 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q,
                                        uint16_t rnti, 
                                        cf_t *output_signal)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -441,7 +441,7 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q,
 }
 
 int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q && output_signal) {
@@ -478,7 +478,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
                                               uint16_t rnti, 
                                               cf_t *output_signal)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
  
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -546,7 +546,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
 /* Returns the transmission power for PUSCH for this subframe as defined in Section 5.1.1 of 36.213 */
 float srslte_ue_ul_pusch_power(srslte_ue_ul_t *q, float PL, float p0_preamble) 
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   float p0_pusch, alpha;
   if (p0_preamble) {
@@ -578,7 +578,7 @@ float srslte_ue_ul_pusch_power(srslte_ue_ul_t *q, float PL, float p0_preamble)
 
 /* Returns the transmission power for PUCCH for this subframe as defined in Section 5.1.2 of 36.213 */
 float srslte_ue_ul_pucch_power(srslte_ue_ul_t *q, float PL, srslte_pucch_format_t format, uint32_t n_cqi, uint32_t n_harq) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   float p0_pucch = q->power_ctrl.p0_nominal_pucch + q->power_ctrl.p0_ue_pucch;
 
@@ -619,7 +619,7 @@ float srslte_ue_ul_pucch_power(srslte_ue_ul_t *q, float PL, srslte_pucch_format_
 
 /* Returns the transmission power for SRS for this subframe as defined in Section 5.1.3 of 36.213 */
 float srslte_ue_ul_srs_power(srslte_ue_ul_t *q, float PL) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   float alpha = q->power_ctrl.alpha;
   float p0_pusch = q->power_ctrl.p0_nominal_pusch + q->power_ctrl.p0_ue_pusch;
@@ -646,7 +646,7 @@ float srslte_ue_ul_srs_power(srslte_ue_ul_t *q, float PL) {
 
 /* Returns 1 if a SR needs to be sent at current_tti given I_sr, as defined in Section 10.1 of 36.213 */
 int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   uint32_t sr_periodicity; 
   uint32_t sr_N_offset;
@@ -685,7 +685,7 @@ int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {
 
 
 bool srslte_ue_ul_srs_tx_enabled(srslte_refsignal_srs_cfg_t *srs_cfg, uint32_t tti) {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (srs_cfg->configured) {
     if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 

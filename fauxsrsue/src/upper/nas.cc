@@ -43,7 +43,7 @@ void nas::init(usim_interface_nas *usim_,
                srslte::log *nas_log_,
                srslte::srslte_nas_config_t cfg_)
 {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   pool = byte_buffer_pool::get_instance();
   usim = usim_;
   rrc = rrc_;
@@ -71,7 +71,7 @@ UE interface
 *******************************************************************************/
 
 void nas::attach_request() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   nas_log->info("Attach Request\n");
   if (state == EMM_STATE_DEREGISTERED) {
     state = EMM_STATE_REGISTERED_INITIATED;
@@ -93,7 +93,7 @@ void nas::attach_request() {
 }
 
 void nas::deattach_request() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   state = EMM_STATE_DEREGISTERED_INITIATED;
   nas_log->info("Dettach request not supported\n");
 }
@@ -103,7 +103,7 @@ RRC interface
 *******************************************************************************/
 
 void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
 
   // Check if already registered
   for (uint32_t i=0;i<known_plmns.size();i++) {
@@ -135,7 +135,7 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
 
 // RRC indicates that the UE has gone through all EARFCN and finished PLMN selection
 void nas::plmn_search_end() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   if (known_plmns.size() > 0) {
     nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
                   plmn_id_to_string(home_plmn).c_str(),
@@ -152,17 +152,17 @@ void nas::plmn_search_end() {
 }
 
 bool nas::is_attached() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   return state == EMM_STATE_REGISTERED;
 }
 
 bool nas::is_attaching() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   return state == EMM_STATE_REGISTERED_INITIATED;
 }
 
 void nas::notify_connection_setup() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   nas_log->debug("State = %s\n", emm_state_text[state]);
   if (EMM_STATE_REGISTERED_INITIATED == state) {
     send_attach_request();
@@ -172,7 +172,7 @@ void nas::notify_connection_setup() {
 }
 
 void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   uint8 pd;
   uint8 msg_type;
 
@@ -216,12 +216,12 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 uint32_t nas::get_ul_count() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   return count_ul;
 }
 
 bool nas::get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   if (is_guti_set) {
     s_tmsi->mmec   = guti.mme_code;
     s_tmsi->m_tmsi = guti.m_tmsi;
@@ -242,7 +242,7 @@ void nas::integrity_generate(uint8_t *key_128,
                              uint8_t *msg,
                              uint32_t msg_len,
                              uint8_t *mac) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   switch (integ_algo) {
     case INTEGRITY_ALGORITHM_ID_EIA0:
       break;
@@ -270,17 +270,17 @@ void nas::integrity_generate(uint8_t *key_128,
 }
 
 void nas::integrity_check() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
 
 }
 
 void nas::cipher_encrypt() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
 
 }
 
 void nas::cipher_decrypt() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
 
 }
 
@@ -290,7 +290,7 @@ Parsers
 *******************************************************************************/
 
 void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_complete;
@@ -408,7 +408,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT attach_rej;
 
   liblte_mme_unpack_attach_reject_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &attach_rej);
@@ -420,7 +420,7 @@ void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res;
 
@@ -458,7 +458,7 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   nas_log->warning("Received Authentication Reject\n");
   pool->deallocate(pdu);
   state = EMM_STATE_DEREGISTERED;
@@ -466,12 +466,12 @@ void nas::parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   nas_log->error("TODO:parse_identity_request\n");
 }
 
 void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   bool success;
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sec_mode_cmd;
   LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sec_mode_comp;
@@ -570,17 +570,17 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   nas_log->error("TODO:parse_service_reject\n");
 }
 
 void nas::parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   nas_log->error("TODO:parse_esm_information_request\n");
 }
 
 void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   nas_log->error("TODO:parse_emm_information\n");
 }
 
@@ -589,7 +589,7 @@ Senders
 *******************************************************************************/
 
 void nas::send_attach_request() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   byte_buffer_t *msg = pool_allocate;
   u_int32_t i;
@@ -639,7 +639,7 @@ void nas::send_attach_request() {
 }
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
 
   nas_log->info("Generating PDN Connectivity Request\n");
@@ -661,11 +661,11 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 }
 
 void nas::send_identity_response() {
-  X_TRACE("NAS:BEGIN TODO ???");
+  U_TRACE("NAS:BEGIN TODO ???");
 }
 
 void nas::send_service_request() {
-  X_TRACE("NAS:BEGIN");
+  U_TRACE("NAS:BEGIN");
   byte_buffer_t *msg = pool_allocate;
   count_ul++;
 
@@ -694,7 +694,7 @@ void nas::send_service_request() {
 }
 
 void nas::send_esm_information_response() {
-  X_TRACE("NAS:BEGIN TODO ???");
+  U_TRACE("NAS:BEGIN TODO ???");
 }
 
 } // namespace srsue

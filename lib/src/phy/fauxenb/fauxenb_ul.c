@@ -42,7 +42,7 @@
 int srslte_faux_enb_ul_init(srslte_faux_enb_ul_t *q,
                        uint32_t max_prb)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
 
@@ -109,7 +109,7 @@ clean_exit:
 
 void srslte_faux_enb_ul_free(srslte_faux_enb_ul_t *q)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (q) {
     
@@ -201,7 +201,7 @@ int srslte_faux_enb_ul_set_cell(srslte_faux_enb_ul_t *q, srslte_cell_t cell,
 
 int srslte_faux_enb_ul_add_rnti(srslte_faux_enb_ul_t *q, uint16_t rnti)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (!q->users[rnti]) {
     q->users[rnti] = calloc(1, sizeof(srslte_faux_enb_ul_user_t));
@@ -223,7 +223,7 @@ int srslte_faux_enb_ul_add_rnti(srslte_faux_enb_ul_t *q, uint16_t rnti)
 
 void srslte_faux_enb_ul_rem_rnti(srslte_faux_enb_ul_t *q, uint16_t rnti)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (q->users[rnti]) {
     free(q->users[rnti]); 
@@ -237,7 +237,7 @@ int srslte_faux_enb_ul_cfg_ue(srslte_faux_enb_ul_t *q, uint16_t rnti,
                          srslte_pucch_sched_t *pucch_sched,
                          srslte_refsignal_srs_cfg_t *srs_cfg) 
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (q->users[rnti]) {
     if (uci_cfg) {
@@ -264,7 +264,7 @@ int srslte_faux_enb_ul_cfg_ue(srslte_faux_enb_ul_t *q, uint16_t rnti,
 
 void srslte_faux_enb_ul_fft(srslte_faux_enb_ul_t *q, cf_t *signal_buffer) 
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
 }
@@ -273,7 +273,7 @@ int get_pucch(srslte_faux_enb_ul_t *q, uint16_t rnti,
               uint32_t pdcch_n_cce, uint32_t sf_rx, 
               srslte_uci_data_t *uci_data, uint8_t bits[SRSLTE_PUCCH_MAX_BITS]) 
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
   
@@ -298,7 +298,7 @@ int srslte_faux_enb_ul_get_pucch(srslte_faux_enb_ul_t *q, uint16_t rnti,
                             uint32_t pdcch_n_cce, uint32_t sf_rx, 
                             srslte_uci_data_t *uci_data)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS];
   
@@ -345,7 +345,7 @@ int srslte_faux_enb_ul_get_pusch(srslte_faux_enb_ul_t *q, srslte_ra_ul_grant_t *
                             uint16_t rnti, uint32_t rv_idx, uint32_t current_tx_nb, 
                             uint8_t *data, srslte_uci_data_t *uci_data, uint32_t tti)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   if (q->users[rnti]) {
     if (srslte_pusch_cfg(&q->pusch, 
@@ -389,7 +389,7 @@ int srslte_faux_enb_ul_detect_prach(srslte_faux_enb_ul_t *q, uint32_t tti,
                                uint32_t freq_offset, cf_t *signal, 
                                uint32_t *indices, float *offsets, float *peak2avg)
 {
-  X_TRACE("PHY:BEGIN");
+  P_TRACE("PHY:BEGIN");
 
   uint32_t nof_detected_prach = 0; 
   // consider the number of subframes the transmission must be anticipated 

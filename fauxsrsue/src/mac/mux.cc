@@ -39,7 +39,7 @@ namespace srsue {
 
 mux::mux(uint8_t nof_harq_proc_) : pdu_msg(MAX_NOF_SUBHEADERS), pid_has_bsr(nof_harq_proc_), nof_harq_proc(nof_harq_proc_)
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   pthread_mutex_init(&mutex, NULL);
   
   pending_crnti_ce = 0;
@@ -54,7 +54,7 @@ mux::mux(uint8_t nof_harq_proc_) : pdu_msg(MAX_NOF_SUBHEADERS), pid_has_bsr(nof_
 
 void mux::init(rlc_interface_mac *rlc_, srslte::log *log_h_, bsr_interface_mux *bsr_procedure_, phr_proc *phr_procedure_)
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   log_h      = log_h_;
   rlc        = rlc_;
   bsr_procedure = bsr_procedure_;
@@ -64,14 +64,14 @@ void mux::init(rlc_interface_mac *rlc_, srslte::log *log_h_, bsr_interface_mux *
 
 void mux::reset()
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   lch.clear();
   pending_crnti_ce = 0;
 }
 
 bool mux::is_pending_any_sdu()
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   for (uint32_t i=0;i<lch.size();i++) {
     if (rlc->get_buffer_state(lch[i].id)) {
       return true; 
@@ -81,13 +81,13 @@ bool mux::is_pending_any_sdu()
 }
 
 bool mux::is_pending_sdu(uint32_t lch_id) {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   return rlc->get_buffer_state(lch_id)>0;  
 }
 
 int mux::find_lchid(uint32_t lcid) 
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   for (uint32_t i=0;i<lch.size();i++) {
     if(lch[i].id == lcid) {
       return i;
@@ -97,13 +97,13 @@ int mux::find_lchid(uint32_t lcid)
 }
 
 bool sortPriority(lchid_t u1, lchid_t u2) {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   return u1.priority < u2.priority; 
 }
 
 void mux::clear_lch(uint32_t lch_id)
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   int pos = find_lchid(lch_id);
   if (pos >= 0) {
     lch.erase(lch.begin()+pos);
@@ -114,7 +114,7 @@ void mux::clear_lch(uint32_t lch_id)
 
 void mux::set_priority(uint32_t lch_id, uint32_t new_priority, int set_PBR, uint32_t set_BSD)
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   int pos = find_lchid(lch_id);
     
   // Create new channel if it does not exist
@@ -137,7 +137,7 @@ void mux::set_priority(uint32_t lch_id, uint32_t new_priority, int set_PBR, uint
 }
 
 srslte::sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   switch(format) {
     case bsr_proc::LONG_BSR: 
       return srslte::sch_subh::LONG_BSR;
@@ -151,7 +151,7 @@ srslte::sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
 
 void mux::pusch_retx(uint32_t tx_tti, uint32_t pid)
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   if (pid_has_bsr[pid%nof_harq_proc]) {
     bsr_procedure->set_tx_tti(tx_tti);
   }
@@ -160,7 +160,7 @@ void mux::pusch_retx(uint32_t tx_tti, uint32_t pid)
 // Multiplexing and logical channel priorization as defined in Section 5.4.3
 uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32_t pid)
 {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   pthread_mutex_lock(&mutex);
     
   // Update Bj
@@ -280,14 +280,14 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
 }
 
 void mux::append_crnti_ce_next_tx(uint16_t crnti) {
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   pending_crnti_ce = crnti; 
 }
 
 bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz) 
 {
  
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   if (*sdu_space > 0) {
     // Get n-th pending SDU pointer and length
     int sched_len = ch->buffer_len;     
@@ -314,7 +314,7 @@ bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz)
 bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz) 
 {
  
-  X_TRACE("MUX:BEGIN");
+  M_TRACE("MUX:BEGIN");
   // Get n-th pending SDU pointer and length
   int sdu_len = rlc->get_buffer_state(lcid); 
   
@@ -349,7 +349,7 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
 
 void mux::msg3_flush()
 {
- X_TRACE("MUX:BEGIN");
+ M_TRACE("MUX:BEGIN");
   if (log_h) {
     Debug("Msg3 buffer flushed\n");
   }
@@ -359,14 +359,14 @@ void mux::msg3_flush()
 
 bool mux::msg3_is_transmitted()
 {
- X_TRACE("MUX:BEGIN");
+ M_TRACE("MUX:BEGIN");
   return msg3_has_been_transmitted; 
 }
 
 /* Returns a pointer to the Msg3 buffer */
 uint8_t* mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
 {
- X_TRACE("MUX:BEGIN");
+ M_TRACE("MUX:BEGIN");
   if (pdu_sz < MSG3_BUFF_SZ - 32) {
     uint8_t* msg3_buff_start_pdu = pdu_get(msg3_buff, pdu_sz, 0, 0);
     if (!msg3_buff_start_pdu) {

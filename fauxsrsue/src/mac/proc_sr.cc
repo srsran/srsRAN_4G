@@ -35,13 +35,13 @@
 namespace srsue {
 
 sr_proc::sr_proc() {
-  X_TRACE("SRPROC:BEGIN");
+  M_TRACE("SRPROC:BEGIN");
   initiated = false; 
 }
   
 void sr_proc::init(phy_interface_mac* phy_h_, rrc_interface_mac *rrc_, srslte::log* log_h_, mac_interface_rrc::mac_cfg_t *mac_cfg_)
 {
-  X_TRACE("SRPROC:BEGIN");
+  M_TRACE("SRPROC:BEGIN");
   log_h     = log_h_;
   rrc       = rrc_; 
   mac_cfg   = mac_cfg_; 
@@ -52,13 +52,13 @@ void sr_proc::init(phy_interface_mac* phy_h_, rrc_interface_mac *rrc_, srslte::l
   
 void sr_proc::reset()
 {
-  X_TRACE("SRPROC:BEGIN");
+  M_TRACE("SRPROC:BEGIN");
   is_pending_sr = false;
 }
 
 bool sr_proc::need_tx(uint32_t tti) 
 {
-  X_TRACE("SRPROC:BEGIN");
+  M_TRACE("SRPROC:BEGIN");
   int last_tx_tti = phy_h->sr_last_tx_tti(); 
   if (last_tx_tti >= 0)  {
     if (tti > (uint32_t)last_tx_tti) {
@@ -77,7 +77,7 @@ bool sr_proc::need_tx(uint32_t tti)
 
 void sr_proc::step(uint32_t tti)
 {
-  X_TRACE("SRPROC:BEGIN");
+  M_TRACE("SRPROC:BEGIN");
   if (initiated) {
     if (is_pending_sr) {
       if (mac_cfg->sr.setup_present) {
@@ -107,7 +107,7 @@ void sr_proc::step(uint32_t tti)
 }
 
 bool sr_proc::need_random_access() {
-  X_TRACE("SRPROC:BEGIN");
+  M_TRACE("SRPROC:BEGIN");
   if (initiated) {
     if (do_ra) {
       do_ra = false; 
@@ -121,7 +121,7 @@ bool sr_proc::need_random_access() {
 
 void sr_proc::start()
 {
-  X_TRACE("SRPROC:BEGIN");
+  M_TRACE("SRPROC:BEGIN");
   if (initiated) {
     if (!is_pending_sr) {
       sr_counter = 0;

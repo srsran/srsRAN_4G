@@ -45,7 +45,7 @@ namespace srsenb {
   
 uint32_t dl_metric_rr::calc_rbg_mask(bool mask[MAX_RBG]) 
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   // Build RBG bitmask  
   uint32_t rbg_bitmask = 0; 
   for (uint32_t n=0;n<total_rb;n++) {
@@ -57,7 +57,7 @@ uint32_t dl_metric_rr::calc_rbg_mask(bool mask[MAX_RBG])
 }
 
 uint32_t dl_metric_rr::count_rbg(uint32_t mask) {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   uint32_t count = 0; 
   while(mask > 0) {
     if ((mask & 1) == 1) {
@@ -70,7 +70,7 @@ uint32_t dl_metric_rr::count_rbg(uint32_t mask) {
 
 uint32_t dl_metric_rr::get_required_rbg(sched_ue *user, uint32_t tti) 
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   dl_harq_proc *h = user->get_pending_dl_harq(tti);
   if (h) {
     return count_rbg(h->get_rbgmask());
@@ -82,7 +82,7 @@ uint32_t dl_metric_rr::get_required_rbg(sched_ue *user, uint32_t tti)
 void dl_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t start_rb, uint32_t nof_rb, uint32_t nof_ctrl_symbols_, uint32_t tti)
 {
   
-X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   total_rb = start_rb+nof_rb; 
   for (uint32_t i=0;i<total_rb;i++) {
     if (i<start_rb) {
@@ -107,7 +107,7 @@ X_TRACE("SCHEDMETRIC:BEGIN");
 }
 
 bool dl_metric_rr::new_allocation(uint32_t nof_rbg, uint32_t *rbgmask) {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   bool mask_bit[MAX_RBG]; 
   bzero(mask_bit, sizeof(bool)*MAX_RBG);
   
@@ -126,7 +126,7 @@ bool dl_metric_rr::new_allocation(uint32_t nof_rbg, uint32_t *rbgmask) {
 }
 
 void dl_metric_rr::update_allocation(uint32_t new_mask) {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   used_rb_mask |= new_mask; 
   for (uint32_t n=0;n<total_rb;n++) {
     if (used_rb_mask & (1<<(total_rb-1-n))) {
@@ -139,13 +139,13 @@ void dl_metric_rr::update_allocation(uint32_t new_mask) {
 
 bool dl_metric_rr::allocation_is_valid(uint32_t mask) 
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   return (mask & used_rb_mask); 
 }
 
 dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   uint32_t pending_data = user->get_pending_dl_new_data(current_tti); 
   dl_harq_proc *h = user->get_pending_dl_harq(current_tti);
 
@@ -212,7 +212,7 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
 
 void ul_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb_, uint32_t tti)
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   current_tti  = tti; 
   nof_rb       = nof_rb_; 
   available_rb = nof_rb_; 
@@ -231,7 +231,7 @@ void ul_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb_,
 
 bool ul_metric_rr::allocation_is_valid(ul_harq_proc::ul_alloc_t alloc)
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   if (alloc.RB_start+alloc.L > nof_rb) {
     return false; 
   }
@@ -245,7 +245,7 @@ bool ul_metric_rr::allocation_is_valid(ul_harq_proc::ul_alloc_t alloc)
 
 bool ul_metric_rr::new_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   
   bzero(alloc, sizeof(ul_harq_proc::ul_alloc_t));
   for (uint32_t n=0;n<nof_rb && alloc->L < L;n++) {
@@ -277,7 +277,7 @@ bool ul_metric_rr::new_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
 
 void ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   if (alloc.L > available_rb) {
     return; 
   }
@@ -292,7 +292,7 @@ void ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
 
 ul_harq_proc*  ul_metric_rr::get_user_allocation(sched_ue *user)
 {
-  X_TRACE("SCHEDMETRIC:BEGIN");
+  M_TRACE("SCHEDMETRIC:BEGIN");
   // Time-domain RR scheduling
   uint32_t pending_data = user->get_pending_ul_new_data(current_tti); 
   ul_harq_proc *h = user->get_ul_harq(current_tti);

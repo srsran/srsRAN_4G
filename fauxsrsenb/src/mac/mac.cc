@@ -53,7 +53,7 @@ mac::mac() : timers_db(128),
   
 bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   started = false; 
 
   if (cell_ && phy && rlc && log_h_ && args_) {
@@ -92,7 +92,7 @@ bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, 
 
 void mac::stop()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   for (uint32_t i=0;i<ue_db.size();i++) {
     delete ue_db[i];
   }
@@ -109,7 +109,7 @@ void mac::stop()
 // Implement Section 5.9
 void mac::reset()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   Info("Resetting MAC\n");
   
   timers_db.stop_all();
@@ -124,7 +124,7 @@ void mac::reset()
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   pcap = pcap_; 
   // Set pcap in all UEs for UL messages 
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
@@ -140,7 +140,7 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
  *******************************************************/
 int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {   
     return scheduler.dl_rlc_buffer_state(rnti, lc_id, tx_queue, retx_queue);
   } else {
@@ -151,7 +151,7 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
 
 int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {
     // configure BSR group in UE
     ue_db[rnti]->set_lcg(lc_id, (uint32_t) cfg->group);
@@ -164,7 +164,7 @@ int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer
 
 int mac::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {   
     return scheduler.bearer_ue_rem(rnti, lc_id);
   } else {
@@ -175,14 +175,14 @@ int mac::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 void mac::phy_config_enabled(uint16_t rnti, bool enabled)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   scheduler.phy_config_enabled(rnti, enabled);
 }
 
 // Update UE configuration 
 int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {         
     
     // Add RNTI to the PHY (pregerate signals) now instead of after PRACH
@@ -211,7 +211,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 // Removes UE from DB
 int mac::ue_rem(uint16_t rnti)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {         
     scheduler.ue_rem(rnti);
     phy_h->rem_rnti(rnti);
@@ -227,13 +227,13 @@ int mac::ue_rem(uint16_t rnti)
 
 int mac::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   return scheduler.cell_cfg(cell_cfg);  
 }
 
 void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   int cnt=0;
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     ue *u = iter->second;
@@ -253,7 +253,7 @@ void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 void mac::rl_failure(uint16_t rnti)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {         
     uint32_t nof_fails = ue_db[rnti]->rl_failure();  
     if (nof_fails >= (uint32_t) args.link_failure_nof_err && args.link_failure_nof_err > 0) {    
@@ -268,7 +268,7 @@ void mac::rl_failure(uint16_t rnti)
 
 void mac::rl_ok(uint16_t rnti)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {         
     ue_db[rnti]->rl_failure_reset();  
   } else {
@@ -278,7 +278,7 @@ void mac::rl_ok(uint16_t rnti)
 
 int mac::ack_info(uint32_t tti, uint16_t rnti, bool ack)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
   uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, ack);    
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
@@ -294,7 +294,7 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, bool ack)
 
 int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
@@ -323,7 +323,7 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
 
 int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
@@ -338,7 +338,7 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 
 int mac::snr_info(uint32_t tti, uint16_t rnti, float snr)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
@@ -353,7 +353,7 @@ int mac::snr_info(uint32_t tti, uint16_t rnti, float snr)
 
 int mac::sr_detected(uint32_t tti, uint16_t rnti)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
@@ -367,7 +367,7 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
 
 int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   // Find empty slot for pending rars
@@ -423,7 +423,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
 int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (!started) {
@@ -533,7 +533,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
 uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32_t nof_grants, int rar_idx, uint32_t pdu_len)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   uint8_t grant_buffer[64];
   if (pdu_len < rar_payload_len) {
     srslte::rar_pdu *pdu = &rar_pdu_msg[rar_idx];
@@ -560,14 +560,14 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32
 
 uint8_t* mac::assemble_si(uint32_t index)
 {  
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   rlc_h->read_pdu_bcch_dlsch(index, bcch_dlsch_payload);
   return bcch_dlsch_payload;
 }
 
 int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res) 
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
 
   log_h->step(tti);
   
@@ -628,7 +628,7 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
 
 void mac::tti_clock()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   timers_thread.tti_clock();
 }
 
@@ -642,20 +642,20 @@ void mac::tti_clock()
  *******************************************************/
 uint32_t mac::timer_get_unique_id()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   return timers_db.get_unique_id();
 }
 
 void mac::timer_release_id(uint32_t timer_id)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   timers_db.release_id(timer_id);
 }
 
 /* Front-end to upper-layer timers */
 srslte::timers::timer* mac::timer_get(uint32_t timer_id)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   return timers_db.get(timer_id);
 }
 
@@ -672,7 +672,7 @@ void mac::timer_thread::run_thread()
   ttisync.set_producer_cntr(0);
   ttisync.resync();
   while(running) {
-    X_TRACE("MAC:BEGIN");
+    M_TRACE("MAC:BEGIN");
     ttisync.wait();
     timers->step_all();
   }
@@ -680,7 +680,7 @@ void mac::timer_thread::run_thread()
 
 void mac::timer_thread::stop()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   running=false;
   ttisync.increase();
   wait_thread_finish();
@@ -688,7 +688,7 @@ void mac::timer_thread::stop()
 
 void mac::timer_thread::tti_clock()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   ttisync.increase();
 }
 
@@ -702,7 +702,7 @@ void mac::timer_thread::tti_clock()
  *******************************************************/
 mac::pdu_process::pdu_process(pdu_process_handler *h)
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   handler = h; 
   pthread_mutex_init(&mutex, NULL);
   pthread_cond_init(&cvar, NULL);
@@ -712,7 +712,7 @@ mac::pdu_process::pdu_process(pdu_process_handler *h)
 
 void mac::pdu_process::stop()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   pthread_mutex_lock(&mutex);
   running = false; 
   pthread_cond_signal(&cvar);
@@ -723,7 +723,7 @@ void mac::pdu_process::stop()
 
 void mac::pdu_process::notify()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   pthread_mutex_lock(&mutex);
   have_data = true; 
   pthread_cond_signal(&cvar);
@@ -734,7 +734,7 @@ void mac::pdu_process::run_thread()
 {
   running = true; 
   while(running) {
-    X_TRACE("MAC:BEGIN");
+    M_TRACE("MAC:BEGIN");
     have_data = handler->process_pdus();
     if (!have_data) {
       pthread_mutex_lock(&mutex);
@@ -748,7 +748,7 @@ void mac::pdu_process::run_thread()
 
 bool mac::process_pdus()
 {
-  X_TRACE("MAC:BEGIN");
+  M_TRACE("MAC:BEGIN");
   bool ret = false; 
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     ue *u         = iter->second; 

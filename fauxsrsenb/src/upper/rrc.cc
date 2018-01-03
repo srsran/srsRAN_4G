@@ -45,7 +45,7 @@ void rrc::init(rrc_cfg_t *cfg_,
                gtpu_interface_rrc* gtpu_,
                srslte::log* log_rrc)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   phy     = phy_; 
   mac     = mac_; 
   rlc     = rlc_; 
@@ -73,14 +73,14 @@ void rrc::init(rrc_cfg_t *cfg_,
 
 rrc::activity_monitor::activity_monitor(rrc* parent_) 
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   running = true;
   parent = parent_;
 }
 
 void rrc::activity_monitor::stop()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (running) {
     running = false; 
     thread_cancel();
@@ -90,13 +90,13 @@ void rrc::activity_monitor::stop()
 
 void rrc::set_connect_notifer(connect_notifier *cnotifier) 
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   this->cnotifier = cnotifier; 
 }
 
 void rrc::stop()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if(running) {
     running = false;
     thread_cancel();
@@ -110,7 +110,7 @@ void rrc::stop()
 
 void rrc::get_metrics(rrc_metrics_t &m)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   pthread_mutex_lock(&user_mutex);
   m.n_ues = 0;
   for(std::map<uint16_t, ue>::iterator iter=users.begin(); m.n_ues < ENB_METRICS_MAX_USERS &&iter!=users.end(); ++iter) {
@@ -122,7 +122,7 @@ void rrc::get_metrics(rrc_metrics_t &m)
 
 uint32_t rrc::generate_sibs()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   uint32_t nof_messages = 1+cfg.sibs[0].sib.sib1.N_sched_info;
   LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info = cfg.sibs[0].sib.sib1.sched_info; 
   
@@ -165,7 +165,7 @@ uint32_t rrc::generate_sibs()
 void rrc::config_mac()
 { 
   
-X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Fill MAC scheduler configuration for SIBs 
   sched_interface::cell_cfg_t sched_cfg; 
   bzero(&sched_cfg, sizeof(sched_interface::cell_cfg_t));
@@ -191,7 +191,7 @@ X_TRACE("RRC:BEGIN");
 
 void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (sib_index < LIBLTE_RRC_MAX_SIB) {
     memcpy(payload, sib_buffer[sib_index].msg, sib_buffer[sib_index].N_bytes);
   } 
@@ -199,7 +199,7 @@ void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 
 void rrc::rl_failure(uint16_t rnti)
 { 
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info("Radio-Link failure detected rnti=0x%x\n", rnti);
   if (s1ap->user_exists(rnti)) {
     if (!s1ap->user_link_lost(rnti)) {
@@ -214,7 +214,7 @@ void rrc::rl_failure(uint16_t rnti)
 
 void rrc::add_user(uint16_t rnti)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   pthread_mutex_lock(&user_mutex);
   if (users.count(rnti) == 0) {
     users[rnti].parent = this; 
@@ -230,7 +230,7 @@ void rrc::add_user(uint16_t rnti)
 
 void rrc::rem_user(uint16_t rnti)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   pthread_mutex_lock(&user_mutex);
   if (users.count(rnti) == 1) {
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
@@ -259,7 +259,7 @@ void rrc::rem_user(uint16_t rnti)
 // valid RNTI
 void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti) 
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Remove new_rnti
   rem_user_thread(new_rnti);
   
@@ -275,7 +275,7 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 
 void rrc::set_activity_user(uint16_t rnti) 
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (users.count(rnti) == 1) {
     users[rnti].set_activity();
   }
@@ -283,7 +283,7 @@ void rrc::set_activity_user(uint16_t rnti)
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (users.count(rnti) == 1) {
     rrc_pdu p = {rnti, LCID_REM_USER, NULL};
     rx_pdu_queue.push(p);
@@ -291,14 +291,14 @@ void rrc::rem_user_thread(uint16_t rnti)
 }
 
 uint32_t rrc::get_nof_users() {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   return users.size();
 }
 
 void rrc::max_retx_attempted(uint16_t rnti)
 {
 
-X_TRACE("RRC:BEGIN:TODO");
+  U_TRACE("RRC:BEGIN:TODO");
 }
 
 /*******************************************************************************
@@ -306,7 +306,7 @@ X_TRACE("RRC:BEGIN:TODO");
 *******************************************************************************/
 void rrc::write_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t* pdu)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_pdu p = {rnti, lcid, pdu};
   rx_pdu_queue.push(p);
 }
@@ -316,7 +316,7 @@ void rrc::write_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t* pdu)
 *******************************************************************************/
 void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   bzero(&dl_dcch_msg, sizeof(LIBLTE_RRC_DL_DCCH_MSG_STRUCT));
 
@@ -336,7 +336,7 @@ void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
 
 void rrc::release_complete(uint16_t rnti)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
   if (users.count(rnti) == 1) {
     if (!users[rnti].is_idle()) {
@@ -353,7 +353,7 @@ void rrc::release_complete(uint16_t rnti)
 
 bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info("Adding initial context for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
@@ -423,7 +423,7 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
 
 bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info("Setting up erab(s) for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
@@ -444,7 +444,7 @@ bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_ST
 
 bool rrc::release_erabs(uint32_t rnti)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   rrc_log->info("Releasing E-RABs for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
@@ -457,7 +457,7 @@ bool rrc::release_erabs(uint32_t rnti)
 
 void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID) 
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   pthread_mutex_lock(&paging_mutex);
   if (pending_paging.count(ueid) == 0) {
     pending_paging[ueid] = UEPagingID;
@@ -470,7 +470,7 @@ void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID)
 // Described in Section 7 of 36.304
 bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
   
   if (pending_paging.empty()) {
@@ -552,7 +552,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
 
 void rrc::read_pdu_pcch(uint8_t *payload, uint32_t buffer_size)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   uint32_t N_bytes = (bit_buf_paging.N_bits-1)/8+1;
   if (N_bytes <= buffer_size) {
     srslte_bit_pack_vector(bit_buf_paging.msg, payload, bit_buf_paging.N_bits);    
@@ -565,7 +565,7 @@ void rrc::read_pdu_pcch(uint8_t *payload, uint32_t buffer_size)
 
 void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   uint16_t old_rnti = 0; 
   
   LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
@@ -618,7 +618,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
 
 void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (users.count(rnti)) {    
     users[rnti].parse_ul_dcch(lcid, pdu);
   } else {
@@ -636,7 +636,7 @@ void rrc::run_thread()
   running = true;
 
   while(running) {
-    X_TRACE("RRC:BEGIN");
+    U_TRACE("RRC:BEGIN");
     p = rx_pdu_queue.wait_pop();
     if (p.pdu) {
       rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
@@ -673,7 +673,7 @@ void rrc::activity_monitor::run_thread()
 {
   while(running) 
   {
-    X_TRACE("RRC:BEGIN");
+    U_TRACE("RRC:BEGIN");
     usleep(10000);
     pthread_mutex_lock(&parent->user_mutex);
     uint16_t rem_rnti = 0; 
@@ -715,7 +715,7 @@ void rrc::configure_security(uint16_t rnti,
                              srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                              srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // TODO: add k_up_enc, k_up_int support to PDCP
   pdcp->config_security(rnti, lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
 }
@@ -728,7 +728,7 @@ void rrc::configure_security(uint16_t rnti,
 *******************************************************************************/
 rrc::ue::ue()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   parent           = NULL; 
   set_activity();
   sr_allocated     = false; 
@@ -750,13 +750,13 @@ rrc::ue::ue()
 
 rrc_state_t rrc::ue::get_state()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   return state;
 }
 
 void rrc::ue::set_activity() 
 {
- X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   gettimeofday(&t_last_activity, NULL);  
   if (parent) {
     if (parent->rrc_log) {
@@ -766,19 +766,19 @@ void rrc::ue::set_activity()
 }
 
 bool rrc::ue::is_connected() {
- X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   return state == RRC_STATE_REGISTERED;
 }
 
 bool rrc::ue::is_idle() {
- X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   return state == RRC_STATE_IDLE;
 }
 
 bool rrc::ue::is_timeout() 
 {
   
-X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (!parent) {
     return false; 
   }
@@ -832,7 +832,7 @@ X_TRACE("RRC:BEGIN");
 
 void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   
   set_activity();
 
@@ -886,7 +886,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 
 void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   set_activity();
   
   if(msg->ue_id_type == LIBLTE_RRC_CON_REQ_UE_ID_TYPE_S_TMSI) {
@@ -900,7 +900,7 @@ void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
 
 void rrc::ue::handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQUEST_STRUCT *msg)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   //TODO: Check Short-MAC-I value 
   parent->rrc_log->error("Not Supported: ConnectionReestablishment. \n");
   
@@ -908,7 +908,7 @@ void rrc::ue::handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQ
 
 void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   parent->rrc_log->info("RRCConnectionSetupComplete transaction ID: %d\n", msg->rrc_transaction_id);
 
   // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
@@ -927,19 +927,19 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
 
 void rrc::ue::handle_security_mode_complete(LIBLTE_RRC_SECURITY_MODE_COMPLETE_STRUCT *msg)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   parent->rrc_log->info("SecurityModeComplete transaction ID: %d\n", msg->rrc_transaction_id);
 }
 
 void rrc::ue::handle_security_mode_failure(LIBLTE_RRC_SECURITY_MODE_FAILURE_STRUCT *msg)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   parent->rrc_log->info("SecurityModeFailure transaction ID: %d\n", msg->rrc_transaction_id);
 }
 
 void rrc::ue::handle_ue_cap_info(LIBLTE_RRC_UE_CAPABILITY_INFORMATION_STRUCT *msg)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   parent->rrc_log->info("UECapabilityInformation transaction ID: %d\n", msg->rrc_transaction_id);
   for(uint32_t i=0; i<msg->N_ue_caps; i++) {
     if(msg->ue_capability_rat[i].rat_type != LIBLTE_RRC_RAT_TYPE_EUTRA) {
@@ -959,19 +959,19 @@ void rrc::ue::handle_ue_cap_info(LIBLTE_RRC_UE_CAPABILITY_INFORMATION_STRUCT *ms
 
 void rrc::ue::set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT *rates)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   memcpy(&bitrates, rates, sizeof(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT));
 }
 
 void rrc::ue::set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   memcpy(&security_capabilities, caps, sizeof(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT));
 }
 
 void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   memcpy(k_enb, key, length);
 
   // Select algos (TODO: use security capabilities and config preferences)
@@ -1000,7 +1000,7 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
 
 bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   for(uint32_t i=0; i<e->len; i++) {
     LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab = &e->buffer[i];
     if(erab->ext) {
@@ -1025,7 +1025,7 @@ bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)
 
 bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   for(uint32_t i=0; i<e->len; i++) {
     LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT *erab = &e->buffer[i];
     if(erab->ext) {
@@ -1055,7 +1055,7 @@ void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT 
                          LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT *addr, uint32_t teid_out,
                          LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   erabs[id].id = id;
   memcpy(&erabs[id].qos_params, qos, sizeof(LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT));
   memcpy(&erabs[id].address, addr, sizeof(LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT));
@@ -1074,7 +1074,7 @@ void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT 
 
 bool rrc::ue::release_erabs()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   typedef std::map<uint8_t, erab_t>::iterator it_t;
   for(it_t it=erabs.begin(); it!=erabs.end(); ++it) {
     // TODO: notify GTPU layer
@@ -1085,7 +1085,7 @@ bool rrc::ue::release_erabs()
 
 void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT res;
   res.ext = false;
   res.E_RABSetupListCtxtSURes.len = 0;
@@ -1106,7 +1106,7 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 
 void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT res;
   res.E_RABSetupListBearerSURes.len = 0;
   res.E_RABFailedToSetupListBearerSURes.len = 0;
@@ -1128,7 +1128,7 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTB
 
 void rrc::ue::send_connection_reest_rej()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg; 
   bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
   
@@ -1140,7 +1140,7 @@ void rrc::ue::send_connection_reest_rej()
 
 void rrc::ue::send_connection_setup(bool is_setup)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg; 
   bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
   
@@ -1276,14 +1276,14 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
 void rrc::ue::send_connection_reest()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   send_connection_setup(false);
 }
 
 
 void rrc::ue::send_connection_release()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg; 
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RELEASE; 
   dl_dcch_msg.msg.rrc_con_release.rrc_transaction_id = (transaction_id++)%4; 
@@ -1294,7 +1294,7 @@ void rrc::ue::send_connection_release()
 
 int rrc::ue::get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drb_id)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   uint32_t lc_id    = drb_id + 2; 
   uint32_t erab_id  = lc_id + 2; 
   uint32_t qci = erabs[erab_id].qos_params.qCI.QCI;
@@ -1334,7 +1334,7 @@ int rrc::ue::get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drb_id)
 void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 {
   
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg; 
   bzero(&dl_dcch_msg, sizeof(LIBLTE_RRC_DL_DCCH_MSG_STRUCT));
   
@@ -1380,7 +1380,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 {
   
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg; 
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG; 
   dl_dcch_msg.msg.rrc_con_reconfig.rrc_transaction_id = (transaction_id++)%4; 
@@ -1459,7 +1459,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 
 void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   srslte::byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
 
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
@@ -1513,7 +1513,7 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
 
 void rrc::ue::send_security_mode_command()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_SECURITY_MODE_COMMAND;
 
@@ -1529,7 +1529,7 @@ void rrc::ue::send_security_mode_command()
 
 void rrc::ue::send_ue_cap_enquiry()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_UE_CAPABILITY_ENQUIRY;
 
@@ -1546,7 +1546,7 @@ void rrc::ue::send_ue_cap_enquiry()
 
 void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg) 
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   // Allocate a new PDU buffer, pack the message and send to PDCP 
   byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
   if (pdu) {
@@ -1567,7 +1567,7 @@ void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg)
 
 void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buffer_t *pdu) 
 {  
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (!pdu) {
     pdu = parent->pool->allocate(__FUNCTION__);
   }
@@ -1589,7 +1589,7 @@ void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buff
 
 int rrc::ue::sr_free()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (sr_allocated) {
     if (parent->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx] > 0) {
       parent->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx]--;
@@ -1603,14 +1603,14 @@ int rrc::ue::sr_free()
 
 void rrc::ue::sr_get(uint32_t *I_sr, uint32_t *N_pucch_sr)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   *I_sr       = sr_I; 
   *N_pucch_sr = sr_N_pucch; 
 }
 
 int rrc::ue::sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr) 
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp)?3:2;
   uint32_t delta_pucch_shift = liblte_rrc_delta_pucch_shift_num[parent->sib2.rr_config_common_sib.pucch_cnfg.delta_pucch_shift];
   
@@ -1673,7 +1673,7 @@ int rrc::ue::sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr)
 
 int rrc::ue::cqi_free()
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   if (cqi_allocated) {
     if (parent->cqi_sched.nof_users[cqi_sched_prb_idx][cqi_sched_sf_idx] > 0) {
       parent->cqi_sched.nof_users[cqi_sched_prb_idx][cqi_sched_sf_idx]--;
@@ -1687,14 +1687,14 @@ int rrc::ue::cqi_free()
 
 void rrc::ue::cqi_get(uint32_t *pmi_idx, uint32_t *n_pucch)
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   *pmi_idx = cqi_idx; 
   *n_pucch = cqi_pucch; 
 }
 
 int rrc::ue::cqi_allocate(uint32_t period, uint32_t *pmi_idx, uint32_t *n_pucch) 
 {
-  X_TRACE("RRC:BEGIN");
+  U_TRACE("RRC:BEGIN");
   uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp)?3:2;
   uint32_t delta_pucch_shift = liblte_rrc_delta_pucch_shift_num[parent->sib2.rr_config_common_sib.pucch_cnfg.delta_pucch_shift];
   

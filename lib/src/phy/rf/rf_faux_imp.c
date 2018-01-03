@@ -49,6 +49,8 @@
 static bool rf_faux_log_debug   = true;
 static bool rf_faux_log_info    = true;
 
+uint32_t g_tti = 0;
+struct timeval g_tv_next = {0, 0};
 
 #define RF_FAUX_WARN(_fmt, ...) do {                                                                       \
                                    struct timeval _tv_now;                                                 \
@@ -143,9 +145,6 @@ static bool rf_faux_log_info    = true;
 
 static const struct timeval tv_rx_window = {0, 250}; // delta_t before next tti (1/4)
 static const struct timeval tv_zero      = {0, 0};
-
-uint32_t       g_tti     = 0;
-struct timeval g_tv_next = {0, 0};
 
 typedef struct {
   void * h;
