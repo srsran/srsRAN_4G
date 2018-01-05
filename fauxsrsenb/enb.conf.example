@@ -16,7 +16,7 @@
 #
 #####################################################################
 [enb]
-enb_id = 0x19B
+enb_id = 0x567
 cell_id = 0x01
 phy_cell_id = 1
 tac = 0x0007
@@ -57,14 +57,14 @@ drb_config = drb.conf
 #                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
 #####################################################################
 [rf]
-dl_earfcn = 3400
-tx_gain = 70
+dl_earfcn = 3401
+tx_gain = 40
 rx_gain = 40
 
 device_name = faux
 device_args = enb
-#time_adv_nsamples = auto
-#burst_preamble_us = auto
+time_adv_nsamples = 0
+burst_preamble_us = 0
 
 
 #####################################################################
@@ -81,7 +81,7 @@ device_args = enb
 #####################################################################
 [pcap]
 enable = false
-filename = /tmp/enb.pcap
+filename = enb.pcap
 
 #####################################################################
 # Log configuration
@@ -104,7 +104,7 @@ filename = /tmp/enb.pcap
 [log]
 all_level = debug
 all_hex_limit = 32
-filename = ./enb.log
+filename = stdout
 
 [gui]
 enable = false
@@ -161,7 +161,7 @@ nof_ctrl_symbols = 3
 # same can be configured for rx_*
 #####################################################################
 [rf_calibration]
-tx_corr_dc_gain = 20
-tx_corr_dc_phase = 184
-tx_corr_iq_i = 19
-tx_corr_iq_q = 97
+#tx_corr_dc_gain = 20
+#tx_corr_dc_phase = 184
+#tx_corr_iq_i = 19
+#tx_corr_iq_q = 97

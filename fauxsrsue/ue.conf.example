@@ -21,16 +21,16 @@
 #                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
 #####################################################################
 [rf]
-dl_earfcn = 3400
+dl_earfcn = 3401
 freq_offset = 0
-tx_gain = 70
+tx_gain = 40
 rx_gain = 40
 
-#nof_rx_ant = 1
+nof_rx_ant = 1
 device_name = faux
 device_args = ue
-#time_adv_nsamples = auto
-#burst_preamble_us = auto
+time_adv_nsamples = 0
+burst_preamble_us = 0
 
 
 #####################################################################
@@ -47,7 +47,7 @@ device_args = ue
 #####################################################################
 [pcap]
 enable = false
-filename = /tmp/ue.pcap
+filename = ue.pcap
 
 #####################################################################
 # Log configuration
@@ -68,9 +68,9 @@ filename = /tmp/ue.pcap
 #           to print logs to standard output
 #####################################################################
 [log]
-all_level = debug
+all_level = info
 all_hex_limit = 32
-filename = ue.log
+filename = stdout
 
 #####################################################################
 # USIM configuration
@@ -154,7 +154,7 @@ enable = false
 #estimator_fil_w     = 0.1
 #pregenerate_signals = false
 #metrics_csv_enable  = false
-#metrics_csv_filename = /tmp/ue_metrics.csv
+#metrics_csv_filename = ue_metrics.csv
 
 #####################################################################
 # Manual RF calibration
@@ -169,7 +169,7 @@ enable = false
 # same can be configured for rx_*
 #####################################################################
 [rf_calibration]
-tx_corr_dc_gain = 20
-tx_corr_dc_phase = 184
-tx_corr_iq_i = 19
-tx_corr_iq_q = 97
+#tx_corr_dc_gain = 20
+#tx_corr_dc_phase = 184
+#tx_corr_iq_i = 19
+#tx_corr_iq_q = 97
