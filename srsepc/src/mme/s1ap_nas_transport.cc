@@ -729,6 +729,117 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   return true;
 }
 
+bool
+s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer) {
+  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
+  bzero(&act_def_eps_bearer_context_req,sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
+
+  m_s1ap_log->info("Packing Attach Accept\n");
+
+  //Attach accept
+  attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
+  //Mandatory
+  //FIXME: Set t3412 from config
+  attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
+  attach_accept.t3412.value = 30;                                    // 30 minute periodic timer
+  //FIXME: Set tai_list from config
+  attach_accept.tai_list.N_tais = 1;
+  attach_accept.tai_list.tai[0].mcc = 1;
+  attach_accept.tai_list.tai[0].mnc = 1;
+  attach_accept.tai_list.tai[0].tac = 7;
+
+  //Allocate a GUTI ot the UE
+  attach_accept.guti_present=true;
+  attach_accept.guti.type_of_id = 6; //110 -> GUTI
+  attach_accept.guti.guti.mcc = 1;
+  attach_accept.guti.guti.mnc = 1;
+  attach_accept.guti.guti.mme_group_id = 0x0001;
+  attach_accept.guti.guti.mme_code = 0x1a;
+  attach_accept.guti.guti.m_tmsi = 0x124ae;
+  /*
+  typedef struct{
+    uint32 m_tmsi;
+    uint16 mcc;
+    uint16 mnc;
+    uint16 mme_group_id;
+    uint8  mme_code;
+  }LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT;
+  typedef struct{
+    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
+    uint8                                type_of_id;
+    uint8                                imsi[15];
+    uint8                                imei[15];
+  }LIBLTE_MME_EPS_MOBILE_ID_STRUCT;*/
+
+  //Make sure all unused options are set to false
+  attach_accept.lai_present=false;
+  attach_accept.ms_id_present=false;
+  attach_accept.emm_cause_present=false;
+  attach_accept.t3402_present=false;
+  attach_accept.t3423_present=false;
+  attach_accept.equivalent_plmns_present=false;
+  attach_accept.emerg_num_list_present=false;
+  attach_accept.eps_network_feature_support_present=false;
+  attach_accept.additional_update_result_present=false;
+  attach_accept.t3412_ext_present=false;
+
+  //Set activate default eps bearer (esm_ms)
+  //Set pdn_addr
+  act_def_eps_bearer_context_req.pdn_addr.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
+  memcpy(act_def_eps_bearer_context_req.pdn_addr.addr, &paa->ipv4, 4);
+  //Set eps bearer id
+  act_def_eps_bearer_context_req.eps_bearer_id = erab_ctxt->e_RAB_ID.E_RAB_ID;
+  printf("%d\n",act_def_eps_bearer_context_req.eps_bearer_id);
+  act_def_eps_bearer_context_req.transaction_id_present = false;
+  //set eps_qos
+  act_def_eps_bearer_context_req.eps_qos.qci =  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI;
+  act_def_eps_bearer_context_req.eps_qos.mbr_ul = 254; //FIXME
+  act_def_eps_bearer_context_req.eps_qos.mbr_dl = 254; //FIXME
+  act_def_eps_bearer_context_req.eps_qos.mbr_ul_ext = 250; //FIXME
+  act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
+  //set apn
+  //act_def_eps_bearer_context_req.apn
+  std::string apn("test123");
+  act_def_eps_bearer_context_req.apn.apn = apn; //FIXME
+  act_def_eps_bearer_context_req.proc_transaction_id = ue_ctx->procedure_transaction_id; //FIXME
+
+  //Set DNS server
+  act_def_eps_bearer_context_req.protocol_cnfg_opts_present = true;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.N_opts = 1;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].id = 0x0d;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].len = 4;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[0] = 8;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[1] = 8;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[2] = 8;
+  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[3] = 8;
+
+  uint8_t sec_hdr_type =2;
+  ue_ctx->security_ctxt.dl_nas_count++;
+  liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
+  liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  //Integrity protect NAS message
+  uint8_t mac[4];
+  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
+                             ue_ctx->security_ctxt.dl_nas_count,
+                             0,
+                             SECURITY_DIRECTION_DOWNLINK,
+                             &nas_buffer->msg[5],
+                             nas_buffer->N_bytes - 5,
+                             mac
+                             );
+
+  memcpy(&nas_buffer->msg[1],mac,4);
+  m_s1ap_log->info("Packed Attach Complete\n");
+ 
+  //Add nas message to context setup request
+  erab_ctxt->nAS_PDU_present = true;
+  memcpy(erab_ctxt->nAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  erab_ctxt->nAS_PDU.n_octets = nas_buffer->N_bytes;
+
+  return true;
+}
+
 
 
 /*Helper functions*/
@@ -856,116 +967,5 @@ s1ap_nas_transport::log_unhandled_initial_ue_message_ies(LIBLTE_S1AP_MESSAGE_INI
   return;
 }
 
-
-bool
-s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer) {
-  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
-  bzero(&act_def_eps_bearer_context_req,sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
-
-  m_s1ap_log->info("Packing Attach Accept\n");
-
-  //Attach accept
-  attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
-  //Mandatory
-  //FIXME: Set t3412 from config
-  attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
-  attach_accept.t3412.value = 30;                                    // 30 minute periodic timer
-  //FIXME: Set tai_list from config
-  attach_accept.tai_list.N_tais = 1;
-  attach_accept.tai_list.tai[0].mcc = 1;
-  attach_accept.tai_list.tai[0].mnc = 1;
-  attach_accept.tai_list.tai[0].tac = 7;
-
-  //Allocate a GUTI ot the UE
-  attach_accept.guti_present=true;
-  attach_accept.guti.type_of_id = 6; //110 -> GUTI
-  attach_accept.guti.guti.mcc = 1;
-  attach_accept.guti.guti.mnc = 1;
-  attach_accept.guti.guti.mme_group_id = 0x0001;
-  attach_accept.guti.guti.mme_code = 0x1a;
-  attach_accept.guti.guti.m_tmsi = 0x124ae;
-  /*
-  typedef struct{
-    uint32 m_tmsi;
-    uint16 mcc;
-    uint16 mnc;
-    uint16 mme_group_id;
-    uint8  mme_code;
-  }LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT;
-  typedef struct{
-    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
-    uint8                                type_of_id;
-    uint8                                imsi[15];
-    uint8                                imei[15];
-  }LIBLTE_MME_EPS_MOBILE_ID_STRUCT;*/
-
-  //Make sure all unused options are set to false
-  attach_accept.lai_present=false;
-  attach_accept.ms_id_present=false;
-  attach_accept.emm_cause_present=false;
-  attach_accept.t3402_present=false;
-  attach_accept.t3423_present=false;
-  attach_accept.equivalent_plmns_present=false;
-  attach_accept.emerg_num_list_present=false;
-  attach_accept.eps_network_feature_support_present=false;
-  attach_accept.additional_update_result_present=false;
-  attach_accept.t3412_ext_present=false;
-
-  //Set activate default eps bearer (esm_ms)
-  //Set pdn_addr
-  act_def_eps_bearer_context_req.pdn_addr.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
-  memcpy(act_def_eps_bearer_context_req.pdn_addr.addr, &paa->ipv4, 4);
-  //Set eps bearer id
-  act_def_eps_bearer_context_req.eps_bearer_id = erab_ctxt->e_RAB_ID.E_RAB_ID;
-  printf("%d\n",act_def_eps_bearer_context_req.eps_bearer_id);
-  act_def_eps_bearer_context_req.transaction_id_present = false;
-  //set eps_qos
-  act_def_eps_bearer_context_req.eps_qos.qci =  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI;
-  act_def_eps_bearer_context_req.eps_qos.mbr_ul = 254; //FIXME
-  act_def_eps_bearer_context_req.eps_qos.mbr_dl = 254; //FIXME
-  act_def_eps_bearer_context_req.eps_qos.mbr_ul_ext = 250; //FIXME
-  act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
-  //set apn
-  //act_def_eps_bearer_context_req.apn
-  std::string apn("test123");
-  act_def_eps_bearer_context_req.apn.apn = apn; //FIXME
-  act_def_eps_bearer_context_req.proc_transaction_id = ue_ctx->procedure_transaction_id; //FIXME
-
-  //Set DNS server
-  act_def_eps_bearer_context_req.protocol_cnfg_opts_present = true;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.N_opts = 1;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].id = 0x0d;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].len = 4;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[0] = 8;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[1] = 8;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[2] = 8;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[3] = 8;
-
-  uint8_t sec_hdr_type =2;
-  ue_ctx->security_ctxt.dl_nas_count++;
-  liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
-  liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
-  //Integrity protect NAS message
-  uint8_t mac[4];
-  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
-                             ue_ctx->security_ctxt.dl_nas_count,
-                             0,
-                             SECURITY_DIRECTION_DOWNLINK,
-                             &nas_buffer->msg[5],
-                             nas_buffer->N_bytes - 5,
-                             mac
-                             );
-
-  memcpy(&nas_buffer->msg[1],mac,4);
-  m_s1ap_log->info("Packed Attach Complete\n");
- 
-  //Add nas message to context setup request
-  erab_ctxt->nAS_PDU_present = true;
-  memcpy(erab_ctxt->nAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  erab_ctxt->nAS_PDU.n_octets = nas_buffer->N_bytes;
-
-  return true;
-}
 
 } //namespace srsepc
