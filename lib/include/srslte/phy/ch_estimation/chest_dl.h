@@ -79,6 +79,7 @@ typedef struct {
 
   srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
   srslte_interp_lin_t srslte_interp_lin; 
+  srslte_interp_lin_t srslte_interp_lin_3;
   srslte_interp_lin_t srslte_interp_lin_mbsfn;
   float rssi[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
   float rsrp[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
