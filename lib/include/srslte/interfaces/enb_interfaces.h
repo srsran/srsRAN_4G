@@ -64,9 +64,11 @@ public:
   virtual int sr_detected(uint32_t tti, uint16_t rnti) = 0; 
   virtual int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv) = 0; 
   
+  virtual int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) = 0;
+  virtual int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) = 0;
   virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 
   virtual int snr_info(uint32_t tti, uint16_t rnti, float snr_db) = 0; 
-  virtual int ack_info(uint32_t tti, uint16_t rnti, bool ack) = 0;
+  virtual int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) = 0;
   virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res) = 0; 
   
   virtual int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res) = 0;
@@ -93,7 +95,8 @@ public:
 class phy_interface_rrc
 {
 public:
-  virtual void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated) = 0; 
+  virtual void set_conf_dedicated_ack(uint16_t rnti, bool rrc_completed) = 0;
+  virtual void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated) = 0;
   
 };
 
@@ -111,6 +114,7 @@ public:
   /* Manages UE bearers and associated configuration */
   virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t *cfg) = 0; 
   virtual int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) = 0; 
+  virtual int set_dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) = 0;
   virtual void phy_config_enabled(uint16_t rnti, bool enabled) = 0;
 
 };
@@ -147,6 +151,7 @@ public:
   /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
    * RLC PDUs according to TB size. */
   virtual void write_sdu(uint16_t rnti, uint32_t lcid,  srslte::byte_buffer_t *sdu) = 0;
+  virtual bool rb_is_um(uint16_t rnti, uint32_t lcid) = 0;
 };
 
 // RLC interface for RRC

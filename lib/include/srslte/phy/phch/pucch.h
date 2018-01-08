@@ -157,7 +157,8 @@ SRSLTE_API int srslte_pucch_decode(srslte_pucch_t *q,
                                    cf_t *sf_symbols,
                                    cf_t *ce, 
                                    float noise_estimate,
-                                   uint8_t bits[SRSLTE_PUCCH_MAX_BITS]); 
+                                   uint8_t bits[SRSLTE_PUCCH_MAX_BITS],
+                                   uint32_t nof_bits);
 
 SRSLTE_API float srslte_pucch_alpha_format1(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB], 
                                             srslte_pucch_cfg_t *cfg, 

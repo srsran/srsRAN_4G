@@ -223,9 +223,13 @@ void rrc::rem_user(uint16_t rnti)
   if (users.count(rnti) == 1) {
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
     rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
-    /* **Caution** order of removal here is imporant: from bottom to top */
+    /* **Caution** order of removal here is important: from bottom to top */
     mac->ue_rem(rnti);  // MAC handles PHY
+
+    pthread_mutex_unlock(&user_mutex);
     usleep(50000);
+    pthread_mutex_lock(&user_mutex);
+
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
     gtpu->rem_user(rnti);
@@ -695,10 +699,19 @@ rrc::ue::ue()
 {
   parent           = NULL; 
   set_activity();
-  sr_allocated     = false; 
   has_tmsi         = false;
   connect_notified = false; 
   transaction_id   = 0;
+  sr_allocated     = false;
+  sr_sched_sf_idx  = 0;
+  sr_sched_prb_idx = 0;
+  sr_N_pucch       = 0;
+  sr_I             = 0;
+  cqi_allocated    = false;
+  cqi_pucch        = 0;
+  cqi_idx          = 0;
+  cqi_sched_sf_idx = 0;
+  cqi_sched_prb_idx = 0;
   state            = RRC_STATE_IDLE;
 }
 
@@ -764,9 +777,9 @@ bool rrc::ue::is_timeout()
   }
   
   if (deadline_str) {
-    uint64_t deadline = deadline_s*1e6  + deadline_us; 
-    uint64_t elapsed  = t[0].tv_sec*1e6 + t[0].tv_usec;
-    if (elapsed > deadline) {
+    int64_t deadline = deadline_s*1e6  + deadline_us;
+    int64_t elapsed  = t[0].tv_sec*1e6 + t[0].tv_usec;
+    if (elapsed > deadline && elapsed > 0) {
       parent->rrc_log->warning("User rnti=0x%x expired %s deadline: %d:%d>%d:%d us\n", 
                                 rnti, deadline_str, 
                                 t[0].tv_sec, t[0].tv_usec, 
@@ -861,6 +874,10 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
 
   memcpy(pdu->msg, msg->dedicated_info_nas.msg, msg->dedicated_info_nas.N_bytes);
   pdu->N_bytes = msg->dedicated_info_nas.N_bytes;
+
+  // Acknowledge Dedicated Configuration
+  parent->phy->set_conf_dedicated_ack(rnti, true);
+  parent->mac->phy_config_enabled(rnti, true);
 
   if(has_tmsi) {
     parent->s1ap->initial_ue(rnti, pdu, m_tmsi, mmec);
@@ -1106,14 +1123,21 @@ void rrc::ue::send_connection_setup(bool is_setup)
   mac_cfg->time_alignment_timer = parent->cfg.mac_cnfg.time_alignment_timer;
   
   // physicalConfigDedicated
-  rr_cfg->phy_cnfg_ded_present = true; 
+  rr_cfg->phy_cnfg_ded_present = true;
   LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cfg = &rr_cfg->phy_cnfg_ded; 
   bzero(phy_cfg, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
   phy_cfg->pusch_cnfg_ded_present = true; 
   memcpy(&phy_cfg->pusch_cnfg_ded, &parent->cfg.pusch_cfg, sizeof(LIBLTE_RRC_PUSCH_CONFIG_DEDICATED_STRUCT));
   phy_cfg->sched_request_cnfg_present = true;
   phy_cfg->sched_request_cnfg.setup_present = true; 
-  phy_cfg->sched_request_cnfg.dsr_trans_max = parent->cfg.sr_cfg.dsr_max; 
+  phy_cfg->sched_request_cnfg.dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
+
+  if (parent->cfg.antenna_info.tx_mode > LIBLTE_RRC_TRANSMISSION_MODE_1) {
+    memcpy(&phy_cfg->antenna_info_explicit_value, &parent->cfg.antenna_info,
+           sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+    phy_cfg->antenna_info_present = true;
+    phy_cfg->antenna_info_default_value = false;
+  }
 
   if (is_setup) {
     if (sr_allocate(parent->cfg.sr_cfg.period, &phy_cfg->sched_request_cnfg.sr_cnfg_idx, &phy_cfg->sched_request_cnfg.sr_pucch_resource_idx)) {
@@ -1138,13 +1162,23 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->cqi_report_cnfg_present = true; 
   if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
     phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true; 
-    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;     
+    if (phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
+    }
   } else {
     phy_cfg->cqi_report_cnfg.report_periodic_present = true; 
     phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true; 
     phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic = LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI; 
-    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI; 
-    phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false; 
+    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    if (phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+        phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = true;
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx = 483;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false;
+    }
     if (is_setup) {
       if (cqi_allocate(parent->cfg.cqi_cfg.period, 
                        &phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx, 
@@ -1194,7 +1228,9 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
-  parent->mac->phy_config_enabled(rnti, true);
+  parent->phy->set_conf_dedicated_ack(rnti, false);
+  parent->mac->set_dl_ant_info(rnti, &phy_cfg->antenna_info_explicit_value);
+  parent->mac->phy_config_enabled(rnti, false);
   
   rr_cfg->drb_to_add_mod_list_size = 0; 
   rr_cfg->drb_to_release_list_size = 0; 

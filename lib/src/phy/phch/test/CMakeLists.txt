@@ -119,6 +119,14 @@ add_test(pdsch_test_multiplex1cw_p0_50  pdsch_test -x multiplex -a 2 -p 0 -n 50)
 add_test(pdsch_test_multiplex1cw_p0_75  pdsch_test -x multiplex -a 2 -p 0 -n 75)
 add_test(pdsch_test_multiplex1cw_p0_100 pdsch_test -x multiplex -a 2 -p 0 -n 100)
 
+# PDSCH test for Spatial Multiplex transmision mode with PMI = 0 (1 codeword, swapped)
+add_test(pdsch_test_multiplex1cw_p0_6_swap   pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 6 -F 1)
+add_test(pdsch_test_multiplex1cw_p0_15_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 15)
+add_test(pdsch_test_multiplex1cw_p0_25_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 25)
+add_test(pdsch_test_multiplex1cw_p0_50_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 50)
+add_test(pdsch_test_multiplex1cw_p0_75_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 75)
+add_test(pdsch_test_multiplex1cw_p0_100_swap pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 100)
+
 # PDSCH test for Spatial Multiplex transmision mode with PMI = 1 (1 codeword)
 add_test(pdsch_test_multiplex1cw_p1_6   pdsch_test -x multiplex -a 2 -p 1 -n 6)
 add_test(pdsch_test_multiplex1cw_p1_12  pdsch_test -x multiplex -a 2 -p 1 -n 12)
@@ -150,6 +158,14 @@ add_test(pdsch_test_multiplex2cw_p0_25  pdsch_test -x multiplex -a 2 -t 0 -p 0 -
 add_test(pdsch_test_multiplex2cw_p0_50  pdsch_test -x multiplex -a 2 -t 0 -p 0 -n 50)
 add_test(pdsch_test_multiplex2cw_p0_75  pdsch_test -x multiplex -a 2 -t 0 -p 0 -n 75)
 add_test(pdsch_test_multiplex2cw_p0_100 pdsch_test -x multiplex -a 2 -t 0 -p 0 -n 100)
+
+# PDSCH test for Spatial Multiplex transmision mode with PMI = 0 (2 codeword, swapped)
+add_test(pdsch_test_multiplex2cw_p0_6_swap   pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 6 -w -F 1)
+add_test(pdsch_test_multiplex2cw_p0_12_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 12 -w)
+add_test(pdsch_test_multiplex2cw_p0_25_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 25 -w)
+add_test(pdsch_test_multiplex2cw_p0_50_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 50 -w)
+add_test(pdsch_test_multiplex2cw_p0_75_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 75 -w)
+add_test(pdsch_test_multiplex2cw_p0_100_swap pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 100 -w)
 
 # PDSCH test for Spatial Multiplex transmision mode with PMI = 1 (2 codeword)
 add_test(pdsch_test_multiplex2cw_p1_6   pdsch_test -x multiplex -a 2 -t 0 -p 1 -n 6)
@@ -218,6 +234,7 @@ add_executable(pucch_test pucch_test.c)
 target_link_libraries(pucch_test srslte_phy)
 
 add_test(pucch_test pucch_test)
+add_test(pucch_test_uci_cqi_decoder pucch_test -q)
 
 ########################################################################
 # PRACH TEST  

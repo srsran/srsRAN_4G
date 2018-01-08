@@ -66,6 +66,8 @@ typedef struct {
   s1ap_args_t s1ap; 
   uint32_t    n_prb; 
   uint32_t    pci; 
+  uint32_t    nof_ports;
+  uint32_t    transmission_mode;
 }enb_args_t;
 
 typedef struct {

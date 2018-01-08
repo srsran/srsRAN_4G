@@ -34,10 +34,10 @@
 #include "phy/phy.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
  
@@ -75,7 +75,7 @@ void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, 
     return;
   }
   srslte_cfo_set_tol(&cfo_h, 0);
-  signal_buffer = (cf_t*) srslte_vec_malloc(SRSLTE_PRACH_MAX_LEN*sizeof(cf_t));
+  signal_buffer = (cf_t *) srslte_vec_malloc(SRSLTE_PRACH_MAX_LEN * sizeof(cf_t));
   if (!signal_buffer) {
     perror("malloc");
     return;
@@ -181,8 +181,8 @@ void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte
   // Get current TX gain 
   float old_gain = radio_handler->get_tx_gain(); 
   
-  // Correct CFO before transmission
-  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));            
+  // Correct CFO before transmission FIXME: UL SISO Only
+  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));
 
   // If power control is enabled, choose amplitude and power 
   if (args->ul_pwr_ctrl_en) {
@@ -207,8 +207,9 @@ void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte
     }
     Debug("TX PRACH: Power control for PRACH is disabled, setting gain to %.0f dB\n", prach_gain);
   }
-    
-  radio_handler->tx(signal_buffer, len, tx_time);
+
+  void *tmp_buffer[SRSLTE_MAX_PORTS] = {signal_buffer, NULL, NULL, NULL};
+  radio_handler->tx(tmp_buffer, len, tx_time);
   radio_handler->tx_end();
   
   Info("PRACH: Transmitted preamble=%d, CFO=%.2f KHz, tx_time=%f\n", 

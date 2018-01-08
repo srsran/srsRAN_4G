@@ -24,10 +24,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include <string.h>
 #include <strings.h>
@@ -44,7 +44,6 @@ namespace srsue {
 mac::mac() : ttisync(10240), 
              timers(64),
              mux_unit(MAC_NOF_HARQ_PROC),
-             demux_unit(SRSLTE_MAX_TB*MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
 {
   started = false;
@@ -111,6 +110,15 @@ void mac::reconfiguration()
 
 }
 
+void mac::wait_uplink() {
+  int cnt=0;
+  Info("Waiting to uplink...\n");
+  while(mux_unit.is_pending_any_sdu() && cnt<20) {
+    usleep(1000);
+    cnt++;
+  }
+}
+
 // Implement Section 5.9
 void mac::reset()
 {
@@ -118,7 +126,8 @@ void mac::reset()
 
   Info("Resetting MAC\n");
 
-  timers.stop_all();
+  timers.get(timer_alignment)->stop();
+  timers.get(contention_resolution_timer)->stop();
 
   ul_harq.reset_ndi();
 
@@ -153,8 +162,7 @@ void mac::run_thread() {
   while(started) {
 
     /* Warning: Here order of invocation of procedures is important!! */
-    ttisync.wait();
-    tti = phy_h->get_current_tti();
+    tti = ttisync.wait();
 
     log_h->step(tti);
     timers.step_all();
@@ -180,6 +188,8 @@ void mac::run_thread() {
       ra_procedure.start_mac_order();
     }
     ra_procedure.step(tti);
+
+    rrc_h->run_tti(tti);
   }
 }
 
@@ -218,7 +228,7 @@ void mac::pcch_stop_rx()
 
 void mac::tti_clock(uint32_t tti)
 {
-  ttisync.increase();
+  ttisync.increase(tti);
 }
 
 void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)
@@ -268,6 +278,7 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
     action->generate_ack = false;
     action->decode_enabled[0] = true;
+    action->decode_enabled[1] = false;
     srslte_softbuffer_rx_reset_cb(&pch_softbuffer, 1);
     action->payload_ptr[0] = pch_payload_buffer;
     action->softbuffers[0]  = &pch_softbuffer;
@@ -308,7 +319,7 @@ void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
 void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
   int tbs = ul_harq.get_current_tbs(tti);
-  ul_harq.new_grant_ul_ack(grant, ack, action);
+  ul_harq.new_grant_ul_ack(grant, &ack, action);
   if (!ack) {
     metrics.tx_errors++;
   } else {
@@ -369,9 +380,28 @@ void mac::get_rntis(ue_rnti_t* rntis)
   memcpy(rntis, &uernti, sizeof(ue_rnti_t));
 }
 
+void mac::set_ho_rnti(uint16_t crnti, uint16_t target_pci) {
+  phy_h->pdcch_dl_search_reset();
+  phy_h->pdcch_ul_search_reset();
+  uernti.crnti = crnti;
+  if (pcap) {
+    pcap->set_ue_id(target_pci);
+  }
+}
+
 void mac::set_contention_id(uint64_t uecri)
 {
   uernti.contention_id = uecri;
+}
+
+void mac::start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask)
+{
+  ra_procedure.start_noncont(preamble_index, prach_mask);
+}
+
+void mac::start_cont_ho()
+{
+  ra_procedure.start_mac_order(56, true);
 }
 
 void mac::get_config(mac_cfg_t* mac_cfg)
@@ -417,7 +447,7 @@ void mac::get_metrics(mac_metrics_t &m)
        metrics.rx_pkts?((float) 100*metrics.rx_errors/metrics.rx_pkts):0.0, 
        dl_harq.get_average_retx(),
        metrics.tx_pkts?((float) 100*metrics.tx_errors/metrics.tx_pkts):0.0, 
-       dl_harq.get_average_retx());
+       ul_harq.get_average_retx());
   
   metrics.ul_buffer = (int) bsr_procedure.get_buffer_state();
   m = metrics;  

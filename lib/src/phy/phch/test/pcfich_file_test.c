@@ -120,15 +120,15 @@ int base_init() {
     fmatlab = NULL;
   }
 
-  flen = SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb));
+  flen = SRSLTE_SF_LEN(srslte_symbol_sz_power2(cell.nof_prb));
 
-  input_buffer = malloc(flen * sizeof(cf_t));
+  input_buffer = srslte_vec_malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  fft_buffer = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  fft_buffer = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
@@ -151,7 +151,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft, cell.cp, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
+  if (srslte_ofdm_init_(&fft, cell.cp, input_buffer, fft_buffer, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
 
   n = srslte_filesource_read(&fsrc, input_buffer, flen);
 
-  srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
+  srslte_ofdm_rx_sf(&fft);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");

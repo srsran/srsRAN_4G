@@ -44,14 +44,16 @@ int nof_layers = 1, nof_tx_ports = 1, nof_rx_ports = 1, nof_re = 1;
 char *mimo_type_name = NULL;
 char decoder_type_name [16] = "zf";
 float snr_db = 100.0f;
+float scaling = 0.1f;
 
 void usage(char *prog) {
   printf(
       "Usage: %s -m [single|diversity|multiplex|cdd] -l [nof_layers] -p [nof_tx_ports]\n"
-          " -r [nof_rx_ports]\n", prog);
+          " -r [nof_rx_ports] -g [scaling]\n", prog);
   printf("\t-n num_symbols [Default %d]\n", nof_symbols);
   printf("\t-c codebook_idx [Default %d]\n", codebook_idx);
   printf("\t-s SNR in dB [Default %.1fdB]*\n", snr_db);
+  printf("\t-g Scaling [Default %.1f]*\n", scaling);
   printf("\t-d decoder type [zf|mmse] [Default %s]\n", decoder_type_name);
   printf("\n");
   printf("* Performance test example:\n\t for snr in {0..20..1}; do ./precoding_test -m single -s $snr; done; \n\n", decoder_type_name);
@@ -59,7 +61,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "mplnrcds")) != -1) {
+  while ((opt = getopt(argc, argv, "mplnrcdsg")) != -1) {
     switch (opt) {
     case 'n':
       nof_symbols = atoi(argv[optind]);
@@ -84,6 +86,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 's':
       snr_db = (float) atof(argv[optind]);
+      break;
+    case 'g':
+      scaling = (float) atof(argv[optind]);
       break;
     default:
       usage(argv[0]);
@@ -149,7 +154,7 @@ void populate_channel(srslte_mimo_type_t type, cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_
 
 static void awgn(cf_t *y[SRSLTE_MAX_PORTS], uint32_t n, float snr) {
   int i;
-  float std_dev = powf(10, - (snr + 3.0f) / 20.0f);
+  float std_dev = powf(10, - (snr + 3.0f) / 20.0f) * scaling;
 
   for (i = 0; i < nof_rx_ports; i++) {
     srslte_ch_awgn_c(y[i], y[i], std_dev, n);
@@ -250,7 +255,7 @@ int main(int argc, char **argv) {
   }
 
   /* Execute Precoding (Tx) */
-  if (srslte_precoding_type(x, y, nof_layers, nof_tx_ports, codebook_idx, nof_symbols, type) < 0) {
+  if (srslte_precoding_type(x, y, nof_layers, nof_tx_ports, codebook_idx, nof_symbols, scaling, type) < 0) {
     fprintf(stderr, "Error layer mapper encoder\n");
     exit(-1);
   }
@@ -285,8 +290,8 @@ int main(int argc, char **argv) {
   /* predecoding / equalization */
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
-  srslte_predecoding_type_multi(r, h, xr, nof_rx_ports, nof_tx_ports, nof_layers,
-                                codebook_idx, nof_re, type, powf(10, -snr_db/10));
+  srslte_predecoding_type(r, h, xr, nof_rx_ports, nof_tx_ports, nof_layers,
+                          codebook_idx, nof_re, type, scaling, powf(10, -snr_db / 10));
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
 

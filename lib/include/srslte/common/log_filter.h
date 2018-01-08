@@ -37,6 +37,8 @@
 
 #include <stdarg.h>
 #include <string>
+
+#include "srslte/phy/common/timestamp.h"
 #include "srslte/common/log.h"
 #include "srslte/common/logger.h"
 #include "srslte/common/logger_stdout.h"
@@ -66,14 +68,24 @@ public:
   void info_hex(uint8_t *hex, int size, std::string message, ...);
   void debug_hex(uint8_t *hex, int size, std::string message, ...);
 
-  void error_line(std::string file, int line, std::string message, ...);
-  void warning_line(std::string file, int line, std::string message, ...);
-  void info_line(std::string file, int line, std::string message, ...);
-  void debug_line(std::string file, int line, std::string message, ...);
+  class time_itf {
+  public:
+    virtual srslte_timestamp_t get_time() = 0;
+  };
+
+  typedef enum {
+    TIME,
+    EPOCH
+  } time_format_t;
+
+  void set_time_src(time_itf *source, time_format_t format);
 
 private:
   logger *logger_h;
   bool    do_tti;
+
+  time_itf      *time_src;
+  time_format_t time_format;
 
   logger_stdout def_logger_stdout;
 

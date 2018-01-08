@@ -44,6 +44,7 @@ gw::gw()
   :if_up(false)
 {
   current_ip_addr = 0;
+  default_netmask = true;
 }
 
 void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, uint32_t lcid_)
@@ -104,6 +105,12 @@ void gw::get_metrics(gw_metrics_t &m)
   ul_tput_bytes = 0;
 }
 
+void gw::set_netmask(std::string netmask) {
+  default_netmask = false;
+  this->netmask = netmask;
+}
+
+
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
@@ -152,7 +159,11 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
       return(srslte::ERROR_CANT_START);
     }
     ifr.ifr_netmask.sa_family                                 = AF_INET;
-    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+    const char *mask = "255.255.255.0";
+    if (!default_netmask) {
+      mask = netmask.c_str();
+    }
+    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(mask);
     if(0 > ioctl(sock, SIOCSIFNETMASK, &ifr))
     {
       err_str = strerror(errno);

@@ -52,14 +52,12 @@ public:
     :direction(direction_)
     ,is_control(is_control_)
     ,is_data(is_data_)
-    ,do_security(false)
     ,sn_len(12) {}
 
-  uint8_t             direction;
-  bool                is_control;
-  bool                is_data;
-  bool                do_security;
-  uint8_t             sn_len;
+  uint8_t  direction;
+  bool     is_control;
+  bool     is_data;
+  uint8_t  sn_len;
 
   // TODO: Support the following configurations
   // bool do_rohc;

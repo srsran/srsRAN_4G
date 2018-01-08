@@ -82,6 +82,7 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
 #endif
 
   struct sockaddr_in bindaddr;
+  bzero(&bindaddr, sizeof(struct sockaddr_in));
   bindaddr.sin_family      = AF_INET;
   bindaddr.sin_addr.s_addr = inet_addr(gtp_bind_addr.c_str());
   bindaddr.sin_port        = htons(GTPU_PORT);
@@ -137,7 +138,10 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   servaddr.sin_port        = htons(GTPU_PORT);
 
   gtpu_write_header(&header, pdu);
-  sendto(snk_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
+  if (sendto(snk_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
+    perror("sendto");
+  }
+
   pool->deallocate(pdu);
 }
 

@@ -47,14 +47,18 @@
 /* This is common for both directions */
 typedef struct SRSLTE_API{
   srslte_dft_plan_t fft_plan;
+  srslte_dft_plan_t fft_plan_sf[2];
   uint32_t max_prb;
   uint32_t nof_symbols;
   uint32_t symbol_sz;
   uint32_t nof_guards;
   uint32_t nof_re;
   uint32_t slot_sz;
+  uint32_t sf_sz;
   srslte_cp_t cp;
   cf_t *tmp; // for removing zero padding
+  cf_t *in_buffer;
+  cf_t *out_buffer;
   
   bool     mbsfn_subframe;
   uint32_t mbsfn_guard_len;
@@ -69,12 +73,16 @@ typedef struct SRSLTE_API{
 
 SRSLTE_API int srslte_ofdm_init_(srslte_ofdm_t *q, 
                                  srslte_cp_t cp, 
+                                 cf_t *in_buffer,
+                                 cf_t *out_buffer,
                                  int symbol_sz, 
                                  int nof_prb, 
                                  srslte_dft_dir_t dir);
 
 SRSLTE_API int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, 
                                  srslte_cp_t cp, 
+                                 cf_t *in_buffer,
+                                 cf_t *out_buffer,
                                  int symbol_sz, 
                                  int nof_prb, 
                                  srslte_dft_dir_t dir,
@@ -82,12 +90,14 @@ SRSLTE_API int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q,
 
 SRSLTE_API int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q,
                                          srslte_cp_t cp_type,
+                                         cf_t *in_buffer,
+                                         cf_t *out_buffer,
                                          uint32_t nof_prb);
-
-
 
 SRSLTE_API int srslte_ofdm_rx_init(srslte_ofdm_t *q, 
                                srslte_cp_t cp_type, 
+                               cf_t *in_buffer,
+                               cf_t *out_buffer,
                                uint32_t max_prb);
 
 SRSLTE_API int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q,
@@ -100,39 +110,43 @@ SRSLTE_API int srslte_ofdm_rx_set_prb(srslte_ofdm_t *q,
 
 SRSLTE_API void srslte_ofdm_rx_free(srslte_ofdm_t *q);
 
-SRSLTE_API void srslte_ofdm_rx_slot(srslte_ofdm_t *q, 
-                                    cf_t *input, 
-                                    cf_t *output);
+SRSLTE_API void srslte_ofdm_rx_slot(srslte_ofdm_t *q,
+                                    int slot_in_sf);
 
-SRSLTE_API void srslte_ofdm_rx_sf(srslte_ofdm_t *q, 
-                                  cf_t *input, 
-                                  cf_t *output);
+SRSLTE_API void srslte_ofdm_rx_slot_ng(srslte_ofdm_t *q,
+                                      cf_t *input,
+                                       cf_t *output);
 
+SRSLTE_API void srslte_ofdm_rx_sf(srslte_ofdm_t *q);
 
+SRSLTE_API void srslte_ofdm_rx_sf_ng(srslte_ofdm_t *q,
+                                     cf_t *input,
+                                     cf_t *output);
 
 SRSLTE_API int srslte_ofdm_tx_init(srslte_ofdm_t *q, 
                                     srslte_cp_t cp_type, 
+                                    cf_t *in_buffer,
+                                    cf_t *out_buffer,
                                     uint32_t nof_prb);
 
 SRSLTE_API int srslte_ofdm_tx_init_mbsfn(srslte_ofdm_t *q,
                                         srslte_cp_t cp, 
+                                         cf_t *in_buffer,
+                                         cf_t *out_buffer,
                                         uint32_t nof_prb);
 
 
 SRSLTE_API void srslte_ofdm_tx_free(srslte_ofdm_t *q);
 
-SRSLTE_API void srslte_ofdm_tx_slot(srslte_ofdm_t *q, 
-                                  cf_t *input, 
-                                  cf_t *output);
+SRSLTE_API void srslte_ofdm_tx_slot(srslte_ofdm_t *q,
+                                    int slot_in_sf);
 
 SRSLTE_API void srslte_ofdm_tx_slot_mbsfn(srslte_ofdm_t *q,
                                          cf_t *input,
                                          cf_t *output);
 
 
-SRSLTE_API void srslte_ofdm_tx_sf(srslte_ofdm_t *q, 
-                                cf_t *input, 
-                                cf_t *output);
+SRSLTE_API void srslte_ofdm_tx_sf(srslte_ofdm_t *q);
 
 SRSLTE_API int srslte_ofdm_set_freq_shift(srslte_ofdm_t *q, 
                                          float freq_shift); 

@@ -63,6 +63,7 @@ typedef struct SRSLTE_API {
   void *in;           // Input buffer
   void *out;          // Output buffer
   void *p;            // DFT plan
+  bool is_guru;
   bool forward;       // Forward transform?
   bool mirror;        // Shift negative and positive frequencies?
   bool db;            // Provide output in dB?
@@ -85,12 +86,33 @@ SRSLTE_API int srslte_dft_plan_c(srslte_dft_plan_t *plan,
                                  int dft_points, 
                                  srslte_dft_dir_t dir);
 
+SRSLTE_API int srslte_dft_plan_guru_c(srslte_dft_plan_t *plan,
+                                      int dft_points,
+                                      srslte_dft_dir_t dir,
+                                      cf_t *in_buffer,
+                                      cf_t *out_buffer,
+                                      int istride,
+                                      int ostride,
+                                      int how_many,
+                                      int idist,
+                                      int odist);
+
 SRSLTE_API int srslte_dft_plan_r(srslte_dft_plan_t *plan, 
                                  int dft_points, 
                                  srslte_dft_dir_t dir);
 
 SRSLTE_API int srslte_dft_replan(srslte_dft_plan_t *plan,
                                  const int new_dft_points);
+
+SRSLTE_API int srslte_dft_replan_guru_c(srslte_dft_plan_t *plan,
+                                        const int new_dft_points,
+                                        cf_t *in_buffer,
+                                        cf_t *out_buffer,
+                                        int istride,
+                                        int ostride,
+                                        int how_many,
+                                        int idist,
+                                        int odist);
 
 SRSLTE_API int srslte_dft_replan_c(srslte_dft_plan_t *plan,
                                    int new_dft_points);
@@ -117,20 +139,22 @@ SRSLTE_API void srslte_dft_plan_set_dc(srslte_dft_plan_t *plan,
 
 /* Compute DFT */
 
-SRSLTE_API void srslte_dft_run(srslte_dft_plan_t *plan, 
-                               void *in, 
+SRSLTE_API void srslte_dft_run(srslte_dft_plan_t *plan,
+                               const void *in,
                                void *out);
 
-SRSLTE_API void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan, 
-                                          cf_t *in, 
+SRSLTE_API void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan,
+                                          const cf_t *in,
                                           cf_t *out); 
 
-SRSLTE_API void srslte_dft_run_c(srslte_dft_plan_t *plan, 
-                                 cf_t *in, 
+SRSLTE_API void srslte_dft_run_c(srslte_dft_plan_t *plan,
+                                 const cf_t *in,
                                  cf_t *out);
 
+SRSLTE_API void srslte_dft_run_guru_c(srslte_dft_plan_t *plan);
+
 SRSLTE_API void srslte_dft_run_r(srslte_dft_plan_t *plan, 
-                                 float *in, 
+                                 const float *in,
                                  float *out);
 
 #endif // DFT_H_

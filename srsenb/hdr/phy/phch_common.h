@@ -65,7 +65,7 @@ public:
   
   void set_nof_mutex(uint32_t nof_mutex); 
 
-  void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+  void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
   srslte_cell_t                     cell; 
@@ -78,21 +78,21 @@ public:
   mac_interface_phy *mac; 
   
   // Common objects for schedulign grants 
-  mac_interface_phy::ul_sched_t ul_grants[10];
-  mac_interface_phy::dl_sched_t dl_grants[10];
+  mac_interface_phy::ul_sched_t ul_grants[TTIMOD_SZ];
+  mac_interface_phy::dl_sched_t dl_grants[TTIMOD_SZ];
   
   // Map of pending ACKs for each user 
   typedef struct {
-    bool is_pending[10]; 
-    uint16_t n_pdcch[10];
+    bool is_pending[TTIMOD_SZ][SRSLTE_MAX_TB];
+    uint16_t n_pdcch[TTIMOD_SZ];
   } pending_ack_t;
   std::map<uint16_t,pending_ack_t> pending_ack;
   
   void ack_add_rnti(uint16_t rnti);
   void ack_rem_rnti(uint16_t rnti);
   void ack_clear(uint32_t sf_idx); 
-  void ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t n_pdcch);
-  bool ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t *last_n_pdcch = NULL);
+  void ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t n_pdcch);
+  bool ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t *last_n_pdcch = NULL);
         
 private:
   std::vector<pthread_mutex_t>    tx_mutex; 

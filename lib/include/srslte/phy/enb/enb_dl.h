@@ -68,7 +68,7 @@ typedef struct SRSLTE_API {
   cf_t *sf_symbols[SRSLTE_MAX_PORTS]; 
   cf_t *slot1_symbols[SRSLTE_MAX_PORTS];
   
-  srslte_ofdm_t   ifft;
+  srslte_ofdm_t   ifft[SRSLTE_MAX_PORTS];
   srslte_pbch_t   pbch;
   srslte_pcfich_t pcfich;
   srslte_regs_t   regs;
@@ -95,10 +95,11 @@ typedef struct SRSLTE_API {
 
 typedef struct {
   uint16_t                rnti; 
+  srslte_dci_format_t     dci_format;
   srslte_ra_dl_dci_t      grant;
   srslte_dci_location_t   location; 
-  srslte_softbuffer_tx_t *softbuffer;
-  uint8_t                *data; 
+  srslte_softbuffer_tx_t *softbuffers[SRSLTE_MAX_TB];
+  uint8_t                *data[SRSLTE_MAX_TB];
 } srslte_enb_dl_pdsch_t; 
 
 typedef struct {
@@ -109,7 +110,8 @@ typedef struct {
 } srslte_enb_dl_phich_t; 
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srslte_enb_dl_init(srslte_enb_dl_t *q, 
+SRSLTE_API int srslte_enb_dl_init(srslte_enb_dl_t *q,
+                                  cf_t *out_buffer[SRSLTE_MAX_PORTS],
                                   uint32_t max_prb);
 
 SRSLTE_API void srslte_enb_dl_free(srslte_enb_dl_t *q);
@@ -146,8 +148,7 @@ SRSLTE_API void srslte_enb_dl_put_phich(srslte_enb_dl_t *q,
 SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t *q, 
                                        uint32_t tti);
 
-SRSLTE_API void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, 
-                                         cf_t *signal_buffer); 
+SRSLTE_API void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q);
 
 SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, 
                                       uint16_t rnti); 
@@ -162,8 +163,7 @@ SRSLTE_API int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q,
                                        int rv_idx[SRSLTE_MAX_CODEWORDS],
                                        uint32_t sf_idx, 
                                        uint8_t *data[SRSLTE_MAX_CODEWORDS],
-                                       srslte_mimo_type_t mimo_type,
-                                       uint32_t pmi);
+                                       srslte_mimo_type_t mimo_type);
 
 SRSLTE_API int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, 
                                           srslte_ra_dl_dci_t *grant, 
