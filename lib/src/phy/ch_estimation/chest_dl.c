@@ -348,12 +348,14 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
                                     fidx_offset, SRSLTE_NRE/6-fidx_offset);
       }
     } else {
-      fidx_offset = srslte_refsignal_cs_fidx(q->cell, l, port_id, 0);
       if (q->average_subframe) {
+        fidx_offset = SRSLTE_MIN(srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0),
+                                 srslte_refsignal_cs_fidx(q->cell, 1, port_id, 0));
         srslte_interp_linear_offset(&q->srslte_interp_lin_3, &pilot_estimates[q->cell.nof_prb * l],
                                     &ce[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb
-                                        * SRSLTE_NRE], fidx_offset, SRSLTE_NRE / 2 - fidx_offset);
+                                        * SRSLTE_NRE], fidx_offset, SRSLTE_NRE / 4 - fidx_offset);
       } else {
+        fidx_offset = srslte_refsignal_cs_fidx(q->cell, l, port_id, 0);
         srslte_interp_linear_offset(&q->srslte_interp_lin, &pilot_estimates[2 * q->cell.nof_prb * l],
                                     &ce[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb
                                         * SRSLTE_NRE], fidx_offset, SRSLTE_NRE / 2 - fidx_offset);
@@ -444,9 +446,16 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
       cf_t *temp = &output[nref * 2];
       bzero(temp, sizeof(cf_t) * nref * 2);
 
-      srslte_vec_interleave(input, &input[nref], temp, nref);
-      for (int l = 2; l < nsymbols - 1; l += 2) {
-        srslte_vec_interleave_add(&input[l * nref], &input[(l + 1) * nref], temp, nref);
+      if (srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0) < 3) {
+        srslte_vec_interleave(input, &input[nref], temp, nref);
+        for (int l = 2; l < nsymbols - 1; l += 2) {
+          srslte_vec_interleave_add(&input[l * nref], &input[(l + 1) * nref], temp, nref);
+        }
+      } else {
+        srslte_vec_interleave(&input[nref], input, temp, nref);
+        for (int l = 2; l < nsymbols - 1; l += 2) {
+          srslte_vec_interleave_add(&input[(l + 1) * nref], &input[l * nref], temp, nref);
+        }
       }
       srslte_vec_sc_prod_cfc(temp, 2.0f / (float) nsymbols, temp, 2 * nref);
       srslte_conv_same_cf(temp, q->smooth_filter, output, 2 * nref, q->smooth_filter_len);
