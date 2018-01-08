@@ -43,6 +43,7 @@ namespace srsue{
 
 metrics_csv::metrics_csv(std::string filename)
   :n_reports(0)
+  ,metrics_report_period(1.0)
   ,ue(NULL)
 {
   file.open(filename.c_str());
@@ -53,7 +54,11 @@ void metrics_csv::set_ue_handle(ue_metrics_interface *ue_)
   ue = ue_;
 }
 
-void metrics_csv::set_metrics(ue_metrics_t &metrics, float metrics_report_period)
+void metrics_csv::set_periodicity(float metrics_report_period_sec) {
+  this->metrics_report_period = metrics_report_period_sec;
+}
+
+void metrics_csv::set_metrics(ue_metrics_t &metrics)
 {
   if (file.is_open() && ue != NULL) {
     if(n_reports == 0) {
@@ -75,7 +80,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, float metrics_report_period
     file << float_to_string(metrics.phy.ul.mcs, 2);
     file << float_to_string((float) metrics.mac.ul_buffer, 2);
     file << float_to_string((float) metrics.mac.tx_brate/metrics_report_period, 2);
-    if (metrics.mac.tx_pkts > 0) {
+      if (metrics.mac.tx_pkts > 0) {
       file << float_to_string((float) 100*metrics.mac.tx_errors/metrics.mac.tx_pkts, 1);
     } else {
       file << float_to_string(0, 2);

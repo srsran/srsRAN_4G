@@ -78,6 +78,7 @@ public:
             mac_interface_timers *mac_timers);
   void configure(srslte_rlc_config_t cnfg);
   void reset();
+  void reestablish();
   void stop();
   void empty_queue(); 
   
@@ -162,6 +163,8 @@ private:
   timeout status_prohibit_timeout;
 
   static const int reordering_timeout_id = 1;
+
+  static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
 
   // Timer checks
   bool status_prohibited();

@@ -101,6 +101,7 @@ typedef struct {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t *q,
+                                  cf_t *in_buffer,
                                   uint32_t max_prb);
 
 SRSLTE_API void srslte_enb_ul_free(srslte_enb_ul_t *q);
@@ -124,8 +125,7 @@ SRSLTE_API int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint16_t rnti,
                                     srslte_refsignal_srs_cfg_t *srs_cfg);
 
 
-SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q, 
-                                  cf_t *signal_buffer); 
+SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q);
 
 SRSLTE_API int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, 
                                        uint16_t rnti, 
@@ -140,6 +140,7 @@ SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q,
                                        uint32_t rv_idx, 
                                        uint32_t current_tx_nb,
                                        uint8_t *data, 
+                                       srslte_cqi_value_t *cqi_value,
                                        srslte_uci_data_t *uci_data,
                                        uint32_t tti); 
 

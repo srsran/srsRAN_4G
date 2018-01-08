@@ -37,6 +37,7 @@
 #include <boost/program_options/parsers.hpp>
 
 #include "ue.h"
+#include "srslte/srslte.h"
 #include "metrics_stdout.h"
 #include "metrics_csv.h"
 #include "srslte/common/metrics_hub.h"
@@ -65,6 +66,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   common.add_options()
     ("rf.dl_earfcn", bpo::value<uint32_t>(&args->rf.dl_earfcn)->default_value(3400), "Downlink EARFCN")
     ("rf.freq_offset", bpo::value<float>(&args->rf.freq_offset)->default_value(0), "(optional) Frequency offset")
+    ("rf.dl_freq",     bpo::value<float>(&args->rf.dl_freq)->default_value(-1),      "Downlink Frequency (if positive overrides EARFCN)")
+    ("rf.ul_freq",     bpo::value<float>(&args->rf.ul_freq)->default_value(-1),      "Uplink Frequency (if positive overrides EARFCN)")
     ("rf.rx_gain", bpo::value<float>(&args->rf.rx_gain)->default_value(-1), "Front-end receiver gain")
     ("rf.tx_gain", bpo::value<float>(&args->rf.tx_gain)->default_value(-1), "Front-end transmitter gain")
     ("rf.nof_rx_ant", bpo::value<uint32_t>(&args->rf.nof_rx_ant)->default_value(1), "Number of RX antennas")
@@ -73,12 +76,18 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rf.device_args", bpo::value<string>(&args->rf.device_args)->default_value("auto"), "Front-end device arguments")
     ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"),
      "Transmission time advance")
-    ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"),
-     "Transmission time advance")
+    ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
 
-    ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false),
-     "Enable MAC packet captures for wireshark")
+    ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041c00), "Hex value of the featureGroupIndicators field in the"
+                                                                                           "UECapabilityInformation message. Default 0xe6041c00")
+    ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
+
+
+    ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
+    ("pcap.nas_enable",   bpo::value<bool>(&args->pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
+    ("pcap.nas_filename", bpo::value<string>(&args->pcap.nas_filename)->default_value("ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
+
 
     ("trace.enable", bpo::value<bool>(&args->trace.enable)->default_value(false), "Enable PHY and radio timing traces")
     ("trace.phy_filename", bpo::value<string>(&args->trace.phy_filename)->default_value("ue.phy_trace"),
@@ -89,6 +98,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 
     ("log.phy_level", bpo::value<string>(&args->log.phy_level), "PHY log level")
+    ("log.phy_lib_level", bpo::value<string>(&args->log.phy_lib_level), "PHY lib log level")
     ("log.phy_hex_limit", bpo::value<int>(&args->log.phy_hex_limit), "PHY log hex dump limit")
     ("log.mac_level", bpo::value<string>(&args->log.mac_level), "MAC log level")
     ("log.mac_hex_limit", bpo::value<int>(&args->log.mac_hex_limit), "MAC log hex dump limit")
@@ -120,6 +130,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
 
     /* Expert section */
+    ("expert.ip_netmask",
+     bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
+     "Netmask of the tun_srsue device")
+
     ("expert.phy.worker_cpu_mask",
      bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
      "cpu bit mask (eg 255 = 1111 1111)")
@@ -127,10 +141,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.phy.sync_cpu_affinity",
      bpo::value<int>(&args->expert.phy.sync_cpu_affinity)->default_value(-1),
      "index of the core used by the sync thread")
-
-    ("expert.ue_category",
-     bpo::value<string>(&args->expert.ue_cateogry)->default_value("4"),
-     "UE Category (1 to 5)")
 
     ("expert.metrics_period_secs",
      bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
@@ -193,8 +203,51 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Enables integer CFO estimation and correction.")
 
     ("expert.cfo_correct_tol_hz",
-     bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(50.0),
-     "Tolerance (in Hz) for digial CFO compensation.")
+     bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(1.0),
+     "Tolerance (in Hz) for digital CFO compensation (needs to be low if average_subframe_enabled=true.")
+
+    ("expert.cfo_pss_ema",
+     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(DEFAULT_CFO_EMA_TRACK),
+     "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
+
+    /* REF EMA is currently not used
+    ("expert.cfo_ref_ema",
+     bpo::value<float>(&args->expert.phy.cfo_ref_ema)->default_value(0.01),
+     "CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition")
+    */
+
+    ("expert.cfo_ref_mask",
+     bpo::value<uint32_t>(&args->expert.phy.cfo_ref_mask)->default_value(1023),
+     "Bitmask for subframes on which to run RS estimation (set to 0 to disable, default all sf)")
+
+    ("expert.cfo_loop_bw_pss",
+     bpo::value<float>(&args->expert.phy.cfo_loop_bw_pss)->default_value(DEFAULT_CFO_BW_PSS),
+     "CFO feedback loop bandwidth for samples from PSS")
+
+    ("expert.cfo_loop_bw_ref",
+     bpo::value<float>(&args->expert.phy.cfo_loop_bw_ref)->default_value(DEFAULT_CFO_BW_REF),
+     "CFO feedback loop bandwidth for samples from RS")
+
+    ("expert.cfo_loop_pss_tol",
+     bpo::value<float>(&args->expert.phy.cfo_loop_pss_tol)->default_value(DEFAULT_CFO_PSS_MIN),
+     "Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop"
+       "and RS estimations are used instead (when available)")
+
+    ("expert.cfo_loop_ref_min",
+     bpo::value<float>(&args->expert.phy.cfo_loop_ref_min)->default_value(DEFAULT_CFO_REF_MIN),
+     "Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop")
+
+    ("expert.cfo_loop_pss_conv",
+     bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(DEFAULT_PSS_STABLE_TIMEOUT),
+     "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
+
+    ("expert.sic_pss_enabled",
+     bpo::value<bool>(&args->expert.phy.sic_pss_enabled)->default_value(true),
+     "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
+
+    ("expert.average_subframe_enabled",
+     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(false),
+     "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
     ("expert.time_correct_period",
      bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
@@ -275,6 +328,9 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     if (!vm.count("log.phy_level")) {
       args->log.phy_level = args->log.all_level;
     }
+    if (!vm.count("log.phy_lib_level")) {
+      args->log.phy_lib_level = args->log.all_level;
+    }
     if (!vm.count("log.mac_level")) {
       args->log.mac_level = args->log.all_level;
     }
@@ -328,12 +384,18 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   }
 }
 
+static int sigcnt = 0;
 static bool running = true;
 static bool do_metrics = false;
 metrics_stdout metrics_screen;
 
 void sig_int_handler(int signo) {
+  sigcnt++;
   running = false;
+  printf("Stopping srsUE... Press Ctrl+C %d more times to force stop\n", 10-sigcnt);
+  if (sigcnt >= 10) {
+    exit(-1);
+  }
 }
 
 void *input_loop(void *m) {
@@ -358,6 +420,9 @@ int main(int argc, char *argv[])
   srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
   all_args_t args;
+
+  srslte_debug_handle_crash(argc, argv);
+
   parse_args(&args, argc, argv);
 
   srsue_instance_type_t type = LTE;
@@ -375,11 +440,13 @@ int main(int argc, char *argv[])
   metricshub.init(ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_ue_handle(ue);
+  metrics_screen.set_periodicity(args.expert.metrics_period_secs);
 
   metrics_csv metrics_file(args.expert.metrics_csv_filename);
   if (args.expert.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_ue_handle(ue);
+    metrics_file.set_periodicity(args.expert.metrics_period_secs);
   }
 
   pthread_t input;
@@ -387,6 +454,7 @@ int main(int argc, char *argv[])
 
   bool plot_started = false;
   bool signals_pregenerated = false;
+
   while (running) {
     if (ue->is_attached()) {
       if (!signals_pregenerated && args.expert.pregenerate_signals) {

@@ -39,6 +39,13 @@
 #include "srslte/phy/fec/softbuffer.h"
 #include "srslte/phy/fec/cbsegm.h"
 
+/* 3GPP 36.213 Table 5.2-1: The cell-specific ratio rho_B / rho_A for 1, 2, or 4 cell specific antenna ports */
+static const float pdsch_cfg_cell_specific_ratio_table[2][4] =
+    { /* One antenna port         */ {1.0f / 1.0f, 4.0f / 5.0f, 3.0f / 5.0f, 2.0f / 5.0f},
+      /* Two or more antenna port */ {5.0f / 4.0f, 1.0f / 1.0f, 3.0f / 4.0f, 1.0f / 2.0f}
+    };
+
+
 typedef struct SRSLTE_API {
   srslte_cbsegm_t cb_segm[SRSLTE_MAX_CODEWORDS];
   srslte_ra_dl_grant_t grant;
@@ -48,6 +55,7 @@ typedef struct SRSLTE_API {
   uint32_t nof_layers;
   uint32_t codebook_idx;
   srslte_mimo_type_t mimo_type;
+  bool tb_cw_swap;
 } srslte_pdsch_cfg_t;
 
 #endif

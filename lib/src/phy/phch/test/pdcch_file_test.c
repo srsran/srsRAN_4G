@@ -126,7 +126,7 @@ int base_init() {
     exit(-1);
   }
 
-  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb)));
+  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz_power2(cell.nof_prb)));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -157,7 +157,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft, cell.cp, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
+  if (srslte_ofdm_init_(&fft, cell.cp, input_buffer, fft_buffer, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
 
     INFO("Reading %d samples sub-frame %d\n", flen, frame_cnt);
 
-    srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
+    srslte_ofdm_rx_sf(&fft);
 
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);

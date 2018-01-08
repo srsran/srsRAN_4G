@@ -24,13 +24,14 @@
  *
  */
 
-
 #include "ue_base.h"
 #include "ue.h"
 #include "srslte/srslte.h"
+#include "srslte/build_info.h"
 #include <pthread.h>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <algorithm>
 #include <iterator>
 
@@ -58,6 +59,9 @@ ue_base* ue_base::get_instance(srsue_instance_type_t type)
 }
 
 ue_base::ue_base() {
+  // print build info
+  std::cout << std::endl << get_build_string() << std::endl;
+
   // load FFTW wisdom
   srslte_dft_load();
 }
@@ -114,6 +118,23 @@ srslte::LOG_LEVEL_ENUM ue_base::level(std::string l)
   }else{
     return srslte::LOG_LEVEL_NONE;
   }
+}
+
+std::string ue_base::get_build_mode()
+{
+  return std::string(srslte_get_build_mode());
+}
+
+std::string ue_base::get_build_info()
+{
+  return std::string(srslte_get_build_info());
+}
+
+std::string ue_base::get_build_string()
+{
+  std::stringstream ss;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  return ss.str();
 }
 
 } // namespace srsue

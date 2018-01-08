@@ -144,7 +144,7 @@ int base_init() {
     fmatlab = NULL;
   }
 
-  flen = SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb));
+  flen = SRSLTE_SF_LEN(srslte_symbol_sz_power2(cell.nof_prb));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -175,7 +175,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft, cell.cp, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
+  if (srslte_ofdm_init_(&fft, cell.cp, input_buffer, fft_buffer, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
 
   n = srslte_filesource_read(&fsrc, input_buffer, flen);
 
-  srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
+  srslte_ofdm_rx_sf(&fft);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");
@@ -263,7 +263,11 @@ int main(int argc, char **argv) {
   for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
     for (nseq=0;nseq<max_nseq;nseq++) {
 
-      if (srslte_phich_decode(&phich, &fft_buffer, &ce, srslte_chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
+      cf_t *input[SRSLTE_MAX_PORTS]                   = {fft_buffer, NULL};
+      cf_t *cebuf[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS] = {{ce[0], ce[1]},{ce[0], ce[1]}};
+      if (srslte_phich_decode(&phich, input, cebuf, srslte_chest_dl_get_noise_estimate(&chest),
+                              ngroup, nseq, numsubframe, &ack_rx, &distance)<0)
+      {
         printf("Error decoding ACK\n");
         exit(-1);
       }

@@ -1411,9 +1411,9 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_eps_mobile_id_ie(LIBLTE_MME_EPS_MOBILE_ID_STRU
                 **ie_ptr  = (((eps_mobile_id->guti.mnc/10) % 10) << 4) | ((eps_mobile_id->guti.mnc/100) % 10);
                 *ie_ptr  += 1;
             }
-            **ie_ptr  = (eps_mobile_id->guti.mme_group_id >> 8) & 0x0F;
+            **ie_ptr  = (eps_mobile_id->guti.mme_group_id >> 8) & 0xFF;
             *ie_ptr  += 1;
-            **ie_ptr  = eps_mobile_id->guti.mme_group_id & 0x0F;
+            **ie_ptr  = eps_mobile_id->guti.mme_group_id & 0xFF;
             *ie_ptr  += 1;
             **ie_ptr  = eps_mobile_id->guti.mme_code;
             *ie_ptr  += 1;
@@ -4923,6 +4923,32 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_transaction_identifier_ie(uint8             
 *******************************************************************************/
 
 /*********************************************************************
+    Message Name: Security Message Header (Plain NAS Message)
+
+    Description: Security header for NAS messages.
+
+    Document Reference: 24.301 v10.2.0 Section 9.1
+*********************************************************************/
+
+LIBLTE_ERROR_ENUM liblte_mme_parse_msg_sec_header(LIBLTE_BYTE_MSG_STRUCT *msg,
+                               uint8 *pd,
+                               uint8 *sec_hdr_type)
+{
+
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+    if (msg != NULL &&
+        pd != NULL &&
+        sec_hdr_type != NULL)
+    {
+        *sec_hdr_type = (uint8) ((msg->msg[0] & 0xF0) >> 4);
+         err = LIBLTE_SUCCESS;
+    }
+    return(err);
+}
+
+
+/*********************************************************************
     Message Name: Message Header (Plain NAS Message)
 
     Description: Message header for plain NAS messages.
@@ -5519,12 +5545,34 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_attach_reject_msg(LIBLTE_BYTE_MSG_STRUCT    
 LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req,
                                                      LIBLTE_BYTE_MSG_STRUCT               *msg)
 {
+    return liblte_mme_pack_attach_request_msg(attach_req, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, 0, msg);
+}
+
+LIBLTE_ERROR_ENUM liblte_mme_pack_attach_request_msg(LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req,
+                                                     uint8                                 sec_hdr_type,
+                                                     uint32                                count,
+                                                     LIBLTE_BYTE_MSG_STRUCT               *msg)
+{
     LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
     uint8             *msg_ptr = msg->msg;
 
     if(attach_req != NULL &&
        msg        != NULL)
     {
+        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS != sec_hdr_type)
+        {
+            // Protocol Discriminator and Security Header Type
+            *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+            msg_ptr++;
+
+            // MAC will be filled in later
+            msg_ptr += 4;
+
+            // Sequence Number
+            *msg_ptr = count & 0xFF;
+            msg_ptr++;
+        }
+
         // Protocol Discriminator and Security Header Type
         *msg_ptr = (LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
         msg_ptr++;

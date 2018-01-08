@@ -74,7 +74,7 @@ namespace srslte {
         agc_enabled             = false;
       };
       
-      bool init(char *args = NULL, char *devname = NULL);
+      bool init(char *args = NULL, char *devname = NULL, uint32_t nof_channels = 1);
       void stop();
       void reset();
       bool start_agc(bool tx_gain_same_rx);
@@ -86,9 +86,10 @@ namespace srslte {
       void set_manual_calibration(rf_cal_t *calibration);
       
       void get_time(srslte_timestamp_t *now);
-      bool tx(void *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+      bool tx_single(void *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+      bool tx(void *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
       void tx_end();
-      bool rx_now(void *buffer, uint32_t nof_samples, srslte_timestamp_t *rxd_time);
+      bool rx_now(void *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t *rxd_time);
       bool rx_at(void *buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
 
       void set_tx_gain(float gain);
@@ -117,7 +118,7 @@ namespace srslte {
       
       void start_trace();
       void write_trace(std::string filename);
-      void start_rx();
+      void start_rx(bool now = false);
       void stop_rx();
       
       void set_tti(uint32_t tti);
@@ -166,6 +167,7 @@ namespace srslte {
       uint32_t tti;
       bool agc_enabled;
 
+      uint32_t saved_nof_channels;
       char saved_args[128];
       char saved_devname[128];
 

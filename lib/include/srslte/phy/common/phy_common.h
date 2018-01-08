@@ -101,8 +101,8 @@ typedef enum {SRSLTE_SF_NORM, SRSLTE_SF_MBSFN} srslte_sf_t;
 #define SRSLTE_CP_ISEXT(cp) (cp==SRSLTE_CP_EXT)
 #define SRSLTE_CP_NSYMB(cp) (SRSLTE_CP_ISNORM(cp)?SRSLTE_CP_NORM_NSYMB:SRSLTE_CP_EXT_NSYMB)
 
-#define SRSLTE_CP_LEN(symbol_sz, c)           ((int) ceil((((float) (c)*(symbol_sz))/2048)))
-#define SRSLTE_CP_LEN_NORM(symbol, symbol_sz) ((symbol==0)?SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_0_LEN):SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_LEN))
+#define SRSLTE_CP_LEN(symbol_sz, c)           ((int) ceilf((((float) (c)*(symbol_sz))/2048.0f)))
+#define SRSLTE_CP_LEN_NORM(symbol, symbol_sz) (((symbol)==0)?SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_0_LEN):SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_LEN))
 #define SRSLTE_CP_LEN_EXT(symbol_sz)          (SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_EXT_LEN))
 
 #define SRSLTE_SLOT_LEN(symbol_sz)     (symbol_sz*15/2)
@@ -197,7 +197,8 @@ typedef enum SRSLTE_API {
   SRSLTE_MOD_BPSK = 0, 
   SRSLTE_MOD_QPSK, 
   SRSLTE_MOD_16QAM, 
-  SRSLTE_MOD_64QAM
+  SRSLTE_MOD_64QAM,
+  SRSLTE_MOD_LAST
 } srslte_mod_t;
 
 typedef struct SRSLTE_API {
@@ -300,7 +301,8 @@ SRSLTE_API int srslte_str2mimotype(char *mimo_type_str,
 
 SRSLTE_API char *srslte_mimotype2str(srslte_mimo_type_t mimo_type);
 
-SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1, 
+/* Returns the interval tti1-tti2 mod 10240 */
+SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1,
                                         uint32_t tti2); 
 
 #endif

@@ -37,12 +37,11 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/log.h"
 #include "phy/phy.h"
-#include "phy/phch_worker.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 
 
@@ -55,6 +54,31 @@ phy::phy() : workers_pool(MAX_WORKERS),
              workers(MAX_WORKERS), 
              workers_common(phch_recv::MUTEX_X_WORKER*MAX_WORKERS)
 {
+}
+
+static void srslte_phy_handler(phy_logger_level_t log_level, void *ctx, char *str) {
+  phy *r = (phy *) ctx;
+  r->srslte_phy_logger(log_level, str);
+}
+
+void phy::srslte_phy_logger(phy_logger_level_t log_level, char *str) {
+  if (log_phy_lib_h) {
+    switch(log_level){
+      case LOG_LEVEL_INFO:
+        log_phy_lib_h->info(" %s", str);
+        break;
+      case LOG_LEVEL_DEBUG:
+        log_phy_lib_h->debug(" %s", str);
+        break;
+      case LOG_LEVEL_ERROR:
+        log_phy_lib_h->error(" %s", str);
+        break;
+      default:
+        break;
+    }
+  } else {
+    printf("[PHY_LIB]: %s\n", str);
+  }
 }
 
 void phy::set_default_args(phy_args_t *args)
@@ -106,7 +130,7 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
   this->radio_handler = radio_handler;
   this->mac           = mac;
   this->rrc           = rrc;
-
+ 
   if (!phy_args) {
     args = &default_args;
     set_default_args(args);
@@ -119,7 +143,9 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
   }
 
   nof_workers = args->nof_phy_threads;
-
+  this->log_phy_lib_h = (srslte::log*) log_vec[nof_workers];
+  srslte_phy_log_register_handler(this, srslte_phy_handler);
+  
   initiated = false;
   start();
   return true;
@@ -134,12 +160,12 @@ void phy::run_thread() {
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_common(&workers_common);
-    workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i]);
+    workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i], (srslte::log*) log_vec[nof_workers], &sf_recv);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);
   }
 
   // Warning this must be initialized after all workers have been added to the pool
-  sf_recv.init(radio_handler, mac, rrc, &prach_buffer, &workers_pool, &workers_common, log_h, args->nof_rx_ant, SF_RECV_THREAD_PRIO, args->sync_cpu_affinity);
+  sf_recv.init(radio_handler, mac, rrc, &prach_buffer, &workers_pool, &workers_common, log_h, log_phy_lib_h, args->nof_rx_ant, SF_RECV_THREAD_PRIO, args->sync_cpu_affinity);
 
   // Disable UL signal pregeneration until the attachment 
   enable_pregen_signals(false);
@@ -199,22 +225,19 @@ void phy::set_timeadv_rar(uint32_t ta_cmd) {
 }
 
 void phy::set_timeadv(uint32_t ta_cmd) {
-  n_ta = srslte_N_ta_new(n_ta, ta_cmd);
-  //sf_recv.set_time_adv_sec(((float) n_ta)*SRSLTE_LTE_TS);  
-  Warning("Not supported: Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, ((float) n_ta)*SRSLTE_LTE_TS*1e6);
+  uint32_t new_nta = srslte_N_ta_new(n_ta, ta_cmd);
+  sf_recv.set_time_adv_sec(((float) (new_nta - n_ta))*SRSLTE_LTE_TS);
+  Info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, old_n_ta: %d, ta_usec: %.1f\n", ta_cmd, new_nta, n_ta, ((float) new_nta)*SRSLTE_LTE_TS*1e6);
+  n_ta = new_nta;
 }
 
 void phy::configure_prach_params()
 {
-  if (sf_recv.status_is_sync()) {
-    Debug("Configuring PRACH parameters\n");
-    srslte_cell_t cell; 
-    sf_recv.get_current_cell(&cell);
-    if (!prach_buffer.set_cell(cell)) {
-      Error("Configuring PRACH parameters\n");
-    } 
-  } else {
-    Error("Cell is not synchronized\n");
+  Debug("Configuring PRACH parameters\n");
+  srslte_cell_t cell;
+  sf_recv.get_current_cell(&cell);
+  if (!prach_buffer.set_cell(cell)) {
+    Error("Configuring PRACH parameters\n");
   }
 }
 
@@ -247,9 +270,25 @@ void phy::sync_reset() {
   sf_recv.reset_sync();
 }
 
+void phy::meas_reset() {
+  sf_recv.meas_reset();
+}
+
+int phy::meas_start(uint32_t earfcn, int pci) {
+  return sf_recv.meas_start(earfcn, pci);
+}
+
+int phy::meas_stop(uint32_t earfcn, int pci) {
+  return sf_recv.meas_stop(earfcn, pci);
+}
+
 bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
 {
   return sf_recv.cell_select(earfcn, phy_cell);
+}
+
+bool phy::cell_handover(srslte_cell_t cell) {
+  return sf_recv.cell_handover(cell);
 }
 
 float phy::get_phr()
@@ -283,9 +322,21 @@ void phy::pdcch_ul_search_reset()
   workers_common.set_ul_rnti(SRSLTE_RNTI_USER, 0);
 }
 
-void phy::get_current_cell(srslte_cell_t *cell)
+void phy::get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn)
 {
-  sf_recv.get_current_cell(cell);
+  sf_recv.get_current_cell(cell, current_earfcn);
+}
+
+uint32_t phy::get_current_pci() {
+  srslte_cell_t cell;
+  sf_recv.get_current_cell(&cell);
+  return cell.id;
+}
+
+uint32_t phy::get_current_earfcn() {
+  uint32_t earfcn;
+  sf_recv.get_current_cell(NULL, &earfcn);
+  return earfcn;
 }
 
 void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
@@ -308,7 +359,10 @@ void phy::reset()
   pdcch_dl_search_reset();
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();
-  }    
+  }
+  workers_common.reset();
+  usleep(4000);
+  workers_common.reset_ul();
 }
 
 uint32_t phy::get_current_tti()
@@ -330,6 +384,11 @@ int phy::sr_last_tx_tti()
 void phy::set_earfcn(vector< uint32_t > earfcns)
 {
   sf_recv.set_earfcn(earfcns);
+}
+
+void phy::force_freq(float dl_freq, float ul_freq)
+{
+  sf_recv.force_freq(dl_freq, ul_freq);
 }
 
 bool phy::sync_status()

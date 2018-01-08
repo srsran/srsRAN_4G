@@ -108,6 +108,7 @@ typedef struct SRSLTE_API {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_ue_ul_init(srslte_ue_ul_t *q,
+                                 cf_t *out_buffer,
                                  uint32_t max_prb);
 
 SRSLTE_API void srslte_ue_ul_free(srslte_ue_ul_t *q);

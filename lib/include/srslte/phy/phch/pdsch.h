@@ -65,6 +65,9 @@ typedef struct SRSLTE_API {
   uint16_t ue_rnti;
   bool is_ue;
 
+  /* Power allocation parameter 3GPP 36.213 Clause 5.2 Rho_b */
+  float rho_a;
+
   /* buffers */
   // void buffers are shared for tx and rx
   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; /* Channel estimation (Rx only) */
@@ -100,6 +103,9 @@ SRSLTE_API int srslte_pdsch_set_cell(srslte_pdsch_t *q,
 
 SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q,
                                      uint16_t rnti);
+
+SRSLTE_API void srslte_pdsch_set_power_allocation(srslte_pdsch_t *q,
+                                                  float rho_a);
 
 SRSLTE_API void srslte_pdsch_free_rnti(srslte_pdsch_t *q, 
                                       uint16_t rnti);

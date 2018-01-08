@@ -101,7 +101,7 @@ int rf_blade_start_tx_stream(void *h)
   return 0;
 }
 
-int rf_blade_start_rx_stream(void *h)
+int rf_blade_start_rx_stream(void *h, bool now)
 {
   int status; 
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
@@ -464,7 +464,7 @@ int rf_blade_recv_with_time(void *h,
   }
   
   timestamp_to_secs(handler->rx_rate, meta.timestamp, secs, frac_secs);
-  srslte_vec_convert_if(handler->rx_buffer, data, 2048, 2*nsamples);
+  srslte_vec_convert_if(handler->rx_buffer, 2048, data, 2*nsamples);
   
   return nsamples;
 }
@@ -506,7 +506,7 @@ int rf_blade_send_timed(void *h,
     return -1;
   }
 
-  srslte_vec_convert_fi(data, handler->tx_buffer, 2048, 2*nsamples);
+  srslte_vec_convert_fi(data, 2048, handler->tx_buffer, 2*nsamples);
   
   memset(&meta, 0, sizeof(meta));
   if (is_start_of_burst) {

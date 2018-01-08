@@ -70,6 +70,10 @@ void rlc_entity::configure(srslte_rlc_config_t cnfg)
     rlc->configure(cnfg);
 }
 
+void rlc_entity::reestablish() {
+  rlc->reset();
+}
+
 void rlc_entity::reset()
 {
   rlc->reset();

@@ -45,11 +45,11 @@ namespace srsue {
       
       args              = NULL; 
       config            = NULL; 
-      signal_buffer     = NULL;
       transmitted_tti   = 0; 
       target_power_dbm  = 0;
       mem_initiated     = false;
       cell_initiated    = false;
+      signal_buffer     = NULL;   
     }
     ~prach();
     void           init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config, uint32_t max_prb, phy_args_t *args, srslte::log *log_h);
