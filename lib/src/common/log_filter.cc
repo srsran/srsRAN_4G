@@ -43,11 +43,13 @@ log_filter::log_filter()
 }
 
 log_filter::log_filter(std::string layer)
+  :log_filter()
 {
   init(layer, &def_logger_stdout, tti);
 }
 
 log_filter::log_filter(std::string layer, logger *logger_, bool tti)
+  :log_filter()
 {
   init(layer, logger_, tti);
 }
