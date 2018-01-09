@@ -444,7 +444,6 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
       nsymbols = 1;
     } else {
       cf_t *temp = &output[nref * 2];
-      bzero(temp, sizeof(cf_t) * nref * 2);
 
       if (srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0) < 3) {
         srslte_vec_interleave(input, &input[nref], temp, nref);
@@ -460,7 +459,6 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
       srslte_vec_sc_prod_cfc(temp, 2.0f / (float) nsymbols, temp, 2 * nref);
       srslte_conv_same_cf(temp, q->smooth_filter, output, 2 * nref, q->smooth_filter_len);
 
-      nsymbols = 1;
       return;
     }
   }
