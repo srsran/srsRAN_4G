@@ -1131,3 +1131,89 @@ uint32_t srslte_vec_max_ci_simd(const cf_t *x, const int len) {
 
   return max_index;
 }
+
+void srslte_vec_interleave_simd(const cf_t *x, const cf_t *y, cf_t *z, const int len) {
+  uint32_t i = 0, k = 0;
+
+#ifdef LV_HAVE_SSE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - 2 + 1; i += 2) {
+      __m128i a = _mm_load_si128((__m128i *) &x[i]);
+      __m128i b = _mm_load_si128((__m128i *) &y[i]);
+
+      __m128i r1 = _mm_unpacklo_epi64(a, b);
+      _mm_store_si128((__m128i *) &z[k], r1);
+      k += 2;
+
+      __m128i r2 = _mm_unpackhi_epi64(a, b);
+      _mm_store_si128((__m128i *) &z[k], r2);
+      k += 2;
+    }
+  } else {
+    for (; i < len - 2 + 1; i += 2) {
+      __m128i a = _mm_loadu_si128((__m128i *) &x[i]);
+      __m128i b = _mm_loadu_si128((__m128i *) &y[i]);
+
+      __m128i r1 = _mm_unpacklo_epi64(a, b);
+      _mm_storeu_si128((__m128i *) &z[k], r1);
+      k += 2;
+
+      __m128i r2 = _mm_unpackhi_epi64(a, b);
+      _mm_storeu_si128((__m128i *) &z[k], r2);
+      k += 2;
+    }
+  }
+#endif /* LV_HAVE_SSE */
+
+  for (;i < len; i++) {
+    z[k++] = x[i];
+    z[k++] = y[i];
+  }
+}
+
+void srslte_vec_interleave_add_simd(const cf_t *x, const cf_t *y, cf_t *z, const int len) {
+  uint32_t i = 0, k = 0;
+
+#ifdef LV_HAVE_SSE
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - 2 + 1; i += 2) {
+      __m128i a = _mm_load_si128((__m128i *) &x[i]);
+      __m128i b = _mm_load_si128((__m128i *) &y[i]);
+
+      __m128 r1 = (__m128) _mm_unpacklo_epi64(a, b);
+      __m128 z1 = _mm_load_ps((float *) &z[k]);
+      r1 = _mm_add_ps((__m128) r1, z1);
+      _mm_store_ps((float *) &z[k], r1);
+      k += 2;
+
+      __m128 r2 = (__m128) _mm_unpackhi_epi64(a, b);
+      __m128 z2 = _mm_load_ps((float *) &z[k]);
+      r2 = _mm_add_ps((__m128) r2, z2);
+      _mm_store_ps((float *) &z[k], r2);
+      k += 2;
+    }
+  } else {
+    for (; i < len - 2 + 1; i += 2) {
+      __m128i a = _mm_loadu_si128((__m128i *) &x[i]);
+      __m128i b = _mm_loadu_si128((__m128i *) &y[i]);
+
+      __m128 r1 = (__m128) _mm_unpacklo_epi64(a, b);
+      __m128 z1 = _mm_loadu_ps((float *) &z[k]);
+      r1 = _mm_add_ps((__m128) r1, z1);
+      _mm_storeu_ps((float *) &z[k], r1);
+      k += 2;
+
+      __m128 r2 = (__m128) _mm_unpackhi_epi64(a, b);
+      __m128 z2 = _mm_loadu_ps((float *) &z[k]);
+      r2 = _mm_add_ps((__m128) r2, z2);
+      _mm_storeu_ps((float *) &z[k], r2);
+      k += 2;
+    }
+  }
+#endif /* LV_HAVE_SSE */
+
+  for (;i < len; i++) {
+    z[k++] += x[i];
+    z[k++] += y[i];
+  }
+}

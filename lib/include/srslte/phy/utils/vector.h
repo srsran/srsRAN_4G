@@ -150,6 +150,10 @@ SRSLTE_API void srslte_vec_abs_square_cf(const cf_t *x, float *abs_square, const
 /* Copy 256 bit aligned vector */
 SRSLTE_API void srs_vec_cf_cpy(const cf_t *src, cf_t *dst, const int len);
 
+SRSLTE_API void srslte_vec_interleave(const cf_t *x, const cf_t *y, cf_t *z, const int len);
+
+SRSLTE_API void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z, const int len);
+
 #ifdef __cplusplus
 }
 #endif
