@@ -98,14 +98,14 @@ void srslte_bit_interleaver_run(srslte_bit_interleaver_t *q, uint8_t *input, uin
     w_offset_p=8-w_offset;
   }
 
-  uint32_t i = st * 8;
+  int i = st * 8;
 
   byte_idx += i - w_offset_p;
   bit_mask += i - w_offset_p;
   output_ptr += st;
 
 #ifdef LV_HAVE_SSE
-  for(; i < q->nof_bits - 15; i += 16) {
+  for(; i < (int) q->nof_bits - 15; i += 16) {
     __m128i in128;
     in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x7);
     in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x6);
@@ -137,7 +137,7 @@ void srslte_bit_interleaver_run(srslte_bit_interleaver_t *q, uint8_t *input, uin
 
 #endif /* LV_HAVE_SSE */
 
-  for(; i < q->nof_bits; i += 8) {
+  for(; i < (int) q->nof_bits - 7; i += 8) {
     uint8_t out0  = (input[*(byte_idx++)] & *(bit_mask++))?mask[0]:(uint8_t)0;
     uint8_t out1  = (input[*(byte_idx++)] & *(bit_mask++))?mask[1]:(uint8_t)0;
     uint8_t out2  = (input[*(byte_idx++)] & *(bit_mask++))?mask[2]:(uint8_t)0;
