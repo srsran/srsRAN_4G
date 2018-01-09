@@ -256,12 +256,16 @@ int srslte_chest_dl_set_cell(srslte_chest_dl_t *q, srslte_cell_t cell)
 }
 
 /* Uses the difference between the averaged and non-averaged pilot estimates */
-static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id) 
+static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id, srslte_sf_t ch_mode)
 {
   int nref=SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
 
   if (q->average_subframe) {
-    nref /= 4; 
+    if (ch_mode == SRSLTE_SF_MBSFN) {
+      nref /= 4;
+    } else {
+      nref /= 2;
+    }
   }
 
   /* Substract noisy pilot estimates */
@@ -443,7 +447,7 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
       srslte_vec_sc_prod_cfc(input, 1.0f / ((float) nsymbols), input, nref);
       nsymbols = 1;
     } else {
-      cf_t *temp = &output[nref * 2];
+      cf_t *temp = output; // Use ouput as temporal buffer
 
       if (srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0) < 3) {
         srslte_vec_interleave(input, &input[nref], temp, nref);
@@ -456,10 +460,10 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
           srslte_vec_interleave_add(&input[(l + 1) * nref], &input[l * nref], temp, nref);
         }
       }
-      srslte_vec_sc_prod_cfc(temp, 2.0f / (float) nsymbols, temp, 2 * nref);
-      srslte_conv_same_cf(temp, q->smooth_filter, output, 2 * nref, q->smooth_filter_len);
+      nref *= 2;
+      srslte_vec_sc_prod_cfc(temp, 2.0f / (float) nsymbols, input, nref);
 
-      return;
+      nsymbols = 1;
     }
   }
 
@@ -521,7 +525,7 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
   
     /* Estimate noise power */
     if (q->noise_alg == SRSLTE_NOISE_ALG_REFS && q->smooth_filter_len > 0) {
-      q->noise_estimate[rxant_id][port_id] = estimate_noise_pilots(q, port_id);                  
+      q->noise_estimate[rxant_id][port_id] = estimate_noise_pilots(q, port_id, ch_mode);
     } else if (q->noise_alg == SRSLTE_NOISE_ALG_PSS) {
       if (sf_idx == 0 || sf_idx == 5) {
         q->noise_estimate[rxant_id][port_id] = estimate_noise_pss(q, input, ce);
