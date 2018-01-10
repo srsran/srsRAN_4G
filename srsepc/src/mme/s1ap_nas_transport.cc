@@ -682,7 +682,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
     m_s1ap_log->console("Error packing Athentication Request\n");
     return false;
   }
-
+  m_s1ap_log->debug_hex(reply_msg->msg, reply_msg->N_bytes, "Security Mode Command: ");
   m_pool->deallocate(nas_buffer);
   return true;
 }
