@@ -38,6 +38,9 @@
 
 #define VITERBI_16
 
+#ifndef LV_HAVE_AVX2
+#undef VITERBI_16
+#endif
 
 int frame_length = 1000, nof_frames = 256;
 float ebno_db = 100.0;
