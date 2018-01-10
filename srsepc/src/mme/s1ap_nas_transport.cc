@@ -81,7 +81,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
 
-  uint64_t    imsi;
+  uint64_t    imsi = 0;
   uint8_t     k_asme[32];
   uint8_t     autn[16]; 
   uint8_t     rand[6];
@@ -106,13 +106,31 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     return false;
   }
 
-  //Get IMSI
-  imsi = 0;
-  for(int i=0;i<=14;i++){
-    imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
+  //Get Mobile ID
+  if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
+  {
+    //IMSI style attach
+    imsi = 0;
+    for(int i=0;i<=14;i++){
+      imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
+    }
+  }
+  else if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI)
+  {
+    //GUTI style attach
+    uint32_t m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
+    std::map<uint32_t,uint32_t>::iterator it = m_s1ap->m_tmsi_to_s1ap_id.find(m_tmsi);
+    if(it == m_s1ap->m_tmsi_to_s1ap_id.end())
+    {
+      //FIXME Send Id request
+      m_s1ap_log->info("Could not find M-TMSI in attach request\n");
+      return false;
+    }
+    ue_ctx_t *tmp = m_s1ap->find_ue_ctx(it->second);
+    imsi = tmp->imsi;
   }
   m_s1ap_log->console("Attach request from IMSI: %015lu\n", imsi);
-  m_s1ap_log->info("Attach request from IMSI: %015lu\n", imsi);  
+  m_s1ap_log->info("Attach request from IMSI: %015lu\n", imsi);
 
   //Get UE network capabilities
   memcpy(&ue_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
@@ -745,18 +763,18 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   attach_accept.t3412.value = 30;                                    // 30 minute periodic timer
   //FIXME: Set tai_list from config
   attach_accept.tai_list.N_tais = 1;
-  attach_accept.tai_list.tai[0].mcc = 1;
-  attach_accept.tai_list.tai[0].mnc = 1;
-  attach_accept.tai_list.tai[0].tac = 7;
+  attach_accept.tai_list.tai[0].mcc = m_s1ap->m_s1ap_args.mcc;
+  attach_accept.tai_list.tai[0].mnc = m_s1ap->m_s1ap_args.mnc;
+  attach_accept.tai_list.tai[0].tac = m_s1ap->m_s1ap_args.tac;
 
   //Allocate a GUTI ot the UE
   attach_accept.guti_present=true;
   attach_accept.guti.type_of_id = 6; //110 -> GUTI
-  attach_accept.guti.guti.mcc = 1;
-  attach_accept.guti.guti.mnc = 1;
+  attach_accept.guti.guti.mcc = m_s1ap->m_s1ap_args.mcc;
+  attach_accept.guti.guti.mnc = m_s1ap->m_s1ap_args.mnc;
   attach_accept.guti.guti.mme_group_id = 0x0001;
   attach_accept.guti.guti.mme_code = 0x1a;
-  attach_accept.guti.guti.m_tmsi = 0x124ae;
+  attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi();
   /*
   typedef struct{
     uint32 m_tmsi;
