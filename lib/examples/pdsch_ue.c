@@ -352,7 +352,7 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int sfn_offset;
   float cfo = 0; 
-  
+
   srslte_debug_handle_crash(argc, argv);
 
   parse_args(&prog_args, argc, argv);
@@ -417,8 +417,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Error opening rf\n");
         exit(-1);
       }
-      srslte_rf_set_rx_gain(&rf, 50);      
-      cell_detect_config.init_agc = 50; 
+      srslte_rf_set_rx_gain(&rf, srslte_rf_get_rx_gain(&rf));
+      cell_detect_config.init_agc = srslte_rf_get_rx_gain(&rf);
     }
     
     sigset_t sigset;
@@ -546,7 +546,14 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, prog_args.enable_cfo_ref, 0xff, 0.005);
+  // Disable CP based CFO estimation during find
+  ue_sync.cfo_current_value = cfo/15000;
+  ue_sync.cfo_is_copied = true;
+  ue_sync.cfo_correct_enable_find = true;
+  srslte_sync_set_cfo_cp_enable(&ue_sync.sfind, false, 0);
+
+
+  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, prog_args.enable_cfo_ref, 1023);
   srslte_chest_dl_average_subframe(&ue_dl.chest, prog_args.average_subframe);
 
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
@@ -595,7 +602,7 @@ int main(int argc, char **argv) {
   bzero(&old_dl_dci, sizeof(srslte_ra_dl_dci_t));
 #endif
 
-  ue_sync.cfo_correct_enable = !prog_args.disable_cfo;
+  ue_sync.cfo_correct_enable_track = !prog_args.disable_cfo;
   
   srslte_pbch_decode_reset(&ue_mib.pbch);
             

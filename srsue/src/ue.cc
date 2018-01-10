@@ -84,6 +84,16 @@ bool ue::init(all_args_t *args_)
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
+  
+  /* here we add a log layer to handle logging from the phy library*/
+  srslte::log_filter *lib_log = new srslte::log_filter;
+  char tmp[16];
+  sprintf(tmp, "PHY_LIB");
+  lib_log->init(tmp, logger, true);
+  phy_log.push_back((void*) lib_log);
+  ((srslte::log_filter*) phy_log[args->expert.phy.nof_phy_threads])->set_level(level(args->log.phy_lib_level));
+ 
+  
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
@@ -92,7 +102,7 @@ bool ue::init(all_args_t *args_)
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+  for (int i=0;i<args->expert.phy.nof_phy_threads + 1;i++) {
     ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
   }
   mac_log.set_hex_limit(args->log.mac_hex_limit);

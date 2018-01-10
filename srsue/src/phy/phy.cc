@@ -38,10 +38,10 @@
 #include "srslte/common/log.h"
 #include "phy/phy.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 
 
@@ -54,6 +54,31 @@ phy::phy() : workers_pool(MAX_WORKERS),
              workers(MAX_WORKERS), 
              workers_common(phch_recv::MUTEX_X_WORKER*MAX_WORKERS)
 {
+}
+
+static void srslte_phy_handler(phy_logger_level_t log_level, void *ctx, char *str) {
+  phy *r = (phy *) ctx;
+  r->srslte_phy_logger(log_level, str);
+}
+
+void phy::srslte_phy_logger(phy_logger_level_t log_level, char *str) {
+  if (log_phy_lib_h) {
+    switch(log_level){
+      case LOG_LEVEL_INFO:
+        log_phy_lib_h->info(" %s", str);
+        break;
+      case LOG_LEVEL_DEBUG:
+        log_phy_lib_h->debug(" %s", str);
+        break;
+      case LOG_LEVEL_ERROR:
+        log_phy_lib_h->error(" %s", str);
+        break;
+      default:
+        break;
+    }
+  } else {
+    printf("[PHY_LIB]: %s\n", str);
+  }
 }
 
 void phy::set_default_args(phy_args_t *args)
@@ -105,7 +130,7 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
   this->radio_handler = radio_handler;
   this->mac           = mac;
   this->rrc           = rrc;
-
+ 
   if (!phy_args) {
     args = &default_args;
     set_default_args(args);
@@ -118,7 +143,9 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
   }
 
   nof_workers = args->nof_phy_threads;
-
+  this->log_phy_lib_h = (srslte::log*) log_vec[nof_workers];
+  srslte_phy_log_register_handler(this, srslte_phy_handler);
+  
   initiated = false;
   start();
   return true;
@@ -133,12 +160,12 @@ void phy::run_thread() {
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_common(&workers_common);
-    workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i], &sf_recv);
+    workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i], (srslte::log*) log_vec[nof_workers], &sf_recv);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);
   }
 
   // Warning this must be initialized after all workers have been added to the pool
-  sf_recv.init(radio_handler, mac, rrc, &prach_buffer, &workers_pool, &workers_common, log_h, args->nof_rx_ant, SF_RECV_THREAD_PRIO, args->sync_cpu_affinity);
+  sf_recv.init(radio_handler, mac, rrc, &prach_buffer, &workers_pool, &workers_common, log_h, log_phy_lib_h, args->nof_rx_ant, SF_RECV_THREAD_PRIO, args->sync_cpu_affinity);
 
   // Disable UL signal pregeneration until the attachment 
   enable_pregen_signals(false);

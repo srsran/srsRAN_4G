@@ -31,10 +31,10 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/asn1/liblte_rrc.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 
 /* This is to visualize the channel response */
@@ -107,9 +107,10 @@ void phch_worker::set_common(phch_common* phy_)
   phy = phy_;   
 }
 
-bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, chest_feedback_itf *chest_loop)
+bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_phy_lib_h , chest_feedback_itf *chest_loop)
 {
   this->log_h = log_h;
+  this->log_phy_lib_h =  log_phy_lib_h;
   this->chest_loop = chest_loop;
 
   // ue_sync in phy.cc requires a buffer for 3 subframes
@@ -132,7 +133,7 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, chest_feedback_itf 
   }
 
   srslte_chest_dl_average_subframe(&ue_dl.chest, phy->args->average_subframe_enabled);
-  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask, phy->args->cfo_ref_ema);
+  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask);
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
 
@@ -173,6 +174,9 @@ void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
   tti    = tti_; 
   tx_tti = tx_tti_;
   log_h->step(tti);
+  log_phy_lib_h->step(tti);
+  
+  
 }
 
 void phch_worker::set_cfo(float cfo_)
@@ -193,6 +197,11 @@ void phch_worker::set_crnti(uint16_t rnti)
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
   rnti_is_set = true; 
+}
+
+float phch_worker::get_ref_cfo()
+{
+  return srslte_chest_dl_get_cfo(&ue_dl.chest);
 }
 
 void phch_worker::work_imp()

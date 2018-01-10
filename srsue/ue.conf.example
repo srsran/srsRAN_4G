@@ -73,6 +73,7 @@ nas_filename = /tmp/nas.pcap
 #####################################################################
 [log]
 all_level = info
+phy_lib_level = none
 all_hex_limit = 32
 filename = /tmp/ue.log
 
@@ -202,15 +203,14 @@ enable = false
 
 # CFO related values
 #cfo_integer_enabled = false
-#cfo_correct_tol_hz  = 0
-#cfo_pss_ema         = 0.1
-#cfo_ref_ema         = 0.01
+#cfo_correct_tol_hz  = 1.0
+#cfo_pss_ema         = 0.05
 #cfo_ref_mask        = 1023
 #cfo_loop_bw_pss     = 0.05
 #cfo_loop_bw_ref     = 0.01
-#cfo_loop_pss_tol    = 300
+#cfo_loop_pss_tol    = 400
 #cfo_loop_ref_min    = 0
-#cfo_loop_pss_conv   = 50
+#cfo_loop_pss_conv   = 20
 
 #####################################################################
 # Manual RF calibration

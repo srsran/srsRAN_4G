@@ -45,7 +45,7 @@ public:
   ~phch_worker();
   void  reset(); 
   void  set_common(phch_common *phy);
-  bool  init(uint32_t max_prb, srslte::log *log, chest_feedback_itf *chest_loop);
+  bool  init(uint32_t max_prb, srslte::log *log, srslte::log *log_phy_lib_h, chest_feedback_itf *chest_loop);
 
   bool  set_cell(srslte_cell_t cell);
 
@@ -66,6 +66,8 @@ public:
   int read_ce_abs(float *ce_abs);
   int read_pdsch_d(cf_t *pdsch_d);
   void start_plot();
+
+  float get_ref_cfo();
 
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
@@ -115,6 +117,7 @@ private:
   /* Common objects */  
   phch_common    *phy;
   srslte::log    *log_h;
+  srslte::log    *log_phy_lib_h;
   chest_feedback_itf *chest_loop;
   srslte_cell_t  cell;
   bool           mem_initiated;

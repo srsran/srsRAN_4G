@@ -38,7 +38,7 @@
 
 #define MAX_SFLEN     SRSLTE_SF_LEN(srslte_symbol_sz(max_prb))
 
-#define DEFAULT_CFO_TOL   0.0 // Hz
+#define DEFAULT_CFO_TOL   1.0 // Hz
 
 int srslte_ue_ul_init(srslte_ue_ul_t *q,
                       cf_t *out_buffer,

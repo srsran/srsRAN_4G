@@ -700,7 +700,7 @@ int main(int argc, char **argv) {
   uint32_t sfn; 
   srslte_refsignal_t csr_refs;
   srslte_refsignal_t mbsfn_refs;
-  
+
   srslte_debug_handle_crash(argc, argv);
 
 #ifdef DISABLE_RF

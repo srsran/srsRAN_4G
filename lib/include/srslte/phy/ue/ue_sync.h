@@ -62,6 +62,16 @@
 #include "srslte/phy/io/filesource.h"
 
 
+#define DEFAULT_CFO_BW_PSS  0.05
+#define DEFAULT_CFO_PSS_MIN 400  // typical bias of PSS estimation.
+#define DEFAULT_CFO_BW_REF  0.08
+#define DEFAULT_CFO_REF_MIN 0    // typical bias of REF estimation
+#define DEFAULT_CFO_REF_MAX DEFAULT_CFO_PSS_MIN  // Maximum detection offset of REF based estimation
+
+#define DEFAULT_PSS_STABLE_TIMEOUT     20  // Time after which the PSS is considered to be stable and we accept REF-CFO
+
+#define DEFAULT_CFO_EMA_TRACK 0.05
+
 typedef enum SRSLTE_API { SF_FIND, SF_TRACK} srslte_ue_sync_state_t;
 
 //#define MEASURE_EXEC_TIME 
@@ -112,7 +122,8 @@ typedef struct SRSLTE_API {
   bool decode_sss_on_track; 
 
   bool  cfo_is_copied;
-  bool  cfo_correct_enable;
+  bool  cfo_correct_enable_track;
+  bool  cfo_correct_enable_find;
   float cfo_current_value;
   float cfo_loop_bw_pss;
   float cfo_loop_bw_ref;
