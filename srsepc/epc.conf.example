@@ -48,21 +48,21 @@ sgi_if_addr=172.16.0.1
 #
 # Log levels can be set for individual layers. "all_level" sets log
 # level for all layers unless otherwise configured.
-# Format: e.g. phy_level = info
+# Format: e.g. s1ap_level = info
 #
 # In the same way, packet hex dumps can be limited for each level.
 # "all_hex_limit" sets the hex limit for all layers unless otherwise
 # configured.
-# Format: e.g. phy_hex_limit = 32
+# Format: e.g. s1ap_hex_limit = 32
 #
-# Logging layers: phy, mac, rlc, pdcp, rrc, nas, gtpu, usim, all
+# Logging layers: s1ap, gtpc, spgw, hss, all
 # Logging levels: debug, info, warning, error, none
 #
 # filename: File path to use for log output. Can be set to stdout
 #           to print logs to standard output
 #####################################################################
 [log]
-all_level = info
+all_level = debug
 all_hex_limit = 32
 filename = /tmp/epc.log
 

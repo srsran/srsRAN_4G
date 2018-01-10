@@ -83,7 +83,7 @@ public:
   void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
   bool delete_ue_ctx(ue_ctx_t *ue_ctx);
 
-  uint32_t allocate_m_tmsi();
+  uint32_t allocate_m_tmsi(uint32_t mme_ue_s1ap_id);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
