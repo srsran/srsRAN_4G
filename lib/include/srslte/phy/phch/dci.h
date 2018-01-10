@@ -137,7 +137,9 @@ SRSLTE_API srslte_dci_format_t srslte_dci_format_from_string(char *str);
 
 SRSLTE_API char* srslte_dci_format_string(srslte_dci_format_t format);
 
-SRSLTE_API int srslte_dci_location_set(srslte_dci_location_t *c, 
+SRSLTE_API char* srslte_dci_format_string_short(srslte_dci_format_t format);
+
+SRSLTE_API int srslte_dci_location_set(srslte_dci_location_t *c,
                                        uint32_t L, 
                                        uint32_t nCCE);
 
@@ -177,6 +179,15 @@ SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg,
 SRSLTE_API uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, 
                                              uint32_t nof_prb, 
                                              uint32_t nof_ports);
+
+SRSLTE_API uint32_t srslte_dci_dl_info(char *info_str,
+                                    uint32_t str_len,
+                                    srslte_ra_dl_dci_t *dci_msg,
+                                    srslte_dci_format_t format);
+
+SRSLTE_API uint32_t srslte_dci_ul_info(char *info_str,
+                                       uint32_t len,
+                                       srslte_ra_ul_dci_t *dci_msg);
 
 // This is for backwards compatibility only for tm1 formats
 SRSLTE_API uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, 

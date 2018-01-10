@@ -61,7 +61,9 @@ static uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
 /* Align tables to 16-byte boundary */
 
 static uint16_t interleaver_systematic_bits[192][6160]; // 4 tail bits
+static srslte_bit_interleaver_t bit_interleavers_systematic_bits[192];
 static uint16_t interleaver_parity_bits[192][2*6160];
+static srslte_bit_interleaver_t bit_interleavers_parity_bits[192];
 static uint16_t deinterleaver[192][4][18448];
 static int k0_vec[SRSLTE_NOF_TC_CB_SIZES][4][2];
 static bool rm_turbo_tables_generated = false; 
@@ -235,7 +237,12 @@ void srslte_rm_turbo_gentables() {
         k0_vec[cb_idx][i][1] = -1; 
       }
       srslte_rm_turbo_gentable_systematic(interleaver_systematic_bits[cb_idx], k0_vec[cb_idx], nrows, ndummy);
+      srslte_bit_interleaver_init(&bit_interleavers_systematic_bits[cb_idx], interleaver_systematic_bits[cb_idx],
+                                  (uint32_t) srslte_cbsegm_cbsize(cb_idx)+4);
+
       srslte_rm_turbo_gentable_parity(interleaver_parity_bits[cb_idx], k0_vec[cb_idx], in_len/3, nrows, ndummy);
+      srslte_bit_interleaver_init(&bit_interleavers_parity_bits[cb_idx], interleaver_parity_bits[cb_idx],
+                                  (uint32_t) (srslte_cbsegm_cbsize(cb_idx)+4)*2);
 
       for (int i=0;i<4;i++) {
         srslte_rm_turbo_gentable_receive(deinterleaver[cb_idx][i], in_len, i);  
@@ -244,6 +251,12 @@ void srslte_rm_turbo_gentables() {
   }  
 }
 
+void srslte_rm_turbo_free_tables () {
+  for (int i = 0; i < SRSLTE_NOF_TC_CB_SIZES; i++) {
+    srslte_bit_interleaver_free(&bit_interleavers_systematic_bits[i]);
+    srslte_bit_interleaver_free(&bit_interleavers_parity_bits[i]);
+  }
+}
 
 /**
  * Rate matching for LTE Turbo Coder
@@ -274,11 +287,13 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
     if (rv_idx == 0) {
       
       // Systematic bits 
-      srslte_bit_interleave(systematic, w_buff, interleaver_systematic_bits[cb_idx], in_len/3);
+      //srslte_bit_interleave(systematic, w_buff, interleaver_systematic_bits[cb_idx], in_len/3);
+      srslte_bit_interleaver_run(&bit_interleavers_systematic_bits[cb_idx], systematic, w_buff, 0);
 
 
       // Parity bits 
-      srslte_bit_interleave_w_offset(parity, &w_buff[in_len/24], interleaver_parity_bits[cb_idx], 2*in_len/3, 4);      
+      //srslte_bit_interleave_w_offset(parity, &w_buff[in_len/24], interleaver_parity_bits[cb_idx], 2*in_len/3, 4);
+      srslte_bit_interleaver_run(&bit_interleavers_parity_bits[cb_idx], parity, &w_buff[in_len/24], 4);
     }
 
     /* Bit selection and transmission 5.1.4.1.2 */    
@@ -741,4 +756,3 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
 
   return 0;
 }
-

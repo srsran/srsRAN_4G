@@ -24,10 +24,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "mac/proc_bsr.h"
 #include "mac/mac.h"
@@ -368,7 +368,7 @@ bool bsr_proc::need_to_reset_sr() {
 
 bool bsr_proc::need_to_send_sr(uint32_t tti) {
   if (!sr_is_sent && triggered_bsr_type == REGULAR) {
-    if (srslte_tti_interval(tti,next_tx_tti)>0 && srslte_tti_interval(tti,next_tx_tti) < 10240-4) {
+    if (srslte_tti_interval(tti,next_tx_tti)>0 && srslte_tti_interval(tti,next_tx_tti) < 10240-HARQ_DELAY_MS) {
       reset_sr = false; 
       sr_is_sent = true; 
       Debug("BSR:   Need to send sr: sr_is_sent=true, reset_sr=false, tti=%d, next_tx_tti=%d\n", tti, next_tx_tti);

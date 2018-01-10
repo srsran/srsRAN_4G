@@ -79,6 +79,7 @@ typedef struct SRSLTE_API {
 } srslte_ue_mib_t;
 
 SRSLTE_API int srslte_ue_mib_init(srslte_ue_mib_t *q, 
+                                  cf_t *in_buffer[SRSLTE_MAX_PORTS],
                                   uint32_t max_prb);
 
 SRSLTE_API void srslte_ue_mib_free(srslte_ue_mib_t *q);
@@ -89,7 +90,6 @@ SRSLTE_API int srslte_ue_mib_set_cell(srslte_ue_mib_t * q,
 SRSLTE_API void srslte_ue_mib_reset(srslte_ue_mib_t * q); 
 
 SRSLTE_API int srslte_ue_mib_decode(srslte_ue_mib_t * q, 
-                                    cf_t *input, 
                                     uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                                     uint32_t *nof_tx_ports, 
                                     int *sfn_offset); 

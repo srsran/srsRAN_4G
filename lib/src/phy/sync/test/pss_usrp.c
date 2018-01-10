@@ -125,9 +125,9 @@ int main(int argc, char **argv) {
   cf_t *buffer; 
   int frame_cnt, n; 
   srslte_rf_t rf;
-  srslte_pss_synch_t pss; 
+  srslte_pss_t pss;
   srslte_cfo_t cfocorr, cfocorr64; 
-  srslte_sss_synch_t sss; 
+  srslte_sss_t sss;
   int32_t flen; 
   int peak_idx, last_peak;
   float peak_value; 
@@ -176,12 +176,12 @@ int main(int argc, char **argv) {
     exit(-1);
   }
     
-  if (srslte_pss_synch_init_fft(&pss, flen, fft_size)) {
+  if (srslte_pss_init_fft(&pss, flen, fft_size)) {
     fprintf(stderr, "Error initiating PSS\n");
     exit(-1);
   }
 
-  if (srslte_pss_synch_set_N_id_2(&pss, N_id_2_sync)) {
+  if (srslte_pss_set_N_id_2(&pss, N_id_2_sync)) {
     fprintf(stderr, "Error setting N_id_2=%d\n",N_id_2_sync);
     exit(-1);
   }
@@ -189,16 +189,16 @@ int main(int argc, char **argv) {
   srslte_cfo_init(&cfocorr, flen); 
   srslte_cfo_init(&cfocorr64, flen); 
  
-  if (srslte_sss_synch_init(&sss, fft_size)) {
+  if (srslte_sss_init(&sss, fft_size)) {
     fprintf(stderr, "Error initializing SSS object\n");
     exit(-1);
   }
   
-  srslte_sss_synch_set_N_id_2(&sss, N_id_2);
+  srslte_sss_set_N_id_2(&sss, N_id_2);
 
   printf("N_id_2: %d\n", N_id_2);  
 
-  srslte_rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf, false);
   
   printf("Frame length %d samples\n", flen);
   printf("PSS detection threshold: %.2f\n", threshold);
@@ -221,7 +221,9 @@ int main(int argc, char **argv) {
   uint32_t max_peak = 0; 
   uint32_t max_peak_ = 0; 
   uint32_t min_peak = fft_size; 
-  uint32_t min_peak_ = fft_size; 
+  uint32_t min_peak_ = fft_size;
+
+  pss.filter_pss_enable = true;
   
   while(frame_cnt < nof_frames || nof_frames == -1) {
     n = srslte_rf_recv(&rf, buffer, flen - peak_offset, 1);
@@ -230,7 +232,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
     
-    peak_idx = srslte_pss_synch_find_pss(&pss, buffer, &peak_value);
+    peak_idx = srslte_pss_find_pss(&pss, buffer, &peak_value);
     if (peak_idx < 0) {
       fprintf(stderr, "Error finding PSS peak\n");
       exit(-1);
@@ -243,36 +245,40 @@ int main(int argc, char **argv) {
         
       if (peak_idx >= fft_size) {
 
-        // Estimate CFO 
-        cfo = srslte_pss_synch_cfo_compute(&pss, &buffer[peak_idx-fft_size]);
+        // Estimate CFO
+        cfo = srslte_pss_cfo_compute(&pss, &buffer[peak_idx-fft_size]);
         mean_cfo = SRSLTE_VEC_CMA(cfo, mean_cfo, frame_cnt);        
 
         // Correct CFO
         srslte_cfo_correct(&cfocorr, buffer, buffer, -mean_cfo / fft_size);               
 
         // Estimate channel
-        if (srslte_pss_synch_chest(&pss, &buffer[peak_idx-fft_size], ce)) {
+        if (srslte_pss_chest(&pss, &buffer[peak_idx-fft_size], ce)) {
           fprintf(stderr, "Error computing channel estimation\n");
           exit(-1);
         }
-        
-        // Find SSS 
+
+        // Find SSS
         int sss_idx = peak_idx-2*fft_size-(SRSLTE_CP_ISNORM(cp)?SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN):SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));             
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
-          INFO("Full N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
-          srslte_sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 1, ce, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
+
+          // Filter SSS
+          srslte_pss_filter(&pss, &buffer[sss_idx], &buffer[sss_idx]);
+
+          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, ce, &m0, &m0_value, &m1, &m1_value);
+          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error2++;            
           }
-          INFO("Partial N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
-          srslte_sss_synch_m0m1_diff_coh(&sss, &buffer[sss_idx], ce, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
+          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          srslte_sss_m0m1_diff_coh(&sss, &buffer[sss_idx], ce, &m0, &m0_value, &m1, &m1_value);
+          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error3++;            
           }
-          INFO("Diff N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
+          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
         }
-        srslte_sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
-        if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
+        srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
+        if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
           sss_error1++;     
         }
       
@@ -288,7 +294,7 @@ int main(int argc, char **argv) {
         INFO("No space for CFO computation. Frame starts at \n",peak_idx);
       }
       
-      if(srslte_sss_synch_subframe(m0,m1) == 0)
+      if(srslte_sss_subframe(m0,m1) == 0)
       {
 #ifndef DISABLE_GRAPHICS
           if (!disable_plots)
@@ -301,12 +307,12 @@ int main(int argc, char **argv) {
     }
 
     printf("[%5d]: Pos: %5d (%d-%d), PSR: %4.1f (~%4.1f) Pdet: %4.2f, "
-           "FA: %4.2f, CFO: %+4.1f kHz, SFO: %+.2f Hz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f%%\r", 
+           "FA: %4.2f, CFO: %+7.1f Hz, SFO: %+.2f Hz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f%%\r",
            frame_cnt, 
            peak_idx, min_peak_, max_peak_,
            peak_value, mean_peak,
            (float) nof_det/frame_cnt, 
-           (float) nof_nopeakdet/frame_cnt, mean_cfo*15, sfo,
+           (float) nof_nopeakdet/frame_cnt, mean_cfo*15000, sfo,
            (float) sss_error1/nof_det,(float) sss_error2/nof_det,(float) sss_error3/nof_det,
            (float) cp_is_norm/nof_det * 100);
     
@@ -352,8 +358,8 @@ int main(int argc, char **argv) {
 
   }
 
-  srslte_sss_synch_free(&sss);
-  srslte_pss_synch_free(&pss);
+  srslte_sss_free(&sss);
+  srslte_pss_free(&pss);
   free(buffer);
   srslte_rf_close(&rf);
 

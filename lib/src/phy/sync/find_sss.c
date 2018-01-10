@@ -68,16 +68,14 @@ static void corr_all_sz_partial(cf_t z[SRSLTE_SSS_N], float s[SRSLTE_SSS_N][SRSL
   }    
 }
 
-static void extract_pair_sss(srslte_sss_synch_t *q, cf_t *input, cf_t *ce, cf_t y[2][SRSLTE_SSS_N]) {
+static void extract_pair_sss(srslte_sss_t *q, const cf_t *input, cf_t *ce, cf_t y[2][SRSLTE_SSS_N]) {
   cf_t input_fft[SRSLTE_SYMBOL_SZ_MAX];
-  float ce_mod[2*SRSLTE_SSS_N], z_real[2*SRSLTE_SSS_N], z_imag[2*SRSLTE_SSS_N];
-  
+
   srslte_dft_run_c(&q->dftp_input, input, input_fft);
   
   if (ce) {
-    srslte_vec_div_ccc(&input_fft[q->fft_size/2-SRSLTE_SSS_N], ce, ce_mod, 
-                       &input_fft[q->fft_size/2-SRSLTE_SSS_N], z_real, z_imag,
-                       2*SRSLTE_SSS_N);
+    srslte_vec_div_ccc(&input_fft[q->fft_size/2-SRSLTE_SSS_N], ce,
+                       &input_fft[q->fft_size/2-SRSLTE_SSS_N], 2*SRSLTE_SSS_N);
   }
   
   for (int i = 0; i < SRSLTE_SSS_N; i++) {
@@ -90,10 +88,10 @@ static void extract_pair_sss(srslte_sss_synch_t *q, cf_t *input, cf_t *ce, cf_t 
 
 }    
 
-int srslte_sss_synch_m0m1_diff(srslte_sss_synch_t *q, cf_t *input, uint32_t *m0, float *m0_value,
+int srslte_sss_m0m1_diff(srslte_sss_t *q, const cf_t *input, uint32_t *m0, float *m0_value,
     uint32_t *m1, float *m1_value) 
 {
-  return srslte_sss_synch_m0m1_diff_coh(q, input, NULL, m0, m0_value, m1, m1_value);
+  return srslte_sss_m0m1_diff_coh(q, input, NULL, m0, m0_value, m1, m1_value);
 }
 
 /* Differential SSS estimation. 
@@ -104,7 +102,7 @@ int srslte_sss_synch_m0m1_diff(srslte_sss_synch_t *q, cf_t *input, uint32_t *m0,
 
  *
  */
-int srslte_sss_synch_m0m1_diff_coh(srslte_sss_synch_t *q, cf_t *input, cf_t ce[2*SRSLTE_SSS_N], uint32_t *m0, float *m0_value,
+int srslte_sss_m0m1_diff_coh(srslte_sss_t *q, const cf_t *input, cf_t ce[2*SRSLTE_SSS_N], uint32_t *m0, float *m0_value,
     uint32_t *m1, float *m1_value) 
 {
 
@@ -147,7 +145,7 @@ int srslte_sss_synch_m0m1_diff_coh(srslte_sss_synch_t *q, cf_t *input, cf_t ce[2
  *       Jung-In Kim, Jung-Su Han, Hee-Jin Roh and Hyung-Jin Choi
 
  */
-int srslte_sss_synch_m0m1_partial(srslte_sss_synch_t *q, cf_t *input, uint32_t M, cf_t ce[2*SRSLTE_SSS_N], uint32_t *m0, float *m0_value,
+int srslte_sss_m0m1_partial(srslte_sss_t *q, const cf_t *input, uint32_t M, cf_t ce[2*SRSLTE_SSS_N], uint32_t *m0, float *m0_value,
     uint32_t *m1, float *m1_value) 
 {
 

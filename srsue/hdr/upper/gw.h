@@ -57,7 +57,12 @@ public:
   // NAS interface
   srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str);
 
+  void set_netmask(std::string netmask);
+
 private:
+
+  bool default_netmask;
+  std::string netmask;
 
   static const int GW_THREAD_PRIO = 7;
 

@@ -37,6 +37,7 @@
 
 #include <stdio.h>
 #include "srslte/config.h"
+#include "srslte/phy/common/phy_logger.h"
 
 #define SRSLTE_VERBOSE_DEBUG 2
 #define SRSLTE_VERBOSE_INFO  1
@@ -48,6 +49,7 @@ SRSLTE_API void get_time_interval(struct timeval * tdata);
 #define SRSLTE_DEBUG_ENABLED 1
 
 SRSLTE_API extern int srslte_verbose;
+SRSLTE_API extern int handler_registered;
 
 #define SRSLTE_VERBOSE_ISINFO() (srslte_verbose>=SRSLTE_VERBOSE_INFO)
 #define SRSLTE_VERBOSE_ISDEBUG() (srslte_verbose>=SRSLTE_VERBOSE_DEBUG)
@@ -57,17 +59,25 @@ SRSLTE_API extern int srslte_verbose;
 #define PRINT_INFO srslte_verbose=SRSLTE_VERBOSE_INFO
 #define PRINT_NONE srslte_verbose=SRSLTE_VERBOSE_NONE
 
-#define DEBUG(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG) \
-  fprintf(stdout, "[DEBUG]: " _fmt, ##__VA_ARGS__)
+#define DEBUG(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered)\
+        {  fprintf(stdout, "[DEBUG]: " _fmt, ##__VA_ARGS__);  }\
+        else{  srslte_phy_log_print(LOG_LEVEL_DEBUG, _fmt, ##__VA_ARGS__); }
 
-#define INFO(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO) \
-  fprintf(stdout, "[INFO]:  " _fmt, ##__VA_ARGS__)
+#define INFO(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO   && !handler_registered) \
+        {  fprintf(stdout, "[INFO]: " _fmt, ##__VA_ARGS__);  }\
+        else{  srslte_phy_log_print(LOG_LEVEL_INFO, _fmt, ##__VA_ARGS__); }
 
 #if CMAKE_BUILD_TYPE==Debug
 /* In debug mode, it prints out the  */
-#define ERROR(_fmt, ...) fprintf(stderr, "%s.%d: " _fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define ERROR(_fmt, ...) if (!handler_registered)\
+    {   fprintf(stderr, "\e[31m%s.%d: " _fmt "\e[0m\n", __FILE__, __LINE__, ##__VA_ARGS__);}\
+        else {srslte_phy_log_print(LOG_LEVEL_ERROR, _fmt, ##__VA_ARGS__);} // 
 #else
-#define ERROR(_fmt, ...) fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__)
+#define ERROR(_fmt, ...) if (!handler_registered)\
+        {   fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__);}\
+        else{srslte_phy_log_print(LOG_LEVEL_ERROR, _fmt, ##__VA_ARGS__);} // 
 #endif /* CMAKE_BUILD_TYPE==Debug */
+
+void srslte_debug_handle_crash(int argc, char **argv);
 
 #endif // DEBUG_H

@@ -40,9 +40,6 @@
 #include "srslte/config.h"
 #include "srslte/phy/utils/cexptab.h"
 
-/** If the frequency is changed more than the tolerance, a new table is generated */
-#define SRSLTE_CFO_TOLERANCE    0.00001
-
 #define SRSLTE_CFO_CEXPTAB_SIZE 4096
 
 typedef struct SRSLTE_API {
@@ -66,7 +63,7 @@ SRSLTE_API void srslte_cfo_set_tol(srslte_cfo_t *h,
                                    float tol);
 
 SRSLTE_API void srslte_cfo_correct(srslte_cfo_t *h, 
-                                   cf_t *input,
+                                   const cf_t *input,
                                    cf_t *output,
                                    float freq);
 

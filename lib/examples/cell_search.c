@@ -153,6 +153,8 @@ int main(int argc, char **argv) {
   uint32_t freq;
   uint32_t n_found_cells=0;
   
+  srslte_debug_handle_crash(argc, argv);
+
   parse_args(argc, argv);
     
   printf("Opening RF device...\n");
@@ -219,7 +221,7 @@ int main(int argc, char **argv) {
     INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
     srslte_rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
     INFO("Starting receiver...\n", 0);
-    srslte_rf_start_rx_stream(&rf);
+    srslte_rf_start_rx_stream(&rf, false);
     
     n = srslte_ue_cellsearch_scan(&cs, found_cells, NULL); 
     if (n < 0) {

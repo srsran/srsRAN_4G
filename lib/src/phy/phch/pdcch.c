@@ -218,13 +218,20 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
   return srslte_pdcch_ue_locations_ncce(q->nof_cce, c, max_candidates, nsubframe, rnti);
 }
 
+
+uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates,
+                                        uint32_t nsubframe, uint16_t rnti)
+{
+  return srslte_pdcch_ue_locations_ncce_L(nof_cce, c, max_candidates, nsubframe, rnti, -1);
+}
+
 /** 36.213 v9.1.1 
  * Computes up to max_candidates UE-specific candidates for DCI messages and saves them 
  * in the structure pointed by c.
  * Returns the number of candidates saved in the array c.   
  */
-uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates,
-                        uint32_t nsubframe, uint16_t rnti) {
+uint32_t srslte_pdcch_ue_locations_ncce_L(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates,
+                        uint32_t nsubframe, uint16_t rnti, int Ls) {
   
   int l; // this must be int because of the for(;;--) loop
   uint32_t i, k, L, m; 
@@ -241,24 +248,26 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
   // All aggregation levels from 8 to 1
   for (l = 3; l >= 0; l--) {
     L = (1 << l);
-    // For all candidates as given in table 9.1.1-1
-    for (i = 0; i < nof_candidates[l]; i++) {
-      if (nof_cce >= L) {
-        ncce = L * ((Yk + i) % (nof_cce / L));
-        // Check if candidate fits in c vector and in CCE region
-        if (k < max_candidates  && ncce + L <= nof_cce) 
-        {            
-          c[k].L = l;
-          c[k].ncce = ncce;
-          
-          DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
-              k, c[k].ncce, c[k].L);            
+    if (Ls<0 || Ls==L) {
+      // For all candidates as given in table 9.1.1-1
+      for (i = 0; i < nof_candidates[l]; i++) {
+        if (nof_cce >= L) {
+          ncce = L * ((Yk + i) % (nof_cce / L));
+          // Check if candidate fits in c vector and in CCE region
+          if (k < max_candidates  && ncce + L <= nof_cce)
+          {
+            c[k].L = l;
+            c[k].ncce = ncce;
 
-          k++;          
-        } 
+            DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
+                  k, c[k].ncce, c[k].L);
+
+            k++;
+          }
+        }
       }
     }
-  }    
+  }
 
   DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x, nsubframe=%d, nof_cce=%d\n", 
          k, rnti, nsubframe, nof_cce);
@@ -485,9 +494,9 @@ int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MA
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, nof_symbols, noise_estimate/2);
+      srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, nof_symbols, 1.0f, noise_estimate/2);
     } else {
-      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, nof_symbols);
+      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, nof_symbols, 1.0f);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
     }
 
@@ -618,7 +627,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
       /* layer mapping & precoding */
       if (q->cell.nof_ports > 1) {
         srslte_layermap_diversity(q->d, x, q->cell.nof_ports, nof_symbols);
-        srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
+        srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports, 1.0f);
       } else {
         memcpy(q->symbols[0], q->d, nof_symbols * sizeof(cf_t));
       }

@@ -79,6 +79,7 @@ typedef struct {
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT    sibs[LIBLTE_RRC_MAX_SIB];  
   LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT        mac_cnfg; 
   LIBLTE_RRC_PUSCH_CONFIG_DEDICATED_STRUCT pusch_cfg;   
+  LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT antenna_info;
   rrc_cfg_sr_t                             sr_cfg; 
   rrc_cfg_cqi_t                            cqi_cfg; 
   rrc_cfg_qci_t                            qci_cfg[MAX_NOF_QCI]; 
@@ -264,7 +265,7 @@ public:
     uint32_t cqi_idx; 
     bool cqi_allocated; 
     int cqi_sched_sf_idx; 
-    bool cqi_sched_prb_idx; 
+    int cqi_sched_prb_idx;
     int get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drbid);
   }; 
   

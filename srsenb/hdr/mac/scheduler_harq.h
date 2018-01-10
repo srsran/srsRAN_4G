@@ -38,50 +38,50 @@ class harq_proc
 public:
   void     config(uint32_t id, uint32_t max_retx, srslte::log* log_h);    
   void     set_max_retx(uint32_t max_retx); 
-  void     reset();
+  void     reset(uint32_t tb_idx);
   uint32_t get_id(); 
-  bool     is_empty();
+  bool     is_empty(uint32_t tb_idx);
   
-  void     new_retx(uint32_t tti, int *mcs, int *tbs);
+  void     new_retx(uint32_t tb_idx, uint32_t tti, int *mcs, int *tbs);
   
-  bool     get_ack();
-  void     set_ack(bool ack);    
+  bool     get_ack(uint32_t tb_idx);
+  void     set_ack(uint32_t tb_idx, bool ack);
   
-  uint32_t nof_tx();
-  uint32_t nof_retx();
+  uint32_t nof_tx(uint32_t tb_idx);
+  uint32_t nof_retx(uint32_t tb_idx);
   uint32_t get_tti();
-  bool     get_ndi();
+  bool     get_ndi(uint32_t tb_idx);
   
 protected:
 
-  void     new_tx_common(uint32_t tti, int mcs, int tbs);
-  bool     has_pending_retx_common(); 
+  void     new_tx_common(uint32_t tb_idx, uint32_t tti, int mcs, int tbs);
+  bool     has_pending_retx_common(uint32_t tb_idx);
   
-  bool     ack;       
-  bool     active; 
-  bool     ndi; 
+  bool     ack[SRSLTE_MAX_TB];
+  bool     active[SRSLTE_MAX_TB];
+  bool     ndi[SRSLTE_MAX_TB];
   uint32_t id;  
   uint32_t max_retx; 
-  uint32_t n_rtx; 
-  uint32_t tx_cnt;
+  uint32_t n_rtx[SRSLTE_MAX_TB];
+  uint32_t tx_cnt[SRSLTE_MAX_TB];
   int      tti;
-  int      last_mcs;
-  int      last_tbs;
+  int      last_mcs[SRSLTE_MAX_TB];
+  int      last_tbs[SRSLTE_MAX_TB];
   
   srslte::log* log_h;
 
   private:
-    bool ack_received;
+    bool ack_received[SRSLTE_MAX_TB];
 }; 
 
 class dl_harq_proc : public harq_proc
 {
 public:
-  void     new_tx(uint32_t tti, int mcs, int tbs, uint32_t n_cce);
+  void     new_tx(uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint32_t n_cce);
   uint32_t get_rbgmask();
   void     set_rbgmask(uint32_t new_mask); 
-  bool     has_pending_retx(uint32_t tti);      
-  int      get_tbs();
+  bool     has_pending_retx(uint32_t tb_idx, uint32_t tti);
+  int      get_tbs(uint32_t tb_idx);
   uint32_t get_n_cce();
 private:
   uint32_t rbgmask;     

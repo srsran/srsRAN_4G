@@ -36,10 +36,10 @@
 #include "srslte/common/log.h"
 #include "phy/phy.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 using namespace std; 
 
@@ -207,6 +207,13 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 /***** RRC->PHY interface **********/
 
+void phy::set_conf_dedicated_ack(uint16_t rnti, bool ack)
+{
+  for (uint32_t i = 0; i < nof_workers; i++) {
+    workers[i].set_conf_dedicated_ack(rnti, ack);
+  }
+}
+
 void phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
   // Parse RRC config 
@@ -225,11 +232,7 @@ void phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICAT
   pucch_sched.n_pucch_sr       = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
   
   for (uint32_t i=0;i<nof_workers;i++) {
-    workers[i].set_config_dedicated(rnti, &uci_cfg, &pucch_sched, NULL, 
-                                    dedicated->sched_request_cnfg.sr_cnfg_idx, 
-                                    dedicated->cqi_report_cnfg.report_periodic_setup_present,
-                                    dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx, 
-                                    dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi);
+    workers[i].set_config_dedicated(rnti, &uci_cfg, &pucch_sched, NULL, dedicated);
   }
 }
 

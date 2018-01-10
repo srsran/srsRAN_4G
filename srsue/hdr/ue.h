@@ -80,7 +80,6 @@ public:
 
   void pregenerate_signals(bool enable);
 
-
 private:
   virtual ~ue();
 
@@ -88,6 +87,7 @@ private:
   srsue::phy         phy;
   srsue::mac         mac;
   srslte::mac_pcap   mac_pcap;
+  srslte::nas_pcap   nas_pcap;
   srslte::rlc        rlc;
   srslte::pdcp       pdcp;
   srsue::rrc         rrc;

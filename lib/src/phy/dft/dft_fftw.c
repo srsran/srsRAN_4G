@@ -56,9 +56,7 @@ void srslte_dft_load() {
 
 void srslte_dft_exit() {
 #ifdef FFTW_WISDOM_FILE
-  if (!fftwf_export_wisdom_to_filename(FFTW_WISDOM_FILE)) {
-    fprintf(stderr, "Error saving FFTW wisdom to file %s\n", FFTW_WISDOM_FILE);
-  }
+  fftwf_export_wisdom_to_filename(FFTW_WISDOM_FILE);
 #endif
 }
 
@@ -93,6 +91,27 @@ static void allocate(srslte_dft_plan_t *plan, int size_in, int size_out, int len
   plan->out = fftwf_malloc(size_out*len);
 }
 
+int srslte_dft_replan_guru_c(srslte_dft_plan_t *plan, const int new_dft_points, cf_t *in_buffer,
+                             cf_t *out_buffer, int istride, int ostride, int how_many,
+                             int idist, int odist) {
+  int sign = (plan->forward) ? FFTW_FORWARD : FFTW_BACKWARD;
+
+  const fftwf_iodim iodim = {new_dft_points, istride, ostride};
+  const fftwf_iodim howmany_dims = {how_many, idist, odist};
+
+  /* Destroy current plan */
+  fftwf_destroy_plan(plan->p);
+
+  plan->p = fftwf_plan_guru_dft(1, &iodim, 1, &howmany_dims, in_buffer, out_buffer, sign, FFTW_TYPE);
+  if (!plan->p) {
+    return -1;
+  }
+  plan->size = new_dft_points;
+  plan->init_size = plan->size;
+
+  return 0;
+}
+
 int srslte_dft_replan_c(srslte_dft_plan_t *plan, const int new_dft_points) {
   int sign = (plan->dir == SRSLTE_DFT_FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
   if (plan->p) {
@@ -104,6 +123,32 @@ int srslte_dft_replan_c(srslte_dft_plan_t *plan, const int new_dft_points) {
     return -1;
   }
   plan->size = new_dft_points;
+  return 0;
+}
+
+int srslte_dft_plan_guru_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir, cf_t *in_buffer,
+                           cf_t *out_buffer, int istride, int ostride, int how_many,
+                           int idist, int odist) {
+  int sign = (dir == SRSLTE_DFT_FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
+
+  const fftwf_iodim iodim = {dft_points, istride, ostride};
+  const fftwf_iodim howmany_dims = {how_many, idist, odist};
+
+  plan->p = fftwf_plan_guru_dft(1, &iodim, 1, &howmany_dims, in_buffer, out_buffer, sign, FFTW_TYPE);
+  if (!plan->p) {
+    return -1;
+  }
+  plan->size = dft_points;
+  plan->init_size = plan->size;
+  plan->mode = SRSLTE_DFT_COMPLEX;
+  plan->dir = dir;
+  plan->forward = (dir==SRSLTE_DFT_FORWARD)?true:false;
+  plan->mirror = false;
+  plan->db = false;
+  plan->norm = false;
+  plan->dc = false;
+  plan->is_guru = true;
+
   return 0;
 }
 
@@ -123,6 +168,7 @@ int srslte_dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_
   plan->db = false;
   plan->norm = false;
   plan->dc = false;
+  plan->is_guru = false;
 
   return 0;
 }
@@ -199,7 +245,7 @@ static void copy_post(uint8_t *dst, uint8_t *src, int size_d, int len,
   }
 }
 
-void srslte_dft_run(srslte_dft_plan_t *plan, void *in, void *out) {
+void srslte_dft_run(srslte_dft_plan_t *plan, const void *in, void *out) {
   if(plan->mode == SRSLTE_DFT_COMPLEX) {
     srslte_dft_run_c(plan,in,out);
   } else {
@@ -207,11 +253,11 @@ void srslte_dft_run(srslte_dft_plan_t *plan, void *in, void *out) {
   }
 }
 
-void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan, cf_t *in, cf_t *out) {
-  fftwf_execute_dft(plan->p, in, out);  
+void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan, const cf_t *in, cf_t *out) {
+  fftwf_execute_dft(plan->p, (cf_t*) in, out);
 }
 
-void srslte_dft_run_c(srslte_dft_plan_t *plan, cf_t *in, cf_t *out) {
+void srslte_dft_run_c(srslte_dft_plan_t *plan, const cf_t *in, cf_t *out) {
   float norm;
   int i;
   fftwf_complex *f_out = plan->out;
@@ -232,7 +278,15 @@ void srslte_dft_run_c(srslte_dft_plan_t *plan, cf_t *in, cf_t *out) {
             plan->forward, plan->mirror, plan->dc);
 }
 
-void srslte_dft_run_r(srslte_dft_plan_t *plan, float *in, float *out) {
+void srslte_dft_run_guru_c(srslte_dft_plan_t *plan) {
+  if (plan->is_guru == true) {
+    fftwf_execute(plan->p);
+  } else {
+    fprintf(stderr, "srslte_dft_run_guru_c: the selected plan is not guru!\n");
+  }
+}
+
+void srslte_dft_run_r(srslte_dft_plan_t *plan, const float *in, float *out) {
   float norm;
   int i;
   int len = plan->size;
@@ -255,8 +309,10 @@ void srslte_dft_run_r(srslte_dft_plan_t *plan, float *in, float *out) {
 void srslte_dft_plan_free(srslte_dft_plan_t *plan) {
   if (!plan) return;
   if (!plan->size) return;
-  if (plan->in) fftwf_free(plan->in);
-  if (plan->out) fftwf_free(plan->out);
+  if (!plan->is_guru) {
+    if (plan->in) fftwf_free(plan->in);
+    if (plan->out) fftwf_free(plan->out);
+  }
   if (plan->p) fftwf_destroy_plan(plan->p);
   bzero(plan, sizeof(srslte_dft_plan_t));
 }

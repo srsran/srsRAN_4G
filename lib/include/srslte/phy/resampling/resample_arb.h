@@ -38,10 +38,13 @@
 #define RESAMPLE_ARB_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <complex.h>
 
 #include "srslte/config.h"
 
+
+#define SRSLTE_RESAMPLE_ARB_N_35 35 
 #define SRSLTE_RESAMPLE_ARB_N    32  // Polyphase filter rows
 #define SRSLTE_RESAMPLE_ARB_M    8   // Polyphase filter columns
 
@@ -49,11 +52,13 @@ typedef struct SRSLTE_API {
   float rate;                // Resample rate
   float step;                // Step increment through filter
   float acc;                 // Index into filter
+  bool interpolate;
   cf_t reg[SRSLTE_RESAMPLE_ARB_M];  // Our window of samples
+   
 } srslte_resample_arb_t;
 
 SRSLTE_API void srslte_resample_arb_init(srslte_resample_arb_t *q, 
-                                         float rate);
+                                         float rate, bool interpolate);
 
 SRSLTE_API int srslte_resample_arb_compute(srslte_resample_arb_t *q, 
                                            cf_t *input, 

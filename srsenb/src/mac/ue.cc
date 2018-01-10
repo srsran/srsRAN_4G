@@ -30,10 +30,10 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "mac/ue.h"
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 
 namespace srsenb {
@@ -107,9 +107,9 @@ srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
   return &softbuffer_rx[tti%NOF_HARQ_PROCESSES];
 }
 
-srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process)
+srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx)
 {
-  return &softbuffer_tx[harq_process%NOF_HARQ_PROCESSES];
+  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx  )%NOF_HARQ_PROCESSES];
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
@@ -405,6 +405,16 @@ void ue::metrics_read(mac_metrics_t* metrics_)
 void ue::metrics_phr(float phr) {
   metrics.phr = SRSLTE_VEC_CMA(phr, metrics.phr, phr_counter);
   phr_counter++;
+}
+
+void ue::metrics_dl_ri(uint32_t dl_ri) {
+  metrics.dl_ri = SRSLTE_VEC_EMA((float) dl_ri, metrics.dl_ri, 0.5f);
+  dl_ri_counter++;
+}
+
+void ue::metrics_dl_pmi(uint32_t dl_ri) {
+  metrics.dl_pmi = SRSLTE_VEC_CMA((float) dl_ri, metrics.dl_pmi, dl_pmi_counter);
+  dl_pmi_counter++;
 }
 
 void ue::metrics_dl_cqi(uint32_t dl_cqi) {
