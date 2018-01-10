@@ -758,16 +758,10 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   uint32_t nb_q = cfg->nbits.nof_bits; 
   uint32_t Qm = cfg->grant.Qm; 
   
-  // Encode RI if CQI enabled
-  if (uci_data.uci_ri_len > 0 || uci_data.uci_cqi_len > 0) {
-    /* If no RI is reported set it to zero as specified in 3GPP 36.213 clause 7.2.1 */
-    if (uci_data.uci_ri_len == 0) {
-      uci_data.uci_ri_len = 1;
-      uci_data.uci_ri = 0;
-    }
+  if (uci_data.uci_ri_len > 0) {
     float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
     if (cfg->cb_segm.tbs == 0) {
-        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
+      beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
     uint8_t ri[2] = {uci_data.uci_ri, 0};
     ret = srslte_uci_encode_ack_ri(cfg, ri, uci_data.uci_ri_len, uci_data.uci_cqi_len, beta, nb_q/Qm, q->ack_ri_bits, true);
