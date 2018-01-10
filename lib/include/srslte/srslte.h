@@ -39,6 +39,7 @@
 #include "srslte/version.h"
 
 #include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/ringbuffer.h"
 #include "srslte/phy/utils/convolution.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/cexptab.h"
@@ -47,6 +48,7 @@
 #include "srslte/phy/common/timestamp.h"
 #include "srslte/phy/common/sequence.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_logger.h"
             
 #include "srslte/phy/ch_estimation/chest_ul.h"
 #include "srslte/phy/ch_estimation/chest_dl.h"

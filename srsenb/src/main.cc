@@ -75,9 +75,11 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("enb.mnc",           bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
     ("enb.mme_addr",      bpo::value<string>(&args->enb.s1ap.mme_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connnection")
     ("enb.gtp_bind_addr", bpo::value<string>(&args->enb.s1ap.gtp_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for GTP connection")
-    ("enb.phy_cell_id",   bpo::value<uint32_t>(&args->enb.pci)->default_value(0),               "Physical Cell Identity (PCI)")
+    ("enb.phy_cell_id",   bpo::value<uint32_t>(&args->enb.pci)->default_value(0),                  "Physical Cell Identity (PCI)")
     ("enb.n_prb",         bpo::value<uint32_t>(&args->enb.n_prb)->default_value(25),               "Number of PRB")
-    
+    ("enb.nof_ports",     bpo::value<uint32_t>(&args->enb.nof_ports)->default_value(1),            "Number of ports")
+    ("enb.tm",            bpo::value<uint32_t>(&args->enb.transmission_mode)->default_value(1),    "Transmission mode (1-8)")
+
     ("enb_files.sib_config", bpo::value<string>(&args->enb_files.sib_config)->default_value("sib.conf"),      "SIB configuration files")
     ("enb_files.rr_config",  bpo::value<string>(&args->enb_files.rr_config)->default_value("rr.conf"),      "RR configuration files")
     ("enb_files.drb_config", bpo::value<string>(&args->enb_files.drb_config)->default_value("drb.conf"),      "DRB configuration files")
@@ -316,12 +318,18 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
   }
 }
 
+static int  sigcnt = 0;
 static bool running    = true;
 static bool do_metrics = false;
 
 void sig_int_handler(int signo)
 {
+  sigcnt++;
   running = false;
+  printf("Stopping srsENB... Press Ctrl+C %d more times to force stop\n", 10-sigcnt);
+  if (sigcnt >= 10) {
+    exit(-1);
+  }
 }
 
 void *input_loop(void *m)
@@ -349,6 +357,8 @@ int main(int argc, char *argv[])
   all_args_t        args;
   metrics_stdout    metrics;
   enb              *enb = enb::get_instance();
+
+  srslte_debug_handle_crash(argc, argv);
 
   cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
 

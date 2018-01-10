@@ -55,14 +55,20 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
+# Generate CMake to include build information
+configure_file(
+  ${CMAKE_SOURCE_DIR}/cmake/modules/SRSLTEbuildinfo.cmake.in
+  ${CMAKE_BINARY_DIR}/SRSLTEbuildinfo.cmake
+)
+
 ########################################################################
 # Options
 ########################################################################
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
+option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
-option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          ON)
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 
@@ -190,21 +196,6 @@ if(ENABLE_GUI)
   endif(SRSGUI_FOUND)
 endif(ENABLE_GUI)
 
-# VOLK
-include(CheckFunctionExistsMath)
-if(ENABLE_VOLK)
-  find_package(Volk)
-  if(VOLK_FOUND)
-    include_directories(${VOLK_INCLUDE_DIRS})
-    link_directories(${VOLK_LIBRARY_DIRS})
-    message(STATUS "Compiling with VOLK SIMD library.")
-  else(VOLK_FOUND)
-    message(STATUS "VOLK SIMD library NOT found. Using generic implementation.")
-  endif(VOLK_FOUND)
-else(ENABLE_VOLK)
-  message(STATUS "VOLK library disabled")
-endif(ENABLE_VOLK)
-
 ########################################################################
 # Install Dirs
 ########################################################################
@@ -283,6 +274,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     endif(HAVE_AVX)
   endif (HAVE_AVX2)
 
+  if (HAVE_AVX512)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
+  endif(HAVE_AVX512)
+
   if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     if(HAVE_SSE)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast -funroll-loops")
@@ -293,8 +289,15 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
     message(STATUS "have ARM")
+    set(HAVE_NEON "True")
+  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    set(HAVE_NEON "False")
   endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
   set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
+
+ if(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
+  message(FATAL_ERROR "no SIMD instructions found")
+ endif(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
 
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)

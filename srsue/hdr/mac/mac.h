@@ -79,7 +79,8 @@ public:
   void pcch_stop_rx(); 
   void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
   void reconfiguration(); 
-  void reset(); 
+  void reset();
+  void wait_uplink();
 
   /******** set/get MAC configuration  ****************/ 
   void set_config(mac_cfg_t *mac_cfg);
@@ -88,8 +89,12 @@ public:
   void set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT *rach_cfg, uint32_t prach_config_index);
   void set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT *sr_cfg);
   void set_contention_id(uint64_t uecri);
-  
+
+  void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask);
+  void start_cont_ho();
+
   void get_rntis(ue_rnti_t *rntis);
+  void set_ho_rnti(uint16_t crnti, uint16_t target_pci);
 
   void start_pcap(srslte::mac_pcap* pcap);
 
@@ -109,7 +114,7 @@ private:
   
   static const int MAC_MAIN_THREAD_PRIO = 5; 
   static const int MAC_PDU_THREAD_PRIO  = 6;
-  static const int MAC_NOF_HARQ_PROC    = 8;
+  static const int MAC_NOF_HARQ_PROC    = 2*HARQ_DELAY_MS;
 
   // Interaction with PHY 
   srslte::tti_sync_cv   ttisync; 

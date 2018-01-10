@@ -40,7 +40,7 @@ void generate_sss_all_tables(srslte_sss_tables_t *tables, uint32_t N_id_2);
 void convert_tables(srslte_sss_fc_tables_t *fc_tables, srslte_sss_tables_t *in);
 void generate_N_id_1_table(uint32_t table[30][30]);
 
-int srslte_sss_synch_init(srslte_sss_synch_t *q, uint32_t fft_size) {
+int srslte_sss_init(srslte_sss_t *q, uint32_t fft_size) {
   
   if (q                 != NULL  &&
       fft_size          <= 2048)
@@ -48,10 +48,10 @@ int srslte_sss_synch_init(srslte_sss_synch_t *q, uint32_t fft_size) {
     uint32_t N_id_2;
     srslte_sss_tables_t sss_tables;
 
-    bzero(q, sizeof(srslte_sss_synch_t));
+    bzero(q, sizeof(srslte_sss_t));
     
     if (srslte_dft_plan(&q->dftp_input, fft_size, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-      srslte_sss_synch_free(q);
+      srslte_sss_free(q);
       return SRSLTE_ERROR;
     }
     srslte_dft_plan_set_mirror(&q->dftp_input, true);
@@ -72,7 +72,7 @@ int srslte_sss_synch_init(srslte_sss_synch_t *q, uint32_t fft_size) {
   return SRSLTE_ERROR_INVALID_INPUTS;
 }
 
-int srslte_sss_synch_resize(srslte_sss_synch_t *q, uint32_t fft_size) {
+int srslte_sss_resize(srslte_sss_t *q, uint32_t fft_size) {
   if (q                 != NULL  &&
       fft_size          <= 2048)
   {
@@ -81,7 +81,7 @@ int srslte_sss_synch_resize(srslte_sss_synch_t *q, uint32_t fft_size) {
       return SRSLTE_ERROR;
     }
     if (srslte_dft_replan(&q->dftp_input, fft_size)) {
-      srslte_sss_synch_free(q);
+      srslte_sss_free(q);
       return SRSLTE_ERROR;
     }
     q->fft_size = fft_size;
@@ -90,13 +90,13 @@ int srslte_sss_synch_resize(srslte_sss_synch_t *q, uint32_t fft_size) {
   return SRSLTE_ERROR_INVALID_INPUTS;
 }
 
-void srslte_sss_synch_free(srslte_sss_synch_t *q) {
+void srslte_sss_free(srslte_sss_t *q) {
   srslte_dft_plan_free(&q->dftp_input);
-  bzero(q, sizeof(srslte_sss_synch_t));
+  bzero(q, sizeof(srslte_sss_t));
 }
 
 /** Sets the N_id_2 to search for */
-int srslte_sss_synch_set_N_id_2(srslte_sss_synch_t *q, uint32_t N_id_2) {
+int srslte_sss_set_N_id_2(srslte_sss_t *q, uint32_t N_id_2) {
   if (!srslte_N_id_2_isvalid(N_id_2)) {
     fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
     return SRSLTE_ERROR;
@@ -124,12 +124,12 @@ void srslte_sss_put_slot(float *sss, cf_t *slot, uint32_t nof_prb, srslte_cp_t c
 }
 
 /** Sets the SSS correlation peak detection threshold */
-void srslte_sss_synch_set_threshold(srslte_sss_synch_t *q, float threshold) {
+void srslte_sss_set_threshold(srslte_sss_t *q, float threshold) {
   q->corr_peak_threshold = threshold;
 }
 
 /** Returns the subframe index based on the m0 and m1 values */
-uint32_t srslte_sss_synch_subframe(uint32_t m0, uint32_t m1) {
+uint32_t srslte_sss_subframe(uint32_t m0, uint32_t m1) {
   if (m1 > m0) {
     return 0;
   } else {
@@ -138,7 +138,7 @@ uint32_t srslte_sss_synch_subframe(uint32_t m0, uint32_t m1) {
 }
 
 /** Returns the N_id_1 value based on the m0 and m1 values */
-int srslte_sss_synch_N_id_1(srslte_sss_synch_t *q, uint32_t m0, uint32_t m1) {
+int srslte_sss_N_id_1(srslte_sss_t *q, uint32_t m0, uint32_t m1) {
   int N_id_1 = -1; 
   if (m1 > m0) {
     if (m0 < 30 && m1 - 1 < 30) {

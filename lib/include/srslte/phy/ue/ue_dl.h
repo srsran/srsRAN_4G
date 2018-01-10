@@ -80,7 +80,7 @@ typedef struct SRSLTE_API {
   srslte_pmch_t  pmch;
   srslte_phich_t phich; 
   srslte_regs_t regs;
-  srslte_ofdm_t fft;
+  srslte_ofdm_t fft[SRSLTE_MAX_PORTS];
   srslte_ofdm_t fft_mbsfn;
   srslte_chest_dl_t chest;
   
@@ -104,6 +104,9 @@ typedef struct SRSLTE_API {
   uint32_t pmi[SRSLTE_MAX_LAYERS];
   uint32_t ri;
 
+  /* Power allocation parameter 3GPP 36.213 Clause 5.2 Rho_b */
+  float rho_b;
+
   srslte_dci_format_t dci_format;
   uint64_t pkt_errors; 
   uint64_t pkts_total;
@@ -123,11 +126,14 @@ typedef struct SRSLTE_API {
   srslte_dci_msg_t pending_ul_dci_msg; 
   uint16_t pending_ul_dci_rnti; 
   
-  float sample_offset; 
+  float sample_offset;
+
+  float last_phich_corr;
 }srslte_ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q,
+                                 cf_t *input[SRSLTE_MAX_PORTS],
                                  uint32_t max_prb,
                                  uint32_t nof_rx_antennas);
 
@@ -137,20 +143,22 @@ SRSLTE_API int srslte_ue_dl_set_cell(srslte_ue_dl_t *q,
                                           srslte_cell_t cell);
 
 int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, 
-                                     cf_t *input[SRSLTE_MAX_PORTS], 
-                                     uint32_t sf_idx, 
+                                     uint32_t sf_idx,
                                      uint32_t *cfi);
 
 SRSLTE_API int srslte_ue_dl_decode_fft_estimate_mbsfn(srslte_ue_dl_t *q,
-                                                cf_t *input[SRSLTE_MAX_PORTS],
-                                                uint32_t sf_idx, 
+                                                uint32_t sf_idx,
                                                 uint32_t *cfi,
                                                 srslte_sf_t sf_type); 
 
+SRSLTE_API int srslte_ue_dl_decode_fft_estimate_noguru(srslte_ue_dl_t *q,
+                                                       cf_t *input[SRSLTE_MAX_PORTS],
+                                                       uint32_t sf_idx,
+                                                       uint32_t *cfi);
 
-int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, 
-                                 uint32_t sf_idx, 
-                                 uint32_t *cfi);
+SRSLTE_API int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q,
+                                            uint32_t sf_idx,
+                                           uint32_t *cfi);
 
 SRSLTE_API int srslte_ue_dl_decode_estimate_mbsfn(srslte_ue_dl_t *q, 
                                             uint32_t sf_idx, 
@@ -191,14 +199,12 @@ SRSLTE_API void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q,
                                                float sample_offset); 
 
 SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t *q,
-                                   cf_t *input[SRSLTE_MAX_PORTS],
                                    uint8_t *data[SRSLTE_MAX_CODEWORDS],
                                    uint32_t tm,
                                    uint32_t tti,
                                    bool acks[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
-                                        cf_t *input[SRSLTE_MAX_PORTS],
                                         uint8_t *data[SRSLTE_MAX_CODEWORDS],
                                         uint32_t tm,
                                         uint32_t tti,
@@ -212,7 +218,6 @@ SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
  * srslte_pmch_decode_multi
  */
 SRSLTE_API int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
-                                         cf_t *input[SRSLTE_MAX_PORTS],
                                          uint8_t *data,
                                          uint32_t tti);
 
@@ -243,6 +248,9 @@ SRSLTE_API int srslte_ue_dl_set_mbsfn_area_id(srslte_ue_dl_t *q,
 SRSLTE_API void srslte_ue_dl_set_non_mbsfn_region(srslte_ue_dl_t *q,
                                                   uint8_t non_mbsfn_region_length);
 
+SRSLTE_API void srslte_ue_dl_set_power_alloc(srslte_ue_dl_t *q,
+                                              float rho_a,
+                                              float rho_b);
 
 
 SRSLTE_API void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, 

@@ -60,7 +60,7 @@ int rf_rssi_scan(srslte_rf_t *rf, float *freqs, float *rssi, int nof_bands, doub
     srslte_rf_set_rx_freq(rf, f);
     srslte_rf_rx_wait_lo_locked(rf);
     usleep(10000);
-    srslte_rf_start_rx_stream(rf);
+    srslte_rf_start_rx_stream(rf, false);
 
     /* discard first samples */
     for (j=0;j<2;j++) {
@@ -113,23 +113,22 @@ int rf_mib_decoder(srslte_rf_t *rf, uint32_t nof_rx_antennas,cell_search_cfg_t *
     goto clean_exit;
   }
 
-  if (config->init_agc > 0) {
-    srslte_ue_sync_start_agc(&ue_mib.ue_sync, srslte_rf_set_rx_gain_th_wrapper, config->init_agc);    
-  }
-
   int srate = srslte_sampling_freq_hz(SRSLTE_UE_MIB_NOF_PRB);
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", (float) srate/1000000);
   srslte_rf_set_rx_srate(rf, (float) srate);
   
   INFO("Starting receiver...\n", 0);
-  srslte_rf_start_rx_stream(rf);
-    
-  // Set CFO if available
+  srslte_rf_start_rx_stream(rf, false);
+
+  // Copy CFO estimate if provided and disable CP estimation during find
   if (cfo) {
-    srslte_ue_sync_set_cfo(&ue_mib.ue_sync, *cfo);
+    ue_mib.ue_sync.cfo_current_value = *cfo/15000;
+    ue_mib.ue_sync.cfo_is_copied = true;
+    ue_mib.ue_sync.cfo_correct_enable_find = true;
+    srslte_sync_set_cfo_cp_enable(&ue_mib.ue_sync.sfind, false, 0);
   }
-  
-  /* Find and decody MIB */
+
+  /* Find and decode MIB */
   ret = srslte_ue_mib_sync_decode(&ue_mib, config->max_frames_pbch, bch_payload, &cell->nof_ports, NULL); 
   if (ret < 0) {
     fprintf(stderr, "Error decoding MIB\n");
@@ -138,12 +137,7 @@ int rf_mib_decoder(srslte_rf_t *rf, uint32_t nof_rx_antennas,cell_search_cfg_t *
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, cell, NULL);
   }
-
-  // Save AGC value 
-  if (config->init_agc > 0) {
-    config->init_agc = srslte_agc_get_gain(&ue_mib.ue_sync.agc);
-  }
-
+  
   // Save CFO 
   if (cfo) {
     *cfo = srslte_ue_sync_get_cfo(&ue_mib.ue_sync);
@@ -176,15 +170,12 @@ int rf_cell_search(srslte_rf_t *rf, uint32_t nof_rx_antennas,
   if (config->nof_valid_pss_frames) {
     srslte_ue_cellsearch_set_nof_valid_frames(&cs, config->nof_valid_pss_frames);
   }
-  if (config->init_agc > 0) {
-    srslte_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_th_wrapper, config->init_agc);
-  }
-  
+
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
   srslte_rf_set_rx_srate(rf, SRSLTE_CS_SAMP_FREQ);
   
   INFO("Starting receiver...\n", 0);
-  srslte_rf_start_rx_stream(rf);
+  srslte_rf_start_rx_stream(rf, false);
 
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
   uint32_t max_peak_cell = 0;
@@ -222,12 +213,7 @@ int rf_cell_search(srslte_rf_t *rf, uint32_t nof_rx_antennas,
 
   // Save CFO
   if (cfo) {
-    *cfo = found_cells[max_peak_cell].cfo; 
-  }
-  
-  // Save AGC value for MIB decoding
-  if (config->init_agc > 0) {
-    config->init_agc = srslte_agc_get_gain(&cs.ue_sync.agc);
+    *cfo = found_cells[max_peak_cell].cfo;
   }
   
   srslte_rf_stop_rx_stream(rf);

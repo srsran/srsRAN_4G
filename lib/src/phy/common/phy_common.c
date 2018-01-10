@@ -605,7 +605,7 @@ int srslte_band_get_fd_region(enum band_geographical_area region, srslte_earfcn_
 
 /* Returns the interval tti1-tti2 mod 10240 */
 uint32_t srslte_tti_interval(uint32_t tti1, uint32_t tti2) {
-  if (tti1 > tti2) {
+  if (tti1 >= tti2) {
     return tti1-tti2; 
   } else {
     return 10240-tti2+tti1;

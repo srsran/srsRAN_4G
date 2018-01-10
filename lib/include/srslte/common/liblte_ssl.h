@@ -38,6 +38,18 @@ int aes_crypt_ecb( aes_context *ctx,
   return mbedtls_aes_crypt_ecb(ctx, mode, input, output);
 }
 
+int aes_crypt_ctr(aes_context *ctx,
+                  size_t length,
+                  size_t *nc_off,
+                  unsigned char nonce_counter[16],
+                  unsigned char stream_block[16],
+                  const unsigned char *input,
+                  unsigned char *output )
+{
+  return mbedtls_aes_crypt_ctr(ctx, length, nc_off, nonce_counter,
+      stream_block, input, output);
+}
+
 void sha256(const unsigned char *key, size_t keylen,
             const unsigned char *input, size_t ilen,
             unsigned char output[32], int is224 )

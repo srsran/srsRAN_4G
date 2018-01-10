@@ -53,12 +53,13 @@ srslte_cell_t cell = {
 
 char mimo_type_str [32] = "single";
 srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
-uint32_t cfi = 2;
+uint32_t cfi = 1;
 uint32_t mcs[SRSLTE_MAX_CODEWORDS] = {0, 0};
 uint32_t subframe = 1;
 int rv_idx[SRSLTE_MAX_CODEWORDS] = {0, 1};
 uint16_t rnti = 1234;
 uint32_t nof_rx_antennas = 1;
+bool tb_cw_swap = false;
 uint32_t pmi = 0;
 char *input_file = NULL; 
 
@@ -77,12 +78,13 @@ void usage(char *prog) {
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-a nof_rx_antennas [Default %d]\n", nof_rx_antennas);
   printf("\t-p pmi (multiplex only)  [Default %d]\n", pmi);
+  printf("\t-w Swap Transport Blocks\n");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "fmMcsrtRFpnavx")) != -1) {
+  while ((opt = getopt(argc, argv, "fmMcsrtRFpnawvx")) != -1) {
     switch(opt) {
     case 'f':
       input_file = argv[optind];
@@ -122,6 +124,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'a':
       nof_rx_antennas = (uint32_t) atoi(argv[optind]);
+      break;
+    case 'w':
+      tb_cw_swap = true;
       break;
     case 'v':
       srslte_verbose++;
@@ -207,6 +212,11 @@ int main(int argc, char **argv) {
     dci.tb_en[1] = true;
   }
 
+  /* Enable swap */
+  if (SRSLTE_RA_DL_GRANT_NOF_TB(&dci) == SRSLTE_MAX_TB && tb_cw_swap) {
+    dci.tb_cw_swap = tb_cw_swap;
+  }
+
   /* Generate grant from DCI */
   if (srslte_ra_dl_dci_to_grant(&dci, cell.nof_prb, rnti, &grant)) {
     fprintf(stderr, "Error computing resource allocation\n");
@@ -255,7 +265,7 @@ int main(int argc, char **argv) {
   }
 
 
-  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+  for (i = 0; i < SRSLTE_MAX_TB; i++) {
     if (grant.tb_en[i]) {
       data_tx[i] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs[i].tbs);
       if (!data_tx[i]) {
@@ -271,6 +281,9 @@ int main(int argc, char **argv) {
       }
       bzero(data_rx[i], sizeof(uint8_t) * grant.mcs[i].tbs);
 
+    } else {
+      data_tx[i] = NULL;
+      data_rx[i] = NULL;
     }
   }
 
@@ -483,7 +496,9 @@ int main(int argc, char **argv) {
     if (grant.tb_en[tb]) {
       for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
         if (data_tx[tb][byte] != data_rx[tb][byte]) {
-          ERROR("Found BYTE error in TB %d (%02X != %02X), quiting...", tb, data_tx[tb][byte], data_rx[tb][byte]);
+          ERROR("Found BYTE (%d) error in TB %d (%02X != %02X), quiting...", byte, tb, data_tx[tb][byte], data_rx[tb][byte]);
+          printf("Tx: "); srslte_vec_fprint_byte(stdout, data_tx[tb], grant.mcs[tb].tbs / 8);
+          printf("Rx: "); srslte_vec_fprint_byte(stdout, data_rx[tb], grant.mcs[tb].tbs / 8);
           ret = SRSLTE_ERROR;
           goto quit;
         }

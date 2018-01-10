@@ -29,15 +29,20 @@
 #include <unistd.h>
 #include <complex.h>
 #include <stdbool.h>
-#include <immintrin.h>
 #include <sys/time.h>
 
 #include "srslte/phy/utils/mat.h"
+#include "srslte/phy/utils/simd.h"
+#include "srslte/phy/utils/vector.h"
 
 
 bool zf_solver = false;
 bool mmse_solver = false;
 bool verbose = false;
+
+#define RANDOM_F() ((float)rand())/((float)RAND_MAX)
+#define RANDOM_S() ((int16_t)(rand() && 0x800F))
+#define RANDOM_CF() (RANDOM_F() + _Complex_I*RANDOM_F())
 
 double elapsed_us(struct timeval *ts_start, struct timeval *ts_end) {
   if (ts_end->tv_usec > ts_start->tv_usec) {
@@ -49,16 +54,16 @@ double elapsed_us(struct timeval *ts_start, struct timeval *ts_end) {
   }
 }
 
-#define NOF_REPETITIONS 1000
+#define BLOCK_SIZE 1000
 #define RUN_TEST(FUNCTION) /*TYPE NAME (void)*/ { \
   int i;\
   struct timeval start, end;\
   gettimeofday(&start, NULL); \
   bool ret = true; \
-  for (i = 0; i < NOF_REPETITIONS; i++) {ret &= FUNCTION ();}\
+  for (i = 0; i < BLOCK_SIZE; i++) {ret &= FUNCTION ();}\
   gettimeofday(&end, NULL);\
   if (verbose) printf("%32s: %s ... %6.2f us/call\n", #FUNCTION, (ret)?"Pass":"Fail", \
-                      elapsed_us(&start, &end)/NOF_REPETITIONS);\
+                      elapsed_us(&start, &end)/BLOCK_SIZE);\
   passed &= ret;\
 }
 
@@ -373,6 +378,24 @@ bool test_mmse_solver_avx(void) {
 
 #endif /* LV_HAVE_AVX */
 
+bool test_vec_dot_prod_ccc(void) {
+  __attribute__((aligned(256))) cf_t a[14];
+  __attribute__((aligned(256))) cf_t b[14];
+  cf_t res = 0, gold = 0;
+
+  for (int i = 0; i < 14; i++) {
+    a[i] = RANDOM_CF();
+    b[i] = RANDOM_CF();
+  }
+
+  res = srslte_vec_dot_prod_ccc(a, b, 14);
+
+  for (int i=0;i<14;i++) {
+    gold += a[i]*b[i];
+  }
+
+  return (cabsf(res - gold) < 1e-3);
+}
 
 int main(int argc, char **argv) {
   bool passed = true;
@@ -404,6 +427,8 @@ int main(int argc, char **argv) {
     RUN_TEST(test_mmse_solver_avx);
 #endif /* LV_HAVE_AVX */
   }
+
+  RUN_TEST(test_vec_dot_prod_ccc);
 
   printf("%s!\n", (passed) ? "Ok" : "Failed");
 

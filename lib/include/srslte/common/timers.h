@@ -64,13 +64,16 @@ public:
       return (counter < timeout) && running; 
     }
     bool is_expired() {
-      return callback && (counter >= timeout || !running); 
+      return (timeout > 0) && (counter >= timeout || !running);
     }
     uint32_t get_timeout() {
       return timeout; 
     }
     void reset() {
       counter = 0; 
+    }
+    uint32_t value() {
+      return counter;
     }
     void step() {
       if (running) {

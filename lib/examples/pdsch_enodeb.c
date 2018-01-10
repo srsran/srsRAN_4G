@@ -86,7 +86,7 @@ float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 2400000000;
 
 bool null_file_sink=false; 
 srslte_filesink_t fsink;
-srslte_ofdm_t ifft;
+srslte_ofdm_t ifft[SRSLTE_MAX_PORTS];
 srslte_ofdm_t ifft_mbsfn;
 srslte_pbch_t pbch;
 srslte_pcfich_t pcfich;
@@ -311,18 +311,21 @@ void base_init() {
   }
 
   /* create ifft object */
-  if (srslte_ofdm_tx_init(&ifft, SRSLTE_CP_NORM, cell.nof_prb)) {
-    fprintf(stderr, "Error creating iFFT object\n");
-    exit(-1);
+  for (i = 0; i < cell.nof_ports; i++) {
+    if (srslte_ofdm_tx_init(&ifft[i], SRSLTE_CP_NORM, sf_buffer[i], output_buffer[i], cell.nof_prb)) {
+      fprintf(stderr, "Error creating iFFT object\n");
+      exit(-1);
+    }
+
+    srslte_ofdm_set_normalize(&ifft[i], true);
   }
-  if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn, SRSLTE_CP_EXT, cell.nof_prb)) {
+
+  if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn, SRSLTE_CP_EXT, sf_buffer[0], output_buffer[0], cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
   srslte_ofdm_set_non_mbsfn_region(&ifft_mbsfn, 2);
   srslte_ofdm_set_normalize(&ifft_mbsfn, true);
-  srslte_ofdm_set_normalize(&ifft, true);
-  
   
   if (srslte_pbch_init(&pbch)) {
     fprintf(stderr, "Error creating PBCH object\n");
@@ -413,8 +416,9 @@ void base_free() {
     srslte_pmch_free(&pmch); 
   }
   srslte_ofdm_tx_free(&ifft_mbsfn);
-  srslte_ofdm_tx_free(&ifft);
-  
+  for (i = 0; i < cell.nof_ports; i++) {
+    srslte_ofdm_tx_free(&ifft[i]);
+  }
 
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     if (data[i]) {
@@ -696,7 +700,9 @@ int main(int argc, char **argv) {
   uint32_t sfn; 
   srslte_refsignal_t csr_refs;
   srslte_refsignal_t mbsfn_refs;
-  
+
+  srslte_debug_handle_crash(argc, argv);
+
 #ifdef DISABLE_RF
   if (argc < 3) {
     usage(argv[0]);
@@ -938,7 +944,8 @@ int main(int argc, char **argv) {
           }
           /* Configure pmch_cfg parameters */
           srslte_ra_dl_grant_t grant;
-          grant.nof_tb = 1;
+          grant.tb_en[0] = true;
+          grant.tb_en[1] = false;
           grant.mcs[0].idx = 2;
           grant.mcs[0].mod = SRSLTE_MOD_QPSK;
           grant.nof_prb = cell.nof_prb;
@@ -977,10 +984,10 @@ int main(int argc, char **argv) {
       /* Transform to OFDM symbols */
       if(sf_idx != 1 || mbsfn_area_id < 0){
         for (i = 0; i < cell.nof_ports; i++) {
-          srslte_ofdm_tx_sf(&ifft, sf_buffer[i], output_buffer[i]);
+          srslte_ofdm_tx_sf(&ifft[i]);
         }
       }else{
-        srslte_ofdm_tx_sf(&ifft_mbsfn, sf_buffer[0], output_buffer[0]);
+        srslte_ofdm_tx_sf(&ifft_mbsfn);
       }
       
       /* send to file or usrp */

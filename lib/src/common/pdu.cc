@@ -823,7 +823,7 @@ void rar_subh::write_subheader(uint8_t** ptr, bool is_last)
 // Section 6.2.3
 void rar_subh::write_payload(uint8_t** ptr)
 {
-  *(*ptr + 0) = (uint8_t)  (ta&0x7f0)>>4;
+  *(*ptr + 0) = (uint8_t)  ((ta&0x7f0)>>4);
   *(*ptr + 1) = (uint8_t)  ((ta&0xf)  <<4) | (grant[0]<<3) | (grant[1]<<2) | (grant[2]<<1) | grant[3];
   uint8_t *x = &grant[4];
   *(*ptr + 2) = (uint8_t) srslte_bit_pack(&x, 8);

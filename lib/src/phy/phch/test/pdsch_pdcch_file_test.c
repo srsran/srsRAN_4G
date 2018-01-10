@@ -129,7 +129,7 @@ int base_init() {
     exit(-1);
   }
 
-  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb)));
+  flen = SRSLTE_SF_LEN(srslte_symbol_sz_power2(cell.nof_prb));
 
   input_buffer[0] = malloc(flen * sizeof(cf_t));
   if (!input_buffer[0]) {
@@ -137,7 +137,7 @@ int base_init() {
     exit(-1);
   }
 
-  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, 1)) {
+  if (srslte_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
     fprintf(stderr, "Error initializing UE DL\n");
     return -1;
   }
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
     srslte_filesource_read(&fsrc, input_buffer[0], flen);
     INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
 
-    ret = srslte_ue_dl_decode(&ue_dl, input_buffer, data, 0, sf_idx, acks);
+    ret = srslte_ue_dl_decode(&ue_dl, data, 0, sf_idx, acks);
     if(ret > 0) {
       printf("PDSCH Decoded OK!\n");       
     } else if (ret == 0) {
