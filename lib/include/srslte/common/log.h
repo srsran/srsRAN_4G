@@ -54,6 +54,12 @@ static const char log_level_text[LOG_LEVEL_N_ITEMS][16] = {"None   ",
                                                            "Info   ",
                                                            "Debug  "};
 
+static const char log_level_text_short[LOG_LEVEL_N_ITEMS][16] = {"[-]",
+                                                                 "[E]",
+                                                                 "[W]",
+                                                                 "[I]",
+                                                                 "[D]"};
+
 class log
 {
 public:
@@ -63,6 +69,8 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
+    show_layer_en = true;
+    level_text_short = true;
   }
 
   log(std::string service_name_) {
@@ -70,12 +78,21 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
+    show_layer_en = true;
+    level_text_short = true;
   }
 
   // This function shall be called at the start of every tti for printing tti
   void step(uint32_t tti_) {
     tti = tti_;
+    add_string_en  = false;
   }
+
+  void prepend_string(std::string s) {
+    add_string_en  = true;
+    add_string_val = s;
+  }
+
   uint32_t get_tti() {
     return tti;
   }
@@ -93,6 +110,12 @@ public:
   int get_hex_limit() {
     return hex_limit;
   }
+  void set_log_level_short(bool enable) {
+    level_text_short = enable;
+  }
+  void show_layer(bool enable) {
+    show_layer_en = enable;
+  }
 
   // Pure virtual methods for logging
   virtual void console(std::string message, ...) = 0;
@@ -107,18 +130,17 @@ public:
   virtual void info_hex(uint8_t *hex, int size, std::string message, ...){error("info_hex not implemented.\n");}
   virtual void debug_hex(uint8_t *hex, int size, std::string message, ...){error("debug_hex not implemented.\n");}
 
-  // Same with line and file info
-  virtual void error_line(std::string file, int line, std::string message, ...){error("error_line not implemented.\n");}
-  virtual void warning_line(std::string file, int line, std::string message, ...){error("warning_line not implemented.\n");}
-  virtual void info_line(std::string file, int line, std::string message, ...){error("info_line not implemented.\n");}
-  virtual void debug_line(std::string file, int line, std::string message, ...){error("debug_line not implemented.\n");}
-
 protected:
   std::string get_service_name() { return service_name; }
   uint32_t        tti;
   LOG_LEVEL_ENUM  level;
   int             hex_limit;
   std::string     service_name;
+
+  bool        show_layer_en;
+  bool        level_text_short;
+  bool        add_string_en;
+  std::string add_string_val;
 };
 
 } // namespace srslte

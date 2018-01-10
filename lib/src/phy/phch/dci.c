@@ -360,6 +360,101 @@ uint32_t dci_format2B_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
   
 }
 
+uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dci_msg, srslte_dci_format_t format)
+{
+  int n = 0;
+
+  switch(dci_msg->alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      n += snprintf(&info_str[n], len-n, "type0={rbg=0x%x}, ", dci_msg->type0_alloc.rbg_bitmask);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE1:
+      n += snprintf(&info_str[n], len-n, "type1={vrb=0x%x, rbg_s=%d, sh=%d}, ",
+                    dci_msg->type1_alloc.vrb_bitmask, dci_msg->type1_alloc.rbg_subset, dci_msg->type1_alloc.shift);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE2:
+      n += snprintf(&info_str[n], len-n, "type2={riv=%d, rb=(%d,%d), mode=%s",
+                    dci_msg->type2_alloc.riv,
+                    dci_msg->type2_alloc.RB_start, dci_msg->type2_alloc.RB_start+dci_msg->type2_alloc.L_crb-1,
+                    dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC?"local":"dist");
+      if (dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC) {
+        n += snprintf(&info_str[n], len-n, ", ngap=%s, nprb1a=%d",
+                      dci_msg->type2_alloc.n_gap==SRSLTE_RA_TYPE2_NG1?"ng1":"ng2",
+                      dci_msg->type2_alloc.n_prb1a==SRSLTE_RA_TYPE2_NPRB1A_2?2:3);
+      }
+      n += snprintf(&info_str[n], len-n, "}, ");
+      break;
+  }
+  n += snprintf(&info_str[n], len-n, "pid=%d, ", dci_msg->harq_process);
+
+  n += snprintf(&info_str[n], len-n, "mcs={");
+  if (dci_msg->tb_en[0]) {
+    n += snprintf(&info_str[n], len-n, "%d", dci_msg->mcs_idx);
+    if (dci_msg->tb_en[1]) {
+      n += snprintf(&info_str[n], len-n, ",");
+    } else {
+      n += snprintf(&info_str[n], len-n, "}, ");
+    }
+  }
+  if (dci_msg->tb_en[1]) {
+    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->mcs_idx_1);
+  }
+  n += snprintf(&info_str[n], len-n, "rv={");
+  if (dci_msg->tb_en[0]) {
+    n += snprintf(&info_str[n], len-n, "%d", dci_msg->rv_idx);
+    if (dci_msg->tb_en[1]) {
+      n += snprintf(&info_str[n], len-n, ",");
+    } else {
+      n += snprintf(&info_str[n], len-n, "}, ");
+    }
+  }
+  if (dci_msg->tb_en[1]) {
+    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->rv_idx_1);
+  }
+  n += snprintf(&info_str[n], len-n, "ndi={");
+  if (dci_msg->tb_en[0]) {
+    n += snprintf(&info_str[n], len-n, "%d", dci_msg->ndi);
+    if (dci_msg->tb_en[1]) {
+      n += snprintf(&info_str[n], len-n, ",");
+    } else {
+      n += snprintf(&info_str[n], len-n, "}, ");
+    }
+  }
+  if (dci_msg->tb_en[1]) {
+    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->ndi_1);
+  }
+
+  if (format == SRSLTE_DCI_FORMAT1 || format == SRSLTE_DCI_FORMAT1A || format == SRSLTE_DCI_FORMAT1B) {
+    n += snprintf(&info_str[n], len-n, "tpc_pucch=%d, ", dci_msg->tpc_pucch);
+  }
+  if (format == SRSLTE_DCI_FORMAT2 || format == SRSLTE_DCI_FORMAT2A || format == SRSLTE_DCI_FORMAT2B) {
+    n += snprintf(&info_str[n], len-n, "tb_sw=%d, pinfo=%d, ", dci_msg->tb_cw_swap, dci_msg->pinfo);
+  }
+  return n;
+}
+
+uint32_t srslte_dci_ul_info(char *info_str, uint32_t len, srslte_ra_ul_dci_t *dci_msg)
+{
+  int n = 0;
+
+  n += snprintf(&info_str[n], len-n, "riv=%d, rb=(%d,%d), ", dci_msg->type2_alloc.riv,
+                dci_msg->type2_alloc.RB_start, dci_msg->type2_alloc.RB_start+dci_msg->type2_alloc.L_crb-1);
+
+  switch(dci_msg->freq_hop_fl) {
+    case SRSLTE_RA_PUSCH_HOP_DISABLED:
+      n += snprintf(&info_str[n], len-n, "f_h=n/a, ");
+      break;
+    default:
+      n += snprintf(&info_str[n], len-n, "f_h=%d, ", dci_msg->freq_hop_fl);
+      break;
+  }
+  n += snprintf(&info_str[n], len-n, "mcs=%d, rv=%d, ndi=%d, ", dci_msg->mcs_idx, dci_msg->rv_idx, dci_msg->ndi);
+  n += snprintf(&info_str[n], len-n, "tpc_pusch=%d, dmrs_cs=%d, cqi=%s, ",
+                dci_msg->tpc_pusch, dci_msg->n_dmrs, dci_msg->cqi_request?"yes":"no");
+
+  return n;
+}
+
 uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb, uint32_t nof_ports) {
   switch (format) {
   case SRSLTE_DCI_FORMAT0:
@@ -1299,6 +1394,32 @@ char* srslte_dci_format_string(srslte_dci_format_t format) {
     return "Format2B";
   default:
     return "N/A"; // fatal error
+  }
+}
+
+
+char* srslte_dci_format_string_short(srslte_dci_format_t format) {
+  switch (format) {
+    case SRSLTE_DCI_FORMAT0:
+      return "0";
+    case SRSLTE_DCI_FORMAT1:
+      return "1";
+    case SRSLTE_DCI_FORMAT1A:
+      return "1A";
+    case SRSLTE_DCI_FORMAT1B:
+      return "1B";
+    case SRSLTE_DCI_FORMAT1C:
+      return "1C";
+    case SRSLTE_DCI_FORMAT1D:
+      return "1D";
+    case SRSLTE_DCI_FORMAT2:
+      return "2";
+    case SRSLTE_DCI_FORMAT2A:
+      return "2A";
+    case SRSLTE_DCI_FORMAT2B:
+      return "2B";
+    default:
+      return "N/A"; // fatal error
   }
 }
 

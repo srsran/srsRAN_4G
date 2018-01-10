@@ -29,7 +29,7 @@
 #include <strings.h>
 #include <assert.h>
 #include <unistd.h>
-#include <srslte/srslte.h>
+#include "srslte/srslte.h"
 
 
 #include "srslte/phy/ue/ue_sync.h"
@@ -47,14 +47,6 @@
 #define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  0
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
-#define DEFAULT_CFO_BW      0.2
-#define DEFAULT_CFO_PSS_MIN 500  // typical bias of PSS estimation.
-#define DEFAULT_CFO_REF_MIN 0    // typical bias of REF estimation
-#define DEFAULT_CFO_REF_MAX 500  // Maximum detection offset of REF based estimation
-
-#define DEFAULT_PSS_STABLE_TIMEOUT     100  // Time after which the PSS is considered to be stable and we accept REF-CFO
-
-#define DEFAULT_CFO_EMA_TRACK 0.1
 
 cf_t dummy_buffer0[15*2048/2];
 cf_t dummy_buffer1[15*2048/2];
@@ -82,8 +74,9 @@ int srslte_ue_sync_init_file_multi(srslte_ue_sync_t *q, uint32_t nof_prb, char *
     q->fft_size = srslte_symbol_sz(nof_prb);
     q->nof_rx_antennas = nof_rx_ant;
 
-    q->cfo_correct_enable = true;
-    
+    q->cfo_correct_enable_find  = false;
+    q->cfo_correct_enable_track = true;
+
     if (srslte_cfo_init(&q->file_cfo_correct, 2*q->sf_len)) {
       fprintf(stderr, "Error initiating CFO\n");
       goto clean_exit; 
@@ -226,9 +219,11 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     q->cfo_ref_max = DEFAULT_CFO_REF_MAX;
     q->cfo_ref_min = DEFAULT_CFO_REF_MIN;
     q->cfo_pss_min = DEFAULT_CFO_PSS_MIN;
-    q->cfo_loop_bw_pss = DEFAULT_CFO_BW;
-    q->cfo_loop_bw_ref = DEFAULT_CFO_BW;
-    q->cfo_correct_enable = true;
+    q->cfo_loop_bw_pss = DEFAULT_CFO_BW_PSS;
+    q->cfo_loop_bw_ref = DEFAULT_CFO_BW_REF;
+
+    q->cfo_correct_enable_find  = false;
+    q->cfo_correct_enable_track = true;
 
     q->pss_stable_cnt     = 0;
     q->pss_stable_timeout = DEFAULT_PSS_STABLE_TIMEOUT;
@@ -269,14 +264,12 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
 
     // Configure FIND and TRACK sync objects behaviour (this configuration is always the same)
     srslte_sync_set_cfo_i_enable(&q->sfind,     false);
-    srslte_sync_set_cfo_cp_enable(&q->sfind,    true);
     srslte_sync_set_cfo_pss_enable(&q->sfind,   true);
     srslte_sync_set_pss_filt_enable(&q->sfind,  true);
     srslte_sync_set_sss_eq_enable(&q->sfind,    false);
 
     // During track, we do CFO correction outside the sync object
     srslte_sync_set_cfo_i_enable(&q->strack,    false);
-    srslte_sync_set_cfo_cp_enable(&q->strack,   false);
     srslte_sync_set_cfo_pss_enable(&q->strack,  true);
     srslte_sync_set_pss_filt_enable(&q->strack, true);
     srslte_sync_set_sss_eq_enable(&q->strack,   false);
@@ -285,10 +278,8 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
     srslte_sync_cp_en(&q->strack, false);
     srslte_sync_cp_en(&q->sfind,  false);
 
-
     srslte_sync_sss_en(&q->strack, true);
     q->decode_sss_on_track = true;
-
 
     ret = SRSLTE_SUCCESS;
   }
@@ -400,7 +391,12 @@ int srslte_ue_sync_set_cell(srslte_ue_sync_t *q, srslte_cell_t cell)
 
       srslte_sync_set_em_alpha(&q->strack,  0.2);
       srslte_sync_set_threshold(&q->strack, 1.2);
+
     }
+
+    // When cell is unknown, do CP CFO correction
+    srslte_sync_set_cfo_cp_enable(&q->sfind, true, q->frame_len<10000?14:3);
+    q->cfo_correct_enable_find  = false;
 
     srslte_ue_sync_reset(q);
 
@@ -703,7 +699,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           return SRSLTE_ERROR;
         }
       }
-      if (q->cfo_correct_enable) {
+      if (q->cfo_correct_enable_track) {
         for (int i = 0; i < q->nof_rx_antennas; i++) {
           srslte_cfo_correct(&q->file_cfo_correct,
                              input_buffer[i],
@@ -723,10 +719,20 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
         fprintf(stderr, "Error receiving samples\n");
         return SRSLTE_ERROR;
       }
-
+      int n;
       switch (q->state) {
         case SF_FIND:
-          switch(srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx)) {
+          // Correct CFO before PSS/SSS find using the sync object corrector (initialized for 1 ms)
+          if (q->cfo_correct_enable_find) {
+            for (int i=0;i<q->nof_rx_antennas;i++) {
+              srslte_cfo_correct(&q->strack.cfo_corr_frame,
+                                 input_buffer[i],
+                                 input_buffer[i],
+                                 -q->cfo_current_value/q->fft_size);
+            }
+          }
+          n = srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx);
+          switch(n) {
             case SRSLTE_SYNC_ERROR: 
               ret = SRSLTE_ERROR; 
               fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
@@ -758,7 +764,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           q->sf_idx = (q->sf_idx + q->nof_recv_sf) % 10;
 
           // Correct CFO before PSS/SSS tracking using the sync object corrector (initialized for 1 ms)
-          if (q->cfo_correct_enable) {
+          if (q->cfo_correct_enable_track) {
             for (int i=0;i<q->nof_rx_antennas;i++) {
               srslte_cfo_correct(&q->strack.cfo_corr_frame,
                                  input_buffer[i],
@@ -780,10 +786,10 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
             /* Track PSS/SSS around the expected PSS position
              * In tracking phase, the subframe carrying the PSS is always the last one of the frame
              */
-            track_idx = 0;
-            switch(srslte_sync_find(&q->strack, input_buffer[0], 
-                                    q->frame_len - q->sf_len/2 - q->fft_size - q->strack.max_offset/2, 
-                                    &track_idx)) 
+            n = srslte_sync_find(&q->strack, input_buffer[0],
+                                     q->frame_len - q->sf_len/2 - q->fft_size - q->strack.max_offset/2,
+                                     &track_idx);
+            switch(n)
             {
               case SRSLTE_SYNC_ERROR:
                 fprintf(stderr, "Error tracking correlation peak\n");
