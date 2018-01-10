@@ -1046,13 +1046,14 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 #endif
 
   uint8_t dummy[2] = {0,0};
-  log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d, ack=%s, ri=%s, cfo=%.1f KHz%s\n",
-       (tti+HARQ_DELAY_MS)%10240,
-       grant->n_prb[0], grant->n_prb[0]+grant->L_prb,
-       grant->mcs.tbs/8, grant->mcs.idx, rv,
-       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
-       uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
-       cfo*15, timestr);
+  log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s\n",
+              (tti + HARQ_DELAY_MS) % 10240,
+              grant->n_prb[0], grant->n_prb[0] + grant->L_prb,
+              grant->mcs.tbs / 8, grant->mcs.idx, rv,
+              uci_data.uci_ack_len > 0 ? (uci_data.uci_ack ? ", ack=1" : "0") : "",
+              uci_data.uci_ack_len > 1 ? (uci_data.uci_ack_2 ? "1" : "0") : "",
+              uci_data.uci_ri_len > 0 ? (uci_data.uci_ri ? ", ri=1" : ", ri=0") : "",
+              cfo * 15, timestr);
 
   // Store metrics
   ul_metrics.mcs   = grant->mcs.idx;

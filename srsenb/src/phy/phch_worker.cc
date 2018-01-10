@@ -473,13 +473,11 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       // Configure PUSCH CQI channel
       srslte_cqi_value_t cqi_value = {0};
       bool cqi_enabled = false;
-#if 0
+
       if (ue_db[rnti].cqi_en && ue_db[rnti].ri_en && srslte_ri_send(ue_db[rnti].pmi_idx, ue_db[rnti].ri_idx, tti_rx) ) {
         uci_data.uci_ri_len = 1; /* Asumes only 1 bit for RI */
-        ri_enabled = true;
-      } else
-#endif
-      if (ue_db[rnti].cqi_en && srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
+        uci_data.ri_periodic_report = true;
+      } else if (ue_db[rnti].cqi_en && srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
         cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND;
         cqi_enabled = true;
         if (ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
@@ -588,19 +586,19 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         exit(-1);
       }
       */
-      log_h->info_hex(grants[i].data, phy_grant.mcs.tbs/8,
-          "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s\n",
-          rnti, phy_grant.n_prb[0], phy_grant.n_prb[0]+phy_grant.L_prb,
-          phy_grant.mcs.tbs/8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
-          snr_db,
-          srslte_pusch_last_noi(&enb_ul.pusch),
-          crc_res?"OK":"KO",
-          (acks_pending[0] || acks_pending[1])?", ack=":"",
-          (acks_pending[0])?(uci_data.uci_ack?"1":"0"):"",
-          (acks_pending[1])?(uci_data.uci_ack_2?"1":"0"):"",
-          uci_data.uci_cqi_len>0?cqi_str:"",
-          uci_data.uci_ri_len>0?(uci_data.uci_ri?", ri=0":", ri=1"):"",
-          timestr);
+      log_h->info_hex(grants[i].data, phy_grant.mcs.tbs / 8,
+                      "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s\n",
+                      rnti, phy_grant.n_prb[0], phy_grant.n_prb[0] + phy_grant.L_prb,
+                      phy_grant.mcs.tbs / 8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
+                      snr_db,
+                      srslte_pusch_last_noi(&enb_ul.pusch),
+                      crc_res ? "OK" : "KO",
+                      (acks_pending[0] || acks_pending[1]) ? ", ack=" : "",
+                      (acks_pending[0]) ? (uci_data.uci_ack ? "1" : "0") : "",
+                      (acks_pending[1]) ? (uci_data.uci_ack_2 ? "1" : "0") : "",
+                      uci_data.uci_cqi_len > 0 ? cqi_str : "",
+                      uci_data.uci_ri_len > 0 ? ((uci_data.uci_ri == 0) ? ", ri=0" : ", ri=1") : "",
+                      timestr);
 
       // Notify MAC of RL status
       if (grants[i].grant.rv_idx == 0) {
