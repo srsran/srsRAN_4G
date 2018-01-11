@@ -292,9 +292,7 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
   uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS];
 
   if (q->users[rnti]) {
-    uint32_t nof_uci_bits = uci_data->ri_periodic_report ? uci_data->uci_ri_len : (uci_data->uci_cqi_len +
-                                                                                 uci_data->uci_dif_cqi_len +
-                                                                                 uci_data->uci_pmi_len);
+    uint32_t nof_uci_bits = uci_data->ri_periodic_report ? uci_data->uci_ri_len : (uci_data->uci_cqi_len);
     int ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits, nof_uci_bits);
 
     // If we are looking for SR and ACK at the same time and ret=0, means there is no SR. 
@@ -321,15 +319,6 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
     // PUCCH2 CQI bits are decoded inside srslte_pucch_decode() 
     if (uci_data->uci_cqi_len) {
       memcpy(uci_data->uci_cqi, pucch_bits, uci_data->uci_cqi_len*sizeof(uint8_t));
-    }
-
-    if (uci_data->uci_dif_cqi_len) {
-      memcpy(uci_data->uci_dif_cqi, pucch_bits + uci_data->uci_cqi_len, uci_data->uci_dif_cqi_len*sizeof(uint8_t));
-    }
-
-    if (uci_data->uci_pmi_len) {
-      memcpy(uci_data->uci_pmi, pucch_bits + uci_data->uci_cqi_len + uci_data->uci_dif_cqi_len,
-             uci_data->uci_pmi_len*sizeof(uint8_t));
     }
 
     if (uci_data->uci_ri_len) {

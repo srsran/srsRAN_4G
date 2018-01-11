@@ -76,7 +76,7 @@ private:
   
   /* Internal methods */
   bool extract_fft_and_pdcch_llr(); 
-  void compute_ri();
+  void compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr);
 
   /* ... for DL */
   bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);

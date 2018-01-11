@@ -90,8 +90,19 @@ typedef struct SRSLTE_API {
 transmission mode 8 configured without PMI/RI reporting). 
 This is for PUCCH Format 2 reports
 */
+
+/* Table 5.2.3.3.1-2: UCI fields for channel quality and precoding information (CQI/PMI) feedback for
+wideband reports (transmission mode 4, transmission mode 5 and transmission mode 6)
+This is for PUCCH Format 2 reports
+*/
+
 typedef struct SRSLTE_API {
   uint8_t  wideband_cqi; // 4-bit width
+  uint8_t  spatial_diff_cqi; // If Rank==1 then it is 0-bit width otherwise it is 3-bit width
+  uint8_t  pmi;
+  bool pmi_present;
+  bool four_antenna_ports;        // If cell has 4 antenna ports then true otherwise false
+  bool rank_is_not_one;           // If rank > 1 then true otherwise false
 } srslte_cqi_format2_wideband_t;
 
 typedef struct SRSLTE_API {
@@ -164,5 +175,7 @@ SRSLTE_API float srslte_cqi_to_coderate(uint32_t cqi);
 SRSLTE_API int srslte_cqi_hl_get_subband_size(int num_prbs);
 
 SRSLTE_API int srslte_cqi_hl_get_no_subbands(int num_prbs);
+
+SRSLTE_API void srslte_cqi_to_str(const uint8_t *cqi_value, int cqi_len, char *str, int str_len);
 
 #endif // CQI_

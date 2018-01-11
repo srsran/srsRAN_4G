@@ -612,8 +612,6 @@ int srslte_pusch_decode(srslte_pusch_t *q,
       if (cqi_value->type == SRSLTE_CQI_TYPE_SUBBAND_HL && cqi_value->subband_hl.ri_present) {
         cqi_value->subband_hl.rank_is_not_one = false;
         uci_data->uci_ri_len = (q->cell.nof_ports == 4) ? 2 : 1;
-      }  else {
-        uci_data->uci_ri_len = 0;
       }
       uci_data->uci_cqi_len = (uint32_t) srslte_cqi_size(cqi_value);
     }
