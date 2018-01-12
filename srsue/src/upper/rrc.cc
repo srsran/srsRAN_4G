@@ -1447,7 +1447,7 @@ void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid));
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
   switch (state) {
     case RRC_STATE_CONNECTING:
       send_con_setup_complete(sdu);
@@ -1462,7 +1462,7 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 }
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid));
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid).c_str());
 
   switch (lcid) {
     case RB_ID_SRB0:
@@ -1524,7 +1524,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
-                get_rb_name(lcid),
+                get_rb_name(lcid).c_str(),
                 liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
   // Reset and reuse pdu buffer if possible
@@ -2098,7 +2098,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
   }
 
   srbs[srb_cnfg->srb_id] = *srb_cnfg;
-  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg->srb_id));
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg->srb_id).c_str());
 }
 
 void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
@@ -2157,7 +2157,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
 
   drbs[lcid] = *drb_cnfg;
   drb_up     = true;
-  rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid));
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid).c_str());
 }
 
 void rrc::release_drb(uint8_t lcid) {
@@ -2807,13 +2807,9 @@ float rrc::rrc_meas::range_to_value(quantity_t quant, uint8_t range) {
   return val;
 }
 
-
-
-
-
-
-
-
-
+const std::string rrc::rb_id_str[] = {"SRB0", "SRB1", "SRB2",
+                                      "DRB1", "DRB2", "DRB3",
+                                      "DRB4", "DRB5", "DRB6",
+                                      "DRB7", "DRB8"};
 
 } // namespace srsue
