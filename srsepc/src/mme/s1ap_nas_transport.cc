@@ -177,8 +177,12 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
     ue_ctx.erabs_ctx[i].erab_id = i;
   }
-  m_s1ap->add_new_ue_ctx(ue_ctx);
 
+  if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
+  {
+    //IMSI attach requeires new UE ctxt
+    m_s1ap->add_new_ue_ctx(ue_ctx);
+  }
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   pack_authentication_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
 
