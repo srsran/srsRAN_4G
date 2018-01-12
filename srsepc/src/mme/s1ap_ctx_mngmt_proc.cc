@@ -280,7 +280,8 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
     if(ue_ctx->erabs_ctx[i].state != ERAB_DEACTIVATED)
     {
       active = true;
-      ue_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
+      //ue_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
+      break;
     }
   }
   if(active == true)
@@ -288,10 +289,10 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
     //There are active E-RABs, send delete session request
     m_mme_gtpc->send_delete_session_request(ue_ctx);
   }
-  //m_s1ap->delete_ue_ctx(ue_ctx);
+  m_s1ap->delete_ue_ctx(ue_ctx);
 
   //Delete UE context
-  m_s1ap_log->info("Deleted UE S1-U Context.\n");
+  m_s1ap_log->info("Deleted UE Context.\n");
   return true;
 }
 
