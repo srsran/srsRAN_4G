@@ -229,7 +229,7 @@ uint32_t rlc_am::get_total_buffer_state()
 
   // Room needed for fixed header?
   if(n_bytes > 0) {
-    n_bytes += 2;
+    n_bytes += 3;
     log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
   }
 
@@ -285,7 +285,7 @@ uint32_t rlc_am::get_buffer_state()
 
   // Room needed for fixed header?
   if(n_bytes > 0) {
-    n_bytes += 2;
+    n_bytes += 3;
     log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
   }
 
