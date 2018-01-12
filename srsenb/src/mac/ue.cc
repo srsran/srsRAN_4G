@@ -408,7 +408,11 @@ void ue::metrics_phr(float phr) {
 }
 
 void ue::metrics_dl_ri(uint32_t dl_ri) {
-  metrics.dl_ri = SRSLTE_VEC_EMA((float) dl_ri, metrics.dl_ri, 0.5f);
+  if (metrics.dl_ri == 0.0f) {
+    metrics.dl_ri = (float) dl_ri + 1.0f;
+  } else {
+    metrics.dl_ri = SRSLTE_VEC_EMA((float) dl_ri + 1.0f, metrics.dl_ri, 0.5f);
+  }
   dl_ri_counter++;
 }
 

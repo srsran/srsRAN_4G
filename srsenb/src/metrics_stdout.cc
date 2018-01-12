@@ -123,7 +123,7 @@ void metrics_stdout::print_metrics()
     
       cout << std::hex << metrics.mac[i].rnti << " ";
       cout << float_to_string(metrics.mac[i].dl_cqi, 2);
-      cout << float_to_string(metrics.mac[i].dl_ri + 1, 3);
+      cout << float_to_string(metrics.mac[i].dl_ri, 3);
       cout << float_to_string(metrics.phy[i].dl.mcs, 2);
       if (metrics.mac[i].tx_brate > 0 && metrics_report_period) {
         cout << float_to_eng_string((float) metrics.mac[i].tx_brate/metrics_report_period, 2);
