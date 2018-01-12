@@ -156,7 +156,7 @@ uint32_t phy::tti_to_subf(uint32_t tti) {
 int phy::add_rnti(uint16_t rnti)
 {
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
-    workers_common.ack_add_rnti(rnti);
+    workers_common.ue_db_add_rnti(rnti);
   }
   for (uint32_t i=0;i<nof_workers;i++) {
     if (workers[i].add_rnti(rnti)) {
@@ -169,7 +169,7 @@ int phy::add_rnti(uint16_t rnti)
 void phy::rem_rnti(uint16_t rnti)
 {
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
-    workers_common.ack_rem_rnti(rnti);
+    workers_common.ue_db_rem_rnti(rnti);
   }
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].rem_rnti(rnti);

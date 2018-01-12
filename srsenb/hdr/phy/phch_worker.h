@@ -121,8 +121,6 @@ private:
     void metrics_ul(uint32_t mcs, float rssi, float sinr, uint32_t turbo_iters);
 
     int last_dl_tbs[2*HARQ_DELAY_MS][SRSLTE_MAX_CODEWORDS];
-    int last_ul_tbs[2*HARQ_DELAY_MS];
-    srslte_mod_t last_ul_mod[2*HARQ_DELAY_MS];
 
   private:
     phy_metrics_t metrics; 

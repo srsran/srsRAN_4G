@@ -398,7 +398,7 @@ void phch_worker::work_imp()
   encode_phich(ul_grants[t_tx_ul].phich, ul_grants[t_tx_ul].nof_phich);
 
   // Prepare for receive ACK for DL grants in t_tx_dl+4
-  phy->ack_clear(TTIMOD(TTI_TX(t_tx_dl)));
+  phy->ue_db_clear(TTIMOD(TTI_TX(t_tx_dl)));
   for (uint32_t i=0;i<dl_grants[t_tx_dl].nof_grants;i++) {
     // SI-RNTI and RAR-RNTI do not have ACK
     uint16_t rnti = dl_grants[t_tx_dl].sched_grants[i].rnti;
@@ -407,7 +407,10 @@ void phch_worker::work_imp()
       for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
         /* If TB enabled, set pending ACK */
         if (dl_grants[t_tx_dl].sched_grants[i].grant.tb_en[tb_idx]) {
-          phy->ack_set_pending(TTIMOD(TTI_TX(t_tx_dl)), rnti, tb_idx, dl_grants[t_tx_dl].sched_grants[i].location.ncce);
+          phy->ue_db_set_ack_pending(TTIMOD(TTI_TX(t_tx_dl)),
+                                     rnti,
+                                     tb_idx,
+                                     dl_grants[t_tx_dl].sched_grants[i].location.ncce);
         }
       }
     }
@@ -463,7 +466,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
 
       // Get pending ACKs with an associated PUSCH transmission
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-        acks_pending[tb] = phy->ack_is_pending(t_rx, rnti, tb);
+        acks_pending[tb] = phy->ue_db_is_ack_pending(t_rx, rnti, tb);
         if (acks_pending[tb]) {
           uci_data.uci_ack_len++;
         }
@@ -481,6 +484,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         cqi_enabled = true;
         if (ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
           cqi_value.wideband.pmi_present = true;
+          cqi_value.wideband.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
         }
       } else if (grants[i].grant.cqi_request) {
         cqi_value.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
@@ -493,6 +497,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         cqi_value.subband_hl.N = (phy->cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(phy->cell.nof_prb) : 0;
         cqi_value.subband_hl.four_antenna_ports = (phy->cell.nof_ports == 4);
         cqi_value.subband_hl.pmi_present = (ue_db[rnti].dedicated.cqi_report_cnfg.report_mode_aperiodic == LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31);
+        cqi_value.subband_hl.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
         cqi_enabled = true;
       }
 
@@ -506,16 +511,16 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         // Handle Format0 adaptive retx
         // Use last TBS for this TB in case of mcs>28
         if (phy_grant.mcs.idx > 28) {
-          phy_grant.mcs.tbs = ue_db[rnti].last_ul_tbs[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)];
+          phy_grant.mcs.tbs = phy->ue_db_get_last_ul_tbs(rnti, tti_rx);
           Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", phy_grant.mcs.idx, phy_grant.mcs.tbs, TTI_TX(tti_rx)%(2*HARQ_DELAY_MS));
         }
-        ue_db[rnti].last_ul_tbs[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)] = phy_grant.mcs.tbs;
+        phy->ue_db_set_last_ul_tbs(rnti, tti_rx, phy_grant.mcs.tbs);
 
         if (phy_grant.mcs.mod == SRSLTE_MOD_LAST) {
-          phy_grant.mcs.mod = ue_db[rnti].last_ul_mod[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)];
+          phy_grant.mcs.mod = phy->ue_db_get_last_ul_mod(rnti, tti_rx);
           phy_grant.Qm      = srslte_mod_bits_x_symbol(phy_grant.mcs.mod);
         }
-        ue_db[rnti].last_ul_mod[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)] = phy_grant.mcs.mod;
+        phy->ue_db_set_last_ul_mod(rnti, tti_rx, phy_grant.mcs.mod);
 
 
         if (phy_grant.mcs.mod == SRSLTE_MOD_64QAM) {
@@ -636,11 +641,12 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       }
       if (uci_data.uci_ri_len > 0 && crc_res) {
         phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
+        phy->ue_db_set_ri(rnti, uci_data.uci_ri);
       }
       if (wideband_pmi_present && crc_res) {
         phy->mac->pmi_info(tti_rx, rnti, wideband_pmi);
       }
-      ue_db[rnti].
+
       // Save metrics stats
       ue_db[rnti].metrics_ul(phy_grant.mcs.idx, 0, snr_db, srslte_pusch_last_noi(&enb_ul.pusch));
     }
@@ -671,7 +677,7 @@ int phch_worker::decode_pucch()
       }
 
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-        needs_ack[tb] = phy->ack_is_pending(t_rx, rnti, tb, &last_n_pdcch);
+        needs_ack[tb] = phy->ue_db_is_ack_pending(t_rx, rnti, tb, &last_n_pdcch);
         if (needs_ack[tb]) {
           needs_pucch = true;
           uci_data.uci_ack_len++;
@@ -692,6 +698,7 @@ int phch_worker::decode_pucch()
           cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND;
           if (tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
             cqi_value.wideband.pmi_present = true;
+            cqi_value.wideband.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
           }
           uci_data.uci_cqi_len = (uint32_t) srslte_cqi_size(&cqi_value);
         }
@@ -719,6 +726,7 @@ int phch_worker::decode_pucch()
         if (srslte_pucch_get_last_corr(&enb_ul.pucch) > PUCCH_RL_CORR_TH) {
           if (uci_data.ri_periodic_report) {
             phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
+            phy->ue_db_set_ri(rnti, uci_data.uci_ri);
             sprintf(cqi_ri_str, ", ri=%d", uci_data.uci_ri);
           } else if (uci_data.uci_cqi_len && needs_cqi) {
             srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
