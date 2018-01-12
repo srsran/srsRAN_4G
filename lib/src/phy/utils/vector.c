@@ -363,6 +363,20 @@ uint32_t srslte_vec_max_abs_ci(const cf_t *x, const uint32_t len) {
   return srslte_vec_max_ci_simd(x, len);
 }
 
+void srslte_vec_quant_fus(float *in, uint16_t *out, float gain, float offset, float clip, uint32_t len) {
+  int i;
+  long tmp;
+  
+  for (i=0;i<len;i++) {
+    tmp = (long) (offset + gain * in[i]);
+    if (tmp < 0)
+      tmp = 0;
+    if (tmp > clip)
+      tmp = clip;
+    out[i] = (uint16_t) tmp;    
+  }
+}
+
 void srslte_vec_quant_fuc(const float *in, uint8_t *out, const float gain, const float offset, const float clip, const uint32_t len) {
   int i;
   int tmp;
@@ -391,6 +405,26 @@ void srslte_vec_quant_suc(const int16_t *in, uint8_t *out, const float gain, con
   }
 }
 
+void srslte_vec_quant_sus(const int16_t *in, uint16_t *out, const float gain, const int16_t offset, const uint32_t len) {
+  int i;
+  int16_t tmp;
+  
+  for (i=0;i<len;i++) {
+    tmp =  (offset + in[i]*gain);
+    if (tmp < 0)
+      tmp = 0;
+    out[i] = (uint16_t) tmp;    
+  }
+}
+
 void srs_vec_cf_cpy(const cf_t *dst, cf_t *src, int len) {
   srslte_vec_cp_simd(dst, src, len);
+}
+
+void srslte_vec_interleave(const cf_t *x, const cf_t *y, cf_t *z, const int len) {
+  srslte_vec_interleave_simd(x, y, z, len);
+}
+
+void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z, const int len) {
+  srslte_vec_interleave_add_simd(x, y, z, len);
 }

@@ -44,11 +44,17 @@ log_filter::log_filter()
 
 log_filter::log_filter(std::string layer)
 {
+  do_tti      = false;
+  time_src    = NULL;
+  time_format = TIME;
   init(layer, &def_logger_stdout, tti);
 }
 
 log_filter::log_filter(std::string layer, logger *logger_, bool tti)
 {
+  do_tti      = false;
+  time_src    = NULL;
+  time_format = TIME;
   init(layer, logger_, tti);
 }
 

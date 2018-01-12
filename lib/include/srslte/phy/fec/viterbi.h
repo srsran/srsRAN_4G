@@ -57,10 +57,13 @@ typedef struct SRSLTE_API{
   float gain_quant; 
   int16_t gain_quant_s; 
   int (*decode) (void*, uint8_t*, uint8_t*, uint32_t);
+  int (*decode_s) (void*, uint16_t*, uint8_t*, uint32_t);
   int (*decode_f) (void*, float*, uint8_t*, uint32_t);
   void (*free) (void*);
   uint8_t *tmp;
+  uint16_t *tmp_s;
   uint8_t *symbols_uc;
+  uint16_t *symbols_us;
 }srslte_viterbi_t;
 
 SRSLTE_API int srslte_viterbi_init(srslte_viterbi_t *q, 
@@ -86,6 +89,8 @@ SRSLTE_API int srslte_viterbi_decode_s(srslte_viterbi_t *q,
                                        int16_t *symbols, 
                                        uint8_t *data, 
                                        uint32_t frame_length);
+
+SRSLTE_API int srslte_viterbi_decode_us(srslte_viterbi_t *q, uint16_t *symbols, uint8_t *data, uint32_t frame_length);
 
 SRSLTE_API int srslte_viterbi_decode_uc(srslte_viterbi_t *q, 
                                         uint8_t *symbols, 

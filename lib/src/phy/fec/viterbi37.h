@@ -110,3 +110,23 @@ int update_viterbi37_blk_avx2(void *p,
                               uint32_t *best_state);
 
 
+void *create_viterbi37_avx2_16bit(int polys[3], 
+                            uint32_t len);
+
+int init_viterbi37_avx2_16bit(void *p, 
+                        int starting_state);
+
+
+void reset_blk_avx2_16bit(void *p, int nbits);
+
+int chainback_viterbi37_avx2_16bit(void *p, 
+                             uint8_t *data, 
+                             uint32_t nbits, 
+                             uint32_t endstate);
+
+void delete_viterbi37_avx2_16bit(void *p);
+
+int update_viterbi37_blk_avx2_16bit(void *p, 
+                              uint16_t *syms, 
+                              uint32_t nbits, 
+                              uint32_t *best_state);
