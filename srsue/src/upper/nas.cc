@@ -198,7 +198,7 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   uint8 sec_hdr_type;
   bool  mac_valid = false;
 
-  nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s PDU", get_rb_name(lcid));
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s PDU", rrc->get_rb_name(lcid).c_str());
 
   // Parse the message security header
   liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)pdu, &pd, &sec_hdr_type);
@@ -228,7 +228,7 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
 
   // Parse the message header
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) pdu, &pd, &msg_type);
-  nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s Decrypted PDU", get_rb_name(lcid));
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s Decrypted PDU", rrc->get_rb_name(lcid).c_str());
   // TODO: Check if message type requieres specical security header type and if it isvalid
 
   switch (msg_type) {
@@ -770,7 +770,7 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
                      &sdu->msg[1]);
   nas_log->info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s\n",
                 ctxt.tx_count,
-                get_rb_name(lcid));
+                rrc->get_rb_name(lcid).c_str());
   rrc->write_sdu(lcid, sdu);
   ctxt.tx_count++;
   pool->deallocate(pdu);
