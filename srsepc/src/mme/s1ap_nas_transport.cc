@@ -106,7 +106,35 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     return false;
   }
 
+  //Create basic UE Ctx
+  ue_ctx.imsi = 0;
+  ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+  //Get UE network capabilities
+  memcpy(&ue_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
+  ue_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
+  if(attach_req.ms_network_cap_present)
+  {
+    memcpy(&ue_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+  }
+  uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
+  ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
+  //Save whether ESM information transfer is necessary
+  ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
+  m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
+  //Initialize NAS count
+  ue_ctx.security_ctxt.ul_nas_count = 0;
+  ue_ctx.security_ctxt.dl_nas_count = 0;
+  //Add eNB info to UE ctxt
+  memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+  //Initialize E-RABs
+  for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
+  {
+    ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
+    ue_ctx.erabs_ctx[i].erab_id = i;
+  }
 
+
+  //Get UE Identity
   if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
   {
     //IMSI style attach
@@ -125,8 +153,12 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     if(it == m_s1ap->m_tmsi_to_s1ap_id.end())
     {
       //FIXME Send Id request
-      m_s1ap_log->console("Could not find M-TMSI in attach request\n");
-      return false;
+      m_s1ap_log->console("Could not find M-TMSI in attach request. Sending ID request\n");
+      m_s1ap_log->info("Could not find M-TMSI in attach request. Sending Id Request\n");
+      m_s1ap->add_new_ue_ctx(ue_ctx);
+      pack_identity_request(reply_buffer, ue_ctx.mme_ue_s1ap_id, ue_ctx.enb_ue_s1ap_id);
+      *reply_flag = true;
+      return true;
     }
     m_s1ap_log->console("Found M-TMSI: %d\n",m_tmsi);
     ue_ctx_t *tmp = m_s1ap->find_ue_ctx(it->second);
@@ -139,27 +171,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   m_s1ap_log->console("Attach request from IMSI: %015lu\n", imsi);
   m_s1ap_log->info("Attach request from IMSI: %015lu\n", imsi);
 
-  //Get UE network capabilities
-  memcpy(&ue_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
-  ue_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
-  if(attach_req.ms_network_cap_present)
-  {
-    memcpy(&ue_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
-  }
-  //FIXME use this info
-  uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
-  ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
-
-  //Save whether ESM information transfer is necessary
-  ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
-  m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
-
-  //Initialize NAS count
-  ue_ctx.security_ctxt.ul_nas_count = 0;
-  ue_ctx.security_ctxt.dl_nas_count = 0;
-  //Add eNB info to UE ctxt
-  memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-
+ 
   //Get Authentication Vectors from HSS
   if(!m_hss->gen_auth_info_answer(imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
   {
@@ -171,12 +183,6 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   //Save UE context
   ue_ctx.imsi = imsi;
   ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-
-  for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
-  {
-    ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
-    ue_ctx.erabs_ctx[i].erab_id = i;
-  }
 
   if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
   {
@@ -244,6 +250,11 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
       ue_ctx->security_ctxt.ul_nas_count++;
       return true;
+    case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
+      m_s1ap_log->info("UL NAS: Received ID Response\n");
+      handle_identity_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      //ue_ctx->security_ctxt.ul_nas_count++;
+    return true;
     default:
       m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type );
       m_s1ap_log->console("Unhandled NAS message 0x%x\n", msg_type );
@@ -407,7 +418,47 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
   return true;
 }
 
+bool
+s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+{
+  uint8_t     autn[16]; 
+  uint8_t     rand[6];
+  uint8_t     xres[8];
 
+  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_identity_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &id_resp);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+  uint64_t imsi = 0;
+  for(int i=0;i<=14;i++){
+    imsi  += id_resp.mobile_id.imsi[i]*std::pow(10,14-i);
+  }
+
+  m_s1ap_log->info("Id Response IMSI: %015lu\n", imsi);
+  ue_ctx->imsi = imsi;
+
+  //Get Authentication Vectors from HSS
+  if(!m_hss->gen_auth_info_answer(imsi, ue_ctx->security_ctxt.k_asme, autn, rand, ue_ctx->security_ctxt.xres))
+  {
+    m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
+    m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
+    return false;
+  }
+
+  //Pack NAS Authentication Request in Downlink NAS Transport msg
+  pack_authentication_request(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id, autn, rand);
+
+  //Send reply to eNB
+  *reply_flag = true;
+   m_s1ap_log->info("DL NAS: Sent Athentication Request\n");
+  //TODO Start T3460 Timer!
+  return true; 
+
+  return true;
+}
 /*Packing/Unpacking helper functions*/
 bool 
 s1ap_nas_transport::unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue,
@@ -870,7 +921,56 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   return true;
 }
 
+bool
+s1ap_nas_transport::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id)
+{
+  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;//FIXME Change name
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+
+  LIBLTE_MME_ID_REQUEST_MSG_STRUCT id_req;
+  id_req.id_type = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_identity_request_msg(&id_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Identity Request\n");
+    m_s1ap_log->console("Error packing Identity REquest\n");
+    return false;
+  }
+
+  //Copy NAS PDU to Downlink NAS Trasport message buffer
+  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
+
+  //Pack Downlink NAS Transport Message
+  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Dw NAS Transport: Athentication Reject\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: Athentication Reject\n");
+    return false;
+  } 
+
+  m_pool->deallocate(nas_buffer);
+  return true;
+}
 
 /*Helper functions*/
 void
