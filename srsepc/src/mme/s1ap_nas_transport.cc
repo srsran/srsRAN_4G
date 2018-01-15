@@ -107,6 +107,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   }
 
   //Create basic UE Ctx
+  ue_ctx_t *ue_ctx_ptr = &ue_ctx;
   ue_ctx.imsi = 0;
   ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
   //Get UE network capabilities
@@ -152,20 +153,26 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     std::map<uint32_t,uint32_t>::iterator it = m_s1ap->m_tmsi_to_s1ap_id.find(m_tmsi);
     if(it == m_s1ap->m_tmsi_to_s1ap_id.end())
     {
-      //FIXME Send Id request
+      //Could not find IMSI from M-TMSI, send Id request
       m_s1ap_log->console("Could not find M-TMSI in attach request. Sending ID request\n");
       m_s1ap_log->info("Could not find M-TMSI in attach request. Sending Id Request\n");
+      ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
       m_s1ap->add_new_ue_ctx(ue_ctx);
       pack_identity_request(reply_buffer, ue_ctx.mme_ue_s1ap_id, ue_ctx.enb_ue_s1ap_id);
       *reply_flag = true;
       return true;
     }
     m_s1ap_log->console("Found M-TMSI: %d\n",m_tmsi);
-    ue_ctx_t *tmp = m_s1ap->find_ue_ctx(it->second);
-    if(tmp!=NULL)
+    ue_ctx_ptr = m_s1ap->find_ue_ctx(it->second);
+    if(ue_ctx_ptr!=NULL)
     {
-      m_s1ap_log->console("Found UE context. IMSI: %015lu\n",tmp->imsi);
-      imsi = tmp->imsi;
+      m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_ctx_ptr->imsi);
+      imsi = ue_ctx_ptr->imsi;
+    }
+    else
+    {
+      m_s1ap_log->error("Found M-TMSI but could not find UE context\n");
+      return false;
     }
   }
   m_s1ap_log->console("Attach request from IMSI: %015lu\n", imsi);
@@ -173,7 +180,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
 
  
   //Get Authentication Vectors from HSS
-  if(!m_hss->gen_auth_info_answer(imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
+  if(!m_hss->gen_auth_info_answer(imsi, ue_ctx_ptr->security_ctxt.k_asme, autn, rand, ue_ctx_ptr->security_ctxt.xres))
   {
     m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
@@ -181,16 +188,15 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   }
 
   //Save UE context
-  ue_ctx.imsi = imsi;
-  ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-
+  //ue_ctx.imsi = imsi;
   if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
   {
     //IMSI attach requeires new UE ctxt
+    ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
     m_s1ap->add_new_ue_ctx(ue_ctx);
   }
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
+  pack_authentication_request(reply_buffer, ue_ctx_ptr->enb_ue_s1ap_id, ue_ctx_ptr->mme_ue_s1ap_id, autn, rand);
 
   //Send reply to eNB
   *reply_flag = true;
@@ -454,8 +460,7 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   //Send reply to eNB
   *reply_flag = true;
    m_s1ap_log->info("DL NAS: Sent Athentication Request\n");
-  //TODO Start T3460 Timer!
-  return true; 
+  //TODO Start T3460 Timer! 
 
   return true;
 }
