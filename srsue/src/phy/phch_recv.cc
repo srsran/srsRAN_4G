@@ -52,6 +52,7 @@ phch_recv::phch_recv() {
   dl_freq = -1;
   ul_freq = -1;
   bzero(&cell, sizeof(srslte_cell_t));
+  bzero(&metrics, sizeof(sync_metrics_t));
   running = false;
   worker_com = NULL;
 }

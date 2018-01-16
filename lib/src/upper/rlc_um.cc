@@ -75,18 +75,18 @@ void rlc_um::configure(srslte_rlc_config_t cnfg_)
   case LIBLTE_RRC_RLC_MODE_UM_BI:
     log->info("%s configured in %s mode: "
               "t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-              get_rb_name(lcid), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
+              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
     break;
   case LIBLTE_RRC_RLC_MODE_UM_UNI_UL:
     log->info("%s configured in %s mode: tx_sn_field_length=%u bits\n",
-              get_rb_name(lcid), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
+              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
               rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
     break;
   case LIBLTE_RRC_RLC_MODE_UM_UNI_DL:
     log->info("%s configured in %s mode: "
               "t_reordering=%d ms, rx_sn_field_length=%u bits\n",
-              get_rb_name(lcid), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
+              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
     break;
   default:
@@ -153,7 +153,7 @@ uint32_t rlc_um::get_bearer()
 
 void rlc_um::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU", get_rb_name(lcid));
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU", rrc->get_rb_name(lcid).c_str());
   tx_sdu_queue.write(sdu);
 }
 
@@ -216,7 +216,7 @@ void rlc_um::timer_expired(uint32_t timeout_id)
 
     // 36.322 v10 Section 5.1.2.2.4
     log->info("%s reordering timeout expiry - updating vr_ur and reassembling\n",
-               get_rb_name(lcid));
+               rrc->get_rb_name(lcid).c_str());
 
     log->warning("Lost PDU SN: %d\n", vr_ur);
     pdu_lost = true;
@@ -281,7 +281,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   {
     pool->deallocate(pdu);
     log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
-                 get_rb_name(lcid), nof_bytes, head_len);
+                 rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
     return 0;
   }
 
@@ -291,7 +291,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     uint32_t space = pdu_space-head_len;
     to_move = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
     log->debug("%s adding remainder of SDU segment - %d bytes of %d remaining\n",
-               get_rb_name(lcid), to_move, tx_sdu->N_bytes);
+               rrc->get_rb_name(lcid).c_str(), to_move, tx_sdu->N_bytes);
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li          = to_move;
     pdu_ptr         += to_move;
@@ -301,7 +301,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     if(tx_sdu->N_bytes == 0)
     {
       log->info("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
-                get_rb_name(lcid), tx_sdu->get_latency_us());
+                rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
     }
@@ -320,7 +320,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     uint32_t space = pdu_space-head_len;
     to_move = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
     log->debug("%s adding new SDU segment - %d bytes of %d remaining\n",
-               get_rb_name(lcid), to_move, tx_sdu->N_bytes);
+               rrc->get_rb_name(lcid).c_str(), to_move, tx_sdu->N_bytes);
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li          = to_move;
     pdu_ptr         += to_move;
@@ -330,7 +330,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     if(tx_sdu->N_bytes == 0)
     {
       log->info("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
-                get_rb_name(lcid), tx_sdu->get_latency_us());
+                rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
     }
@@ -345,11 +345,11 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   vt_us = (vt_us + 1)%cfg.tx_mod;
 
   // Add header and TX
-  log->debug("%s packing PDU with length %d\n", get_rb_name(lcid), pdu->N_bytes);
+  log->debug("%s packing PDU with length %d\n", rrc->get_rb_name(lcid).c_str(), pdu->N_bytes);
   rlc_um_write_data_pdu_header(&header, pdu);
   memcpy(payload, pdu->msg, pdu->N_bytes);
   uint32_t ret = pdu->N_bytes;
-  log->debug("%s returning length %d\n", get_rb_name(lcid), pdu->N_bytes);
+  log->debug("%s returning length %d\n", rrc->get_rb_name(lcid).c_str(), pdu->N_bytes);
   pool->deallocate(pdu);
 
   debug_state();
@@ -363,20 +363,20 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.rx_sn_field_length, &header);
 
   log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN: %d",
-                get_rb_name(lcid), header.sn);
+                rrc->get_rb_name(lcid).c_str(), header.sn);
 
   if(RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_uh-cfg.rx_window_size) &&
      RX_MOD_BASE(header.sn) <  RX_MOD_BASE(vr_ur))
   {
     log->info("%s SN: %d outside rx window [%d:%d] - discarding\n",
-              get_rb_name(lcid), header.sn, vr_ur, vr_uh);
+              rrc->get_rb_name(lcid).c_str(), header.sn, vr_ur, vr_uh);
     return;
   }
   it = rx_window.find(header.sn);
   if(rx_window.end() != it)
   {
     log->info("%s Discarding duplicate SN: %d\n",
-              get_rb_name(lcid), header.sn);
+              rrc->get_rb_name(lcid).c_str(), header.sn);
     return;
   }
 
@@ -451,7 +451,7 @@ void rlc_um::reassemble_rx_sdus()
           log->warning("Dropping remainder of lost PDU (lower edge middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
           rx_sdu->reset();
         } else {
-          log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d (lower edge middle segments)", get_rb_name(lcid), vr_ur, i);
+          log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d (lower edge middle segments)", rrc->get_rb_name(lcid).c_str(), vr_ur, i);
           rx_sdu->set_timestamp();
           pdcp->write_pdu(lcid, rx_sdu);
           rx_sdu = pool_allocate;
@@ -471,7 +471,7 @@ void rlc_um::reassemble_rx_sdus()
           log->warning("Dropping remainder of lost PDU (lower edge last segments)\n");
           rx_sdu->reset();          
         } else {
-          log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", get_rb_name(lcid), vr_ur);
+          log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", rrc->get_rb_name(lcid).c_str(), vr_ur);
           rx_sdu->set_timestamp();
           pdcp->write_pdu(lcid, rx_sdu);
           rx_sdu = pool_allocate;
@@ -505,7 +505,7 @@ void rlc_um::reassemble_rx_sdus()
         log->warning("Dropping remainder of lost PDU (update vr_ur middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
         rx_sdu->reset();
       } else {
-        log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)", get_rb_name(lcid), vr_ur, i);
+        log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)", rrc->get_rb_name(lcid).c_str(), vr_ur, i);
         rx_sdu->set_timestamp();
         pdcp->write_pdu(lcid, rx_sdu);
         rx_sdu = pool_allocate;
@@ -534,7 +534,7 @@ void rlc_um::reassemble_rx_sdus()
         log->warning("Dropping remainder of lost PDU (update vr_ur last segments)\n");
         rx_sdu->reset();
       } else {
-        log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", get_rb_name(lcid), vr_ur);
+        log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", rrc->get_rb_name(lcid).c_str(), vr_ur);
         rx_sdu->set_timestamp();
         pdcp->write_pdu(lcid, rx_sdu);
         rx_sdu = pool_allocate;
@@ -564,7 +564,7 @@ bool rlc_um::inside_reordering_window(uint16_t sn)
 void rlc_um::debug_state()
 {
   log->debug("%s vt_us = %d, vr_ur = %d, vr_ux = %d, vr_uh = %d \n",
-             get_rb_name(lcid), vt_us, vr_ur, vr_ux, vr_uh);
+             rrc->get_rb_name(lcid).c_str(), vt_us, vr_ur, vr_ux, vr_uh);
 
 }
 

@@ -64,7 +64,7 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
 
   start(PDCP_THREAD_PRIO);
 
-  log->debug("Init %s\n", get_rb_name(lcid));
+  log->debug("Init %s\n", rrc->get_rb_name(lcid).c_str());
 }
 
 void pdcp_entity::stop()
@@ -94,7 +94,7 @@ void pdcp_entity::reset()
 {
   active      = false;
   if(log)
-    log->debug("Reset %s\n", get_rb_name(lcid));
+    log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
 }
 
 bool pdcp_entity::is_active()
@@ -107,7 +107,7 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu)
 {
   log->info_hex(sdu->msg, sdu->N_bytes,
         "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
-        get_rb_name(lcid), tx_count,
+        rrc->get_rb_name(lcid).c_str(), tx_count,
         (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
   if (cfg.is_control) {
@@ -131,7 +131,7 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu)
     cipher_encrypt(&sdu->msg[sn_len_bytes],
                    sdu->N_bytes-sn_len_bytes,
                    &sdu->msg[sn_len_bytes]);
-    log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", get_rb_name(lcid));
+    log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
   }
   tx_count++;
 
@@ -340,49 +340,17 @@ void pdcp_entity::run_thread()
   while(running) {
     rx_pdu_queue.read(&pdu);
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU, do_integrity = %s, do_encryption = %s",
-    get_rb_name(lcid), (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
-
-    // Handle SRB messages
-    switch(lcid)
-    {
-    case RB_ID_SRB0:
-      // Simply pass on to RRC
-      rrc->write_pdu(RB_ID_SRB0, pdu);
-      break;
-    case RB_ID_SRB1: // Intentional fall-through
-    case RB_ID_SRB2:
-      uint32_t sn;
-      if (do_encryption) {
-        cipher_decrypt(&(pdu->msg[sn_len_bytes]),
-                       rx_count,
-                       pdu->N_bytes - sn_len_bytes,
-                       &(pdu->msg[sn_len_bytes]));
-        log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", get_rb_name(lcid));
-      }
-
-      if (do_integrity) {
-        integrity_verify(pdu->msg,
-                         rx_count,
-                         pdu->N_bytes - 4,
-                         &(pdu->msg[pdu->N_bytes - 4]));
-      }
-
-      pdcp_unpack_control_pdu(pdu, &sn);
-      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", get_rb_name(lcid), sn);
-      rrc->write_pdu(lcid, pdu);
-      break;
-    }
+    rrc->get_rb_name(lcid).c_str(), (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
     // Handle DRB messages
-    if(lcid >= RB_ID_DRB1)
-    {
+    if (cfg.is_data) {
       uint32_t sn;
       if (do_encryption) {
         cipher_decrypt(&(pdu->msg[sn_len_bytes]),
                        rx_count,
                        pdu->N_bytes - sn_len_bytes,
                        &(pdu->msg[sn_len_bytes]));
-        log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", get_rb_name(lcid));
+        log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
       }
       if(12 == cfg.sn_len)
       {
@@ -390,16 +358,40 @@ void pdcp_entity::run_thread()
       } else {
         pdcp_unpack_data_pdu_short_sn(pdu, &sn);
       }
-      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", get_rb_name(lcid), sn);
+      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
       gw->write_pdu(lcid, pdu);
-    }
+    } else {
+      // Handle SRB messages
+      if (cfg.is_control) {
+        uint32_t sn;
+        if (do_encryption) {
+          cipher_decrypt(&(pdu->msg[sn_len_bytes]),
+                         rx_count,
+                         pdu->N_bytes - sn_len_bytes,
+                         &(pdu->msg[sn_len_bytes]));
+          log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+        }
 
+        if (do_integrity) {
+          integrity_verify(pdu->msg,
+                           rx_count,
+                           pdu->N_bytes - 4,
+                           &(pdu->msg[pdu->N_bytes - 4]));
+        }
+
+        pdcp_unpack_control_pdu(pdu, &sn);
+        log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+      }
+      // pass to RRC
+      rrc->write_pdu(lcid, pdu);
+    }
     rx_count++;
   }
 }
 
 uint8_t pdcp_entity::get_bearer_id(uint8_t lcid)
 {
+  #define RB_ID_SRB2 2
   if(lcid <= RB_ID_SRB2) {
     return lcid - 1;
   } else {

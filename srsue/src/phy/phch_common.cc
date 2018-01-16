@@ -339,6 +339,9 @@ void phch_common::reset() {
   rx_gain_offset = 0;
   sr_last_tx_tti = -1;
   cur_pusch_power = 0;
+  avg_rsrp = 0;
+  avg_rsrp_dbm = 0;
+  avg_rsrq_db = 0;
 
   pcell_meas_enabled  = false;
   pcell_report_period = 20;
