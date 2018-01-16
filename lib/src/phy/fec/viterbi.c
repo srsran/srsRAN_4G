@@ -42,7 +42,7 @@
 
 #define DEFAULT_GAIN 100
 
-#define DEFAULT_GAIN_16 10000
+#define DEFAULT_GAIN_16 1000
 #define VITERBI_16 
 
 #ifndef LV_HAVE_AVX2
@@ -423,7 +423,7 @@ int init37_avx2_16bit(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool
   q->R = 3;
   q->framebits = framebits;
   q->gain_quant_s = 4; 
-  q->gain_quant = DEFAULT_GAIN; 
+  q->gain_quant = DEFAULT_GAIN_16;
   q->tail_biting = tail_biting;
   q->decode_s = decode37_avx2_16bit;
   q->free = free37_avx2_16bit;
@@ -537,7 +537,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
       }
     }
 #ifdef VITERBI_16
-    srslte_vec_quant_fus(symbols, q->symbols_us, DEFAULT_GAIN_16/max, 32767.5, 65535, len);
+    srslte_vec_quant_fus(symbols, q->symbols_us, q->gain_quant/max, 32767.5, 65535, len);
     return srslte_viterbi_decode_us(q, q->symbols_us, data, frame_length);
 #else
     srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant/max, 127.5, 255, len);
