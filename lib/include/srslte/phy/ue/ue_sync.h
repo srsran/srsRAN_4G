@@ -96,7 +96,8 @@ typedef struct SRSLTE_API {
   
   srslte_filesource_t file_source; 
   bool file_mode; 
-  float file_cfo; 
+  float file_cfo;
+  bool file_wrap_enable;
   srslte_cfo_t file_cfo_correct; 
   
   srslte_ue_sync_state_t state;
@@ -184,6 +185,9 @@ SRSLTE_API int srslte_ue_sync_init_file_multi(srslte_ue_sync_t *q,
                                               uint32_t nof_rx_ant);
 
 SRSLTE_API void srslte_ue_sync_free(srslte_ue_sync_t *q);
+
+SRSLTE_API void srslte_ue_sync_file_wrap(srslte_ue_sync_t *q,
+                                         bool enable);
 
 SRSLTE_API int srslte_ue_sync_set_cell(srslte_ue_sync_t *q,
                                        srslte_cell_t cell);
