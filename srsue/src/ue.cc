@@ -55,7 +55,7 @@ bool ue::init(all_args_t *args_)
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
   } else {
-    logger_file.init(args->log.filename);
+    logger_file.init(args->log.filename, args->log.file_max_size);
     logger_file.log("\n\n");
     logger_file.log(get_build_string().c_str());
     logger = &logger_file;
