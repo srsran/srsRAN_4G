@@ -359,14 +359,14 @@ void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
   }
 }
 
-uint8_t* ue::generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST], 
+uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                       uint32_t nof_pdu_elems, uint32_t grant_size)
 {
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
   if (rlc) 
   {
-    mac_msg_dl.init_tx(tx_payload_buffer, grant_size, false);
+    mac_msg_dl.init_tx(tx_payload_buffer[tb_idx], grant_size, false);
     for (uint32_t i=0;i<nof_pdu_elems;i++) {
       if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
         allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
