@@ -117,7 +117,7 @@ void basic_test()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(13 == rlc1.get_buffer_state());
+  assert(14 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (1 byte each)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -197,7 +197,7 @@ void concat_test()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(13 == rlc1.get_buffer_state());
+  assert(14 == rlc1.get_buffer_state());
 
   // Read 1 PDUs from RLC1 containing all 5 SDUs
   byte_buffer_t pdu_buf;
@@ -263,7 +263,7 @@ void segment_test()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(58 == rlc1.get_buffer_state());
+  assert(59 == rlc1.get_buffer_state());
 
   // Read PDUs from RLC1 (force segmentation)
   byte_buffer_t pdu_bufs[20];
@@ -345,7 +345,7 @@ void retx_test()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(13 == rlc1.get_buffer_state());
+  assert(14 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (1 byte each)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -443,7 +443,7 @@ void resegment_test_1()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(58 == rlc1.get_buffer_state());
+  assert(59 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (10 bytes each)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -553,7 +553,7 @@ void resegment_test_2()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(58 == rlc1.get_buffer_state());
+  assert(59 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (5 bytes, 10 bytes, 20 bytes, 10 bytes, 5 bytes)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -660,7 +660,7 @@ void resegment_test_3()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(58 == rlc1.get_buffer_state());
+  assert(59 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (5 bytes, 5 bytes, 20 bytes, 10 bytes, 10 bytes)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -763,7 +763,7 @@ void resegment_test_4()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(58 == rlc1.get_buffer_state());
+  assert(59 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (5 bytes, 5 bytes, 30 bytes, 5 bytes, 5 bytes)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -866,7 +866,7 @@ void resegment_test_5()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(58 == rlc1.get_buffer_state());
+  assert(59 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (2 bytes, 3 bytes, 40 bytes, 3 bytes, 2 bytes)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -975,7 +975,7 @@ void resegment_test_6()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(368 == rlc1.get_buffer_state());
+  assert(369 == rlc1.get_buffer_state());
 
   // Read PDUs from RLC1 (10, 10, 10, 270, 54)
   byte_buffer_t pdu_bufs[5];
