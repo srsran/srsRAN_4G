@@ -70,12 +70,15 @@ nas_filename = /tmp/nas.pcap
 #
 # filename: File path to use for log output. Can be set to stdout
 #           to print logs to standard output
+# file_max_size: Maximum file size (in kilobytes). When passed, multiple files are created.
+#                If set to negative, a single log file will be created.
 #####################################################################
 [log]
 all_level = info
 phy_lib_level = none
 all_hex_limit = 32
 filename = /tmp/ue.log
+file_max_size = -1
 
 #####################################################################
 # USIM configuration

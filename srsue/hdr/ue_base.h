@@ -99,6 +99,7 @@ typedef struct {
   int           nas_hex_limit;
   int           usim_hex_limit;
   int           all_hex_limit;
+  int           file_max_size;
   std::string   filename;
 }log_args_t;
 
