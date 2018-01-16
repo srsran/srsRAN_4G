@@ -213,6 +213,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  printf("Ok - wrote %d subframes\n", subframe_count);
+  printf("\nOk - wrote %d subframes\n", subframe_count);
   exit(0);
 }
