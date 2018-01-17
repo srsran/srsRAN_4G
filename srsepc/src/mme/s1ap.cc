@@ -285,7 +285,7 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, enb_sri, 0);
     if(n_sent == -1)
     {
-      m_s1ap_log->console("Failed to send S1 Setup Setup Reply");
+      m_s1ap_log->console("Failed to send S1 Setup Setup Reply\n");
       m_pool->deallocate(reply_buffer);
       return false;
     }
