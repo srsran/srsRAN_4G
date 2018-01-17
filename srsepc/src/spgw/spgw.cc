@@ -33,6 +33,7 @@
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <linux/ip.h>
 #include "spgw/spgw.h"
 #include "mme/mme_gtpc.h"
 #include "srslte/upper/gtpu.h"
@@ -269,7 +270,7 @@ spgw::run_thread()
 
   struct sockaddr src_addr;
   socklen_t addrlen;
-
+  struct iphdr   *ip_pkt;
   int sgi = m_sgi_if;
 
   fd_set set;
@@ -293,18 +294,37 @@ spgw::run_thread()
       //m_spgw_log->info("Data is available now.\n");
       if (FD_ISSET(m_s1u, &set))
       {
-          msg->N_bytes = recvfrom(m_s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen );
-          //m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
-          //m_spgw_log->debug("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
-          handle_s1u_pdu(msg);
+        msg->N_bytes = recvfrom(m_s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen );
+        m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
+        //m_spgw_log->debug("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
+        handle_s1u_pdu(msg);
       }
       if (FD_ISSET(m_sgi_if, &set))
       {
-          //m_spgw_log->console("Received PDU from SGi\n");
-          msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-          //m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
-          //m_spgw_log->debug("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
-          handle_sgi_pdu(msg);
+        msg->msg[0] = 0x0; 
+        msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+        m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
+        //m_spgw_log->debug("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
+        if (msg->msg[0] != 0x60) {
+          //pdu->N_bytes = idx + N_bytes;
+          ip_pkt       = (struct iphdr*)msg->msg;
+
+          //log_h->debug_hex(pdu->msg, pdu->N_bytes, 
+          //                 "Read %d bytes from TUN/TAP\n", 
+          //                 N_bytes);
+          
+          // Check if entire packet was received
+          if(ntohs(ip_pkt->tot_len) == msg->N_bytes)
+          {
+            //Handle SGi PDU
+            msg->set_timestamp();
+            handle_sgi_pdu(msg);
+          }
+          else
+          {
+            m_spgw_log->console("Did not read all bytes!!!");
+          }
+        } 
       }
     }
     else
@@ -378,7 +398,8 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
     m_spgw_log->error("Error sending packet to eNB\n");
     return;
   }
-  //m_spgw_log->console("Sent packet to %s:%d. Bytes=%d\n",inet_ntoa(enb_addr.sin_addr), GTPU_RX_PORT,n);
+  m_spgw_log->console("Sent packet to %s:%d. Bytes=%d/%d\n",inet_ntoa(enb_addr.sin_addr), GTPU_RX_PORT,n,msg->N_bytes);
+
   return;
 }
 
@@ -386,11 +407,11 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
 void
 spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
 {
-  m_spgw_log->console("Received PDU from S1-U. Bytes=%d\n",msg->N_bytes);
+  //m_spgw_log->console("Received PDU from S1-U. Bytes=%d\n",msg->N_bytes);
   srslte::gtpu_header_t header;
   srslte::gtpu_read_header(msg, &header);
  
-  m_spgw_log->console("TEID 0x%x. Bytes=%d\n", header.teid, msg->N_bytes);
+  //m_spgw_log->console("TEID 0x%x. Bytes=%d\n", header.teid, msg->N_bytes);
   int n = write(m_sgi_if, msg->msg, msg->N_bytes);
   if(n<0)
   {
@@ -398,7 +419,7 @@ spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
   }
   else
   {
-    m_spgw_log->console("Forwarded packet to TUN interface\n");
+    m_spgw_log->console("Forwarded packet to TUN interface. Bytes= %d/%d\n", n, msg->N_bytes);
   }
   return;
 }

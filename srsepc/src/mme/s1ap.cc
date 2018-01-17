@@ -435,8 +435,9 @@ s1ap::activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi)
 uint32_t
 s1ap::allocate_m_tmsi(uint32_t mme_ue_s1ap_id)
 {
-  uint32_t m_tmsi = m_next_m_tmsi++;
-  m_tmsi_to_s1ap_id.insert(std::pair<uint32_t,uint32_t>(m_tmsi,mme_ue_s1ap_id));
+  //uint32_t m_tmsi = m_next_m_tmsi++;
+  //m_tmsi_to_s1ap_id.insert(std::pair<uint32_t,uint32_t>(m_tmsi,mme_ue_s1ap_id));
+  uint32_t m_tmsi = 0x0123;
   return m_tmsi;
 }
 
