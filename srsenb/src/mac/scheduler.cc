@@ -648,7 +648,7 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
                        user->get_locations(current_cfi, sf_idx),
                        aggr_level, user))
       {     
-        bool is_newtx = h->is_empty(0);
+        bool is_newtx = h->is_empty(0) && h->is_empty(1) ;
         int tbs = 0;
         switch(dci_format) {
           case SRSLTE_DCI_FORMAT1:
@@ -663,7 +663,7 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
           default:
             Error("DCI format (%d) not implemented\n", dci_format);
         }
-        if (tbs >= 0) {
+        if (tbs > 0) {
           log_h->info("SCHED: DL %s rnti=0x%x, pid=%d, mask=0x%x, dci=%d,%d, n_rtx=%d, tbs=%d, buffer=%d, tb_en={%s,%s}\n",
                       !is_newtx?"retx":"tx", rnti, h->get_id(), h->get_rbgmask(), 
                       data[nof_data_elems].dci_location.L, data[nof_data_elems].dci_location.ncce, h->nof_retx(0) + h->nof_retx(1),

@@ -359,14 +359,14 @@ void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
   }
 }
 
-uint8_t* ue::generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST], 
+uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                       uint32_t nof_pdu_elems, uint32_t grant_size)
 {
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
   if (rlc) 
   {
-    mac_msg_dl.init_tx(tx_payload_buffer, grant_size, false);
+    mac_msg_dl.init_tx(tx_payload_buffer[tb_idx], grant_size, false);
     for (uint32_t i=0;i<nof_pdu_elems;i++) {
       if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
         allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
@@ -408,7 +408,11 @@ void ue::metrics_phr(float phr) {
 }
 
 void ue::metrics_dl_ri(uint32_t dl_ri) {
-  metrics.dl_ri = SRSLTE_VEC_EMA((float) dl_ri, metrics.dl_ri, 0.5f);
+  if (metrics.dl_ri == 0.0f) {
+    metrics.dl_ri = (float) dl_ri + 1.0f;
+  } else {
+    metrics.dl_ri = SRSLTE_VEC_EMA((float) dl_ri + 1.0f, metrics.dl_ri, 0.5f);
+  }
   dl_ri_counter++;
 }
 

@@ -471,7 +471,7 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
   srslte_ra_dl_grant_t grant;
   srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
   uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
-  uint32_t req_bytes = get_pending_dl_new_data(tti);
+  bool no_retx = true;
 
   if (dl_ri == 0) {
     if (h->is_empty(1)) {
@@ -483,7 +483,6 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
     }
   } else {
     /* Two layers, retransmit what TBs that have not been Acknowledged */
-    bool no_retx = true;
     for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
       if (!h->is_empty(tb)) {
         tb_en[tb] = true;
@@ -498,35 +497,33 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
   }
 
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    uint32_t req_bytes = get_pending_dl_new_data(tti);
     int mcs = 0;
     int tbs = 0;
 
-    if (tb_en[tb]) {
-      if (h->is_empty(tb)) {
-        if (fixed_mcs_dl < 0) {
-          tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
-        } else {
-          tbs = srslte_ra_tbs_from_idx((uint32_t) srslte_ra_tbs_idx_from_mcs((uint32_t) fixed_mcs_dl), nof_prb) / 8;
-          mcs = fixed_mcs_dl;
-        }
-
-        h->new_tx(tb, tti, mcs, tbs, data->dci_location.ncce);
-
-        int rem_tbs = tbs;
-        int x = 0;
-        do {
-          x = alloc_pdu(rem_tbs, &data->pdu[tb][data->nof_pdu_elems[tb]]);
-          rem_tbs -= x;
-          if (x) {
-            data->nof_pdu_elems[tb]++;
-          }
-        } while (rem_tbs > 0 && x > 0);
-
-        Debug("SCHED: Alloc format2/2a new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
+    if (!h->is_empty(tb)) {
+      h->new_retx(tb, tti, &mcs, &tbs);
+      Debug("SCHED: Alloc format2/2a previous mcs=%d, tbs=%d\n", mcs, tbs);
+    } else if (tb_en[tb] && req_bytes && no_retx) {
+      if (fixed_mcs_dl < 0) {
+        tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
       } else {
-        h->new_retx(tb, tti, &mcs, &tbs);
-        Debug("SCHED: Alloc format2/2a previous mcs=%d, tbs=%d\n", mcs, tbs);
+        tbs = srslte_ra_tbs_from_idx((uint32_t) srslte_ra_tbs_idx_from_mcs((uint32_t) fixed_mcs_dl), nof_prb) / 8;
+        mcs = fixed_mcs_dl;
       }
+      h->new_tx(tb, tti, mcs, tbs, data->dci_location.ncce);
+
+      int rem_tbs = tbs;
+      int x = 0;
+      do {
+        x = alloc_pdu(rem_tbs, &data->pdu[tb][data->nof_pdu_elems[tb]]);
+        rem_tbs -= x;
+        if (x) {
+          data->nof_pdu_elems[tb]++;
+        }
+      } while (rem_tbs > 0 && x > 0);
+
+      Debug("SCHED: Alloc format2/2a new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
     }
 
     /* Fill DCI TB dedicated fields */
@@ -545,12 +542,6 @@ int sched_ue::generate_format2a(dl_harq_proc *h,
     } else {
       data->tbs[tb] = 0;
       dci->tb_en[tb] = false;
-    }
-
-    if ( req_bytes > (uint32_t) tbs) {
-      req_bytes -= tbs;
-    } else {
-      req_bytes = 0;
     }
   }
 
@@ -596,6 +587,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   
   ul_harq_proc::ul_alloc_t allocation = h->get_alloc();
   
+  bool is_newtx = true;
   if (h->get_rar_mcs(&mcs)) {
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
     h->new_tx(tti, mcs, tbs); 
@@ -616,6 +608,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
 
   } else {    
     h->new_retx(0, tti, &mcs, NULL);
+    is_newtx = false;
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
   }
   
@@ -625,8 +618,12 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   if (tbs > 0) {
     dci->type2_alloc.L_crb = allocation.L;
     dci->type2_alloc.RB_start = allocation.RB_start;
-    dci->mcs_idx     = mcs; 
     dci->rv_idx      = sched::get_rvidx(h->nof_retx(0));
+    if (!is_newtx && h->is_adaptive_retx()) {
+      dci->mcs_idx     = 28+dci->rv_idx;
+    } else {
+      dci->mcs_idx     = mcs;
+    }
     dci->ndi         = h->get_ndi(0);
     dci->cqi_request = cqi_request; 
     dci->freq_hop_fl = srslte_ra_ul_dci_t::SRSLTE_RA_PUSCH_HOP_DISABLED; 

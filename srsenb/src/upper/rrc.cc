@@ -820,6 +820,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
       parent->s1ap->write_pdu(rnti, pdu);
       break;
     case LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_RECONFIG_COMPLETE:
+      handle_rrc_reconf_complete(&ul_dcch_msg.msg.rrc_con_reconfig_complete, pdu);
       parent->rrc_log->console("User 0x%x connected\n", rnti);
       state = RRC_STATE_REGISTERED; 
       break;
@@ -885,6 +886,16 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
     parent->s1ap->initial_ue(rnti, pdu);
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+}
+
+void rrc::ue::handle_rrc_reconf_complete(LIBLTE_RRC_CONNECTION_RECONFIGURATION_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu)
+{
+  parent->rrc_log->info("RRCReconfigurationComplete transaction ID: %d\n", msg->rrc_transaction_id);
+
+
+  // Acknowledge Dedicated Configuration
+  parent->phy->set_conf_dedicated_ack(rnti, true);
+  parent->mac->phy_config_enabled(rnti, true);
 }
 
 void rrc::ue::handle_security_mode_complete(LIBLTE_RRC_SECURITY_MODE_COMPLETE_STRUCT *msg)
@@ -1132,12 +1143,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->sched_request_cnfg.setup_present = true; 
   phy_cfg->sched_request_cnfg.dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
 
-  if (parent->cfg.antenna_info.tx_mode > LIBLTE_RRC_TRANSMISSION_MODE_1) {
-    memcpy(&phy_cfg->antenna_info_explicit_value, &parent->cfg.antenna_info,
-           sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
-    phy_cfg->antenna_info_present = true;
-    phy_cfg->antenna_info_default_value = false;
-  }
+  phy_cfg->antenna_info_default_value = true;
+  phy_cfg->antenna_info_present = false;
 
   if (is_setup) {
     if (sr_allocate(parent->cfg.sr_cfg.period, &phy_cfg->sched_request_cnfg.sr_cnfg_idx, &phy_cfg->sched_request_cnfg.sr_pucch_resource_idx)) {
@@ -1155,30 +1162,24 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->ul_pwr_ctrl_ded.accumulation_en = true;
   phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch = 0, 
   phy_cfg->ul_pwr_ctrl_ded.p_srs_offset = 3; 
-  
-  phy_cfg->pdsch_cnfg_ded_present = true; 
-  phy_cfg->pdsch_cnfg_ded = LIBLTE_RRC_PDSCH_CONFIG_P_A_DB_0; 
-  
+
+  // PDSCH
+  phy_cfg->pdsch_cnfg_ded_present = true;
+  phy_cfg->pdsch_cnfg_ded = parent->cfg.pdsch_cfg;
+
+  // PUCCH
+  phy_cfg->pucch_cnfg_ded_present = true;
+  phy_cfg->pucch_cnfg_ded.ack_nack_repetition_n1_pucch_an = 0;
+
   phy_cfg->cqi_report_cnfg_present = true; 
   if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
     phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true; 
-    if (phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31;
-    } else {
-      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
-    }
+    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
   } else {
     phy_cfg->cqi_report_cnfg.report_periodic_present = true; 
     phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true; 
     phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic = LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI; 
-    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
-        phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = true;
-      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx = 483;
-    } else {
-      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false;
-    }
+    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = false;
     if (is_setup) {
       if (cqi_allocate(parent->cfg.cqi_cfg.period, 
                        &phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx, 
@@ -1317,19 +1318,31 @@ void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 
   phy_cfg->cqi_report_cnfg_present = true;
   if (cqi_allocated) {
-    phy_cfg->cqi_report_cnfg.report_periodic_present = true; 
-    phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true; 
-    phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic = LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI; 
-    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = false; 
-    phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false;    
-    phy_cfg->cqi_report_cnfg.report_periodic.pucch_resource_idx = cqi_pucch; 
-    phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx       = cqi_idx;
+    cqi_get(&phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx,
+            &phy_cfg->cqi_report_cnfg.report_periodic.pucch_resource_idx);
+    phy_cfg->cqi_report_cnfg.report_periodic_present = true;
+    phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true;
+    phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic =
+        LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI;
+    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    if (parent->cfg.antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+        parent->cfg.antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = true;
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx = 483; /* TODO: HARDCODED! Add to UL scheduler */
+    } else {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false;
+    }
   } else {
-    phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true; 
-    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30; 
-    phy_cfg->cqi_report_cnfg.nom_pdsch_rs_epre_offset = 0;     
+    phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true;
+    if (phy_cfg->antenna_info_present &&
+        parent->cfg.antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
+    }
   }
-  
+  parent->phy->set_config_dedicated(rnti, phy_cfg);
+
   sr_get(&phy_cfg->sched_request_cnfg.sr_cnfg_idx, &phy_cfg->sched_request_cnfg.sr_pucch_resource_idx);
   
   pdu->reset();
@@ -1358,6 +1371,50 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   conn_reconf->mob_ctrl_info_present = false; 
   conn_reconf->sec_cnfg_ho_present   = false; 
   
+  LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cfg = &conn_reconf->rr_cnfg_ded.phy_cnfg_ded;
+  bzero(phy_cfg, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
+  conn_reconf->rr_cnfg_ded.phy_cnfg_ded_present  = true;
+
+  if (parent->cfg.antenna_info.tx_mode > LIBLTE_RRC_TRANSMISSION_MODE_1) {
+    memcpy(&phy_cfg->antenna_info_explicit_value, &parent->cfg.antenna_info,
+           sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+    phy_cfg->antenna_info_present = true;
+    phy_cfg->antenna_info_default_value = false;
+  }
+
+  // Configure PHY layer
+  phy_cfg->cqi_report_cnfg_present = true;
+  if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
+    phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true;
+    if (phy_cfg->antenna_info_present &&
+        phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
+    }
+  } else {
+    cqi_get(&phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx,
+            &phy_cfg->cqi_report_cnfg.report_periodic.pucch_resource_idx);
+    phy_cfg->cqi_report_cnfg.report_periodic_present = true;
+    phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true;
+    phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic = LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI;
+    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    if (phy_cfg->antenna_info_present &&
+        (phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+            phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4)) {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = true;
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx = 483;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false;
+    }
+  }
+  phy_cfg->cqi_report_cnfg.nom_pdsch_rs_epre_offset = 0;
+
+  parent->phy->set_config_dedicated(rnti, phy_cfg);
+  parent->phy->set_conf_dedicated_ack(rnti, false);
+  parent->mac->set_dl_ant_info(rnti, &phy_cfg->antenna_info_explicit_value);
+  parent->mac->phy_config_enabled(rnti, false);
+
   // Add SRB2 to the message 
   conn_reconf->rr_cnfg_ded.srb_to_add_mod_list_size = 1; 
   conn_reconf->rr_cnfg_ded.srb_to_add_mod_list[0].srb_id = 2; 
