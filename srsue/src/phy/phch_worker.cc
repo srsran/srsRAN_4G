@@ -382,39 +382,21 @@ void phch_worker::work_imp()
 #endif
 }
 
-void phch_worker::compute_ri() {
-  if (uci_data.uci_ri_len > 0) {
-    /* Do nothing */
-  } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
+  if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
     if (ue_dl.nof_rx_antennas > 1) {
       /* If 2 ort more receiving antennas, select RI */
       float cn = 0.0f;
-      srslte_ue_dl_ri_select(&ue_dl, &uci_data.uci_ri, &cn);
-      Info("RI select %d layers, κ=%fdB\n", uci_data.uci_ri + 1, cn);
+      srslte_ue_dl_ri_select(&ue_dl, ri, &cn);
+      Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
     } else {
       /* If only one receiving antenna, force RI for 1 layer */
       uci_data.uci_ri = 0;
-      Warning("Only one receiving antenna with TM3. Forcing RI=1 layer.\n");
     }
     uci_data.uci_ri_len = 1;
   } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-    float sinr = 0.0f;
-    uint8 packed_pmi = 0;
-    srslte_ue_dl_ri_pmi_select(&ue_dl, &uci_data.uci_ri, &packed_pmi, &sinr);
-    if (uci_data.uci_ri == 0) {
-      uci_data.uci_pmi_len = 2;
-      uci_data.uci_dif_cqi_len = 0;
-    } else {
-      uci_data.uci_pmi_len = 1;
-      uci_data.uci_dif_cqi_len = 3;
-    }
-    srslte_bit_unpack_vector(&packed_pmi, uci_data.uci_pmi, uci_data.uci_pmi_len);
-    Info("ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
-
-    /* If only one antenna in TM4 print limitation warning */
-    if (ue_dl.nof_rx_antennas < 2) {
-      Warning("Only one receiving antenna with TM4. Forcing RI=1 layer (PMI=%d).\n", packed_pmi);
-    }
+    srslte_ue_dl_ri_pmi_select(&ue_dl, ri, pmi, sinr);
+    Debug("TM4 ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
     uci_data.uci_ri_len = 1;
   }
 }
@@ -867,23 +849,28 @@ void phch_worker::set_uci_periodic_cqi()
 {
   int cqi_fixed     = phy->args->cqi_fixed;
   int cqi_max       = phy->args->cqi_max;
-  
+
+  uint8_t ri = (uint8_t) ue_dl.ri;
+  uint8_t pmi = (uint8_t) ue_dl.pmi[ri];
+  float sinr = ue_dl.sinr[ri][pmi];
+
   if (period_cqi.configured && rnti_is_set) {
     if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, TTI_TX(tti))) {
       /* Compute RI, PMI and SINR */
-      compute_ri();
-
+      compute_ri(&ri, &pmi, &sinr);
+      uci_data.uci_ri = ri;
+      uci_data.uci_ri_len = 1;
       uci_data.ri_periodic_report = true;
-      Info("PUCCH: Periodic RI=%d\n", uci_data.uci_ri);
+      Debug("PUCCH: Periodic ri=%d\n", ri);
     } else if (srslte_cqi_send(period_cqi.pmi_idx, TTI_TX(tti))) {
-      srslte_cqi_value_t cqi_report;
+      srslte_cqi_value_t cqi_report = {0};
       if (period_cqi.format_is_subband) {
         // TODO: Implement subband periodic reports
         cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND;
         cqi_report.subband.subband_cqi = srslte_cqi_from_snr(phy->avg_snr_db);
         cqi_report.subband.subband_label = 0;
         log_h->console("Warning: Subband CQI periodic reports not implemented\n");
-        Info("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.subband.subband_cqi, phy->avg_snr_db);
+        Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.subband.subband_cqi, phy->avg_snr_db);
       } else {
         cqi_report.type = SRSLTE_CQI_TYPE_WIDEBAND;
         if (cqi_fixed >= 0) {
@@ -894,19 +881,14 @@ void phch_worker::set_uci_periodic_cqi()
         if (cqi_max >= 0 && cqi_report.wideband.wideband_cqi > cqi_max) {
           cqi_report.wideband.wideband_cqi = cqi_max; 
         }
-        Info("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db);
-      }
-      if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-        if (ue_dl.ri == 0) {
-          uci_data.uci_pmi_len = 2;
-        } else {
-          uci_data.uci_pmi_len = 1;
-          uci_data.uci_dif_cqi_len = 3;
+        if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+          cqi_report.wideband.pmi_present = true;
+          cqi_report.wideband.pmi = pmi;
+          cqi_report.wideband.rank_is_not_one = (ri != 0);
         }
-        uint8_t *ptr = uci_data.uci_pmi;
-        srslte_bit_unpack(ue_dl.pmi[ue_dl.ri], &ptr, uci_data.uci_pmi_len);
+        Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db);
       }
-      uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+      uci_data.uci_cqi_len = (uint32_t) srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
       rar_cqi_request = false;       
     }
   }
@@ -914,9 +896,13 @@ void phch_worker::set_uci_periodic_cqi()
 
 void phch_worker::set_uci_aperiodic_cqi()
 {
+  uint8_t ri = (uint8_t) ue_dl.ri;
+  uint8_t pmi = (uint8_t) ue_dl.pmi[ri];
+  float sinr = ue_dl.sinr[ri][pmi];
+
   if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
     /* Compute RI, PMI and SINR */
-    compute_ri();
+    compute_ri(&ri, &pmi, &sinr);
 
     switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
@@ -1054,14 +1040,20 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   snprintf(timestr, 64, ", tot_time=%4d us", (int) logtime_start[0].tv_usec);
 #endif
 
+  char cqi_str[32] = "";
+  srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 32);
+
   uint8_t dummy[2] = {0,0};
-  log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d, ack=%s, ri=%s, cfo=%.1f KHz%s\n",
-       (tti+HARQ_DELAY_MS)%10240,
-       grant->n_prb[0], grant->n_prb[0]+grant->L_prb,
-       grant->mcs.tbs/8, grant->mcs.idx, rv,
-       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
-       uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
-       cfo*15, timestr);
+  log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s%s\n",
+              (tti + HARQ_DELAY_MS) % 10240,
+              grant->n_prb[0], grant->n_prb[0] + grant->L_prb,
+              grant->mcs.tbs / 8, grant->mcs.idx, rv,
+              uci_data.uci_ack_len > 0 ? (uci_data.uci_ack ? ", ack=1" : "0") : "",
+              uci_data.uci_ack_len > 1 ? (uci_data.uci_ack_2 ? "1" : "0") : "",
+              uci_data.uci_ri_len > 0 ? (uci_data.uci_ri ? ", ri=1" : ", ri=0") : "",
+              cfo * 15, timestr,
+              uci_data.uci_cqi_len > 0 ? ", cqi=" : "",
+              uci_data.uci_cqi_len > 0 ? cqi_str : "");
 
   // Store metrics
   ul_metrics.mcs   = grant->mcs.idx;
@@ -1101,17 +1093,20 @@ void phch_worker::encode_pucch()
 
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
-  
-  Info("PUCCH: tti_tx=%d, n_pucch=%d, n_prb=%d, ack=%s%s, ri=%s, pmi=%s%s, sr=%s, cfo=%.1f KHz%s\n",
-         (tti+4)%10240,
+
+    char str_cqi[32] = "";
+    srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, str_cqi, 32);
+
+    Info("PUCCH: tti_tx=%d, n_pucch=%d, n_prb=%d, ack=%s%s%s%s%s, sr=%s, cfo=%.1f KHz%s\n",
+         (tti + 4) % 10240,
          ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb,
-         uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
-         uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",
-         uci_data.uci_ri_len>0?(uci_data.uci_ri?"1":"0"):"no",
-         uci_data.uci_pmi_len>0?(uci_data.uci_pmi[1]?"1":"0"):"no",
-         uci_data.uci_pmi_len>0?(uci_data.uci_pmi[0]?"1":"0"):"",
-         uci_data.scheduling_request?"yes":"no",
-         cfo*15, timestr);
+         uci_data.uci_ack_len > 0 ? (uci_data.uci_ack ? "1" : "0") : "no",
+         uci_data.uci_ack_len > 1 ? (uci_data.uci_ack_2 ? "1" : "0") : "",
+         uci_data.uci_ri_len > 0 ? (uci_data.uci_ri ? ", ri=1" : ", ri=0") : "",
+         uci_data.uci_cqi_len > 0 ? ", cqi=" : "",
+         uci_data.uci_cqi_len > 0 ? str_cqi : "",
+         uci_data.scheduling_request ? "yes" : "no",
+         cfo * 15, timestr);
   }
   
   if (uci_data.scheduling_request) {

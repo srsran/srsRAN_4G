@@ -228,45 +228,81 @@ void phch_worker::set_conf_dedicated_ack(uint16_t rnti, bool ack){
 }
 
 void phch_worker::set_config_dedicated(uint16_t rnti,
-                                       srslte_uci_cfg_t *uci_cfg,
-                                       srslte_pucch_sched_t *pucch_sched,
                                        srslte_refsignal_srs_cfg_t *srs_cfg, 
                                        LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
-  uint32_t  I_sr = dedicated->sched_request_cnfg.sr_cnfg_idx;
-  bool pucch_cqi = dedicated->cqi_report_cnfg.report_periodic_setup_present;
-  uint32_t pmi_idx = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
   bool pucch_cqi_ack = dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi;
   bool pucch_ri = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present;
-  uint32_t ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
 
   pthread_mutex_lock(&mutex);
   if (ue_db.count(rnti)) {
-    pucch_sched->N_pucch_1 = phy->pucch_cfg.n1_pucch_an;
-    srslte_enb_ul_cfg_ue(&enb_ul, rnti, uci_cfg, pucch_sched, srs_cfg);
+    /* PUSCH UCI and scheduling configuration */
+    srslte_uci_cfg_t uci_cfg = {0};
+    if (dedicated->pusch_cnfg_ded_present && dedicated->sched_request_cnfg_present) {
+      uci_cfg.I_offset_ack = dedicated->pusch_cnfg_ded.beta_offset_ack_idx;
+      uci_cfg.I_offset_cqi = dedicated->pusch_cnfg_ded.beta_offset_cqi_idx;
+      uci_cfg.I_offset_ri = dedicated->pusch_cnfg_ded.beta_offset_ri_idx;
 
-    ue_db[rnti].I_sr    = I_sr;
-    ue_db[rnti].I_sr_en = true;
+      srslte_pucch_sched_t pucch_sched = {false};
+      pucch_sched.N_pucch_1 = phy->pucch_cfg.n1_pucch_an;
+      pucch_sched.n_pucch_2 = dedicated->cqi_report_cnfg.report_periodic.pucch_resource_idx;
+      pucch_sched.n_pucch_sr = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
+      srslte_enb_ul_cfg_ue(&enb_ul, rnti, &uci_cfg, &pucch_sched, srs_cfg);
 
-    if (pucch_cqi) {
-      ue_db[rnti].pmi_idx = pmi_idx;
-      ue_db[rnti].cqi_en  = true;
+      ue_db[rnti].I_sr = dedicated->sched_request_cnfg.sr_cnfg_idx;
+      ue_db[rnti].I_sr_en = true;
+    }
+
+    /* CQI Reporting */
+    if (dedicated->cqi_report_cnfg.report_periodic_setup_present) {
+      ue_db[rnti].pmi_idx = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
+      ue_db[rnti].cqi_en = true;
       ue_db[rnti].pucch_cqi_ack = pucch_cqi_ack;
     } else {
       ue_db[rnti].pmi_idx = 0;
-      ue_db[rnti].cqi_en  = false;
+      ue_db[rnti].cqi_en = false;
     }
 
+    /* RI reporting */
     if (pucch_ri) {
-      ue_db[rnti].ri_idx = ri_idx;
-      ue_db[rnti].ri_en  = true;
+      ue_db[rnti].ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
+      ue_db[rnti].ri_en = true;
     } else {
       ue_db[rnti].ri_idx = 0;
-      ue_db[rnti].ri_en  = false;
+      ue_db[rnti].ri_en = false;
     }
 
-    /* Copy all dedicated RRC configuration to UE */
-    memcpy(&ue_db[rnti].dedicated, dedicated, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
+    if (dedicated->antenna_info_present) {
+      /* If default antenna info then follow 3GPP 36.331 clause 9.2.4 Default physical channel configuration */
+      if (dedicated->antenna_info_default_value) {
+        if (enb_dl.cell.nof_ports == 1) {
+          ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode = LIBLTE_RRC_TRANSMISSION_MODE_1;
+        } else {
+          ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode = LIBLTE_RRC_TRANSMISSION_MODE_2;
+        }
+        ue_db[rnti].dedicated.antenna_info_explicit_value.codebook_subset_restriction_present = false;
+        ue_db[rnti].dedicated.antenna_info_explicit_value.ue_tx_antenna_selection_setup_present = false;
+        ue_db[rnti].ri_idx = 0;
+        ue_db[rnti].ri_en = false;
+      } else {
+        /* Physical channel reconfiguration according to 3GPP 36.331 clause 5.3.10.6 */
+        memcpy(&ue_db[rnti].dedicated.antenna_info_explicit_value,
+               &dedicated->antenna_info_explicit_value,
+               sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+        if (dedicated->antenna_info_explicit_value.tx_mode != LIBLTE_RRC_TRANSMISSION_MODE_3 &&
+            dedicated->antenna_info_explicit_value.tx_mode != LIBLTE_RRC_TRANSMISSION_MODE_4 &&
+            ue_db[rnti].ri_en) {
+          ue_db[rnti].ri_idx = 0;
+          ue_db[rnti].ri_en = false;
+        }
+      }
+    }
+
+    /* Set PDSCH power allocation */
+    if (dedicated->pdsch_cnfg_ded_present) {
+      ue_db[rnti].dedicated.pdsch_cnfg_ded_present = true;
+      ue_db[rnti].dedicated.pdsch_cnfg_ded = dedicated->pdsch_cnfg_ded;
+    }
   } else {
     Error("Setting config dedicated: rnti=0x%x does not exist\n");
   }
@@ -362,7 +398,7 @@ void phch_worker::work_imp()
   encode_phich(ul_grants[t_tx_ul].phich, ul_grants[t_tx_ul].nof_phich);
 
   // Prepare for receive ACK for DL grants in t_tx_dl+4
-  phy->ack_clear(TTIMOD(TTI_TX(t_tx_dl)));
+  phy->ue_db_clear(TTIMOD(TTI_TX(t_tx_dl)));
   for (uint32_t i=0;i<dl_grants[t_tx_dl].nof_grants;i++) {
     // SI-RNTI and RAR-RNTI do not have ACK
     uint16_t rnti = dl_grants[t_tx_dl].sched_grants[i].rnti;
@@ -371,7 +407,10 @@ void phch_worker::work_imp()
       for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
         /* If TB enabled, set pending ACK */
         if (dl_grants[t_tx_dl].sched_grants[i].grant.tb_en[tb_idx]) {
-          phy->ack_set_pending(TTIMOD(TTI_TX(t_tx_dl)), rnti, tb_idx, dl_grants[t_tx_dl].sched_grants[i].location.ncce);
+          phy->ue_db_set_ack_pending(TTIMOD(TTI_TX(t_tx_dl)),
+                                     rnti,
+                                     tb_idx,
+                                     dl_grants[t_tx_dl].sched_grants[i].location.ncce);
         }
       }
     }
@@ -408,10 +447,9 @@ unlock:
 
 int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
 {
-  srslte_uci_data_t uci_data;
-  bzero(&uci_data, sizeof(srslte_uci_data_t));
-
-  uint32_t wideband_cqi_value = 0;
+  srslte_uci_data_t uci_data = {0};
+  uint32_t wideband_cqi_value = 0, wideband_pmi = 0;
+  bool wideband_pmi_present = false;
 
   uint32_t n_rb_ho = 0;
   for (uint32_t i=0;i<nof_pusch;i++) {
@@ -428,7 +466,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
 
       // Get pending ACKs with an associated PUSCH transmission
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-        acks_pending[tb] = phy->ack_is_pending(t_rx, rnti, tb);
+        acks_pending[tb] = phy->ue_db_is_ack_pending(t_rx, rnti, tb);
         if (acks_pending[tb]) {
           uci_data.uci_ack_len++;
         }
@@ -437,24 +475,29 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       // Configure PUSCH CQI channel
       srslte_cqi_value_t cqi_value = {0};
       bool cqi_enabled = false;
-#if 0
+
       if (ue_db[rnti].cqi_en && ue_db[rnti].ri_en && srslte_ri_send(ue_db[rnti].pmi_idx, ue_db[rnti].ri_idx, tti_rx) ) {
         uci_data.uci_ri_len = 1; /* Asumes only 1 bit for RI */
-        ri_enabled = true;
+        uci_data.ri_periodic_report = true;
       } else if (ue_db[rnti].cqi_en && srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
         cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND;
         cqi_enabled = true;
         if (ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-          //uci_data.uci_dif_cqi_len = 3;
-          uci_data.uci_pmi_len = 2;
+          cqi_value.wideband.pmi_present = true;
+          cqi_value.wideband.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
         }
-      } else
-#endif
-      if (grants[i].grant.cqi_request) {
+      } else if (grants[i].grant.cqi_request) {
         cqi_value.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
+        if (ue_db[rnti].dedicated.antenna_info_present && (
+            ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+            ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4
+        )) {
+          cqi_value.subband_hl.ri_present = true;
+        }
         cqi_value.subband_hl.N = (phy->cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(phy->cell.nof_prb) : 0;
         cqi_value.subband_hl.four_antenna_ports = (phy->cell.nof_ports == 4);
         cqi_value.subband_hl.pmi_present = (ue_db[rnti].dedicated.cqi_report_cnfg.report_mode_aperiodic == LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31);
+        cqi_value.subband_hl.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
         cqi_enabled = true;
       }
 
@@ -468,16 +511,16 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         // Handle Format0 adaptive retx
         // Use last TBS for this TB in case of mcs>28
         if (phy_grant.mcs.idx > 28) {
-          phy_grant.mcs.tbs = ue_db[rnti].last_ul_tbs[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)];
+          phy_grant.mcs.tbs = phy->ue_db_get_last_ul_tbs(rnti, tti_rx);
           Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", phy_grant.mcs.idx, phy_grant.mcs.tbs, TTI_TX(tti_rx)%(2*HARQ_DELAY_MS));
         }
-        ue_db[rnti].last_ul_tbs[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)] = phy_grant.mcs.tbs;
+        phy->ue_db_set_last_ul_tbs(rnti, tti_rx, phy_grant.mcs.tbs);
 
         if (phy_grant.mcs.mod == SRSLTE_MOD_LAST) {
-          phy_grant.mcs.mod = ue_db[rnti].last_ul_mod[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)];
+          phy_grant.mcs.mod = phy->ue_db_get_last_ul_mod(rnti, tti_rx);
           phy_grant.Qm      = srslte_mod_bits_x_symbol(phy_grant.mcs.mod);
         }
-        ue_db[rnti].last_ul_mod[TTI_RX(tti_rx)%(2*HARQ_DELAY_MS)] = phy_grant.mcs.mod;
+        phy->ue_db_set_last_ul_mod(rnti, tti_rx, phy_grant.mcs.mod);
 
 
         if (phy_grant.mcs.mod == SRSLTE_MOD_64QAM) {
@@ -512,9 +555,15 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       if (cqi_enabled) {
         if (ue_db[rnti].cqi_en) {
           wideband_cqi_value = cqi_value.wideband.wideband_cqi;
+          if (cqi_value.wideband.pmi_present) {
+            wideband_pmi_present = true;
+            wideband_pmi = cqi_value.wideband.pmi;
+          }
         } else if (grants[i].grant.cqi_request) {
           wideband_cqi_value = cqi_value.subband_hl.wideband_cqi_cw0;
           if (cqi_value.subband_hl.pmi_present) {
+            wideband_pmi_present = true;
+            wideband_pmi = cqi_value.subband_hl.pmi;
             if (cqi_value.subband_hl.rank_is_not_one) {
               Info("PUSCH: Aperiodic ri~1, CQI=%02d/%02d, pmi=%d for %d subbands\n",
                    cqi_value.subband_hl.wideband_cqi_cw0, cqi_value.subband_hl.wideband_cqi_cw1,
@@ -529,7 +578,8 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
                  cqi_value.subband_hl.wideband_cqi_cw0, cqi_value.subband_hl.N);
           }
         }
-        snprintf(cqi_str, 64, ", cqi=%d", wideband_cqi_value);
+        srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 64);
+        //snprintf(cqi_str, 64, ", cqi=%s", wideband_cqi_value);
       }
 
       float snr_db  = 10*log10(srslte_chest_ul_get_snr(&enb_ul.chest));
@@ -546,18 +596,20 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
         exit(-1);
       }
       */
-      log_h->info_hex(grants[i].data, phy_grant.mcs.tbs/8,
-          "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s\n",
-          rnti, phy_grant.n_prb[0], phy_grant.n_prb[0]+phy_grant.L_prb,
-          phy_grant.mcs.tbs/8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
-          snr_db,
-          srslte_pusch_last_noi(&enb_ul.pusch),
-          crc_res?"OK":"KO",
-          (uci_data.uci_ack_len)?(uci_data.uci_ack?"1":"0"):"",
-          (uci_data.uci_ack_len > 1)?(uci_data.uci_ack_2?"1":"0"):"",
-          uci_data.uci_cqi_len>0?cqi_str:"",
-          uci_data.uci_ri_len>0?(uci_data.uci_ri?", ri=0":", ri=1"):"",
-          timestr);
+      log_h->info_hex(grants[i].data, phy_grant.mcs.tbs / 8,
+                      "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s%s\n",
+                      rnti, phy_grant.n_prb[0], phy_grant.n_prb[0] + phy_grant.L_prb,
+                      phy_grant.mcs.tbs / 8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
+                      snr_db,
+                      srslte_pusch_last_noi(&enb_ul.pusch),
+                      crc_res ? "OK" : "KO",
+                      (acks_pending[0] || acks_pending[1]) ? ", ack=" : "",
+                      (acks_pending[0]) ? (uci_data.uci_ack ? "1" : "0") : "",
+                      (acks_pending[1]) ? (uci_data.uci_ack_2 ? "1" : "0") : "",
+                      uci_data.uci_cqi_len > 0 ? ", cqi=" : "",
+                      uci_data.uci_cqi_len > 0 ? cqi_str : "",
+                      uci_data.uci_ri_len > 0 ? ((uci_data.uci_ri == 0) ? ", ri=0" : ", ri=1") : "",
+                      timestr);
 
       // Notify MAC of RL status
       if (grants[i].grant.rv_idx == 0) {
@@ -589,9 +641,10 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       }
       if (uci_data.uci_ri_len > 0 && crc_res) {
         phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
+        phy->ue_db_set_ri(rnti, uci_data.uci_ri);
       }
-      if (cqi_value.subband_hl.pmi_present && crc_res) {
-        phy->mac->pmi_info(tti_rx, rnti, cqi_value.subband_hl.pmi);
+      if (wideband_pmi_present && crc_res) {
+        phy->mac->pmi_info(tti_rx, rnti, wideband_pmi);
       }
 
       // Save metrics stats
@@ -611,8 +664,7 @@ int phch_worker::decode_pucch()
 
     if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END && ue_db[rnti].has_grant_tti != (int) tti_rx) {
       // Check if user needs to receive PUCCH
-      bool needs_pucch = false, needs_ack[SRSLTE_MAX_TB] = {false}, needs_sr = false, needs_cqi = false,
-          needs_ri = false;
+      bool needs_pucch = false, needs_ack[SRSLTE_MAX_TB] = {false}, needs_sr = false, needs_cqi = false;
       uint32_t last_n_pdcch = 0;
       bzero(&uci_data, sizeof(srslte_uci_data_t));
 
@@ -625,31 +677,30 @@ int phch_worker::decode_pucch()
       }
 
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-        needs_ack[tb] = phy->ack_is_pending(t_rx, rnti, tb, &last_n_pdcch);
+        needs_ack[tb] = phy->ue_db_is_ack_pending(t_rx, rnti, tb, &last_n_pdcch);
         if (needs_ack[tb]) {
           needs_pucch = true;
           uci_data.uci_ack_len++;
         }
       }
-      srslte_cqi_value_t cqi_value;
+      srslte_cqi_value_t cqi_value = {0};
       LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &ue_db[rnti].dedicated;
       LIBLTE_RRC_TRANSMISSION_MODE_ENUM tx_mode = dedicated->antenna_info_explicit_value.tx_mode;
 
       if (ue_db[rnti].cqi_en && (ue_db[rnti].pucch_cqi_ack || !needs_ack[0] || !needs_ack[1])) {
         if (ue_db[rnti].ri_en && srslte_ri_send(ue_db[rnti].pmi_idx, ue_db[rnti].ri_idx, tti_rx)) {
           needs_pucch = true;
-          needs_ri = true;
           uci_data.uci_ri_len = 1;
           uci_data.ri_periodic_report = true;
         } else if (srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
           needs_pucch = true;
           needs_cqi = true;
           cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND;
-          uci_data.uci_cqi_len = srslte_cqi_size(&cqi_value);
           if (tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-            //uci_data.uci_dif_cqi_len = 3;
-            uci_data.uci_pmi_len = 2;
+            cqi_value.wideband.pmi_present = true;
+            cqi_value.wideband.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
           }
+          uci_data.uci_cqi_len = (uint32_t) srslte_cqi_size(&cqi_value);
         }
       }
 
@@ -671,25 +722,21 @@ int phch_worker::decode_pucch()
           phy->mac->sr_detected(tti_rx, rnti);
         }
         
-        char cqi_ri_str[64];
+        char cqi_ri_str[64] = {0};
         if (srslte_pucch_get_last_corr(&enb_ul.pucch) > PUCCH_RL_CORR_TH) {
-          if (uci_data.uci_ri_len && needs_ri) {
+          if (uci_data.ri_periodic_report) {
             phy->mac->ri_info(tti_rx, rnti, uci_data.uci_ri);
+            phy->ue_db_set_ri(rnti, uci_data.uci_ri);
             sprintf(cqi_ri_str, ", ri=%d", uci_data.uci_ri);
           } else if (uci_data.uci_cqi_len && needs_cqi) {
             srslte_cqi_value_unpack(uci_data.uci_cqi, &cqi_value);
             phy->mac->cqi_info(tti_rx, rnti, cqi_value.wideband.wideband_cqi);
             sprintf(cqi_ri_str, ", cqi=%d", cqi_value.wideband.wideband_cqi);
 
-            if (uci_data.uci_pmi_len) {
-              uint32_t packed_pmi = uci_data.uci_pmi[0];
-              if (uci_data.uci_pmi_len > 1) {
-                packed_pmi = (packed_pmi << 1) + uci_data.uci_pmi[1];
-              }
-              phy->mac->pmi_info(tti_rx, rnti, packed_pmi);
-              sprintf(cqi_ri_str, "%s, pmi=%c", cqi_ri_str, packed_pmi + 0x30);
+            if (cqi_value.type == SRSLTE_CQI_TYPE_WIDEBAND && cqi_value.wideband.pmi_present) {
+              phy->mac->pmi_info(tti_rx, rnti, cqi_value.wideband.pmi);
+              sprintf(cqi_ri_str, "%s, pmi=%d", cqi_ri_str, cqi_value.wideband.pmi);
             }
-
           }
         }
         log_h->info("PUCCH: rnti=0x%x, corr=%.2f, n_pucch=%d, n_prb=%d%s%s%s%s\n",
@@ -699,7 +746,7 @@ int phch_worker::decode_pucch()
                     (uci_data.uci_ack_len)?(uci_data.uci_ack?", ack=1":", ack=0"):"",
                     (uci_data.uci_ack_len > 1)?(uci_data.uci_ack_2?"1":"0"):"",
                     needs_sr?(uci_data.scheduling_request?", sr=yes":", sr=no"):"",
-                    (needs_cqi || needs_ri)?cqi_ri_str:"");
+                    (needs_cqi || uci_data.ri_periodic_report)?cqi_ri_str:"");
 
 
         // Notify MAC of RL status
@@ -776,6 +823,10 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
 }
 
 int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants) {
+
+  /* Scales the Resources Elements affected by the power allocation (p_b) */
+  srslte_enb_dl_prepare_power_allocation(&enb_dl);
+
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {
@@ -852,13 +903,11 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
         char tbstr[SRSLTE_MAX_TB][128];
         for (int tb = 0; tb < SRSLTE_MAX_TB; tb++) {
           if (phy_grant.tb_en[tb]) {
-            snprintf(tbstr[tb], 128, ", TB%d: tbs=%d, mcs=%d, rv=%d%s%s",
+            snprintf(tbstr[tb], 128, ", TB%d: tbs=%d, mcs=%d, rv=%d",
                      tb,
                      phy_grant.mcs[tb].tbs / 8,
                      phy_grant.mcs[tb].idx,
-                     (tb == 0) ? grants[i].grant.rv_idx : grants[i].grant.rv_idx_1,
-                     grants[i].softbuffers[tb]==NULL?", \e[31msoftbuffer=NULL\e[0m":"",
-                     grants[i].data[tb]==NULL?", \e[31mdata=NULL\e[0m":"");
+                     (tb == 0) ? grants[i].grant.rv_idx : grants[i].grant.rv_idx_1);
           } else {
             tbstr[tb][0] = '\0';
           }
@@ -871,6 +920,19 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
 
       int rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, grants[i].grant.rv_idx_1};
 
+      /* Set power allocation */
+      float rho_a = ((enb_dl.cell.nof_ports == 1) ? 1.0f : sqrtf(2.0f)), rho_b = 1.0f;
+      uint32_t pdsch_cnfg_ded = ue_db[rnti].dedicated.pdsch_cnfg_ded;
+      if (pdsch_cnfg_ded < (uint32_t) LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
+        float rho_a_db = liblte_rrc_pdsch_config_p_a_num[pdsch_cnfg_ded];
+        rho_a *= powf(10.0f, rho_a_db / 20.0f);
+      }
+      if (phy->pdsch_p_b < 4) {
+        uint32_t idx0 = (phy->cell.nof_ports == 1) ? 0 : 1;
+        float cell_specific_ratio = pdsch_cfg_cell_specific_ratio_table[idx0][phy->pdsch_p_b];
+        rho_b = sqrtf(cell_specific_ratio);
+      }
+      srslte_enb_dl_set_power_allocation(&enb_dl, rho_a, rho_b);
       if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, grants[i].softbuffers, rnti, rv, sf_tx, grants[i].data, mimo_type)) {
         fprintf(stderr, "Error putting PDSCH %d\n", i);
         return SRSLTE_ERROR;
@@ -880,6 +942,9 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
       ue_db[rnti].metrics_dl(phy_grant.mcs[0].idx);
     }
   }
+
+  srslte_enb_dl_apply_power_allocation(&enb_dl);
+
   return SRSLTE_SUCCESS;
 }
 
@@ -964,11 +1029,32 @@ int phch_worker::read_ce_abs(float *ce_abs) {
   return sz;
 }
 
+int phch_worker::read_ce_arg(float *ce_arg) {
+  uint32_t i=0;
+  int sz = srslte_symbol_sz(phy->cell.nof_prb);
+  bzero(ce_arg, sizeof(float)*sz);
+  int g = (sz - 12*phy->cell.nof_prb)/2;
+  for (i = 0; i < 12*phy->cell.nof_prb; i++) {
+    ce_arg[g+i] = cargf(enb_ul.ce[i]) * 180.0f / (float) M_PI;
+    if (isinf(ce_arg[g+i])) {
+      ce_arg[g+i] = -80;
+    }
+  }
+  return sz;
+}
+
 int phch_worker::read_pusch_d(cf_t* pdsch_d)
 {
   int nof_re = 400;//enb_ul.pusch_cfg.nbits.nof_re
   memcpy(pdsch_d, enb_ul.pusch.d, nof_re*sizeof(cf_t));
   return nof_re; 
+}
+
+int phch_worker::read_pucch_d(cf_t* pdsch_d)
+{
+  int nof_re = SRSLTE_PUCCH_MAX_BITS/2;//enb_ul.pusch_cfg.nbits.nof_re
+  memcpy(pdsch_d, enb_ul.pucch.z_tmp, nof_re*sizeof(cf_t));
+  return nof_re;
 }
 
 
@@ -983,12 +1069,15 @@ int phch_worker::read_pusch_d(cf_t* pdsch_d)
 
 
 #ifdef ENABLE_GUI
-plot_real_t    pce;
+plot_real_t    pce, pce_arg;
 plot_scatter_t pconst;
+plot_scatter_t pconst2;
 #define SCATTER_PUSCH_BUFFER_LEN   (20*6*SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM))
 #define SCATTER_PUSCH_PLOT_LEN    4000
 float tmp_plot[SCATTER_PUSCH_BUFFER_LEN];
+float tmp_plot_arg[SCATTER_PUSCH_BUFFER_LEN];
 cf_t  tmp_plot2[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+cf_t  tmp_pucch_plot[SRSLTE_PUCCH_MAX_BITS/2];
 
 void *plot_thread_run(void *arg) {
   srsenb::phch_worker *worker = (srsenb::phch_worker*) arg; 
@@ -998,24 +1087,42 @@ void *plot_thread_run(void *arg) {
   plot_real_setTitle(&pce, (char*) "Channel Response - Magnitude");
   plot_real_setLabels(&pce, (char*) "Index", (char*) "dB");
   plot_real_setYAxisScale(&pce, -40, 40);
+
+  plot_real_init(&pce_arg);
+  plot_real_setTitle(&pce_arg, (char*) "Channel Response - Argument");
+  plot_real_setLabels(&pce_arg, (char*) "Angle", (char*) "deg");
+  plot_real_setYAxisScale(&pce_arg, -180, 180);
   
   plot_scatter_init(&pconst);
   plot_scatter_setTitle(&pconst, (char*) "PUSCH - Equalized Symbols");
   plot_scatter_setXAxisScale(&pconst, -4, 4);
   plot_scatter_setYAxisScale(&pconst, -4, 4);
+
+  plot_scatter_init(&pconst2);
+  plot_scatter_setTitle(&pconst2, (char*) "PUCCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pconst2, -4, 4);
+  plot_scatter_setYAxisScale(&pconst2, -4, 4);
   
   plot_real_addToWindowGrid(&pce, (char*)"srsenb", 0, 0);
+  plot_real_addToWindowGrid(&pce_arg, (char*)"srsenb", 1, 0);
   plot_scatter_addToWindowGrid(&pconst, (char*)"srsenb", 0, 1);
+  plot_scatter_addToWindowGrid(&pconst2, (char*)"srsenb", 1, 1);
 
-  int n; 
+  int n, n_arg, n_pucch;
   int readed_pusch_re=0; 
   while(1) {
     sem_wait(&plot_sem);    
     
     n = worker->read_pusch_d(tmp_plot2);
+    n_pucch = worker->read_pucch_d(tmp_pucch_plot);
     plot_scatter_setNewData(&pconst, tmp_plot2, n);
+    plot_scatter_setNewData(&pconst2, tmp_pucch_plot, n_pucch);
+
     n = worker->read_ce_abs(tmp_plot);
-    plot_real_setNewData(&pce, tmp_plot, n);             
+    plot_real_setNewData(&pce, tmp_plot, n);
+
+    n_arg = worker->read_ce_arg(tmp_plot_arg);
+    plot_real_setNewData(&pce_arg, tmp_plot_arg, n_arg);
     
   }  
   return NULL;

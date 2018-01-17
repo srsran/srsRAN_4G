@@ -72,7 +72,7 @@ public:
   void     set_tti(uint32_t tti); 
   
   void     config(uint16_t rnti, uint32_t nof_prb, sched_interface *sched, rrc_interface_mac *rrc_, rlc_interface_mac *rlc, srslte::log *log_h);
-  uint8_t* generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST], 
+  uint8_t* generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                     uint32_t nof_pdu_elems, uint32_t grant_size);
   
   srslte_softbuffer_tx_t* get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx);
@@ -130,9 +130,9 @@ private:
 
   uint8_t *pending_buffers[NOF_HARQ_PROCESSES]; 
   
-  // For DL there is a single buffer 
+  // For DL there are two buffers, one for each Transport block
   const static int payload_buffer_len = 128*1024; 
-  uint8_t          tx_payload_buffer[payload_buffer_len];
+  uint8_t          tx_payload_buffer[SRSLTE_MAX_TB][payload_buffer_len];
   
   // For UL there are multiple buffers per PID and are managed by pdu_queue
   srslte::pdu_queue pdus; 
