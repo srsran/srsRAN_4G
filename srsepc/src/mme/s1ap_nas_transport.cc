@@ -427,6 +427,17 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
   bool ue_valid=true;
 
+  m_s1ap_log->console("Authentication Response -- IMSI %015lu\n", ue_ctx->imsi);
+  m_s1ap_log->console("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
+                      auth_resp.res[0],
+                      auth_resp.res[1],
+                      auth_resp.res[2],
+                      auth_resp.res[3],
+                      auth_resp.res[4],
+                      auth_resp.res[5],
+                      auth_resp.res[6],
+                      auth_resp.res[7]
+                      );
   //Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
   if(err != LIBLTE_SUCCESS){
@@ -451,20 +462,22 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
     }
     std::cout<<std::endl;
 
-    m_s1ap_log->console("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
-    m_s1ap_log->warning("UE Authentication Rejected. IMSI: %lu\n", ue_ctx->imsi);
+    m_s1ap_log->console("UE Authentication Rejected.\n");
+    m_s1ap_log->warning("UE Authentication Rejected.\n");
     //Send back Athentication Reject
     pack_authentication_reject(reply_buffer, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id);
     *reply_flag = true;
+    m_s1ap_log->console("Downlink NAS: Sending Authentication Reject.\n");
     return false;
   }
   else
   {
-    m_s1ap_log->console("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
-    m_s1ap_log->info("UE Authentication Accepted. IMSI: %lu\n", ue_ctx->imsi);
+    m_s1ap_log->console("UE Authentication Accepted.\n");
+    m_s1ap_log->info("UE Authentication Accepted.\n");
     //Send Security Mode Command
     pack_security_mode_command(reply_buffer, ue_ctx);
     *reply_flag = true;
+    m_s1ap_log->console("Downlink NAS: Sending NAS Security Mode Command.\n");
   }
   return true;
 }
@@ -586,7 +599,7 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
     imsi  += id_resp.mobile_id.imsi[i]*std::pow(10,14-i);
   }
   m_s1ap_log->info("Id Response -- IMSI: %015lu\n", imsi);
-  m_s1ap_log->info("Id Response -- IMSI: %015lu\n", imsi);
+  m_s1ap_log->console("Id Response -- IMSI: %015lu\n", imsi);
   ue_ctx->imsi = imsi;
 
   //Get Authentication Vectors from HSS
@@ -602,7 +615,8 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
 
   //Send reply to eNB
   *reply_flag = true;
-   m_s1ap_log->info("DL NAS: Sent Athentication Request\n");
+   m_s1ap_log->info("Downlink NAS: Sent Athentication Request\n");
+   m_s1ap_log->console("Downlink NAS: Sent Athentication Request\n");
   //TODO Start T3460 Timer! 
 
   return true;
@@ -841,7 +855,6 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
-  m_s1ap_log->console("Sending Security Mode command to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
 
   //Pack NAS PDU 
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;

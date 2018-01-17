@@ -537,7 +537,7 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   srslte::gtpc_modify_bearer_response *mb_resp = &mb_resp_pdu->choice.modify_bearer_response;
   mb_resp->cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   mb_resp->eps_bearer_context_modified.ebi = tunnel_ctx->ebi;
-  printf("%d %d\n",mb_resp->eps_bearer_context_modified.ebi, tunnel_ctx->ebi);
+  //printf("%d %d\n",mb_resp->eps_bearer_context_modified.ebi, tunnel_ctx->ebi);
   mb_resp->eps_bearer_context_modified.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
 }
 
