@@ -301,30 +301,10 @@ spgw::run_thread()
       }
       if (FD_ISSET(m_sgi_if, &set))
       {
-        msg->msg[0] = 0x0; 
         msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-        m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
+        //m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
         //m_spgw_log->debug("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
-        if (msg->msg[0] != 0x60) {
-          //pdu->N_bytes = idx + N_bytes;
-          ip_pkt       = (struct iphdr*)msg->msg;
-
-          //log_h->debug_hex(pdu->msg, pdu->N_bytes, 
-          //                 "Read %d bytes from TUN/TAP\n", 
-          //                 N_bytes);
-          
-          // Check if entire packet was received
-          if(ntohs(ip_pkt->tot_len) == msg->N_bytes)
-          {
-            //Handle SGi PDU
-            msg->set_timestamp();
-            handle_sgi_pdu(msg);
-          }
-          else
-          {
-            m_spgw_log->console("Did not read all bytes!!!");
-          }
-        } 
+        handle_sgi_pdu(msg);
       }
     }
     else
@@ -375,7 +355,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   enb_addr.sin_family = AF_INET;
   enb_addr.sin_port = htons(GTPU_RX_PORT);
   enb_addr.sin_addr.s_addr = enb_fteid.ipv4;
-  m_spgw_log->console("UE F-TEID found, TEID 0x%x, eNB IP %s\n", enb_fteid.teid, inet_ntoa(enb_addr.sin_addr));
+  //m_spgw_log->console("UE F-TEID found, TEID 0x%x, eNB IP %s\n", enb_fteid.teid, inet_ntoa(enb_addr.sin_addr));
 
   //Setup GTP-U header
   srslte::gtpu_header_t header;
@@ -398,7 +378,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
     m_spgw_log->error("Error sending packet to eNB\n");
     return;
   }
-  m_spgw_log->console("Sent packet to %s:%d. Bytes=%d/%d\n",inet_ntoa(enb_addr.sin_addr), GTPU_RX_PORT,n,msg->N_bytes);
+  //m_spgw_log->console("Sent packet to %s:%d. Bytes=%d/%d\n",inet_ntoa(enb_addr.sin_addr), GTPU_RX_PORT,n,msg->N_bytes);
 
   return;
 }
@@ -419,7 +399,7 @@ spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
   }
   else
   {
-    m_spgw_log->console("Forwarded packet to TUN interface. Bytes= %d/%d\n", n, msg->N_bytes);
+    //m_spgw_log->console("Forwarded packet to TUN interface. Bytes= %d/%d\n", n, msg->N_bytes);
   }
   return;
 }

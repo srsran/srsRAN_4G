@@ -375,7 +375,6 @@ hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
   }
   hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
   m_hss_log->info("Found User %015lu\n",imsi);
-  m_hss_log->console("Found User %015lu\n",imsi);
   memcpy(k,ue_ctx->key,16);
   memcpy(amf,ue_ctx->amf,2);
   memcpy(op,ue_ctx->op,16);

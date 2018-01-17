@@ -123,11 +123,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     return false;
   }
   m_pool->deallocate(nas_msg);
-  /*
-  typedef struct{
-    LIBLTE_MME_KSI_AND_SEQUENCE_NUMBER_STRUCT ksi_and_seq_num;
-    uint16                                    short_mac;
-    }LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT;*/
+
   //Create basic UE Ctx
   ue_ctx_t *ue_ctx_ptr = &ue_ctx;
   ue_ctx.imsi = 0;
@@ -143,7 +139,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
   //Save whether ESM information transfer is necessary
   ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
-  m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
+  //m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
   //Initialize NAS count
   ue_ctx.security_ctxt.ul_nas_count = 0;
   ue_ctx.security_ctxt.dl_nas_count = 0;
@@ -155,8 +151,6 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
     ue_ctx.erabs_ctx[i].erab_id = i;
   }
-
-
   //Get UE Identity
   if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
   {
@@ -176,8 +170,8 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     if(it == m_s1ap->m_tmsi_to_s1ap_id.end())
     {
       //Could not find IMSI from M-TMSI, send Id request
-      m_s1ap_log->console("Attach Request -- Could not find M-TMSI. Sending ID request\n");
-      m_s1ap_log->info("attach Request -- Could not find M-TMSI. Sending Id Request\n");
+      m_s1ap_log->console("Attach Request -- Could not find M-TMSI=0x%x. Sending ID request\n",m_tmsi);
+      m_s1ap_log->info("Attach Request -- Could not find M-TMSI=0x%d. Sending Id Request\n", m_tmsi);
       ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
       m_s1ap->add_new_ue_ctx(ue_ctx);
       pack_identity_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
@@ -200,9 +194,31 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
       return false;
     }
   }
-  m_s1ap_log->console("Attach request from IMSI: %015lu\n", imsi);
-  m_s1ap_log->info("Attach request from IMSI: %015lu\n", imsi);
-
+  m_s1ap_log->console("Attach request -- IMSI: %015lu\n", imsi);
+  m_s1ap_log->info("Attach request -- IMSI: %015lu\n", imsi);
+  m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ctx_ptr->enb_ue_s1ap_id, ue_ctx_ptr->mme_ue_s1ap_id);
+  m_s1ap_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
+                      attach_req.ue_network_cap.eea[0],
+                      attach_req.ue_network_cap.eea[1],
+                      attach_req.ue_network_cap.eea[2],
+                      attach_req.ue_network_cap.eea[3],
+                      attach_req.ue_network_cap.eea[4],
+                      attach_req.ue_network_cap.eea[5],
+                      attach_req.ue_network_cap.eea[6],
+                      attach_req.ue_network_cap.eea[7]);
+  m_s1ap_log->console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
+                      attach_req.ue_network_cap.eia[0],
+                      attach_req.ue_network_cap.eia[1],
+                      attach_req.ue_network_cap.eia[2],
+                      attach_req.ue_network_cap.eia[3],
+                      attach_req.ue_network_cap.eia[4],
+                      attach_req.ue_network_cap.eia[5],
+                      attach_req.ue_network_cap.eia[6],
+                      attach_req.ue_network_cap.eia[7]);
+  m_s1ap_log->console("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
+  m_s1ap_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
+  m_s1ap_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
+  m_s1ap_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
  
   //Get Authentication Vectors from HSS
   if(!m_hss->gen_auth_info_answer(imsi, ue_ctx_ptr->security_ctxt.k_asme, autn, rand, ue_ctx_ptr->security_ctxt.xres))
@@ -263,27 +279,30 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
 
   switch (msg_type) {
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
+      m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
+      m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
       handle_nas_authentication_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      m_s1ap_log->info("UL NAS: Received Authentication Response\n");
       break;
     case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
-      m_s1ap_log->info("UL NAS: Received Security Mode Complete\n");
+      m_s1ap_log->info("Uplink NAS: Received Security Mode Complete\n");
+      m_s1ap_log->console("Uplink NAS: Received Security Mode Complete\n");
       handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      return true; //no need for reply. FIXME this should be better structured...
       break;
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
-      m_s1ap_log->info("UL NAS: Received Attach Complete\n");
+      m_s1ap_log->info("Uplink NAS: Received Attach Complete\n");
+      m_s1ap_log->console("Uplink NAS: Received Attach Complete\n");
       handle_nas_attach_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
       ue_ctx->security_ctxt.ul_nas_count++;
-      return true; //no need for reply. FIXME this should be better structured...
       break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
-      m_s1ap_log->info("UL NAS: Received ESM Information Response\n");
+      m_s1ap_log->info("Uplink NAS: Received ESM Information Response\n");
+      m_s1ap_log->console("Uplink NAS: Received ESM Information Response\n");
       handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
       ue_ctx->security_ctxt.ul_nas_count++;
       break;
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
-      m_s1ap_log->info("UL NAS: Received ID Response\n");
+      m_s1ap_log->info("Uplink NAS: Received Identity Response\n");
+      m_s1ap_log->info("Uplink NAS: Received Identity Response\n");
       handle_identity_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
       //ue_ctx->security_ctxt.ul_nas_count++;
       break;
