@@ -539,6 +539,8 @@ double rf_uhd_set_tx_srate(void *h, double freq)
 
 double rf_uhd_set_rx_gain(void *h, double gain)
 {
+  fprintf(stderr, "XXXX set rx gain to %f\n", gain);
+
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   for (int i=0;i<handler->nof_rx_channels;i++) {
     uhd_usrp_set_rx_gain(handler->usrp, gain, i, "");
@@ -548,6 +550,8 @@ double rf_uhd_set_rx_gain(void *h, double gain)
 
 double rf_uhd_set_tx_gain(void *h, double gain)
 {
+  fprintf(stderr, "XXXX set tx gain to %f\n", gain);
+
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   for (int i=0;i<handler->nof_tx_channels;i++) {
     uhd_usrp_set_tx_gain(handler->usrp, gain, i, "");
@@ -628,6 +632,10 @@ int rf_uhd_recv_with_time_multi(void *h,
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   size_t rxd_samples;
   uhd_rx_metadata_handle *md = &handler->rx_md_first; 
+
+  struct timeval tv_in, tv_out, tv_dif;
+  gettimeofday(&tv_in, NULL);
+
   int trials = 0; 
   if (blocking) {
     int n = 0;
@@ -674,6 +682,18 @@ int rf_uhd_recv_with_time_multi(void *h,
   if (secs && frac_secs) {
     uhd_rx_metadata_time_spec(handler->rx_md_first, secs, frac_secs);
   }
+
+  gettimeofday(&tv_out, NULL);
+  timersub(&tv_out, &tv_in, &tv_dif);
+
+  time_t now_secs;
+  double now_frac_secs;
+
+  rf_uhd_get_time(h, &now_secs, &now_frac_secs);
+
+  fprintf(stderr, "%s return rxd_samples %d of nsamples %d, deltaT %ld:%06ld, rx_time %ld:%.6f\n",  
+          __func__, rxd_samples, nsamples, tv_dif.tv_sec, tv_dif.tv_usec, now_secs, now_frac_secs);
+ 
   return nsamples;
 }
                    
@@ -702,12 +722,23 @@ int rf_uhd_send_timed_multi(void *h,
                             bool is_start_of_burst,
                             bool is_end_of_burst) {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*) h;
+ 
+  time_t now_secs;
+  double now_frac_secs;
+
+  rf_uhd_get_time(h, &now_secs, &now_frac_secs);
+
+  fprintf(stderr, "%s nsamples %d, now %ld:%.6f, tx_time %ld:%.6f\n",  
+            __func__, nsamples, now_secs, now_frac_secs, secs, frac_secs);
   
   /* Resets the USRP time FIXME: this might cause problems for burst transmissions */
   if (!has_time_spec && is_start_of_burst && handler->nof_tx_channels > 1) {
     uhd_usrp_set_time_now(handler->usrp, 0, 0, 0);
     uhd_tx_metadata_set_time_spec(&handler->tx_md, 0, 0.1);
   }
+
+  struct timeval tv_in, tv_out, tv_dif;
+  gettimeofday(&tv_in, NULL);
 
   size_t txd_samples;
   int trials = 0;
@@ -754,6 +785,12 @@ int rf_uhd_send_timed_multi(void *h,
       n += txd_samples;
       trials++;
     } while (n < nsamples && trials < 100);
+
+    gettimeofday(&tv_out, NULL);
+    timersub(&tv_out, &tv_in, &tv_dif);
+    fprintf(stderr, "%s return txd_samples %d of nsamples %d, deltaT %ld:%06ld\n",  
+            __func__, txd_samples, nsamples, tv_dif.tv_sec, tv_dif.tv_usec);
+ 
     return nsamples;
   } else {
     const void *buffs_ptr[4];

@@ -420,7 +420,7 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
      {
        timersub(&tv_now, &(tx_info->tx_time), &tv_diff);
 
-       RF_FAUX_INFO("TX seqn %lu, tx_worker %d, tx_overrun %ld:%06ld, in %u/%d, out %d/%d", 
+       RF_FAUX_DBUG("TX seqn %lu, tx_worker %d, tx_overrun %ld:%06ld, in %u/%d, out %d/%d", 
                      seqn,
                      tx_worker->id,
                      tv_diff.tv_sec,
@@ -456,7 +456,7 @@ static void * rf_faux_tx_worker_proc(void * arg)
 
        if(timercmp(&delta_t, &tv_zero, >))
          {
-           RF_FAUX_INFO("tx_worker %02d, apply tx_delay %ld:%06ld", 
+           RF_FAUX_DBUG("tx_worker %02d, apply tx_delay %ld:%06ld", 
                         tx_worker->id,
                         delta_t.tv_sec,
                         delta_t.tv_usec);
@@ -467,7 +467,7 @@ static void * rf_faux_tx_worker_proc(void * arg)
          {
            timersub(&tv_now, &(tx_worker->tx_info->tx_time), &delta_t);
 
-           RF_FAUX_WARN("tx_worker %02d, skip tx_delay overrun %ld:%06ld", 
+           RF_FAUX_DBUG("tx_worker %02d, skip tx_delay overrun %ld:%06ld", 
                          tx_worker->id,
                          delta_t.tv_sec,
                          delta_t.tv_usec);
@@ -475,7 +475,7 @@ static void * rf_faux_tx_worker_proc(void * arg)
 
         pthread_mutex_lock(&(_info->tx_workers_lock));
 
-        RF_FAUX_INFO("TX fire ***** tx_worker %02d *****", tx_worker->id);
+        RF_FAUX_DBUG("TX fire ***** tx_worker %02d *****", tx_worker->id);
 
         rf_faux_send_msg(tx_worker, (_info->tx_seqn)++);
 
@@ -848,7 +848,7 @@ float rf_faux_get_rssi(void *h)
  {
    const float rssi = -60.0;
 
-   RF_FAUX_INFO("rssi %4.3f", rssi);
+   RF_FAUX_DBUG("rssi %4.3f", rssi);
 
    return rssi;
  }
@@ -857,7 +857,6 @@ float rf_faux_get_rssi(void *h)
 void rf_faux_suppress_stdout(void *h)
  {
     rf_faux_log_debug   = false;
-    // rf_faux_log_info    = false;
  }
 
 
@@ -1202,11 +1201,11 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
          _info->rx_seqn = hdr.seqnum;
 
          if(this_seqn != hdr.seqnum)
-           {
-             RF_FAUX_WARN("RX seqn %lu, OOS expected seqn %lu", hdr.seqnum, this_seqn);
-           }
+          {
+            RF_FAUX_WARN("RX seqn %lu, OOS expected seqn %lu", hdr.seqnum, this_seqn);
+          }
 
-          RF_FAUX_INFO("RX seqn %lu, msg_len %d, tx_time, %ld:%06ld, rx_delay %ld:%06ld",
+         RF_FAUX_DBUG("RX seqn %lu, msg_len %d, tx_time, %ld:%06ld, rx_delay %ld:%06ld",
                        hdr.seqnum,
                        nb_in,
                        hdr.tx_time.tv_sec,
@@ -1219,10 +1218,10 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 rxout:
 
    RF_FAUX_DBUG("RX nreq %d/%d, out %d/%d",
-                  nsamples,
-                  nb_req, 
-                  nsamples - ns_pending,
-                  nb_req   - nb_pending);
+                 nsamples,
+                 nb_req, 
+                 nsamples - ns_pending,
+                 nb_req   - nb_pending);
 
    pthread_mutex_unlock(&(_info->rx_lock));
 
@@ -1271,8 +1270,6 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
    // get next available tx_worker
    while((tx_worker = &(_info->tx_workers[_info->tx_worker_next]))->is_pending)
     {
-      RF_FAUX_DBUG("skipping pending tx_worker %02d", tx_worker->id);
-
       RF_FAUX_SET_NEXT_WORKER(_info->tx_worker_next);
     }
 
@@ -1303,7 +1300,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    _info->nof_tx_workers += 1;
  
-   RF_FAUX_INFO("add tx_worker %02d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
+   RF_FAUX_DBUG("add tx_worker %02d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
                   tx_worker->id,
                   RF_FAUX_BOOL_TO_STR(has_time_spec),
                   full_secs,

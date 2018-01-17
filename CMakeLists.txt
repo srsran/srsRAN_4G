@@ -51,8 +51,8 @@ configure_file(
     IMMEDIATE @ONLY)
 
 if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE Debug)
-   message(STATUS "Build type not specified: defaulting to Debug.")
+   set(CMAKE_BUILD_TYPE Release)
+   message(STATUS "Build type not specified: defaulting to Release.")
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
@@ -241,7 +241,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -DDEBUG_MODE")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g0")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
   find_package(SSE)
@@ -264,7 +264,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -DDEBUG_MODE")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -g0")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
   if (USE_LTE_RATES)

@@ -79,7 +79,14 @@ SRSLTE_API extern int srslte_verbose;
 extern struct timeval g_tv_next;
 extern uint32_t       g_tti;
 
+static int W_TRACE = 1;
+static int I_TRACE = 0;
+static int M_TRACE = 0;
+static int P_TRACE = 0;
+static int U_TRACE = 0;
+
 #define W_TRACE(_fmt, ...) do {                                                                         \
+                             if(W_TRACE) {                                                              \
                              struct timeval _tv_now;                                                    \
                              struct tm _tm;                                                             \
                              gettimeofday(&_tv_now, NULL);                                              \
@@ -94,9 +101,11 @@ extern uint32_t       g_tti;
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
+                             }                                                                          \
                            } while(0);
 
 #define I_TRACE(_fmt, ...) do {                                                                         \
+                             if(I_TRACE) {                                                              \
                              struct timeval _tv_now;                                                    \
                              struct tm _tm;                                                             \
                              gettimeofday(&_tv_now, NULL);                                              \
@@ -111,9 +120,11 @@ extern uint32_t       g_tti;
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
+                             }                                                                          \
                            } while(0);
 
 #define M_TRACE(_fmt, ...) do {                                                                         \
+                             if(M_TRACE) {                                                              \
                              struct timeval _tv_now;                                                    \
                              struct tm _tm;                                                             \
                              gettimeofday(&_tv_now, NULL);                                              \
@@ -127,9 +138,11 @@ extern uint32_t       g_tti;
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
+                             }                                                                          \
                            } while(0);
 
 #define P_TRACE(_fmt, ...) do {                                                                         \
+                             if(P_TRACE) {                                                              \
                              struct timeval _tv_now;                                                    \
                              struct tm _tm;                                                             \
                              gettimeofday(&_tv_now, NULL);                                              \
@@ -144,9 +157,11 @@ extern uint32_t       g_tti;
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
+                             }                                                                          \
                            } while(0);
 
 #define U_TRACE(_fmt, ...) do {                                                                         \
+                             if(U_TRACE) {                                                              \
                              struct timeval _tv_now;                                                    \
                              struct tm _tm;                                                             \
                              gettimeofday(&_tv_now, NULL);                                              \
@@ -160,6 +175,7 @@ extern uint32_t       g_tti;
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
+                             }                                                                          \
                            } while(0);
 
 #endif // DEBUG_H
