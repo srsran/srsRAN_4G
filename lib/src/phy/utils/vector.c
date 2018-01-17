@@ -82,7 +82,7 @@ void srslte_vec_sc_prod_fff(const float *x, const float h, float *z, const uint3
 }
 
 // Used throughout 
-void srslte_vec_sc_prod_cfc(const const cf_t *x, const float h, cf_t *z, const uint32_t len) {
+void srslte_vec_sc_prod_cfc(const cf_t *x, const float h, cf_t *z, const uint32_t len) {
   srslte_vec_sc_prod_cfc_simd(x,h,z,len);
 }
 
@@ -277,7 +277,7 @@ void srslte_vec_prod_ccc_split(const float *x_re, const float *x_im, const float
 }
 
 // PRACH, CHEST UL, etc. 
-void srslte_vec_prod_conj_ccc(const const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len) {
+void srslte_vec_prod_conj_ccc(const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len) {
   srslte_vec_prod_conj_ccc_simd(x,y,z,len);
 }
 
@@ -298,12 +298,12 @@ void srslte_vec_div_fff(const float *x, const float *y, float *z, const uint32_t
 }
 
 // PSS. convolution 
-cf_t srslte_vec_dot_prod_ccc(const const cf_t *x, const cf_t *y, const uint32_t len) {
+cf_t srslte_vec_dot_prod_ccc(const cf_t *x, const cf_t *y, const uint32_t len) {
   return srslte_vec_dot_prod_ccc_simd(x, y, len);
 }
 
 // Convolution filter and in SSS search 
-cf_t srslte_vec_dot_prod_cfc(const const cf_t *x, const float *y, const uint32_t len) {
+cf_t srslte_vec_dot_prod_cfc(const cf_t *x, const float *y, const uint32_t len) {
   uint32_t i;
   cf_t res = 0;
   for (i=0;i<len;i++) {
