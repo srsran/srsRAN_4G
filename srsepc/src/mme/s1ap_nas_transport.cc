@@ -135,19 +135,15 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
 
-  m_s1ap_log->console("Received Uplink NAS Transport message.\n");
-  m_s1ap_log->info("Received Uplink NAS Transport message.\n");
-
-
   ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
   if(ue_ctx == NULL)
   {
     //TODO UE not registered, send error message.
-    m_s1ap_log->warning("Could not find UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+    m_s1ap_log->warning("Received uplink NAS, but could not find UE context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
     return false;
   }
 
-  m_s1ap_log->debug("Found UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+  m_s1ap_log->debug("Received uplink NAS and found UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
 
   //Get NAS message type
   uint8_t pd, msg_type;
@@ -400,7 +396,6 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
 
     m_s1ap_log->console("Could not find M-TMSI=0x%x. Sending ID request\n",m_tmsi);
     m_s1ap_log->info("Could not find M-TMSI=0x%d. Sending Id Request\n", m_tmsi);
-    ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
     m_s1ap->add_new_ue_ctx(ue_ctx);
     pack_identity_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
     *reply_flag = true;
@@ -625,6 +620,8 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
     return false;
   }
   */
+  m_s1ap_log->console("Warning: Tracking Area Update Request messages not handled yet.\n");
+  m_s1ap_log->warning("Warning: Tracking Area Update Request messages not handled yet.\n");
   //Setup initiating message
   LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
   bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
