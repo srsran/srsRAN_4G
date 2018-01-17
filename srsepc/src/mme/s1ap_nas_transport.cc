@@ -113,12 +113,6 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
       m_pool->deallocate(nas_msg);
       return false;
     }
-    /* if(!unpack_initial_ue_message(init_ue, &attach_req,&pdn_con_req))
-    {
-        //Could not decode the attach request and the PDN connectivity request.
-        m_s1ap_log->error("Could not unpack NAS Attach Request and PDN connectivity request.\n");
-        return false;
-        }*/
     handle_nas_attach_request(enb_ue_s1ap_id, attach_req,pdn_con_req,reply_buffer,reply_flag, enb_sri);
   }
   else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST)
@@ -129,130 +123,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     return false;
   }
   m_pool->deallocate(nas_msg);
-  return true;
 
-  /*
-  //Create basic UE Ctx
-  ue_ctx_t *ue_ctx_ptr = &ue_ctx;
-  ue_ctx.imsi = 0;
-  ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-  //Get UE network capabilities
-  memcpy(&ue_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
-  ue_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
-  if(attach_req.ms_network_cap_present)
-  {
-    memcpy(&ue_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
-  }
-  uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
-  ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
-  //Save whether ESM information transfer is necessary
-  ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
-  //m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
-  //Initialize NAS count
-  ue_ctx.security_ctxt.ul_nas_count = 0;
-  ue_ctx.security_ctxt.dl_nas_count = 0;
-  //Add eNB info to UE ctxt
-  memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-  //Initialize E-RABs
-  for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
-  {
-    ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
-    ue_ctx.erabs_ctx[i].erab_id = i;
-  }
-  //Get UE Identity
-  if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
-  {
-    //IMSI style attach
-    imsi = 0;
-    for(int i=0;i<=14;i++){
-      imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
-    }
-    m_s1ap_log->console("Attach Request -- IMSI-style attach request\n");
-  }
-  else if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI)
-  {
-    //GUTI style attach
-    m_s1ap_log->console("Attach Request -- GUTI-style attach request\n");
-    uint32_t m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
-    std::map<uint32_t,uint32_t>::iterator it = m_s1ap->m_tmsi_to_s1ap_id.find(m_tmsi);
-    if(it == m_s1ap->m_tmsi_to_s1ap_id.end())
-    {
-      //Could not find IMSI from M-TMSI, send Id request
-      m_s1ap_log->console("Attach Request -- Could not find M-TMSI=0x%x. Sending ID request\n",m_tmsi);
-      m_s1ap_log->info("Attach Request -- Could not find M-TMSI=0x%d. Sending Id Request\n", m_tmsi);
-      ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-      m_s1ap->add_new_ue_ctx(ue_ctx);
-      pack_identity_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
-      *reply_flag = true;
-      return true;
-    }
-    m_s1ap_log->console("Found M-TMSI: %d\n",m_tmsi);
-    ue_ctx_ptr = m_s1ap->find_ue_ctx(it->second);
-    if(ue_ctx_ptr!=NULL)
-    {
-      m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_ctx_ptr->imsi);
-      imsi = ue_ctx_ptr->imsi;
-      m_mme_gtpc->send_create_session_request(ue_ctx_ptr->imsi, ue_ctx_ptr->mme_ue_s1ap_id);
-      *reply_flag = false; //No reply needed
-      return true;
-    }
-    else
-    {
-      m_s1ap_log->error("Found M-TMSI but could not find UE context\n");
-      return false;
-    }
-  }
-  m_s1ap_log->console("Attach request -- IMSI: %015lu\n", imsi);
-  m_s1ap_log->info("Attach request -- IMSI: %015lu\n", imsi);
-  m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ctx_ptr->enb_ue_s1ap_id, ue_ctx_ptr->mme_ue_s1ap_id);
-  m_s1ap_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
-                      attach_req.ue_network_cap.eea[0],
-                      attach_req.ue_network_cap.eea[1],
-                      attach_req.ue_network_cap.eea[2],
-                      attach_req.ue_network_cap.eea[3],
-                      attach_req.ue_network_cap.eea[4],
-                      attach_req.ue_network_cap.eea[5],
-                      attach_req.ue_network_cap.eea[6],
-                      attach_req.ue_network_cap.eea[7]);
-  m_s1ap_log->console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
-                      attach_req.ue_network_cap.eia[0],
-                      attach_req.ue_network_cap.eia[1],
-                      attach_req.ue_network_cap.eia[2],
-                      attach_req.ue_network_cap.eia[3],
-                      attach_req.ue_network_cap.eia[4],
-                      attach_req.ue_network_cap.eia[5],
-                      attach_req.ue_network_cap.eia[6],
-                      attach_req.ue_network_cap.eia[7]);
-  m_s1ap_log->console("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
-  m_s1ap_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
-  m_s1ap_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
-  m_s1ap_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
- 
-  //Get Authentication Vectors from HSS
-  if(!m_hss->gen_auth_info_answer(imsi, ue_ctx_ptr->security_ctxt.k_asme, autn, rand, ue_ctx_ptr->security_ctxt.xres))
-  {
-    m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
-    m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
-    return false;
-  }
-
-  //Save UE context
-  //ue_ctx.imsi = imsi;
-  if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
-  {
-    //IMSI attach requeires new UE ctxt
-    ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-    m_s1ap->add_new_ue_ctx(ue_ctx);
-  }
-  //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_buffer, ue_ctx_ptr->enb_ue_s1ap_id, ue_ctx_ptr->mme_ue_s1ap_id, autn, rand);
-
-  //Send reply to eNB
-  *reply_flag = true;
-   m_s1ap_log->info("Sending Athentication Request\n");
-   m_s1ap_log->console("Sending Athentication Request\n");
-  //TODO Start T3460 Timer!
-  */
   return true;
 }
 
@@ -815,57 +686,6 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
 
 
 /*Packing/Unpacking helper functions*/
-bool 
-s1ap_nas_transport::unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue,
-                                              LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req,
-                                              LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req )
-{
-
-  /*Get NAS Attach Request Message*/
-  uint8_t pd, msg_type;
-  srslte::byte_buffer_t *nas_msg = m_pool->allocate();
-  
-  memcpy(nas_msg->msg, &init_ue->NAS_PDU.buffer, init_ue->NAS_PDU.n_octets);
-  nas_msg->N_bytes = init_ue->NAS_PDU.n_octets;
-  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
-  
-  if(msg_type!=LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST){
-    m_s1ap_log->error("Unhandled NAS message within the Initial UE message\n");
-    return false;
-  }
-
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, attach_req);
-  if(err != LIBLTE_SUCCESS){
-    m_s1ap_log->error("Error unpacking NAS attach request. Error: %s\n", liblte_error_text[err]);
-    return false;
-  }
-  /*Log unhandled Attach Request IEs*/
-  log_unhandled_attach_request_ies(attach_req);
-
-  /*Get PDN Connectivity Request*/
-  err = liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req->esm_msg, pdn_con_req);
-  if(err != LIBLTE_SUCCESS){
-    m_s1ap_log->error("Error unpacking NAS PDN Connectivity Request. Error: %s\n", liblte_error_text[err]);
-    return false;
-  }
-
-  if(pdn_con_req->pdn_type == LIBLTE_MME_PDN_TYPE_IPV6)
-  {
-    m_s1ap_log->error("PDN Connectivity Request: Only IPv4 connectivity supported.\n");
-    return false;
-  }
-  if(pdn_con_req->request_type != LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST)
-  {
-    m_s1ap_log->error("PDN Connectivity Request: Only Initial Request supported.\n");
-    return false;
-  }
-  /*Log unhandled PDN connectivity request IEs*/
-  log_unhandled_pdn_con_request_ies(pdn_con_req);
-
-  m_pool->deallocate(nas_msg);
-  return true;
-}
-
 bool
 s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t *autn, uint8_t *rand)
 {
