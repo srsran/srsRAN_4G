@@ -289,8 +289,11 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
     //There are active E-RABs, send delete session request
     m_mme_gtpc->send_delete_session_request(ue_ctx);
   }
-  m_s1ap->delete_ue_ctx(ue_ctx);
-
+  //m_s1ap->delete_ue_ctx(ue_ctx);
+  for(int i=0;i<MAX_ERABS_PER_UE;i++)
+  {
+    ue_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
+  }
   //Delete UE context
   m_s1ap_log->info("Deleted UE Context.\n");
   return true;

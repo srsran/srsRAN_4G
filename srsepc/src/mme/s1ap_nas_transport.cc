@@ -80,6 +80,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
 {
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
+  LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
 
   uint64_t    imsi = 0;
   uint8_t     k_asme[32];
@@ -98,14 +99,35 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   //Log unhandled Initial UE message IEs
   log_unhandled_initial_ue_message_ies(init_ue);
 
-  //Get NAS Attach Request and PDN connectivity request messages
-  if(!unpack_initial_ue_message(init_ue, &attach_req,&pdn_con_req))
+  /*Check whether NAS Attach Request or Service Request*/
+  uint8_t pd, msg_type;
+  srslte::byte_buffer_t *nas_msg = m_pool->allocate();
+  memcpy(nas_msg->msg, &init_ue->NAS_PDU.buffer, init_ue->NAS_PDU.n_octets);
+  nas_msg->N_bytes = init_ue->NAS_PDU.n_octets;
+  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
+  if(msg_type == LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST)
   {
-    //Could not decode the attach request and the PDN connectivity request.
-    m_s1ap_log->error("Could not unpack NAS Attach Request and PDN connectivity request.\n");
+    //Get NAS Attach Request and PDN connectivity request messages
+    if(!unpack_initial_ue_message(init_ue, &attach_req,&pdn_con_req))
+    {
+        //Could not decode the attach request and the PDN connectivity request.
+        m_s1ap_log->error("Could not unpack NAS Attach Request and PDN connectivity request.\n");
+        return false;
+    }
+  }
+  else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST)
+  {
+    m_s1ap_log->info("Received Service Request \n");
+    m_s1ap_log->console("Received Service Request \n");
+    liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &service_req);
     return false;
   }
-
+  m_pool->deallocate(nas_msg);
+  /*
+  typedef struct{
+    LIBLTE_MME_KSI_AND_SEQUENCE_NUMBER_STRUCT ksi_and_seq_num;
+    uint16                                    short_mac;
+    }LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT;*/
   //Create basic UE Ctx
   ue_ctx_t *ue_ctx_ptr = &ue_ctx;
   ue_ctx.imsi = 0;
@@ -143,22 +165,22 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     for(int i=0;i<=14;i++){
       imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
     }
-
+    m_s1ap_log->console("Attach Request -- IMSI-style attach request\n");
   }
   else if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI)
   {
     //GUTI style attach
-    m_s1ap_log->console("Received GUTI-style attach request\n");
+    m_s1ap_log->console("Attach Request -- GUTI-style attach request\n");
     uint32_t m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
     std::map<uint32_t,uint32_t>::iterator it = m_s1ap->m_tmsi_to_s1ap_id.find(m_tmsi);
     if(it == m_s1ap->m_tmsi_to_s1ap_id.end())
     {
       //Could not find IMSI from M-TMSI, send Id request
-      m_s1ap_log->console("Could not find M-TMSI in attach request. Sending ID request\n");
-      m_s1ap_log->info("Could not find M-TMSI in attach request. Sending Id Request\n");
+      m_s1ap_log->console("Attach Request -- Could not find M-TMSI. Sending ID request\n");
+      m_s1ap_log->info("attach Request -- Could not find M-TMSI. Sending Id Request\n");
       ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
       m_s1ap->add_new_ue_ctx(ue_ctx);
-      pack_identity_request(reply_buffer, ue_ctx.mme_ue_s1ap_id, ue_ctx.enb_ue_s1ap_id);
+      pack_identity_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
       *reply_flag = true;
       return true;
     }
@@ -168,6 +190,9 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     {
       m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_ctx_ptr->imsi);
       imsi = ue_ctx_ptr->imsi;
+      m_mme_gtpc->send_create_session_request(ue_ctx_ptr->imsi, ue_ctx_ptr->mme_ue_s1ap_id);
+      *reply_flag = false; //No reply needed
+      return true;
     }
     else
     {
@@ -200,7 +225,8 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
 
   //Send reply to eNB
   *reply_flag = true;
-   m_s1ap_log->info("DL NAS: Sent Athentication Request\n");
+   m_s1ap_log->info("Sending Athentication Request\n");
+   m_s1ap_log->console("Sending Athentication Request\n");
   //TODO Start T3460 Timer!
   return true;
 }
@@ -250,17 +276,21 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       handle_nas_attach_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
       ue_ctx->security_ctxt.ul_nas_count++;
       return true; //no need for reply. FIXME this should be better structured...
-    break;
+      break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
       m_s1ap_log->info("UL NAS: Received ESM Information Response\n");
       handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
       ue_ctx->security_ctxt.ul_nas_count++;
-      return true;
+      break;
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
       m_s1ap_log->info("UL NAS: Received ID Response\n");
       handle_identity_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
       //ue_ctx->security_ctxt.ul_nas_count++;
-    return true;
+      break;
+    case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
+      m_s1ap_log->info("UL NAS: Tracking Area Update Request\n");
+      handle_tracking_area_update_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      break;
     default:
       m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type );
       m_s1ap_log->console("Unhandled NAS message 0x%x\n", msg_type );
@@ -464,6 +494,79 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
 
   return true;
 }
+
+
+bool
+s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+{
+
+  /*
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_tracking_area_update_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &tau_req);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+  */
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+  m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
+ 
+  LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT tau_acc;
+  /*typedef struct{
+    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3412;
+    LIBLTE_MME_EPS_MOBILE_ID_STRUCT               guti;
+    LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_STRUCT tai_list;
+    LIBLTE_MME_EPS_BEARER_CONTEXT_STATUS_STRUCT   eps_bearer_context_status;
+    LIBLTE_MME_LOCATION_AREA_ID_STRUCT            lai;
+    LIBLTE_MME_MOBILE_ID_STRUCT                   ms_id;
+    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3402;
+    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3423;
+    LIBLTE_MME_PLMN_LIST_STRUCT                   equivalent_plmns;
+    LIBLTE_MME_EMERGENCY_NUMBER_LIST_STRUCT       emerg_num_list;
+    LIBLTE_MME_EPS_NETWORK_FEATURE_SUPPORT_STRUCT eps_network_feature_support;
+    LIBLTE_MME_GPRS_TIMER_3_STRUCT                t3412_ext;
+    LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_ENUM      additional_update_result;
+    uint8                                         eps_update_result;
+    uint8                                         emm_cause;
+    bool                                          t3412_present;
+    bool                                          guti_present;
+    bool                                          tai_list_present;
+    bool                                          eps_bearer_context_status_present;
+    bool                                          lai_present;
+    bool                                          ms_id_present;
+    bool                                          emm_cause_present;
+    bool                                          t3402_present;
+    bool                                          t3423_present;
+    bool                                          equivalent_plmns_present;
+    bool                                          emerg_num_list_present;
+    bool                                          eps_network_feature_support_present;
+    bool                                          additional_update_result_present;
+    bool                                          t3412_ext_present;
+}LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT;
+*/
+  //Send reply to eNB
+  //*reply_flag = true;
+
+  return true;
+}
+
+
 /*Packing/Unpacking helper functions*/
 bool 
 s1ap_nas_transport::unpack_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue,
@@ -830,19 +933,24 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   attach_accept.t3412.value = 30;                                    // 30 minute periodic timer
   //FIXME: Set tai_list from config
   attach_accept.tai_list.N_tais = 1;
-  attach_accept.tai_list.tai[0].mcc = m_s1ap->m_s1ap_args.mcc;
-  attach_accept.tai_list.tai[0].mnc = m_s1ap->m_s1ap_args.mnc;
+  attach_accept.tai_list.tai[0].mcc = 1;//m_s1ap->m_s1ap_args.mcc;
+  attach_accept.tai_list.tai[0].mnc = 1;//m_s1ap->m_s1ap_args.mnc;
   attach_accept.tai_list.tai[0].tac = m_s1ap->m_s1ap_args.tac;
 
   //Allocate a GUTI ot the UE
   attach_accept.guti_present=true;
   attach_accept.guti.type_of_id = 6; //110 -> GUTI
-  attach_accept.guti.guti.mcc = m_s1ap->m_s1ap_args.mcc;
-  attach_accept.guti.guti.mnc = m_s1ap->m_s1ap_args.mnc;
+  attach_accept.guti.guti.mcc = 1;//m_s1ap->m_s1ap_args.mcc;
+  attach_accept.guti.guti.mnc = 1;//m_s1ap->m_s1ap_args.mnc;
   attach_accept.guti.guti.mme_group_id = 0x0001;
-  attach_accept.guti.guti.mme_code = 0x1a;
+  attach_accept.guti.guti.mme_code = 0xa1;
   attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(ue_ctx->mme_ue_s1ap_id);
-
+  m_s1ap_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
+                    attach_accept.guti.guti.mcc,
+                    attach_accept.guti.guti.mnc,
+                    attach_accept.guti.guti.mme_group_id,
+                    attach_accept.guti.guti.mme_code,
+                    attach_accept.guti.guti.m_tmsi);
   /*
   typedef struct{
     uint32 m_tmsi;
@@ -876,7 +984,6 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   memcpy(act_def_eps_bearer_context_req.pdn_addr.addr, &paa->ipv4, 4);
   //Set eps bearer id
   act_def_eps_bearer_context_req.eps_bearer_id = erab_ctxt->e_RAB_ID.E_RAB_ID;
-  printf("%d\n",act_def_eps_bearer_context_req.eps_bearer_id);
   act_def_eps_bearer_context_req.transaction_id_present = false;
   //set eps_qos
   act_def_eps_bearer_context_req.eps_qos.qci =  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI;
@@ -974,6 +1081,75 @@ s1ap_nas_transport::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint
   } 
 
   m_pool->deallocate(nas_buffer);
+  return true;
+}
+
+bool
+s1ap_nas_transport::pack_emm_information(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id)
+{
+  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
+
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;//FIXME Change name
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+
+  LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
+  emm_info.full_net_name_present = true;
+  emm_info.full_net_name.name = std::string("srsLTE");
+  emm_info.full_net_name.add_ci = LIBLTE_MME_ADD_CI_DONT_ADD;
+  emm_info.short_net_name_present = true;
+  emm_info.short_net_name.name = std::string("srsLTE");
+  emm_info.short_net_name.add_ci = LIBLTE_MME_ADD_CI_DONT_ADD;
+
+  emm_info.local_time_zone_present = false;
+  emm_info.utc_and_local_time_zone_present = false;
+  emm_info.net_dst_present = false;
+
+  //Integrity check
+  ue_ctx_t * ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
+  if(ue_ctx == NULL)
+  {
+    return false;
+  }
+  uint8_t sec_hdr_type =2;
+  ue_ctx->security_ctxt.dl_nas_count++;
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Identity Request\n");
+    m_s1ap_log->console("Error packing Identity REquest\n");
+    return false;
+  }
+
+  uint8_t mac[4];
+  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
+                             ue_ctx->security_ctxt.dl_nas_count,
+                             0,
+                             SECURITY_DIRECTION_DOWNLINK,
+                             &nas_buffer->msg[5],
+                             nas_buffer->N_bytes - 5,
+                             mac
+                             );
+
+  memcpy(&nas_buffer->msg[1],mac,4);
+
+
+  m_s1ap_log->info("Packed \n"); 
   return true;
 }
 
