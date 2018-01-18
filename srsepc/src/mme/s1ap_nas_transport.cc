@@ -1002,6 +1002,27 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
 
   m_s1ap_log->info("Packing Attach Accept\n");
 
+  //Get decimal MCC and MNC
+  uint32_t mcc = 0;
+  mcc += 0x000F & m_s1ap->m_s1ap_args.mcc;
+  mcc += 10*( (0x00F0 & m_s1ap->m_s1ap_args.mcc) >> 4);
+  mcc += 100*( (0x0F00 & m_s1ap->m_s1ap_args.mcc) >> 8);
+
+  uint32_t mnc = 0;
+  if( 0xFF00 == (m_s1ap->m_s1ap_args.mnc & 0xFF00 ))
+  {
+    //Two digit MNC
+    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
+    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
+  }
+  else
+  {
+    //Three digit MNC
+    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
+    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
+    mnc += 100*((0x0F00 & m_s1ap->m_s1ap_args.mnc) >> 8);
+  }
+
   //Attach accept
   attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
   //Mandatory
@@ -1010,17 +1031,17 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   attach_accept.t3412.value = 30;                                    // 30 minute periodic timer
   //FIXME: Set tai_list from config
   attach_accept.tai_list.N_tais = 1;
-  attach_accept.tai_list.tai[0].mcc = 1;//m_s1ap->m_s1ap_args.mcc;
-  attach_accept.tai_list.tai[0].mnc = 1;//m_s1ap->m_s1ap_args.mnc;
+  attach_accept.tai_list.tai[0].mcc = mcc;
+  attach_accept.tai_list.tai[0].mnc = mnc;
   attach_accept.tai_list.tai[0].tac = m_s1ap->m_s1ap_args.tac;
 
   //Allocate a GUTI ot the UE
   attach_accept.guti_present=true;
   attach_accept.guti.type_of_id = 6; //110 -> GUTI
-  attach_accept.guti.guti.mcc = 1;//m_s1ap->m_s1ap_args.mcc;
-  attach_accept.guti.guti.mnc = 1;//m_s1ap->m_s1ap_args.mnc;
-  attach_accept.guti.guti.mme_group_id = 0x0001;
-  attach_accept.guti.guti.mme_code = 0xa1;
+  attach_accept.guti.guti.mcc = mcc;
+  attach_accept.guti.guti.mnc = mnc;
+  attach_accept.guti.guti.mme_group_id = m_s1ap->m_s1ap_args.mme_group;
+  attach_accept.guti.guti.mme_code = m_s1ap->m_s1ap_args.mme_code;
   attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(ue_ctx->mme_ue_s1ap_id);
   m_s1ap_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
                     attach_accept.guti.guti.mcc,
@@ -1028,20 +1049,6 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
                     attach_accept.guti.guti.mme_group_id,
                     attach_accept.guti.guti.mme_code,
                     attach_accept.guti.guti.m_tmsi);
-  /*
-  typedef struct{
-    uint32 m_tmsi;
-    uint16 mcc;
-    uint16 mnc;
-    uint16 mme_group_id;
-    uint8  mme_code;
-  }LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT;
-  typedef struct{
-    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
-    uint8                                type_of_id;
-    uint8                                imsi[15];
-    uint8                                imei[15];
-  }LIBLTE_MME_EPS_MOBILE_ID_STRUCT;*/
 
   //Make sure all unused options are set to false
   attach_accept.lai_present=false;
