@@ -90,8 +90,8 @@ mme_gtpc::get_new_ctrl_teid()
 void
 mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
 {
-  m_mme_gtpc_log->info("Preparing Create Session Request. IMSI %lu\n", imsi);
-  m_mme_gtpc_log->console("Preparing Create Session Request. IMSI %lu\n", imsi);
+  m_mme_gtpc_log->info("Sending Create Session Request.\n");
+  m_mme_gtpc_log->console("Sending Create Session Request.\n");
   struct srslte::gtpc_pdu cs_req_pdu;
   struct srslte::gtpc_create_session_request *cs_req = &cs_req_pdu.choice.create_session_request;
 
@@ -115,7 +115,8 @@ mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
 
   m_mme_gtpc_log->info("Next control TEID: %lu \n", m_next_ctrl_teid);
   m_mme_gtpc_log->info("Allocated control TEID: %lu \n", cs_req->sender_f_teid.teid);
-  m_mme_gtpc_log->console("Allocated control TEID: %lu \n", cs_req->sender_f_teid.teid);
+  m_mme_gtpc_log->console("Creating Session Response -- IMSI: %015lu \n", imsi);
+  m_mme_gtpc_log->console("Creating Session Response -- MME control TEID: %lu \n", cs_req->sender_f_teid.teid);
   // APN
   memcpy(cs_req->apn, "internet", sizeof("internet"));
   // RAT Type
@@ -133,6 +134,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
 {
   struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu->choice.create_session_response;
   m_mme_gtpc_log->info("Received Create Session Response\n");
+  m_mme_gtpc_log->console("Received Create Session Response\n");
   if (cs_resp_pdu->header.type != srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE)
   {
      m_mme_gtpc_log->warning("Could not create GTPC session. Not a create session response\n");
@@ -160,6 +162,10 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   sgw_ctrl_fteid.teid = cs_resp_pdu->header.teid;
   sgw_ctrl_fteid.ipv4 = 0; //FIXME This is not used for now. In the future it will be obtained from the socket addr_info
 
+  m_mme_gtpc_log->console("Create Session Response -- SPGW control TEID %d\n", sgw_ctrl_fteid.teid);
+  in_addr s1u_addr;
+  s1u_addr.s_addr = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
+  m_mme_gtpc_log->console("Create Session Response -- SPGW S1-U Address: %s\n", inet_ntoa(s1u_addr));
   m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(mme_s1ap_id, cs_resp, sgw_ctrl_fteid);
 }
 

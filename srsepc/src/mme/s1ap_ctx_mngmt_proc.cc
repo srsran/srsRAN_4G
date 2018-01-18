@@ -200,7 +200,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
   ue_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
 
   struct in_addr addr;
-  addr.s_addr = sgw_s1u_ip;
+  addr.s_addr = htonl(sgw_s1u_ip);
   m_s1ap_log->info("Sent Intial Context Setup Request. E-RAB id %d \n",erab_ctxt->e_RAB_ID.E_RAB_ID);
   m_s1ap_log->info("Initial Context -- S1-U TEID 0x%x. IP %s \n", tmp_teid,inet_ntoa(addr));
   m_s1ap_log->console("Sent Intial Context Setup Request, E-RAB id %d\n",erab_ctxt->e_RAB_ID.E_RAB_ID);
