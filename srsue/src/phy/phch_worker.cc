@@ -1287,13 +1287,13 @@ void phch_worker::start_plot() {
 #endif
 }
 
-int phch_worker::read_ce_abs(float *ce_abs) {
+int phch_worker::read_ce_abs(float *ce_abs, uint32_t tx_antenna, uint32_t rx_antenna) {
   uint32_t i=0;
   int sz = srslte_symbol_sz(cell.nof_prb);
   bzero(ce_abs, sizeof(float)*sz);
   int g = (sz - 12*cell.nof_prb)/2;
   for (i = 0; i < 12*cell.nof_prb; i++) {
-    ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[0][0][i]));
+    ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[tx_antenna][rx_antenna][i]));
     if (isinf(ce_abs[g+i])) {
       ce_abs[g+i] = -80;
     }
@@ -1434,7 +1434,7 @@ void phch_worker::tr_log_end()
 
 
 #ifdef ENABLE_GUI
-plot_real_t    pce;
+plot_real_t    pce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
 plot_scatter_t pconst;
 #define SCATTER_PDSCH_BUFFER_LEN   (20*6*SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM))
 #define SCATTER_PDSCH_PLOT_LEN    4000
@@ -1443,22 +1443,33 @@ cf_t  tmp_plot2[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
 
 void *plot_thread_run(void *arg) {
   srsue::phch_worker *worker = (srsue::phch_worker*) arg; 
-  
-  sdrgui_init();  
-  plot_real_init(&pce);
-  plot_real_setTitle(&pce, (char*) "Channel Response - Magnitude");
-  plot_real_setLabels(&pce, (char*) "Index", (char*) "dB");
-  plot_real_setYAxisScale(&pce, -40, 40);
-  
+
+  sdrgui_init();
+  for (uint32_t tx = 0; tx < worker->get_cell_nof_ports(); tx++) {
+    for (uint32_t rx = 0; rx < worker->get_rx_nof_antennas(); rx++) {
+      char str_buf[64];
+      snprintf(str_buf, 64, "|H%d%d|", rx, tx);
+      plot_real_init(&pce[tx][rx]);
+      plot_real_setTitle(&pce[tx][rx], str_buf);
+      plot_real_setLabels(&pce[tx][rx], (char *) "Index", (char *) "dB");
+      plot_real_setYAxisScale(&pce[tx][rx], -40, 40);
+
+      plot_real_addToWindowGrid(&pce[tx][rx], (char*)"srsue", tx, rx);
+    }
+  }
+
   plot_scatter_init(&pconst);
   plot_scatter_setTitle(&pconst, (char*) "PDSCH - Equalized Symbols");
   plot_scatter_setXAxisScale(&pconst, -4, 4);
   plot_scatter_setYAxisScale(&pconst, -4, 4);
 
-  plot_real_addToWindowGrid(&pce, (char*)"srsue", 0, 0);
-  plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, 1);
+  plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, worker->get_rx_nof_antennas());
 
-  
+
+
+
+
+
   int n; 
   int readed_pdsch_re=0; 
   while(1) {
@@ -1468,10 +1479,14 @@ void *plot_thread_run(void *arg) {
       n = worker->read_pdsch_d(&tmp_plot2[readed_pdsch_re]);
       readed_pdsch_re += n;           
     } else {
-      n = worker->read_ce_abs(tmp_plot);
-      if (n>0) {
-        plot_real_setNewData(&pce, tmp_plot, n);             
-      }      
+      for (uint32_t tx = 0; tx < worker->get_cell_nof_ports(); tx++) {
+        for (uint32_t rx = 0; rx < worker->get_rx_nof_antennas(); rx++) {
+          n = worker->read_ce_abs(tmp_plot, tx, rx);
+          if (n > 0) {
+            plot_real_setNewData(&pce[tx][rx], tmp_plot, n);
+          }
+        }
+      }
       if (readed_pdsch_re > 0) {
         plot_scatter_setNewData(&pconst, tmp_plot2, readed_pdsch_re);
       }
