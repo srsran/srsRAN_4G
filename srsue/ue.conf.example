@@ -88,9 +88,9 @@ filename = /tmp/ue.log
 # imei: 15 digit International Mobile Station Equipment Identity
 #####################################################################
 [usim]
-algo = milenage
+algo = xor
 op   = 63BFA50EE6523365FF14C1F45F88737D
-amf  = 8000
+amf  = 9001
 k    = 00112233445566778899aabbccddeeff
 imsi = 001010123456789
 imei = 353490069873319
