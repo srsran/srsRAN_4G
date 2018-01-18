@@ -136,7 +136,7 @@ hss::set_auth_algo(std::string auth_algo)
 bool
 hss::read_db_file(std::string db_filename)
 {
-  m_db_file.open(db_filename.c_str());
+  m_db_file.open(db_filename.c_str(), std::ifstream::in);
   if(!m_db_file.is_open())
   {
     return false;
