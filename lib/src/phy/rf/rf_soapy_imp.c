@@ -424,7 +424,7 @@ int  rf_soapy_recv_with_time_multi(void *h,
       cf_t *data_c = (cf_t*) data[i];
       buffs_ptr[i] = &data_c[n];
     }
-    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, 10000);
+    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, 1000000);
     if(ret < 0) {
       // continue when getting overflows
       if (ret == SOAPY_SDR_OVERFLOW) {

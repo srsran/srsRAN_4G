@@ -213,6 +213,70 @@ void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, uint32_t cfi)
   srslte_regs_set_cfi(&q->regs, cfi);
 }
 
+void srslte_enb_dl_set_power_allocation(srslte_enb_dl_t *q, float rho_a, float rho_b)
+{
+  if (q) {
+    q->rho_b = rho_b;
+    srslte_pdsch_set_power_allocation(&q->pdsch, rho_a);
+  }
+}
+
+void srslte_enb_dl_apply_power_allocation(srslte_enb_dl_t *q)
+{
+  uint32_t nof_symbols_slot = SRSLTE_CP_NSYMB(q->cell.cp);
+  uint32_t nof_re_symbol = SRSLTE_NRE * q->cell.nof_prb;
+
+  if (q->rho_b != 0.0f && q->rho_b != 1.0f) {
+    float scaling = q->rho_b;
+    for (uint32_t i = 0; i < q->cell.nof_ports; i++) {
+      for (uint32_t j = 0; j < 2; j++) {
+        cf_t *ptr;
+        ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 0);
+        srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+        if (q->cell.cp == SRSLTE_CP_NORM) {
+          ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 4);
+          srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+        } else {
+          ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 3);
+          srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+        }
+        if (q->cell.nof_ports == 4) {
+          ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 1);
+          srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+        }
+      }
+    }
+  }
+}
+
+void srslte_enb_dl_prepare_power_allocation(srslte_enb_dl_t *q)
+{
+  uint32_t nof_symbols_slot = SRSLTE_CP_NSYMB(q->cell.cp);
+  uint32_t nof_re_symbol = SRSLTE_NRE * q->cell.nof_prb;
+
+  if (q->rho_b != 0.0f && q->rho_b != 1.0f) {
+    float scaling = 1.0f / q->rho_b;
+    for (uint32_t i = 0; i < q->cell.nof_ports; i++) {
+      for (uint32_t j = 0; j < 2; j++) {
+        cf_t *ptr;
+        ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 0);
+        srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+        if (q->cell.cp == SRSLTE_CP_NORM) {
+          ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 4);
+          srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+        } else {
+          ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 3);
+          srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+        }
+        if (q->cell.nof_ports == 4) {
+          ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 1);
+          srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
+        }
+      }
+    }
+  }
+}
+
 void srslte_enb_dl_clear_sf(srslte_enb_dl_t *q)
 {
   for (int i=0;i<q->cell.nof_ports;i++) {

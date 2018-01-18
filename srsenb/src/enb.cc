@@ -72,7 +72,7 @@ bool enb::init(all_args_t *args_)
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
   } else {
-    logger_file.init(args->log.filename);
+    logger_file.init(args->log.filename, args->log.file_max_size);
     logger_file.log("\n\n");
     logger = &logger_file;
   }

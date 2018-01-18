@@ -51,7 +51,7 @@ public:
   logger_file();
   logger_file(std::string file);
   ~logger_file();
-  void init(std::string file);
+  void init(std::string file, int max_length = -1);
   // Implementation of log_out
   void log(str_ptr msg);
   void log(const char *msg);
@@ -60,6 +60,9 @@ private:
   void run_thread(); 
   void flush();
 
+  uint32_t              name_idx;
+  int64_t               max_length;
+  int64_t               cur_length;
   FILE*                 logfile;
   bool                  inited;
   bool                  not_done;

@@ -163,7 +163,7 @@ private:
   // timeouts in ms
 
   uint32_t connecting_timeout;
-  static const uint32_t RRC_CONNECTING_TIMEOUT = 1000;
+  static const uint32_t RRC_CONNECTING_TIMEOUT = 5000;
 
   uint32_t plmn_select_timeout;
   static const uint32_t RRC_PLMN_SELECT_TIMEOUT = 10000;

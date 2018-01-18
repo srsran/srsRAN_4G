@@ -609,11 +609,11 @@ int srslte_pusch_decode(srslte_pusch_t *q,
 
     // Set CQI len assuming RI = 1 (3GPP 36.212 Clause 5.2.4.1. Uplink control information on PUSCH without UL-SCH data)
     if (cqi_value) {
-      if (cqi_value->type == SRSLTE_CQI_TYPE_SUBBAND_HL) {
+      if (cqi_value->type == SRSLTE_CQI_TYPE_SUBBAND_HL && cqi_value->subband_hl.ri_present) {
         cqi_value->subband_hl.rank_is_not_one = false;
+        uci_data->uci_ri_len = (q->cell.nof_ports == 4) ? 2 : 1;
       }
       uci_data->uci_cqi_len = (uint32_t) srslte_cqi_size(cqi_value);
-      uci_data->uci_ri_len = (q->cell.nof_ports == 4) ? 2 : 1;
     }
 
     // Decode RI/HARQ bits before descrambling

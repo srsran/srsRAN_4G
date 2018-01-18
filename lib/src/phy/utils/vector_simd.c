@@ -948,7 +948,7 @@ void srslte_vec_abs_square_cf_simd(const cf_t *x, float *z, const int len) {
 }
 
 
-void srslte_vec_sc_prod_cfc_simd(const cf_t *x, const float h, cf_t *z, const const int len) {
+void srslte_vec_sc_prod_cfc_simd(const cf_t *x, const float h, cf_t *z, const int len) {
   int i = 0;
 
 #if SRSLTE_SIMD_F_SIZE

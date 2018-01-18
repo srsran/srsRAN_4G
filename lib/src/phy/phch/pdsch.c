@@ -819,6 +819,12 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
       }
     }
 
+    /* Set scaling configured by Power Allocation */
+    float scaling = 1.0f;
+    if (q->rho_a != 0.0f) {
+      scaling = q->rho_a;
+    }
+
     // Layer mapping & precode if necessary
     if (q->cell.nof_ports > 1) {
       int nof_symbols;
@@ -842,9 +848,13 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
 
       /* Precode */
       srslte_precoding_type(x, q->symbols, cfg->nof_layers, q->cell.nof_ports, cfg->codebook_idx,
-                            nof_symbols, 1.0f, cfg->mimo_type);
+                            nof_symbols, scaling, cfg->mimo_type);
     } else {
-      memcpy(q->symbols[0], q->d[0], cfg->nbits[0].nof_re * sizeof(cf_t));
+      if (scaling == 1.0f) {
+        memcpy(q->symbols[0], q->d[0], cfg->nbits[0].nof_re * sizeof(cf_t));
+      } else {
+        srslte_vec_sc_prod_cfc(q->d[0], scaling, q->symbols[0], cfg->nbits[0].nof_re);
+      }
     }
 
     /* mapping to resource elements */

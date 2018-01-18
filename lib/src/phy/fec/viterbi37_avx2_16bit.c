@@ -301,7 +301,7 @@ void update_viterbi37_blk_avx2_16bit(void *p, unsigned short *syms, int nbits, u
     }
 
     // See if we need to normalize
-    if (vp->new_metrics->c[0] > 25600) {
+    if (vp->new_metrics->c[0] > 12288) {
       int i;
       
       uint16_t adjust; 

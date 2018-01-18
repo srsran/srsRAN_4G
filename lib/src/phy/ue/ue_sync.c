@@ -58,6 +58,10 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
   return srslte_ue_sync_init_file_multi(q, nof_prb, file_name, offset_time, offset_freq, 1);
 }
 
+void srslte_ue_sync_file_wrap(srslte_ue_sync_t *q, bool enable) {
+  q->file_wrap_enable = enable;
+}
+
 int srslte_ue_sync_init_file_multi(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset_time,
                                    float offset_freq, uint32_t nof_rx_ant) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -68,7 +72,8 @@ int srslte_ue_sync_init_file_multi(srslte_ue_sync_t *q, uint32_t nof_prb, char *
   {
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_ue_sync_t));
-    q->file_mode = true; 
+    q->file_mode = true;
+    q->file_wrap_enable = true;
     q->sf_len = SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb));
     q->file_cfo = -offset_freq; 
     q->fft_size = srslte_symbol_sz(nof_prb);
@@ -691,11 +696,15 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
         return SRSLTE_ERROR;
       }
       if (n == 0) {
-        srslte_filesource_seek(&q->file_source, 0);
-        q->sf_idx = 9;
-        n = srslte_filesource_read_multi(&q->file_source, (void **) input_buffer, q->sf_len, q->nof_rx_antennas);
-        if (n < 0) {
-          fprintf(stderr, "Error reading input file\n");
+        if (q->file_wrap_enable) {
+          srslte_filesource_seek(&q->file_source, 0);
+          q->sf_idx = 9;
+          n = srslte_filesource_read_multi(&q->file_source, (void **) input_buffer, q->sf_len, q->nof_rx_antennas);
+          if (n < 0) {
+            fprintf(stderr, "Error reading input file\n");
+            return SRSLTE_ERROR;
+          }
+        } else {
           return SRSLTE_ERROR;
         }
       }
