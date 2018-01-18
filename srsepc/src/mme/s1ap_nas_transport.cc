@@ -502,8 +502,8 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
     m_s1ap_log->warning("IMEI-SV present but not handled");
   }
 
-  m_s1ap_log->info("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
-  m_s1ap_log->console("Received Security Mode Command Complete. IMSI: %lu\n", ue_ctx->imsi);
+  m_s1ap_log->info("Security Mode Command Complete -- IMSI: %lu\n", ue_ctx->imsi);
+  m_s1ap_log->console("Security Mode Command Complete -- IMSI: %lu\n", ue_ctx->imsi);
   if(ue_ctx->eit == true)
   {
     pack_esm_information_request(reply_buffer, ue_ctx);

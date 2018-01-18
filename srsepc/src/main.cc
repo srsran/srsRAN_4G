@@ -257,7 +257,7 @@ level(std::string l)
 int
 main (int argc,char * argv[] )
 {  
-  cout << "---  Software Radio Systems EPC  ---" << endl << endl;
+  cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
   signal(SIGINT, sig_int_handler);
 
   all_args_t args;
