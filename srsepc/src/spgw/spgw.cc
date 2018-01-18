@@ -295,7 +295,7 @@ spgw::run_thread()
       if (FD_ISSET(m_s1u, &set))
       {
         msg->N_bytes = recvfrom(m_s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen );
-        m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
+        //m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
         //m_spgw_log->debug("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
         handle_s1u_pdu(msg);
       }
