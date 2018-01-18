@@ -223,7 +223,7 @@ mme_gtpc::send_delete_session_request(ue_ctx_t *ue_ctx)
 {
   m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request\n");
   srslte::gtpc_pdu del_req_pdu;
-  srslte::gtpc_f_teid_ie *sgw_ctrl_fteid;
+  srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = NULL;
 
   //FIXME the UE control TEID sould be stored in the UE ctxt, not in the E-RAB ctxt
   //Maybe a mme_s1ap_id to ctrl teid map as well?
@@ -236,6 +236,8 @@ mme_gtpc::send_delete_session_request(ue_ctx_t *ue_ctx)
       break;
     }
   }
+  //FIXME: add proper error handling
+  assert(sgw_ctrl_fteid != NULL);
 
   srslte::gtpc_header *header = &del_req_pdu.header;
   header->teid_present = true;
