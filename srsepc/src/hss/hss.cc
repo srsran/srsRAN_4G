@@ -86,6 +86,7 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
   /*Read user information from DB*/
   if(read_db_file(hss_args->db_file) == false)
   {
+    m_hss_log->console("Error reading user database file %s\n", hss_args->db_file.c_str());
     return -1;
   }
 
@@ -140,7 +141,7 @@ hss::read_db_file(std::string db_filename)
   {
     return false;
   }
-  m_hss_log->info("Opended DB file: %s\n", db_filename.c_str() );
+  m_hss_log->info("Opened DB file: %s\n", db_filename.c_str() );
 
   std::string line;
   while (std::getline(m_db_file, line))
