@@ -42,7 +42,7 @@
 
 #define DEFAULT_GAIN 100
 
-#define DEFAULT_GAIN_16 10000
+#define DEFAULT_GAIN_16 1000
 #define VITERBI_16 
 
 #ifndef LV_HAVE_AVX2
@@ -73,7 +73,7 @@ int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
     }
     update_viterbi37_blk_port(q->ptr, q->tmp, TB_ITER*frame_length, &best_state);
     chainback_viterbi37_port(q->ptr,  q->tmp, TB_ITER*frame_length, best_state);
-    memcpy(data, q->tmp, frame_length*sizeof(uint8_t));
+    memcpy(data, &q->tmp[((int) (TB_ITER/2))*frame_length], frame_length*sizeof(uint8_t));
   } else {
     update_viterbi37_blk_port(q->ptr, symbols, frame_length + q->K - 1, NULL);
     chainback_viterbi37_port(q->ptr, data, frame_length, 0);
@@ -105,7 +105,7 @@ int decode37_sse(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length
     }
     update_viterbi37_blk_sse(q->ptr, q->tmp, TB_ITER*frame_length, &best_state);
     chainback_viterbi37_sse(q->ptr,  q->tmp, TB_ITER*frame_length, best_state);
-    memcpy(data, q->tmp, frame_length*sizeof(uint8_t));
+    memcpy(data, &q->tmp[((int) (TB_ITER/2))*frame_length], frame_length*sizeof(uint8_t));
   } else {
     update_viterbi37_blk_sse(q->ptr, symbols, frame_length+q->K-1, NULL);
     chainback_viterbi37_sse(q->ptr, data, frame_length, 0);
@@ -151,7 +151,7 @@ int decode37_avx2_16bit(void *o, uint16_t *symbols, uint8_t *data, uint32_t fram
     }
     update_viterbi37_blk_avx2_16bit(q->ptr, q->tmp_s, TB_ITER*frame_length, &best_state);
     chainback_viterbi37_avx2_16bit(q->ptr,  q->tmp, TB_ITER*frame_length, best_state);
-    memcpy(data, q->tmp, frame_length*sizeof(uint8_t));
+    memcpy(data, &q->tmp[((int) (TB_ITER/2))*frame_length], frame_length*sizeof(uint8_t));
   } else {
     update_viterbi37_blk_avx2_16bit(q->ptr, symbols, frame_length+q->K-1, NULL);
     chainback_viterbi37_avx2_16bit(q->ptr, data, frame_length, 0);
@@ -192,7 +192,7 @@ int decode37_avx2(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_lengt
     }
     update_viterbi37_blk_avx2(q->ptr, q->tmp, TB_ITER*frame_length, &best_state);
     chainback_viterbi37_avx2(q->ptr,  q->tmp, TB_ITER*frame_length, best_state);
-    memcpy(data, q->tmp, frame_length*sizeof(uint8_t));
+    memcpy(data, &q->tmp[((int) (TB_ITER/2))*frame_length], frame_length*sizeof(uint8_t));
   } else {
     update_viterbi37_blk_avx2(q->ptr, symbols, frame_length+q->K-1, NULL);
     chainback_viterbi37_avx2(q->ptr, data, frame_length, 0);
@@ -237,7 +237,7 @@ int decode37_neon(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_lengt
     }
     update_viterbi37_blk_neon(q->ptr, q->tmp, TB_ITER*frame_length, &best_state);
     chainback_viterbi37_neon(q->ptr,  q->tmp, TB_ITER*frame_length, best_state);
-    memcpy(data, q->tmp, frame_length*sizeof(uint8_t));
+    memcpy(data, &q->tmp[((int) (TB_ITER/2))*frame_length], frame_length*sizeof(uint8_t));
   } else {
     update_viterbi37_blk_neon(q->ptr, symbols, frame_length+q->K-1, NULL);
     chainback_viterbi37_neon(q->ptr, data, frame_length, 0);
@@ -423,7 +423,7 @@ int init37_avx2_16bit(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool
   q->R = 3;
   q->framebits = framebits;
   q->gain_quant_s = 4; 
-  q->gain_quant = DEFAULT_GAIN; 
+  q->gain_quant = DEFAULT_GAIN_16;
   q->tail_biting = tail_biting;
   q->decode_s = decode37_avx2_16bit;
   q->free = free37_avx2_16bit;
@@ -537,7 +537,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
       }
     }
 #ifdef VITERBI_16
-    srslte_vec_quant_fus(symbols, q->symbols_us, DEFAULT_GAIN_16/max, 32767.5, 65535, len);
+    srslte_vec_quant_fus(symbols, q->symbols_us, q->gain_quant/max, 32767.5, 65535, len);
     return srslte_viterbi_decode_us(q, q->symbols_us, data, frame_length);
 #else
     srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant/max, 127.5, 255, len);

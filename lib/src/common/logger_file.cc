@@ -48,16 +48,18 @@ logger_file::~logger_file() {
   }
 }
 
-void logger_file::init(std::string file) {
+void logger_file::init(std::string file, int max_length) {
   pthread_mutex_init(&mutex, NULL); 
   pthread_cond_init(&not_empty, NULL);
   pthread_cond_init(&not_full, NULL);
+  this->max_length = max_length*1024;
+  name_idx = 0;
   filename = file;
   logfile = fopen(filename.c_str(), "w");
   if(logfile==NULL) {
     printf("Error: could not create log file, no messages will be logged!\n");
   }
-  start();
+  start(-2);
   inited = true;
 }
 
@@ -74,17 +76,33 @@ void logger_file::log(str_ptr msg) {
 
 void logger_file::run_thread() {
   while(not_done) {
-  pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
     while(buffer.empty()) {
       pthread_cond_wait(&not_empty, &mutex);
     }
     str_ptr s = buffer.front();
     pthread_cond_signal(&not_full);
+    int n = 0;
     if(logfile)
-      fprintf(logfile, "%s", s->c_str());
+      n = fprintf(logfile, "%s", s->c_str());
     delete s; 
     buffer.pop_front();
     pthread_mutex_unlock(&mutex);
+    if (n > 0) {
+      cur_length += (int64_t) n;
+      if (cur_length >= max_length && max_length > 0) {
+        fclose(logfile);
+        name_idx++;
+        char numstr[21]; // enough to hold all numbers up to 64-bits
+        sprintf(numstr, ".%d", name_idx);
+        string newfilename = filename + numstr ;
+        logfile = fopen(newfilename.c_str(), "w");
+        if(logfile==NULL) {
+          printf("Error: could not create log file, no messages will be logged!\n");
+        }
+        cur_length = 0;
+      }
+    }
   }
 }
 
