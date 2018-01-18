@@ -472,11 +472,20 @@ void phch_recv::set_sampling_rate()
   if (current_srate != -1) {
     Info("SYNC:  Setting sampling rate %.2f MHz\n", current_srate/1000000);
 
-    if (30720 % ((int) current_srate / 1000) == 0) {
+#if 0
+    if (((int) current_srate / 1000) % 3072 == 0) {
       radio_h->set_master_clock_rate(30.72e6);
     } else {
       radio_h->set_master_clock_rate(23.04e6);
     }
+#else
+      if (current_srate < 10e6) {
+        radio_h->set_master_clock_rate(4 * current_srate);
+      } else {
+        radio_h->set_master_clock_rate(current_srate);
+      }
+#endif
+
     srate_mode = SRATE_CAMP;
     radio_h->set_rx_srate(current_srate);
     radio_h->set_tx_srate(current_srate);
