@@ -151,7 +151,7 @@ hss::read_db_file(std::string db_filename)
       std::vector<std::string> split = split_string(line,','); 
       if(split.size()!=5)
       {
-        m_hss_log->error("Error parsing .csv file %d\n");
+        m_hss_log->error("Error parsing UE database\n");
         return false;
       }
       hss_ue_ctx_t *ue_ctx = new hss_ue_ctx_t;
