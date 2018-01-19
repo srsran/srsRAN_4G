@@ -1,7 +1,8 @@
+#/bin/bash
+
+###################################################################
 #
-# Copyright 2013-2017 Software Radio Systems Limited
-#
-# This file is part of srsLTE
+# This file is part of srsLTE.
 #
 # srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -17,13 +18,20 @@
 # the LICENSE file in the top-level directory of this distribution
 # and at http://www.gnu.org/licenses/.
 #
+###################################################################
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch -Wno-unused-but-set-variable -Wno-unused-variable -Wno-return-type -Wno-sign-compare -Wno-reorder -Wno-parantheses")
-add_library(srslte_asn1 STATIC
-  liblte_common.cc
-  liblte_rrc.cc
-  liblte_mme.cc
-  liblte_s1ap.cc
-  gtpc.cc
-)
-install(TARGETS srslte_asn1 DESTINATION ${LIBRARY_DIR})
+#Check for sudo rights
+sudo -v || exit 
+
+#Check if outbound interface was specified
+if [ ! $# -eq 1 ]
+  then
+    echo "Usage :'sudo ./if_masq.sh <Interface Name>' "
+    exit
+fi
+
+echo "Masquerading Interface "$1
+
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward 1>/dev/null
+sudo iptables -t nat -A POSTROUTING -o $1 -j MASQUERADE
+

@@ -40,7 +40,7 @@ logger_file::logger_file()
 
 logger_file::~logger_file() {
   not_done = false;
-  log(new std::string("Closing log"));
+  log(new std::string("Closing log\n"));
   if(inited) {
     wait_thread_finish();
     flush();
