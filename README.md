@@ -136,13 +136,13 @@ On many systems they should work out of the box.
 Note that you have to execute the applications with root privileges to enable
 real-time thread priorities and to permit creation of virtual network interfaces.
 
-Also note that when you run the applications that all additioanl configuration files,
+Also note that when you run the applications that all additional configuration files,
 for example the UE database file needed by srsEPC, reside in your current working directory.
 If that is not the case, you may need to specify the location of those files as
-command line argument, for example using the --hss.db_file parameter in srsEPC.
+command line arguments, for example using the --hss.db_file parameter in srsEPC.
 
-srsENB and srsEPC can run on the same computers as a network-in-the-box configuration.
-srsUE needs to run on a seperate machine.
+srsENB and srsEPC can run on the same machine as a network-in-the-box configuration.
+srsUE needs to run on a separate machine.
 
 If you have installed the software suite using ```sudo make install```, you may just
 change in the source directory and start the applications as follows.
