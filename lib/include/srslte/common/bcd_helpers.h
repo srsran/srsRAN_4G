@@ -120,6 +120,78 @@ inline std::string plmn_id_to_string(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
   return mcc_str + mnc_str;
 }
 
+/******************************************************************************
+ * Convert PLMN to BCD-coded MCC and MNC.
+ * Digits are represented by 4-bit nibbles. Unused nibbles are filled with 0xF.
+ * MNC 001 represented as 0xF001
+ * MNC 01 represented as 0xFF01
+ * PLMN encoded as per TS 36.413 sec 9.2.3.8
+ *****************************************************************************/
+inline void s1ap_plmn_to_mccmnc(uint32_t plmn, uint16_t *mcc, uint16_t *mnc)
+{
+  uint8_t nibbles[6];
+  nibbles[0] = (plmn & 0xF00000) >> 20;
+  nibbles[1] = (plmn & 0x0F0000) >> 16;
+  nibbles[2] = (plmn & 0x00F000) >> 12;
+  nibbles[3] = (plmn & 0x000F00) >> 8;
+  nibbles[4] = (plmn & 0x0000F0) >> 4;
+  nibbles[5] = (plmn & 0x00000F);
+
+  *mcc = 0xF000;
+  *mnc = 0xF000;
+  *mcc |= nibbles[1] << 8;    // MCC digit 1
+  *mcc |= nibbles[0] << 4;    // MCC digit 2
+  *mcc |= nibbles[3];         // MCC digit 3
+
+  if(nibbles[2] == 0xF) {
+    // 2-digit MNC
+    *mnc |= 0x0F00;           // MNC digit 1
+    *mnc |= nibbles[5] << 4;  // MNC digit 2
+    *mnc |= nibbles[4];       // MNC digit 3
+  } else {
+    // 3-digit MNC
+    *mnc |= nibbles[5] << 8;  // MNC digit 1
+    *mnc |= nibbles[4] << 4;  // MNC digit 2
+    *mnc |= nibbles[2] ;      // MNC digit 3
+  }
+}
+
+/******************************************************************************
+ * Convert BCD-coded MCC and MNC to PLMN.
+ * Digits are represented by 4-bit nibbles. Unused nibbles are filled with 0xF.
+ * MNC 001 represented as 0xF001
+ * MNC 01 represented as 0xFF01
+ * PLMN encoded as per TS 36.413 sec 9.2.3.8
+ *****************************************************************************/
+inline void s1ap_mccmnc_to_plmn(uint16_t mcc, uint16_t mnc, uint32_t *plmn)
+{
+  uint8_t nibbles[6];
+  nibbles[1] = (mcc & 0x0F00) >> 8; // MCC digit 1
+  nibbles[0] = (mcc & 0x00F0) >> 4; // MCC digit 2
+  nibbles[3] = (mcc & 0x000F);      // MCC digit 3
+
+  if((mnc & 0xFF00) == 0xFF00) {
+    // 2-digit MNC
+    nibbles[2] = 0x0F;                // MNC digit 1
+    nibbles[5] = (mnc & 0x00F0) >> 4; // MNC digit 2
+    nibbles[4] = (mnc & 0x000F);      // MNC digit 3
+  } else {
+    // 3-digit MNC
+    nibbles[5] = (mnc & 0x0F00) >> 8; // MNC digit 1
+    nibbles[4] = (mnc & 0x00F0) >> 4; // MNC digit 2
+    nibbles[2] = (mnc & 0x000F);      // MNC digit 3
+  }
+
+  *plmn = 0x000000;
+  *plmn |= nibbles[0] << 20;
+  *plmn |= nibbles[1] << 16;
+  *plmn |= nibbles[2] << 12;
+  *plmn |= nibbles[3] << 8;
+  *plmn |= nibbles[4] << 4;
+  *plmn |= nibbles[5];
+}
+
+
 } // namespace srslte
 
 #endif // BCD_HELPERS
