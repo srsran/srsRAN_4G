@@ -224,7 +224,7 @@ public:
   bool     read_subheader(uint8_t** ptr);
   void     read_payload(uint8_t **ptr);
   uint32_t get_sdu_lcid();
-  uint32_t get_payload_size();
+  int get_payload_size();
   uint32_t get_header_size(bool is_last);
   uint8_t* get_sdu_ptr();
   

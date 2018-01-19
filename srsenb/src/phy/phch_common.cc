@@ -152,9 +152,10 @@ uint8_t phch_common::ue_db_get_ri(uint16_t rnti) {
   return ret;
 }
 void phch_common::ue_db_set_last_ul_mod(uint16_t rnti, uint32_t tti, srslte_mod_t mcs) {
-  if (common_ue_db.count(rnti)) {
-    common_ue_db[rnti].last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = mcs;
+  if (!common_ue_db.count(rnti)) {
+    ue_db_add_rnti(rnti);
   }
+  common_ue_db[rnti].last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = mcs;
 }
 srslte_mod_t phch_common::ue_db_get_last_ul_mod(uint16_t rnti, uint32_t tti) {
   srslte_mod_t ret = SRSLTE_MOD_BPSK;
@@ -164,12 +165,13 @@ srslte_mod_t phch_common::ue_db_get_last_ul_mod(uint16_t rnti, uint32_t tti) {
   return ret;
 }
 void phch_common::ue_db_set_last_ul_tbs(uint16_t rnti, uint32_t tti, int tbs) {
-  if (common_ue_db.count(rnti)) {
-    common_ue_db[rnti].last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = tbs;
+  if (!common_ue_db.count(rnti)) {
+    ue_db_add_rnti(rnti);
   }
+  common_ue_db[rnti].last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = tbs;
 }
 int phch_common::ue_db_get_last_ul_tbs(uint16_t rnti, uint32_t tti) {
-  int ret = 0;
+  int ret = -1;
   if (common_ue_db.count(rnti)) {
     ret = common_ue_db[rnti].last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
   }
