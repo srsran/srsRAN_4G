@@ -52,7 +52,7 @@ srsENB Features
  * SR support
  * Periodic and Aperiodic CQI feedback support
  * Standard S1AP and GTP-U interfaces to the Core Network
- * 150 Mbps DL in 20 MHz MIMO TM4 with commercial UEs
+ * 150 Mbps DL in 20 MHz MIMO TM3/TM4 with commercial UEs
  * 75 Mbps DL in SISO configuration with commercial UEs
 
 srsENB has been tested and validated with the following handsets:
