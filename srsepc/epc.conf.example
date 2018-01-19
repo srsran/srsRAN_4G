@@ -35,7 +35,7 @@ db_file = user_db.csv
 #####################################################################
 # SP-GW configuration
 #
-# gtpu_bind_addr:   Location of .csv file that stores UEs information.
+# gtpu_bind_addr:   GTP-U bind adress.
 #
 #####################################################################
 
