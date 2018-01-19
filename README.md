@@ -183,7 +183,7 @@ sudo srsenb srsenb/enb.conf
 
 ### srsUE
 
-On machine 2, after having follewed the installation instructions like above,
+On machine 2, after having following the installation instructions above,
 change back to the source directory and copy the srsUE example configuration:
 ```
 cd ..
@@ -198,7 +198,7 @@ sudo srsue srsue/ue.conf
 Using the default configuration, this creates a virtual network interface
 named "tun_srsue" on machine 2 with an IP in the network 172.16.0.x.
 Assuming the UE has been assigned IP 172.16.0.2, you may now exchange
-IP traffic with the machine 1 over the LTE link. For example, run ping using 
+IP traffic with machine 1 over the LTE link. For example, run a ping to 
 the default SGi IP address:
 ```
 ping 172.16.0.1
