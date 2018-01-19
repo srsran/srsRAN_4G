@@ -35,7 +35,7 @@ srsUE Features
  * Cell search and synchronization procedure for the UE
  * Soft USIM supporting Milenage and XOR authentication 
  * Virtual network interface *tun_srsue* created upon network attach
- * +100 Mbps DL in 20 MHz MIMO TM4 configuration in i7 Quad-Core CPU.
+ * +100 Mbps DL in 20 MHz MIMO TM3/TM4 configuration in i7 Quad-Core CPU.
  * 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
  * 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.
 
