@@ -171,7 +171,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
       if (mac_msg_ul.get()->get_sdu_lcid() == 0) {
         uint8_t *x = mac_msg_ul.get()->get_sdu_ptr();
         uint32_t sum = 0;
-        for (uint32_t i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
+        for (int i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
           sum += x[i];
         }
         if (sum == 0) {
