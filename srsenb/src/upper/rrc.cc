@@ -116,43 +116,56 @@ void rrc::get_metrics(rrc_metrics_t &m)
 
 uint32_t rrc::generate_sibs()
 {
+  // nof_messages includes SIB2 by default, plus all configured SIBs
   uint32_t nof_messages = 1+cfg.sibs[0].sib.sib1.N_sched_info;
   LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info = cfg.sibs[0].sib.sib1.sched_info; 
   
-  // Allocate DSLCH msg structs 
+  // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
+  // all SIBs in a SI message msg[i] share the same periodicity
   LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT *msg = (LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT*)calloc(nof_messages, sizeof(LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT));
-  
-  // Copy SIB1
-  msg[0].N_sibs = 1; 
+
+  // Copy SIB1 to first SI message
+  msg[0].N_sibs = 1;
   memcpy(&msg[0].sibs[0], &cfg.sibs[0], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
-  
+
   // Copy rest of SIBs
-  for (uint32_t i=1;i<nof_messages;i++) {
-    msg[i].N_sibs=0;
-    uint32_t j_start = 0; 
-    // Add SIB2 always first to i=1 
-    if (i == 1) {
-      msg[1].N_sibs++; 
-      memcpy(&msg[1].sibs[0], &cfg.sibs[1], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));      
-      j_start=1;
-      // Save SIB2 
+  for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages; sched_info_elem++) {
+    uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
+    uint32_t current_msg_element_offset = 0;
+
+    msg[msg_index].N_sibs = 0;
+
+    // SIB2 always in second SI message
+    if (msg_index == 1) {
+      msg[msg_index].N_sibs++;
+      memcpy(&msg[msg_index].sibs[0], &cfg.sibs[1], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
+      current_msg_element_offset = 1; // make sure "other SIBs" do not overwrite this SIB2
+      // Save SIB2
       memcpy(&sib2, &cfg.sibs[1].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
+    } else {
+      current_msg_element_offset = 0; // no SIB2, no offset
     }
-    // Add other SIBs to this message 
-    for (uint32_t j=0;j<sched_info[i-1].N_sib_mapping_info;j++) {
-      msg[i].N_sibs++;
-      memcpy(&msg[i].sibs[j+j_start], &cfg.sibs[(int) sched_info[i-1].sib_mapping_info[j+j_start].sib_type+2], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
+
+    // Add other SIBs to this message, if any
+    for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].N_sib_mapping_info; mapping++) {
+      msg[msg_index].N_sibs++;
+      // current_msg_element_offset skips SIB2 if necessary
+      memcpy(&msg[msg_index].sibs[mapping + current_msg_element_offset],
+              &cfg.sibs[(int) sched_info[sched_info_elem].sib_mapping_info[mapping].sib_type+2],
+              sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
     }
-  }  
-  // Pack payload for all messages 
-  for (uint32_t i=0;i<nof_messages;i++) {
-    LIBLTE_BIT_MSG_STRUCT bitbuffer;
-    liblte_rrc_pack_bcch_dlsch_msg(&msg[i], &bitbuffer);
-    srslte_bit_pack_vector(bitbuffer.msg, sib_buffer[i].msg, bitbuffer.N_bits);
-    sib_buffer[i].N_bytes = (bitbuffer.N_bits-1)/8+1;
   }
+
+  // Pack payload for all messages 
+  for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
+    LIBLTE_BIT_MSG_STRUCT bitbuffer;
+    liblte_rrc_pack_bcch_dlsch_msg(&msg[msg_index], &bitbuffer);
+    srslte_bit_pack_vector(bitbuffer.msg, sib_buffer[msg_index].msg, bitbuffer.N_bits);
+    sib_buffer[msg_index].N_bytes = (bitbuffer.N_bits-1)/8+1;
+  }
+
   free(msg);
-  return nof_messages; 
+  return nof_messages;
 }
 
 void rrc::config_mac()
