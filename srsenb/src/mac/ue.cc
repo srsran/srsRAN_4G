@@ -197,11 +197,11 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
 
       // Save contention resolution if lcid == 0
       if (mac_msg_ul.get()->get_sdu_lcid() == 0 && route_pdu) {
-        uint32_t nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
+        int nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
         if (mac_msg_ul.get()->get_payload_size() >= nbytes) {
           uint8_t *ue_cri_ptr = (uint8_t *) &conres_id;
           uint8_t *pkt_ptr = mac_msg_ul.get()->get_sdu_ptr(); // Warning here: we want to include the
-          for (uint32_t i = 0; i < nbytes; i++) {
+          for (int i = 0; i < nbytes; i++) {
             ue_cri_ptr[nbytes - i - 1] = pkt_ptr[i];
           }
         } else {

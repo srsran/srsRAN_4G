@@ -188,8 +188,6 @@ int main(int argc, char **argv) {
     snr_points = 1;
   }
 
-  float Gain = 2500;
-
   for (i = 0; i < snr_points; i++) {
     frame_cnt = 0;
     errors = 0;
