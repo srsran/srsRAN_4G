@@ -434,8 +434,6 @@ void sched::tpc_dec(uint16_t rnti)
 // Schedules Broadcast messages (SIB)
 int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST]) 
 {
-  // TODO: Enable multipe SIBs per SI
-  
   int nof_bc_elems = 0; 
   for (int i=0;i<MAX_SIBS;i++) {
     if (cfg.sibs[i].len) {
