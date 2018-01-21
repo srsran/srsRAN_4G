@@ -90,7 +90,10 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
     return -1;
   }
 
-  m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str());
+  mcc = hss_args->mcc;
+  mnc = hss_args->mnc;
+
+  m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s, MCC: %d, MNC: %d\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str(), mcc, mnc);
   m_hss_log->console("HSS Initialized\n");
   return 0;
 }
@@ -203,8 +206,6 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   uint8_t     ak[6];
   uint8_t     mac[8];
 
-  uint16_t  mcc=61441; //001
-  uint16_t  mnc=65281; //01
 
   if(!get_k_amf_op(imsi,k,amf,op))
   {
@@ -273,9 +274,6 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
   uint8_t     ik[16];
   uint8_t     ak[6];
   uint8_t     mac[8];
-
-  uint16_t  mcc=61441; //001
-  uint16_t  mnc=65281; //01
 
   int i = 0;
 
