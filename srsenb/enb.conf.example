@@ -22,9 +22,9 @@ phy_cell_id = 1
 tac = 0x0007
 mcc = 001
 mnc = 01
-mme_addr = 127.0.0.1
+mme_addr = 127.0.1.100
 gtp_bind_addr = 127.0.0.1
-n_prb = 25
+n_prb = 50
 
 #####################################################################
 # eNB configuration files 
@@ -60,7 +60,7 @@ drb_config = drb.conf
 #####################################################################
 [rf]
 dl_earfcn = 3400
-tx_gain = 70
+tx_gain = 80
 rx_gain = 40
 
 #device_name = auto
