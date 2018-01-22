@@ -213,7 +213,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   }
   gen_rand(rand);
   get_sqn(sqn);
-
+ 
   security_milenage_f2345( k,
                            op,
                            rand,
@@ -222,12 +222,23 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
                            ik,
                            ak);
 
+  m_hss_log->debug_hex(k, 16, "User Key : ");
+  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(rand, 16, "User Rand : ");
+  m_hss_log->debug_hex(xres, 8, "User XRES: ");
+  m_hss_log->debug_hex(ck, 16, "User CK: ");
+  m_hss_log->debug_hex(ik, 16, "User IK: ");
+  m_hss_log->debug_hex(ak, 6, "User AK: ");
+
   security_milenage_f1( k,
                         op,
                         rand,
                         sqn,
                         amf,
                         mac);
+
+  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
+  m_hss_log->debug_hex(mac, 8, "User MAC : ");
 
   // Generate K_asme
   security_generate_k_asme( ck,
@@ -237,6 +248,9 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
                             mcc,
                             mnc,
                             k_asme);
+
+  m_hss_log->debug("User MCC : %x  MNC : %x \n", mcc, mnc);
+  m_hss_log->debug_hex(k_asme, 16, "User k_asme : ");
 
   //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
   for(int i=0;i<6;i++ )
@@ -251,10 +265,8 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   {
     autn[8+i]=mac[i];
   }
-
-  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
-  m_hss_log->debug_hex(autn, 8, "User AUTN: ");
-  m_hss_log->debug_hex(xres, 8, "User XRES: ");
+  
+  m_hss_log->debug_hex(autn, 16, "User AUTN: ");
 
   return true;
 }
