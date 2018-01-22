@@ -702,8 +702,8 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
     // Pre-decoder
     if (srslte_predecoding_type(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
                                       cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, pdsch_scaling, noise_estimate)<0) {
-      printf("Error predecoding\n");
-      return -1;
+      DEBUG("Error predecoding\n");
+      return SRSLTE_ERROR;
     }
 
     // Layer demapping only if necessary
@@ -765,7 +765,7 @@ int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
       }
     }
   } else {
-    ERROR("Not implemented configuration");
+    DEBUG("Not implemented configuration");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 

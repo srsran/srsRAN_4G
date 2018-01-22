@@ -685,19 +685,20 @@ int main(int argc, char **argv) {
                 /* Transmission mode 1 */
                 n = srslte_ue_dl_decode(&ue_dl, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
               } else {
-                if (prog_args.rf_nof_rx_ant == 1) {
-                  /* Transmission mode 2 */
-                  n = srslte_ue_dl_decode(&ue_dl, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
-                                          acks);
-                } else {
+                /* Transmission mode 2 */
+                n = srslte_ue_dl_decode(&ue_dl, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                                        acks);
+
+                if (n < 1) {
                   /* Transmission mode 3 */
                   n = srslte_ue_dl_decode(&ue_dl, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                           acks);
-                  if (n < 1) {
-                    /* Transmission mode 4 */
-                    n = srslte_ue_dl_decode(&ue_dl, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
-                                            acks);
-                  }
+                }
+
+                if (n < 1) {
+                  /* Transmission mode 4 */
+                  n = srslte_ue_dl_decode(&ue_dl, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                                          acks);
                 }
               }
 
@@ -817,10 +818,13 @@ int main(int argc, char **argv) {
             /* MIMO: if tx and rx antennas are bigger than 1 */
             if (cell.nof_ports > 1 && ue_dl.pdsch.nof_rx_antennas > 1) {
               /* Compute condition number */
-              srslte_ue_dl_ri_select(&ue_dl, NULL, &cn);
-
-              /* Print condition number */
-              PRINT_LINE("            κ: %.1f dB (Condition number, 0 dB => Best)", cn);
+              if (srslte_ue_dl_ri_select(&ue_dl, NULL, &cn)) {
+                /* Condition number calculation is not supported for the number of tx & rx antennas*/
+                PRINT_LINE("            κ: NA");
+              } else {
+                /* Print condition number */
+                PRINT_LINE("            κ: %.1f dB (Condition number, 0 dB => Best)", cn);
+              }
             }
             PRINT_LINE("");
 
@@ -828,24 +832,25 @@ int main(int argc, char **argv) {
             if (ue_dl.pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
 
               /* Compute Rank Indicator (RI) and Precoding Matrix Indicator (PMI) */
-              srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, NULL);
-              for (uint32_t nl = 0; nl < SRSLTE_MAX_LAYERS; nl++) {
-                for (uint32_t cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb++) {
-                  sinr[nl][cb] = SRSLTE_VEC_EMA(ue_dl.sinr[nl][cb], sinr[nl][cb], 0.5f);
+              if (!srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, NULL)) {
+                for (uint32_t nl = 0; nl < SRSLTE_MAX_LAYERS; nl++) {
+                  for (uint32_t cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb++) {
+                    sinr[nl][cb] = SRSLTE_VEC_EMA(ue_dl.sinr[nl][cb], sinr[nl][cb], 0.5f);
+                  }
                 }
-              }
 
-              /* Print Multiplex stats */
-              PRINT_LINE("SINR (dB) Vs RI and PMI:");
-              PRINT_LINE("   | RI |   1   |   2   |");
-              PRINT_LINE(" -------+-------+-------+");
-              PRINT_LINE(" P |  0 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][0]), (ri == 1 && pmi == 0) ? '*' : ' ',
-                         10 * log10(sinr[1][0]), (ri == 2 && pmi == 0) ? '*' : ' ');
-              PRINT_LINE(" M |  1 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][1]), (ri == 1 && pmi == 1) ? '*' : ' ',
-                         10 * log10(sinr[1][1]), (ri == 2 && pmi == 1) ? '*' : ' ');
-              PRINT_LINE(" I |  2 | %5.2f%c|-------+ ", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2) ? '*' : ' ');
-              PRINT_LINE("   |  3 | %5.2f%c|         ", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3) ? '*' : ' ');
-              PRINT_LINE("");
+                /* Print Multiplex stats */
+                PRINT_LINE("SINR (dB) Vs RI and PMI:");
+                PRINT_LINE("   | RI |   1   |   2   |");
+                PRINT_LINE(" -------+-------+-------+");
+                PRINT_LINE(" P |  0 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][0]), (ri == 1 && pmi == 0) ? '*' : ' ',
+                           10 * log10(sinr[1][0]), (ri == 2 && pmi == 0) ? '*' : ' ');
+                PRINT_LINE(" M |  1 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][1]), (ri == 1 && pmi == 1) ? '*' : ' ',
+                           10 * log10(sinr[1][1]), (ri == 2 && pmi == 1) ? '*' : ' ');
+                PRINT_LINE(" I |  2 | %5.2f%c|-------+ ", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2) ? '*' : ' ');
+                PRINT_LINE("   |  3 | %5.2f%c|         ", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3) ? '*' : ' ');
+                PRINT_LINE("");
+              }
             }
             PRINT_LINE("Press enter maximum printing debug log of 1 subframe.");
             PRINT_LINE("");
