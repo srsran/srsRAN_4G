@@ -250,7 +250,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
                             k_asme);
 
   m_hss_log->debug("User MCC : %x  MNC : %x \n", mcc, mnc);
-  m_hss_log->debug_hex(k_asme, 16, "User k_asme : ");
+  m_hss_log->debug_hex(k_asme, 32, "User k_asme : ");
 
   //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
   for(int i=0;i<6;i++ )
@@ -310,6 +310,14 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
     ak[i] = xdout[i+3];
   }
 
+  m_hss_log->debug_hex(k, 16, "User Key : ");
+  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(rand, 16, "User Rand : ");
+  m_hss_log->debug_hex(xres, 8, "User XRES: ");
+  m_hss_log->debug_hex(ck, 16, "User CK: ");
+  m_hss_log->debug_hex(ik, 16, "User IK: ");
+  m_hss_log->debug_hex(ak, 6, "User AK: ");
+
   // Generate cdout
   for(i=0; i<6; i++) {
     cdout[i] = sqn[i];
@@ -322,6 +330,9 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
   for(i=0;i<8;i++) {
     mac[i] = xdout[i] ^ cdout[i];
   }
+
+  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
+  m_hss_log->debug_hex(mac, 8, "User MAC : ");
 
   //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
   for(int i=0;i<6;i++ )
@@ -345,6 +356,9 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
                             mcc,
                             mnc,
                             k_asme);
+  
+  m_hss_log->debug("User MCC : %x  MNC : %x \n", mcc, mnc);
+  m_hss_log->debug_hex(k_asme, 32, "User k_asme : ");
 
   //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
   for(int i=0;i<6;i++ )
@@ -360,9 +374,7 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
     autn[8+i]=mac[i];
   }
 
-  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
   m_hss_log->debug_hex(autn, 8, "User AUTN: ");
-  m_hss_log->debug_hex(xres, 8, "User XRES: ");
 
   return true;
 }
