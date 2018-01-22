@@ -26,7 +26,10 @@ add_executable(rrc_reconfig_test rrc_reconfig_test.cc)
 target_link_libraries(rrc_reconfig_test srsue_upper srslte_upper srslte_phy)
 add_test(rrc_reconfig_test rrc_reconfig_test)
 
-                              
+add_executable(nas_test nas_test.cc)
+target_link_libraries(nas_test srsue_upper srslte_upper srslte_phy)
+add_test(nas_test nas_test)
+
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################

@@ -24,10 +24,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include <string.h>
 #include <strings.h>
@@ -53,7 +53,6 @@ mac::mac() : timers_db(128),
   
 bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
 {
-  M_TRACE("MAC:BEGIN");
   started = false; 
 
   if (cell_ && phy && rlc && log_h_ && args_) {
@@ -92,7 +91,6 @@ bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, 
 
 void mac::stop()
 {
-  M_TRACE("MAC:BEGIN");
   for (uint32_t i=0;i<ue_db.size();i++) {
     delete ue_db[i];
   }
@@ -109,7 +107,6 @@ void mac::stop()
 // Implement Section 5.9
 void mac::reset()
 {
-  M_TRACE("MAC:BEGIN");
   Info("Resetting MAC\n");
   
   timers_db.stop_all();
@@ -124,7 +121,6 @@ void mac::reset()
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
-  M_TRACE("MAC:BEGIN");
   pcap = pcap_; 
   // Set pcap in all UEs for UL messages 
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
@@ -140,7 +136,6 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
  *******************************************************/
 int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {   
     return scheduler.dl_rlc_buffer_state(rnti, lc_id, tx_queue, retx_queue);
   } else {
@@ -151,7 +146,6 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
 
 int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
 {
-  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {
     // configure BSR group in UE
     ue_db[rnti]->set_lcg(lc_id, (uint32_t) cfg->group);
@@ -164,7 +158,6 @@ int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer
 
 int mac::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
-  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {   
     return scheduler.bearer_ue_rem(rnti, lc_id);
   } else {
@@ -175,14 +168,12 @@ int mac::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 void mac::phy_config_enabled(uint16_t rnti, bool enabled)
 {
-  M_TRACE("MAC:BEGIN");
   scheduler.phy_config_enabled(rnti, enabled);
 }
 
 // Update UE configuration 
 int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 {
-  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {         
     
     // Add RNTI to the PHY (pregerate signals) now instead of after PRACH
@@ -211,7 +202,6 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 // Removes UE from DB
 int mac::ue_rem(uint16_t rnti)
 {
-  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {         
     scheduler.ue_rem(rnti);
     phy_h->rem_rnti(rnti);
@@ -227,13 +217,11 @@ int mac::ue_rem(uint16_t rnti)
 
 int mac::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
 {
-  M_TRACE("MAC:BEGIN");
   return scheduler.cell_cfg(cell_cfg);  
 }
 
 void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
-  M_TRACE("MAC:BEGIN");
   int cnt=0;
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     ue *u = iter->second;
@@ -253,7 +241,6 @@ void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 void mac::rl_failure(uint16_t rnti)
 {
-  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {         
     uint32_t nof_fails = ue_db[rnti]->rl_failure();  
     if (nof_fails >= (uint32_t) args.link_failure_nof_err && args.link_failure_nof_err > 0) {    
@@ -268,7 +255,6 @@ void mac::rl_failure(uint16_t rnti)
 
 void mac::rl_ok(uint16_t rnti)
 {
-  M_TRACE("MAC:BEGIN");
   if (ue_db.count(rnti)) {         
     ue_db[rnti]->rl_failure_reset();  
   } else {
@@ -276,11 +262,10 @@ void mac::rl_ok(uint16_t rnti)
   }
 }
 
-int mac::ack_info(uint32_t tti, uint16_t rnti, bool ack)
+int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
-  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
-  uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, ack);    
+  uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, tb_idx, ack);
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
   
   if (ack) {
@@ -294,7 +279,6 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, bool ack)
 
 int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
 {
-  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
@@ -321,12 +305,51 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
   }
 }
 
-int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+int mac::set_dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) {
+  log_h->step(tti);
+
+  if (ue_db.count(rnti)) {
+    scheduler.dl_ant_info(rnti, dl_ant_info);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    return -1;
+  }
+  return 0;
+}
+
+int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
 {
-  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
+    scheduler.dl_ri_info(tti, rnti, ri_value);
+    ue_db[rnti]->metrics_dl_ri(ri_value);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    return -1;
+  }
+  return 0; 
+}
+
+int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
+{
+  log_h->step(tti);
+
+  if (ue_db.count(rnti)) {
+    scheduler.dl_pmi_info(tti, rnti, pmi_value);
+    ue_db[rnti]->metrics_dl_pmi(pmi_value);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    return -1;
+  }
+  return 0;
+}
+
+int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+{
+  log_h->step(tti);
+
+  if (ue_db.count(rnti)) {
     scheduler.dl_cqi_info(tti, rnti, cqi_value);
     ue_db[rnti]->metrics_dl_cqi(cqi_value);
   } else {
@@ -338,7 +361,6 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 
 int mac::snr_info(uint32_t tti, uint16_t rnti, float snr)
 {
-  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
@@ -353,7 +375,6 @@ int mac::snr_info(uint32_t tti, uint16_t rnti, float snr)
 
 int mac::sr_detected(uint32_t tti, uint16_t rnti)
 {
-  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (ue_db.count(rnti)) {         
@@ -367,7 +388,6 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
 
 int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 {
-  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   // Find empty slot for pending rars
@@ -423,11 +443,10 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
 int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 {
-  M_TRACE("MAC:BEGIN");
   log_h->step(tti);
 
   if (!started) {
-    return 0; 
+    return 0;
   }
   
   if (!dl_sched_res) {
@@ -452,43 +471,55 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
     
     // Copy grant info 
     dl_sched_res->sched_grants[n].rnti = rnti; 
+    dl_sched_res->sched_grants[n].dci_format = sched_result.data[i].dci_format;
     memcpy(&dl_sched_res->sched_grants[n].grant,    &sched_result.data[i].dci,          sizeof(srslte_ra_dl_dci_t));
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.data[i].dci_location, sizeof(srslte_dci_location_t));    
-    
-    dl_sched_res->sched_grants[n].softbuffer = ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.harq_process);
-    
-    // Get PDU if it's a new transmission
-    if (sched_result.data[i].nof_pdu_elems > 0) {
-      dl_sched_res->sched_grants[n].data     = ue_db[rnti]->generate_pdu(sched_result.data[i].pdu, 
-                                                        sched_result.data[i].nof_pdu_elems, 
-                                                        sched_result.data[i].tbs);
 
-      if (pcap) {
-        pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data, sched_result.data[i].tbs, rnti, true, tti);
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      dl_sched_res->sched_grants[n].softbuffers[tb] =
+          ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.harq_process, tb);
+
+      if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
+        /* Get PDU if it's a new transmission */
+        dl_sched_res->sched_grants[n].data[tb] = ue_db[rnti]->generate_pdu(tb,
+                                                                           sched_result.data[i].pdu[tb],
+                                                                           sched_result.data[i].nof_pdu_elems[tb],
+                                                                           sched_result.data[i].tbs[tb]);
+
+        if (!dl_sched_res->sched_grants[n].data[tb]) {
+          Error("Error! PDU was not generated (rnti=0x%04x, tb=%d)\n", rnti, tb);
+          sched_result.data[i].dci.tb_en[tb] = false;
+        }
+
+        if (pcap) {
+          pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti);
+        }
+
+      } else {
+        /* TB not enabled OR no data to send: set pointers to NULL  */
+        dl_sched_res->sched_grants[n].data[tb] = NULL;
       }
-      
-    } else {
-      dl_sched_res->sched_grants[n].data = NULL; 
     }
     n++;
   }
-  
+
   // Copy RAR grants 
   for (uint32_t i=0;i<sched_result.nof_rar_elems;i++) {
     // Copy grant info 
-    dl_sched_res->sched_grants[n].rnti = sched_result.rar[i].rarnti; 
+    dl_sched_res->sched_grants[n].rnti = sched_result.rar[i].rarnti;
+    dl_sched_res->sched_grants[n].dci_format = SRSLTE_DCI_FORMAT1A; // Force Format 1A
     memcpy(&dl_sched_res->sched_grants[n].grant,    &sched_result.rar[i].dci,          sizeof(srslte_ra_dl_dci_t));
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.rar[i].dci_location, sizeof(srslte_dci_location_t));    
 
     // Set softbuffer (there are no retx in RAR but a softbuffer is required)
-    dl_sched_res->sched_grants[n].softbuffer = &rar_softbuffer_tx;    
+    dl_sched_res->sched_grants[n].softbuffers[0] = &rar_softbuffer_tx;
 
     // Assemble PDU 
-    dl_sched_res->sched_grants[n].data = assemble_rar(sched_result.rar[i].grants, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs);        
+    dl_sched_res->sched_grants[n].data[0] = assemble_rar(sched_result.rar[i].grants, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs);
 
     
     if (pcap) {
-      pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data, sched_result.data[i].tbs, dl_sched_res->sched_grants[n].rnti, true, tti);
+      pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data[0], sched_result.rar[i].tbs, dl_sched_res->sched_grants[n].rnti, true, tti);
     }
 
     n++;
@@ -497,26 +528,27 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
   // Copy SI and Paging grants   
   for (uint32_t i=0;i<sched_result.nof_bc_elems;i++) {
     // Copy grant info 
-    dl_sched_res->sched_grants[n].rnti = (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH ) ? SRSLTE_SIRNTI : SRSLTE_PRNTI; 
+    dl_sched_res->sched_grants[n].rnti = (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH ) ? SRSLTE_SIRNTI : SRSLTE_PRNTI;
+    dl_sched_res->sched_grants[n].dci_format = SRSLTE_DCI_FORMAT1A; // Force Format 1A
     memcpy(&dl_sched_res->sched_grants[n].grant,    &sched_result.bc[i].dci,          sizeof(srslte_ra_dl_dci_t));
     memcpy(&dl_sched_res->sched_grants[n].location, &sched_result.bc[i].dci_location, sizeof(srslte_dci_location_t));    
     
     // Set softbuffer    
     if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
-      dl_sched_res->sched_grants[n].softbuffer = &bcch_softbuffer_tx[sched_result.bc[i].index];    
-      dl_sched_res->sched_grants[n].data = assemble_si(sched_result.bc[i].index);
+      dl_sched_res->sched_grants[n].softbuffers[0] = &bcch_softbuffer_tx[sched_result.bc[i].index];
+      dl_sched_res->sched_grants[n].data[0] = assemble_si(sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
       if (pcap) {
-        pcap->write_dl_sirnti(dl_sched_res->sched_grants[n].data, sched_result.bc[i].tbs, true, tti);
+        pcap->write_dl_sirnti(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
 #endif
     } else {
-      dl_sched_res->sched_grants[n].softbuffer = &pcch_softbuffer_tx;    
-      dl_sched_res->sched_grants[n].data = pcch_payload_buffer;
+      dl_sched_res->sched_grants[n].softbuffers[0] = &pcch_softbuffer_tx;
+      dl_sched_res->sched_grants[n].data[0] = pcch_payload_buffer;
       rlc_h->read_pdu_pcch(pcch_payload_buffer, pcch_payload_buffer_len);
       
       if (pcap) {
-        pcap->write_dl_pch(dl_sched_res->sched_grants[n].data, sched_result.bc[i].tbs, true, tti);
+        pcap->write_dl_pch(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
     }
     
@@ -533,7 +565,6 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
 uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32_t nof_grants, int rar_idx, uint32_t pdu_len)
 {
-  M_TRACE("MAC:BEGIN");
   uint8_t grant_buffer[64];
   if (pdu_len < rar_payload_len) {
     srslte::rar_pdu *pdu = &rar_pdu_msg[rar_idx];
@@ -560,14 +591,12 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32
 
 uint8_t* mac::assemble_si(uint32_t index)
 {  
-  M_TRACE("MAC:BEGIN");
   rlc_h->read_pdu_bcch_dlsch(index, bcch_dlsch_payload);
   return bcch_dlsch_payload;
 }
 
 int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res) 
 {
-  M_TRACE("MAC:BEGIN");
 
   log_h->step(tti);
   
@@ -625,10 +654,9 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
   ul_sched_res->nof_phich = sched_result.nof_phich_elems;
   return SRSLTE_SUCCESS; 
 }
-
+  
 void mac::tti_clock()
 {
-  M_TRACE("MAC:BEGIN");
   timers_thread.tti_clock();
 }
 
@@ -642,20 +670,17 @@ void mac::tti_clock()
  *******************************************************/
 uint32_t mac::timer_get_unique_id()
 {
-  M_TRACE("MAC:BEGIN");
   return timers_db.get_unique_id();
 }
 
 void mac::timer_release_id(uint32_t timer_id)
 {
-  M_TRACE("MAC:BEGIN");
   timers_db.release_id(timer_id);
 }
 
 /* Front-end to upper-layer timers */
 srslte::timers::timer* mac::timer_get(uint32_t timer_id)
 {
-  M_TRACE("MAC:BEGIN");
   return timers_db.get(timer_id);
 }
 
@@ -672,7 +697,6 @@ void mac::timer_thread::run_thread()
   ttisync.set_producer_cntr(0);
   ttisync.resync();
   while(running) {
-    M_TRACE("MAC:BEGIN");
     ttisync.wait();
     timers->step_all();
   }
@@ -680,7 +704,6 @@ void mac::timer_thread::run_thread()
 
 void mac::timer_thread::stop()
 {
-  M_TRACE("MAC:BEGIN");
   running=false;
   ttisync.increase();
   wait_thread_finish();
@@ -688,7 +711,6 @@ void mac::timer_thread::stop()
 
 void mac::timer_thread::tti_clock()
 {
-  M_TRACE("MAC:BEGIN");
   ttisync.increase();
 }
 
@@ -702,7 +724,6 @@ void mac::timer_thread::tti_clock()
  *******************************************************/
 mac::pdu_process::pdu_process(pdu_process_handler *h)
 {
-  M_TRACE("MAC:BEGIN");
   handler = h; 
   pthread_mutex_init(&mutex, NULL);
   pthread_cond_init(&cvar, NULL);
@@ -712,7 +733,6 @@ mac::pdu_process::pdu_process(pdu_process_handler *h)
 
 void mac::pdu_process::stop()
 {
-  M_TRACE("MAC:BEGIN");
   pthread_mutex_lock(&mutex);
   running = false; 
   pthread_cond_signal(&cvar);
@@ -723,7 +743,6 @@ void mac::pdu_process::stop()
 
 void mac::pdu_process::notify()
 {
-  M_TRACE("MAC:BEGIN");
   pthread_mutex_lock(&mutex);
   have_data = true; 
   pthread_cond_signal(&cvar);
@@ -734,7 +753,6 @@ void mac::pdu_process::run_thread()
 {
   running = true; 
   while(running) {
-    M_TRACE("MAC:BEGIN");
     have_data = handler->process_pdus();
     if (!have_data) {
       pthread_mutex_lock(&mutex);
@@ -748,7 +766,6 @@ void mac::pdu_process::run_thread()
 
 bool mac::process_pdus()
 {
-  M_TRACE("MAC:BEGIN");
   bool ret = false; 
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     ue *u         = iter->second; 

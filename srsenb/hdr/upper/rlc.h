@@ -54,6 +54,7 @@ public:
 
   // rlc_interface_pdcp
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);
+  bool rb_is_um(uint16_t rnti, uint32_t lcid);
   std::string get_rb_name(uint32_t lcid);
   
   // rlc_interface_mac

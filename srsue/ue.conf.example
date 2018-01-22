@@ -9,6 +9,8 @@
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
 # Optional parameters: 
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn
 # nof_rx_ant:         Number of RX antennas (Default 1, supported 1 or 2)
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
@@ -23,7 +25,7 @@
 [rf]
 dl_earfcn = 3400
 freq_offset = 0
-tx_gain = 70
+tx_gain = 80
 rx_gain = 40
 
 #nof_rx_ant = 1
@@ -48,6 +50,8 @@ rx_gain = 40
 [pcap]
 enable = false
 filename = /tmp/ue.pcap
+nas_enable = false
+nas_filename = /tmp/nas.pcap
 
 #####################################################################
 # Log configuration
@@ -66,11 +70,15 @@ filename = /tmp/ue.pcap
 #
 # filename: File path to use for log output. Can be set to stdout
 #           to print logs to standard output
+# file_max_size: Maximum file size (in kilobytes). When passed, multiple files are created.
+#                If set to negative, a single log file will be created.
 #####################################################################
 [log]
 all_level = info
+phy_lib_level = none
 all_hex_limit = 32
 filename = /tmp/ue.log
+file_max_size = -1
 
 #####################################################################
 # USIM configuration
@@ -83,12 +91,32 @@ filename = /tmp/ue.log
 # imei: 15 digit International Mobile Station Equipment Identity
 #####################################################################
 [usim]
-algo = milenage
+algo = xor
 op   = 63BFA50EE6523365FF14C1F45F88737D
-amf  = 8000
+amf  = 9001
 k    = 00112233445566778899aabbccddeeff
 imsi = 001010123456789
 imei = 353490069873319
+
+
+#####################################################################
+# RRC configuration
+#
+# stimsi_attach: If enabled, always tries first an S-TMSI attach using the
+#                S-TMSI value stored in .stimsi file generated in previous run
+# mmec_value:    If defined (non-zero), overwrites the value stored in .stimsi file
+# m_tmsi_value:  If defined (non-zero), overwrites the value stored in .stimsi file
+#
+# ue_category:   Sets UE category (range 1-5). Default: 4
+# feature_group: Hex value of the featureGroupIndicators field in the
+#                UECapabilityInformation message. Default 0xe6041c00
+#####################################################################
+[rrc]
+#stmsi_attach = false
+#mmec_value    = 0
+#mtmsi_value  = 0
+#ue_category   = 4
+#feature_group = 0xe6041c00
 
 [gui]
 enable = false
@@ -96,9 +124,10 @@ enable = false
 #####################################################################
 # Expert configuration options
 #
-# ue_category:          Sets UE category (range 1-5). Default: 4 
-#
-# prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only., 
+# ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
+# rssi_sensor_enabled:  Enable or disable RF frontend RSSI sensor. Required for RSRP metrics but
+#                       can cause UHD instability for long-duration testing. Default true.
+# prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only.,
 #                       Default is to use tx_gain in [rf] section. 
 # cqi_max:              Upper bound on the maximum CQI to be reported. Default 15. 
 # cqi_fixed:            Fixes the reported CQI to a constant value. Default disabled.
@@ -113,12 +142,8 @@ enable = false
 # nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
 # equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
 #                       non-negative real number to indicate a regularized zf coefficient.
-#                       Default is MMSE. 
-# cfo_integer_enabled:  Enables integer CFO estimation and correction. This needs improvement
-#                       and may lead to incorrect synchronization. Use with caution. 
-# cfo_correct_tol_hz:   Tolerance (in Hz) for digial CFO compensation. Lower tolerance means that 
-#                       a new table will be generated more often. 
-# time_correct_period:  Period for sampling time offset correction. Default is 10 (ue_sync.c), 
+#                       Default is MMSE.
+# time_correct_period:  Period for sampling time offset correction. Default is 10 (ue_sync.c),
 #                       good for long channels. For best performance at highest SNR reduce it to 1.  
 # sfo_correct_disable:  Disables phase correction before channel estimation to compensate for 
 #                       sampling frequency offset. Default is enabled. 
@@ -130,13 +155,36 @@ enable = false
 #
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 #
+# average_subframe_enabled: Averages in the time domain the channel estimates within 1 subframe.
+#                           Needs accurate CFO correction.
+#
+# sic_pss_enabled:      Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells.
+#                       Must be disabled if cells have identical channel and timing, for instance if generated from
+#                       the same source.
+#
 # metrics_csv_enable:   Write UE metrics to CSV file.
 #
 # metrics_csv_filename: File path to use for CSV metrics.
 #
+# cfo_integer_enabled:  Enables integer CFO estimation and correction. This needs improvement
+#                       and may lead to incorrect synchronization. Use with caution.
+# cfo_correct_tol_hz:   Tolerance (in Hz) for digial CFO compensation. Lower tolerance means that
+#                       a new table will be generated more often.
+#
+# cfo_pss_ema:           CFO Exponential Moving Average coefficient for PSS estimation during TRACK.
+# cfo_ref_ema:           CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition
+# cfo_ref_mask:          Bitmask for subframes on which to run RS estimation (set to 0 to disable, default sf=[1, 5])
+# cfo_loop_bw:           CFO feedback loop bandwidth for samples from PSS or RS
+# cfo_loop_pss_tol:      Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop
+#                        and RS estimations are used instead (when available)
+# cfo_loop_ref_min:      Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop
+# cfo_loop_pss_timeout:  After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively,
+#                        RS adjustments are allowed.
+#
 #####################################################################
 [expert]
-#ue_category         = 4
+#ip_netmask          = 255.255.255.0
+#rssi_sensor_enabled = false
 #prach_gain          = 30
 #cqi_max             = 15
 #cqi_fixed           = 10
@@ -146,15 +194,26 @@ enable = false
 #attach_enable_64qam = false
 #nof_phy_threads     = 2
 #equalizer_mode      = mmse
-#cfo_integer_enabled = false
-#cfo_correct_tol_hz  = 50
 #time_correct_period = 5
 #sfo_correct_disable = false
 #sss_algorithm       = full
 #estimator_fil_w     = 0.1
+#average_subframe_enabled = false
+#sic_pss_enabled     = true
 #pregenerate_signals = false
 #metrics_csv_enable  = false
 #metrics_csv_filename = /tmp/ue_metrics.csv
+
+# CFO related values
+#cfo_integer_enabled = false
+#cfo_correct_tol_hz  = 1.0
+#cfo_pss_ema         = 0.05
+#cfo_ref_mask        = 1023
+#cfo_loop_bw_pss     = 0.05
+#cfo_loop_bw_ref     = 0.01
+#cfo_loop_pss_tol    = 400
+#cfo_loop_ref_min    = 0
+#cfo_loop_pss_conv   = 20
 
 #####################################################################
 # Manual RF calibration

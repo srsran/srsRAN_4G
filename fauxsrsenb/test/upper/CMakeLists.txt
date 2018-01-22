@@ -9,7 +9,8 @@ target_link_libraries(faux_ip_test_enb faux_srsenb_upper
                                   srslte_radio
                                   ${CMAKE_THREAD_LIBS_INIT}
                                   ${Boost_LIBRARIES}
-                                  ${SEC_LIBRARIES})
+                                  ${SEC_LIBRARIES}
+                                  ${FFTW3F_LIBRARIES})
 
 # Simple PLMN -> MCC/MNC test
 add_executable(faux_plmn_test plmn_test.cc)

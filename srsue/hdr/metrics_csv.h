@@ -48,12 +48,14 @@ class metrics_csv : public srslte::metrics_listener<ue_metrics_t>
 public:
   metrics_csv(std::string filename);
 
-  void set_metrics(ue_metrics_t &m, float report_period_secs);
+  void set_periodicity(float metrics_report_period_sec);
+  void set_metrics(ue_metrics_t &m);
   void set_ue_handle(ue_metrics_interface *ue_);
 
 private:
   std::string float_to_string(float f, int digits, bool add_semicolon = true);
 
+  float                 metrics_report_period;
   std::ofstream         file;
   ue_metrics_interface* ue;
   uint32_t              n_reports;

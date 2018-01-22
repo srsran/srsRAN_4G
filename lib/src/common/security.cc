@@ -61,6 +61,26 @@ uint8_t security_generate_k_enb( uint8_t  *k_asme,
                                         k_enb);
 }
 
+uint8_t security_generate_k_enb_star( uint8_t  *k_enb,
+                                      uint32_t  pci,
+                                      uint32_t earfcn,
+                                      uint8_t  *k_enb_star)
+{
+  return liblte_security_generate_k_enb_star(k_enb,
+                                             pci,
+                                             earfcn,
+                                             k_enb_star);
+}
+
+uint8_t security_generate_nh( uint8_t *k_asme,
+                              uint8_t *sync,
+                              uint8_t *nh)
+{
+  return liblte_security_generate_nh( k_asme,
+                                      sync,
+                                      nh);
+}
+
 uint8_t security_generate_k_nas( uint8_t                       *k_asme,
                                  CIPHERING_ALGORITHM_ID_ENUM    enc_alg_id,
                                  INTEGRITY_ALGORITHM_ID_ENUM    int_alg_id,
@@ -144,6 +164,46 @@ uint8_t security_128_eia2( uint8_t  *key,
                                   msg,
                                   msg_len,
                                   mac);
+}
+
+/******************************************************************************
+ * Encryption / Decryption
+ *****************************************************************************/
+
+uint8_t security_128_eea1(uint8_t  *key,
+                           uint32_t count,
+                           uint8_t  bearer,
+                           uint8_t direction,
+                           uint8_t *msg,
+                           uint32_t msg_len,
+                           uint8_t *msg_out){
+
+    return liblte_security_encryption_eea1(key,
+                                           count,
+                                           bearer,
+                                           direction,
+                                           msg,
+                                           msg_len * 8,
+                                           msg_out);
+
+}
+
+
+uint8_t security_128_eea2(uint8_t  *key,
+                           uint32_t count,
+                           uint8_t  bearer,
+                           uint8_t direction,
+                           uint8_t *msg,
+                           uint32_t msg_len,
+                           uint8_t *msg_out){
+
+    return liblte_security_encryption_eea2(key,
+                                           count,
+                                           bearer,
+                                           direction,
+                                           msg,
+                                           msg_len * 8,
+                                           msg_out);
 }
 
 /******************************************************************************

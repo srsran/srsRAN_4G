@@ -24,10 +24,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "mac/mux.h"
 #include "mac/mac.h"
@@ -62,7 +62,9 @@ void mux::init(rlc_interface_mac *rlc_, srslte::log *log_h_, bsr_interface_mux *
 
 void mux::reset()
 {
-  lch.clear();
+  for (uint32_t i=0;i<lch.size();i++) {
+    lch[i].Bj = 0;
+  }
   pending_crnti_ce = 0;
 }
 
@@ -164,17 +166,22 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
   
 // Logical Channel Procedure
 
+  bool is_rar = false;
+
   pdu_msg.init_tx(payload, pdu_sz, true);
 
   // MAC control element for C-RNTI or data from UL-CCCH
   if (!allocate_sdu(0, &pdu_msg, -1)) {
     if (pending_crnti_ce) {
+      is_rar = true;
       if (pdu_msg.new_subh()) {
         if (!pdu_msg.get()->set_c_rnti(pending_crnti_ce)) {
           Warning("Pending C-RNTI CE could not be inserted in MAC PDU\n");
         }
       }
     }
+  } else {
+    is_rar = true;
   }
   pending_crnti_ce = 0; 
   
@@ -200,44 +207,44 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
     }
   }
 
-  // Update buffer states for all logical channels 
-  int sdu_space = pdu_msg.get_sdu_space(); 
-  for (uint32_t i=0;i<lch.size();i++) {
-    lch[i].buffer_len = rlc->get_buffer_state(lch[i].id);
-    lch[i].sched_len  = 0; 
-  }
-  
-  // data from any Logical Channel, except data from UL-CCCH;  
-  // first only those with positive Bj
-  for (uint32_t i=0;i<lch.size();i++) {
-    if (lch[i].id != 0) {
-      if (sched_sdu(&lch[i], &sdu_space, (lch[i].PBR<0)?-1:lch[i].Bj) && lch[i].PBR >= 0) {
-        lch[i].Bj -= lch[i].sched_len;         
-      }
+  if (!is_rar) {
+    // Update buffer states for all logical channels
+    int sdu_space = pdu_msg.get_sdu_space();
+    for (uint32_t i=0;i<lch.size();i++) {
+      lch[i].buffer_len = rlc->get_buffer_state(lch[i].id);
+      lch[i].sched_len  = 0;
     }
-  }
 
-  // If resources remain, allocate regardless of their Bj value
-  for (uint32_t i=0;i<lch.size();i++) {
-    if (lch[i].id != 0) {
-      sched_sdu(&lch[i], &sdu_space, -1);
-    }
-  }
-  
-  // Maximize the grant utilization 
-  if (lch.size() > 0) {
-    for (int i=(int)lch.size()-1;i>=0;i--) {
-      if (lch[i].sched_len > 0) {
-        lch[i].sched_len = -1; 
-        break;
+    // data from any Logical Channel, except data from UL-CCCH;
+    // first only those with positive Bj
+    for (uint32_t i=0;i<lch.size();i++) {
+      if (lch[i].id != 0) {
+        if (sched_sdu(&lch[i], &sdu_space, (lch[i].PBR<0)?-1:lch[i].Bj) && lch[i].PBR >= 0) {
+          lch[i].Bj -= lch[i].sched_len;
+        }
       }
     }
-  }
-  // Now allocate the SDUs from the RLC 
-  for (uint32_t i=0;i<lch.size();i++) {
-    if (lch[i].sched_len != 0) {
-      log_h->info("Allocating scheduled lch=%d len=%d\n", lch[i].id, lch[i].sched_len);
-      allocate_sdu(lch[i].id, &pdu_msg, lch[i].sched_len);    
+
+    // If resources remain, allocate regardless of their Bj value
+    for (uint32_t i=0;i<lch.size();i++) {
+      if (lch[i].id != 0) {
+        sched_sdu(&lch[i], &sdu_space, -1);
+      }
+    }
+
+    // Maximize the grant utilization
+    if (lch.size() > 0) {
+      for (int i=(int)lch.size()-1;i>=0;i--) {
+        if (lch[i].sched_len > 0) {
+          lch[i].sched_len = -1;
+          break;
+        }
+      }
+    }
+    for (uint32_t i=0;i<lch.size();i++) {
+      if (lch[i].sched_len != 0) {
+        allocate_sdu(lch[i].id, &pdu_msg, lch[i].sched_len);
+      }
     }
   }
 
@@ -262,7 +269,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
   }
   
   pthread_mutex_unlock(&mutex);
-  
+
 
   return ret; 
 }
@@ -285,8 +292,8 @@ bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz)
         sched_len = *sdu_space;
       }        
 
-      log_h->info("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d/%d\n", 
-                   ch->id, ch->buffer_len, sched_len, *sdu_space);
+      log_h->debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d/%d\n",
+                   ch->id, ch->buffer_len, sched_len, sdu_space?*sdu_space:0);
       
       *sdu_space     -= sched_len; 
       ch->buffer_len -= sched_len; 
@@ -309,16 +316,15 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
       sdu_len = max_sdu_sz;
     }
     int sdu_space = pdu_msg->get_sdu_space();
-    if (sdu_len > sdu_space) {
+    if (sdu_len > sdu_space || max_sdu_sz < 0) {
       sdu_len = sdu_space;
-    }        
+    }
     if (sdu_len > MIN_RLC_SDU_LEN) {
       if (pdu_msg->new_subh()) { // there is space for a new subheader
-        int sdu_len2 = sdu_len; 
         sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc);
         if (sdu_len > 0) { // new SDU could be added
           
-          Info("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n", 
+          Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n",
                  lcid, buffer_state, sdu_len, sdu_space, max_sdu_sz, pdu_msg->rem_size());
           return true;               
         } else {

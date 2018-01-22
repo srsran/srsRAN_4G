@@ -1,6 +1,13 @@
 Change Log for Releases
 ==============================
 
+## 17.12
+  * Added support for MIMO 2x2 in srsENB (i.e. TM3/TM4)
+  * Added srsEPC, a light-weight core network implementation
+  * Added support for X2/S1 handover in srsUE
+  * Added support for user-plane encryption in srsUE
+  * Many bug-fixes and improved stability and performance in srsUE/srsENB
+
 ## 17.09
   * Added MIMO 2x2 in the PHY layer and srsUE (i.e. TM3/TM4)
   * eMBMS support in the PHY layer

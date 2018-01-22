@@ -8,6 +8,7 @@ srsLTE is a free and open-source LTE software suite developed by SRS (www.softwa
 It includes:
   * srsUE - a complete SDR LTE UE application featuring all layers from PHY to IP
   * srsENB - a complete SDR LTE eNodeB application 
+  * srsEPC - a light-weight LTE core network implementation with MME, HSS and S/P-GW
   * a highly modular set of common libraries for PHY, MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers. 
 
 srsLTE is released under the AGPLv3 license and uses software from the OpenLTE project (http://sourceforge.net/projects/openlte) for some security functions and for RRC/NAS message parsing.
@@ -34,7 +35,7 @@ srsUE Features
  * Cell search and synchronization procedure for the UE
  * Soft USIM supporting Milenage and XOR authentication 
  * Virtual network interface *tun_srsue* created upon network attach
- * +100 Mbps DL in 20 MHz MIMO TM4 configuration in i7 Quad-Core CPU.
+ * +100 Mbps DL in 20 MHz MIMO TM3/TM4 configuration in i7 Quad-Core CPU.
  * 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
  * 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.
 
@@ -51,7 +52,8 @@ srsENB Features
  * SR support
  * Periodic and Aperiodic CQI feedback support
  * Standard S1AP and GTP-U interfaces to the Core Network
- * Tested up to 75 Mbps DL in SISO configuration with commercial UEs 
+ * 150 Mbps DL in 20 MHz MIMO TM3/TM4 with commercial UEs
+ * 75 Mbps DL in SISO configuration with commercial UEs
 
 srsENB has been tested and validated with the following handsets:
  * LG Nexus 5
@@ -59,6 +61,14 @@ srsENB has been tested and validated with the following handsets:
  * Motorola Moto G4 plus
  * Huawei P9/P9lite
  * Huawei dongles: E3276 and E398
+
+srsEPC Features
+---------------
+
+ * Single binary, light-weight LTE EPC implementation with:
+   * MME (Mobility Management Entity) with standard S1AP and GTP-U interface to eNB
+   * S/P-GW with standard SGi exposed as virtual network interface (TUN device)
+   * HSS (Home Subscriber Server) with configurable user database in CSV format
 
 Hardware
 --------
@@ -85,16 +95,19 @@ Build Instructions
     * Boost:             http://www.boost.org
     * lksctp:            http://lksctp.sourceforge.net/
     * config:            http://www.hyperrealm.com/libconfig/
+  * srsEPC:
+    * Boost:             http://www.boost.org
+    * lksctp:            http://lksctp.sourceforge.net/
+    * config:            http://www.hyperrealm.com/libconfig/
 
 For example, on Ubuntu 17.04, one can install the required libraries with:
 ```
-sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-all-dev libconfig++-dev libsctp-dev
+sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libboost-thread-dev libconfig++-dev libsctp-dev
 ```
 Note that depending on your flavor and version of Linux, the actual package names may be different.
 
 * Optional requirements: 
   * srsgui:              https://github.com/srslte/srsgui - for real-time plotting.
-  * VOLK:                https://github.com/gnuradio/volk -  if the VOLK library and headers are detected, they will be used to accelerate some signal processing functions.
 
 * RF front-end driver:
   * UHD:                 https://github.com/EttusResearch/uhd
@@ -107,7 +120,8 @@ cd srsLTE
 mkdir build
 cd build
 cmake ../
-make 
+make
+make test
 ```
 
 The software suite can also be installed using the command ```sudo make install```. 
@@ -115,22 +129,80 @@ The software suite can also be installed using the command ```sudo make install`
 Execution Instructions
 ----------------------
 
-The srsUE and srsENB applications include example configuration files. Execute the applications with root privileges to enable real-time thread priorities and to permit creation of virtual network interfaces.
+The srsUE, srsENB and srsEPC applications include example configuration files
+that should be copied and modified, if needed, to meet the system configuration.
+On many systems they should work out of the box. 
 
-### srsUE
+Note that you have to execute the applications with root privileges to enable
+real-time thread priorities and to permit creation of virtual network interfaces.
 
-Run the srsUE application as follows:
+Also note that when you run the applications that all additional configuration files,
+for example the UE database file needed by srsEPC, reside in your current working directory.
+If that is not the case, you may need to specify the location of those files as
+command line arguments, for example using the --hss.db_file parameter in srsEPC.
+
+srsENB and srsEPC can run on the same machine as a network-in-the-box configuration.
+srsUE needs to run on a separate machine.
+
+If you have installed the software suite using ```sudo make install```, you may just
+change in the source directory and start the applications as follows.
+
+
+### srsEPC
+
+On machine 1, change back to the source directory and copy the srsEPC
+config example and UE database file.
 ```
-sudo ./srsue ue.conf
+cd ..
+cp srsepc/epc.conf.example srsepc/epc.conf
+cp srsepc/user_db.csv.example srsepc/user_db.csv
+```
+
+Now, run srsEPC with the default configuration as follows:
+```
+sudo srsepc srsepc/epc.conf
 ```
 
 ### srsENB
 
-As the srsLTE software suite does not include EPC functionality, a separate EPC is required to run srsENB. Run the application as follows:
+On machine 1, but in another console, change back to the source directory
+and copy the main srsENB config example as well as all additional config files for RR, SIB and DRB.
+
 ```
-sudo ./srsenb enb.conf
+cd ..
+cp srsenb/enb.conf.example srsenb/enb.conf
+cp srsenb/rr.conf.example srsenb/rr.conf
+cp srsenb/sib.conf.example srsenb/sib.conf
+cp srsenb/drb.conf.example srsenb/drb.conf
 ```
 
+Now, run the application as follows:
+```
+sudo srsenb srsenb/enb.conf 
+```
+
+### srsUE
+
+On machine 2, after having following the installation instructions above,
+change back to the source directory and copy the srsUE example configuration:
+```
+cd ..
+cp srsue/ue.conf.example srsue/ue.conf
+```
+
+Now run the srsUE application as follows:
+```
+sudo srsue srsue/ue.conf
+```
+
+Using the default configuration, this creates a virtual network interface
+named "tun_srsue" on machine 2 with an IP in the network 172.16.0.x.
+Assuming the UE has been assigned IP 172.16.0.2, you may now exchange
+IP traffic with machine 1 over the LTE link. For example, run a ping to 
+the default SGi IP address:
+```
+ping 172.16.0.1
+```
 
 Support
 ========

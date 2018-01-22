@@ -37,6 +37,7 @@
 
 #include <stdio.h>
 #include "srslte/config.h"
+#include "srslte/phy/common/phy_logger.h"
 
 #define SRSLTE_VERBOSE_DEBUG 2
 #define SRSLTE_VERBOSE_INFO  1
@@ -48,6 +49,7 @@ SRSLTE_API void get_time_interval(struct timeval * tdata);
 #define SRSLTE_DEBUG_ENABLED 1
 
 SRSLTE_API extern int srslte_verbose;
+SRSLTE_API extern int handler_registered;
 
 #define SRSLTE_VERBOSE_ISINFO() (srslte_verbose>=SRSLTE_VERBOSE_INFO)
 #define SRSLTE_VERBOSE_ISDEBUG() (srslte_verbose>=SRSLTE_VERBOSE_DEBUG)
@@ -57,18 +59,26 @@ SRSLTE_API extern int srslte_verbose;
 #define PRINT_INFO srslte_verbose=SRSLTE_VERBOSE_INFO
 #define PRINT_NONE srslte_verbose=SRSLTE_VERBOSE_NONE
 
-#define DEBUG(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG) \
-  fprintf(stdout, "[DEBUG]: " _fmt, ##__VA_ARGS__)
+#define DEBUG(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered)\
+        {  fprintf(stdout, "[DEBUG]: " _fmt, ##__VA_ARGS__);  }\
+        else{  srslte_phy_log_print(LOG_LEVEL_DEBUG, _fmt, ##__VA_ARGS__); }
 
-#define INFO(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO) \
-  fprintf(stdout, "[INFO]:  " _fmt, ##__VA_ARGS__)
+#define INFO(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO   && !handler_registered) \
+        {  fprintf(stdout, "[INFO]: " _fmt, ##__VA_ARGS__);  }\
+        else{  srslte_phy_log_print(LOG_LEVEL_INFO, _fmt, ##__VA_ARGS__); }
 
 #if CMAKE_BUILD_TYPE==Debug
 /* In debug mode, it prints out the  */
-#define ERROR(_fmt, ...) fprintf(stderr, "%s.%d: " _fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define ERROR(_fmt, ...) if (!handler_registered)\
+    {   fprintf(stderr, "\e[31m%s.%d: " _fmt "\e[0m\n", __FILE__, __LINE__, ##__VA_ARGS__);}\
+        else {srslte_phy_log_print(LOG_LEVEL_ERROR, _fmt, ##__VA_ARGS__);} // 
 #else
-#define ERROR(_fmt, ...) fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__)
+#define ERROR(_fmt, ...) if (!handler_registered)\
+        {   fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__);}\
+        else{srslte_phy_log_print(LOG_LEVEL_ERROR, _fmt, ##__VA_ARGS__);} // 
 #endif /* CMAKE_BUILD_TYPE==Debug */
+
+void srslte_debug_handle_crash(int argc, char **argv);
 
 #include<time.h>
 #include<stdint.h>
@@ -79,30 +89,9 @@ SRSLTE_API extern int srslte_verbose;
 extern struct timeval g_tv_next;
 extern uint32_t       g_tti;
 
-static int W_TRACE = 1;
-static int I_TRACE = 0;
-static int M_TRACE = 0;
-static int P_TRACE = 0;
-static int U_TRACE = 0;
 
-#define W_TRACE(_fmt, ...) do {                                                                         \
-                             if(W_TRACE) {                                                              \
-                             struct timeval _tv_now;                                                    \
-                             struct tm _tm;                                                             \
-                             gettimeofday(&_tv_now, NULL);                                              \
-                             localtime_r(&_tv_now.tv_sec, &_tm);                                        \
-                             const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[WARN ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
-                                     g_tti,                                                             \
-                                     _tm.tm_hour,                                                       \
-                                     _tm.tm_min,                                                        \
-                                     _tm.tm_sec,                                                        \
-                                     _tv_now.tv_usec,                                                   \
-                                     _pos ? _pos+1 : "",                                                \
-                                     __func__,                                                          \
-                                     ##__VA_ARGS__);                                                    \
-                             }                                                                          \
-                           } while(0);
+static int I_TRACE = 0;
+
 
 #define I_TRACE(_fmt, ...) do {                                                                         \
                              if(I_TRACE) {                                                              \
@@ -113,61 +102,6 @@ static int U_TRACE = 0;
                              const char *_pos = strrchr(__FILE__, '/');                                 \
                              fprintf(stdout, "[INFO ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
                                      g_tti,                                                             \
-                                     _tm.tm_hour,                                                       \
-                                     _tm.tm_min,                                                        \
-                                     _tm.tm_sec,                                                        \
-                                     _tv_now.tv_usec,                                                   \
-                                     _pos ? _pos+1 : "",                                                \
-                                     __func__,                                                          \
-                                     ##__VA_ARGS__);                                                    \
-                             }                                                                          \
-                           } while(0);
-
-#define M_TRACE(_fmt, ...) do {                                                                         \
-                             if(M_TRACE) {                                                              \
-                             struct timeval _tv_now;                                                    \
-                             struct tm _tm;                                                             \
-                             gettimeofday(&_tv_now, NULL);                                              \
-                             localtime_r(&_tv_now.tv_sec, &_tm);                                        \
-                             const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[MAC  ]: [     ] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
-                                     _tm.tm_hour,                                                       \
-                                     _tm.tm_min,                                                        \
-                                     _tm.tm_sec,                                                        \
-                                     _tv_now.tv_usec,                                                   \
-                                     _pos ? _pos+1 : "",                                                \
-                                     __func__,                                                          \
-                                     ##__VA_ARGS__);                                                    \
-                             }                                                                          \
-                           } while(0);
-
-#define P_TRACE(_fmt, ...) do {                                                                         \
-                             if(P_TRACE) {                                                              \
-                             struct timeval _tv_now;                                                    \
-                             struct tm _tm;                                                             \
-                             gettimeofday(&_tv_now, NULL);                                              \
-                             localtime_r(&_tv_now.tv_sec, &_tm);                                        \
-                             const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[PHY  ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
-                                     g_tti,                                                             \
-                                     _tm.tm_hour,                                                       \
-                                     _tm.tm_min,                                                        \
-                                     _tm.tm_sec,                                                        \
-                                     _tv_now.tv_usec,                                                   \
-                                     _pos ? _pos+1 : "",                                                \
-                                     __func__,                                                          \
-                                     ##__VA_ARGS__);                                                    \
-                             }                                                                          \
-                           } while(0);
-
-#define U_TRACE(_fmt, ...) do {                                                                         \
-                             if(U_TRACE) {                                                              \
-                             struct timeval _tv_now;                                                    \
-                             struct tm _tm;                                                             \
-                             gettimeofday(&_tv_now, NULL);                                              \
-                             localtime_r(&_tv_now.tv_sec, &_tm);                                        \
-                             const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[UPPER]: [     ] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \

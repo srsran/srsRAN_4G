@@ -16,15 +16,15 @@
 #
 #####################################################################
 [enb]
-enb_id = 0x567
+enb_id = 0x19B
 cell_id = 0x01
 phy_cell_id = 1
 tac = 0x0007
 mcc = 001
 mnc = 01
 mme_addr = 127.0.1.100
-gtp_bind_addr = 127.0.1.1
-n_prb = 25
+gtp_bind_addr = 127.0.0.1
+n_prb = 50
 
 #####################################################################
 # eNB configuration files 
@@ -45,7 +45,9 @@ drb_config = drb.conf
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
-# Optional parameters: 
+# Optional parameters:
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn (must be set if dl_freq is set)
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
@@ -57,14 +59,14 @@ drb_config = drb.conf
 #                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
 #####################################################################
 [rf]
-dl_earfcn = 3401
-tx_gain = 40
+dl_earfcn = 3400
+tx_gain = 80
 rx_gain = 40
 
-device_name = faux
-device_args = enb
-time_adv_nsamples = 0
-burst_preamble_us = 0
+#device_name = auto
+#device_args = auto
+#time_adv_nsamples = auto
+#burst_preamble_us = auto
 
 
 #####################################################################
@@ -81,7 +83,7 @@ burst_preamble_us = 0
 #####################################################################
 [pcap]
 enable = false
-filename = enb.pcap
+filename = /tmp/enb.pcap
 
 #####################################################################
 # Log configuration
@@ -100,11 +102,14 @@ filename = enb.pcap
 #
 # filename: File path to use for log output. Can be set to stdout
 #           to print logs to standard output
+# file_max_size: Maximum file size (in kilobytes). When passed, multiple files are created.
+#                If set to negative, a single log file will be created.
 #####################################################################
 [log]
-all_level = debug
+all_level = info
 all_hex_limit = 32
-filename = stdout
+filename = /tmp/enb.log
+file_max_size = -1
 
 [gui]
 enable = false

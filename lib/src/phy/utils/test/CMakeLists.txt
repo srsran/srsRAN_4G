@@ -23,7 +23,7 @@
 ########################################################################
 
 add_executable(dft_test dft_test.c)
-target_link_libraries(dft_test srslte_phy)
+target_link_libraries(dft_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(dft_test dft_test)
 add_test(dft_reverse dft_test -b) # Backwards first
@@ -42,3 +42,7 @@ target_link_libraries(algebra_test srslte_phy)
 
 add_test(algebra_2x2_zf_solver_test algebra_test -z)
 add_test(algebra_2x2_mmse_solver_test algebra_test -m)
+
+add_executable(vector_test vector_test.c)
+target_link_libraries(vector_test srslte_phy)
+add_test(vector_test vector_test)

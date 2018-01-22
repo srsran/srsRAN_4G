@@ -40,8 +40,8 @@
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
-    
-typedef _Complex float cf_t; 
+
+typedef _Complex float cf_t;
 
 class phy
     : public phy_interface_mac
@@ -51,7 +51,7 @@ class phy
 public:
   phy();
   bool init(srslte::radio_multi *radio_handler, 
-            mac_interface_faux_phy *mac, 
+            mac_interface_phy *mac, 
             rrc_interface_phy *rrc,
             std::vector<void*> log_vec,
             phy_args_t *args = NULL);
@@ -64,7 +64,7 @@ public:
   void set_agc_enable(bool enabled);
 
   void get_metrics(phy_metrics_t &m);
-  
+  void srslte_phy_logger(phy_logger_level_t log_level, char *str);
   
   
   static uint32_t tti_to_SFN(uint32_t tti);
@@ -76,6 +76,8 @@ public:
   void write_trace(std::string filename);
 
   void set_earfcn(std::vector<uint32_t> earfcns);
+  void force_freq(float dl_freq, float ul_freq);
+
 
   /********** RRC INTERFACE ********************/
   void    reset();
@@ -85,6 +87,11 @@ public:
   void    cell_search_stop();
   void    cell_search_next();
   bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
+  bool    cell_handover(srslte_cell_t cell);
+
+  void    meas_reset();
+  int     meas_start(uint32_t earfcn, int pci);
+  int     meas_stop(uint32_t earfcn, int pci);
 
   /********** MAC INTERFACE ********************/
   /* Functions to synchronize with a cell */
@@ -130,7 +137,10 @@ public:
   float   get_pathloss_db();
     
   uint32_t get_current_tti();
-  void     get_current_cell(srslte_cell_t *cell);
+
+  void     get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL);
+  uint32_t get_current_earfcn();
+  uint32_t get_current_pci();
   
   void    start_plot();
     
@@ -150,7 +160,8 @@ private:
   srslte::radio_multi      *radio_handler;
   std::vector<void*>        log_vec;
   srslte::log              *log_h;
-  srsue::mac_interface_faux_phy *mac;
+  srslte::log              *log_phy_lib_h;
+  srsue::mac_interface_phy *mac;
   srsue::rrc_interface_phy *rrc;
 
   srslte::thread_pool      workers_pool;
@@ -167,8 +178,8 @@ private:
   
   /* Current time advance */
   uint32_t     n_ta;
-    
-  bool init_(srslte::radio *radio_handler, mac_interface_faux_phy *mac, srslte::log *log_h, bool do_agc, uint32_t nof_workers);
+
+  bool init_(srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log *log_h, bool do_agc, uint32_t nof_workers);
   void set_default_args(phy_args_t *args);
   bool check_args(phy_args_t *args); 
 

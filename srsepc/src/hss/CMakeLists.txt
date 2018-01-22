@@ -18,5 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.c")
-add_library(srslte_fauxue OBJECT ${SOURCES})
+file(GLOB SOURCES "*.cc")
+add_library(srsepc_hss STATIC ${SOURCES})
+install(TARGETS srsepc_hss DESTINATION ${LIBRARY_DIR})
+

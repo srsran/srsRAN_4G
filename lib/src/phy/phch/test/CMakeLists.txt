@@ -23,7 +23,7 @@
 ########################################################################
 
 add_executable(pbch_test pbch_test.c)
-target_link_libraries(pbch_test srslte_phy)
+target_link_libraries(pbch_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(pbch_test_6 pbch_test -p 1 -n 6 -c 100) 
 add_test(pbch_test_62 pbch_test -p 2 -n 6 -c 100) 
@@ -52,7 +52,7 @@ add_test(pcfich_test_104 pcfich_test -p 4 -n 10)
 ########################################################################
 
 add_executable(phich_test phich_test.c)
-target_link_libraries(phich_test srslte_phy)
+target_link_libraries(phich_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(phich_test_6 phich_test -p 1 -n 6) 
 add_test(phich_test_62 phich_test -p 2 -n 6) 
@@ -80,7 +80,7 @@ add_test(pdcch_test pdcch_test)
 ########################################################################
 
 add_executable(pdsch_test pdsch_test.c)
-target_link_libraries(pdsch_test srslte_phy)
+target_link_libraries(pdsch_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(pdsch_test_qpsk pdsch_test -m 10 -n 50 -r 1)
 add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100)
@@ -119,6 +119,14 @@ add_test(pdsch_test_multiplex1cw_p0_50  pdsch_test -x multiplex -a 2 -p 0 -n 50)
 add_test(pdsch_test_multiplex1cw_p0_75  pdsch_test -x multiplex -a 2 -p 0 -n 75)
 add_test(pdsch_test_multiplex1cw_p0_100 pdsch_test -x multiplex -a 2 -p 0 -n 100)
 
+# PDSCH test for Spatial Multiplex transmision mode with PMI = 0 (1 codeword, swapped)
+add_test(pdsch_test_multiplex1cw_p0_6_swap   pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 6 -F 1)
+add_test(pdsch_test_multiplex1cw_p0_15_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 15)
+add_test(pdsch_test_multiplex1cw_p0_25_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 25)
+add_test(pdsch_test_multiplex1cw_p0_50_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 50)
+add_test(pdsch_test_multiplex1cw_p0_75_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 75)
+add_test(pdsch_test_multiplex1cw_p0_100_swap pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 100)
+
 # PDSCH test for Spatial Multiplex transmision mode with PMI = 1 (1 codeword)
 add_test(pdsch_test_multiplex1cw_p1_6   pdsch_test -x multiplex -a 2 -p 1 -n 6)
 add_test(pdsch_test_multiplex1cw_p1_12  pdsch_test -x multiplex -a 2 -p 1 -n 12)
@@ -151,6 +159,14 @@ add_test(pdsch_test_multiplex2cw_p0_50  pdsch_test -x multiplex -a 2 -t 0 -p 0 -
 add_test(pdsch_test_multiplex2cw_p0_75  pdsch_test -x multiplex -a 2 -t 0 -p 0 -n 75)
 add_test(pdsch_test_multiplex2cw_p0_100 pdsch_test -x multiplex -a 2 -t 0 -p 0 -n 100)
 
+# PDSCH test for Spatial Multiplex transmision mode with PMI = 0 (2 codeword, swapped)
+add_test(pdsch_test_multiplex2cw_p0_6_swap   pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 6 -w -F 1)
+add_test(pdsch_test_multiplex2cw_p0_12_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 12 -w)
+add_test(pdsch_test_multiplex2cw_p0_25_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 25 -w)
+add_test(pdsch_test_multiplex2cw_p0_50_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 50 -w)
+add_test(pdsch_test_multiplex2cw_p0_75_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 75 -w)
+add_test(pdsch_test_multiplex2cw_p0_100_swap pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 100 -w)
+
 # PDSCH test for Spatial Multiplex transmision mode with PMI = 1 (2 codeword)
 add_test(pdsch_test_multiplex2cw_p1_6   pdsch_test -x multiplex -a 2 -t 0 -p 1 -n 6)
 add_test(pdsch_test_multiplex2cw_p1_12  pdsch_test -x multiplex -a 2 -t 0 -p 1 -n 12)
@@ -165,7 +181,7 @@ add_test(pdsch_test_multiplex2cw_p1_100 pdsch_test -x multiplex -a 2 -t 0 -p 1 -
 
 
 add_executable(pmch_test pmch_test.c)
-target_link_libraries(pmch_test srslte_phy)
+target_link_libraries(pmch_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(pmch_test_qpsk pmch_test -m 6 -n 50)
 add_test(pmch_test_qam16 pmch_test -m 15 -n 100)
@@ -177,22 +193,22 @@ add_test(pmch_test_qam64 pmch_test -m 25 -n 100)
 ########################################################################
 
 add_executable(pbch_file_test pbch_file_test.c)
-target_link_libraries(pbch_file_test srslte_phy)
+target_link_libraries(pbch_file_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_executable(pcfich_file_test pcfich_file_test.c)
-target_link_libraries(pcfich_file_test srslte_phy)
+target_link_libraries(pcfich_file_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_executable(phich_file_test phich_file_test.c)
-target_link_libraries(phich_file_test srslte_phy)
+target_link_libraries(phich_file_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_executable(pdcch_file_test pdcch_file_test.c)
-target_link_libraries(pdcch_file_test srslte_phy)
+target_link_libraries(pdcch_file_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_executable(pdsch_pdcch_file_test pdsch_pdcch_file_test.c)
-target_link_libraries(pdsch_pdcch_file_test srslte_phy)
+target_link_libraries(pdsch_pdcch_file_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_executable(pmch_file_test pmch_file_test.c)
-target_link_libraries(pmch_file_test srslte_phy)
+target_link_libraries(pmch_file_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat) 
 add_test(pcfich_file_test pcfich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat) 
@@ -206,7 +222,7 @@ add_test(pmch_file_test pmch_file_test  -i ${CMAKE_CURRENT_SOURCE_DIR}/pmch_100p
 ########################################################################
 
 add_executable(pusch_test pusch_test.c)
-target_link_libraries(pusch_test srslte_phy)
+target_link_libraries(pusch_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(pusch_test pusch_test)
 
@@ -215,16 +231,17 @@ add_test(pusch_test pusch_test)
 ########################################################################
 
 add_executable(pucch_test pucch_test.c)
-target_link_libraries(pucch_test srslte_phy)
+target_link_libraries(pucch_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(pucch_test pucch_test)
+add_test(pucch_test_uci_cqi_decoder pucch_test -q)
 
 ########################################################################
 # PRACH TEST  
 ########################################################################
 
 add_executable(prach_test prach_test.c)
-target_link_libraries(prach_test srslte_phy)
+target_link_libraries(prach_test srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(prach prach_test)
 
@@ -248,7 +265,7 @@ add_test(prach_zc2 prach_test -z 2)
 add_test(prach_zc3 prach_test -z 3)
  
 add_executable(prach_test_multi prach_test_multi.c)
-target_link_libraries(prach_test_multi srslte_phy)
+target_link_libraries(prach_test_multi srslte_phy ${FFTW3F_LIBRARIES})
 
 add_test(prach_test_multi prach_test_multi)
 
@@ -260,5 +277,5 @@ add_test(prach_test_multi_n4 prach_test_multi -n 4)
 
 if(UHD_FOUND)
   add_executable(prach_test_usrp prach_test_usrp.c)
-  target_link_libraries(prach_test_usrp srslte_rf srslte_phy pthread)
+  target_link_libraries(prach_test_usrp srslte_rf srslte_phy pthread ${FFTW3F_LIBRARIES})
 endif(UHD_FOUND)

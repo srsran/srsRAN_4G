@@ -30,12 +30,11 @@
 #include "phy/txrx.h"
 
 #include <assert.h>
-#include <string.h>
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 using namespace std; 
 
@@ -48,8 +47,8 @@ void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
 }
 
 void phch_common::reset() {
-  bzero(ul_grants, sizeof(mac_interface_phy::ul_sched_t)*10);
-  bzero(dl_grants, sizeof(mac_interface_phy::dl_sched_t)*10);
+  bzero(ul_grants, sizeof(mac_interface_phy::ul_sched_t)*TTIMOD_SZ);
+  bzero(dl_grants, sizeof(mac_interface_phy::dl_sched_t)*TTIMOD_SZ);
 }
 
 bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interface_phy *mac_)
@@ -74,7 +73,7 @@ void phch_common::stop() {
   }
 }
 
-void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
+void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
 
   // Wait previous TTIs to be transmitted 
@@ -84,8 +83,8 @@ void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_s
     pthread_mutex_lock(&tx_mutex[tx_mutex_cnt%nof_mutex]);
   }
 
-  radio->set_tti(tx_mutex_cnt); 
-  radio->tx(buffer, nof_samples, tx_time);
+  radio->set_tti(tx_mutex_cnt);
+  radio->tx((void **) buffer, nof_samples, tx_time);
   
   // Trigger next transmission 
   pthread_mutex_unlock(&tx_mutex[(tx_mutex_cnt+1)%nof_mutex]);
@@ -94,47 +93,89 @@ void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer, uint32_t nof_s
   mac->tti_clock();
 }
 
-void phch_common::ack_clear(uint32_t sf_idx)
+void phch_common::ue_db_clear(uint32_t sf_idx)
 {
-  for(std::map<uint16_t,pending_ack_t>::iterator iter=pending_ack.begin(); iter!=pending_ack.end(); ++iter) {
-    pending_ack_t *p = (pending_ack_t*) &iter->second;
-    p->is_pending[sf_idx] = false;     
+  for(std::map<uint16_t,common_ue>::iterator iter=common_ue_db.begin(); iter!=common_ue_db.end(); ++iter) {
+    pending_ack_t *p = &((common_ue*)&iter->second)->pending_ack;
+    for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
+      p->is_pending[sf_idx][tb_idx] = false;
+    }
   }
 }
 
-void phch_common::ack_add_rnti(uint16_t rnti)
+void phch_common::ue_db_add_rnti(uint16_t rnti)
 {
-  for (int sf_idx=0;sf_idx<10;sf_idx++) {
-    pending_ack[rnti].is_pending[sf_idx] = false; 
+  for (int sf_idx=0;sf_idx<TTIMOD_SZ;sf_idx++) {
+    for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
+      common_ue_db[rnti].pending_ack.is_pending[sf_idx][tb_idx] = false;
+    }
   }
 }
 
-void phch_common::ack_rem_rnti(uint16_t rnti)
+void phch_common::ue_db_rem_rnti(uint16_t rnti)
 {
-  pending_ack.erase(rnti);
+  common_ue_db.erase(rnti);
 }
 
-void phch_common::ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t last_n_pdcch)
+void phch_common::ue_db_set_ack_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t last_n_pdcch)
 {
-  if (pending_ack.count(rnti)) {
-    pending_ack[rnti].is_pending[sf_idx] = true; 
-    pending_ack[rnti].n_pdcch[sf_idx]    = last_n_pdcch;
+  if (common_ue_db.count(rnti)) {
+    common_ue_db[rnti].pending_ack.is_pending[sf_idx][tb_idx] = true;
+    common_ue_db[rnti].pending_ack.n_pdcch[sf_idx]            = (uint16_t) last_n_pdcch;
   }
 }
 
-bool phch_common::ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t *last_n_pdcch)
-{
-  if (pending_ack.count(rnti)) {
-    bool ret = pending_ack[rnti].is_pending[sf_idx];  
-    pending_ack[rnti].is_pending[sf_idx] = false; 
-    
+bool phch_common::ue_db_is_ack_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t *last_n_pdcch) {
+  if (common_ue_db.count(rnti)) {
+    bool ret = common_ue_db[rnti].pending_ack.is_pending[sf_idx][tb_idx];
+    common_ue_db[rnti].pending_ack.is_pending[sf_idx][tb_idx] = false;
+
     if (ret && last_n_pdcch) {
-      *last_n_pdcch = pending_ack[rnti].n_pdcch[sf_idx];
+      *last_n_pdcch = common_ue_db[rnti].pending_ack.n_pdcch[sf_idx];
     }
     return ret; 
   } else {
-    return false; 
+    return false;
   }
+}
+
+void phch_common::ue_db_set_ri(uint16_t rnti, uint8_t ri) {
+  if (common_ue_db.count(rnti)) {
+    common_ue_db[rnti].ri = ri;
+  }
+}
+uint8_t phch_common::ue_db_get_ri(uint16_t rnti) {
+  uint8_t ret = 0;
+  if (common_ue_db.count(rnti)) {
+    ret = common_ue_db[rnti].ri;
+  }
+  return ret;
+}
+void phch_common::ue_db_set_last_ul_mod(uint16_t rnti, uint32_t tti, srslte_mod_t mcs) {
+  if (!common_ue_db.count(rnti)) {
+    ue_db_add_rnti(rnti);
+  }
+  common_ue_db[rnti].last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = mcs;
+}
+srslte_mod_t phch_common::ue_db_get_last_ul_mod(uint16_t rnti, uint32_t tti) {
+  srslte_mod_t ret = SRSLTE_MOD_BPSK;
+  if (common_ue_db.count(rnti)) {
+    ret = common_ue_db[rnti].last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
+  }
+  return ret;
+}
+void phch_common::ue_db_set_last_ul_tbs(uint16_t rnti, uint32_t tti, int tbs) {
+  if (!common_ue_db.count(rnti)) {
+    ue_db_add_rnti(rnti);
+  }
+  common_ue_db[rnti].last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = tbs;
+}
+int phch_common::ue_db_get_last_ul_tbs(uint16_t rnti, uint32_t tti) {
+  int ret = -1;
+  if (common_ue_db.count(rnti)) {
+    ret = common_ue_db[rnti].last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
+  }
+  return ret;
 }
 
 }

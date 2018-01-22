@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   dci.mcs_idx = mcs_idx;
   
   srslte_ra_ul_grant_t grant; 
-  if (srslte_ra_ul_dci_to_grant(&dci, cell.nof_prb, 0, &grant, 0)) {
+  if (srslte_ra_ul_dci_to_grant(&dci, cell.nof_prb, 0, &grant)) {
     fprintf(stderr, "Error computing resource allocation\n");
     return ret;
   }
@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
   }
   
   gettimeofday(&t[1], NULL);
-  int r = srslte_pusch_decode(&pusch_rx, &cfg, &softbuffer_rx, sf_symbols, ce, 0, rnti, data, &uci_data_rx);
+  int r = srslte_pusch_decode(&pusch_rx, &cfg, &softbuffer_rx, sf_symbols, ce, 0, rnti, data, NULL, &uci_data_rx);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   if (r) {

@@ -31,7 +31,7 @@ endif()
 include_directories(
     ${Boost_INCLUDE_DIRS}
     ${SEC_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/fauxsrsue/hdr
+    ${PROJECT_SOURCE_DIR}/srsue/hdr
 )
 
 link_directories(

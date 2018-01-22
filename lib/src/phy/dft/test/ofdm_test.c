@@ -35,22 +35,37 @@
 
 int nof_prb = -1;
 srslte_cp_t cp = SRSLTE_CP_NORM;
+int nof_repetitions = 128;
+
+static double elapsed_us(struct timeval *ts_start, struct timeval *ts_end) {
+  if (ts_end->tv_usec > ts_start->tv_usec) {
+    return ((double) ts_end->tv_sec - (double) ts_start->tv_sec) * 1000000 +
+           (double) ts_end->tv_usec - (double) ts_start->tv_usec;
+  } else {
+    return ((double) ts_end->tv_sec - (double) ts_start->tv_sec - 1) * 1000000 +
+           ((double) ts_end->tv_usec + 1000000) - (double) ts_start->tv_usec;
+  }
+}
 
 void usage(char *prog) {
   printf("Usage: %s\n", prog);
   printf("\t-n nof_prb [Default All]\n");
   printf("\t-e extended cyclic prefix [Default Normal]\n");
+  printf("\t-r nof_repetitions [Default %d]\n", nof_repetitions);
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "ne")) != -1) {
+  while ((opt = getopt(argc, argv, "ner")) != -1) {
     switch (opt) {
     case 'n':
       nof_prb = atoi(argv[optind]);
       break;
     case 'e':
       cp = SRSLTE_CP_EXT;
+      break;
+    case 'r':
+      nof_repetitions = atoi(argv[optind]);
       break;
     default:
       usage(argv[0]);
@@ -61,6 +76,7 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
+  struct timeval start, end;
   srslte_ofdm_t fft, ifft;
   cf_t *input, *outfft, *outifft;
   float mse;
@@ -81,48 +97,65 @@ int main(int argc, char **argv) {
 
     printf("Running test for %d PRB, %d RE... ", n_prb, n_re);fflush(stdout);
 
-    input = malloc(sizeof(cf_t) * n_re);
+    input = srslte_vec_malloc(sizeof(cf_t) * n_re * 2);
     if (!input) {
       perror("malloc");
       exit(-1);
     }
-    outfft = malloc(sizeof(cf_t) * SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)));
+    outfft = srslte_vec_malloc(sizeof(cf_t) * n_re * 2);
     if (!outfft) {
       perror("malloc");
       exit(-1);
     }
-    outifft = malloc(sizeof(cf_t) * n_re);
+    outifft = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * 2);
     if (!outifft) {
       perror("malloc");
       exit(-1);
     }
+    bzero(outifft, sizeof(cf_t) * SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * 2);
 
-    if (srslte_ofdm_rx_init(&fft, cp, n_prb)) {
+    if (srslte_ofdm_rx_init(&fft, cp, outifft, outfft, n_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       exit(-1);
     }
-    srslte_dft_plan_set_norm(&fft.fft_plan, true);
+    srslte_ofdm_set_normalize(&fft, true);
 
-    if (srslte_ofdm_tx_init(&ifft, cp, n_prb)) {
+    if (srslte_ofdm_tx_init(&ifft, cp, input, outifft, n_prb)) {
       fprintf(stderr, "Error initializing iFFT\n");
       exit(-1);
     }
-    srslte_dft_plan_set_norm(&ifft.fft_plan, true);
+    srslte_ofdm_set_normalize(&ifft, true);
 
     for (i=0;i<n_re;i++) {
-      input[i] = 100 * ((float) rand()/RAND_MAX + (float) I*rand()/RAND_MAX);
+      input[i] = 100 * ((float) rand() / (float) RAND_MAX + I * ((float) rand() / (float) RAND_MAX));
+      //input[i] = 100;
     }
 
-    srslte_ofdm_tx_slot(&ifft, input, outfft);
-    srslte_ofdm_rx_slot(&fft, outfft, outifft);
+  gettimeofday(&start, NULL);
+  for (int i = 0; i < nof_repetitions; i++) {
+      srslte_ofdm_tx_slot(&ifft, 0);
+  }
+  gettimeofday(&end, NULL);\
+  printf(" Tx@%.1fMsps", (float)(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb))*nof_repetitions)/elapsed_us(&start, &end));
+
+  gettimeofday(&start, NULL);
+  for (int i = 0; i < nof_repetitions; i++) {
+    srslte_ofdm_rx_slot(&fft, 0);
+  }
+  gettimeofday(&end, NULL);\
+  printf(" Rx@%.1fMsps", (float)(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb))*nof_repetitions)/elapsed_us(&start, &end));
 
     /* compute MSE */
-
-    mse = 0;
+    mse = 0.0f;
     for (i=0;i<n_re;i++) {
-      mse += cabsf(input[i] - outifft[i]);
+      cf_t error = input[i] - outfft[i];
+      mse += (__real__ error * __real__ error + __imag__ error * __imag__ error)/cabsf(input[i]);
+      if (mse > 1.0f) printf("%04d. %+.1f%+.1fi Vs. %+.1f%+.1f %+.1f%+.1f (mse=%f)\n", i, __real__ input[i], __imag__ input[i], __real__ outifft[i], __imag__ outifft[i], __real__ outfft[i], __imag__ outfft[i], mse);
     }
-    printf("MSE=%f\n", mse);
+    /*for (i=0;i<n_re;i++) {
+      mse += cabsf(input[i] - outfft[i]);
+    }*/
+    printf(" MSE=%.6f\n", mse);
 
     if (mse >= 0.07) {
       printf("MSE too large\n");

@@ -93,6 +93,8 @@ void pdcp::config_security(uint16_t rnti, uint32_t lcid, uint8_t* k_rrc_enc_, ui
 {
   if (users.count(rnti)) {
     users[rnti].pdcp->config_security(lcid, k_rrc_enc_, k_rrc_int_, cipher_algo_, integ_algo_);
+    users[rnti].pdcp->enable_integrity(lcid);
+    users[rnti].pdcp->enable_encryption(lcid);
   }
 }
 
@@ -122,6 +124,10 @@ void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::byte_buffer_t *
 void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
   rlc->write_sdu(rnti, lcid, sdu);
+}
+
+bool pdcp::user_interface_rlc::rb_is_um(uint32_t lcid) {
+  return rlc->rb_is_um(rnti, lcid);
 }
 
 void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srslte::byte_buffer_t* pdu)

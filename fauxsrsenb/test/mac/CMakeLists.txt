@@ -6,4 +6,5 @@ target_link_libraries(faux_scheduler_test  faux_srsenb_mac
                                       srslte_common
                                       srslte_phy
                                       ${CMAKE_THREAD_LIBS_INIT} 
-                                      ${Boost_LIBRARIES})
+                                      ${Boost_LIBRARIES}
+                                      ${FFTW3F_LIBRARIES})

@@ -31,7 +31,6 @@ namespace srsenb {
   
 void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_, srslte::log* pdcp_log_)
 {
-  U_TRACE("PDCP:BEGIN");
   rlc   = rlc_; 
   rrc   = rrc_; 
   gtpu  = gtpu_;
@@ -42,7 +41,6 @@ void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interfa
 
 void pdcp::stop()
 {
-  U_TRACE("PDCP:BEGIN");
   for(std::map<uint32_t, user_interface>::iterator iter=users.begin(); iter!=users.end(); ++iter) {
     rem_user((uint32_t) iter->first);
   }
@@ -51,7 +49,6 @@ void pdcp::stop()
 
 void pdcp::add_user(uint16_t rnti)
 {
-  U_TRACE("PDCP:BEGIN");
   if (users.count(rnti) == 0) {
     srslte::pdcp *obj = new srslte::pdcp;     
     obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf, log_h, RB_ID_SRB0, SECURITY_DIRECTION_DOWNLINK);
@@ -68,7 +65,6 @@ void pdcp::add_user(uint16_t rnti)
 
 void pdcp::rem_user(uint16_t rnti)
 {
-  U_TRACE("PDCP:BEGIN");
   if (users.count(rnti)) {
     users[rnti].pdcp->stop();
     delete users[rnti].pdcp; 
@@ -79,7 +75,6 @@ void pdcp::rem_user(uint16_t rnti)
 
 void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cfg)
 {
-  U_TRACE("PDCP:BEGIN");
   if (users.count(rnti)) {
     users[rnti].pdcp->add_bearer(lcid, cfg);
   }
@@ -87,7 +82,6 @@ void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t
 
 void pdcp::reset(uint16_t rnti)
 {
-  U_TRACE("PDCP:BEGIN");
   if (users.count(rnti)) {
     users[rnti].pdcp->reset();
   }
@@ -97,15 +91,15 @@ void pdcp::config_security(uint16_t rnti, uint32_t lcid, uint8_t* k_rrc_enc_, ui
                            srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_, 
                            srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
 {
-  U_TRACE("PDCP:BEGIN");
   if (users.count(rnti)) {
     users[rnti].pdcp->config_security(lcid, k_rrc_enc_, k_rrc_int_, cipher_algo_, integ_algo_);
+    users[rnti].pdcp->enable_integrity(lcid);
+    users[rnti].pdcp->enable_encryption(lcid);
   }
 }
 
 void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
-  U_TRACE("PDCP:BEGIN");
   if (users.count(rnti)) {
     users[rnti].pdcp->write_pdu(lcid, sdu);
   } else {
@@ -115,7 +109,6 @@ void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 
 void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
-  U_TRACE("PDCP:BEGIN");
   if (users.count(rnti)) {
     users[rnti].pdcp->write_sdu(lcid, sdu);
   } else {
@@ -125,43 +118,40 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 
 void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
-  U_TRACE("PDCP:BEGIN");
   gtpu->write_pdu(rnti, lcid, pdu);
 }
 
 void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
-  U_TRACE("PDCP:BEGIN");
   rlc->write_sdu(rnti, lcid, sdu);
+}
+
+bool pdcp::user_interface_rlc::rb_is_um(uint32_t lcid) {
+  return rlc->rb_is_um(rnti, lcid);
 }
 
 void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srslte::byte_buffer_t* pdu)
 {
-  U_TRACE("PDCP:BEGIN");
   rrc->write_pdu(rnti, lcid, pdu);
 }
 
 void pdcp::user_interface_rrc::write_pdu_bcch_bch(srslte::byte_buffer_t* pdu)
 {
-  U_TRACE("PDCP:BEGIN");
   fprintf(stderr, "Error: Received BCCH from ue=%d\n", rnti);
 }
 
 void pdcp::user_interface_rrc::write_pdu_bcch_dlsch(srslte::byte_buffer_t* pdu)
 {
-  U_TRACE("PDCP:BEGIN");
   fprintf(stderr, "Error: Received BCCH from ue=%d\n", rnti);
 }
 
 void pdcp::user_interface_rrc::write_pdu_pcch(srslte::byte_buffer_t* pdu)
 {
-  U_TRACE("PDCP:BEGIN");
   fprintf(stderr, "Error: Received PCCH from ue=%d\n", rnti);
 }
 
 std::string pdcp::user_interface_rrc::get_rb_name(uint32_t lcid)
 {
-  U_TRACE("PDCP:BEGIN");
   return std::string(rb_id_text[lcid]);
 }
 

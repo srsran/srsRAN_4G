@@ -28,10 +28,10 @@
 #include "mac/scheduler_harq.h"
 #include "mac/scheduler_metric.h"
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
     
@@ -45,7 +45,6 @@ namespace srsenb {
   
 uint32_t dl_metric_rr::calc_rbg_mask(bool mask[MAX_RBG]) 
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   // Build RBG bitmask  
   uint32_t rbg_bitmask = 0; 
   for (uint32_t n=0;n<total_rb;n++) {
@@ -57,7 +56,6 @@ uint32_t dl_metric_rr::calc_rbg_mask(bool mask[MAX_RBG])
 }
 
 uint32_t dl_metric_rr::count_rbg(uint32_t mask) {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   uint32_t count = 0; 
   while(mask > 0) {
     if ((mask & 1) == 1) {
@@ -70,7 +68,6 @@ uint32_t dl_metric_rr::count_rbg(uint32_t mask) {
 
 uint32_t dl_metric_rr::get_required_rbg(sched_ue *user, uint32_t tti) 
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   dl_harq_proc *h = user->get_pending_dl_harq(tti);
   if (h) {
     return count_rbg(h->get_rbgmask());
@@ -82,7 +79,6 @@ uint32_t dl_metric_rr::get_required_rbg(sched_ue *user, uint32_t tti)
 void dl_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t start_rb, uint32_t nof_rb, uint32_t nof_ctrl_symbols_, uint32_t tti)
 {
   
-  M_TRACE("SCHEDMETRIC:BEGIN");
   total_rb = start_rb+nof_rb; 
   for (uint32_t i=0;i<total_rb;i++) {
     if (i<start_rb) {
@@ -107,7 +103,6 @@ void dl_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t start_rb
 }
 
 bool dl_metric_rr::new_allocation(uint32_t nof_rbg, uint32_t *rbgmask) {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   bool mask_bit[MAX_RBG]; 
   bzero(mask_bit, sizeof(bool)*MAX_RBG);
   
@@ -126,7 +121,6 @@ bool dl_metric_rr::new_allocation(uint32_t nof_rbg, uint32_t *rbgmask) {
 }
 
 void dl_metric_rr::update_allocation(uint32_t new_mask) {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   used_rb_mask |= new_mask; 
   for (uint32_t n=0;n<total_rb;n++) {
     if (used_rb_mask & (1<<(total_rb-1-n))) {
@@ -139,19 +133,21 @@ void dl_metric_rr::update_allocation(uint32_t new_mask) {
 
 bool dl_metric_rr::allocation_is_valid(uint32_t mask) 
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   return (mask & used_rb_mask); 
 }
 
 dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   uint32_t pending_data = user->get_pending_dl_new_data(current_tti); 
   dl_harq_proc *h = user->get_pending_dl_harq(current_tti);
 
   // Time-domain RR scheduling
+#if ASYNC_DL_SCHED
   if (pending_data || h) {
-    if (nof_users_with_data) {    
+#else
+  if (pending_data || (h && !h->is_empty())) {
+#endif
+    if (nof_users_with_data) {
       if (nof_users_with_data == 2) {
       }
       if ((current_tti%nof_users_with_data) != user->ue_idx) {      
@@ -161,7 +157,11 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
   }
   
   // Schedule retx if we have space 
+#if ASYNC_DL_SCHED
   if (h) {
+#else
+  if (h && !h->is_empty()) {
+#endif
     uint32_t retx_mask = h->get_rbgmask();
     // If can schedule the same mask, do it
     if (!allocation_is_valid(retx_mask)) {
@@ -178,10 +178,14 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
       }
     }
   } 
-  // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID 
+  // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID
+#if ASYNC_DL_SCHED
   h = user->get_empty_dl_harq(); 
   if (h) {
-    // Allocate resources based on pending data 
+#else
+  if (h && h->is_empty()) {
+#endif
+    // Allocate resources based on pending data
     if (pending_data) {
       uint32_t pending_rb = user->get_required_prb_dl(pending_data, nof_ctrl_symbols);
       uint32_t newtx_mask = 0; 
@@ -212,7 +216,6 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
 
 void ul_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb_, uint32_t tti)
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   current_tti  = tti; 
   nof_rb       = nof_rb_; 
   available_rb = nof_rb_; 
@@ -221,7 +224,7 @@ void ul_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb_,
   nof_users_with_data = 0; 
   for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user      = (sched_ue*) &iter->second;
-    if (user->get_pending_ul_new_data(current_tti) || !user->get_ul_harq(current_tti)->is_empty()) {
+    if (user->get_pending_ul_new_data(current_tti) || !user->get_ul_harq(current_tti)->is_empty(0)) {
       user->ue_idx    = nof_users_with_data;
       nof_users_with_data++;
     }
@@ -231,7 +234,6 @@ void ul_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb_,
 
 bool ul_metric_rr::allocation_is_valid(ul_harq_proc::ul_alloc_t alloc)
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   if (alloc.RB_start+alloc.L > nof_rb) {
     return false; 
   }
@@ -245,7 +247,6 @@ bool ul_metric_rr::allocation_is_valid(ul_harq_proc::ul_alloc_t alloc)
 
 bool ul_metric_rr::new_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   
   bzero(alloc, sizeof(ul_harq_proc::ul_alloc_t));
   for (uint32_t n=0;n<nof_rb && alloc->L < L;n++) {
@@ -277,7 +278,6 @@ bool ul_metric_rr::new_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
 
 void ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   if (alloc.L > available_rb) {
     return; 
   }
@@ -292,12 +292,11 @@ void ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
 
 ul_harq_proc*  ul_metric_rr::get_user_allocation(sched_ue *user)
 {
-  M_TRACE("SCHEDMETRIC:BEGIN");
   // Time-domain RR scheduling
   uint32_t pending_data = user->get_pending_ul_new_data(current_tti); 
   ul_harq_proc *h = user->get_ul_harq(current_tti);
   
-  if (pending_data || !h->is_empty()) {
+  if (pending_data || !h->is_empty(0)) {
     if (nof_users_with_data) {
       if ((current_tti%nof_users_with_data) != user->ue_idx) {
         return NULL; 
@@ -307,7 +306,7 @@ ul_harq_proc*  ul_metric_rr::get_user_allocation(sched_ue *user)
 
   // Schedule retx if we have space 
   
-  if (!h->is_empty()) {
+  if (!h->is_empty(0)) {
     
     ul_harq_proc::ul_alloc_t alloc = h->get_alloc();
     
@@ -326,7 +325,7 @@ ul_harq_proc*  ul_metric_rr::get_user_allocation(sched_ue *user)
     }
   } 
   // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID 
-  if (h->is_empty()) {
+  if (h->is_empty(0)) {
     // Allocate resources based on pending data 
     if (pending_data) {
       uint32_t pending_rb = user->get_required_prb_ul(pending_data);

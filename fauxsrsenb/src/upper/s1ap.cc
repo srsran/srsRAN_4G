@@ -40,7 +40,6 @@ namespace srsenb{
 
 bool s1ap::init(s1ap_args_t args_, rrc_interface_s1ap *rrc_, srslte::log *s1ap_log_)
 {
-  U_TRACE("S1AP:BEGIN");
   rrc = rrc_;
   args = args_;
   s1ap_log = s1ap_log_;
@@ -60,7 +59,6 @@ bool s1ap::init(s1ap_args_t args_, rrc_interface_s1ap *rrc_, srslte::log *s1ap_l
 
 void s1ap::stop()
 {
-  U_TRACE("S1AP:BEGIN");
   if(running) {
     running = false;
     thread_cancel();
@@ -75,7 +73,6 @@ void s1ap::stop()
 
 void s1ap::get_metrics(s1ap_metrics_t &m)
 {
-  U_TRACE("S1AP:BEGIN");
   if(!running) {
     m.status = S1AP_ERROR;
     return;
@@ -97,7 +94,6 @@ void s1ap::run_thread()
 
   // Connect to MME
   while(running && !connect_mme()) {
-    U_TRACE("S1AP:BEGIN");
     s1ap_log->error("Failed to connect to MME - retrying in 10 seconds\n");
     s1ap_log->console("Failed to connect to MME - retrying in 10 seconds\n");
     sleep(10);
@@ -114,7 +110,6 @@ void s1ap::run_thread()
     pdu->reset();
     pdu->N_bytes = recv(socket_fd, pdu->msg, sz, 0);
 
-    U_TRACE("S1AP:BEGIN");
     if(pdu->N_bytes <= 0) {
       mme_connected = false;
       do {
@@ -139,7 +134,6 @@ void s1ap::run_thread()
 // Generate common S1AP protocol IEs from config args
 void s1ap::build_tai_cgi()
 {
-  U_TRACE("S1AP:BEGIN");
   uint32_t plmn;
   uint32_t tmp32;
   uint16_t tmp16;
@@ -178,7 +172,6 @@ void s1ap::build_tai_cgi()
 ********************************************************************************/
 void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
 {
-  U_TRACE("S1AP:BEGIN");
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
@@ -188,7 +181,6 @@ void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
 
 void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec)
 {
-  U_TRACE("S1AP:BEGIN");
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
@@ -198,7 +190,6 @@ void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi
 
 void s1ap::write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info_hex(pdu->msg, pdu->N_bytes, "Received RRC SDU");
 
   if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
@@ -211,7 +202,6 @@ void s1ap::write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu)
 
 void s1ap::user_inactivity(uint16_t rnti)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info("User inactivity - RNTI:0x%x\n", rnti);
 
   if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
@@ -239,7 +229,6 @@ void s1ap::user_inactivity(uint16_t rnti)
 
 void s1ap::release_eutran(uint16_t rnti)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info("Release by EUTRAN - RNTI:0x%x\n", rnti);
 
   if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
@@ -263,13 +252,11 @@ void s1ap::release_eutran(uint16_t rnti)
 
 bool s1ap::user_exists(uint16_t rnti)
 {
-  U_TRACE("S1AP:BEGIN");
   return ue_ctxt_map.end() != ue_ctxt_map.find(rnti); 
 }
 
 bool s1ap::user_link_lost(uint16_t rnti)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info("User link lost - RNTI:0x%x\n", rnti);
 
   if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
@@ -293,7 +280,6 @@ bool s1ap::user_link_lost(uint16_t rnti)
 
 void s1ap::ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res)
 {
-  U_TRACE("S1AP:BEGIN");
   if(res->E_RABSetupListCtxtSURes.len > 0) {
     send_initial_ctxt_setup_response(rnti, res);
   } else {
@@ -303,7 +289,6 @@ void s1ap::ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONT
 
 void s1ap::ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res)
 {
-  U_TRACE("S1AP:BEGIN");
   send_erab_setup_response(rnti, res);
 }
 
@@ -318,7 +303,6 @@ void s1ap::ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPR
 
 bool s1ap::connect_mme()
 {
-  U_TRACE("S1AP:BEGIN");
   socket_fd = 0;
 
   s1ap_log->info("Connecting to MME %s:%d\n", args.mme_addr.c_str(), MME_PORT);
@@ -359,7 +343,6 @@ bool s1ap::connect_mme()
 
 bool s1ap::setup_s1()
 {
-  U_TRACE("S1AP:BEGIN");
   uint32_t                    tmp32;
   uint16_t                    tmp16;
   srslte::byte_buffer_t       msg;
@@ -436,7 +419,6 @@ bool s1ap::setup_s1()
 
 bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu)
 {
-  U_TRACE("S1AP:BEGIN");
   LIBLTE_S1AP_S1AP_PDU_STRUCT rx_pdu;
 
   if(liblte_s1ap_unpack_s1ap_pdu((LIBLTE_BYTE_MSG_STRUCT*)pdu, &rx_pdu) != LIBLTE_SUCCESS) {
@@ -464,7 +446,6 @@ bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu)
 
 bool s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   switch(msg->choice_type) {
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT:
     return handle_dlnastransport(&msg->choice.DownlinkNASTransport);
@@ -484,7 +465,6 @@ bool s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg)
 
 bool s1ap::handle_successfuloutcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   switch(msg->choice_type) {
   case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE:
     return handle_s1setupresponse(&msg->choice.S1SetupResponse);
@@ -496,7 +476,6 @@ bool s1ap::handle_successfuloutcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
 
 bool s1ap::handle_unsuccessfuloutcome(LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   switch(msg->choice_type) {
   case LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_S1SETUPFAILURE:
     return handle_s1setupfailure(&msg->choice.S1SetupFailure);
@@ -508,7 +487,6 @@ bool s1ap::handle_unsuccessfuloutcome(LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT *ms
 
 bool s1ap::handle_s1setupresponse(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info("Received S1SetupResponse\n");
   s1setupresponse = *msg;
   mme_connected = true;
@@ -517,7 +495,6 @@ bool s1ap::handle_s1setupresponse(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT *ms
 
 bool s1ap::handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info("Received DownlinkNASTransport\n");
   if(msg->ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
@@ -545,7 +522,6 @@ bool s1ap::handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT
 
 bool s1ap::handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info("Received InitialContextSetupRequest\n");
   if(msg->ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
@@ -572,7 +548,6 @@ bool s1ap::handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETU
 
 bool s1ap::handle_paging(LIBLTE_S1AP_MESSAGE_PAGING_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   if(msg->ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
@@ -585,7 +560,6 @@ bool s1ap::handle_paging(LIBLTE_S1AP_MESSAGE_PAGING_STRUCT *msg)
 
 bool s1ap::handle_erabsetuprequest(LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info("Received ERABSetupRequest\n");
   if(msg->ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
@@ -613,7 +587,6 @@ bool s1ap::handle_erabsetuprequest(LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT 
 
 bool s1ap::handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMAND_STRUCT *msg)
 {
-  U_TRACE("S1AP:BEGIN");
   s1ap_log->info("Received UEContextReleaseCommand\n");
   if(msg->ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
@@ -664,7 +637,6 @@ bool s1ap::handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMA
 }
 
 bool s1ap::handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT *msg) {
-  U_TRACE("S1AP:BEGIN");
   std::string cause = get_cause(&msg->Cause);
   s1ap_log->error("S1 Setup Failure. Cause: %s\n", cause.c_str());
   s1ap_log->console("S1 Setup Failure. Cause: %s\n", cause.c_str());
@@ -677,7 +649,6 @@ bool s1ap::handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT *msg)
 
 bool s1ap::send_initialuemessage(uint16_t rnti, srslte::byte_buffer_t *pdu, bool has_tmsi, uint32_t m_tmsi, uint8_t mmec)
 {
-  U_TRACE("S1AP:BEGIN");
   if(!mme_connected) {
     return false;
   }
@@ -747,7 +718,6 @@ bool s1ap::send_initialuemessage(uint16_t rnti, srslte::byte_buffer_t *pdu, bool
 
 bool s1ap::send_ulnastransport(uint16_t rnti, srslte::byte_buffer_t *pdu)
 {
-  U_TRACE("S1AP:BEGIN");
   if(!mme_connected) {
     return false;
   }
@@ -798,7 +768,6 @@ bool s1ap::send_ulnastransport(uint16_t rnti, srslte::byte_buffer_t *pdu)
 
 bool s1ap::send_uectxtreleaserequest(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT *cause)
 {
-  U_TRACE("S1AP:BEGIN");
   if(!mme_connected) {
     return false;
   }
@@ -840,7 +809,6 @@ bool s1ap::send_uectxtreleaserequest(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT *ca
 
 bool s1ap::send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_t enb_ue_id)
 {
-  U_TRACE("S1AP:BEGIN");
   if(!mme_connected) {
     return false;
   }
@@ -878,7 +846,6 @@ bool s1ap::send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_
 
 bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res_)
 {
-  U_TRACE("S1AP:BEGIN");
   if(!mme_connected) {
     return false;
   }
@@ -925,7 +892,6 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_I
 
 bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res_)
 {
-  U_TRACE("S1AP:BEGIN");
   if(!mme_connected) {
     return false;
   }
@@ -972,7 +938,6 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETU
 
 bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
 {
-  U_TRACE("S1AP:BEGIN");
   if(!mme_connected) {
     return false;
   }
@@ -1050,7 +1015,6 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
 
 bool s1ap::find_mme_ue_id(uint32_t mme_ue_id, uint16_t *rnti, uint32_t *enb_ue_id)
 {
-  U_TRACE("S1AP:BEGIN");
   typedef std::map<uint16_t, ue_ctxt_t>::iterator it_t;
   for(it_t it=ue_ctxt_map.begin(); it!=ue_ctxt_map.end(); ++it) {
     if(it->second.MME_UE_S1AP_ID == mme_ue_id) {
@@ -1064,7 +1028,6 @@ bool s1ap::find_mme_ue_id(uint32_t mme_ue_id, uint16_t *rnti, uint32_t *enb_ue_i
 
 std::string s1ap::get_cause(LIBLTE_S1AP_CAUSE_STRUCT *c)
 {
-  U_TRACE("S1AP:BEGIN");
   std::string cause = liblte_s1ap_cause_choice_text[c->choice_type];
   cause += " - ";
   switch(c->choice_type) {

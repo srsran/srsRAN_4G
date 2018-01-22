@@ -36,10 +36,10 @@
 #include "srslte/common/log.h"
 #include "phy/phy.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 using namespace std; 
 
@@ -80,7 +80,10 @@ void phy::parse_config(phy_cfg_t* cfg)
   workers_common.pucch_cfg.N_cs               = cfg->pucch_cnfg.n_cs_an;
   workers_common.pucch_cfg.n_rb_2             = cfg->pucch_cnfg.n_rb_cqi;
   workers_common.pucch_cfg.srs_configured     = false;
-  workers_common.pucch_cfg.n1_pucch_an        = cfg->pucch_cnfg.n1_pucch_an;; 
+  workers_common.pucch_cfg.n1_pucch_an        = cfg->pucch_cnfg.n1_pucch_an;
+
+  // PDSCH configuration
+  workers_common.pdsch_p_b                    = cfg->pdsch_cnfg.p_b;
 }
 
 bool phy::init(phy_args_t *args, 
@@ -153,7 +156,7 @@ uint32_t phy::tti_to_subf(uint32_t tti) {
 int phy::add_rnti(uint16_t rnti)
 {
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
-    workers_common.ack_add_rnti(rnti);
+    workers_common.ue_db_add_rnti(rnti);
   }
   for (uint32_t i=0;i<nof_workers;i++) {
     if (workers[i].add_rnti(rnti)) {
@@ -166,7 +169,7 @@ int phy::add_rnti(uint16_t rnti)
 void phy::rem_rnti(uint16_t rnti)
 {
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
-    workers_common.ack_rem_rnti(rnti);
+    workers_common.ue_db_rem_rnti(rnti);
   }
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].rem_rnti(rnti);
@@ -207,29 +210,17 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 /***** RRC->PHY interface **********/
 
+void phy::set_conf_dedicated_ack(uint16_t rnti, bool ack)
+{
+  for (uint32_t i = 0; i < nof_workers; i++) {
+    workers[i].set_conf_dedicated_ack(rnti, ack);
+  }
+}
+
 void phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
-  // Parse RRC config 
-  srslte_uci_cfg_t uci_cfg;
-  srslte_pucch_sched_t pucch_sched;
-  
-  /* PUSCH UCI configuration */
-  bzero(&uci_cfg, sizeof(srslte_uci_cfg_t));
-  uci_cfg.I_offset_ack         = dedicated->pusch_cnfg_ded.beta_offset_ack_idx;
-  uci_cfg.I_offset_cqi         = dedicated->pusch_cnfg_ded.beta_offset_cqi_idx;
-  uci_cfg.I_offset_ri          = dedicated->pusch_cnfg_ded.beta_offset_ri_idx;
-  
-  /* PUCCH Scheduling configuration */
-  bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
-  pucch_sched.n_pucch_2        = dedicated->cqi_report_cnfg.report_periodic.pucch_resource_idx;
-  pucch_sched.n_pucch_sr       = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
-  
   for (uint32_t i=0;i<nof_workers;i++) {
-    workers[i].set_config_dedicated(rnti, &uci_cfg, &pucch_sched, NULL, 
-                                    dedicated->sched_request_cnfg.sr_cnfg_idx, 
-                                    dedicated->cqi_report_cnfg.report_periodic_setup_present,
-                                    dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx, 
-                                    dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi);
+    workers[i].set_config_dedicated(rnti, NULL, dedicated);
   }
 }
 

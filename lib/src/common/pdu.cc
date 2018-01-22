@@ -458,7 +458,7 @@ uint32_t sch_subh::get_sdu_lcid()
 {
   return lcid;
 }
-uint32_t sch_subh::get_payload_size()
+int sch_subh::get_payload_size()
 {
   return nof_bytes;
 }

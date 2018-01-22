@@ -37,7 +37,7 @@ SRSLTE_API   char*  rf_faux_devname (void *h);
 
 SRSLTE_API   bool   rf_faux_rx_wait_lo_locked(void *h);
 
-SRSLTE_API   int    rf_faux_start_rx_stream(void *h);
+SRSLTE_API   int    rf_faux_start_rx_stream(void *h, bool now);
 
 SRSLTE_API   int    rf_faux_stop_rx_stream(void *h);
 

@@ -44,15 +44,16 @@ gw::gw()
   :if_up(false)
 {
   current_ip_addr = 0;
+  default_netmask = true;
 }
 
-void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, uint32_t lcid_)
+void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t cfg_)
 {
   pool    = srslte::byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
   nas     = nas_;
   gw_log  = gw_log_;
-  lcid    = lcid_;
+  cfg     = cfg_;
   run_enable = true;
 
   gettimeofday(&metrics_time[1], NULL);
@@ -104,6 +105,12 @@ void gw::get_metrics(gw_metrics_t &m)
   ul_tput_bytes = 0;
 }
 
+void gw::set_netmask(std::string netmask) {
+  default_netmask = false;
+  this->netmask = netmask;
+}
+
+
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
@@ -152,7 +159,11 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
       return(srslte::ERROR_CANT_START);
     }
     ifr.ifr_netmask.sa_family                                 = AF_INET;
-    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+    const char *mask = "255.255.255.0";
+    if (!default_netmask) {
+      mask = netmask.c_str();
+    }
+    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(mask);
     if(0 > ioctl(sock, SIOCSIFNETMASK, &ifr))
     {
       err_str = strerror(errno);
@@ -262,9 +273,9 @@ void gw::run_thread()
         {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-          while(run_enable && !pdcp->is_drb_enabled(lcid) && attach_attempts < ATTACH_MAX_ATTEMPTS) {
+          while(run_enable && !pdcp->is_drb_enabled(cfg.lcid) && attach_attempts < ATTACH_MAX_ATTEMPTS) {
             if (attach_cnt == 0) {
-              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
+              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
               nas->attach_request();
               attach_attempts++;
             }
@@ -276,7 +287,7 @@ void gw::run_thread()
           }
 
           if (attach_attempts == ATTACH_MAX_ATTEMPTS) {
-            gw_log->warning("LCID=%d was not active after %d attempts\n", lcid, ATTACH_MAX_ATTEMPTS);
+            gw_log->warning("LCID=%d was not active after %d attempts\n", cfg.lcid, ATTACH_MAX_ATTEMPTS);
           }
 
           attach_attempts = 0;
@@ -287,10 +298,10 @@ void gw::run_thread()
           }
 
           // Send PDU directly to PDCP
-          if (pdcp->is_drb_enabled(lcid)) {
+          if (pdcp->is_drb_enabled(cfg.lcid)) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
-            pdcp->write_sdu(lcid, pdu);
+            pdcp->write_sdu(cfg.lcid, pdu);
 
             do {
               pdu = pool_allocate;

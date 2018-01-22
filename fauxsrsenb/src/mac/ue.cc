@@ -30,17 +30,16 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "mac/ue.h"
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 
 namespace srsenb {
   
 void ue::config(uint16_t rnti_, uint32_t nof_prb, sched_interface *sched_, rrc_interface_mac *rrc_, rlc_interface_mac *rlc_, srslte::log *log_h_)
 {
-  M_TRACE("UE:BEGIN");
   rnti  = rnti_; 
   rlc   = rlc_; 
   rrc   = rrc_; 
@@ -69,7 +68,6 @@ void ue::config(uint16_t rnti_, uint32_t nof_prb, sched_interface *sched_, rrc_i
 
 void ue::reset()
 {
-  M_TRACE("UE:BEGIN");
   bzero(&metrics, sizeof(mac_metrics_t));  
 
   nof_failures = 0; 
@@ -81,26 +79,22 @@ void ue::reset()
 
 void ue::start_pcap(srslte::mac_pcap* pcap_)
 {
-  M_TRACE("UE:BEGIN");
   pcap = pcap_; 
 }
 
 uint32_t ue::rl_failure()
 {
-  M_TRACE("UE:BEGIN");
   nof_failures++;
   return nof_failures;
 }
   
 void ue::rl_failure_reset()
 {
-  M_TRACE("UE:BEGIN");
   nof_failures = 0;
 }
 
 void ue::set_lcg(uint32_t lcid, uint32_t lcg)
 {
-  M_TRACE("UE:BEGIN");
   // find and remove if already exists
   for (int i=0;i<4;i++) {
     lc_groups[lcg].erase(std::remove(lc_groups[lcg].begin(), lc_groups[lcg].end(), lcid), lc_groups[lcg].end());
@@ -110,19 +104,16 @@ void ue::set_lcg(uint32_t lcid, uint32_t lcg)
 
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
 {
-  M_TRACE("UE:BEGIN");
   return &softbuffer_rx[tti%NOF_HARQ_PROCESSES];
 }
 
-srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process)
+srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx)
 {
-  M_TRACE("UE:BEGIN");
-  return &softbuffer_tx[harq_process%NOF_HARQ_PROCESSES];
+  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx  )%NOF_HARQ_PROCESSES];
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 {
-  M_TRACE("UE:BEGIN");
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
   if (len > 0) {   
@@ -142,12 +133,10 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 
 bool ue::process_pdus()
 {
-  M_TRACE("UE:BEGIN");
   return pdus.process_pdus();  
 }
 
 void ue::set_tti(uint32_t tti) {
-  M_TRACE("UE:BEGIN");
   last_tti = tti; 
 }
 
@@ -155,7 +144,6 @@ void ue::set_tti(uint32_t tti) {
 
 void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
 {
-  M_TRACE("UE:BEGIN");
   // Unpack ULSCH MAC PDU 
   mac_msg_ul.init_rx(nof_bytes, true);
   mac_msg_ul.parse_packet(pdu);
@@ -183,7 +171,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
       if (mac_msg_ul.get()->get_sdu_lcid() == 0) {
         uint8_t *x = mac_msg_ul.get()->get_sdu_ptr();
         uint32_t sum = 0;
-        for (uint32_t i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
+        for (int i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
           sum += x[i];
         }
         if (sum == 0) {
@@ -209,11 +197,11 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
 
       // Save contention resolution if lcid == 0
       if (mac_msg_ul.get()->get_sdu_lcid() == 0 && route_pdu) {
-        uint32_t nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
+        int nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
         if (mac_msg_ul.get()->get_payload_size() >= nbytes) {
           uint8_t *ue_cri_ptr = (uint8_t *) &conres_id;
           uint8_t *pkt_ptr = mac_msg_ul.get()->get_sdu_ptr(); // Warning here: we want to include the
-          for (uint32_t i = 0; i < nbytes; i++) {
+          for (int i = 0; i < nbytes; i++) {
             ue_cri_ptr[nbytes - i - 1] = pkt_ptr[i];
           }
         } else {
@@ -247,7 +235,6 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
 
 void ue::deallocate_pdu(uint32_t tti)
 {
-  M_TRACE("UE:BEGIN");
   if (pending_buffers[tti%NOF_HARQ_PROCESSES]) {
     pdus.deallocate(pending_buffers[tti%NOF_HARQ_PROCESSES]);
     pending_buffers[tti%NOF_HARQ_PROCESSES] = NULL; 
@@ -258,7 +245,6 @@ void ue::deallocate_pdu(uint32_t tti)
 
 void ue::push_pdu(uint32_t tti, uint32_t len)
 {
-  M_TRACE("UE:BEGIN");
   if (pending_buffers[tti%NOF_HARQ_PROCESSES]) {
     pdus.push(pending_buffers[tti%NOF_HARQ_PROCESSES], len);
     pending_buffers[tti%NOF_HARQ_PROCESSES] = NULL; 
@@ -268,7 +254,6 @@ void ue::push_pdu(uint32_t tti, uint32_t len)
 }
 
 bool ue::process_ce(srslte::sch_subh *subh) {
-  M_TRACE("UE:BEGIN");
   uint32_t buff_size[4] = {0, 0, 0, 0};
   float phr = 0;
   int idx = 0;
@@ -326,13 +311,11 @@ bool ue::process_ce(srslte::sch_subh *subh) {
 
 int ue::read_pdu(uint32_t lcid, uint8_t *payload, uint32_t requested_bytes) 
 {
-  M_TRACE("UE:BEGIN");
   return rlc->read_pdu(rnti, lcid, payload, requested_bytes);  
 }
 
 void ue::allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t total_sdu_len) 
 {
-  M_TRACE("UE:BEGIN");
   int sdu_space = pdu->get_sdu_space();
   if (sdu_space > 0) {
     int sdu_len = SRSLTE_MIN(total_sdu_len, (uint32_t) sdu_space);
@@ -358,7 +341,6 @@ void ue::allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t total_sdu_le
 
 void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
 {
-  M_TRACE("UE:BEGIN");
   switch((srslte::sch_subh::cetype) lcid) {
     case srslte::sch_subh::CON_RES_ID: 
       if (pdu->new_subh()) {
@@ -377,15 +359,14 @@ void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
   }
 }
 
-uint8_t* ue::generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST], 
+uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                       uint32_t nof_pdu_elems, uint32_t grant_size)
 {
-  M_TRACE("UE:BEGIN");
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
   if (rlc) 
   {
-    mac_msg_dl.init_tx(tx_payload_buffer, grant_size, false);
+    mac_msg_dl.init_tx(tx_payload_buffer[tb_idx], grant_size, false);
     for (uint32_t i=0;i<nof_pdu_elems;i++) {
       if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
         allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
@@ -410,7 +391,6 @@ uint8_t* ue::generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::M
 /******* METRICS interface ***************/
 void ue::metrics_read(mac_metrics_t* metrics_)
 {
-  M_TRACE("UE:BEGIN");
   metrics.rnti = rnti; 
   metrics.ul_buffer = sched->get_ul_buffer(rnti);
   metrics.dl_buffer = sched->get_dl_buffer(rnti);
@@ -423,20 +403,31 @@ void ue::metrics_read(mac_metrics_t* metrics_)
 }
 
 void ue::metrics_phr(float phr) {
-  M_TRACE("UE:BEGIN");
   metrics.phr = SRSLTE_VEC_CMA(phr, metrics.phr, phr_counter);
   phr_counter++;
 }
 
+void ue::metrics_dl_ri(uint32_t dl_ri) {
+  if (metrics.dl_ri == 0.0f) {
+    metrics.dl_ri = (float) dl_ri + 1.0f;
+  } else {
+    metrics.dl_ri = SRSLTE_VEC_EMA((float) dl_ri + 1.0f, metrics.dl_ri, 0.5f);
+  }
+  dl_ri_counter++;
+}
+
+void ue::metrics_dl_pmi(uint32_t dl_ri) {
+  metrics.dl_pmi = SRSLTE_VEC_CMA((float) dl_ri, metrics.dl_pmi, dl_pmi_counter);
+  dl_pmi_counter++;
+}
+
 void ue::metrics_dl_cqi(uint32_t dl_cqi) {
-  M_TRACE("UE:BEGIN");
   metrics.dl_cqi = SRSLTE_VEC_CMA((float) dl_cqi, metrics.dl_cqi, dl_cqi_counter);
   dl_cqi_counter++;
 }
 
 void ue::metrics_rx(bool crc, uint32_t tbs)
 {
-  M_TRACE("UE:BEGIN");
   if (crc) {
     metrics.rx_brate += tbs*8; 
   } else {
@@ -447,7 +438,6 @@ void ue::metrics_rx(bool crc, uint32_t tbs)
 
 void ue::metrics_tx(bool crc, uint32_t tbs)
 {
-  M_TRACE("UE:BEGIN");
   if (crc) {
     metrics.tx_brate += tbs*8; 
   } else {

@@ -4,7 +4,7 @@ namespace srslte {
   
 bool radio_multi::init_multi(uint32_t nof_rx_antennas, char* args, char* devname)
 {
- if (srslte_rf_open_devname_multi(&rf_device, devname, args, nof_rx_antennas)) {
+ if (srslte_rf_open_devname(&rf_device, devname, args, nof_rx_antennas)) {
     fprintf(stderr, "Error opening RF device\n");
     return false;
   }

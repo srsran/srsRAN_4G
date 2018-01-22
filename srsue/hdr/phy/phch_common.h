@@ -42,122 +42,142 @@
 
 namespace srsue {
 
+
+class chest_feedback_itf
+{
+public:
+  virtual void out_of_sync() = 0;
+  virtual void set_cfo(float cfo) = 0;
+};
+
 /* Subclass that manages variables common to all workers */
-  class phch_common {
-  public:
-    
-    /* Common variables used by all phy workers */
-    phy_interface_rrc::phy_cfg_t *config; 
-    phy_args_t                   *args;
-    rrc_interface_phy *rrc;
-    mac_interface_phy *mac;
-    srslte_ue_ul_t     ue_ul; 
-    
-    /* Power control variables */
-    float pathloss;
-    float cur_pathloss;
-    float p0_preamble;     
-    float cur_radio_power; 
-    float cur_pusch_power;
-    float avg_rsrp_db;
-    float avg_rsrq_db; 
-    float rx_gain_offset;
-    float avg_snr_db; 
-    float avg_noise; 
-    float avg_rsrp; 
-  
-    phch_common(uint32_t max_mutex = 3);
-    void init(phy_interface_rrc::phy_cfg_t *config, 
-              phy_args_t  *args, 
-              srslte::log *_log, 
-              srslte::radio *_radio,
-              rrc_interface_phy *rrc,
-              mac_interface_phy *_mac);
-    
-    /* For RNTI searches, -1 means now or forever */    
-    void               set_ul_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start = -1, int tti_end = -1);
-    uint16_t           get_ul_rnti(uint32_t tti);
-    srslte_rnti_type_t get_ul_rnti_type();
+class phch_common {
+public:
 
-    void               set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start = -1, int tti_end = -1);
-    uint16_t           get_dl_rnti(uint32_t tti);
-    srslte_rnti_type_t get_dl_rnti_type();
-    
-    void set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]);
-    bool get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_grant = NULL);
-    
-    void reset_pending_ack(uint32_t tti);
-    void set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs);   
-    bool get_pending_ack(uint32_t tti);    
-    bool get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_dmrs);
-        
-    void worker_end(uint32_t tti, bool tx_enable, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
-    
-    void set_nof_mutex(uint32_t nof_mutex);
-    
-    bool sr_enabled; 
-    int  sr_last_tx_tti; 
-   
-    srslte::radio*    get_radio();
+  /* Common variables used by all phy workers */
+  phy_interface_rrc::phy_cfg_t *config;
+  phy_args_t                   *args;
+  rrc_interface_phy *rrc;
+  mac_interface_phy *mac;
 
-    void set_cell(const srslte_cell_t &c);
-    uint32_t get_nof_prb();
-    void set_dl_metrics(const dl_metrics_t &m);
-    void get_dl_metrics(dl_metrics_t &m);
-    void set_ul_metrics(const ul_metrics_t &m);
-    void get_ul_metrics(ul_metrics_t &m);
-    void set_sync_metrics(const sync_metrics_t &m);
-    void get_sync_metrics(sync_metrics_t &m);
+  /* Power control variables */
+  float pathloss;
+  float cur_pathloss;
+  float p0_preamble;
+  float cur_radio_power;
+  float cur_pusch_power;
+  float avg_rsrp;
+  float avg_rsrp_dbm;
+  float avg_rsrq_db;
+  float rx_gain_offset;
+  float avg_snr_db;
+  float avg_noise;
 
-    void reset_ul();
-    
-  private: 
-    
-    std::vector<pthread_mutex_t>    tx_mutex; 
-    
-    bool               is_first_of_burst;
-    srslte::radio      *radio_h;
-    float              cfo;
-    srslte::log       *log_h;
+  bool     pcell_meas_enabled;
+  uint32_t pcell_report_period;
 
-    
-    bool               ul_rnti_active(uint32_t tti);
-    bool               dl_rnti_active(uint32_t tti);
-    uint16_t           ul_rnti, dl_rnti;  
-    srslte_rnti_type_t ul_rnti_type, dl_rnti_type; 
-    int                ul_rnti_start, ul_rnti_end, dl_rnti_start, dl_rnti_end; 
-    
-    float              time_adv_sec; 
-    
-    srslte_dci_rar_grant_t rar_grant; 
-    bool                   rar_grant_pending; 
-    uint32_t               rar_grant_tti; 
-    
-    typedef struct {
-      bool enabled; 
-      uint32_t I_lowest; 
-      uint32_t n_dmrs;
-    } pending_ack_t;
-    pending_ack_t pending_ack[10];
-    
-    bool            is_first_tx;
+  // Save last TBS for mcs>28 cases
+  int last_dl_tbs[2*HARQ_DELAY_MS][SRSLTE_MAX_CODEWORDS];
+  uint32_t last_dl_tti[2*HARQ_DELAY_MS];
 
-    uint32_t        nof_workers;
-    uint32_t        nof_mutex;
-    uint32_t        max_mutex;
+  int last_ul_tbs[2*HARQ_DELAY_MS];
+  uint32_t last_ul_tti[2*HARQ_DELAY_MS];
+  srslte_mod_t last_ul_mod[2*HARQ_DELAY_MS];
 
-    srslte_cell_t   cell;
+  phch_common(uint32_t max_mutex = 3);
+  void init(phy_interface_rrc::phy_cfg_t *config,
+            phy_args_t  *args,
+            srslte::log *_log,
+            srslte::radio *_radio,
+            rrc_interface_phy *rrc,
+            mac_interface_phy *_mac);
 
-    dl_metrics_t    dl_metrics;
-    uint32_t        dl_metrics_count;
-    bool            dl_metrics_read;
-    ul_metrics_t    ul_metrics;
-    uint32_t        ul_metrics_count;
-    bool            ul_metrics_read;
-    sync_metrics_t  sync_metrics;
-    uint32_t        sync_metrics_count;
-    bool            sync_metrics_read;
-  };
+  /* For RNTI searches, -1 means now or forever */
+  void               set_ul_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start = -1, int tti_end = -1);
+  uint16_t           get_ul_rnti(uint32_t tti);
+  srslte_rnti_type_t get_ul_rnti_type();
+
+  void               set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start = -1, int tti_end = -1);
+  uint16_t           get_dl_rnti(uint32_t tti);
+  srslte_rnti_type_t get_dl_rnti_type();
+
+  void set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]);
+  bool get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_grant = NULL);
+
+  void reset_pending_ack(uint32_t tti);
+  void set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs);
+  bool get_pending_ack(uint32_t tti);
+  bool get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_dmrs);
+  bool is_any_pending_ack();
+
+  void worker_end(uint32_t tti, bool tx_enable, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+
+  void set_nof_mutex(uint32_t nof_mutex);
+
+  bool sr_enabled;
+  int  sr_last_tx_tti;
+
+  srslte::radio*    get_radio();
+
+  void set_cell(const srslte_cell_t &c);
+  uint32_t get_nof_prb();
+  void set_dl_metrics(const dl_metrics_t &m);
+  void get_dl_metrics(dl_metrics_t &m);
+  void set_ul_metrics(const ul_metrics_t &m);
+  void get_ul_metrics(ul_metrics_t &m);
+  void set_sync_metrics(const sync_metrics_t &m);
+  void get_sync_metrics(sync_metrics_t &m);
+
+  void reset_ul();
+  void reset();
+
+private:
+
+  std::vector<pthread_mutex_t>    tx_mutex;
+
+  bool               is_first_of_burst;
+  srslte::radio      *radio_h;
+  float              cfo;
+  srslte::log       *log_h;
+
+
+  bool               ul_rnti_active(uint32_t tti);
+  bool               dl_rnti_active(uint32_t tti);
+  uint16_t           ul_rnti, dl_rnti;
+  srslte_rnti_type_t ul_rnti_type, dl_rnti_type;
+  int                ul_rnti_start, ul_rnti_end, dl_rnti_start, dl_rnti_end;
+
+  float              time_adv_sec;
+
+  srslte_dci_rar_grant_t rar_grant;
+  bool                   rar_grant_pending;
+  uint32_t               rar_grant_tti;
+
+  typedef struct {
+    bool enabled;
+    uint32_t I_lowest;
+    uint32_t n_dmrs;
+  } pending_ack_t;
+  pending_ack_t pending_ack[TTIMOD_SZ];
+
+  bool            is_first_tx;
+
+  uint32_t        nof_workers;
+  uint32_t        nof_mutex;
+  uint32_t        max_mutex;
+
+  srslte_cell_t   cell;
+
+  dl_metrics_t    dl_metrics;
+  uint32_t        dl_metrics_count;
+  bool            dl_metrics_read;
+  ul_metrics_t    ul_metrics;
+  uint32_t        ul_metrics_count;
+  bool            ul_metrics_read;
+  sync_metrics_t  sync_metrics;
+  uint32_t        sync_metrics_count;
+  bool            sync_metrics_read;
+};
   
 } // namespace srsue
 

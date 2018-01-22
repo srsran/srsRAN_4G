@@ -76,14 +76,16 @@ int init_viterbi37_avx2(void *p, int starting_state) {
   struct v37 *vp = p;
   uint32_t i;
   firstGo = 1;
+  
   for(i=0;i<64;i++)
     vp->metrics1.c[i] = 63;
-
+  
   clear_v37_avx2(vp);
 
   vp->old_metrics = &vp->metrics1;
   vp->new_metrics = &vp->metrics2;
   vp->dp = vp->decisions;
+
   if (starting_state != -1) {
     vp->old_metrics->c[starting_state & 63] = 0; /* Bias known start state */
   }
@@ -259,7 +261,7 @@ void update_viterbi37_blk_avx2(void *p,unsigned char *syms,int nbits, uint32_t *
     d->s[0] = (short) y;
     d->s[1] = (short) x;
     d->s[2] = (short) (y >>16);
-    d->s[3] = (short)(x>> 16);
+    d->s[3] = (short) (x >>16);
 
       
     __m256i unpack;

@@ -33,19 +33,19 @@
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/mat.h"
 
 #ifdef LV_HAVE_SSE
 #include <immintrin.h>
-int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
-int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_symbols);
+int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float scaling, float noise_estimate);
+int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_symbols, float scaling);
 #endif
 
 #ifdef LV_HAVE_AVX
 #include <immintrin.h>
-int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
+int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float scaling, float noise_estimate);
 #endif
 #include "srslte/phy/utils/mat.h"
-
 
 static srslte_mimo_decoder_t mimo_decoder = SRSLTE_MIMO_DECODER_MMSE;
 
@@ -59,7 +59,7 @@ static srslte_mimo_decoder_t mimo_decoder = SRSLTE_MIMO_DECODER_MMSE;
 
 #define PROD(a,b) _mm_addsub_ps(_mm_mul_ps(a,_mm_moveldup_ps(b)),_mm_mul_ps(_mm_shuffle_ps(a,a,0xB1),_mm_movehdup_ps(b)))
 
-int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float scaling, float noise_estimate) {
   
   float *xPtr = (float*) x;
   const float *hPtr1 = (const float*) h[0];
@@ -122,7 +122,10 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     
     x1Val1 = _mm_div_ps(x1Val1, h1square);
     x2Val1 = _mm_div_ps(x2Val1, h2square);
-    
+
+    x1Val1 = _mm_mul_ps(x1Val1, _mm_set1_ps(1/scaling));
+    x2Val1 = _mm_mul_ps(x2Val1, _mm_set1_ps(1/scaling));
+
     _mm_store_ps(xPtr, x1Val1); xPtr+=4;
     _mm_store_ps(xPtr, x2Val1); xPtr+=4;
     
@@ -134,7 +137,7 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
       r  += y[p][i]*conj(h[p][i]);
       hh += conj(h[p][i])*h[p][i];
     }
-    x[i] = r/(hh+noise_estimate);
+    x[i] = scaling*r/(hh+noise_estimate);
   }
   return nof_symbols;
 }
@@ -147,7 +150,7 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
 
 
 
-int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float scaling, float noise_estimate) {
   
   float *xPtr = (float*) x;
   const float *hPtr1 = (const float*) h[0];
@@ -160,6 +163,8 @@ int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
   __m256 noise = _mm256_set1_ps(noise_estimate);
   __m256 h1Val1, h2Val1, y1Val1, y2Val1, h12square, h1square, h2square, h1_p, h2_p, h1conj1, h2conj1, x1Val, x2Val;
   __m256 h1Val2, h2Val2, y1Val2, y2Val2, h1conj2, h2conj2;
+  __m256 avx_scaling = _mm256_set1_ps(1/scaling);
+
 
   for (int i=0;i<nof_symbols/8;i++) {
     y1Val1 = _mm256_load_ps(yPtr1); yPtr1+=8;
@@ -213,7 +218,10 @@ int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     
     x1Val = _mm256_div_ps(x1Val, h1square);
     x2Val = _mm256_div_ps(x2Val, h2square);
-    
+
+    x1Val = _mm256_mul_ps(x1Val, avx_scaling);
+    x2Val = _mm256_mul_ps(x2Val, avx_scaling);
+
     _mm256_store_ps(xPtr, x1Val); xPtr+=8;
     _mm256_store_ps(xPtr, x2Val); xPtr+=8;
   }
@@ -224,14 +232,14 @@ int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
       r  += y[p][i]*conj(h[p][i]);
       hh += conj(h[p][i])*h[p][i];
     }
-    x[i] = r/(hh+noise_estimate);
+    x[i] = r/((hh+noise_estimate) * scaling);
   }
   return nof_symbols;
 }
 
 #endif
 
-int srslte_predecoding_single_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float scaling, float noise_estimate) {
   for (int i=0;i<nof_symbols;i++) {
     cf_t r  = 0; 
     cf_t hh = 0; 
@@ -239,13 +247,13 @@ int srslte_predecoding_single_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
       r  += y[p][i]*conj(h[p][i]);
       hh += conj(h[p][i])*h[p][i];
     }
-    x[i] = r/(hh+noise_estimate);
+    x[i] = r / ((hh+noise_estimate) * scaling);
   }
   return nof_symbols;
 }
 
 /* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
-int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, float scaling, float noise_estimate) {
   
   cf_t *y[SRSLTE_MAX_PORTS]; 
   cf_t *h[SRSLTE_MAX_PORTS];
@@ -255,40 +263,41 @@ int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, floa
   
 #ifdef LV_HAVE_AVX
   if (nof_symbols > 32 && nof_rxant <= 2) {
-    return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
   } else {
-    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
   }
 #else
   #ifdef LV_HAVE_SSE
     if (nof_symbols > 32 && nof_rxant <= 2) {
-      return srslte_predecoding_single_sse(y, h, x, nof_rxant, nof_symbols, noise_estimate);
+      return srslte_predecoding_single_sse(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
     } else {
-      return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);      
+      return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
     }
   #else
-    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
   #endif
 #endif
 }
 
 /* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
-int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x,
+                                    int nof_rxant, int nof_symbols, float scaling, float noise_estimate) {
 #ifdef LV_HAVE_AVX
   if (nof_symbols > 32) {
-    return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
   } else {
-    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
   }
 #else
   #ifdef LV_HAVE_SSE
     if (nof_symbols > 32) {
-      return srslte_predecoding_single_sse(y, h, x, nof_rxant, nof_symbols, noise_estimate);
+      return srslte_predecoding_single_sse(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
     } else {
-      return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);      
+      return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
     }
   #else
-    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
   #endif
 #endif
 }
@@ -296,7 +305,7 @@ int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MA
 /* C implementatino of the SFBC equalizer */
 int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
                                       cf_t *x[SRSLTE_MAX_LAYERS], 
-                                      int nof_rxant, int nof_ports, int nof_symbols, int symbol_start) 
+                                      int nof_rxant, int nof_ports, int nof_symbols, int symbol_start, float scaling)
 {
   int i;
   if (nof_ports == 2) {
@@ -321,6 +330,7 @@ int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
         x0 += (conjf(h00) * r0 + h11 * conjf(r1));
         x1 += (-h10 * conj(r0) + conj(h01) * r1);
       }
+      hh *= scaling;
       x[0][i] = x0 / hh * sqrt(2);
       x[1][i] = x1 / hh * sqrt(2);
     }
@@ -351,6 +361,10 @@ int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
         x2 += (conjf(h1) * r2 + h3 * conjf(r3));
         x3 += (-h3 * conjf(r2) + conjf(h1) * r3);
       }
+
+      hh02 *= scaling;
+      hh13 *= scaling;
+
       x[0][i] = x0 / hh02 * sqrt(2);
       x[1][i] = x1 / hh02 * sqrt(2);
       x[2][i] = x2 / hh13 * sqrt(2);
@@ -365,15 +379,15 @@ int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
 
 int srslte_predecoding_diversity_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
                                      cf_t *x[SRSLTE_MAX_LAYERS], 
-                                     int nof_rxant, int nof_ports, int nof_symbols) {
-  return srslte_predecoding_diversity_gen_(y, h, x, nof_rxant, nof_ports, nof_symbols, 0);
+                                     int nof_rxant, int nof_ports, int nof_symbols, float scaling) {
+  return srslte_predecoding_diversity_gen_(y, h, x, nof_rxant, nof_ports, nof_symbols, 0, scaling);
 }
 
 /* SSE implementation of the 2-port SFBC equalizer */
 #ifdef LV_HAVE_SSE
 int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
                                       cf_t *x[SRSLTE_MAX_LAYERS], 
-                                      int nof_rxant, int nof_symbols) 
+                                      int nof_rxant, int nof_symbols, float scaling)
 {
   float *x0Ptr = (float*) x[0];
   float *x1Ptr = (float*) x[1];
@@ -385,7 +399,7 @@ int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
   const float *yPtr1 = (const float*) y[1];
 
   __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
-  __m128 sqrt2      = _mm_setr_ps(sqrt(2), sqrt(2), sqrt(2), sqrt(2));
+  __m128 sqrt2      = _mm_set1_ps(sqrtf(2)/scaling);
   
   __m128 h0Val_00, h0Val_10, h1Val_00, h1Val_10, h000, h00conj0, h010, h01conj0, h100, h110;
   __m128 h0Val_01, h0Val_11, h1Val_01, h1Val_11, h001, h00conj1, h011, h01conj1, h101, h111;
@@ -474,13 +488,13 @@ int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
     _mm_store_ps(x1Ptr, x1); x1Ptr+=4;    
   }
   // Compute remaining symbols using generic implementation
-  srslte_predecoding_diversity_gen_(y, h, x, nof_rxant, 2, nof_symbols, 4*(nof_symbols/4));
+  srslte_predecoding_diversity_gen_(y, h, x, nof_rxant, 2, nof_symbols, 4*(nof_symbols/4), scaling);
   return nof_symbols;
 }
 #endif
 
 int srslte_predecoding_diversity(cf_t *y_, cf_t *h_[SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], 
-                          int nof_ports, int nof_symbols) 
+                          int nof_ports, int nof_symbols, float scaling)
 {
   cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
   cf_t *y[SRSLTE_MAX_PORTS]; 
@@ -493,47 +507,31 @@ int srslte_predecoding_diversity(cf_t *y_, cf_t *h_[SRSLTE_MAX_PORTS], cf_t *x[S
   
 #ifdef LV_HAVE_SSE
   if (nof_symbols > 32 && nof_ports == 2) {
-    return srslte_predecoding_diversity2_sse(y, h, x, nof_rxant, nof_symbols);
+    return srslte_predecoding_diversity2_sse(y, h, x, nof_rxant, nof_symbols, scaling);
   } else {
-    return srslte_predecoding_diversity_gen(y, h, x, nof_rxant, nof_ports, nof_symbols);      
+    return srslte_predecoding_diversity_gen(y, h, x, nof_rxant, nof_ports, nof_symbols, scaling);
   }
 #else
-  return srslte_predecoding_diversity_gen(y, h, x, nof_rxant, nof_ports, nof_symbols);
+  return srslte_predecoding_diversity_gen(y, h, x, nof_rxant, nof_ports, nof_symbols, scaling);
 #endif   
 }
 
 int srslte_predecoding_diversity_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], 
-                          int nof_rxant, int nof_ports, int nof_symbols) 
+                          int nof_rxant, int nof_ports, int nof_symbols, float scaling)
 {
 #ifdef LV_HAVE_SSE
   if (nof_symbols > 32 && nof_ports == 2) {
-    return srslte_predecoding_diversity2_sse(y, h, x, nof_rxant, nof_symbols);
+    return srslte_predecoding_diversity2_sse(y, h, x, nof_rxant, nof_symbols, scaling);
   } else {
-    return srslte_predecoding_diversity_gen(y, h, x, nof_rxant, nof_ports, nof_symbols);      
+    return srslte_predecoding_diversity_gen(y, h, x, nof_rxant, nof_ports, nof_symbols, scaling);
   }
 #else
-  return srslte_predecoding_diversity_gen(y, h, x, nof_rxant, nof_ports, nof_symbols);
+  return srslte_predecoding_diversity_gen(y, h, x, nof_rxant, nof_ports, nof_symbols, scaling);
 #endif   
 }
 
-
-int srslte_predecoding_type(cf_t *y_, cf_t *h_[SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
-    int nof_ports, int nof_layers, int nof_symbols, srslte_mimo_type_t type, float noise_estimate) 
-{
-  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
-  cf_t *y[SRSLTE_MAX_PORTS]; 
-  uint32_t nof_rxant = 1; 
-  
-  for (int i=0;i<nof_ports;i++) {
-    h[i][0] = h_[i];
-  }
-  y[0] = y_; 
-  return srslte_predecoding_type_multi(y, h, x, nof_rxant, nof_ports, nof_layers, 0, nof_symbols, type, noise_estimate);
-}
-
-
 int srslte_precoding_mimo_2x2_gen(cf_t W[2][2], cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], 
-                              int nof_symbols, float noise_estimate)
+                              int nof_symbols, float scaling, float noise_estimate)
 {
  
   cf_t G[2][2], Gx[2][2]; 
@@ -559,8 +557,8 @@ int srslte_precoding_mimo_2x2_gen(cf_t W[2][2], cf_t *y[SRSLTE_MAX_PORTS], cf_t 
     }
     
     // x=G*y
-    x[0][i] = Gx[0][0]*y[0][i] + Gx[0][1]*y[1][i];
-    x[1][i] = Gx[1][0]*y[0][i] + Gx[1][1]*y[1][i];
+    x[0][i] = (Gx[0][0]*y[0][i] + Gx[0][1]*y[1][i]) * scaling;
+    x[1][i] = (Gx[1][0]*y[0][i] + Gx[1][1]*y[1][i]) * scaling;
   }
   
   return SRSLTE_SUCCESS; 
@@ -572,7 +570,8 @@ int srslte_precoding_mimo_2x2_gen(cf_t W[2][2], cf_t *y[SRSLTE_MAX_PORTS], cf_t 
 int srslte_predecoding_ccd_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS],
                                       cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                       cf_t *x[SRSLTE_MAX_LAYERS],
-                                      uint32_t nof_symbols) {
+                                      uint32_t nof_symbols,
+                                      float scaling) {
   uint32_t i = 0;
 
   __m256 mask0 = _mm256_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f);
@@ -596,7 +595,7 @@ int srslte_predecoding_ccd_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS],
 
     __m256 x0, x1;
 
-    srslte_mat_2x2_zf_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f);
+    srslte_mat_2x2_zf_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f / scaling);
 
     _mm256_store_ps((float *) &x[0][i], x0);
     _mm256_store_ps((float *) &x[1][i], x1);
@@ -612,7 +611,8 @@ int srslte_predecoding_ccd_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS],
 int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
                                       cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                       cf_t *x[SRSLTE_MAX_LAYERS],
-                                      uint32_t nof_symbols) {
+                                      uint32_t nof_symbols,
+                                      float scaling) {
   uint32_t i = 0;
 
   for (i = 0; i < nof_symbols - 1; i += 2) {
@@ -633,7 +633,7 @@ int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
 
     __m128 x0, x1;
 
-    srslte_mat_2x2_zf_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f);
+    srslte_mat_2x2_zf_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f / scaling);
 
     _mm_store_ps((float *) &x[0][i], x0);
     _mm_store_ps((float *) &x[1][i], x1);
@@ -644,9 +644,13 @@ int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
 #endif
 
 // Generic implementation of ZF 2x2 CCD equalizer
-int srslte_predecoding_ccd_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
-                                      int nof_symbols) {
-  cf_t h00, h01, h10, h11, det;
+int srslte_predecoding_ccd_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS],
+                                      cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                      cf_t *x[SRSLTE_MAX_LAYERS],
+                                      int nof_symbols,
+                                      float scaling) {
+  cf_t h00, h01, h10, h11;
+
   for (int i = 0; i < nof_symbols; i++) {
 
     // Even precoder
@@ -654,11 +658,8 @@ int srslte_predecoding_ccd_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
     h10 = +h[0][1][i] + h[1][1][i];
     h01 = +h[0][0][i] - h[1][0][i];
     h11 = +h[0][1][i] - h[1][1][i];
-    det = (h00 * h11 - h01 * h10);
-    det = conjf(det) * ((float) 2.0 / (crealf(det) * crealf(det) + cimagf(det) * cimagf(det)));
 
-    x[0][i] = (+h11 * y[0][i] - h01 * y[1][i]) * det;
-    x[1][i] = (-h10 * y[0][i] + h00 * y[1][i]) * det;
+    srslte_mat_2x2_zf_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], 2.0f / scaling);
 
     i++;
 
@@ -667,38 +668,34 @@ int srslte_predecoding_ccd_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
     h10 = h[0][1][i] - h[1][1][i];
     h01 = h[0][0][i] + h[1][0][i];
     h11 = h[0][1][i] + h[1][1][i];
-    det = (h00 * h11 - h01 * h10);
-    det = conjf(det) * ((float) 2.0 / (crealf(det) * crealf(det) + cimagf(det) * cimagf(det)));
 
-    x[0][i] = (+h11 * y[0][i] - h01 * y[1][i]) * det;
-    x[1][i] = (-h10 * y[0][i] + h00 * y[1][i]) * det;
-
+    srslte_mat_2x2_zf_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], 2.0f / scaling);
   }
   return SRSLTE_SUCCESS;
 }
 
 int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
-                              int nof_rxant, int nof_ports, int nof_layers, int nof_symbols) 
+                              int nof_rxant, int nof_ports, int nof_layers, int nof_symbols, float scaling)
 {
   if (nof_ports == 2 && nof_rxant == 2) {
     if (nof_layers == 2) {
 #ifdef LV_HAVE_AVX
-      return srslte_predecoding_ccd_2x2_zf_avx(y, h, x, nof_symbols);
+      return srslte_predecoding_ccd_2x2_zf_avx(y, h, x, nof_symbols, scaling);
 #else
 #ifdef LV_HAVE_SSE
-      return srslte_predecoding_ccd_2x2_zf_sse(y, h, x, nof_symbols);
+      return srslte_predecoding_ccd_2x2_zf_sse(y, h, x, nof_symbols, scaling);
 #else
-      return srslte_predecoding_ccd_2x2_zf_gen(y, h, x, nof_symbols);
+      return srslte_predecoding_ccd_2x2_zf_gen(y, h, x, nof_symbols, scaling);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
     } else {
-      fprintf(stderr, "Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
+      DEBUG("Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
       return -1;       
     }          
   } else if (nof_ports == 4) {
-    fprintf(stderr, "Error predecoding CCD: Only 2 ports supported\n");
+    DEBUG("Error predecoding CCD: Only 2 ports supported\n");
   } else {
-    fprintf(stderr, "Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
+    DEBUG("Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
 }
@@ -709,7 +706,7 @@ int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORT
 int srslte_predecoding_ccd_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS],
                                         cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                         cf_t *x[SRSLTE_MAX_LAYERS],
-                                        uint32_t nof_symbols, float noise_estimate) {
+                                        uint32_t nof_symbols, float scaling, float noise_estimate) {
   uint32_t i = 0;
 
   for (i = 0; i < nof_symbols - 3; i += 4) {
@@ -730,7 +727,7 @@ int srslte_predecoding_ccd_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS],
 
     __m256 x0, x1;
 
-    srslte_mat_2x2_mmse_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f);
+    srslte_mat_2x2_mmse_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f / scaling);
 
     _mm256_store_ps((float *) &x[0][i], x0);
     _mm256_store_ps((float *) &x[1][i], x1);
@@ -746,7 +743,7 @@ int srslte_predecoding_ccd_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS],
 int srslte_predecoding_ccd_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS],
                                       cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                       cf_t *x[SRSLTE_MAX_LAYERS],
-                                      uint32_t nof_symbols, float noise_estimate) {
+                                      uint32_t nof_symbols, float scaling, float noise_estimate) {
   uint32_t i = 0;
 
   for (i = 0; i < nof_symbols - 1; i += 2) {
@@ -767,7 +764,7 @@ int srslte_predecoding_ccd_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS],
 
     __m128 x0, x1;
 
-    srslte_mat_2x2_mmse_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f);
+    srslte_mat_2x2_mmse_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f / scaling);
 
     _mm_store_ps((float *) &x[0][i], x0);
     _mm_store_ps((float *) &x[1][i], x1);
@@ -779,8 +776,9 @@ int srslte_predecoding_ccd_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS],
 
 // Generic implementation of ZF 2x2 CCD equalizer
 int srslte_predecoding_ccd_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
-                                      int nof_symbols, float noise_estimate) {
+                                      int nof_symbols, float scaling, float noise_estimate) {
   cf_t h00, h01, h10, h11;
+
   for (int i = 0; i < nof_symbols; i++) {
 
     // Even precoder
@@ -788,7 +786,7 @@ int srslte_predecoding_ccd_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLT
     h10 = +h[0][1][i] + h[1][1][i];
     h01 = +h[0][0][i] - h[1][0][i];
     h11 = +h[0][1][i] - h[1][1][i];
-    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f);
+    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f / scaling);
 
     i++;
 
@@ -797,34 +795,34 @@ int srslte_predecoding_ccd_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLT
     h10 = h[0][1][i] - h[1][1][i];
     h01 = h[0][0][i] + h[1][0][i];
     h11 = h[0][1][i] + h[1][1][i];
-    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f);
+    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f / scaling);
   }
   return SRSLTE_SUCCESS;
 }
 
 
 int srslte_predecoding_ccd_mmse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
-                              int nof_rxant, int nof_ports, int nof_layers, int nof_symbols, float noise_estimate)
+                              int nof_rxant, int nof_ports, int nof_layers, int nof_symbols, float scaling, float noise_estimate)
 {
   if (nof_ports == 2 && nof_rxant == 2) {
     if (nof_layers == 2) {
 #ifdef LV_HAVE_AVX
-      return srslte_predecoding_ccd_2x2_mmse_avx(y, h, x, nof_symbols, noise_estimate);
+      return srslte_predecoding_ccd_2x2_mmse_avx(y, h, x, nof_symbols, scaling, noise_estimate);
 #else
-      #ifdef LV_HAVE_SSE
-      return srslte_predecoding_ccd_2x2_mmse_sse(y, h, x, nof_symbols, noise_estimate);
+#ifdef LV_HAVE_SSE
+      return srslte_predecoding_ccd_2x2_mmse_sse(y, h, x, nof_symbols, scaling, noise_estimate);
 #else
-      return srslte_predecoding_ccd_2x2_mmse_gen(y, h, x, nof_symbols, noise_estimate);
+      return srslte_predecoding_ccd_2x2_mmse_gen(y, h, x, nof_symbols, scaling, noise_estimate);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
     } else {
-      fprintf(stderr, "Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
+      DEBUG("Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
       return -1;
     }
   } else if (nof_ports == 4) {
-    fprintf(stderr, "Error predecoding CCD: Only 2 ports supported\n");
+    DEBUG("Error predecoding CCD: Only 2 ports supported\n");
   } else {
-    fprintf(stderr, "Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
+    DEBUG("Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
 }
@@ -833,19 +831,19 @@ int srslte_predecoding_ccd_mmse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PO
 
 // Generic implementation of ZF 2x2 Spatial Multiplexity equalizer
 int srslte_predecoding_multiplex_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols, float scaling) {
   float norm = 1.0;
 
   switch(codebook_idx) {
     case 0:
-      norm = (float) M_SQRT2;
+      norm = (float) M_SQRT2 / scaling;
       break;
     case 1:
     case 2:
-      norm = 2.0f;
+      norm = 2.0f / scaling;
       break;
     default:
-      ERROR("Wrong codebook_idx=%d", codebook_idx);
+      DEBUG("Wrong codebook_idx=%d", codebook_idx);
       return SRSLTE_ERROR;
   }
 
@@ -876,7 +874,7 @@ int srslte_predecoding_multiplex_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[S
         h11 = _mm256_sub_ps(_h01, _MM256_MULJ_PS(_h11));
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        DEBUG("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -901,16 +899,16 @@ int srslte_predecoding_multiplex_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[S
 
 // SSE implementation of ZF 2x2 Spatial Multiplexity equalizer
 int srslte_predecoding_multiplex_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols, float scaling) {
   float norm = 1.0;
 
   switch(codebook_idx) {
     case 0:
-      norm = (float) M_SQRT2;
+      norm = (float) M_SQRT2 / scaling;
       break;
     case 1:
     case 2:
-      norm = 2.0f;
+      norm = 2.0f / scaling;
       break;
     default:
       ERROR("Wrong codebook_idx=%d", codebook_idx);
@@ -968,16 +966,16 @@ int srslte_predecoding_multiplex_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[S
 
 // Generic implementation of ZF 2x2 Spatial Multiplexity equalizer
 int srslte_predecoding_multiplex_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols, float scaling) {
   float norm = 1.0;
 
   switch(codebook_idx) {
     case 0:
-      norm = (float) M_SQRT2;
+      norm = (float) M_SQRT2 / scaling;
       break;
     case 1:
     case 2:
-      norm = 2.0f;
+      norm = 2.0f / scaling;
       break;
     default:
       fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
@@ -1025,16 +1023,16 @@ int srslte_predecoding_multiplex_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[S
 // AVX implementation of ZF 2x2 Spatial Multiplexity equalizer
 int srslte_predecoding_multiplex_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                         cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols,
-                                        float noise_estimate) {
+                                        float scaling, float noise_estimate) {
   float norm = 1.0;
 
   switch(codebook_idx) {
     case 0:
-      norm = (float) M_SQRT2;
+      norm = (float) M_SQRT2 / scaling;
       break;
     case 1:
     case 2:
-      norm = 2.0f;
+      norm = 2.0f / scaling;
       break;
     default:
       fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
@@ -1095,16 +1093,16 @@ int srslte_predecoding_multiplex_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h
 // SSE implementation of ZF 2x2 Spatial Multiplexity equalizer
 int srslte_predecoding_multiplex_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                         cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols,
-                                        float noise_estimate) {
+                                        float scaling, float noise_estimate) {
   float norm;
 
   switch(codebook_idx) {
     case 0:
-      norm = (float) M_SQRT2;
+      norm = (float) M_SQRT2 / scaling;
       break;
     case 1:
     case 2:
-      norm = 2.0f;
+      norm = 2.0f / scaling;
       break;
     default:
       fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
@@ -1161,16 +1159,16 @@ int srslte_predecoding_multiplex_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h
 // Generic implementation of ZF 2x2 Spatial Multiplexity equalizer
 int srslte_predecoding_multiplex_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                         cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols,
-                                        float noise_estimate) {
+                                        float scaling, float noise_estimate) {
   float norm = 1.0;
 
   switch(codebook_idx) {
     case 0:
-      norm = (float) M_SQRT2;
+      norm = (float) M_SQRT2 / scaling;
       break;
     case 1:
     case 2:
-      norm = 2.0f;
+      norm = 2.0f / scaling;
       break;
     default:
       ERROR("Wrong codebook_idx=%d", codebook_idx);
@@ -1213,7 +1211,7 @@ int srslte_predecoding_multiplex_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h
 
 // Generic implementation of MRC 2x1 (two antennas into one layer) Spatial Multiplexing equalizer
 int srslte_predecoding_multiplex_2x1_mrc_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                             cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+                                             cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols, float scaling) {
 
   for (int i = 0; i < nof_symbols - 3; i += 4) {
     __m256 _h00 = _mm256_load_ps((float*)&(h[0][0][i]));
@@ -1251,7 +1249,7 @@ int srslte_predecoding_multiplex_2x1_mrc_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[
     __m256 hh = _mm256_add_ps(hh0, hh1);
     __m256 hhrec = _mm256_rcp_ps(hh);
 
-    hhrec = _mm256_mul_ps(hhrec, _mm256_set1_ps((float) M_SQRT2));
+    hhrec = _mm256_mul_ps(hhrec, _mm256_set1_ps((float) M_SQRT2 / scaling));
     __m256 y0 = _mm256_load_ps((float*)&y[0][i]);
     __m256 y1 = _mm256_load_ps((float*)&y[1][i]);
 
@@ -1272,7 +1270,7 @@ int srslte_predecoding_multiplex_2x1_mrc_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[
 #ifdef LV_HAVE_SSE
 
 int srslte_predecoding_multiplex_2x1_mrc_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                             cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+                                             cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols, float scaling) {
 
   for (int i = 0; i < nof_symbols - 1; i += 2) {
     __m128 _h00 = _mm_load_ps((float*)&(h[0][0][i]));
@@ -1310,7 +1308,7 @@ int srslte_predecoding_multiplex_2x1_mrc_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[
     __m128 hh = _mm_add_ps(hh0, hh1);
     __m128 hhrec = _mm_rcp_ps(hh);
 
-    hhrec = _mm_mul_ps(hhrec, _mm_set1_ps((float) M_SQRT2));
+    hhrec = _mm_mul_ps(hhrec, _mm_set1_ps((float) M_SQRT2 / scaling));
 
     __m128 y0 = _mm_load_ps((float*)&y[0][i]);
     __m128 y1 = _mm_load_ps((float*)&y[1][i]);
@@ -1329,7 +1327,9 @@ int srslte_predecoding_multiplex_2x1_mrc_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[
 
 // Generic implementation of MRC 2x1 (two antennas into one layer) Spatial Multiplexing equalizer
 int srslte_predecoding_multiplex_2x1_mrc_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols, float scaling) {
+  float norm = (float) M_SQRT2 / scaling;
+
   for (int i = 0; i < nof_symbols; i += 1) {
     cf_t h0, h1;
     float hh;
@@ -1356,7 +1356,7 @@ int srslte_predecoding_multiplex_2x1_mrc_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[
         return SRSLTE_ERROR;
     }
 
-    hh = (float) M_SQRT2/(crealf(h0)*crealf(h0) + cimagf(h0)*cimagf(h0) + crealf(h1)*crealf(h1) + cimagf(h1)*cimagf(h1));
+    hh = norm / (crealf(h0) * crealf(h0) + cimagf(h0) * cimagf(h0) + crealf(h1) * crealf(h1) + cimagf(h1) * cimagf(h1));
 
     x[0][i] = (conjf(h0) * y[0][i] + conjf(h1) * y[1][i]) * hh;
   }
@@ -1365,49 +1365,49 @@ int srslte_predecoding_multiplex_2x1_mrc_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[
 
 int srslte_predecoding_multiplex(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
                                  int nof_rxant, int nof_ports, int nof_layers, int codebook_idx, int nof_symbols,
-                                 float noise_estimate)
+                                 float scaling, float noise_estimate)
 {
   if (nof_ports == 2 && nof_rxant <= 2) {
     if (nof_layers == 2) {
       switch (mimo_decoder) {
         case SRSLTE_MIMO_DECODER_ZF:
 #ifdef LV_HAVE_AVX
-          return srslte_predecoding_multiplex_2x2_zf_avx(y, h, x, codebook_idx, nof_symbols);
+          return srslte_predecoding_multiplex_2x2_zf_avx(y, h, x, codebook_idx, nof_symbols, scaling);
 #else
 #ifdef LV_HAVE_SSE
-          return srslte_predecoding_multiplex_2x2_zf_sse(y, h, x, codebook_idx, nof_symbols);
+          return srslte_predecoding_multiplex_2x2_zf_sse(y, h, x, codebook_idx, nof_symbols, scaling);
 #else
-          return srslte_predecoding_multiplex_2x2_zf_gen(y, h, x, codebook_idx, nof_symbols);
+          return srslte_predecoding_multiplex_2x2_zf_gen(y, h, x, codebook_idx, nof_symbols, scaling);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
           break;
         case SRSLTE_MIMO_DECODER_MMSE:
 #ifdef LV_HAVE_AVX
-          return srslte_predecoding_multiplex_2x2_mmse_avx(y, h, x, codebook_idx, nof_symbols, noise_estimate);
+          return srslte_predecoding_multiplex_2x2_mmse_avx(y, h, x, codebook_idx, nof_symbols, scaling, noise_estimate);
 #else
 #ifdef LV_HAVE_SSE
-          return srslte_predecoding_multiplex_2x2_mmse_sse(y, h, x, codebook_idx, nof_symbols, noise_estimate);
+          return srslte_predecoding_multiplex_2x2_mmse_sse(y, h, x, codebook_idx, nof_symbols, scaling, noise_estimate);
 #else
-          return srslte_predecoding_multiplex_2x2_mmse_gen(y, h, x, codebook_idx, nof_symbols, noise_estimate);
+          return srslte_predecoding_multiplex_2x2_mmse_gen(y, h, x, codebook_idx, nof_symbols, scaling, noise_estimate);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
           break;
       }
     } else {
 #ifdef LV_HAVE_AVX
-      return srslte_predecoding_multiplex_2x1_mrc_avx(y, h, x, codebook_idx, nof_symbols);
+      return srslte_predecoding_multiplex_2x1_mrc_avx(y, h, x, codebook_idx, nof_symbols, scaling);
 #else
 #ifdef LV_HAVE_SSE
-      return srslte_predecoding_multiplex_2x1_mrc_sse(y, h, x, codebook_idx, nof_symbols);
+      return srslte_predecoding_multiplex_2x1_mrc_sse(y, h, x, codebook_idx, nof_symbols, scaling);
 #else
-      return srslte_predecoding_multiplex_2x1_mrc_gen(y, h, x, codebook_idx, nof_symbols);
+      return srslte_predecoding_multiplex_2x1_mrc_gen(y, h, x, codebook_idx, nof_symbols, scaling);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
     }
   } else if (nof_ports == 4) {
-    ERROR("Error predecoding multiplex: not implemented for %d Tx ports", nof_ports);
+    DEBUG("Error predecoding multiplex: not implemented for %d Tx ports", nof_ports);
   } else {
-    ERROR("Error predecoding multiplex: Invalid combination of ports %d and rx antennas %d\n", nof_ports, nof_rxant);
+    DEBUG("Error predecoding multiplex: Invalid combination of ports %d and rx antennas %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
 }
@@ -1417,9 +1417,10 @@ void srslte_predecoding_set_mimo_decoder (srslte_mimo_decoder_t _mimo_decoder) {
 }
 
 /* 36.211 v10.3.0 Section 6.3.4 */
-int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                  cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_ports, int nof_layers,
-                                  int codebook_idx, int nof_symbols, srslte_mimo_type_t type, float noise_estimate) {
+int srslte_predecoding_type(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                            cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_ports, int nof_layers,
+                            int codebook_idx, int nof_symbols, srslte_mimo_type_t type, float scaling,
+                            float noise_estimate) {
 
   if (nof_ports > SRSLTE_MAX_PORTS) {
     fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,
@@ -1437,30 +1438,29 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     if (nof_layers >= 2 && nof_layers <= 4) {
       switch (mimo_decoder) {
         case SRSLTE_MIMO_DECODER_ZF:
-          return srslte_predecoding_ccd_zf(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols);
+          return srslte_predecoding_ccd_zf(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols, scaling);
           break;
         case SRSLTE_MIMO_DECODER_MMSE:
-          return srslte_predecoding_ccd_mmse(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols, noise_estimate);
+          return srslte_predecoding_ccd_mmse(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols, scaling, noise_estimate);
           break;
       }
     } else {
-      fprintf(stderr,
-          "Invalid number of layers %d\n", nof_layers);
+      DEBUG("Invalid number of layers %d\n", nof_layers);
       return -1;
     }
     return -1; 
   case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     if (nof_ports == 1 && nof_layers == 1) {
-      return srslte_predecoding_single_multi(y, h[0], x[0], nof_rxant, nof_symbols, noise_estimate);              
+      return srslte_predecoding_single_multi(y, h[0], x[0], nof_rxant, nof_symbols, scaling, noise_estimate);
     } else {
       fprintf(stderr,
-          "Number of ports and layers must be 1 for transmission on single antenna ports\n");
+          "Number of ports and layers must be 1 for transmission on single antenna ports (%d, %d)\n", nof_ports, nof_layers);
       return -1;
     }
     break;
   case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
     if (nof_ports == nof_layers) {
-      return srslte_predecoding_diversity_multi(y, h, x, nof_rxant, nof_ports, nof_symbols);
+      return srslte_predecoding_diversity_multi(y, h, x, nof_rxant, nof_ports, nof_symbols, scaling);
     } else {
       fprintf(stderr,
           "Error number of layers must equal number of ports in transmit diversity\n");
@@ -1469,7 +1469,7 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     break;
   case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
     return srslte_predecoding_multiplex(y, h, x, nof_rxant, nof_ports, nof_layers, codebook_idx, nof_symbols,
-                                        noise_estimate);
+                                        scaling, noise_estimate);
     default:
       return SRSLTE_ERROR;
   }
@@ -1487,12 +1487,16 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
  * 
  **************************************************/
 
-int srslte_precoding_single(cf_t *x, cf_t *y, int nof_symbols) {
-  memcpy(y, x, nof_symbols * sizeof(cf_t));
+int srslte_precoding_single(cf_t *x, cf_t *y, int nof_symbols, float scaling) {
+  if (scaling == 1.0f) {
+    memcpy(y, x, nof_symbols * sizeof(cf_t));
+  } else {
+    srslte_vec_sc_prod_cfc(x, scaling, y, (uint32_t) nof_symbols);
+  }
   return nof_symbols;
 }
 int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_ports,
-    int nof_symbols) {
+    int nof_symbols, float scaling) {
   int i;
   if (nof_ports == 2) {
     for (i = 0; i < nof_symbols; i++) {
@@ -1502,32 +1506,34 @@ int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
       y[1][2 * i + 1] = conjf(x[0][i]);
     }
     // normalize
-    srslte_vec_sc_prod_cfc(y[0], 1.0/sqrtf(2), y[0], 2*nof_symbols);
-    srslte_vec_sc_prod_cfc(y[1], 1.0/sqrtf(2), y[1], 2*nof_symbols);
+    srslte_vec_sc_prod_cfc(y[0], scaling/sqrtf(2), y[0], 2*nof_symbols);
+    srslte_vec_sc_prod_cfc(y[1], scaling/sqrtf(2), y[1], 2*nof_symbols);
     return 2 * i;
   } else if (nof_ports == 4) {
+    scaling /=  sqrtf(2);
+
     //int m_ap = (nof_symbols%4)?(nof_symbols*4-2):nof_symbols*4;
     int m_ap = 4 * nof_symbols;
     for (i = 0; i < m_ap / 4; i++) {
-      y[0][4 * i] = x[0][i] / sqrtf(2);
+      y[0][4 * i] = x[0][i] * scaling;
       y[1][4 * i] = 0;
-      y[2][4 * i] = -conjf(x[1][i]) / sqrtf(2);
+      y[2][4 * i] = -conjf(x[1][i]) * scaling;
       y[3][4 * i] = 0;
 
-      y[0][4 * i + 1] = x[1][i] / sqrtf(2);
+      y[0][4 * i + 1] = x[1][i] * scaling;
       y[1][4 * i + 1] = 0;
-      y[2][4 * i + 1] = conjf(x[0][i]) / sqrtf(2);
+      y[2][4 * i + 1] = conjf(x[0][i]) * scaling;
       y[3][4 * i + 1] = 0;
 
       y[0][4 * i + 2] = 0;
-      y[1][4 * i + 2] = x[2][i] / sqrtf(2);
+      y[1][4 * i + 2] = x[2][i] * scaling;
       y[2][4 * i + 2] = 0;
-      y[3][4 * i + 2] = -conjf(x[3][i]) / sqrtf(2);
+      y[3][4 * i + 2] = -conjf(x[3][i]) * scaling;
 
       y[0][4 * i + 3] = 0;
-      y[1][4 * i + 3] = x[3][i] / sqrtf(2);
+      y[1][4 * i + 3] = x[3][i] * scaling;
       y[2][4 * i + 3] = 0;
-      y[3][4 * i + 3] = conjf(x[2][i]) / sqrtf(2);
+      y[3][4 * i + 3] = conjf(x[2][i]) * scaling;
     }
     return 4 * i;
   } else {
@@ -1538,9 +1544,9 @@ int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
 
 #ifdef LV_HAVE_AVX
 
-int srslte_precoding_cdd_2x2_avx(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols)
+int srslte_precoding_cdd_2x2_avx(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols, float scaling)
 {
-  __m256 norm_avx = _mm256_set1_ps(0.5f);
+  __m256 norm_avx = _mm256_set1_ps(0.5f * scaling);
   for (int i = 0; i < nof_symbols - 3; i += 4) {
     __m256 x0 = _mm256_load_ps((float*) &x[0][i]);
     __m256 x1 = _mm256_load_ps((float*) &x[1][i]);
@@ -1563,9 +1569,9 @@ int srslte_precoding_cdd_2x2_avx(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_
 
 #ifdef LV_HAVE_SSE
 
-int srslte_precoding_cdd_2x2_sse(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols)
+int srslte_precoding_cdd_2x2_sse(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols, float scaling)
 {
-  __m128 norm_sse = _mm_set1_ps(0.5f);
+  __m128 norm_sse = _mm_set1_ps(0.5f * scaling);
   for (int i = 0; i < nof_symbols - 1; i += 2) {
     __m128 x0 = _mm_load_ps((float*) &x[0][i]);
     __m128 x1 = _mm_load_ps((float*) &x[1][i]);
@@ -1587,65 +1593,67 @@ int srslte_precoding_cdd_2x2_sse(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_
 #endif /* LV_HAVE_SSE */
 
 
-int srslte_precoding_cdd_2x2_gen(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols)
+int srslte_precoding_cdd_2x2_gen(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols, float scaling)
 {
+  scaling /= 2.0f;
   for (int i = 0; i < nof_symbols; i++) {
-    y[0][i] =  (x[0][i]+x[1][i])/2.0f;
-    y[1][i] =  (x[0][i]-x[1][i])/2.0f;
+    y[0][i] =  (x[0][i]+x[1][i]) * scaling;
+    y[1][i] =  (x[0][i]-x[1][i]) * scaling;
     i++;
-    y[0][i] =  (x[0][i]+x[1][i])/2.0f;
-    y[1][i] = (-x[0][i]+x[1][i])/2.0f;
+    y[0][i] =  (x[0][i]+x[1][i]) * scaling;
+    y[1][i] = (-x[0][i]+x[1][i]) * scaling;
   }
   return 2 * nof_symbols;
 }
 
-int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers, int nof_ports, int nof_symbols)
+int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers, int nof_ports, int nof_symbols, float scaling)
 {
   if (nof_ports == 2) {
     if (nof_layers != 2) {
-      fprintf(stderr, "Invalid number of layers %d for 2 ports\n", nof_layers);
+      DEBUG("Invalid number of layers %d for 2 ports\n", nof_layers);
       return -1;
     }
 #ifdef LV_HAVE_AVX
-    return srslte_precoding_cdd_2x2_avx(x, y, nof_symbols);
+    return srslte_precoding_cdd_2x2_avx(x, y, nof_symbols, scaling);
 #else
 #ifdef LV_HAVE_SSE
-    return srslte_precoding_cdd_2x2_sse(x, y, nof_symbols);
+    return srslte_precoding_cdd_2x2_sse(x, y, nof_symbols, scaling);
 #else
-    return srslte_precoding_cdd_2x2_gen(x, y, nof_symbols);
+    return srslte_precoding_cdd_2x2_gen(x, y, nof_symbols, scaling);
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
   } else if (nof_ports == 4) {
-    fprintf(stderr, "Not implemented\n");
+    DEBUG("Not implemented\n");
     return -1;
   } else {
-    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
+    DEBUG("Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
     return -1;
   }
 }
 
 int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers, int nof_ports,
-                               int codebook_idx, uint32_t nof_symbols)
+                               int codebook_idx, uint32_t nof_symbols, float scaling)
 {
   int i = 0;
   if (nof_ports == 2) {
     if (nof_layers == 1) {
+      scaling /= sqrtf(2.0f);
       switch(codebook_idx) {
         case 0:
-          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
-          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[1], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[0], scaling, y[0], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[0], scaling, y[1], nof_symbols);
           break;
         case 1:
-          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
-          srslte_vec_sc_prod_cfc(x[0], -1.0f/sqrtf(2.0f), y[1], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[0], scaling, y[0], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[0], -scaling, y[1], nof_symbols);
           break;
         case 2:
-          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
-          srslte_vec_sc_prod_ccc(x[0], _Complex_I/sqrtf(2.0f), y[1], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[0], scaling, y[0], nof_symbols);
+          srslte_vec_sc_prod_ccc(x[0], _Complex_I * scaling, y[1], nof_symbols);
           break;
         case 3:
-          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
-          srslte_vec_sc_prod_ccc(x[0], -_Complex_I/sqrtf(2.0f), y[1], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[0], scaling, y[0], nof_symbols);
+          srslte_vec_sc_prod_ccc(x[0], -_Complex_I * scaling, y[1], nof_symbols);
           break;
         default:
           fprintf(stderr, "Invalid multiplex combination: codebook_idx=%d, nof_layers=%d, nof_ports=%d\n",
@@ -1655,49 +1663,52 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
     } else if (nof_layers == 2) {
       switch(codebook_idx) {
         case 0:
-          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
-          srslte_vec_sc_prod_cfc(x[1], 1.0f/sqrtf(2.0f), y[1], nof_symbols);
+          scaling /= sqrtf(2.0f);
+          srslte_vec_sc_prod_cfc(x[0], scaling, y[0], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[1], scaling, y[1], nof_symbols);
           break;
         case 1:
+          scaling /= 2.0f;
 #ifdef LV_HAVE_AVX
           for (; i < nof_symbols - 3; i += 4) {
-            __m256 x0 = _mm256_load_ps((float*)&x[0][i]);
-            __m256 x1 = _mm256_load_ps((float*)&x[1][i]);
+            __m256 x0 = _mm256_load_ps((float *) &x[0][i]);
+            __m256 x1 = _mm256_load_ps((float *) &x[1][i]);
 
-            __m256 y0 = _mm256_mul_ps(_mm256_set1_ps(0.5f), _mm256_add_ps(x0, x1));
-            __m256 y1 = _mm256_mul_ps(_mm256_set1_ps(0.5f), _mm256_sub_ps(x0, x1));
+            __m256 y0 = _mm256_mul_ps(_mm256_set1_ps(scaling), _mm256_add_ps(x0, x1));
+            __m256 y1 = _mm256_mul_ps(_mm256_set1_ps(scaling), _mm256_sub_ps(x0, x1));
 
-            _mm256_store_ps((float*)&y[0][i], y0);
-            _mm256_store_ps((float*)&y[1][i], y1);
+            _mm256_store_ps((float *) &y[0][i], y0);
+            _mm256_store_ps((float *) &y[1][i], y1);
           }
 #endif /* LV_HAVE_AVX */
 
 #ifdef LV_HAVE_SSE
           for (; i < nof_symbols - 1; i += 2) {
-            __m128 x0 = _mm_load_ps((float*)&x[0][i]);
-            __m128 x1 = _mm_load_ps((float*)&x[1][i]);
+            __m128 x0 = _mm_load_ps((float *) &x[0][i]);
+            __m128 x1 = _mm_load_ps((float *) &x[1][i]);
 
-            __m128 y0 = _mm_mul_ps(_mm_set1_ps(0.5f), _mm_add_ps(x0, x1));
-            __m128 y1 = _mm_mul_ps(_mm_set1_ps(0.5f), _mm_sub_ps(x0, x1));
+            __m128 y0 = _mm_mul_ps(_mm_set1_ps(scaling), _mm_add_ps(x0, x1));
+            __m128 y1 = _mm_mul_ps(_mm_set1_ps(scaling), _mm_sub_ps(x0, x1));
 
-            _mm_store_ps((float*)&y[0][i], y0);
-            _mm_store_ps((float*)&y[1][i], y1);
+            _mm_store_ps((float *) &y[0][i], y0);
+            _mm_store_ps((float *) &y[1][i], y1);
           }
 #endif /* LV_HAVE_SSE */
 
           for (; i < nof_symbols; i++) {
-            y[0][i] = 0.5f*x[0][i] + 0.5f*x[1][i];
-            y[1][i] = 0.5f*x[0][i] - 0.5f*x[1][i];
+            y[0][i] = (x[0][i] + x[1][i]) * scaling;
+            y[1][i] = (x[0][i] - x[1][i]) * scaling;
           }
           break;
         case 2:
+          scaling /= 2.0f;
 #ifdef LV_HAVE_AVX
           for (; i < nof_symbols - 3; i += 4) {
             __m256 x0 = _mm256_load_ps((float*)&x[0][i]);
             __m256 x1 = _mm256_load_ps((float*)&x[1][i]);
 
-            __m256 y0 = _mm256_mul_ps(_mm256_set1_ps(0.5f), _mm256_add_ps(x0, x1));
-            __m256 y1 = _mm256_mul_ps(_mm256_set1_ps(0.5f), _MM256_MULJ_PS(_mm256_sub_ps(x0, x1)));
+            __m256 y0 = _mm256_mul_ps(_mm256_set1_ps(scaling), _mm256_add_ps(x0, x1));
+            __m256 y1 = _mm256_mul_ps(_mm256_set1_ps(scaling), _MM256_MULJ_PS(_mm256_sub_ps(x0, x1)));
 
             _mm256_store_ps((float*)&y[0][i], y0);
             _mm256_store_ps((float*)&y[1][i], y1);
@@ -1709,8 +1720,8 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
             __m128 x0 = _mm_load_ps((float*)&x[0][i]);
             __m128 x1 = _mm_load_ps((float*)&x[1][i]);
 
-            __m128 y0 = _mm_mul_ps(_mm_set1_ps(0.5f), _mm_add_ps(x0, x1));
-            __m128 y1 = _mm_mul_ps(_mm_set1_ps(0.5f), _MM_MULJ_PS(_mm_sub_ps(x0, x1)));
+            __m128 y0 = _mm_mul_ps(_mm_set1_ps(scaling), _mm_add_ps(x0, x1));
+            __m128 y1 = _mm_mul_ps(_mm_set1_ps(scaling), _MM_MULJ_PS(_mm_sub_ps(x0, x1)));
 
             _mm_store_ps((float*)&y[0][i], y0);
             _mm_store_ps((float*)&y[1][i], y1);
@@ -1718,8 +1729,8 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
 #endif /* LV_HAVE_SSE */
 
           for (; i < nof_symbols; i++) {
-            y[0][i] = 0.5f*x[0][i] + 0.5f*x[1][i];
-            y[1][i] = 0.5f*_Complex_I*x[0][i] - 0.5f*_Complex_I*x[1][i];
+            y[0][i] = (x[0][i] + x[1][i])*scaling;
+            y[1][i] = (_Complex_I*x[0][i] - _Complex_I*x[1][i])*scaling;
           }
           break;
         case 3:
@@ -1739,7 +1750,7 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
 
 /* 36.211 v10.3.0 Section 6.3.4 */
 int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers,
-    int nof_ports, int codebook_idx, int nof_symbols, srslte_mimo_type_t type) {
+    int nof_ports, int codebook_idx, int nof_symbols, float scaling, srslte_mimo_type_t type) {
 
   if (nof_ports > SRSLTE_MAX_PORTS) {
     fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,
@@ -1754,10 +1765,10 @@ int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS],
 
   switch (type) {
     case SRSLTE_MIMO_TYPE_CDD:
-      return srslte_precoding_cdd(x, y, nof_layers, nof_ports, nof_symbols);
+      return srslte_precoding_cdd(x, y, nof_layers, nof_ports, nof_symbols, scaling);
     case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
       if (nof_ports == 1 && nof_layers == 1) {
-        return srslte_precoding_single(x[0], y[0], nof_symbols);
+        return srslte_precoding_single(x[0], y[0], nof_symbols, scaling);
       } else {
         fprintf(stderr,
                 "Number of ports and layers must be 1 for transmission on single antenna ports\n");
@@ -1766,14 +1777,14 @@ int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS],
       break;
     case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
       if (nof_ports == nof_layers) {
-        return srslte_precoding_diversity(x, y, nof_ports, nof_symbols);
+        return srslte_precoding_diversity(x, y, nof_ports, nof_symbols, scaling);
       } else {
         fprintf(stderr,
                 "Error number of layers must equal number of ports in transmit diversity\n");
         return -1;
       }
     case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-      return srslte_precoding_multiplex(x, y, nof_layers, nof_ports, codebook_idx, nof_symbols);
+      return srslte_precoding_multiplex(x, y, nof_layers, nof_ports, codebook_idx, (uint32_t) nof_symbols, scaling);
     default:
       return SRSLTE_ERROR;
   }
@@ -2545,7 +2556,7 @@ int srslte_precoding_cn(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t no
     *cn = srslte_precoding_2x2_cn_gen(h, nof_symbols);
     return SRSLTE_SUCCESS;
   } else {
-    ERROR("MIMO Condition Number calculation not implemented for %d×%d", nof_tx_antennas, nof_rx_antennas);
+    DEBUG("MIMO Condition Number calculation not implemented for %d×%d", nof_tx_antennas, nof_rx_antennas);
     return SRSLTE_ERROR;
   }
 }

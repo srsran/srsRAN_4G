@@ -36,8 +36,13 @@
 
 #include "viterbi_test.h"
 
+#define VITERBI_16
 
-int frame_length = 1000, nof_frames = 128;
+#ifndef LV_HAVE_AVX2
+#undef VITERBI_16
+#endif
+
+int frame_length = 1000, nof_frames = 256;
 float ebno_db = 100.0;
 uint32_t seed = 0;
 bool tail_biting = false;
@@ -84,6 +89,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int frame_cnt;
   float *llr;
+  uint16_t *llr_s;
   uint8_t *llr_c;
   uint8_t *data_tx, *data_rx, *data_rx2, *symbols;
   int i, j;
@@ -154,6 +160,11 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
+  llr_s = malloc(2 * coded_length * sizeof(uint16_t));
+  if (!llr_s) {
+    perror("malloc");
+    exit(-1);
+  }
   llr_c = malloc(2 * coded_length * sizeof(uint8_t));
   if (!llr_c) {
     perror("malloc");
@@ -176,8 +187,6 @@ int main(int argc, char **argv) {
     varunc[0] = sqrt(1 / (pow(10, ebno_db / 10)));
     snr_points = 1;
   }
-
-  float Gain = 32;
 
   for (i = 0; i < snr_points; i++) {
     frame_cnt = 0;
@@ -206,17 +215,22 @@ int main(int argc, char **argv) {
       }
       
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);
+      //srslte_vec_fprint_f(stdout, llr, 100);
       
-      srslte_vec_quant_fuc(llr, llr_c, Gain, 127.5, 255, coded_length);
-
+      srslte_vec_quant_fuc(llr, llr_c, 32, 127.5, 255, coded_length);    
+      srslte_vec_quant_fus(llr, llr_s, 8192, 32767.5, 65535, coded_length);
+      
       struct timeval t[3];
       gettimeofday(&t[1], NULL);
       int M = 1; 
-      
-      //srslte_vec_fprint_b(stdout, data_tx, frame_length);
+  
       
       for (int i=0;i<M;i++) {
-        srslte_viterbi_decode_uc(&dec, llr_c, data_rx, frame_length);      
+#ifdef VITERBI_16
+        srslte_viterbi_decode_us(&dec, llr_s, data_rx, frame_length);
+#else
+        srslte_viterbi_decode_uc(&dec, llr_c, data_rx, frame_length);
+#endif
       }
             
 #ifdef TEST_SSE

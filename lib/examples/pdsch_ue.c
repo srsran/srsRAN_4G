@@ -90,6 +90,8 @@ typedef struct {
   uint32_t file_nof_prb;
   uint32_t file_nof_ports;
   uint32_t file_cell_id;
+  bool enable_cfo_ref;
+  bool average_subframe;
   char *rf_args; 
   uint32_t rf_nof_rx_ant; 
   double rf_freq; 
@@ -120,7 +122,9 @@ void args_default(prog_args_t *args) {
   args->file_offset_freq = 0; 
   args->rf_args = "";
   args->rf_freq = -1.0;
-  args->rf_nof_rx_ant = 1; 
+  args->rf_nof_rx_ant = 1;
+  args->enable_cfo_ref = false;
+  args->average_subframe = false;
 #ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0; 
 #else
@@ -137,7 +141,7 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agpPoOcildDnruMNv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [agpPoOcildFRDnruMNv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", args->rf_args);
   printf("\t-A Number of RX antennas [Default %d]\n", args->rf_nof_rx_ant);
@@ -158,6 +162,8 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-r RNTI in Hex [Default 0x%x]\n",args->rnti);
   printf("\t-l Force N_id_2 [Default best]\n");
   printf("\t-C Disable CFO correction [Default %s]\n", args->disable_cfo?"Disabled":"Enabled");
+  printf("\t-F Enable RS-based CFO correction [Default %s]\n", args->enable_cfo_ref?"Disabled":"Enabled");
+  printf("\t-R Average channel estimates on 1 ms [Default %s]\n", args->average_subframe?"Disabled":"Enabled");
   printf("\t-t Add time offset [Default %d]\n", args->time_offset);
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
@@ -179,7 +185,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsSZyWMN")) != -1) {
+  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDFRnvrfuUsSZyWMN")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -210,6 +216,12 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'C':
       args->disable_cfo = true;
+      break;
+    case 'F':
+      args->enable_cfo_ref = true;
+      break;
+    case 'R':
+      args->average_subframe = true;
       break;
     case 't':
       args->time_offset = atoi(argv[optind]);
@@ -326,7 +338,8 @@ srslte_netsink_t net_sink, net_sink_signal;
 #define PRINT_LINE_ADVANCE_CURSOR() printf("\033[%dB", prev_nof_lines + 1)
 
 int main(int argc, char **argv) {
-  int ret; 
+  struct timeval t[3];
+  int ret;
   int decimate = 1;
   srslte_cell_t cell;  
   int64_t sf_cnt;
@@ -339,7 +352,9 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int sfn_offset;
   float cfo = 0; 
-  
+
+  srslte_debug_handle_crash(argc, argv);
+
   parse_args(&prog_args, argc, argv);
   
   for (int i = 0; i< SRSLTE_MAX_CODEWORDS; i++) {
@@ -402,8 +417,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Error opening rf\n");
         exit(-1);
       }
-      srslte_rf_set_rx_gain(&rf, 50);      
-      cell_detect_config.init_agc = 50; 
+      srslte_rf_set_rx_gain(&rf, srslte_rf_get_rx_gain(&rf));
+      cell_detect_config.init_agc = srslte_rf_get_rx_gain(&rf);
     }
     
     sigset_t sigset;
@@ -510,7 +525,10 @@ int main(int argc, char **argv) {
 #endif
   }
 
-  if (srslte_ue_mib_init(&ue_mib, cell.nof_prb)) {
+  for (int i=0;i<prog_args.rf_nof_rx_ant;i++) {
+    sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  }
+  if (srslte_ue_mib_init(&ue_mib, sf_buffer, cell.nof_prb)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }
@@ -519,7 +537,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, prog_args.rf_nof_rx_ant)) {
+  if (srslte_ue_dl_init(&ue_dl, sf_buffer, cell.nof_prb, prog_args.rf_nof_rx_ant)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
@@ -528,10 +546,16 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  for (int i=0;i<prog_args.rf_nof_rx_ant;i++) {
-    sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  }
-  
+  // Disable CP based CFO estimation during find
+  ue_sync.cfo_current_value = cfo/15000;
+  ue_sync.cfo_is_copied = true;
+  ue_sync.cfo_correct_enable_find = true;
+  srslte_sync_set_cfo_cp_enable(&ue_sync.sfind, false, 0);
+
+
+  srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, prog_args.enable_cfo_ref, 1023);
+  srslte_chest_dl_average_subframe(&ue_dl.chest, prog_args.average_subframe);
+
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
   srslte_ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
   
@@ -553,14 +577,14 @@ int main(int argc, char **argv) {
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-    srslte_rf_start_rx_stream(&rf);    
+    srslte_rf_start_rx_stream(&rf, false);
   }
 #endif
     
   // Variables for measurements 
   uint32_t nframes=0;
   uint8_t ri = 0, pmi = 0;
-  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0,
+  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0, procrate = 0.0,
       sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS], cn = 0.0;
   bool decode_pdsch = false; 
 
@@ -577,11 +601,8 @@ int main(int argc, char **argv) {
   srslte_ra_dl_dci_t old_dl_dci; 
   bzero(&old_dl_dci, sizeof(srslte_ra_dl_dci_t));
 #endif
-  
-  ue_sync.correct_cfo = !prog_args.disable_cfo;
-  
-  // Set initial CFO for ue_sync
-  srslte_ue_sync_set_cfo(&ue_sync, cfo); 
+
+  ue_sync.cfo_correct_enable_track = !prog_args.disable_cfo;
   
   srslte_pbch_decode_reset(&ue_mib.pbch);
             
@@ -632,7 +653,7 @@ int main(int argc, char **argv) {
       switch (state) {
         case DECODE_MIB:
           if (sfidx == 0) {
-            n = srslte_ue_mib_decode(&ue_mib, sf_buffer[0], bch_payload, NULL, &sfn_offset);
+            n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);
@@ -656,30 +677,38 @@ int main(int argc, char **argv) {
               decode_pdsch = false; 
             }
           }
+
+          gettimeofday(&t[1], NULL);
           if (decode_pdsch) {
             if(sfidx != 1 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
               if (cell.nof_ports == 1) {
                 /* Transmission mode 1 */
-                n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
+                n = srslte_ue_dl_decode(&ue_dl, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
               } else {
-                if (prog_args.rf_nof_rx_ant == 1) {
-                  /* Transmission mode 2 */
-                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
-                                          acks);
-                } else {
+                /* Transmission mode 2 */
+                n = srslte_ue_dl_decode(&ue_dl, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                                        acks);
+
+                if (n < 1) {
                   /* Transmission mode 3 */
-                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                  n = srslte_ue_dl_decode(&ue_dl, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                           acks);
-                  if (n < 1) {
-                    /* Transmission mode 4 */
-                    n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
-                                            acks);
-                  }
+                }
+
+                if (n < 1) {
+                  /* Transmission mode 4 */
+                  n = srslte_ue_dl_decode(&ue_dl, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                                          acks);
                 }
               }
+
+              // Feed-back ue_sync with chest_dl CFO estimation
+              if (sfidx == 5 && prog_args.enable_cfo_ref) {
+                srslte_ue_sync_set_cfo_ref(&ue_sync, srslte_chest_dl_get_cfo(&ue_dl.chest));
+              }
+
             }else{ // MBSFN subframe
               n = srslte_ue_dl_decode_mbsfn(&ue_dl, 
-                                          sf_buffer,
                                           data[0],
                                           sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
               if(n>0){
@@ -691,6 +720,8 @@ int main(int argc, char **argv) {
                 INFO("mbsfn PDU size is %d\n", n);
               }
             }
+            gettimeofday(&t[2], NULL);
+            get_time_interval(t);
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
@@ -724,16 +755,19 @@ int main(int argc, char **argv) {
 
             } 
                                     
-            nof_trials++; 
-            
- 
+            nof_trials++;
+
+            uint32_t nof_bits = ((acks[0]?ue_dl.pdsch_cfg.grant.mcs[0].tbs:0) + (acks[1]?ue_dl.pdsch_cfg.grant.mcs[1].tbs:0));
             rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1f);
             rsrp0 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 0), rsrp0, 0.05f);
             rsrp1 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 1), rsrp1, 0.05f);
             noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05f);
-            enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs[0].tbs + ue_dl.pdsch_cfg.grant.mcs[1].tbs)/1000.0f, enodebrate, 0.05f);
-            uerate = SRSLTE_VEC_EMA(((acks[0]?ue_dl.pdsch_cfg.grant.mcs[0].tbs:0) + (acks[1]?ue_dl.pdsch_cfg.grant.mcs[1].tbs:0))/1000.0f, uerate, 0.01f);
-
+            enodebrate = SRSLTE_VEC_EMA(nof_bits/1000.0f, enodebrate, 0.05f);
+            uerate = SRSLTE_VEC_EMA(nof_bits/1000.0f, uerate, 0.001f);
+            float elapsed = (float) t[0].tv_usec + t[0].tv_sec*1.0e+6f;
+            if (elapsed != 0.0f) {
+              procrate = SRSLTE_VEC_EMA(nof_bits/elapsed, procrate, 0.01f);
+            }
    
             nframes++;
             if (isnan(rsrq)) {
@@ -768,9 +802,9 @@ int main(int argc, char **argv) {
             /* Print basic Parameters */
             PRINT_LINE("   nof layers: %d", ue_dl.pdsch_cfg.nof_layers);
             PRINT_LINE("nof codewords: %d", SRSLTE_RA_DL_GRANT_NOF_TB(&ue_dl.pdsch_cfg.grant));
-            PRINT_LINE("          CFO: %+5.2f kHz", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
+            PRINT_LINE("          CFO: %+7.2f Hz", srslte_ue_sync_get_cfo(&ue_sync));
             PRINT_LINE("          SNR: %+5.1f dB | %+5.1f dB", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
-            PRINT_LINE("           Rb: %6.2f / %6.2f Mbps (net/maximum)", uerate, enodebrate);
+            PRINT_LINE("           Rb: %6.2f / %6.2f / %6.2f Mbps (net/maximum/processing)", uerate, enodebrate, procrate);
             PRINT_LINE("   PDCCH-Miss: %5.2f%%", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
             PRINT_LINE("   PDSCH-BLER: %5.2f%%", (float) 100 * ue_dl.pdsch_pkt_errors / ue_dl.pdsch_pkts_total);
             if(prog_args.mbsfn_area_id > -1){
@@ -784,10 +818,13 @@ int main(int argc, char **argv) {
             /* MIMO: if tx and rx antennas are bigger than 1 */
             if (cell.nof_ports > 1 && ue_dl.pdsch.nof_rx_antennas > 1) {
               /* Compute condition number */
-              srslte_ue_dl_ri_select(&ue_dl, NULL, &cn);
-
-              /* Print condition number */
-              PRINT_LINE("            κ: %.1f dB (Condition number, 0 dB => Best)", cn);
+              if (srslte_ue_dl_ri_select(&ue_dl, NULL, &cn)) {
+                /* Condition number calculation is not supported for the number of tx & rx antennas*/
+                PRINT_LINE("            κ: NA");
+              } else {
+                /* Print condition number */
+                PRINT_LINE("            κ: %.1f dB (Condition number, 0 dB => Best)", cn);
+              }
             }
             PRINT_LINE("");
 
@@ -795,24 +832,25 @@ int main(int argc, char **argv) {
             if (ue_dl.pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
 
               /* Compute Rank Indicator (RI) and Precoding Matrix Indicator (PMI) */
-              srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, NULL);
-              for (uint32_t nl = 0; nl < SRSLTE_MAX_LAYERS; nl++) {
-                for (uint32_t cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb++) {
-                  sinr[nl][cb] = SRSLTE_VEC_EMA(ue_dl.sinr[nl][cb], sinr[nl][cb], 0.5f);
+              if (!srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, NULL)) {
+                for (uint32_t nl = 0; nl < SRSLTE_MAX_LAYERS; nl++) {
+                  for (uint32_t cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb++) {
+                    sinr[nl][cb] = SRSLTE_VEC_EMA(ue_dl.sinr[nl][cb], sinr[nl][cb], 0.5f);
+                  }
                 }
-              }
 
-              /* Print Multiplex stats */
-              PRINT_LINE("SINR (dB) Vs RI and PMI:");
-              PRINT_LINE("   | RI |   1   |   2   |");
-              PRINT_LINE(" -------+-------+-------+");
-              PRINT_LINE(" P |  0 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][0]), (ri == 1 && pmi == 0) ? '*' : ' ',
-                         10 * log10(sinr[1][0]), (ri == 2 && pmi == 0) ? '*' : ' ');
-              PRINT_LINE(" M |  1 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][1]), (ri == 1 && pmi == 1) ? '*' : ' ',
-                         10 * log10(sinr[1][1]), (ri == 2 && pmi == 1) ? '*' : ' ');
-              PRINT_LINE(" I |  2 | %5.2f%c|-------+ ", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2) ? '*' : ' ');
-              PRINT_LINE("   |  3 | %5.2f%c|         ", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3) ? '*' : ' ');
-              PRINT_LINE("");
+                /* Print Multiplex stats */
+                PRINT_LINE("SINR (dB) Vs RI and PMI:");
+                PRINT_LINE("   | RI |   1   |   2   |");
+                PRINT_LINE(" -------+-------+-------+");
+                PRINT_LINE(" P |  0 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][0]), (ri == 1 && pmi == 0) ? '*' : ' ',
+                           10 * log10(sinr[1][0]), (ri == 2 && pmi == 0) ? '*' : ' ');
+                PRINT_LINE(" M |  1 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][1]), (ri == 1 && pmi == 1) ? '*' : ' ',
+                           10 * log10(sinr[1][1]), (ri == 2 && pmi == 1) ? '*' : ' ');
+                PRINT_LINE(" I |  2 | %5.2f%c|-------+ ", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2) ? '*' : ' ');
+                PRINT_LINE("   |  3 | %5.2f%c|         ", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3) ? '*' : ' ');
+                PRINT_LINE("");
+              }
             }
             PRINT_LINE("Press enter maximum printing debug log of 1 subframe.");
             PRINT_LINE("");
@@ -968,11 +1006,11 @@ void *plot_thread_run(void *arg) {
           tmp_plot2[g+i] = -80;
         }
       }
-      plot_real_setNewData(&pce, tmp_plot2, sz);        
+      plot_real_setNewData(&pce, tmp_plot2, sz);
       
       if (!prog_args.input_file_name) {
         if (plot_track) {
-          srslte_pss_synch_t *pss_obj = srslte_sync_get_cur_pss_obj(&ue_sync.strack);
+          srslte_pss_t *pss_obj = srslte_sync_get_cur_pss_obj(&ue_sync.strack);
           int max = srslte_vec_max_fi(pss_obj->conv_output_avg, pss_obj->frame_size+pss_obj->fft_size-1);
           srslte_vec_sc_prod_fff(pss_obj->conv_output_avg, 
                           1/pss_obj->conv_output_avg[max], 

@@ -24,10 +24,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -58,7 +58,6 @@ void ra_proc::init(phy_interface_mac* phy_h_,
                    mux* mux_unit_, 
                    demux* demux_unit_)
 {
-  M_TRACE("RA_PROC:BEGIN");
   phy_h     = phy_h_; 
   log_h     = log_h_; 
   mac_cfg   = mac_cfg_;
@@ -83,7 +82,6 @@ ra_proc::~ra_proc() {
 }
 
 void ra_proc::reset() {
-  M_TRACE("RA_PROC:BEGIN");
   state = IDLE;
   msg3_transmitted = false;
   started_by_pdcch = false; 
@@ -91,18 +89,22 @@ void ra_proc::reset() {
 
 void ra_proc::start_pcap(srslte::mac_pcap* pcap_)
 {
-  M_TRACE("RA_PROC:BEGIN");
   pcap = pcap_; 
 }
 
 void ra_proc::read_params() {
-  M_TRACE("RA_PROC:BEGIN");
   
   // Read initialization parameters   
   configIndex               = mac_cfg->prach_config_index;
-  preambleIndex             = 0; // pass when called from higher layers for non-contention based RA
-  maskIndex                 = 0; // same 
-  nof_preambles             = liblte_rrc_number_of_ra_preambles_num[mac_cfg->rach.num_ra_preambles]; 
+  if (noncontention_enabled) {
+    preambleIndex             = next_preamble_idx;
+    maskIndex                 = next_prach_mask;
+    noncontention_enabled     = false;
+  } else {
+    preambleIndex             = 0; // pass when called from higher layers for non-contention based RA
+    maskIndex                 = 0; // same
+  }
+  nof_preambles             = liblte_rrc_number_of_ra_preambles_num[mac_cfg->rach.num_ra_preambles];
   if (mac_cfg->rach.preambles_group_a_cnfg.present) {
     nof_groupA_preambles    = liblte_rrc_size_of_ra_preambles_group_a_num[mac_cfg->rach.preambles_group_a_cnfg.size_of_ra];
   } else {
@@ -134,27 +136,22 @@ void ra_proc::read_params() {
 
 bool ra_proc::in_progress()
 {
-  M_TRACE("RA_PROC:BEGIN");
   return (state > IDLE && state != COMPLETION_DONE);
 }
 
 bool ra_proc::is_successful() {
-  M_TRACE("RA_PROC:BEGIN");
   return state == COMPLETION_DONE;
 }
 
 bool ra_proc::is_response_error() {
-  M_TRACE("RA_PROC:BEGIN");
   return state == RESPONSE_ERROR;
 }
 
 bool ra_proc::is_contention_resolution() {
-  M_TRACE("RA_PROC:BEGIN");
   return state == CONTENTION_RESOLUTION;
 }
 
 bool ra_proc::is_error() {
-  M_TRACE("RA_PROC:BEGIN");
   return state == RA_PROBLEM;
 }
 
@@ -179,7 +176,6 @@ const char* state_str[12] = {"Idle",
                             
 // Process Timing Advance Command as defined in Section 5.2
 void ra_proc::process_timeadv_cmd(uint32_t ta) {
-  M_TRACE("RA_PROC:BEGIN");
   if (preambleIndex == 0) {
     // Preamble not selected by UE MAC 
     phy_h->set_timeadv_rar(ta);
@@ -200,7 +196,6 @@ void ra_proc::process_timeadv_cmd(uint32_t ta) {
 }
 
 void ra_proc::step_initialization() {
-  M_TRACE("RA_PROC:BEGIN");
   read_params();
   pdcch_to_crnti_received = PDCCH_CRNTI_NOT_RECEIVED; 
   transmitted_contention_id = 0; 
@@ -222,7 +217,6 @@ void ra_proc::step_initialization() {
 }
 
 void ra_proc::step_resource_selection() {
-  M_TRACE("RA_PROC:BEGIN");
   ra_group_t sel_group; 
 
   if (preambleIndex > 0) {
@@ -267,7 +261,6 @@ void ra_proc::step_resource_selection() {
 }
 
 void ra_proc::step_preamble_transmission() {
-  M_TRACE("RA_PROC:BEGIN");
   received_target_power_dbm = iniReceivedTargetPower + 
       delta_preamble_db + 
       (preambleTransmissionCounter-1)*powerRampingStep;
@@ -278,7 +271,6 @@ void ra_proc::step_preamble_transmission() {
 }
 
 void ra_proc::step_pdcch_setup() {
-  M_TRACE("RA_PROC:BEGIN");
   int ra_tti = phy_h->prach_tx_tti();
   if (ra_tti > 0) {    
     ra_rnti = 1+ra_tti%10;
@@ -289,9 +281,8 @@ void ra_proc::step_pdcch_setup() {
   }
 }
 
-void ra_proc::new_grant_dl(mac_interface_faux_phy::mac_grant_t grant, mac_interface_faux_phy::tb_action_dl_t* action) 
+void ra_proc::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action) 
 {
-  M_TRACE("RA_PROC:BEGIN");
   if (grant.n_bytes[0] < MAX_RAR_PDU_LEN) {
     rDebug("DL grant found RA-RNTI=%d\n", ra_rnti);        
     action->decode_enabled[0] = true;
@@ -317,7 +308,6 @@ void ra_proc::new_grant_dl(mac_interface_faux_phy::mac_grant_t grant, mac_interf
 }
 
 void ra_proc::tb_decoded_ok() {
-  M_TRACE("RA_PROC:BEGIN");
   if (pcap) {
     pcap->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, rar_grant_tti);            
   }
@@ -391,7 +381,6 @@ void ra_proc::tb_decoded_ok() {
 }
 
 void ra_proc::step_response_reception() {
-   M_TRACE("RA_PROC:BEGIN");
   // do nothing. Processing done in tb_decoded_ok()
   int ra_tti = phy_h->prach_tx_tti();
   if (ra_tti >= 0 && !rar_received) {
@@ -403,14 +392,16 @@ void ra_proc::step_response_reception() {
   }
 }
 
-void ra_proc::step_response_error() {
-  
-  M_TRACE("RA_PROC:BEGIN");
+void ra_proc::step_response_error()
+{
   preambleTransmissionCounter++;
   if (preambleTransmissionCounter >= preambleTransMax + 1) {
     rError("Maximum number of transmissions reached (%d)\n", preambleTransMax);
     rrc->ra_problem();
     state = RA_PROBLEM;
+    if (ra_is_ho) {
+      rrc->ho_ra_completed(false);
+    }
   } else {
     backoff_interval_start = phy_h->get_current_tti(); 
     if (backoff_param_ms) {
@@ -429,20 +420,17 @@ void ra_proc::step_response_error() {
 }
 
 void ra_proc::step_backoff_wait() {
-  M_TRACE("RA_PROC:BEGIN");
   if (srslte_tti_interval(phy_h->get_current_tti(), backoff_interval_start) >= backoff_inteval) {
     state = RESOURCE_SELECTION; 
   }
 }
 
 bool ra_proc::uecrid_callback(void *arg, uint64_t uecri) {
-  M_TRACE("RA_PROC:BEGIN");
   return ((ra_proc*) arg)->contention_resolution_id_received(uecri);
 }
 
 // Random Access initiated by RRC by the transmission of CCCH SDU      
 bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id) {
-  M_TRACE("RA_PROC:BEGIN");
   bool uecri_successful = false; 
   
   rDebug("MAC PDU Contains Contention Resolution ID CE\n");
@@ -473,7 +461,6 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id) {
 }
 
 void ra_proc::step_contention_resolution() {
-  M_TRACE("RA_PROC:BEGIN");
   // If Msg3 has been sent
   if (mux_unit->msg3_is_transmitted()) 
   {    
@@ -505,7 +492,6 @@ void ra_proc::step_contention_resolution() {
 }
 
 void ra_proc::step_completition() {
-  M_TRACE("RA_PROC:BEGIN");
   log_h->console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
   rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d\n",          rntis->crnti, current_ta);
   if (!msg3_flushed) {
@@ -518,13 +504,15 @@ void ra_proc::step_completition() {
 
   phy_h->set_crnti(rntis->crnti);
 
-  msg3_transmitted = false;  
+  msg3_transmitted = false;
   state = COMPLETION_DONE;
+  if (ra_is_ho) {
+    rrc->ho_ra_completed(true);
+  }
 }
 
 void ra_proc::step(uint32_t tti_)
 {
-  M_TRACE("RA_PROC:BEGIN");
   switch(state) {
     case IDLE: 
       break;
@@ -560,10 +548,17 @@ void ra_proc::step(uint32_t tti_)
   }
 }
 
-void ra_proc::start_mac_order(uint32_t msg_len_bits)
+void ra_proc::start_noncont(uint32_t preamble_index, uint32_t prach_mask) {
+  next_preamble_idx = preamble_index;
+  next_prach_mask   = prach_mask;
+  noncontention_enabled = true;
+  start_mac_order(56, true);
+}
+
+void ra_proc::start_mac_order(uint32_t msg_len_bits, bool is_ho)
 {
-  M_TRACE("RA_PROC:BEGIN");
   if (state == IDLE || state == COMPLETION_DONE || state == RA_PROBLEM) {
+    ra_is_ho = is_ho;
     started_by_pdcch = false;
     new_ra_msg_len = msg_len_bits; 
     state = INITIALIZATION;    
@@ -573,7 +568,6 @@ void ra_proc::start_mac_order(uint32_t msg_len_bits)
 
 void ra_proc::start_pdcch_order()
 {
-  M_TRACE("RA_PROC:BEGIN");
   if (state == IDLE || state == COMPLETION_DONE || state == RA_PROBLEM) {
     started_by_pdcch = true;
     state = INITIALIZATION;    
@@ -584,7 +578,6 @@ void ra_proc::start_pdcch_order()
 // Contention Resolution Timer is expired (Section 5.1.5)
 void ra_proc::timer_expired(uint32_t timer_id)
 {
-  M_TRACE("RA_PROC:BEGIN");
   rInfo("Contention Resolution Timer expired. Stopping PDCCH Search and going to Response Error\n");
   rntis->temp_rnti = 0; 
   state = RESPONSE_ERROR; 
@@ -592,7 +585,6 @@ void ra_proc::timer_expired(uint32_t timer_id)
 }
 
 void ra_proc::pdcch_to_crnti(bool contains_uplink_grant) {
-  M_TRACE("RA_PROC:BEGIN");
   rDebug("PDCCH to C-RNTI received %s UL grant\n", contains_uplink_grant?"with":"without");
   if (contains_uplink_grant) {
     pdcch_to_crnti_received = PDCCH_CRNTI_UL_GRANT;     
@@ -603,7 +595,6 @@ void ra_proc::pdcch_to_crnti(bool contains_uplink_grant) {
 
 void ra_proc::harq_retx()
 {
-  M_TRACE("RA_PROC:BEGIN");
   contention_resolution_timer->reset();
 }
 

@@ -147,6 +147,8 @@ clean:
 }
 
 void srslte_sch_free(srslte_sch_t *q) {
+  srslte_rm_turbo_free_tables();
+
   if (q->cb_in) {
     free(q->cb_in);
   }
@@ -458,12 +460,12 @@ static int decode_tb(srslte_sch_t *q,
     
     if (cb_segm->F) {
       fprintf(stderr, "Error filler bits are not supported. Use standard TBS\n");
-      return SRSLTE_ERROR;       
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
       fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
-      return SRSLTE_ERROR;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
         
     bool crc_ok = true; 
@@ -491,11 +493,7 @@ static int decode_tb(srslte_sch_t *q,
                ((uint32_t) data[cb_segm->tbs/8+1])<<8   | 
                ((uint32_t) data[cb_segm->tbs/8+2]);
 
-      if (!par_rx) {
-        INFO("Warning: Received all-zero transport block\n\n",0);      
-      }
-
-      if (par_rx == par_tx) {
+      if (par_rx == par_tx && par_rx) {
         INFO("TB decoded OK\n",0);
         return SRSLTE_SUCCESS;
       } else {
@@ -517,15 +515,15 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 
 
 int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                         int16_t *e_bits, uint8_t *data, int codeword_idx) {
+                         int16_t *e_bits, uint8_t *data, int tb_idx) {
   uint32_t Nl = 1;
 
   if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
-  return decode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx],
-                   cfg->grant.Qm[codeword_idx] * Nl, cfg->rv[codeword_idx], cfg->nbits[codeword_idx].nof_bits,
+  return decode_tb(q, softbuffer, &cfg->cb_segm[tb_idx],
+                   cfg->grant.Qm[tb_idx] * Nl, cfg->rv[tb_idx], cfg->nbits[tb_idx].nof_bits,
                    e_bits, data);
 }
 
@@ -546,15 +544,15 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 }
 
 int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
-                              uint8_t *data, uint8_t *e_bits, int codeword_idx) {
+                              uint8_t *data, uint8_t *e_bits, int tb_idx) {
   uint32_t Nl = 1;
 
   if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
-  return encode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx], cfg->grant.Qm[codeword_idx]*Nl, cfg->rv[codeword_idx],
-                   cfg->nbits[codeword_idx].nof_bits, data, e_bits);
+  return encode_tb(q, softbuffer, &cfg->cb_segm[tb_idx], cfg->grant.Qm[tb_idx]*Nl, cfg->rv[tb_idx],
+                   cfg->nbits[tb_idx].nof_bits, data, e_bits);
 }
 
 /* Compute the interleaving function on-the-fly, because it depends on number of RI bits
@@ -658,7 +656,7 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, acks, uci_data->uci_ack_len);
+    ret = srslte_uci_decode_ack_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, acks, uci_data->uci_ack_len, false);
     if (ret < 0) {
       return ret; 
     }
@@ -678,7 +676,7 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_decode_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ri);
+    ret = srslte_uci_decode_ack_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ri, uci_data->uci_ri_len, true);
     if (ret < 0) {
       return ret; 
     }
@@ -756,13 +754,13 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   uint32_t nb_q = cfg->nbits.nof_bits; 
   uint32_t Qm = cfg->grant.Qm; 
   
-  // Encode RI
   if (uci_data.uci_ri_len > 0) {
     float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
     if (cfg->cb_segm.tbs == 0) {
-        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
+      beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ri(cfg, uci_data.uci_ri, uci_data.uci_cqi_len, beta, nb_q/Qm, q->ack_ri_bits);
+    uint8_t ri[2] = {uci_data.uci_ri, 0};
+    ret = srslte_uci_encode_ack_ri(cfg, ri, uci_data.uci_ri_len, uci_data.uci_cqi_len, beta, nb_q/Qm, q->ack_ri_bits, true);
     if (ret < 0) {
       return ret; 
     }
@@ -809,8 +807,8 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ack(cfg, acks, uci_data.uci_ack_len, uci_data.uci_cqi_len,
-                                beta, nb_q / Qm, &q->ack_ri_bits[Q_prime_ri * Qm]);
+    ret = srslte_uci_encode_ack_ri(cfg, acks, uci_data.uci_ack_len, uci_data.uci_cqi_len,
+                                beta, nb_q / Qm, &q->ack_ri_bits[Q_prime_ri * Qm], false);
     if (ret < 0) {
       return ret; 
     }

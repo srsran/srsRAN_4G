@@ -25,21 +25,16 @@
  */
 
 #include <string.h>
-#include <boost/concept_check.hpp>
-#include <srslte/interfaces/sched_interface.h>
-#include <srslte/phy/phch/pucch.h>
-#include <srslte/srslte.h>
-#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
 #include "mac/scheduler_ue.h"
 #include "mac/scheduler.h"
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 /****************************************************** 
  *                  UE class                          *
@@ -56,14 +51,12 @@ namespace srsenb {
 
 sched_ue::sched_ue()
 {
-  M_TRACE("SCHEDUE:BEGIN");
   reset(); 
 }
 
 void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_interface::cell_cfg_t *cell_cfg, 
                             srslte_regs_t *regs, srslte::log *log_h_) 
 {
-  M_TRACE("SCHEDUE:BEGIN");
   reset();
   
   rnti  = rnti_; 
@@ -98,7 +91,6 @@ void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_in
 
 void sched_ue::reset()
 {
-  M_TRACE("SCHEDUE:BEGIN");
   bzero(&cfg, sizeof(sched_interface::ue_cfg_t));
   sr = false; 
   next_tpc_pusch = 1;
@@ -112,8 +104,10 @@ void sched_ue::reset()
   ul_cqi_tti = 0; 
   cqi_request_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    dl_harq[i].reset();
-    ul_harq[i].reset();
+    for(uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      dl_harq[i].reset(tb);
+      ul_harq[i].reset(tb);
+    }
   }
   for (int i=0;i<sched_interface::MAX_LC; i++) {
     rem_bearer(i);
@@ -121,13 +115,11 @@ void sched_ue::reset()
 }
 
 void sched_ue::set_fixed_mcs(int mcs_ul, int mcs_dl) {
-  M_TRACE("SCHEDUE:BEGIN");
   fixed_mcs_ul = mcs_ul; 
   fixed_mcs_dl = mcs_dl; 
 }
 
 void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl) {
-  M_TRACE("SCHEDUE:BEGIN");
   if (mcs_ul < 0) {
     max_mcs_ul = 28;     
   } else {
@@ -149,7 +141,6 @@ void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl) {
 
 void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   if (lc_id < sched_interface::MAX_LC) {
     memcpy(&lch[lc_id].cfg, cfg, sizeof(sched_interface::ue_bearer_cfg_t));
     lch[lc_id].buf_tx = 0; 
@@ -162,7 +153,6 @@ void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* 
 
 void sched_ue::rem_bearer(uint32_t lc_id)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   if (lc_id < sched_interface::MAX_LC) {
     bzero(&lch[lc_id], sizeof(ue_bearer_t));
   }
@@ -170,14 +160,12 @@ void sched_ue::rem_bearer(uint32_t lc_id)
 
 void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   dl_cqi_tti = tti; 
   phy_config_dedicated_enabled = enabled; 
 }
 
 void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   if (lc_id < sched_interface::MAX_LC) {
     if (set_value) {
       lch[lc_id].bsr = bsr;
@@ -191,13 +179,11 @@ void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
 
 void sched_ue::ul_phr(int phr)
 { 
-  M_TRACE("SCHEDUE:BEGIN");
   power_headroom= phr; 
 }
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  M_TRACE("SCHEDUE:BEGIN")
   if (lc_id < sched_interface::MAX_LC) {
     lch[lc_id].buf_retx = retx_queue;
     lch[lc_id].buf_tx   = tx_queue;
@@ -207,25 +193,21 @@ void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_q
 
 void sched_ue::mac_buffer_state(uint32_t ce_code)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   buf_mac++; 
 }
 
 void sched_ue::set_sr()
 {
-  M_TRACE("SCHEDUE:BEGIN");
   sr = true; 
 }
 
 void sched_ue::unset_sr()
 {
-  M_TRACE("SCHEDUE:BEGIN");
   sr = false; 
 }
 
 bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   if (!phy_config_dedicated_enabled) {
     return false; 
   }
@@ -251,7 +233,6 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
 
 bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
 {
-  M_TRACE("SCHEDUE:BEGIN");
   if (!phy_config_dedicated_enabled) {
     return false; 
   }
@@ -265,7 +246,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
   
   // First check if it has pending ACKs 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == current_tti) {
+    if (TTI_TX(dl_harq[i].get_tti()) == current_tti) {
       uint32_t n_pucch = srslte_pucch_get_npucch(dl_harq[i].get_n_cce(), SRSLTE_PUCCH_FORMAT_1A, has_sr, &pucch_sched);
       if (prb_idx) {
         for (int  j=0;j<2;j++) {
@@ -302,14 +283,13 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
   return false; 
 }
 
-int sched_ue::set_ack_info(uint32_t tti, bool ack)
+int sched_ue::set_ack_info(uint32_t tti, uint32_t tb_idx, bool ack)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+4)%10240) == tti) {
-      Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tti=%d\n", ack, rnti, i, tti);
-      dl_harq[i].set_ack(ack); 
-      return dl_harq[i].get_tbs();
+    if (TTI_TX(dl_harq[i].get_tti()) == tti) {
+      Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d.%d, tti=%d\n", ack, rnti, i, tb_idx, tti);
+      dl_harq[i].set_ack(tb_idx, ack);
+      return dl_harq[i].get_tbs(tb_idx);
     }
   }
   Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti);
@@ -318,7 +298,6 @@ int sched_ue::set_ack_info(uint32_t tti, bool ack)
 
 void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   // Remove PDCP header??
   if (len > 4) {
     len -= 4; 
@@ -338,26 +317,39 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
 
 void sched_ue::set_ul_crc(uint32_t tti, bool crc_res)
 {
-  M_TRACE("SCHEDUE:BEGIN");
-  get_ul_harq(tti)->set_ack(crc_res);
+  get_ul_harq(tti)->set_ack(0, crc_res);
+}
+
+void sched_ue::set_dl_ri(uint32_t tti, uint32_t ri)
+{
+  dl_ri     = ri;
+  dl_ri_tti = tti;
+}
+
+void sched_ue::set_dl_pmi(uint32_t tti, uint32_t pmi)
+{
+  dl_pmi     = pmi;
+  dl_pmi_tti = tti;
 }
 
 void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cqi)
 {
-  M_TRACE("SCHEDUE:BEGIN");
-  dl_cqi     = cqi; 
-  dl_cqi_tti = tti; 
+  dl_cqi     = cqi;
+  dl_cqi_tti = tti;
+}
+
+void sched_ue::set_dl_ant_info(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *d)
+{
+  memcpy(&dl_ant_info, d, sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
 }
 
 void sched_ue::set_ul_cqi(uint32_t tti, uint32_t cqi, uint32_t ul_ch_code)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   ul_cqi     = cqi; 
   ul_cqi_tti = tti; 
 }
 
 void sched_ue::tpc_inc() {
-  M_TRACE("SCHEDUE:BEGIN");
   if (power_headroom > 0) {
     next_tpc_pusch = 3;
     next_tpc_pucch = 3;    
@@ -366,7 +358,6 @@ void sched_ue::tpc_inc() {
 }
 
 void sched_ue::tpc_dec() {
-  M_TRACE("SCHEDUE:BEGIN");
   next_tpc_pusch = 0;
   next_tpc_pucch = 0;
   log_h->info("SCHED: Set TCP=%d for rnti=0x%x\n", next_tpc_pucch, rnti);
@@ -380,12 +371,11 @@ void sched_ue::tpc_dec() {
 
 
 // Generates a Format1 grant 
-int sched_ue::generate_format1(dl_harq_proc *h, 
-                         sched_interface::dl_sched_data_t *data, 
-                         uint32_t tti, 
-                         uint32_t cfi) 
+int sched_ue::generate_format1(dl_harq_proc *h,
+                         sched_interface::dl_sched_data_t *data,
+                         uint32_t tti,
+                         uint32_t cfi)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   srslte_ra_dl_dci_t *dci = &data->dci;
   bzero(dci, sizeof(srslte_ra_dl_dci_t));
   
@@ -403,7 +393,7 @@ int sched_ue::generate_format1(dl_harq_proc *h,
   if (is_first_dl_tx()) {
     need_conres_ce = true; 
   }
-  if (h->is_empty()) {
+  if (h->is_empty(0)) {
 
     uint32_t req_bytes = get_pending_dl_new_data(tti); 
     
@@ -419,54 +409,176 @@ int sched_ue::generate_format1(dl_harq_proc *h,
       mcs = fixed_mcs_dl; 
     }
 
-    h->new_tx(tti, mcs, tbs, data->dci_location.ncce);  
-    
+    h->new_tx(0, tti, mcs, tbs, data->dci_location.ncce);
+
+    // Allocate MAC ConRes CE
+    if (need_conres_ce) {
+      data->pdu[0][0].lcid = srslte::sch_subh::CON_RES_ID;
+      data->nof_pdu_elems[0]++;
+      Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
+    }
+
+    int rem_tbs = tbs;
+    int x = 0;
+    do {
+      x = alloc_pdu(rem_tbs, &data->pdu[0][data->nof_pdu_elems[0]]);
+      rem_tbs -= x;
+      if (x) {
+        data->nof_pdu_elems[0]++;
+      }
+    } while(rem_tbs > 0 && x > 0);
+
     Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
   } else {
-    h->new_retx(tti, &mcs, &tbs);  
+    h->new_retx(0, tti, &mcs, &tbs);
     Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
   }
- 
-  // Allocate MAC ConRes CE
-  if (need_conres_ce) {
-    data->pdu[0].lcid = srslte::sch_subh::CON_RES_ID;
-    data->nof_pdu_elems++;
-    Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
-  }
-  
-  int rem_tbs = tbs; 
-  int x = 0; 
-  do {
-    x = alloc_pdu(rem_tbs, &data->pdu[data->nof_pdu_elems]); 
-    rem_tbs -= x; 
-    if (x) {
-      data->nof_pdu_elems++;
-    }
-  } while(rem_tbs > 0 && x > 0);
-  
-  data->rnti    = rnti; 
+
+  data->rnti    = rnti;
 
   if (tbs > 0) {
     dci->harq_process = h->get_id(); 
-    dci->mcs_idx      = mcs; 
-    dci->rv_idx       = sched::get_rvidx(h->nof_retx()); 
-    dci->ndi          = h->get_ndi(); 
-    dci->tpc_pucch    = next_tpc_pucch; 
+    dci->mcs_idx      = (uint32_t) mcs;
+    dci->rv_idx       = sched::get_rvidx(h->nof_retx(0));
+    dci->ndi          = h->get_ndi(0);
+    dci->tpc_pucch    = (uint8_t) next_tpc_pucch;
     next_tpc_pucch    = 1; 
-    data->tbs         = tbs; 
-    dci->tb_en[0]     = true; 
+    data->tbs[0]      = (uint32_t) tbs;
+    data->tbs[1]      = 0;
+    dci->tb_en[0]     = true;
     dci->tb_en[1]     = false; 
   }  
   return tbs; 
 }
 
+// Generates a Format2a grant
+int sched_ue::generate_format2a(dl_harq_proc *h,
+                         sched_interface::dl_sched_data_t *data,
+                         uint32_t tti,
+                         uint32_t cfi)
+{
+  bool tb_en[SRSLTE_MAX_TB] = {false};
+  srslte_ra_dl_dci_t *dci = &data->dci;
+  bzero(dci, sizeof(srslte_ra_dl_dci_t));
 
-int sched_ue::generate_format0(ul_harq_proc *h,  
+  uint32_t sf_idx = tti%10;
+
+  dci->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
+  dci->type0_alloc.rbg_bitmask = h->get_rbgmask();
+
+  uint32_t nof_prb = format1_count_prb(h->get_rbgmask(), cell.nof_prb);
+  uint32_t nof_ctrl_symbols = cfi + (cell.nof_prb < 10 ? 1 : 0);
+  srslte_ra_dl_grant_t grant;
+  srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
+  uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
+  bool no_retx = true;
+
+  if (dl_ri == 0) {
+    if (h->is_empty(1)) {
+      /* One layer, tb1 buffer is empty, send tb0 only */
+      tb_en[0] = true;
+    } else {
+      /* One layer, tb1 buffer is not empty, send tb1 only */
+      tb_en[1] = true;
+    }
+  } else {
+    /* Two layers, retransmit what TBs that have not been Acknowledged */
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      if (!h->is_empty(tb)) {
+        tb_en[tb] = true;
+        no_retx = false;
+      }
+    }
+    /* Two layers, no retransmissions...  */
+    if (no_retx) {
+      tb_en[0] = true;
+      tb_en[1] = true;
+    }
+  }
+
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    uint32_t req_bytes = get_pending_dl_new_data(tti);
+    int mcs = 0;
+    int tbs = 0;
+
+    if (!h->is_empty(tb)) {
+      h->new_retx(tb, tti, &mcs, &tbs);
+      Debug("SCHED: Alloc format2/2a previous mcs=%d, tbs=%d\n", mcs, tbs);
+    } else if (tb_en[tb] && req_bytes && no_retx) {
+      if (fixed_mcs_dl < 0) {
+        tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
+      } else {
+        tbs = srslte_ra_tbs_from_idx((uint32_t) srslte_ra_tbs_idx_from_mcs((uint32_t) fixed_mcs_dl), nof_prb) / 8;
+        mcs = fixed_mcs_dl;
+      }
+      h->new_tx(tb, tti, mcs, tbs, data->dci_location.ncce);
+
+      int rem_tbs = tbs;
+      int x = 0;
+      do {
+        x = alloc_pdu(rem_tbs, &data->pdu[tb][data->nof_pdu_elems[tb]]);
+        rem_tbs -= x;
+        if (x) {
+          data->nof_pdu_elems[tb]++;
+        }
+      } while (rem_tbs > 0 && x > 0);
+
+      Debug("SCHED: Alloc format2/2a new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
+    }
+
+    /* Fill DCI TB dedicated fields */
+    if (tbs > 0) {
+      if (tb == 0) {
+        dci->mcs_idx = (uint32_t) mcs;
+        dci->rv_idx = sched::get_rvidx(h->nof_retx(tb));
+        dci->ndi = h->get_ndi(tb);
+      } else {
+        dci->mcs_idx_1 = (uint32_t) mcs;
+        dci->rv_idx_1 = sched::get_rvidx(h->nof_retx(tb));
+        dci->ndi_1 = h->get_ndi(tb);
+      }
+      data->tbs[tb] = (uint32_t) tbs;
+      dci->tb_en[tb] = true;
+    } else {
+      data->tbs[tb] = 0;
+      dci->tb_en[tb] = false;
+    }
+  }
+
+  /* Fill common fields */
+  data->rnti = rnti;
+  dci->harq_process = h->get_id();
+  dci->tpc_pucch = (uint8_t) next_tpc_pucch;
+  next_tpc_pucch = 1;
+
+  return data->tbs[0] + data->tbs[1];
+}
+
+// Generates a Format2 grant
+int sched_ue::generate_format2(dl_harq_proc *h,
+                         sched_interface::dl_sched_data_t *data,
+                         uint32_t tti,
+                         uint32_t cfi)
+{
+  /* Call Format 2a (common) */
+  int ret = generate_format2a(h, data, tti, cfi);
+
+  /* Compute precoding information */
+  if (SRSLTE_RA_DL_GRANT_NOF_TB(&data->dci) == 1) {
+    data->dci.pinfo = (uint8_t) (dl_pmi + 1) % (uint8_t) 5;
+  } else {
+    data->dci.pinfo = (uint8_t) (dl_pmi & 1);
+  }
+
+  return ret;
+}
+
+
+int sched_ue::generate_format0(ul_harq_proc *h,
                          sched_interface::ul_sched_data_t *data, 
                          uint32_t tti,
                          bool cqi_request) 
 {
-  M_TRACE("SCHEDUE:BEGIN");
   srslte_ra_ul_dci_t *dci = &data->dci; 
   bzero(dci, sizeof(srslte_ra_ul_dci_t));
   
@@ -475,10 +587,11 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   
   ul_harq_proc::ul_alloc_t allocation = h->get_alloc();
   
+  bool is_newtx = true;
   if (h->get_rar_mcs(&mcs)) {
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
     h->new_tx(tti, mcs, tbs); 
-  } else if (h->is_empty()) {
+  } else if (h->is_empty(0)) {
     
     uint32_t req_bytes = get_pending_ul_new_data(tti); 
     
@@ -494,7 +607,8 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     h->new_tx(tti, mcs, tbs);  
 
   } else {    
-    h->new_retx(tti, &mcs, NULL);  
+    h->new_retx(0, tti, &mcs, NULL);
+    is_newtx = false;
     tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
   }
   
@@ -504,9 +618,13 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   if (tbs > 0) {
     dci->type2_alloc.L_crb = allocation.L;
     dci->type2_alloc.RB_start = allocation.RB_start;
-    dci->mcs_idx     = mcs; 
-    dci->rv_idx      = sched::get_rvidx(h->nof_retx()); 
-    dci->ndi         = h->get_ndi(); 
+    dci->rv_idx      = sched::get_rvidx(h->nof_retx(0));
+    if (!is_newtx && h->is_adaptive_retx()) {
+      dci->mcs_idx     = 28+dci->rv_idx;
+    } else {
+      dci->mcs_idx     = mcs;
+    }
+    dci->ndi         = h->get_ndi(0);
     dci->cqi_request = cqi_request; 
     dci->freq_hop_fl = srslte_ra_ul_dci_t::SRSLTE_RA_PUSCH_HOP_DISABLED; 
     dci->tpc_pusch   = next_tpc_pusch; 
@@ -523,25 +641,21 @@ int sched_ue::generate_format0(ul_harq_proc *h,
  *******************************************************/
 
 bool sched_ue::bearer_is_ul(ue_bearer_t *lch) {
-  M_TRACE("SCHEDUE:BEGIN");
   return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::UL || lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
 }
 
 bool sched_ue::bearer_is_dl(ue_bearer_t *lch) {
-  M_TRACE("SCHEDUE:BEGIN");
   return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::DL || lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
 }
 
 uint32_t sched_ue::get_max_retx() {
-  M_TRACE("SCHEDUE:BEGIN");
   return cfg.maxharq_tx; 
 }
 
 bool sched_ue::is_first_dl_tx()
 {
-  M_TRACE("SCHEDUE:BEGIN");
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (dl_harq[i].nof_tx() > 0) {
+    if (dl_harq[i].nof_tx(0) > 0) {
       return false; 
     }
   }
@@ -550,7 +664,6 @@ bool sched_ue::is_first_dl_tx()
 
 bool sched_ue::needs_cqi(uint32_t tti, bool will_be_sent)
 {  
-  M_TRACE("SCHEDUE:BEGIN");
   bool ret = false; 
   if (phy_config_dedicated_enabled && 
       cfg.aperiodic_cqi_period     && 
@@ -574,7 +687,6 @@ bool sched_ue::needs_cqi(uint32_t tti, bool will_be_sent)
 
 uint32_t sched_ue::get_pending_dl_new_data(uint32_t tti)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   uint32_t pending_data = 0; 
   for (int i=0;i<sched_interface::MAX_LC;i++) {
     if (bearer_is_dl(&lch[i])) {
@@ -586,7 +698,6 @@ uint32_t sched_ue::get_pending_dl_new_data(uint32_t tti)
 
 uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   uint32_t pending_data = 0; 
   for (int i=0;i<sched_interface::MAX_LC;i++) {
     if (bearer_is_ul(&lch[i])) {
@@ -614,7 +725,6 @@ uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
 
 uint32_t sched_ue::get_pending_ul_old_data()
 {
-  M_TRACE("SCHEDUE:BEGIN");
   uint32_t pending_data = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     pending_data += ul_harq[i].get_pending_data();
@@ -625,7 +735,6 @@ uint32_t sched_ue::get_pending_ul_old_data()
 
 uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols) 
 {
-  M_TRACE("SCHEDUE:BEGIN");
   int mcs = 0; 
   uint32_t nbytes = 0; 
   uint32_t n = 0; 
@@ -653,7 +762,6 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
 
 uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes) 
 {
-  M_TRACE("SCHEDUE:BEGIN");
   int mcs = 0; 
   int tbs = 0; 
   uint32_t nbytes = 0; 
@@ -686,18 +794,17 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
 
 bool sched_ue::is_sr_triggered()
 {
-  M_TRACE("SCHEDUE:BEGIN");
   return sr; 
 }
 
 /* Gets HARQ process with oldest pending retx */
 dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 {
-  M_TRACE("SCHEDUE:BEGIN");
+#if ASYNC_DL_SCHED
   int oldest_idx=-1; 
   uint32_t oldest_tti = 0; 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (dl_harq[i].has_pending_retx(tti)) {
+    if (dl_harq[i].has_pending_retx(0, tti) || dl_harq[i].has_pending_retx(1, tti)) {
       uint32_t x = srslte_tti_interval(tti, dl_harq[i].get_tti()); 
       if (x > oldest_tti) {
         oldest_idx = i; 
@@ -709,30 +816,60 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
     return &dl_harq[oldest_idx]; 
   } else {
     return NULL; 
-  }  
+  }
+#else
+  return &dl_harq[tti%SCHED_MAX_HARQ_PROC];
+#endif
 }
 
 dl_harq_proc* sched_ue::get_empty_dl_harq()
 {
-  M_TRACE("SCHEDUE:BEGIN");
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (dl_harq[i].is_empty()) {
+    if (dl_harq[i].is_empty(0) && dl_harq[i].is_empty(1)) {
       return &dl_harq[i]; 
     }
   }
-  return NULL; 
+  return NULL;
 }
 
 ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   return &ul_harq[tti%SCHED_MAX_HARQ_PROC];
 }
+
+srslte_dci_format_t sched_ue::get_dci_format() {
+  srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1;
+
+  if (phy_config_dedicated_enabled) {
+    /* FIXME: Assumes UE-Specific Search Space (Not common) */
+    switch (dl_ant_info.tx_mode) {
+      case LIBLTE_RRC_TRANSMISSION_MODE_1:
+      case LIBLTE_RRC_TRANSMISSION_MODE_2:
+        ret = SRSLTE_DCI_FORMAT1;
+        break;
+      case LIBLTE_RRC_TRANSMISSION_MODE_3:
+        ret = SRSLTE_DCI_FORMAT2A;
+        break;
+      case LIBLTE_RRC_TRANSMISSION_MODE_4:
+        ret = SRSLTE_DCI_FORMAT2;
+        break;
+      case LIBLTE_RRC_TRANSMISSION_MODE_5:
+      case LIBLTE_RRC_TRANSMISSION_MODE_6:
+      case LIBLTE_RRC_TRANSMISSION_MODE_7:
+      case LIBLTE_RRC_TRANSMISSION_MODE_8:
+      case LIBLTE_RRC_TRANSMISSION_MODE_N_ITEMS:
+      default:
+        Warning("Incorrect transmission mode (rnti=%04x)\n", rnti);
+    }
+  }
+
+  return ret;
+}
+
 
 /* Find lowest DCI aggregation level supported by the UE spectral efficiency */
 uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   uint32_t l=0;
   float max_coderate = srslte_cqi_to_coderate(dl_cqi);
   float coderate = 99;
@@ -752,7 +889,6 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
 
 sched_ue::sched_dci_cce_t* sched_ue::get_locations(uint32_t cfi, uint32_t sf_idx)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   if (cfi > 0 && cfi <= 3) {
     return &dci_locations[cfi-1][sf_idx];
   } else {
@@ -764,7 +900,6 @@ sched_ue::sched_dci_cce_t* sched_ue::get_locations(uint32_t cfi, uint32_t sf_idx
 /* Allocates first available RLC PDU */
 int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   // TODO: Implement lcid priority (now lowest index is lowest priority)
   int x = 0; 
   int i = 0; 
@@ -786,7 +921,6 @@ int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
 }
 
 uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb) {
-  M_TRACE("SCHEDUE:BEGIN");
   uint32_t P = srslte_ra_type0_P(cell_nof_prb);
   uint32_t nb = (int) ceilf((float) cell_nof_prb / P);
   
@@ -804,7 +938,6 @@ uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb) {
 }
 
 int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, uint32_t *mcs) {
-  M_TRACE("SCHEDUE:BEGIN");
   float max_coderate = srslte_cqi_to_coderate(cqi);
   int sel_mcs = max_mcs+1; 
   float coderate = 99;
@@ -831,7 +964,6 @@ int sched_ue::alloc_tbs_dl(uint32_t nof_prb,
                         uint32_t req_bytes,
                         int *mcs)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   return alloc_tbs(nof_prb, nof_re, req_bytes, false, mcs);
 }
 
@@ -840,7 +972,6 @@ int sched_ue::alloc_tbs_ul(uint32_t nof_prb,
                            uint32_t req_bytes,
                            int *mcs)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   return alloc_tbs(nof_prb, nof_re, req_bytes, true, mcs);
 }
 
@@ -853,7 +984,6 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
                         bool is_ul,
                         int *mcs)
 {
-  M_TRACE("SCHEDUE:BEGIN");
   uint32_t sel_mcs = 0;
 
   uint32_t cqi     = is_ul?ul_cqi:dl_cqi;

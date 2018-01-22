@@ -103,26 +103,29 @@ static uint8_t M_basis_seq_pucch[20][13]={
                                   {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1},
                                   {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
                                   {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0},
-                                  };                                    
+                                  };
 
 void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t *q) {
-  uint8_t word[16]; 
-    
-  uint32_t nwords      = 16;
-  for (uint32_t w=0;w<nwords;w++) {
-    q->cqi_table[w]   = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B*sizeof(int8_t));
-    q->cqi_table_s[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B*sizeof(int16_t));
+  uint8_t word[16];
+
+  uint32_t nwords = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
+  q->cqi_table = srslte_vec_malloc(nwords * sizeof(int8_t *));
+  q->cqi_table_s = srslte_vec_malloc(nwords * sizeof(int16_t *));
+
+  for (uint32_t w = 0; w < nwords; w++) {
+    q->cqi_table[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B * sizeof(int8_t));
+    q->cqi_table_s[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B * sizeof(int16_t));
     uint8_t *ptr = word;
-    srslte_bit_unpack(w, &ptr, 4);
-    srslte_uci_encode_cqi_pucch(word, 4, q->cqi_table[w]);    
-    for (int j=0;j<SRSLTE_UCI_CQI_CODED_PUCCH_B;j++) {
-      q->cqi_table_s[w][j] = 2*q->cqi_table[w][j]-1;
+    srslte_bit_unpack(w, &ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
+    srslte_uci_encode_cqi_pucch(word, SRSLTE_UCI_MAX_CQI_LEN_PUCCH, q->cqi_table[w]);
+    for (int j = 0; j < SRSLTE_UCI_CQI_CODED_PUCCH_B; j++) {
+      q->cqi_table_s[w][j] = (int16_t)(2 * q->cqi_table[w][j] - 1);
     }
   }
 }
 
 void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q) {
-  uint32_t nwords      = 16;
+  uint32_t nwords      = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
   for (uint32_t w=0;w<nwords;w++) {
     if (q->cqi_table[w]) {
       free(q->cqi_table[w]);
@@ -131,6 +134,8 @@ void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q) {
       free(q->cqi_table_s[w]);
     }
   }
+  free(q->cqi_table);
+  free(q->cqi_table_s);
 }
 
 /* Encode UCI CQI/PMI as described in 5.2.3.3 of 36.212 
@@ -151,17 +156,32 @@ int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_b
   }
 }
 
+int srslte_uci_encode_cqi_pucch_from_table(srslte_uci_cqi_pucch_t *q, uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
+{
+  if (cqi_len <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH) {
+    bzero(&cqi_data[cqi_len], SRSLTE_UCI_MAX_CQI_LEN_PUCCH - cqi_len);
+    uint8_t *ptr = cqi_data;
+    uint32_t packed = srslte_bit_pack(&ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
+    memcpy(b_bits, q->cqi_table[packed], SRSLTE_UCI_CQI_CODED_PUCCH_B);
+
+    return SRSLTE_SUCCESS;
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
 /* Decode UCI CQI/PMI over PUCCH 
  */
 int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t *q, int16_t b_bits[32], uint8_t *cqi_data, uint32_t cqi_len)
 {
-  if (cqi_len           == 4     &&
+  if (cqi_len           < SRSLTE_UCI_MAX_CQI_LEN_PUCCH     &&
       b_bits            != NULL  &&
       cqi_data          != NULL) 
   {
     uint32_t max_w = 0;
-    int32_t max_corr = INT32_MIN;   
-    for (uint32_t w=0;w<16;w++) {
+    int32_t max_corr = INT32_MIN;
+    uint32_t nwords      = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
+    for (uint32_t w=0;w<nwords;w += 1<<(SRSLTE_UCI_MAX_CQI_LEN_PUCCH - cqi_len)) {
           
       // Calculate correlation with pregenerated word and select maximum
       int32_t corr = srslte_vec_dot_prod_sss(q->cqi_table_s[w], b_bits, SRSLTE_UCI_CQI_CODED_PUCCH_B);
@@ -172,7 +192,7 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t *q, int16_t b_bits[32
     }
     // Convert word to bits again
     uint8_t *ptr = cqi_data; 
-    srslte_bit_unpack(max_w, &ptr, cqi_len);
+    srslte_bit_unpack(max_w, &ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
     
     INFO("Decoded CQI: w=%d, corr=%d\n", max_w, max_corr);
     return max_corr;
@@ -561,7 +581,7 @@ static uint32_t encode_ri_ack(uint8_t data[2], uint32_t data_len, srslte_uci_bit
     while(i < Qm) {
       q_encoded_bits[i++] = UCI_BIT_PLACEHOLDER;
     }
-  } else {
+  } else if (data_len == 2) {
     q_encoded_bits[i++] = data[0] ? UCI_BIT_1 : UCI_BIT_0;
     q_encoded_bits[i++] = data[1] ? UCI_BIT_1 : UCI_BIT_0;
     while(i<Qm) {
@@ -586,9 +606,7 @@ static uint32_t encode_ri_ack(uint8_t data[2], uint32_t data_len, srslte_uci_bit
 /* Decode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit HARQ
  */
-#ifndef MIMO_ENB
-
-static int32_t decode_ri_ack(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos)
+static int32_t decode_ri_ack_1bit(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos)
 {
   uint32_t p0 = pos[0].position;
   uint32_t p1 = pos[1].position;
@@ -598,33 +616,8 @@ static int32_t decode_ri_ack(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *
 
   return -(q0+q1);
 }
-int srslte_uci_decode_ack(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_seq,
-                          float beta, uint32_t H_prime_total,
-                          uint32_t O_cqi, srslte_uci_bit_t *ack_bits, uint8_t acks[2], uint32_t nof_acks)
-{
-  int32_t rx_ack = 0;
 
-  if (beta < 0) {
-    fprintf(stderr, "Error beta is reserved\n");
-    return -1;
-  }
-
-  uint32_t Qprime = Q_prime_ri_ack(cfg, 1, O_cqi, beta);
-
-  // Use the same interleaver function to get the HARQ bit position
-  for (uint32_t i=0;i<Qprime;i++) {
-    uci_ulsch_interleave_ack_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ack_bits[cfg->grant.Qm*i]);
-    rx_ack += (int32_t) decode_ri_ack(q_bits, c_seq, &ack_bits[cfg->grant.Qm*i]);
-  }
-
-  if (acks) {
-    acks[0] = rx_ack>0;
-  }
-  return (int) Qprime;
-}
-#else
-
-static void decode_ri_ack(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos, uint32_t Qm, int32_t data[3])
+static void decode_ri_ack_2bits(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos, uint32_t Qm, int32_t data[3])
 {
   uint32_t p0 = pos[Qm * 0 + 0].position;
   uint32_t p1 = pos[Qm * 0 + 1].position;
@@ -645,118 +638,143 @@ static void decode_ri_ack(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos
   data[2] -= q2 + q5;
 }
 
-int srslte_uci_decode_ack(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_seq, 
-                          float beta, uint32_t H_prime_total, 
-                          uint32_t O_cqi, srslte_uci_bit_t *ack_bits, uint8_t acks[2], uint32_t nof_acks)
-{
-  int32_t acks_sum[3] = {0, 0, 0};
-
-  if (beta < 0) {
-    fprintf(stderr, "Error beta is reserved\n");
-    return -1; 
-  }
-
-  uint32_t Qprime = Q_prime_ri_ack(cfg, nof_acks, O_cqi, beta);
-
-  // Use the same interleaver function to get the HARQ bit position
-  for (uint32_t i = 0; i < Qprime; i++) {
-    uci_ulsch_interleave_ack_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ack_bits[cfg->grant.Qm*i]);
-    if ((i % 3 == 0) && i > 0) {
-      decode_ri_ack(q_bits, &c_seq[0], &ack_bits[cfg->grant.Qm*(i-3)], cfg->grant.Qm, acks_sum);
-    }
-  }
-
-  if (acks) {
-    acks[0] = (uint8_t)(acks_sum[0] > 0);
-    acks[1] = (uint8_t)(acks_sum[1] > 0);
-    // TODO: Do something with acks_sum[2]
-  }
-  return (int) Qprime;  
-}
-#endif
-
-/* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
+/* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212
  *  Currently only supporting 1-bit HARQ
  */
 int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg, uint8_t acks[2], uint32_t nof_acks,
-                          uint32_t O_cqi, float beta, uint32_t H_prime_total, 
+                          uint32_t O_cqi, float beta, uint32_t H_prime_total,
                           srslte_uci_bit_t *ack_bits)
 {
   if (beta < 0) {
     fprintf(stderr, "Error beta is reserved\n");
-    return -1; 
+    return -1;
   }
 
   uint32_t Qprime = Q_prime_ri_ack(cfg, nof_acks, O_cqi, beta);
   srslte_uci_bit_type_t q_encoded_bits[18];
 
   uint32_t nof_encoded_bits = encode_ri_ack(acks, nof_acks, q_encoded_bits, cfg->grant.Qm);
-  
+
   for (uint32_t i=0;i<Qprime;i++) {
     uci_ulsch_interleave_ack_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ack_bits[cfg->grant.Qm*i]);
     uci_ulsch_interleave_put(&q_encoded_bits[(i*cfg->grant.Qm)%nof_encoded_bits], cfg->grant.Qm, &ack_bits[cfg->grant.Qm*i]);
   }
-  
+
   return (int) Qprime;
 }
 
-/* Encode UCI RI bits as described in 5.2.2.6 of 36.212 
- *  Currently only supporting 1-bit RI
- */
-int srslte_uci_decode_ri(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_seq, 
-                          float beta, uint32_t H_prime_total, 
-                          uint32_t O_cqi, srslte_uci_bit_t *ri_bits, uint8_t *data)
-{
-  int32_t ri_sum[3] = {0, 0, 0};
-  
-  if (beta < 0) {
-    fprintf(stderr, "Error beta is reserved\n");
-    return -1; 
-  }
-
-  uint32_t Qprime = Q_prime_ri_ack(cfg, 1, O_cqi, beta);
-
-  // Use the same interleaver function to get the HARQ bit position
-  for (uint32_t i=0;i<Qprime;i++) {
-    uci_ulsch_interleave_ri_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ri_bits[cfg->grant.Qm*i]);
-    if ((i % 3 == 0) && i > 0) {
-      //decode_ri_ack(q_bits, &c_seq[0], &ri_bits[cfg->grant.Qm*(i-3)], cfg->grant.Qm, ri_sum);
-    }
-  }
-
-  if (data) {
-    *data = (uint8_t) ((ri_sum[0] + ri_sum[1] + ri_sum[2]) > 0);
-  }
-
-  return (int) Qprime;  
-}
-
-
-/* Encode UCI RI bits as described in 5.2.2.6 of 36.212 
+/* Encode UCI RI bits as described in 5.2.2.6 of 36.212
  *  Currently only supporting 1-bit RI
  */
 int srslte_uci_encode_ri(srslte_pusch_cfg_t *cfg,
                          uint8_t ri,
-                         uint32_t O_cqi, float beta, uint32_t H_prime_total, 
+                         uint32_t O_cqi, float beta, uint32_t H_prime_total,
                          srslte_uci_bit_t *ri_bits)
 {
   // FIXME: It supports RI of 1 bit only
   uint8_t data[2] = {ri, 0};
   if (beta < 0) {
     fprintf(stderr, "Error beta is reserved\n");
-    return -1; 
+    return -1;
   }
   uint32_t Qprime = Q_prime_ri_ack(cfg, 1, O_cqi, beta);
   srslte_uci_bit_type_t q_encoded_bits[18];
 
   uint32_t nof_encoded_bits = encode_ri_ack(data, 1, q_encoded_bits, cfg->grant.Qm);
-  
+
   for (uint32_t i=0;i<Qprime;i++) {
     uci_ulsch_interleave_ri_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ri_bits[cfg->grant.Qm*i]);
     uci_ulsch_interleave_put(&q_encoded_bits[(i*cfg->grant.Qm)%nof_encoded_bits], cfg->grant.Qm, &ri_bits[cfg->grant.Qm*i]);
   }
-  
+
   return (int) Qprime;
 }
 
+/* Encode UCI ACK/RI bits as described in 5.2.2.6 of 36.212
+ *  Currently only supporting 1-bit RI
+ */
+int srslte_uci_encode_ack_ri(srslte_pusch_cfg_t *cfg,
+                             uint8_t *data, uint32_t data_len,
+                             uint32_t O_cqi, float beta, uint32_t H_prime_total,
+                             srslte_uci_bit_t *bits, bool ack_ri) {
+  if (beta < 0) {
+    fprintf(stderr, "Error beta is reserved\n");
+    return -1;
+  }
+  uint32_t Qprime = Q_prime_ri_ack(cfg, data_len, O_cqi, beta);
+  srslte_uci_bit_type_t q_encoded_bits[18];
+
+  uint32_t nof_encoded_bits = encode_ri_ack(data, data_len, q_encoded_bits, cfg->grant.Qm);
+
+  for (uint32_t i = 0; i < Qprime; i++) {
+    if (ack_ri) {
+      uci_ulsch_interleave_ri_gen(i,
+                                  cfg->grant.Qm,
+                                  H_prime_total,
+                                  cfg->nbits.nof_symb,
+                                  cfg->cp,
+                                  &bits[cfg->grant.Qm * i]);
+    } else {
+      uci_ulsch_interleave_ack_gen(i,
+                                   cfg->grant.Qm,
+                                   H_prime_total,
+                                   cfg->nbits.nof_symb,
+                                   cfg->cp,
+                                   &bits[cfg->grant.Qm * i]);
+    }
+    uci_ulsch_interleave_put(&q_encoded_bits[(i * cfg->grant.Qm) % nof_encoded_bits],
+                             cfg->grant.Qm,
+                             &bits[cfg->grant.Qm * i]);
+  }
+
+  return (int) Qprime;
+}
+
+/* Decode UCI ACK/RI bits as described in 5.2.2.6 of 36.212
+ *  Currently only supporting 1-bit RI
+ */
+int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t *cfg, int16_t *q_bits, uint8_t *c_seq,
+                          float beta, uint32_t H_prime_total,
+                          uint32_t O_cqi, srslte_uci_bit_t *ack_ri_bits, uint8_t data[2], uint32_t nof_bits, bool is_ri)
+{
+  int32_t sum[3] = {0, 0, 0};
+
+  if (beta < 0) {
+    fprintf(stderr, "Error beta is reserved\n");
+    return -1;
+  }
+
+  uint32_t Qprime = Q_prime_ri_ack(cfg, nof_bits, O_cqi, beta);
+
+  for (uint32_t i = 0; i < Qprime; i++) {
+    if (is_ri) {
+      uci_ulsch_interleave_ri_gen(i,
+                                  cfg->grant.Qm,
+                                  H_prime_total,
+                                  cfg->nbits.nof_symb,
+                                  cfg->cp,
+                                  &ack_ri_bits[cfg->grant.Qm * i]);
+    } else {
+      uci_ulsch_interleave_ack_gen(i,
+                                   cfg->grant.Qm,
+                                   H_prime_total,
+                                   cfg->nbits.nof_symb,
+                                   cfg->cp,
+                                   &ack_ri_bits[cfg->grant.Qm * i]);
+
+    }
+    if (nof_bits == 2 && (i % 3 == 0) && i > 0) {
+      decode_ri_ack_2bits(q_bits, &c_seq[0], &ack_ri_bits[cfg->grant.Qm * (i - 3)], cfg->grant.Qm, sum);
+    } else if (nof_bits == 1) {
+      sum[0] += (int32_t) decode_ri_ack_1bit(q_bits, c_seq, &ack_ri_bits[cfg->grant.Qm * i]);
+    }
+  }
+
+  data[0] = (uint8_t) (sum[0] > 0);
+  if (nof_bits == 2) {
+    data[1] = (uint8_t) (sum[1] > 0);
+  }
+
+  return (int) Qprime;
+}
 

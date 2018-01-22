@@ -38,9 +38,10 @@
 
 #define MAX_SFLEN     SRSLTE_SF_LEN(srslte_symbol_sz(max_prb))
 
-#define DEFAULT_CFO_TOL   50.0 // Hz
+#define DEFAULT_CFO_TOL   1.0 // Hz
 
 int srslte_ue_ul_init(srslte_ue_ul_t *q,
+                      cf_t *out_buffer,
                       uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -50,8 +51,14 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(srslte_ue_ul_t));
-    
-    if (srslte_ofdm_tx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
+
+    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_PRB(max_prb) * sizeof(cf_t));
+    if (!q->sf_symbols) {
+      perror("malloc");
+      goto clean_exit;
+    }
+
+    if (srslte_ofdm_tx_init(&q->fft, SRSLTE_CP_NORM, q->sf_symbols, out_buffer, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
@@ -82,11 +89,6 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     if (srslte_refsignal_ul_init(&q->signals, max_prb)) {
       fprintf(stderr, "Error initiating srslte_refsignal_ul\n");
       goto clean_exit;
-    }
-    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_PRB(max_prb) * sizeof(cf_t));
-    if (!q->sf_symbols) {
-      perror("malloc");
-      goto clean_exit; 
     }
     q->refsignal = srslte_vec_malloc(2 * SRSLTE_NRE * max_prb * sizeof(cf_t));
     if (!q->refsignal) {
@@ -176,7 +178,7 @@ int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
     }
     ret = SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
+    fprintf(stderr, "Invalid cell properties ue_ul: Id=%d, Ports=%d, PRBs=%d\n",
             cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;
@@ -271,21 +273,20 @@ int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *grant,
 void pucch_encode_bits(srslte_uci_data_t *uci_data, srslte_pucch_format_t format, 
                        uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS], 
                        uint8_t pucch2_bits[SRSLTE_PUCCH_MAX_BITS]) 
-{  
+{
   if (format == SRSLTE_PUCCH_FORMAT_1A || format == SRSLTE_PUCCH_FORMAT_1B) {
     pucch_bits[0] = uci_data->uci_ack; 
     pucch_bits[1] = uci_data->uci_ack_2; // this will be ignored in format 1a 
   }
   if (format >= SRSLTE_PUCCH_FORMAT_2) {
-    /* Append Differential CQI */
-    memcpy(&uci_data->uci_cqi[uci_data->uci_cqi_len], uci_data->uci_dif_cqi, uci_data->uci_dif_cqi_len);
-    uci_data->uci_cqi_len += uci_data->uci_dif_cqi_len;
-
-    /* Append PMI */
-    memcpy(&uci_data->uci_cqi[uci_data->uci_cqi_len], uci_data->uci_pmi, uci_data->uci_pmi_len);
-    uci_data->uci_cqi_len += uci_data->uci_pmi_len;
-
-    srslte_uci_encode_cqi_pucch(uci_data->uci_cqi, uci_data->uci_cqi_len, pucch_bits);
+    /* Put RI (goes alone) */
+    if (uci_data->ri_periodic_report) {
+      uint8_t temp[2] = {uci_data->uci_ri, 0};
+      srslte_uci_encode_cqi_pucch(temp, uci_data->uci_ri_len, pucch_bits);
+    } else {
+      /* Put CQI Report*/
+      srslte_uci_encode_cqi_pucch(uci_data->uci_cqi, uci_data->uci_cqi_len, pucch_bits);
+    }
     if (format > SRSLTE_PUCCH_FORMAT_2) {
       pucch2_bits[0] = uci_data->uci_ack; 
       pucch2_bits[1] = uci_data->uci_ack_2; // this will be ignored in format 2a 
@@ -347,7 +348,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     
     q->last_pucch_format = format; 
 
-    srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
+    srslte_ofdm_tx_sf(&q->fft);
     
     if (q->cfo_en) {
       srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));
@@ -417,7 +418,7 @@ int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal
       }
     }
     
-    srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
+    srslte_ofdm_tx_sf(&q->fft);
     
     if (q->cfo_en) {
       srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));
@@ -451,7 +452,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
     
     if (srslte_pusch_encode(&q->pusch, &q->pusch_cfg, softbuffer, data, uci_data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
-      return ret; 
+      return SRSLTE_ERROR;
     }
 
     if (q->signals_pregenerated) {
@@ -486,7 +487,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
       }
     }
     
-    srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
+    srslte_ofdm_tx_sf(&q->fft);
     
     if (q->cfo_en) {
       srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));

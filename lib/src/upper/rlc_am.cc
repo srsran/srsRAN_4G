@@ -201,8 +201,14 @@ uint32_t rlc_am::get_total_buffer_state()
     rlc_amd_retx_t retx = retx_queue.front();
     log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
     if(tx_window.end() != tx_window.find(retx.sn)) {
-        n_bytes += required_buffer_size(retx);
+      int req_bytes = required_buffer_size(retx);
+      if (req_bytes < 0) {
+        log->error("In get_total_buffer_state(): Removing retx.sn=%d from queue\n", retx.sn);
+        retx_queue.pop_front();
+      } else {
+        n_bytes += req_bytes;
         log->debug("Buffer state - retx: %d bytes\n", n_bytes);
+      }
     }
   }
 
@@ -223,7 +229,7 @@ uint32_t rlc_am::get_total_buffer_state()
 
   // Room needed for fixed header?
   if(n_bytes > 0) {
-    n_bytes += 2;
+    n_bytes += 3;
     log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
   }
 
@@ -250,7 +256,13 @@ uint32_t rlc_am::get_buffer_state()
     rlc_amd_retx_t retx = retx_queue.front();
     log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
     if(tx_window.end() != tx_window.find(retx.sn)) {
-      n_bytes = required_buffer_size(retx);
+      int req_bytes = required_buffer_size(retx);
+      if (req_bytes < 0) {
+        log->error("In get_buffer_state(): Removing retx.sn=%d from queue\n", retx.sn);
+        retx_queue.pop_front();
+        goto unlock_and_return;
+      }
+      n_bytes = (uint32_t) req_bytes;
       log->debug("Buffer state - retx: %d bytes\n", n_bytes);
       goto unlock_and_return;
     }
@@ -273,7 +285,7 @@ uint32_t rlc_am::get_buffer_state()
 
   // Room needed for fixed header?
   if(n_bytes > 0) {
-    n_bytes += 2;
+    n_bytes += 3;
     log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
   }
 
@@ -296,8 +308,9 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
   // RETX if required
   if(retx_queue.size() > 0) {
+    int ret = build_retx_pdu(payload, nof_bytes);
     pthread_mutex_unlock(&mutex);
-    return build_retx_pdu(payload, nof_bytes);
+    return ret; 
   }
 
   // Build a PDU from SDUs
@@ -381,6 +394,18 @@ bool rlc_am::poll_required()
     return true;
   if(poll_retx())
     return true;
+
+  if(tx_sdu_queue.size() == 0 && retx_queue.size() == 0)
+    return true;
+
+  /* According to 5.2.2.1 in 36.322 v13.3.0 a poll should be requested if
+   * the entire AM window is unacknowledged, i.e. no new PDU can be transmitted.
+   * However, it seems more appropiate to request more often if polling
+   * is disabled otherwise, e.g. every N PDUs.
+   */
+  if (cfg.poll_pdu == 0 && cfg.poll_byte == 0 && vt_s % poll_periodicity == 0)
+    return true;
+
   return false;
 }
 
@@ -426,16 +451,33 @@ int  rlc_am::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
+  // Check there is at least 1 element before calling front()
+  if (retx_queue.empty()) {
+    log->error("In build_retx_pdu(): retx_queue is empty\n");
+    return -1;
+  }
+
   rlc_amd_retx_t retx = retx_queue.front();
 
   // Sanity check - drop any retx SNs not present in tx_window
   while(tx_window.end() == tx_window.find(retx.sn)) {
     retx_queue.pop_front();
-    retx = retx_queue.front();
+    if (!retx_queue.empty()) {
+      retx = retx_queue.front();
+    } else {
+      log->error("In build_retx_pdu(): retx_queue is empty during sanity check\n");
+      return -1;
+    }
   }
 
   // Is resegmentation needed?
-  if(retx.is_segment || required_buffer_size(retx) > (int)nof_bytes) {
+  int req_size = required_buffer_size(retx);
+  if (req_size < 0) {
+    log->error("In build_retx_pdu(): Removing retx.sn=%d from queue\n", retx.sn);
+    retx_queue.pop_front();
+    return -1;
+  }
+  if(retx.is_segment || req_size > (int)nof_bytes) {
     log->debug("%s build_retx_pdu - resegmentation required\n", rrc->get_rb_name(lcid).c_str());
     return build_segment(payload, nof_bytes, retx);
   }
@@ -469,6 +511,10 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t retx)
 {
+  if (!tx_window[retx.sn].buf) {
+    log->error("In build_segment: retx.sn=%d has null buffer\n", retx.sn);
+    return 0;
+  }
   if(!retx.is_segment){
     retx.so_start = 0;
     retx.so_end   = tx_window[retx.sn].buf->N_bytes;
@@ -613,7 +659,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint32_t pdu_space = nof_bytes;
   uint8_t *pdu_ptr   = pdu->msg;
 
-  if(pdu_space <= head_len)
+  if(pdu_space <= head_len + 1)
   {
     log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
@@ -622,7 +668,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   log->debug("%s Building PDU - pdu_space: %d, head_len: %d \n",
-            rrc->get_rb_name(lcid).c_str(), pdu_space, head_len);
+             rrc->get_rb_name(lcid).c_str(), pdu_space, head_len);
 
   // Check for SDU segment
   if(tx_sdu)
@@ -648,11 +694,11 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     header.fi |= RLC_FI_FIELD_NOT_START_ALIGNED; // First byte does not correspond to first byte of SDU
 
     log->debug("%s Building PDU - added SDU segment (len:%d) - pdu_space: %d, head_len: %d \n",
-              rrc->get_rb_name(lcid).c_str(), to_move, pdu_space, head_len);
+               rrc->get_rb_name(lcid).c_str(), to_move, pdu_space, head_len);
   }
 
   // Pull SDUs from queue
-  while(pdu_space > head_len && tx_sdu_queue.size() > 0)
+  while(pdu_space > head_len + 1 && tx_sdu_queue.size() > 0)
   {
     if(last_li > 0)
       header.li[header.N_li++] = last_li;
@@ -682,7 +728,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       pdu_space = 0;
 
     log->debug("%s Building PDU - added SDU segment (len:%d) - pdu_space: %d, head_len: %d \n",
-              rrc->get_rb_name(lcid).c_str(), to_move, pdu_space, head_len);
+               rrc->get_rb_name(lcid).c_str(), to_move, pdu_space, head_len);
   }
 
   if(tx_sdu)
@@ -1135,7 +1181,17 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
 int rlc_am::required_buffer_size(rlc_amd_retx_t retx)
 {
   if(!retx.is_segment){
-    return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
+    if (tx_window.count(retx.sn)) {
+      if (tx_window[retx.sn].buf) {
+        return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
+      } else {
+        log->warning("retx.sn=%d has null ptr in required_buffer_size()\n", retx.sn);
+        return -1;
+      }
+    } else {
+      log->warning("retx.sn=%d does not exist in required_buffer_size()\n", retx.sn);
+      return -1;
+    }
   }
 
   // Construct new header

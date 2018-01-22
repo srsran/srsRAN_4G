@@ -24,10 +24,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "mac/proc_phr.h"
 #include "mac/mac.h"
@@ -39,13 +39,11 @@
     
 phr_proc::phr_proc()
 {
-  M_TRACE("PHRPROC::BEGIN");
   initiated = false; 
 }
 
 void phr_proc::init(phy_interface_mac* phy_h_, srslte::log* log_h_, mac_interface_rrc::mac_cfg_t *mac_cfg_, srslte::timers *timers_db_)
 {
-  M_TRACE("PHRPROC::BEGIN");
   phy_h     = phy_h_;
   log_h     = log_h_; 
   mac_cfg   = mac_cfg_;
@@ -60,7 +58,6 @@ void phr_proc::init(phy_interface_mac* phy_h_, srslte::log* log_h_, mac_interfac
 
 void phr_proc::reset()
 {
-  M_TRACE("PHRPROC::BEGIN");
   phr_is_triggered = false; 
   timer_periodic_value = -2;
   timer_prohibit_value = -2;
@@ -69,7 +66,6 @@ void phr_proc::reset()
 
 bool phr_proc::pathloss_changed() {
   
-  M_TRACE("PHRPROC::BEGIN");
   int min_change      = liblte_rrc_dl_pathloss_change_num[mac_cfg->main.phr_cnfg.dl_pathloss_change];
   int cur_pathloss_db = (int) phy_h->get_pathloss_db(); 
   
@@ -82,13 +78,11 @@ bool phr_proc::pathloss_changed() {
 }
     
 void phr_proc::start_timer() {
-  M_TRACE("PHRPROC::BEGIN");
   timers_db->get(timer_periodic_id)->run();
 }    
 
 /* Trigger PHR when timers exire */
 void phr_proc::timer_expired(uint32_t timer_id) {
-  M_TRACE("PHRPROC::BEGIN");
   if(timer_id == timer_periodic_id) {
     timers_db->get(timer_periodic_id)->reset();
     timers_db->get(timer_periodic_id)->run();
@@ -107,7 +101,6 @@ void phr_proc::timer_expired(uint32_t timer_id) {
 
 void phr_proc::step(uint32_t tti)
 {
- M_TRACE("PHRPROC::BEGIN");
   if (!initiated) {
     return;
   }  
@@ -147,7 +140,6 @@ void phr_proc::step(uint32_t tti)
 bool phr_proc::generate_phr_on_ul_grant(float *phr) 
 {
   
-  M_TRACE("PHRPROC::BEGIN");
   if (phr_is_triggered) {
     if (phr) {
       *phr = phy_h->get_phr();

@@ -32,7 +32,6 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 ########################################################################
 cmake_minimum_required(VERSION 2.6)
 project( SRSLTE )
-set(CMAKE_EXE_LINKER_FLAGS "-lfftw3f" CACHE INTERNAL "" FORCE)
 message( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
 message( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
 message( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
@@ -56,13 +55,20 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
+# Generate CMake to include build information
+configure_file(
+  ${CMAKE_SOURCE_DIR}/cmake/modules/SRSLTEbuildinfo.cmake.in
+  ${CMAKE_BINARY_DIR}/SRSLTEbuildinfo.cmake
+)
+
 ########################################################################
 # Options
 ########################################################################
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
+option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
+option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
-option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          ON)
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 
@@ -156,7 +162,7 @@ else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 
 # Boost
-if(ENABLE_SRSUE OR ENABLE_SRSENB)
+if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
   if(BUILD_STATIC)
     set(Boost_USE_STATIC_LIBS ON)
   endif(BUILD_STATIC)
@@ -178,7 +184,7 @@ if(ENABLE_SRSUE OR ENABLE_SRSENB)
       "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
   )
   find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
-endif(ENABLE_SRSUE OR ENABLE_SRSENB)
+endif(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
 
 # srsGUI
 if(ENABLE_GUI)
@@ -189,21 +195,6 @@ if(ENABLE_GUI)
     link_directories(${SRSGUI_LIBRARY_DIRS})
   endif(SRSGUI_FOUND)
 endif(ENABLE_GUI)
-
-# VOLK
-include(CheckFunctionExistsMath)
-if(ENABLE_VOLK)
-  find_package(Volk)
-  if(VOLK_FOUND)
-    include_directories(${VOLK_INCLUDE_DIRS})
-    link_directories(${VOLK_LIBRARY_DIRS})
-    message(STATUS "Compiling with VOLK SIMD library.")
-  else(VOLK_FOUND)
-    message(STATUS "VOLK SIMD library NOT found. Using generic implementation.")
-  endif(VOLK_FOUND)
-else(ENABLE_VOLK)
-  message(STATUS "VOLK library disabled")
-endif(ENABLE_VOLK)
 
 ########################################################################
 # Install Dirs
@@ -283,6 +274,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     endif(HAVE_AVX)
   endif (HAVE_AVX2)
 
+  if (HAVE_AVX512)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
+  endif(HAVE_AVX512)
+
   if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     if(HAVE_SSE)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast -funroll-loops")
@@ -293,8 +289,15 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
     message(STATUS "have ARM")
+    set(HAVE_NEON "True")
+  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    set(HAVE_NEON "False")
   endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
   set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
+
+ if(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
+  message(FATAL_ERROR "no SIMD instructions found")
+ endif(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
 
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
@@ -372,6 +375,13 @@ if(RF_FOUND)
 else(RF_FOUND)
   message(STATUS "srsUE and srsENB builds disabled due to missing RF driver")
 endif(RF_FOUND)
+
+if(ENABLE_SRSEPC)
+  message(STATUS "Building with srsEPC")
+  add_subdirectory(srsepc)
+else(ENABLE_SRSEPC)
+  message(STATUS "srsEPC build disabled")
+endif(ENABLE_SRSEPC)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DRF_FAUX")
 

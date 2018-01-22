@@ -35,8 +35,6 @@ add_subdirectory(resampling)
 add_subdirectory(scrambling)
 add_subdirectory(ue)
 add_subdirectory(enb)
-add_subdirectory(fauxue)
-add_subdirectory(fauxenb)
 
 set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
                     $<TARGET_OBJECTS:srslte_ch_estimation>
@@ -54,16 +52,10 @@ set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
                     $<TARGET_OBJECTS:srslte_scrambling>
                     $<TARGET_OBJECTS:srslte_ue>
                     $<TARGET_OBJECTS:srslte_enb>
-                    $<TARGET_OBJECTS:srslte_fauxue>
-                    $<TARGET_OBJECTS:srslte_fauxenb>
 )
 
 add_library(srslte_phy STATIC ${srslte_srcs})
 target_link_libraries(srslte_phy ${FFT_LIBRARIES})
-
-if(VOLK_FOUND)
-  target_link_libraries(srslte_phy ${VOLK_LIBRARIES})
-endif(VOLK_FOUND)
 
 target_link_libraries(srslte_phy pthread m)
 install(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})

@@ -31,6 +31,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/common/msg_queue.h"
+#include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/threads.h"
 #include "gw_metrics.h"
@@ -46,7 +47,7 @@ class gw
 {
 public:
   gw();
-  void init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, uint32_t lcid_);
+  void init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t);
   void stop();
 
   void get_metrics(gw_metrics_t &m);
@@ -57,7 +58,12 @@ public:
   // NAS interface
   srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str);
 
+  void set_netmask(std::string netmask);
+
 private:
+
+  bool default_netmask;
+  std::string netmask;
 
   static const int GW_THREAD_PRIO = 7;
 
@@ -67,13 +73,13 @@ private:
   srslte::byte_buffer_pool   *pool;
 
   srslte::log                *gw_log;
+  srslte::srslte_gw_config_t cfg;
   bool                running;
   bool                run_enable;
   int32               tun_fd;
   struct ifreq        ifr;
   int32               sock;
   bool                if_up;
-  uint32_t            lcid;
 
   uint32_t            current_ip_addr;
 

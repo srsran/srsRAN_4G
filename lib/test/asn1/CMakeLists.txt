@@ -18,5 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.c")
-add_library(srslte_fauxenb OBJECT ${SOURCES})
+add_executable(rrc_meas_test rrc_meas_test.cc)
+target_link_libraries(rrc_meas_test srslte_common srslte_phy srslte_asn1)
+add_test(rrc_meas_test rrc_meas_test)

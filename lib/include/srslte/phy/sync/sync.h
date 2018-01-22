@@ -60,9 +60,9 @@
 typedef enum {SSS_DIFF=0, SSS_PARTIAL_3=2, SSS_FULL=1} sss_alg_t; 
 
 typedef struct SRSLTE_API {
-  srslte_pss_synch_t pss; 
-  srslte_pss_synch_t pss_i[2]; 
-  srslte_sss_synch_t sss;
+  srslte_pss_t pss;
+  srslte_pss_t pss_i[2];
+  srslte_sss_t sss;
   srslte_cp_synch_t cp_synch;
   cf_t *cfo_i_corr[2];
   int decimate;
@@ -74,19 +74,8 @@ typedef struct SRSLTE_API {
   uint32_t fft_size;
   uint32_t frame_size;
   uint32_t max_offset;
-  bool enable_cfo_corr;
-  bool mean_cfo2_isunset;
-  bool mean_cfo_isunset;
-  float mean_cfo;
-  float mean_cfo2; 
-  int cfo_i;
-  bool find_cfo_i; 
-  bool find_cfo_i_initiated; 
-  float cfo_ema_alpha;
   uint32_t nof_symbols;
   uint32_t cp_len;
-  srslte_cfo_t cfocorr;
-  srslte_cfo_t cfocorr2;
   float current_cfo_tol;
   sss_alg_t sss_alg; 
   bool detect_cp;
@@ -101,6 +90,33 @@ typedef struct SRSLTE_API {
   cf_t  *temp;
 
   uint32_t max_frame_size;
+
+
+  // variables for various CFO estimation methods
+  bool cfo_cp_enable;
+  bool cfo_pss_enable;
+  bool cfo_i_enable;
+
+  bool cfo_cp_is_set;
+  bool cfo_pss_is_set;
+  bool cfo_i_initiated;
+
+  float cfo_cp_mean;
+  float cfo_pss;
+  float cfo_pss_mean;
+  int   cfo_i_value;
+
+  float cfo_ema_alpha;
+
+  uint32_t cfo_cp_nsymbols;
+
+  srslte_cfo_t cfo_corr_frame;
+  srslte_cfo_t cfo_corr_symbol;
+
+  bool sss_channel_equalize;
+  bool pss_filtering_enabled;
+  cf_t sss_filt[SRSLTE_SYMBOL_SZ_MAX];
+  cf_t pss_filt[SRSLTE_SYMBOL_SZ_MAX];
 
 }srslte_sync_t;
 
@@ -135,29 +151,23 @@ SRSLTE_API void srslte_sync_reset(srslte_sync_t *q);
 
 /* Finds a correlation peak in the input signal around position find_offset */
 SRSLTE_API srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, 
-                                                   cf_t *input,
+                                                   const cf_t *input,
                                                    uint32_t find_offset,
                                                    uint32_t *peak_position);
 
 /* Estimates the CP length */
 SRSLTE_API srslte_cp_t srslte_sync_detect_cp(srslte_sync_t *q, 
-                                             cf_t *input, 
+                                             const cf_t *input,
                                              uint32_t peak_pos);
 
 /* Sets the threshold for peak comparison */
 SRSLTE_API void srslte_sync_set_threshold(srslte_sync_t *q, 
                                           float threshold);
 
-SRSLTE_API void srslte_sync_set_cfo_tol(srslte_sync_t *q,
-                                        float tol);
-
 /* Gets the subframe idx (0 or 5) */
 SRSLTE_API uint32_t srslte_sync_get_sf_idx(srslte_sync_t *q);
 
-/* Gets the last peak value */
-SRSLTE_API float srslte_sync_get_last_peak_value(srslte_sync_t *q);
-
-/* Gets the mean peak value */
+/* Gets the peak value */
 SRSLTE_API float srslte_sync_get_peak_value(srslte_sync_t *q);
 
 /* Choose SSS detection algorithm */
@@ -175,22 +185,41 @@ SRSLTE_API int srslte_sync_set_N_id_2(srslte_sync_t *q,
 /* Gets the Physical CellId from the last call to synch_run() */
 SRSLTE_API int srslte_sync_get_cell_id(srslte_sync_t *q);
 
+/* Enables/disables filtering of the central PRBs before PSS CFO estimation or SSS correlation*/
+SRSLTE_API void srslte_sync_set_pss_filt_enable(srslte_sync_t *q,
+                                                bool enable);
+
+SRSLTE_API void srslte_sync_set_sss_eq_enable(srslte_sync_t *q,
+                                              bool enable);
+
 /* Gets the CFO estimation from the last call to synch_run() */
 SRSLTE_API float srslte_sync_get_cfo(srslte_sync_t *q);
 
-/* Sets known CFO to avoid long transients due to average */
-SRSLTE_API void srslte_sync_set_cfo(srslte_sync_t *q, float cfo);
+/* Resets internal CFO state */
+SRSLTE_API void srslte_sync_cfo_reset(srslte_sync_t *q);
 
-/* Set integer CFO */
-SRSLTE_API void srslte_sync_set_cfo_i(srslte_sync_t *q, 
-                                      int cfo_i); 
+/* Copies CFO internal state from another object to avoid long transients */
+SRSLTE_API void srslte_sync_copy_cfo(srslte_sync_t *q,
+                                     srslte_sync_t *src_obj);
 
-SRSLTE_API void srslte_sync_set_cfo_enable(srslte_sync_t *q, 
-                                           bool enable); 
+/* Enable different CFO estimation stages */
+SRSLTE_API void srslte_sync_set_cfo_i_enable(srslte_sync_t *q,
+                                             bool enable);
+SRSLTE_API void srslte_sync_set_cfo_cp_enable(srslte_sync_t *q,
+                                              bool enable,
+                                              uint32_t nof_symbols);
+
+SRSLTE_API void srslte_sync_set_cfo_pss_enable(srslte_sync_t *q,
+                                               bool enable);
+
+/* Sets CFO correctors tolerance (in Hz) */
+SRSLTE_API void srslte_sync_set_cfo_tol(srslte_sync_t *q,
+                                        float tol);
 
 /* Sets the exponential moving average coefficient for CFO averaging */
 SRSLTE_API void srslte_sync_set_cfo_ema_alpha(srslte_sync_t *q, 
                                               float alpha);
+
 
 /* Gets the CP length estimation from the last call to synch_run() */
 SRSLTE_API srslte_cp_t srslte_sync_get_cp(srslte_sync_t *q);
@@ -199,19 +228,13 @@ SRSLTE_API srslte_cp_t srslte_sync_get_cp(srslte_sync_t *q);
 SRSLTE_API void srslte_sync_set_cp(srslte_sync_t *q, 
                                    srslte_cp_t cp);
 
-/* Enable integer CFO detection */
-SRSLTE_API void srslte_sync_cfo_i_detec_en(srslte_sync_t *q, 
-                                           bool enabled); 
-
 /* Enables/Disables SSS detection  */
 SRSLTE_API void srslte_sync_sss_en(srslte_sync_t *q, 
                                    bool enabled);
 
-SRSLTE_API srslte_pss_synch_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q); 
+SRSLTE_API srslte_pss_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q);
 
 SRSLTE_API bool srslte_sync_sss_detected(srslte_sync_t *q);
-
-SRSLTE_API bool srslte_sync_sss_is_en(srslte_sync_t *q); 
 
 /* Enables/Disables CP detection  */
 SRSLTE_API void srslte_sync_cp_en(srslte_sync_t *q, 

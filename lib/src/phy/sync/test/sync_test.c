@@ -108,8 +108,8 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
-  
-  if (srslte_ofdm_tx_init(&ifft, cp, nof_prb)) {
+
+  if (srslte_ofdm_tx_init(&ifft, cp, buffer, fft_buffer, nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
@@ -124,8 +124,7 @@ int main(int argc, char **argv) {
   /* Set a very high threshold to make sure the correlation is ok */
   srslte_sync_set_threshold(&syncobj, 5.0);
   srslte_sync_set_sss_algorithm(&syncobj, SSS_PARTIAL_3);
-  srslte_sync_set_cfo_enable(&syncobj, false); 
-
+  
   if (cell_id == -1) {
     cid = 0;
     max_cid = 49;
@@ -150,8 +149,14 @@ int main(int argc, char **argv) {
 
       /* Transform to OFDM symbols */
       memset(fft_buffer, 0, sizeof(cf_t) * FLEN);
-      srslte_ofdm_tx_sf(&ifft, buffer, &fft_buffer[offset]);
+      srslte_ofdm_tx_sf(&ifft);
       
+      /* Apply sample offset */
+      for (int i = 0; i < FLEN; i++) {
+        fft_buffer[FLEN - i - 1 + offset] = fft_buffer[FLEN - i - 1];
+      }
+      bzero(fft_buffer, sizeof(cf_t) * offset);
+
       if (srslte_sync_find(&syncobj, fft_buffer, 0, &find_idx) < 0) {
         fprintf(stderr, "Error running srslte_sync_find\n");
         exit(-1);

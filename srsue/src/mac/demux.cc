@@ -25,10 +25,10 @@
  */
 
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "mac/mac.h"
 #include "mac/demux.h"
@@ -36,7 +36,7 @@
 
 namespace srsue {
     
-demux::demux(uint8_t nof_harq_proc_) : mac_msg(20), pending_mac_msg(20), nof_harq_proc(nof_harq_proc_)
+demux::demux() : mac_msg(20), pending_mac_msg(20), rlc(NULL)
 {
 }
 
@@ -64,18 +64,18 @@ void demux::deallocate(uint8_t* payload_buffer_ptr)
     pdus.deallocate(payload_buffer_ptr);
   }
 }
-
-uint8_t* demux::request_buffer(uint32_t pid, uint32_t len)
-{  
-  uint8_t *buff = NULL; 
-  if (pid < nof_harq_proc) {
-    return pdus.request(len);
-  } else if (pid == nof_harq_proc) {
-    buff = bcch_buffer;
+uint8_t* demux::request_buffer_bcch(uint32_t len)
+{
+  if (len < MAX_BCCH_PDU_LEN) {
+    return bcch_buffer;
   } else {
-    Error("Requested buffer for invalid PID=%d\n", pid);
+    return NULL;
   }
-  return buff; 
+}
+
+uint8_t* demux::request_buffer(uint32_t len)
+{  
+  return pdus.request(len);
 }
 
 /* Demultiplexing of MAC PDU associated with a Temporal C-RNTI. The PDU will 
@@ -117,21 +117,17 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
  * This function enqueues the packet and returns quicly because ACK 
  * deadline is important here. 
  */ 
-void demux::push_pdu(uint32_t pid, uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp)
-{
-  if (pid < nof_harq_proc) {
-    return pdus.push(buff, nof_bytes, tstamp);
-  } else if (pid == nof_harq_proc) {
-    /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through 
-    * the MAC in transparent mode. 
-    * Warning: In this case function sends the message to RLC now, since SI blocks do not 
-    * require ACK feedback to be transmitted quickly. 
-    */
-    Debug("Pushed BCCH MAC PDU in transparent mode\n");
-    rlc->write_pdu_bcch_dlsch(buff, nof_bytes);
-  } else {
-    Error("Pushed buffer for invalid PID=%d\n", pid);
-  }  
+void demux::push_pdu(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
+  return pdus.push(buff, nof_bytes, tstamp);
+}
+
+/* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through
+* the MAC in transparent mode.
+* Warning: In this case function sends the message to RLC now, since SI blocks do not
+* require ACK feedback to be transmitted quickly.
+*/
+void demux::push_pdu_bcch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
+  rlc->write_pdu_bcch_dlsch(buff, nof_bytes);
 }
 
 bool demux::process_pdus()
@@ -158,7 +154,7 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
       if (pdu_msg->get()->get_sdu_lcid() == 0) {
         uint8_t *x = pdu_msg->get()->get_sdu_ptr();
         uint32_t sum = 0; 
-        for (uint32_t i=0;i<pdu_msg->get()->get_payload_size();i++) {
+        for (int i=0;i<pdu_msg->get()->get_payload_size();i++) {
           sum += x[i];
         }
         if (sum == 0) {

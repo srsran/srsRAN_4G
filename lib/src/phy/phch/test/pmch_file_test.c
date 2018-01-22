@@ -140,7 +140,7 @@ int base_init() {
     exit(-1);
   }
 
-  if (srslte_ue_dl_init(&ue_dl, cell.nof_prb, 1)) {
+  if (srslte_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
     fprintf(stderr, "Error initializing UE DL\n");
     return -1;
   }
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
 
   srslte_filesource_read(&fsrc, input_buffer[0], flen);
   INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
-  ret = srslte_ue_dl_decode_mbsfn(&ue_dl, input_buffer, data[0], sf_idx);
+  ret = srslte_ue_dl_decode_mbsfn(&ue_dl, data[0], sf_idx);
   if(ret > 0) {
     printf("PMCH Decoded OK!\n");       
   }  else if (ret < 0) {

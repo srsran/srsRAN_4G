@@ -43,18 +43,17 @@ namespace srsue {
 gw::gw()
   :if_up(false)
 {
-  U_TRACE("GW:BEGIN");
   current_ip_addr = 0;
+  default_netmask = true;
 }
 
-void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, uint32_t lcid_)
+void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t cfg_)
 {
-  U_TRACE("GW:BEGIN");
   pool    = srslte::byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
   nas     = nas_;
   gw_log  = gw_log_;
-  lcid    = lcid_;
+  cfg     = cfg_;
   run_enable = true;
 
   gettimeofday(&metrics_time[1], NULL);
@@ -64,7 +63,6 @@ void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_
 
 void gw::stop()
 {
-  U_TRACE("GW:BEGIN");
   if(run_enable)
   {
     run_enable = false;
@@ -93,7 +91,6 @@ void gw::stop()
 void gw::get_metrics(gw_metrics_t &m)
 {
   
-  U_TRACE("GW:BEGIN");
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
   double secs = (double) metrics_time[0].tv_sec+metrics_time[0].tv_usec*1e-6;
@@ -108,12 +105,17 @@ void gw::get_metrics(gw_metrics_t &m)
   ul_tput_bytes = 0;
 }
 
+void gw::set_netmask(std::string netmask) {
+  default_netmask = false;
+  this->netmask = netmask;
+}
+
+
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
 void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
-  U_TRACE("GW:BEGIN");
   gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU");
   gw_log->info("RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
   dl_tput_bytes += pdu->N_bytes;
@@ -135,7 +137,6 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 *******************************************************************************/
 srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
 {
-  U_TRACE("GW:BEGIN");
   if (ip_addr != current_ip_addr) {
     if(!if_up)
     {
@@ -158,7 +159,11 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
       return(srslte::ERROR_CANT_START);
     }
     ifr.ifr_netmask.sa_family                                 = AF_INET;
-    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+    const char *mask = "255.255.255.0";
+    if (!default_netmask) {
+      mask = netmask.c_str();
+    }
+    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(mask);
     if(0 > ioctl(sock, SIOCSIFNETMASK, &ifr))
     {
       err_str = strerror(errno);
@@ -178,7 +183,6 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
 
 srslte::error_t gw::init_if(char *err_str)
 {
-  U_TRACE("GW:BEGIN");
   if(if_up)
   {
     return(srslte::ERROR_ALREADY_STARTED);
@@ -249,7 +253,6 @@ void gw::run_thread()
   running = true;
   while(run_enable)
   {
-    U_TRACE("GW:BEGIN");
     if (SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET > idx) {
       N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);
     } else {
@@ -270,9 +273,9 @@ void gw::run_thread()
         {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-          while(run_enable && !pdcp->is_drb_enabled(lcid) && attach_attempts < ATTACH_MAX_ATTEMPTS) {
+          while(run_enable && !pdcp->is_drb_enabled(cfg.lcid) && attach_attempts < ATTACH_MAX_ATTEMPTS) {
             if (attach_cnt == 0) {
-              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
+              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
               nas->attach_request();
               attach_attempts++;
             }
@@ -284,7 +287,7 @@ void gw::run_thread()
           }
 
           if (attach_attempts == ATTACH_MAX_ATTEMPTS) {
-            gw_log->warning("LCID=%d was not active after %d attempts\n", lcid, ATTACH_MAX_ATTEMPTS);
+            gw_log->warning("LCID=%d was not active after %d attempts\n", cfg.lcid, ATTACH_MAX_ATTEMPTS);
           }
 
           attach_attempts = 0;
@@ -295,10 +298,10 @@ void gw::run_thread()
           }
 
           // Send PDU directly to PDCP
-          if (pdcp->is_drb_enabled(lcid)) {
+          if (pdcp->is_drb_enabled(cfg.lcid)) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
-            pdcp->write_sdu(lcid, pdu);
+            pdcp->write_sdu(cfg.lcid, pdu);
 
             do {
               pdu = pool_allocate;

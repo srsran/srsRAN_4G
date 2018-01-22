@@ -34,16 +34,15 @@
 #include "phy/phy.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
  
 
 prach::~prach() {
-  P_TRACE("PRACH:BEGIN");
   if (mem_initiated) {
     for (int i=0;i<64;i++) {
       if (buffer[i]) {
@@ -60,7 +59,6 @@ prach::~prach() {
 
 void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, phy_args_t *args_, srslte::log* log_h_)
 {
-  P_TRACE("PRACH:BEGIN");
   log_h  = log_h_;
   config = config_;
   args   = args_;
@@ -77,7 +75,7 @@ void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, 
     return;
   }
   srslte_cfo_set_tol(&cfo_h, 0);
-  signal_buffer = (cf_t*) srslte_vec_malloc(SRSLTE_PRACH_MAX_LEN*sizeof(cf_t));
+  signal_buffer = (cf_t *) srslte_vec_malloc(SRSLTE_PRACH_MAX_LEN * sizeof(cf_t));
   if (!signal_buffer) {
     perror("malloc");
     return;
@@ -91,8 +89,6 @@ void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, 
 
 bool prach::set_cell(srslte_cell_t cell_)
 {
-  P_TRACE("PRACH:BEGIN");
-
   if (mem_initiated) {
     // TODO: Check if other PRACH parameters changed
     if (cell_.id != cell.id || !cell_initiated) {
@@ -139,8 +135,6 @@ bool prach::set_cell(srslte_cell_t cell_)
 
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm_)
 {
-  P_TRACE("PRACH: preamble_idx %u, allowed_subframe %d, power %f", preamble_idx_, allowed_subframe_, target_power_dbm_);
-
   if (cell_initiated && preamble_idx_ < 64) {
     preamble_idx = preamble_idx_;
     target_power_dbm = target_power_dbm_;
@@ -159,8 +153,6 @@ bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float
 }
 
 bool prach::is_ready_to_send(uint32_t current_tti_) {
-  P_TRACE("PRACH: cur tti %u", current_tti_);
-
   if (cell_initiated && preamble_idx >= 0 && preamble_idx < 64) {
     // consider the number of subframes the transmission must be anticipated 
     uint32_t current_tti = (current_tti_ + tx_advance_sf)%10240;
@@ -169,36 +161,28 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
       transmitted_tti = current_tti; 
       return true; 
     }
-   else
-    {
-      P_TRACE("PRACH Buffer: Not Ready to send at tti: %d (now is %d), allowed subframe %d\n", 
-              current_tti, current_tti_, allowed_subframe);
-    }
   }
   return false;     
 }
 
 int prach::tx_tti() {
-  P_TRACE("PRACH: txd tti %d", transmitted_tti);
   return transmitted_tti; 
 }
 
 float prach::get_p0_preamble()
 {
-  P_TRACE("PRACH: %f dbm", target_power_dbm);
   return target_power_dbm; 
 }
 
 
 void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte_timestamp_t tx_time)
 {
-  P_TRACE("PRACH: cfo %f, pathloss %f, tx_time %06ld:%f", cfo, pathloss, tx_time.full_secs, tx_time.frac_secs);
   
   // Get current TX gain 
   float old_gain = radio_handler->get_tx_gain(); 
   
-  // Correct CFO before transmission
-  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));            
+  // Correct CFO before transmission FIXME: UL SISO Only
+  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));
 
   // If power control is enabled, choose amplitude and power 
   if (args->ul_pwr_ctrl_en) {
@@ -223,8 +207,9 @@ void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte
     }
     Debug("TX PRACH: Power control for PRACH is disabled, setting gain to %.0f dB\n", prach_gain);
   }
-    
-  radio_handler->tx(signal_buffer, len, tx_time);
+
+  void *tmp_buffer[SRSLTE_MAX_PORTS] = {signal_buffer, NULL, NULL, NULL};
+  radio_handler->tx(tmp_buffer, len, tx_time);
   radio_handler->tx_end();
   
   Info("PRACH: Transmitted preamble=%d, CFO=%.2f KHz, tx_time=%f\n", 

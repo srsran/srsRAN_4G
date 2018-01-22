@@ -103,8 +103,11 @@ public:
   int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue); 
   int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code); 
     
-  int dl_ack_info(uint32_t tti, uint16_t rnti, bool ack);
+  int dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dedicated);
+  int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
   int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size); 
+  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
+  int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
   int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
   
   int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc);

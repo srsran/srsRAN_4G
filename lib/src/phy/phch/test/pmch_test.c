@@ -139,7 +139,7 @@ cf_t *tx_slot_symbols[SRSLTE_MAX_PORTS];
 cf_t *rx_slot_symbols[SRSLTE_MAX_PORTS];
 srslte_pmch_t pmch_tx, pmch_rx;
 srslte_pdsch_cfg_t  pmch_cfg;
-srslte_ofdm_t ifft_mbsfn, fft_mbsfn; 
+srslte_ofdm_t ifft_mbsfn[SRSLTE_MAX_PORTS], fft_mbsfn[SRSLTE_MAX_PORTS];
 
 int main(int argc, char **argv) {
   uint32_t i, j, k;
@@ -167,12 +167,11 @@ int main(int argc, char **argv) {
   /* If transport block 0 is enabled */
     grant.tb_en[0] = true;
     grant.tb_en[1] = false;
-    grant.nof_tb = 1;
     grant.mcs[0].idx = mcs_idx;
-   
+
     grant.nof_prb = cell.nof_prb;
     grant.sf_type = SRSLTE_SF_MBSFN;
-    
+
     srslte_dl_fill_ra_mcs(&grant.mcs[0], cell.nof_prb);
     grant.Qm[0] = srslte_mod_bits_x_symbol(grant.mcs[0].mod);
     for(int i = 0; i < 2; i++){
@@ -181,41 +180,6 @@ int main(int argc, char **argv) {
       }
     }
 
-  
-
-#ifdef DO_OFDM
-
- if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn, SRSLTE_CP_EXT, cell.nof_prb)) {
-    fprintf(stderr, "Error creating iFFT object\n");
-    exit(-1);
-  }
-  if (srslte_ofdm_rx_init_mbsfn(&fft_mbsfn, SRSLTE_CP_EXT, cell.nof_prb)) {
-    fprintf(stderr, "Error creating iFFT object\n");
-    exit(-1);
-  }
-  
-  srslte_ofdm_set_non_mbsfn_region(&ifft_mbsfn, non_mbsfn_region);
-  srslte_ofdm_set_non_mbsfn_region(&fft_mbsfn, non_mbsfn_region);
-  srslte_ofdm_set_normalize(&ifft_mbsfn, true);
-  srslte_ofdm_set_normalize(&fft_mbsfn, true);
-  
-
-  for (i = 0; i < cell.nof_ports; i++) {
-    tx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  }
-
-  for (i = 0; i < nof_rx_antennas; i++) {
-    rx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  }
-#endif /* DO_OFDM */
-
-  /* Configure PDSCH */
-  
-  if (srslte_pmch_cfg(&pmch_cfg, cell, &grant, cfi, subframe)) {
-    fprintf(stderr, "Error configuring PMCH\n");
-    exit(-1);
-  }
-  
   /* init memory */
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
@@ -235,6 +199,25 @@ int main(int argc, char **argv) {
     }
   }
 
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    softbuffers_tx[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);
+    if (!softbuffers_tx[i]) {
+      fprintf(stderr, "Error allocating TX soft buffer\n");
+    }
+
+    if (srslte_softbuffer_tx_init(softbuffers_tx[i], cell.nof_prb)) {
+      fprintf(stderr, "Error initiating TX soft buffer\n");
+      goto quit;
+    }
+  }
+
+  for (i = 0; i < cell.nof_ports; i++) {
+    tx_slot_symbols[i] = calloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), sizeof(cf_t));
+    if (!tx_slot_symbols[i]) {
+      perror("srslte_vec_malloc");
+      goto quit;
+    }
+  }
 
   for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     if (grant.tb_en[i]) {
@@ -256,7 +239,7 @@ int main(int argc, char **argv) {
   }
 
 
-  
+
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     softbuffers_rx[i] = calloc(sizeof(srslte_softbuffer_rx_t), 1);
     if (!softbuffers_rx[i]) {
@@ -268,6 +251,44 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error initiating RX soft buffer\n");
       goto quit;
     }
+  }
+
+#ifdef DO_OFDM
+
+  for (i = 0; i < cell.nof_ports; i++) {
+    tx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+
+    if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn[i], SRSLTE_CP_EXT, tx_slot_symbols[i], tx_sf_symbols[i], cell.nof_prb)) {
+      fprintf(stderr, "Error creating iFFT object\n");
+      exit(-1);
+    }
+
+    srslte_ofdm_set_non_mbsfn_region(&ifft_mbsfn[i], non_mbsfn_region);
+    srslte_ofdm_set_normalize(&ifft_mbsfn[i], true);
+  }
+
+  for (i = 0; i < nof_rx_antennas; i++) {
+    rx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+
+    if (srslte_ofdm_rx_init_mbsfn(&fft_mbsfn[i], SRSLTE_CP_EXT, rx_sf_symbols[i], rx_slot_symbols[i], cell.nof_prb)) {
+      fprintf(stderr, "Error creating iFFT object\n");
+      exit(-1);
+    }
+
+    srslte_ofdm_set_non_mbsfn_region(&fft_mbsfn[i], non_mbsfn_region);
+    srslte_ofdm_set_normalize(&fft_mbsfn[i], true);
+  }
+
+
+
+
+#endif /* DO_OFDM */
+
+  /* Configure PDSCH */
+  
+  if (srslte_pmch_cfg(&pmch_cfg, cell, &grant, cfi, subframe)) {
+    fprintf(stderr, "Error configuring PMCH\n");
+    exit(-1);
   }
   
   if (srslte_pmch_cfg(&pmch_cfg, cell, &grant, cfi, subframe)) {
@@ -312,25 +333,7 @@ int main(int argc, char **argv) {
   srslte_pmch_set_area_id(&pmch_rx, mbsfn_area_id);
 
 
-  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    softbuffers_tx[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);
-    if (!softbuffers_tx[i]) {
-      fprintf(stderr, "Error allocating TX soft buffer\n");
-    }
 
-    if (srslte_softbuffer_tx_init(softbuffers_tx[i], cell.nof_prb)) {
-      fprintf(stderr, "Error initiating TX soft buffer\n");
-      goto quit;
-    }
-  }
-
-  for (i = 0; i < cell.nof_ports; i++) {
-    tx_slot_symbols[i] = calloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), sizeof(cf_t));
-    if (!tx_slot_symbols[i]) {
-      perror("srslte_vec_malloc");
-      goto quit;
-    }
-  }
 
   for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     if (grant.tb_en[tb]) {
@@ -353,7 +356,7 @@ int main(int argc, char **argv) {
 #ifdef DO_OFDM
   for (i = 0; i < cell.nof_ports; i++) {
     /* For each Tx antenna modulate OFDM */
-    srslte_ofdm_tx_sf(&ifft_mbsfn, tx_slot_symbols[i], tx_sf_symbols[i]);
+    srslte_ofdm_tx_sf(&ifft_mbsfn[i]);
   }
 
 
@@ -387,7 +390,7 @@ int main(int argc, char **argv) {
 #ifdef DO_OFDM
     /* For each Rx antenna demodulate OFDM */
     for (i = 0; i < nof_rx_antennas; i++) {
-      srslte_ofdm_rx_sf(&fft_mbsfn, tx_sf_symbols[i], rx_slot_symbols[i]);
+      srslte_ofdm_rx_sf(&fft_mbsfn[i]);
     }
 #endif
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {

@@ -51,7 +51,21 @@ void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_
 }
 
 void pdcp::stop()
-{}
+{
+  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
+    if (pdcp_array[i].is_active()) {
+      pdcp_array[i].stop();
+    }
+  }
+}
+
+void pdcp::reestablish() {
+  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
+    if (pdcp_array[i].is_active()) {
+      pdcp_array[i].reestablish();
+    }
+  }
+}
 
 void pdcp::reset()
 {
@@ -95,13 +109,37 @@ void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
 }
 
 void pdcp::config_security(uint32_t lcid,
-                           uint8_t *k_rrc_enc,
-                           uint8_t *k_rrc_int,
+                           uint8_t *k_enc,
+                           uint8_t *k_int,
                            CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                            INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if(valid_lcid(lcid))
-    pdcp_array[lcid].config_security(k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+    pdcp_array[lcid].config_security(k_enc, k_int, cipher_algo, integ_algo);
+}
+
+void pdcp::config_security_all(uint8_t *k_enc,
+                               uint8_t *k_int,
+                               CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                               INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+{
+  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
+    if (pdcp_array[i].is_active()) {
+      pdcp_array[i].config_security(k_enc, k_int, cipher_algo, integ_algo);
+    }
+  }
+}
+
+void pdcp::enable_integrity(uint32_t lcid)
+{
+  if(valid_lcid(lcid))
+    pdcp_array[lcid].enable_integrity();
+}
+
+void pdcp::enable_encryption(uint32_t lcid)
+{
+  if(valid_lcid(lcid))
+    pdcp_array[lcid].enable_encryption();
 }
 
 /*******************************************************************************

@@ -33,7 +33,6 @@ namespace srslte {
 pdcp_entity::pdcp_entity()
   :active(false)
   ,tx_count(0)
-  ,rx_count(0)
 {
   pool = byte_buffer_pool::get_instance();
 }
@@ -45,18 +44,50 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
                        uint32_t                       lcid_,
                        srslte_pdcp_config_t           cfg_)
 {
-  rlc       = rlc_;
-  rrc       = rrc_;
-  gw        = gw_;
-  log       = log_;
-  lcid      = lcid_;
-  cfg       = cfg_;
-  active    = true;
+  rlc           = rlc_;
+  rrc           = rrc_;
+  gw            = gw_;
+  log           = log_;
+  lcid          = lcid_;
+  cfg           = cfg_;
+  active        = true;
+  tx_count      = 0;
+  rx_count      = 0;
+  do_integrity  = false;
+  do_encryption = false;
+  if(cfg.is_control) {
+    cfg.sn_len   = 5;
+    sn_len_bytes = 1;
+  } else {
+    sn_len_bytes  = (cfg.sn_len+7)/8;
+  }
 
-  tx_count    = 0;
-  rx_count    = 0;
+  start(PDCP_THREAD_PRIO);
 
   log->debug("Init %s\n", rrc->get_rb_name(lcid).c_str());
+}
+
+void pdcp_entity::stop()
+{
+  if(running) {
+    running = false;
+    thread_cancel();
+    wait_thread_finish();
+  }
+}
+
+// Reestablishment procedure: 36.323 5.2
+void pdcp_entity::reestablish() {
+  // For SRBs
+  if (cfg.is_control) {
+    tx_count = 0;
+    rx_count = 0;
+  } else {
+    if (rlc->rb_is_um(lcid)) {
+      tx_count = 0;
+      rx_count = 0;
+    }
+  }
 }
 
 void pdcp_entity::reset()
@@ -74,107 +105,93 @@ bool pdcp_entity::is_active()
 // RRC interface
 void pdcp_entity::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU, do_security = %s", rrc->get_rb_name(lcid).c_str(), (cfg.do_security)?"true":"false");
+  log->info_hex(sdu->msg, sdu->N_bytes,
+        "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
+        rrc->get_rb_name(lcid).c_str(), tx_count,
+        (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
   if (cfg.is_control) {
     pdcp_pack_control_pdu(tx_count, sdu);
-    if(cfg.do_security)
-    {
-      integrity_generate(&k_rrc_int[16],
-                         tx_count,
-                         lcid-1,
-                         cfg.direction,
-                         sdu->msg,
+    if(do_integrity) {
+      integrity_generate(sdu->msg,
                          sdu->N_bytes-4,
                          &sdu->msg[sdu->N_bytes-4]);
     }
-    tx_count++;
   }
 
   if (cfg.is_data) {
     if(12 == cfg.sn_len) {
-      pdcp_pack_data_pdu_long_sn(tx_count++, sdu);
+      pdcp_pack_data_pdu_long_sn(tx_count, sdu);
     } else {
-      pdcp_pack_data_pdu_short_sn(tx_count++, sdu);
+      pdcp_pack_data_pdu_short_sn(tx_count, sdu);
     }
   }
+
+  if(do_encryption) {
+    cipher_encrypt(&sdu->msg[sn_len_bytes],
+                   sdu->N_bytes-sn_len_bytes,
+                   &sdu->msg[sn_len_bytes]);
+    log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
+  }
+  tx_count++;
 
   rlc->write_sdu(lcid, sdu);
 }
 
-void pdcp_entity::config_security(uint8_t *k_rrc_enc_,
-                                  uint8_t *k_rrc_int_,
+void pdcp_entity::config_security(uint8_t *k_enc_,
+                                  uint8_t *k_int_,
                                   CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                   INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
 {
-  cfg.do_security = true;
   for(int i=0; i<32; i++)
   {
-    k_rrc_enc[i] = k_rrc_enc_[i];
-    k_rrc_int[i] = k_rrc_int_[i];
+    k_enc[i] = k_enc_[i];
+    k_int[i] = k_int_[i];
   }
   cipher_algo = cipher_algo_;
   integ_algo  = integ_algo_;
 }
 
+void pdcp_entity::enable_integrity()
+{
+  do_integrity = true;
+}
+
+void pdcp_entity::enable_encryption()
+{
+  do_encryption = true;
+}
+
 // RLC interface
 void pdcp_entity::write_pdu(byte_buffer_t *pdu)
 {
-
-
-
-
-
-  if (cfg.is_data) {
-    uint32_t sn;
-    if(12 == cfg.sn_len)
-    {
-      pdcp_unpack_data_pdu_long_sn(pdu, &sn);
-    } else {
-      pdcp_unpack_data_pdu_short_sn(pdu, &sn);
-    }
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU: %d", rrc->get_rb_name(lcid).c_str(), sn);
-    gw->write_pdu(lcid, pdu);
-  } else {
-    if (cfg.is_control) {
-      uint32_t sn;
-      pdcp_unpack_control_pdu(pdu, &sn);
-      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s SDU SN: %d",
-                    rrc->get_rb_name(lcid).c_str(), sn);
-    } else {
-      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rrc->get_rb_name(lcid).c_str());
-    }
-    // pass to RRC
-    rrc->write_pdu(lcid, pdu);
-  }
+  rx_pdu_queue.write(pdu);
 }
 
-void pdcp_entity::integrity_generate( uint8_t  *key_128,
-                                      uint32_t  count,
-                                      uint8_t   rb_id,
-                                      uint8_t   direction,
-                                      uint8_t  *msg,
+void pdcp_entity::integrity_generate( uint8_t  *msg,
                                       uint32_t  msg_len,
                                       uint8_t  *mac)
 {
+  uint8_t bearer;
+
   switch(integ_algo)
   {
   case INTEGRITY_ALGORITHM_ID_EIA0:
     break;
   case INTEGRITY_ALGORITHM_ID_128_EIA1:
-    security_128_eia1(key_128,
-                      count,
-                      rb_id,
-                      direction,
+    security_128_eia1(&k_int[16],
+                      tx_count,
+                      get_bearer_id(lcid),
+                      cfg.direction,
                       msg,
                       msg_len,
                       mac);
     break;
   case INTEGRITY_ALGORITHM_ID_128_EIA2:
-    security_128_eia2(key_128,
-                      count,
-                      rb_id,
-                      direction,
+    security_128_eia2(&k_int[16],
+                      tx_count,
+                      get_bearer_id(lcid),
+                      cfg.direction,
                       msg,
                       msg_len,
                       mac);
@@ -183,6 +200,205 @@ void pdcp_entity::integrity_generate( uint8_t  *key_128,
     break;
   }
 }
+
+bool pdcp_entity::integrity_verify(uint8_t  *msg,
+                                   uint32_t  count,
+                                   uint32_t  msg_len,
+                                   uint8_t  *mac)
+{
+  uint8_t mac_exp[4] = {0x00};
+  uint8_t i = 0;
+  bool isValid = true;
+
+  switch(integ_algo)
+  {
+  case INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case INTEGRITY_ALGORITHM_ID_128_EIA1:
+    security_128_eia1(&k_int[16],
+                      count,
+                      get_bearer_id(lcid),
+                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      msg,
+                      msg_len,
+                      mac_exp);
+    break;
+  case INTEGRITY_ALGORITHM_ID_128_EIA2:
+    security_128_eia2(&k_int[16],
+                      count,
+                      get_bearer_id(lcid),
+                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      msg,
+                      msg_len,
+                      mac_exp);
+    break;
+  default:
+    break;
+  }
+
+  switch(integ_algo)
+  {
+  case INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case INTEGRITY_ALGORITHM_ID_128_EIA1: // Intentional fall-through
+  case INTEGRITY_ALGORITHM_ID_128_EIA2:
+    for(i=0; i<4; i++){
+      if(mac[i] != mac_exp[i]){
+        log->error_hex(mac_exp, 4, "MAC mismatch (expected)");
+        log->error_hex(mac,     4, "MAC mismatch (found)");
+        isValid = false;
+        break;
+      }
+    }
+    if (isValid){
+      log->info_hex(mac_exp, 4, "MAC match (expected)");
+      log->info_hex(mac,     4, "MAC match (found)");
+    }
+    break;
+  default:
+    break;
+  }
+
+  return isValid;
+}
+
+void pdcp_entity::cipher_encrypt(uint8_t  *msg,
+                                 uint32_t  msg_len,
+                                 uint8_t  *ct)
+{
+  byte_buffer_t ct_tmp;
+  switch(cipher_algo)
+  {
+  case CIPHERING_ALGORITHM_ID_EEA0:
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA1:
+    security_128_eea1(&(k_enc[16]),
+                      tx_count,
+                      get_bearer_id(lcid),
+                      cfg.direction,
+                      msg,
+                      msg_len,
+                      ct_tmp.msg);
+    memcpy(ct, ct_tmp.msg, msg_len);
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA2:
+    security_128_eea2(&(k_enc[16]),
+                      tx_count,
+                      get_bearer_id(lcid),
+                      cfg.direction,
+                      msg,
+                      msg_len,
+                      ct_tmp.msg);
+    memcpy(ct, ct_tmp.msg, msg_len);
+    break;
+  default:
+    break;
+  }
+}
+
+void pdcp_entity::cipher_decrypt(uint8_t  *ct,
+                                 uint32_t  count,
+                                 uint32_t  ct_len,
+                                 uint8_t  *msg)
+{
+  byte_buffer_t msg_tmp;
+  switch(cipher_algo)
+  {
+  case CIPHERING_ALGORITHM_ID_EEA0:
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA1:
+    security_128_eea1(&(k_enc[16]),
+                      count,
+                      get_bearer_id(lcid),
+                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      ct,
+                      ct_len,
+                      msg_tmp.msg);
+    memcpy(msg, msg_tmp.msg, ct_len);
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA2:
+    security_128_eea2(&(k_enc[16]),
+                      count,
+                      get_bearer_id(lcid),
+                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      ct,
+                      ct_len,
+                      msg_tmp.msg);
+    memcpy(msg, msg_tmp.msg, ct_len);
+    break;
+  default:
+    break;
+  }
+}
+
+
+void pdcp_entity::run_thread()
+{
+  byte_buffer_t *pdu;
+  running = true;
+
+  while(running) {
+    rx_pdu_queue.read(&pdu);
+    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU, do_integrity = %s, do_encryption = %s",
+    rrc->get_rb_name(lcid).c_str(), (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
+
+    // Handle DRB messages
+    if (cfg.is_data) {
+      uint32_t sn;
+      if (do_encryption) {
+        cipher_decrypt(&(pdu->msg[sn_len_bytes]),
+                       rx_count,
+                       pdu->N_bytes - sn_len_bytes,
+                       &(pdu->msg[sn_len_bytes]));
+        log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+      }
+      if(12 == cfg.sn_len)
+      {
+        pdcp_unpack_data_pdu_long_sn(pdu, &sn);
+      } else {
+        pdcp_unpack_data_pdu_short_sn(pdu, &sn);
+      }
+      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+      gw->write_pdu(lcid, pdu);
+    } else {
+      // Handle SRB messages
+      if (cfg.is_control) {
+        uint32_t sn;
+        if (do_encryption) {
+          cipher_decrypt(&(pdu->msg[sn_len_bytes]),
+                         rx_count,
+                         pdu->N_bytes - sn_len_bytes,
+                         &(pdu->msg[sn_len_bytes]));
+          log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+        }
+
+        if (do_integrity) {
+          integrity_verify(pdu->msg,
+                           rx_count,
+                           pdu->N_bytes - 4,
+                           &(pdu->msg[pdu->N_bytes - 4]));
+        }
+
+        pdcp_unpack_control_pdu(pdu, &sn);
+        log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+      }
+      // pass to RRC
+      rrc->write_pdu(lcid, pdu);
+    }
+    rx_count++;
+  }
+}
+
+uint8_t pdcp_entity::get_bearer_id(uint8_t lcid)
+{
+  #define RB_ID_SRB2 2
+  if(lcid <= RB_ID_SRB2) {
+    return lcid - 1;
+  } else {
+    return lcid - RB_ID_SRB2 - 1;
+  }
+}
+
 
 /****************************************************************************
  * Pack/Unpack helper functions

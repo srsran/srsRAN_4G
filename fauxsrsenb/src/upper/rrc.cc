@@ -45,7 +45,6 @@ void rrc::init(rrc_cfg_t *cfg_,
                gtpu_interface_rrc* gtpu_,
                srslte::log* log_rrc)
 {
-  U_TRACE("RRC:BEGIN");
   phy     = phy_; 
   mac     = mac_; 
   rlc     = rlc_; 
@@ -73,14 +72,12 @@ void rrc::init(rrc_cfg_t *cfg_,
 
 rrc::activity_monitor::activity_monitor(rrc* parent_) 
 {
-  U_TRACE("RRC:BEGIN");
   running = true;
   parent = parent_;
 }
 
 void rrc::activity_monitor::stop()
 {
-  U_TRACE("RRC:BEGIN");
   if (running) {
     running = false; 
     thread_cancel();
@@ -90,13 +87,11 @@ void rrc::activity_monitor::stop()
 
 void rrc::set_connect_notifer(connect_notifier *cnotifier) 
 {
-  U_TRACE("RRC:BEGIN");
   this->cnotifier = cnotifier; 
 }
 
 void rrc::stop()
 {
-  U_TRACE("RRC:BEGIN");
   if(running) {
     running = false;
     thread_cancel();
@@ -110,7 +105,6 @@ void rrc::stop()
 
 void rrc::get_metrics(rrc_metrics_t &m)
 {
-  U_TRACE("RRC:BEGIN");
   pthread_mutex_lock(&user_mutex);
   m.n_ues = 0;
   for(std::map<uint16_t, ue>::iterator iter=users.begin(); m.n_ues < ENB_METRICS_MAX_USERS &&iter!=users.end(); ++iter) {
@@ -122,50 +116,61 @@ void rrc::get_metrics(rrc_metrics_t &m)
 
 uint32_t rrc::generate_sibs()
 {
-  U_TRACE("RRC:BEGIN");
+  // nof_messages includes SIB2 by default, plus all configured SIBs
   uint32_t nof_messages = 1+cfg.sibs[0].sib.sib1.N_sched_info;
   LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info = cfg.sibs[0].sib.sib1.sched_info; 
   
-  // Allocate DSLCH msg structs 
+  // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
+  // all SIBs in a SI message msg[i] share the same periodicity
   LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT *msg = (LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT*)calloc(nof_messages, sizeof(LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT));
-  
-  // Copy SIB1
-  msg[0].N_sibs = 1; 
+
+  // Copy SIB1 to first SI message
+  msg[0].N_sibs = 1;
   memcpy(&msg[0].sibs[0], &cfg.sibs[0], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
-  
+
   // Copy rest of SIBs
-  for (uint32_t i=1;i<nof_messages;i++) {
-    msg[i].N_sibs=0;
-    uint32_t j_start = 0; 
-    // Add SIB2 always first to i=1 
-    if (i == 1) {
-      msg[1].N_sibs++; 
-      memcpy(&msg[1].sibs[0], &cfg.sibs[1], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));      
-      j_start=1;
-      // Save SIB2 
+  for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages; sched_info_elem++) {
+    uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
+    uint32_t current_msg_element_offset = 0;
+
+    msg[msg_index].N_sibs = 0;
+
+    // SIB2 always in second SI message
+    if (msg_index == 1) {
+      msg[msg_index].N_sibs++;
+      memcpy(&msg[msg_index].sibs[0], &cfg.sibs[1], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
+      current_msg_element_offset = 1; // make sure "other SIBs" do not overwrite this SIB2
+      // Save SIB2
       memcpy(&sib2, &cfg.sibs[1].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
+    } else {
+      current_msg_element_offset = 0; // no SIB2, no offset
     }
-    // Add other SIBs to this message 
-    for (uint32_t j=0;j<sched_info[i-1].N_sib_mapping_info;j++) {
-      msg[i].N_sibs++;
-      memcpy(&msg[i].sibs[j+j_start], &cfg.sibs[(int) sched_info[i-1].sib_mapping_info[j+j_start].sib_type+2], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
+
+    // Add other SIBs to this message, if any
+    for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].N_sib_mapping_info; mapping++) {
+      msg[msg_index].N_sibs++;
+      // current_msg_element_offset skips SIB2 if necessary
+      memcpy(&msg[msg_index].sibs[mapping + current_msg_element_offset],
+              &cfg.sibs[(int) sched_info[sched_info_elem].sib_mapping_info[mapping].sib_type+2],
+              sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
     }
-  }  
-  // Pack payload for all messages 
-  for (uint32_t i=0;i<nof_messages;i++) {
-    LIBLTE_BIT_MSG_STRUCT bitbuffer;
-    liblte_rrc_pack_bcch_dlsch_msg(&msg[i], &bitbuffer);
-    srslte_bit_pack_vector(bitbuffer.msg, sib_buffer[i].msg, bitbuffer.N_bits);
-    sib_buffer[i].N_bytes = (bitbuffer.N_bits-1)/8+1;
   }
+
+  // Pack payload for all messages 
+  for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
+    LIBLTE_BIT_MSG_STRUCT bitbuffer;
+    liblte_rrc_pack_bcch_dlsch_msg(&msg[msg_index], &bitbuffer);
+    srslte_bit_pack_vector(bitbuffer.msg, sib_buffer[msg_index].msg, bitbuffer.N_bits);
+    sib_buffer[msg_index].N_bytes = (bitbuffer.N_bits-1)/8+1;
+  }
+
   free(msg);
-  return nof_messages; 
+  return nof_messages;
 }
 
 void rrc::config_mac()
 { 
   
-  U_TRACE("RRC:BEGIN");
   // Fill MAC scheduler configuration for SIBs 
   sched_interface::cell_cfg_t sched_cfg; 
   bzero(&sched_cfg, sizeof(sched_interface::cell_cfg_t));
@@ -191,7 +196,6 @@ void rrc::config_mac()
 
 void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 {
-  U_TRACE("RRC:BEGIN");
   if (sib_index < LIBLTE_RRC_MAX_SIB) {
     memcpy(payload, sib_buffer[sib_index].msg, sib_buffer[sib_index].N_bytes);
   } 
@@ -199,7 +203,6 @@ void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 
 void rrc::rl_failure(uint16_t rnti)
 { 
-  U_TRACE("RRC:BEGIN");
   rrc_log->info("Radio-Link failure detected rnti=0x%x\n", rnti);
   if (s1ap->user_exists(rnti)) {
     if (!s1ap->user_link_lost(rnti)) {
@@ -214,7 +217,6 @@ void rrc::rl_failure(uint16_t rnti)
 
 void rrc::add_user(uint16_t rnti)
 {
-  U_TRACE("RRC:BEGIN");
   pthread_mutex_lock(&user_mutex);
   if (users.count(rnti) == 0) {
     users[rnti].parent = this; 
@@ -230,7 +232,6 @@ void rrc::add_user(uint16_t rnti)
 
 void rrc::rem_user(uint16_t rnti)
 {
-  U_TRACE("RRC:BEGIN");
   pthread_mutex_lock(&user_mutex);
   if (users.count(rnti) == 1) {
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
@@ -259,7 +260,6 @@ void rrc::rem_user(uint16_t rnti)
 // valid RNTI
 void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti) 
 {
-  U_TRACE("RRC:BEGIN");
   // Remove new_rnti
   rem_user_thread(new_rnti);
   
@@ -275,7 +275,6 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 
 void rrc::set_activity_user(uint16_t rnti) 
 {
-  U_TRACE("RRC:BEGIN");
   if (users.count(rnti) == 1) {
     users[rnti].set_activity();
   }
@@ -283,7 +282,6 @@ void rrc::set_activity_user(uint16_t rnti)
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
-  U_TRACE("RRC:BEGIN");
   if (users.count(rnti) == 1) {
     rrc_pdu p = {rnti, LCID_REM_USER, NULL};
     rx_pdu_queue.push(p);
@@ -291,14 +289,12 @@ void rrc::rem_user_thread(uint16_t rnti)
 }
 
 uint32_t rrc::get_nof_users() {
-  U_TRACE("RRC:BEGIN");
   return users.size();
 }
 
 void rrc::max_retx_attempted(uint16_t rnti)
 {
 
-  U_TRACE("RRC:BEGIN:TODO");
 }
 
 /*******************************************************************************
@@ -306,7 +302,6 @@ void rrc::max_retx_attempted(uint16_t rnti)
 *******************************************************************************/
 void rrc::write_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t* pdu)
 {
-  U_TRACE("RRC:BEGIN");
   rrc_pdu p = {rnti, lcid, pdu};
   rx_pdu_queue.push(p);
 }
@@ -316,7 +311,6 @@ void rrc::write_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t* pdu)
 *******************************************************************************/
 void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
 {
-  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   bzero(&dl_dcch_msg, sizeof(LIBLTE_RRC_DL_DCCH_MSG_STRUCT));
 
@@ -336,7 +330,6 @@ void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
 
 void rrc::release_complete(uint16_t rnti)
 {
-  U_TRACE("RRC:BEGIN");
   rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
   if (users.count(rnti) == 1) {
     if (!users[rnti].is_idle()) {
@@ -353,7 +346,6 @@ void rrc::release_complete(uint16_t rnti)
 
 bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg)
 {
-  U_TRACE("RRC:BEGIN");
   rrc_log->info("Adding initial context for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
@@ -423,7 +415,6 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
 
 bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg)
 {
-  U_TRACE("RRC:BEGIN");
   rrc_log->info("Setting up erab(s) for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
@@ -444,7 +435,6 @@ bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_ST
 
 bool rrc::release_erabs(uint32_t rnti)
 {
-  U_TRACE("RRC:BEGIN");
   rrc_log->info("Releasing E-RABs for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
@@ -457,7 +447,6 @@ bool rrc::release_erabs(uint32_t rnti)
 
 void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID) 
 {
-  U_TRACE("RRC:BEGIN");
   pthread_mutex_lock(&paging_mutex);
   if (pending_paging.count(ueid) == 0) {
     pending_paging[ueid] = UEPagingID;
@@ -470,7 +459,6 @@ void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID)
 // Described in Section 7 of 36.304
 bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
 {
-  U_TRACE("RRC:BEGIN");
   int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
   
   if (pending_paging.empty()) {
@@ -552,7 +540,6 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
 
 void rrc::read_pdu_pcch(uint8_t *payload, uint32_t buffer_size)
 {
-  U_TRACE("RRC:BEGIN");
   uint32_t N_bytes = (bit_buf_paging.N_bits-1)/8+1;
   if (N_bytes <= buffer_size) {
     srslte_bit_pack_vector(bit_buf_paging.msg, payload, bit_buf_paging.N_bits);    
@@ -565,7 +552,6 @@ void rrc::read_pdu_pcch(uint8_t *payload, uint32_t buffer_size)
 
 void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
 {
-  U_TRACE("RRC:BEGIN");
   uint16_t old_rnti = 0; 
   
   LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
@@ -618,7 +604,6 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
 
 void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
 {
-  U_TRACE("RRC:BEGIN");
   if (users.count(rnti)) {    
     users[rnti].parse_ul_dcch(lcid, pdu);
   } else {
@@ -636,7 +621,6 @@ void rrc::run_thread()
   running = true;
 
   while(running) {
-    U_TRACE("RRC:BEGIN");
     p = rx_pdu_queue.wait_pop();
     if (p.pdu) {
       rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
@@ -673,7 +657,6 @@ void rrc::activity_monitor::run_thread()
 {
   while(running) 
   {
-    U_TRACE("RRC:BEGIN");
     usleep(10000);
     pthread_mutex_lock(&parent->user_mutex);
     uint16_t rem_rnti = 0; 
@@ -715,7 +698,6 @@ void rrc::configure_security(uint16_t rnti,
                              srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                              srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
-  U_TRACE("RRC:BEGIN");
   // TODO: add k_up_enc, k_up_int support to PDCP
   pdcp->config_security(rnti, lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
 }
@@ -728,10 +710,8 @@ void rrc::configure_security(uint16_t rnti,
 *******************************************************************************/
 rrc::ue::ue()
 {
-  U_TRACE("RRC:BEGIN");
   parent           = NULL; 
   set_activity();
-  sr_allocated     = false; 
   has_tmsi         = false;
   connect_notified = false; 
   transaction_id   = 0;
@@ -750,13 +730,11 @@ rrc::ue::ue()
 
 rrc_state_t rrc::ue::get_state()
 {
-  U_TRACE("RRC:BEGIN");
   return state;
 }
 
 void rrc::ue::set_activity() 
 {
-  U_TRACE("RRC:BEGIN");
   gettimeofday(&t_last_activity, NULL);  
   if (parent) {
     if (parent->rrc_log) {
@@ -766,19 +744,16 @@ void rrc::ue::set_activity()
 }
 
 bool rrc::ue::is_connected() {
-  U_TRACE("RRC:BEGIN");
   return state == RRC_STATE_REGISTERED;
 }
 
 bool rrc::ue::is_idle() {
-  U_TRACE("RRC:BEGIN");
   return state == RRC_STATE_IDLE;
 }
 
 bool rrc::ue::is_timeout() 
 {
   
-  U_TRACE("RRC:BEGIN");
   if (!parent) {
     return false; 
   }
@@ -832,7 +807,6 @@ bool rrc::ue::is_timeout()
 
 void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 {
-  U_TRACE("RRC:BEGIN");
   
   set_activity();
 
@@ -859,6 +833,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
       parent->s1ap->write_pdu(rnti, pdu);
       break;
     case LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_RECONFIG_COMPLETE:
+      handle_rrc_reconf_complete(&ul_dcch_msg.msg.rrc_con_reconfig_complete, pdu);
       parent->rrc_log->console("User 0x%x connected\n", rnti);
       state = RRC_STATE_REGISTERED; 
       break;
@@ -886,7 +861,6 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 
 void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
 {
-  U_TRACE("RRC:BEGIN");
   set_activity();
   
   if(msg->ue_id_type == LIBLTE_RRC_CON_REQ_UE_ID_TYPE_S_TMSI) {
@@ -900,7 +874,6 @@ void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
 
 void rrc::ue::handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQUEST_STRUCT *msg)
 {
-  U_TRACE("RRC:BEGIN");
   //TODO: Check Short-MAC-I value 
   parent->rrc_log->error("Not Supported: ConnectionReestablishment. \n");
   
@@ -908,7 +881,6 @@ void rrc::ue::handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQ
 
 void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu)
 {
-  U_TRACE("RRC:BEGIN");
   parent->rrc_log->info("RRCConnectionSetupComplete transaction ID: %d\n", msg->rrc_transaction_id);
 
   // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
@@ -916,6 +888,10 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
 
   memcpy(pdu->msg, msg->dedicated_info_nas.msg, msg->dedicated_info_nas.N_bytes);
   pdu->N_bytes = msg->dedicated_info_nas.N_bytes;
+
+  // Acknowledge Dedicated Configuration
+  parent->phy->set_conf_dedicated_ack(rnti, true);
+  parent->mac->phy_config_enabled(rnti, true);
 
   if(has_tmsi) {
     parent->s1ap->initial_ue(rnti, pdu, m_tmsi, mmec);
@@ -925,21 +901,28 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
+void rrc::ue::handle_rrc_reconf_complete(LIBLTE_RRC_CONNECTION_RECONFIGURATION_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu)
+{
+  parent->rrc_log->info("RRCReconfigurationComplete transaction ID: %d\n", msg->rrc_transaction_id);
+
+
+  // Acknowledge Dedicated Configuration
+  parent->phy->set_conf_dedicated_ack(rnti, true);
+  parent->mac->phy_config_enabled(rnti, true);
+}
+
 void rrc::ue::handle_security_mode_complete(LIBLTE_RRC_SECURITY_MODE_COMPLETE_STRUCT *msg)
 {
-  U_TRACE("RRC:BEGIN");
   parent->rrc_log->info("SecurityModeComplete transaction ID: %d\n", msg->rrc_transaction_id);
 }
 
 void rrc::ue::handle_security_mode_failure(LIBLTE_RRC_SECURITY_MODE_FAILURE_STRUCT *msg)
 {
-  U_TRACE("RRC:BEGIN");
   parent->rrc_log->info("SecurityModeFailure transaction ID: %d\n", msg->rrc_transaction_id);
 }
 
 void rrc::ue::handle_ue_cap_info(LIBLTE_RRC_UE_CAPABILITY_INFORMATION_STRUCT *msg)
 {
-  U_TRACE("RRC:BEGIN");
   parent->rrc_log->info("UECapabilityInformation transaction ID: %d\n", msg->rrc_transaction_id);
   for(uint32_t i=0; i<msg->N_ue_caps; i++) {
     if(msg->ue_capability_rat[i].rat_type != LIBLTE_RRC_RAT_TYPE_EUTRA) {
@@ -959,19 +942,16 @@ void rrc::ue::handle_ue_cap_info(LIBLTE_RRC_UE_CAPABILITY_INFORMATION_STRUCT *ms
 
 void rrc::ue::set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT *rates)
 {
-  U_TRACE("RRC:BEGIN");
   memcpy(&bitrates, rates, sizeof(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT));
 }
 
 void rrc::ue::set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps)
 {
-  U_TRACE("RRC:BEGIN");
   memcpy(&security_capabilities, caps, sizeof(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT));
 }
 
 void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
 {
-  U_TRACE("RRC:BEGIN");
   memcpy(k_enb, key, length);
 
   // Select algos (TODO: use security capabilities and config preferences)
@@ -1000,7 +980,6 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
 
 bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)
 {
-  U_TRACE("RRC:BEGIN");
   for(uint32_t i=0; i<e->len; i++) {
     LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab = &e->buffer[i];
     if(erab->ext) {
@@ -1025,7 +1004,6 @@ bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)
 
 bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  U_TRACE("RRC:BEGIN");
   for(uint32_t i=0; i<e->len; i++) {
     LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT *erab = &e->buffer[i];
     if(erab->ext) {
@@ -1055,7 +1033,6 @@ void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT 
                          LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT *addr, uint32_t teid_out,
                          LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu)
 {
-  U_TRACE("RRC:BEGIN");
   erabs[id].id = id;
   memcpy(&erabs[id].qos_params, qos, sizeof(LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT));
   memcpy(&erabs[id].address, addr, sizeof(LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT));
@@ -1074,7 +1051,6 @@ void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT 
 
 bool rrc::ue::release_erabs()
 {
-  U_TRACE("RRC:BEGIN");
   typedef std::map<uint8_t, erab_t>::iterator it_t;
   for(it_t it=erabs.begin(); it!=erabs.end(); ++it) {
     // TODO: notify GTPU layer
@@ -1085,7 +1061,6 @@ bool rrc::ue::release_erabs()
 
 void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 {
-  U_TRACE("RRC:BEGIN");
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT res;
   res.ext = false;
   res.E_RABSetupListCtxtSURes.len = 0;
@@ -1106,7 +1081,6 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 
 void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  U_TRACE("RRC:BEGIN");
   LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT res;
   res.E_RABSetupListBearerSURes.len = 0;
   res.E_RABFailedToSetupListBearerSURes.len = 0;
@@ -1128,7 +1102,6 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTB
 
 void rrc::ue::send_connection_reest_rej()
 {
-  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg; 
   bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
   
@@ -1140,7 +1113,6 @@ void rrc::ue::send_connection_reest_rej()
 
 void rrc::ue::send_connection_setup(bool is_setup)
 {
-  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg; 
   bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
   
@@ -1175,14 +1147,17 @@ void rrc::ue::send_connection_setup(bool is_setup)
   mac_cfg->time_alignment_timer = parent->cfg.mac_cnfg.time_alignment_timer;
   
   // physicalConfigDedicated
-  rr_cfg->phy_cnfg_ded_present = true; 
+  rr_cfg->phy_cnfg_ded_present = true;
   LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cfg = &rr_cfg->phy_cnfg_ded; 
   bzero(phy_cfg, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
   phy_cfg->pusch_cnfg_ded_present = true; 
   memcpy(&phy_cfg->pusch_cnfg_ded, &parent->cfg.pusch_cfg, sizeof(LIBLTE_RRC_PUSCH_CONFIG_DEDICATED_STRUCT));
   phy_cfg->sched_request_cnfg_present = true;
   phy_cfg->sched_request_cnfg.setup_present = true; 
-  phy_cfg->sched_request_cnfg.dsr_trans_max = parent->cfg.sr_cfg.dsr_max; 
+  phy_cfg->sched_request_cnfg.dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
+
+  phy_cfg->antenna_info_default_value = true;
+  phy_cfg->antenna_info_present = false;
 
   if (is_setup) {
     if (sr_allocate(parent->cfg.sr_cfg.period, &phy_cfg->sched_request_cnfg.sr_cnfg_idx, &phy_cfg->sched_request_cnfg.sr_pucch_resource_idx)) {
@@ -1200,20 +1175,24 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->ul_pwr_ctrl_ded.accumulation_en = true;
   phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch = 0, 
   phy_cfg->ul_pwr_ctrl_ded.p_srs_offset = 3; 
-  
-  phy_cfg->pdsch_cnfg_ded_present = true; 
-  phy_cfg->pdsch_cnfg_ded = LIBLTE_RRC_PDSCH_CONFIG_P_A_DB_0; 
-  
+
+  // PDSCH
+  phy_cfg->pdsch_cnfg_ded_present = true;
+  phy_cfg->pdsch_cnfg_ded = parent->cfg.pdsch_cfg;
+
+  // PUCCH
+  phy_cfg->pucch_cnfg_ded_present = true;
+  phy_cfg->pucch_cnfg_ded.ack_nack_repetition_n1_pucch_an = 0;
+
   phy_cfg->cqi_report_cnfg_present = true; 
   if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
     phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true; 
-    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;     
+    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
   } else {
     phy_cfg->cqi_report_cnfg.report_periodic_present = true; 
     phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true; 
     phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic = LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI; 
-    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI; 
-    phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false; 
+    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = false;
     if (is_setup) {
       if (cqi_allocate(parent->cfg.cqi_cfg.period, 
                        &phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx, 
@@ -1263,7 +1242,9 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
-  parent->mac->phy_config_enabled(rnti, true);
+  parent->phy->set_conf_dedicated_ack(rnti, false);
+  parent->mac->set_dl_ant_info(rnti, &phy_cfg->antenna_info_explicit_value);
+  parent->mac->phy_config_enabled(rnti, false);
   
   rr_cfg->drb_to_add_mod_list_size = 0; 
   rr_cfg->drb_to_release_list_size = 0; 
@@ -1276,14 +1257,12 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
 void rrc::ue::send_connection_reest()
 {
-  U_TRACE("RRC:BEGIN");
   send_connection_setup(false);
 }
 
 
 void rrc::ue::send_connection_release()
 {
-  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg; 
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RELEASE; 
   dl_dcch_msg.msg.rrc_con_release.rrc_transaction_id = (transaction_id++)%4; 
@@ -1294,7 +1273,6 @@ void rrc::ue::send_connection_release()
 
 int rrc::ue::get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drb_id)
 {
-  U_TRACE("RRC:BEGIN");
   uint32_t lc_id    = drb_id + 2; 
   uint32_t erab_id  = lc_id + 2; 
   uint32_t qci = erabs[erab_id].qos_params.qCI.QCI;
@@ -1334,7 +1312,6 @@ int rrc::ue::get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drb_id)
 void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 {
   
-  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg; 
   bzero(&dl_dcch_msg, sizeof(LIBLTE_RRC_DL_DCCH_MSG_STRUCT));
   
@@ -1354,19 +1331,31 @@ void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 
   phy_cfg->cqi_report_cnfg_present = true;
   if (cqi_allocated) {
-    phy_cfg->cqi_report_cnfg.report_periodic_present = true; 
-    phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true; 
-    phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic = LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI; 
-    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = false; 
-    phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false;    
-    phy_cfg->cqi_report_cnfg.report_periodic.pucch_resource_idx = cqi_pucch; 
-    phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx       = cqi_idx;
+    cqi_get(&phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx,
+            &phy_cfg->cqi_report_cnfg.report_periodic.pucch_resource_idx);
+    phy_cfg->cqi_report_cnfg.report_periodic_present = true;
+    phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true;
+    phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic =
+        LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI;
+    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    if (parent->cfg.antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+        parent->cfg.antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = true;
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx = 483; /* TODO: HARDCODED! Add to UL scheduler */
+    } else {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false;
+    }
   } else {
-    phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true; 
-    phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30; 
-    phy_cfg->cqi_report_cnfg.nom_pdsch_rs_epre_offset = 0;     
+    phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true;
+    if (phy_cfg->antenna_info_present &&
+        parent->cfg.antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
+    }
   }
-  
+  parent->phy->set_config_dedicated(rnti, phy_cfg);
+
   sr_get(&phy_cfg->sched_request_cnfg.sr_cnfg_idx, &phy_cfg->sched_request_cnfg.sr_pucch_resource_idx);
   
   pdu->reset();
@@ -1380,7 +1369,6 @@ void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 {
   
-  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg; 
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG; 
   dl_dcch_msg.msg.rrc_con_reconfig.rrc_transaction_id = (transaction_id++)%4; 
@@ -1396,6 +1384,50 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   conn_reconf->mob_ctrl_info_present = false; 
   conn_reconf->sec_cnfg_ho_present   = false; 
   
+  LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cfg = &conn_reconf->rr_cnfg_ded.phy_cnfg_ded;
+  bzero(phy_cfg, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
+  conn_reconf->rr_cnfg_ded.phy_cnfg_ded_present  = true;
+
+  if (parent->cfg.antenna_info.tx_mode > LIBLTE_RRC_TRANSMISSION_MODE_1) {
+    memcpy(&phy_cfg->antenna_info_explicit_value, &parent->cfg.antenna_info,
+           sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+    phy_cfg->antenna_info_present = true;
+    phy_cfg->antenna_info_default_value = false;
+  }
+
+  // Configure PHY layer
+  phy_cfg->cqi_report_cnfg_present = true;
+  if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
+    phy_cfg->cqi_report_cnfg.report_mode_aperiodic_present = true;
+    if (phy_cfg->antenna_info_present &&
+        phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_mode_aperiodic = LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30;
+    }
+  } else {
+    cqi_get(&phy_cfg->cqi_report_cnfg.report_periodic.pmi_cnfg_idx,
+            &phy_cfg->cqi_report_cnfg.report_periodic.pucch_resource_idx);
+    phy_cfg->cqi_report_cnfg.report_periodic_present = true;
+    phy_cfg->cqi_report_cnfg.report_periodic_setup_present = true;
+    phy_cfg->cqi_report_cnfg.report_periodic.format_ind_periodic = LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_WIDEBAND_CQI;
+    phy_cfg->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    if (phy_cfg->antenna_info_present &&
+        (phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+            phy_cfg->antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4)) {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = true;
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx = 483;
+    } else {
+      phy_cfg->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present = false;
+    }
+  }
+  phy_cfg->cqi_report_cnfg.nom_pdsch_rs_epre_offset = 0;
+
+  parent->phy->set_config_dedicated(rnti, phy_cfg);
+  parent->phy->set_conf_dedicated_ack(rnti, false);
+  parent->mac->set_dl_ant_info(rnti, &phy_cfg->antenna_info_explicit_value);
+  parent->mac->phy_config_enabled(rnti, false);
+
   // Add SRB2 to the message 
   conn_reconf->rr_cnfg_ded.srb_to_add_mod_list_size = 1; 
   conn_reconf->rr_cnfg_ded.srb_to_add_mod_list[0].srb_id = 2; 
@@ -1459,7 +1491,6 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 
 void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  U_TRACE("RRC:BEGIN");
   srslte::byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
 
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
@@ -1513,7 +1544,6 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
 
 void rrc::ue::send_security_mode_command()
 {
-  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_SECURITY_MODE_COMMAND;
 
@@ -1529,7 +1559,6 @@ void rrc::ue::send_security_mode_command()
 
 void rrc::ue::send_ue_cap_enquiry()
 {
-  U_TRACE("RRC:BEGIN");
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_UE_CAPABILITY_ENQUIRY;
 
@@ -1546,7 +1575,6 @@ void rrc::ue::send_ue_cap_enquiry()
 
 void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg) 
 {
-  U_TRACE("RRC:BEGIN");
   // Allocate a new PDU buffer, pack the message and send to PDCP 
   byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
   if (pdu) {
@@ -1567,7 +1595,6 @@ void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg)
 
 void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buffer_t *pdu) 
 {  
-  U_TRACE("RRC:BEGIN");
   if (!pdu) {
     pdu = parent->pool->allocate(__FUNCTION__);
   }
@@ -1589,7 +1616,6 @@ void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buff
 
 int rrc::ue::sr_free()
 {
-  U_TRACE("RRC:BEGIN");
   if (sr_allocated) {
     if (parent->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx] > 0) {
       parent->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx]--;
@@ -1603,14 +1629,12 @@ int rrc::ue::sr_free()
 
 void rrc::ue::sr_get(uint32_t *I_sr, uint32_t *N_pucch_sr)
 {
-  U_TRACE("RRC:BEGIN");
   *I_sr       = sr_I; 
   *N_pucch_sr = sr_N_pucch; 
 }
 
 int rrc::ue::sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr) 
 {
-  U_TRACE("RRC:BEGIN");
   uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp)?3:2;
   uint32_t delta_pucch_shift = liblte_rrc_delta_pucch_shift_num[parent->sib2.rr_config_common_sib.pucch_cnfg.delta_pucch_shift];
   
@@ -1673,7 +1697,6 @@ int rrc::ue::sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr)
 
 int rrc::ue::cqi_free()
 {
-  U_TRACE("RRC:BEGIN");
   if (cqi_allocated) {
     if (parent->cqi_sched.nof_users[cqi_sched_prb_idx][cqi_sched_sf_idx] > 0) {
       parent->cqi_sched.nof_users[cqi_sched_prb_idx][cqi_sched_sf_idx]--;
@@ -1687,14 +1710,12 @@ int rrc::ue::cqi_free()
 
 void rrc::ue::cqi_get(uint32_t *pmi_idx, uint32_t *n_pucch)
 {
-  U_TRACE("RRC:BEGIN");
   *pmi_idx = cqi_idx; 
   *n_pucch = cqi_pucch; 
 }
 
 int rrc::ue::cqi_allocate(uint32_t period, uint32_t *pmi_idx, uint32_t *n_pucch) 
 {
-  U_TRACE("RRC:BEGIN");
   uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp)?3:2;
   uint32_t delta_pucch_shift = liblte_rrc_delta_pucch_shift_num[parent->sib2.rr_config_common_sib.pucch_cnfg.delta_pucch_shift];
   

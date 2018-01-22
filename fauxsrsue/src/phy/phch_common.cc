@@ -29,10 +29,10 @@
 #include "srslte/srslte.h"
 #include "phy/phch_common.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsue {
 
@@ -40,7 +40,6 @@ cf_t zeros[50000];
 
 phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
 {
-  P_TRACE("PHCHCOMM:BEGIN");
   config    = NULL; 
   args      = NULL; 
   log_h     = NULL; 
@@ -48,24 +47,7 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   mac       = NULL; 
   max_mutex = max_mutex_;
   nof_mutex = 0; 
-  sr_enabled        = false; 
-  is_first_of_burst = true; 
-  is_first_tx       = true; 
-  rar_grant_pending = false; 
-  pathloss = 0; 
-  cur_pathloss = 0; 
-  cur_pusch_power = 0; 
-  p0_preamble = 0; 
-  cur_radio_power = 0; 
-  rx_gain_offset = 0; 
-  sr_last_tx_tti = -1;
-  cur_pusch_power = 0;
-  bzero(zeros, 50000*sizeof(cf_t));
 
-  // FIXME: This is an ungly fix to avoid the TX filters to empty
-  for (int i=0;i<50000;i++) {
-    zeros[i] = 0.01*cexpf(((float) i/50000)*0.1*_Complex_I);
-  }
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   dl_metrics_read = true;
   dl_metrics_count = 0;
@@ -75,11 +57,20 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   bzero(&sync_metrics, sizeof(sync_metrics_t));
   sync_metrics_read = true;
   sync_metrics_count = 0;
+
+  bzero(zeros, 50000*sizeof(cf_t));
+
+  // FIXME: This is an ugly fix to avoid the TX filters to empty
+  for (int i=0;i<50000;i++) {
+    zeros[i] = 0.01*cexpf(((float) i/50000)*0.1*_Complex_I);
+  }
+
+  reset();
+
 }
   
-void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, rrc_interface_phy *_rrc, mac_interface_faux_phy *_mac)
+void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, rrc_interface_phy *_rrc, mac_interface_phy *_mac)
 {
-  P_TRACE("PHCHCOMM:BEGIN");
   log_h     = _log; 
   radio_h   = _radio;
   rrc       = _rrc;
@@ -95,13 +86,11 @@ void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args,
 }
 
 void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
-  P_TRACE("PHCHCOMM:BEGIN");
   nof_mutex = nof_mutex_; 
   assert(nof_mutex <= max_mutex);
 }
 
 bool phch_common::ul_rnti_active(uint32_t tti) {
-  P_TRACE("PHCHCOMM:BEGIN");
   if ((((int)tti >= ul_rnti_start && ul_rnti_start >= 0) || ul_rnti_start < 0) &&
       (((int)tti <  ul_rnti_end   && ul_rnti_end   >= 0) || ul_rnti_end   < 0))
   {
@@ -112,7 +101,6 @@ bool phch_common::ul_rnti_active(uint32_t tti) {
 }
 
 bool phch_common::dl_rnti_active(uint32_t tti) {
-  P_TRACE("PHCHCOMM:BEGIN");
   Debug("tti=%d, dl_rnti_start=%d, dl_rnti_end=%d, dl_rnti=0x%x\n", tti, dl_rnti_start, dl_rnti_end, dl_rnti);
   if ((((int)tti >= dl_rnti_start && dl_rnti_start >= 0)  || dl_rnti_start < 0) &&
       (((int)tti <  dl_rnti_end   && dl_rnti_end   >= 0)  || dl_rnti_end   < 0))
@@ -134,27 +122,26 @@ bool phch_common::dl_rnti_active(uint32_t tti) {
 
 srslte::radio* phch_common::get_radio()
 {
-  P_TRACE("PHCHCOMM:BEGIN");
   return radio_h;
 }
 
 // Unpack RAR grant as defined in Section 6.2 of 36.213 
 void phch_common::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])
 {
-  P_TRACE("PHCHCOMM:BEGIN");
   srslte_dci_rar_grant_unpack(&rar_grant, grant_payload);
-  rar_grant_pending = true; 
-  // PUSCH is at n+6 or n+7 and phch_worker assumes default delay of 4 ttis
+  rar_grant_pending = true;
+  if (MSG3_DELAY_MS < 0) {
+    fprintf(stderr, "Error MSG3_DELAY_MS can't be negative\n");
+  }
   if (rar_grant.ul_delay) {
-    rar_grant_tti     = (tti + 3) % 10240; 
+    rar_grant_tti     = (tti + MSG3_DELAY_MS + 1) % 10240;
   } else {
-    rar_grant_tti     = (tti + 2) % 10240; 
+    rar_grant_tti     = (tti + MSG3_DELAY_MS) % 10240;
   }
 }
 
 bool phch_common::get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_grant_)
 {
-  P_TRACE("PHCHCOMM:BEGIN");
   if (rar_grant_pending && tti >= rar_grant_tti) {
     if (rar_grant_) {
       rar_grant_pending = false; 
@@ -167,7 +154,6 @@ bool phch_common::get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_gran
 
 /* Common variables used by all phy workers */
 uint16_t phch_common::get_ul_rnti(uint32_t tti) {
-  P_TRACE("PHCHCOMM:BEGIN");
   if (ul_rnti_active(tti)) {
     return ul_rnti; 
   } else {
@@ -175,18 +161,15 @@ uint16_t phch_common::get_ul_rnti(uint32_t tti) {
   }
 }
 srslte_rnti_type_t phch_common::get_ul_rnti_type() {
-  P_TRACE("PHCHCOMM:BEGIN");
   return ul_rnti_type; 
 }
 void phch_common::set_ul_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start, int tti_end) {
-  P_TRACE("PHCHCOMM:BEGIN");
   ul_rnti = rnti_value;
   ul_rnti_type = type;
   ul_rnti_start = tti_start;
   ul_rnti_end   = tti_end;
 }
 uint16_t phch_common::get_dl_rnti(uint32_t tti) {
-  P_TRACE("PHCHCOMM:BEGIN");
   if (dl_rnti_active(tti)) {
     return dl_rnti; 
   } else {
@@ -194,11 +177,9 @@ uint16_t phch_common::get_dl_rnti(uint32_t tti) {
   }
 }
 srslte_rnti_type_t phch_common::get_dl_rnti_type() {
-  P_TRACE("PHCHCOMM:BEGIN");
   return dl_rnti_type; 
 }
 void phch_common::set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int tti_start, int tti_end) {
-  P_TRACE("PHCHCOMM:BEGIN");
   dl_rnti       = rnti_value;
   dl_rnti_type  = type;
   dl_rnti_start = tti_start;
@@ -209,32 +190,37 @@ void phch_common::set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int 
 }
 
 void phch_common::reset_pending_ack(uint32_t tti) {
-  P_TRACE("PHCHCOMM:BEGIN");
-  pending_ack[tti%10].enabled = false; 
+  pending_ack[TTIMOD(tti)].enabled = false;
 }
 
 void phch_common::set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs) {
-  P_TRACE("PHCHCOMM:BEGIN");
-  pending_ack[tti%10].enabled  = true; 
-  pending_ack[tti%10].I_lowest = I_lowest;       
-  pending_ack[tti%10].n_dmrs = n_dmrs;            
+  pending_ack[TTIMOD(tti)].enabled  = true;
+  pending_ack[TTIMOD(tti)].I_lowest = I_lowest;
+  pending_ack[TTIMOD(tti)].n_dmrs = n_dmrs;
   Debug("Set pending ACK for tti=%d I_lowest=%d, n_dmrs=%d\n", tti, I_lowest, n_dmrs);
 }
 
 bool phch_common::get_pending_ack(uint32_t tti) {
-  P_TRACE("PHCHCOMM:BEGIN");
   return get_pending_ack(tti, NULL, NULL); 
 }
 
 bool phch_common::get_pending_ack(uint32_t tti, uint32_t *I_lowest, uint32_t *n_dmrs) {
-  P_TRACE("PHCHCOMM:BEGIN");
   if (I_lowest) {
-    *I_lowest = pending_ack[tti%10].I_lowest;
+    *I_lowest = pending_ack[TTIMOD(tti)].I_lowest;
   }
   if (n_dmrs) {
-    *n_dmrs = pending_ack[tti%10].n_dmrs;
+    *n_dmrs = pending_ack[TTIMOD(tti)].n_dmrs;
   }
-  return pending_ack[tti%10].enabled;
+  return pending_ack[TTIMOD(tti)].enabled;
+}
+
+bool phch_common::is_any_pending_ack() {
+  for (int i=0;i<TTIMOD_SZ;i++) {
+    if (pending_ack[i].enabled) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /* The transmisison of UL subframes must be in sequence. Each worker uses this function to indicate
@@ -245,7 +231,6 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
                                    cf_t *buffer, uint32_t nof_samples, 
                                    srslte_timestamp_t tx_time) 
 {
-  P_TRACE("PHCHCOMM:BEGIN");
 
   // Wait previous TTIs to be transmitted 
   if (is_first_tx) {
@@ -256,12 +241,12 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
 
   radio_h->set_tti(tti); 
   if (tx_enable) {
-    radio_h->tx(buffer, nof_samples, tx_time);
+    radio_h->tx_single(buffer, nof_samples, tx_time);
     is_first_of_burst = false; 
   } else {
     if (TX_MODE_CONTINUOUS) {
       if (!is_first_of_burst) {
-        radio_h->tx(zeros, nof_samples, tx_time);
+        radio_h->tx_single(zeros, nof_samples, tx_time);
       }
     } else {
       if (!is_first_of_burst) {
@@ -272,25 +257,18 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
   }
   // Trigger next transmission 
   pthread_mutex_unlock(&tx_mutex[(tti+1)%nof_mutex]);
-  
-  // Trigger MAC clock
-  mac->tti_clock(tti);
-
 }    
 
 
 void phch_common::set_cell(const srslte_cell_t &c) {
-  P_TRACE("PHCHCOMM:BEGIN");
   cell = c;
 }
 
 uint32_t phch_common::get_nof_prb() {
-  P_TRACE("PHCHCOMM:BEGIN");
   return cell.nof_prb;
 }
 
 void phch_common::set_dl_metrics(const dl_metrics_t &m) {
-  P_TRACE("PHCHCOMM:BEGIN");
   if(dl_metrics_read) {
     dl_metrics       = m;
     dl_metrics_count = 1;
@@ -309,13 +287,11 @@ void phch_common::set_dl_metrics(const dl_metrics_t &m) {
 }
 
 void phch_common::get_dl_metrics(dl_metrics_t &m) {
-  P_TRACE("PHCHCOMM:BEGIN");
   m = dl_metrics;
   dl_metrics_read = true;
 }
 
 void phch_common::set_ul_metrics(const ul_metrics_t &m) {
-  P_TRACE("PHCHCOMM:BEGIN");
   if(ul_metrics_read) {
     ul_metrics       = m;
     ul_metrics_count = 1;
@@ -328,13 +304,11 @@ void phch_common::set_ul_metrics(const ul_metrics_t &m) {
 }
 
 void phch_common::get_ul_metrics(ul_metrics_t &m) {
-  P_TRACE("PHCHCOMM:BEGIN");
   m = ul_metrics;
   ul_metrics_read = true;
 }
 
 void phch_common::set_sync_metrics(const sync_metrics_t &m) {
-  P_TRACE("PHCHCOMM:BEGIN");
 
   if(sync_metrics_read) {
     sync_metrics = m;
@@ -348,20 +322,43 @@ void phch_common::set_sync_metrics(const sync_metrics_t &m) {
 }
 
 void phch_common::get_sync_metrics(sync_metrics_t &m) {
-  P_TRACE("PHCHCOMM:BEGIN");
   m = sync_metrics;
   sync_metrics_read = true;
 }
 
+void phch_common::reset() {
+  sr_enabled        = false;
+  is_first_of_burst = true;
+  is_first_tx       = true;
+  rar_grant_pending = false;
+  pathloss = 0;
+  cur_pathloss = 0;
+  cur_pusch_power = 0;
+  p0_preamble = 0;
+  cur_radio_power = 0;
+  rx_gain_offset = 0;
+  sr_last_tx_tti = -1;
+  cur_pusch_power = 0;
+  avg_rsrp = 0;
+  avg_rsrp_dbm = 0;
+  avg_rsrq_db = 0;
+
+  pcell_meas_enabled  = false;
+  pcell_report_period = 20;
+
+  bzero(pending_ack, sizeof(pending_ack_t)*TTIMOD_SZ);
+
+}
+
 void phch_common::reset_ul()
 {
-  P_TRACE("PHCHCOMM:BEGIN");
-  is_first_tx = true; 
+  is_first_tx = true;
   is_first_of_burst = true; 
   for (uint32_t i=0;i<nof_mutex;i++) {
     pthread_mutex_trylock(&tx_mutex[i]);
     pthread_mutex_unlock(&tx_mutex[i]);
   }
+  radio_h->tx_end();
 }
 
 }

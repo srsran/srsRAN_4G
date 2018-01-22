@@ -40,7 +40,8 @@ target_link_libraries(srsue   srsue_mac
                               srslte_upper
                               srslte_radio
                               ${CMAKE_THREAD_LIBS_INIT}
-                              ${Boost_LIBRARIES})
+                              ${Boost_LIBRARIES}
+                              ${FFTW3F_LIBRARIES})
 
 if (RPATH)
   set_target_properties(srsue PROPERTIES INSTALL_RPATH ".")

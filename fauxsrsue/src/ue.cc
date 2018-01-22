@@ -32,7 +32,6 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
-#include <ue_base.h>
 
 using namespace srslte;
 
@@ -56,8 +55,9 @@ bool ue::init(all_args_t *args_)
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
   } else {
-    logger_file.init(args->log.filename);
+    logger_file.init(args->log.filename, args->log.file_max_size);
     logger_file.log("\n\n");
+    logger_file.log(get_build_string().c_str());
     logger = &logger_file;
   }
 
@@ -84,6 +84,16 @@ bool ue::init(all_args_t *args_)
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
+  
+  /* here we add a log layer to handle logging from the phy library*/
+  srslte::log_filter *lib_log = new srslte::log_filter;
+  char tmp[16];
+  sprintf(tmp, "PHY_LIB");
+  lib_log->init(tmp, logger, true);
+  phy_log.push_back((void*) lib_log);
+  ((srslte::log_filter*) phy_log[args->expert.phy.nof_phy_threads])->set_level(level(args->log.phy_lib_level));
+ 
+  
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
@@ -92,7 +102,7 @@ bool ue::init(all_args_t *args_)
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+  for (int i=0;i<args->expert.phy.nof_phy_threads + 1;i++) {
     ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
   }
   mac_log.set_hex_limit(args->log.mac_hex_limit);
@@ -104,20 +114,26 @@ bool ue::init(all_args_t *args_)
   usim_log.set_hex_limit(args->log.usim_hex_limit);
 
   // Set up pcap and trace
-  if(args->pcap.enable)
-  {
+  if(args->pcap.enable) {
     mac_pcap.open(args->pcap.filename.c_str());
     mac.start_pcap(&mac_pcap);
   }
-  if(args->trace.enable)
-  {
+  if(args->pcap.nas_enable) {
+    nas_pcap.open(args->pcap.nas_filename.c_str());
+    nas.start_pcap(&nas_pcap);
+  }
+  if(args->trace.enable) {
     phy.start_trace();
     radio.start_trace();
   }
   
   // Init layers
 
-  // PHY initis in background, start before radio
+  if (args->rf.rx_gain < 0) {
+    phy.set_agc_enable(true);
+  }
+
+    // PHY initis in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
   phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
 
@@ -133,8 +149,7 @@ bool ue::init(all_args_t *args_)
   }
   
   printf("Opening RF device with %d RX antennas...\n", args->rf.nof_rx_ant);
-  if(!radio.init_multi(args->rf.nof_rx_ant, dev_args, dev_name))
-  {
+  if(!radio.init_multi(args->rf.nof_rx_ant, dev_args, dev_name)) {
     printf("Failed to find device %s with args %s\n",
            args->rf.device_name.c_str(), args->rf.device_args.c_str());
     return false;
@@ -160,8 +175,6 @@ bool ue::init(all_args_t *args_)
 
   if (args->rf.rx_gain < 0) {
     radio.start_agc(false);    
-    radio.set_tx_rx_gain_offset(10);
-    phy.set_agc_enable(true);
   } else {
     radio.set_rx_gain(args->rf.rx_gain);
   }
@@ -185,13 +198,24 @@ bool ue::init(all_args_t *args_)
   nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
 
+  gw.set_netmask(args->expert.ip_netmask);
+
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
-  rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
+
+  // Get current band from provided EARFCN
+  args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
+  args->rrc.nof_supported_bands = 1;
+  args->rrc.ue_category = atoi(args->ue_category_str.c_str());
+  rrc.set_args(&args->rrc);
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;
   earfcn_list.push_back(args->rf.dl_earfcn);
   phy.set_earfcn(earfcn_list);
+
+  if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {
+    phy.force_freq(args->rf.dl_freq, args->rf.ul_freq);
+  }
 
   printf("Waiting PHY to initialize...\n");
   phy.wait_initialize();
@@ -231,12 +255,13 @@ void ue::stop()
     radio.stop();
     
     usleep(1e5);
-    if(args->pcap.enable)
-    {
+    if(args->pcap.enable) {
        mac_pcap.close();
     }
-    if(args->trace.enable)
-    {
+    if(args->pcap.nas_enable) {
+       nas_pcap.close();
+    }
+    if(args->trace.enable) {
       phy.write_trace(args->trace.phy_filename);
       radio.write_trace(args->trace.radio_filename);
     }

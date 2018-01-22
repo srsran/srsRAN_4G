@@ -30,10 +30,10 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "mac/ue.h"
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 
 namespace srsenb {
@@ -107,9 +107,9 @@ srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
   return &softbuffer_rx[tti%NOF_HARQ_PROCESSES];
 }
 
-srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process)
+srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx)
 {
-  return &softbuffer_tx[harq_process%NOF_HARQ_PROCESSES];
+  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx  )%NOF_HARQ_PROCESSES];
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
@@ -171,7 +171,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
       if (mac_msg_ul.get()->get_sdu_lcid() == 0) {
         uint8_t *x = mac_msg_ul.get()->get_sdu_ptr();
         uint32_t sum = 0;
-        for (uint32_t i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
+        for (int i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
           sum += x[i];
         }
         if (sum == 0) {
@@ -197,11 +197,11 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
 
       // Save contention resolution if lcid == 0
       if (mac_msg_ul.get()->get_sdu_lcid() == 0 && route_pdu) {
-        uint32_t nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
+        int nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
         if (mac_msg_ul.get()->get_payload_size() >= nbytes) {
           uint8_t *ue_cri_ptr = (uint8_t *) &conres_id;
           uint8_t *pkt_ptr = mac_msg_ul.get()->get_sdu_ptr(); // Warning here: we want to include the
-          for (uint32_t i = 0; i < nbytes; i++) {
+          for (int i = 0; i < nbytes; i++) {
             ue_cri_ptr[nbytes - i - 1] = pkt_ptr[i];
           }
         } else {
@@ -359,14 +359,14 @@ void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
   }
 }
 
-uint8_t* ue::generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST], 
+uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                       uint32_t nof_pdu_elems, uint32_t grant_size)
 {
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
   if (rlc) 
   {
-    mac_msg_dl.init_tx(tx_payload_buffer, grant_size, false);
+    mac_msg_dl.init_tx(tx_payload_buffer[tb_idx], grant_size, false);
     for (uint32_t i=0;i<nof_pdu_elems;i++) {
       if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
         allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
@@ -405,6 +405,20 @@ void ue::metrics_read(mac_metrics_t* metrics_)
 void ue::metrics_phr(float phr) {
   metrics.phr = SRSLTE_VEC_CMA(phr, metrics.phr, phr_counter);
   phr_counter++;
+}
+
+void ue::metrics_dl_ri(uint32_t dl_ri) {
+  if (metrics.dl_ri == 0.0f) {
+    metrics.dl_ri = (float) dl_ri + 1.0f;
+  } else {
+    metrics.dl_ri = SRSLTE_VEC_EMA((float) dl_ri + 1.0f, metrics.dl_ri, 0.5f);
+  }
+  dl_ri_counter++;
+}
+
+void ue::metrics_dl_pmi(uint32_t dl_ri) {
+  metrics.dl_pmi = SRSLTE_VEC_CMA((float) dl_ri, metrics.dl_pmi, dl_pmi_counter);
+  dl_pmi_counter++;
 }
 
 void ue::metrics_dl_cqi(uint32_t dl_cqi) {

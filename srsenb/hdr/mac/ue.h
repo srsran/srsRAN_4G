@@ -72,10 +72,10 @@ public:
   void     set_tti(uint32_t tti); 
   
   void     config(uint16_t rnti, uint32_t nof_prb, sched_interface *sched, rrc_interface_mac *rrc_, rlc_interface_mac *rlc, srslte::log *log_h);
-  uint8_t* generate_pdu(sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST], 
+  uint8_t* generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                     uint32_t nof_pdu_elems, uint32_t grant_size);
   
-  srslte_softbuffer_tx_t* get_tx_softbuffer(uint32_t harq_process);
+  srslte_softbuffer_tx_t* get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx);
   srslte_softbuffer_rx_t* get_rx_softbuffer(uint32_t tti);
   
   bool     process_pdus(); 
@@ -93,6 +93,8 @@ public:
   void metrics_rx(bool crc, uint32_t tbs);
   void metrics_tx(bool crc, uint32_t tbs);
   void metrics_phr(float phr);
+  void metrics_dl_ri(uint32_t dl_cqi);
+  void metrics_dl_pmi(uint32_t dl_cqi);
   void metrics_dl_cqi(uint32_t dl_cqi);
 
 
@@ -108,6 +110,8 @@ private:
 
   uint32_t phr_counter;
   uint32_t dl_cqi_counter;
+  uint32_t dl_ri_counter;
+  uint32_t dl_pmi_counter;
   mac_metrics_t metrics;
   
   srslte::mac_pcap* pcap;
@@ -118,17 +122,17 @@ private:
   
   uint32_t last_tti; 
   
-  uint32_t nof_failures; 
-  
-  const static int NOF_HARQ_PROCESSES = 8; 
+  uint32_t nof_failures;
+
+  const static int NOF_HARQ_PROCESSES = 2 * HARQ_DELAY_MS * SRSLTE_MAX_TB;
   srslte_softbuffer_tx_t softbuffer_tx[NOF_HARQ_PROCESSES];
   srslte_softbuffer_rx_t softbuffer_rx[NOF_HARQ_PROCESSES];
 
   uint8_t *pending_buffers[NOF_HARQ_PROCESSES]; 
   
-  // For DL there is a single buffer 
+  // For DL there are two buffers, one for each Transport block
   const static int payload_buffer_len = 128*1024; 
-  uint8_t          tx_payload_buffer[payload_buffer_len];
+  uint8_t          tx_payload_buffer[SRSLTE_MAX_TB][payload_buffer_len];
   
   // For UL there are multiple buffers per PID and are managed by pdu_queue
   srslte::pdu_queue pdus; 

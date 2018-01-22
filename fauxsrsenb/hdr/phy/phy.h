@@ -54,8 +54,8 @@ class phy : public phy_interface_mac,
 public:
 
   phy();
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_faux_phy *mac, srslte::log* log_h);
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_faux_phy *mac, std::vector<void*> log_vec);
+  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log* log_h);
+  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, std::vector<void*> log_vec);
   void stop();
   
   /* MAC->PHY interface */
@@ -66,6 +66,7 @@ public:
   static uint32_t tti_to_subf(uint32_t tti);
   
   void start_plot();
+  void set_conf_dedicated_ack(uint16_t rnti, bool dedicated_ack);
   void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated);
   
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);

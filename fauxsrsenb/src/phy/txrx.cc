@@ -32,18 +32,18 @@
 #include "phy/txrx.h"
 #include "phy/phch_worker.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 using namespace std; 
+
 
 namespace srsenb {
 
 txrx::txrx()
 {
-  P_TRACE("TXRX:BEGIN");
   running = false;   
   radio_h = NULL; 
   log_h   = NULL; 
@@ -53,7 +53,6 @@ txrx::txrx()
 
 bool txrx::init(srslte::radio* radio_h_, srslte::thread_pool* workers_pool_, phch_common* worker_com_, prach_worker *prach_, srslte::log* log_h_, uint32_t prio_)
 {
-  P_TRACE("TXRX:BEGIN");
   radio_h      = radio_h_;
   log_h        = log_h_;     
   workers_pool = workers_pool_;
@@ -71,7 +70,6 @@ bool txrx::init(srslte::radio* radio_h_, srslte::thread_pool* workers_pool_, phc
 
 void txrx::stop()
 {
-  P_TRACE("TXRX:BEGIN");
   running = false; 
   wait_thread_finish();
 }
@@ -79,16 +77,24 @@ void txrx::stop()
 void txrx::run_thread()
 {
   phch_worker *worker = NULL;
-  cf_t *buffer = NULL;
+  cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL};
   srslte_timestamp_t rx_time, tx_time; 
   uint32_t sf_len = SRSLTE_SF_LEN_PRB(worker_com->cell.nof_prb);
   
   float samp_rate = srslte_sampling_freq_hz(worker_com->cell.nof_prb);
+#if 0
   if (30720%((int) samp_rate/1000) == 0) {
     radio_h->set_master_clock_rate(30.72e6);        
   } else {
     radio_h->set_master_clock_rate(23.04e6);        
   }
+#else
+  if (samp_rate < 10e6) {
+    radio_h->set_master_clock_rate(4 * samp_rate);
+  } else {
+    radio_h->set_master_clock_rate(samp_rate);
+  }
+#endif
   
   log_h->console("Setting Sampling frequency %.2f MHz\n", (float) samp_rate/1000000);
 
@@ -103,44 +109,23 @@ void txrx::run_thread()
   
   // Set TTI so that first TX is at tti=0
   tti = 10235; 
-   
-  struct timeval tv_in, tv_out, tv_diff, tv_start;
-  const  struct timeval tv_step = {0, 1000}, tv_zero = {0, 0};
-  threads_print_self();
-  gettimeofday(&tv_start, NULL);
-  // aligin on the top of the second
-  usleep(1000000 - tv_start.tv_usec);
-  tv_start.tv_sec += 1; 
-  tv_start.tv_usec = 0;
-  g_tv_next = tv_start;
-  I_TRACE("begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
-
+    
   printf("\n==== eNodeB started ===\n");
   printf("Type <t> to view trace\n");
   // Main loop
   while (running) {
-    gettimeofday(&tv_in, NULL);
-    timeradd(&g_tv_next, &tv_step, &g_tv_next);
-    timersub(&g_tv_next, &tv_in,   &tv_diff);
-
     g_tti = tti = (tti+1)%10240;        
-
-    I_TRACE("***** time_in  %ld:%06ld next    %ld:%06ld *****", 
-            tv_in.tv_sec, 
-            tv_in.tv_usec,
-            tv_diff.tv_sec,
-            tv_diff.tv_usec);
-
     worker = (phch_worker*) workers_pool->wait_worker(tti);
-    if (worker) {          
-      buffer = worker->get_buffer_rx();
+    if (worker) {
+      for (int p = 0; p < SRSLTE_MAX_PORTS; p++){
+        buffer[p] = worker->get_buffer_rx(p);
+      }
       
-      radio_h->rx_now(buffer, sf_len, &rx_time);
+      radio_h->rx_now((void **) buffer, sf_len, &rx_time);
                     
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);
-      srslte_timestamp_add(&tx_time, 0, 4e-3);
-      I_TRACE("Next TX time %ld:%f", tx_time.full_secs, tx_time.frac_secs);
+      srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3);
       
       Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
             tti, tx_mutex_cnt, 
@@ -154,30 +139,8 @@ void txrx::run_thread()
       workers_pool->start_worker(worker);       
 
       // Trigger prach worker execution 
-      prach->new_tti(tti, buffer);
+      prach->new_tti(tti, buffer[0]);
       
-      gettimeofday(&tv_out, NULL);
-      timersub(&g_tv_next, &tv_out, &tv_diff);
-      if(timercmp(&tv_diff, &tv_zero, >))
-        {
-          I_TRACE("***** time_out %ld:%06ld remain  %ld:%06ld *****", 
-                  tv_out.tv_sec, 
-                  tv_out.tv_usec,
-                  tv_diff.tv_sec,
-                  tv_diff.tv_usec);
-
-          select(0, NULL, NULL, NULL, &tv_diff);
-        }
-      else
-        {
-          timersub(&tv_out, &g_tv_next, &tv_diff);
-
-          W_TRACE("***** time_out %ld:%06ld overrun %ld:%06ld *****", 
-                  tv_out.tv_sec, 
-                  tv_out.tv_usec,
-                  tv_diff.tv_sec,
-                  tv_diff.tv_usec);
-        }
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
       running = false; 

@@ -25,16 +25,15 @@
  */
 
 #include <string.h>
-#include <boost/concept_check.hpp>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
 #include "mac/scheduler.h"
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
 
@@ -47,162 +46,144 @@ namespace srsenb {
 
 void harq_proc::config(uint32_t id_, uint32_t max_retx_, srslte::log* log_h_)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   log_h    = log_h_; 
   id       = id_; 
   max_retx = max_retx_; 
-  ndi = false; 
+  for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+    ndi[i] = false;
+  }
 }
 
 void harq_proc::set_max_retx(uint32_t max_retx_) {
-  M_TRACE("SCHEDHARQ:BEGIN");
   log_h->debug("Set max_retx=%d pid=%d\n", max_retx_, id);
   max_retx = max_retx_; 
 }
 
 uint32_t harq_proc::get_id()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   return id; 
 }
 
-void harq_proc::reset()
+void harq_proc::reset(uint32_t tb_idx)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  active = false; 
-  ack = true; 
-  ack_received = false; 
-  n_rtx = 0; 
+  active[tb_idx] = false;
+  ack[tb_idx] = true;
+  ack_received[tb_idx] = false;
+  n_rtx[tb_idx] = 0;
   tti = 0; 
-  last_mcs = -1; 
-  last_tbs = -1; 
-  tx_cnt = 0; 
+  last_mcs[tb_idx] = -1;
+  last_tbs[tb_idx] = -1;
+  tx_cnt[tb_idx] = 0;
 }
 
-bool harq_proc::is_empty()
+bool harq_proc::is_empty(uint32_t tb_idx)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return !active || (active && ack && ack_received);
+  return !active[tb_idx] || (active[tb_idx] && ack[tb_idx] && ack_received[tb_idx]);
 }
 
-bool harq_proc::has_pending_retx_common()
+bool harq_proc::has_pending_retx_common(uint32_t tb_idx)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return !ack && n_rtx < max_retx; 
+  return !ack[tb_idx] && n_rtx[tb_idx] < max_retx;
 }
 
 uint32_t harq_proc::get_tti()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return tti; 
+  return (uint32_t) tti;
 }
 
-bool harq_proc::get_ack()
+bool harq_proc::get_ack(uint32_t tb_idx)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return ack; 
+  return ack[tb_idx];
 }
 
-void harq_proc::set_ack(bool ack_)
+void harq_proc::set_ack(uint32_t tb_idx, bool ack_)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  ack = ack_;   
-  ack_received = true;
-  log_h->debug("ACK=%d received pid=%d, n_rtx=%d, max_retx=%d\n", ack_, id, n_rtx, max_retx);
-  if (n_rtx + 1 >= max_retx) {
-    Warning("SCHED: discarting TB pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", id, tti, max_retx);
-    active = false;      
+  ack[tb_idx] = ack_;
+  ack_received[tb_idx] = true;
+  log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
+  if (n_rtx[tb_idx] + 1 >= max_retx) {
+    Warning("SCHED: discarting TB %d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", tb_idx, id, tti, max_retx);
+    active[tb_idx] = false;
   }
 }
 
-void harq_proc::new_tx_common(uint32_t tti_, int mcs, int tbs)
+void harq_proc::new_tx_common(uint32_t tb_idx, uint32_t tti_, int mcs, int tbs)
 {  
-  M_TRACE("SCHEDHARQ:BEGIN");
-  reset();
-  ndi = !ndi; 
+  reset(tb_idx);
+  ndi[tb_idx] = !ndi[tb_idx];
   tti = tti_;   
-  tx_cnt++;   
-  last_mcs = mcs; 
-  last_tbs = tbs; 
+  tx_cnt[tb_idx]++;
+  last_mcs[tb_idx] = mcs;
+  last_tbs[tb_idx] = tbs;
 
   if (max_retx) {
-    active = true; 
+    active[tb_idx] = true;
   } else {
-    active = false; // Can reuse this process if no retx are allowed 
+    active[tb_idx] = false; // Can reuse this process if no retx are allowed
   }
 }
 
-void harq_proc::new_retx(uint32_t tti_, int *mcs, int *tbs)
+void harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int *mcs, int *tbs)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  ack_received = false; 
+  ack_received[tb_idx] = false;
   tti = tti_; 
-  n_rtx++;
+  n_rtx[tb_idx]++;
   if (mcs) {
-    *mcs = last_mcs; 
+    *mcs = last_mcs[tb_idx];
   }
   if (tbs) {
-    *tbs = last_tbs; 
+    *tbs = last_tbs[tb_idx];
   }
 }
 
-uint32_t harq_proc::nof_tx()
+uint32_t harq_proc::nof_tx(uint32_t tb_idx)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return tx_cnt; 
+  return tx_cnt[tb_idx];
 }
 
-uint32_t harq_proc::nof_retx()
+uint32_t harq_proc::nof_retx(uint32_t tb_idx)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return n_rtx; 
+  return n_rtx[tb_idx];
 }
 
-bool harq_proc::get_ndi() 
+bool harq_proc::get_ndi(uint32_t tb_idx)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return ndi; 
+  return ndi[tb_idx];
 }
 
 /****************************************************** 
  *                  UE::DL HARQ class                    *
  ******************************************************/
 
-void dl_harq_proc::new_tx(uint32_t tti, int mcs, int tbs, uint32_t n_cce_)
+void dl_harq_proc::new_tx(uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint32_t n_cce_)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   n_cce = n_cce_; 
-  new_tx_common(tti, mcs, tbs);
+  new_tx_common(tb_idx, tti, mcs, tbs);
 }
 
 uint32_t dl_harq_proc::get_n_cce()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   return n_cce; 
 }
 
 uint32_t dl_harq_proc::get_rbgmask()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   return rbgmask;
 }
 
 void dl_harq_proc::set_rbgmask(uint32_t new_mask)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   rbgmask = new_mask;
 }
 
-bool dl_harq_proc::has_pending_retx(uint32_t current_tti)
+bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t current_tti)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return srslte_tti_interval(current_tti, tti) >= 8 && has_pending_retx_common(); 
+  return srslte_tti_interval(current_tti, tti) >= (2*HARQ_DELAY_MS) && has_pending_retx_common(tb_idx);
 }
 
-int dl_harq_proc::get_tbs()
+int dl_harq_proc::get_tbs(uint32_t tb_idx)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return last_tbs; 
+  return last_tbs[tb_idx];
 }
 
 
@@ -213,48 +194,42 @@ int dl_harq_proc::get_tbs()
 
 ul_harq_proc::ul_alloc_t ul_harq_proc::get_alloc()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   return allocation;
 }
 
 void ul_harq_proc::set_alloc(ul_harq_proc::ul_alloc_t alloc)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   is_adaptive = false; 
   memcpy(&allocation, &alloc, sizeof(ul_alloc_t));
 }
 
 void ul_harq_proc::same_alloc()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   is_adaptive = true; 
 }
 
 bool ul_harq_proc::is_adaptive_retx()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   return is_adaptive; 
 }
 
 void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs)
 {  
-  M_TRACE("SCHEDHARQ:BEGIN");
   need_ack = true; 
-  new_tx_common(tti_, mcs, tbs);
+  new_tx_common(0, tti_, mcs, tbs);
   pending_data = tbs; 
 }
 
 
 bool ul_harq_proc::has_pending_ack()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   bool ret = need_ack; 
   
   // Reset if already received a positive ACK
-  if (active && ack) {
-    active = false;     
+  if (active[0] && ack[0]) {
+    active[0] = false;
   }
-  if (!active) {
+  if (!active[0]) {
     need_ack = false;
   }
   return ret; 
@@ -264,29 +239,25 @@ bool ul_harq_proc::has_pending_ack()
 
 void ul_harq_proc::reset_pending_data()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  if (!active) {
+  if (!active[0]) {
     pending_data = 0;
   }
 }
 
 
-  uint32_t ul_harq_proc::get_pending_data()
+uint32_t ul_harq_proc::get_pending_data()
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
-  return pending_data; 
+  return (uint32_t) pending_data;
 }
 
 void ul_harq_proc::set_rar_mcs(uint32_t mcs)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   rar_mcs     = mcs; 
   has_rar_mcs = true; 
 }
 
 bool ul_harq_proc::get_rar_mcs(int *mcs)
 {
-  M_TRACE("SCHEDHARQ:BEGIN");
   if (has_rar_mcs) {
     if (mcs) {
       *mcs = (int) rar_mcs; 

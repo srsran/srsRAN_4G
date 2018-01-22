@@ -208,7 +208,7 @@ public:
 };
 
 /******** MAC Interface implementation */
-class testmac : public srsue::mac_interface_faux_phy
+class testmac : public srsue::mac_interface_phy
 {
 public:
   

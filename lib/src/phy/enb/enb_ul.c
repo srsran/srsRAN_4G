@@ -40,6 +40,7 @@
 #define MAX_CANDIDATES  16
 
 int srslte_enb_ul_init(srslte_enb_ul_t *q,
+                       cf_t *in_buffer,
                        uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -55,8 +56,20 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
       perror("malloc");
       goto clean_exit;
     }
-    
-    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
+
+    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+    if (!q->sf_symbols) {
+      perror("malloc");
+      goto clean_exit;
+    }
+
+    q->ce = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+    if (!q->ce) {
+      perror("malloc");
+      goto clean_exit;
+    }
+
+    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, in_buffer, q->sf_symbols, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
@@ -80,18 +93,6 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
       goto clean_exit; 
     }
 
-    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
-    if (!q->sf_symbols) {
-      perror("malloc");
-      goto clean_exit; 
-    }
-    
-    q->ce = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
-    if (!q->ce) {
-      perror("malloc");
-      goto clean_exit; 
-    }
-        
     ret = SRSLTE_SUCCESS;
     
   } else {
@@ -252,18 +253,22 @@ int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint16_t rnti,
   }
 }
 
-void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer) 
+void srslte_enb_ul_fft(srslte_enb_ul_t *q)
 {
-  srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
+  srslte_ofdm_rx_sf(&q->fft);
 }
 
 int get_pucch(srslte_enb_ul_t *q, uint16_t rnti, 
               uint32_t pdcch_n_cce, uint32_t sf_rx, 
-              srslte_uci_data_t *uci_data, uint8_t bits[SRSLTE_PUCCH_MAX_BITS]) 
+              srslte_uci_data_t *uci_data, uint8_t bits[SRSLTE_PUCCH_MAX_BITS], uint32_t nof_bits)
 {
   float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
   
   srslte_pucch_format_t format = srslte_pucch_get_format(uci_data, q->cell.cp);
+  if (format == SRSLTE_PUCCH_FORMAT_ERROR) {
+    fprintf(stderr,"Error getting format\n");
+    return SRSLTE_ERROR;
+  }
     
   uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data->scheduling_request, &q->users[rnti]->pucch_sched);
   
@@ -272,7 +277,7 @@ int get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
     return SRSLTE_ERROR;
   }
   
-  int ret_val = srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, rnti, q->sf_symbols, q->ce, noise_power, bits); 
+  int ret_val = srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, rnti, q->sf_symbols, q->ce, noise_power, bits, nof_bits);
   if (ret_val < 0) {
     fprintf(stderr,"Error decoding PUCCH\n");
     return SRSLTE_ERROR; 
@@ -285,16 +290,16 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
                             srslte_uci_data_t *uci_data)
 {
   uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS];
-  
-  if (q->users[rnti]) {
 
-    int ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits);
+  if (q->users[rnti]) {
+    uint32_t nof_uci_bits = uci_data->ri_periodic_report ? uci_data->uci_ri_len : (uci_data->uci_cqi_len);
+    int ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits, nof_uci_bits);
 
     // If we are looking for SR and ACK at the same time and ret=0, means there is no SR. 
     // try again to decode ACK only 
     if (uci_data->scheduling_request && uci_data->uci_ack_len && ret_val != 1) {
       uci_data->scheduling_request = false; 
-      ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits);
+      ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, pucch_bits, nof_uci_bits);
     }
 
     // update schedulign request 
@@ -304,12 +309,23 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
     
     // Save ACK bits 
     if (uci_data->uci_ack_len > 0) {
-      uci_data->uci_ack = pucch_bits[0];            
+      uci_data->uci_ack = pucch_bits[0];
+    }
+
+    if (uci_data->uci_ack_len > 1) {
+      uci_data->uci_ack_2 = pucch_bits[1];
     }
     
     // PUCCH2 CQI bits are decoded inside srslte_pucch_decode() 
     if (uci_data->uci_cqi_len) {
       memcpy(uci_data->uci_cqi, pucch_bits, uci_data->uci_cqi_len*sizeof(uint8_t));
+    }
+
+    if (uci_data->uci_ri_len) {
+      uci_data->uci_ri = pucch_bits[0]; /* Assume only one bit of RI */
+    }
+
+    if (uci_data->uci_cqi_len || uci_data->uci_ri_len) {
       if (uci_data->uci_ack_len >= 1) {
         uci_data->uci_ack = pucch_bits[20];
       }
@@ -327,7 +343,7 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
 
 int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
                             uint16_t rnti, uint32_t rv_idx, uint32_t current_tx_nb, 
-                            uint8_t *data, srslte_uci_data_t *uci_data, uint32_t tti)
+                            uint8_t *data, srslte_cqi_value_t *cqi_value, srslte_uci_data_t *uci_data, uint32_t tti)
 {
   if (q->users[rnti]) {
     if (srslte_pusch_cfg(&q->pusch, 
@@ -363,6 +379,7 @@ int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srs
                               softbuffer, q->sf_symbols, 
                               q->ce, noise_power, 
                               rnti, data, 
+                              cqi_value,
                               uci_data);
 }
 

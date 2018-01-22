@@ -66,6 +66,9 @@ typedef struct {
   s1ap_args_t s1ap; 
   uint32_t    n_prb; 
   uint32_t    pci; 
+  uint32_t    nof_ports;
+  uint32_t    transmission_mode;
+  float       p_a;
 }enb_args_t;
 
 typedef struct {
@@ -109,6 +112,7 @@ typedef struct {
   int           gtpu_hex_limit;
   int           s1ap_hex_limit;
   int           all_hex_limit;
+  int           file_max_size;
   std::string   filename;
 }log_args_t;
 

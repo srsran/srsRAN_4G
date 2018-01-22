@@ -27,10 +27,10 @@
 #ifndef DL_HARQ_H
 #define DL_HARQ_H
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
@@ -262,10 +262,13 @@ private:
         if (!ack) {
 
           // Instruct the PHY To combine the received data and attempt to decode it
-          payload_buffer_ptr = harq_entity->demux_unit->request_buffer(pid * SRSLTE_MAX_TB + tid,
-                                                                       cur_grant.n_bytes[tid]);
+          if (pid == HARQ_BCCH_PID) {
+            payload_buffer_ptr = harq_entity->demux_unit->request_buffer_bcch(cur_grant.n_bytes[tid]);
+          } else {
+            payload_buffer_ptr = harq_entity->demux_unit->request_buffer(cur_grant.n_bytes[tid]);
+          }
           action->payload_ptr[tid] = payload_buffer_ptr;
-          if (!action->payload_ptr) {
+          if (!action->payload_ptr[tid]) {
             action->decode_enabled[tid] = false;
             Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes[tid]);
             return;
@@ -305,8 +308,7 @@ private:
               harq_entity->pcap->write_dl_sirnti(payload_buffer_ptr, cur_grant.n_bytes[tid], ack, cur_grant.tti);
             }
             Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.n_bytes[tid]);
-            harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
-                                              cur_grant.tti);
+            harq_entity->demux_unit->push_pdu_bcch(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.tti);
           } else {
             if (harq_entity->pcap) {
               harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.rnti, ack,
@@ -318,8 +320,7 @@ private:
               harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid]);
             } else {
               Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes[tid]);
-              harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
-                                                cur_grant.tti);
+              harq_entity->demux_unit->push_pdu(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.tti);
 
               // Compute average number of retransmissions per packet
               harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx,
@@ -346,9 +347,10 @@ private:
       // Determine if it's a new transmission 5.3.2.2
       bool calc_is_new_transmission(Tgrant grant) {
 
-        if ((grant.ndi[tid] != cur_grant.ndi[tid])       || // 1st condition (NDI has changed)
-            (pid == HARQ_BCCH_PID && grant.rv[tid] == 0) || // 2nd condition (Broadcast and 1st transmission)
-             is_first_tb)                                   // 3rd condition (first TB)
+        if (grant.phy_grant.dl.mcs[tid].idx <= 28 &&          // mcs 29,30,31 always retx regardless of rest
+            ((grant.ndi[tid] != cur_grant.ndi[tid])       || // 1st condition (NDI has changed)
+             (pid == HARQ_BCCH_PID && grant.rv[tid] == 0) || // 2nd condition (Broadcast and 1st transmission)
+             is_first_tb))
         {
           is_first_tb         = false;
           is_new_transmission = true;

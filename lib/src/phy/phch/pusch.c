@@ -566,9 +566,9 @@ int srslte_pusch_decode(srslte_pusch_t *q,
                         srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
                         cf_t *sf_symbols, 
                         cf_t *ce, float noise_estimate, uint16_t rnti,                        
-                        uint8_t *data, srslte_uci_data_t *uci_data) 
+                        uint8_t *data, srslte_cqi_value_t *cqi_value, srslte_uci_data_t *uci_data)
 {
-
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t n;
   
   if (q           != NULL &&
@@ -596,7 +596,7 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     }
 
     // Equalization
-    srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, noise_estimate);
+    srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, 1.0f, noise_estimate);
     
     // DFT predecoding
     srslte_dft_precoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
@@ -607,19 +607,42 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     // Generate scrambling sequence if not pre-generated
     srslte_sequence_t *seq = get_user_sequence(q, rnti, cfg->sf_idx, cfg->nbits.nof_bits);
 
+    // Set CQI len assuming RI = 1 (3GPP 36.212 Clause 5.2.4.1. Uplink control information on PUSCH without UL-SCH data)
+    if (cqi_value) {
+      if (cqi_value->type == SRSLTE_CQI_TYPE_SUBBAND_HL && cqi_value->subband_hl.ri_present) {
+        cqi_value->subband_hl.rank_is_not_one = false;
+        uci_data->uci_ri_len = (q->cell.nof_ports == 4) ? 2 : 1;
+      }
+      uci_data->uci_cqi_len = (uint32_t) srslte_cqi_size(cqi_value);
+    }
+
     // Decode RI/HARQ bits before descrambling
     if (srslte_ulsch_uci_decode_ri_ack(&q->ul_sch, cfg, softbuffer, q->q, seq->c, uci_data)) {
       fprintf(stderr, "Error decoding RI/HARQ bits\n");
       return SRSLTE_ERROR; 
     }
+
+    // Set CQI len with corresponding RI
+    if (cqi_value) {
+      if (cqi_value->type == SRSLTE_CQI_TYPE_SUBBAND_HL) {
+        cqi_value->subband_hl.rank_is_not_one = (uci_data->uci_ri != 0);
+      }
+      uci_data->uci_cqi_len = (uint32_t) srslte_cqi_size(cqi_value);
+    }
     
     // Descrambling
     srslte_scrambling_s_offset(seq, q->q, 0, cfg->nbits.nof_bits);
-        
-    return srslte_ulsch_uci_decode(&q->ul_sch, cfg, softbuffer, q->q, q->g, data, uci_data);
-  } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+
+    // Decode
+    ret = srslte_ulsch_uci_decode(&q->ul_sch, cfg, softbuffer, q->q, q->g, data, uci_data);
+
+    // Unpack CQI value if available
+    if (cqi_value) {
+      srslte_cqi_value_unpack(uci_data->uci_cqi, cqi_value);
+    }
   }
+
+  return ret;
 }
 
 uint32_t srslte_pusch_last_noi(srslte_pusch_t *q) {

@@ -65,35 +65,51 @@ public:
   
   void set_nof_mutex(uint32_t nof_mutex); 
 
-  void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+  void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
   srslte_cell_t                     cell; 
   srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg; 
   srslte_pusch_hopping_cfg_t        hopping_cfg;
   srslte_pucch_cfg_t                pucch_cfg; 
+  uint8_t                           pdsch_p_b;
   phy_args_t                        params; 
 
   srslte::radio     *radio;
   mac_interface_phy *mac; 
   
   // Common objects for schedulign grants 
-  mac_interface_phy::ul_sched_t ul_grants[10];
-  mac_interface_phy::dl_sched_t dl_grants[10];
+  mac_interface_phy::ul_sched_t ul_grants[TTIMOD_SZ];
+  mac_interface_phy::dl_sched_t dl_grants[TTIMOD_SZ];
   
   // Map of pending ACKs for each user 
   typedef struct {
-    bool is_pending[10]; 
-    uint16_t n_pdcch[10];
+    bool is_pending[TTIMOD_SZ][SRSLTE_MAX_TB];
+    uint16_t n_pdcch[TTIMOD_SZ];
   } pending_ack_t;
-  std::map<uint16_t,pending_ack_t> pending_ack;
+
+  class common_ue {
+   public:
+    pending_ack_t pending_ack;
+    uint8_t ri;
+    int last_ul_tbs[2*HARQ_DELAY_MS];
+    srslte_mod_t last_ul_mod[2*HARQ_DELAY_MS];
+  };
+
+  std::map<uint16_t, common_ue> common_ue_db;
   
-  void ack_add_rnti(uint16_t rnti);
-  void ack_rem_rnti(uint16_t rnti);
-  void ack_clear(uint32_t sf_idx); 
-  void ack_set_pending(uint32_t sf_idx, uint16_t rnti, uint32_t n_pdcch);
-  bool ack_is_pending(uint32_t sf_idx, uint16_t rnti, uint32_t *last_n_pdcch = NULL);
-        
+  void ue_db_add_rnti(uint16_t rnti);
+  void ue_db_rem_rnti(uint16_t rnti);
+  void ue_db_clear(uint32_t sf_idx);
+  void ue_db_set_ack_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t n_pdcch);
+  bool ue_db_is_ack_pending(uint32_t sf_idx, uint16_t rnti, uint32_t tb_idx, uint32_t *last_n_pdcch = NULL);
+  void ue_db_set_ri(uint16_t rnti, uint8_t ri);
+  uint8_t ue_db_get_ri(uint16_t rnti);
+  void ue_db_set_last_ul_mod(uint16_t rnti, uint32_t tti, srslte_mod_t mcs);
+  srslte_mod_t ue_db_get_last_ul_mod(uint16_t rnti, uint32_t tti);
+  void ue_db_set_last_ul_tbs(uint16_t rnti, uint32_t tti, int tbs);
+  int ue_db_get_last_ul_tbs(uint16_t rnti, uint32_t tti);
+
 private:
   std::vector<pthread_mutex_t>    tx_mutex; 
   bool            is_first_tx;

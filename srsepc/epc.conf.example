@@ -1,0 +1,72 @@
+#####################################################################
+#                   srsEPC configuration file
+#####################################################################
+
+#####################################################################
+# MME configuration
+#
+# mme_code:         8-bit MME code identifies the MME within a group.
+# mme_group:        16-bit MME group identifier.
+# tac:              16-bit Tracking Area Code.
+# mcc:              Mobile Country Code
+# mnc:              Mobile Network Code
+# mme_bindx_addr:   IP subnet to listen for eNB S1 connnections
+#
+#####################################################################
+[mme]
+mme_code = 0x1a
+mme_group = 0x0001
+tac = 0x0007
+mcc = 001
+mnc = 01
+mme_bind_addr = 127.0.1.100
+
+#####################################################################
+# HSS configuration
+#
+# db_file:         Location of .csv file that stores UEs information.
+#
+#####################################################################
+[hss]
+auth_algo = xor
+db_file = user_db.csv
+
+
+#####################################################################
+# SP-GW configuration
+#
+# gtpu_bind_addr:   GTP-U bind adress.
+#
+#####################################################################
+
+[spgw]
+gtpu_bind_addr=127.0.1.100
+sgi_if_addr=172.16.0.1
+
+####################################################################
+# Log configuration
+#
+# Log levels can be set for individual layers. "all_level" sets log
+# level for all layers unless otherwise configured.
+# Format: e.g. s1ap_level = info
+#
+# In the same way, packet hex dumps can be limited for each level.
+# "all_hex_limit" sets the hex limit for all layers unless otherwise
+# configured.
+# Format: e.g. s1ap_hex_limit = 32
+#
+# Logging layers: s1ap, gtpc, spgw, hss, all
+# Logging levels: debug, info, warning, error, none
+#
+# filename: File path to use for log output. Can be set to stdout
+#           to print logs to standard output
+#####################################################################
+[log]
+all_level = debug
+all_hex_limit = 32
+filename = /tmp/epc.log
+
+#s1ap_level = debug
+#gtpc_level = debug
+#spgw_level = debug
+#hss_level = debug

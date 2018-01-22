@@ -272,7 +272,7 @@ static int rf_faux_resample(double srate_in,
  
   srslte_resample_arb_t r;
 
-  srslte_resample_arb_init(&r, sratio);
+  srslte_resample_arb_init(&r, sratio, 0);
 
   const int ns_out = srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, ns_in);
 
@@ -798,7 +798,7 @@ bool rf_faux_rx_wait_lo_locked(void *h)
  }
 
 
-int rf_faux_start_rx_stream(void *h)
+int rf_faux_start_rx_stream(void *h, bool now)
  {
    GET_FAUX_INFO(h);
    

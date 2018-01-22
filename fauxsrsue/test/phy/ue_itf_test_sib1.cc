@@ -98,7 +98,7 @@ public:
 };
 
 /******** MAC Interface implementation */
-class testmac : public srsue::mac_interface_faux_phy
+class testmac : public srsue::mac_interface_phy
 {
 public:
   void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action) {

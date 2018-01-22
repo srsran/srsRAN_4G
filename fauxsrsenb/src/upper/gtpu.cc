@@ -36,7 +36,6 @@ namespace srsenb {
   
 bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_)
 {
-  U_TRACE("GTPU:BEGIN");
   pdcp          = pdcp_;
   gtpu_log      = gtpu_log_;
   gtp_bind_addr = gtp_bind_addr_;
@@ -101,7 +100,6 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
 
 void gtpu::stop()
 {
-  U_TRACE("GTPU:BEGIN");
   if (run_enable) {
     run_enable = false;
     // Wait thread to exit gracefully otherwise might leave a mutex locked
@@ -127,7 +125,6 @@ void gtpu::stop()
 // gtpu_interface_pdcp
 void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
 {
-  U_TRACE("GTPU:BEGIN");
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d", rnti, lcid);
   gtpu_header_t header;
   header.flags        = 0x30;
@@ -151,7 +148,6 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
 // gtpu_interface_rrc
 void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in)
 {
-  U_TRACE("GTPU:BEGIN");
   // Allocate a TEID for the incoming tunnel
   rntilcid_to_teidin(rnti, lcid, teid_in);
   gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x\n", rnti, lcid, addr, teid_out, *teid_in);
@@ -172,7 +168,6 @@ void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid
 
 void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
 {
-  U_TRACE("GTPU:BEGIN");
   gtpu_log->info("Removing bearer for rnti: 0x%x, lcid: %d\n", rnti, lcid);
 
   rnti_bearers[rnti].teids_in[lcid]  = 0;
@@ -192,7 +187,6 @@ void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
 
 void gtpu::rem_user(uint16_t rnti)
 {
-  U_TRACE("GTPU:BEGIN");
   pthread_mutex_lock(&mutex); 
   rnti_bearers.erase(rnti);
   pthread_mutex_unlock(&mutex); 
@@ -206,13 +200,11 @@ void gtpu::run_thread()
   running=true; 
   while(run_enable) {
 
-    U_TRACE("GTPU:BEGIN");
     pdu->reset();
     gtpu_log->debug("Waiting for read...\n");
     int n = 0;
     do{
       n = recv(src_fd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0);
-      U_TRACE("GTPU:BEGIN");
     } while (n == -1 && errno == EAGAIN);
 
     if (n < 0) {
@@ -263,7 +255,6 @@ void gtpu::run_thread()
 
 bool gtpu::gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu)
 {
-  U_TRACE("GTPU:BEGIN");
   if(header->flags != 0x30) {
     gtpu_log->error("gtpu_write_header - Unhandled header flags: 0x%x\n", header->flags);
     return false;
@@ -295,7 +286,6 @@ bool gtpu::gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu)
 
 bool gtpu::gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header)
 {
-  U_TRACE("GTPU:BEGIN");
   uint8_t *ptr  = pdu->msg;
 
   pdu->msg      += GTPU_HEADER_LEN;
@@ -326,14 +316,12 @@ bool gtpu::gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header)
  ***************************************************************************/
 void gtpu::teidin_to_rntilcid(uint32_t teidin, uint16_t *rnti, uint16_t *lcid)
 {
-  U_TRACE("GTPU:BEGIN");
   *lcid = teidin & 0xFFFF;
   *rnti = (teidin >> 16) & 0xFFFF;
 }
 
 void gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t *teidin)
 {
-  U_TRACE("GTPU:BEGIN");
   *teidin = (rnti << 16) | lcid;
 }
  

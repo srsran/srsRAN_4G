@@ -44,6 +44,19 @@
 #define SRSLTE_N_DRB           8
 #define SRSLTE_N_RADIO_BEARERS 11
 
+#define HARQ_DELAY_MS   4
+#define MSG3_DELAY_MS   2 // Delay added to HARQ_DELAY_MS
+#define TTI_RX(tti)     (tti>HARQ_DELAY_MS?((tti-HARQ_DELAY_MS)%10240):(10240+tti-HARQ_DELAY_MS))
+#define TTI_TX(tti)     ((tti+HARQ_DELAY_MS)%10240)
+#define TTI_RX_ACK(tti) ((tti+(2*HARQ_DELAY_MS))%10240)
+
+#define UL_PIDOF(tti)   (tti%(2*HARQ_DELAY_MS))
+
+#define TTIMOD_SZ       (((2*HARQ_DELAY_MS) < 10)?10:20)
+#define TTIMOD(tti)     (tti%TTIMOD_SZ)
+
+#define ASYNC_DL_SCHED  (HARQ_DELAY_MS <= 4)
+
 // Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1
 #define SRSLTE_MAX_BUFFER_SIZE_BITS  102048

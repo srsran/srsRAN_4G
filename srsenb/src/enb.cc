@@ -72,7 +72,7 @@ bool enb::init(all_args_t *args_)
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
   } else {
-    logger_file.init(args->log.filename);
+    logger_file.init(args->log.filename, args->log.file_max_size);
     logger_file.log("\n\n");
     logger = &logger_file;
   }
@@ -136,7 +136,7 @@ bool enb::init(all_args_t *args_)
     dev_args = (char*) args->rf.device_args.c_str();
   }
 
-  if(!radio.init(dev_args, dev_name))
+  if(!radio.init(dev_args, dev_name, args->enb.nof_ports))
   {
     printf("Failed to find device %s with args %s\n",
            args->rf.device_name.c_str(), args->rf.device_args.c_str());

@@ -47,7 +47,7 @@ public:
   ~phch_worker();
   void  reset(); 
   void  set_common(phch_common *phy);
-  bool  init(uint32_t max_prb, srslte::log *log);
+  bool  init(uint32_t max_prb, srslte::log *log, srslte::log *log_phy_lib_h, chest_feedback_itf *chest_loop);
 
   bool  set_cell(srslte_cell_t cell);
 
@@ -65,18 +65,23 @@ public:
   void start_trace();
   void write_trace(std::string filename);
   
-  int read_ce_abs(float *ce_abs);
+  int read_ce_abs(float *ce_abs, uint32_t tx_antenna, uint32_t rx_antenna);
+  uint32_t get_cell_nof_ports() {return cell.nof_ports;};
+  uint32_t get_rx_nof_antennas() {return ue_dl.nof_rx_antennas;};
   int read_pdsch_d(cf_t *pdsch_d);
   void start_plot();
-  
-private: 
+
+  float get_ref_cfo();
+
+private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
   void work_imp();
 
   
   /* Internal methods */
   bool extract_fft_and_pdcch_llr(); 
-  
+  void compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr);
+
   /* ... for DL */
   bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);
   bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
@@ -116,6 +121,8 @@ private:
   /* Common objects */  
   phch_common    *phy;
   srslte::log    *log_h;
+  srslte::log    *log_phy_lib_h;
+  chest_feedback_itf *chest_loop;
   srslte_cell_t  cell;
   bool           mem_initiated;
   bool           cell_initiated;
@@ -148,10 +155,11 @@ private:
   srslte_uci_cfg_t                  uci_cfg; 
   srslte_cqi_periodic_cfg_t         period_cqi; 
   srslte_ue_ul_powerctrl_t          power_ctrl;           
-  uint32_t                          I_sr; 
+  uint32_t                          I_sr;
+  bool                              sr_configured;
   float                             cfo;
   bool                              rar_cqi_request;
-    
+
   // Metrics
   dl_metrics_t dl_metrics;
   ul_metrics_t ul_metrics;
