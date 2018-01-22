@@ -424,6 +424,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
         handler->current_master_clock = 184320000;
         handler->dynamic_rate = false;
         handler->devname = DEVNAME_X300;
+      } else if (find_string(devices_str, "type=e3x0")) {
+        // Else if E3X0 is available, set master clock rate now (can't be changed later)
+        args = "type=e3x0,master_clock_rate=30.72e6";
+        handler->dynamic_rate = false;
+        handler->devname = DEVNAME_E3X0;
       }
     } else {
       // If args is set and x300 type is specified, make sure master_clock_rate is defined
@@ -433,13 +438,17 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
         handler->current_master_clock = 184320000;
         handler->dynamic_rate = false;
         handler->devname = DEVNAME_X300;
+      } else if (strstr(args, "type=e3x0")) {
+        snprintf(args2, sizeof(args2), "%s,master_clock_rate=30.72e6", args);
+        args = args2;
+        handler->devname = DEVNAME_E3X0;
       } else {
         snprintf(args2, sizeof(args2), "%s,master_clock_rate=30.72e6", args);
         args = args2;
         handler->current_master_clock = 30720000;
         handler->devname = DEVNAME_B200;
       }
-    }        
+    }
     
     uhd_string_vector_free(&devices_str);
     
@@ -502,7 +511,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
           .args = "",
           .channel_list = channel,
           .n_channels = nof_channels,
-      };
+    };
       
     handler->nof_rx_channels = nof_channels;
     handler->nof_tx_channels = nof_channels;
@@ -581,7 +590,7 @@ int rf_uhd_close(void *h)
   free(handler);
   
   /** Something else to close the USRP?? */
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 void rf_uhd_set_master_clock_rate(void *h, double rate) {
@@ -707,25 +716,24 @@ int rf_uhd_recv_with_time_multi(void *h,
 {
   
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  size_t rxd_samples;
   uhd_rx_metadata_handle *md = &handler->rx_md_first; 
+  size_t rxd_samples = 0;
   int trials = 0; 
   if (blocking) {
     int n = 0;
-    do {
-      size_t rx_samples = nsamples;
-             
-      if (rx_samples > nsamples - n) {
-        rx_samples = nsamples - n; 
-      }
+    while (n < nsamples && trials < 100) {
       void *buffs_ptr[4]; 
       for (int i=0;i<handler->nof_rx_channels;i++) {
         cf_t *data_c = (cf_t*) data[i];
-        buffs_ptr[i] = &data_c[n];        
+        buffs_ptr[i] = &data_c[n];
       }
 
+      size_t num_samps_left = nsamples - n;
+      size_t num_rx_samples = (num_samps_left > handler->rx_nof_samples) ? handler->rx_nof_samples : num_samps_left;
+
+      rxd_samples = 0;
       uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
-                                             rx_samples, md, 1.0, false, &rxd_samples);
+                                             num_rx_samples, md, 1.0, false, &rxd_samples);
       if (error) {
         fprintf(stderr, "Error receiving from UHD: %d\n", error);
         return -1; 
@@ -748,8 +756,7 @@ int rf_uhd_recv_with_time_multi(void *h,
       } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE ) {
         fprintf(stderr, "Error code 0x%x was returned during streaming. Aborting.\n", error_code);
       }
-      
-    } while (n < nsamples && trials < 100);
+    }
   } else {
     return uhd_rx_streamer_recv(handler->rx_stream, data, 
                                 nsamples, md, 0.0, false, &rxd_samples);
