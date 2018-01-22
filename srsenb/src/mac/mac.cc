@@ -519,7 +519,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
     
     if (pcap) {
-      pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data[0], sched_result.data[i].tbs[0], dl_sched_res->sched_grants[n].rnti, true, tti);
+      pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data[0], sched_result.rar[i].tbs, dl_sched_res->sched_grants[n].rnti, true, tti);
     }
 
     n++;
