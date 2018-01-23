@@ -46,6 +46,20 @@ double callback_set_rx_gain(void *h, double gain) {
   return ((phch_recv*) h)->set_rx_gain(gain);
 }
 
+const char * phy_state_to_string(int state)
+ {
+   switch(state)
+    {
+     case 0:    return "idle";
+     case 1:    return "cell_search";
+     case 2:    return "cell_select";
+     case 3:    return "cell_reselect";
+     case 4:    return "cell_measure";
+     case 5:    return "cell_camp";
+   }
+    return "unknown";
+ }
+
 
 
 phch_recv::phch_recv() {
@@ -565,8 +579,21 @@ void phch_recv::run_thread()
   phy_state  = IDLE;
   is_in_idle = true;
 
+  struct timeval tv_in, tv_out, tv_diff, tv_start;
+  const  struct timeval tv_step = {0, 1000}, tv_zero = {0, 0};
+  threads_print_self();
+  gettimeofday(&tv_start, NULL);
+
+  I_TRACE("begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
   while (running)
   {
+    gettimeofday(&tv_in, NULL);
+    I_TRACE("***** time_in %ld:%06ld  *****", 
+            tv_in.tv_sec, 
+            tv_in.tv_usec);
+
+    I_TRACE("state %s", phy_state_to_string(phy_state));
+
     if (phy_state != IDLE) {
       is_in_idle = false;
       Debug("SYNC:  state=%d\n", phy_state);
@@ -742,7 +769,16 @@ void phch_recv::run_thread()
 
     // Increase TTI counter and trigger MAC clock (lower priority)
     mac->tti_clock(tti);
-    tti = (tti+1) % 10240;
+    g_tti = tti = (tti+1) % 10240;
+
+    gettimeofday(&tv_out, NULL);
+    timersub(&tv_out, &tv_in, &tv_diff);
+
+    I_TRACE("***** time_out %ld:%06ld delta_t %ld:%06ld *****", 
+            tv_out.tv_sec, 
+            tv_out.tv_usec,
+            tv_diff.tv_sec,
+            tv_diff.tv_usec);
   }
 }
 

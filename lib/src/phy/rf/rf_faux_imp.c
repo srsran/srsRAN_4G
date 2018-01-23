@@ -1135,9 +1135,11 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    cf_t sf_in[RF_FAUX_SF_LEN];
 
-   int n_tries = rf_faux_is_ue(_info) ? 10 : 1;
+   int n_tries = rf_faux_is_ue(_info) ? 25 : 1;
 
    uint8_t * p2data = (uint8_t *)data;
+
+   RF_FAUX_DBUG("begin, request %u", nsamples);
 
    while(nb_pending > 0 && ((n_tries--) > 0))
      {   
@@ -1255,6 +1257,8 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
      }
 
    GET_FAUX_INFO(h);
+
+   RF_FAUX_DBUG("begin, request %u", nsamples);
 
    pthread_mutex_lock(&(_info->tx_workers_lock));
 
