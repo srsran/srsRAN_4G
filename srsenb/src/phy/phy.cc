@@ -94,7 +94,7 @@ bool phy::init(phy_args_t *args,
 {
   std::vector<void*> log_vec;
   for (int i=0;i<args->nof_phy_threads;i++) {
-    log_vec[i] = (void*) log_h;
+    log_vec.push_back((void*)log_h);
   }
   init(args, cfg, radio_handler_, mac, log_vec);
   return true; 
