@@ -34,7 +34,7 @@
 namespace srsepc{
 
 s1ap*          s1ap::m_instance = NULL;
-boost::mutex   s1ap_instance_mutex;
+pthread_mutex_t s1ap_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 s1ap::s1ap():
   m_s1mme(-1),
@@ -49,21 +49,24 @@ s1ap::~s1ap()
 s1ap*
 s1ap::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_instance_mutex);
-  if(NULL == m_instance) {
+
+  pthread_mutex_lock(&s1ap_instance_mutex);
+  if(m_instance == NULL) {
     m_instance = new s1ap();
   }
+  pthread_mutex_unlock(&s1ap_instance_mutex);
   return(m_instance);
 }
 
 void
 s1ap::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_instance_mutex);
+  pthread_mutex_lock(&s1ap_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&s1ap_instance_mutex);
 }
 
 int
