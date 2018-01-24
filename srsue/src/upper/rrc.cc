@@ -837,7 +837,12 @@ void rrc::send_con_request() {
     ul_ccch_msg.msg.rrc_con_req.ue_id.s_tmsi = s_tmsi;
   } else {
     ul_ccch_msg.msg.rrc_con_req.ue_id_type = LIBLTE_RRC_CON_REQ_UE_ID_TYPE_RANDOM_VALUE;
-    ul_ccch_msg.msg.rrc_con_req.ue_id.random = rand() % 2^40;
+    // TODO use proper RNG
+    uint64_t random_id = 0;
+    for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
+      random_id |= ( (uint64_t)rand() & 0xFF ) << i*8;
+    }
+    ul_ccch_msg.msg.rrc_con_req.ue_id.random = random_id;
   }
 
   ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;
