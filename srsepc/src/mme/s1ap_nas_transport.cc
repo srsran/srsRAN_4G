@@ -31,7 +31,7 @@
 namespace srsepc{
 
 s1ap_nas_transport*          s1ap_nas_transport::m_instance = NULL;
-boost::mutex                 s1ap_nas_transport_instance_mutex;
+pthread_mutex_t s1ap_nas_transport_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 s1ap_nas_transport::s1ap_nas_transport()
 {
@@ -46,21 +46,23 @@ s1ap_nas_transport::~s1ap_nas_transport()
 s1ap_nas_transport*
 s1ap_nas_transport::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_nas_transport_instance_mutex);
+  pthread_mutex_lock(&s1ap_nas_transport_instance_mutex);
   if(NULL == m_instance) {
     m_instance = new s1ap_nas_transport();
   }
+  pthread_mutex_unlock(&s1ap_nas_transport_instance_mutex);
   return(m_instance);
 }
 
 void
 s1ap_nas_transport::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_nas_transport_instance_mutex);
+  pthread_mutex_lock(&s1ap_nas_transport_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&s1ap_nas_transport_instance_mutex);
 }
 
 void
