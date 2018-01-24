@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
 
   srslte_debug_handle_crash(argc, argv);
 
-#if 0
+#if 1
   srslte_verbose = SRSLTE_VERBOSE_DEBUG;
 #endif
 

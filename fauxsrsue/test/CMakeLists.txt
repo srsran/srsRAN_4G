@@ -24,4 +24,4 @@ add_subdirectory(upper)
 
 add_executable(faux_metrics_test metrics_test.cc ../src/metrics_stdout.cc ../src/metrics_csv.cc)
 target_link_libraries(faux_metrics_test srslte_phy srslte_common)
-add_test(faux_metrics_test metrics_test -o ${CMAKE_CURRENT_BINARY_DIR}/ue_metrics.csv)
+add_test(faux_metrics_test faux_metrics_test -o ${CMAKE_CURRENT_BINARY_DIR}/ue_metrics.csv)

@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
 
   parse_args(&args, argc, argv);
 
-#if 0
+#if 1
   srslte_verbose = SRSLTE_VERBOSE_DEBUG;
 #endif
 

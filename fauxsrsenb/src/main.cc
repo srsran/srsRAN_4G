@@ -328,8 +328,8 @@ void sig_int_handler(int signo)
 {
   sigcnt++;
   running = false;
-  printf("Stopping srsENB... Press Ctrl+C %d more times to force stop\n", 10-sigcnt);
-  if (sigcnt >= 10) {
+  printf("Stopping srsENB... Press Ctrl+C %d more times to force stop\n", 2-sigcnt);
+  if (sigcnt >= 2) {
     exit(-1);
   }
 }

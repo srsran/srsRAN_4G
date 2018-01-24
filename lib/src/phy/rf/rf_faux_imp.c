@@ -46,40 +46,47 @@
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/resampling/resample_arb.h"
 
-static bool rf_faux_log_debug   = true;
-static bool rf_faux_log_info    = true;
+static bool rf_faux_log_dbug  = true;
+static bool rf_faux_log_info  = true;
+static bool rf_faux_log_warn  = true;
 
 uint32_t g_tti = 0;
 struct timeval g_tv_next = {0, 0};
 
+#define RF_FAUX_LOG_FMT "%02d:%02d:%02d.%06ld [FXRF] [%c] [%05hu] %s,  "
+
 #define RF_FAUX_WARN(_fmt, ...) do {                                                                       \
+                                 if(rf_faux_log_warn) {                                                    \
                                    struct timeval _tv_now;                                                 \
                                    struct tm _tm;                                                          \
                                    gettimeofday(&_tv_now, NULL);                                           \
                                    localtime_r(&_tv_now.tv_sec, &_tm);                                     \
-                                   fprintf(stdout, "[WARN ]: [%05hu] %02d.%02d.%02d.%06ld %s, " _fmt "\n", \
-                                           g_tti,                                                          \
+                                   fprintf(stdout, RF_FAUX_LOG_FMT  _fmt "\n",                             \
                                            _tm.tm_hour,                                                    \
                                            _tm.tm_min,                                                     \
                                            _tm.tm_sec,                                                     \
                                            _tv_now.tv_usec,                                                \
+                                           'W',                                                            \
+                                           g_tti,                                                          \
                                            __func__,                                                       \
                                            ##__VA_ARGS__);                                                 \
+                                     }                                                                     \
                                  } while(0);
 
 
 #define RF_FAUX_DBUG(_fmt, ...) do {                                                                       \
-                                 if(rf_faux_log_debug) {                                                   \
+                                 if(rf_faux_log_dbug) {                                                    \
                                    struct timeval _tv_now;                                                 \
                                    struct tm _tm;                                                          \
                                    gettimeofday(&_tv_now, NULL);                                           \
                                    localtime_r(&_tv_now.tv_sec, &_tm);                                     \
-                                   fprintf(stdout, "[DEBUG]: [%05hu] %02d.%02d.%02d.%06ld %s, " _fmt "\n", \
-                                           g_tti,                                                          \
+                                   fprintf(stdout, RF_FAUX_LOG_FMT  _fmt "\n",                             \
                                            _tm.tm_hour,                                                    \
                                            _tm.tm_min,                                                     \
                                            _tm.tm_sec,                                                     \
                                            _tv_now.tv_usec,                                                \
+                                           'D',                                                            \
+                                           g_tti,                                                          \
                                            __func__,                                                       \
                                            ##__VA_ARGS__);                                                 \
                                  }                                                                         \
@@ -91,26 +98,23 @@ struct timeval g_tv_next = {0, 0};
                                    struct tm _tm;                                                          \
                                    gettimeofday(&_tv_now, NULL);                                           \
                                    localtime_r(&_tv_now.tv_sec, &_tm);                                     \
-                                   fprintf(stdout, "[INFO ]: [%05hu] %02d.%02d.%02d.%06ld %s, " _fmt "\n", \
-                                           g_tti,                                                          \
+                                   fprintf(stdout, RF_FAUX_LOG_FMT  _fmt "\n",                             \
                                            _tm.tm_hour,                                                    \
                                            _tm.tm_min,                                                     \
                                            _tm.tm_sec,                                                     \
                                            _tv_now.tv_usec,                                                \
+                                           'I',                                                            \
+                                           g_tti,                                                          \
                                            __func__,                                                       \
                                            ##__VA_ARGS__);                                                 \
                                  }                                                                         \
                              } while(0);
 
 
-#define RF_FAUX_LOG_FUNC_TODO printf("XXX_TODO file:%s func:%s line:%d\n", \
-                                     __FILE__,                             \
-                                     __func__,                             \
+#define RF_FAUX_LOG_FUNC_TODO printf("XXX_TODO file:%s func:%s line:%d XXX_TODO\n", \
+                                     __FILE__,                                      \
+                                     __func__,                                      \
                                      __LINE__);
-
-#define RF_FAUX_BOOL_TO_STR(x) (x) ? "yes" : "no"
-
-#define RF_FAUX_NORM_DIFF(x, y)  abs((x) + (~(y) + 1))
 
 // socket port nums
 #define RF_FAUX_DL_PORT (43301)
@@ -856,7 +860,7 @@ float rf_faux_get_rssi(void *h)
 
 void rf_faux_suppress_stdout(void *h)
  {
-    rf_faux_log_debug   = false;
+    rf_faux_log_dbug = false;
  }
 
 
@@ -1306,7 +1310,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
  
    RF_FAUX_DBUG("add tx_worker %02d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
                   tx_worker->id,
-                  RF_FAUX_BOOL_TO_STR(has_time_spec),
+                  has_time_spec ? "yes" : "no",
                   full_secs,
                   frac_secs,
                  _info->nof_tx_workers);
