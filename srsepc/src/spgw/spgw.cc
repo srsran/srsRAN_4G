@@ -41,7 +41,7 @@
 namespace srsepc{
 
 spgw*          spgw::m_instance = NULL;
-boost::mutex  spgw_instance_mutex;
+pthread_mutex_t spgw_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 const uint16_t SPGW_BUFFER_SIZE = 2500;
 
@@ -63,21 +63,23 @@ spgw::~spgw()
 spgw*
 spgw::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(spgw_instance_mutex);
+  pthread_mutex_lock(&spgw_instance_mutex);
   if(NULL == m_instance) {
     m_instance = new spgw();
   }
+  pthread_mutex_unlock(&spgw_instance_mutex);
   return(m_instance);
 }
 
 void
 spgw::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(spgw_instance_mutex);
+  pthread_mutex_lock(&spgw_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&spgw_instance_mutex);
 }
 
 int

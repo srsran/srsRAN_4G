@@ -50,8 +50,8 @@ s1ap_mngmt_proc::get_instance(void)
   if(NULL == m_instance) {
     m_instance = new s1ap_mngmt_proc();
   }
-  return(m_instance);
   pthread_mutex_unlock(&s1ap_mngmt_proc_instance_mutex);
+  return(m_instance);
 }
 
 void
