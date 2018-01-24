@@ -32,7 +32,7 @@
 namespace srsepc{
 
 s1ap_mngmt_proc*          s1ap_mngmt_proc::m_instance = NULL;
-boost::mutex   s1ap_mngmt_proc_instance_mutex;
+pthread_mutex_t s1ap_mngmt_proc_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 s1ap_mngmt_proc::s1ap_mngmt_proc()
@@ -46,21 +46,23 @@ s1ap_mngmt_proc::~s1ap_mngmt_proc()
 s1ap_mngmt_proc*
 s1ap_mngmt_proc::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_mngmt_proc_instance_mutex);
+  pthread_mutex_lock(&s1ap_mngmt_proc_instance_mutex);
   if(NULL == m_instance) {
     m_instance = new s1ap_mngmt_proc();
   }
   return(m_instance);
+  pthread_mutex_unlock(&s1ap_mngmt_proc_instance_mutex);
 }
 
 void
 s1ap_mngmt_proc::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_mngmt_proc_instance_mutex);
+  pthread_mutex_lock(&s1ap_mngmt_proc_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&s1ap_mngmt_proc_instance_mutex);
 }
 
 void
