@@ -1477,16 +1477,16 @@ void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples
     }
     if (receiving == true) {
       if (srslte_ringbuffer_write(&ring_buffer, data, nsamples*sizeof(cf_t)) < (int) (nsamples*sizeof(cf_t))) {
-        Warning("Error writing to ringbuffer\n");
+        Warning("Error writting to ringbuffer\n");
         receiving = false;
       } else {
         receive_cnt++;
         if (receive_cnt == CAPTURE_LEN_SF) {
           tti_sync.increase();
+          receiving = false; 
         }
       }
     }
-
   }
 }
 
