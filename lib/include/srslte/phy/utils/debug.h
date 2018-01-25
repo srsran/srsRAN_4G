@@ -89,24 +89,27 @@ void srslte_debug_handle_crash(int argc, char **argv);
 extern struct timeval g_tv_next;
 extern uint32_t       g_tti;
 
-
 #define  w_trace true
-#define  i_trace false
+#define  i_trace true
 #define  d_trace false
 
-#define W_TRACE(_fmt, ...) do {                                                                         \
+#define DEBUG_LOG_FMT "%02d:%02d:%02d.%06ld [%s] [%c] [%05hu] %s:%s,  "
+
+#define W_TRACE(_id, _fmt, ...) do {                                                                    \
                              if(w_trace) {                                                              \
                              struct timeval _tv_now;                                                    \
                              struct tm _tm;                                                             \
                              gettimeofday(&_tv_now, NULL);                                              \
                              localtime_r(&_tv_now.tv_sec, &_tm);                                        \
                              const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[WARN ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
-                                     g_tti,                                                             \
+                             fprintf(stdout, DEBUG_LOG_FMT _fmt "\n",                                   \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \
                                      _tv_now.tv_usec,                                                   \
+                                     _id,                                                               \
+                                     'W',                                                               \
+                                     g_tti,                                                             \
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
@@ -114,38 +117,42 @@ extern uint32_t       g_tti;
                            } while(0);
 
 
-#define I_TRACE(_fmt, ...) do {                                                                         \
+#define I_TRACE(_id, _fmt, ...) do {                                                                    \
                              if(i_trace) {                                                              \
                              struct timeval _tv_now;                                                    \
                              struct tm _tm;                                                             \
                              gettimeofday(&_tv_now, NULL);                                              \
                              localtime_r(&_tv_now.tv_sec, &_tm);                                        \
                              const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[INFO ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
-                                     g_tti,                                                             \
+                             fprintf(stdout, DEBUG_LOG_FMT _fmt "\n",                                   \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \
                                      _tv_now.tv_usec,                                                   \
+                                     _id,                                                               \
+                                     'I',                                                               \
+                                     g_tti,                                                             \
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \
                              }                                                                          \
                            } while(0);
 
-#define D_TRACE(_fmt, ...) do {                                                                         \
+#define D_TRACE(_id, _fmt, ...) do {                                                                    \
                              if(d_trace) {                                                              \
                              struct timeval _tv_now;                                                    \
                              struct tm _tm;                                                             \
                              gettimeofday(&_tv_now, NULL);                                              \
                              localtime_r(&_tv_now.tv_sec, &_tm);                                        \
                              const char *_pos = strrchr(__FILE__, '/');                                 \
-                             fprintf(stdout, "[DBUG ]: [%05hu] %02d.%02d.%02d.%06ld %s:%s, " _fmt "\n", \
-                                     g_tti,                                                             \
+                             fprintf(stdout, DEBUG_LOG_FMT _fmt "\n",                                   \
                                      _tm.tm_hour,                                                       \
                                      _tm.tm_min,                                                        \
                                      _tm.tm_sec,                                                        \
                                      _tv_now.tv_usec,                                                   \
+                                     _id,                                                               \
+                                     'D',                                                               \
+                                     g_tti,                                                             \
                                      _pos ? _pos+1 : "",                                                \
                                      __func__,                                                          \
                                      ##__VA_ARGS__);                                                    \

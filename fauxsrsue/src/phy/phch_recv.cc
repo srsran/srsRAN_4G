@@ -584,15 +584,15 @@ void phch_recv::run_thread()
   threads_print_self();
   gettimeofday(&tv_start, NULL);
 
-  I_TRACE("begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
+  I_TRACE("PHY ", "begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
   while (running)
   {
     gettimeofday(&tv_in, NULL);
-    D_TRACE("***** time_in %ld:%06ld  *****", 
+    D_TRACE("PHY ", "***** time_in %ld:%06ld  *****", 
             tv_in.tv_sec, 
             tv_in.tv_usec);
 
-    D_TRACE("state %s", phy_state_to_string(phy_state));
+    D_TRACE("PHY ", "state %s", phy_state_to_string(phy_state));
 
     if (phy_state != IDLE) {
       is_in_idle = false;
@@ -774,7 +774,7 @@ void phch_recv::run_thread()
     gettimeofday(&tv_out, NULL);
     timersub(&tv_out, &tv_in, &tv_diff);
 
-    D_TRACE("***** time_out %ld:%06ld delta_t %ld:%06ld *****", 
+    D_TRACE("PHY ", "***** time_out %ld:%06ld delta_t %ld:%06ld *****", 
             tv_out.tv_sec, 
             tv_out.tv_usec,
             tv_diff.tv_sec,

@@ -147,7 +147,7 @@ struct timeval g_tv_next = {0, 0};
 #define RF_FAUX_NOF_TX_WORKERS (25)
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
-static const struct timeval tv_rx_window = {0, 250}; // delta_t before next tti (1/4 sf)
+static const struct timeval tv_rx_window = {0, 750}; // delta_t before next tti
 static const struct timeval tv_zero      = {0, 0};
 
 typedef struct {
@@ -861,6 +861,7 @@ float rf_faux_get_rssi(void *h)
 void rf_faux_suppress_stdout(void *h)
  {
     rf_faux_log_dbug = false;
+    rf_faux_log_info = false;
  }
 
 
@@ -1139,7 +1140,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    cf_t sf_in[RF_FAUX_SF_LEN];
 
-   int n_tries = rf_faux_is_ue(_info) ? 25 : 1;
+   int n_tries = rf_faux_is_ue(_info) ? 10 : 1;
 
    uint8_t * p2data = (uint8_t *)data;
 
@@ -1176,7 +1177,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
              goto rxout;
            }
-        
+       
          const int ns_in = SAMPLES_X_BYTE(nb_in);
 
          int ns_out = ns_in;
@@ -1211,7 +1212,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
             RF_FAUX_WARN("RX seqn %lu, OOS expected seqn %lu", hdr.seqnum, this_seqn);
           }
 
-         RF_FAUX_DBUG("RX seqn %lu, msg_len %d, tx_time, %ld:%06ld, rx_delay %ld:%06ld",
+         RF_FAUX_INFO("RX seqn %lu, msg_len %d, tx_time, %ld:%06ld, rx_delay %ld:%06ld",
                        hdr.seqnum,
                        nb_in,
                        hdr.tx_time.tv_sec,
@@ -1223,7 +1224,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
 rxout:
 
-   RF_FAUX_DBUG("RX nreq %d/%d, out %d/%d",
+   RF_FAUX_INFO("RX nreq %d/%d, out %d/%d",
                  nsamples,
                  nb_req, 
                  nsamples - ns_pending,
