@@ -122,15 +122,15 @@ struct timeval g_tv_next = {0, 0};
 
 #define RF_FAUX_MC_ADDR "224.4.3.2"
 #define RF_FAUX_MC_DEV  "lo"
-#define RF_FAUX_SOCK_BUFF_SIZE (8 * (1 << 20)) // 8Mb
+#define RF_FAUX_SOCK_BUFF_SIZE (1024 * 1024)
 // bytes per sample
 #define BYTES_X_SAMPLE(x) ((x)*sizeof(cf_t))
 
 // samples per byte
 #define SAMPLES_X_BYTE(x) ((x)/sizeof(cf_t))
 
-// target OTA SR
-#define RF_FAUX_OTA_SRATE (5.76e6)
+// target OTA PRB/SR 25(5.76) or 15(3.84)
+#define RF_FAUX_OTA_SRATE (3.84e6)
 
 // max sf len
 #define RF_FAUX_SF_LEN (0x3000)
@@ -203,8 +203,16 @@ typedef struct {
   uint32_t       msglen;
   float          srate;
   struct timeval tx_time;
+  uint32_t       tx_tti;
 } rf_faux_iohdr_t;
 
+
+void rf_faux_suppress_stdout(void *h)
+ {
+    rf_faux_log_dbug = false;
+    rf_faux_log_info = true;
+    rf_faux_log_warn = true;
+ }
 
 
 static void rf_faux_handle_error(srslte_rf_error_t error)
@@ -276,7 +284,7 @@ static int rf_faux_resample(double srate_in,
  
   srslte_resample_arb_t r;
 
-  srslte_resample_arb_init(&r, sratio, 0);
+  srslte_resample_arb_init(&r, sratio, 1);
 
   const int ns_out = srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, ns_in);
 
@@ -397,6 +405,7 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
                                  tx_info->cf_data[0],
                                  tx_info->cf_data[1],
                                  tx_info->nsamples);
+
        p2data = tx_info->cf_data[1];
      }
 
@@ -405,14 +414,15 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
    const rf_faux_iohdr_t hdr = { seqn, 
                                  nb_out,
                                  RF_FAUX_OTA_SRATE,
-                                 tx_info->tx_time };
+                                 tx_info->tx_time,
+                                 g_tti };
 
    struct iovec iov[2] = { {(void*)&(hdr),   sizeof(hdr)},
                            {(void*)p2data,   nb_out     }};
 
-   const int rc = rf_faux_vecio_send(_info, iov);
+   struct timeval tv_now, tx_delay;
 
-   struct timeval tv_now, tv_diff;
+   const int rc = rf_faux_vecio_send(_info, iov);
 
    gettimeofday(&tv_now, NULL);
 
@@ -422,13 +432,13 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
      }
    else
      {
-       timersub(&tv_now, &(tx_info->tx_time), &tv_diff);
+       timersub(&tv_now, &(tx_info->tx_time), &tx_delay);
 
-       RF_FAUX_DBUG("TX seqn %lu, tx_worker %d, tx_overrun %ld:%06ld, in %u/%d, out %d/%d", 
+       RF_FAUX_DBUG("TX seqn %lu, tx_worker %d, tx_delay %ld:%06ld, in %u/%d, out %d/%d", 
                      seqn,
                      tx_worker->id,
-                     tv_diff.tv_sec,
-                     tv_diff.tv_usec,
+                     tx_delay.tv_sec,
+                     tx_delay.tv_usec,
                      tx_info->nsamples,
                      nb_in,
                      ns_out,
@@ -858,13 +868,6 @@ float rf_faux_get_rssi(void *h)
  }
 
 
-void rf_faux_suppress_stdout(void *h)
- {
-    rf_faux_log_dbug = false;
-    rf_faux_log_info = false;
- }
-
-
 void rf_faux_register_error_handler(void *h, srslte_rf_error_handler_t error_handler)
  {
    GET_FAUX_INFO(h);
@@ -1140,7 +1143,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    cf_t sf_in[RF_FAUX_SF_LEN];
 
-   int n_tries = rf_faux_is_ue(_info) ? 10 : 1;
+   int n_tries = rf_faux_is_ue(_info) ? 20 : 1;
 
    uint8_t * p2data = (uint8_t *)data;
 
@@ -1154,8 +1157,6 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
        const int rc = rf_faux_vecio_recv(h, iov);
 
        gettimeofday(&rx_time, NULL);
-
-       timersub(&rx_time, &(hdr.tx_time), &rx_delay);
 
        if(rc <= 0)
         {
@@ -1203,28 +1204,31 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          ns_pending -= ns_out;
 
-         const uint64_t this_seqn = _info->rx_seqn + 1;
+         const uint64_t _seqn = _info->rx_seqn + 1;
 
          _info->rx_seqn = hdr.seqnum;
 
-         if(this_seqn != hdr.seqnum)
-          {
-            RF_FAUX_WARN("RX seqn %lu, OOS expected seqn %lu", hdr.seqnum, this_seqn);
-          }
+         timersub(&rx_time, &(hdr.tx_time), &rx_delay);
 
-         RF_FAUX_INFO("RX seqn %lu, msg_len %d, tx_time, %ld:%06ld, rx_delay %ld:%06ld",
-                       hdr.seqnum,
-                       nb_in,
-                       hdr.tx_time.tv_sec,
-                       hdr.tx_time.tv_usec,
-                       rx_delay.tv_sec,
-                       rx_delay.tv_usec)
+         if((_seqn != hdr.seqnum) ||  (g_tti != hdr.tx_tti))
+          {
+            RF_FAUX_INFO("RX seqn %lu %s, msg_len %d, tx_tti %u %s, tx_time %ld:%06ld, rx_delay %ld:%06ld",
+                         hdr.seqnum,
+                         (_seqn == hdr.seqnum) ? "OK" : "OSEQ",
+                         nb_in,
+                         hdr.tx_tti,
+                         (g_tti == hdr.tx_tti) ? "OK" : "OSYNC",
+                         hdr.tx_time.tv_sec,
+                         hdr.tx_time.tv_usec,
+                         rx_delay.tv_sec,
+                         rx_delay.tv_usec);
+          }
        }
     }
 
 rxout:
 
-   RF_FAUX_INFO("RX nreq %d/%d, out %d/%d",
+   RF_FAUX_DBUG("RX nreq %d/%d, out %d/%d",
                  nsamples,
                  nb_req, 
                  nsamples - ns_pending,

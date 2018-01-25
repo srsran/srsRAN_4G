@@ -109,7 +109,7 @@ void txrx::run_thread()
   
   // Set TTI so that first TX is at tti=0
   tti = 10235; 
-   
+    
   struct timeval tv_in, tv_out, tv_diff, tv_start;
   const struct timeval tv_step = {0, 1000}, tv_zero = {0, 0};
 
@@ -129,11 +129,12 @@ void txrx::run_thread()
   printf("Type <t> to view trace\n");
   // Main loop
   while (running) {
+    tti = (tti+1)%10240;        
+
+    g_tti = tti;
     gettimeofday(&tv_in, NULL);
     timeradd(&g_tv_next, &tv_step, &g_tv_next);
     timersub(&g_tv_next, &tv_in,   &tv_diff);
-
-    g_tti = tti = (tti+1)%10240;        
 
     D_TRACE("PHY ", "***** time_in  %ld:%06ld next    %ld:%06ld *****", 
             tv_in.tv_sec, 
@@ -152,8 +153,7 @@ void txrx::run_thread()
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);
       srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3);
-      D_TRACE("PHY ",  "Next TX time %ld:%f", tx_time.full_secs, tx_time.frac_secs);
-
+      
       Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
             tti, tx_mutex_cnt, 
             tx_time.full_secs, tx_time.frac_secs,

@@ -114,7 +114,7 @@ void txrx::run_thread()
   printf("Type <t> to view trace\n");
   // Main loop
   while (running) {
-    g_tti = tti = (tti+1)%10240;        
+    tti = (tti+1)%10240;        
     worker = (phch_worker*) workers_pool->wait_worker(tti);
     if (worker) {
       for (int p = 0; p < SRSLTE_MAX_PORTS; p++){

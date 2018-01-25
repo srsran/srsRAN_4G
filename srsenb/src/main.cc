@@ -362,9 +362,6 @@ int main(int argc, char *argv[])
 
   srslte_debug_handle_crash(argc, argv);
 
-#if 1
-  srslte_verbose = SRSLTE_VERBOSE_DEBUG;
-#endif
 
   cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
 

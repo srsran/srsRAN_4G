@@ -134,6 +134,7 @@ void rrc::stop() {
 }
 
 void rrc::run_tti(uint32_t tti) {
+  rrc_log->step(tti);
   measurements.run_tti(tti);
 }
 
