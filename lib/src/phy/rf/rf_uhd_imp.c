@@ -562,7 +562,10 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       perror("pthread_create");
       return -1; 
     }
-    
+
+    /* Restore priorities  */
+    uhd_set_thread_priority(0, false);
+
     return 0;
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS; 

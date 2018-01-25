@@ -112,8 +112,8 @@ public:
 private:  
   void run_thread(); 
   
-  static const int MAC_MAIN_THREAD_PRIO = 5; 
-  static const int MAC_PDU_THREAD_PRIO  = 6;
+  static const int MAC_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  static const int MAC_PDU_THREAD_PRIO  = -1;
   static const int MAC_NOF_HARQ_PROC    = 2*HARQ_DELAY_MS;
 
   // Interaction with PHY 

@@ -38,7 +38,8 @@ public:
   bool init(metrics_interface<metrics_t> *m_, float report_period_secs_=1.0) {
     m = m_;
     report_period_secs = report_period_secs_;
-    start_periodic(report_period_secs*1e6);
+    // Start with user-default priority
+    start_periodic(report_period_secs*1e6, -2);
     return true;
   }
   void stop() {
