@@ -24,7 +24,7 @@ mcc = 001
 mnc = 01
 mme_addr = 127.0.1.100
 gtp_bind_addr = 127.0.0.1
-n_prb = 15 
+n_prb = 25 
 
 #####################################################################
 # eNB configuration files 
@@ -108,7 +108,7 @@ filename = /tmp/enb.pcap
 [log]
 all_level = info
 all_hex_limit = 32
-filename = stdout
+filename = enb.log
 file_max_size = -1
 
 [gui]

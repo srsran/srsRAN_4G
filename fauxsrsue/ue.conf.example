@@ -77,7 +77,7 @@ nas_filename = /tmp/nas.pcap
 all_level = info
 phy_lib_level = none
 all_hex_limit = 32
-filename = stdout
+filename = ue.log
 file_max_size = -1
 
 #####################################################################
