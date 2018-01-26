@@ -25,6 +25,7 @@ class metrics_listener
 {
 public: 
   virtual void set_metrics(metrics_t &m) = 0;
+  virtual void stop() = 0;
 };
 
 template<typename metrics_t>
@@ -43,6 +44,10 @@ public:
     return true;
   }
   void stop() {
+    // stop all listeners
+    for (uint32_t i=0;i<listeners.size();i++) {
+      listeners[i]->stop();
+    }
     thread_cancel();
     wait_thread_finish();
   }

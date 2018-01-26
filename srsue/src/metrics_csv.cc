@@ -51,16 +51,21 @@ metrics_csv::metrics_csv(std::string filename)
 
 metrics_csv::~metrics_csv()
 {
-  if (file.is_open()) {
-    file << "#eof\n";
-    file.flush();
-    file.close();
-  }
+  stop();
 }
 
 void metrics_csv::set_ue_handle(ue_metrics_interface *ue_)
 {
   ue = ue_;
+}
+
+void metrics_csv::stop()
+{
+  if (file.is_open()) {
+    file << "#eof\n";
+    file.flush();
+    file.close();
+  }
 }
 
 void metrics_csv::set_periodicity(float metrics_report_period_sec) {
