@@ -404,8 +404,8 @@ void *input_loop(void *m) {
   while (running) {
     cin >> key;
     if (cin.eof() || cin.bad()) {
-      cout << "Closing stdin thread\n" << endl;
-       break;
+      cout << "Closing stdin thread." << endl;
+      break;
     } else {
       if ('t' == key) {
         do_metrics = !do_metrics;

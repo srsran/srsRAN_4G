@@ -47,6 +47,7 @@ class metrics_csv : public srslte::metrics_listener<ue_metrics_t>
 {
 public:
   metrics_csv(std::string filename);
+  ~metrics_csv();
 
   void set_periodicity(float metrics_report_period_sec);
   void set_metrics(ue_metrics_t &m);
