@@ -74,6 +74,7 @@
 
 #include "srslte/srslte.h"
 
+#ifdef __cplusplus
 /*******************************************************************************
                               TYPEDEFS
 *******************************************************************************/
@@ -233,5 +234,9 @@ private:
 };
 
 } // namespace srsue
+
+#endif
+
+#define X_TIME_SCALE 1
 
 #endif // COMMON_H

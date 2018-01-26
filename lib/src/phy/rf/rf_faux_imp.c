@@ -45,6 +45,8 @@
 #include "rf_faux_imp.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/resampling/resample_arb.h"
+// for X_TIME_SCALE
+#include "srslte/common/common.h"
 
 static bool rf_faux_log_dbug  = true;
 static bool rf_faux_log_info  = true;
@@ -124,19 +126,16 @@ struct timeval g_tv_next = {0, 0};
 #define RF_FAUX_MC_DEV  "lo"
 #define RF_FAUX_SOCK_BUFF_SIZE (1024 * 1024)
 // bytes per sample
-#define BYTES_X_SAMPLE(x) ((x)*sizeof(cf_t))
+#define BYTES_PER_SAMPLE(x) ((x)*sizeof(cf_t))
 
 // samples per byte
-#define SAMPLES_X_BYTE(x) ((x)/sizeof(cf_t))
+#define SAMPLES_PER_BYTE(x) ((x)/sizeof(cf_t))
 
 // target OTA PRB/SR 25(5.76) or 15(3.84)
-#define RF_FAUX_OTA_SRATE (3.84e6)
+#define RF_FAUX_OTA_SRATE (5.76e6)
 
 // max sf len
-#define RF_FAUX_SF_LEN (0x3000)
-
-// normalize sf req len for pkt i/o
-#define RF_FAUX_NORM_SF_LEN(x) (((x) = ((x)/10)*10))
+#define RF_FAUX_SF_LEN (0x4000)
 
 // node type
 #define RF_FAUX_NTYPE_NONE  (0)
@@ -147,7 +146,7 @@ struct timeval g_tv_next = {0, 0};
 #define RF_FAUX_NOF_TX_WORKERS (25)
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
-static const struct timeval tv_rx_window = {0, 750}; // delta_t before next tti
+static const struct timeval tv_rx_window = {0, 1000 * X_TIME_SCALE / 2}; // delta_t before next tti
 static const struct timeval tv_zero      = {0, 0};
 
 typedef struct {
@@ -203,7 +202,6 @@ typedef struct {
   uint32_t       msglen;
   float          srate;
   struct timeval tx_time;
-  uint32_t       tx_tti;
 } rf_faux_iohdr_t;
 
 
@@ -242,8 +240,8 @@ static  rf_faux_info_t rf_faux_info = { .dev_name        = "faux",
                                           .tx_handle       = -1,
                                           .rx_handle       = -1,
                                           .rx_timeout      = false,
-                                          .tx_seqn         = 1,
-                                          .rx_seqn         = 0,
+                                          .tx_seqn         = 0,
+                                          .rx_seqn         = -1,
                                           .rx_lock         = PTHREAD_MUTEX_INITIALIZER,
                                           .tx_workers_lock = PTHREAD_MUTEX_INITIALIZER,
                                           .tx_worker_next  = 0,
@@ -278,7 +276,7 @@ static int rf_faux_resample(double srate_in,
                             double srate_out, 
                             void * in, 
                             void * out, 
-                            int ns_in)
+                            int nsamples_in)
 {
   const double sratio = srate_out / srate_in;
  
@@ -286,16 +284,16 @@ static int rf_faux_resample(double srate_in,
 
   srslte_resample_arb_init(&r, sratio, 1);
 
-  const int ns_out = srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, ns_in);
+  const int nsamples_out = srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, nsamples_in);
 
   RF_FAUX_DBUG("srate %4.2lf/%4.2lf MHz, sratio %3.3lf, ns_in %d, ns_out %d",
                 srate_in  / 1e6,
                 srate_out / 1e6,
                 sratio, 
-                ns_in, 
-                ns_out);
+                nsamples_in, 
+                nsamples_out);
 
-  return ns_out;
+  return nsamples_out;
 }
 
 
@@ -392,15 +390,15 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
 
    rf_faux_tx_info_t * tx_info = tx_worker->tx_info;
 
-   const int nb_in = BYTES_X_SAMPLE(tx_info->nsamples);
+   const int nbytes_in = BYTES_PER_SAMPLE(tx_info->nsamples);
 
-   int ns_out = tx_info->nsamples;
+   int nsamples_out = tx_info->nsamples;
 
    void * p2data = tx_info->cf_data[0];
 
    if(_info->tx_srate != RF_FAUX_OTA_SRATE)
      {
-       ns_out = rf_faux_resample(_info->tx_srate,
+       nsamples_out = rf_faux_resample(_info->tx_srate,
                                  RF_FAUX_OTA_SRATE,
                                  tx_info->cf_data[0],
                                  tx_info->cf_data[1],
@@ -409,16 +407,16 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
        p2data = tx_info->cf_data[1];
      }
 
-   const int nb_out = BYTES_X_SAMPLE(ns_out);
+   const int nbytes_out = BYTES_PER_SAMPLE(nsamples_out);
 
    const rf_faux_iohdr_t hdr = { seqn, 
-                                 nb_out,
+                                 nbytes_out,
                                  RF_FAUX_OTA_SRATE,
-                                 tx_info->tx_time,
-                                 g_tti };
+                                 tx_info->tx_time
+                               };
 
-   struct iovec iov[2] = { {(void*)&(hdr),   sizeof(hdr)},
-                           {(void*)p2data,   nb_out     }};
+   struct iovec iov[2] = { {(void*)&(hdr), sizeof(hdr)},
+                           {(void*)p2data, nbytes_out }};
 
    struct timeval tv_now, tx_delay;
 
@@ -428,21 +426,21 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
 
    if(rc <= 0)
      {
-       RF_FAUX_WARN("send reqlen %d, error %s", nb_out, strerror(errno));
+       RF_FAUX_WARN("send reqlen %d, error %s", nbytes_out, strerror(errno));
      }
    else
      {
        timersub(&tv_now, &(tx_info->tx_time), &tx_delay);
 
-       RF_FAUX_DBUG("TX seqn %lu, tx_worker %d, tx_delay %ld:%06ld, in %u/%d, out %d/%d", 
+       RF_FAUX_DBUG("TX seqn %lu, tx_worker %02d, tx_delay %ld:%06ld, in %u/%d, out %d/%d", 
                      seqn,
                      tx_worker->id,
                      tx_delay.tv_sec,
                      tx_delay.tv_usec,
                      tx_info->nsamples,
-                     nb_in,
-                     ns_out,
-                     nb_out);
+                     nbytes_in,
+                     nsamples_out,
+                     nbytes_out);
      }
 }
 
@@ -1116,19 +1114,13 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
  {
    GET_FAUX_INFO(h);
 
-   struct timeval rx_time, rx_delay, tv_in;
+   struct timeval rx_time, rx_delay, tv_rx;
 
    pthread_mutex_lock(&(_info->rx_lock));
 
-   gettimeofday(&tv_in, NULL);
+   gettimeofday(&tv_rx, NULL);
 
-   memset(data, 0x0, BYTES_X_SAMPLE(nsamples));
-
-   // sometimes we get a request for a few extra samples (1922 vs 1920) that 
-   // throws off our pkt based stream
-   RF_FAUX_NORM_SF_LEN(nsamples);
-
-   const int nb_req = BYTES_X_SAMPLE(nsamples);
+   const int nb_req = BYTES_PER_SAMPLE(nsamples);
 
    int nb_pending = nb_req;
 
@@ -1139,9 +1131,9 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
    memset(data, 0x0, nb_req);
 
    // read 1 sf
-   const int nb_sf = BYTES_X_SAMPLE(RF_FAUX_OTA_SRATE / 1000);
+   const int nb_sf = BYTES_PER_SAMPLE(RF_FAUX_OTA_SRATE / 1000);
 
-   cf_t sf_in[RF_FAUX_SF_LEN];
+   cf_t sf_in[RF_FAUX_SF_LEN] = {{0.0, 0.0}};
 
    int n_tries = rf_faux_is_ue(_info) ? 20 : 1;
 
@@ -1149,7 +1141,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    RF_FAUX_DBUG("begin, request %u", nsamples);
 
-   while(nb_pending > 0 && ((n_tries--) > 0))
+   while(nb_pending > 100 && ((n_tries--) > 0))
      {   
        struct iovec iov[2] = { {(void*)&hdr,  sizeof(hdr)},
                                {(void*)sf_in, nb_sf      }};
@@ -1169,40 +1161,40 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
         }
       else
        {
-         const int nb_in = rc - sizeof(hdr);
+         const int nbytes_in = rc - sizeof(hdr);
 
-         if(nb_in != hdr.msglen)
+         if(nbytes_in != hdr.msglen)
            {
              RF_FAUX_WARN("RX seqn %lu, len error expected %d, got %d, DROP", 
-                           hdr.seqnum, hdr.msglen, nb_in);
+                           hdr.seqnum, hdr.msglen, nbytes_in);
 
              goto rxout;
            }
        
-         const int ns_in = SAMPLES_X_BYTE(nb_in);
+         const int nsamples_in = SAMPLES_PER_BYTE(nbytes_in);
 
-         int ns_out = ns_in;
+         int nsamples_out = nsamples_in;
 
          if(_info->rx_srate != hdr.srate)
           {
-            ns_out = rf_faux_resample(hdr.srate,
-                                      _info->rx_srate,
-                                      sf_in,
-                                      p2data, 
-                                      ns_in);
+            nsamples_out = rf_faux_resample(hdr.srate,
+                                            _info->rx_srate,
+                                            sf_in,
+                                            p2data, 
+                                            nsamples_in);
           }
          else
           {
-            memcpy(p2data, sf_in, nb_in);
+            memcpy(p2data, sf_in, nbytes_in);
           }
 
-         const int nb_out = BYTES_X_SAMPLE(ns_out);
+         const int nbytes_out = BYTES_PER_SAMPLE(nsamples_out);
 
-         p2data += nb_out;
+         p2data += nbytes_out;
 
-         nb_pending -= nb_out;
+         nb_pending -= nbytes_out;
 
-         ns_pending -= ns_out;
+         ns_pending -= nsamples_out;
 
          const uint64_t _seqn = _info->rx_seqn + 1;
 
@@ -1210,18 +1202,19 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          timersub(&rx_time, &(hdr.tx_time), &rx_delay);
 
-         if((_seqn != hdr.seqnum) ||  (g_tti != hdr.tx_tti))
+         // use tx time tag as the rx time to keep things in sync
+         tv_rx = hdr.tx_time;
+
+         if(_seqn != hdr.seqnum)
           {
-            RF_FAUX_INFO("RX seqn %lu %s, msg_len %d, tx_tti %u %s, tx_time %ld:%06ld, rx_delay %ld:%06ld",
+            RF_FAUX_INFO("RX seqn %lu %s, msg_len %d, tx_time %ld:%06ld, rx_delay %ld:%06ld",
                          hdr.seqnum,
-                         (_seqn == hdr.seqnum) ? "OK" : "OSEQ",
-                         nb_in,
-                         hdr.tx_tti,
-                         (g_tti == hdr.tx_tti) ? "OK" : "OSYNC",
-                         hdr.tx_time.tv_sec,
-                         hdr.tx_time.tv_usec,
-                         rx_delay.tv_sec,
-                         rx_delay.tv_usec);
+                        (_seqn == hdr.seqnum) ? "OK" : "OSEQ",
+                        nbytes_in,
+                        hdr.tx_time.tv_sec,
+                        hdr.tx_time.tv_usec,
+                        rx_delay.tv_sec,
+                        rx_delay.tv_usec);
           }
        }
     }
@@ -1236,7 +1229,7 @@ rxout:
 
    pthread_mutex_unlock(&(_info->rx_lock));
 
-   rf_faux_tv_to_ts(&tv_in, full_secs, frac_secs);
+   rf_faux_tv_to_ts(&tv_rx, full_secs, frac_secs);
 
    return nsamples;
  }
@@ -1304,7 +1297,7 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    timersub(&(e->tx_time), & tv_now, &tv_diff); 
   
-   memcpy(e->cf_data[0], data, BYTES_X_SAMPLE(nsamples));
+   memcpy(e->cf_data[0], data, BYTES_PER_SAMPLE(nsamples));
    e->h          = h;
    e->nsamples   = nsamples;
    e->is_sob     = is_sob;
