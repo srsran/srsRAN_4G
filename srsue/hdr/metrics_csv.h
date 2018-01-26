@@ -52,6 +52,7 @@ public:
   void set_periodicity(float metrics_report_period_sec);
   void set_metrics(ue_metrics_t &m);
   void set_ue_handle(ue_metrics_interface *ue_);
+  void stop();
 
 private:
   std::string float_to_string(float f, int digits, bool add_semicolon = true);
