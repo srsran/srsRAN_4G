@@ -117,7 +117,7 @@ void basic_test()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(13 == rlc1.get_buffer_state());
+  assert(14 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (1 byte each)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -185,7 +185,7 @@ void loss_test()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(13 == rlc1.get_buffer_state());
+  assert(14 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (1 byte each)
   byte_buffer_t pdu_bufs[NBUFS];
