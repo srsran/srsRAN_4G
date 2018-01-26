@@ -403,14 +403,19 @@ void *input_loop(void *m) {
   char key;
   while (running) {
     cin >> key;
-    if ('t' == key) {
-      do_metrics = !do_metrics;
-      if (do_metrics) {
-        cout << "Enter t to stop trace." << endl;
-      } else {
-        cout << "Enter t to restart trace." << endl;
+    if (cin.eof() || cin.bad()) {
+      cout << "Closing stdin thread\n" << endl;
+       break;
+    } else {
+      if ('t' == key) {
+        do_metrics = !do_metrics;
+        if (do_metrics) {
+          cout << "Enter t to stop trace." << endl;
+        } else {
+          cout << "Enter t to restart trace." << endl;
+        }
+        metrics_screen.toggle_print(do_metrics);
       }
-      metrics_screen.toggle_print(do_metrics);
     }
   }
   return NULL;
