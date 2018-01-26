@@ -200,6 +200,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   args->spgw_args.sgi_if_addr = sgi_if_addr;
   args->hss_args.db_file = hss_db_file;
   args->hss_args.auth_algo = hss_auth_algo;
+  args->hss_args.mcc = args->mme_args.s1ap_args.mcc;
+  args->hss_args.mnc = args->mme_args.s1ap_args.mnc;
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {

@@ -46,6 +46,8 @@ namespace srsepc{
 typedef struct{
   std::string auth_algo;
   std::string db_file;
+  uint16_t mcc;
+  uint16_t mnc;
 }hss_args_t;
 
 typedef struct{
@@ -89,6 +91,8 @@ private:
   static hss *m_instance;
 
   uint64_t                  m_sqn; //48 bits
+  uint16_t                  m_mcc;
+  uint16_t                  m_mnc;
   srslte::byte_buffer_pool *m_pool;
   std::ifstream m_db_file;
 
