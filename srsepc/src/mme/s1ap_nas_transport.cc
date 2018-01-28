@@ -64,13 +64,13 @@ s1ap_nas_transport::cleanup(void)
 }
 
 void
-s1ap_nas_transport::init(void)
+s1ap_nas_transport::init(hss_interface_s1ap * hss_)
 {
   m_s1ap = s1ap::get_instance();
   m_s1ap_log = m_s1ap->m_s1ap_log;
   m_pool = srslte::byte_buffer_pool::get_instance();
 
-  m_hss = hss::get_instance();
+  m_hss = hss_;
   m_mme_gtpc = mme_gtpc::get_instance();
 }
 

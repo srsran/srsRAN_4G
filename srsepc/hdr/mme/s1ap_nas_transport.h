@@ -42,7 +42,7 @@ public:
   static s1ap_nas_transport* m_instance;
   static s1ap_nas_transport* get_instance(void);
   static void cleanup(void);
-  void init(void);
+  void init(hss_interface_s1ap * hss_);
 
   bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
@@ -97,7 +97,7 @@ private:
   srslte::byte_buffer_pool *m_pool;
 
   s1ap* m_s1ap;
-  hss*  m_hss;
+  hss_interface_s1ap*  m_hss;
   mme_gtpc* m_mme_gtpc;
 };
 

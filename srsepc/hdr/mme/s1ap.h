@@ -59,7 +59,7 @@ public:
   static void cleanup();
 
   int enb_listen();
-  int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log);
+  int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1ap * hss_);
   void stop();
 
   int get_s1_mme();
@@ -103,7 +103,7 @@ private:
   uint32_t                       m_plmn;
   srslte::byte_buffer_pool      *m_pool;
 
-  hss *m_hss;
+  hss_interface_s1ap *m_hss;
   int m_s1mme;
   std::map<uint16_t, enb_ctx_t*>                    m_active_enbs;
   std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
