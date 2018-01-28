@@ -95,7 +95,7 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
   db_file = hss_args->db_file;
 
   m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s, MCC: %d, MNC: %d\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str(), mcc, mnc);
-  m_hss_log->console("HSS Initialized\n");
+  m_hss_log->console("HSS Initialized.\n");
   return 0;
 }
 
@@ -238,6 +238,7 @@ hss::gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t
     ret = gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, xres);
     break;
   }
+  increment_sqn(imsi);
   return ret;
 
 }
@@ -448,6 +449,33 @@ hss::get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint
   return true;
 }
 
+void 
+hss::increment_sqn(uint64_t imsi)
+{
+  std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
+  if(ue_ctx_it == m_imsi_to_ue_ctx.end())
+  {
+    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
+  }
+  
+  hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
+
+  // Awkward 48 bit sqn and doing arithmetic 
+  uint64_t sqn = 0;
+  uint8_t *p = (uint8_t *)&sqn;
+  
+  for(int i = 0; i < 6; i++) {
+    p[5-i] = (uint8_t) ((ue_ctx_it->second->sqn[i]));
+  }
+
+  sqn++;
+  
+  m_hss_log->debug("Incremented IMSI: %015lu SQN: %d", imsi, sqn);
+
+  for(int i = 0; i < 6; i++){
+    ue_ctx_it->second->sqn[i] = p[5-i];
+  }
+}
 
 void
 hss::gen_rand(uint8_t rand_[16])
