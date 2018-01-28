@@ -1162,19 +1162,19 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
         }
       else
        {
-         const int nbytes_in = rc - sizeof(hdr);
+         int nbytes_rx = rc - sizeof(hdr);
 
-         if(nbytes_in != hdr.msglen)
+         if(nbytes_rx != hdr.msglen)
            {
              RF_FAUX_WARN("RX seqn %lu, len error expected %d, got %d, DROP", 
-                           hdr.seqnum, hdr.msglen, nbytes_in);
+                           hdr.seqnum, hdr.msglen, nbytes_rx);
 
              goto rxout;
            }
        
-         const int nsamples_in = SAMPLES_PER_BYTE(nbytes_in);
+         const int nsamples_rx = SAMPLES_PER_BYTE(nbytes_rx);
 
-         int nsamples_out = nsamples_in;
+         int nsamples_out = nsamples_rx;
 
          if(_info->rx_srate != hdr.srate)
           {
@@ -1182,11 +1182,11 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
                                             _info->rx_srate,
                                             sf_in,
                                             p2data, 
-                                            nsamples_in);
+                                            nsamples_rx);
           }
          else
           {
-            memcpy(p2data, sf_in, nbytes_in);
+            memcpy(p2data, sf_in, nbytes_rx);
           }
 
          const int nbytes_out = BYTES_PER_SAMPLE(nsamples_out);
@@ -1211,7 +1211,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
             RF_FAUX_INFO("RX seqn %lu %s, msg_len %d, tx_time %ld:%06ld, rx_delay %ld:%06ld",
                          hdr.seqnum,
                         (_seqn == hdr.seqnum) ? "OK" : "OSEQ",
-                        nbytes_in,
+                        nbytes_rx,
                         hdr.tx_time.tv_sec,
                         hdr.tx_time.tv_usec,
                         rx_delay.tv_sec,
