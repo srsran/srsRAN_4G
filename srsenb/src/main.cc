@@ -362,7 +362,6 @@ int main(int argc, char *argv[])
 
   srslte_debug_handle_crash(argc, argv);
 
-
   cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
 
   parse_args(&args, argc, argv);

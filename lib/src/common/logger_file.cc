@@ -40,7 +40,9 @@ logger_file::logger_file()
 
 logger_file::~logger_file() {
   not_done = false;
-  log(new std::string("Closing log\n"));
+  // can we call log after not_done ???
+  //log(new std::string("Closing log\n"));
+  printf("Closing log\n");
   if(inited) {
     wait_thread_finish();
     flush();

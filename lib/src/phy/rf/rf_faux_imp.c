@@ -316,7 +316,7 @@ static int rf_faux_vecio_recv(void *h, struct iovec iov[2])
 {
    GET_FAUX_INFO(h);
 
-   const int nb_req = iov[0].iov_len + iov[1].iov_len;
+   const int nbytes_request = iov[0].iov_len + iov[1].iov_len;
 
    // initial wait if non-blocking
    if(_info->rx_timeout)
@@ -355,7 +355,7 @@ static int rf_faux_vecio_recv(void *h, struct iovec iov[2])
 
    if(rc <= 0)
      {
-       RF_FAUX_WARN("RX reqlen %d, error %s", nb_req, strerror(errno));
+       RF_FAUX_WARN("RX reqlen %d, error %s", nbytes_request, strerror(errno));
      }
 
    return rc;
@@ -366,7 +366,7 @@ static int rf_faux_vecio_send(void *h, struct iovec iov[2])
 {
    GET_FAUX_INFO(h);
 
-   const int nb_req = iov[0].iov_len + iov[1].iov_len;
+   const int nbytes_request = iov[0].iov_len + iov[1].iov_len;
 
    const int rc = writev(_info->tx_handle, iov, 2);
 
@@ -376,7 +376,7 @@ static int rf_faux_vecio_send(void *h, struct iovec iov[2])
      }
    else
      {
-       RF_FAUX_DBUG("sent %d of %d", rc, nb_req);
+       RF_FAUX_DBUG("sent %d of %d", rc, nbytes_request);
      }
 
   return rc;
@@ -1108,43 +1108,44 @@ void rf_faux_get_time(void *h, time_t *full_secs, double *frac_secs)
  }
 
 
+#define KEEP_TRYING(x,y) (((x) > 100) && ((y--) > 0))
 
 int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples, 
                            bool blocking, time_t *full_secs, double *frac_secs)
  {
    GET_FAUX_INFO(h);
 
-   struct timeval rx_time, rx_delay, tv_rx;
-
    pthread_mutex_lock(&(_info->rx_lock));
+
+   struct timeval rx_time, rx_delay, tv_rx;
 
    gettimeofday(&tv_rx, NULL);
 
-   const int nb_req = BYTES_PER_SAMPLE(nsamples);
+   const int nbytes_request = BYTES_PER_SAMPLE(nsamples);
 
-   int nb_pending = nb_req;
+   int nbytes_pending = nbytes_request;
 
-   int ns_pending = nsamples;
+   int nsamples_pending = nsamples;
 
    rf_faux_iohdr_t hdr;
 
-   memset(data, 0x0, nb_req);
+   memset(data, 0x0, nbytes_request);
 
    // read 1 sf
-   const int nb_sf = BYTES_PER_SAMPLE(RF_FAUX_OTA_SRATE / 1000);
+   const int nbytes_read = BYTES_PER_SAMPLE(RF_FAUX_OTA_SRATE / 1000);
 
-   cf_t sf_in[RF_FAUX_SF_LEN] = {{0.0, 0.0}};
+   cf_t sf_in[RF_FAUX_SF_LEN] = {0.0, 0.0};
 
    int n_tries = rf_faux_is_ue(_info) ? 20 : 1;
 
    uint8_t * p2data = (uint8_t *)data;
 
-   RF_FAUX_DBUG("begin, request %u", nsamples);
+   RF_FAUX_DBUG("begin, request %u samples", nsamples);
 
-   while(nb_pending > 100 && ((n_tries--) > 0))
+   while(KEEP_TRYING(nsamples_pending, n_tries))
      {   
-       struct iovec iov[2] = { {(void*)&hdr,  sizeof(hdr)},
-                               {(void*)sf_in, nb_sf      }};
+       struct iovec iov[2] = { {(void*)&hdr,  sizeof(hdr) },
+                               {(void*)sf_in, nbytes_read }};
 
        const int rc = rf_faux_vecio_recv(h, iov);
 
@@ -1192,9 +1193,9 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          p2data += nbytes_out;
 
-         nb_pending -= nbytes_out;
+         nbytes_pending -= nbytes_out;
 
-         ns_pending -= nsamples_out;
+         nsamples_pending -= nsamples_out;
 
          const uint64_t _seqn = _info->rx_seqn + 1;
 
@@ -1223,9 +1224,9 @@ rxout:
 
    RF_FAUX_DBUG("RX nreq %d/%d, out %d/%d",
                  nsamples,
-                 nb_req, 
-                 nsamples - ns_pending,
-                 nb_req   - nb_pending);
+                 nbytes_request, 
+                 nsamples - nsamples_pending,
+                 nbytes_request   - nbytes_pending);
 
    pthread_mutex_unlock(&(_info->rx_lock));
 
