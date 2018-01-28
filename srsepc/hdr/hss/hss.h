@@ -56,6 +56,7 @@ typedef struct{
     uint8_t key[16];
     uint8_t op[16];
     uint8_t amf[2];
+    uint8_t sqn[6];
 }hss_ue_ctx_t;
 
 enum hss_auth_algo {
@@ -74,9 +75,8 @@ public:
   bool set_auth_algo(std::string auth_algo);
   bool read_db_file(std::string db_file);
 
-  void get_sqn(uint8_t sqn[6]);
   void gen_rand(uint8_t rand_[16]);
-  bool get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op);
+  bool get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint8_t *sqn);
   bool gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
   bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
   bool gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
@@ -90,7 +90,6 @@ private:
   virtual ~hss();
   static hss *m_instance;
 
-  uint64_t                  m_sqn; //48 bits
   srslte::byte_buffer_pool *m_pool;
   std::ifstream m_db_file;
 
