@@ -102,8 +102,8 @@ hss::stop(void)
   std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
   while(it!=m_imsi_to_ue_ctx.end())
     {
-      m_hss_log->info("Deleting UE context in HSS. IMSI: %lu\n", it->second->imsi);
-      m_hss_log->console("Deleting UE context in HSS. IMSI: %lu\n", it->second->imsi);
+      m_hss_log->info("Deleting UE context in HSS. IMSI: %015lu\n", it->second->imsi);
+      m_hss_log->console("Deleting UE context in HSS. IMSI: %015lu\n", it->second->imsi);
       delete it->second;
       m_imsi_to_ue_ctx.erase(it++);
     }
