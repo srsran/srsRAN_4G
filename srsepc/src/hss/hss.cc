@@ -39,8 +39,6 @@ hss*          hss::m_instance = NULL;
 boost::mutex  hss_instance_mutex;
 
 hss::hss()
-// :m_sqn(0x112233445566)
-  :m_sqn(0)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();
   return;
@@ -152,7 +150,7 @@ hss::read_db_file(std::string db_filename)
     if(line[0] != '#')
     {
       std::vector<std::string> split = split_string(line,','); 
-      if(split.size()!=5)
+      if(split.size()!=6)
       {
         m_hss_log->error("Error parsing UE database\n");
         return false;
@@ -163,11 +161,13 @@ hss::read_db_file(std::string db_filename)
       get_uint_vec_from_hex_str(split[2],ue_ctx->key,16);
       get_uint_vec_from_hex_str(split[3],ue_ctx->op,16);
       get_uint_vec_from_hex_str(split[4],ue_ctx->amf,2);
+      get_uint_vec_from_hex_str(split[5],ue_ctx->sqn,6);
 
       m_hss_log->debug("Added user from DB, IMSI: %015lu\n", ue_ctx->imsi);
       m_hss_log->debug_hex(ue_ctx->key, 16, "User Key : ");
       m_hss_log->debug_hex(ue_ctx->op, 16, "User OP : ");
       m_hss_log->debug_hex(ue_ctx->amf, 2, "AMF : ");
+      m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN : ");
 
       m_imsi_to_ue_ctx.insert(std::pair<uint64_t,hss_ue_ctx_t*>(ue_ctx->imsi,ue_ctx));
     }
@@ -207,12 +207,11 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   uint8_t     mac[8];
 
 
-  if(!get_k_amf_op(imsi,k,amf,op))
+  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
   {
     return false;
   }
   gen_rand(rand);
-  get_sqn(sqn);
  
   security_milenage_f2345( k,
                            op,
@@ -289,12 +288,11 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
 
   int i = 0;
 
-  if(!get_k_amf_op(imsi,k,amf,op))
+  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
   {
     return false;
   }
   gen_rand(rand);
-  get_sqn(sqn);
 
   // Use RAND and K to compute RES, CK, IK and AK
   for(i=0; i<16; i++) {
@@ -381,7 +379,7 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
 
 
 bool
-hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
+hss::get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint8_t *sqn)
 {
 
   /*
@@ -398,23 +396,14 @@ hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
   }
   hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
   m_hss_log->info("Found User %015lu\n",imsi);
-  memcpy(k,ue_ctx->key,16);
-  memcpy(amf,ue_ctx->amf,2);
-  memcpy(op,ue_ctx->op,16);
+  memcpy(k, ue_ctx->key, 16);
+  memcpy(amf, ue_ctx->amf, 2);
+  memcpy(op, ue_ctx->op, 16);
+  memcpy(sqn, ue_ctx->sqn, 6);
 
   return true;
 }
 
-void
-hss::get_sqn(uint8_t sqn[6])
-{
-  for (int i=0; i<6; i++)
-  {
-    sqn[i] = ((uint8_t *)&m_sqn)[i];  
-  }
-  m_sqn++;
-  return; //TODO See TS 33.102, Annex C
-}
 
 void
 hss::gen_rand(uint8_t rand_[16])
