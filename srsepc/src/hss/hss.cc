@@ -27,6 +27,7 @@
 #include <time.h>       /* time */
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <boost/thread/mutex.hpp>
 #include "hss/hss.h"
 #include "srslte/common/security.h"
@@ -90,6 +91,8 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
 
   mcc = hss_args->mcc;
   mnc = hss_args->mnc;
+  
+  db_file = hss_args->db_file;
 
   m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s, MCC: %d, MNC: %d\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str(), mcc, mnc);
   m_hss_log->console("HSS Initialized\n");
@@ -99,6 +102,7 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
 void
 hss::stop(void)
 {
+  write_db_file(db_file);
   std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
   while(it!=m_imsi_to_ue_ctx.end())
     {
@@ -106,10 +110,6 @@ hss::stop(void)
       m_hss_log->console("Deleting UE context in HSS. IMSI: %015lu\n", it->second->imsi);
       delete it->second;
       m_imsi_to_ue_ctx.erase(it++);
-    }
-  if(m_db_file.is_open())
-    {
-      m_db_file.close();
     }
   return;
 }
@@ -137,6 +137,8 @@ hss::set_auth_algo(std::string auth_algo)
 bool
 hss::read_db_file(std::string db_filename)
 {
+  std::ifstream m_db_file;
+  
   m_db_file.open(db_filename.c_str(), std::ifstream::in);
   if(!m_db_file.is_open())
   {
@@ -173,6 +175,53 @@ hss::read_db_file(std::string db_filename)
     }
   }
 
+  if(m_db_file.is_open())
+  {
+    m_db_file.close();
+  }
+
+  return true;
+}
+
+bool hss::write_db_file(std::string db_filename)
+{
+  std::string line;
+  uint8_t k[16];
+  uint8_t amf[2];
+  uint8_t op[16];
+  uint8_t sqn[6];
+
+  std::ofstream m_db_file;
+  
+  m_db_file.open(db_filename.c_str(), std::ofstream::out);
+  if(!m_db_file.is_open())
+  {
+    return false;
+  }
+  m_hss_log->info("Opened DB file: %s\n", db_filename.c_str() );
+
+  std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
+  while(it!=m_imsi_to_ue_ctx.end())
+  {
+      m_db_file << it->second->name;
+      m_db_file << ",";
+      m_db_file << std::setfill('0') << std::setw(15) << it->second->imsi;
+      m_db_file << ",";
+      m_db_file << hex_string(it->second->key, 16);
+      m_db_file << ",";
+      m_db_file << hex_string(it->second->op, 16);
+      m_db_file << ",";
+      m_db_file << hex_string(it->second->amf, 2);
+      m_db_file << ",";
+      m_db_file << hex_string(it->second->sqn, 6);
+      m_db_file << std::endl;
+      it++;
+  }
+  
+  if(m_db_file.is_open())
+  {
+    m_db_file.close();
+  }
   return true;
 }
 
@@ -443,6 +492,18 @@ hss::get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint le
   return;
 }
 
+
+std::string 
+hss::hex_string(uint8_t *hex, int size)
+{
+  std::stringstream ss;
+
+  ss << std::hex << std::setfill('0');
+  for(int i=0;i<size;i++) {
+    ss << std::setw(2) << static_cast<unsigned>(hex[i]);
+  }
+  return ss.str();
+}
   /*
 uint64_t
 string_to_imsi()

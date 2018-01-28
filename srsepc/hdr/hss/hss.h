@@ -72,9 +72,6 @@ public:
   int init(hss_args_t *hss_args, srslte::log_filter* hss_log);
   void stop(void);
 
-  bool set_auth_algo(std::string auth_algo);
-  bool read_db_file(std::string db_file);
-
   void gen_rand(uint8_t rand_[16]);
   bool get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint8_t *sqn);
   bool gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
@@ -91,12 +88,17 @@ private:
   static hss *m_instance;
 
   srslte::byte_buffer_pool *m_pool;
-  std::ifstream m_db_file;
 
   std::map<uint64_t,hss_ue_ctx_t*> m_imsi_to_ue_ctx;
 
-  enum hss_auth_algo m_auth_algo;
+  bool set_auth_algo(std::string auth_algo);
+  bool read_db_file(std::string db_file);
+  bool write_db_file(std::string db_file);
+  
+  std::string hex_string(uint8_t *hex, int size);
 
+  enum hss_auth_algo m_auth_algo;
+  std::string db_file;
   /*Logs*/
   srslte::log_filter       *m_hss_log;
   
