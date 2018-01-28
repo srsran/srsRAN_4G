@@ -66,7 +66,7 @@ bool srslte_cell_isvalid(srslte_cell_t *cell) {
 }
 
 void srslte_cell_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn) {
-  fprintf(stream, " - Cell ID:         %d\n", cell->id);
+  fprintf(stream, " - PCI:             %d\n", cell->id);
   fprintf(stream, " - Nof ports:       %d\n", cell->nof_ports);
   fprintf(stream, " - CP:              %s\n", srslte_cp_string(cell->cp));
   fprintf(stream, " - PRB:             %d\n", cell->nof_prb);

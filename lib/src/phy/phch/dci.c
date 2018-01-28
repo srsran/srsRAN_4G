@@ -391,7 +391,7 @@ uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dc
   if (dci_msg->tb_en[0]) {
     n += snprintf(&info_str[n], len-n, "%d", dci_msg->mcs_idx);
     if (dci_msg->tb_en[1]) {
-      n += snprintf(&info_str[n], len-n, ",");
+      n += snprintf(&info_str[n], len-n, "/");
     } else {
       n += snprintf(&info_str[n], len-n, "}, ");
     }
@@ -403,7 +403,7 @@ uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dc
   if (dci_msg->tb_en[0]) {
     n += snprintf(&info_str[n], len-n, "%d", dci_msg->rv_idx);
     if (dci_msg->tb_en[1]) {
-      n += snprintf(&info_str[n], len-n, ",");
+      n += snprintf(&info_str[n], len-n, "/");
     } else {
       n += snprintf(&info_str[n], len-n, "}, ");
     }
@@ -415,7 +415,7 @@ uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dc
   if (dci_msg->tb_en[0]) {
     n += snprintf(&info_str[n], len-n, "%d", dci_msg->ndi);
     if (dci_msg->tb_en[1]) {
-      n += snprintf(&info_str[n], len-n, ",");
+      n += snprintf(&info_str[n], len-n, "/");
     } else {
       n += snprintf(&info_str[n], len-n, "}, ");
     }
