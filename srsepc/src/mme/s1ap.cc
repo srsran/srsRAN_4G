@@ -67,7 +67,7 @@ s1ap::cleanup(void)
 }
 
 int
-s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
+s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1ap * hss_)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();
 
@@ -77,17 +77,17 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
   //Init log
   m_s1ap_log = s1ap_log;
 
+  //Get pointer to the HSS
+  m_hss = hss_;
+
   //Init message handlers
   m_s1ap_mngmt_proc = s1ap_mngmt_proc::get_instance(); //Managment procedures
   m_s1ap_mngmt_proc->init();
   m_s1ap_nas_transport = s1ap_nas_transport::get_instance(); //NAS Transport procedures
-  m_s1ap_nas_transport->init();
+  m_s1ap_nas_transport->init(m_hss);
   m_s1ap_ctx_mngmt_proc = s1ap_ctx_mngmt_proc::get_instance(); //Context Management Procedures
   m_s1ap_ctx_mngmt_proc->init();
 
-
-  //Get pointer to the HSS
-  m_hss = hss::get_instance();
 
   //Get pointer to GTP-C class
   m_mme_gtpc = mme_gtpc::get_instance();
