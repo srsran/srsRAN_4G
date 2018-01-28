@@ -38,6 +38,7 @@
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/interfaces/epc_interfaces.h"
 #include <fstream>
 #include <map>
 
@@ -64,7 +65,7 @@ enum hss_auth_algo {
   HSS_ALGO_MILENAGE
 };
 
-class hss
+class hss : public srsepc::hss_interface_s1ap
 {
 public:
   static hss* get_instance(void);
