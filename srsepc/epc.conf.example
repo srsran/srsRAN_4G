@@ -24,6 +24,7 @@ mme_bind_addr = 127.0.1.100
 #####################################################################
 # HSS configuration
 #
+# algo:            Authentication algorithm (xor/milenage)
 # db_file:         Location of .csv file that stores UEs information.
 #
 #####################################################################
