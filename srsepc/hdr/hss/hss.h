@@ -46,6 +46,8 @@ namespace srsepc{
 typedef struct{
   std::string auth_algo;
   std::string db_file;
+  uint16_t mcc;
+  uint16_t mnc;
 }hss_args_t;
 
 typedef struct{
@@ -98,7 +100,9 @@ private:
 
   /*Logs*/
   srslte::log_filter       *m_hss_log;
- 
+  
+  uint16_t mcc;
+  uint16_t mnc;
 };
 
 } // namespace srsepc
