@@ -91,6 +91,8 @@ private:
 
   std::map<uint64_t,hss_ue_ctx_t*> m_imsi_to_ue_ctx;
 
+  void increment_sqn(uint64_t imsi);
+
   bool set_auth_algo(std::string auth_algo);
   bool read_db_file(std::string db_file);
   bool write_db_file(std::string db_file);
