@@ -243,6 +243,93 @@ hss::gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t
 
 }
 
+bool 
+hss::resync_sqn(uint64_t imsi, uint8_t *auts)
+{
+  bool ret = false;
+  switch (m_auth_algo)
+  {
+  case HSS_ALGO_XOR:
+    ret = resync_sqn_xor(imsi, auts);
+    break;
+  case HSS_ALGO_MILENAGE:
+    ret = resync_sqn_milenage(imsi, auts);
+    break;
+  }
+  return ret;
+}
+
+bool 
+hss::resync_sqn_xor(uint64_t imsi, uint8_t *auts)
+{
+  m_hss_log->error("XOR SQN synchronization not supported yet\n");
+  m_hss_log->console("XOR SQNs synchronization not supported yet\n");
+  return false;
+}
+
+
+bool 
+hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
+{
+  uint8_t last_rand[16];
+  uint8_t ak[6];
+  uint8_t mac_s[8];
+  uint8_t sqn_ms_xor_ak[6];
+
+  uint8_t k[16];
+  uint8_t amf[2];
+  uint8_t op[16];
+  uint8_t sqn[6];
+
+  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
+  {
+    return false;
+  }
+
+  get_last_rand(imsi, last_rand);
+
+  for(int i=0; i<6; i++){
+    sqn_ms_xor_ak[i] = auts[i];
+  }
+
+  for(int i=0; i<8; i++){
+    mac_s[i] = auts[i+6];
+  }
+
+  m_hss_log->debug_hex(k, 16, "User Key : ");
+  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(last_rand, 16, "User Last Rand : ");
+  m_hss_log->debug_hex(auts, 16, "AUTS : ");
+  m_hss_log->debug_hex(sqn_ms_xor_ak, 6, "SQN xor AK : ");
+  m_hss_log->debug_hex(mac_s, 8, "MAC : ");
+
+  security_milenage_f5_star(k, op, last_rand, ak);
+  m_hss_log->debug_hex(ak, 6, "Resynch AK : ");
+
+  uint8_t sqn_ms[6];
+  for(int i=0; i<6; i++){
+    sqn_ms[i] = sqn_ms_xor_ak[i] ^ ak[i];
+  }
+  m_hss_log->debug_hex(sqn_ms, 6, "SQN MS : ");
+
+  uint8_t mac_s_tmp[8];
+
+  security_milenage_f1_star(k, op, last_rand, sqn_ms, amf, mac_s_tmp);
+
+  m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
+
+  for(int i=0; i<8; i++){
+    if(!(mac_s_tmp[i] == mac_s[i])){
+      m_hss_log->error("Calculated MAC does not match sent MAC\n");
+      return false;
+    }
+  }
+
+  set_sqn(imsi, sqn_ms);
+
+  return true;
+}
+
 bool
 hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres)
 {
@@ -262,7 +349,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
     return false;
   }
   gen_rand(rand);
- 
+  
   security_milenage_f2345( k,
                            op,
                            rand,
@@ -316,6 +403,8 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   }
   
   m_hss_log->debug_hex(autn, 16, "User AUTN: ");
+
+  set_last_rand(imsi, rand);
 
   return true;
 }
@@ -424,6 +513,8 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
 
   m_hss_log->debug_hex(autn, 8, "User AUTN: ");
 
+  set_last_rand(imsi, rand);
+
   return true;
 }
 
@@ -452,20 +543,19 @@ hss::get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint
 void 
 hss::increment_sqn(uint64_t imsi)
 {
-  std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
-  if(ue_ctx_it == m_imsi_to_ue_ctx.end())
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, ue_ctx);
+  if(ret == false)
   {
-    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
+    return;
   }
-  
-  hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
 
   // Awkward 48 bit sqn and doing arithmetic 
   uint64_t sqn = 0;
   uint8_t *p = (uint8_t *)&sqn;
   
   for(int i = 0; i < 6; i++) {
-    p[5-i] = (uint8_t) ((ue_ctx_it->second->sqn[i]));
+    p[5-i] = (uint8_t) ((ue_ctx->sqn[i]));
   }
 
   sqn++;
@@ -473,8 +563,45 @@ hss::increment_sqn(uint64_t imsi)
   m_hss_log->debug("Incremented IMSI: %015lu SQN: %d", imsi, sqn);
 
   for(int i = 0; i < 6; i++){
-    ue_ctx_it->second->sqn[i] = p[5-i];
+    ue_ctx->sqn[i] = p[5-i];
   }
+}
+
+void
+hss::set_sqn(uint64_t imsi, uint8_t *sqn)
+{
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, ue_ctx);
+  if(ret == false)
+  {
+    return;
+  }
+  memcpy(ue_ctx->sqn, sqn, 6);
+}
+
+void
+hss::set_last_rand(uint64_t imsi, uint8_t *rand)
+{
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, ue_ctx);
+  if(ret == false)
+  {
+    return;
+  }
+  memcpy(ue_ctx->last_rand, rand, 16);
+
+}
+
+void
+hss::get_last_rand(uint64_t imsi, uint8_t *rand)
+{
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, ue_ctx);
+  if(ret == false)
+  {
+    return;
+  }
+  memcpy(rand, ue_ctx->last_rand, 16);
 }
 
 void
@@ -485,6 +612,19 @@ hss::gen_rand(uint8_t rand_[16])
     rand_[i]=rand()%256; //Pulls on byte at a time. It's slow, but does not depend on RAND_MAX.
   }
   return;
+}
+
+bool hss::get_ue_ctx(uint64_t imsi, hss_ue_ctx_t *ue_ctx)
+{
+  std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
+  if(ue_ctx_it == m_imsi_to_ue_ctx.end())
+  {
+    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
+    return false;
+  }
+  
+  ue_ctx = ue_ctx_it->second;
+  return true;
 }
 
 /* Helper functions*/
