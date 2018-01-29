@@ -109,7 +109,7 @@ private:
   bool set_auth_algo(std::string auth_algo);
   bool read_db_file(std::string db_file);
   bool write_db_file(std::string db_file);
-  bool get_ue_ctx(uint64_t imsi, hss_ue_ctx_t *ue_ctx);
+  bool get_ue_ctx(uint64_t imsi, hss_ue_ctx_t **ue_ctx);
   
   std::string hex_string(uint8_t *hex, int size);
 
