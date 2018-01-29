@@ -124,8 +124,9 @@ struct timeval g_tv_next = {0, 0};
 #define RF_FAUX_UL_PORT (43302)
 
 #define RF_FAUX_MC_ADDR "224.4.3.2"
-#define RF_FAUX_MC_DEV  "lo"
+#define RF_FAUX_MC_DEV  "lo"  // XXX_TODO get from args
 #define RF_FAUX_SOCK_BUFF_SIZE (1024 * 1024)
+
 // bytes per sample
 #define BYTES_PER_SAMPLE(x) ((x)*sizeof(cf_t))
 
@@ -133,7 +134,7 @@ struct timeval g_tv_next = {0, 0};
 #define SAMPLES_PER_BYTE(x) ((x)/sizeof(cf_t))
 
 // target OTA PRB/SR 25(5.76) or 15(3.84)
-#define RF_FAUX_OTA_SRATE (5.76e6)
+#define RF_FAUX_OTA_SRATE (5.76e6) // XXX_TODO get from args
 
 // max sf len
 #define RF_FAUX_SF_LEN (0x4000)
@@ -151,12 +152,13 @@ static const struct timeval tv_rx_window = {0, 1000 * FAUX_TIME_SCALE / 2}; // d
 static const struct timeval tv_zero      = {0, 0};
 
 typedef struct {
-  void * h;
-  cf_t   cf_data[2][RF_FAUX_SF_LEN];
-  int    nsamples;
-  struct timeval tx_time;
-  bool   is_sob;
-  bool   is_eob;
+  void *   h;
+  cf_t     cf_data[2][RF_FAUX_SF_LEN];
+  int      nsamples;
+  struct   timeval tx_time;
+  bool     is_sob;
+  bool     is_eob;
+  uint32_t tx_tti;
 } rf_faux_tx_info_t;
 
 
@@ -203,6 +205,7 @@ typedef struct {
   uint32_t       msglen;
   float          srate;
   struct timeval tx_time;
+  uint32_t       tx_tti;
 } rf_faux_iohdr_t;
 
 
@@ -226,28 +229,28 @@ static void rf_faux_handle_error(srslte_rf_error_t error)
 
 
 static  rf_faux_info_t rf_faux_info = { .dev_name        = "faux",
-                                          .rx_gain         = 0.0,
-                                          .tx_gain         = 0.0,
-                                          .rx_srate        = RF_FAUX_OTA_SRATE,
-                                          .tx_srate        = RF_FAUX_OTA_SRATE,
-                                          .rx_freq         = 0.0,
-                                          .tx_freq         = 0.0,
-                                          .rx_cal          = {0.0, 0.0, 0.0, 0.0},
-                                          .tx_cal          = {0.0, 0.0, 0.0, 0.0},
-                                          .clock_rate      = 0.0,
-                                          .error_handler   = rf_faux_handle_error,
-                                          .rx_stream       = false,
-                                          .ntype           = RF_FAUX_NTYPE_NONE,
-                                          .tx_handle       = -1,
-                                          .rx_handle       = -1,
-                                          .rx_timeout      = false,
-                                          .tx_seqn         = 0,
-                                          .rx_seqn         = -1,
-                                          .rx_lock         = PTHREAD_MUTEX_INITIALIZER,
-                                          .tx_workers_lock = PTHREAD_MUTEX_INITIALIZER,
-                                          .tx_worker_next  = 0,
-                                          .nof_tx_workers  = 0,
-                                       };
+                                        .rx_gain         = 0.0,
+                                        .tx_gain         = 0.0,
+                                        .rx_srate        = RF_FAUX_OTA_SRATE,
+                                        .tx_srate        = RF_FAUX_OTA_SRATE,
+                                        .rx_freq         = 0.0,
+                                        .tx_freq         = 0.0,
+                                        .rx_cal          = {0.0, 0.0, 0.0, 0.0},
+                                        .tx_cal          = {0.0, 0.0, 0.0, 0.0},
+                                        .clock_rate      = 0.0,
+                                        .error_handler   = rf_faux_handle_error,
+                                        .rx_stream       = false,
+                                        .ntype           = RF_FAUX_NTYPE_NONE,
+                                        .tx_handle       = -1,
+                                        .rx_handle       = -1,
+                                        .rx_timeout      = false,
+                                        .tx_seqn         = 0,
+                                        .rx_seqn         = -1,
+                                        .rx_lock         = PTHREAD_MUTEX_INITIALIZER,
+                                        .tx_workers_lock = PTHREAD_MUTEX_INITIALIZER,
+                                        .tx_worker_next  = 0,
+                                        .nof_tx_workers  = 0,
+                                      };
 
 // could just as well use rf_faux_info for single antenna mode
 #define GET_FAUX_INFO(h)  assert(h); rf_faux_info_t *_info = (rf_faux_info_t *)(h)
@@ -413,7 +416,8 @@ void rf_faux_send_msg(rf_faux_tx_worker_t * tx_worker, uint64_t seqn)
    const rf_faux_iohdr_t hdr = { seqn, 
                                  nbytes_out,
                                  RF_FAUX_OTA_SRATE,
-                                 tx_info->tx_time
+                                 tx_info->tx_time,
+                                 tx_info->tx_tti + 4
                                };
 
    struct iovec iov[2] = { {(void*)&(hdr), sizeof(hdr)},
@@ -624,7 +628,7 @@ static int rf_faux_open_sock(rf_faux_info_t * info,
 
   if(rf_faux_set_sock_buff_size(tx_fd, RF_FAUX_SOCK_BUFF_SIZE, SO_SNDBUF) < 0)
     {
-      RF_FAUX_WARN("rx sock set rxbuf size error %s", strerror(errno));
+      RF_FAUX_WARN("rx sock set txbuf size error %s", strerror(errno));
 
       return -1;
     }
@@ -1118,9 +1122,10 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    pthread_mutex_lock(&(_info->rx_lock));
 
-   struct timeval rx_time, rx_delay, tv_rx;
+   struct timeval rx_time, rx_delay, rx_timestamp;
 
-   gettimeofday(&tv_rx, NULL);
+   // set rx_timestamp to begin time
+   gettimeofday(&rx_timestamp, NULL);
 
    const int nbytes_request = BYTES_PER_SAMPLE(nsamples);
 
@@ -1198,25 +1203,21 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          nsamples_pending -= nsamples_out;
 
-         const uint64_t _seqn = _info->rx_seqn + 1;
-
-         _info->rx_seqn = hdr.seqnum;
-
          timersub(&rx_time, &(hdr.tx_time), &rx_delay);
 
          // use tx time tag as the rx time to keep things in sync
-         tv_rx = hdr.tx_time;
+         rx_timestamp = hdr.tx_time;
 
-         if(_seqn != hdr.seqnum)
-          {
-            RF_FAUX_INFO("RX seqn %lu %s, msg_len %d, tx_time %ld:%06ld, rx_delay %ld:%06ld",
-                         hdr.seqnum,
-                        (_seqn == hdr.seqnum) ? "OK" : "OSEQ",
-                        nbytes_rx,
-                        hdr.tx_time.tv_sec,
-                        hdr.tx_time.tv_usec,
-                        rx_delay.tv_sec,
-                        rx_delay.tv_usec);
+         if(hdr.tx_tti != g_tti)
+           {
+             RF_FAUX_INFO("RX seqn %lu, msg_len %d, tx_tti %u, tx_time %ld:%06ld, rx_delay %ld:%06ld",
+                           hdr.seqnum,
+                           nbytes_rx,
+                           hdr.tx_tti,
+                           hdr.tx_time.tv_sec,
+                           hdr.tx_time.tv_usec,
+                           rx_delay.tv_sec,
+                           rx_delay.tv_usec);
           }
        }
     }
@@ -1231,7 +1232,7 @@ rxout:
 
    pthread_mutex_unlock(&(_info->rx_lock));
 
-   rf_faux_tv_to_ts(&tv_rx, full_secs, frac_secs);
+   rf_faux_tv_to_ts(&rx_timestamp, full_secs, frac_secs);
 
    return nsamples;
  }
@@ -1297,13 +1298,14 @@ int rf_faux_send_timed(void *h, void *data, int nsamples,
 
    gettimeofday(&tv_now, NULL);
 
-   timersub(&(e->tx_time), & tv_now, &tv_diff); 
+   timersub(&(e->tx_time), &tv_now, &tv_diff); 
   
    memcpy(e->cf_data[0], data, BYTES_PER_SAMPLE(nsamples));
    e->h          = h;
    e->nsamples   = nsamples;
    e->is_sob     = is_sob;
    e->is_eob     = is_eob;
+   e->tx_tti     = g_tti;
    tx_worker->is_pending = true;
 
    _info->nof_tx_workers += 1;
