@@ -71,12 +71,14 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
       //fprintf(stderr, "Can't unpack DCI message %s (%d)\n", srslte_dci_format_string(msg->format), msg->format);
       return ret;
     } 
-    
-    srslte_ra_dl_dci_to_grant(dl_dci, nof_prb, msg_rnti, grant);
 
-    if (SRSLTE_VERBOSE_ISINFO()) {
-      srslte_ra_pdsch_fprint(stdout, dl_dci, nof_prb);
-      srslte_ra_dl_grant_fprint(stdout, grant);
+    if (!dl_dci->is_ra_order) {
+      srslte_ra_dl_dci_to_grant(dl_dci, nof_prb, msg_rnti, grant);
+
+      if (SRSLTE_VERBOSE_ISINFO()) {
+        srslte_ra_pdsch_fprint(stdout, dl_dci, nof_prb);
+        srslte_ra_dl_grant_fprint(stdout, grant);
+      }
     }
 
     ret = SRSLTE_SUCCESS;
@@ -844,20 +846,30 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   if (*y == 0) {
     int nof_bits = riv_nbits(nof_prb);
     int i=0;
-    while(i<nof_bits && y[1+i] == 1)
+    // Check all bits in RBA are set to 1
+    while(i<nof_bits && y[1+i] == 1) {
       i++;
+    }
     if (i == nof_bits) {
-      //printf("Warning check me: could this be a RA PDCCH order??\n");
+      // Check all remaining bits are set to 0
       i=1+10+nof_bits;
       while(i<msg->nof_bits-1 && y[i] == 0) {
         i++;
       }
       if (i == msg->nof_bits-1) {
-        //printf("Received a Format1A RA PDCCH order. Not implemented!\n");
-        return SRSLTE_ERROR;
+        // This is a Random access order
+        y+=1+nof_bits;
+
+        data->is_ra_order = true;
+        data->ra_preamble = srslte_bit_pack(&y, 6);
+        data->ra_mask_idx = srslte_bit_pack(&y, 4);
+
+        return SRSLTE_SUCCESS;
       }
     }
   }
+
+  data->is_ra_order = false;
 
   data->alloc_type = SRSLTE_RA_ALLOC_TYPE2;
   data->type2_alloc.mode = *y++;
