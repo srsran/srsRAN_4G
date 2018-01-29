@@ -58,6 +58,7 @@ typedef struct{
     uint8_t op[16];
     uint8_t amf[2];
     uint8_t sqn[6];
+    uint8_t last_rand[16];
 }hss_ue_ctx_t;
 
 enum hss_auth_algo {
@@ -74,7 +75,7 @@ public:
   void stop(void);
 
   bool gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
-
+  bool resync_sqn(uint64_t imsi, uint8_t *auts);
 
 private:
 
@@ -93,14 +94,22 @@ private:
   bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
   bool gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
 
+  bool resync_sqn_milenage(uint64_t imsi, uint8_t *auts);
+  bool resync_sqn_xor(uint64_t imsi, uint8_t *auts);
+
   std::vector<std::string> split_string(const std::string &str, char delimiter);
   void get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint len);
 
   void increment_sqn(uint64_t imsi);
+  void set_sqn(uint64_t imsi, uint8_t *sqn);
+
+  void set_last_rand(uint64_t imsi, uint8_t *rand);
+  void get_last_rand(uint64_t imsi, uint8_t *rand);
 
   bool set_auth_algo(std::string auth_algo);
   bool read_db_file(std::string db_file);
   bool write_db_file(std::string db_file);
+  bool get_ue_ctx(uint64_t imsi, hss_ue_ctx_t *ue_ctx);
   
   std::string hex_string(uint8_t *hex, int size);
 
