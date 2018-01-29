@@ -183,7 +183,6 @@ void txrx::run_thread()
       else
         {
           timersub(&tv_out, &g_tv_next, &tv_diff);
-
           W_TRACE("PHY ", "***** time_out %ld:%06ld overrun %ld:%06ld *****", 
                   tv_out.tv_sec, 
                   tv_out.tv_usec,

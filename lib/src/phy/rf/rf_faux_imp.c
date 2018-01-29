@@ -1208,9 +1208,7 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
          // use tx time tag as the rx time to keep things in sync
          rx_timestamp = hdr.tx_time;
 
-         if(hdr.tx_tti != g_tti)
-           {
-             RF_FAUX_INFO("RX seqn %lu, msg_len %d, tx_tti %u, tx_time %ld:%06ld, rx_delay %ld:%06ld",
+         RF_FAUX_DBUG("RX seqn %lu, msg_len %d, tx_tti %u, tx_time %ld:%06ld, rx_delay %ld:%06ld",
                            hdr.seqnum,
                            nbytes_rx,
                            hdr.tx_tti,
@@ -1218,7 +1216,6 @@ int rf_faux_recv_with_time(void *h, void *data, uint32_t nsamples,
                            hdr.tx_time.tv_usec,
                            rx_delay.tv_sec,
                            rx_delay.tv_usec);
-          }
        }
     }
 
