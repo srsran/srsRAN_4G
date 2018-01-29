@@ -381,7 +381,7 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
 {
   int cnt = 0;
   while(worker_com->is_any_pending_ack() && cnt < 10) {
-    usleep(X_TIME_SCALE * 1000);
+    usleep(FAUX_TIME_SCALE * 1000);
     cnt++;
     log_h->info("Cell HO: Waiting pending PHICH\n");
   }
@@ -709,7 +709,7 @@ void phch_recv::run_thread()
               srslte_timestamp_t rx_time, tx_time, tx_time_prach;
               srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
               srslte_timestamp_copy(&tx_time, &rx_time);
-              srslte_timestamp_add(&tx_time, 0, X_TIME_SCALE * HARQ_DELAY_MS*1e-3 - time_adv_sec);
+              srslte_timestamp_add(&tx_time, 0, FAUX_TIME_SCALE * HARQ_DELAY_MS*1e-3 - time_adv_sec);
               worker->set_tx_time(tx_time, next_offset);
               next_offset = 0;
 
@@ -720,7 +720,7 @@ void phch_recv::run_thread()
               // Check if we need to TX a PRACH
               if (prach_buffer->is_ready_to_send(tti)) {
                 srslte_timestamp_copy(&tx_time_prach, &rx_time);
-                srslte_timestamp_add(&tx_time_prach, 0, X_TIME_SCALE * prach::tx_advance_sf * 1e-3);
+                srslte_timestamp_add(&tx_time_prach, 0, FAUX_TIME_SCALE * prach::tx_advance_sf * 1e-3);
                 prach_buffer->send(radio_h, ul_dl_factor * metrics.cfo / 15000, worker_com->pathloss, tx_time_prach);
                 radio_h->tx_end();
                 worker_com->p0_preamble = prach_buffer->get_p0_preamble();
@@ -763,7 +763,7 @@ void phch_recv::run_thread()
           stop_rx();
         }
         is_in_idle = true;
-        usleep(X_TIME_SCALE * 1000);
+        usleep(FAUX_TIME_SCALE * 1000);
         break;
     }
 

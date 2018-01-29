@@ -111,7 +111,7 @@ void txrx::run_thread()
   tti = 10235; 
     
   struct timeval tv_in, tv_out, tv_diff, tv_start;
-  const struct timeval tv_step = {0, X_TIME_SCALE * 1000}, tv_zero = {0, 0};
+  const struct timeval tv_step = {0, FAUX_TIME_SCALE * 1000}, tv_zero = {0, 0};
 
   threads_print_self();
 
@@ -152,7 +152,7 @@ void txrx::run_thread()
                     
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);
-      srslte_timestamp_add(&tx_time, 0, X_TIME_SCALE * HARQ_DELAY_MS*1e-3);
+      srslte_timestamp_add(&tx_time, 0, FAUX_TIME_SCALE * HARQ_DELAY_MS*1e-3);
       
       Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
             tti, tx_mutex_cnt, 

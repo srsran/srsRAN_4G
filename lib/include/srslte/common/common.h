@@ -237,6 +237,10 @@ private:
 
 #endif
 
-#define X_TIME_SCALE 1
+#ifdef RF_FAUX
+// debug time scale for running on limited processors
+// set to 1 runs "real" time, to "scale" time down" to 10ms subframe use 10 and so forth
+#define FAUX_TIME_SCALE 2
+#endif
 
 #endif // COMMON_H

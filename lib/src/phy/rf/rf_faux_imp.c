@@ -45,7 +45,8 @@
 #include "rf_faux_imp.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/resampling/resample_arb.h"
-// for X_TIME_SCALE
+
+#define RF_FAUX
 #include "srslte/common/common.h"
 
 static bool rf_faux_log_dbug  = true;
@@ -146,7 +147,7 @@ struct timeval g_tv_next = {0, 0};
 #define RF_FAUX_NOF_TX_WORKERS (25)
 #define RF_FAUX_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_FAUX_NOF_TX_WORKERS)
 
-static const struct timeval tv_rx_window = {0, 1000 * X_TIME_SCALE / 2}; // delta_t before next tti
+static const struct timeval tv_rx_window = {0, 1000 * FAUX_TIME_SCALE / 2}; // delta_t before next tti
 static const struct timeval tv_zero      = {0, 0};
 
 typedef struct {
