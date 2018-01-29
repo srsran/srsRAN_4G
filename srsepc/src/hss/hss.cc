@@ -256,6 +256,7 @@ hss::resync_sqn(uint64_t imsi, uint8_t *auts)
     ret = resync_sqn_milenage(imsi, auts);
     break;
   }
+  increment_sqn(imsi);
   return ret;
 }
 
@@ -312,19 +313,21 @@ hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
   }
   m_hss_log->debug_hex(sqn_ms, 6, "SQN MS : ");
 
+  m_hss_log->debug_hex(amf, 2, "AMF : ");
+
   uint8_t mac_s_tmp[8];
 
   security_milenage_f1_star(k, op, last_rand, sqn_ms, amf, mac_s_tmp);
 
   m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
-
+  /*
   for(int i=0; i<8; i++){
     if(!(mac_s_tmp[i] == mac_s[i])){
       m_hss_log->error("Calculated MAC does not match sent MAC\n");
       return false;
     }
   }
-
+  */
   set_sqn(imsi, sqn_ms);
 
   return true;
@@ -544,7 +547,7 @@ void
 hss::increment_sqn(uint64_t imsi)
 {
   hss_ue_ctx_t *ue_ctx = NULL;
-  bool ret = get_ue_ctx(imsi, ue_ctx);
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
   if(ret == false)
   {
     return;
@@ -553,14 +556,14 @@ hss::increment_sqn(uint64_t imsi)
   // Awkward 48 bit sqn and doing arithmetic 
   uint64_t sqn = 0;
   uint8_t *p = (uint8_t *)&sqn;
-  
+
   for(int i = 0; i < 6; i++) {
     p[5-i] = (uint8_t) ((ue_ctx->sqn[i]));
   }
-
+  
   sqn++;
   
-  m_hss_log->debug("Incremented IMSI: %015lu SQN: %d", imsi, sqn);
+  m_hss_log->debug("Incremented SQN (IMSI: %015lu) SQN: %d\n", imsi, sqn);
 
   for(int i = 0; i < 6; i++){
     ue_ctx->sqn[i] = p[5-i];
@@ -571,7 +574,7 @@ void
 hss::set_sqn(uint64_t imsi, uint8_t *sqn)
 {
   hss_ue_ctx_t *ue_ctx = NULL;
-  bool ret = get_ue_ctx(imsi, ue_ctx);
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
   if(ret == false)
   {
     return;
@@ -583,7 +586,7 @@ void
 hss::set_last_rand(uint64_t imsi, uint8_t *rand)
 {
   hss_ue_ctx_t *ue_ctx = NULL;
-  bool ret = get_ue_ctx(imsi, ue_ctx);
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
   if(ret == false)
   {
     return;
@@ -596,7 +599,7 @@ void
 hss::get_last_rand(uint64_t imsi, uint8_t *rand)
 {
   hss_ue_ctx_t *ue_ctx = NULL;
-  bool ret = get_ue_ctx(imsi, ue_ctx);
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
   if(ret == false)
   {
     return;
@@ -614,7 +617,7 @@ hss::gen_rand(uint8_t rand_[16])
   return;
 }
 
-bool hss::get_ue_ctx(uint64_t imsi, hss_ue_ctx_t *ue_ctx)
+bool hss::get_ue_ctx(uint64_t imsi, hss_ue_ctx_t **ue_ctx)
 {
   std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if(ue_ctx_it == m_imsi_to_ue_ctx.end())
@@ -623,7 +626,7 @@ bool hss::get_ue_ctx(uint64_t imsi, hss_ue_ctx_t *ue_ctx)
     return false;
   }
   
-  ue_ctx = ue_ctx_it->second;
+  *ue_ctx = ue_ctx_it->second;
   return true;
 }
 
