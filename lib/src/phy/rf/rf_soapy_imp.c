@@ -420,6 +420,7 @@ int  rf_soapy_recv_with_time_multi(void *h,
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   int flags; //flags set by receive operation
   int num_channels = 1; // temp
+  const long timeoutUs = 1000000; // arbitrarily chosen
   
   int trials = 0;
   int ret = 0;
@@ -436,7 +437,7 @@ int  rf_soapy_recv_with_time_multi(void *h,
       cf_t *data_c = (cf_t*) data[i];
       buffs_ptr[i] = &data_c[n];
     }
-    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, 1000000);
+    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, timeoutUs);
     if(ret < 0) {
       // continue when getting overflows
       if (ret == SOAPY_SDR_OVERFLOW) {
@@ -458,8 +459,6 @@ int  rf_soapy_recv_with_time_multi(void *h,
     n += ret;
     trials++;
   } while (n < nsamples && trials < 100);
-  
-  
 
   return n;
 }
