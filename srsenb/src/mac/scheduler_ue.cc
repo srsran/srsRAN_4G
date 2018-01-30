@@ -212,6 +212,7 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
     return false; 
   }
   srslte_pucch_sched_t pucch_sched; 
+  pucch_sched.sps_enabled = false;
   pucch_sched.n_pucch_sr = cfg.sr_N_pucch;
   pucch_sched.n_pucch_2  = cfg.n_pucch_cqi;
   pucch_sched.N_pucch_1  = cfg.pucch_cfg.n1_pucch_an; 

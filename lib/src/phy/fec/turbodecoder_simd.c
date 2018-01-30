@@ -133,7 +133,7 @@ void map_simd_dec(map_gen_t * h, int16_t * input[SRSLTE_TDEC_MAX_NPAR], int16_t 
 {
   
   uint32_t nof_cb = 1;
-  int16_t *outptr[SRSLTE_TDEC_MAX_NPAR];
+  int16_t *outptr[SRSLTE_TDEC_MAX_NPAR] = { NULL, NULL };
   
   // Compute branch metrics
   switch(cb_mask) {
