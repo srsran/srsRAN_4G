@@ -241,7 +241,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
 {
   uint8_t     k_asme[32];
   uint8_t     autn[16]; 
-  uint8_t     rand[6];
+  uint8_t     rand[16];
   uint8_t     xres[8];
 
   ue_ctx_t ue_ctx;
@@ -317,7 +317,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   m_s1ap->add_new_ue_ctx(ue_ctx);
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   pack_authentication_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
-
+  
   //Send reply to eNB
   *reply_flag = true;
   m_s1ap_log->info("Downlink NAS: Sending Athentication Request\n");
@@ -584,7 +584,7 @@ bool
 s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
   uint8_t     autn[16]; 
-  uint8_t     rand[6];
+  uint8_t     rand[16];
   uint8_t     xres[8];
 
   LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
@@ -609,7 +609,7 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
     return false;
   }
-
+   
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   pack_authentication_request(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id, autn, rand);
 

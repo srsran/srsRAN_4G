@@ -90,7 +90,10 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
     return -1;
   }
 
-  m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str());
+  mcc = hss_args->mcc;
+  mnc = hss_args->mnc;
+
+  m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s, MCC: %d, MNC: %d\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str(), mcc, mnc);
   m_hss_log->console("HSS Initialized\n");
   return 0;
 }
@@ -203,8 +206,6 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   uint8_t     ak[6];
   uint8_t     mac[8];
 
-  uint16_t  mcc=61441; //001
-  uint16_t  mnc=65281; //01
 
   if(!get_k_amf_op(imsi,k,amf,op))
   {
@@ -212,7 +213,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   }
   gen_rand(rand);
   get_sqn(sqn);
-
+ 
   security_milenage_f2345( k,
                            op,
                            rand,
@@ -221,12 +222,23 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
                            ik,
                            ak);
 
+  m_hss_log->debug_hex(k, 16, "User Key : ");
+  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(rand, 16, "User Rand : ");
+  m_hss_log->debug_hex(xres, 8, "User XRES: ");
+  m_hss_log->debug_hex(ck, 16, "User CK: ");
+  m_hss_log->debug_hex(ik, 16, "User IK: ");
+  m_hss_log->debug_hex(ak, 6, "User AK: ");
+
   security_milenage_f1( k,
                         op,
                         rand,
                         sqn,
                         amf,
                         mac);
+
+  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
+  m_hss_log->debug_hex(mac, 8, "User MAC : ");
 
   // Generate K_asme
   security_generate_k_asme( ck,
@@ -236,6 +248,9 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
                             mcc,
                             mnc,
                             k_asme);
+
+  m_hss_log->debug("User MCC : %x  MNC : %x \n", mcc, mnc);
+  m_hss_log->debug_hex(k_asme, 32, "User k_asme : ");
 
   //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
   for(int i=0;i<6;i++ )
@@ -250,10 +265,8 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   {
     autn[8+i]=mac[i];
   }
-
-  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
-  m_hss_log->debug_hex(autn, 8, "User AUTN: ");
-  m_hss_log->debug_hex(xres, 8, "User XRES: ");
+  
+  m_hss_log->debug_hex(autn, 16, "User AUTN: ");
 
   return true;
 }
@@ -273,9 +286,6 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
   uint8_t     ik[16];
   uint8_t     ak[6];
   uint8_t     mac[8];
-
-  uint16_t  mcc=61441; //001
-  uint16_t  mnc=65281; //01
 
   int i = 0;
 
@@ -300,6 +310,14 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
     ak[i] = xdout[i+3];
   }
 
+  m_hss_log->debug_hex(k, 16, "User Key : ");
+  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(rand, 16, "User Rand : ");
+  m_hss_log->debug_hex(xres, 8, "User XRES: ");
+  m_hss_log->debug_hex(ck, 16, "User CK: ");
+  m_hss_log->debug_hex(ik, 16, "User IK: ");
+  m_hss_log->debug_hex(ak, 6, "User AK: ");
+
   // Generate cdout
   for(i=0; i<6; i++) {
     cdout[i] = sqn[i];
@@ -312,6 +330,9 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
   for(i=0;i<8;i++) {
     mac[i] = xdout[i] ^ cdout[i];
   }
+
+  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
+  m_hss_log->debug_hex(mac, 8, "User MAC : ");
 
   //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
   for(int i=0;i<6;i++ )
@@ -335,6 +356,9 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
                             mcc,
                             mnc,
                             k_asme);
+  
+  m_hss_log->debug("User MCC : %x  MNC : %x \n", mcc, mnc);
+  m_hss_log->debug_hex(k_asme, 32, "User k_asme : ");
 
   //Generate AUTN (autn = sqn ^ ak |+| amf |+| mac)
   for(int i=0;i<6;i++ )
@@ -350,9 +374,7 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
     autn[8+i]=mac[i];
   }
 
-  m_hss_log->debug_hex(sqn, 6, "User SQN : ");
   m_hss_log->debug_hex(autn, 8, "User AUTN: ");
-  m_hss_log->debug_hex(xres, 8, "User XRES: ");
 
   return true;
 }
