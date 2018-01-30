@@ -366,7 +366,6 @@ int main(int argc, char *argv[])
 {
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
-  signal(SIGKILL, sig_int_handler);
   all_args_t        args;
   metrics_stdout    metrics;
   enb              *enb = enb::get_instance();
