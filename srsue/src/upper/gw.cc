@@ -202,6 +202,7 @@ srslte::error_t gw::init_if(char *err_str)
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
   strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ);
+  ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1] = 0;
   if(0 > ioctl(tun_fd, TUNSETIFF, &ifr))
   {
       err_str = strerror(errno);
