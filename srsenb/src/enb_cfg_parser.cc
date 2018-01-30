@@ -715,7 +715,7 @@ int enb::parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUC
   if (!parser::parse_section(filename, &sib9)) {
     data->hnb_name_present = true; 
     if (name_enabled) {
-      strncpy((char*) data->hnb_name, hnb_name.c_str(), 48);
+      strncpy((char*) data->hnb_name, hnb_name.c_str(), 47);
       data->hnb_name[47] = 0;
       data->hnb_name_size = strnlen(hnb_name.c_str(), 48);         
     } else if (hex_enabled) {
