@@ -51,7 +51,7 @@ srslte_cell_t cell = {
   SRSLTE_PHICH_R_1_6    // PHICH resources
 };
 
-char mimo_type_str [32] = "single";
+char mimo_type_str[32] = "single";
 srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
 uint32_t cfi = 1;
 uint32_t mcs[SRSLTE_MAX_CODEWORDS] = {0, 0};
@@ -111,7 +111,8 @@ void parse_args(int argc, char **argv) {
       cfi = atoi(argv[optind]);
       break;
     case 'x':
-      strncpy(mimo_type_str, argv[optind], 32);
+      strncpy(mimo_type_str, argv[optind], sizeof(mimo_type_str));
+      mimo_type_str[sizeof(mimo_type_str)-1] = 0;
       break;
     case 'p':
       pmi = (uint32_t) atoi(argv[optind]);
