@@ -100,6 +100,7 @@ void phch_worker::reset()
   rar_cqi_request = false;
   I_sr = 0;
   cfi  = 0;
+  rssi_read_cnt = 0;
 }
 
 void phch_worker::set_common(phch_common* phy_)
@@ -230,6 +231,15 @@ void phch_worker::work_imp()
   mac_interface_phy::tb_action_ul_t ul_action; 
   bzero(&ul_action, sizeof(mac_interface_phy::tb_action_ul_t));
 
+
+  /** Calculate RSSI on the input signal before generating the output */
+
+  // Average RSSI over all symbols
+  float rssi_dbm = 10*log10(srslte_vec_avg_power_cf(signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb))) + 30;
+  if (isnormal(rssi_dbm)) {
+    phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
+  }
+
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   bool chest_ok = extract_fft_and_pdcch_llr();
 
@@ -287,7 +297,8 @@ void phch_worker::work_imp()
   
   // Decode PHICH 
   bool ul_ack = false;
-  bool ul_ack_available = decode_phich(&ul_ack); 
+  bool ul_ack_available = decode_phich(&ul_ack);
+
 
   /***** Uplink Processing + Transmission *******/
   
@@ -1325,42 +1336,50 @@ void phch_worker::update_measurements()
 {
   float snr_ema_coeff = phy->args->snr_ema_coeff;
   if (chest_done) {
-    /* Compute ADC/RX gain offset every ~10s  */
-    if (tti== 0 || phy->rx_gain_offset == 0) {
-      float rx_gain_offset = 0; 
-      if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
-        float rssi_all_signal = 30+10*log10(srslte_vec_avg_power_cf(signal_buffer[0],SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))));
-        rx_gain_offset = 30+rssi_all_signal-phy->get_radio()->get_rssi();
-      } else {
-        rx_gain_offset = phy->get_radio()->get_rx_gain();
+
+    /* Only worker 0 reads the RSSI sensor every ~1-nof_cores s */
+    if (get_id() == 0) {
+      if (rssi_read_cnt) {
+        if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
+          phy->last_radio_rssi = phy->get_radio()->get_rssi();
+          phy->rx_gain_offset = phy->avg_rssi_dbm - phy->last_radio_rssi + 30;
+        } else {
+          phy->rx_gain_offset = phy->get_radio()->get_rx_gain();
+        }
       }
-      if (phy->rx_gain_offset) {
-        phy->rx_gain_offset = SRSLTE_VEC_EMA(rx_gain_offset, phy->rx_gain_offset, 0.5);
-      } else {
-        phy->rx_gain_offset = rx_gain_offset; 
+      rssi_read_cnt++;
+      if (rssi_read_cnt == 1000) {
+        rssi_read_cnt = 0;
       }
     }
     
     // Average RSRQ
     float rsrq_db = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
     if (isnormal(rsrq_db)) {
-      phy->avg_rsrq_db = SRSLTE_VEC_EMA(rsrq_db, phy->avg_rsrq_db, snr_ema_coeff);
+      if (!phy->avg_rsrq_db) {
+        phy->avg_rsrq_db = SRSLTE_VEC_EMA(rsrq_db, phy->avg_rsrq_db, snr_ema_coeff);
+      } else {
+        phy->avg_rsrq_db = rsrq_db;
+      }
     }
 
     // Average RSRP
     float rsrp_lin = srslte_chest_dl_get_rsrp(&ue_dl.chest);
     if (isnormal(rsrp_lin)) {
-      phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
+      if (!phy->avg_rsrp) {
+        phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
+      } else {
+        phy->avg_rsrp = rsrp_lin;
+      }
     }
     
     /* Correct absolute power measurements by RX gain offset */
     float rsrp_dbm = 10*log10(rsrp_lin) + 30 - phy->rx_gain_offset;
-    float rssi_db = 10*log10(srslte_chest_dl_get_rssi(&ue_dl.chest)) + 30 - phy->rx_gain_offset;
 
     // Serving cell measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
     if (isnormal(rsrp_dbm)) {
       if (!phy->avg_rsrp_dbm) {
-        phy->avg_rsrp_dbm= rsrp_dbm;
+        phy->avg_rsrp_dbm = rsrp_dbm;
       } else {
         phy->avg_rsrp_dbm = SRSLTE_VEC_EMA(rsrp_dbm, phy->avg_rsrp_dbm, snr_ema_coeff);
       }
@@ -1390,7 +1409,7 @@ void phch_worker::update_measurements()
     dl_metrics.n      = phy->avg_noise;
     dl_metrics.rsrp   = phy->avg_rsrp_dbm;
     dl_metrics.rsrq   = phy->avg_rsrq_db;
-    dl_metrics.rssi   = rssi_db;
+    dl_metrics.rssi   = phy->avg_rssi_dbm;
     dl_metrics.pathloss = phy->pathloss;
     dl_metrics.sinr   = phy->avg_snr_db;
     dl_metrics.turbo_iters = srslte_pdsch_last_noi(&ue_dl.pdsch);
