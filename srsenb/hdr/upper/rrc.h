@@ -321,7 +321,7 @@ private:
   const static uint32_t LCID_REM_USER = 0xffff0001; 
   
   bool                  running;
-  static const int      RRC_THREAD_PRIO = 7;
+  static const int      RRC_THREAD_PRIO = 65;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
   typedef struct {

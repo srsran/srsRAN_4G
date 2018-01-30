@@ -722,7 +722,6 @@ float rrc::get_squal(float Qqualmeas) {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
-  // attempt resync
   current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
@@ -730,7 +729,8 @@ void rrc::out_of_sync() {
       mac_timers->timer_get(t310)->reset();
       mac_timers->timer_get(t310)->run();
       n310_cnt = 0;
-      rrc_log->info("Detected %d out-of-sync from PHY. Starting T310 timer\n", N310);
+      phy->sync_reset();
+      rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer\n", N310);
     }
   }
 }
