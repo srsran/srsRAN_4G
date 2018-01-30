@@ -768,7 +768,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
   // Handle Format0 adaptive retx
   if (ret) {
     // Use last TBS for this TB in case of mcs>28
-    if (grant->phy_grant.ul.mcs.idx > 28) {
+    if (grant->phy_grant.ul.mcs.idx > 28 && grant->phy_grant.ul.mcs.mod == SRSLTE_MOD_LAST) {
       // Make sure we received a grant in the previous TTI for this PID
       grant->phy_grant.ul.mcs.tbs = phy->last_ul_tbs[UL_PIDOF(TTI_TX(tti))];
       grant->phy_grant.ul.mcs.mod = phy->last_ul_mod[UL_PIDOF(TTI_TX(tti))];
@@ -921,8 +921,16 @@ void phch_worker::set_uci_aperiodic_cqi()
           cqi_report.subband_hl.subband_diff_cqi_cw0 = 0; // Always report zero offset on all subbands
           cqi_report.subband_hl.N = (cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0;
 
-          Info("PUSCH: Aperiodic CQI=%d, SNR=%.1f dB, for %d subbands\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db, cqi_report.subband_hl.N);
           uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+
+          char cqi_str[64] = {0};
+          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 64);
+
+          Info("PUSCH: Aperiodic CQI=%s, SNR=%.1f dB, for %d subbands\n", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
+
+          /* Fake RI = 1 */
+          uci_data.uci_ri = 0;
+          uci_data.uci_ri_len = 0;
         }
         break;
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
@@ -963,6 +971,11 @@ void phch_worker::set_uci_aperiodic_cqi()
           // TODO: implement subband CQI properly
           cqi_report.subband_hl.N = (uint32_t) ((cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0);
 
+          uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+
+          char cqi_str[64] = {0};
+          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 64);
+
           if (cqi_report.subband_hl.rank_is_not_one) {
             Info("PUSCH: Aperiodic ri~1, CQI=%02d/%02d, SINR=%2.1f/%2.1fdB, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0, cqi_report.subband_hl.wideband_cqi_cw1,
@@ -972,7 +985,6 @@ void phch_worker::set_uci_aperiodic_cqi()
                  cqi_report.subband_hl.wideband_cqi_cw0,
                  sinr_db, pmi, cqi_report.subband_hl.N);
           }
-          uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
         }
         break;
       default:
@@ -1045,7 +1057,7 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
               (tti + HARQ_DELAY_MS) % 10240,
               grant->n_prb[0], grant->n_prb[0] + grant->L_prb,
               grant->mcs.tbs / 8, grant->mcs.idx, rv,
-              uci_data.uci_ack_len > 0 ? (uci_data.uci_ack ? ", ack=1" : "0") : "",
+              uci_data.uci_ack_len > 0 ? (uci_data.uci_ack ? ", ack=1" : ", ack=0") : "",
               uci_data.uci_ack_len > 1 ? (uci_data.uci_ack_2 ? "1" : "0") : "",
               uci_data.uci_ri_len > 0 ? (uci_data.uci_ri ? ", ri=1" : ", ri=0") : "",
               cfo * 15, timestr,
