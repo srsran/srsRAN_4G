@@ -79,7 +79,10 @@ public:
       printf("%s\n", strlen(used[i]->debug_name)?used[i]->debug_name:"Undefined");
     }
   }
-  
+
+  bool is_almost_empty() {
+    return available.size() < capacity/20;
+  }
 
   buffer_t* allocate(const char *debug_name = NULL)
   {
@@ -92,8 +95,9 @@ public:
       used.push_back(b);
       available.pop();
       
-      if (available.size() < capacity/20) {
+      if (is_almost_empty()) {
         printf("Warning buffer pool capacity is %f %%\n", (float) 100*available.size()/capacity);
+        print_all_buffers();
       }
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     if (debug_name) {
