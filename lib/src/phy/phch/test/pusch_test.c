@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
   uci_data_tx.uci_ack_len = 1;
   memcpy(&uci_data_rx, &uci_data_tx, sizeof(srslte_uci_data_t));
     
-  for (uint32_t i=0;i<20;i++) {
+  for (uint32_t i=0;i<uci_data_tx.uci_cqi_len;i++) {
     uci_data_tx.uci_cqi [i] = 1;
   }
   uci_data_tx.uci_ri = 1;
