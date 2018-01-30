@@ -56,6 +56,7 @@ namespace srsue {
     bool           set_cell(srslte_cell_t cell);
     bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
     bool           is_ready_to_send(uint32_t current_tti);
+    bool           is_pending();
     int            tx_tti();
     
     void           send(srslte::radio* radio_handler, float cfo, float pathloss, srslte_timestamp_t rx_time);

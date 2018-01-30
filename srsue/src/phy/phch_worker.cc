@@ -175,8 +175,6 @@ void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
   tx_tti = tx_tti_;
   log_h->step(tti);
   log_phy_lib_h->step(tti);
-  
-  
 }
 
 void phch_worker::set_cfo(float cfo_)
@@ -364,13 +362,12 @@ void phch_worker::work_imp()
 
   if (chest_ok) {
     if (snr_th_ok) {
-      phy->rrc->in_sync();
-      log_h->debug("SYNC:  Sending in-sync to RRC\n");
+      log_h->debug("SNR=%.1f dB sync=in-sync from channel estimator\n", 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
+      chest_loop->in_sync();
     } else if (snr_th_err) {
-      chest_loop->out_of_sync();
-      phy->rrc->out_of_sync();
-      log_h->info("SNR=%.1f dB under threshold. Sending out-of-sync to RRC\n",
+      log_h->info("SNR=%.1f dB sync=out-of-sync from channel estimator\n",
                    10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
+      chest_loop->out_of_sync();
     }
   }
   
