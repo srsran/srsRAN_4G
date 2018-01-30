@@ -555,7 +555,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
 }
 
 void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srslte_cell_t cell, uint32_t sf_idx,
-                                 srslte_ra_nbits_t nbits [SRSLTE_MAX_CODEWORDS])
+                                 srslte_ra_nbits_t nbits[SRSLTE_MAX_CODEWORDS])
 {
   // Compute number of RE 
   for (int i = 0; i < SRSLTE_MAX_TB; i++) {
