@@ -444,7 +444,6 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q             != NULL &&
-      softbuffer    != NULL &&
       output_signal != NULL) 
   {
 
