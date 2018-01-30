@@ -426,7 +426,6 @@ int main(int argc, char *argv[])
   srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
-  signal(SIGKILL, sig_int_handler);
   all_args_t args;
 
   srslte_debug_handle_crash(argc, argv);
