@@ -1088,6 +1088,14 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[2] = 8;
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[3] = 8;
 
+  //Make sure all unused options are set to false
+  act_def_eps_bearer_context_req.negotiated_qos_present = false;
+  act_def_eps_bearer_context_req.llc_sapi_present = false;
+  act_def_eps_bearer_context_req.radio_prio_present = false;
+  act_def_eps_bearer_context_req.packet_flow_id_present = false;
+  act_def_eps_bearer_context_req.apn_ambr_present = false;
+  act_def_eps_bearer_context_req.esm_cause_present = false;
+
   uint8_t sec_hdr_type =2;
   ue_ctx->security_ctxt.dl_nas_count++;
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
