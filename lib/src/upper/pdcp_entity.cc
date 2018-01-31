@@ -35,6 +35,17 @@ pdcp_entity::pdcp_entity()
   ,tx_count(0)
 {
   pool = byte_buffer_pool::get_instance();
+  log = NULL;
+  rlc = NULL;
+  rrc = NULL;
+  gw = NULL;
+  lcid = 0;
+  sn_len_bytes = 0;
+  do_integrity = false;
+  do_encryption = false;
+  rx_count = 0;
+  cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
+  integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
 }
 
 void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,

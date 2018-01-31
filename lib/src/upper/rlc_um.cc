@@ -33,6 +33,14 @@ namespace srslte {
 
 rlc_um::rlc_um() : tx_sdu_queue(16)
 {
+  log = NULL;
+  pdcp = NULL;
+  rrc = NULL;
+  reordering_timer = NULL;
+  lcid = 0;
+  reordering_timer_id = 0;
+  bzero(&cfg, sizeof(srslte_rlc_um_config_t));
+
   tx_sdu = NULL;
   rx_sdu = NULL;
   pool = byte_buffer_pool::get_instance();

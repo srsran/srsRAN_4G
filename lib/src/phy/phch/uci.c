@@ -655,11 +655,19 @@ int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg, uint8_t acks[2], uint32_t nof
 
   uint32_t nof_encoded_bits = encode_ri_ack(acks, nof_acks, q_encoded_bits, cfg->grant.Qm);
 
-  for (uint32_t i=0;i<Qprime;i++) {
-    uci_ulsch_interleave_ack_gen(i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, &ack_bits[cfg->grant.Qm*i]);
-    uci_ulsch_interleave_put(&q_encoded_bits[(i*cfg->grant.Qm)%nof_encoded_bits], cfg->grant.Qm, &ack_bits[cfg->grant.Qm*i]);
+  if (nof_encoded_bits > 0) {
+    for (uint32_t i = 0; i < Qprime; i++) {
+      uci_ulsch_interleave_ack_gen(i,
+                                   cfg->grant.Qm,
+                                   H_prime_total,
+                                   cfg->nbits.nof_symb,
+                                   cfg->cp,
+                                   &ack_bits[cfg->grant.Qm * i]);
+      uci_ulsch_interleave_put(&q_encoded_bits[(i * cfg->grant.Qm) % nof_encoded_bits],
+                               cfg->grant.Qm,
+                               &ack_bits[cfg->grant.Qm * i]);
+    }
   }
-
   return (int) Qprime;
 }
 
@@ -706,25 +714,27 @@ int srslte_uci_encode_ack_ri(srslte_pusch_cfg_t *cfg,
 
   uint32_t nof_encoded_bits = encode_ri_ack(data, data_len, q_encoded_bits, cfg->grant.Qm);
 
-  for (uint32_t i = 0; i < Qprime; i++) {
-    if (ack_ri) {
-      uci_ulsch_interleave_ri_gen(i,
-                                  cfg->grant.Qm,
-                                  H_prime_total,
-                                  cfg->nbits.nof_symb,
-                                  cfg->cp,
-                                  &bits[cfg->grant.Qm * i]);
-    } else {
-      uci_ulsch_interleave_ack_gen(i,
-                                   cfg->grant.Qm,
-                                   H_prime_total,
-                                   cfg->nbits.nof_symb,
-                                   cfg->cp,
-                                   &bits[cfg->grant.Qm * i]);
+  if (nof_encoded_bits > 0) {
+    for (uint32_t i = 0; i < Qprime; i++) {
+      if (ack_ri) {
+        uci_ulsch_interleave_ri_gen(i,
+                                    cfg->grant.Qm,
+                                    H_prime_total,
+                                    cfg->nbits.nof_symb,
+                                    cfg->cp,
+                                    &bits[cfg->grant.Qm * i]);
+      } else {
+        uci_ulsch_interleave_ack_gen(i,
+                                     cfg->grant.Qm,
+                                     H_prime_total,
+                                     cfg->nbits.nof_symb,
+                                     cfg->cp,
+                                     &bits[cfg->grant.Qm * i]);
+      }
+      uci_ulsch_interleave_put(&q_encoded_bits[(i * cfg->grant.Qm) % nof_encoded_bits],
+                               cfg->grant.Qm,
+                               &bits[cfg->grant.Qm * i]);
     }
-    uci_ulsch_interleave_put(&q_encoded_bits[(i * cfg->grant.Qm) % nof_encoded_bits],
-                             cfg->grant.Qm,
-                             &bits[cfg->grant.Qm * i]);
   }
 
   return (int) Qprime;

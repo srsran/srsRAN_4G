@@ -36,7 +36,20 @@ namespace srsenb {
 class prach_worker : thread
 {
 public:
-  prach_worker() : initiated(false),max_prach_offset_us(0) {}
+  prach_worker() : initiated(false), prach_nof_det(0), max_prach_offset_us(0), pending_tti(0), processed_tti(0),
+                   running(false), nof_sf(0), sf_cnt(0) {
+    log_h = NULL;
+    mac = NULL;
+    signal_buffer_rx = NULL;
+    bzero(&prach, sizeof(srslte_prach_t));
+    bzero(&prach_indices, sizeof(prach_indices));
+    bzero(&prach_offsets, sizeof(prach_offsets));
+    bzero(&prach_p2avg, sizeof(prach_p2avg));
+    bzero(&cell, sizeof(cell));
+    bzero(&prach_cfg, sizeof(prach_cfg));
+    bzero(&mutex, sizeof(mutex));
+    bzero(&cvar, sizeof(cvar));
+  }
   
   int  init(srslte_cell_t *cell, srslte_prach_cfg_t *prach_cfg, mac_interface_phy *mac, srslte::log *log_h, int priority);
   int  new_tti(uint32_t tti, cf_t *buffer);

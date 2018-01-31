@@ -54,11 +54,14 @@ void enb::cleanup(void)
   }
 }
 
-enb::enb()
-    :started(false)
-{
+enb::enb() : started(false) {
   srslte_dft_load();
   pool = srslte::byte_buffer_pool::get_instance();
+
+  logger = NULL;
+  args = NULL;
+
+  bzero(&rf_metrics, sizeof(rf_metrics));
 }
 
 enb::~enb()
