@@ -368,8 +368,7 @@ uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[s
 {
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
-  if (rlc) 
-  {
+  if (rlc) {
     mac_msg_dl.init_tx(tx_payload_buffer[tb_idx], grant_size, false);
     for (uint32_t i=0;i<nof_pdu_elems;i++) {
       if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
@@ -383,7 +382,6 @@ uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[s
     
   } else {
     std::cout << "Error ue not configured (must call config() first" << std::endl; 
-    return NULL; 
   }
   
   pthread_mutex_unlock(&mutex);

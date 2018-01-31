@@ -18,10 +18,26 @@ namespace srsenb {
  * Initialization and sched configuration functions 
  * 
  *******************************************************/
-sched::sched()
-{
+sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_rbg(0), si_n_rbg(0), rar_n_rb(0),
+                 nof_rbg(0), sf_idx(0), sfn(0), current_cfi(0) {
   current_tti = 0;
-  log_h = NULL; 
+  log_h = NULL;
+  dl_metric = NULL;
+  ul_metric = NULL;
+  rrc = NULL;
+
+  bzero(&cfg, sizeof(cfg));
+  bzero(&regs, sizeof(regs));
+  bzero(&used_cce, sizeof(used_cce));
+  bzero(&sched_cfg, sizeof(sched_cfg));
+  bzero(&common_locations, sizeof(common_locations));
+  bzero(&pdsch_re, sizeof(pdsch_re));
+  bzero(&mutex, sizeof(mutex));
+
+  for (int i = 0; i < 3; i++) {
+    bzero(rar_locations[i], sizeof(sched_ue::sched_dci_cce_t) * 10);
+  }
+
   pthread_mutex_init(&mutex, NULL);
   reset();
 }
@@ -80,7 +96,10 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
   memcpy(&cfg, cell_cfg, sizeof(sched_interface::cell_cfg_t));
     
   // Get DCI locations 
-  srslte_regs_init(&regs, cfg.cell); 
+  if (srslte_regs_init(&regs, cfg.cell)) {
+    Error("Getting DCI locations\n");
+    return SRSLTE_ERROR;
+  }
 
   P = srslte_ra_type0_P(cfg.cell.nof_prb);
   si_n_rbg = 4/P; 

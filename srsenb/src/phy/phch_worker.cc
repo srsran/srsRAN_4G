@@ -73,6 +73,11 @@ namespace srsenb {
 phch_worker::phch_worker()
 {
   phy = NULL;
+
+  bzero(&enb_dl, sizeof(enb_dl));
+  bzero(&enb_ul, sizeof(enb_ul));
+  bzero(&tx_time, sizeof(tx_time));
+
   reset();  
 }
 
