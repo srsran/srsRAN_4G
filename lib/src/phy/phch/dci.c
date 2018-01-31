@@ -577,7 +577,7 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t
     return SRSLTE_ERROR;
   }
   if (*y++ != 0) {
-    INFO("DCI message is Format1A\n", 0);
+    INFO("DCI message is Format1A\n");
     return SRSLTE_ERROR;
   }
   if (*y++ == 0) {
@@ -836,7 +836,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   }
 
   if (*y++ != 1) {
-    INFO("DCI message is Format0\n", 0);
+    INFO("DCI message is Format0\n");
     return SRSLTE_ERROR;
   }
   

@@ -858,7 +858,7 @@ int main(int argc, char **argv) {
       if (net_port > 0) {
         send_data = net_packet_ready; 
         if (net_packet_ready) {
-          INFO("Transmitting packet\n",0);
+          INFO("Transmitting packet\n");
         }
       } else {
         INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
