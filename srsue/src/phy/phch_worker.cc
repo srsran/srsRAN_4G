@@ -100,6 +100,7 @@ void phch_worker::reset()
   rar_cqi_request = false;
   I_sr = 0;
   cfi  = 0;
+  rssi_read_cnt = 0;
 }
 
 void phch_worker::set_common(phch_common* phy_)
@@ -222,13 +223,20 @@ void phch_worker::work_imp()
   bool ul_grant_available = false;
   bool dl_ack[SRSLTE_MAX_CODEWORDS] = {false};
 
-  mac_interface_phy::mac_grant_t    dl_mac_grant;
-  mac_interface_phy::tb_action_dl_t dl_action; 
-  bzero(&dl_action, sizeof(mac_interface_phy::tb_action_dl_t));
+  mac_interface_phy::mac_grant_t    dl_mac_grant = {};
+  mac_interface_phy::tb_action_dl_t dl_action = {};
 
-  mac_interface_phy::mac_grant_t    ul_mac_grant;
-  mac_interface_phy::tb_action_ul_t ul_action; 
-  bzero(&ul_action, sizeof(mac_interface_phy::tb_action_ul_t));
+  mac_interface_phy::mac_grant_t    ul_mac_grant = {};
+  mac_interface_phy::tb_action_ul_t ul_action = {};
+
+
+  /** Calculate RSSI on the input signal before generating the output */
+
+  // Average RSSI over all symbols
+  float rssi_dbm = 10*log10(srslte_vec_avg_power_cf(signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb))) + 30;
+  if (isnormal(rssi_dbm)) {
+    phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
+  }
 
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   bool chest_ok = extract_fft_and_pdcch_llr();
@@ -287,7 +295,8 @@ void phch_worker::work_imp()
   
   // Decode PHICH 
   bool ul_ack = false;
-  bool ul_ack_available = decode_phich(&ul_ack); 
+  bool ul_ack_available = decode_phich(&ul_ack);
+
 
   /***** Uplink Processing + Transmission *******/
   
@@ -388,13 +397,14 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
       Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
     } else {
       /* If only one receiving antenna, force RI for 1 layer */
-      uci_data.uci_ri = 0;
+      if (ri) {
+        *ri = 0;
+      }
     }
     uci_data.uci_ri_len = 1;
   } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
     srslte_ue_dl_ri_pmi_select(&ue_dl, ri, pmi, sinr);
     Debug("TM4 ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
-    uci_data.uci_ri_len = 1;
   }
 }
 
@@ -895,11 +905,11 @@ void phch_worker::set_uci_aperiodic_cqi()
 {
   uint8_t ri = (uint8_t) ue_dl.ri;
   uint8_t pmi = (uint8_t) ue_dl.pmi[ri];
-  float sinr = ue_dl.sinr[ri][pmi];
+  float sinr_db = ue_dl.sinr[ri][pmi];
 
   if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
     /* Compute RI, PMI and SINR */
-    compute_ri(&ri, &pmi, &sinr);
+    compute_ri(&ri, &pmi, &sinr_db);
 
     switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
@@ -919,18 +929,24 @@ void phch_worker::set_uci_aperiodic_cqi()
 
           // TODO: implement subband CQI properly
           cqi_report.subband_hl.subband_diff_cqi_cw0 = 0; // Always report zero offset on all subbands
-          cqi_report.subband_hl.N = (cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0;
+          cqi_report.subband_hl.N = (cell.nof_prb > 7) ? (uint32_t) srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0;
 
-          uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+          int cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+          if (cqi_len < 0) {
+            Error("Error packing CQI value (Aperiodic reporting mode RM31).");
+            return;
+          }
+          uci_data.uci_cqi_len = (uint32_t) cqi_len;
 
-          char cqi_str[64] = {0};
-          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 64);
+          char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = {0};
+          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
-          Info("PUSCH: Aperiodic CQI=%s, SNR=%.1f dB, for %d subbands\n", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
+          /* Set RI = 1 */
+          uci_data.uci_ri = ri;
+          uci_data.uci_ri_len = 1;
 
-          /* Fake RI = 1 */
-          uci_data.uci_ri = 0;
-          uci_data.uci_ri_len = 0;
+          Info("PUSCH: Aperiodic RM30 ri%s, CQI=%s, SNR=%.1f dB, for %d subbands\n",
+               (uci_data.uci_ri == 0)?"=1":"~1", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
         }
         break;
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
@@ -946,11 +962,6 @@ void phch_worker::set_uci_aperiodic_cqi()
             other transmission modes they are reported conditioned on rank 1.
         */
         if (rnti_is_set) {
-          /* Select RI, PMI and SINR */
-          uint32_t ri = ue_dl.ri;       // Select RI (0: 1 layer, 1: 2 layer, otherwise: not implemented)
-          uint32_t pmi = ue_dl.pmi[ri]; // Select PMI
-          float sinr_db = 10 * log10(ue_dl.sinr[ri][pmi]);
-
           /* Fill CQI Report */
           srslte_cqi_value_t cqi_report = {0};
           cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
@@ -971,17 +982,24 @@ void phch_worker::set_uci_aperiodic_cqi()
           // TODO: implement subband CQI properly
           cqi_report.subband_hl.N = (uint32_t) ((cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0);
 
-          uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+          int cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+          if (cqi_len < 0) {
+            Error("Error packing CQI value (Aperiodic reporting mode RM31).");
+            return;
+          }
+          uci_data.uci_cqi_len = (uint32_t) cqi_len;
+          uci_data.uci_ri_len = 1;
+          uci_data.uci_ri = ri;
 
-          char cqi_str[64] = {0};
-          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 64);
+          char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = {0};
+          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
           if (cqi_report.subband_hl.rank_is_not_one) {
-            Info("PUSCH: Aperiodic ri~1, CQI=%02d/%02d, SINR=%2.1f/%2.1fdB, pmi=%d for %d subbands\n",
+            Info("PUSCH: Aperiodic RM31 ri~1, CQI=%02d/%02d, SINR=%2.1f/%2.1fdB, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0, cqi_report.subband_hl.wideband_cqi_cw1,
                  sinr_db, sinr_db, pmi, cqi_report.subband_hl.N);
           } else {
-            Info("PUSCH: Aperiodic ri=1, CQI=%02d, SINR=%2.1f, pmi=%d for %d subbands\n",
+            Info("PUSCH: Aperiodic RM31 ri=1, CQI=%02d, SINR=%2.1f, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0,
                  sinr_db, pmi, cqi_report.subband_hl.N);
           }
@@ -1049,8 +1067,8 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   snprintf(timestr, 64, ", tot_time=%4d us", (int) logtime_start[0].tv_usec);
 #endif
 
-  char cqi_str[32] = "";
-  srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 32);
+  char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = "";
+  srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
   uint8_t dummy[2] = {0,0};
   log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s%s\n",
@@ -1103,8 +1121,8 @@ void phch_worker::encode_pucch()
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
 
-    char str_cqi[32] = "";
-    srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, str_cqi, 32);
+    char str_cqi[SRSLTE_CQI_STR_MAX_CHAR] = "";
+    srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, str_cqi, SRSLTE_CQI_STR_MAX_CHAR);
 
     Info("PUCCH: tti_tx=%d, n_pucch=%d, n_prb=%d, ack=%s%s%s%s%s, sr=%s, cfo=%.1f KHz%s\n",
          (tti + 4) % 10240,
@@ -1141,10 +1159,7 @@ void phch_worker::encode_srs()
   
   float tx_power = srslte_ue_ul_srs_power(&ue_ul, phy->pathloss);  
   float gain = set_power(tx_power);
-  uint32_t fi = srslte_vec_max_fi((float*) signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  float *f = (float*) signal_buffer;
   Info("SRS:   power=%.2f dBm, tti_tx=%d%s\n", tx_power, TTI_TX(tti), timestr);
-  
 }
 
 void phch_worker::enable_pregen_signals(bool enabled)
@@ -1325,42 +1340,50 @@ void phch_worker::update_measurements()
 {
   float snr_ema_coeff = phy->args->snr_ema_coeff;
   if (chest_done) {
-    /* Compute ADC/RX gain offset every ~10s  */
-    if (tti== 0 || phy->rx_gain_offset == 0) {
-      float rx_gain_offset = 0; 
-      if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
-        float rssi_all_signal = 30+10*log10(srslte_vec_avg_power_cf(signal_buffer[0],SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))));
-        rx_gain_offset = 30+rssi_all_signal-phy->get_radio()->get_rssi();
-      } else {
-        rx_gain_offset = phy->get_radio()->get_rx_gain();
+
+    /* Only worker 0 reads the RSSI sensor every ~1-nof_cores s */
+    if (get_id() == 0) {
+      if (rssi_read_cnt) {
+        if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
+          phy->last_radio_rssi = phy->get_radio()->get_rssi();
+          phy->rx_gain_offset = phy->avg_rssi_dbm - phy->last_radio_rssi + 30;
+        } else {
+          phy->rx_gain_offset = phy->get_radio()->get_rx_gain();
+        }
       }
-      if (phy->rx_gain_offset) {
-        phy->rx_gain_offset = SRSLTE_VEC_EMA(rx_gain_offset, phy->rx_gain_offset, 0.5);
-      } else {
-        phy->rx_gain_offset = rx_gain_offset; 
+      rssi_read_cnt++;
+      if (rssi_read_cnt == 1000) {
+        rssi_read_cnt = 0;
       }
     }
     
     // Average RSRQ
     float rsrq_db = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
     if (isnormal(rsrq_db)) {
-      phy->avg_rsrq_db = SRSLTE_VEC_EMA(rsrq_db, phy->avg_rsrq_db, snr_ema_coeff);
+      if (!phy->avg_rsrq_db) {
+        phy->avg_rsrq_db = SRSLTE_VEC_EMA(rsrq_db, phy->avg_rsrq_db, snr_ema_coeff);
+      } else {
+        phy->avg_rsrq_db = rsrq_db;
+      }
     }
 
     // Average RSRP
     float rsrp_lin = srslte_chest_dl_get_rsrp(&ue_dl.chest);
     if (isnormal(rsrp_lin)) {
-      phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
+      if (!phy->avg_rsrp) {
+        phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
+      } else {
+        phy->avg_rsrp = rsrp_lin;
+      }
     }
     
     /* Correct absolute power measurements by RX gain offset */
     float rsrp_dbm = 10*log10(rsrp_lin) + 30 - phy->rx_gain_offset;
-    float rssi_db = 10*log10(srslte_chest_dl_get_rssi(&ue_dl.chest)) + 30 - phy->rx_gain_offset;
 
     // Serving cell measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
     if (isnormal(rsrp_dbm)) {
       if (!phy->avg_rsrp_dbm) {
-        phy->avg_rsrp_dbm= rsrp_dbm;
+        phy->avg_rsrp_dbm = rsrp_dbm;
       } else {
         phy->avg_rsrp_dbm = SRSLTE_VEC_EMA(rsrp_dbm, phy->avg_rsrp_dbm, snr_ema_coeff);
       }
@@ -1390,7 +1413,7 @@ void phch_worker::update_measurements()
     dl_metrics.n      = phy->avg_noise;
     dl_metrics.rsrp   = phy->avg_rsrp_dbm;
     dl_metrics.rsrq   = phy->avg_rsrq_db;
-    dl_metrics.rssi   = rssi_db;
+    dl_metrics.rssi   = phy->avg_rssi_dbm;
     dl_metrics.pathloss = phy->pathloss;
     dl_metrics.sinr   = phy->avg_snr_db;
     dl_metrics.turbo_iters = srslte_pdsch_last_noi(&ue_dl.pdsch);

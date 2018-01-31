@@ -70,6 +70,8 @@ public:
   float avg_rsrp;
   float avg_rsrp_dbm;
   float avg_rsrq_db;
+  float avg_rssi_dbm;
+  float last_radio_rssi;
   float rx_gain_offset;
   float avg_snr_db;
   float avg_noise;

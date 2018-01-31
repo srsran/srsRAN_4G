@@ -551,7 +551,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       ue_db[rnti].phich_info.n_prb_lowest = enb_ul.pusch_cfg.grant.n_prb_tilde[0];
       ue_db[rnti].phich_info.n_dmrs       = phy_grant.ncs_dmrs;
 
-      char cqi_str[64];
+      char cqi_str[SRSLTE_CQI_STR_MAX_CHAR];
       if (cqi_enabled) {
         if (ue_db[rnti].cqi_en) {
           wideband_cqi_value = cqi_value.wideband.wideband_cqi;
@@ -578,7 +578,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
                  cqi_value.subband_hl.wideband_cqi_cw0, cqi_value.subband_hl.N);
           }
         }
-        srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 64);
+        srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
         //snprintf(cqi_str, 64, ", cqi=%s", wideband_cqi_value);
       }
 
