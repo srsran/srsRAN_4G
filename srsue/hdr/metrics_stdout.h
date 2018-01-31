@@ -48,7 +48,7 @@ public:
 
   void set_periodicity(float metrics_report_period_sec);
   void toggle_print(bool b);
-  void set_metrics(ue_metrics_t &m);
+  void set_metrics(ue_metrics_t &m, const uint32_t period_usec);
   void set_ue_handle(ue_metrics_interface *ue_);
   void stop() {};
 

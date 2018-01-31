@@ -447,13 +447,11 @@ int main(int argc, char *argv[])
   metricshub.init(ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_ue_handle(ue);
-  metrics_screen.set_periodicity(args.expert.metrics_period_secs);
 
   metrics_csv metrics_file(args.expert.metrics_csv_filename);
   if (args.expert.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_ue_handle(ue);
-    metrics_file.set_periodicity(args.expert.metrics_period_secs);
   }
 
   pthread_t input;
