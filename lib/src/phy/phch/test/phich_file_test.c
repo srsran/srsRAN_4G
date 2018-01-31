@@ -194,7 +194,7 @@ int base_init() {
     return -1;
   }
 
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
   /* Get channel estimates for each port */
   srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
-  INFO("Decoding PHICH\n", 0);
+  INFO("Decoding PHICH\n");
 
   /* Receive all PHICH groups and sequence numbers */
   for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {

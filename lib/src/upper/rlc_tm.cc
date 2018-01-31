@@ -111,7 +111,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   ul_queue.read(&buf);
   pdu_size = buf->N_bytes;
   memcpy(payload, buf->msg, buf->N_bytes);
-  log->info("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+  log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
             rrc->get_rb_name(lcid).c_str(), buf->get_latency_us());
   pool->deallocate(buf);
   log->info_hex(payload, pdu_size, "TX %s, %s PDU", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[RLC_MODE_TM]);

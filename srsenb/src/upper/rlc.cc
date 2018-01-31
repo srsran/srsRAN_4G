@@ -153,8 +153,8 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
     // communicate buffer state every time a new SDU is written
     uint32_t tx_queue   = users[rnti].rlc->get_total_buffer_state(lcid);
     uint32_t retx_queue = 0; 
-    log_h->info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
+    log_h->info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
   } else {
     pool->deallocate(sdu);
   }

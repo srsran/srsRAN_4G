@@ -104,6 +104,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
 
     ("log.phy_level",     bpo::value<string>(&args->log.phy_level),   "PHY log level")
     ("log.phy_hex_limit", bpo::value<int>(&args->log.phy_hex_limit),  "PHY log hex dump limit")
+    ("log.phy_lib_level", bpo::value<string>(&args->log.phy_lib_level)->default_value("none"), "PHY lib log level")
     ("log.mac_level",     bpo::value<string>(&args->log.mac_level),   "MAC log level")
     ("log.mac_hex_limit", bpo::value<int>(&args->log.mac_hex_limit),  "MAC log hex dump limit")
     ("log.rlc_level",     bpo::value<string>(&args->log.rlc_level),   "RLC log level")
@@ -274,6 +275,9 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     if(!vm.count("log.phy_level")) {
       args->log.phy_level = args->log.all_level;
     }
+    if (!vm.count("log.phy_lib_level")) {
+      args->log.phy_lib_level = args->log.all_level;
+    }
     if(!vm.count("log.mac_level")) {
       args->log.mac_level = args->log.all_level;
     }
@@ -340,14 +344,19 @@ void *input_loop(void *m)
   char key;
   while(running) {
     cin >> key;
-    if('t' == key) {
-      do_metrics = !do_metrics;
-      if(do_metrics) {
-        cout << "Enter t to stop trace." << endl;
-      } else {
-        cout << "Enter t to restart trace." << endl;
+    if (cin.eof() || cin.bad()) {
+      cout << "Closing stdin thread." << endl;
+      break;
+    } else {
+      if('t' == key) {
+        do_metrics = !do_metrics;
+        if(do_metrics) {
+          cout << "Enter t to stop trace." << endl;
+        } else {
+          cout << "Enter t to restart trace." << endl;
+        }
+        metrics->toggle_print(do_metrics);
       }
-      metrics->toggle_print(do_metrics);
     }
   }
   return NULL;
@@ -355,7 +364,8 @@ void *input_loop(void *m)
 
 int main(int argc, char *argv[])
 {
-  signal(SIGINT,    sig_int_handler);
+  signal(SIGINT, sig_int_handler);
+  signal(SIGTERM, sig_int_handler);
   all_args_t        args;
   metrics_stdout    metrics;
   enb              *enb = enb::get_instance();

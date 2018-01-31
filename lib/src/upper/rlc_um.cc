@@ -153,8 +153,8 @@ uint32_t rlc_um::get_bearer()
 
 void rlc_um::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU", rrc->get_rb_name(lcid).c_str());
   tx_sdu_queue.write(sdu);
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, tx_sdu_len=%d", rrc->get_rb_name(lcid).c_str(), tx_sdu_queue.size());
 }
 
 /****************************************************************************
@@ -178,7 +178,7 @@ uint32_t rlc_um::get_buffer_state()
 
   // Room needed for fixed header?
   if(n_bytes > 0)
-    n_bytes += 2;
+    n_bytes += 3;
 
   return n_bytes;
 }
@@ -300,7 +300,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     tx_sdu->msg     += to_move;
     if(tx_sdu->N_bytes == 0)
     {
-      log->info("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+      log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                 rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
@@ -329,7 +329,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     tx_sdu->msg     += to_move;
     if(tx_sdu->N_bytes == 0)
     {
-      log->info("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+      log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                 rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;

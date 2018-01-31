@@ -46,6 +46,7 @@ namespace srsue {
 class chest_feedback_itf
 {
 public:
+  virtual void in_sync() = 0;
   virtual void out_of_sync() = 0;
   virtual void set_cfo(float cfo) = 0;
 };
@@ -69,6 +70,8 @@ public:
   float avg_rsrp;
   float avg_rsrp_dbm;
   float avg_rsrq_db;
+  float avg_rssi_dbm;
+  float last_radio_rssi;
   float rx_gain_offset;
   float avg_snr_db;
   float avg_noise;

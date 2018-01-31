@@ -139,7 +139,11 @@ typedef struct SRSLTE_API {
   uint8_t tpc_pucch;
 
   bool     tb_en[2]; 
-  
+
+  bool     is_ra_order;
+  uint32_t ra_preamble;
+  uint32_t ra_mask_idx;
+
   bool     dci_is_1a;
   bool     dci_is_1c; 
 } srslte_ra_dl_dci_t;

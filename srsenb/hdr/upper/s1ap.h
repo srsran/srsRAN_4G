@@ -85,7 +85,7 @@ public:
   //void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
 
 private:
-  static const int S1AP_THREAD_PRIO = 7;
+  static const int S1AP_THREAD_PRIO = 65;
   static const int MME_PORT         = 36412;
   static const int ADDR_FAMILY      = AF_INET;
   static const int SOCK_TYPE        = SOCK_STREAM;

@@ -148,7 +148,7 @@ uint8_t srslte_phich_ack_decode(float bits[SRSLTE_PHICH_NBITS], float *distance)
   uint8_t index=0; 
   
   if (SRSLTE_VERBOSE_ISINFO()) {
-    INFO("Received bits: ", 0);
+    INFO("Received bits: ");
     srslte_vec_fprint_f(stdout, bits, SRSLTE_PHICH_NBITS);
   }
   
@@ -244,8 +244,8 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS],
     srslte_predecoding_diversity_multi(q_sf_symbols, q_ce, x, q->nof_rx_antennas, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB, 1.0f);
     srslte_layerdemap_diversity(x, q->d0, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports);
   }
-  DEBUG("Recv!!: \n", 0);
-  DEBUG("d0: ", 0);
+  DEBUG("Recv!!: \n");
+  DEBUG("d0: ");
   if (SRSLTE_VERBOSE_ISDEBUG())
     srslte_vec_fprint_c(stdout, q->d0, SRSLTE_PHICH_MAX_NSYMB);
 
@@ -265,7 +265,7 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS],
     memcpy(q->d, q->d0, SRSLTE_PHICH_MAX_NSYMB * sizeof(cf_t));
   }
 
-  DEBUG("d: ", 0);
+  DEBUG("d: ");
   if (SRSLTE_VERBOSE_ISDEBUG())
     srslte_vec_fprint_c(stdout, q->d, SRSLTE_PHICH_EXT_MSYMB);
 
@@ -290,7 +290,7 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS],
     }
   }
 
-  DEBUG("z: ", 0);
+  DEBUG("z: ");
   if (SRSLTE_VERBOSE_ISDEBUG())
     srslte_vec_fprint_c(stdout, q->z, SRSLTE_PHICH_NBITS);
 
@@ -353,7 +353,7 @@ int srslte_phich_encode(srslte_phich_t *q, uint8_t ack, uint32_t ngroup, uint32_
 
   srslte_mod_modulate(&q->mod, q->data, q->z, SRSLTE_PHICH_NBITS);
 
-  DEBUG("data: ", 0);
+  DEBUG("data: ");
   if (SRSLTE_VERBOSE_ISDEBUG())
     srslte_vec_fprint_c(stdout, q->z, SRSLTE_PHICH_NBITS);
 
@@ -370,7 +370,7 @@ int srslte_phich_encode(srslte_phich_t *q, uint8_t ack, uint32_t ngroup, uint32_
     }
   }
 
-  DEBUG("d: ", 0);
+  DEBUG("d: ");
   if (SRSLTE_VERBOSE_ISDEBUG())
     srslte_vec_fprint_c(stdout, q->d, SRSLTE_PHICH_EXT_MSYMB);
 
@@ -397,7 +397,7 @@ int srslte_phich_encode(srslte_phich_t *q, uint8_t ack, uint32_t ngroup, uint32_
     memcpy(q->d0, q->d, SRSLTE_PHICH_MAX_NSYMB * sizeof(cf_t));
   }
 
-  DEBUG("d0: ", 0);
+  DEBUG("d0: ");
   if (SRSLTE_VERBOSE_ISDEBUG())
     srslte_vec_fprint_c(stdout, q->d0, SRSLTE_PHICH_MAX_NSYMB);
 
