@@ -564,8 +564,6 @@ void phch_recv::run_thread()
   phy_state  = IDLE;
   is_in_idle = true;
 
-  threads_print_self();
-
   while (running)
   {
     if (phy_state != IDLE) {
@@ -739,7 +737,7 @@ void phch_recv::run_thread()
 
     // Increase TTI counter and trigger MAC clock (lower priority)
     mac->tti_clock(tti);
-    g_tti = tti = (tti+1) % 10240;
+    tti = (tti+1) % 10240;
   }
 }
 

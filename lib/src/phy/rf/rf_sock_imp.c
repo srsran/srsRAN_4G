@@ -53,9 +53,6 @@ static bool rf_sock_log_dbug  = true;
 static bool rf_sock_log_info  = true;
 static bool rf_sock_log_warn  = true;
 
-uint32_t g_tti = 0;
-struct timeval g_tv_next = {0, 0};
-
 #define RF_SOCK_LOG_FMT "%02d:%02d:%02d.%06ld [FXRF] [%c] [%05hu] %s,  "
 
 #define RF_SOCK_WARN(_fmt, ...) do {                                                                       \
@@ -70,7 +67,7 @@ struct timeval g_tv_next = {0, 0};
                                            _tm.tm_sec,                                                     \
                                            _tv_now.tv_usec,                                                \
                                            'W',                                                            \
-                                           g_tti,                                                          \
+                                           0,                                                              \
                                            __func__,                                                       \
                                            ##__VA_ARGS__);                                                 \
                                      }                                                                     \
@@ -89,7 +86,7 @@ struct timeval g_tv_next = {0, 0};
                                            _tm.tm_sec,                                                     \
                                            _tv_now.tv_usec,                                                \
                                            'D',                                                            \
-                                           g_tti,                                                          \
+                                           0,                                                              \
                                            __func__,                                                       \
                                            ##__VA_ARGS__);                                                 \
                                  }                                                                         \
@@ -107,7 +104,7 @@ struct timeval g_tv_next = {0, 0};
                                            _tm.tm_sec,                                                     \
                                            _tv_now.tv_usec,                                                \
                                            'I',                                                            \
-                                           g_tti,                                                          \
+                                           0,                                                              \
                                            __func__,                                                       \
                                            ##__VA_ARGS__);                                                 \
                                  }                                                                         \
@@ -133,11 +130,11 @@ struct timeval g_tv_next = {0, 0};
 // samples per byte
 #define SAMPLES_PER_BYTE(x) ((x)/sizeof(cf_t))
 
-// target OTA PRB/SR 25(5.76) or 15(3.84)
-#define RF_SOCK_OTA_SRATE (5.76e6) // XXX_TODO get from args
-
 // max sf len
-#define RF_SOCK_SF_LEN (0x4000)
+#define RF_SOCK_MAX_SF_LEN (0x4000)
+
+// max msg len in bytes
+#define RF_SOCK_MAX_MSG_LEN (RF_SOCK_MAX_SF_LEN * sizeof(cf_t))
 
 // node type
 #define RF_SOCK_NTYPE_NONE  (0)
@@ -150,15 +147,15 @@ struct timeval g_tv_next = {0, 0};
 
 static const struct timeval tv_rx_window = {0, 1000 * FAUX_TIME_SCALE / 2}; // delta_t before next tti
 static const struct timeval tv_zero      = {0, 0};
+static const struct timeval tv_step      = {0, FAUX_TIME_SCALE * 1000};
 
 typedef struct {
   void *   h;
-  cf_t     cf_data[2][RF_SOCK_SF_LEN];
+  cf_t     cf_data[2][RF_SOCK_MAX_SF_LEN];
   int      nsamples;
   struct   timeval tx_time;
   bool     is_sob;
   bool     is_eob;
-  uint32_t tx_tti;
 } rf_sock_tx_info_t;
 
 
@@ -197,6 +194,8 @@ typedef struct {
    rf_sock_tx_worker_t tx_workers[RF_SOCK_NOF_TX_WORKERS];
    int                  tx_worker_next;
    int                  nof_tx_workers;
+   struct timeval       tv_sos;
+   struct timeval       tv_next;
 } rf_sock_info_t;
 
 
@@ -205,7 +204,6 @@ typedef struct {
   uint32_t       msglen;
   float          srate;
   struct timeval tx_time;
-  uint32_t       tx_tti;
 } rf_sock_iohdr_t;
 
 
@@ -231,8 +229,8 @@ static void rf_sock_handle_error(srslte_rf_error_t error)
 static  rf_sock_info_t rf_sock_info = { .dev_name        = "sock",
                                         .rx_gain         = 0.0,
                                         .tx_gain         = 0.0,
-                                        .rx_srate        = RF_SOCK_OTA_SRATE,
-                                        .tx_srate        = RF_SOCK_OTA_SRATE,
+                                        .rx_srate        = 0.0,
+                                        .tx_srate        = 0.0,
                                         .rx_freq         = 0.0,
                                         .tx_freq         = 0.0,
                                         .rx_cal          = {0.0, 0.0, 0.0, 0.0},
@@ -250,6 +248,8 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sock",
                                         .tx_workers_lock = PTHREAD_MUTEX_INITIALIZER,
                                         .tx_worker_next  = 0,
                                         .nof_tx_workers  = 0,
+                                        .tv_sos          = {0,0},
+                                        .tv_next         = {0,0}
                                       };
 
 // could just as well use rf_sock_info for single antenna mode
@@ -333,7 +333,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
        struct timeval tv_now, delta_t, tv_timeout;
 
-       timersub(&g_tv_next, &tv_rx_window, &tv_timeout);
+       timersub(&_info->tv_next, &tv_rx_window, &tv_timeout);
 
        gettimeofday(&tv_now, NULL);
 
@@ -398,30 +398,16 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * tx_worker, uint64_t seqn)
 
    int nsamples_out = tx_info->nsamples;
 
-   void * p2data = tx_info->cf_data[0];
-
-   if(_info->tx_srate != RF_SOCK_OTA_SRATE)
-     {
-       nsamples_out = rf_sock_resample(_info->tx_srate,
-                                 RF_SOCK_OTA_SRATE,
-                                 tx_info->cf_data[0],
-                                 tx_info->cf_data[1],
-                                 tx_info->nsamples);
-
-       p2data = tx_info->cf_data[1];
-     }
-
    const int nbytes_out = BYTES_PER_SAMPLE(nsamples_out);
 
    const rf_sock_iohdr_t hdr = { seqn, 
                                  nbytes_out,
-                                 RF_SOCK_OTA_SRATE,
-                                 tx_info->tx_time,
-                                 tx_info->tx_tti + 4
+                                 _info->tx_srate,
+                                 tx_info->tx_time
                                };
 
-   struct iovec iov[2] = { {(void*)&(hdr), sizeof(hdr)},
-                           {(void*)p2data, nbytes_out }};
+   struct iovec iov[2] = { {(void*)&(hdr),              sizeof(hdr)},
+                           {(void*)tx_info->cf_data[0], nbytes_out }};
 
    struct timeval tv_now, tx_delay;
 
@@ -821,9 +807,22 @@ int rf_sock_start_rx_stream(void *h, bool now)
    
    pthread_mutex_lock(&(_info->rx_lock));
 
-   RF_SOCK_DBUG("");
+   gettimeofday(&_info->tv_sos, NULL);
+
+   // aligin on the top of the second
+   usleep(1000000 - _info->tv_sos.tv_usec);
+   _info->tv_sos.tv_sec += 1; 
+   _info->tv_sos.tv_usec = 0;
+
+   timeradd(&_info->tv_sos, &tv_step, &_info->tv_next);
 
    _info->rx_stream = true;
+
+   RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld, next %ld:%06ld", 
+                 _info->tv_sos.tv_sec, 
+                 _info->tv_sos.tv_usec,
+                 _info->tv_next.tv_sec, 
+                 _info->tv_next.tv_usec);
 
    pthread_mutex_unlock(&(_info->rx_lock));
 
@@ -837,7 +836,7 @@ int rf_sock_stop_rx_stream(void *h)
 
    pthread_mutex_lock(&(_info->rx_lock));
 
-   RF_SOCK_DBUG("");
+   RF_SOCK_INFO("end rx stream");
 
    _info->rx_stream = false;
 
@@ -889,11 +888,11 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
  {
    RF_SOCK_INFO("channels %u, args [%s]", nof_channels, args);
 
-   if(strncmp(args, "enb", strlen("enb")) == 0)
+   if(strncmp(args, "sockenb", strlen("sockenb")) == 0)
     {
       rf_sock_info.ntype = RF_SOCK_NTYPE_ENB;
     }
-   else if(strncmp(args, "ue", strlen("ue")) == 0)
+   else if(strncmp(args, "sockue", strlen("sockue")) == 0)
     {
       rf_sock_info.ntype = RF_SOCK_NTYPE_UE;
     }
@@ -1122,10 +1121,35 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    pthread_mutex_lock(&(_info->rx_lock));
 
-   struct timeval rx_time, rx_delay, rx_timestamp;
+   struct timeval tv_in, sockrx_time, ipc_delay;
+
+   gettimeofday(&tv_in, NULL);
 
    // set rx_timestamp to begin time
-   gettimeofday(&rx_timestamp, NULL);
+   struct timeval rx_timestamp = tv_in;
+
+   if(rf_sock_is_enb(_info))
+     {
+       struct timeval tv_diff;
+
+       timersub(&_info->tv_next, &tv_in, &tv_diff);
+
+       RF_SOCK_DBUG("tv_in %ld:%06ld, tv_next %ld:%06ld, delta_t %ld:%06ld",
+                     tv_in.tv_sec,
+                     tv_in.tv_usec,
+                     _info->tv_next.tv_sec,
+                     _info->tv_next.tv_usec,
+                     tv_diff.tv_sec,
+                     tv_diff.tv_usec);
+
+       // throttle back enb
+       if(timercmp(&tv_diff, &tv_zero, >))
+        {
+          select(0, NULL, NULL, NULL, &tv_diff);
+        }
+   
+       timeradd(&_info->tv_next, &tv_step, &_info->tv_next);
+     }
 
    const int nbytes_request = BYTES_PER_SAMPLE(nsamples);
 
@@ -1137,10 +1161,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    memset(data, 0x0, nbytes_request);
 
-   // read 1 sf
-   const int nbytes_read = BYTES_PER_SAMPLE(RF_SOCK_OTA_SRATE / 1000);
-
-   cf_t sf_in[RF_SOCK_SF_LEN] = {0.0, 0.0};
+   cf_t sf_in[RF_SOCK_MAX_SF_LEN] = {0.0, 0.0};
 
    int n_tries = rf_sock_is_ue(_info) ? 20 : 1;
 
@@ -1151,11 +1172,11 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
    while(KEEP_TRYING(nsamples_pending, n_tries))
      {   
        struct iovec iov[2] = { {(void*)&hdr,  sizeof(hdr) },
-                               {(void*)sf_in, nbytes_read }};
+                               {(void*)sf_in, RF_SOCK_MAX_MSG_LEN }};
 
        const int rc = rf_sock_vecio_recv(h, iov);
 
-       gettimeofday(&rx_time, NULL);
+       gettimeofday(&sockrx_time, NULL);
 
        if(rc <= 0)
         {
@@ -1203,19 +1224,18 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          nsamples_pending -= nsamples_out;
 
-         timersub(&rx_time, &(hdr.tx_time), &rx_delay);
+         timersub(&sockrx_time, &(hdr.tx_time), &ipc_delay);
 
          // use tx time tag as the rx time to keep things in sync
          rx_timestamp = hdr.tx_time;
 
-         RF_SOCK_DBUG("RX seqn %lu, msg_len %d, tx_tti %u, tx_time %ld:%06ld, rx_delay %ld:%06ld",
+         RF_SOCK_DBUG("RX seqn %lu, msg_len %d, tx_time %ld:%06ld, ipc_delay %ld:%06ld",
                            hdr.seqnum,
                            nbytes_rx,
-                           hdr.tx_tti,
                            hdr.tx_time.tv_sec,
                            hdr.tx_time.tv_usec,
-                           rx_delay.tv_sec,
-                           rx_delay.tv_usec);
+                           ipc_delay.tv_sec,
+                           ipc_delay.tv_usec);
        }
     }
 
@@ -1291,18 +1311,11 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
        gettimeofday(&(e->tx_time), NULL);
      }
 
-   struct timeval tv_now, tv_diff;
-
-   gettimeofday(&tv_now, NULL);
-
-   timersub(&(e->tx_time), &tv_now, &tv_diff); 
-  
    memcpy(e->cf_data[0], data, BYTES_PER_SAMPLE(nsamples));
    e->h          = h;
    e->nsamples   = nsamples;
    e->is_sob     = is_sob;
    e->is_eob     = is_eob;
-   e->tx_tti     = g_tti;
    tx_worker->is_pending = true;
 
    _info->nof_tx_workers += 1;
