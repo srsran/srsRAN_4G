@@ -428,22 +428,19 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
   bool ue_valid=true;
 
   m_s1ap_log->console("Authentication Response -- IMSI %015lu\n", ue_ctx->imsi);
-  m_s1ap_log->console("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
-                      auth_resp.res[0],
-                      auth_resp.res[1],
-                      auth_resp.res[2],
-                      auth_resp.res[3],
-                      auth_resp.res[4],
-                      auth_resp.res[5],
-                      auth_resp.res[6],
-                      auth_resp.res[7]
-                      );
+
   //Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
   if(err != LIBLTE_SUCCESS){
     m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
     return false;
   }
+  m_s1ap_log->console("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
+                      auth_resp.res[0], auth_resp.res[1], auth_resp.res[2], auth_resp.res[3],
+                      auth_resp.res[4], auth_resp.res[5], auth_resp.res[6], auth_resp.res[7]);
+  m_s1ap_log->info("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
+                      auth_resp.res[0], auth_resp.res[1], auth_resp.res[2], auth_resp.res[3],
+                      auth_resp.res[4], auth_resp.res[5], auth_resp.res[6], auth_resp.res[7]);
 
   for(int i=0; i<8;i++)
   {
