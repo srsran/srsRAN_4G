@@ -82,7 +82,8 @@ void parse_args(int argc, char **argv) {
       codebook_idx = (uint32_t) atoi(argv[optind]);
       break;
     case 'd':
-      strncpy(decoder_type_name, argv[optind], 16);
+      strncpy(decoder_type_name, argv[optind], 15);
+      decoder_type_name[15] = 0;
       break;
     case 's':
       snr_db = (float) atof(argv[optind]);
