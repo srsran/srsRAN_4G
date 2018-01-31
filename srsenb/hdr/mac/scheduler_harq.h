@@ -102,8 +102,8 @@ public:
   
   ul_alloc_t get_alloc();
   void       set_alloc(ul_alloc_t alloc);
-  void       same_alloc();
-  bool       is_adaptive_retx(); 
+  void       re_alloc(ul_alloc_t alloc);
+  bool       is_adaptive_retx();
 
   void       reset_pending_data();
   bool       has_pending_ack();

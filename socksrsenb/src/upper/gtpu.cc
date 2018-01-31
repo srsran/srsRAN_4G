@@ -125,7 +125,7 @@ void gtpu::stop()
 // gtpu_interface_pdcp
 void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
 {
-  gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d", rnti, lcid);
+  gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
   gtpu_header_t header;
   header.flags        = 0x30;
   header.message_type = 0xFF;
@@ -234,7 +234,7 @@ void gtpu::run_thread()
       continue;
     }
 
-    gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d", rnti, lcid);
+    gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
 
     pdcp->write_sdu(rnti, lcid, pdu);
     do {

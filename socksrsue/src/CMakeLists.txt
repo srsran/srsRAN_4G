@@ -32,17 +32,15 @@ if (RPATH)
 endif (RPATH)
 
 add_executable(sock_srsue main.cc ue_base.cc ue.cc metrics_stdout.cc metrics_csv.cc)
-target_link_libraries(sock_srsue
-                      sock_srsue_mac
-                      sock_srsue_phy
-                      sock_srsue_upper
-                      srslte_common
-                      srslte_phy
-                      srslte_upper
-                      srslte_radio
-                      ${CMAKE_THREAD_LIBS_INIT}
-                      ${Boost_LIBRARIES}
-                      ${FFTW3F_LIBRARIES})
+target_link_libraries(sock_srsue   sock_srsue_mac
+                              sock_srsue_phy
+                              sock_srsue_upper
+                              srslte_common
+                              srslte_phy
+                              srslte_upper
+                              srslte_radio
+                              ${CMAKE_THREAD_LIBS_INIT}
+                              ${Boost_LIBRARIES})
 
 if (RPATH)
   set_target_properties(sock_srsue PROPERTIES INSTALL_RPATH ".")

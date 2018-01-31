@@ -97,6 +97,7 @@ typedef struct {
 
 typedef struct {
   std::string   phy_level;
+  std::string   phy_lib_level;
   std::string   mac_level;
   std::string   rlc_level;
   std::string   pdcp_level;

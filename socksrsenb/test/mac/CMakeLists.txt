@@ -6,5 +6,4 @@ target_link_libraries(sock_scheduler_test  sock_srsenb_mac
                                       srslte_common
                                       srslte_phy
                                       ${CMAKE_THREAD_LIBS_INIT} 
-                                      ${Boost_LIBRARIES}
-                                      ${FFTW3F_LIBRARIES})
+                                      ${Boost_LIBRARIES})

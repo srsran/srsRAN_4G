@@ -47,10 +47,11 @@ class metrics_csv : public srslte::metrics_listener<ue_metrics_t>
 {
 public:
   metrics_csv(std::string filename);
+  ~metrics_csv();
 
-  void set_periodicity(float metrics_report_period_sec);
-  void set_metrics(ue_metrics_t &m);
+  void set_metrics(ue_metrics_t &m, const uint32_t period_usec);
   void set_ue_handle(ue_metrics_interface *ue_);
+  void stop();
 
 private:
   std::string float_to_string(float f, int digits, bool add_semicolon = true);

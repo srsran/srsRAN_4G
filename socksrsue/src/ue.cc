@@ -74,7 +74,7 @@ bool ue::init(all_args_t *args_)
   mac_log.init("MAC ", logger, true);
   rlc_log.init("RLC ", logger);
   pdcp_log.init("PDCP", logger);
-  rrc_log.init("RRC ", logger, true);
+  rrc_log.init("RRC ", logger);
   nas_log.init("NAS ", logger);
   gw_log.init("GW  ", logger);
   usim_log.init("USIM", logger);

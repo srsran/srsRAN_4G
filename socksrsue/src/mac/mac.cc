@@ -114,7 +114,7 @@ void mac::wait_uplink() {
   int cnt=0;
   Info("Waiting to uplink...\n");
   while(mux_unit.is_pending_any_sdu() && cnt<20) {
-    usleep(FAUX_TIME_SCALE * 1000);
+    usleep(1000);
     cnt++;
   }
 }
@@ -152,7 +152,7 @@ void mac::run_thread() {
   int cnt=0;
 
   while (!phy_h->sync_status() && started) {
-    usleep(FAUX_TIME_SCALE * 5000);
+    usleep(5000);
     if (phy_h->sync_status()) {
       Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
       ttisync.set_producer_cntr(phy_h->get_current_tti());

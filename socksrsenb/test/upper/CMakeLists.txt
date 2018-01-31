@@ -7,10 +7,9 @@ target_link_libraries(sock_ip_test_enb sock_srsenb_upper
                                   srslte_phy
                                   srslte_upper
                                   srslte_radio
-                                  ${CMAKE_THREAD_LIBS_INIT}
-                                  ${Boost_LIBRARIES}
-                                  ${SEC_LIBRARIES}
-                                  ${FFTW3F_LIBRARIES})
+                                  ${CMAKE_THREAD_LIBS_INIT} 
+                                  ${Boost_LIBRARIES} 
+                                  ${SEC_LIBRARIES})
 
 # Simple PLMN -> MCC/MNC test
 add_executable(sock_plmn_test plmn_test.cc)

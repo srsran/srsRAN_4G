@@ -50,7 +50,9 @@ void srslte_filesource_free(srslte_filesource_t *q) {
 }
 
 void srslte_filesource_seek(srslte_filesource_t *q, int pos) {
-  fseek(q->f, pos, SEEK_SET);
+  if (!fseek(q->f, pos, SEEK_SET)){
+    perror("srslte_filesource_seek");
+  }
 }
 
 int read_complex_f(FILE *f, _Complex float *y) {

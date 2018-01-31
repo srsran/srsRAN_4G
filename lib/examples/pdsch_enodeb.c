@@ -528,9 +528,9 @@ int update_radl() {
 
   srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   srslte_ra_dl_grant_t dummy_grant; 
-  srslte_ra_nbits_t dummy_nbits;
+  srslte_ra_nbits_t dummy_nbits[SRSLTE_MAX_CODEWORDS];
   srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &dummy_grant);
-  srslte_ra_dl_grant_to_nbits(&dummy_grant, cfi, cell, 0, &dummy_nbits);
+  srslte_ra_dl_grant_to_nbits(&dummy_grant, cfi, cell, 0, dummy_nbits);
   srslte_ra_dl_grant_fprint(stdout, &dummy_grant);
   dummy_grant.sf_type = SRSLTE_SF_NORM;
   if (pdsch_cfg.mimo_type != SRSLTE_MIMO_TYPE_SINGLE_ANTENNA) {
@@ -858,7 +858,7 @@ int main(int argc, char **argv) {
       if (net_port > 0) {
         send_data = net_packet_ready; 
         if (net_packet_ready) {
-          INFO("Transmitting packet\n",0);
+          INFO("Transmitting packet\n");
         }
       } else {
         INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);

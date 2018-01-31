@@ -16,20 +16,18 @@ endif (RPATH)
 
 
 add_executable(sock_srsenb main.cc enb.cc parser.cc enb_cfg_parser.cc metrics_stdout.cc)
-target_link_libraries(sock_srsenb 
-                      sock_srsenb_upper
-                      sock_srsenb_mac
-                      sock_srsenb_phy
-                      srslte_common
-                      srslte_phy
-                      srslte_upper
-                      srslte_radio
-                      ${CMAKE_THREAD_LIBS_INIT} 
-                      ${Boost_LIBRARIES} 
-                      ${SEC_LIBRARIES}
-                      ${LIBCONFIGPP_LIBRARIES}
-                      ${SCTP_LIBRARIES}
-                      ${FFTW3F_LIBRARIES})
+target_link_libraries(sock_srsenb  sock_srsenb_upper
+                              sock_srsenb_mac
+                              sock_srsenb_phy
+                              srslte_common
+                              srslte_phy
+                              srslte_upper
+                              srslte_radio
+                              ${CMAKE_THREAD_LIBS_INIT} 
+                              ${Boost_LIBRARIES} 
+                              ${SEC_LIBRARIES}
+                              ${LIBCONFIGPP_LIBRARIES}
+                              ${SCTP_LIBRARIES})
 
 if (RPATH)
   set_target_properties(sock_srsenb PROPERTIES INSTALL_RPATH ".")

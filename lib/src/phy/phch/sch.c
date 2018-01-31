@@ -494,7 +494,7 @@ static int decode_tb(srslte_sch_t *q,
                ((uint32_t) data[cb_segm->tbs/8+2]);
 
       if (par_rx == par_tx && par_rx) {
-        INFO("TB decoded OK\n",0);
+        INFO("TB decoded OK\n");
         return SRSLTE_SUCCESS;
       } else {
         INFO("Error in TB parity: par_tx=0x%x, par_rx=0x%x\n", par_tx, par_rx);

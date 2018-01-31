@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-  INFO("Stopping RF and flushing buffer...\n",0);
+  INFO("Stopping RF and flushing buffer...\n");
   srslte_rf_stop_rx_stream(&rf);
   srslte_rf_flush_buffer(&rf);
   

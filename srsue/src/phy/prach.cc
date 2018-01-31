@@ -152,8 +152,12 @@ bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float
   }
 }
 
+bool prach::is_pending() {
+  return cell_initiated && preamble_idx >= 0 && preamble_idx < 64;
+}
+
 bool prach::is_ready_to_send(uint32_t current_tti_) {
-  if (cell_initiated && preamble_idx >= 0 && preamble_idx < 64) {
+  if (is_pending()) {
     // consider the number of subframes the transmission must be anticipated 
     uint32_t current_tti = (current_tti_ + tx_advance_sf)%10240;
     if (srslte_prach_tti_opportunity(&prach_obj, current_tti, allowed_subframe)) {

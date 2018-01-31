@@ -313,15 +313,14 @@ ul_harq_proc*  ul_metric_rr::get_user_allocation(sched_ue *user)
     // If can schedule the same mask, do it
     if (allocation_is_valid(alloc)) {
       update_allocation(alloc);
-      h->same_alloc(); 
-      return h; 
+      return h;
     }
     
     // If not, try to find another mask in the current tti 
     if (new_allocation(alloc.L, &alloc)) {
       update_allocation(alloc);
-      h->set_alloc(alloc);      
-      return h; 
+      h->set_alloc(alloc);
+      return h;
     }
   } 
   // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID 

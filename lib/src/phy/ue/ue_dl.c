@@ -381,17 +381,6 @@ int srslte_ue_dl_decode_fft_estimate_mbsfn(srslte_ue_dl_t *q, uint32_t sf_idx, u
       }else{
         srslte_ofdm_rx_sf(&q->fft[j]);
       }
-
-      /* Correct SFO multiplying by complex exponential in the time domain */
-      if (q->sample_offset) {
-        int nsym = (sf_type == SRSLTE_SF_MBSFN)?SRSLTE_CP_EXT_NSYMB:SRSLTE_CP_NSYMB(q->cell.cp);
-        for (int i=0;i<2*nsym;i++) {
-          srslte_cfo_correct(&q->sfo_correct, 
-                          &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE], 
-                          &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE], 
-                          q->sample_offset / q->fft[j].symbol_sz);
-        }
-      }
     }
     return srslte_ue_dl_decode_estimate_mbsfn(q, sf_idx, cfi, sf_type); 
   } else {
@@ -561,6 +550,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
     switch(dci_msg.format) {
       case SRSLTE_DCI_FORMAT1:
       case SRSLTE_DCI_FORMAT1A:
+      case SRSLTE_DCI_FORMAT1C:
         if (q->cell.nof_ports == 1) {
           mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
         } else {
@@ -584,7 +574,6 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
 
       /* Not implemented formats */
       case SRSLTE_DCI_FORMAT0:
-      case SRSLTE_DCI_FORMAT1C:
       case SRSLTE_DCI_FORMAT1B:
       case SRSLTE_DCI_FORMAT1D:
       case SRSLTE_DCI_FORMAT2B:

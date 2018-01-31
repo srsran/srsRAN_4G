@@ -19,13 +19,5 @@
 #
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch")
 add_executable(sock_mac_test mac_test.cc)
-target_link_libraries(sock_mac_test
-                      sock_srsue_mac
-                      sock_srsue_phy
-                      srslte_common
-                      srslte_phy
-                      srslte_radio
-                      srslte_asn1
-                      ${CMAKE_THREAD_LIBS_INIT}
-                      ${Boost_LIBRARIES} ${FFTW3F_LIBRARIES})
+target_link_libraries(sock_mac_test sock_srsue_mac sock_srsue_phy srslte_common srslte_phy srslte_radio srslte_asn1 ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 

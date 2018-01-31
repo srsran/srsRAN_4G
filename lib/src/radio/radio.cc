@@ -427,7 +427,7 @@ void radio::set_tx_srate(double srate)
       } else {
         /* Interpolate from known values */
         printf("\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n", cur_tx_srate);
-        nsamples = blade_default_tx_adv_samples * (1/cur_tx_srate) + blade_default_tx_adv_offset_sec;        
+        tx_adv_sec = blade_default_tx_adv_samples * (1/cur_tx_srate) + blade_default_tx_adv_offset_sec;        
       }
     } else {
       printf("\nWarning TX/RX time offset has not been calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));

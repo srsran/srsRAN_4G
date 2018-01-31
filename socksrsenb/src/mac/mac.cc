@@ -392,7 +392,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
   // Find empty slot for pending rars
   uint32_t ra_id=0;
-  while(pending_rars[ra_id].temp_crnti && ra_id<MAX_PENDING_RARS) {
+  while(pending_rars[ra_id].temp_crnti && ra_id<MAX_PENDING_RARS-1) {
     ra_id++;
   }
   if (ra_id == MAX_PENDING_RARS) {

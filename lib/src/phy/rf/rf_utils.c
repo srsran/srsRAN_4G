@@ -117,7 +117,7 @@ int rf_mib_decoder(srslte_rf_t *rf, uint32_t nof_rx_antennas,cell_search_cfg_t *
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", (float) srate/1000000);
   srslte_rf_set_rx_srate(rf, (float) srate);
   
-  INFO("Starting receiver...\n", 0);
+  INFO("Starting receiver...\n");
   srslte_rf_start_rx_stream(rf, false);
 
   // Copy CFO estimate if provided and disable CP estimation during find
@@ -174,7 +174,7 @@ int rf_cell_search(srslte_rf_t *rf, uint32_t nof_rx_antennas,
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
   srslte_rf_set_rx_srate(rf, SRSLTE_CS_SAMP_FREQ);
   
-  INFO("Starting receiver...\n", 0);
+  INFO("Starting receiver...\n");
   srslte_rf_start_rx_stream(rf, false);
 
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */

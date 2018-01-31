@@ -46,20 +46,6 @@ double callback_set_rx_gain(void *h, double gain) {
   return ((phch_recv*) h)->set_rx_gain(gain);
 }
 
-const char * phy_state_to_string(int state)
- {
-   switch(state)
-    {
-     case 0:    return "idle";
-     case 1:    return "cell_search";
-     case 2:    return "cell_select";
-     case 3:    return "cell_reselect";
-     case 4:    return "cell_measure";
-     case 5:    return "cell_camp";
-   }
-    return "unknown";
- }
-
 
 
 phch_recv::phch_recv() {
@@ -111,7 +97,7 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   intra_freq_meas.init(worker_com, rrc, log_h);
 
   reset();
-  
+  running = true;
   // Start main thread
   if (sync_cpu_affinity < 0) {
     start(prio);
@@ -139,7 +125,6 @@ void phch_recv::stop()
 void phch_recv::reset()
 {
   tx_mutex_cnt = 0;
-  running = true;
   phy_state = IDLE;
   time_adv_sec = 0;
   next_offset  = 0;
@@ -579,21 +564,10 @@ void phch_recv::run_thread()
   phy_state  = IDLE;
   is_in_idle = true;
 
-  struct timeval tv_in, tv_out, tv_diff, tv_start;
-  const  struct timeval tv_step = {0, 1000}, tv_zero = {0, 0};
   threads_print_self();
-  gettimeofday(&tv_start, NULL);
 
-  I_TRACE("PHY ", "begin, time_0 %ld:%06ld", tv_start.tv_sec, tv_start.tv_usec);
   while (running)
   {
-    gettimeofday(&tv_in, NULL);
-    D_TRACE("PHY ", "***** time_in %ld:%06ld  *****", 
-            tv_in.tv_sec, 
-            tv_in.tv_usec);
-
-    D_TRACE("PHY ", "state %s", phy_state_to_string(phy_state));
-
     if (phy_state != IDLE) {
       is_in_idle = false;
       Debug("SYNC:  state=%d\n", phy_state);
@@ -717,6 +691,12 @@ void phch_recv::run_thread()
               worker->set_tti(tti, tx_mutex_cnt);
               tx_mutex_cnt = (tx_mutex_cnt+1) % nof_tx_mutex;
 
+              // Reset Uplink TX buffer to avoid mixing packets in TX queue
+              if (prach_buffer->is_pending()) {
+                Info("SYNC:  PRACH pending: Reset UL\n");
+                worker_com->reset_ul();
+              }
+
               // Check if we need to TX a PRACH
               if (prach_buffer->is_ready_to_send(tti)) {
                 srslte_timestamp_copy(&tx_time_prach, &rx_time);
@@ -733,21 +713,11 @@ void phch_recv::run_thread()
                 srslte_pss_sic(&ue_sync.strack.pss, &buffer[0][SRSLTE_SF_LEN_PRB(cell.nof_prb)/2-ue_sync.strack.fft_size]);
               }
               intra_freq_meas.write(tti, buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb));
-              out_of_sync_cnt = 0;
               break;
             case 0:
-              // Signal every 5 errors only (PSS is every 5)
-              if (out_of_sync_cnt == 0) {
-                // Notify RRC of out-of-sync frame
-                log_h->error("SYNC:  Sync error. Sending out-of-sync to RRC\n");
-                rrc->out_of_sync();
-              }
+              out_of_sync();
               worker->release();
               worker_com->reset_ul();
-              out_of_sync_cnt++;
-              if (out_of_sync_cnt >= 5) {
-                out_of_sync_cnt = 0;
-              }
               break;
             default:
               radio_error();
@@ -770,26 +740,15 @@ void phch_recv::run_thread()
     // Increase TTI counter and trigger MAC clock (lower priority)
     mac->tti_clock(tti);
     g_tti = tti = (tti+1) % 10240;
-
-    gettimeofday(&tv_out, NULL);
-    timersub(&tv_out, &tv_in, &tv_diff);
-
-    D_TRACE("PHY ", "***** time_out %ld:%06ld delta_t %ld:%06ld *****", 
-            tv_out.tv_sec, 
-            tv_out.tv_usec,
-            tv_diff.tv_sec,
-            tv_diff.tv_usec);
   }
 }
 
+void phch_recv::in_sync() {
+  rrc->in_sync();
+}
+
 void phch_recv::out_of_sync() {
-  out_of_sync2_cnt++;
-  Info("SYNC:  Received out_of_sync from channel estimator (%d)\n", out_of_sync2_cnt);
-  if (out_of_sync2_cnt >= 2) {
-    out_of_sync2_cnt = 0;
-    Info("SYNC:  Trying to resync signal\n");
-    resync_sfn(true, true);
-  }
+  rrc->out_of_sync();
 }
 
 
@@ -881,7 +840,7 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
   int ret = SRSLTE_ERROR;
 
   Info("SYNC:  Searching for cell...\n");
-  /* printf("."); */ fflush(stdout);
+  printf("."); fflush(stdout);
 
   if (force_N_id_2 >= 0 && force_N_id_2 < 3) {
     ret = srslte_ue_cellsearch_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
@@ -1121,7 +1080,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe_sync(srslte_ue_syn
 {
   int sync_res = srslte_ue_sync_zerocopy_multi(ue_sync, buffer);
   if (sync_res == 1) {
-    log_h->info("SYNC: CFO=%.1f KHz\n", srslte_ue_sync_get_cfo(ue_sync));
+    log_h->info("SYNC: CFO=%.1f KHz\n", srslte_ue_sync_get_cfo(ue_sync)/1000);
     return run_subframe(sf_idx);
   } else {
     log_h->error("SYNC:  Measuring RSRP: Sync error\n");
@@ -1320,10 +1279,11 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
         srslte_sync_reset(&sync_find);
         srslte_sync_cfo_reset(&sync_find);
 
-        uint32_t sf5_cnt=0;
+        int sf5_cnt=-1;
         do {
+          sf5_cnt++;
           sync_res = srslte_sync_find(&sync_find, input_buffer, sf5_cnt*5*sf_len, &peak_idx);
-        } while(sync_res != SRSLTE_SYNC_FOUND && sf5_cnt < nof_sf/5);
+        } while(sync_res != SRSLTE_SYNC_FOUND && (uint32_t) sf5_cnt + 1 < nof_sf/5);
 
         switch(sync_res) {
           case SRSLTE_SYNC_ERROR:
@@ -1351,20 +1311,20 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
                                    -srslte_sync_get_cfo(&sync_find)/sync_find.fft_size);
 
 
-                switch(measure_p.run_multiple_subframes(input_cfo_corrected, peak_idx, sf_idx, nof_sf)) {
+                switch(measure_p.run_multiple_subframes(input_cfo_corrected, peak_idx+sf5_cnt*5*sf_len, sf_idx, nof_sf)) {
                   case measure::MEASURE_OK:
                     cells[nof_cells].pci    = found_cell.id;
                     cells[nof_cells].rsrp   = measure_p.rsrp();
                     cells[nof_cells].rsrq   = measure_p.rsrq();
                     cells[nof_cells].offset = measure_p.frame_st_idx();
 
-                    Info("INTRA: Found neighbour cell %d: PCI=%03d, RSRP=%5.1f dBm, peak_idx=%5d, peak_value=%3.2f n_id_2=%d, CFO=%6.1f Hz\n",
-                         nof_cells, cell_id, measure_p.rsrp(), measure_p.frame_st_idx(), sync_find.peak_value, n_id_2, 15000*srslte_sync_get_cfo(&sync_find));
+                    Info("INTRA: Found neighbour cell %d: PCI=%03d, RSRP=%5.1f dBm, peak_idx=%5d, peak_value=%3.2f, sf5_cnt=%d, n_id_2=%d, CFO=%6.1f Hz\n",
+                         nof_cells, cell_id, measure_p.rsrp(), measure_p.frame_st_idx(), sync_find.peak_value, sf5_cnt, n_id_2, 15000*srslte_sync_get_cfo(&sync_find));
 
                     nof_cells++;
 
                     if (sic_pss_enabled) {
-                      srslte_pss_sic(&sync_find.pss, &input_buffer[sf_len/2-fft_sz]);
+                      srslte_pss_sic(&sync_find.pss, &input_buffer[sf5_cnt*5*sf_len+sf_len/2-fft_sz]);
                     }
 
                     break;
@@ -1385,7 +1345,7 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
           default:
             break;
         }
-      } while (sync_res == SRSLTE_SYNC_FOUND && sic_pss_enabled);
+      } while (sync_res == SRSLTE_SYNC_FOUND && sic_pss_enabled && nof_cells < MAX_CELLS);
     }
   }
   return nof_cells;
@@ -1513,16 +1473,16 @@ void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples
     }
     if (receiving == true) {
       if (srslte_ringbuffer_write(&ring_buffer, data, nsamples*sizeof(cf_t)) < (int) (nsamples*sizeof(cf_t))) {
-        Warning("Error writing to ringbuffer\n");
+        Warning("Error writting to ringbuffer\n");
         receiving = false;
       } else {
         receive_cnt++;
         if (receive_cnt == CAPTURE_LEN_SF) {
           tti_sync.increase();
+          receiving = false; 
         }
       }
     }
-
   }
 }
 

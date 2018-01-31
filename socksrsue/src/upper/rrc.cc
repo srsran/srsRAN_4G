@@ -134,7 +134,6 @@ void rrc::stop() {
 }
 
 void rrc::run_tti(uint32_t tti) {
-  rrc_log->step(tti);
   measurements.run_tti(tti);
 }
 
@@ -287,7 +286,7 @@ void rrc::run_thread() {
         // wait for HO to finish
         break;
       case RRC_STATE_LEAVE_CONNECTED:
-        usleep(FAUX_TIME_SCALE * 60000);
+        usleep(60000);
         rrc_log->console("RRC IDLE\n");
         rrc_log->info("Leaving RRC_CONNECTED state\n");
         drb_up = false;
@@ -313,7 +312,7 @@ void rrc::run_thread() {
       default:
         break;
     }
-    usleep(FAUX_TIME_SCALE * 1000);
+    usleep(1000);
   }
 }
 
@@ -566,7 +565,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
         for (uint32_t j = 0; j < current_cell->sib1.N_plmn_ids; j++) {
           nas->plmn_found(current_cell->sib1.plmn_id[j].id, current_cell->sib1.tracking_area_code);
         }
-        usleep(FAUX_TIME_SCALE * 5000);
+        usleep(5000);
         phy->cell_search_next();
       }
       return;
@@ -723,7 +722,6 @@ float rrc::get_squal(float Qqualmeas) {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
-  // attempt resync
   current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
@@ -731,7 +729,8 @@ void rrc::out_of_sync() {
       mac_timers->timer_get(t310)->reset();
       mac_timers->timer_get(t310)->run();
       n310_cnt = 0;
-      rrc_log->info("Detected %d out-of-sync from PHY. Starting T310 timer\n", N310);
+      phy->sync_reset();
+      rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer\n", N310);
     }
   }
 }
@@ -1274,7 +1273,7 @@ void rrc::handle_sib1()
     case RRC_STATE_PLMN_SELECTION:
       si_acquire_state = SI_ACQUIRE_IDLE;
       rrc_log->info("SI Acquisition done. Searching next cell...\n");
-      usleep(FAUX_TIME_SCALE * 5000);
+      usleep(5000);
       phy->cell_search_next();
       break;
     default:

@@ -33,9 +33,7 @@
 #include "srslte/common/trace.h"
 #include "phy/phch_common.h"
 
-#ifndef LOG_EXECTIME
 #define LOG_EXECTIME
-#endif
 
 namespace srsue {
 
@@ -159,6 +157,8 @@ private:
   bool                              sr_configured;
   float                             cfo;
   bool                              rar_cqi_request;
+
+  uint32_t rssi_read_cnt;
 
   // Metrics
   dl_metrics_t dl_metrics;

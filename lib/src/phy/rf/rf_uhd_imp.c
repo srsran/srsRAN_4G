@@ -562,7 +562,10 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       perror("pthread_create");
       return -1; 
     }
-    
+
+    /* Restore priorities  */
+    uhd_set_thread_priority(0, false);
+
     return 0;
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS; 
@@ -708,13 +711,12 @@ int rf_uhd_recv_with_time(void *h,
 }
 
 int rf_uhd_recv_with_time_multi(void *h,
-                                void **data,
+                                void *data[SRSLTE_MAX_PORTS],
                                 uint32_t nsamples,
                                 bool blocking,
                                 time_t *secs,
                                 double *frac_secs) 
 {
-  
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   uhd_rx_metadata_handle *md = &handler->rx_md_first; 
   size_t rxd_samples = 0;
