@@ -473,7 +473,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    INFO("Stopping RF and flushing buffer...\r",0);
+    INFO("Stopping RF and flushing buffer...\r");
   }
 #endif
   
@@ -606,7 +606,7 @@ int main(int argc, char **argv) {
   
   srslte_pbch_decode_reset(&ue_mib.pbch);
             
-  INFO("\nEntering main loop...\n\n", 0);
+  INFO("\nEntering main loop...\n\n");
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     bool acks [SRSLTE_MAX_CODEWORDS] = {false};

@@ -368,14 +368,14 @@ int encode_cqi_long(srslte_uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits,
     memcpy(q->tmp_cqi, data, sizeof(uint8_t) * nof_bits);
     srslte_crc_attach(&q->crc, q->tmp_cqi, nof_bits);
 
-    DEBUG("cqi_crc_tx=", 0);    
+    DEBUG("cqi_crc_tx=");
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       srslte_vec_fprint_b(stdout, q->tmp_cqi, nof_bits+8);
     }
     
     srslte_convcoder_encode(&encoder, q->tmp_cqi, q->encoded_cqi, nof_bits + 8);
 
-    DEBUG("cconv_tx=", 0);    
+    DEBUG("cconv_tx=");
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       srslte_vec_fprint_b(stdout, q->encoded_cqi, 3 * (nof_bits + 8));
     }
@@ -400,14 +400,14 @@ int decode_cqi_long(srslte_uci_cqi_pusch_t *q, int16_t *q_bits, uint32_t Q,
     
     srslte_rm_conv_rx_s(q_bits, Q, q->encoded_cqi_s, 3 * (nof_bits + 8));
 
-    DEBUG("cconv_rx=", 0);
+    DEBUG("cconv_rx=");
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       srslte_vec_fprint_s(stdout, q->encoded_cqi_s, 3 * (nof_bits + 8));
     }
 
     srslte_viterbi_decode_s(&q->viterbi, q->encoded_cqi_s, q->tmp_cqi, nof_bits + 8);
     
-    DEBUG("cqi_crc_rx=", 0);    
+    DEBUG("cqi_crc_rx=");
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       srslte_vec_fprint_b(stdout, q->tmp_cqi, nof_bits+8);
     }

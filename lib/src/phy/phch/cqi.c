@@ -383,7 +383,7 @@ bool srslte_ri_send(uint32_t I_cqi_pmi, uint32_t I_ri, uint32_t tti) {
     return false;
   }
 
-  if (M_ri) {
+  if (M_ri && N_p) {
     if ((tti - N_offset_p + N_offset_ri) % (N_p * M_ri) == 0) {
       return true;
     }
