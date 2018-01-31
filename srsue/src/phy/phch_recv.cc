@@ -1462,6 +1462,7 @@ void phch_recv::intra_measure::rem_cell(int pci) {
 }
 
 void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples) {
+  /*
   if (receive_enabled) {
     if ((tti%INTRA_FREQ_MEAS_PERIOD_MS) == 0) {
       receiving   = true;
@@ -1482,6 +1483,7 @@ void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples
       }
     }
   }
+   */
 }
 
 void phch_recv::intra_measure::run_thread()
@@ -1493,13 +1495,14 @@ void phch_recv::intra_measure::run_thread()
 
     if (running) {
       // Read 15 ms data from buffer
+      /*
       srslte_ringbuffer_read(&ring_buffer, search_buffer, CAPTURE_LEN_SF*current_sflen*sizeof(cf_t));
       int found_cells = scell.find_cells(search_buffer, common->rx_gain_offset, primary_cell, CAPTURE_LEN_SF, info);
       receiving = false;
 
       for (int i=0;i<found_cells;i++) {
         rrc->new_phy_meas(info[i].rsrp, info[i].rsrq, measure_tti, current_earfcn, info[i].pci);
-      }
+      }*/
       // Look for other cells not found automatically
     }
   }
