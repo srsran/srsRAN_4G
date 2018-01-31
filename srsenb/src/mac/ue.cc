@@ -279,6 +279,10 @@ bool ue::process_ce(srslte::sch_subh *subh) {
     case srslte::sch_subh::TRUNC_BSR: 
     case srslte::sch_subh::SHORT_BSR:
       idx = subh->get_bsr(buff_size);
+      if(idx == -1){
+        Error("Invalid Index Passed to lc groups\n");
+        break;
+      }
       for (uint32_t i=0;i<lc_groups[idx].size();i++) {
         // Indicate BSR to scheduler
         sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
