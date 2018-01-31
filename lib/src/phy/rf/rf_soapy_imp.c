@@ -201,14 +201,13 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     printf("No Soapy devices found.\n");
     return SRSLTE_ERROR;
   }
-  char* devname;
+  char* devname = NULL;
   for (size_t i = 0; i < length; i++) {
-    printf("Soapy has Found device #%d: ", (int)i);
+    printf("Soapy has found device #%d: ", (int)i);
     for (size_t j = 0; j < soapy_args[i].size; j++) {
       printf("%s=%s, ", soapy_args[i].keys[j], soapy_args[i].vals[j]);
       if(!strcmp(soapy_args[i].keys[j],"name") && !strcmp(soapy_args[i].vals[j], "LimeSDR-USB")){
         devname = DEVNAME_LIME;
-        
       }
     }
     printf("\n");
@@ -411,7 +410,7 @@ void rf_soapy_get_time(void *h, time_t *secs, double *frac_secs)
 
 //TODO: add multi-channel support
 int  rf_soapy_recv_with_time_multi(void *h,
-                                   void **data,
+                                   void *data[SRSLTE_MAX_PORTS],
                                    uint32_t nsamples,
                                    bool blocking,
                                    time_t *secs,
