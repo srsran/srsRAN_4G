@@ -456,8 +456,16 @@ int srslte_cqi_hl_get_no_subbands(int nof_prb)
 
 void srslte_cqi_to_str(const uint8_t *cqi_value, int cqi_len, char *str, int str_len) {
   int i = 0;
-  for (i = 0; i < cqi_len && i < (str_len - 1); i++) {
+
+  for (i = 0; i < cqi_len && i < (str_len - 5); i++) {
     str[i] = (cqi_value[i] == 0)?(char)'0':(char)'1';
+  }
+
+  if (i == (str_len - 5)) {
+    str[i++] = '.';
+    str[i++] = '.';
+    str[i++] = '.';
+    str[i++] = (cqi_value[cqi_len - 1] == 0)?(char)'0':(char)'1';
   }
   str[i] = '\0';
 }
