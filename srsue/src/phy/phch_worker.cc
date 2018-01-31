@@ -1388,7 +1388,7 @@ void phch_worker::update_measurements()
         phy->avg_rsrp_dbm = SRSLTE_VEC_EMA(rsrp_dbm, phy->avg_rsrp_dbm, snr_ema_coeff);
       }
       if ((tti%phy->pcell_report_period) == 0 && phy->pcell_meas_enabled) {
-        phy->rrc->new_phy_meas(phy->avg_rsrp_dbm, phy->avg_rsrq_db, tti);
+        //phy->rrc->new_phy_meas(phy->avg_rsrp_dbm, phy->avg_rsrq_db, tti);
       }
     }
 
