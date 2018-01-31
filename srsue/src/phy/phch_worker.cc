@@ -399,13 +399,14 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
       Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
     } else {
       /* If only one receiving antenna, force RI for 1 layer */
-      uci_data.uci_ri = 0;
+      if (ri) {
+        *ri = 0;
+      }
     }
     uci_data.uci_ri_len = 1;
   } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
     srslte_ue_dl_ri_pmi_select(&ue_dl, ri, pmi, sinr);
     Debug("TM4 ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
-    uci_data.uci_ri_len = 1;
   }
 }
 
@@ -906,11 +907,11 @@ void phch_worker::set_uci_aperiodic_cqi()
 {
   uint8_t ri = (uint8_t) ue_dl.ri;
   uint8_t pmi = (uint8_t) ue_dl.pmi[ri];
-  float sinr = ue_dl.sinr[ri][pmi];
+  float sinr_db = ue_dl.sinr[ri][pmi];
 
   if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
     /* Compute RI, PMI and SINR */
-    compute_ri(&ri, &pmi, &sinr);
+    compute_ri(&ri, &pmi, &sinr_db);
 
     switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
@@ -930,18 +931,24 @@ void phch_worker::set_uci_aperiodic_cqi()
 
           // TODO: implement subband CQI properly
           cqi_report.subband_hl.subband_diff_cqi_cw0 = 0; // Always report zero offset on all subbands
-          cqi_report.subband_hl.N = (cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0;
+          cqi_report.subband_hl.N = (cell.nof_prb > 7) ? (uint32_t) srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0;
 
-          uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+          int cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+          if (cqi_len < 0) {
+            Error("Error packing CQI value (Aperiodic reporting mode RM31).");
+            return;
+          }
+          uci_data.uci_cqi_len = (uint32_t) cqi_len;
 
-          char cqi_str[64] = {0};
-          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 64);
+          char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = {0};
+          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
-          Info("PUSCH: Aperiodic CQI=%s, SNR=%.1f dB, for %d subbands\n", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
+          /* Set RI = 1 */
+          uci_data.uci_ri = ri;
+          uci_data.uci_ri_len = 1;
 
-          /* Fake RI = 1 */
-          uci_data.uci_ri = 0;
-          uci_data.uci_ri_len = 0;
+          Info("PUSCH: Aperiodic RM30 ri%s, CQI=%s, SNR=%.1f dB, for %d subbands\n",
+               (uci_data.uci_ri == 0)?"=1":"~1", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
         }
         break;
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
@@ -957,11 +964,6 @@ void phch_worker::set_uci_aperiodic_cqi()
             other transmission modes they are reported conditioned on rank 1.
         */
         if (rnti_is_set) {
-          /* Select RI, PMI and SINR */
-          uint32_t ri = ue_dl.ri;       // Select RI (0: 1 layer, 1: 2 layer, otherwise: not implemented)
-          uint32_t pmi = ue_dl.pmi[ri]; // Select PMI
-          float sinr_db = 10 * log10(ue_dl.sinr[ri][pmi]);
-
           /* Fill CQI Report */
           srslte_cqi_value_t cqi_report = {0};
           cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
@@ -982,17 +984,24 @@ void phch_worker::set_uci_aperiodic_cqi()
           // TODO: implement subband CQI properly
           cqi_report.subband_hl.N = (uint32_t) ((cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell.nof_prb) : 0);
 
-          uci_data.uci_cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+          int cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+          if (cqi_len < 0) {
+            Error("Error packing CQI value (Aperiodic reporting mode RM31).");
+            return;
+          }
+          uci_data.uci_cqi_len = (uint32_t) cqi_len;
+          uci_data.uci_ri_len = 1;
+          uci_data.uci_ri = ri;
 
-          char cqi_str[64] = {0};
-          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 64);
+          char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = {0};
+          srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
           if (cqi_report.subband_hl.rank_is_not_one) {
-            Info("PUSCH: Aperiodic ri~1, CQI=%02d/%02d, SINR=%2.1f/%2.1fdB, pmi=%d for %d subbands\n",
+            Info("PUSCH: Aperiodic RM31 ri~1, CQI=%02d/%02d, SINR=%2.1f/%2.1fdB, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0, cqi_report.subband_hl.wideband_cqi_cw1,
                  sinr_db, sinr_db, pmi, cqi_report.subband_hl.N);
           } else {
-            Info("PUSCH: Aperiodic ri=1, CQI=%02d, SINR=%2.1f, pmi=%d for %d subbands\n",
+            Info("PUSCH: Aperiodic RM31 ri=1, CQI=%02d, SINR=%2.1f, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0,
                  sinr_db, pmi, cqi_report.subband_hl.N);
           }
@@ -1060,8 +1069,8 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   snprintf(timestr, 64, ", tot_time=%4d us", (int) logtime_start[0].tv_usec);
 #endif
 
-  char cqi_str[32] = "";
-  srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, 32);
+  char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = "";
+  srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
   uint8_t dummy[2] = {0,0};
   log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s%s\n",
@@ -1114,8 +1123,8 @@ void phch_worker::encode_pucch()
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
 
-    char str_cqi[32] = "";
-    srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, str_cqi, 32);
+    char str_cqi[SRSLTE_CQI_STR_MAX_CHAR] = "";
+    srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, str_cqi, SRSLTE_CQI_STR_MAX_CHAR);
 
     Info("PUCCH: tti_tx=%d, n_pucch=%d, n_prb=%d, ack=%s%s%s%s%s, sr=%s, cfo=%.1f KHz%s\n",
          (tti + 4) % 10240,
