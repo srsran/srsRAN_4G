@@ -256,7 +256,7 @@ void ue::push_pdu(uint32_t tti, uint32_t len)
 bool ue::process_ce(srslte::sch_subh *subh) {
   uint32_t buff_size[4] = {0, 0, 0, 0};
   float phr = 0;
-  uint32_t idx = 0;
+  int32_t idx = 0;
   uint16_t old_rnti = 0;
   bool is_bsr = false;
   switch(subh->ce_type()) {
