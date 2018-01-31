@@ -256,7 +256,7 @@ void ue::push_pdu(uint32_t tti, uint32_t len)
 bool ue::process_ce(srslte::sch_subh *subh) {
   uint32_t buff_size[4] = {0, 0, 0, 0};
   float phr = 0;
-  int idx = 0;
+  uint32_t idx = 0;
   uint16_t old_rnti = 0;
   bool is_bsr = false;
   switch(subh->ce_type()) {
@@ -289,7 +289,7 @@ bool ue::process_ce(srslte::sch_subh *subh) {
       break;
     case srslte::sch_subh::LONG_BSR:
       subh->get_bsr(buff_size);
-      for (int idx=0;idx<4;idx++) {
+      for (idx=0;idx<4;idx++) {
         for (uint32_t i=0;i<lc_groups[idx].size();i++) {
           sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
         }
