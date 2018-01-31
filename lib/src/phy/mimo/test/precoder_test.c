@@ -42,7 +42,7 @@ int nof_symbols = 1000;
 uint32_t codebook_idx = 0;
 int nof_layers = 1, nof_tx_ports = 1, nof_rx_ports = 1, nof_re = 1;
 char *mimo_type_name = NULL;
-char decoder_type_name [16] = "zf";
+char decoder_type_name [17] = "zf";
 float snr_db = 100.0f;
 float scaling = 0.1f;
 
@@ -56,7 +56,7 @@ void usage(char *prog) {
   printf("\t-g Scaling [Default %.1f]*\n", scaling);
   printf("\t-d decoder type [zf|mmse] [Default %s]\n", decoder_type_name);
   printf("\n");
-  printf("* Performance test example:\n\t for snr in {0..20..1}; do ./precoding_test -m single -s $snr; done; \n\n", decoder_type_name);
+  printf("* Performance test example:\n\t for snr in {0..20..1}; do ./precoding_test -m single -s $snr; done; \n\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -82,7 +82,8 @@ void parse_args(int argc, char **argv) {
       codebook_idx = (uint32_t) atoi(argv[optind]);
       break;
     case 'd':
-      strncpy(decoder_type_name, argv[optind], 16);
+      strncpy(decoder_type_name, argv[optind], 15);
+      decoder_type_name[15] = 0;
       break;
     case 's':
       snr_db = (float) atof(argv[optind]);

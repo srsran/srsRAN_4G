@@ -557,7 +557,7 @@ int srslte_pdcch_dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32
 
     srslte_pdcch_dci_encode_conv(q, data, nof_bits, tmp, rnti); 
 
-    DEBUG("CConv output: ", 0);
+    DEBUG("CConv output: ");
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       srslte_vec_fprint_b(stdout, tmp, 3 * (nof_bits + 16));
     }
@@ -617,7 +617,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
 
       srslte_scrambling_b_offset(&q->seq[nsubframe], q->e, 72 * location.ncce, e_bits);
       
-      DEBUG("Scrambling output: ", 0);
+      DEBUG("Scrambling output: ");
       if (SRSLTE_VERBOSE_ISDEBUG()) {        
         srslte_vec_fprint_b(stdout, q->e, e_bits);
       }
