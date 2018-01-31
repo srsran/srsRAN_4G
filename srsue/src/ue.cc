@@ -81,6 +81,7 @@ bool ue::init(all_args_t *args_)
 
   // Init logs
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
+  rf_log.info("Starting UE\n");
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
