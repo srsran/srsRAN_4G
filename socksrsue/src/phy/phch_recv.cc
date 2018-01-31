@@ -291,7 +291,7 @@ bool phch_recv::stop_sync() {
     phy_state = IDLE;
     int cnt = 0;
     while (!is_in_idle && cnt < 100) {
-      usleep(10000);
+      usleep(FAUX_TIME_SCALE * 10000);
       cnt++;
     }
     return is_in_idle;
@@ -425,7 +425,7 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
       resync_sfn();
 
-      usleep(500000); // Time offset we set start_rx to start receiving samples
+      usleep(FAUX_TIME_SCALE * 500000); // Time offset we set start_rx to start receiving samples
       return true;
     }
     return false;

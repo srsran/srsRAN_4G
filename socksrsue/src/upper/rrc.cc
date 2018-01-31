@@ -286,7 +286,7 @@ void rrc::run_thread() {
         // wait for HO to finish
         break;
       case RRC_STATE_LEAVE_CONNECTED:
-        usleep(60000);
+        usleep(FAUX_TIME_SCALE * 60000);
         rrc_log->console("RRC IDLE\n");
         rrc_log->info("Leaving RRC_CONNECTED state\n");
         drb_up = false;
@@ -312,7 +312,7 @@ void rrc::run_thread() {
       default:
         break;
     }
-    usleep(1000);
+    usleep(FAUX_TIME_SCALE * 1000);
   }
 }
 
@@ -565,7 +565,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
         for (uint32_t j = 0; j < current_cell->sib1.N_plmn_ids; j++) {
           nas->plmn_found(current_cell->sib1.plmn_id[j].id, current_cell->sib1.tracking_area_code);
         }
-        usleep(5000);
+        usleep(FAUX_TIME_SCALE * 5000);
         phy->cell_search_next();
       }
       return;
@@ -1273,7 +1273,7 @@ void rrc::handle_sib1()
     case RRC_STATE_PLMN_SELECTION:
       si_acquire_state = SI_ACQUIRE_IDLE;
       rrc_log->info("SI Acquisition done. Searching next cell...\n");
-      usleep(5000);
+      usleep(FAUX_TIME_SCALE * 5000);
       phy->cell_search_next();
       break;
     default:

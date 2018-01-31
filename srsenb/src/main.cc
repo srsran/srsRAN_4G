@@ -357,7 +357,6 @@ void *input_loop(void *m)
         }
         metrics->toggle_print(do_metrics);
       }
-      metrics->toggle_print(do_metrics);
     }
   }
   return NULL;

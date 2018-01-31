@@ -240,7 +240,7 @@ void rrc::rem_user(uint16_t rnti)
     mac->ue_rem(rnti);  // MAC handles PHY
 
     pthread_mutex_unlock(&user_mutex);
-    usleep(50000);
+    usleep(FAUX_TIME_SCALE * 50000);
     pthread_mutex_lock(&user_mutex);
 
     rlc->rem_user(rnti);
@@ -336,7 +336,7 @@ void rrc::release_complete(uint16_t rnti)
       rlc->clear_buffer(rnti); 
       users[rnti].send_connection_release();
       // There is no RRCReleaseComplete message from UE thus wait ~100 subframes for tx
-      usleep(100000);
+      usleep(FAUX_TIME_SCALE * 100000);
     }
     rem_user(rnti);
   } else {
@@ -638,7 +638,7 @@ void rrc::run_thread()
           break;
         case LCID_REM_USER:
           pthread_mutex_unlock(&user_mutex);
-          usleep(10000);
+          usleep(FAUX_TIME_SCALE * 10000);
           rem_user(p.rnti);
           pthread_mutex_lock(&user_mutex);
           break;
@@ -657,7 +657,7 @@ void rrc::activity_monitor::run_thread()
 {
   while(running) 
   {
-    usleep(10000);
+    usleep(FAUX_TIME_SCALE * 10000);
     pthread_mutex_lock(&parent->user_mutex);
     uint16_t rem_rnti = 0; 
     for(std::map<uint16_t, ue>::iterator iter=parent->users.begin(); rem_rnti == 0 && iter!=parent->users.end(); ++iter) {

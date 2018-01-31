@@ -231,13 +231,13 @@ void enb::stop()
     gtpu.stop();
     phy.stop();
     mac.stop();
-    usleep(100000);
+    usleep(FAUX_TIME_SCALE * 100000);
 
     rlc.stop();
     pdcp.stop();
     rrc.stop();
 
-    usleep(1e5);
+    usleep(FAUX_TIME_SCALE * 1e5);
     if(args->pcap.enable)
     {
        mac_pcap.close();

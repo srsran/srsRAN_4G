@@ -73,7 +73,7 @@ void gw::stop()
       // Wait thread to exit gracefully otherwise might leave a mutex locked
       int cnt=0;
       while(running && cnt<100) {
-        usleep(10000);
+        usleep(FAUX_TIME_SCALE * 10000);
         cnt++;
       }
       if (running) {
@@ -284,7 +284,7 @@ void gw::run_thread()
             if (attach_cnt == ATTACH_TIMEOUT_MS) {
               attach_cnt = 0;
             }
-            usleep(1000);
+            usleep(FAUX_TIME_SCALE * 1000);
           }
 
           if (attach_attempts == ATTACH_MAX_ATTEMPTS) {
@@ -308,7 +308,7 @@ void gw::run_thread()
               pdu = pool_allocate;
               if (!pdu) {
                 printf("Not enough buffers in pool\n");
-                usleep(100000);
+                usleep(FAUX_TIME_SCALE * 100000);
               }
             } while(!pdu);
             idx = 0;

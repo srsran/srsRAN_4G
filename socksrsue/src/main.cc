@@ -432,10 +432,6 @@ int main(int argc, char *argv[])
 
   parse_args(&args, argc, argv);
 
-#if 0
-  srslte_verbose = SRSLTE_VERBOSE_DEBUG;
-#endif
-
   srsue_instance_type_t type = LTE;
   ue_base *ue = ue_base::get_instance(type);
   if (!ue) {
