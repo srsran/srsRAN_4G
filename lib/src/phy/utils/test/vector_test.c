@@ -49,8 +49,8 @@ bool verbose = false;
 
 
 #define RANDOM_F() ((float)rand())/((float)RAND_MAX)
-#define RANDOM_S() ((int16_t)(rand() && 0x800F))
-#define RANDOM_B() ((int8_t)(rand() && 0x8008))
+#define RANDOM_S() ((int16_t)(rand() & 0x800F))
+#define RANDOM_B() ((int8_t)(rand() & 0x8008))
 #define RANDOM_CF() (RANDOM_F() + _Complex_I*RANDOM_F())
 
 #define TEST_CALL(TEST_CODE)   gettimeofday(&start, NULL);\
@@ -137,7 +137,7 @@ TEST(srslte_vec_dot_prod_sss,
          MALLOC(int16_t, y);
          int16_t z;
 
-         cf_t gold = 0.0f;
+         int16_t gold = 0.0f;
          for (int i = 0; i < block_size; i++) {
            x[i] = RANDOM_S();
            y[i] = RANDOM_S();
@@ -149,7 +149,7 @@ TEST(srslte_vec_dot_prod_sss,
            gold += x[i] * y[i];
          }
 
-         mse += cabsf(gold - z) / cabsf(gold);
+         mse = (gold - z) / abs(gold);
 
          free(x);
          free(y);
@@ -160,7 +160,7 @@ TEST(srslte_vec_sum_sss,
          MALLOC(int16_t, y);
          MALLOC(int16_t, z);
 
-         cf_t gold = 0.0f;
+         int16_t gold = 0;
          for (int i = 0; i < block_size; i++) {
            x[i] = RANDOM_S();
            y[i] = RANDOM_S();
@@ -170,7 +170,7 @@ TEST(srslte_vec_sum_sss,
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] + y[i];
-           mse += cabsf(gold - z[i]);
+           mse += abs(gold - z[i]);
          }
 
          free(x);
@@ -183,7 +183,7 @@ TEST(srslte_vec_sub_sss,
          MALLOC(int16_t, y);
          MALLOC(int16_t, z);
 
-         cf_t gold = 0.0f;
+         int16_t gold = 0.0f;
          for (int i = 0; i < block_size; i++) {
            x[i] = RANDOM_S();
            y[i] = RANDOM_S();
@@ -193,7 +193,7 @@ TEST(srslte_vec_sub_sss,
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] - y[i];
-           mse += cabsf(gold - z[i]);
+           mse += abs(gold - z[i]);
          }
 
          free(x);
@@ -206,7 +206,7 @@ TEST(srslte_vec_prod_sss,
          MALLOC(int16_t, y);
          MALLOC(int16_t, z);
 
-         cf_t gold = 0.0f;
+         int16_t gold = 0.0f;
          for (int i = 0; i < block_size; i++) {
            x[i] = RANDOM_S();
            y[i] = RANDOM_S();
@@ -216,7 +216,7 @@ TEST(srslte_vec_prod_sss,
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] * y[i];
-           mse += cabsf(gold - z[i]);
+           mse += abs(gold - z[i]);
          }
 
          free(x);
@@ -802,16 +802,18 @@ int main(int argc, char **argv) {
     size_count++;
   }
 
-  char fname[68];
+  char fname[69];
   FILE *f = NULL;
   void * p = popen("(date +%g%m%d && hostname) | tr '\\r\\n' '__'", "r");
   if (p) {
     fgets(fname, 64, p);
-    strncpy(fname + strnlen(fname, 64) - 1, ".tsv", 4);
+    strncpy(fname + strnlen(fname, 64) - 1, ".tsv", 5);
     f = fopen(fname, "w");
-    if (f) printf("Saving benchmark results in '%s'\n", fname);
+    if (f) {
+      printf("Saving benchmark results in '%s'\n", fname);
+    }
+    pclose(p);
   }
-  pclose(p);
 
 
   printf("\n");
