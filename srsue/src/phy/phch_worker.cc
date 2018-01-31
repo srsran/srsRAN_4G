@@ -223,13 +223,11 @@ void phch_worker::work_imp()
   bool ul_grant_available = false;
   bool dl_ack[SRSLTE_MAX_CODEWORDS] = {false};
 
-  mac_interface_phy::mac_grant_t    dl_mac_grant;
-  mac_interface_phy::tb_action_dl_t dl_action; 
-  bzero(&dl_action, sizeof(mac_interface_phy::tb_action_dl_t));
+  mac_interface_phy::mac_grant_t    dl_mac_grant = {};
+  mac_interface_phy::tb_action_dl_t dl_action = {};
 
-  mac_interface_phy::mac_grant_t    ul_mac_grant;
-  mac_interface_phy::tb_action_ul_t ul_action; 
-  bzero(&ul_action, sizeof(mac_interface_phy::tb_action_ul_t));
+  mac_interface_phy::mac_grant_t    ul_mac_grant = {};
+  mac_interface_phy::tb_action_ul_t ul_action = {};
 
 
   /** Calculate RSSI on the input signal before generating the output */
@@ -1152,10 +1150,7 @@ void phch_worker::encode_srs()
   
   float tx_power = srslte_ue_ul_srs_power(&ue_ul, phy->pathloss);  
   float gain = set_power(tx_power);
-  uint32_t fi = srslte_vec_max_fi((float*) signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  float *f = (float*) signal_buffer;
   Info("SRS:   power=%.2f dBm, tti_tx=%d%s\n", tx_power, TTI_TX(tti), timestr);
-  
 }
 
 void phch_worker::enable_pregen_signals(bool enabled)
