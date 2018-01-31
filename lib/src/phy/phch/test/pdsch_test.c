@@ -178,21 +178,10 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  switch(mimo_type) {
-
-    case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
-      cell.nof_ports = 1;
-      break;
-    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-    case SRSLTE_MIMO_TYPE_CDD:
-      if (nof_rx_antennas < 2) {
-        ERROR("At least two receiving antennas are required");
-        goto quit;
-      }
-    case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
-    default:
-      cell.nof_ports = 2;
-      break;
+  if (mimo_type == SRSLTE_MIMO_TYPE_SINGLE_ANTENNA) {
+    cell.nof_ports = 1;
+  } else {
+    cell.nof_ports = 2;
   }
 
   srslte_ra_dl_dci_t dci;
@@ -250,7 +239,7 @@ int main(int argc, char **argv) {
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
       ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * NOF_CE_SYMBOLS);
-      if (!ce[i]) {
+      if (!ce[i][j]) {
         perror("srslte_vec_malloc");
         goto quit;
       }

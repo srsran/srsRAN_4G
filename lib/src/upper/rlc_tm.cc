@@ -31,6 +31,10 @@ namespace srslte {
 
 rlc_tm::rlc_tm() : ul_queue(16)
 {
+  log = NULL;
+  pdcp = NULL;
+  rrc = NULL;
+  lcid = 0;
   pool = byte_buffer_pool::get_instance();
 }
 
