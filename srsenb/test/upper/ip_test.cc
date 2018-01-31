@@ -618,6 +618,7 @@ int setup_if_addr(char *ip_addr)
   if(0 > ioctl(sock, SIOCGIFFLAGS, &ifr))
   {
     perror("socket");
+    close(sock);
     close(tun_fd);
     return -1;
   }
@@ -625,9 +626,12 @@ int setup_if_addr(char *ip_addr)
   if(0 > ioctl(sock, SIOCSIFFLAGS, &ifr))
   {
     perror("ioctl2");
+    close(sock);
     close(tun_fd);
     return -1;
   }
+
+  close(sock);
 
   // Setup the IP address    
   sock                                                   = socket(AF_INET, SOCK_DGRAM, 0);
@@ -636,6 +640,7 @@ int setup_if_addr(char *ip_addr)
   if(0 > ioctl(sock, SIOCSIFADDR, &ifr))
   {
     perror("ioctl");
+    close(sock);
     close(tun_fd);
     return -1;
   }
@@ -644,9 +649,12 @@ int setup_if_addr(char *ip_addr)
   if(0 > ioctl(sock, SIOCSIFNETMASK, &ifr))
   {
     perror("ioctl");
+    close(sock);
     close(tun_fd);
     return -1;
   }
+
+  close(sock);
 
   return(tun_fd);
 }
