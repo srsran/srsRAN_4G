@@ -43,8 +43,8 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_soapy_imp.c)
   endif (SOAPYSDR_FOUND)
 
-  add_definitions(-DENABLE_FAUXRF)
-  list(APPEND SOURCES_RF rf_faux_imp.c)
+  add_definitions(-DENABLE_SOCKRF)
+  list(APPEND SOURCES_RF rf_sock_imp.c)
 
   add_library(srslte_rf SHARED ${SOURCES_RF})
   target_link_libraries(srslte_rf srslte_rf_utils srslte_phy)

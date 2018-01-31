@@ -237,7 +237,7 @@ private:
 
 #endif
 
-#ifdef RF_FAUX
+#ifdef RF_SOCK
 // debug time scale for running on limited processors
 // set to 1 runs "real" time, to "scale" time down" to 10ms subframe use 10 and so forth
 #define FAUX_TIME_SCALE 10

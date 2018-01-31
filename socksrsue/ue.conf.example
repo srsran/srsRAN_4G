@@ -48,10 +48,10 @@ device_args = ue
 # filename: File path to use for packet captures
 #####################################################################
 [pcap]
-enable = true
-filename = ./ue_1.pcap
-nas_enable = true
-nas_filename = ./nas_1.pcap
+enable = false
+filename = /tmp/ue.pcap
+nas_enable = false
+nas_filename = /tmp/nas.pcap
 
 #####################################################################
 # Log configuration
@@ -77,7 +77,7 @@ nas_filename = ./nas_1.pcap
 all_level = info
 phy_lib_level = none
 all_hex_limit = 32
-filename = ue_1.log
+filename = ue.log
 file_max_size = -1
 
 #####################################################################

@@ -82,8 +82,8 @@ burst_preamble_us = 0
 # filename: File path to use for packet captures
 #####################################################################
 [pcap]
-enable = true
-filename = ./enb.pcap
+enable = false
+filename = /tmp/enb.pcap
 
 #####################################################################
 # Log configuration
