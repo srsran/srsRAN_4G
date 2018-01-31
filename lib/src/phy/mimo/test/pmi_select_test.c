@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 
     /* Condition number */
     if (srslte_precoding_cn(h, 2, 2, nof_symbols, &cn)) {
-      ERROR("Test case %d condition number returned error\n");
+      ERROR("Test case %d condition number returned error\n", c + 1);
       goto clean;
     }
 

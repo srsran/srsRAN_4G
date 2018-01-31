@@ -170,7 +170,7 @@ int base_init() {
     return -1;
   }
 
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 
@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
   /* Get channel estimates for each port */
   srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
-  INFO("Decoding PCFICH\n", 0);
+  INFO("Decoding PCFICH\n");
 
   
   n = srslte_pcfich_decode(&pcfich, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest),  0, &cfi, &cfi_corr);

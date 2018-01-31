@@ -29,6 +29,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <srslte/phy/phch/pdsch_cfg.h>
+#include <srslte/srslte.h>
 
 #include "prb_dl.h"
 #include "srslte/phy/phch/pdsch.h"
@@ -656,8 +658,8 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
   {
     uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant);
 
-    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, NofSymbols: %d, C_prb=%d, mimo_type=%d, nof_layers=%d, nof_tb=%d\n",
-        cfg->sf_idx, rnti, cfg->nbits[0].nof_re, cfg->grant.nof_prb, cfg->nof_layers, nof_tb);
+    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, NofSymbols: %d, C_prb=%d, mimo_type=%s, nof_layers=%d, nof_tb=%d\n",
+        cfg->sf_idx, rnti, cfg->nbits[0].nof_re, cfg->grant.nof_prb, srslte_mod_string(cfg->grant.mcs->mod), cfg->nof_layers, nof_tb);
 
     // Extract Symbols and Channel Estimates
     for (int j=0;j<q->nof_rx_antennas;j++) {
