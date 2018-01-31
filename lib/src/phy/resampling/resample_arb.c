@@ -150,7 +150,7 @@ int srslte_resample_arb_compute(srslte_resample_arb_t *q, cf_t *input, cf_t *out
     
     res1 = srslte_resample_arb_dot_prod(filter_input, srslte_resample_arb_polyfilt[idx], SRSLTE_RESAMPLE_ARB_M);
     if(q->interpolate){
-      res2 = srslte_resample_arb_dot_prod(filter_input, srslte_resample_arb_polyfilt[(idx%SRSLTE_RESAMPLE_ARB_N)+1], SRSLTE_RESAMPLE_ARB_M);
+      res2 = srslte_resample_arb_dot_prod(filter_input, srslte_resample_arb_polyfilt[(idx+1)%SRSLTE_RESAMPLE_ARB_N], SRSLTE_RESAMPLE_ARB_M);
     }
 
     if(idx == SRSLTE_RESAMPLE_ARB_N){

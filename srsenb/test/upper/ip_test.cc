@@ -653,7 +653,7 @@ int setup_if_addr(char *ip_addr)
     close(tun_fd);
     return -1;
   }
-
+  
   close(sock);
 
   return(tun_fd);
