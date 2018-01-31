@@ -102,7 +102,8 @@ void parse_args(int argc, char **argv) {
       cfi = atoi(argv[optind]);
       break;
     case 'x':
-      strncpy(mimo_type_str, argv[optind], 32);
+      strncpy(mimo_type_str, argv[optind], 31);
+      mimo_type_str[31] = 0;
       break;
     case 'p':
       pmi = (uint32_t) atoi(argv[optind]);

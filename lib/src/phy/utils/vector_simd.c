@@ -433,6 +433,7 @@ cf_t srslte_vec_dot_prod_ccc_simd(const cf_t *x, const cf_t *y, const int len) {
   return result;
 }
 
+#ifdef ENABLE_C16
 c16_t srslte_vec_dot_prod_ccc_c16i_simd(const c16_t *x, const c16_t *y, const int len) {
   int i = 0;
   c16_t result = 0;
@@ -460,6 +461,7 @@ c16_t srslte_vec_dot_prod_ccc_c16i_simd(const c16_t *x, const c16_t *y, const in
 
   return result;
 }
+#endif /* ENABLE_C16 */
 
 cf_t srslte_vec_dot_prod_conj_ccc_simd(const cf_t *x, const cf_t *y, const int len)
 {
@@ -620,6 +622,7 @@ void srslte_vec_prod_ccc_split_simd(const float *a_re, const float *a_im, const 
   }
 }
 
+#ifdef ENABLE_C16
 void srslte_vec_prod_ccc_c16_simd(const int16_t *a_re, const int16_t *a_im, const int16_t *b_re, const int16_t *b_im,
                                   int16_t *r_re, int16_t *r_im, const int len) {
   int i = 0;
@@ -652,6 +655,7 @@ void srslte_vec_prod_ccc_c16_simd(const int16_t *a_re, const int16_t *a_im, cons
     r_im[i] = a_re[i]*b_im[i] + a_im[i]*b_re[i];
   }
 }
+#endif /* ENABLE_C16 */
 
 void srslte_vec_prod_conj_ccc_simd(const cf_t *x, const cf_t *y, cf_t *z, const int len) {
   int i = 0;
