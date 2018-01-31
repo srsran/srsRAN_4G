@@ -544,7 +544,7 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
   m_s1ap_log->console("Unpacked Attached Complete Message\n");
   m_s1ap_log->console("Unpacked Activavate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
   //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
-  if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 16)
+  if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 15)
   {
     m_s1ap_log->error("EPS Bearer ID out of range\n");
     return false;
