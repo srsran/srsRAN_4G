@@ -106,7 +106,9 @@ SRSLTE_API cf_t srslte_vec_dot_prod_conj_ccc_simd(const cf_t *x, const cf_t *y, 
 
 SRSLTE_API cf_t srslte_vec_dot_prod_ccc_simd(const cf_t *x, const cf_t *y, const int len);
 
+#ifdef ENABLE_C16
 SRSLTE_API c16_t srslte_vec_dot_prod_ccc_c16i_simd(const c16_t *x, const c16_t *y, const int len);
+#endif /* ENABLE_C16 */
 
 SRSLTE_API int srslte_vec_dot_prod_sss_simd(const int16_t *x, const int16_t *y, const int len);
 
