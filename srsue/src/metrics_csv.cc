@@ -68,11 +68,7 @@ void metrics_csv::stop()
   }
 }
 
-void metrics_csv::set_periodicity(float metrics_report_period_sec) {
-  this->metrics_report_period = metrics_report_period_sec;
-}
-
-void metrics_csv::set_metrics(ue_metrics_t &metrics)
+void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
 {
   if (file.is_open() && ue != NULL) {
     if(n_reports == 0) {
@@ -85,7 +81,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics)
     file << float_to_string(metrics.phy.dl.mcs, 2);
     file << float_to_string(metrics.phy.dl.sinr, 2);
     file << float_to_string(metrics.phy.dl.turbo_iters, 2);
-    file << float_to_string((float) metrics.mac.rx_brate/metrics_report_period, 2);
+    file << float_to_string((float) metrics.mac.rx_brate/period_usec*1e6, 2);
     if (metrics.mac.rx_pkts > 0) {
       file << float_to_string((float) 100*metrics.mac.rx_errors/metrics.mac.rx_pkts, 1);
     } else {
@@ -93,7 +89,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics)
     }
     file << float_to_string(metrics.phy.ul.mcs, 2);
     file << float_to_string((float) metrics.mac.ul_buffer, 2);
-    file << float_to_string((float) metrics.mac.tx_brate/metrics_report_period, 2);
+    file << float_to_string((float) metrics.mac.tx_brate/period_usec*1e6, 2);
       if (metrics.mac.tx_pkts > 0) {
       file << float_to_string((float) 100*metrics.mac.tx_errors/metrics.mac.tx_pkts, 1);
     } else {
