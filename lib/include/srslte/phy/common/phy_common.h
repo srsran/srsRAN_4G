@@ -110,7 +110,7 @@ typedef enum {SRSLTE_SF_NORM, SRSLTE_SF_MBSFN} srslte_sf_t;
 #define SRSLTE_SF_LEN_MAX              (SRSLTE_SF_LEN(SRSLTE_SYMBOL_SZ_MAX))
 
 #define SRSLTE_SLOT_LEN_PRB(nof_prb)   (SRSLTE_SLOT_LEN(srslte_symbol_sz(nof_prb)))
-#define SRSLTE_SF_LEN_PRB(nof_prb)     (nof_prb > 0 ? SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb)) : 0)
+#define SRSLTE_SF_LEN_PRB(nof_prb)     (SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb)))
 
 #define SRSLTE_SLOT_LEN_RE(nof_prb, cp)        (nof_prb*SRSLTE_NRE*SRSLTE_CP_NSYMB(cp))
 #define SRSLTE_SF_LEN_RE(nof_prb, cp)          (2*SRSLTE_SLOT_LEN_RE(nof_prb, cp))
