@@ -248,7 +248,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
   }
 
   if (!rlc_array[lcid].active()) {
-    rlc_log->info("Adding radio bearer %s with mode %s\n",
+    rlc_log->warning("Adding radio bearer %s with mode %s\n",
                   rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg.rlc_mode]);
     switch(cnfg.rlc_mode)
     {

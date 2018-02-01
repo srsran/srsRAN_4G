@@ -83,7 +83,7 @@ void rlc_am::init(srslte::log                 *log_,
 void rlc_am::configure(srslte_rlc_config_t cfg_)
 {
   cfg = cfg_.am;
-  log->info("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
+  log->warning("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
             "t_reordering=%d, t_status_prohibit=%d\n",
             rrc->get_rb_name(lcid).c_str(), cfg.t_poll_retx, cfg.poll_pdu, cfg.poll_byte, cfg.max_retx_thresh,
             cfg.t_reordering, cfg.t_status_prohibit);
