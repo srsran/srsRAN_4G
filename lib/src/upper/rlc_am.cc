@@ -315,8 +315,10 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   // RETX if required
   if(retx_queue.size() > 0) {
     int ret = build_retx_pdu(payload, nof_bytes);
-    pthread_mutex_unlock(&mutex);
-    return ret; 
+    if (ret) {
+      pthread_mutex_unlock(&mutex);
+      return ret;
+    }
   }
 
   // Build a PDU from SDUs
@@ -471,8 +473,8 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
     if (!retx_queue.empty()) {
       retx = retx_queue.front();
     } else {
-      log->error("In build_retx_pdu(): retx_queue is empty during sanity check, sn=%d\n", retx.sn);
-      return -1;
+      log->info("In build_retx_pdu(): retx_queue is empty during sanity check, sn=%d\n", retx.sn);
+      return 0;
     }
   }
 
