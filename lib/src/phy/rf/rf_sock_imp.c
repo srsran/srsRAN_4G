@@ -470,7 +470,7 @@ static void * rf_sock_tx_worker_proc(void * arg)
          {
            timersub(&tv_now, &(tx_worker->tx_info->tx_time), &delta_t);
 
-           RF_SOCK_DBUG("tx_worker %02d, skip tx_delay overrun %ld:%06ld", 
+           RF_SOCK_WARN("tx_worker %02d, skip tx_delay overrun %ld:%06ld", 
                          tx_worker->id,
                          delta_t.tv_sec,
                          delta_t.tv_usec);
@@ -809,10 +809,13 @@ int rf_sock_start_rx_stream(void *h, bool now)
 
    gettimeofday(&_info->tv_sos, NULL);
 
-   // aligin on the top of the second
-   usleep(1000000 - _info->tv_sos.tv_usec);
-   _info->tv_sos.tv_sec += 1; 
-   _info->tv_sos.tv_usec = 0;
+   if(rf_sock_is_enb(_info))
+    {
+      // aligin on the top of the second
+      usleep(1000000 - _info->tv_sos.tv_usec);
+      _info->tv_sos.tv_sec += 1; 
+      _info->tv_sos.tv_usec = 0;
+    }
 
    timeradd(&_info->tv_sos, &tv_step, &_info->tv_next);
 
@@ -1125,9 +1128,6 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    gettimeofday(&tv_in, NULL);
 
-   // set rx_timestamp to begin time
-   struct timeval rx_timestamp = tv_in;
-
    if(rf_sock_is_enb(_info))
      {
        struct timeval tv_diff;
@@ -1142,14 +1142,19 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                      tv_diff.tv_sec,
                      tv_diff.tv_usec);
 
-       // throttle back enb
+       // throttle back enb for new tti
        if(timercmp(&tv_diff, &tv_zero, >))
         {
           select(0, NULL, NULL, NULL, &tv_diff);
         }
-   
+
        timeradd(&_info->tv_next, &tv_step, &_info->tv_next);
      }
+
+   // set rx_timestamp to begin time of this new tti
+   struct timeval rx_timestamp;
+
+   gettimeofday(&rx_timestamp, NULL);
 
    const int nbytes_request = BYTES_PER_SAMPLE(nsamples);
 
@@ -1226,7 +1231,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          timersub(&sockrx_time, &(hdr.tx_time), &ipc_delay);
 
-         // use tx time tag as the rx time to keep things in sync
+         // use tx time tag as the rx time 
          rx_timestamp = hdr.tx_time;
 
          RF_SOCK_DBUG("RX seqn %lu, msg_len %d, tx_time %ld:%06ld, ipc_delay %ld:%06ld",
