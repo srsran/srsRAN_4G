@@ -124,6 +124,8 @@ void phch_recv::stop()
 
 void phch_recv::reset()
 {
+  in_sync_cnt = 0;
+  out_of_sync_cnt = 0;
   tx_mutex_cnt = 0;
   phy_state = IDLE;
   time_adv_sec = 0;
@@ -713,6 +715,7 @@ void phch_recv::run_thread()
               intra_freq_meas.write(tti, buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb));
               break;
             case 0:
+              Warning("SYNC:  Out-of-sync detected in PSS/SSS\n");
               out_of_sync();
               worker->release();
               worker_com->reset_ul();
@@ -742,11 +745,24 @@ void phch_recv::run_thread()
 }
 
 void phch_recv::in_sync() {
-  rrc->in_sync();
+  out_of_sync_cnt = 0;
+  in_sync_cnt++;
+  // Send RRC in-sync signal after 100 ms consecutive subframes
+  if (in_sync_cnt == NOF_IN_SYNC_SF) {
+    rrc->in_sync();
+    in_sync_cnt = 0;
+  }
 }
 
+// Out of sync called by worker or phch_recv every 1 or 5 ms
 void phch_recv::out_of_sync() {
-  rrc->out_of_sync();
+  in_sync_cnt = 0;
+  // Send RRC out-of-sync signal after 200 ms consecutive subframes
+  out_of_sync_cnt++;
+  if (out_of_sync_cnt >= NOF_OUT_OF_SYNC_SF) {
+    rrc->out_of_sync();
+    out_of_sync_cnt = 0;
+  }
 }
 
 

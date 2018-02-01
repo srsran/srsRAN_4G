@@ -241,15 +241,12 @@ void phch_worker::work_imp()
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   bool chest_ok = extract_fft_and_pdcch_llr();
 
-  bool snr_th_err = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))<-20.0;
-  bool snr_th_ok  = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>-15.0;
-
   // Call feedback loop for chest
   if (chest_loop && ((1<<(tti%10)) & phy->args->cfo_ref_mask)) {
     chest_loop->set_cfo(srslte_chest_dl_get_cfo(&ue_dl.chest));
   }
 
-  if (chest_ok && !snr_th_err) {
+  if (chest_ok) {
 
     /***** Downlink Processing *******/
 
@@ -370,12 +367,13 @@ void phch_worker::work_imp()
   update_measurements();
 
   if (chest_ok) {
-    if (snr_th_ok) {
-      log_h->debug("SNR=%.1f dB sync=in-sync from channel estimator\n", 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
+    if (phy->avg_rsrp_dbm > -124.0) {
+      log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
+                   10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), phy->avg_rsrp_dbm);
       chest_loop->in_sync();
-    } else if (snr_th_err) {
-      log_h->info("SNR=%.1f dB sync=out-of-sync from channel estimator\n",
-                   10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
+    } else {
+      log_h->warning("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
+                   10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), phy->avg_rsrp_dbm);
       chest_loop->out_of_sync();
     }
   }
