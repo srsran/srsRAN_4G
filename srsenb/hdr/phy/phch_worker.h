@@ -103,7 +103,11 @@ private:
   class ue {
   public:
     ue() : I_sr(0), I_sr_en(false), cqi_en(false), pucch_cqi_ack(false), pmi_idx(0), has_grant_tti(0),
-           dedicated_ack(false) {bzero(&metrics, sizeof(phy_metrics_t));}
+           dedicated_ack(false), ri_idx(0), ri_en(false), rnti(0) {
+      bzero(&dedicated, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
+      bzero(&phich_info, sizeof(srslte_enb_ul_phich_info_t));
+      bzero(&metrics, sizeof(phy_metrics_t));
+    }
     uint32_t I_sr; 
     uint32_t pmi_idx;
     uint32_t ri_idx;

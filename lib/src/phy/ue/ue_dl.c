@@ -896,7 +896,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t tm, uint32_t cfi,
   dci_blind_search_t *current_ss = &search_space;
 
   if (cfi < 1 || cfi > 3) {
-    ERROR("CFI must be 1 ≤ cfi ≤ 3", cfi);
+    ERROR("CFI must be 1 ≤ cfi ≤ 3 (cfi=%d)", cfi);
     return SRSLTE_ERROR;
   }
 

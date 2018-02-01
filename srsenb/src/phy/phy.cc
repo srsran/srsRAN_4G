@@ -48,8 +48,11 @@ namespace srsenb {
 
 phy::phy() : workers_pool(MAX_WORKERS), 
              workers(MAX_WORKERS), 
-             workers_common(txrx::MUTEX_X_WORKER*MAX_WORKERS)
+             workers_common(txrx::MUTEX_X_WORKER*MAX_WORKERS),
+             nof_workers(0)
 {
+  radio_handler = NULL;
+  bzero(&prach_cfg, sizeof(prach_cfg));
 }
 
 void phy::parse_config(phy_cfg_t* cfg)
