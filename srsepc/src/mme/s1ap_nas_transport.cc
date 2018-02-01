@@ -428,6 +428,7 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
   bool ue_valid=true;
 
   m_s1ap_log->console("Authentication Response -- IMSI %015lu\n", ue_ctx->imsi);
+
   //Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
   if(err != LIBLTE_SUCCESS){
