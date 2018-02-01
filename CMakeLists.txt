@@ -383,8 +383,3 @@ if(ENABLE_SRSEPC)
 else(ENABLE_SRSEPC)
   message(STATUS "srsEPC build disabled")
 endif(ENABLE_SRSEPC)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DRF_SOCK")
-
-add_subdirectory(socksrsue)
-add_subdirectory(socksrsenb)

@@ -46,9 +46,6 @@
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/resampling/resample_arb.h"
 
-#define RF_SOCK
-#include "srslte/common/common.h"
-
 static bool rf_sock_log_dbug  = true;
 static bool rf_sock_log_info  = true;
 static bool rf_sock_log_warn  = true;
@@ -144,6 +141,8 @@ static bool rf_sock_log_warn  = true;
 // tx offset (delay) workers
 #define RF_SOCK_NOF_TX_WORKERS (25)
 #define RF_SOCK_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_SOCK_NOF_TX_WORKERS)
+
+#define FAUX_TIME_SCALE 1
 
 static const struct timeval tv_rx_window = {0, 1000 * FAUX_TIME_SCALE / 2}; // delta_t before next tti
 static const struct timeval tv_zero      = {0, 0};

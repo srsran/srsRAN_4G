@@ -98,7 +98,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
 
     ("pcap.enable",       bpo::value<bool>(&args->pcap.enable)->default_value(false),           "Enable MAC packet captures for wireshark")
-    ("pcap.filename",     bpo::value<string>(&args->pcap.filename)->default_value("enb.pcap"),   "MAC layer capture filename")
+    ("pcap.filename",     bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"),   "MAC layer capture filename")
 
     ("gui.enable",        bpo::value<bool>(&args->gui.enable)->default_value(false),            "Enable GUI plots")
 
@@ -121,7 +121,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("log.all_level",     bpo::value<string>(&args->log.all_level)->default_value("info"),   "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log.all_hex_limit)->default_value(32),  "ALL log hex dump limit")
 
-    ("log.filename",      bpo::value<string>(&args->log.filename)->default_value("/tmp/enb.log"),"Log filename")
+    ("log.filename",      bpo::value<string>(&args->log.filename)->default_value("/tmp/ue.log"),"Log filename")
     ("log.file_max_size", bpo::value<int>(&args->log.file_max_size)->default_value(-1), "Maximum file size (in kilobytes). When passed, multiple files are created. Default -1 (single file)")
 
     /* MCS section */
