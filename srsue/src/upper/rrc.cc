@@ -958,6 +958,8 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   memcpy(ul_dcch_msg.msg.rrc_con_setup_complete.dedicated_info_nas.msg, nas_msg->msg, nas_msg->N_bytes);
   ul_dcch_msg.msg.rrc_con_setup_complete.dedicated_info_nas.N_bytes = nas_msg->N_bytes;
 
+  pool->deallocate(nas_msg);
+  
   send_ul_dcch_msg();
 }
 
