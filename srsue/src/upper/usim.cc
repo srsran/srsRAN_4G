@@ -356,6 +356,11 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
   {
     sqn[i] = autn_enb[i] ^ ak[i];
   }
+  // Extract AMF from autn
+  for(int i=0;i<2;i++)
+  {
+    amf[i]=autn_enb[6+i];
+  }
 
   // Generate MAC
   security_milenage_f1( k,
@@ -430,6 +435,10 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
   // Extract sqn from autn
   for(i=0;i<6;i++) {
     sqn[i] = autn_enb[i] ^ ak[i];
+  }
+  // Extract AMF from autn
+  for(int i=0;i<2;i++){
+      amf[i]=autn_enb[6+i];
   }
 
   // Generate cdout
