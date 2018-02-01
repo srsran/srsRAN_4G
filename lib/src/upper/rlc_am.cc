@@ -38,6 +38,12 @@ namespace srslte {
 
 rlc_am::rlc_am() : tx_sdu_queue(16)
 {
+  log = NULL;
+  pdcp = NULL;
+  rrc = NULL;
+  lcid = 0;
+  bzero(&cfg, sizeof(srslte_rlc_am_config_t));
+
   tx_sdu = NULL;
   rx_sdu = NULL;
   pool = byte_buffer_pool::get_instance();
@@ -768,7 +774,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   return (ptr-payload) + pdu->N_bytes;
 }
 
-void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t header)
+void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header)
 {
   std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator it;
 
@@ -806,7 +812,7 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
 
   memcpy(pdu.buf->msg, payload, nof_bytes);
   pdu.buf->N_bytes  = nof_bytes;
-  pdu.header        = header;
+  memcpy(&pdu.header, &header, sizeof(rlc_amd_pdu_header_t));
 
   rx_window[header.sn] = pdu;
 
@@ -865,7 +871,7 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
   debug_state();
 }
 
-void rlc_am::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t header)
+void rlc_am::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header)
 {
   std::map<uint32_t, rlc_amd_rx_pdu_segments_t>::iterator it;
 
@@ -891,7 +897,7 @@ void rlc_am::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
   }
   memcpy(segment.buf->msg, payload, nof_bytes);
   segment.buf->N_bytes = nof_bytes;
-  segment.header       = header;
+  memcpy(&segment.header, &header, sizeof(rlc_amd_pdu_header_t));
 
   // Check if we already have a segment from the same PDU
   it = rx_segments.find(header.sn);
