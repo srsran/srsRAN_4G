@@ -471,7 +471,7 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
     if (!retx_queue.empty()) {
       retx = retx_queue.front();
     } else {
-      log->error("In build_retx_pdu(): retx_queue is empty during sanity check\n");
+      log->error("In build_retx_pdu(): retx_queue is empty during sanity check, sn=%d\n", retx.sn);
       return -1;
     }
   }
@@ -549,7 +549,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
     return 0;
   }
-  pdu_space = nof_bytes-head_len;
+  pdu_space = nof_bytes-head_len-2;
   if(pdu_space < (retx.so_end-retx.so_start))
     retx.so_end = retx.so_start+pdu_space;
 
@@ -568,7 +568,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
     upper += old_header.li[i];
 
     head_len    = rlc_am_packed_length(&new_header);
-    pdu_space   = nof_bytes-head_len;
+    pdu_space   = nof_bytes-head_len-2;
     if(pdu_space < (retx.so_end-retx.so_start))
       retx.so_end = retx.so_start+pdu_space;
 
@@ -1014,10 +1014,11 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
         if(it->second.buf) {
           pool->deallocate(it->second.buf);
           it->second.buf = 0;
+          log->info("SN=%d removed from tx_window\n", i);
         }
+        tx_window.erase(it);
         if(update_vt_a)
         {
-          tx_window.erase(it);
           vt_a = (vt_a + 1)%MOD;
           vt_ms = (vt_ms + 1)%MOD;
         }
