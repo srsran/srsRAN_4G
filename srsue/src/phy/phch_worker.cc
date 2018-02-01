@@ -232,8 +232,8 @@ void phch_worker::work_imp()
 
   /** Calculate RSSI on the input signal before generating the output */
 
-  // Average RSSI over all symbols
-  float rssi_dbm = 10*log10(srslte_vec_avg_power_cf(signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb))) + 30;
+  // Average RSSI over all symbols (make sure SF length is non-zero)
+  float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0 ? (10*log10(srslte_vec_avg_power_cf(signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb))) + 30) : 0;
   if (isnormal(rssi_dbm)) {
     phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
   }

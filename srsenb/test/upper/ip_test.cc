@@ -590,15 +590,15 @@ int main(int argc, char *argv[])
 /******************* This is copied from srsue gw **********************/
 int setup_if_addr(char *ip_addr)
 {
-    
   char *dev = (char*) "tun_srsenb";
+  int sock = 0;
 
   // Construct the TUN device
   int tun_fd = open("/dev/net/tun", O_RDWR);
   if(0 > tun_fd)
   {
     perror("open");
-    return(-1);
+    return SRSLTE_ERROR;
   }
 
   struct ifreq ifr;
@@ -609,29 +609,22 @@ int setup_if_addr(char *ip_addr)
   if(0 > ioctl(tun_fd, TUNSETIFF, &ifr))
   {
     perror("ioctl1");
-    close(tun_fd);
-    return -1;
+    goto clean_exit;
   }
 
   // Bring up the interface
-  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  sock = socket(AF_INET, SOCK_DGRAM, 0);
   if(0 > ioctl(sock, SIOCGIFFLAGS, &ifr))
   {
     perror("socket");
-    close(sock);
-    close(tun_fd);
-    return -1;
+    goto clean_exit;
   }
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   if(0 > ioctl(sock, SIOCSIFFLAGS, &ifr))
   {
     perror("ioctl2");
-    close(sock);
-    close(tun_fd);
-    return -1;
+    goto clean_exit;
   }
-
-  close(sock);
 
   // Setup the IP address    
   sock                                                   = socket(AF_INET, SOCK_DGRAM, 0);
@@ -640,21 +633,19 @@ int setup_if_addr(char *ip_addr)
   if(0 > ioctl(sock, SIOCSIFADDR, &ifr))
   {
     perror("ioctl");
-    close(sock);
-    close(tun_fd);
-    return -1;
+    goto clean_exit;
   }
   ifr.ifr_netmask.sa_family                                 = AF_INET;
   ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
   if(0 > ioctl(sock, SIOCSIFNETMASK, &ifr))
   {
     perror("ioctl");
-    close(sock);
-    close(tun_fd);
-    return -1;
+    goto clean_exit;
   }
-  
-  close(sock);
 
   return(tun_fd);
+
+clean_exit:
+  close(tun_fd);
+  return SRSLTE_ERROR;
 }
