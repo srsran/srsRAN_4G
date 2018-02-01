@@ -43,7 +43,14 @@ class ue : public srslte::read_pdu_interface,
 {
 public:
   
-  ue() : mac_msg_dl(20), mac_msg_ul(20), pdus(128) {
+  ue() : mac_msg_dl(20), mac_msg_ul(20), conres_id_available(false),
+         dl_ri_counter(0),
+         dl_pmi_counter(0),
+         conres_id(0),
+         last_tti(0),
+         pdus(128) {
+    rrc = NULL;
+    sched = NULL;
     rlc   = NULL; 
     log_h = NULL; 
     rnti  = 0; 
@@ -54,6 +61,14 @@ public:
     is_phy_added = false; 
     for (int i=0;i<NOF_HARQ_PROCESSES;i++) {
       pending_buffers[i] = NULL; 
+    }
+
+    bzero(&metrics, sizeof(mac_metrics_t));
+    bzero(&mutex, sizeof(pthread_mutex_t));
+    bzero(softbuffer_tx, sizeof(softbuffer_tx));
+    bzero(softbuffer_rx, sizeof(softbuffer_rx));
+    for (int i = 0; i < SRSLTE_MAX_TB; ++i) {
+      bzero(tx_payload_buffer, sizeof(uint8_t) * payload_buffer_len);
     }
     pthread_mutex_init(&mutex, NULL);
   }
