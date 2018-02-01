@@ -56,7 +56,17 @@ public:
   phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_) {
     nof_mutex = 0;
     max_mutex = max_mutex_; 
-    params.max_prach_offset_us = 20; 
+    params.max_prach_offset_us = 20;
+    radio = NULL;
+    mac = NULL;
+    is_first_tx = false;
+    is_first_of_burst = false;
+    pdsch_p_b = 0;
+    nof_workers = 0;
+    bzero(&pusch_cfg, sizeof(pusch_cfg));
+    bzero(&hopping_cfg, sizeof(hopping_cfg));
+    bzero(&pucch_cfg, sizeof(pucch_cfg));
+    bzero(&ul_grants, sizeof(ul_grants));
   }
   
   bool init(srslte_cell_t *cell, srslte::radio *radio_handler, mac_interface_phy *mac);  

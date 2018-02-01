@@ -428,22 +428,19 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
   bool ue_valid=true;
 
   m_s1ap_log->console("Authentication Response -- IMSI %015lu\n", ue_ctx->imsi);
-  m_s1ap_log->console("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
-                      auth_resp.res[0],
-                      auth_resp.res[1],
-                      auth_resp.res[2],
-                      auth_resp.res[3],
-                      auth_resp.res[4],
-                      auth_resp.res[5],
-                      auth_resp.res[6],
-                      auth_resp.res[7]
-                      );
+
   //Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
   if(err != LIBLTE_SUCCESS){
     m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
     return false;
   }
+  m_s1ap_log->console("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
+                      auth_resp.res[0], auth_resp.res[1], auth_resp.res[2], auth_resp.res[3],
+                      auth_resp.res[4], auth_resp.res[5], auth_resp.res[6], auth_resp.res[7]);
+  m_s1ap_log->info("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
+                      auth_resp.res[0], auth_resp.res[1], auth_resp.res[2], auth_resp.res[3],
+                      auth_resp.res[4], auth_resp.res[5], auth_resp.res[6], auth_resp.res[7]);
 
   for(int i=0; i<8;i++)
   {
@@ -547,7 +544,7 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
   m_s1ap_log->console("Unpacked Attached Complete Message\n");
   m_s1ap_log->console("Unpacked Activavate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
   //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
-  if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 16)
+  if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 15)
   {
     m_s1ap_log->error("EPS Bearer ID out of range\n");
     return false;
@@ -1090,6 +1087,14 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[1] = 8;
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[2] = 8;
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[3] = 8;
+
+  //Make sure all unused options are set to false
+  act_def_eps_bearer_context_req.negotiated_qos_present = false;
+  act_def_eps_bearer_context_req.llc_sapi_present = false;
+  act_def_eps_bearer_context_req.radio_prio_present = false;
+  act_def_eps_bearer_context_req.packet_flow_id_present = false;
+  act_def_eps_bearer_context_req.apn_ambr_present = false;
+  act_def_eps_bearer_context_req.esm_cause_present = false;
 
   uint8_t sec_hdr_type =2;
   ue_ctx->security_ctxt.dl_nas_count++;
