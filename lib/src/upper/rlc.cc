@@ -35,6 +35,15 @@ namespace srslte {
 rlc::rlc()
 {
   pool = byte_buffer_pool::get_instance();
+  rlc_log = NULL;
+  pdcp = NULL;
+  rrc = NULL;
+  mac_timers = NULL;
+  ue = NULL;
+  default_lcid = 0;
+  bzero(metrics_time, sizeof(metrics_time));
+  bzero(ul_tput_bytes, sizeof(ul_tput_bytes));
+  bzero(dl_tput_bytes, sizeof(dl_tput_bytes));
 }
 
 void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
@@ -233,13 +242,13 @@ void rlc::add_bearer(uint32_t lcid)
 
 void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
 {
-  if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
+  if(lcid >= SRSLTE_N_RADIO_BEARERS) {
     rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return;
   }
 
   if (!rlc_array[lcid].active()) {
-    rlc_log->info("Adding radio bearer %s with mode %s\n",
+    rlc_log->warning("Adding radio bearer %s with mode %s\n",
                   rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg.rlc_mode]);
     switch(cnfg.rlc_mode)
     {
@@ -271,10 +280,9 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
 *******************************************************************************/
 bool rlc::valid_lcid(uint32_t lcid)
 {
-  if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
+  if(lcid >= SRSLTE_N_RADIO_BEARERS) {
     return false;
-  }
-  if(!rlc_array[lcid].active()) {
+  } else if(!rlc_array[lcid].active()) {
     return false;
   }
   return true;

@@ -59,7 +59,7 @@ void usage(char *prog) {
   printf("Usage: %s [nlestodv] -i cell_id -f input_file_name\n", prog);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-l N_id_2 to sync [Default use cell_id]\n");
-  printf("\t-e Extended CP [Default Normal]\n", fft_size);
+  printf("\t-e Extended CP [Default Normal]\n");
   printf("\t-s symbol_sz [Default %d]\n", fft_size);
   printf("\t-t threshold [Default %.2f]\n", threshold);
   printf("\t-o file read offset [Default %d]\n", file_offset);
@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
         }
         
       } else {
-        INFO("No space for CFO computation. Frame starts at \n",peak_idx);
+        INFO("No space for CFO computation. Frame starts at \n");
       }
       
       if(srslte_sss_subframe(m0,m1) == 0)

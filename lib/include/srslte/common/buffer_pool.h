@@ -75,9 +75,11 @@ public:
   void print_all_buffers()
   {
     printf("%d buffers in queue\n", (int) used.size());
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     for (uint32_t i=0;i<used.size();i++) {
       printf("%s\n", strlen(used[i]->debug_name)?used[i]->debug_name:"Undefined");
     }
+#endif
   }
 
   bool is_almost_empty() {
