@@ -53,13 +53,6 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
     usim_log->console("Invalid length for OP: %d should be %d", args->op.length(), 32);
   }
 
-  if(4 == args->amf.length()) {
-    str_to_hex(args->amf, amf);
-  } else {
-    usim_log->error("Invalid length for AMF: %d should be %d", args->amf.length(), 4);
-    usim_log->console("Invalid length for AMF: %d should be %d", args->amf.length(), 4);
-  }
-
   if(15 == args->imsi.length()) {
     imsi = 0;
     for(i=0; i<15; i++)
