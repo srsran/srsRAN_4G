@@ -476,10 +476,10 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     srslte_ra_dl_dci_t dci_unpacked;
     
     Debug("Looking for RNTI=0x%x\n", dl_rnti);
-    
+
     if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
                                       dl_rnti, type, &dci_msg) != 1) {
-      return false; 
+      return false;
     }
     
     if (srslte_dci_msg_to_dl_grant(&dci_msg, dl_rnti, cell.nof_prb, cell.nof_ports, &dci_unpacked, &grant->phy_grant.dl)) {
@@ -743,7 +743,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
     ul_rnti = phy->get_ul_rnti(tti);
     if (ul_rnti) {
       if (srslte_ue_dl_find_ul_dci(&ue_dl, cfi, tti%10, ul_rnti, &dci_msg) != 1) {
-        return false; 
+        return false;
       }
       
       if (srslte_dci_msg_to_ul_grant(&dci_msg, cell.nof_prb, pusch_hopping.hopping_offset, 
