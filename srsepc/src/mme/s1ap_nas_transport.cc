@@ -245,7 +245,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
 {
   uint8_t     k_asme[32];
   uint8_t     autn[16]; 
-  uint8_t     rand[6];
+  uint8_t     rand[16];
   uint8_t     xres[8];
 
   ue_ctx_t ue_ctx;
@@ -321,7 +321,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   m_s1ap->add_new_ue_ctx(ue_ctx);
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   pack_authentication_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
-
+  
   //Send reply to eNB
   *reply_flag = true;
   m_s1ap_log->info("Downlink NAS: Sending Athentication Request\n");
@@ -444,22 +444,19 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
   bool ue_valid=true;
 
   m_s1ap_log->console("Authentication Response -- IMSI %015lu\n", ue_ctx->imsi);
-  m_s1ap_log->console("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
-                      auth_resp.res[0],
-                      auth_resp.res[1],
-                      auth_resp.res[2],
-                      auth_resp.res[3],
-                      auth_resp.res[4],
-                      auth_resp.res[5],
-                      auth_resp.res[6],
-                      auth_resp.res[7]
-                      );
+
   //Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
   if(err != LIBLTE_SUCCESS){
     m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
     return false;
   }
+  m_s1ap_log->console("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
+                      auth_resp.res[0], auth_resp.res[1], auth_resp.res[2], auth_resp.res[3],
+                      auth_resp.res[4], auth_resp.res[5], auth_resp.res[6], auth_resp.res[7]);
+  m_s1ap_log->info("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
+                      auth_resp.res[0], auth_resp.res[1], auth_resp.res[2], auth_resp.res[3],
+                      auth_resp.res[4], auth_resp.res[5], auth_resp.res[6], auth_resp.res[7]);
 
   for(int i=0; i<8;i++)
   {
@@ -563,7 +560,7 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
   m_s1ap_log->console("Unpacked Attached Complete Message\n");
   m_s1ap_log->console("Unpacked Activavate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
   //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
-  if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 16)
+  if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 15)
   {
     m_s1ap_log->error("EPS Bearer ID out of range\n");
     return false;
@@ -600,7 +597,7 @@ bool
 s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
   uint8_t     autn[16]; 
-  uint8_t     rand[6];
+  uint8_t     rand[16];
   uint8_t     xres[8];
 
   LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
@@ -625,7 +622,7 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
     return false;
   }
-
+   
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   pack_authentication_request(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id, autn, rand);
 

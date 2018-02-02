@@ -85,6 +85,10 @@ void map_sse_inter_beta(srslte_tdec_simd_inter_t * s, int16_t *input, int16_t *p
   __m128i *outputPtr = (__m128i*) output;
   __m128i *alphaPtr  = (__m128i*) s->alpha;
 
+  for (int i = 0; i < 8; i++) {
+    old[i] = _mm_set1_epi16(0);
+  }
+
   for (int k = end - 1; k >= 0; k--) {
     x = _mm_load_si128(inputPtr++);
     y = _mm_load_si128(parityPtr++);

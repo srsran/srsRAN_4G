@@ -54,7 +54,10 @@ class rlc_am_tester
     ,public rrc_interface_rlc
 {
 public:
-  rlc_am_tester(){n_sdus = 0;}
+  rlc_am_tester(){
+    bzero(sdus, sizeof(sdus));
+    n_sdus = 0;
+  }
 
   // PDCP interface
   void write_pdu(uint32_t lcid, byte_buffer_t *sdu)

@@ -61,7 +61,6 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU",
  * Common interface for all PDCP entities
  ***************************************************************************/
 class pdcp_entity
-    :public thread
 {
 public:
   pdcp_entity();
@@ -71,7 +70,6 @@ public:
             srslte::log                   *log_,
             uint32_t                       lcid_,
             srslte_pdcp_config_t           cfg_);
-  void stop();
   void reset();
   void reestablish();
 
@@ -96,10 +94,6 @@ private:
   srsue::rlc_interface_pdcp *rlc;
   srsue::rrc_interface_pdcp *rrc;
   srsue::gw_interface_pdcp  *gw;
-
-  static const int    PDCP_THREAD_PRIO = 7;
-  srslte::msg_queue   rx_pdu_queue;
-  bool                running;
 
   bool                active;
   uint32_t            lcid;
@@ -133,8 +127,6 @@ private:
                       uint32_t  count,
                       uint32_t  ct_len,
                       uint8_t  *msg);
-
-  void run_thread();
 
   uint8_t  get_bearer_id(uint8_t lcid);
 };

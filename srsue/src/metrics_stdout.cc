@@ -50,7 +50,6 @@ char const * const prefixes[2][9] =
 metrics_stdout::metrics_stdout()
     :do_print(false)
     ,n_reports(10)
-    ,metrics_report_period(1.0)
     ,ue(NULL)
 {
 }
@@ -65,11 +64,7 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
-void metrics_stdout::set_periodicity(float metrics_report_period_sec) {
-  this->metrics_report_period = metrics_report_period_sec;
-}
-
-void metrics_stdout::set_metrics(ue_metrics_t &metrics)
+void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
 {
   if(!do_print || ue == NULL)
     return;
@@ -92,7 +87,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics)
   cout << float_to_string(metrics.phy.dl.mcs, 2);
   cout << float_to_string(metrics.phy.dl.sinr, 2);
   cout << float_to_string(metrics.phy.dl.turbo_iters, 2);
-  cout << float_to_eng_string((float) metrics.mac.rx_brate/metrics_report_period, 2);
+  cout << float_to_eng_string((float) metrics.mac.rx_brate/period_usec*1e6, 2);
   if (metrics.mac.rx_pkts > 0) {
     cout << float_to_string((float) 100*metrics.mac.rx_errors/metrics.mac.rx_pkts, 1) << "%";
   } else {
@@ -100,7 +95,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics)
   }
   cout << float_to_string(metrics.phy.ul.mcs, 2);
   cout << float_to_eng_string((float) metrics.mac.ul_buffer, 2);
-  cout << float_to_eng_string((float) metrics.mac.tx_brate/metrics_report_period, 2);
+  cout << float_to_eng_string((float) metrics.mac.tx_brate/period_usec*1e6, 2);
   if (metrics.mac.tx_pkts > 0) {
     cout << float_to_string((float) 100*metrics.mac.tx_errors/metrics.mac.tx_pkts, 1) << "%";
   } else {

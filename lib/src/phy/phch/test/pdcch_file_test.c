@@ -180,7 +180,7 @@ int base_init() {
     exit(-1);
   }
 
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 
@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
       return -1;
     }
     if (rnti == SRSLTE_SIRNTI) {
-      INFO("Initializing common search space for SI-RNTI\n",0);
+      INFO("Initializing common search space for SI-RNTI\n");
       nof_locations = srslte_pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
     } else {
       INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);

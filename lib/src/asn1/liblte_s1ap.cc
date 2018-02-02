@@ -2243,6 +2243,12 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_imsi(
   if(ie  != NULL &&
      ptr != NULL)
   {
+    // max length of IE buffer is 8, so limit
+    if (ie->n_octets > 7) {
+      printf("Length in struct exceeds buffer (%d > 7).\n", ie->n_octets);
+      return LIBLTE_ERROR_ENCODE_FAIL;
+    }
+
     // Dynamic octet string - IMSI
     // Length
     if(ie->n_octets < 128) {

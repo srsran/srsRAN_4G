@@ -722,7 +722,6 @@ float rrc::get_squal(float Qqualmeas) {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
-  // attempt resync
   current_cell->in_sync = false;
   if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
     n310_cnt++;
@@ -730,7 +729,8 @@ void rrc::out_of_sync() {
       mac_timers->timer_get(t310)->reset();
       mac_timers->timer_get(t310)->run();
       n310_cnt = 0;
-      rrc_log->info("Detected %d out-of-sync from PHY. Starting T310 timer\n", N310);
+      phy->sync_reset();
+      rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer\n", N310);
     }
   }
 }
@@ -837,7 +837,12 @@ void rrc::send_con_request() {
     ul_ccch_msg.msg.rrc_con_req.ue_id.s_tmsi = s_tmsi;
   } else {
     ul_ccch_msg.msg.rrc_con_req.ue_id_type = LIBLTE_RRC_CON_REQ_UE_ID_TYPE_RANDOM_VALUE;
-    ul_ccch_msg.msg.rrc_con_req.ue_id.random = rand() % 2^40;
+    // TODO use proper RNG
+    uint64_t random_id = 0;
+    for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
+      random_id |= ( (uint64_t)rand() & 0xFF ) << i*8;
+    }
+    ul_ccch_msg.msg.rrc_con_req.ue_id.random = random_id;
   }
 
   ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;
@@ -953,6 +958,8 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   memcpy(ul_dcch_msg.msg.rrc_con_setup_complete.dedicated_info_nas.msg, nas_msg->msg, nas_msg->N_bytes);
   ul_dcch_msg.msg.rrc_con_setup_complete.dedicated_info_nas.N_bytes = nas_msg->N_bytes;
 
+  pool->deallocate(nas_msg);
+  
   send_ul_dcch_msg();
 }
 

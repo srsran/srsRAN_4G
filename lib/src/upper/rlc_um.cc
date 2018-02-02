@@ -33,6 +33,14 @@ namespace srslte {
 
 rlc_um::rlc_um() : tx_sdu_queue(16)
 {
+  log = NULL;
+  pdcp = NULL;
+  rrc = NULL;
+  reordering_timer = NULL;
+  lcid = 0;
+  reordering_timer_id = 0;
+  bzero(&cfg, sizeof(srslte_rlc_um_config_t));
+
   tx_sdu = NULL;
   rx_sdu = NULL;
   pool = byte_buffer_pool::get_instance();
@@ -73,18 +81,18 @@ void rlc_um::configure(srslte_rlc_config_t cnfg_)
   switch(cnfg_.rlc_mode)
   {
   case LIBLTE_RRC_RLC_MODE_UM_BI:
-    log->info("%s configured in %s mode: "
+    log->warning("%s configured in %s mode: "
               "t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
               rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
     break;
   case LIBLTE_RRC_RLC_MODE_UM_UNI_UL:
-    log->info("%s configured in %s mode: tx_sn_field_length=%u bits\n",
+    log->warning("%s configured in %s mode: tx_sn_field_length=%u bits\n",
               rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
               rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
     break;
   case LIBLTE_RRC_RLC_MODE_UM_UNI_DL:
-    log->info("%s configured in %s mode: "
+    log->warning("%s configured in %s mode: "
               "t_reordering=%d ms, rx_sn_field_length=%u bits\n",
               rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
@@ -153,8 +161,8 @@ uint32_t rlc_um::get_bearer()
 
 void rlc_um::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU", rrc->get_rb_name(lcid).c_str());
   tx_sdu_queue.write(sdu);
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, tx_sdu_len=%d", rrc->get_rb_name(lcid).c_str(), tx_sdu_queue.size());
 }
 
 /****************************************************************************
@@ -178,7 +186,7 @@ uint32_t rlc_um::get_buffer_state()
 
   // Room needed for fixed header?
   if(n_bytes > 0)
-    n_bytes += 2;
+    n_bytes += 3;
 
   return n_bytes;
 }
@@ -300,7 +308,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     tx_sdu->msg     += to_move;
     if(tx_sdu->N_bytes == 0)
     {
-      log->info("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+      log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                 rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
@@ -329,7 +337,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     tx_sdu->msg     += to_move;
     if(tx_sdu->N_bytes == 0)
     {
-      log->info("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+      log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                 rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;

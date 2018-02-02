@@ -49,9 +49,18 @@ namespace srsenb {
  * 
  *******************************************************/
 
-sched_ue::sched_ue()
+sched_ue::sched_ue() : ue_idx(0), has_pucch(false), power_headroom(0), rnti(0), max_mcs_dl(0), max_mcs_ul(0),
+                       fixed_mcs_ul(0), fixed_mcs_dl(0), phy_config_dedicated_enabled(false)
 {
-  reset(); 
+  log_h = NULL;
+
+  bzero(&cell, sizeof(cell));
+  bzero(&lch, sizeof(lch));
+  bzero(&dci_locations, sizeof(dci_locations));
+  bzero(&dl_harq, sizeof(dl_harq));
+  bzero(&ul_harq, sizeof(ul_harq));
+  bzero(&dl_ant_info, sizeof(dl_ant_info));
+  reset();
 }
 
 void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_interface::cell_cfg_t *cell_cfg, 
@@ -92,17 +101,21 @@ void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_in
 void sched_ue::reset()
 {
   bzero(&cfg, sizeof(sched_interface::ue_cfg_t));
-  sr = false; 
+  sr = false;
   next_tpc_pusch = 1;
   next_tpc_pucch = 1; 
   buf_mac = 0; 
   buf_ul  = 0;
-  phy_config_dedicated_enabled = false; 
-  dl_cqi = 1; 
-  ul_cqi = 1; 
-  dl_cqi_tti = 0; 
-  ul_cqi_tti = 0; 
-  cqi_request_tti = 0; 
+  phy_config_dedicated_enabled = false;
+  dl_cqi = 1;
+  ul_cqi = 1;
+  dl_cqi_tti = 0;
+  ul_cqi_tti = 0;
+  dl_ri = 0;
+  dl_ri_tti = 0;
+  dl_pmi = 0;
+  dl_pmi_tti = 0;
+  cqi_request_tti = 0;
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     for(uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
       dl_harq[i].reset(tb);
@@ -212,6 +225,7 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
     return false; 
   }
   srslte_pucch_sched_t pucch_sched; 
+  pucch_sched.sps_enabled = false;
   pucch_sched.n_pucch_sr = cfg.sr_N_pucch;
   pucch_sched.n_pucch_2  = cfg.n_pucch_cqi;
   pucch_sched.N_pucch_1  = cfg.pucch_cfg.n1_pucch_an; 

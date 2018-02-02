@@ -103,8 +103,28 @@ class rrc : public rrc_interface_pdcp,
             public thread
 {
 public:
-  
-  rrc() : act_monitor(this), cnotifier(NULL) {}
+
+  rrc() : act_monitor(this), cnotifier(NULL), running(false), nof_si_messages(0) {
+    users.clear();
+    pending_paging.clear();
+
+    pool = NULL;
+    phy = NULL;
+    mac = NULL;
+    rlc = NULL;
+    pdcp = NULL;
+    gtpu = NULL;
+    s1ap = NULL;
+    rrc_log = NULL;
+
+    bzero(&sr_sched, sizeof(sr_sched));
+    bzero(&cqi_sched, sizeof(cqi_sched));
+    bzero(&cfg, sizeof(cfg));
+    bzero(&sib2, sizeof(sib2));
+    bzero(&user_mutex, sizeof(user_mutex));
+    bzero(&paging_mutex, sizeof(paging_mutex));
+
+  }
   
   void init(rrc_cfg_t *cfg,
             phy_interface_rrc *phy, 
@@ -321,7 +341,7 @@ private:
   const static uint32_t LCID_REM_USER = 0xffff0001; 
   
   bool                  running;
-  static const int      RRC_THREAD_PRIO = 7;
+  static const int      RRC_THREAD_PRIO = 65;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
   typedef struct {

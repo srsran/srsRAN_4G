@@ -121,7 +121,7 @@ private:
   static const uint32_t cfi = 3; 
   srslte_dci_location_t locations[MAX_LOCATIONS];
   
-  static const int MAC_PDU_THREAD_PRIO  = 3;
+  static const int MAC_PDU_THREAD_PRIO  = 60;
 
   
   

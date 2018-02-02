@@ -75,6 +75,7 @@ public:
   bool    status_is_sync();
 
   // from chest_feedback_itf
+  void    in_sync();
   void    out_of_sync();
   void    set_cfo(float cfo);
 
@@ -153,7 +154,7 @@ private:
     srslte_ue_mib_t   ue_mib;
     uint32_t          cnt;
     uint32_t          timeout;
-    const static uint32_t SYNC_SFN_TIMEOUT = 200;
+    const static uint32_t SYNC_SFN_TIMEOUT = 500;
   };
 
   // Class to perform cell measurements
@@ -290,6 +291,13 @@ private:
   // Sync metrics
   sync_metrics_t        metrics;
 
+  // in-sync / out-of-sync counters
+  uint32_t out_of_sync_cnt;
+  uint32_t in_sync_cnt;
+
+  const static uint32_t NOF_OUT_OF_SYNC_SF = 200;
+  const static uint32_t NOF_IN_SYNC_SF     = 100;
+
   // State for primary cell
   enum {
     IDLE = 0,
@@ -323,9 +331,6 @@ private:
   uint32_t      current_earfcn;
   int           cur_earfcn_index;
   bool          cell_search_in_progress;
-
-  uint32_t      out_of_sync_cnt;
-  uint32_t      out_of_sync2_cnt;
 
   float         dl_freq;
   float         ul_freq;

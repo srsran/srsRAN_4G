@@ -199,13 +199,14 @@ ul_harq_proc::ul_alloc_t ul_harq_proc::get_alloc()
 
 void ul_harq_proc::set_alloc(ul_harq_proc::ul_alloc_t alloc)
 {
-  is_adaptive = false; 
+  is_adaptive = false;
   memcpy(&allocation, &alloc, sizeof(ul_alloc_t));
 }
 
-void ul_harq_proc::same_alloc()
+void ul_harq_proc::re_alloc(ul_harq_proc::ul_alloc_t alloc)
 {
-  is_adaptive = true; 
+  is_adaptive = true;
+  memcpy(&allocation, &alloc, sizeof(ul_alloc_t));
 }
 
 bool ul_harq_proc::is_adaptive_retx()

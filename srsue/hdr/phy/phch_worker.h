@@ -158,6 +158,8 @@ private:
   float                             cfo;
   bool                              rar_cqi_request;
 
+  uint32_t rssi_read_cnt;
+
   // Metrics
   dl_metrics_t dl_metrics;
   ul_metrics_t ul_metrics;

@@ -57,7 +57,10 @@ class rlc_um_tester
     ,public rrc_interface_rlc
 {
 public:
-  rlc_um_tester(){n_sdus = 0;}
+  rlc_um_tester(){
+    bzero(sdus, sizeof(sdus));
+    n_sdus = 0;
+  }
 
   // PDCP interface
   void write_pdu(uint32_t lcid, byte_buffer_t *sdu)
@@ -117,7 +120,7 @@ void basic_test()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(13 == rlc1.get_buffer_state());
+  assert(14 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (1 byte each)
   byte_buffer_t pdu_bufs[NBUFS];
@@ -185,7 +188,7 @@ void loss_test()
     rlc1.write_sdu(&sdu_bufs[i]);
   }
 
-  assert(13 == rlc1.get_buffer_state());
+  assert(14 == rlc1.get_buffer_state());
 
   // Read 5 PDUs from RLC1 (1 byte each)
   byte_buffer_t pdu_bufs[NBUFS];

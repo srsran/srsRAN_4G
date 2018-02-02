@@ -81,6 +81,7 @@ bool ue::init(all_args_t *args_)
 
   // Init logs
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
+  rf_log.info("Starting UE\n");
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
@@ -296,10 +297,17 @@ bool ue::get_metrics(ue_metrics_t &m)
   return false;
 }
 
+void ue::radio_overflow() {
+  phy.radio_overflow();
+}
+
 void ue::rf_msg(srslte_rf_error_t error)
 {
   ue_base *ue = ue_base::get_instance(LTE);
   ue->handle_rf_msg(error);
+  if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
+    ue->radio_overflow();
+  }
 }
 
 } // namespace srsue

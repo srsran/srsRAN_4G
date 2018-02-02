@@ -97,7 +97,11 @@ char* rf_soapy_devname(void* h)
 
 bool rf_soapy_rx_wait_lo_locked(void *h)
 {
-  printf("TODO: implement rf_soapy_rx_wait_lo_locked()\n");
+  rf_soapy_handler_t *handler = (rf_soapy_handler_t*)h;
+  char *ret = SoapySDRDevice_readChannelSensor(handler->device, SOAPY_SDR_RX, 0, "lo_locked");
+  if (ret != NULL) {
+    return (strcmp(ret, "true") == 0 ? true : false);
+  }
   return true;
 }
 
@@ -197,14 +201,13 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     printf("No Soapy devices found.\n");
     return SRSLTE_ERROR;
   }
-  char* devname;
+  char* devname = NULL;
   for (size_t i = 0; i < length; i++) {
-    printf("Soapy has Found device #%d: ", (int)i);
+    printf("Soapy has found device #%d: ", (int)i);
     for (size_t j = 0; j < soapy_args[i].size; j++) {
       printf("%s=%s, ", soapy_args[i].keys[j], soapy_args[i].vals[j]);
       if(!strcmp(soapy_args[i].keys[j],"name") && !strcmp(soapy_args[i].vals[j], "LimeSDR-USB")){
         devname = DEVNAME_LIME;
-        
       }
     }
     printf("\n");
@@ -212,7 +215,7 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   
   SoapySDRDevice *sdr = SoapySDRDevice_make(&(soapy_args[0]));
   if (sdr == NULL) {
-    printf("failed to create SOAPY object\n");
+    printf("Failed to create Soapy object\n");
     return SRSLTE_ERROR;
   }
   
@@ -225,7 +228,7 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   handler->rx_stream_active = false;
   handler->devname = devname;
   if(SoapySDRDevice_getNumChannels(handler->device,SOAPY_SDR_RX) > 0){     
-    printf("setting up RX stream\n");
+    printf("Setting up RX stream\n");
     if(SoapySDRDevice_setupStream(handler->device, &(handler->rxStream), SOAPY_SDR_RX, SOAPY_SDR_CF32, NULL, 0, NULL) != 0) {
       printf("Rx setupStream fail: %s\n", SoapySDRDevice_lastError());
       return SRSLTE_ERROR;
@@ -233,19 +236,27 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   }
 
   if(SoapySDRDevice_getNumChannels(handler->device,SOAPY_SDR_TX) > 0){
-    printf("setting up TX stream\n");
+    printf("Setting up TX stream\n");
     if (SoapySDRDevice_setupStream(handler->device, &(handler->txStream), SOAPY_SDR_TX, SOAPY_SDR_CF32, NULL, 0, NULL) != 0) {
       printf("Tx setupStream fail: %s\n", SoapySDRDevice_lastError());
       return SRSLTE_ERROR;
     }     
   }
+
+  // list device sensors
   size_t sensor_length;
   char** sensors;
   sensors = SoapySDRDevice_listSensors(handler->device, &sensor_length);
-  for(int i = 0; i < sensor_length;i++)
-  {
-    printf("available sensors are : \n");
-    puts(sensors[i]);
+  printf("Available device sensors: \n");
+  for(int i = 0; i < sensor_length; i++) {
+    printf(" - %s\n", sensors[i]);
+  }
+
+  // list channel sensors
+  sensors = SoapySDRDevice_listChannelSensors(handler->device, SOAPY_SDR_RX, 0, &sensor_length);
+  printf("Available sensors for RX channel 0: \n");
+  for(int i = 0; i < sensor_length; i++) {
+    printf(" - %s\n", sensors[i]);
   }
 
   return SRSLTE_SUCCESS;
@@ -399,7 +410,7 @@ void rf_soapy_get_time(void *h, time_t *secs, double *frac_secs)
 
 //TODO: add multi-channel support
 int  rf_soapy_recv_with_time_multi(void *h,
-                                   void **data,
+                                   void *data[SRSLTE_MAX_PORTS],
                                    uint32_t nsamples,
                                    bool blocking,
                                    time_t *secs,
@@ -408,6 +419,7 @@ int  rf_soapy_recv_with_time_multi(void *h,
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   int flags; //flags set by receive operation
   int num_channels = 1; // temp
+  const long timeoutUs = 1000000; // arbitrarily chosen
   
   int trials = 0;
   int ret = 0;
@@ -424,7 +436,7 @@ int  rf_soapy_recv_with_time_multi(void *h,
       cf_t *data_c = (cf_t*) data[i];
       buffs_ptr[i] = &data_c[n];
     }
-    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, 1000000);
+    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, timeoutUs);
     if(ret < 0) {
       // continue when getting overflows
       if (ret == SOAPY_SDR_OVERFLOW) {
@@ -446,8 +458,6 @@ int  rf_soapy_recv_with_time_multi(void *h,
     n += ret;
     trials++;
   } while (n < nsamples && trials < 100);
-  
-  
 
   return n;
 }
