@@ -334,7 +334,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
        struct timeval tv_now, delta_t, tv_timeout;
 
-       timersub(&_info->tv_next_tti, &tv_rx_window, &tv_timeout);
+       timersub(&(_info->tv_next_tti), &tv_rx_window, &tv_timeout);
 
        gettimeofday(&tv_now, NULL);
 
@@ -806,7 +806,7 @@ int rf_sock_start_rx_stream(void *h, bool now)
    
    pthread_mutex_lock(&(_info->rx_lock));
 
-   gettimeofday(&_info->tv_sos, NULL);
+   gettimeofday(&(_info->tv_sos), NULL);
 
    if(rf_sock_is_enb(_info))
     {
@@ -816,7 +816,7 @@ int rf_sock_start_rx_stream(void *h, bool now)
       _info->tv_sos.tv_usec = 0;
 
       // set next tti time
-      timeradd(&_info->tv_sos, &tv_tti_step, &_info->tv_next_tti);
+      timeradd(&(_info->tv_sos), &tv_tti_step, &(_info->tv_next_tti));
 
       RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld, next %ld:%06ld", 
                  _info->tv_sos.tv_sec, 
@@ -826,8 +826,6 @@ int rf_sock_start_rx_stream(void *h, bool now)
     }
    else
     {
-      timeradd(&_info->tv_sos, &tv_tti_step, &_info->tv_next_tti);
-
       RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld", 
                  _info->tv_sos.tv_sec, 
                  _info->tv_sos.tv_usec);
@@ -1132,31 +1130,33 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    pthread_mutex_lock(&(_info->rx_lock));
 
-   struct timeval tv_in, sockrx_time, ipc_delay;
+   struct timeval tv_in, sockrx_time, ipc_delay, tv_diff;
 
    gettimeofday(&tv_in, NULL);
 
    if(rf_sock_is_enb(_info))
      {
-       struct timeval tv_diff;
-
-       timersub(&_info->tv_next_tti, &tv_in, &tv_diff);
-
-       RF_SOCK_DBUG("tv_in %ld:%06ld, tv_next_tti %ld:%06ld, delta_t %ld:%06ld",
-                     tv_in.tv_sec,
-                     tv_in.tv_usec,
-                     _info->tv_next_tti.tv_sec,
-                     _info->tv_next_tti.tv_usec,
-                     tv_diff.tv_sec,
-                     tv_diff.tv_usec);
+       timersub(&(_info->tv_next_tti), &tv_in, &tv_diff);
 
        // throttle back enb for new tti
        if(timercmp(&tv_diff, &tv_zero, >))
         {
           select(0, NULL, NULL, NULL, &tv_diff);
         }
+       else
+        {
+          RF_SOCK_WARN("tv_in %ld:%06ld, tv_next_tti %ld:%06ld, overrun %ld:%06ld",
+                        tv_in.tv_sec,
+                        tv_in.tv_usec,
+                        _info->tv_next_tti.tv_sec,
+                        _info->tv_next_tti.tv_usec,
+                        1 - tv_diff.tv_sec,
+                        1000000 - tv_diff.tv_usec);
+        }
 
-       timeradd(&_info->tv_next_tti, &tv_tti_step, &_info->tv_next_tti);
+        do{ // makeup any over runs here
+           timeradd(&(_info->tv_next_tti), &tv_tti_step, &(_info->tv_next_tti));
+        } while(timercmp(&tv_in, &(_info->tv_next_tti), >=));
      }
 
    // set rx_timestamp to begin time of this new tti
@@ -1365,7 +1365,7 @@ void rf_sock_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
    GET_DEV_INFO(h);
 
-   memcpy(&_info->tx_cal, cal, sizeof(srslte_rf_cal_t));
+   memcpy(&(_info->tx_cal), cal, sizeof(srslte_rf_cal_t));
 
    RF_SOCK_INFO("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
                  cal->dc_gain, 
@@ -1379,7 +1379,7 @@ void rf_sock_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 {
    GET_DEV_INFO(h);
 
-   memcpy(&_info->rx_cal, cal, sizeof(srslte_rf_cal_t));
+   memcpy(&(_info->rx_cal), cal, sizeof(srslte_rf_cal_t));
 
    RF_SOCK_INFO("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
                  cal->dc_gain,
