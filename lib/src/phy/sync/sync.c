@@ -71,7 +71,7 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     q->N_id_1 = 1000;
 
     q->cfo_ema_alpha = CFO_EMA_ALPHA;
-    q->sss_alg = SSS_FULL;
+    q->sss_alg = SSS_PARTIAL_3;
 
     q->detect_cp       = true;
     q->sss_en          = true;
