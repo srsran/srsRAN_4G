@@ -296,15 +296,17 @@ bool phch_recv::stop_sync() {
       usleep(10000);
       cnt++;
     }
+    if (!is_in_idle) {
+      Warning("SYNC:  Could not go to IDLE\n");
+    }
     return is_in_idle;
   }
 }
 
 void phch_recv::reset_sync() {
 
-  wait_radio_reset();
-
   Warning("SYNC:  Resetting sync, cell_search_in_progress=%s\n", cell_search_in_progress?"yes":"no");
+
   search_p.reset();
   srslte_ue_sync_reset(&ue_sync);
   resync_sfn(true, true);
