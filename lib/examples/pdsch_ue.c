@@ -1029,7 +1029,7 @@ void *plot_thread_run(void *arg) {
         
       }
       
-      plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
+      plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce[0]);
     }
     
     plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d[0], nof_symbols);

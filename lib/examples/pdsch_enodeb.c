@@ -353,11 +353,6 @@ void base_init() {
     exit(-1);
   }
 
-  if (srslte_regs_set_cfi(&regs, cfi)) {
-    fprintf(stderr, "Error setting CFI\n");
-    exit(-1);
-  }
-
   if (srslte_pdcch_init_enb(&pdcch, cell.nof_prb)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
