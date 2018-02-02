@@ -119,7 +119,7 @@ static bool rf_sock_log_warn  = true;
 
 #define RF_SOCK_MC_ADDR "224.4.3.2"
 #define RF_SOCK_MC_DEV  "lo"  // XXX_TODO get from args if running on multiple hosts/containers
-#define RF_SOCK_SOCK_BUFF_SIZE (1024 * 1024)
+#define RF_SOCK_SOCK_BUFF_SIZE (128 * 1024)
 
 // bytes per sample
 #define BYTES_PER_SAMPLE(x) ((x)*sizeof(cf_t))
@@ -181,10 +181,10 @@ typedef struct {
    double               clock_rate;
    void (*error_handler)(srslte_rf_error_t error);
    bool                 rx_stream;
-   int                  ntype;
+   int                  nodetype;
    int                  tx_handle;
    int                  rx_handle;
-   bool                 rx_has_timeout;
+   bool                 rx_blocking;
    int64_t              tx_seqn;
    int64_t              rx_seqn;
    pthread_mutex_t      rx_lock;
@@ -192,7 +192,7 @@ typedef struct {
    pthread_t            tx_tid;
    rf_sock_tx_worker_t tx_workers[RF_SOCK_NOF_TX_WORKERS];
    int                  tx_worker_next;
-   int                  nof_tx_workers;
+   int                  tx_nof_workers;
    struct timeval       tv_sos;   // start of stream
    struct timeval       tv_next_tti;
    int                  rx_n_tries;
@@ -226,7 +226,7 @@ static void rf_sock_handle_error(srslte_rf_error_t error)
 }
 
 
-static  rf_sock_info_t rf_sock_info = { .dev_name        = "sock",
+static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .rx_gain         = 0.0,
                                         .tx_gain         = 0.0,
                                         .rx_srate        = 0.0,
@@ -238,16 +238,16 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sock",
                                         .clock_rate      = 0.0,
                                         .error_handler   = rf_sock_handle_error,
                                         .rx_stream       = false,
-                                        .ntype           = RF_SOCK_NTYPE_NONE,
+                                        .nodetype        = RF_SOCK_NTYPE_NONE,
                                         .tx_handle       = -1,
                                         .rx_handle       = -1,
-                                        .rx_has_timeout  = false,
+                                        .rx_blocking     = false,
                                         .tx_seqn         = 0,
                                         .rx_seqn         = -1,
                                         .rx_lock         = PTHREAD_MUTEX_INITIALIZER,
                                         .tx_workers_lock = PTHREAD_MUTEX_INITIALIZER,
                                         .tx_worker_next  = 0,
-                                        .nof_tx_workers  = 0,
+                                        .tx_nof_workers  = 0,
                                         .tv_sos          = {0,0},
                                         .tv_next_tti     = {0,0},
                                         .rx_n_tries      = 0,
@@ -305,14 +305,14 @@ static int rf_sock_resample(double srate_in,
 
 static bool rf_sock_is_enb(rf_sock_info_t * info)
 {
-  return (info->ntype == RF_SOCK_NTYPE_ENB);
+  return (info->nodetype == RF_SOCK_NTYPE_ENB);
 }
 
 
 
 static bool rf_sock_is_ue(rf_sock_info_t * info)
 {
-  return (info->ntype == RF_SOCK_NTYPE_UE);
+  return (info->nodetype == RF_SOCK_NTYPE_UE);
 }
 
 
@@ -321,10 +321,10 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 {
    GET_DEV_INFO(h);
 
-   const int nbytes_request = iov[0].iov_len + iov[1].iov_len;
+   const int nbytes_to_rx = iov[0].iov_len + iov[1].iov_len;
 
-   // rx window if non-blocking (enb)
-   if(_info->rx_has_timeout)
+   // rx window if non-blocking
+   if(! _info->rx_blocking)
      {
        fd_set rfds;
 
@@ -358,9 +358,13 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
    const int rc = readv(_info->rx_handle, iov, 2);
 
-   if(rc <= 0)
+   if(rc < 0)
      {
-       RF_SOCK_WARN("RX reqlen %d, error %s", nbytes_request, strerror(errno));
+       RF_SOCK_WARN("RX reqlen %d, error %s", nbytes_to_rx, strerror(errno));
+     }
+   else
+     {
+       RF_SOCK_DBUG("RX rx %d of %d", rc, nbytes_to_rx);
      }
 
    return rc;
@@ -371,17 +375,17 @@ static int rf_sock_vecio_send(void *h, struct iovec iov[2])
 {
    GET_DEV_INFO(h);
 
-   const int nbytes_request = iov[0].iov_len + iov[1].iov_len;
+   const int nbytes_to_tx = iov[0].iov_len + iov[1].iov_len;
 
    const int rc = writev(_info->tx_handle, iov, 2);
 
-   if(rc < 0)
+   if(rc != nbytes_to_tx)
      {
        RF_SOCK_WARN("send error %s", strerror(errno));
      }
    else
      {
-       RF_SOCK_DBUG("sent %d of %d", rc, nbytes_request);
+       RF_SOCK_DBUG("sent %d of %d", rc, nbytes_to_tx);
      }
 
   return rc;
@@ -465,7 +469,7 @@ static void * rf_sock_tx_worker_proc(void * arg)
          {
            timersub(&tv_now, &(tx_worker->tx_info->tx_time), &tv_diff);
 
-           RF_SOCK_WARN("tx_worker %02d, skip tx_delay overrun %ld:%06ld", 
+           RF_SOCK_WARN("tx_worker %02d, tx_overrun %ld:%06ld", 
                          tx_worker->id,
                          tv_diff.tv_sec,
                          tv_diff.tv_usec);
@@ -477,7 +481,7 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
         rf_sock_send_msg(tx_worker, (_info->tx_seqn)++);
 
-        _info->nof_tx_workers -= 1;
+        _info->tx_nof_workers -= 1;
 
         tx_worker->is_pending = false;
 
@@ -684,7 +688,7 @@ static int rf_sock_open_sock(rf_sock_info_t * info,
   else
     {
       RF_SOCK_INFO("joined group %s port %hu, iface %s", 
-                     inet_ntoa(mreq.imr_multiaddr), rxport, RF_SOCK_MC_DEV);
+                    inet_ntoa(mreq.imr_multiaddr), rxport, RF_SOCK_MC_DEV);
     }
 
 
@@ -697,7 +701,7 @@ static int rf_sock_open_sock(rf_sock_info_t * info,
   else
     {
       RF_SOCK_INFO("connect to group %s port %hu", 
-                     inet_ntoa(mreq.imr_multiaddr), txport);
+                    inet_ntoa(mreq.imr_multiaddr), txport);
     }
 
   int no_df = IP_PMTUDISC_DONT;
@@ -732,9 +736,9 @@ static int rf_sock_open_sock(rf_sock_info_t * info,
   // rx timeout block ue, no block enb
   if(rf_sock_is_ue(info))
     {
-      info->rx_has_timeout  = false;
+      info->rx_blocking = true;
 
-      info->rx_n_tries = 10;
+      info->rx_n_tries = 25;
 
       if(rf_sock_set_sock_block(rx_fd) < 0)
        {
@@ -745,7 +749,7 @@ static int rf_sock_open_sock(rf_sock_info_t * info,
     }
   else
     {
-      info->rx_has_timeout = true;
+      info->rx_blocking = false;
 
       info->rx_n_tries = 1;
 
@@ -769,16 +773,16 @@ static int rf_sock_open_ipc(rf_sock_info_t * info)
   if(rf_sock_is_enb(info))
     {
       return rf_sock_open_sock(info, 
-                                RF_SOCK_UL_PORT,  // rx
-                                RF_SOCK_DL_PORT,  // tx
-                                RF_SOCK_MC_ADDR);
+                               RF_SOCK_UL_PORT,  // rx
+                               RF_SOCK_DL_PORT,  // tx
+                               RF_SOCK_MC_ADDR);
     }
   else
     {
       return rf_sock_open_sock(info, 
-                                RF_SOCK_DL_PORT,  // rx
-                                RF_SOCK_UL_PORT,  // tx
-                                RF_SOCK_MC_ADDR);
+                               RF_SOCK_DL_PORT,  // rx
+                               RF_SOCK_UL_PORT,  // tx
+                               RF_SOCK_MC_ADDR);
     }
 }
 
@@ -818,7 +822,7 @@ int rf_sock_start_rx_stream(void *h, bool now)
       // set next tti time
       timeradd(&(_info->tv_sos), &tv_tti_step, &(_info->tv_next_tti));
 
-      RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld, next %ld:%06ld", 
+      RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld, next_tti %ld:%06ld", 
                  _info->tv_sos.tv_sec, 
                  _info->tv_sos.tv_usec,
                  _info->tv_next_tti.tv_sec, 
@@ -826,7 +830,7 @@ int rf_sock_start_rx_stream(void *h, bool now)
     }
    else
     {
-      RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld", 
+      RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld, waiting for input", 
                  _info->tv_sos.tv_sec, 
                  _info->tv_sos.tv_usec);
     }
@@ -871,7 +875,7 @@ bool rf_sock_has_rssi(void *h)
 
 float rf_sock_get_rssi(void *h)
  {
-   const float rssi = -60.0;
+   const float rssi = -60.0;  // XXX TODO
 
    RF_SOCK_DBUG("rssi %4.3f", rssi);
 
@@ -897,19 +901,19 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
  {
    RF_SOCK_INFO("channels %u, args [%s]", nof_channels, args);
 
-   if(strncmp(args, "sockenb", strlen("sockenb")) == 0)
+   if(strncmp(args, "enb", strlen("enb")) == 0)
     {
-      rf_sock_info.ntype = RF_SOCK_NTYPE_ENB;
+      rf_sock_info.nodetype = RF_SOCK_NTYPE_ENB;
     }
-   else if(strncmp(args, "sockue", strlen("sockue")) == 0)
+   else if(strncmp(args, "ue", strlen("ue")) == 0)
     {
-      rf_sock_info.ntype = RF_SOCK_NTYPE_UE;
+      rf_sock_info.nodetype = RF_SOCK_NTYPE_UE;
     }
    else
     {
-      RF_SOCK_INFO("default ntype is ue");
+      RF_SOCK_INFO("default nodetype is ue");
 
-      rf_sock_info.ntype = RF_SOCK_NTYPE_UE;
+      rf_sock_info.nodetype = RF_SOCK_NTYPE_UE;
     }
        
    if(nof_channels != 1)
@@ -962,9 +966,9 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
            return -1;
         }
 
-       const struct sched_param param = {10};
-   
-       const int policy = SCHED_RR;
+       const int policy = SCHED_FIFO;
+
+       const struct sched_param param = {sched_get_priority_max(policy)}; // XXX highest prio ???
        
        if(pthread_setschedparam(tx_worker->tid, policy, &param) < 0)
         {
@@ -1145,13 +1149,15 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
         }
        else
         {
-          RF_SOCK_WARN("tv_in %ld:%06ld, tv_next_tti %ld:%06ld, overrun %ld:%06ld",
+          timersub(&tv_in, &(_info->tv_next_tti), &tv_diff);
+
+          RF_SOCK_WARN("tv_in %ld:%06ld, tv_next_tti %ld:%06ld, tti_overrun %ld:%06ld",
                         tv_in.tv_sec,
                         tv_in.tv_usec,
                         _info->tv_next_tti.tv_sec,
                         _info->tv_next_tti.tv_usec,
-                        1 - tv_diff.tv_sec,
-                        1000000 - tv_diff.tv_usec);
+                        tv_diff.tv_sec,
+                        tv_diff.tv_usec);
         }
 
         do{ // makeup any over runs here
@@ -1164,9 +1170,9 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    gettimeofday(&rx_timestamp, NULL);
 
-   const int nbytes_request = BYTES_PER_SAMPLE(nsamples);
+   const int nbytes_to_rx = BYTES_PER_SAMPLE(nsamples);
 
-   int nbytes_pending = nbytes_request;
+   int nbytes_pending = nbytes_to_rx;
 
    int nsamples_pending = nsamples;
 
@@ -1178,7 +1184,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    uint8_t * p2data = (uint8_t *)data;
 
-   memset(p2data, 0x0, nbytes_request);
+   memset(data, 0x0, nbytes_to_rx);
 
    while(KEEP_TRYING(nsamples_pending, n_tries))
      {   
@@ -1254,9 +1260,9 @@ rxout:
 
    RF_SOCK_DBUG("RX nreq %d/%d, out %d/%d",
                  nsamples,
-                 nbytes_request, 
+                 nbytes_to_rx, 
                  nsamples - nsamples_pending,
-                 nbytes_request   - nbytes_pending);
+                 nbytes_to_rx   - nbytes_pending);
 
    pthread_mutex_unlock(&(_info->rx_lock));
 
@@ -1293,7 +1299,7 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
 
    pthread_mutex_lock(&(_info->tx_workers_lock));
 
-   if(_info->nof_tx_workers >= RF_SOCK_NOF_TX_WORKERS)
+   if(_info->tx_nof_workers >= RF_SOCK_NOF_TX_WORKERS)
      {
        RF_SOCK_WARN("FAILED tx_worker pool full %d, DROP", RF_SOCK_NOF_TX_WORKERS);
 
@@ -1327,14 +1333,14 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
    tx_info->is_eob     = is_eob;
    tx_worker->is_pending = true;
 
-   _info->nof_tx_workers += 1;
+   _info->tx_nof_workers += 1;
  
    RF_SOCK_DBUG("add tx_worker %02d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
                   tx_worker->id,
                   has_time_spec ? "yes" : "no",
                   full_secs,
                   frac_secs,
-                 _info->nof_tx_workers);
+                 _info->tx_nof_workers);
 
    sem_post(&(tx_worker->sem));
 
