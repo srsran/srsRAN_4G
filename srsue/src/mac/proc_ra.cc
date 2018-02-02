@@ -222,7 +222,7 @@ void ra_proc::step_resource_selection() {
   if (preambleIndex > 0) {
     // Preamble is chosen by Higher layers (ie Network)
     sel_maskIndex = maskIndex;
-    sel_preamble = (uint32_t) preambleIndex;
+    sel_preamble = (uint32_t) preambleIndex%nof_preambles;
   } else {
     // Preamble is chosen by MAC UE
     if (!msg3_transmitted) {
