@@ -145,8 +145,13 @@ public:
 private:
   class ul_harq_process {
   public:
-    ul_harq_process()
-    {
+    ul_harq_process() {
+      pid = 0;
+      harq_feedback = false;
+      log_h = NULL;
+      bzero(&softbuffer, sizeof(srslte_softbuffer_tx_t));
+      is_msg3 = false;
+      pdu_ptr = NULL;
       current_tx_nb = 0;
       current_irv = 0;
       is_initiated = false;
@@ -329,7 +334,7 @@ private:
 
       // HARQ entity requests an adaptive transmission
       if (grant) {
-        if (grant->rv) {
+        if (grant->rv[0]) {
           current_irv = irv_of_rv[grant->rv[0]%4];
         }
 
