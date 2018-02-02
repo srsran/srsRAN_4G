@@ -297,10 +297,17 @@ bool ue::get_metrics(ue_metrics_t &m)
   return false;
 }
 
+void ue::radio_overflow() {
+  phy.radio_overflow();
+}
+
 void ue::rf_msg(srslte_rf_error_t error)
 {
   ue_base *ue = ue_base::get_instance(LTE);
   ue->handle_rf_msg(error);
+  if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
+    ue->radio_overflow();
+  }
 }
 
 } // namespace srsue

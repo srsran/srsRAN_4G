@@ -352,6 +352,11 @@ int phy::prach_tx_tti()
   return prach_buffer.tx_tti();
 }
 
+// Handle the case of a radio overflow. Resynchronise inmediatly
+void phy::radio_overflow() {
+  sf_recv.reset_sync();
+}
+
 void phy::reset()
 {
   Info("Resetting PHY\n");
