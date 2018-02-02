@@ -833,6 +833,8 @@ int rf_sock_start_rx_stream(void *h, bool now)
     }
    else
     {
+      timeradd(&_info->tv_sos, &tv_tti_step, &_info->tv_next_tti);
+
       RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld, waiting for input", 
                  _info->tv_sos.tv_sec, 
                  _info->tv_sos.tv_usec);
