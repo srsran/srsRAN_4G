@@ -124,7 +124,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
     ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator variant")
-    ("usim.amf", bpo::value<string>(&args->usim.amf), "USIM authentication management field")
     ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
@@ -403,14 +402,19 @@ void *input_loop(void *m) {
   char key;
   while (running) {
     cin >> key;
-    if ('t' == key) {
-      do_metrics = !do_metrics;
-      if (do_metrics) {
-        cout << "Enter t to stop trace." << endl;
-      } else {
-        cout << "Enter t to restart trace." << endl;
+    if (cin.eof() || cin.bad()) {
+      cout << "Closing stdin thread." << endl;
+      break;
+    } else {
+      if ('t' == key) {
+        do_metrics = !do_metrics;
+        if (do_metrics) {
+          cout << "Enter t to stop trace." << endl;
+        } else {
+          cout << "Enter t to restart trace." << endl;
+        }
+        metrics_screen.toggle_print(do_metrics);
       }
-      metrics_screen.toggle_print(do_metrics);
     }
   }
   return NULL;
@@ -420,6 +424,7 @@ int main(int argc, char *argv[])
 {
   srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
+  signal(SIGTERM, sig_int_handler);
   all_args_t args;
 
   srslte_debug_handle_crash(argc, argv);
@@ -441,13 +446,11 @@ int main(int argc, char *argv[])
   metricshub.init(ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_ue_handle(ue);
-  metrics_screen.set_periodicity(args.expert.metrics_period_secs);
 
   metrics_csv metrics_file(args.expert.metrics_csv_filename);
   if (args.expert.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_ue_handle(ue);
-    metrics_file.set_periodicity(args.expert.metrics_period_secs);
   }
 
   pthread_t input;

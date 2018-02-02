@@ -67,7 +67,7 @@ void write(std::string filename) {
 bool read(std::string filename) {
   bool pass = true;
   bool written[NTHREADS][NMSGS];
-  int thread, msg;
+  int thread = 0, msg = 0;
   int r;
 
   for(int i=0;i<NTHREADS;i++) {
@@ -78,7 +78,13 @@ bool read(std::string filename) {
   FILE *f = fopen(filename.c_str(), "r");
   if(f!=NULL) {
     while(fscanf(f, "Thread %d: %d\n", &thread, &msg)) {
-      written[thread][msg] = true;
+      if (thread < NTHREADS && msg < NMSGS) {
+        written[thread][msg] = true;
+      } else {
+        perror("Wrong thread and/or msg");
+        fclose(f);
+        return false;
+      }
     }
     fclose(f);
   }
@@ -95,7 +101,11 @@ int main(int argc, char **argv) {
   std::string f("log.txt");
   write(f);
   result = read(f);
-  remove(f.c_str());
+
+  if (remove(f.c_str())) {
+    perror("Removing file");
+  }
+
   if(result) {
     printf("Passed\n");
     exit(0);

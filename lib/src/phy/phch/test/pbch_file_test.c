@@ -154,7 +154,7 @@ int base_init() {
     return -1;
   }
 
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 

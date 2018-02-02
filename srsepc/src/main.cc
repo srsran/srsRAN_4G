@@ -189,12 +189,20 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   }
   // Convert MCC/MNC strings
   if(!srslte::string_to_mcc(mcc, &args->mme_args.s1ap_args.mcc)) {
-    cout << "Error parsing enb.mcc:" << mcc << " - must be a 3-digit string." << endl;
+    cout << "Error parsing mme.mcc:" << mcc << " - must be a 3-digit string." << endl;
   }
   if(!srslte::string_to_mnc(mnc, &args->mme_args.s1ap_args.mnc)) {
-    cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
+    cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
  
+  // Convert MCC/MNC strings
+  if(!srslte::string_to_mcc(mcc, &args->hss_args.mcc)) {
+    cout << "Error parsing mme.mcc:" << mcc << " - must be a 3-digit string." << endl;
+  }
+  if(!srslte::string_to_mnc(mnc, &args->hss_args.mnc)) {
+    cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
+  }
+
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
   args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
   args->spgw_args.sgi_if_addr = sgi_if_addr;
@@ -259,6 +267,8 @@ main (int argc,char * argv[] )
 {  
   cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
   signal(SIGINT, sig_int_handler);
+  signal(SIGTERM, sig_int_handler);
+  signal(SIGKILL, sig_int_handler);
 
   all_args_t args;
   parse_args(&args, argc, argv); 
@@ -302,7 +312,7 @@ main (int argc,char * argv[] )
     cout << "Error initializing MME" << endl;
     exit(1);
   }
-  
+
   hss *hss = hss::get_instance();
   if (hss->init(&args.hss_args,&hss_log)) {
     cout << "Error initializing HSS" << endl;

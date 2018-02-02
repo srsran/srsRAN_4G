@@ -39,6 +39,7 @@ public:
     finished = false; 
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cvar, NULL);
+    bzero(&start_time, sizeof(start_time));
   }
   
   void timeout_expired(uint32_t timeout_id)

@@ -550,6 +550,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
     switch(dci_msg.format) {
       case SRSLTE_DCI_FORMAT1:
       case SRSLTE_DCI_FORMAT1A:
+      case SRSLTE_DCI_FORMAT1C:
         if (q->cell.nof_ports == 1) {
           mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
         } else {
@@ -573,7 +574,6 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
 
       /* Not implemented formats */
       case SRSLTE_DCI_FORMAT0:
-      case SRSLTE_DCI_FORMAT1C:
       case SRSLTE_DCI_FORMAT1B:
       case SRSLTE_DCI_FORMAT1D:
       case SRSLTE_DCI_FORMAT2B:
@@ -896,7 +896,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t tm, uint32_t cfi,
   dci_blind_search_t *current_ss = &search_space;
 
   if (cfi < 1 || cfi > 3) {
-    ERROR("CFI must be 1 ≤ cfi ≤ 3", cfi);
+    ERROR("CFI must be 1 ≤ cfi ≤ 3 (cfi=%d)", cfi);
     return SRSLTE_ERROR;
   }
 

@@ -35,6 +35,7 @@
 #include <iostream>
 
 #include <stdio.h>
+#include <string.h>
 
 using namespace std;
 
@@ -46,11 +47,11 @@ char const * const prefixes[2][9] =
   {   "",   "k",   "M",   "G",    "T",    "P",    "E",    "Z",    "Y", },
 };
 
-metrics_stdout::metrics_stdout()
-    :started(false)
-    ,do_print(false)
-    ,n_reports(10)
+metrics_stdout::metrics_stdout() : started(false) ,do_print(false), metrics_report_period(0.0f),n_reports(10)
 {
+  enb_ = NULL;
+  bzero(&metrics_thread, sizeof(metrics_thread));
+  bzero(&metrics, sizeof(metrics));
 }
 
 bool metrics_stdout::init(enb_metrics_interface *u, float report_period_secs)
@@ -101,6 +102,8 @@ void metrics_stdout::metrics_thread_run()
 
 void metrics_stdout::print_metrics()
 {
+  std::ios::fmtflags f(cout.flags()); // For avoiding Coverity defect: Not restoring ostream format
+
   if(!do_print)
     return;
 
@@ -157,7 +160,8 @@ void metrics_stdout::print_metrics()
   if(metrics.rf.rf_error) {
     printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
-  
+
+  cout.flags(f); // For avoiding Coverity defect: Not restoring ostream format
 }
 
 void metrics_stdout::print_disconnect()

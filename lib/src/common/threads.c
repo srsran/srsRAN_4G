@@ -67,6 +67,20 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
       fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
     }
     attr_enable = true;
+  } else if (prio_offset == -1) {
+    param.sched_priority = sched_get_priority_max(SCHED_FIFO) - DEFAULT_PRIORITY;
+    pthread_attr_init(&attr);
+    if (pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) {
+      perror("pthread_attr_setinheritsched");
+    }
+    if (pthread_attr_setschedpolicy(&attr, SCHED_FIFO)) {
+      perror("pthread_attr_setschedpolicy");
+    }
+    if (pthread_attr_setschedparam(&attr, &param)) {
+      perror("pthread_attr_setschedparam");
+      fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
+    }
+    attr_enable = true;
   } else if (prio_offset == -2) {
     param.sched_priority = 0;
     pthread_attr_init(&attr);

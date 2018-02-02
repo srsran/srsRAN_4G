@@ -43,6 +43,7 @@
 #define SRSLTE_CQI_MAX_BITS 64
 #define SRSLTE_DIF_CQI_MAX_BITS 3
 #define SRSLTE_PMI_MAX_BITS 4
+#define SRSLTE_CQI_STR_MAX_CHAR 32
 
 typedef struct {
   bool     configured; 

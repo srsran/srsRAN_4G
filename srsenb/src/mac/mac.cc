@@ -42,13 +42,26 @@
 
 namespace srsenb {
 
-mac::mac() : timers_db(128),
-             timers_thread(&timers_db),
-             rar_pdu_msg(sched_interface::MAX_RAR_LIST),
+mac::mac() : timers_db(128), timers_thread(&timers_db), tti(0), last_rnti(0),
+             rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload(),
              pdu_process_thread(this)
 {
   started = false;  
-  pcap = NULL; 
+  pcap = NULL;
+  phy_h = NULL;
+  rlc_h = NULL;
+  rrc_h = NULL;
+  log_h = NULL;
+
+  bzero(&locations, sizeof(locations));
+  bzero(&cell, sizeof(cell));
+  bzero(&args, sizeof(args));
+  bzero(&pending_rars, sizeof(pending_rars));
+  bzero(&bcch_dlsch_payload, sizeof(bcch_dlsch_payload));
+  bzero(&pcch_payload_buffer, sizeof(pcch_payload_buffer));
+  bzero(&bcch_softbuffer_tx, sizeof(bcch_softbuffer_tx));
+  bzero(&pcch_softbuffer_tx, sizeof(pcch_softbuffer_tx));
+  bzero(&rar_softbuffer_tx, sizeof(rar_softbuffer_tx));
 }
   
 bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
@@ -392,7 +405,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
   // Find empty slot for pending rars
   uint32_t ra_id=0;
-  while(pending_rars[ra_id].temp_crnti && ra_id<MAX_PENDING_RARS) {
+  while(pending_rars[ra_id].temp_crnti && ra_id<MAX_PENDING_RARS-1) {
     ra_id++;
   }
   if (ra_id == MAX_PENDING_RARS) {
@@ -722,8 +735,7 @@ void mac::timer_thread::tti_clock()
  * DEMU unit
  *
  *******************************************************/
-mac::pdu_process::pdu_process(pdu_process_handler *h)
-{
+mac::pdu_process::pdu_process(pdu_process_handler *h) : running(false) {
   handler = h; 
   pthread_mutex_init(&mutex, NULL);
   pthread_cond_init(&cvar, NULL);

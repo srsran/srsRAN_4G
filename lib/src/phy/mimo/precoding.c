@@ -2205,7 +2205,9 @@ int srslte_precoding_pmi_select_2l_gen(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
     }
 
     /* Divide average by noise */
-    sinr_list[i] /= count;
+    if (count) {
+      sinr_list[i] /= count;
+    }
 
     if (sinr_list[i] > max_sinr) {
       max_sinr = sinr_list[i];
@@ -2326,7 +2328,9 @@ int srslte_precoding_pmi_select_2l_sse(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
     }
 
     /* Divide average by noise */
-    sinr_list[i] /= count;
+    if (count) {
+      sinr_list[i] /= count;
+    }
 
     if (sinr_list[i] > max_sinr) {
       max_sinr = sinr_list[i];
@@ -2473,7 +2477,9 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
     }
 
     /* Divide average by noise */
-    sinr_list[i] /= count;
+    if (count) {
+      sinr_list[i] /= count;
+    }
 
     if (sinr_list[i] > max_sinr) {
       max_sinr = sinr_list[i];
@@ -2545,7 +2551,11 @@ float srslte_precoding_2x2_cn_gen(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], u
     count++;
   }
 
-  return cn_avg/count;
+  if (count) {
+    cn_avg /= count;
+  }
+
+  return cn_avg;
 }
 
 /* Computes the condition number for a given number of antennas,

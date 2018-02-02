@@ -89,7 +89,8 @@ uint32_t srslte_sch_find_Ioffset_cqi(float beta) {
                              
 int srslte_sch_init(srslte_sch_t *q) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (q) {    
+  if (q) {
+    ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_sch_t));
     
     if (srslte_crc_init(&q->crc_tb, SRSLTE_LTE_CRC24A, 24)) {
@@ -494,7 +495,7 @@ static int decode_tb(srslte_sch_t *q,
                ((uint32_t) data[cb_segm->tbs/8+2]);
 
       if (par_rx == par_tx && par_rx) {
-        INFO("TB decoded OK\n",0);
+        INFO("TB decoded OK\n");
         return SRSLTE_SUCCESS;
       } else {
         INFO("Error in TB parity: par_tx=0x%x, par_rx=0x%x\n", par_tx, par_rx);
@@ -753,7 +754,11 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
 
   uint32_t nb_q = cfg->nbits.nof_bits; 
   uint32_t Qm = cfg->grant.Qm; 
-  
+
+  if (Qm == 0) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
   if (uci_data.uci_ri_len > 0) {
     float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
     if (cfg->cb_segm.tbs == 0) {

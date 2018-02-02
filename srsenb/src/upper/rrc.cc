@@ -553,61 +553,67 @@ void rrc::read_pdu_pcch(uint8_t *payload, uint32_t buffer_size)
 void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
 {
   uint16_t old_rnti = 0; 
-  
-  LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
-  bzero(&ul_ccch_msg, sizeof(LIBLTE_RRC_UL_CCCH_MSG_STRUCT));
-  
-  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes*8);
-  bit_buf.N_bits = pdu->N_bytes*8;
-  liblte_rrc_unpack_ul_ccch_msg((LIBLTE_BIT_MSG_STRUCT*)&bit_buf, &ul_ccch_msg);
 
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, 
-                    "SRB0 - Rx: %s",
-                    liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
+  if (pdu) {
+    LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
+    bzero(&ul_ccch_msg, sizeof(LIBLTE_RRC_UL_CCCH_MSG_STRUCT));
 
-  switch(ul_ccch_msg.msg_type) {
-    case LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REQ:
-      if (users.count(rnti)) {
-        users[rnti].handle_rrc_con_req(&ul_ccch_msg.msg.rrc_con_req);
-      } else {
-        rrc_log->error("Received ConnectionSetup for rnti=0x%x without context\n", rnti);
-      }      
-      break;
-    case LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REEST_REQ:
-      rrc_log->debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s\n", 
-             ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti, ul_ccch_msg.msg.rrc_con_reest_req.ue_id.phys_cell_id, 
-             ul_ccch_msg.msg.rrc_con_reest_req.ue_id.short_mac_i, liblte_rrc_con_reest_req_cause_text[ul_ccch_msg.msg.rrc_con_reest_req.cause]
-            ); 
-      if (users[rnti].is_idle()) {
-        old_rnti = ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti; 
-        if (users.count(old_rnti)) {
-          rrc_log->error("Not supported: ConnectionReestablishment. Sending Connection Reject\n", old_rnti);
-          users[rnti].send_connection_reest_rej();          
-          rem_user_thread(old_rnti);
+    srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
+    bit_buf.N_bits = pdu->N_bytes * 8;
+    liblte_rrc_unpack_ul_ccch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &ul_ccch_msg);
+
+    rrc_log->info_hex(pdu->msg, pdu->N_bytes,
+                      "SRB0 - Rx: %s",
+                      liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
+
+    switch (ul_ccch_msg.msg_type) {
+      case LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REQ:
+        if (users.count(rnti)) {
+          users[rnti].handle_rrc_con_req(&ul_ccch_msg.msg.rrc_con_req);
         } else {
-          rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
-          users[rnti].send_connection_reest_rej();
+          rrc_log->error("Received ConnectionSetup for rnti=0x%x without context\n", rnti);
         }
-        // remove temporal rnti 
-        rem_user_thread(rnti);
-      } else {
-        rrc_log->error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE\n", rnti);
-      }
-      break; 
-    default:
-      rrc_log->error("UL CCCH message not recognised\n");
-      break;
+        break;
+      case LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REEST_REQ:
+        rrc_log->debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s\n",
+                       ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti,
+                       ul_ccch_msg.msg.rrc_con_reest_req.ue_id.phys_cell_id,
+                       ul_ccch_msg.msg.rrc_con_reest_req.ue_id.short_mac_i,
+                       liblte_rrc_con_reest_req_cause_text[ul_ccch_msg.msg.rrc_con_reest_req.cause]
+        );
+        if (users[rnti].is_idle()) {
+          old_rnti = ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti;
+          if (users.count(old_rnti)) {
+            rrc_log->error("Not supported: ConnectionReestablishment. Sending Connection Reject\n", old_rnti);
+            users[rnti].send_connection_reest_rej();
+            rem_user_thread(old_rnti);
+          } else {
+            rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
+            users[rnti].send_connection_reest_rej();
+          }
+          // remove temporal rnti
+          rem_user_thread(rnti);
+        } else {
+          rrc_log->error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE\n", rnti);
+        }
+        break;
+      default:
+        rrc_log->error("UL CCCH message not recognised\n");
+        break;
+    }
+
+    pool->deallocate(pdu);
   }
-  
-  pool->deallocate(pdu);  
 }
 
 void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
 {
-  if (users.count(rnti)) {    
-    users[rnti].parse_ul_dcch(lcid, pdu);
-  } else {
-    rrc_log->error("Processing %s: Unkown rnti=0x%x\n", rb_id_text[lcid], rnti);
+  if (pdu) {
+    if (users.count(rnti)) {
+      users[rnti].parse_ul_dcch(lcid, pdu);
+    } else {
+      rrc_log->error("Processing %s: Unkown rnti=0x%x\n", rb_id_text[lcid], rnti);
+    }
   }
 }
 
@@ -1757,7 +1763,7 @@ int rrc::ue::cqi_allocate(uint32_t period, uint32_t *pmi_idx, uint32_t *n_pucch)
         *pmi_idx = 318 + parent->cfg.cqi_cfg.sf_mapping[j_min]; 
       } else if (period == 64) {
         *pmi_idx = 350 + parent->cfg.cqi_cfg.sf_mapping[j_min]; 
-      } else if (period == 64) {
+      } else if (period == 128) {
         *pmi_idx = 414 + parent->cfg.cqi_cfg.sf_mapping[j_min]; 
       }
     }

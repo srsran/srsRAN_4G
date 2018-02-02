@@ -150,7 +150,10 @@
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
 
-
+#ifndef ENABLE_C16
+#undef SRSLTE_SIMD_C16_SIZE
+#define SRSLTE_SIMD_C16_SIZE 0
+#endif /* ENABLE_C16 */
 
 #if SRSLTE_SIMD_F_SIZE
 

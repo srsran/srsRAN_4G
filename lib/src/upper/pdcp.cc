@@ -30,7 +30,14 @@
 namespace srslte {
 
 pdcp::pdcp()
-{}
+{
+  rlc = NULL;
+  rrc = NULL;
+  gw = NULL;
+  pdcp_log = NULL;
+  lcid = 0;
+  direction = 0;
+}
 
 void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_, srsue::gw_interface_pdcp *gw_, log *pdcp_log_, uint32_t lcid_, uint8_t direction_)
 {
@@ -52,11 +59,6 @@ void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_
 
 void pdcp::stop()
 {
-  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
-    if (pdcp_array[i].is_active()) {
-      pdcp_array[i].stop();
-    }
-  }
 }
 
 void pdcp::reestablish() {

@@ -53,13 +53,6 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
     usim_log->console("Invalid length for OP: %d should be %d", args->op.length(), 32);
   }
 
-  if(4 == args->amf.length()) {
-    str_to_hex(args->amf, amf);
-  } else {
-    usim_log->error("Invalid length for AMF: %d should be %d", args->amf.length(), 4);
-    usim_log->console("Invalid length for AMF: %d should be %d", args->amf.length(), 4);
-  }
-
   if(15 == args->imsi.length()) {
     imsi = 0;
     for(i=0; i<15; i++)
@@ -356,6 +349,11 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
   {
     sqn[i] = autn_enb[i] ^ ak[i];
   }
+  // Extract AMF from autn
+  for(int i=0;i<2;i++)
+  {
+    amf[i]=autn_enb[6+i];
+  }
 
   // Generate MAC
   security_milenage_f1( k,
@@ -430,6 +428,10 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
   // Extract sqn from autn
   for(i=0;i<6;i++) {
     sqn[i] = autn_enb[i] ^ ak[i];
+  }
+  // Extract AMF from autn
+  for(int i=0;i<2;i++){
+      amf[i]=autn_enb[6+i];
   }
 
   // Generate cdout

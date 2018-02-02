@@ -55,8 +55,8 @@ int enb::parse_cell_cfg(all_args_t *args, srslte_cell_t *cell) {
   );
   parser::parse_section(args->enb_files.rr_config, &phy_cnfg);
 
-  cell->phich_length    = (srslte_phich_length_t)    phichcfg.dur;
-  cell->phich_resources = (srslte_phich_resources_t) phichcfg.res; 
+  cell->phich_length    = (srslte_phich_length_t)    (int) phichcfg.dur;
+  cell->phich_resources = (srslte_phich_resources_t) (int) phichcfg.res;
   
   if (!srslte_cell_isvalid(cell)) {
     fprintf(stderr, "Invalid cell parameters: nof_prb=%d, cell_id=%d\n", args->enb.n_prb, args->enb.s1ap.cell_id);
@@ -716,6 +716,7 @@ int enb::parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUC
     data->hnb_name_present = true; 
     if (name_enabled) {
       strncpy((char*) data->hnb_name, hnb_name.c_str(), 48);
+      data->hnb_name[47] = 0;
       data->hnb_name_size = strnlen(hnb_name.c_str(), 48);         
     } else if (hex_enabled) {
       data->hnb_name_size = HexToBytes(hex_value, data->hnb_name, 48);         
@@ -844,7 +845,7 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
 {
 
   /* Transmission mode config section */
-  if (args->enb.transmission_mode < 0 || args->enb.transmission_mode > 4) {
+  if (args->enb.transmission_mode < 1 || args->enb.transmission_mode > 4) {
     ERROR("Invalid transmission mode (%d). Only indexes 1-4 are implemented.\n", args->enb.transmission_mode);
     return SRSLTE_ERROR;
   } else if (args->enb.transmission_mode == 1 && args->enb.nof_ports > 1) {

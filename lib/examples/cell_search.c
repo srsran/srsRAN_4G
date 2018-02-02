@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
 
     INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
     srslte_rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
-    INFO("Starting receiver...\n", 0);
+    INFO("Starting receiver...\n");
     srslte_rf_start_rx_stream(&rf, false);
     
     n = srslte_ue_cellsearch_scan(&cs, found_cells, NULL); 

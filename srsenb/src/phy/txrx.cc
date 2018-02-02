@@ -42,13 +42,13 @@ using namespace std;
 
 namespace srsenb {
 
-txrx::txrx()
-{
+txrx::txrx() : tx_mutex_cnt(0), nof_tx_mutex(0), tti(0) {
   running = false;   
   radio_h = NULL; 
   log_h   = NULL; 
   workers_pool = NULL; 
-  worker_com   = NULL; 
+  worker_com   = NULL;
+  prach = NULL;
 }
 
 bool txrx::init(srslte::radio* radio_h_, srslte::thread_pool* workers_pool_, phch_common* worker_com_, prach_worker *prach_, srslte::log* log_h_, uint32_t prio_)

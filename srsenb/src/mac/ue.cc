@@ -256,7 +256,7 @@ void ue::push_pdu(uint32_t tti, uint32_t len)
 bool ue::process_ce(srslte::sch_subh *subh) {
   uint32_t buff_size[4] = {0, 0, 0, 0};
   float phr = 0;
-  int idx = 0;
+  int32_t idx = 0;
   uint16_t old_rnti = 0;
   bool is_bsr = false;
   switch(subh->ce_type()) {
@@ -279,6 +279,10 @@ bool ue::process_ce(srslte::sch_subh *subh) {
     case srslte::sch_subh::TRUNC_BSR: 
     case srslte::sch_subh::SHORT_BSR:
       idx = subh->get_bsr(buff_size);
+      if(idx == -1){
+        Error("Invalid Index Passed to lc groups\n");
+        break;
+      }
       for (uint32_t i=0;i<lc_groups[idx].size();i++) {
         // Indicate BSR to scheduler
         sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
@@ -289,7 +293,7 @@ bool ue::process_ce(srslte::sch_subh *subh) {
       break;
     case srslte::sch_subh::LONG_BSR:
       subh->get_bsr(buff_size);
-      for (int idx=0;idx<4;idx++) {
+      for (idx=0;idx<4;idx++) {
         for (uint32_t i=0;i<lc_groups[idx].size();i++) {
           sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
         }
@@ -320,7 +324,7 @@ void ue::allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t total_sdu_le
   if (sdu_space > 0) {
     int sdu_len = SRSLTE_MIN(total_sdu_len, (uint32_t) sdu_space);
     int n=1;
-    while(sdu_len > 0 && n > 0) { 
+    while(sdu_len > 3 && n > 0) {
       if (pdu->new_subh()) { // there is space for a new subheader
         log_h->debug("SDU:   set_sdu(), lcid=%d, sdu_len=%d, sdu_space=%d\n", lcid, sdu_len, sdu_space);
         n = pdu->get()->set_sdu(lcid, sdu_len, this); 
@@ -364,8 +368,7 @@ uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[s
 {
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
-  if (rlc) 
-  {
+  if (rlc) {
     mac_msg_dl.init_tx(tx_payload_buffer[tb_idx], grant_size, false);
     for (uint32_t i=0;i<nof_pdu_elems;i++) {
       if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
@@ -379,7 +382,6 @@ uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[s
     
   } else {
     std::cout << "Error ue not configured (must call config() first" << std::endl; 
-    return NULL; 
   }
   
   pthread_mutex_unlock(&mutex);
