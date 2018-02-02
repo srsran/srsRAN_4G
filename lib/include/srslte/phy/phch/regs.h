@@ -63,8 +63,6 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
   uint32_t max_ctrl_symbols;
-  uint32_t cfi;
-  bool cfi_initiated;
   uint32_t ngroups_phich;
   
   srslte_phich_resources_t phich_res;
@@ -83,27 +81,30 @@ SRSLTE_API int srslte_regs_init(srslte_regs_t *h,
                                 srslte_cell_t cell);
 
 SRSLTE_API void srslte_regs_free(srslte_regs_t *h);
-SRSLTE_API int srslte_regs_set_cfi(srslte_regs_t *h, 
-                                   uint32_t nof_ctrl_symbols);
 
 
-SRSLTE_API uint32_t srslte_regs_pcfich_nregs(srslte_regs_t *h);
-SRSLTE_API int srslte_regs_pcfich_put(srslte_regs_t *h, 
-                               cf_t symbols[REGS_PCFICH_NSYM], 
-                               cf_t *slot_symbols);
+SRSLTE_API int srslte_regs_pdcch_nregs(srslte_regs_t *h,
+                                       uint32_t cfi);
+
+SRSLTE_API int srslte_regs_pdcch_ncce(srslte_regs_t *h,
+                                      uint32_t cfi);
+
+SRSLTE_API int srslte_regs_pcfich_put(srslte_regs_t *h,
+                                      cf_t symbols[REGS_PCFICH_NSYM],
+                                      cf_t *slot_symbols);
 
 SRSLTE_API int srslte_regs_pcfich_get(srslte_regs_t *h,
-                                      cf_t *slot_symbols, 
+                                      cf_t *slot_symbols,
                                       cf_t symbols[REGS_PCFICH_NSYM]);
 
 SRSLTE_API uint32_t srslte_regs_phich_nregs(srslte_regs_t *h);
-SRSLTE_API int srslte_regs_phich_add(srslte_regs_t *h, 
-                                     cf_t symbols[REGS_PHICH_NSYM], 
+SRSLTE_API int srslte_regs_phich_add(srslte_regs_t *h,
+                                     cf_t symbols[REGS_PHICH_NSYM],
                                      uint32_t ngroup, 
                                      cf_t *slot_symbols);
 
-SRSLTE_API int srslte_regs_phich_get(srslte_regs_t *h, 
-                                     cf_t *slot_symbols, 
+SRSLTE_API int srslte_regs_phich_get(srslte_regs_t *h,
+                                     cf_t *slot_symbols,
                                      cf_t symbols[REGS_PHICH_NSYM], 
                                      uint32_t ngroup);
 
@@ -111,28 +112,26 @@ SRSLTE_API uint32_t srslte_regs_phich_ngroups(srslte_regs_t *h);
 SRSLTE_API int srslte_regs_phich_reset(srslte_regs_t *h, 
                                        cf_t *slot_symbols);
 
-SRSLTE_API int srslte_regs_pdcch_nregs(srslte_regs_t *h, 
-                                       uint32_t cfi);
-
-SRSLTE_API int srslte_regs_pdcch_ncce(srslte_regs_t *h, 
-                                      uint32_t cfi); 
-
-SRSLTE_API int srslte_regs_pdcch_put(srslte_regs_t *h, 
-                                     cf_t *d, 
+SRSLTE_API int srslte_regs_pdcch_put(srslte_regs_t *h,
+                                     uint32_t cfi,
+                                     cf_t *d,
                                      cf_t *slot_symbols);
 
-SRSLTE_API int srslte_regs_pdcch_put_offset(srslte_regs_t *h, 
-                                     cf_t *d, 
-                                     cf_t *slot_symbols, 
-                                     uint32_t start_reg, 
-                                     uint32_t nof_regs);
+SRSLTE_API int srslte_regs_pdcch_put_offset(srslte_regs_t *h,
+                                            uint32_t cfi,
+                                            cf_t *d,
+                                            cf_t *slot_symbols,
+                                            uint32_t start_reg,
+                                            uint32_t nof_regs);
 
-SRSLTE_API int srslte_regs_pdcch_get(srslte_regs_t *h, 
-                                     cf_t *slot_symbols, 
+SRSLTE_API int srslte_regs_pdcch_get(srslte_regs_t *h,
+                                     uint32_t cfi,
+                                     cf_t *slot_symbols,
                                      cf_t *d);
 
-SRSLTE_API int srslte_regs_pdcch_get_offset(srslte_regs_t *h, 
-                                            cf_t *slot_symbols, 
+SRSLTE_API int srslte_regs_pdcch_get_offset(srslte_regs_t *h,
+                                            uint32_t cfi,
+                                            cf_t *slot_symbols,
                                             cf_t *d, 
                                             uint32_t start_reg, 
                                             uint32_t nof_regs);
