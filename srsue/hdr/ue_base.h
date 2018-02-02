@@ -156,6 +156,8 @@ public:
   virtual void stop() = 0;
   virtual bool is_attached() = 0;
   virtual void start_plot() = 0;
+
+  virtual void radio_overflow() = 0;
   
   void handle_rf_msg(srslte_rf_error_t error);
 
