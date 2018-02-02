@@ -910,7 +910,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t tm, uint32_t cfi,
 
     current_ss->format = format;
     if ((ret = dci_blind_search(q, current_ss, rnti, cfi, dci_msg))) {
-      return ret; 
+      return ret;
     }
   }
 

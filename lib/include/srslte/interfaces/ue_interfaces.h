@@ -161,7 +161,7 @@ public:
   virtual void out_of_sync() = 0;
   virtual void earfcn_end() = 0;
   virtual void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) = 0;
-  virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn = 0, uint32_t pci = 0) = 0;
+  virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1) = 0;
 };
 
 // RRC interface for NAS
