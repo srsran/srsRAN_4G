@@ -291,6 +291,13 @@ private:
   // Sync metrics
   sync_metrics_t        metrics;
 
+  // in-sync / out-of-sync counters
+  uint32_t out_of_sync_cnt;
+  uint32_t in_sync_cnt;
+
+  const static uint32_t NOF_OUT_OF_SYNC_SF = 200;
+  const static uint32_t NOF_IN_SYNC_SF     = 100;
+
   // State for primary cell
   enum {
     IDLE = 0,

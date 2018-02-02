@@ -117,7 +117,6 @@ int security_command_test()
 
   usim_args_t args;
   args.algo = "xor";
-  args.amf = "9001";
   args.imei = "353490069873319";
   args.imsi = "001010123456789";
   args.k = "00112233445566778899aabbccddeeff";
@@ -179,7 +178,6 @@ int mme_attach_request_test()
   srsue::usim usim;
   usim_args_t args;
   args.algo = "xor";
-  args.amf = "9001";
   args.imei = "353490069873319";
   args.imsi = "001010123456789";
   args.k = "00112233445566778899aabbccddeeff";

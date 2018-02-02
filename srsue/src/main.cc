@@ -124,7 +124,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
     ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator variant")
-    ("usim.amf", bpo::value<string>(&args->usim.amf), "USIM authentication management field")
     ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
