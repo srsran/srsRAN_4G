@@ -231,7 +231,7 @@ static rf_dev_t dev_dummy = {
 #include "rf_sock_imp.h"
 
 static rf_dev_t dev_sock = {
-  .name                              = "sock", 
+  .name                              = "sockrf", 
   .srslte_rf_devname                 = rf_sock_devname,
   .srslte_rf_rx_wait_lo_locked       = rf_sock_rx_wait_lo_locked,
   .srslte_rf_start_rx_stream         = rf_sock_start_rx_stream,

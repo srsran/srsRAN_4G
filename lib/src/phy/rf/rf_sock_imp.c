@@ -50,7 +50,7 @@ static bool rf_sock_log_dbug  = true;
 static bool rf_sock_log_info  = true;
 static bool rf_sock_log_warn  = true;
 
-#define RF_SOCK_LOG_FMT "%02d:%02d:%02d.%06ld [SOCK] [%c] [%05hu] %s,  "
+#define RF_SOCK_LOG_FMT "%02d:%02d:%02d.%06ld [SKRF] [%c] [%05hu] %s,  "
 
 #define RF_SOCK_WARN(_fmt, ...) do {                                                                       \
                                  if(rf_sock_log_warn) {                                                    \
@@ -119,7 +119,7 @@ static bool rf_sock_log_warn  = true;
 
 #define RF_SOCK_MC_ADDR "224.4.3.2"
 #define RF_SOCK_MC_DEV  "lo"  // XXX_TODO get from args if running on multiple hosts/containers
-#define RF_SOCK_SOCK_BUFF_SIZE (128 * 1024)
+#define RF_SOCK_SOCK_BUFF_SIZE (256 * 1024)
 
 // bytes per sample
 #define BYTES_PER_SAMPLE(x) ((x)*sizeof(cf_t))
@@ -170,6 +170,7 @@ typedef struct {
 
 typedef struct {
    char *               dev_name;
+   int                  nodetype;
    double               rx_gain;
    double               tx_gain;
    double               rx_srate;
@@ -181,7 +182,6 @@ typedef struct {
    double               clock_rate;
    void (*error_handler)(srslte_rf_error_t error);
    bool                 rx_stream;
-   int                  nodetype;
    int                  tx_handle;
    int                  rx_handle;
    bool                 rx_blocking;
@@ -227,6 +227,7 @@ static void rf_sock_handle_error(srslte_rf_error_t error)
 
 
 static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
+                                        .nodetype        = RF_SOCK_NTYPE_NONE,
                                         .rx_gain         = 0.0,
                                         .tx_gain         = 0.0,
                                         .rx_srate        = 0.0,
@@ -238,7 +239,6 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .clock_rate      = 0.0,
                                         .error_handler   = rf_sock_handle_error,
                                         .rx_stream       = false,
-                                        .nodetype        = RF_SOCK_NTYPE_NONE,
                                         .tx_handle       = -1,
                                         .rx_handle       = -1,
                                         .rx_blocking     = false,
@@ -323,7 +323,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
    const int nbytes_to_rx = iov[0].iov_len + iov[1].iov_len;
 
-   // rx window if non-blocking
+   // rx window if non-blocking (enb)
    if(! _info->rx_blocking)
      {
        fd_set rfds;
@@ -332,19 +332,19 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
        FD_SET(_info->rx_handle, &rfds);
 
-       struct timeval tv_now, delta_t, tv_timeout;
+       struct timeval tv_now, tv_diff, tv_timeout;
 
        timersub(&(_info->tv_next_tti), &tv_rx_window, &tv_timeout);
 
        gettimeofday(&tv_now, NULL);
 
-       timersub(&tv_timeout, &tv_now, &delta_t);
+       timersub(&tv_timeout, &tv_now, &tv_diff);
 
        if(timercmp(&tv_timeout, &tv_zero, >))
          {
-           RF_SOCK_DBUG("RX waiting %ld:%06ld", delta_t.tv_sec, delta_t.tv_usec);
+           RF_SOCK_DBUG("RX waiting %ld:%06ld", tv_diff.tv_sec, tv_diff.tv_usec);
 
-           if(select(_info->rx_handle + 1, &rfds, NULL, NULL, &delta_t) <= 0 ||
+           if(select(_info->rx_handle + 1, &rfds, NULL, NULL, &tv_diff) <= 0 ||
                     (! FD_ISSET(_info->rx_handle, &rfds)))
             {
               return 0;
@@ -352,7 +352,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
          }
        else
          {
-           RF_SOCK_WARN("RX wait time missed %ld:%06ld", delta_t.tv_sec, delta_t.tv_usec);
+           RF_SOCK_WARN("RX window missed overrun %ld:%06ld", tv_diff.tv_sec, tv_diff.tv_usec);
          }
      }
 
@@ -410,11 +410,11 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * tx_worker, uint64_t seqn)
    struct iovec iov[2] = { {(void*)&(hdr),              sizeof(hdr)},
                            {(void*)tx_info->cf_data[0], nbytes_in }};
 
-   struct timeval tv_tx, tx_delay;
+   struct timeval tv_txtime, tx_delay;
 
    const int rc = rf_sock_vecio_send(_info, iov);
 
-   gettimeofday(&tv_tx, NULL);
+   gettimeofday(&tv_txtime, NULL);
 
    if(rc <= 0)
      {
@@ -422,15 +422,18 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * tx_worker, uint64_t seqn)
      }
    else
      {
-       timersub(&tv_tx, &(tx_info->tx_time), &tx_delay);
+       timersub(&tv_txtime, &(tx_info->tx_time), &tx_delay);
 
-       RF_SOCK_DBUG("TX seqn %lu, tx_worker %02d, tx_delay %ld:%06ld, out %d/%d", 
-                     seqn,
-                     tx_worker->id,
-                     tx_delay.tv_sec,
-                     tx_delay.tv_usec,
-                     tx_info->nsamples,
-                     nbytes_in);
+       if(timercmp(&tx_delay, &tv_tti_step, >=))
+         {
+           RF_SOCK_WARN("TX seqn %lu, tx_worker %02d, tx_overrun %ld:%06ld, out %d/%d", 
+                         seqn,
+                         tx_worker->id,
+                         tx_delay.tv_sec,
+                         tx_delay.tv_usec,
+                         tx_info->nsamples,
+                         nbytes_in);
+         }
      }
 }
 
@@ -1067,7 +1070,7 @@ double rf_sock_set_rx_srate(void *h, double rate)
  {
    GET_DEV_INFO(h);
 
-   RF_SOCK_INFO("rate %4.2lf MHz to %4.2lf MHz", 
+   RF_SOCK_INFO("srate %4.2lf MHz to %4.2lf MHz", 
                  _info->rx_srate / 1e6, rate / 1e6);
 
    _info->rx_srate = rate;
@@ -1080,7 +1083,7 @@ double rf_sock_set_tx_srate(void *h, double rate)
  {
    GET_DEV_INFO(h);
 
-   RF_SOCK_INFO("freq %4.2lf MHz to %4.2lf MHz", 
+   RF_SOCK_INFO("srate %4.2lf MHz to %4.2lf MHz", 
                  _info->tx_srate / 1e6, rate / 1e6);
 
    _info->tx_srate = rate;
@@ -1134,7 +1137,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    pthread_mutex_lock(&(_info->rx_lock));
 
-   struct timeval tv_in, sockrx_time, ipc_delay, tv_diff;
+   struct timeval tv_in, tv_rx_time, tv_tot_delay, tv_diff;
 
    gettimeofday(&tv_in, NULL);
 
@@ -1160,9 +1163,9 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                         tv_diff.tv_usec);
         }
 
-        do{ // makeup any over runs here
+       do{ // makeup any over runs here
            timeradd(&(_info->tv_next_tti), &tv_tti_step, &(_info->tv_next_tti));
-        } while(timercmp(&tv_in, &(_info->tv_next_tti), >=));
+         } while(timercmp(&tv_in, &(_info->tv_next_tti), >=));
      }
 
    // set rx_timestamp to begin time of this new tti
@@ -1193,7 +1196,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
        const int rc = rf_sock_vecio_recv(h, iov);
 
-       gettimeofday(&sockrx_time, NULL);
+       gettimeofday(&tv_rx_time, NULL);
 
        if(rc <= 0)
         {
@@ -1201,7 +1204,6 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
             {
               RF_SOCK_WARN("recv error %s", strerror(errno));
             }
-
            goto rxout;
         }
       else
@@ -1210,12 +1212,30 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          if(nbytes_rx != hdr.msglen)
            {
-             RF_SOCK_WARN("RX seqn %lu, len error expected %d, got %d, DROP", 
+             RF_SOCK_WARN("RX seqn %lu, msglen error expected %d, got %d, DROP", 
                            hdr.seqnum, hdr.msglen, nbytes_rx);
 
              goto rxout;
            }
        
+         timersub(&tv_rx_time, &(hdr.tx_time), &tv_tot_delay);
+
+         if(timercmp(&tv_tot_delay, &tv_tti_step, >=))
+           {
+             RF_SOCK_WARN("RX seqn %lu, msg_len %d, tx_time %ld:%06ld, tot_delay %ld:%06ld > %ld:%06ld",
+                           hdr.seqnum,
+                           nbytes_rx,
+                           hdr.tx_time.tv_sec,
+                           hdr.tx_time.tv_usec,
+                           tv_tot_delay.tv_sec,
+                           tv_tot_delay.tv_usec,
+                           tv_tti_step.tv_sec,
+                           tv_tti_step.tv_usec);
+           }
+
+         // use tx time tag as the rx time 
+         rx_timestamp = hdr.tx_time;
+
          const int nsamples_rx = SAMPLES_PER_BYTE(nbytes_rx);
 
          int nsamples_out = nsamples_rx;
@@ -1240,24 +1260,10 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
          nbytes_pending -= nbytes_out;
 
          nsamples_pending -= nsamples_out;
-
-         timersub(&sockrx_time, &(hdr.tx_time), &ipc_delay);
-
-         // use tx time tag as the rx time 
-         rx_timestamp = hdr.tx_time;
-
-         RF_SOCK_DBUG("RX seqn %lu, msg_len %d, tx_time %ld:%06ld, ipc_delay %ld:%06ld",
-                           hdr.seqnum,
-                           nbytes_rx,
-                           hdr.tx_time.tv_sec,
-                           hdr.tx_time.tv_usec,
-                           ipc_delay.tv_sec,
-                           ipc_delay.tv_usec);
        }
     }
 
 rxout:
-
    RF_SOCK_DBUG("RX nreq %d/%d, out %d/%d",
                  nsamples,
                  nbytes_to_rx, 
