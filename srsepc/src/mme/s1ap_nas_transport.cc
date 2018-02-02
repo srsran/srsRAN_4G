@@ -117,7 +117,6 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     }
     handle_nas_attach_request(enb_ue_s1ap_id, attach_req,pdn_con_req,reply_buffer,reply_flag, enb_sri);
   }
-  /*
   else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST)
   {
     m_s1ap_log->info("Received Service Request \n");
@@ -125,7 +124,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &service_req); 
     handle_nas_service_request(enb_ue_s1ap_id, attach_req,pdn_con_req,reply_buffer,reply_flag, enb_sri);
     return false;
-  }*/
+  }
   m_pool->deallocate(nas_msg);
 
   return true;
@@ -424,7 +423,6 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
   return true;
 }
 
-  /*
 bool
 s1ap_nas_transport::handle_nas_service_request(uint32_t enb_ue_s1ap_id,
                                               const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
@@ -433,8 +431,70 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t enb_ue_s1ap_id,
                                               bool* reply_flag,
                                               struct sctp_sndrcvinfo *enb_sri)
 {
+  m_s1ap_log->warning("Service Request not handled yet\n");
+  m_s1ap_log->console("Service Request not handled yet\n");
 
-}*/
+  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
+
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = 16;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+
+  LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT serv_rej;
+  serv_rej.t3442_present = false;
+  serv_rej.t3446_present = false;
+  serv_rej.emm_cause = 9; //UE Identity cannot be derived by the network 
+
+  uint8_t sec_hdr_type = 2;
+  uint32_t count = 0 ;
+  LIBLTE_ERROR_ENUM err;
+  err = liblte_mme_pack_service_reject_msg(&serv_rej, sec_hdr_type, count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Athentication Reject\n");
+    m_s1ap_log->console("Error packing Athentication Reject\n");
+    return false;
+  }
+
+  //Copy NAS PDU to Downlink NAS Trasport message buffer
+  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
+
+  //Pack Downlink NAS Transport Message
+  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Athentication Request\n");
+    m_s1ap_log->console("Error packing Athentication Request\n");
+    return false;
+  }
+
+
+
+  bool send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid);
+  m_pool->deallocate(nas_buffer);
+
+  //Send reply to eNB
+  *reply_flag = true;
+  m_s1ap_log->info("Downlink NAS: Sending Athentication Request\n");
+  m_s1ap_log->console("Downlink NAS: Sending Athentication Request\n");
+  return true;
+}
 
 bool
 s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
@@ -1063,11 +1123,16 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
                     attach_accept.guti.guti.mme_code,
                     attach_accept.guti.guti.m_tmsi);
 
+
+  attach_accept.t3402_present=true;
+  attach_accept.t3402.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
+  attach_accept.t3402.value = 30;                                    // 30 minute periodic timer
+  
   //Make sure all unused options are set to false
   attach_accept.lai_present=false;
   attach_accept.ms_id_present=false;
   attach_accept.emm_cause_present=false;
-  attach_accept.t3402_present=false;
+  //attach_accept.t3402_present=false;
   attach_accept.t3423_present=false;
   attach_accept.equivalent_plmns_present=false;
   attach_accept.emerg_num_list_present=false;
