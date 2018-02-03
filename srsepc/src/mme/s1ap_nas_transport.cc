@@ -250,11 +250,11 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
 
   //Save UE network capabilities
-  memcpy(&ue_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
-  ue_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
+  memcpy(&ue_ctx.security_ctxt.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
+  ue_ctx.security_ctxt.ms_network_cap_present =  attach_req.ms_network_cap_present;
   if(attach_req.ms_network_cap_present)
   {
-    memcpy(&ue_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+    memcpy(&ue_ctx.security_ctxt.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
   }
   uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
   ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
@@ -345,11 +345,11 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
     ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
 
     //Save UE network capabilities
-    memcpy(&ue_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
-    ue_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
+    memcpy(&ue_ctx.security_ctxt.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
+    ue_ctx.security_ctxt.ms_network_cap_present =  attach_req.ms_network_cap_present;
     if(attach_req.ms_network_cap_present)
     {
-      memcpy(&ue_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+      memcpy(&ue_ctx.security_ctxt.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
     }
     uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
     ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
@@ -863,14 +863,14 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   sm_cmd.nas_ksi.nas_ksi=0; 
 
   //Replay UE security cap
-  memcpy(sm_cmd.ue_security_cap.eea,ue_ctx->ue_network_cap.eea,8*sizeof(bool));
-  memcpy(sm_cmd.ue_security_cap.eia,ue_ctx->ue_network_cap.eia,8*sizeof(bool));
-  sm_cmd.ue_security_cap.uea_present = ue_ctx->ue_network_cap.uea_present;
-  memcpy(sm_cmd.ue_security_cap.uea,ue_ctx->ue_network_cap.uea,8*sizeof(bool));
-  sm_cmd.ue_security_cap.uia_present = ue_ctx->ue_network_cap.uia_present;
-  memcpy(sm_cmd.ue_security_cap.uia,ue_ctx->ue_network_cap.uia,8*sizeof(bool));
-  sm_cmd.ue_security_cap.gea_present = ue_ctx->ms_network_cap_present;
-  memcpy(sm_cmd.ue_security_cap.gea,ue_ctx->ms_network_cap.gea,8*sizeof(bool));
+  memcpy(sm_cmd.ue_security_cap.eea,ue_ctx->security_ctxt.ue_network_cap.eea,8*sizeof(bool));
+  memcpy(sm_cmd.ue_security_cap.eia,ue_ctx->security_ctxt.ue_network_cap.eia,8*sizeof(bool));
+  sm_cmd.ue_security_cap.uea_present = ue_ctx->security_ctxt.ue_network_cap.uea_present;
+  memcpy(sm_cmd.ue_security_cap.uea,ue_ctx->security_ctxt.ue_network_cap.uea,8*sizeof(bool));
+  sm_cmd.ue_security_cap.uia_present = ue_ctx->security_ctxt.ue_network_cap.uia_present;
+  memcpy(sm_cmd.ue_security_cap.uia,ue_ctx->security_ctxt.ue_network_cap.uia,8*sizeof(bool));
+  sm_cmd.ue_security_cap.gea_present = ue_ctx->security_ctxt.ms_network_cap_present;
+  memcpy(sm_cmd.ue_security_cap.gea,ue_ctx->security_ctxt.ms_network_cap.gea,8*sizeof(bool));
 
   sm_cmd.imeisv_req_present=false;
   sm_cmd.nonce_ue_present=false;
