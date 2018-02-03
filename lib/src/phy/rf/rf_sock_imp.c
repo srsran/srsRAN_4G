@@ -287,7 +287,7 @@ static int rf_sock_resample(double srate_in,
  
   srslte_resample_arb_t r;
 
-  srslte_resample_arb_init(&r, sratio, 1);
+  srslte_resample_arb_init(&r, sratio, 0);
 
   const int nsamples_out = srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, nsamples_in);
 
@@ -356,7 +356,11 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
          }
      }
 
-   const int rc = readv(_info->rx_handle, iov, 2);
+   int rc = 0;
+
+   do {
+       rc = readv(_info->rx_handle, iov, 2);
+     } while( ! _info->rx_stream);
 
    if(rc < 0)
      {
@@ -1170,6 +1174,8 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
          } while(timercmp(&tv_in, &(_info->tv_next_tti), >=));
      }
 
+pthread_mutex_unlock(&(_info->rx_lock));
+
    // set rx_timestamp to begin time of this new tti
    struct timeval rx_timestamp;
 
@@ -1271,8 +1277,6 @@ rxout:
                  nbytes_to_rx, 
                  nsamples - nsamples_pending,
                  nbytes_to_rx   - nbytes_pending);
-
-   pthread_mutex_unlock(&(_info->rx_lock));
 
    rf_sock_tv_to_ts(&rx_timestamp, full_secs, frac_secs);
 
