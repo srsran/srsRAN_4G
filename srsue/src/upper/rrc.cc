@@ -492,8 +492,6 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
     // Set new serving cell
     serving_cell = new_serving_cell;
 
-    printf("Setting new serving cell idx=%d, PCI=%d, nof_neighbours=%d\n",
-           cell_idx, serving_cell->phy_cell.id, neighbour_cells.size());
     rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, nof_neighbours=%d\n",
                   cell_idx, serving_cell->earfcn, serving_cell->phy_cell.id, neighbour_cells.size());
 
