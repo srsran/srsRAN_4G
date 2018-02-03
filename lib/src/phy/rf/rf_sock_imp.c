@@ -139,14 +139,16 @@ static bool rf_sock_log_warn  = true;
 #define RF_SOCK_NTYPE_ENB   (2)
 
 // tx offset (delay) workers
-#define RF_SOCK_NOF_TX_WORKERS (16)
+#define RF_SOCK_NOF_TX_WORKERS (8)
 #define RF_SOCK_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_SOCK_NOF_TX_WORKERS)
 
 #define FAUX_TIME_SCALE 1
 
-static const struct timeval tv_rx_window = {0, 1000 * FAUX_TIME_SCALE / 2}; // rx op before next tti
-static const struct timeval tv_zero      = {0, 0};
-static const struct timeval tv_tti_step  = {0, FAUX_TIME_SCALE * 1000};
+#define RF_SOCK_IS_LATE(tv, s, u) ((tv).tv_sec > (s) || (tv).tv_usec > (u))
+
+static const struct timeval tv_window   = {0, 1000 * FAUX_TIME_SCALE / 4}; // rx op before next tti
+static const struct timeval tv_zero     = {0, 0};
+static const struct timeval tv_tti_step = {0, FAUX_TIME_SCALE * 1000};
 
 typedef struct {
   void *   h;
@@ -196,6 +198,7 @@ typedef struct {
    struct timeval       tv_sos;   // start of stream
    struct timeval       tv_next_tti;
    int                  rx_n_tries;
+   int                  rx_seqnum;
 } rf_sock_info_t;
 
 
@@ -251,6 +254,7 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .tv_sos          = {0,0},
                                         .tv_next_tti     = {0,0},
                                         .rx_n_tries      = 0,
+                                        .rx_seqnum       = -1,
                                       };
 
 // could just as well use rf_sock_info for single antenna mode
@@ -334,7 +338,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
        struct timeval tv_now, tv_diff, tv_timeout;
 
-       timersub(&(_info->tv_next_tti), &tv_rx_window, &tv_timeout);
+       timersub(&_info->tv_next_tti, &tv_window, &tv_timeout);
 
        gettimeofday(&tv_now, NULL);
 
@@ -350,17 +354,15 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
               return 0;
             }
          }
-       else
-         {
-           RF_SOCK_WARN("RX window missed overrun %ld:%06ld", tv_diff.tv_sec, tv_diff.tv_usec);
-         }
      }
 
    int rc = 0;
 
    do {
        rc = readv(_info->rx_handle, iov, 2);
-     } while( ! _info->rx_stream);
+
+     } while(! _info->rx_stream);
+
 
    if(rc < 0)
      {
@@ -397,47 +399,28 @@ static int rf_sock_vecio_send(void *h, struct iovec iov[2])
 
 
 
-void rf_sock_send_msg(rf_sock_tx_worker_t * tx_worker, uint64_t seqn)
+void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
 {
-   GET_DEV_INFO(tx_worker->tx_info->h);
+   GET_DEV_INFO(worker->tx_info->h);
 
-   rf_sock_tx_info_t * tx_info = tx_worker->tx_info;
+   rf_sock_tx_info_t * tx_info = worker->tx_info;
 
    const int nbytes_in = BYTES_PER_SAMPLE(tx_info->nsamples);
 
    const rf_sock_iohdr_t hdr = { seqn, 
                                  nbytes_in,
                                  _info->tx_srate,
-                                 tx_info->tx_time
+                                 tx_info->tx_time,
                                };
 
-   struct iovec iov[2] = { {(void*)&(hdr),              sizeof(hdr)},
+   struct iovec iov[2] = { {(void*)&hdr,                sizeof(hdr)},
                            {(void*)tx_info->cf_data[0], nbytes_in }};
 
-   struct timeval tv_txtime, tx_delay;
-
    const int rc = rf_sock_vecio_send(_info, iov);
-
-   gettimeofday(&tv_txtime, NULL);
 
    if(rc <= 0)
      {
        RF_SOCK_WARN("send reqlen %d, error %s", nbytes_in, strerror(errno));
-     }
-   else
-     {
-       timersub(&tv_txtime, &(tx_info->tx_time), &tx_delay);
-
-       if(timercmp(&tx_delay, &tv_tti_step, >=))
-         {
-           RF_SOCK_WARN("TX seqn %lu, tx_worker %02d, tx_overrun %ld:%06ld, out %d/%d", 
-                         seqn,
-                         tx_worker->id,
-                         tx_delay.tv_sec,
-                         tx_delay.tv_usec,
-                         tx_info->nsamples,
-                         nbytes_in);
-         }
      }
 }
 
@@ -445,11 +428,11 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * tx_worker, uint64_t seqn)
 
 static void * rf_sock_tx_worker_proc(void * arg)
 {
-   rf_sock_tx_worker_t * tx_worker = (rf_sock_tx_worker_t*) arg;
+   rf_sock_tx_worker_t * worker = (rf_sock_tx_worker_t*) arg;
 
-   GET_DEV_INFO(tx_worker->h);
+   GET_DEV_INFO(worker->h);
 
-   RF_SOCK_DBUG("tx_worker %02d created, ready for duty", tx_worker->id);
+   RF_SOCK_DBUG("worker %02d created, ready for duty", worker->id);
 
    struct timeval tv_now, tv_diff;
 
@@ -457,43 +440,44 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
    while(running)
      {
-       sem_wait(&(tx_worker->sem));
+       sem_wait(&(worker->sem));
 
        gettimeofday(&tv_now, NULL);
 
-       timersub(&(tx_worker->tx_info->tx_time), &tv_now, &tv_diff);
+       timersub(&worker->tx_info->tx_time, &tv_now, &tv_diff);
 
        if(timercmp(&tv_diff, &tv_zero, >))
          {
-           RF_SOCK_DBUG("tx_worker %02d, apply tx_delay %ld:%06ld", 
-                        tx_worker->id,
+           RF_SOCK_DBUG("worker %02d, apply delay %ld:%06ld", 
+                        worker->id,
                         tv_diff.tv_sec,
                         tv_diff.tv_usec);
 
            select(0, NULL, NULL, NULL, &tv_diff);
          }
-       else
-         {
-           timersub(&tv_now, &(tx_worker->tx_info->tx_time), &tv_diff);
 
-           RF_SOCK_WARN("tx_worker %02d, tx_overrun %ld:%06ld", 
-                         tx_worker->id,
-                         tv_diff.tv_sec,
-                         tv_diff.tv_usec);
+       pthread_mutex_lock(&_info->tx_workers_lock);
+
+       gettimeofday(&tv_now, NULL);
+
+       timersub(&tv_now, &worker->tx_info->tx_time, &tv_diff);
+
+       if(RF_SOCK_IS_LATE(tv_diff, 1, 1000))
+         {
+           RF_SOCK_WARN("worker %02d, overrun %ld:%06ld", 
+                        worker->id,
+                        tv_diff.tv_sec,
+                        tv_diff.tv_usec);
          }
 
-        pthread_mutex_lock(&(_info->tx_workers_lock));
+       rf_sock_send_msg(worker, _info->tx_seqn++);
 
-        RF_SOCK_DBUG("TX fire ***** tx_worker %02d *****", tx_worker->id);
+       _info->tx_nof_workers -= 1;
 
-        rf_sock_send_msg(tx_worker, (_info->tx_seqn)++);
+       worker->is_pending = false;
 
-        _info->tx_nof_workers -= 1;
-
-        tx_worker->is_pending = false;
-
-        pthread_mutex_unlock(&(_info->tx_workers_lock));
-     }
+       pthread_mutex_unlock(&_info->tx_workers_lock);
+    }     
 
    return NULL;
 }
@@ -815,9 +799,9 @@ int rf_sock_start_rx_stream(void *h, bool now)
  {
    GET_DEV_INFO(h);
    
-   pthread_mutex_lock(&(_info->rx_lock));
+   pthread_mutex_lock(&_info->rx_lock);
 
-   gettimeofday(&(_info->tv_sos), NULL);
+   gettimeofday(&_info->tv_sos, NULL);
 
    if(rf_sock_is_enb(_info))
     {
@@ -827,7 +811,7 @@ int rf_sock_start_rx_stream(void *h, bool now)
       _info->tv_sos.tv_usec = 0;
 
       // set next tti time
-      timeradd(&(_info->tv_sos), &tv_tti_step, &(_info->tv_next_tti));
+      timeradd(&_info->tv_sos, &tv_tti_step, &_info->tv_next_tti);
 
       RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld, next_tti %ld:%06ld", 
                  _info->tv_sos.tv_sec, 
@@ -846,7 +830,7 @@ int rf_sock_start_rx_stream(void *h, bool now)
 
    _info->rx_stream = true;
 
-   pthread_mutex_unlock(&(_info->rx_lock));
+   pthread_mutex_unlock(&_info->rx_lock);
 
    return 0;
  }
@@ -856,13 +840,13 @@ int rf_sock_stop_rx_stream(void *h)
  {
    GET_DEV_INFO(h);
 
-   pthread_mutex_lock(&(_info->rx_lock));
+   pthread_mutex_lock(&_info->rx_lock);
 
    RF_SOCK_INFO("end rx stream");
 
    _info->rx_stream = false;
 
-   pthread_mutex_unlock(&(_info->rx_lock));
+   pthread_mutex_unlock(&_info->rx_lock);
 
    return 0;
  }
@@ -941,53 +925,53 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
 
    for(int id = 0; id < RF_SOCK_NOF_TX_WORKERS; ++id)
      {
-       rf_sock_tx_worker_t * tx_worker =  &(rf_sock_info.tx_workers[id]);
+       rf_sock_tx_worker_t * worker =  &rf_sock_info.tx_workers[id];
 
-       if(sem_init(&(tx_worker->sem), 0, 0) < 0)
+       if(sem_init(&(worker->sem), 0, 0) < 0)
          {
-           RF_SOCK_WARN("could not initialize tx_worker semaphore %s", strerror(errno));
+           RF_SOCK_WARN("could not initialize worker semaphore %s", strerror(errno));
 
            return -1;
          }
 
-       tx_worker->tx_info = malloc(sizeof(rf_sock_tx_info_t));
+       worker->tx_info = malloc(sizeof(rf_sock_tx_info_t));
 
-       if(tx_worker->tx_info == NULL)
+       if(worker->tx_info == NULL)
         {
-          RF_SOCK_WARN("FAILED to allocate memory for tx_worker %02d", tx_worker->id);
+          RF_SOCK_WARN("FAILED to allocate memory for worker %02d", worker->id);
 
           return -1;
         }
 
-       memset(tx_worker->tx_info, 0x0, sizeof(rf_sock_tx_info_t));
+       memset(worker->tx_info, 0x0, sizeof(rf_sock_tx_info_t));
 
-       tx_worker->is_pending = false;
-       tx_worker->id         = id;
-       tx_worker->h          = &rf_sock_info;
+       worker->is_pending = false;
+       worker->id         = id;
+       worker->h          = &rf_sock_info;
 
-       if(pthread_create(&(tx_worker->tid), 
+       if(pthread_create(&(worker->tid), 
                          NULL, 
                          rf_sock_tx_worker_proc, 
-                         tx_worker) < 0)
+                         worker) < 0)
         {
-           RF_SOCK_WARN("could not create tx_worker thread %s", strerror(errno));
+           RF_SOCK_WARN("could not create worker thread %s", strerror(errno));
 
            return -1;
         }
 
        const int policy = SCHED_FIFO;
 
-       const struct sched_param param = {sched_get_priority_max(policy)}; // XXX highest prio ???
+       const struct sched_param param = {sched_get_priority_max(policy)}; // XXX what prio ???
        
-       if(pthread_setschedparam(tx_worker->tid, policy, &param) < 0)
+       if(pthread_setschedparam(worker->tid, policy, &param) < 0)
         {
-           RF_SOCK_WARN("could not set tx_worker thread rt_priority %s", strerror(errno));
+           RF_SOCK_WARN("could not set worker thread rt_priority %s", strerror(errno));
 
            return -1;
         }
        else
         {
-           RF_SOCK_DBUG("set tx_worker thread priority/policy %d:%d", param.sched_priority, policy);
+           RF_SOCK_DBUG("set worker thread priority/policy %d:%d", param.sched_priority, policy);
         }
      }
 
@@ -1141,40 +1125,37 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
  {
    GET_DEV_INFO(h);
 
-   pthread_mutex_lock(&(_info->rx_lock));
-
-   struct timeval tv_in, tv_rx_time, tv_tot_delay, tv_diff;
+   struct timeval tv_in, tv_now, tv_rx_time, tv_diff;
 
    gettimeofday(&tv_in, NULL);
 
    if(rf_sock_is_enb(_info))
      {
-       timersub(&(_info->tv_next_tti), &tv_in, &tv_diff);
+       timersub(&_info->tv_next_tti, &tv_in, &tv_diff);
 
        // throttle back enb for new tti
        if(timercmp(&tv_diff, &tv_zero, >))
         {
           select(0, NULL, NULL, NULL, &tv_diff);
         }
-       else
-        {
-          timersub(&tv_in, &(_info->tv_next_tti), &tv_diff);
 
-          RF_SOCK_WARN("tv_in %ld:%06ld, tv_next_tti %ld:%06ld, tti_overrun %ld:%06ld",
-                        tv_in.tv_sec,
-                        tv_in.tv_usec,
-                        _info->tv_next_tti.tv_sec,
-                        _info->tv_next_tti.tv_usec,
-                        tv_diff.tv_sec,
-                        tv_diff.tv_usec);
-        }
+        gettimeofday(&tv_now, NULL);
 
-       do{ // makeup any over runs here
-           timeradd(&(_info->tv_next_tti), &tv_tti_step, &(_info->tv_next_tti));
-         } while(timercmp(&tv_in, &(_info->tv_next_tti), >=));
+        timersub(&tv_now, &_info->tv_next_tti, &tv_diff);
+
+        if(RF_SOCK_IS_LATE(tv_diff, 1, 500))
+         {
+           RF_SOCK_WARN("tv_tti %ld:%06ld, overrun %ld:%06ld",
+                         _info->tv_next_tti.tv_sec,
+                         _info->tv_next_tti.tv_usec,
+                         tv_diff.tv_sec,
+                         tv_diff.tv_usec);
+         }
+
+        do{ // makeup any over runs here
+           timeradd(&_info->tv_next_tti, &tv_tti_step, &_info->tv_next_tti);
+        } while(timercmp(&tv_in, &_info->tv_next_tti, >=));
      }
-
-pthread_mutex_unlock(&(_info->rx_lock));
 
    // set rx_timestamp to begin time of this new tti
    struct timeval rx_timestamp;
@@ -1216,7 +1197,7 @@ pthread_mutex_unlock(&(_info->rx_lock));
         }
       else
        {
-         int nbytes_rx = rc - sizeof(hdr);
+         const int nbytes_rx = rc - sizeof(hdr);
 
          if(nbytes_rx != hdr.msglen)
            {
@@ -1225,20 +1206,28 @@ pthread_mutex_unlock(&(_info->rx_lock));
 
              goto rxout;
            }
-       
-         timersub(&tv_rx_time, &(hdr.tx_time), &tv_tot_delay);
 
-         if(timercmp(&tv_tot_delay, &tv_tti_step, >=))
+         const uint64_t seqn = _info->rx_seqn + 1;
+
+          if(seqn != hdr.seqnum)
            {
-             RF_SOCK_WARN("RX seqn %lu, msg_len %d, tx_time %ld:%06ld, tot_delay %ld:%06ld > %ld:%06ld",
+             RF_SOCK_WARN("RX seqn %lu, expected %lu,", 
+                           hdr.seqnum, seqn);
+           }
+
+         _info->rx_seqn = hdr.seqnum;
+     
+         timersub(&tv_rx_time, &hdr.tx_time, &tv_diff);
+
+         if(RF_SOCK_IS_LATE(tv_diff, 1, 1000))
+           {
+             RF_SOCK_DBUG("RX seqn %lu, msg_len %d, tx_time %ld:%06ld, tot_delay %ld:%06ld",
                            hdr.seqnum,
                            nbytes_rx,
                            hdr.tx_time.tv_sec,
                            hdr.tx_time.tv_usec,
-                           tv_tot_delay.tv_sec,
-                           tv_tot_delay.tv_usec,
-                           tv_tti_step.tv_sec,
-                           tv_tti_step.tv_usec);
+                           tv_diff.tv_sec,
+                           tv_diff.tv_usec);
            }
 
          // use tx time tag as the rx time 
@@ -1272,12 +1261,6 @@ pthread_mutex_unlock(&(_info->rx_lock));
     }
 
 rxout:
-   RF_SOCK_DBUG("RX nreq %d/%d, out %d/%d",
-                 nsamples,
-                 nbytes_to_rx, 
-                 nsamples - nsamples_pending,
-                 nbytes_to_rx   - nbytes_pending);
-
    rf_sock_tv_to_ts(&rx_timestamp, full_secs, frac_secs);
 
    return nsamples;
@@ -1313,25 +1296,25 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
 
    if(_info->tx_nof_workers >= RF_SOCK_NOF_TX_WORKERS)
      {
-       RF_SOCK_WARN("FAILED tx_worker pool full %d, DROP", RF_SOCK_NOF_TX_WORKERS);
+       RF_SOCK_WARN("FAILED worker pool full %d, DROP", RF_SOCK_NOF_TX_WORKERS);
 
        goto txout;
      }
 
-   rf_sock_tx_worker_t * tx_worker = NULL;
+   rf_sock_tx_worker_t * worker = NULL;
 
-   // get next available tx_worker
-   while((tx_worker = &(_info->tx_workers[_info->tx_worker_next]))->is_pending)
+   // get next available worker
+   while((worker = &_info->tx_workers[_info->tx_worker_next])->is_pending)
     {
       RF_SOCK_SET_NEXT_WORKER(_info->tx_worker_next);
     }
 
-   rf_sock_tx_info_t * tx_info = tx_worker->tx_info;
+   rf_sock_tx_info_t * tx_info = worker->tx_info;
 
    // set the abs tx time
    if(has_time_spec)
      {
-       rf_sock_ts_to_tv(&(tx_info->tx_time), full_secs, frac_secs);
+       rf_sock_ts_to_tv(&tx_info->tx_time, full_secs, frac_secs);
      }
    else
      {
@@ -1343,18 +1326,18 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
    tx_info->nsamples   = nsamples;
    tx_info->is_sob     = is_sob;
    tx_info->is_eob     = is_eob;
-   tx_worker->is_pending = true;
+   worker->is_pending = true;
 
    _info->tx_nof_workers += 1;
  
-   RF_SOCK_DBUG("add tx_worker %02d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
-                  tx_worker->id,
+   RF_SOCK_DBUG("add worker %02d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
+                  worker->id,
                   has_time_spec ? "yes" : "no",
                   full_secs,
                   frac_secs,
                  _info->tx_nof_workers);
 
-   sem_post(&(tx_worker->sem));
+   sem_post(&(worker->sem));
 
 txout:
    pthread_mutex_unlock(&(_info->tx_workers_lock));
