@@ -88,10 +88,8 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
 
   //Get pointer to the HSS
   m_hss = hss::get_instance();
-
   //Get pointer to GTP-C class
   m_mme_gtpc = mme_gtpc::get_instance();
-
   //Initialize S1-MME
   m_s1mme = enb_listen();
 
@@ -122,49 +120,9 @@ s1ap::stop()
   return;
 }
 
-void
-s1ap::delete_enb_ctx(int32_t assoc_id)
-{
-  std::map<int32_t,uint16_t>::iterator it_assoc = m_sctp_to_enb_id.find(assoc_id);
-  uint16_t enb_id = it_assoc->second;
 
-  std::map<uint16_t,enb_ctx_t*>::iterator it_ctx = m_active_enbs.find(enb_id);
-  if(it_ctx == m_active_enbs.end() || it_assoc == m_sctp_to_enb_id.end())
-  {
-    m_s1ap_log->error("Could not find eNB to delete. Association: %d\n",assoc_id);
-    return;
-  }
 
-  m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
-  m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
 
-  //Delete connected UEs ctx
-  delete_ues_in_enb(enb_id);
-
-  //Delete eNB
-  delete it_ctx->second;
-  m_active_enbs.erase(it_ctx);
-  m_sctp_to_enb_id.erase(it_assoc);
- return;
-}
-
-void
-s1ap::delete_ues_in_enb(uint16_t enb_id)
-{
-  //delete UEs ctx
-  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
-  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
-  while(ue_id != ues_in_enb->second.end() )
-  {
-    std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_active_ues.find(*ue_id);
-    m_s1ap_log->info("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
-    m_s1ap_log->console("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
-    delete ue_ctx->second;             //delete UE context
-    m_active_ues.erase(ue_ctx);        //remove from general MME map 
-    ues_in_enb->second.erase(ue_id++); //erase from the eNB's UE set
-  }
-
-}
 
 int
 s1ap::get_s1_mme()
@@ -310,6 +268,80 @@ s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
   return true;
 }
 
+//eNB Context Managment
+void
+s1ap::add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo *enb_sri)
+{
+  m_s1ap_log->info("Adding new eNB context. eNB ID %d\n", enb_ctx.enb_id);
+  std::set<uint32_t> ue_set;
+  enb_ctx_t *enb_ptr = new enb_ctx_t;
+  memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx_t));
+  m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
+  m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
+  m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
+
+  return;
+}
+
+enb_ctx_t*
+s1ap::find_enb_ctx(uint16_t enb_id)
+{
+  std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.find(enb_id);
+  if(it == m_active_enbs.end())
+  {
+    return NULL;
+  }
+  else
+  {
+    return it->second;
+  }
+}
+
+void
+s1ap::delete_enb_ctx(int32_t assoc_id)
+{
+  std::map<int32_t,uint16_t>::iterator it_assoc = m_sctp_to_enb_id.find(assoc_id);
+  uint16_t enb_id = it_assoc->second;
+
+  std::map<uint16_t,enb_ctx_t*>::iterator it_ctx = m_active_enbs.find(enb_id);
+  if(it_ctx == m_active_enbs.end() || it_assoc == m_sctp_to_enb_id.end())
+  {
+    m_s1ap_log->error("Could not find eNB to delete. Association: %d\n",assoc_id);
+    return;
+  }
+
+  m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
+  m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
+
+  //Delete connected UEs ctx
+  delete_ues_in_enb(enb_id);
+
+  //Delete eNB
+  delete it_ctx->second;
+  m_active_enbs.erase(it_ctx);
+  m_sctp_to_enb_id.erase(it_assoc);
+  return;
+}
+
+
+//UE Context Management
+void
+s1ap::delete_ues_in_enb(uint16_t enb_id)
+{
+  //delete UEs ctx
+  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
+  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
+  while(ue_id != ues_in_enb->second.end() )
+  {
+    std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_active_ues.find(*ue_id);
+    m_s1ap_log->info("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
+    m_s1ap_log->console("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
+    delete ue_ctx->second;             //delete UE context
+    m_active_ues.erase(ue_ctx);        //remove from general MME map 
+    ues_in_enb->second.erase(ue_id++); //erase from the eNB's UE set
+  }
+
+}
 
 bool
 s1ap::delete_ue_ctx(ue_ctx_t *ue_ctx)
@@ -346,33 +378,9 @@ s1ap::delete_ue_ctx(ue_ctx_t *ue_ctx)
   return true;
 }
 
-enb_ctx_t*
-s1ap::find_enb_ctx(uint16_t enb_id)
-{
-  std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.find(enb_id);
-  if(it == m_active_enbs.end())
-  {
-    return NULL;
-  }
-  else
-  {
-    return it->second;
-  }
-}
 
-void
-s1ap::add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo *enb_sri)
-{
-  m_s1ap_log->info("Adding new eNB context. eNB ID %d\n", enb_ctx.enb_id);
-  std::set<uint32_t> ue_set;
-  enb_ctx_t *enb_ptr = new enb_ctx_t;
-  memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx_t));
-  m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
-  m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
-  m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
 
-  return;
-}
+
 
 ue_ctx_t*
 s1ap::find_ue_ctx(uint32_t mme_ue_s1ap_id)
