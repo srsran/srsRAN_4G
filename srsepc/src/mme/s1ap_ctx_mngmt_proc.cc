@@ -143,7 +143,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
   bzero(in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer,sizeof(uint8_t)*16); 
   for(int i = 0; i<3; i++)
   {
-    if(ue_ctx->ue_network_cap.eea[i+1] == true)
+    if(ue_ctx->security_ctxt.ue_network_cap.eea[i+1] == true)
     {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 1;          //EEA supported
     }
@@ -151,7 +151,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 0;          //EEA not supported
     }
-    if(ue_ctx->ue_network_cap.eia[i+1] == true)
+    if(ue_ctx->security_ctxt.ue_network_cap.eia[i+1] == true)
     {
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 1;          //EEA supported
     }
