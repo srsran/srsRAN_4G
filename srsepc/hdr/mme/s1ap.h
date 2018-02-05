@@ -81,6 +81,8 @@ public:
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
   ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
   void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
+  ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
+  ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
   bool delete_ue_ctx(ue_ctx_t *ue_ctx);
 
   uint32_t allocate_m_tmsi(uint32_t mme_ue_s1ap_id);
@@ -107,12 +109,13 @@ private:
   int m_s1mme;
   std::map<uint16_t, enb_ctx_t*>                    m_active_enbs;
   std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
-  std::map<uint32_t, ue_ctx_t*>                     m_active_ues;
+  std::map<uint64_t, ue_ctx_t*>                     m_imsi_to_ue_ctx;
+  std::map<uint32_t, uint64_t>                      m_mme_ue_s1ap_id_to_imsi;
   std::map<uint16_t,std::set<uint32_t> >            m_enb_id_to_ue_ids;
   uint32_t                                          m_next_mme_ue_s1ap_id;
   uint32_t                                          m_next_m_tmsi;
 
-  //FIXME the GTP-C should be moved to the MME class, the the packaging of GTP-C messages is done.
+  //FIXME the GTP-C should be moved to the MME class, when the packaging of GTP-C messages is done.
   mme_gtpc *m_mme_gtpc;
 };
 

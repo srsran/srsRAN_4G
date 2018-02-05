@@ -120,15 +120,18 @@ s1ap::stop()
   return;
 }
 
-
-
-
-
 int
 s1ap::get_s1_mme()
 {
   return m_s1mme;
 }
+
+uint32_t 
+s1ap::get_next_mme_ue_s1ap_id()
+{
+    return m_next_mme_ue_s1ap_id++;
+}
+
 
 int
 s1ap::enb_listen()
@@ -246,7 +249,7 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, enb_sri, 0);
     if(n_sent == -1)
     {
-      m_s1ap_log->console("Failed to send S1 Setup Setup Reply\n");
+      m_s1ap_log->console("Failed to send S1AP Initiating Message Reply\n");
       m_pool->deallocate(reply_buffer);
       return false;
     }
@@ -330,6 +333,31 @@ s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
 {
   ue_ctx_t *ue_ptr = new ue_ctx_t;
   memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
+
+  //This map will store the context of previously registered UEs
+  m_imsi_to_ue_ctx.insert(std::pair<uint64_t,ue_ctx_t*>(ue_ptr->imsi,ue_ptr));
+
+  //This will map UE's MME S1AP Id to the UE's IMSI, when they are not in the EMM-DERGISTERED state.
+  m_mme_ue_s1ap_id_to_imsi.insert(std::pair<uint32_t,uint64_t>(ue_ptr->mme_ue_s1ap_id,ue_ptr->imsi));
+
+  //Store which enb currently holds the UE
+  std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
+  uint16_t enb_id = it_enb->second;
+  std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
+  if(it_ue_id==m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find eNB's UEs\n");
+    return;
+  }
+  it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
+
+}
+  /*
+void
+s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
+{
+  ue_ctx_t *ue_ptr = new ue_ctx_t;
+  memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
   m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
 
   std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
@@ -343,12 +371,12 @@ s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
   it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
   return;
 }
-
+  */
 ue_ctx_t*
-s1ap::find_ue_ctx(uint32_t mme_ue_s1ap_id)
+s1ap::find_ue_ctx_from_imsi(uint64_t imsi)
 {
-  std::map<uint32_t, ue_ctx_t*>::iterator it = m_active_ues.find(mme_ue_s1ap_id);
-  if(it == m_active_ues.end())
+  std::map<uint64_t, ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.find(imsi);
+  if(it == m_imsi_to_ue_ctx.end())
   {
     return NULL;
   }
@@ -358,6 +386,19 @@ s1ap::find_ue_ctx(uint32_t mme_ue_s1ap_id)
   }
 }
 
+ue_ctx_t*
+s1ap::find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
+{
+  std::map<uint32_t, uint64_t>::iterator imsi_it = m_mme_ue_s1ap_id_to_imsi.find(mme_ue_s1ap_id);
+  if(imsi_it == m_mme_ue_s1ap_id_to_imsi.find(mme_ue_s1ap_id)) 
+  {
+    return NULL;
+  }
+  else
+  {
+    return find_ue_ctx_from_imsi(imsi_it->second);
+  }
+}
 void
 s1ap::delete_ues_in_enb(uint16_t enb_id)
 {
@@ -417,11 +458,7 @@ s1ap::delete_ue_ctx(ue_ctx_t *ue_ctx)
 
 
 
-uint32_t 
-s1ap::get_next_mme_ue_s1ap_id()
-{
-  return m_next_mme_ue_s1ap_id++;
-}
+
 
 void
 s1ap::activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi)
