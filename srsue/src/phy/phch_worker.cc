@@ -940,11 +940,16 @@ void phch_worker::set_uci_aperiodic_cqi()
           srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
           /* Set RI = 1 */
-          uci_data.uci_ri = ri;
-          uci_data.uci_ri_len = 1;
+          if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+              phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+            uci_data.uci_ri = ri;
+            uci_data.uci_ri_len = 1;
+          } else {
+            uci_data.uci_ri_len = 0;
+          }
 
-          Info("PUSCH: Aperiodic RM30 ri%s, CQI=%s, SNR=%.1f dB, for %d subbands\n",
-               (uci_data.uci_ri == 0)?"=1":"~1", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
+          Info("PUSCH: Aperiodic RM30 CQI=%s, SNR=%.1f dB, for %d subbands\n",
+               (uci_data.uci_ri_len)?((uci_data.uci_ri == 0)?"ri=0, ":"ri=1, "):"", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
         }
         break;
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
