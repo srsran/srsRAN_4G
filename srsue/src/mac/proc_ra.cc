@@ -222,7 +222,7 @@ void ra_proc::step_resource_selection() {
   if (preambleIndex > 0) {
     // Preamble is chosen by Higher layers (ie Network)
     sel_maskIndex = maskIndex;
-    sel_preamble = (uint32_t) preambleIndex%nof_preambles;
+    sel_preamble = (uint32_t) preambleIndex;
   } else {
     // Preamble is chosen by MAC UE
     if (!msg3_transmitted) {
@@ -361,7 +361,7 @@ void ra_proc::tb_decoded_ok() {
           
           // If we have a C-RNTI, tell Mux unit to append C-RNTI CE if no CCCH SDU transmission
           if (transmitted_crnti) {
-            rDebug("Appending C-RNTI MAC CE in next transmission\n");
+            rInfo("Appending C-RNTI MAC CE 0x%x in next transmission\n", transmitted_crnti);
             mux_unit->append_crnti_ce_next_tx(transmitted_crnti);
             phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, transmitted_crnti);
             phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, transmitted_crnti);
@@ -375,7 +375,7 @@ void ra_proc::tb_decoded_ok() {
         contention_resolution_timer->run();
       }  
     } else {
-      rDebug("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
+      rInfo("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
     }
   }
 }

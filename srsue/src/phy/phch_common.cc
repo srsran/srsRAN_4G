@@ -46,7 +46,8 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   radio_h   = NULL; 
   mac       = NULL; 
   max_mutex = max_mutex_;
-  nof_mutex = 0; 
+  nof_mutex = 0;
+  rx_gain_offset = 0;
 
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   dl_metrics_read = true;
@@ -336,7 +337,6 @@ void phch_common::reset() {
   cur_pusch_power = 0;
   p0_preamble = 0;
   cur_radio_power = 0;
-  rx_gain_offset = 0;
   sr_last_tx_tti = -1;
   cur_pusch_power = 0;
   avg_rsrp = 0;
