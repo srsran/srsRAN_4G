@@ -38,6 +38,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/uio.h>
+#include <sys/un.h>
 
 #include <net/if.h>
 
@@ -45,6 +46,8 @@
 #include "rf_sock_imp.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/resampling/resample_arb.h"
+
+//#define SOCK_RF_IPC_IP
 
 static bool rf_sock_log_dbug  = true;
 static bool rf_sock_log_info  = true;
@@ -113,13 +116,18 @@ static bool rf_sock_log_warn  = true;
                                      __func__,                                      \
                                      __LINE__);
 
-// socket port nums
+#ifdef SOCK_RF_IPC_IP
+// ip socket port nums
 #define RF_SOCK_DL_PORT (43301)
 #define RF_SOCK_UL_PORT (43302)
-
 #define RF_SOCK_MC_ADDR "224.4.3.2"
 #define RF_SOCK_MC_DEV  "lo"  // XXX_TODO get from args if running on multiple hosts/containers
 #define RF_SOCK_SOCK_BUFF_SIZE (256 * 1024)
+#else
+// unix socket endpoints
+#define RF_SOCK_SERVER_PATH "/tmp/srslte-ipc-server-sock"
+#define RF_SOCK_CLIENT_PATH "/tmp/srslte-ipc-client-sock"
+#endif
 
 // bytes per sample
 #define BYTES_PER_SAMPLE(x) ((x)*sizeof(cf_t))
@@ -139,14 +147,14 @@ static bool rf_sock_log_warn  = true;
 #define RF_SOCK_NTYPE_ENB   (2)
 
 // tx offset (delay) workers
-#define RF_SOCK_NOF_TX_WORKERS (8)
+#define RF_SOCK_NOF_TX_WORKERS (16)
 #define RF_SOCK_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_SOCK_NOF_TX_WORKERS)
 
 #define FAUX_TIME_SCALE 1
 
 #define RF_SOCK_IS_LATE(tv, s, u) ((tv).tv_sec > (s) || (tv).tv_usec > (u))
 
-static const struct timeval tv_window   = {0, 1000 * FAUX_TIME_SCALE / 4}; // rx op before next tti
+static const struct timeval tv_window   = {0, 1000 * FAUX_TIME_SCALE / 10}; // rx op before next tti
 static const struct timeval tv_zero     = {0, 0};
 static const struct timeval tv_tti_step = {0, FAUX_TIME_SCALE * 1000};
 
@@ -199,6 +207,9 @@ typedef struct {
    struct timeval       tv_next_tti;
    int                  rx_n_tries;
    int                  rx_seqnum;
+#ifndef SOCK_RF_IPC_IP
+   struct sockaddr_un   tx_addr;
+#endif
 } rf_sock_info_t;
 
 
@@ -255,6 +266,9 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .tv_next_tti     = {0,0},
                                         .rx_n_tries      = 0,
                                         .rx_seqnum       = -1,
+#ifndef SOCK_RF_IPC_IP
+                                        .tx_addr         = {0,{0}},
+#endif
                                       };
 
 // could just as well use rf_sock_info for single antenna mode
@@ -377,24 +391,47 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 }
 
 
-static int rf_sock_vecio_send(void *h, struct iovec iov[2])
+static void rf_sock_vecio_send(void *h, struct iovec iov[2])
 {
    GET_DEV_INFO(h);
+  
+   static size_t num_tx_errors = 0;
 
    const int nbytes_to_tx = iov[0].iov_len + iov[1].iov_len;
-
+#ifdef SOCK_RF_IPC_IP
    const int rc = writev(_info->tx_handle, iov, 2);
+#else
+   struct msghdr mhdr = { &_info->tx_addr,      
+                          sizeof(_info->tx_addr),
+                          iov,                  
+                          2,
+                          NULL,
+                          0,
+                          0 };
+ 
+   const int rc = sendmsg(_info->tx_handle, &mhdr, 0);
+#endif 
 
    if(rc != nbytes_to_tx)
      {
-       RF_SOCK_WARN("send error %s", strerror(errno));
+       if(errno == ENOTCONN || errno == ECONNREFUSED || errno == EAGAIN)
+         {
+           if(! (++num_tx_errors % 1000))
+             {
+               RF_SOCK_WARN("peer not connected, please start UE");
+
+               exit(0);
+             }
+         }
+        else
+         {
+           RF_SOCK_WARN("send error %s", strerror(errno));
+         }
      }
    else
      {
        RF_SOCK_DBUG("sent %d of %d", rc, nbytes_to_tx);
      }
-
-  return rc;
 }
 
 
@@ -416,12 +453,7 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
    struct iovec iov[2] = { {(void*)&hdr,                sizeof(hdr)},
                            {(void*)tx_info->cf_data[0], nbytes_in }};
 
-   const int rc = rf_sock_vecio_send(_info, iov);
-
-   if(rc <= 0)
-     {
-       RF_SOCK_WARN("send reqlen %d, error %s", nbytes_in, strerror(errno));
-     }
+   rf_sock_vecio_send(_info, iov);
 }
 
 
@@ -448,27 +480,10 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
        if(timercmp(&tv_diff, &tv_zero, >))
          {
-           RF_SOCK_DBUG("worker %02d, apply delay %ld:%06ld", 
-                        worker->id,
-                        tv_diff.tv_sec,
-                        tv_diff.tv_usec);
-
            select(0, NULL, NULL, NULL, &tv_diff);
          }
 
        pthread_mutex_lock(&_info->tx_workers_lock);
-
-       gettimeofday(&tv_now, NULL);
-
-       timersub(&tv_now, &worker->tx_info->tx_time, &tv_diff);
-
-       if(RF_SOCK_IS_LATE(tv_diff, 1, 1000))
-         {
-           RF_SOCK_WARN("worker %02d, overrun %ld:%06ld", 
-                        worker->id,
-                        tv_diff.tv_sec,
-                        tv_diff.tv_usec);
-         }
 
        rf_sock_send_msg(worker, _info->tx_seqn++);
 
@@ -528,6 +543,7 @@ int rf_sock_set_sock_nonblock(int fd)
 }
 
 
+#ifdef SOCK_RF_IPC_IP
 static int rf_sock_set_sock_buff_size(int fd, const int n_req, const int opt)
 {
   int len = 0;
@@ -565,12 +581,10 @@ static int rf_sock_set_sock_buff_size(int fd, const int n_req, const int opt)
 }
 
 
-
-
-static int rf_sock_open_sock(rf_sock_info_t * info, 
-                             uint16_t rxport, 
-                             uint16_t txport,
-                             const char * mcaddr)
+static int rf_sock_open_ip_sock(rf_sock_info_t * info, 
+                                uint16_t rxport, 
+                                uint16_t txport,
+                                const char * mcaddr)
 {
   int rx_fd, tx_fd, opt_on = 1;
 
@@ -758,23 +772,122 @@ static int rf_sock_open_sock(rf_sock_info_t * info,
   return 0;
 }
 
+#else
 
-static int rf_sock_open_ipc(rf_sock_info_t * info)
+static int rf_sock_open_unix_sock(rf_sock_info_t * info, 
+                                  const char * local,
+                                  const char * remote)
 {
-  if(rf_sock_is_enb(info))
+  struct sockaddr_un lcl_addr;
+
+  int rx_fd = socket(AF_UNIX, SOCK_DGRAM, 0);
+
+  if(rx_fd < 0)
     {
-      return rf_sock_open_sock(info, 
-                               RF_SOCK_UL_PORT,  // rx
-                               RF_SOCK_DL_PORT,  // tx
-                               RF_SOCK_MC_ADDR);
+      RF_SOCK_WARN("unix sock open error %s", strerror(errno));
+
+      return -1;
+    }
+
+  int tx_fd = socket(AF_UNIX, SOCK_DGRAM, 0);
+
+  if(tx_fd < 0)
+    {
+      RF_SOCK_WARN("unix sock open error %s", strerror(errno));
+
+      return -1;
+    }
+
+  memset(&lcl_addr, 0, sizeof(lcl_addr));
+  lcl_addr.sun_family = AF_UNIX;
+  strncpy(lcl_addr.sun_path, local, strlen(local));
+
+  unlink(local);
+
+  if(bind(rx_fd, (struct sockaddr *) &lcl_addr, sizeof(lcl_addr)) < 0)
+    {
+      RF_SOCK_WARN("unix sock bind error %s", strerror(errno));
+
+      return -1;
     }
   else
     {
-      return rf_sock_open_sock(info, 
-                               RF_SOCK_DL_PORT,  // rx
-                               RF_SOCK_UL_PORT,  // tx
-                               RF_SOCK_MC_ADDR);
+      RF_SOCK_INFO("unix sock bind to %s", local);
     }
+
+  memset(&info->tx_addr, 0, sizeof(info->tx_addr));
+  info->tx_addr.sun_family = AF_UNIX;
+  strncpy(info->tx_addr.sun_path, remote, strlen(remote));
+
+
+  // rx timeout block ue, no block enb
+  if(rf_sock_is_ue(info))
+    {
+      info->rx_blocking = true;
+
+      info->rx_n_tries = 25;
+
+      if(rf_sock_set_sock_block(rx_fd) < 0)
+       {
+         RF_SOCK_WARN("rx sock set block error %s", strerror(errno));
+
+         return -1; 
+       }
+    }
+  else
+    {
+      info->rx_blocking = false;
+
+      info->rx_n_tries = 1;
+
+      if(rf_sock_set_sock_block(rx_fd) < 0)
+       {
+         RF_SOCK_WARN("rx sock set non block error %s", strerror(errno));
+
+         return -1; 
+       }
+    }
+
+  info->tx_handle = tx_fd;
+  info->rx_handle = rx_fd;
+
+  return 0;
+}
+
+#endif
+
+static int rf_sock_open_ipc(rf_sock_info_t * info)
+{
+#ifdef SOCK_RF_IPC_IP
+  if(rf_sock_is_enb(info))
+    {
+      return rf_sock_open_ip_sock(info, 
+                                  RF_SOCK_UL_PORT,  // rx
+                                  RF_SOCK_DL_PORT,  // tx
+                                  RF_SOCK_MC_ADDR);
+    }
+  else
+    {
+      return rf_sock_open_ip_sock(info, 
+                                  RF_SOCK_DL_PORT,  // rx
+                                  RF_SOCK_UL_PORT,  // tx
+                                  RF_SOCK_MC_ADDR);
+    }
+#else
+  if(rf_sock_is_enb(info))
+    {
+      return rf_sock_open_unix_sock(info,
+                                    RF_SOCK_SERVER_PATH,
+                                    RF_SOCK_CLIENT_PATH);
+    }
+  else
+    {
+      return rf_sock_open_unix_sock(info,
+                                    RF_SOCK_CLIENT_PATH, 
+                                    RF_SOCK_SERVER_PATH);
+    }
+
+#endif
 }
 
 
@@ -818,14 +931,6 @@ int rf_sock_start_rx_stream(void *h, bool now)
                  _info->tv_sos.tv_usec,
                  _info->tv_next_tti.tv_sec, 
                  _info->tv_next_tti.tv_usec);
-    }
-   else
-    {
-      timeradd(&_info->tv_sos, &tv_tti_step, &_info->tv_next_tti);
-
-      RF_SOCK_INFO("begin rx stream, time_0 %ld:%06ld, waiting for input", 
-                 _info->tv_sos.tv_sec, 
-                 _info->tv_sos.tv_usec);
     }
 
    _info->rx_stream = true;
@@ -927,7 +1032,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
      {
        rf_sock_tx_worker_t * worker =  &rf_sock_info.tx_workers[id];
 
-       if(sem_init(&(worker->sem), 0, 0) < 0)
+       if(sem_init(&worker->sem, 0, 0) < 0)
          {
            RF_SOCK_WARN("could not initialize worker semaphore %s", strerror(errno));
 
@@ -949,7 +1054,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
        worker->id         = id;
        worker->h          = &rf_sock_info;
 
-       if(pthread_create(&(worker->tid), 
+       if(pthread_create(&worker->tid, 
                          NULL, 
                          rf_sock_tx_worker_proc, 
                          worker) < 0)
@@ -961,7 +1066,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
 
        const int policy = SCHED_FIFO;
 
-       const struct sched_param param = {sched_get_priority_max(policy)}; // XXX what prio ???
+       const struct sched_param param = {sched_get_priority_max(policy) - 1}; // XXX what prio ???
        
        if(pthread_setschedparam(worker->tid, policy, &param) < 0)
         {
@@ -1216,12 +1321,14 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
            }
 
          _info->rx_seqn = hdr.seqnum;
-     
+    
+#if 0 
+         struct timeval tv_diff;
          timersub(&tv_rx_time, &hdr.tx_time, &tv_diff);
 
          if(RF_SOCK_IS_LATE(tv_diff, 1, 1000))
            {
-             RF_SOCK_DBUG("RX seqn %lu, msg_len %d, tx_time %ld:%06ld, tot_delay %ld:%06ld",
+             RF_SOCK_WARN("RX seqn %lu, msg_len %d, tx_time %ld:%06ld, tot_delay %ld:%06ld",
                            hdr.seqnum,
                            nbytes_rx,
                            hdr.tx_time.tv_sec,
@@ -1229,6 +1336,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                            tv_diff.tv_sec,
                            tv_diff.tv_usec);
            }
+#endif
 
          // use tx time tag as the rx time 
          rx_timestamp = hdr.tx_time;
