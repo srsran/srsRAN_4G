@@ -103,16 +103,24 @@ s1ap::stop()
   if (m_s1mme != -1){
     close(m_s1mme);
   }
-  std::map<uint16_t,enb_ctx_t*>::iterator it = m_active_enbs.begin();
-  while(it!=m_active_enbs.end())
+  std::map<uint16_t,enb_ctx_t*>::iterator enb_it = m_active_enbs.begin();
+  while(enb_it!=m_active_enbs.end())
   {
-    m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", it->second->enb_id);
-    m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", it->second->enb_id);
-    delete_ues_in_enb(it->second->enb_id);
-    delete it->second;
-    m_active_enbs.erase(it++);
+    m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", enb_it->second->enb_id);
+    m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_it->second->enb_id);
+    delete_ues_ecm_ctx_in_enb(enb_it->second->enb_id);
+    delete enb_it->second;
+    m_active_enbs.erase(enb_it++);
   }
 
+  std::map<uint64_t,ue_emm_ctx_t*>::iterator ue_it = m_imsi_to_ue_emm_ctx.begin();
+  while(ue_it!=m_imsi_to_ue_emm_ctx.end())
+  {
+    m_s1ap_log->info("Deleting UE EMM context. IMSI: %015lu\n", ue_it->first);
+    m_s1ap_log->console("Deleting UE EMM context. IMSI: %015lu\n", ue_it->first);
+    delete ue_it->second;
+    m_imsi_to_ue_emm_ctx.erase(ue_it++);
+  }
   //Cleanup message handlers
   s1ap_mngmt_proc::cleanup();
   s1ap_nas_transport::cleanup();
@@ -317,7 +325,7 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
   m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
 
   //Delete connected UEs ctx
-  delete_ues_in_enb(enb_id);
+  delete_ues_ecm_ctx_in_enb(enb_id);
 
   //Delete eNB
   delete it_ctx->second;
@@ -328,7 +336,6 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
 
 
 //UE Context Management
-
 void
 s1ap::add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx)
 {
@@ -359,51 +366,7 @@ s1ap::add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx)
   it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
 }
 
-  /*
-void
-s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
-{
-  ue_ctx_t *ue_ptr = new ue_ctx_t;
-  memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
 
-  //This map will store the context of previously registered UEs
-  m_imsi_to_ue_ctx.insert(std::pair<uint64_t,ue_ctx_t*>(ue_ptr->imsi,ue_ptr));
-
-  //This will map UE's MME S1AP Id to the UE's IMSI, when they are not in the EMM-DERGISTERED state.
-  m_mme_ue_s1ap_id_to_imsi.insert(std::pair<uint32_t,uint64_t>(ue_ptr->mme_ue_s1ap_id,ue_ptr->imsi));
-
-  //Store which enb currently holds the UE
-  std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
-  uint16_t enb_id = it_enb->second;
-  std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
-  if(it_ue_id==m_enb_id_to_ue_ids.end())
-  {
-    m_s1ap_log->error("Could not find eNB's UEs\n");
-    return;
-  }
-  it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
-
-}*/
-  /*
-void
-s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
-{
-  ue_ctx_t *ue_ptr = new ue_ctx_t;
-  memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
-  m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
-
-  std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
-  uint16_t enb_id = it_enb->second;
-  std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
-  if(it_ue_id==m_enb_id_to_ue_ids.end())
-  {
-    m_s1ap_log->error("Could not find eNB's UEs\n");
-    return;
-  }
-  it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
-  return;
-}
-  */
 ue_emm_ctx_t*
 s1ap::find_ue_emm_ctx_from_imsi(uint64_t imsi)
 {
