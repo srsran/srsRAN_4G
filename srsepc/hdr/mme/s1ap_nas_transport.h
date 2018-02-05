@@ -65,19 +65,19 @@ public:
                                       srslte::byte_buffer_t *reply_buffer,
                                       bool* reply_flag,
                                       struct sctp_sndrcvinfo *enb_sri);
-  bool handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag);
-  bool handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_esm_information_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
-  bool handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
-  bool handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
+  bool handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag);
+  bool handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_esm_information_response(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
+  bool handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
+  bool handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
 
   bool pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t *autn,uint8_t *rand);
   bool pack_authentication_reject(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
   bool unpack_authentication_response(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT *auth_resp);
 
-  bool pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
-  bool pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx);
+  bool pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx);
+  bool pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx);
 
   bool pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
   bool pack_identity_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);

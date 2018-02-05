@@ -136,6 +136,7 @@ typedef struct{
 } ue_emm_ctx_t;
 
 typedef struct{
+  uint64_t imsi;
   uint32_t enb_ue_s1ap_id;
   uint32_t mme_ue_s1ap_id;
   uint16_t enb_id;

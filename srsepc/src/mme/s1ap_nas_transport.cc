@@ -135,14 +135,12 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
 
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
-  if(ue_ctx == NULL)
+  ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if(ue_ecm_ctx == NULL)
   {
-    //TODO UE not registered, send error message.
-    m_s1ap_log->warning("Received uplink NAS, but could not find UE context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+    m_s1ap_log->warning("Received uplink NAS, but could not find UE ECM context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
     return false;
   }
-
   m_s1ap_log->debug("Received uplink NAS and found UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
 
   //Get NAS message type
@@ -157,39 +155,37 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
       m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
-      handle_nas_authentication_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      handle_nas_authentication_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
       m_s1ap_log->info("Uplink NAS: Received Security Mode Complete\n");
       m_s1ap_log->console("Uplink NAS: Received Security Mode Complete\n");
-      handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      handle_nas_security_mode_complete(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_s1ap_log->info("Uplink NAS: Received Attach Complete\n");
       m_s1ap_log->console("Uplink NAS: Received Attach Complete\n");
-      handle_nas_attach_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      ue_ctx->security_ctxt.ul_nas_count++;
+      handle_nas_attach_complete(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received ESM Information Response\n");
       m_s1ap_log->console("Uplink NAS: Received ESM Information Response\n");
-      handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      ue_ctx->security_ctxt.ul_nas_count++;
+      handle_esm_information_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received Identity Response\n");
       m_s1ap_log->console("Uplink NAS: Received Identity Response\n");
-      handle_identity_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      //ue_ctx->security_ctxt.ul_nas_count++;
+      handle_identity_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
       m_s1ap_log->info("UL NAS: Tracking Area Update Request\n");
-      handle_tracking_area_update_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      handle_tracking_area_update_request(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     default:
       m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type );
       m_s1ap_log->console("Unhandled NAS message 0x%x\n", msg_type );
-      return false; //FIXME (nas_msg deallocate needs to be called)
+      m_pool->deallocate(nas_msg);
+      return false;
   }
 
   if(*reply_flag == true)
@@ -421,13 +417,19 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
 }
 
 bool
-s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
+s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
 {
 
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
   bool ue_valid=true;
 
-  m_s1ap_log->console("Authentication Response -- IMSI %015lu\n", ue_ctx->imsi);
+  ue_emm_ctx_t *ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+  if(ue_emm_ctx == NULL)
+  {
+    m_s1ap_log->error("Authentication Response -- Could not find UE EMM context.\n");
+    return false;
+  }
+  m_s1ap_log->console("Authentication Response -- IMSI %015lu\n", ue_emm_ctx->imsi);
 
   //Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
@@ -444,7 +446,7 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
 
   for(int i=0; i<8;i++)
   {
-    if(auth_resp.res[i] != ue_ctx->security_ctxt.xres[i])
+    if(auth_resp.res[i] != ue_emm_ctx->security_ctxt.xres[i])
     {
       ue_valid = false;
     }
@@ -455,14 +457,14 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
     std::cout<<"XRES: ";
     for(int i=0;i<8;i++)
     {
-      std::cout << std::hex <<(uint16_t)ue_ctx->security_ctxt.xres[i];
+      std::cout << std::hex <<(uint16_t)ue_emm_ctx->security_ctxt.xres[i];
     }
     std::cout<<std::endl;
 
     m_s1ap_log->console("UE Authentication Rejected.\n");
     m_s1ap_log->warning("UE Authentication Rejected.\n");
     //Send back Athentication Reject
-    pack_authentication_reject(reply_buffer, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id);
+    pack_authentication_reject(reply_buffer, ue_ecm_ctx->enb_ue_s1ap_id, ue_ecm_ctx->mme_ue_s1ap_id);
     *reply_flag = true;
     m_s1ap_log->console("Downlink NAS: Sending Authentication Reject.\n");
     return false;
@@ -472,7 +474,7 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
     m_s1ap_log->console("UE Authentication Accepted.\n");
     m_s1ap_log->info("UE Authentication Accepted.\n");
     //Send Security Mode Command
-    pack_security_mode_command(reply_buffer, ue_ctx);
+    pack_security_mode_command(reply_buffer, ue_emm_ctx, ue_ecm_ctx);
     *reply_flag = true;
     m_s1ap_log->console("Downlink NAS: Sending NAS Security Mode Command.\n");
   }
@@ -480,8 +482,16 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
 }
 
 bool
-s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
+s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
+
+  ue_emm_ctx_t *ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+  if(ue_emm_ctx == NULL)
+  {
+    m_s1ap_log->error("Could not find UE's EMM context\n");
+    return false;
+  }
+
   LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sm_comp;
 
   //Get NAS authentication response
@@ -499,11 +509,11 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
     m_s1ap_log->warning("IMEI-SV present but not handled");
   }
 
-  m_s1ap_log->info("Security Mode Command Complete -- IMSI: %lu\n", ue_ctx->imsi);
-  m_s1ap_log->console("Security Mode Command Complete -- IMSI: %lu\n", ue_ctx->imsi);
-  if(ue_ctx->eit == true)
+  m_s1ap_log->info("Security Mode Command Complete -- IMSI: %lu\n", ue_ecm_ctx->imsi);
+  m_s1ap_log->console("Security Mode Command Complete -- IMSI: %lu\n", ue_ecm_ctx->imsi);
+  if(ue_ecm_ctx->eit == true)
   {
-    pack_esm_information_request(reply_buffer, ue_ctx);
+    pack_esm_information_request(reply_buffer, ue_emm_ctx, ue_ecm_ctx);
     m_s1ap_log->console("Sending ESM information request\n");
     *reply_flag = true;
   }
@@ -511,7 +521,7 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   {
     //FIXME The packging of GTP-C messages is not ready.
     //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-    m_mme_gtpc->send_create_session_request(ue_ctx->imsi, ue_ctx->mme_ue_s1ap_id);
+    m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi, ue_ecm_ctx->mme_ue_s1ap_id);
     *reply_flag = false; //No reply needed
   }
   return true;
@@ -830,7 +840,7 @@ s1ap_nas_transport::unpack_authentication_response(LIBLTE_S1AP_MESSAGE_UPLINKNAS
 }
 
 bool
-s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
+s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -888,7 +898,6 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
 
   //Generate MAC for integrity protection
   //FIXME Write wrapper to support EIA1, EIA2, etc.
-  //TODO which is the RB ID? Standard says a constant, but which?
   uint8_t mac[4];
 
   srslte::security_generate_k_nas( ue_ctx->security_ctxt.k_asme,
@@ -925,7 +934,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
 }
 
 bool
-s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_ctx_t *ue_ctx)
+s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -943,14 +952,14 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;//FIXME Change name
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ecm_ctx->mme_ue_s1ap_id;//FIXME Change name
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ecm_ctx->enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
   LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
   esm_info_req.eps_bearer_id=0;
-  esm_info_req.proc_transaction_id = ue_ctx->procedure_transaction_id;
+  esm_info_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id;
   uint8_t  sec_hdr_type=2;
   
   ue_ctx->security_ctxt.dl_nas_count++;
@@ -964,8 +973,8 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   }
 
   uint8_t mac[4];
-  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
-                             ue_ctx->security_ctxt.dl_nas_count,
+  srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
+                             ue_emm_ctx->security_ctxt.dl_nas_count,
                              0,
                              SECURITY_DIRECTION_DOWNLINK,
                              &nas_buffer->msg[5],
@@ -1210,24 +1219,30 @@ s1ap_nas_transport::pack_emm_information(srslte::byte_buffer_t *reply_msg, uint3
   emm_info.net_dst_present = false;
 
   //Integrity check
-  ue_ctx_t * ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
-  if(ue_ctx == NULL)
+  ue_ecm_ctx_t * ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if(ue_ecm_ctx == NULL)
   {
     return false;
   }
+  ue_emm_ctx_t * ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+  if(ue_emm_ctx == NULL)
+  {
+    return false;
+  }
+
   uint8_t sec_hdr_type =2;
-  ue_ctx->security_ctxt.dl_nas_count++;
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  ue_emm_ctx->security_ctxt.dl_nas_count++;
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Identity Request\n");
-    m_s1ap_log->console("Error packing Identity REquest\n");
+    m_s1ap_log->error("Error packing EMM Information\n");
+    m_s1ap_log->console("Error packing EMM Information\n");
     return false;
   }
 
   uint8_t mac[4];
-  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
-                             ue_ctx->security_ctxt.dl_nas_count,
+  srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
+                             ue_emm_ctx->security_ctxt.dl_nas_count,
                              0,
                              SECURITY_DIRECTION_DOWNLINK,
                              &nas_buffer->msg[5],
