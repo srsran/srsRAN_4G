@@ -143,7 +143,7 @@ typedef struct{
   ecm_state_t ecm_state; 
   bool eit;
   erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE]; 
-} ue_esm_ctx_t;
+} ue_ecm_ctx_t;
 
 
 typedef struct{
