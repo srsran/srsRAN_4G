@@ -326,6 +326,39 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
 
 //UE Context Management
 void
+s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
+{
+  ue_ctx_t *ue_ptr = new ue_ctx_t;
+  memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
+  m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
+
+  std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
+  uint16_t enb_id = it_enb->second;
+  std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
+  if(it_ue_id==m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find eNB's UEs\n");
+    return;
+  }
+  it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
+  return;
+}
+
+ue_ctx_t*
+s1ap::find_ue_ctx(uint32_t mme_ue_s1ap_id)
+{
+  std::map<uint32_t, ue_ctx_t*>::iterator it = m_active_ues.find(mme_ue_s1ap_id);
+  if(it == m_active_ues.end())
+  {
+    return NULL;
+  }
+  else
+  {
+    return it->second;
+  }
+}
+
+void
 s1ap::delete_ues_in_enb(uint16_t enb_id)
 {
   //delete UEs ctx
@@ -382,38 +415,7 @@ s1ap::delete_ue_ctx(ue_ctx_t *ue_ctx)
 
 
 
-ue_ctx_t*
-s1ap::find_ue_ctx(uint32_t mme_ue_s1ap_id)
-{
-  std::map<uint32_t, ue_ctx_t*>::iterator it = m_active_ues.find(mme_ue_s1ap_id);
-  if(it == m_active_ues.end())
-    {
-      return NULL;
-  }
-  else
-  {
-    return it->second;
-  }
-}
 
-void
-s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
-{
-  ue_ctx_t *ue_ptr = new ue_ctx_t;
-  memcpy(ue_ptr,&ue_ctx,sizeof(ue_ctx));
-  m_active_ues.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
- 
-  std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
-  uint16_t enb_id = it_enb->second;
-  std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
-  if(it_ue_id==m_enb_id_to_ue_ids.end())
-  {
-    m_s1ap_log->error("Could not find eNB's UEs\n");
-    return;
-  }
-  it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
-  return;
-}
 
 uint32_t 
 s1ap::get_next_mme_ue_s1ap_id()
