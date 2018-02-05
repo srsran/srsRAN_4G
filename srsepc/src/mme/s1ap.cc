@@ -399,26 +399,9 @@ s1ap::find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
     return find_ue_ctx_from_imsi(imsi_it->second);
   }
 }
-void
-s1ap::delete_ues_in_enb(uint16_t enb_id)
-{
-  //delete UEs ctx
-  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
-  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
-  while(ue_id != ues_in_enb->second.end() )
-  {
-    std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_active_ues.find(*ue_id);
-    m_s1ap_log->info("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
-    m_s1ap_log->console("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
-    delete ue_ctx->second;             //delete UE context
-    m_active_ues.erase(ue_ctx);        //remove from general MME map 
-    ues_in_enb->second.erase(ue_id++); //erase from the eNB's UE set
-  }
-
-}
 
 bool
-s1ap::delete_ue_ctx(ue_ctx_t *ue_ctx)
+s1ap::delete_ue_esm_ctx(uint32_t mme_ue_s1ap_id)
 {
   uint32_t mme_ue_s1ap_id = ue_ctx->mme_ue_s1ap_id;
   std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx_it = m_active_ues.find(mme_ue_s1ap_id);
@@ -451,6 +434,42 @@ s1ap::delete_ue_ctx(ue_ctx_t *ue_ctx)
 
   return true;
 }
+void
+s1ap::delete_ues_esm_ctx_in_enb(uint16_t enb_id)
+{
+  //delete UEs ctx
+  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
+  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
+  while(ue_id != ues_in_enb->second.end() )
+  {
+    std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_active_ues.find(*ue_id);
+    m_s1ap_log->info("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
+    m_s1ap_log->console("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
+    delete ue_ctx->second;             //delete UE context
+    m_active_ues.erase(ue_ctx);        //remove from general MME map 
+    ues_in_enb->second.erase(ue_id++); //erase from the eNB's UE set
+  }
+}
+
+void
+s1ap::delete_ues_in_enb(uint16_t enb_id)
+{
+  //delete UEs ctx
+  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
+  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
+  while(ue_id != ues_in_enb->second.end() )
+  {
+    std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_active_ues.find(*ue_id);
+    m_s1ap_log->info("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
+    m_s1ap_log->console("Deleting UE context. UE IMSI: %lu\n", ue_ctx->second->imsi);
+    delete ue_ctx->second;             //delete UE context
+    m_active_ues.erase(ue_ctx);        //remove from general MME map 
+    ues_in_enb->second.erase(ue_id++); //erase from the eNB's UE set
+  }
+
+}
+
+
 
 
 
