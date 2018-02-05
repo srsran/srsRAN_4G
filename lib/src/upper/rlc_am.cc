@@ -963,6 +963,11 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   poll_retx_timeout.reset();
 
+  // flush retx queue to avoid unordered SNs, we expect the Rx to request lost PDUs again
+  if (status.N_nack > 0) {
+    retx_queue.clear();
+  }
+
   // Handle ACKs and NACKs
   std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
   bool update_vt_a = true;
