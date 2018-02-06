@@ -991,15 +991,26 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
             retx.so_end     = it->second.buf->N_bytes;
 
             if(status.nacks[j].has_so) {
+              // sanity check
+              if (status.nacks[j].so_start >= it->second.buf->N_bytes) {
+                // print error but try to send original PDU again
+                log->error("SO_start is larger than original PDU (%d >= %d)\n",
+                           status.nacks[j].so_start,
+                           it->second.buf->N_bytes);
+                status.nacks[j].so_start = 0;
+              }
+
+              // check for special SO_end value
+              if(status.nacks[j].so_end == 0x7FFF) {
+                status.nacks[j].so_end = it->second.buf->N_bytes;
+              }else{
+                retx.so_end = status.nacks[j].so_end + 1;
+              }
+
               if(status.nacks[j].so_start <  it->second.buf->N_bytes &&
                  status.nacks[j].so_end   <= it->second.buf->N_bytes) {
                   retx.is_segment = true;
                   retx.so_start = status.nacks[j].so_start;
-                  if(status.nacks[j].so_end == 0x7FFF) {
-                    retx.so_end = it->second.buf->N_bytes;
-                  }else{
-                    retx.so_end   = status.nacks[j].so_end + 1;
-                  }
               } else {
                 log->warning("%s invalid segment NACK received for SN %d. so_start: %d, so_end: %d, N_bytes: %d\n",
                              rrc->get_rb_name(lcid).c_str(), i, status.nacks[j].so_start, status.nacks[j].so_end, it->second.buf->N_bytes);
