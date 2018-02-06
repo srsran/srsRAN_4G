@@ -931,7 +931,7 @@ void phch_worker::set_uci_aperiodic_cqi()
 
           int cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
           if (cqi_len < 0) {
-            Error("Error packing CQI value (Aperiodic reporting mode RM31).");
+            Error("Error packing CQI value (Aperiodic reporting mode RM30).");
             return;
           }
           uci_data.uci_cqi_len = (uint32_t) cqi_len;
@@ -948,8 +948,8 @@ void phch_worker::set_uci_aperiodic_cqi()
             uci_data.uci_ri_len = 0;
           }
 
-          Info("PUSCH: Aperiodic RM30 CQI=%s, SNR=%.1f dB, for %d subbands\n",
-               (uci_data.uci_ri_len)?((uci_data.uci_ri == 0)?"ri=0, ":"ri=1, "):"", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
+          Info("PUSCH: Aperiodic RM30 CQI=%s, %sSNR=%.1f dB, for %d subbands\n",
+               cqi_str, (uci_data.uci_ri_len)?((uci_data.uci_ri == 0)?"ri=0, ":"ri=1, "):"", phy->avg_snr_db, cqi_report.subband_hl.N);
         }
         break;
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
