@@ -267,11 +267,13 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
 
 
   //Set UE ECM context
+  ue_ecm_ctx.imsi = ue_emm_ctx.imsi;
+  ue_ecm_ctx.mme_ue_s1ap_id = ue_emm_ctx.mme_ue_s1ap_id;
   //Set eNB information
   ue_ecm_ctx.enb_id = enb_ue_s1ap_id;
   memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
-  //Save whether ESM information transfer is necessary
+  //Save whether secure ESM information transfer is necessary
   ue_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
 
   //Add eNB info to UE ctxt
@@ -283,9 +285,9 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   }
 
   //Log Attach Request information
-  m_s1ap_log->console("Attach request -- IMSI: %015lu\n", ue_ctx.imsi);
-  m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ue_ctx.imsi);
-  m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
+  m_s1ap_log->console("Attach request -- IMSI: %015lu\n", ue_emm_ctx.imsi);
+  m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ue_emm_ctx.imsi);
+  m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ecm_ctx.enb_ue_s1ap_id, ue_ecm_ctx.mme_ue_s1ap_id);
   m_s1ap_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
                       attach_req.ue_network_cap.eea[0],
                       attach_req.ue_network_cap.eea[1],
@@ -310,16 +312,18 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   m_s1ap_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
  
   //Get Authentication Vectors from HSS
-  if(!m_hss->gen_auth_info_answer(ue_ctx.imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
+  if(!m_hss->gen_auth_info_answer(ue_emm_ctx.imsi, ue_emm_ctx.security_ctxt.k_asme, autn, rand, ue_emm_ctx.security_ctxt.xres))
   {
-    m_s1ap_log->console("User not found. IMSI %015lu\n",ue_ctx.imsi);
-    m_s1ap_log->info("User not found. IMSI %015lu\n",ue_ctx.imsi);
+    m_s1ap_log->console("User not found. IMSI %015lu\n",ue_emm_ctx.imsi);
+    m_s1ap_log->info("User not found. IMSI %015lu\n",ue_emm_ctx.imsi);
     return false;
   }
 
-  m_s1ap->add_new_ue_ctx(ue_ctx);
+  m_s1ap->add_new_ue_emm_ctx(ue_emm_ctx);
+  m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
+
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id, autn, rand);
+  pack_authentication_request(reply_buffer, ue_ecm_ctx.enb_ue_s1ap_id, ue_ecm_ctx.mme_ue_s1ap_id, autn, rand);
   
   //Send reply to eNB
   *reply_flag = true;
