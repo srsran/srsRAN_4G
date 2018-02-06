@@ -143,7 +143,7 @@ static bool rf_sock_log_warn  = true;
 #define RF_SOCK_MAX_MSG_LEN (RF_SOCK_MAX_SF_LEN * sizeof(cf_t))
 
 // node type
-#define RF_SOCK_NTYPE_NONE  (0)
+#define RF_SOCK_NTYPE_LOOP  (0)
 #define RF_SOCK_NTYPE_UE    (1)
 #define RF_SOCK_NTYPE_ENB   (2)
 
@@ -176,6 +176,7 @@ typedef struct {
   int                  id;
   rf_sock_tx_info_t *  tx_info;
   bool                 is_pending;
+  bool                 is_running;
 } rf_sock_tx_worker_t;
 
 
@@ -200,7 +201,7 @@ typedef struct {
    pthread_mutex_t      rx_lock;
    pthread_mutex_t      tx_workers_lock;
    pthread_t            tx_tid;
-   rf_sock_tx_worker_t tx_workers[RF_SOCK_NOF_TX_WORKERS];
+   rf_sock_tx_worker_t  tx_workers[RF_SOCK_NOF_TX_WORKERS];
    int                  tx_worker_next;
    int                  tx_nof_workers;
    struct timeval       tv_sos;   // start of stream
@@ -240,7 +241,7 @@ static void rf_sock_handle_error(srslte_rf_error_t error)
 
 
 static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
-                                        .nodetype        = RF_SOCK_NTYPE_NONE,
+                                        .nodetype        = RF_SOCK_NTYPE_LOOP,
                                         .rx_gain         = 0.0,
                                         .tx_gain         = 0.0,
                                         .rx_srate        = 0.0,
@@ -326,12 +327,16 @@ static int rf_sock_resample(double srate_in,
 }
 
 
+static bool rf_sock_is_loop(rf_sock_info_t * info)
+{
+  return (info->nodetype == RF_SOCK_NTYPE_LOOP);
+}
+
 
 static bool rf_sock_is_enb(rf_sock_info_t * info)
 {
   return (info->nodetype == RF_SOCK_NTYPE_ENB);
 }
-
 
 
 static bool rf_sock_is_ue(rf_sock_info_t * info)
@@ -446,9 +451,7 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
    struct timeval tv_now, tv_diff;
 
-   bool running = true;
-
-   while(running)
+   while(worker->is_running)
      {
        sem_wait(&worker->sem);
 
@@ -463,9 +466,13 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
        pthread_mutex_lock(&_info->tx_workers_lock);
 
-       rf_sock_send_msg(worker, _info->tx_seqn++);
-
        _info->tx_nof_workers -= 1;
+
+       RF_SOCK_DBUG("fire tx_worker %02d, %d tx_workers pending",
+                     worker->id,
+                    _info->tx_nof_workers);
+
+       rf_sock_send_msg(worker, _info->tx_seqn++);
 
        worker->is_pending = false;
 
@@ -752,11 +759,16 @@ static int rf_sock_open_unix_sock(rf_sock_info_t * info,
   lcl_addr.sun_family = AF_UNIX;
   strncpy(lcl_addr.sun_path, local, strlen(local));
 
-  unlink(local);
+  if(unlink(local) < 0)
+    {
+      RF_SOCK_WARN("unlink %s error %s", local, strerror(errno));
+
+      return -1;
+    }
 
   if(bind(rx_fd, (struct sockaddr *) &lcl_addr, sizeof(lcl_addr)) < 0)
     {
-      RF_SOCK_WARN("unix sock bind error %s", strerror(errno));
+      RF_SOCK_WARN("unix sock bind %s error %s", local, strerror(errno));
 
       return -1;
     }
@@ -768,6 +780,8 @@ static int rf_sock_open_unix_sock(rf_sock_info_t * info,
   memset(&info->tx_addr, 0, sizeof(info->tx_addr));
   info->tx_addr.sun_family = AF_UNIX;
   strncpy(info->tx_addr.sun_path, remote, strlen(remote));
+
+  RF_SOCK_INFO("unix sock send to %s", remote);
 
   info->tx_handle = tx_fd;
   info->rx_handle = rx_fd;
@@ -787,13 +801,21 @@ static int rf_sock_open_ipc(rf_sock_info_t * info)
                                   RF_SOCK_DL_PORT,  // tx
                                   RF_SOCK_MC_ADDR);
     }
-  else
+  else if(rf_sock_is_ue(info))
     {
       return rf_sock_open_ip_sock(info, 
                                   RF_SOCK_DL_PORT,  // rx
                                   RF_SOCK_UL_PORT,  // tx
                                   RF_SOCK_MC_ADDR);
     }
+  else
+    {
+      return rf_sock_open_ip_sock(info, 
+                                  RF_SOCK_DL_PORT,  // rx
+                                  RF_SOCK_DL_PORT,  // tx
+                                  RF_SOCK_MC_ADDR);
+    }
+
 #else
   if(rf_sock_is_enb(info))
     {
@@ -801,11 +823,17 @@ static int rf_sock_open_ipc(rf_sock_info_t * info)
                                     RF_SOCK_SERVER_PATH,
                                     RF_SOCK_CLIENT_PATH);
     }
-  else
+  else if(rf_sock_is_ue(info))
     {
       return rf_sock_open_unix_sock(info,
                                     RF_SOCK_CLIENT_PATH, 
                                     RF_SOCK_SERVER_PATH);
+    }
+  else
+    {
+      return rf_sock_open_unix_sock(info,
+                                    RF_SOCK_CLIENT_PATH, 
+                                    RF_SOCK_CLIENT_PATH);
     }
 #endif
 
@@ -837,7 +865,7 @@ int rf_sock_start_rx_stream(void *h, bool now)
 
    gettimeofday(&_info->tv_sos, NULL);
 
-   if(rf_sock_is_enb(_info))
+   if(rf_sock_is_enb(_info) || rf_sock_is_loop(_info))
     {
       // aligin time on the top of the second
       usleep(1000000 - _info->tv_sos.tv_usec);
@@ -918,21 +946,21 @@ int rf_sock_open(char *args, void **h)
 
 int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
  {
-   RF_SOCK_INFO("channels %u, args [%s]", nof_channels, args);
+   RF_SOCK_INFO("channels %u, args [%s]", nof_channels, args ? args : "none");
 
-   if(strncmp(args, "enb", strlen("enb")) == 0)
+   if(args && strncmp(args, "enb", strlen("enb")) == 0)
     {
       rf_sock_info.nodetype = RF_SOCK_NTYPE_ENB;
     }
-   else if(strncmp(args, "ue", strlen("ue")) == 0)
+   else if(args && strncmp(args, "ue", strlen("ue")) == 0)
     {
       rf_sock_info.nodetype = RF_SOCK_NTYPE_UE;
     }
    else
     {
-      RF_SOCK_INFO("default nodetype is ue");
+      RF_SOCK_INFO("default nodetype is loop");
 
-      rf_sock_info.nodetype = RF_SOCK_NTYPE_UE;
+      rf_sock_info.nodetype = RF_SOCK_NTYPE_LOOP;
     }
        
    if(nof_channels != 1)
@@ -963,7 +991,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
          return -1; 
        }
     }
-  else
+  else if(rf_sock_is_enb(&rf_sock_info) || rf_sock_is_loop(&rf_sock_info))
     {
       rf_sock_info.rx_blocking = false;
 
@@ -1003,6 +1031,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
        worker->is_pending = false;
        worker->id         = id;
        worker->h          = &rf_sock_info;
+       worker->is_running = true;
 
        if(pthread_create(&worker->tid, 
                          NULL, 
@@ -1192,11 +1221,11 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    gettimeofday(&tv_in, NULL);
 
-   if(rf_sock_is_enb(_info))
+   if(rf_sock_is_enb(_info) || rf_sock_is_loop(_info))
      {
        timersub(&_info->tv_next_tti, &tv_in, &tv_diff);
 
-       // throttle back enb for new tti
+       // throttle back enb for each new tti here
        if(timercmp(&tv_diff, &tv_zero, >))
         {
           select(0, NULL, NULL, NULL, &tv_diff);
@@ -1218,12 +1247,12 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
          }
 #endif
 
-        do{ // makeup any over runs here
+        do{ // makeup any tti over runs here
            timeradd(&_info->tv_next_tti, &tv_tti_step, &_info->tv_next_tti);
         } while(timercmp(&tv_in, &_info->tv_next_tti, >=));
      }
 
-   // set rx_timestamp to begin time of this new tti
+   // set rx_timestamp to time of this new tti
    struct timeval rx_timestamp;
 
    gettimeofday(&rx_timestamp, NULL);
@@ -1288,13 +1317,10 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 rxout:
    rf_sock_tv_to_ts(&rx_timestamp, full_secs, frac_secs);
 
-   if(nsamples_pending)
-     {
-       RF_SOCK_DBUG("RX req %u, pending %d/%d", 
-                     nsamples,
-                     nsamples_pending, 
-                     nbytes_pending);
-     }
+   RF_SOCK_DBUG("RX req %u, pending %d/%d", 
+                 nsamples,
+                 nsamples_pending, 
+                 nbytes_pending);
 
    return nsamples - nsamples_pending;
  }
@@ -1365,7 +1391,7 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
 
    _info->tx_nof_workers += 1;
  
-   RF_SOCK_DBUG("add worker %02d, time spec %s, tx_time %ld:%0.6lf, %d workers pending",
+   RF_SOCK_DBUG("add tx_worker %02d, time spec %s, tx_time %ld:%0.6lf, %d tx_workers pending",
                   worker->id,
                   has_time_spec ? "yes" : "no",
                   full_secs,
