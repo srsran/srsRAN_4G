@@ -312,6 +312,23 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     pthread_mutex_unlock(&mutex);
     return build_status_pdu(payload, nof_bytes);
   }
+
+  // if tx_window is full and retx_queue empty, retransmit next PDU to be ack'ed
+  if (tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.size() == 0) {
+    // make sure this SN is still in the Tx window
+    uint32_t retx_sn = vt_a;
+    while (tx_window[retx_sn].buf == NULL) {
+      retx_sn++;
+    }
+
+    rlc_amd_retx_t retx;
+    retx.is_segment = false;
+    retx.so_start   = 0;
+    retx.so_end     = tx_window[retx_sn].buf->N_bytes;
+    retx.sn         = retx_sn;
+    retx_queue.push_back(retx);
+  }
+
   // RETX if required
   if(retx_queue.size() > 0) {
     int ret = build_retx_pdu(payload, nof_bytes);
