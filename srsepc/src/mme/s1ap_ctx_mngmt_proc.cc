@@ -272,8 +272,8 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   m_s1ap_log->info("Received UE Context Release Request. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
   m_s1ap_log->console("Received UE Context Release Request. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
 
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
-  if(ue_ctx == NULL)
+  ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if(ue_ecm_ctx == NULL)
   {
     m_s1ap_log->info("UE not found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     return false;
@@ -283,7 +283,7 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   bool active = false;
   for(int i=0;i<MAX_ERABS_PER_UE;i++)
   {
-    if(ue_ctx->erabs_ctx[i].state != ERAB_DEACTIVATED)
+    if(ue_ecm_ctx->erabs_ctx[i].state != ERAB_DEACTIVATED) //FIXME use ECM state
     {
       active = true;
       //ue_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
@@ -293,14 +293,16 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   if(active == true)
   {
     //There are active E-RABs, send delete session request
-    m_mme_gtpc->send_delete_session_request(ue_ctx);
+    m_mme_gtpc->send_delete_session_request(ue_ecm_ctx);
   }
   //m_s1ap->delete_ue_ctx(ue_ctx);
   for(int i=0;i<MAX_ERABS_PER_UE;i++)
   {
-    ue_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
+    ue_ecm_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
   }
   //Delete UE context
+  m_s1ap->delete_ue_ecm_ctx(ue_ecm_ctx->mme_ue_s1ap_id);
+
   m_s1ap_log->info("Deleted UE Context.\n");
   return true;
 }
