@@ -492,8 +492,6 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
     // Set new serving cell
     serving_cell = new_serving_cell;
 
-    printf("Setting new serving cell idx=%d, PCI=%d, nof_neighbours=%d\n",
-           cell_idx, serving_cell->phy_cell.id, neighbour_cells.size());
     rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, nof_neighbours=%d\n",
                   cell_idx, serving_cell->earfcn, serving_cell->phy_cell.id, neighbour_cells.size());
 
@@ -593,12 +591,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
     }
   }
   if (found) {
-    rrc_log->info("Updating %s cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n",
-                  cell_idx>=0?"neighbour":"serving",
-                  serving_cell->earfcn,
-                  serving_cell->phy_cell.id,
-                  serving_cell->rsrp);
-    
+
     if (!serving_cell->has_valid_sib1) {
       si_acquire_state = SI_ACQUIRE_SIB1;
     } else if (state == RRC_STATE_PLMN_SELECTION) {
@@ -619,12 +612,15 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
       set_serving_cell(earfcn, phy_cell.id);
 
       si_acquire_state = SI_ACQUIRE_SIB1;
-
-      rrc_log->info("New Cell: PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm\n",
-                    serving_cell->phy_cell.id, serving_cell->phy_cell.nof_prb, serving_cell->phy_cell.nof_ports,
-                    serving_cell->earfcn, serving_cell->rsrp);
     }
   }
+
+  rrc_log->info("%s %s cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n",
+                found?"Updating":"Adding",
+                cell_idx>=0?"neighbour":"serving",
+                serving_cell->earfcn,
+                serving_cell->phy_cell.id,
+                serving_cell->rsrp);
 }
 
 bool sort_rsrp(cell_t *u1, cell_t *u2) {
@@ -2433,8 +2429,8 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   report->pcell_rsrp_result = value_to_range(RSRP, pcell_measurement.ms[RSRP]);
   report->pcell_rsrq_result = value_to_range(RSRQ, pcell_measurement.ms[RSRQ]);
 
-  log_h->console("MEAS:  Generate report MeasId=%d, rsrp=%f rsrq=%f\n",
-              report->meas_id, pcell_measurement.ms[RSRP], pcell_measurement.ms[RSRQ]);
+  log_h->info("MEAS:  Generate report MeasId=%d, nof_reports_send=%d, Pcell rsrp=%f rsrq=%f\n",
+              report->meas_id, m->nof_reports_sent, pcell_measurement.ms[RSRP], pcell_measurement.ms[RSRQ]);
 
   // TODO: report up to 8 best cells
   for (std::map<uint32_t, meas_value_t>::iterator cell = m->cell_values.begin(); cell != m->cell_values.end(); ++cell)
@@ -2449,7 +2445,7 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
       rc->meas_result.rsrp_result = value_to_range(RSRP, cell->second.ms[RSRP]);
       rc->meas_result.rsrq_result = value_to_range(RSRQ, cell->second.ms[RSRQ]);
 
-      log_h->info("MEAS:  Add neigh=%d, pci=%d, rsrp=%f, rsrq=%f\n",
+      log_h->info("MEAS:  Adding to report neighbour=%d, pci=%d, rsrp=%f, rsrq=%f\n",
                      report->meas_result_neigh_cells.eutra.n_result, rc->phys_cell_id,
                      cell->second.ms[RSRP], cell->second.ms[RSRQ]);
 
@@ -2669,10 +2665,14 @@ void rrc::rrc_meas::remove_meas_report(uint32_t report_id) {
 }
 
 void rrc::rrc_meas::remove_meas_id(uint32_t measId) {
-  mac_timers->timer_get(active[measId].periodic_timer)->stop();
-  mac_timers->timer_release_id(active[measId].periodic_timer);
-  log_h->info("MEAS: Removed measId=%d\n", measId);
-  active.erase(measId);
+  if (active.count(measId)) {
+    mac_timers->timer_get(active[measId].periodic_timer)->stop();
+    mac_timers->timer_release_id(active[measId].periodic_timer);
+    log_h->info("MEAS: Removed measId=%d\n", measId);
+    active.erase(measId);
+  } else {
+    log_h->warning("MEAS: Removing unexistent measId=%d\n", measId);
+  }
 }
 
 void rrc::rrc_meas::remove_meas_id(std::map<uint32_t, meas_t>::iterator it) {
@@ -2810,15 +2810,17 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
     for (uint32_t i=0;i<cfg->meas_id_to_add_mod_list.N_meas_id;i++) {
       LIBLTE_RRC_MEAS_ID_TO_ADD_MOD_STRUCT *measId = &cfg->meas_id_to_add_mod_list.meas_id_list[i];
       // Stop the timer if the entry exists or create the timer if not
+      bool is_new = false;
       if (active.count(measId->meas_id)) {
         mac_timers->timer_get(active[measId->meas_id].periodic_timer)->stop();
       } else {
+        is_new = true;
         active[measId->meas_id].periodic_timer   = mac_timers->timer_get_unique_id();
       }
       active[measId->meas_id].object_id = measId->meas_obj_id;
       active[measId->meas_id].report_id = measId->rep_cnfg_id;
-      log_h->info("MEAS: Added measId=%d, measObjectId=%d, reportConfigId=%d\n",
-                  measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id);
+      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d\n",
+                  is_new?"Added":"Updated", measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id);
     }
   }
 
