@@ -1093,7 +1093,7 @@ uint32_t phch_recv::measure::frame_st_idx() {
 }
 
 void phch_recv::measure::set_rx_gain_offset(float rx_gain_offset) {
-  this->rx_gain_offset = rx_gain_offset;
+  this->rx_gain_offset  = rx_gain_offset;
 }
 
 phch_recv::measure::ret_code phch_recv::measure::run_subframe_sync(srslte_ue_sync_t *ue_sync, uint32_t sf_idx)
@@ -1207,7 +1207,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
   if (cnt >= nof_subframes) {
 
     // Calibrate RSRP if no gain offset measurements
-    if (rx_gain_offset == 0 && radio_h) {
+    if (fabsf(rx_gain_offset) < 1.0 && radio_h) {
       float temporal_offset = 0;
       if (radio_h->has_rssi()) {
         temporal_offset = mean_rssi - radio_h->get_rssi() + 30;
