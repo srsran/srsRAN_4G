@@ -137,7 +137,7 @@ static bool rf_sock_log_warn  = true;
 #define SAMPLES_PER_BYTE(x) ((x)/sizeof(cf_t))
 
 // max sf len
-#define RF_SOCK_MAX_SF_LEN (0x4000)
+#define RF_SOCK_MAX_SF_LEN (0x8000)
 
 // max msg len in bytes
 #define RF_SOCK_MAX_MSG_LEN (RF_SOCK_MAX_SF_LEN * sizeof(cf_t))
@@ -208,12 +208,13 @@ typedef struct {
    int                  rx_n_tries;
    size_t               tx_errors;
    struct sockaddr_un   tx_addr;
+   cf_t *               sf_in;
 } rf_sock_info_t;
 
 
 typedef struct {
   uint64_t       seqnum;
-  uint32_t       msglen;
+  uint32_t       nbytes;
   float          srate;
   struct timeval tx_time;
 } rf_sock_iohdr_t;
@@ -264,6 +265,7 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .rx_n_tries      = 0,
                                         .tx_errors       = 0,
                                         .tx_addr         = {0,{0}},
+                                        .sf_in           = NULL,
                                       };
 
 // could just as well use rf_sock_info for single antenna mode
@@ -343,8 +345,6 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 {
    GET_DEV_INFO(h);
 
-   const int nbytes_to_rx = iov[0].iov_len + iov[1].iov_len;
-
    // rx window if non-blocking (enb)
    if(! _info->rx_blocking)
      {
@@ -364,8 +364,6 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
        if(timercmp(&tv_timeout, &tv_zero, >))
          {
-           RF_SOCK_DBUG("RX waiting %ld:%06ld", tv_diff.tv_sec, tv_diff.tv_usec);
-
            if(select(_info->rx_handle + 1, &rfds, NULL, NULL, &tv_diff) <= 0 ||
                     (! FD_ISSET(_info->rx_handle, &rfds)))
             {
@@ -378,7 +376,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
    if(rc < 0)
      {
-       RF_SOCK_WARN("RX reqlen %d, error %s", nbytes_to_rx, strerror(errno));
+       RF_SOCK_WARN("RX reqlen %d, error %s", iov[0].iov_len + iov[1].iov_len, strerror(errno));
      }
 
    return rc;
@@ -404,11 +402,9 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
    struct iovec iov[2] = { {(void*)&hdr,             sizeof(hdr)},
                            {(void*)tx_info->cf_data, nbytes_out }};
 
-   const int nbytes_to_tx = iov[0].iov_len + iov[1].iov_len;
-
    struct msghdr mhdr = { 
 #ifdef SOCK_RF_IPC_IP
-                          NULL,
+                          NULL, // ip sockets are already "connected"
                           0,
 #else
                           &_info->tx_addr,      
@@ -420,27 +416,23 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
                           0,
                           0 };
  
-   const int rc = sendmsg(_info->tx_handle, &mhdr, 0);
+   const int rc = sendmsg(_info->tx_handle, &mhdr, MSG_DONTWAIT);
 
-   if(rc != nbytes_to_tx)
+   if(rc != (iov[0].iov_len + iov[1].iov_len))
      {
        if(errno == ENOTCONN || errno == ECONNREFUSED || errno == EAGAIN)
          {
            if(! (++_info->tx_errors % 1000))
              {
-               RF_SOCK_WARN("peer not connected, please start UE");
-
-               exit(0);
+               RF_SOCK_WARN("peer not connected, please re-start UE");
              }
          }
         else
          {
-           RF_SOCK_WARN("send error %s", strerror(errno));
+           RF_SOCK_WARN("send error %s, shutting down now", strerror(errno));
+
+           exit(0);
          }
-     }
-   else
-     {
-       RF_SOCK_DBUG("sent %d of %d", rc, nbytes_to_tx);
      }
 }
 
@@ -452,15 +444,13 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
    GET_DEV_INFO(worker->h);
 
-   RF_SOCK_DBUG("worker %02d created, ready for duty", worker->id);
-
    struct timeval tv_now, tv_diff;
 
    bool running = true;
 
    while(running)
      {
-       sem_wait(&(worker->sem));
+       sem_wait(&worker->sem);
 
        gettimeofday(&tv_now, NULL);
 
@@ -904,7 +894,7 @@ bool rf_sock_has_rssi(void *h)
 
 float rf_sock_get_rssi(void *h)
  {
-   const float rssi = -60.0;  // XXX TODO
+   const float rssi = -50.0;  // XXX TODO
 
    RF_SOCK_DBUG("rssi %4.3f", rssi);
 
@@ -1038,6 +1028,15 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
         {
            RF_SOCK_DBUG("set worker thread priority/policy %d:%d", param.sched_priority, policy);
         }
+     }
+
+   rf_sock_info.sf_in = malloc (sizeof(cf_t) * RF_SOCK_MAX_SF_LEN);
+
+   if(rf_sock_info.sf_in == NULL)
+     {
+       RF_SOCK_WARN("FAILED to allocate memory for input buffer");
+
+       return -1;
      }
 
    *h = &rf_sock_info;
@@ -1189,7 +1188,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
  {
    GET_DEV_INFO(h);
 
-   struct timeval tv_in, tv_now, tv_diff;
+   struct timeval tv_in, tv_diff;
 
    gettimeofday(&tv_in, NULL);
 
@@ -1203,11 +1202,13 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
           select(0, NULL, NULL, NULL, &tv_diff);
         }
 
+#if 0
+        struct timeval tv_now;
         gettimeofday(&tv_now, NULL);
 
         timersub(&tv_now, &_info->tv_next_tti, &tv_diff);
 
-        if(RF_SOCK_IS_LATE(tv_diff, 1, 500))
+        if(RF_SOCK_IS_LATE(tv_diff, 1, 1000))
          {
            RF_SOCK_WARN("tv_tti %ld:%06ld, overrun %ld:%06ld",
                          _info->tv_next_tti.tv_sec,
@@ -1215,6 +1216,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                          tv_diff.tv_sec,
                          tv_diff.tv_usec);
          }
+#endif
 
         do{ // makeup any over runs here
            timeradd(&_info->tv_next_tti, &tv_tti_step, &_info->tv_next_tti);
@@ -1232,18 +1234,14 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    rf_sock_iohdr_t hdr;
 
-   cf_t sf_in[RF_SOCK_MAX_SF_LEN] = {0.0, 0.0};
-
    int n_tries = _info->rx_n_tries;
 
    uint8_t * p2data = (uint8_t *)data;
 
-   //memset(data, 0x0, nbytes_pending);
-
    while(((float)nsamples_pending > (.01f * nsamples)) && (n_tries--) > 0)
      {   
        struct iovec iov[2] = { {(void*)&hdr,  sizeof(hdr) },
-                               {(void*)sf_in, RF_SOCK_MAX_MSG_LEN }};
+                               {(void*)_info->sf_in, RF_SOCK_MAX_MSG_LEN }};
 
        const int rc = rf_sock_vecio_recv(h, iov);
 
@@ -1260,10 +1258,10 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
         {
           const int nbytes_this_msg = rc - sizeof(hdr);
 
-          if(nbytes_this_msg != hdr.msglen)
+          if(nbytes_this_msg != hdr.nbytes)
            {
              RF_SOCK_WARN("RX seqn %lu, msglen error expected %d, got %d, drop", 
-                           hdr.seqnum, hdr.msglen, nbytes_this_msg);
+                           hdr.seqnum, hdr.nbytes, nbytes_this_msg);
 
              goto rxout;
            }
@@ -1273,7 +1271,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          const int nsamples_out = rf_sock_resample(hdr.srate,
                                                   _info->rx_srate,
-                                                  sf_in,
+                                                  _info->sf_in,
                                                   p2data, 
                                                   SAMPLES_PER_BYTE(nbytes_this_msg));
 
@@ -1298,7 +1296,7 @@ rxout:
                      nbytes_pending);
      }
 
-   return nsamples;
+   return nsamples - nsamples_pending;
  }
 
 
@@ -1374,7 +1372,7 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
                   frac_secs,
                  _info->tx_nof_workers);
 
-   sem_post(&(worker->sem));
+   sem_post(&worker->sem);
 
 txout:
    pthread_mutex_unlock(&(_info->tx_workers_lock));
