@@ -240,42 +240,49 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   uint8_t     rand[16];
   uint8_t     xres[8];
 
-  ue_ctx_t ue_ctx;
-  ue_ctx.imsi = 0;
-  ue_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-  ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+
+  ue_emm_ctx_t ue_emm_ctx;
+  ue_ecm_ctx_t ue_ecm_ctx;
+
+  //Set UE's EMM context
+  ue_emm_ctx.imsi = 0;
+  for(int i=0;i<=14;i++){
+    ue_emm_ctx.imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
+  }
+  ue_emm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
 
   //Save UE network capabilities
-  memcpy(&ue_ctx.security_ctxt.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
-  ue_ctx.security_ctxt.ms_network_cap_present =  attach_req.ms_network_cap_present;
+  memcpy(&ue_emm_ctx.security_ctxt.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
+  ue_emm_ctx.security_ctxt.ms_network_cap_present =  attach_req.ms_network_cap_present;
   if(attach_req.ms_network_cap_present)
   {
-    memcpy(&ue_ctx.security_ctxt.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+    memcpy(&ue_emm_ctx.security_ctxt.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
   }
   uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
-  ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
+  ue_emm_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
+
+  //Initialize NAS count
+  ue_emm_ctx.security_ctxt.ul_nas_count = 0;
+  ue_emm_ctx.security_ctxt.dl_nas_count = 0;
+
+
+  //Set UE ECM context
+  //Set eNB information
+  ue_ecm_ctx.enb_id = enb_ue_s1ap_id;
+  memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
   //Save whether ESM information transfer is necessary
-  ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
-  //m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
-  //Initialize NAS count
-  ue_ctx.security_ctxt.ul_nas_count = 0;
-  ue_ctx.security_ctxt.dl_nas_count = 0;
+  ue_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
+
   //Add eNB info to UE ctxt
-  memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
   //Initialize E-RABs
   for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
   {
-    ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
-    ue_ctx.erabs_ctx[i].erab_id = i;
+    ue_ecm_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
+    ue_ecm_ctx.erabs_ctx[i].erab_id = i;
   }
 
-  //IMSI style attach
-  ue_ctx.imsi = 0;
-  for(int i=0;i<=14;i++){
-    ue_ctx.imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
-  }
-
+  //Log Attach Request information
   m_s1ap_log->console("Attach request -- IMSI: %015lu\n", ue_ctx.imsi);
   m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ue_ctx.imsi);
   m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
@@ -528,7 +535,7 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
 }
 
 bool
-s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
 
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_comp;
@@ -559,12 +566,12 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
     m_s1ap_log->error("EPS Bearer ID out of range\n");
     return false;
   }
-  m_mme_gtpc->send_modify_bearer_request(&ue_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
+  m_mme_gtpc->send_modify_bearer_request(&ue_ecm_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
   return true;
 }
 
 bool
-s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
   LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT esm_info_resp;
 
@@ -583,12 +590,12 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
 
   //FIXME The packging of GTP-C messages is not ready.
   //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-  m_mme_gtpc->send_create_session_request(ue_ctx->imsi, ue_ctx->mme_ue_s1ap_id);
+  m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi, ue_ecm_ctx->mme_ue_s1ap_id);
   return true;
 }
 
 bool
-s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
   uint8_t     autn[16]; 
   uint8_t     rand[16];
@@ -607,10 +614,13 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   }
   m_s1ap_log->info("Id Response -- IMSI: %015lu\n", imsi);
   m_s1ap_log->console("Id Response -- IMSI: %015lu\n", imsi);
-  ue_ctx->imsi = imsi;
+  ue_ecm_ctx->imsi = imsi;
+
+  //Get UE EMM context
+  ue_emm_ctx_t ue_emm_ctx;
 
   //Get Authentication Vectors from HSS
-  if(!m_hss->gen_auth_info_answer(imsi, ue_ctx->security_ctxt.k_asme, autn, rand, ue_ctx->security_ctxt.xres))
+  if(!m_hss->gen_auth_info_answer(imsi, ue_emm_ctx.security_ctxt.k_asme, autn, rand, ue_emm_ctx.security_ctxt.xres))
   {
     m_s1ap_log->console("User not found. IMSI %015lu\n",imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
@@ -618,7 +628,7 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   }
    
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id, autn, rand);
+  pack_authentication_request(reply_msg, ue_ecm_ctx->enb_ue_s1ap_id, ue_ecm_ctx->mme_ue_s1ap_id, autn, rand);
 
   //Send reply to eNB
   *reply_flag = true;
@@ -631,7 +641,7 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
 
 
 bool
-s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
 
   /*
@@ -657,45 +667,14 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ecm_ctx->mme_ue_s1ap_id;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ecm_ctx->enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
-  m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
+  m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ecm_ctx->mme_ue_s1ap_id);
  
   LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT tau_acc;
-  /*typedef struct{
-    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3412;
-    LIBLTE_MME_EPS_MOBILE_ID_STRUCT               guti;
-    LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_STRUCT tai_list;
-    LIBLTE_MME_EPS_BEARER_CONTEXT_STATUS_STRUCT   eps_bearer_context_status;
-    LIBLTE_MME_LOCATION_AREA_ID_STRUCT            lai;
-    LIBLTE_MME_MOBILE_ID_STRUCT                   ms_id;
-    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3402;
-    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3423;
-    LIBLTE_MME_PLMN_LIST_STRUCT                   equivalent_plmns;
-    LIBLTE_MME_EMERGENCY_NUMBER_LIST_STRUCT       emerg_num_list;
-    LIBLTE_MME_EPS_NETWORK_FEATURE_SUPPORT_STRUCT eps_network_feature_support;
-    LIBLTE_MME_GPRS_TIMER_3_STRUCT                t3412_ext;
-    LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_ENUM      additional_update_result;
-    uint8                                         eps_update_result;
-    uint8                                         emm_cause;
-    bool                                          t3412_present;
-    bool                                          guti_present;
-    bool                                          tai_list_present;
-    bool                                          eps_bearer_context_status_present;
-    bool                                          lai_present;
-    bool                                          ms_id_present;
-    bool                                          emm_cause_present;
-    bool                                          t3402_present;
-    bool                                          t3423_present;
-    bool                                          equivalent_plmns_present;
-    bool                                          emerg_num_list_present;
-    bool                                          eps_network_feature_support_present;
-    bool                                          additional_update_result_present;
-    bool                                          t3412_ext_present;
-}LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT;
-*/
+ 
   //Send reply to eNB
   //*reply_flag = true;
 
@@ -858,8 +837,8 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ecm_ctx->mme_ue_s1ap_id;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ecm_ctx->enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
@@ -873,14 +852,14 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   sm_cmd.nas_ksi.nas_ksi=0; 
 
   //Replay UE security cap
-  memcpy(sm_cmd.ue_security_cap.eea,ue_ctx->security_ctxt.ue_network_cap.eea,8*sizeof(bool));
-  memcpy(sm_cmd.ue_security_cap.eia,ue_ctx->security_ctxt.ue_network_cap.eia,8*sizeof(bool));
-  sm_cmd.ue_security_cap.uea_present = ue_ctx->security_ctxt.ue_network_cap.uea_present;
-  memcpy(sm_cmd.ue_security_cap.uea,ue_ctx->security_ctxt.ue_network_cap.uea,8*sizeof(bool));
-  sm_cmd.ue_security_cap.uia_present = ue_ctx->security_ctxt.ue_network_cap.uia_present;
-  memcpy(sm_cmd.ue_security_cap.uia,ue_ctx->security_ctxt.ue_network_cap.uia,8*sizeof(bool));
-  sm_cmd.ue_security_cap.gea_present = ue_ctx->security_ctxt.ms_network_cap_present;
-  memcpy(sm_cmd.ue_security_cap.gea,ue_ctx->security_ctxt.ms_network_cap.gea,8*sizeof(bool));
+  memcpy(sm_cmd.ue_security_cap.eea,ue_emm_ctx->security_ctxt.ue_network_cap.eea,8*sizeof(bool));
+  memcpy(sm_cmd.ue_security_cap.eia,ue_emm_ctx->security_ctxt.ue_network_cap.eia,8*sizeof(bool));
+  sm_cmd.ue_security_cap.uea_present = ue_emm_ctx->security_ctxt.ue_network_cap.uea_present;
+  memcpy(sm_cmd.ue_security_cap.uea,ue_emm_ctx->security_ctxt.ue_network_cap.uea,8*sizeof(bool));
+  sm_cmd.ue_security_cap.uia_present = ue_emm_ctx->security_ctxt.ue_network_cap.uia_present;
+  memcpy(sm_cmd.ue_security_cap.uia,ue_emm_ctx->security_ctxt.ue_network_cap.uia,8*sizeof(bool));
+  sm_cmd.ue_security_cap.gea_present = ue_emm_ctx->security_ctxt.ms_network_cap_present;
+  memcpy(sm_cmd.ue_security_cap.gea,ue_emm_ctx->security_ctxt.ms_network_cap.gea,8*sizeof(bool));
 
   sm_cmd.imeisv_req_present=false;
   sm_cmd.nonce_ue_present=false;
@@ -888,8 +867,8 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
 
   uint8_t  sec_hdr_type=3;
   
-  ue_ctx->security_ctxt.dl_nas_count = 0;
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  ue_emm_ctx->security_ctxt.dl_nas_count = 0;
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->console("Error packing Athentication Request\n");
@@ -900,15 +879,15 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   //FIXME Write wrapper to support EIA1, EIA2, etc.
   uint8_t mac[4];
 
-  srslte::security_generate_k_nas( ue_ctx->security_ctxt.k_asme,
+  srslte::security_generate_k_nas( ue_emm_ctx->security_ctxt.k_asme,
                            srslte::CIPHERING_ALGORITHM_ID_EEA0,
                            srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
-                           ue_ctx->security_ctxt.k_nas_enc,
-                           ue_ctx->security_ctxt.k_nas_int
+                           ue_emm_ctx->security_ctxt.k_nas_enc,
+                           ue_emm_ctx->security_ctxt.k_nas_int
                          );
 
-  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
-                     ue_ctx->security_ctxt.dl_nas_count,
+  srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
+                     ue_emm_ctx->security_ctxt.dl_nas_count,
                      0,
                      SECURITY_DIRECTION_DOWNLINK,
                      &nas_buffer->msg[5],
@@ -962,9 +941,9 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   esm_info_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id;
   uint8_t  sec_hdr_type=2;
   
-  ue_ctx->security_ctxt.dl_nas_count++;
+  ue_emm_ctx->security_ctxt.dl_nas_count++;
  
-  LIBLTE_ERROR_ENUM err = srslte_mme_pack_esm_information_request_msg(&esm_info_req, sec_hdr_type,ue_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  LIBLTE_ERROR_ENUM err = srslte_mme_pack_esm_information_request_msg(&esm_info_req, sec_hdr_type,ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->error("Error packing ESM information request\n");
