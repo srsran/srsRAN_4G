@@ -534,12 +534,21 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
 
   new_header.dc   = RLC_DC_FIELD_DATA_PDU;
   new_header.rf   = 1;
-  new_header.p    = 0;
   new_header.fi   = RLC_FI_FIELD_NOT_START_OR_END_ALIGNED;
   new_header.sn   = old_header.sn;
   new_header.lsf  = 0;
   new_header.so   = retx.so_start;
   new_header.N_li = 0;
+  new_header.p    = 0;
+  if(poll_required())
+  {
+    log->debug("%s setting poll bit to request status\n", rrc->get_rb_name(lcid).c_str());
+    new_header.p      = 1;
+    poll_sn           = vt_s;
+    pdu_without_poll  = 0;
+    byte_without_poll = 0;
+    poll_retx_timeout.start(cfg.t_poll_retx);
+  }
 
   uint32_t head_len  = 0;
   uint32_t pdu_space = 0;
