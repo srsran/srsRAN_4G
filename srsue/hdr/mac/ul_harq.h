@@ -206,7 +206,7 @@ private:
     {
       if (ack) {
         if (grant) {
-          if (grant->ndi[0] == get_ndi()) {
+          if (grant->ndi[0] == get_ndi() && grant->phy_grant.ul.mcs.tbs != 0) {
             *ack = false;
           }
         }
@@ -215,7 +215,7 @@ private:
 
       // Reset HARQ process if TB has changed
       if (harq_feedback && has_grant() && grant) {
-        if (grant->n_bytes[0] != cur_grant.n_bytes[0] && cur_grant.n_bytes[0] > 0) {
+        if (grant->n_bytes[0] != cur_grant.n_bytes[0] && cur_grant.n_bytes[0] > 0 && grant->n_bytes[0] > 0) {
           Debug("UL %d: Reset due to change of grant size last_grant=%d, new_grant=%d\n",
                pid, cur_grant.n_bytes[0], grant->n_bytes[0]);
           reset();
