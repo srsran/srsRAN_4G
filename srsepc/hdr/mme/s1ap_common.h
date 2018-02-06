@@ -130,9 +130,10 @@ typedef struct{
 typedef struct{
     uint64_t imsi;
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
-    emm_state_t emm_state;
     eps_security_ctx_t security_ctxt;
     uint8_t procedure_transaction_id;
+    emm_state_t emm_state;
+    uint32_t mme_ue_s1ap_id;
 } ue_emm_ctx_t;
 
 typedef struct{
