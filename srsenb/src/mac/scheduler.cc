@@ -864,16 +864,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
           printf("SCHED: Could not schedule UL DCI rnti=0x%x, pid=%d, L=%d, sf_idx=%d\n",
                  rnti, h->get_id(), aggr_level, sf_idx);
 
-          sched_ue::sched_dci_cce_t *loc=user->get_locations(current_cfi, sf_idx);
-          for (int i=0;i<loc->nof_loc[aggr_level];i++) {
-            printf("n=%d\n", loc->cce_start[aggr_level][i]);
-          }
-          printf("used=[");
-          for (int i=0;i<MAX_CCE;i++) {
-            printf("%d,", used_cce[i]);
-          }
-          printf("\n");
-          sched_result->pusch[nof_dci_elems].needs_pdcch = false; 
+          sched_result->pusch[nof_dci_elems].needs_pdcch = false;
         } else {
           sched_result->pusch[nof_dci_elems].needs_pdcch = true; 
         }
