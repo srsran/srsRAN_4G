@@ -50,9 +50,15 @@
 // prefer unix socket over ip sockets for speed/reliability
 //#define SOCK_RF_IPC_IP
 
+#ifdef DEBUG_MODE
 static bool rf_sock_log_dbug  = true;
 static bool rf_sock_log_info  = true;
 static bool rf_sock_log_warn  = true;
+#else
+static bool rf_sock_log_dbug  = false;
+static bool rf_sock_log_info  = true;
+static bool rf_sock_log_warn  = true;
+#endif
 
 #define RF_SOCK_LOG_FMT "%02d:%02d:%02d.%06ld [SKRF] [%c] [%05hu] %s,  "
 
@@ -224,13 +230,14 @@ typedef struct {
 void rf_sock_suppress_stdout(void *h)
  {
     rf_sock_log_dbug = false;
-    rf_sock_log_info = true;
+    rf_sock_log_info = false;
     rf_sock_log_warn = true;
  }
 
 
 static void rf_sock_handle_error(srslte_rf_error_t error)
 {
+  // XXX TODO make more use of this handler
   RF_SOCK_INFO("%s:%s type %s, opt %d, msg %s\b", 
                 error.type == SRSLTE_RF_ERROR_LATE      ? "late"      :
                 error.type == SRSLTE_RF_ERROR_UNDERFLOW ? "underflow" :
@@ -922,7 +929,7 @@ bool rf_sock_has_rssi(void *h)
 
 float rf_sock_get_rssi(void *h)
  {
-   const float rssi = -50.0;  // XXX TODO
+   const float rssi = -50.0;  // XXX TODO what value ???
 
    RF_SOCK_DBUG("rssi %4.3f", rssi);
 
