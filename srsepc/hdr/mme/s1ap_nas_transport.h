@@ -79,7 +79,7 @@ public:
   bool pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx);
   bool pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx);
 
-  bool pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
+  bool pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
   bool pack_identity_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
 
   bool pack_emm_information(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);

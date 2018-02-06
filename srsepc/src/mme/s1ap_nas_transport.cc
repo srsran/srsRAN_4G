@@ -993,7 +993,7 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
 }
 
 bool
-s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer) {
+s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer) {
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
   //bzero(&act_def_eps_bearer_context_req,sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
@@ -1040,7 +1040,7 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   attach_accept.guti.guti.mnc = mnc;
   attach_accept.guti.guti.mme_group_id = m_s1ap->m_s1ap_args.mme_group;
   attach_accept.guti.guti.mme_code = m_s1ap->m_s1ap_args.mme_code;
-  attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(ue_ctx->mme_ue_s1ap_id);
+  attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(ue_ecm_ctx->mme_ue_s1ap_id);
   m_s1ap_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
                     attach_accept.guti.guti.mcc,
                     attach_accept.guti.guti.mnc,
@@ -1077,7 +1077,7 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   //act_def_eps_bearer_context_req.apn
   std::string apn("test123");
   act_def_eps_bearer_context_req.apn.apn = apn; //FIXME
-  act_def_eps_bearer_context_req.proc_transaction_id = ue_ctx->procedure_transaction_id; //FIXME
+  act_def_eps_bearer_context_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id; //FIXME
 
   //Set DNS server
   act_def_eps_bearer_context_req.protocol_cnfg_opts_present = true;
@@ -1098,13 +1098,13 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   act_def_eps_bearer_context_req.esm_cause_present = false;
 
   uint8_t sec_hdr_type =2;
-  ue_ctx->security_ctxt.dl_nas_count++;
+  ue_emm_ctx->security_ctxt.dl_nas_count++;
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
-  liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   //Integrity protect NAS message
   uint8_t mac[4];
-  srslte::security_128_eia1 (&ue_ctx->security_ctxt.k_nas_int[16],
-                             ue_ctx->security_ctxt.dl_nas_count,
+  srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
+                             ue_emm_ctx->security_ctxt.dl_nas_count,
                              0,
                              SECURITY_DIRECTION_DOWNLINK,
                              &nas_buffer->msg[5],

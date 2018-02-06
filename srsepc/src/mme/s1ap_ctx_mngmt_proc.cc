@@ -98,19 +98,25 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
   m_s1ap_log->info("Preparing to send Initial Context Setup request\n");
 
   //Find UE Context
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
-  if(ue_ctx == NULL)
+  ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if(ue_ecm_ctx == NULL)
+  {
+    m_s1ap_log->error("Could not find UE to send Setup Context Request. MME S1AP Id: %d", mme_ue_s1ap_id);
+    return false;
+  }
+  ue_emm_ctx_t *ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+  if(ue_emm_ctx == NULL)
   {
     m_s1ap_log->error("Could not find UE to send Setup Context Request. MME S1AP Id: %d", mme_ue_s1ap_id);
     return false;
   }
 
   //Add MME and eNB S1AP Ids
-  in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctx->mme_ue_s1ap_id;
-  in_ctxt_req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
+  in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ecm_ctx->mme_ue_s1ap_id;
+  in_ctxt_req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ecm_ctx->enb_ue_s1ap_id;
 
   //Set UE-AMBR
-  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=1000000000;//2^32-1
+  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=1000000000;
   in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=1000000000;//FIXME Get UE-AMBR from HSS
 
   //Setup eRAB context
@@ -143,7 +149,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
   bzero(in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer,sizeof(uint8_t)*16); 
   for(int i = 0; i<3; i++)
   {
-    if(ue_ctx->security_ctxt.ue_network_cap.eea[i+1] == true)
+    if(ue_emm_ctx->security_ctxt.ue_network_cap.eea[i+1] == true)
     {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 1;          //EEA supported
     }
@@ -151,7 +157,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 0;          //EEA not supported
     }
-    if(ue_ctx->security_ctxt.ue_network_cap.eia[i+1] == true)
+    if(ue_emm_ctx->security_ctxt.ue_network_cap.eia[i+1] == true)
     {
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 1;          //EEA supported
     }
@@ -162,9 +168,9 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     // in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
   }
   uint8_t key_enb[32];
-  liblte_security_generate_k_enb(ue_ctx->security_ctxt.k_asme, ue_ctx->security_ctxt.ul_nas_count, key_enb);
+  liblte_security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, key_enb);
   liblte_unpack(key_enb, 32, in_ctxt_req->SecurityKey.buffer);
-  m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_ctx->security_ctxt.ul_nas_count);
+  m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
   //Set Attach accepted and activat default bearer NAS messages
   if(cs_resp->paa_present != true)
   {
@@ -177,7 +183,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     return false;
   }
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-  m_s1ap_nas_transport->pack_attach_accept(ue_ctx, erab_ctxt, &cs_resp->paa, nas_buffer); 
+  m_s1ap_nas_transport->pack_attach_accept(ue_emm_ctx, ue_ecm_ctx, erab_ctxt, &cs_resp->paa, nas_buffer); 
 
   
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
@@ -187,7 +193,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     return false;
   }
   //Send Reply to eNB 
-  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ctx->enb_sri, 0);
+  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ecm_ctx->enb_sri, 0);
   if(n_sent == -1)
   {
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
@@ -195,9 +201,9 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
   }
 
   //Change E-RAB state to Context Setup Requested and save S-GW control F-TEID
-  ue_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
-  ue_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.teid = sgw_ctrl_fteid.teid;
-  ue_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
+  ue_ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
+  ue_ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.teid = sgw_ctrl_fteid.teid;
+  ue_ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
 
   struct in_addr addr;
   addr.s_addr = htonl(sgw_s1u_ip);
