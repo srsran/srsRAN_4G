@@ -270,7 +270,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   ue_ecm_ctx.imsi = ue_emm_ctx.imsi;
   ue_ecm_ctx.mme_ue_s1ap_id = ue_emm_ctx.mme_ue_s1ap_id;
   //Set eNB information
-  ue_ecm_ctx.enb_id = enb_ue_s1ap_id;
+  ue_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
   memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
   //Save whether secure ESM information transfer is necessary
