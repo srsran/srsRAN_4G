@@ -222,8 +222,8 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
 {
 
   uint32_t mme_ue_s1ap_id = in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx(mme_ue_s1ap_id);
-  if (ue_ctx == NULL)
+  ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if (ue_ecm_ctx == NULL)
   {
     m_s1ap_log->error("Could not find UE's context in active UE's map\n");
     return false;
@@ -233,7 +233,7 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
   for(uint32_t i=0; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
   {
     uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
-    erab_ctx_t *erab_ctx = &ue_ctx->erabs_ctx[erab_id];
+    erab_ctx_t *erab_ctx = &ue_ecm_ctx->erabs_ctx[erab_id];
     if (erab_ctx->state != ERAB_CTX_REQUESTED)
     {
       m_s1ap_log->error("E-RAB requested was not active %d\n",erab_id);
