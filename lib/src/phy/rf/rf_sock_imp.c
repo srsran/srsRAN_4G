@@ -47,7 +47,18 @@
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/resampling/resample_arb.h"
 
+// run builtin tests with -a (args) ue or enb, default is loopback
+
+
+// build 'make clean && cmake -DCMAKE_BUILD_TYPE=Release ../ && make'
+// or
+// build 'make clean && cmake -DCMAKE_BUILD_TYPE=Debug   ../ && make'
+// noted nprb 6 and 15 are not reliable when DEBUG_MODE is enabled possibly due to this
+// #undef LV_HAVE_SSE
+// #undef LV_HAVE_AVX
+
 // prefer unix socket over ip sockets for speed/reliability
+// XXX not testing in loopback mode
 //#define SOCK_RF_IPC_IP
 
 #ifdef DEBUG_MODE
@@ -334,7 +345,7 @@ static int rf_sock_resample(double srate_in,
 }
 
 
-static bool rf_sock_is_loop(rf_sock_info_t * info)
+static bool rf_sock_is_loopback(rf_sock_info_t * info)
 {
   return (info->nodetype == RF_SOCK_NTYPE_LOOP);
 }
@@ -436,15 +447,22 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
          {
            if(! (++_info->tx_errors % 1000))
              {
-               RF_SOCK_WARN("peer not connected, please re-start UE");
+               RF_SOCK_WARN("semdmsg, peer not connected, please re-start UE");
              }
          }
-        else
-         {
-           RF_SOCK_WARN("send error %s, shutting down now", strerror(errno));
+       else if(errno == EPERM || errno == EACCES)
+        {
+          RF_SOCK_WARN("sendmsg error %s, check file permission and sudo priviledge, shutting down now", 
+                       strerror(errno));
+        
+          exit(0);
+        }
+      else
+        {
+           RF_SOCK_WARN("sendmsg error %s, shutting down now", strerror(errno));
 
            exit(0);
-         }
+        }
      }
 }
 
@@ -768,9 +786,19 @@ static int rf_sock_open_unix_sock(rf_sock_info_t * info,
 
   if(unlink(local) < 0)
     {
-      RF_SOCK_WARN("unlink %s error %s", local, strerror(errno));
+      if(errno == EPERM || errno == EACCES)
+        {
+          RF_SOCK_WARN("unlink %s error %s, check file permission and sudo priviledge", 
+                       local, strerror(errno));
+        
+          return -1;
+        }
+      else if(errno != ENOENT)
+        {
+          RF_SOCK_WARN("unlink %s error %s", local, strerror(errno));
 
-      return -1;
+          return -1;
+        }
     }
 
   if(bind(rx_fd, (struct sockaddr *) &lcl_addr, sizeof(lcl_addr)) < 0)
@@ -872,7 +900,7 @@ int rf_sock_start_rx_stream(void *h, bool now)
 
    gettimeofday(&_info->tv_sos, NULL);
 
-   if(rf_sock_is_enb(_info) || rf_sock_is_loop(_info))
+   if(rf_sock_is_enb(_info) || rf_sock_is_loopback(_info))
     {
       // aligin time on the top of the second
       usleep(1000000 - _info->tv_sos.tv_usec);
@@ -965,7 +993,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
     }
    else
     {
-      RF_SOCK_INFO("default nodetype is loop");
+      RF_SOCK_INFO("default nodetype is loopback");
 
       rf_sock_info.nodetype = RF_SOCK_NTYPE_LOOP;
     }
@@ -998,7 +1026,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
          return -1; 
        }
     }
-  else if(rf_sock_is_enb(&rf_sock_info) || rf_sock_is_loop(&rf_sock_info))
+  else if(rf_sock_is_enb(&rf_sock_info) || rf_sock_is_loopback(&rf_sock_info))
     {
       rf_sock_info.rx_blocking = false;
 
@@ -1228,7 +1256,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    gettimeofday(&tv_in, NULL);
 
-   if(rf_sock_is_enb(_info) || rf_sock_is_loop(_info))
+   if(rf_sock_is_enb(_info) || rf_sock_is_loopback(_info))
      {
        timersub(&_info->tv_next_tti, &tv_in, &tv_diff);
 
@@ -1238,7 +1266,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
           select(0, NULL, NULL, NULL, &tv_diff);
         }
 
-#if 0
+#ifdef DEBUG_MODE
         struct timeval tv_now;
         gettimeofday(&tv_now, NULL);
 
