@@ -346,38 +346,44 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
   if(it == m_s1ap->m_tmsi_to_s1ap_id.end())
   {
     //Could not find IMSI from M-TMSI, send Id request
-    ue_ctx_t ue_ctx;
-    ue_ctx.imsi = 0;
-    ue_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-    ue_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+    ue_emm_ctx_t tmp_ue_emm_ctx;
+    ue_ecm_ctx_t ue_ecm_ctx;
+
+    //Set tmp UE EMM context
+    tmp_ue_emm_ctx.imsi = 0;
 
     //Save UE network capabilities
-    memcpy(&ue_ctx.security_ctxt.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
-    ue_ctx.security_ctxt.ms_network_cap_present =  attach_req.ms_network_cap_present;
+    memcpy(&tmp_ue_emm_ctx.security_ctxt.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
+    tmp_ue_emm_ctx.security_ctxt.ms_network_cap_present =  attach_req.ms_network_cap_present;
     if(attach_req.ms_network_cap_present)
     {
-      memcpy(&ue_ctx.security_ctxt.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+        memcpy(&tmp_ue_emm_ctx.security_ctxt.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
     }
+    //Initialize NAS count
+    tmp_ue_emm_ctx.security_ctxt.ul_nas_count = 0;
+    tmp_ue_emm_ctx.security_ctxt.dl_nas_count = 0;
+    tmp_ue_emm_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id;
+
+    //Set ECM context
+    ue_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+    ue_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+
     uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
-    ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
 
     //Save whether ESM information transfer is necessary
-    ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
+    ue_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
     //m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
-    //Initialize NAS count
-    ue_ctx.security_ctxt.ul_nas_count = 0;
-    ue_ctx.security_ctxt.dl_nas_count = 0;
-    //Add eNB info to UE ctxt
-    memcpy(&ue_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+   //Add eNB info to UE ctxt
+    memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
     //Initialize E-RABs
     for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
     {
-      ue_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
-      ue_ctx.erabs_ctx[i].erab_id = i;
+      ue_ecm_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
+      ue_ecm_ctx.erabs_ctx[i].erab_id = i;
     }
-    m_s1ap_log->console("Attach request -- IMSI: %015lu\n", ue_ctx.imsi);
-    m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ue_ctx.imsi);
-    m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
+    m_s1ap_log->console("Attach request -- IMSI: %015lu\n", ue_ecm_ctx.imsi);
+    m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ue_ecm_ctx.imsi);
+    m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ecm_ctx.enb_ue_s1ap_id, ue_ecm_ctx.mme_ue_s1ap_id);
     m_s1ap_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
                       attach_req.ue_network_cap.eea[0],
                       attach_req.ue_network_cap.eea[1],
@@ -403,13 +409,15 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
 
     m_s1ap_log->console("Could not find M-TMSI=0x%x. Sending ID request\n",m_tmsi);
     m_s1ap_log->info("Could not find M-TMSI=0x%d. Sending Id Request\n", m_tmsi);
-    m_s1ap->add_new_ue_ctx(ue_ctx);
-    pack_identity_request(reply_buffer, ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
+    m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
+    pack_identity_request(reply_buffer, ue_ecm_ctx.enb_ue_s1ap_id, ue_ecm_ctx.mme_ue_s1ap_id);
     *reply_flag = true;
     return true;
   }
   else{
+    
     m_s1ap_log->console("Attach Request -- Found M-TMSI: %d\n",m_tmsi);
+    /*
     ue_ctx_t *ue_ctx_ptr = m_s1ap->find_ue_ctx(it->second);
     if(ue_ctx_ptr!=NULL)
     {
@@ -423,6 +431,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
       m_s1ap_log->error("Found M-TMSI but could not find UE context\n");
       return false;
     }
+    */
   }
   return true;
 }
