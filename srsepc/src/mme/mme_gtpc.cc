@@ -219,7 +219,7 @@ mme_gtpc::handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu)
 }
 
 void
-mme_gtpc::send_delete_session_request(ue_ctx_t *ue_ctx) 
+mme_gtpc::send_delete_session_request(ue_ecm_ctx_t *ue_ecm_ctx) 
 {
   m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request\n");
   srslte::gtpc_pdu del_req_pdu;
@@ -230,9 +230,9 @@ mme_gtpc::send_delete_session_request(ue_ctx_t *ue_ctx)
 
   for(int i = 0; i<MAX_ERABS_PER_UE; i++)
   {
-    if(ue_ctx->erabs_ctx[i].state != ERAB_DEACTIVATED)
+    if(ue_ecm_ctx->erabs_ctx[i].state != ERAB_DEACTIVATED)
     {
-      sgw_ctrl_fteid = &ue_ctx->erabs_ctx[i].sgw_ctrl_fteid;
+      sgw_ctrl_fteid = &ue_ecm_ctx->erabs_ctx[i].sgw_ctrl_fteid;
       break;
     }
   }

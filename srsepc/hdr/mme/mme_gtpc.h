@@ -52,7 +52,7 @@ public:
   void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
   void send_modify_bearer_request(erab_ctx_t *bearer_ctx);
   void handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu);
-  void send_delete_session_request(ue_ctx_t *ue_ctx);
+  void send_delete_session_request(ue_ecm_ctx_t *ue_ecm_ctx);
 
 private:
 
