@@ -315,18 +315,17 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   // if tx_window is full and retx_queue empty, retransmit next PDU to be ack'ed
   if (tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.size() == 0) {
-    // make sure this SN is still in the Tx window
-    uint32_t retx_sn = vt_a;
-    while (tx_window[retx_sn].buf == NULL) {
-      retx_sn++;
+    if (tx_window[vt_a].buf != NULL) {
+      log->warning("Full Tx window, ReTx'ing first outstanding PDU\n");
+      rlc_amd_retx_t retx;
+      retx.is_segment = false;
+      retx.so_start   = 0;
+      retx.so_end     = tx_window[vt_a].buf->N_bytes;
+      retx.sn         = vt_a;
+      retx_queue.push_back(retx);
+    } else {
+      log->error("Found invalid PDU in tx_window.\n");
     }
-
-    rlc_amd_retx_t retx;
-    retx.is_segment = false;
-    retx.so_start   = 0;
-    retx.so_end     = tx_window[retx_sn].buf->N_bytes;
-    retx.sn         = retx_sn;
-    retx_queue.push_back(retx);
   }
 
   // RETX if required
