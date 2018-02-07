@@ -203,6 +203,25 @@ float phch_worker::get_ref_cfo()
   return srslte_chest_dl_get_cfo(&ue_dl.chest);
 }
 
+float phch_worker::get_cfo()
+{
+  return cfo;
+}
+
+float phch_worker::get_ul_cfo() {
+  srslte::radio *radio = phy->get_radio();
+
+  if (radio->get_freq_offset() != 0.0f) {
+    /* Compensates the radio frequency offset applied equally to DL and UL */
+    const float ul_dl_ratio = (float) radio->get_tx_freq() / (float) radio->get_rx_freq();
+    const float offset_hz = (float) radio->get_freq_offset() * (1.0f - ul_dl_ratio);
+    return cfo - offset_hz / (15000);
+  } else {
+    return cfo;
+  }
+
+}
+
 void phch_worker::work_imp()
 {
   if (!cell_initiated) {
@@ -324,7 +343,7 @@ void phch_worker::work_imp()
   }
 
   /* Set UL CFO before transmission */  
-  srslte_ue_ul_set_cfo(&ue_ul, cfo);
+  srslte_ue_ul_set_cfo(&ue_ul, get_ul_cfo());
 
   /* Transmit PUSCH, PUCCH or SRS */
   bool signal_ready = false; 
@@ -1476,6 +1495,13 @@ plot_scatter_t pconst;
 float tmp_plot[SCATTER_PDSCH_BUFFER_LEN];
 cf_t  tmp_plot2[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
 
+#define CFO_PLOT_LEN 0 /* Set to non zero for enabling CFO plot */
+#if CFO_PLOT_LEN > 0
+static plot_real_t    pcfo;
+static uint32_t icfo = 0;
+static float cfo_buffer[CFO_PLOT_LEN];
+#endif /* CFO_PLOT_LEN > 0 */
+
 void *plot_thread_run(void *arg) {
   srsue::phch_worker *worker = (srsue::phch_worker*) arg; 
 
@@ -1500,10 +1526,14 @@ void *plot_thread_run(void *arg) {
 
   plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, worker->get_rx_nof_antennas());
 
+#if CFO_PLOT_LEN > 0
+  plot_real_init(&pcfo);
+  plot_real_setTitle(&pcfo, (char*) "CFO (Hz)");
+  plot_real_setLabels(&pcfo, (char *) "Time", (char *) "Hz");
+  plot_real_setYAxisScale(&pcfo, -4000, 4000);
 
-
-
-
+  plot_scatter_addToWindowGrid(&pcfo, (char*)"srsue", 1, worker->get_rx_nof_antennas());
+#endif /* CFO_PLOT_LEN > 0 */
 
   int n; 
   int readed_pdsch_re=0; 
@@ -1527,7 +1557,14 @@ void *plot_thread_run(void *arg) {
       }
       readed_pdsch_re = 0; 
     }
-  }  
+
+#if CFO_PLOT_LEN > 0
+    cfo_buffer[icfo] = worker->get_cfo() * 15000.0f;
+    icfo = (icfo + 1)%CFO_PLOT_LEN;
+    plot_real_setNewData(&pcfo, cfo_buffer, CFO_PLOT_LEN);
+#endif /* CFO_PLOT_LEN > 0 */
+
+  }
   return NULL;
 }
 
