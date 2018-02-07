@@ -419,6 +419,22 @@ s1ap::find_ue_ecm_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
     return it->second;
   }
 }
+bool
+s1ap::delete_ue_emm_ctx(uint64_t imsi)
+{
+  std::map<uint64_t, ue_emm_ctx_t*>::iterator ue_emm_ctx_it = m_imsi_to_ue_emm_ctx.find(imsi);
+  if(ue_emm_ctx_it == m_imsi_to_ue_emm_ctx.end()) 
+  {
+    m_s1ap_log->info("Cannot delete UE EMM context, UE not found. IMSI: %d\n", imsi);
+    return false;
+  }
+
+  //Delete UE context
+  m_imsi_to_ue_emm_ctx.erase(ue_emm_ctx_it);
+  delete ue_emm_ctx_it->second;
+  m_s1ap_log->info("Deleted UE EMM Context.\n");
+  return true;
+}
 
 bool
 s1ap::delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
@@ -450,7 +466,7 @@ s1ap::delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
   //Delete UE context
   m_mme_ue_s1ap_id_to_ue_ecm_ctx.erase(ue_ecm_ctx_it);
   delete ue_ecm_ctx;
-  m_s1ap_log->info("Deleted UE Context.\n");
+  m_s1ap_log->info("Deleted UE ECM Context.\n");
 
   return true;
 }

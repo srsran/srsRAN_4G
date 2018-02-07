@@ -87,7 +87,7 @@ public:
   void add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx);
   ue_emm_ctx_t* find_ue_emm_ctx_from_imsi(uint64_t imsi);
   ue_ecm_ctx_t* find_ue_ecm_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
-  bool delete_ue_emm_ctx(ue_emm_ctx_t *ue_emm_ctx);
+  bool delete_ue_emm_ctx(uint64_t imsi);
   bool delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
   void delete_ues_ecm_ctx_in_enb(uint16_t enb_id);
 
