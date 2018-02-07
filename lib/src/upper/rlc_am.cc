@@ -676,6 +676,12 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
+  // do not build any more PDU if window is already full
+  if (!tx_sdu && tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+    log->info("Tx window full.\n");
+    return 0;
+  }
+
   byte_buffer_t *pdu = pool_allocate;
   if (!pdu) {
     log->console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
