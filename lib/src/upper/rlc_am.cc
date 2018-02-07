@@ -422,10 +422,6 @@ bool rlc_am::poll_required()
   if(tx_sdu_queue.size() == 0 && retx_queue.size() == 0)
     return true;
 
-  // Request status if Tx window is half-full
-  if (tx_window.size() >= RLC_AM_WINDOW_SIZE/2)
-    return true;
-
   /* According to 5.2.2.1 in 36.322 v13.3.0 a poll should be requested if
    * the entire AM window is unacknowledged, i.e. no new PDU can be transmitted.
    * However, it seems more appropiate to request more often if polling
