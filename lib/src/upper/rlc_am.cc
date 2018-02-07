@@ -587,7 +587,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
     return 0;
   }
-  pdu_space = nof_bytes-head_len-2;
+  pdu_space = nof_bytes-head_len-1;
   if(pdu_space < (retx.so_end-retx.so_start))
     retx.so_end = retx.so_start+pdu_space;
 
@@ -606,7 +606,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
     upper += old_header.li[i];
 
     head_len    = rlc_am_packed_length(&new_header);
-    pdu_space   = nof_bytes-head_len-2;
+    pdu_space   = nof_bytes-head_len-1;
     if(pdu_space < (retx.so_end-retx.so_start))
       retx.so_end = retx.so_start+pdu_space;
 
@@ -934,6 +934,7 @@ void rlc_am::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
     log->console("Fatal Error: Could not allocate PDU in handle_data_pdu_segment()\n");
     exit(-1);
   }
+
   memcpy(segment.buf->msg, payload, nof_bytes);
   segment.buf->N_bytes = nof_bytes;
   memcpy(&segment.header, &header, sizeof(rlc_amd_pdu_header_t));
@@ -986,6 +987,7 @@ void rlc_am::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
     }
   }
 
+  print_rx_segments();
   debug_state();
 }
 
@@ -1167,6 +1169,20 @@ void rlc_am::debug_state()
              rrc->get_rb_name(lcid).c_str(), vt_a, vt_ms, vt_s, poll_sn,
              vr_r, vr_mr, vr_x, vr_ms, vr_h);
 
+}
+
+void rlc_am::print_rx_segments()
+{
+  std::map<uint32_t, rlc_amd_rx_pdu_segments_t>::iterator it;
+  std::stringstream ss;
+  ss << "rx_segments:" << std::endl;
+  for(it=rx_segments.begin();it!=rx_segments.end();it++) {
+    std::list<rlc_amd_rx_pdu_t>::iterator segit;
+    for(segit = it->second.segments.begin(); segit != it->second.segments.end(); segit++) {
+      ss << "    SN:" << segit->header.sn << " SO:" << segit->header.so << " N:" << segit->buf->N_bytes << std::endl;
+    }
+  }
+  log->debug("%s\n", ss.str().c_str());
 }
 
 bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment)
