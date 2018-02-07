@@ -347,6 +347,31 @@ s1ap::add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx)
 }
 
 void
+s1ap::store_tmp_ue_emm_ctx(const ue_emm_ctx_t &tmp_ue_emm_ctx)
+{
+  ue_emm_ctx_t *ue_ptr = new ue_emm_ctx_t;
+  memcpy(ue_ptr,&tmp_ue_emm_ctx,sizeof(tmp_ue_emm_ctx));
+
+  //This map will store UE's ECM context.
+  m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx.insert(std::pair<uint32_t,ue_emm_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
+}
+
+bool
+s1ap::get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr)
+{
+
+  std::map<int32_t,ue_emm_ctx_t*>::iterator it = m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx.find(mme_ue_s1ap_id);
+  if(it == m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx.end() )
+  {
+    return false;
+  }
+  memcpy(ue_emm_ptr, it->second,sizeof(ue_emm_ctx_t));
+  delete it->second;
+  m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx.erase(it);
+  return true;
+}
+
+void
 s1ap::add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx)
 {
   ue_ecm_ctx_t *ue_ptr = new ue_ecm_ctx_t;
