@@ -1069,17 +1069,16 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
       //ACKed SNs get marked and removed from tx_window if possible
       if(tx_window.count(i) > 0) {
         it = tx_window.find(i);
-        it->second.is_acked = true;
-        if(it->second.buf) {
-          pool->deallocate(it->second.buf);
-          it->second.buf = 0;
-          log->info("SN=%d removed from tx_window\n", i);
-        }
-        tx_window.erase(it);
-        if(update_vt_a)
-        {
-          vt_a = (vt_a + 1)%MOD;
-          vt_ms = (vt_ms + 1)%MOD;
+        if (it != tx_window.end()) {
+          if(update_vt_a) {
+            tx_window.erase(it);
+            if(it->second.buf) {
+              pool->deallocate(it->second.buf);
+              it->second.buf = 0;
+            }
+            vt_a = (vt_a + 1)%MOD;
+            vt_ms = (vt_ms + 1)%MOD;
+          }
         }
       }
     }
