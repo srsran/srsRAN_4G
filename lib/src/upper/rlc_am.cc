@@ -514,6 +514,12 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Update & write header
   rlc_amd_pdu_header_t new_header = tx_window[retx.sn].header;
   new_header.p = 0;
+
+  // Set poll bit
+  pdu_without_poll++;
+  byte_without_poll += (tx_window[retx.sn].buf->N_bytes + rlc_am_packed_length(&new_header));
+  log->info("%s pdu_without_poll: %d\n", rrc->get_rb_name(lcid).c_str(), pdu_without_poll);
+  log->info("%s byte_without_poll: %d\n", rrc->get_rb_name(lcid).c_str(), byte_without_poll);
   if(poll_required())
   {
     new_header.p      = 1;
@@ -552,6 +558,11 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
   // Construct new header
   rlc_amd_pdu_header_t new_header;
   rlc_amd_pdu_header_t old_header = tx_window[retx.sn].header;
+
+  pdu_without_poll++;
+  byte_without_poll += (tx_window[retx.sn].buf->N_bytes + rlc_am_packed_length(&new_header));
+  log->info("%s pdu_without_poll: %d\n", rrc->get_rb_name(lcid).c_str(), pdu_without_poll);
+  log->info("%s byte_without_poll: %d\n", rrc->get_rb_name(lcid).c_str(), byte_without_poll);
 
   new_header.dc   = RLC_DC_FIELD_DATA_PDU;
   new_header.rf   = 1;
