@@ -31,8 +31,8 @@
 #include <sstream>
 
 #define MOD 1024
-#define RX_MOD_BASE(x) (x-vr_r)%1024
-#define TX_MOD_BASE(x) (x-vt_a)%1024
+#define RX_MOD_BASE(x) ((x-vr_r)%1024)
+#define TX_MOD_BASE(x) ((x-vt_a)%1024)
 
 namespace srslte {
 
