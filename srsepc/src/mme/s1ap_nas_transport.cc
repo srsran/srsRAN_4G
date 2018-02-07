@@ -619,6 +619,16 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   for(int i=0;i<=14;i++){
     imsi  += id_resp.mobile_id.imsi[i]*std::pow(10,14-i);
   }
+
+  //Check if EMM context already exists
+  ue_emm_ctx_t *ue_tmp_ptr = m_s1ap->find_ue_emm_ctx_from_imsi(imsi);
+  if(ue_tmp_ptr != NULL)
+  {
+    m_s1ap_log->warning("Unkonw GUTI, but UE's EMM context present.\n");
+    m_s1ap->delete_ue_emm_ctx(imsi);
+  }
+
+
   m_s1ap_log->info("Id Response -- IMSI: %015lu\n", imsi);
   m_s1ap_log->console("Id Response -- IMSI: %015lu\n", imsi);
   ue_ecm_ctx->imsi = imsi;
