@@ -67,7 +67,11 @@ private:
   void run_thread()
   {
     running = true;
-    byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate();
+    byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("mac_reader::run_thread");
+    if (!pdu) {
+      printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
+      exit(-1);
+    }
 
     while(run_enable) {
       float r = (float)rand()/RAND_MAX;
@@ -173,7 +177,11 @@ private:
     uint8_t sn = 0;
     running = true;
     while(run_enable) {
-      byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate();
+      byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_am_tester::run_thread");
+      if (!pdu) {
+        printf("Fatal Error: Could not allocate PDU in rlc_am_tester::run_thread\n");
+        exit(-1);
+      }
       pdu->N_bytes = 1500;
       pdu->msg[0]   = sn++;
       rlc->write_sdu(1, pdu);
