@@ -892,12 +892,7 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
   // Update reordering variables and timers (36.322 v10.0.0 Section 5.1.3.2.3)
   if(reordering_timeout.is_running())
   {
-    if(
-       vr_x == vr_r ||
-       (RX_MOD_BASE(vr_x) < RX_MOD_BASE(vr_r)  ||
-        (RX_MOD_BASE(vr_x) > RX_MOD_BASE(vr_mr) &&
-        vr_x != vr_mr))
-       )
+    if(vr_x == vr_r || (!inside_rx_window(vr_x) && vr_x != vr_mr))
     {
       reordering_timeout.reset();
     }
