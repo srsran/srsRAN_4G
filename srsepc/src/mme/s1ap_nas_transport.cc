@@ -385,31 +385,24 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
     m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ue_ecm_ctx.imsi);
     m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ecm_ctx.enb_ue_s1ap_id, ue_ecm_ctx.mme_ue_s1ap_id);
     m_s1ap_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
-                      attach_req.ue_network_cap.eea[0],
-                      attach_req.ue_network_cap.eea[1],
-                      attach_req.ue_network_cap.eea[2],
-                      attach_req.ue_network_cap.eea[3],
-                      attach_req.ue_network_cap.eea[4],
-                      attach_req.ue_network_cap.eea[5],
-                      attach_req.ue_network_cap.eea[6],
-                      attach_req.ue_network_cap.eea[7]);
+                      attach_req.ue_network_cap.eea[0], attach_req.ue_network_cap.eea[1], attach_req.ue_network_cap.eea[2], attach_req.ue_network_cap.eea[3],
+                      attach_req.ue_network_cap.eea[4], attach_req.ue_network_cap.eea[5], attach_req.ue_network_cap.eea[6], attach_req.ue_network_cap.eea[7]);
     m_s1ap_log->console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
-                      attach_req.ue_network_cap.eia[0],
-                      attach_req.ue_network_cap.eia[1],
-                      attach_req.ue_network_cap.eia[2],
-                      attach_req.ue_network_cap.eia[3],
-                      attach_req.ue_network_cap.eia[4],
-                      attach_req.ue_network_cap.eia[5],
-                      attach_req.ue_network_cap.eia[6],
-                      attach_req.ue_network_cap.eia[7]);
+                      attach_req.ue_network_cap.eia[0], attach_req.ue_network_cap.eia[1], attach_req.ue_network_cap.eia[2], attach_req.ue_network_cap.eia[3],
+                      attach_req.ue_network_cap.eia[4], attach_req.ue_network_cap.eia[5], attach_req.ue_network_cap.eia[6], attach_req.ue_network_cap.eia[7]);
     m_s1ap_log->console("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
     m_s1ap_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
     m_s1ap_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
     m_s1ap_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
 
     m_s1ap_log->console("Could not find M-TMSI=0x%x. Sending ID request\n",m_tmsi);
-    m_s1ap_log->info("Could not find M-TMSI=0x%d. Sending Id Request\n", m_tmsi);
+    m_s1ap_log->info("Could not find M-TMSI=0x%x. Sending Id Request\n", m_tmsi);
     m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
+
+    //We do not know the IMSI of the UE yet
+    //This will be removed when the Identity request is received
+    m_s1ap->store_tmp_ue_emm_ctx(tmp_ue_emm_ctx);
+
     pack_identity_request(reply_buffer, ue_ecm_ctx.enb_ue_s1ap_id, ue_ecm_ctx.mme_ue_s1ap_id);
     *reply_flag = true;
     return true;

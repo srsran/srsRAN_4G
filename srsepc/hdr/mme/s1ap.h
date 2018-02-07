@@ -91,6 +91,9 @@ public:
   bool delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
   void delete_ues_ecm_ctx_in_enb(uint16_t enb_id);
 
+  void store_tmp_ue_emm_ctx(const ue_emm_ctx_t &ue_ecm_ctx);
+  bool get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr);
+
   uint32_t allocate_m_tmsi(uint32_t mme_ue_s1ap_id);
 
   s1ap_args_t                    m_s1ap_args;
@@ -119,6 +122,7 @@ private:
 
   std::map<uint64_t, ue_emm_ctx_t*>                 m_imsi_to_ue_emm_ctx;
   std::map<uint32_t, ue_ecm_ctx_t*>                 m_mme_ue_s1ap_id_to_ue_ecm_ctx;
+  std::map<int32_t,ue_emm_ctx_t*>                   m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx;
 
   uint32_t                                          m_next_mme_ue_s1ap_id;
   uint32_t                                          m_next_m_tmsi;
