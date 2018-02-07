@@ -401,6 +401,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
 
     //We do not know the IMSI of the UE yet
     //This will be removed when the Identity request is received
+    tmp_ue_emm_ctx.mme_ue_s1ap_id = ue_ecm_ctx.mme_ue_s1ap_id;
     m_s1ap->store_tmp_ue_emm_ctx(tmp_ue_emm_ctx);
 
     pack_identity_request(reply_buffer, ue_ecm_ctx.enb_ue_s1ap_id, ue_ecm_ctx.mme_ue_s1ap_id);
@@ -624,7 +625,13 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
 
   //Get UE EMM context
   ue_emm_ctx_t ue_emm_ctx;
-
+  if(m_s1ap->get_tmp_ue_emm_ctx(ue_ecm_ctx->mme_ue_s1ap_id, &ue_emm_ctx) == false)
+    {
+      m_s1ap_log->error("Could not find UE's temporary EMM context. MME UE S1AP Id: %d\n",ue_ecm_ctx->mme_ue_s1ap_id);
+      return false;
+  }
+  ue_emm_ctx.imsi=imsi;
+  
   //Get Authentication Vectors from HSS
   if(!m_hss->gen_auth_info_answer(imsi, ue_emm_ctx.security_ctxt.k_asme, autn, rand, ue_emm_ctx.security_ctxt.xres))
   {
@@ -632,7 +639,9 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
     return false;
   }
-   
+  //Store UE EMM context
+  m_s1ap->add_new_ue_emm_ctx(ue_emm_ctx);
+
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   pack_authentication_request(reply_msg, ue_ecm_ctx->enb_ue_s1ap_id, ue_ecm_ctx->mme_ue_s1ap_id, autn, rand);
 
