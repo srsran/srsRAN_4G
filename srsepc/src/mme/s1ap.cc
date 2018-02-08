@@ -38,7 +38,8 @@ boost::mutex   s1ap_instance_mutex;
 
 s1ap::s1ap():
   m_s1mme(-1),
-  m_next_mme_ue_s1ap_id(1)
+  m_next_mme_ue_s1ap_id(1),
+  m_next_m_tmsi(0xA000)
 {
 }
 
@@ -512,11 +513,11 @@ s1ap::activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi)
 }
 
 uint32_t
-s1ap::allocate_m_tmsi(uint32_t mme_ue_s1ap_id)
+s1ap::allocate_m_tmsi(uint64_t imsi)
 {
-  //uint32_t m_tmsi = m_next_m_tmsi++;
-  //m_tmsi_to_s1ap_id.insert(std::pair<uint32_t,uint32_t>(m_tmsi,mme_ue_s1ap_id));
-  uint32_t m_tmsi = 0x0123;
+  uint32_t m_tmsi = m_next_m_tmsi++;
+  m_tmsi_to_s1ap_id.insert(std::pair<uint32_t,uint32_t>(m_tmsi,imsi));
+  //uint32_t m_tmsi = 0x0123;
   return m_tmsi;
 }
 

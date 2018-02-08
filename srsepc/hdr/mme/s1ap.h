@@ -94,7 +94,7 @@ public:
   void store_tmp_ue_emm_ctx(const ue_emm_ctx_t &ue_ecm_ctx);
   bool get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr);
 
-  uint32_t allocate_m_tmsi(uint32_t mme_ue_s1ap_id);
+  uint32_t allocate_m_tmsi(uint64_t imsi);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
@@ -103,7 +103,7 @@ public:
   s1ap_nas_transport*             m_s1ap_nas_transport;
   s1ap_ctx_mngmt_proc*             m_s1ap_ctx_mngmt_proc;
 
-  std::map<uint32_t, uint32_t>                      m_tmsi_to_s1ap_id;
+  std::map<uint32_t, uint64_t>                      m_tmsi_to_s1ap_id;
 
 private:
   s1ap();
