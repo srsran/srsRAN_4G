@@ -40,7 +40,7 @@
 
 namespace srslte {
 
-
+#undef RLC_AM_BUFFER_DEBUG
 
 struct rlc_amd_rx_pdu_t{
   rlc_amd_pdu_header_t  header;
