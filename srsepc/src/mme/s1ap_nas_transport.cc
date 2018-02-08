@@ -342,7 +342,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
 {
   //GUTI style attach
   uint32_t m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
-  std::map<uint32_t,uint32_t>::iterator it = m_s1ap->m_tmsi_to_s1ap_id.find(m_tmsi);
+  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_s1ap_id.find(m_tmsi);
   if(it == m_s1ap->m_tmsi_to_s1ap_id.end())
   {
     //Could not find IMSI from M-TMSI, send Id request
@@ -411,21 +411,31 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
   else{
     
     m_s1ap_log->console("Attach Request -- Found M-TMSI: %d\n",m_tmsi);
-    /*
-    ue_ctx_t *ue_ctx_ptr = m_s1ap->find_ue_ctx(it->second);
-    if(ue_ctx_ptr!=NULL)
+    //Get UE EMM context
+    ue_emm_ctx_t *ue_emm_ctx = find_ue_emm_ctx_from_imsi(it->second);
+    if(ue_emm_ctx_ptr!=NULL)
     {
-      m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_ctx_ptr->imsi);
-      m_mme_gtpc->send_create_session_request(ue_ctx_ptr->imsi, ue_ctx_ptr->mme_ue_s1ap_id);
-      *reply_flag = false; //No reply needed
-      return true;
+      m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_emm_ctx_ptr->imsi);
+      //Check NAS integrity
+      bool msg_valid = false;
+
+      if(msg_valid == true)
+      {
+        //Create session request
+        m_mme_gtpc->send_create_session_request(ue_ctx_ptr->imsi, ue_ctx_ptr->mme_ue_s1ap_id);
+        *reply_flag = false; //No reply needed
+        return true;
+      }
+      else
+      {
+        //NAS integrity 
+      }
     }
     else
     {
       m_s1ap_log->error("Found M-TMSI but could not find UE context\n");
       return false;
     }
-    */
   }
   return true;
 }
@@ -1052,7 +1062,7 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   attach_accept.guti.guti.mnc = mnc;
   attach_accept.guti.guti.mme_group_id = m_s1ap->m_s1ap_args.mme_group;
   attach_accept.guti.guti.mme_code = m_s1ap->m_s1ap_args.mme_code;
-  attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(ue_ecm_ctx->mme_ue_s1ap_id);
+  attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(ue_emm_ctx->imsi);
   m_s1ap_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
                     attach_accept.guti.guti.mcc,
                     attach_accept.guti.guti.mnc,
