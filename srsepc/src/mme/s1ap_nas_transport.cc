@@ -428,7 +428,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
       }
       else
       {
-        //NAS integrity 
+        //NAS integrity failed. Re-start quthentication process. 
       }
     }
     else
