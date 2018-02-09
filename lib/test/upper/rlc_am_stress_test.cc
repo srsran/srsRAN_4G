@@ -141,6 +141,7 @@ public:
   rlc_am_tester(rlc_interface_pdcp *rlc_){
     rlc = rlc_;
     run_enable = true;
+    running = false;
   }
 
   void stop()
