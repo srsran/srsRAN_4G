@@ -587,7 +587,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
     return 0;
   }
-  pdu_space = nof_bytes-head_len-1;
+  pdu_space = nof_bytes-head_len-2;
   if(pdu_space < (retx.so_end-retx.so_start))
     retx.so_end = retx.so_start+pdu_space;
 
@@ -606,7 +606,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
     upper += old_header.li[i];
 
     head_len    = rlc_am_packed_length(&new_header);
-    pdu_space   = nof_bytes-head_len-1;
+    pdu_space   = nof_bytes-head_len-2;
     if(pdu_space < (retx.so_end-retx.so_start))
       retx.so_end = retx.so_start+pdu_space;
 
