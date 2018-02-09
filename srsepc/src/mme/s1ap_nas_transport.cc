@@ -412,17 +412,17 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
     
     m_s1ap_log->console("Attach Request -- Found M-TMSI: %d\n",m_tmsi);
     //Get UE EMM context
-    ue_emm_ctx_t *ue_emm_ctx = find_ue_emm_ctx_from_imsi(it->second);
-    if(ue_emm_ctx_ptr!=NULL)
+    ue_emm_ctx_t *ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(it->second);
+    if(ue_emm_ctx!=NULL)
     {
-      m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_emm_ctx_ptr->imsi);
+      m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_emm_ctx->imsi);
       //Check NAS integrity
       bool msg_valid = false;
 
       if(msg_valid == true)
       {
         //Create session request
-        m_mme_gtpc->send_create_session_request(ue_ctx_ptr->imsi, ue_ctx_ptr->mme_ue_s1ap_id);
+        m_mme_gtpc->send_create_session_request(ue_emm_ctx->imsi, ue_emm_ctx->mme_ue_s1ap_id);
         *reply_flag = false; //No reply needed
         return true;
       }
@@ -714,6 +714,37 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   //*reply_flag = true;
 
   return true;
+}
+
+
+bool
+s1ap_nas_transport::integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu)
+{
+  uint8_t exp_mac[4];
+  uint8_t *mac = &pdu->msg[1];
+  int i;
+
+  srslte::security_128_eia1(&emm_ctx->security_ctxt.k_nas_int[16],
+                     emm_ctx->security_ctxt.ul_nas_count,
+                     0,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[5],
+                     pdu->N_bytes-5,
+                     &exp_mac[0]);
+
+  // Check if expected mac equals the sent mac
+  for(i=0; i<4; i++){
+    if(exp_mac[i] != mac[i]){
+      m_s1ap_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
+                       "Received: count=%d, [%02x %02x %02x %02x]\n",
+                       emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                       pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
+      return false;
+    }
+  }
+  m_s1ap_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
+                emm_ctx->security_ctxt.ul_nas_count, pdu->msg[5]);
+    return true;
 }
 
 
