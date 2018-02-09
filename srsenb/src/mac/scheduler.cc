@@ -630,7 +630,7 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
           }
                               
         } else {
-          log_h->console("SCHED: Could not schedule DCI for RAR tti=%d, L=%d\n", pending_rar[i].rar_tti, rar_aggr_level);              
+          log_h->warning("SCHED: Could not schedule DCI for RAR tti=%d, L=%d\n", pending_rar[i].rar_tti, rar_aggr_level);
         }
       } else {
         log_h->console("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n", 
@@ -861,7 +861,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
             aggr_level)) 
         {
           h->reset(0);
-          printf("SCHED: Could not schedule UL DCI rnti=0x%x, pid=%d, L=%d, sf_idx=%d\n",
+          log_h->warning("SCHED: Could not schedule UL DCI rnti=0x%x, pid=%d, L=%d, sf_idx=%d\n",
                  rnti, h->get_id(), aggr_level, sf_idx);
 
           sched_result->pusch[nof_dci_elems].needs_pdcch = false;

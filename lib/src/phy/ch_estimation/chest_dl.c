@@ -282,10 +282,14 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id, srslt
   
   /* Compute average power. Normalized for filter len 3 using matlab */
   float norm  = 1;
-  if (q->smooth_filter_len == 3) {
-    float a = q->smooth_filter[0];
-    float norm3 = 6.143*a*a+0.04859*a-0.002774;
-    norm /= norm3; 
+  if (q->average_subframe) {
+    norm = 32;
+  } else {
+    if (q->smooth_filter_len == 3) {
+      float a = q->smooth_filter[0];
+      float norm3 = 6.143*a*a+0.04859*a-0.002774;
+      norm /= norm3;
+    }
   }
   float power = norm*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
   return power; 
@@ -539,8 +543,7 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
 
   /* Compute RSRP for the channel estimates in this port */
   uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
-  float energy = cabsf(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
-  q->rsrp[rxant_id][port_id] = energy*energy;
+  q->rsrp[rxant_id][port_id] = __real__ srslte_vec_dot_prod_conj_ccc(q->pilot_estimates, q->pilot_estimates, npilots) / npilots;
   q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);
 }
 

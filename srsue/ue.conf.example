@@ -101,19 +101,11 @@ imei = 353490069873319
 #####################################################################
 # RRC configuration
 #
-# stimsi_attach: If enabled, always tries first an S-TMSI attach using the
-#                S-TMSI value stored in .stimsi file generated in previous run
-# mmec_value:    If defined (non-zero), overwrites the value stored in .stimsi file
-# m_tmsi_value:  If defined (non-zero), overwrites the value stored in .stimsi file
-#
 # ue_category:   Sets UE category (range 1-5). Default: 4
 # feature_group: Hex value of the featureGroupIndicators field in the
 #                UECapabilityInformation message. Default 0xe6041c00
 #####################################################################
 [rrc]
-#stmsi_attach = false
-#mmec_value    = 0
-#mtmsi_value  = 0
 #ue_category   = 4
 #feature_group = 0xe6041c00
 
@@ -197,7 +189,7 @@ enable = false
 #sfo_correct_disable = false
 #sss_algorithm       = full
 #estimator_fil_w     = 0.1
-#average_subframe_enabled = false
+#average_subframe_enabled = true
 #sic_pss_enabled     = true
 #pregenerate_signals = false
 #metrics_csv_enable  = false
