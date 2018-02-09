@@ -55,9 +55,9 @@ public:
   void init(srsue::pdcp_interface_rlc *pdcp_,
             srsue::rrc_interface_rlc  *rrc_,
             srsue::ue_interface       *ue_,
-            log        *rlc_log_, 
-            mac_interface_timers *mac_timers_,
-            uint32_t                  lcid_);
+            log                       *rlc_log_,
+            mac_interface_timers      *mac_timers_,
+            uint32_t                   lcid_);
   void stop();
 
   void get_metrics(rlc_metrics_t &m);

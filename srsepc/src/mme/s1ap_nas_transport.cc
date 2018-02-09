@@ -64,13 +64,13 @@ s1ap_nas_transport::cleanup(void)
 }
 
 void
-s1ap_nas_transport::init(void)
+s1ap_nas_transport::init(hss_interface_s1ap * hss_)
 {
   m_s1ap = s1ap::get_instance();
   m_s1ap_log = m_s1ap->m_s1ap_log;
   m_pool = srslte::byte_buffer_pool::get_instance();
 
-  m_hss = hss::get_instance();
+  m_hss = hss_;
   m_mme_gtpc = mme_gtpc::get_instance();
 }
 
@@ -183,8 +183,13 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       //ue_ctx->security_ctxt.ul_nas_count++;
       break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
-      m_s1ap_log->info("UL NAS: Tracking Area Update Request\n");
+      m_s1ap_log->info("Uplink NAS: Tracking Area Update Request\n");
       handle_tracking_area_update_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      break;
+    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
+      m_s1ap_log->info("Uplink NAS: Authentication Failure\n");
+      handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      ue_ctx->security_ctxt.ul_nas_count++;
       break;
     default:
       m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type );
@@ -587,7 +592,7 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_identity_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &id_resp);
   if(err != LIBLTE_SUCCESS){
-    m_s1ap_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
+    m_s1ap_log->error("Error unpacking NAS identity response. Error: %s\n", liblte_error_text[err]);
     return false;
   }
 
@@ -612,8 +617,8 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
 
   //Send reply to eNB
   *reply_flag = true;
-   m_s1ap_log->info("Downlink NAS: Sent Athentication Request\n");
-   m_s1ap_log->console("Downlink NAS: Sent Athentication Request\n");
+   m_s1ap_log->info("Downlink NAS: Sent Authentication Request\n");
+   m_s1ap_log->console("Downlink NAS: Sent Authentication Request\n");
   //TODO Start T3460 Timer! 
 
   return true;
@@ -651,7 +656,7 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
-  m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
+  //m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
  
   LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT tau_acc;
   /*typedef struct{
@@ -692,6 +697,66 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   return true;
 }
 
+
+bool 
+s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+{
+  uint8_t     autn[16]; 
+  uint8_t     rand[16];
+  uint8_t     xres[8];
+
+  LIBLTE_MME_AUTHENTICATION_FAILURE_MSG_STRUCT auth_fail;
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_failure_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_fail);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS authentication failure. Error: %s\n", liblte_error_text[err]);
+    return false;
+  }
+
+
+  switch(auth_fail.emm_cause){
+    case 20:
+    m_s1ap_log->console("MAC code failure\n");
+    m_s1ap_log->info("MAC code failure\n");
+    break; 
+    case 26:
+    m_s1ap_log->console("Non-EPS authentication unacceptable\n");
+    m_s1ap_log->info("Non-EPS authentication unacceptable\n");
+    break;
+    case 21:
+    m_s1ap_log->console("Sequence number synch failure\n");
+    m_s1ap_log->info("Sequence number synch failure\n");
+    if(auth_fail.auth_fail_param_present == false){
+      m_s1ap_log->error("Missing fail parameter\n");
+      return false;
+    }
+    if(!m_hss->resync_sqn(ue_ctx->imsi, auth_fail.auth_fail_param))
+    {
+      m_s1ap_log->console("Resynchronization failed. IMSI %015lu\n", ue_ctx->imsi);
+      m_s1ap_log->info("Resynchronization failed. IMSI %015lu\n", ue_ctx->imsi);
+      return false;
+    }
+    //Get Authentication Vectors from HSS
+    if(!m_hss->gen_auth_info_answer(ue_ctx->imsi, ue_ctx->security_ctxt.k_asme, autn, rand, ue_ctx->security_ctxt.xres))
+    {
+      m_s1ap_log->console("User not found. IMSI %015lu\n", ue_ctx->imsi);
+      m_s1ap_log->info("User not found. IMSI %015lu\n", ue_ctx->imsi);
+      return false;
+    }
+    
+    //Pack NAS Authentication Request in Downlink NAS Transport msg
+    pack_authentication_request(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id, autn, rand);
+
+    //Send reply to eNB
+    *reply_flag = true;
+    m_s1ap_log->info("Downlink NAS: Sent Authentication Request\n");
+    m_s1ap_log->console("Downlink NAS: Sent Authentication Request\n");
+    //TODO Start T3460 Timer! 
+
+    break;
+    }
+  return true;  
+
+}
 
 /*Packing/Unpacking helper functions*/
 bool
