@@ -626,13 +626,12 @@ int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {
   } else {
     return SRSLTE_ERROR;
   }
-  uint32_t sfn = current_tti/10;
-  uint32_t subf = current_tti%10; 
-  if ((10*sfn+subf-sr_N_offset)%sr_periodicity==0) {
-    return 1; 
-  } else {
-    return SRSLTE_SUCCESS;
+  if (current_tti >= sr_N_offset) {
+    if ((current_tti - sr_N_offset) % sr_periodicity == 0) {
+      return 1;
+    }
   }
+  return SRSLTE_SUCCESS;
 }
 
 
