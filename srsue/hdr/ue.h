@@ -73,12 +73,13 @@ public:
   void start_plot();
 
   static void rf_msg(srslte_rf_error_t error);
-  void handle_rf_msg(srslte_rf_error_t error);
 
   // UE metrics interface
   bool get_metrics(ue_metrics_t &m);
 
   void pregenerate_signals(bool enable);
+
+  void radio_overflow();
 
 private:
   virtual ~ue();

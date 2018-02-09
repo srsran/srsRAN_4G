@@ -591,7 +591,7 @@ int main(int argc, char *argv[])
 int setup_if_addr(char *ip_addr)
 {
   char *dev = (char*) "tun_srsenb";
-  int sock = 0;
+  int sock = -1;
 
   // Construct the TUN device
   int tun_fd = open("/dev/net/tun", O_RDWR);
@@ -642,10 +642,16 @@ int setup_if_addr(char *ip_addr)
     perror("ioctl");
     goto clean_exit;
   }
+  shutdown(sock, SHUT_RDWR);
 
   return(tun_fd);
 
 clean_exit:
-  close(tun_fd);
+  if (sock != -1) {
+    shutdown(sock, SHUT_RDWR);
+  }
+  if (tun_fd != -1) {
+    close(tun_fd);
+  }
   return SRSLTE_ERROR;
 }

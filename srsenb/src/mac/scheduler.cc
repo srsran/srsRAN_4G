@@ -697,7 +697,7 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
         for(uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
           h->reset(tb);
         }
-        Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d\n", rnti, h->get_id());              
+        Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d, cfi=%d\n", rnti, h->get_id(), current_cfi);
       }      
     }    
   } 
@@ -857,13 +857,14 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
       if (needs_pdcch) {
         uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, cfg.cell.nof_prb, cfg.cell.nof_ports));
         if (!generate_dci(&sched_result->pusch[nof_dci_elems].dci_location, 
-            user->get_locations(current_cfi, sf_idx), 
+            user->get_locations(current_cfi, sf_idx),
             aggr_level)) 
         {
           h->reset(0);
-          log_h->warning("SCHED: Could not schedule UL DCI rnti=0x%x, pid=%d, L=%d\n", 
-                          rnti, h->get_id(), aggr_level);          
-          sched_result->pusch[nof_dci_elems].needs_pdcch = false; 
+          printf("SCHED: Could not schedule UL DCI rnti=0x%x, pid=%d, L=%d, sf_idx=%d\n",
+                 rnti, h->get_id(), aggr_level, sf_idx);
+
+          sched_result->pusch[nof_dci_elems].needs_pdcch = false;
         } else {
           sched_result->pusch[nof_dci_elems].needs_pdcch = true; 
         }
@@ -939,7 +940,7 @@ void sched::generate_cce_location(srslte_regs_t *regs_, sched_ue::sched_dci_cce_
     nloc = srslte_pdcch_ue_locations_ncce(srslte_regs_pdcch_ncce(regs_, cfi), 
                                    loc, 64, sf_idx, rnti);           
   }
-  
+
   for (uint32_t l=0;l<=3;l++) {
     int n=0;
     for (uint32_t i=0;i<nloc;i++) {
@@ -958,10 +959,12 @@ void sched::generate_cce_location(srslte_regs_t *regs_, sched_ue::sched_dci_cce_
 
 bool sched::generate_dci(srslte_dci_location_t *sched_location, sched_ue::sched_dci_cce_t *locations, uint32_t aggr_level, sched_ue *user) 
 {
-  uint32_t ncand=0;
-  bool allocated=false; 
-  while(ncand<locations->nof_loc[aggr_level] && !allocated) {
-    uint32_t ncce = locations->cce_start[aggr_level][ncand];
+  uint32_t nof_cand  = 0;
+  uint32_t test_cand = rand()%locations->nof_loc[aggr_level];
+  bool allocated=false;
+
+  while(nof_cand<locations->nof_loc[aggr_level] && !allocated) {
+    uint32_t ncce = locations->cce_start[aggr_level][test_cand];
     bool used = false;
     if (user) {
       used = user->pucch_sr_collision(current_tti, ncce);
@@ -972,7 +975,11 @@ bool sched::generate_dci(srslte_dci_location_t *sched_location, sched_ue::sched_
       }
     }
     if (used) {
-      ncand++;
+      test_cand++;
+      if (test_cand==locations->nof_loc[aggr_level]) {
+        test_cand = 0;
+      }
+      nof_cand++;
     } else {
       for (int j=0;j<NCCE(aggr_level) && !used;j++) {
         used_cce[ncce+j] = true; 
@@ -984,7 +991,7 @@ bool sched::generate_dci(srslte_dci_location_t *sched_location, sched_ue::sched_
   
   if (allocated && sched_location) {
     sched_location->L = aggr_level; 
-    sched_location->ncce = locations->cce_start[aggr_level][ncand]; 
+    sched_location->ncce = locations->cce_start[aggr_level][test_cand];
   }
     
   return allocated; 

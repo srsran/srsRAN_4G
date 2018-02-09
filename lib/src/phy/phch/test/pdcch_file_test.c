@@ -167,10 +167,6 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_regs_set_cfi(&regs, cfi)) {
-    fprintf(stderr, "Error setting CFI %d\n", cfi);
-    return -1;
-  }
   if (srslte_pdcch_init_ue(&pdcch, cell.nof_prb, 1)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
@@ -252,7 +248,7 @@ int main(int argc, char **argv) {
     }
 
     for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
+      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, cfi, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return -1;
       }

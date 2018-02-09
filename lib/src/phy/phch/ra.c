@@ -150,7 +150,8 @@ int srslte_ra_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_
     // starting prb idx for slot 0 is as given by resource grant
     grant->n_prb[0] = n_prb_1;
     if (n_prb_1 < n_rb_ho/2) {
-      fprintf(stderr, "Invalid Frequency Hopping parameters. Offset: %d, n_prb_1: %d\n", n_rb_ho, n_prb_1);
+      INFO("Invalid Frequency Hopping parameters. Offset: %d, n_prb_1: %d\n", n_rb_ho, n_prb_1);
+      return SRSLTE_ERROR;
     }
     uint32_t n_prb_1_tilde = n_prb_1;
 

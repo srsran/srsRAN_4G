@@ -162,8 +162,8 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-r RNTI in Hex [Default 0x%x]\n",args->rnti);
   printf("\t-l Force N_id_2 [Default best]\n");
   printf("\t-C Disable CFO correction [Default %s]\n", args->disable_cfo?"Disabled":"Enabled");
-  printf("\t-F Enable RS-based CFO correction [Default %s]\n", args->enable_cfo_ref?"Disabled":"Enabled");
-  printf("\t-R Average channel estimates on 1 ms [Default %s]\n", args->average_subframe?"Disabled":"Enabled");
+  printf("\t-F Enable RS-based CFO correction [Default %s]\n", !args->enable_cfo_ref?"Disabled":"Enabled");
+  printf("\t-R Average channel estimates on 1 ms [Default %s]\n", !args->average_subframe?"Disabled":"Enabled");
   printf("\t-t Add time offset [Default %d]\n", args->time_offset);
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
@@ -1029,7 +1029,7 @@ void *plot_thread_run(void *arg) {
         
       }
       
-      plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
+      plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce[0]);
     }
     
     plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d[0], nof_symbols);

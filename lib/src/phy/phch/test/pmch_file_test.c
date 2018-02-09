@@ -181,13 +181,17 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  uint8_t *data[] = {malloc(100000)};
+  uint8_t *data = malloc(100000);
+  if (!data) {
+    perror("malloc");
+    exit(-1);
+  }
 
   ret = -1;
 
   srslte_filesource_read(&fsrc, input_buffer[0], flen);
   INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
-  ret = srslte_ue_dl_decode_mbsfn(&ue_dl, data[0], sf_idx);
+  ret = srslte_ue_dl_decode_mbsfn(&ue_dl, data, sf_idx);
   if(ret > 0) {
     printf("PMCH Decoded OK!\n");       
   }  else if (ret < 0) {
@@ -195,7 +199,9 @@ int main(int argc, char **argv) {
   }
 
   base_free();
-  free(data[0]);
+  if (data != NULL) {
+    free(data);
+  }
   if (ret > 0) {
     exit(0);
   } else {

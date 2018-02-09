@@ -60,8 +60,8 @@ typedef enum SRSLTE_API {
 /* PDCCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
-  uint32_t nof_regs;
-  uint32_t nof_cce;
+  uint32_t nof_regs[3];
+  uint32_t nof_cce[3];
   uint32_t max_bits;
   uint32_t nof_rx_antennas;
   bool     is_ue;
@@ -99,10 +99,7 @@ SRSLTE_API int srslte_pdcch_set_cell(srslte_pdcch_t *q,
 SRSLTE_API void srslte_pdcch_free(srslte_pdcch_t *q);
 
 
-SRSLTE_API void srslte_pdcch_set_cfi(srslte_pdcch_t *q, 
-                                     uint32_t cfi); 
-
-SRSLTE_API float srslte_pdcch_coderate(uint32_t nof_bits, 
+SRSLTE_API float srslte_pdcch_coderate(uint32_t nof_bits,
                                        uint32_t l); 
 
 /* Encoding function */
@@ -134,6 +131,7 @@ SRSLTE_API int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
                                        srslte_dci_msg_t *msg, 
                                        srslte_dci_location_t *location,
                                        srslte_dci_format_t format,
+                                       uint32_t cfi,
                                        uint16_t *crc_rem);
 
 SRSLTE_API int srslte_pdcch_dci_decode(srslte_pdcch_t *q, 

@@ -199,11 +199,6 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_regs_set_cfi(&regs, cfi)) {
-    fprintf(stderr, "Error setting CFI\n");
-    exit(-1);
-  }
-
   if (srslte_pdcch_init_enb(&pdcch_tx, cell.nof_prb)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
@@ -297,7 +292,7 @@ int main(int argc, char **argv) {
   /* Decode DCIs */
   for (i=0;i<nof_dcis;i++) {
     uint16_t crc_rem;
-    if (srslte_pdcch_decode_msg(&pdcch_rx, &testcases[i].dci_rx, &testcases[i].dci_location, testcases[i].dci_format, &crc_rem)) {
+    if (srslte_pdcch_decode_msg(&pdcch_rx, &testcases[i].dci_rx, &testcases[i].dci_location, testcases[i].dci_format, cfi, &crc_rem)) {
       fprintf(stderr, "Error decoding DCI message\n");
       goto quit;
     }

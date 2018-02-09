@@ -126,7 +126,7 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
       ss << std::endl; 
     }
     
-    if (hex_limit > 0) {
+    if (hex_limit > 0 && hex && size > 0) {
       ss << hex_string(hex, size);
     } 
     str_ptr s_ptr(new std::string(ss.str()));
