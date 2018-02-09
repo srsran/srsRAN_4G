@@ -203,6 +203,25 @@ float phch_worker::get_ref_cfo()
   return srslte_chest_dl_get_cfo(&ue_dl.chest);
 }
 
+float phch_worker::get_cfo()
+{
+  return cfo;
+}
+
+float phch_worker::get_ul_cfo() {
+  srslte::radio *radio = phy->get_radio();
+
+  if (radio->get_freq_offset() != 0.0f) {
+    /* Compensates the radio frequency offset applied equally to DL and UL */
+    const float ul_dl_ratio = (float) radio->get_tx_freq() / (float) radio->get_rx_freq();
+    const float offset_hz = (float) radio->get_freq_offset() * (1.0f - ul_dl_ratio);
+    return cfo - offset_hz / (15000);
+  } else {
+    return cfo;
+  }
+
+}
+
 void phch_worker::work_imp()
 {
   if (!cell_initiated) {
@@ -324,7 +343,7 @@ void phch_worker::work_imp()
   }
 
   /* Set UL CFO before transmission */  
-  srslte_ue_ul_set_cfo(&ue_ul, cfo);
+  srslte_ue_ul_set_cfo(&ue_ul, get_ul_cfo());
 
   /* Transmit PUSCH, PUCCH or SRS */
   bool signal_ready = false; 
@@ -367,7 +386,7 @@ void phch_worker::work_imp()
   update_measurements();
 
   if (chest_ok) {
-    if (phy->avg_rsrp_dbm > -130.0 && 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)) > -30.0) {
+    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db > -30.0) {
       log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
                    10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), phy->avg_rsrp_dbm);
       chest_loop->in_sync();
@@ -931,7 +950,7 @@ void phch_worker::set_uci_aperiodic_cqi()
 
           int cqi_len = srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
           if (cqi_len < 0) {
-            Error("Error packing CQI value (Aperiodic reporting mode RM31).");
+            Error("Error packing CQI value (Aperiodic reporting mode RM30).");
             return;
           }
           uci_data.uci_cqi_len = (uint32_t) cqi_len;
@@ -940,11 +959,16 @@ void phch_worker::set_uci_aperiodic_cqi()
           srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
           /* Set RI = 1 */
-          uci_data.uci_ri = ri;
-          uci_data.uci_ri_len = 1;
+          if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
+              phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+            uci_data.uci_ri = ri;
+            uci_data.uci_ri_len = 1;
+          } else {
+            uci_data.uci_ri_len = 0;
+          }
 
-          Info("PUSCH: Aperiodic RM30 ri%s, CQI=%s, SNR=%.1f dB, for %d subbands\n",
-               (uci_data.uci_ri == 0)?"=1":"~1", cqi_str, phy->avg_snr_db, cqi_report.subband_hl.N);
+          Info("PUSCH: Aperiodic RM30 CQI=%s, %sSNR=%.1f dB, for %d subbands\n",
+               cqi_str, (uci_data.uci_ri_len)?((uci_data.uci_ri == 0)?"ri=0, ":"ri=1, "):"", phy->avg_snr_db, cqi_report.subband_hl.N);
         }
         break;
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
@@ -1471,6 +1495,13 @@ plot_scatter_t pconst;
 float tmp_plot[SCATTER_PDSCH_BUFFER_LEN];
 cf_t  tmp_plot2[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
 
+#define CFO_PLOT_LEN 0 /* Set to non zero for enabling CFO plot */
+#if CFO_PLOT_LEN > 0
+static plot_real_t    pcfo;
+static uint32_t icfo = 0;
+static float cfo_buffer[CFO_PLOT_LEN];
+#endif /* CFO_PLOT_LEN > 0 */
+
 void *plot_thread_run(void *arg) {
   srsue::phch_worker *worker = (srsue::phch_worker*) arg; 
 
@@ -1495,10 +1526,14 @@ void *plot_thread_run(void *arg) {
 
   plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, worker->get_rx_nof_antennas());
 
+#if CFO_PLOT_LEN > 0
+  plot_real_init(&pcfo);
+  plot_real_setTitle(&pcfo, (char*) "CFO (Hz)");
+  plot_real_setLabels(&pcfo, (char *) "Time", (char *) "Hz");
+  plot_real_setYAxisScale(&pcfo, -4000, 4000);
 
-
-
-
+  plot_scatter_addToWindowGrid(&pcfo, (char*)"srsue", 1, worker->get_rx_nof_antennas());
+#endif /* CFO_PLOT_LEN > 0 */
 
   int n; 
   int readed_pdsch_re=0; 
@@ -1522,7 +1557,14 @@ void *plot_thread_run(void *arg) {
       }
       readed_pdsch_re = 0; 
     }
-  }  
+
+#if CFO_PLOT_LEN > 0
+    cfo_buffer[icfo] = worker->get_cfo() * 15000.0f;
+    icfo = (icfo + 1)%CFO_PLOT_LEN;
+    plot_real_setNewData(&pcfo, cfo_buffer, CFO_PLOT_LEN);
+#endif /* CFO_PLOT_LEN > 0 */
+
+  }
   return NULL;
 }
 

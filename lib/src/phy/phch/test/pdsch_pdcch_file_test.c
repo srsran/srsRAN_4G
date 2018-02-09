@@ -175,6 +175,10 @@ int main(int argc, char **argv) {
   }
 
   uint8_t *data[] = {malloc(100000)};
+  if (!data[0]) {
+    perror("malloc");
+    exit(-1);
+  }
 
   ret = -1;
   nof_frames = 0;
@@ -195,7 +199,8 @@ int main(int argc, char **argv) {
   } while (nof_frames <= max_frames && ret == 0);
 
   base_free();
-  free(data[0]);
+  if (data[0])
+    free(data[0]);
   if (ret > 0) {
     exit(0);
   } else {

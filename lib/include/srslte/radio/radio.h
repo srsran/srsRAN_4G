@@ -101,6 +101,7 @@ namespace srslte {
       void set_tx_freq(double freq);
       void set_rx_freq(double freq);
 
+      double get_freq_offset();
       double get_tx_freq();
       double get_rx_freq();
 
