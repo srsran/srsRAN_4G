@@ -147,14 +147,16 @@ typedef struct {
 
 int main(int argc, char **argv) {
   srslte_pdcch_t pdcch_tx, pdcch_rx;
-  testcase_dci_t testcases[10] = {0};
+  testcase_dci_t testcases[10] = {};
   srslte_ra_dl_dci_t ra_dl;
   srslte_regs_t regs;
   int i, j, k;
   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   int nof_re;
   cf_t *tx_slot_symbols[SRSLTE_MAX_PORTS], *rx_slot_symbols[SRSLTE_MAX_PORTS];
-  int nof_dcis; 
+  int nof_dcis;
+
+  bzero(&testcases, sizeof(testcase_dci_t)*10);
 
   int ret = -1;
 

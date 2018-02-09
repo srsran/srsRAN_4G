@@ -51,7 +51,10 @@
   
 class thread
 {
-public: 
+public:
+  thread() {
+    _thread = 0;
+  }
   bool start(int prio = -1) {
     return threads_new_rt_prio(&_thread, thread_function_entry, this, prio);    
   }
