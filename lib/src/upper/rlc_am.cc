@@ -1001,8 +1001,9 @@ void rlc_am::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
       // else delay for reordering timer
     }
   }
-
+#ifdef RLC_AM_BUFFER_DEBUG
   print_rx_segments();
+#endif
   debug_state();
 }
 
