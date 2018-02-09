@@ -5,9 +5,11 @@
 #include "srslte/config.h"
 #include <pthread.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct {
-  uint8_t *buffer; 
+  uint8_t *buffer;
+  bool active;
   int capacity; 
   int count; 
   int wpm; 
@@ -34,6 +36,7 @@ SRSLTE_API int  srslte_ringbuffer_read(srslte_ringbuffer_t *q,
                                        void *ptr,
                                        int nof_bytes);
 
+SRSLTE_API void srslte_ringbuffer_stop(srslte_ringbuffer_t *q);
 
 #endif
 

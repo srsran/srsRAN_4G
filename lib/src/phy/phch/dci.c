@@ -426,7 +426,8 @@ uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dc
     n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->ndi_1);
   }
 
-  if (format == SRSLTE_DCI_FORMAT1 || format == SRSLTE_DCI_FORMAT1A || format == SRSLTE_DCI_FORMAT1B) {
+  if (format == SRSLTE_DCI_FORMAT1 || format == SRSLTE_DCI_FORMAT1A || format == SRSLTE_DCI_FORMAT1B ||
+      format == SRSLTE_DCI_FORMAT2 || format == SRSLTE_DCI_FORMAT2A || format == SRSLTE_DCI_FORMAT2B) {
     n += snprintf(&info_str[n], len-n, "tpc_pucch=%d, ", dci_msg->tpc_pucch);
   }
   if (format == SRSLTE_DCI_FORMAT2 || format == SRSLTE_DCI_FORMAT2A || format == SRSLTE_DCI_FORMAT2B) {

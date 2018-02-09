@@ -142,7 +142,6 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
   if (q                 != NULL &&
       srslte_cell_isvalid(&cell))
   {
-    srslte_enb_dl_set_cfi(q, 3);
     q->tx_amp = SRSLTE_ENB_RF_AMP;
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
@@ -207,10 +206,9 @@ void srslte_enb_dl_set_amp(srslte_enb_dl_t *q, float amp)
   q->tx_amp = amp; 
 }
 
-void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, uint32_t cfi) 
+void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, uint32_t cfi)
 {
-  q->cfi = cfi; 
-  srslte_regs_set_cfi(&q->regs, cfi);
+  q->cfi = cfi;
 }
 
 void srslte_enb_dl_set_power_allocation(srslte_enb_dl_t *q, float rho_a, float rho_b)

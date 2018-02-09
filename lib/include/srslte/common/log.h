@@ -70,6 +70,7 @@ public:
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
     show_layer_en = true;
+    add_string_en = false;
     level_text_short = true;
   }
 
@@ -79,6 +80,7 @@ public:
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
     show_layer_en = true;
+    add_string_en = false;
     level_text_short = true;
   }
 

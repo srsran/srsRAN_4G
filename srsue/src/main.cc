@@ -124,7 +124,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
     ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator variant")
-    ("usim.amf", bpo::value<string>(&args->usim.amf), "USIM authentication management field")
     ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
@@ -243,11 +242,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
 
     ("expert.sic_pss_enabled",
-     bpo::value<bool>(&args->expert.phy.sic_pss_enabled)->default_value(true),
+     bpo::value<bool>(&args->expert.phy.sic_pss_enabled)->default_value(false),
      "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
 
     ("expert.average_subframe_enabled",
-     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(false),
+     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
      "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
     ("expert.time_correct_period",

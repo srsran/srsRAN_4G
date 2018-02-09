@@ -43,7 +43,6 @@ typedef enum{
 typedef struct{
   std::string algo;
   std::string op;
-  std::string amf;
   std::string imsi;
   std::string imei;
   std::string k;

@@ -70,6 +70,8 @@ public:
   void start_plot();
 
   float get_ref_cfo();
+  float get_cfo();
+  float get_ul_cfo();
 
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
