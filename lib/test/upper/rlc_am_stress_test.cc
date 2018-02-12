@@ -213,7 +213,7 @@ void stress_test()
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
 
-  float fail_rate = 0.01;
+  float fail_rate = 0.1;
 
   rlc rlc1;
   rlc rlc2;
@@ -224,7 +224,7 @@ void stress_test()
   ue_interface  ue;
 
   rlc1.init(&tester1, &tester1, &ue, &log1, &mac, 0);
-  rlc2.init(&tester1, &tester1, &ue, &log2, &mac, 0);
+  rlc2.init(&tester2, &tester2, &ue, &log2, &mac, 0);
 
   LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
   cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
@@ -241,7 +241,7 @@ void stress_test()
   rlc2.add_bearer(1, cnfg_);
 
   tester1.start(7);
-  //tester2.start(7);
+  tester2.start(7);
   mac.start();
 
   usleep(100e6);
