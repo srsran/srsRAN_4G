@@ -1770,9 +1770,9 @@ void rrc::apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config) 
   mac->get_config(&mac_cfg);
   if (config->rach_cnfg_present) {
     memcpy(&mac_cfg.rach, &config->rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT));
+    mac_cfg.ul_harq_params.max_harq_msg3_tx = config->rach_cnfg.max_harq_msg3_tx;
   }
   mac_cfg.prach_config_index = config->prach_cnfg.root_sequence_index;
-  mac_cfg.ul_harq_params.max_harq_msg3_tx = config->rach_cnfg.max_harq_msg3_tx;
 
   mac->set_config(&mac_cfg);
 
