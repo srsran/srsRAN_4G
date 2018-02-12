@@ -54,6 +54,7 @@ int srslte_ringbuffer_write(srslte_ringbuffer_t *q, void *p, int nof_bytes)
   int w_bytes = nof_bytes;
   pthread_mutex_lock(&q->mutex);
   if (!q->active) {
+    pthread_mutex_unlock(&q->mutex);
     return 0;
   }
   if (q->count + w_bytes > q->capacity) {
@@ -85,6 +86,7 @@ int srslte_ringbuffer_read(srslte_ringbuffer_t *q, void *p, int nof_bytes)
     pthread_cond_wait(&q->cvar, &q->mutex);
   }
   if (!q->active) {
+    pthread_mutex_unlock(&q->mutex);
     return 0;
   }
   if (nof_bytes + q->rpm > q->capacity) {
