@@ -516,7 +516,8 @@ uint32_t
 s1ap::allocate_m_tmsi(uint64_t imsi)
 {
   uint32_t m_tmsi = m_next_m_tmsi++;
-  m_tmsi_to_s1ap_id.insert(std::pair<uint32_t,uint32_t>(m_tmsi,imsi));
+  m_tmsi_to_imsi.insert(std::pair<uint32_t,uint64_t>(m_tmsi,imsi));
+  m_s1ap_log->info("Allocated M-TMSI %d,\n");
   //uint32_t m_tmsi = 0x0123;
   return m_tmsi;
 }
