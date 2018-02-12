@@ -313,6 +313,11 @@ double radio::get_rx_freq()
   return rx_freq;
 }
 
+double radio::get_freq_offset()
+{
+  return freq_offset;
+}
+
 double radio::get_tx_freq()
 {
   return tx_freq; 

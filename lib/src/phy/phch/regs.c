@@ -111,7 +111,7 @@ int regs_pdcch_init(srslte_regs_t *h) {
     }
 
     h->pdcch[cfi].nof_regs = m;
-    
+
     h->pdcch[cfi].regs = malloc(sizeof(srslte_regs_reg_t*) * h->pdcch[cfi].nof_regs);
     if (!h->pdcch[cfi].regs) {
       perror("malloc");
@@ -133,7 +133,7 @@ int regs_pdcch_init(srslte_regs_t *h) {
           if (k < h->cell.id) {
             kp = (h->pdcch[cfi].nof_regs + k-(h->cell.id%h->pdcch[cfi].nof_regs))%h->pdcch[cfi].nof_regs;
           } else {
-            kp = (k-h->cell.id)%h->pdcch[cfi].nof_regs;            
+            kp = (k-h->cell.id)%h->pdcch[cfi].nof_regs;
           }
           h->pdcch[cfi].regs[m] = tmp[kp];
           k++;
@@ -141,7 +141,7 @@ int regs_pdcch_init(srslte_regs_t *h) {
       }
     }
     h->pdcch[cfi].nof_regs = (h->pdcch[cfi].nof_regs/9)*9;
-    INFO("Init PDCCH REG space CFI %d. %d useful REGs (%d CCEs)\n",cfi+1, 
+    INFO("Init PDCCH REG space CFI %d. %d useful REGs (%d CCEs)\n",cfi+1,
          h->pdcch[cfi].nof_regs, h->pdcch[cfi].nof_regs/9);
     free(tmp);
     tmp = NULL;
@@ -168,11 +168,11 @@ int srslte_regs_pdcch_nregs(srslte_regs_t *h, uint32_t cfi) {
 }
 
 int srslte_regs_pdcch_ncce(srslte_regs_t *h, uint32_t cfi) {
-  int nregs = srslte_regs_pdcch_nregs(h, cfi); 
+  int nregs = srslte_regs_pdcch_nregs(h, cfi);
   if (nregs > 0) {
     return (uint32_t) (nregs / 9);
   } else {
-    return SRSLTE_ERROR; 
+    return SRSLTE_ERROR;
   }
 }
 
@@ -180,53 +180,59 @@ int srslte_regs_pdcch_ncce(srslte_regs_t *h, uint32_t cfi) {
  * second part of 6.8.5 in 36.211
  */
 
-int srslte_regs_pdcch_put_offset(srslte_regs_t *h, cf_t *d, cf_t *slot_symbols, uint32_t start_reg, uint32_t nof_regs) {
-  if (h->cfi_initiated) {
-    if (start_reg + nof_regs <= h->pdcch[h->cfi].nof_regs) {
-      uint32_t i, k;
-      k = 0;
-      for (i=start_reg;i<start_reg+nof_regs;i++) {
-        regs_put_reg(h->pdcch[h->cfi].regs[i], &d[k], slot_symbols, h->cell.nof_prb);
-        k += 4;
-      }
-      return k;      
-    } else {
-      fprintf(stderr, "Out of range: start_reg + nof_reg must be lower than %d\n", h->pdcch[h->cfi].nof_regs);
-      return SRSLTE_ERROR;      
-    }       
-  } else {
-    fprintf(stderr, "Must call srslte_regs_set_cfi() first\n");
+int srslte_regs_pdcch_put_offset(srslte_regs_t *h, uint32_t cfi, cf_t *d, cf_t *slot_symbols, uint32_t start_reg, uint32_t nof_regs) {
+  if (cfi < 1 || cfi > 3) {
+    fprintf(stderr, "Invalid CFI=%d\n", cfi);
     return SRSLTE_ERROR;
   }
-}
-
-int srslte_regs_pdcch_put(srslte_regs_t *h, cf_t *d, cf_t *slot_symbols) {
-  return srslte_regs_pdcch_put_offset(h, d, slot_symbols, 0, h->pdcch[h->cfi].nof_regs);
-}
-
-int srslte_regs_pdcch_get_offset(srslte_regs_t *h, cf_t *slot_symbols, cf_t *d, uint32_t start_reg, uint32_t nof_regs) {
-  if (h->cfi_initiated) {
-    if (start_reg + nof_regs <= h->pdcch[h->cfi].nof_regs) {
-      uint32_t i, k;  
-      k = 0;
-      for (i=start_reg;i<start_reg + nof_regs;i++) {
-        regs_get_reg(h->pdcch[h->cfi].regs[i], slot_symbols, &d[k], h->cell.nof_prb);
-        k += 4;
-      }
-      return k;    
-    } else {
-      fprintf(stderr, "Out of range: start_reg + nof_reg must be lower than %d\n", h->pdcch[h->cfi].nof_regs);
-      return SRSLTE_ERROR;
+  if (start_reg + nof_regs <= h->pdcch[cfi-1].nof_regs) {
+    uint32_t i, k;
+    k = 0;
+    for (i=start_reg;i<start_reg+nof_regs;i++) {
+      regs_put_reg(h->pdcch[cfi-1].regs[i], &d[k], slot_symbols, h->cell.nof_prb);
+      k += 4;
     }
+    return k;
   } else {
-    fprintf(stderr, "Must call srslte_regs_set_cfi() first\n");
+    fprintf(stderr, "Out of range: start_reg + nof_reg must be lower than %d\n", h->pdcch[cfi-1].nof_regs);
+    return SRSLTE_ERROR;
+  }
+}
+
+int srslte_regs_pdcch_put(srslte_regs_t *h, uint32_t cfi, cf_t *d, cf_t *slot_symbols) {
+  if (cfi < 1 || cfi > 3) {
+    fprintf(stderr, "Invalid CFI=%d\n", cfi);
+    return SRSLTE_ERROR;
+  }
+  return srslte_regs_pdcch_put_offset(h, cfi, d, slot_symbols, 0, h->pdcch[cfi-1].nof_regs);
+}
+
+int srslte_regs_pdcch_get_offset(srslte_regs_t *h, uint32_t cfi, cf_t *slot_symbols, cf_t *d, uint32_t start_reg, uint32_t nof_regs) {
+  if (cfi < 1 || cfi > 3) {
+    fprintf(stderr, "Invalid CFI=%d\n", cfi);
+    return SRSLTE_ERROR;
+  }
+  if (start_reg + nof_regs <= h->pdcch[cfi-1].nof_regs) {
+    uint32_t i, k;
+    k = 0;
+    for (i=start_reg;i<start_reg + nof_regs;i++) {
+      regs_get_reg(h->pdcch[cfi-1].regs[i], slot_symbols, &d[k], h->cell.nof_prb);
+      k += 4;
+    }
+    return k;
+  } else {
+    fprintf(stderr, "Out of range: start_reg + nof_reg must be lower than %d\n", h->pdcch[cfi-1].nof_regs);
     return SRSLTE_ERROR;
   }
 }
 
 
-int srslte_regs_pdcch_get(srslte_regs_t *h, cf_t *slot_symbols, cf_t *d) {
- return srslte_regs_pdcch_get_offset(h, slot_symbols, d, 0, h->pdcch[h->cfi].nof_regs);
+int srslte_regs_pdcch_get(srslte_regs_t *h, uint32_t cfi, cf_t *slot_symbols, cf_t *d) {
+  if (cfi < 1 || cfi > 3) {
+    fprintf(stderr, "Invalid CFI=%d\n", cfi);
+    return SRSLTE_ERROR;
+  }
+  return srslte_regs_pdcch_get_offset(h, cfi, slot_symbols, d, 0, h->pdcch[cfi-1].nof_regs);
 }
 
 
@@ -668,25 +674,6 @@ void srslte_regs_free(srslte_regs_t *h) {
   bzero(h, sizeof(srslte_regs_t));
 }
 
-/** Sets the CFI value for this subframe (CFI must be in the range 1..3).
- */
-int srslte_regs_set_cfi(srslte_regs_t *h, uint32_t cfi) {  
-  if (cfi > 0 && cfi <= 3) {
-    if (h->phich_len == SRSLTE_PHICH_EXT &&
-        ((h->cell.nof_prb <= 10 && cfi < 2) || (h->cell.nof_prb >= 10 && cfi < 3))) {
-      fprintf(stderr, "PHICH length is extended. The number of control symbols should be at least 3.\n");
-      return SRSLTE_ERROR_INVALID_INPUTS;
-    } else {
-      h->cfi_initiated = true;
-      h->cfi = cfi - 1;
-      return SRSLTE_SUCCESS;
-    }
-  } else {
-    fprintf(stderr, "Invalid CFI %d\n", cfi);
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-}
-
 /**
  * Initializes REGs structure.
  * Sets all REG indices and initializes PCFICH, PHICH and PDCCH REGs
@@ -709,7 +696,6 @@ int srslte_regs_init(srslte_regs_t *h, srslte_cell_t cell) {
     vo = cell.id % 3;
     h->cell = cell;
     h->max_ctrl_symbols = max_ctrl_symbols;
-    h->cfi_initiated = false;
     h->phich_res = cell.phich_resources;
     h->phich_len = cell.phich_length;
 

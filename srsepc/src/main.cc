@@ -306,19 +306,20 @@ main (int argc,char * argv[] )
   spgw_log.init("SPGW",logger);
   spgw_log.set_level(level(args.log_args.spgw_level));
   spgw_log.set_hex_limit(args.log_args.spgw_hex_limit);
-  
-  mme *mme = mme::get_instance();
-  if (mme->init(&args.mme_args, &s1ap_log, &mme_gtpc_log)) {
-    cout << "Error initializing MME" << endl;
-    exit(1);
-  }
+
 
   hss *hss = hss::get_instance();
   if (hss->init(&args.hss_args,&hss_log)) {
     cout << "Error initializing HSS" << endl;
     exit(1);
   }
- 
+
+  mme *mme = mme::get_instance();
+  if (mme->init(&args.mme_args, &s1ap_log, &mme_gtpc_log, hss)) {
+    cout << "Error initializing MME" << endl;
+    exit(1);
+  }
+
   spgw *spgw = spgw::get_instance();
   if (spgw->init(&args.spgw_args,&spgw_log)) {
     cout << "Error initializing SP-GW" << endl;

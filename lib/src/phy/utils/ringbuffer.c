@@ -11,7 +11,7 @@ int srslte_ringbuffer_init(srslte_ringbuffer_t *q, int capacity)
   if (!q->buffer) {
     return -1; 
   }
-
+  q->active     = true;
   q->capacity   = capacity;
   srslte_ringbuffer_reset(q);
   
@@ -24,6 +24,7 @@ int srslte_ringbuffer_init(srslte_ringbuffer_t *q, int capacity)
 void srslte_ringbuffer_free(srslte_ringbuffer_t *q)
 {
   if (q) {
+    srslte_ringbuffer_stop(q);
     if (q->buffer) {
       free(q->buffer);
       q->buffer = NULL; 
@@ -52,6 +53,10 @@ int srslte_ringbuffer_write(srslte_ringbuffer_t *q, void *p, int nof_bytes)
   uint8_t *ptr = (uint8_t*) p;
   int w_bytes = nof_bytes;
   pthread_mutex_lock(&q->mutex);
+  if (!q->active) {
+    pthread_mutex_unlock(&q->mutex);
+    return 0;
+  }
   if (q->count + w_bytes > q->capacity) {
     w_bytes = q->capacity - q->count; 
     fprintf(stderr, "Buffer overrun: lost %d bytes\n", nof_bytes - w_bytes);
@@ -77,8 +82,12 @@ int srslte_ringbuffer_read(srslte_ringbuffer_t *q, void *p, int nof_bytes)
 {
   uint8_t *ptr = (uint8_t*) p;
   pthread_mutex_lock(&q->mutex);
-  while(q->count < nof_bytes) {
+  while(q->count < nof_bytes && q->active) {
     pthread_cond_wait(&q->cvar, &q->mutex);
+  }
+  if (!q->active) {
+    pthread_mutex_unlock(&q->mutex);
+    return 0;
   }
   if (nof_bytes + q->rpm > q->capacity) {
     int x = q->capacity - q->rpm; 
@@ -96,5 +105,9 @@ int srslte_ringbuffer_read(srslte_ringbuffer_t *q, void *p, int nof_bytes)
   return nof_bytes; 
 }
 
-
+void srslte_ringbuffer_stop(srslte_ringbuffer_t *q) {
+  pthread_mutex_lock(&q->mutex);
+  pthread_cond_broadcast(&q->cvar);
+  pthread_mutex_unlock(&q->mutex);
+}
 

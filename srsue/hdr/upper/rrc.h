@@ -51,6 +51,63 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
+
+class cell_t
+{
+ public:
+  bool is_valid() {
+    return earfcn != 0 && srslte_cell_isvalid(&phy_cell);
+  }
+  bool equals(cell_t *x) {
+    return equals(x->earfcn, x->phy_cell.id);
+  }
+  bool equals(uint32_t earfcn, uint32_t pci) {
+    return earfcn == this->earfcn && pci == phy_cell.id;
+  }
+  bool greater(cell_t *x) {
+    return x->rsrp > rsrp;
+  }
+  bool plmn_equals(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
+    for (uint32_t i = 0; i < sib1.N_plmn_ids; i++) {
+      if (plmn_id.mcc == sib1.plmn_id[i].id.mcc && plmn_id.mnc == sib1.plmn_id[i].id.mnc) {
+        return true;
+      }
+    }
+    return false;
+  }
+  cell_t() {
+    srslte_cell_t tmp = {};
+    cell_t(tmp, 0, 0);
+  }
+  cell_t(srslte_cell_t phy_cell, uint32_t earfcn, float rsrp) {
+    this->has_valid_sib1 = false;
+    this->has_valid_sib2 = false;
+    this->has_valid_sib3 = false;
+    this->has_valid_sib13 = false;
+    this->phy_cell = phy_cell;
+    this->rsrp = rsrp;
+    this->earfcn = earfcn;
+    in_sync = false;
+    bzero(&sib1, sizeof(sib1));
+    bzero(&sib2, sizeof(sib2));
+    bzero(&sib3, sizeof(sib3));
+    bzero(&sib13, sizeof(sib13));
+  }
+
+  uint32_t earfcn;
+  srslte_cell_t phy_cell;
+  float    rsrp;
+  bool     has_valid_sib1;
+  bool     has_valid_sib2;
+  bool     has_valid_sib3;
+  bool     has_valid_sib13;
+  bool     in_sync;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT  sib2;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT  sib3;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
+};
+
 class rrc
   :public rrc_interface_nas
   ,public rrc_interface_phy
@@ -62,6 +119,7 @@ class rrc
 {
 public:
   rrc();
+  ~rrc();
 
   void init(phy_interface_rrc *phy_,
             mac_interface_rrc *mac_,
@@ -100,7 +158,7 @@ public:
   void out_of_sync();
   void earfcn_end();
   void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
-  void new_phy_meas(float rsrp, float rsrq, uint32_t tti, uint32_t earfcn, uint32_t pci);
+  void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn, int pci);
 
   // MAC interface
   void ho_ra_completed(bool ra_successful);
@@ -154,7 +212,7 @@ private:
   bool first_stimsi_attempt;
 
   uint16_t ho_src_rnti;
-  int      ho_src_cell_idx;
+  cell_t   ho_src_cell;
   phy_interface_rrc::phy_cfg_t ho_src_phy_cfg;
   mac_interface_rrc::mac_cfg_t ho_src_mac_cfg;
   bool pending_mob_reconf;
@@ -215,28 +273,18 @@ private:
     }
   }
 
-  typedef struct {
-    uint32_t earfcn;
-    srslte_cell_t phy_cell;
-    float    rsrp;
-    bool     has_valid_sib1;
-    bool     has_valid_sib2;
-    bool     has_valid_sib3;
-    bool     has_valid_sib13;
-    bool     in_sync;
-    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
-    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT  sib2;
-    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT  sib3;
-    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
-  } cell_t;
+  // List of strongest neighbour cell
+  const static int NOF_NEIGHBOUR_CELLS = 8;
+  std::vector<cell_t*> neighbour_cells;
+  cell_t *serving_cell;
+  void set_serving_cell(uint32_t cell_idx);
+  void set_serving_cell(uint32_t earfcn, uint32_t pci);
 
-  const static int MAX_KNOWN_CELLS = 64;
-  cell_t known_cells[MAX_KNOWN_CELLS];
-  cell_t *current_cell;
-
-  int        find_cell_idx(uint32_t earfcn, uint32_t pci);
-  cell_t*    add_new_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
-  uint32_t   find_best_cell(uint32_t earfcn, srslte_cell_t *cell);
+  int  find_neighbour_cell(uint32_t earfcn, uint32_t pci);
+  bool add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
+  bool add_neighbour_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
+  bool add_neighbour_cell(cell_t *cell);
+  void sort_neighbour_cells();
 
   typedef enum {
     SI_ACQUIRE_IDLE = 0,
@@ -253,7 +301,6 @@ private:
 
   void select_next_cell_in_plmn();
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT selected_plmn_id;
-  int last_selected_cell;
 
   bool thread_running;
   void run_thread();
@@ -395,10 +442,10 @@ private:
   // Helpers
   void          ho_failed();
   bool          ho_prepare();
-  void          add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
   void          rrc_connection_release();
   void          con_restablish_cell_reselected();
   void          radio_link_failure();
+  void          leave_connected();
 
   static void*  start_sib_thread(void *rrc_);
   void          sib_search();

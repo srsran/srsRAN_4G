@@ -82,6 +82,7 @@ bool read(std::string filename) {
         written[thread][msg] = true;
       } else {
         perror("Wrong thread and/or msg");
+        fclose(f);
         return false;
       }
     }

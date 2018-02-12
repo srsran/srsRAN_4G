@@ -30,6 +30,9 @@ add_executable(rlc_am_test rlc_am_test.cc)
 target_link_libraries(rlc_am_test srslte_upper srslte_phy srslte_common)
 add_test(rlc_am_test rlc_am_test)
 
+add_executable(rlc_am_stress_test rlc_am_stress_test.cc)
+target_link_libraries(rlc_am_stress_test srslte_upper srslte_phy srslte_common)
+
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srslte_upper srslte_phy srslte_common)
 add_test(rlc_um_data_test rlc_um_data_test)

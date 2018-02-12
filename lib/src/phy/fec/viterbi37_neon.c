@@ -176,7 +176,7 @@ void print_uint8x16_t(char *s, uint8x16_t val) {
   printf("\n");
 }
 
-int movemask_neon(uint8x16_t movemask_low_in)
+static inline int movemask_neon(uint8x16_t movemask_low_in)
 {
     uint8x8_t lo = vget_low_u8(movemask_low_in);
     uint8x8_t hi = vget_high_u8(movemask_low_in);
