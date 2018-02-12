@@ -103,7 +103,7 @@ public:
   s1ap_nas_transport*             m_s1ap_nas_transport;
   s1ap_ctx_mngmt_proc*             m_s1ap_ctx_mngmt_proc;
 
-  std::map<uint32_t, uint64_t>                      m_tmsi_to_s1ap_id;
+  std::map<uint32_t, uint64_t>                      m_tmsi_to_imsi;
 
 private:
   s1ap();
