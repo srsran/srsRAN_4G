@@ -1216,9 +1216,6 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
       }
       mean_rsrp -= temporal_offset;
     }
-  }
-
-  if (cnt > 2) {
     return MEASURE_OK;
   } else {
     return IDLE;
