@@ -1221,6 +1221,17 @@ void rlc_am::print_rx_segments()
 
 bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment)
 {
+  // Check for first segment
+  if(0 == segment->header.so) {
+    std::list<rlc_amd_rx_pdu_t>::iterator it;
+    for(it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
+      pool->deallocate(it->buf);
+    }
+    pdu->segments.clear();
+    pdu->segments.push_back(*segment);
+    return false;
+  }
+
   // Check segment offset
   uint32_t n = 0;
   if(!pdu->segments.empty()) {
