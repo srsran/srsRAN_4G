@@ -57,9 +57,6 @@
 // #undef LV_HAVE_SSE
 // #undef LV_HAVE_AVX
 
-// prefer unix socket over ip sockets for speed/reliability
-// XXX not testing in loopback mode
-//#define SOCK_RF_IPC_IP
 
 #ifdef DEBUG_MODE
 static bool rf_sock_log_dbug  = true;
@@ -134,18 +131,10 @@ static bool rf_sock_log_warn  = true;
                                      __func__,                                      \
                                      __LINE__);
 
-#ifdef SOCK_RF_IPC_IP
-// ip socket port nums
-#define RF_SOCK_DL_PORT (43301)
-#define RF_SOCK_UL_PORT (43302)
-#define RF_SOCK_MC_ADDR "224.4.3.2"
-#define RF_SOCK_MC_DEV  "lo"  // loopback local machine
-#define RF_SOCK_SOCK_BUFF_SIZE (256 * 1024)
-#else
-// unix socket endpoints
+// unix socket endpoints should have visibility for LXC container
+// deployment of ue/enb/epc
 #define RF_SOCK_SERVER_PATH "/tmp/srslte-ipc-server-sock"
 #define RF_SOCK_CLIENT_PATH "/tmp/srslte-ipc-client-sock"
-#endif
 
 // bytes per sample
 #define BYTES_PER_SAMPLE(x) ((x)*sizeof(cf_t))
@@ -164,7 +153,7 @@ static bool rf_sock_log_warn  = true;
 #define RF_SOCK_NTYPE_UE    (1)
 #define RF_SOCK_NTYPE_ENB   (2)
 
-// tx offset (delay) workers
+// tx_offset (delay) workers
 #define RF_SOCK_NOF_TX_WORKERS (16)
 #define RF_SOCK_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_SOCK_NOF_TX_WORKERS)
 
@@ -176,6 +165,7 @@ static const struct timeval tv_window   = {0, 1000 * FAUX_TIME_SCALE / 4}; // rx
 static const struct timeval tv_zero     = {0, 0};
 static const struct timeval tv_tti_step = {0, FAUX_TIME_SCALE * 1000};
 
+// tx msg info for work threads
 typedef struct {
   void *   h;
   cf_t     cf_data[RF_SOCK_MAX_SF_LEN];
@@ -186,6 +176,7 @@ typedef struct {
 } rf_sock_tx_info_t;
 
 
+// tx worker thread info
 typedef struct {
   void *               h;
   pthread_t            tid;
@@ -197,6 +188,7 @@ typedef struct {
 } rf_sock_tx_worker_t;
 
 
+// rf dev info
 typedef struct {
    char *               dev_name;
    int                  nodetype;
@@ -230,11 +222,13 @@ typedef struct {
 } rf_sock_info_t;
 
 
+// tx msg meta data
 typedef struct {
-  uint64_t       seqnum;
-  uint32_t       nbytes;
-  float          srate;
-  struct timeval tx_time;
+  uint64_t       io_seqnum;
+  uint32_t       io_nbytes;
+  float          io_srate;
+  float          io_gain;
+  struct timeval io_time;
 } rf_sock_iohdr_t;
 
 
@@ -287,9 +281,7 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .sf_in           = NULL,
                                       };
 
-// could just as well use rf_sock_info for single antenna mode
 #define GET_DEV_INFO(h)  assert(h); rf_sock_info_t *_info = (rf_sock_info_t *)(h)
-
 
 static void rf_sock_tv_to_ts(const struct timeval *tv, time_t *full_secs, double *frac_secs)
 {
@@ -320,21 +312,21 @@ static int rf_sock_resample(double srate_in,
   if(srate_in != srate_out)
    {
      const double sratio = srate_out / srate_in;
- 
+
+     // have noticed that when 'upsample' unable to sync
+     if(sratio > 1.0)
+      { 
+        RF_SOCK_WARN("srate %4.2lf/%4.2lf MHz, sratio %3.3lf, upsample may not decode",
+                     srate_in  / 1e6,
+                     srate_out / 1e6,
+                     sratio);
+      }
+
      srslte_resample_arb_t r;
 
      srslte_resample_arb_init(&r, sratio, 0);
 
-     const int nsamples_out = srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, nsamples_in);
-
-     RF_SOCK_DBUG("srate %4.2lf/%4.2lf MHz, sratio %3.3lf, ns_in %d, ns_out %d",
-                   srate_in  / 1e6,
-                   srate_out / 1e6,
-                   sratio, 
-                   nsamples_in, 
-                   nsamples_out);
-
-     return nsamples_out;
+     return srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, nsamples_in);
    }
  else
    {
@@ -368,7 +360,6 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 {
    GET_DEV_INFO(h);
 
-   // rx window if non-blocking (enb)
    if(! _info->rx_blocking)
      {
        fd_set rfds;
@@ -385,6 +376,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
        timersub(&tv_timeout, &tv_now, &tv_diff);
 
+       // within rx window, briefly wait for UL msg
        if(timercmp(&tv_timeout, &tv_zero, >))
          {
            if(select(_info->rx_handle + 1, &rfds, NULL, NULL, &tv_diff) <= 0 ||
@@ -419,25 +411,22 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
    const rf_sock_iohdr_t hdr = { seqn, 
                                  nbytes_out,
                                  _info->tx_srate,
+                                 _info->tx_gain,
                                  tx_info->tx_time,
                                };
 
    struct iovec iov[2] = { {(void*)&hdr,             sizeof(hdr)},
-                           {(void*)tx_info->cf_data, nbytes_out }};
+                           {(void*)tx_info->cf_data, nbytes_out }
+                         };
 
-   struct msghdr mhdr = { 
-#ifdef SOCK_RF_IPC_IP
-                          NULL, // ip sockets are already "connected"
-                          0,
-#else
-                          &_info->tx_addr,      
+   struct msghdr mhdr = { &_info->tx_addr,      
                           sizeof(_info->tx_addr),
-#endif
                           iov,                  
                           2,
                           NULL,
                           0,
-                          0 };
+                          0
+                        };
  
    const int rc = sendmsg(_info->tx_handle, &mhdr, MSG_DONTWAIT);
 
@@ -553,209 +542,6 @@ int rf_sock_set_sock_nonblock(int fd)
 }
 
 
-#ifdef SOCK_RF_IPC_IP
-static int rf_sock_set_sock_buff_size(int fd, const int n_req, const int opt)
-{
-  int len = 0;
-
-  socklen_t optlen = sizeof(len);
-
-  if(getsockopt(fd, SOL_SOCKET, opt, &len, &optlen) < 0) 
-    {
-      RF_SOCK_WARN("get size error %s", strerror(errno));
-
-      return -1;
-    }
-
-  if(len < n_req)
-   {
-     len = n_req;
-
-     if(setsockopt(fd, SOL_SOCKET, opt, &len, sizeof(len)) < 0) 
-       {
-         RF_SOCK_DBUG("set buf size to %d, %s", len, strerror(errno));
-
-         return -1;
-       }
-     else
-       {
-         RF_SOCK_DBUG("reset buf size to %d", len);
-       }
-    }
-   else
-    {
-      RF_SOCK_DBUG("keep curernt buf size %d", len);
-    }
-
-   return len;
-}
-
-
-static int rf_sock_open_ip_sock(rf_sock_info_t * info, 
-                                uint16_t rxport, 
-                                uint16_t txport,
-                                const char * mcaddr)
-{
-  int rx_fd, tx_fd, opt_on = 1;
-
-  if((rx_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-      RF_SOCK_WARN("rx sock open error %s", strerror(errno));
-
-      return -1;
-    }
-
-  if((tx_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-      RF_SOCK_WARN("tx sock open error %s", strerror(errno));
-
-      return -1;
-    }
-
-  if(setsockopt(rx_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &opt_on, sizeof(opt_on)) < 0) 
-    {
-      RF_SOCK_WARN("rx sock set resue error %s", strerror(errno));
-
-      return -1;
-    }
-
-  if(setsockopt(tx_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &opt_on, sizeof(opt_on)) < 0) 
-    {
-      RF_SOCK_WARN("rx sock set resue error %s", strerror(errno));
-
-      return -1;
-    }
-
-  if(rf_sock_set_sock_buff_size(tx_fd, RF_SOCK_SOCK_BUFF_SIZE, SO_SNDBUF) < 0)
-    {
-      RF_SOCK_WARN("rx sock set txbuf size error %s", strerror(errno));
-
-      return -1;
-    }
-
-  if(rf_sock_set_sock_buff_size(rx_fd, RF_SOCK_SOCK_BUFF_SIZE, SO_RCVBUF) < 0)
-    {
-      RF_SOCK_WARN("rx sock set rxbuf size error %s", strerror(errno));
-
-      return -1;
-    }
-
-  struct ifreq ifr;
-  memset(&ifr,  0, sizeof(ifr));
-
-  strncpy(ifr.ifr_name, RF_SOCK_MC_DEV, IFNAMSIZ);
-
-  if(ioctl(tx_fd, SIOCGIFADDR, &ifr) < 0) 
-    {
-      RF_SOCK_WARN("tx sock get addr error %s", strerror(errno));
-
-      return -1;
-    }
-
-  const in_addr_t if_addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr;
-
-  if(ioctl(tx_fd, SIOCGIFINDEX, &ifr) < 0)
-    {
-      RF_SOCK_WARN("tx sock get ifindex error %s", strerror(errno));
-
-      return -1;
-    }
-
-  const int if_index = ifr.ifr_ifindex;
-
-  if(setsockopt(tx_fd, SOL_SOCKET, SO_BSDCOMPAT, (char *) &opt_on, sizeof(opt_on)) < 0) 
-    {
-      RF_SOCK_WARN("rx sock set bsdcompat error %s", strerror(errno));
-
-      return -1;
-    }
-
-  struct sockaddr_in sin_rx;
-  memset(&sin_rx, 0x0, sizeof(sin_rx));
-  sin_rx.sin_family      = AF_INET;
-  sin_rx.sin_port        = htons(rxport);
-  sin_rx.sin_addr.s_addr = inet_addr(mcaddr);
-
-  struct sockaddr_in sin_tx;
-  memset(&sin_tx, 0x0, sizeof(sin_tx));
-  sin_tx.sin_family      = AF_INET;
-  sin_tx.sin_port        = htons(txport);
-  sin_tx.sin_addr.s_addr = inet_addr(mcaddr);
-
-  struct ip_mreq mreq;
-  memset(&mreq, 0x0, sizeof(mreq));
-  mreq.imr_multiaddr.s_addr = inet_addr(mcaddr);
-  mreq.imr_interface.s_addr = if_addr;
-
-  if(bind(rx_fd, (struct sockaddr*)&sin_rx, sizeof(sin_rx)) < 0)
-    {
-      RF_SOCK_WARN("rx sock bind error %s", strerror(errno));
-
-      return -1;
-    }
-
-  if(setsockopt(rx_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) 
-    {
-      RF_SOCK_WARN("rx sock add membership error %s", strerror(errno));
-
-      return -1;
-    }
-  else
-    {
-      RF_SOCK_INFO("joined group %s port %hu, iface %s", 
-                    inet_ntoa(mreq.imr_multiaddr), rxport, RF_SOCK_MC_DEV);
-    }
-
-
-  if(connect(tx_fd,(struct sockaddr*)&sin_tx, sizeof(sin_tx)) < 0)
-    {
-      RF_SOCK_WARN("tx sock connect error %s", strerror(errno));
-
-      return -1;
-    }
-  else
-    {
-      RF_SOCK_INFO("connect to group %s port %hu", 
-                    inet_ntoa(mreq.imr_multiaddr), txport);
-    }
-
-  int no_df = IP_PMTUDISC_DONT;
-
-  if(setsockopt(tx_fd, IPPROTO_IP, IP_MTU_DISCOVER, &no_df, sizeof(no_df)) < 0) 
-   {
-     RF_SOCK_WARN("tx sock set mtu opt error %s", strerror(errno));
-
-     return -1;
-   }
-
-  struct ip_mreqn mreqn;
-  memset(&mreqn, 0, sizeof(mreqn));
-  mreqn.imr_multiaddr.s_addr = 0;
-  mreqn.imr_address.s_addr   = if_addr;
-  mreqn.imr_ifindex          = if_index;
-
-  if(setsockopt(tx_fd, SOL_IP, IP_MULTICAST_IF, &mreqn, sizeof(mreqn)) < 0) 
-   {
-     RF_SOCK_WARN("tx sock set mcif error %s", strerror(errno));
-
-     return -1; 
-   }
-
-  if(rf_sock_set_sock_nonblock(tx_fd) < 0)
-    {
-      RF_SOCK_WARN("tx sock set non block error %s", strerror(errno));
-
-      return -1; 
-    }
-
-  info->tx_handle = tx_fd;
-  info->rx_handle = rx_fd;
-
-  return 0;
-}
-
-#else
-
 static int rf_sock_open_unix_sock(rf_sock_info_t * info, 
                                   const char * local,
                                   const char * remote)
@@ -824,34 +610,9 @@ static int rf_sock_open_unix_sock(rf_sock_info_t * info,
   return 0;
 }
 
-#endif
 
 static int rf_sock_open_ipc(rf_sock_info_t * info)
 {
-#ifdef SOCK_RF_IPC_IP
-  if(rf_sock_is_enb(info))
-    {
-      return rf_sock_open_ip_sock(info, 
-                                  RF_SOCK_UL_PORT,  // rx
-                                  RF_SOCK_DL_PORT,  // tx
-                                  RF_SOCK_MC_ADDR);
-    }
-  else if(rf_sock_is_ue(info))
-    {
-      return rf_sock_open_ip_sock(info, 
-                                  RF_SOCK_DL_PORT,  // rx
-                                  RF_SOCK_UL_PORT,  // tx
-                                  RF_SOCK_MC_ADDR);
-    }
-  else
-    {
-      return rf_sock_open_ip_sock(info, 
-                                  RF_SOCK_DL_PORT,  // rx
-                                  RF_SOCK_DL_PORT,  // tx
-                                  RF_SOCK_MC_ADDR);
-    }
-
-#else
   if(rf_sock_is_enb(info))
     {
       return rf_sock_open_unix_sock(info,
@@ -870,8 +631,6 @@ static int rf_sock_open_ipc(rf_sock_info_t * info)
                                     RF_SOCK_CLIENT_PATH, 
                                     RF_SOCK_CLIENT_PATH);
     }
-#endif
-
 }
 
 
@@ -1256,6 +1015,10 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    gettimeofday(&tv_in, NULL);
 
+   // the idea here for the time being is that
+   // the enb 'beats the drum' with a best effort tx msg
+   // at the beginning of each TTI and the ue follows
+   // with a blocking IPC read.
    if(rf_sock_is_enb(_info) || rf_sock_is_loopback(_info))
      {
        timersub(&_info->tv_next_tti, &tv_in, &tv_diff);
@@ -1316,28 +1079,31 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
               RF_SOCK_WARN("recv error %s", strerror(errno));
             }
 
+           // XXX TODO contiue for ue and fall thru eventually
+           // allowing to return 0 or partial msg
            goto rxout;
         }
        else
         {
           const int nbytes_this_msg = rc - sizeof(hdr);
 
-          if(nbytes_this_msg != hdr.nbytes)
+          if(nbytes_this_msg != hdr.io_nbytes)
            {
              RF_SOCK_WARN("RX seqn %lu, msglen error expected %d, got %d, drop", 
-                           hdr.seqnum, hdr.nbytes, nbytes_this_msg);
+                           hdr.io_seqnum, hdr.io_nbytes, nbytes_this_msg);
 
              goto rxout;
            }
 
          // use tx time tag as the rx time 
-         rx_timestamp = hdr.tx_time;
+         rx_timestamp = hdr.io_time;
 
-         const int nsamples_out = rf_sock_resample(hdr.srate,
-                                                  _info->rx_srate,
-                                                  _info->sf_in,
-                                                  p2data, 
-                                                  SAMPLES_PER_BYTE(nbytes_this_msg));
+         // OK for downsample, have not able to decode when upsample
+         const int nsamples_out = rf_sock_resample(hdr.io_srate,
+                                                   _info->rx_srate,
+                                                   _info->sf_in,
+                                                   p2data, 
+                                                   SAMPLES_PER_BYTE(nbytes_this_msg));
 
          const int nbytes_out = BYTES_PER_SAMPLE(nsamples_out);
 
@@ -1357,7 +1123,9 @@ rxout:
                  nsamples_pending, 
                  nbytes_pending);
 
-   return nsamples - nsamples_pending;
+   // we always just return what was asked for
+   // enb doenst seem to care and ue is not happy with 0
+   return nsamples;
  }
 
 
