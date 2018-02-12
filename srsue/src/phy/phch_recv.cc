@@ -1169,6 +1169,9 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
         return ret;
       }
     }
+    if (ret != ERROR) {
+      return MEASURE_OK;
+    }
   } else {
     Info("INTRA: not running because offset=%d, sf_len*max_sf=%d*%d\n", offset, sf_len, max_sf);
   }
@@ -1261,13 +1264,11 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled, uint3
   srslte_sync_set_cfo_i_enable(&sync_find,     false);
   srslte_sync_set_cfo_pss_enable(&sync_find,   true);
   srslte_sync_set_pss_filt_enable(&sync_find,  true);
-  srslte_sync_set_sss_eq_enable(&sync_find,    false);
+  srslte_sync_set_sss_eq_enable(&sync_find,    true);
 
   sync_find.pss.chest_on_filter = true;
 
-  if (!sic_pss_enabled) {
-    sync_find.sss_channel_equalize = false;
-  }
+  sync_find.sss_channel_equalize = true;
 
   reset();
 }
@@ -1308,13 +1309,12 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
     if (n_id_2 != (cell.id%3) || sic_pss_enabled) {
       srslte_sync_set_N_id_2(&sync_find, n_id_2);
 
-      srslte_sync_find_ret_t sync_res, best_sync_res;
+      srslte_sync_find_ret_t sync_res;
 
       do {
         srslte_sync_reset(&sync_find);
         srslte_sync_cfo_reset(&sync_find);
 
-        best_sync_res = SRSLTE_SYNC_NOFOUND;
         sync_res = SRSLTE_SYNC_NOFOUND;
         cell_id          = 0;
         float max_peak   = -1;
@@ -1327,14 +1327,13 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
                  n_id_2, sf5_cnt, nof_sf/5, sync_res, srslte_sync_get_sf_idx(&sync_find), peak_idx, sync_find.peak_value);
 
           if (sync_find.peak_value > max_peak && sync_res == SRSLTE_SYNC_FOUND) {
-            best_sync_res = sync_res;
             max_sf5    = sf5_cnt;
             max_sf_idx = srslte_sync_get_sf_idx(&sync_find);
             cell_id    = srslte_sync_get_cell_id(&sync_find);
           }
         }
 
-        switch(best_sync_res) {
+        switch(sync_res) {
           case SRSLTE_SYNC_ERROR:
             return SRSLTE_ERROR;
             fprintf(stderr, "Error finding correlation peak\n");
