@@ -587,7 +587,8 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
                  rrc->get_rb_name(lcid).c_str(), nof_bytes, head_len);
     return 0;
   }
-  pdu_space = nof_bytes-head_len-2;
+
+  pdu_space = nof_bytes-head_len;
   if(pdu_space < (retx.so_end-retx.so_start))
     retx.so_end = retx.so_start+pdu_space;
 
@@ -603,10 +604,13 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
     if(lower >= retx.so_end)
       break;
 
+    if(pdu_space <= 2)
+      break;
+
     upper += old_header.li[i];
 
     head_len    = rlc_am_packed_length(&new_header);
-    pdu_space   = nof_bytes-head_len-2;
+    pdu_space   = nof_bytes-head_len;
     if(pdu_space < (retx.so_end-retx.so_start))
       retx.so_end = retx.so_start+pdu_space;
 
@@ -1217,15 +1221,33 @@ void rlc_am::print_rx_segments()
 
 bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment)
 {
-  // Ordered insert
-  std::list<rlc_amd_rx_pdu_t>::iterator tmpit;
-  std::list<rlc_amd_rx_pdu_t>::iterator it = pdu->segments.begin();
-  while(it != pdu->segments.end() && it->header.so < segment->header.so)
-    it++;
-  pdu->segments.insert(it, *segment);
+  // Check for first segment
+  if(0 == segment->header.so) {
+    std::list<rlc_amd_rx_pdu_t>::iterator it;
+    for(it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
+      pool->deallocate(it->buf);
+    }
+    pdu->segments.clear();
+    pdu->segments.push_back(*segment);
+    return false;
+  }
+
+  // Check segment offset
+  uint32_t n = 0;
+  if(!pdu->segments.empty()) {
+    rlc_amd_rx_pdu_t &back = pdu->segments.back();
+    n = back.header.so + back.buf->N_bytes;
+  }
+  if(segment->header.so != n) {
+    pool->deallocate(segment->buf);
+    return false;
+  } else {
+    pdu->segments.push_back(*segment);
+  }
 
   // Check for complete
   uint32_t so = 0;
+  std::list<rlc_amd_rx_pdu_t>::iterator it, tmpit;
   for(it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
     if(so != it->header.so)
       return false;
