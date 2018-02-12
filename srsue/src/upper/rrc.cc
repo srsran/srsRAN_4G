@@ -49,10 +49,18 @@ rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
   ,sysinfo_index(0)
+  ,serving_cell(NULL)
 {
   n310_cnt       = 0;
   n311_cnt       = 0;
   serving_cell = new cell_t();
+}
+
+rrc::~rrc()
+{
+  if (serving_cell) {
+    delete(serving_cell);
+  }
 }
 
 static void liblte_rrc_handler(void *ctx, char *str) {
