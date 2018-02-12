@@ -82,7 +82,7 @@ private:
       if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
         rlc2->write_pdu(1, pdu->msg, opp_size);
       }
-      usleep(1000);
+      usleep(100);
     }
     running = false;
   }
@@ -187,7 +187,7 @@ private:
       pdu->N_bytes = 1500;
       pdu->msg[0]   = sn++;
       rlc->write_sdu(1, pdu);
-      usleep(1000);
+      usleep(100);
     }
     running = false;
   }
@@ -207,7 +207,7 @@ void stress_test()
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
 
-  float fail_rate = 0.1;
+  float fail_rate = 0.01;
 
   rlc rlc1;
   rlc rlc2;
