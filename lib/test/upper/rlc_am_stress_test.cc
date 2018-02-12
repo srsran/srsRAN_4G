@@ -47,6 +47,7 @@ public:
     rlc2 = rlc2_;
     fail_rate = fail_rate_;
     run_enable = true;
+    running = false;
   }
 
   void stop()

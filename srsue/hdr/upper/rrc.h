@@ -76,17 +76,22 @@ class cell_t
     return false;
   }
   cell_t() {
-    this->has_valid_sib1 = false;
-    this->has_valid_sib2 = false;
-    this->has_valid_sib3 = false;
+    srslte_cell_t tmp = {};
+    cell_t(tmp, 0, 0);
   }
   cell_t(srslte_cell_t phy_cell, uint32_t earfcn, float rsrp) {
     this->has_valid_sib1 = false;
     this->has_valid_sib2 = false;
     this->has_valid_sib3 = false;
+    this->has_valid_sib13 = false;
     this->phy_cell = phy_cell;
     this->rsrp = rsrp;
     this->earfcn = earfcn;
+    in_sync = false;
+    bzero(&sib1, sizeof(sib1));
+    bzero(&sib2, sizeof(sib2));
+    bzero(&sib3, sizeof(sib3));
+    bzero(&sib13, sizeof(sib13));
   }
 
   uint32_t earfcn;
@@ -114,6 +119,7 @@ class rrc
 {
 public:
   rrc();
+  ~rrc();
 
   void init(phy_interface_rrc *phy_,
             mac_interface_rrc *mac_,
