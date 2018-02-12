@@ -91,7 +91,6 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
 
     str_ptr s_ptr(new std::string(ss.str()));
     logger_h->log(s_ptr);
-    delete(s_ptr);
   }
 }
 
@@ -132,7 +131,6 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
     } 
     str_ptr s_ptr(new std::string(ss.str()));
     logger_h->log(s_ptr);
-    delete s_ptr;
   }
 }
 
