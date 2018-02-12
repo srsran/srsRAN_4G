@@ -1309,6 +1309,7 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
   }
 
   handle_data_pdu(full_pdu->msg, full_pdu->N_bytes, header);
+  pool->deallocate(full_pdu);
   return true;
 }
 
