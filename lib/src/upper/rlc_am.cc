@@ -1221,15 +1221,22 @@ void rlc_am::print_rx_segments()
 
 bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment)
 {
-  // Ordered insert
-  std::list<rlc_amd_rx_pdu_t>::iterator tmpit;
-  std::list<rlc_amd_rx_pdu_t>::iterator it = pdu->segments.begin();
-  while(it != pdu->segments.end() && it->header.so < segment->header.so)
-    it++;
-  pdu->segments.insert(it, *segment);
+  // Check segment offset
+  uint32_t n = 0;
+  if(!pdu->segments.empty()) {
+    rlc_amd_rx_pdu_t &back = pdu->segments.back();
+    n = back.header.so + back.buf->N_bytes;
+  }
+  if(segment->header.so != n) {
+    pool->deallocate(segment->buf);
+    return false;
+  } else {
+    pdu->segments.push_back(*segment);
+  }
 
   // Check for complete
   uint32_t so = 0;
+  std::list<rlc_amd_rx_pdu_t>::iterator it, tmpit;
   for(it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
     if(so != it->header.so)
       return false;
