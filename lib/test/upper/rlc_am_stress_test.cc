@@ -139,10 +139,12 @@ class rlc_am_tester
     ,public thread
 {
 public:
-  rlc_am_tester(rlc_interface_pdcp *rlc_){
+  rlc_am_tester(rlc_interface_pdcp *rlc_, std::string name_=""){
     rlc = rlc_;
     run_enable = true;
     running = false;
+    rx_pdus = 0;
+    name = name_;
   }
 
   void stop()
@@ -164,6 +166,7 @@ public:
   {
     assert(lcid == 1);
     byte_buffer_pool::get_instance()->deallocate(sdu);
+    std::cout << "rlc_am_tester " << name << " received " << rx_pdus++ << " PDUs" << std::endl;
   }
   void write_pdu_bcch_bch(byte_buffer_t *sdu) {}
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu) {}
@@ -194,6 +197,9 @@ private:
 
   bool run_enable;
   bool running;
+  long rx_pdus;
+
+  std::string name;
 
   rlc_interface_pdcp *rlc;
 };
@@ -212,8 +218,8 @@ void stress_test()
   rlc rlc1;
   rlc rlc2;
 
-  rlc_am_tester tester1(&rlc1);
-  rlc_am_tester tester2(&rlc2);
+  rlc_am_tester tester1(&rlc1, "tester1");
+  rlc_am_tester tester2(&rlc2, "tester2");
   mac_dummy     mac(&rlc1, &rlc2, fail_rate);
   ue_interface  ue;
 
