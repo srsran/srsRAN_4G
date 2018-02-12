@@ -87,7 +87,7 @@ class cell_t
     this->phy_cell = phy_cell;
     this->rsrp = rsrp;
     this->earfcn = earfcn;
-    in_sync = false;
+    in_sync = true;
     bzero(&sib1, sizeof(sib1));
     bzero(&sib2, sizeof(sib2));
     bzero(&sib3, sizeof(sib3));
