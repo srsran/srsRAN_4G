@@ -238,7 +238,7 @@ private:
           reset();
 
           // Uplink grant in a RAR and there is a PDU in the Msg3 buffer
-          if (grant->is_from_rar && !harq_entity->mux_unit->msg3_is_transmitted()) {
+          if (grant->is_from_rar && harq_entity->mux_unit->msg3_is_pending()) {
             Debug("Getting Msg3 buffer payload, grant size=%d bytes\n", grant->n_bytes[0]);
             pdu_ptr  = harq_entity->mux_unit->msg3_get(payload_buffer, grant->n_bytes[0]);
             if (pdu_ptr) {
@@ -246,6 +246,7 @@ private:
             } else {
               Warning("UL RAR grant available but no Msg3 on buffer\n");
             }
+            printf("Transmitted Msg3\n");
 
             // Normal UL grant
           } else {

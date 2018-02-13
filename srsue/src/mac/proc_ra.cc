@@ -349,7 +349,8 @@ void ra_proc::tb_decoded_ok() {
         // Preamble selected by Network
         state = COMPLETION; 
       } else {
-        // Preamble selected by UE MAC 
+        // Preamble selected by UE MAC
+        mux_unit->msg3_prepare();
         rntis->temp_rnti = rar_pdu_msg.get()->get_temp_crnti();
         phy_h->pdcch_dl_search(SRSLTE_RNTI_TEMP, rar_pdu_msg.get()->get_temp_crnti());
         
