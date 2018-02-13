@@ -230,7 +230,8 @@ typedef struct {
    struct timeval       tv_sos;   // start of stream
    struct timeval       tv_next_tti;
    int                  rx_n_tries;
-   size_t               tx_errors;
+   size_t               tx_nerrors;
+   size_t               rx_nlate;
    struct sockaddr_un   tx_addr;
    cf_t *               sf_in;
 } rf_sock_info_t;
@@ -256,7 +257,7 @@ void rf_sock_suppress_stdout(void *h)
 
 static void rf_sock_handle_error(srslte_rf_error_t error)
 {
-  // XXX TODO make more use of this handler
+  // XXX TODO make use of this handler
   RF_SOCK_INFO("%s:%s type %s, opt %d, msg %s\b", 
                 error.type == SRSLTE_RF_ERROR_LATE      ? "late"      :
                 error.type == SRSLTE_RF_ERROR_UNDERFLOW ? "underflow" :
@@ -289,7 +290,8 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .tv_sos          = {0,0},
                                         .tv_next_tti     = {0,0},
                                         .rx_n_tries      = 0,
-                                        .tx_errors       = 0,
+                                        .tx_nerrors      = 0,
+                                        .rx_nlate        = 0,
                                         .tx_addr         = {0,{0}},
                                         .sf_in           = NULL,
                                       };
@@ -461,7 +463,7 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
      {
        if(errno == ENOTCONN || errno == ECONNREFUSED || errno == EAGAIN)
          {
-           if(! (++_info->tx_errors % 1000))
+           if(! (++_info->tx_nerrors % 1000))
              {
                RF_SOCK_WARN("semdmsg, peer not connected, please re-start UE");
              }
@@ -1065,10 +1067,10 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
         } while(timercmp(&tv_in, &_info->tv_next_tti, >=));
      }
 
-   // set tv_rx_timestamp to time now (this tti)
-   struct timeval tv_rx_timestamp;
+   // set tv_rxtimestamp to time now (this tti)
+   struct timeval tv_rxtimestamp, tv_rxtime, tv_diff;
 
-   gettimeofday(&tv_rx_timestamp, NULL);
+   gettimeofday(&tv_rxtimestamp, NULL);
 
    int nbytes_pending = BYTES_PER_SAMPLE(nsamples);
 
@@ -1087,6 +1089,8 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                                {(void*)_info->sf_in, RF_SOCK_MAX_MSG_LEN }};
 
        const int rc = rf_sock_vecio_recv(h, iov);
+   
+       gettimeofday(&tv_rxtime, NULL);
 
        if(rc < 0)
         {
@@ -1110,8 +1114,21 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
              goto rxout;
            }
 
+         timersub(&tv_rxtime, &hdr.io_time, &tv_diff);
+
+         if(timercmp(&tv_diff, &tv_tti_step, >))
+           {
+             // track late msgs but dont be too noisy
+             // logging just seems to make things worse
+             if(! (++_info->rx_nlate % 100))
+               {
+                 RF_SOCK_WARN("RX late seqn %lu, total %zu late msgs", 
+                              hdr.io_seqnum, _info->rx_nlate);
+               }
+           }
+
          // use tx time tag as the rx time to help align tti boundry
-         tv_rx_timestamp = hdr.io_time;
+         tv_rxtimestamp = hdr.io_time;
 
          // works for downsample, have not able to sync when upsample
          const int nsamples_out = rf_sock_resample(hdr.io_srate,
@@ -1131,7 +1148,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
     }
 
 rxout:
-   rf_sock_tv_to_ts(&tv_rx_timestamp, full_secs, frac_secs);
+   rf_sock_tv_to_ts(&tv_rxtimestamp, full_secs, frac_secs);
 
 #ifdef DEBUG_MODE
    RF_SOCK_DBUG("RX req %u, pending %d/%d", 
