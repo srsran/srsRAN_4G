@@ -164,7 +164,7 @@ static bool rf_sock_log_warn  = true;
 #define RF_SOCK_NOF_TX_WORKERS (8)
 #define RF_SOCK_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_SOCK_NOF_TX_WORKERS)
 
-// the idea hear was to 'scale' timeout/timerdelay/offset and usleep() calls
+// the idea here was to 'scale' timeout/timerdelay/offset and usleep() calls
 // by say a factor of 10 to slow down relative time throughout the entire codebase.
 // Meaning subframes are now 10 msec internally, externally thruput will suffer
 // but for basic sanity testing should not be an immediate issue,
@@ -401,7 +401,8 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
     }
 
    // within rx window, briefly wait for UL msg
-   // if too late, then go ahaed and do a non blocking read
+   // if too late, then go ahead and do a non blocking read
+   // and see what we can grab
    if(timercmp(&tv_delay, &tv_zero, >))
      {
        if(select(_info->rx_handle + 1, &rfds, NULL, NULL, &tv_delay) <= 0 ||
@@ -453,7 +454,7 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
                           0
                         };
 
-   // unix socket blocking should help tx/rx in sync 
+   // unix socket blocking should help keep tx/rx in sync 
    const int rc = sendmsg(_info->tx_handle, &mhdr, 0);
 
    if(rc != (iov[0].iov_len + iov[1].iov_len))
@@ -508,9 +509,11 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
        _info->tx_nof_workers -= 1;
 
+#ifdef DEBUG_MODE
        RF_SOCK_DBUG("fire tx_worker %02d, %d tx_workers pending",
                      worker->id,
                     _info->tx_nof_workers);
+#endif
 
        rf_sock_send_msg(worker, _info->tx_seqn++);
 
@@ -1130,10 +1133,12 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 rxout:
    rf_sock_tv_to_ts(&tv_rx_timestamp, full_secs, frac_secs);
 
+#ifdef DEBUG_MODE
    RF_SOCK_DBUG("RX req %u, pending %d/%d", 
                  nsamples,
                  nsamples_pending, 
                  nbytes_pending);
+#endif
 
    // we always just return what was asked for
    // enb doenst seem to care and ue is not happy with 0
