@@ -130,11 +130,7 @@ bool ue::init(all_args_t *args_)
   
   // Init layers
 
-  if (args->rf.rx_gain < 0) {
-    phy.set_agc_enable(true);
-  }
-
-    // PHY initis in background, start before radio
+  // PHY inits in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
   phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
 
@@ -221,6 +217,11 @@ bool ue::init(all_args_t *args_)
   printf("Waiting PHY to initialize...\n");
   phy.wait_initialize();
   phy.configure_ul_params();
+
+  // Enable AGC once PHY is initialized
+  if (args->rf.rx_gain < 0) {
+    phy.set_agc_enable(true);
+  }
 
   printf("...\n");
   nas.attach_request();

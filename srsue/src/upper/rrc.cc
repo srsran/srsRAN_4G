@@ -1062,6 +1062,7 @@ bool rrc::ho_prepare() {
 
     int target_cell_idx = find_neighbour_cell(serving_cell->earfcn, mob_reconf.mob_ctrl_info.target_pci);
     if (target_cell_idx < 0) {
+      rrc_log->console("Received HO command to unknown PCI=%d\n", mob_reconf.mob_ctrl_info.target_pci);
       rrc_log->error("Could not find target cell earfcn=%d, pci=%d\n", serving_cell->earfcn, mob_reconf.mob_ctrl_info.target_pci);
       return false;
     }

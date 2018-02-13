@@ -125,6 +125,7 @@ private:
     float    get_last_gain();
     float    get_last_cfo();
     void     set_N_id_2(int N_id_2);
+    void     set_agc_enable(bool enable);
     ret_code run(srslte_cell_t *cell);
 
   private:
