@@ -74,7 +74,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log)
 
   m_s1ap_args = s1ap_args;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
-  m_next_m_tmsi = rand();
+  m_next_m_tmsi = 0xF000;
   //Init log
   m_s1ap_log = s1ap_log;
 
@@ -517,7 +517,7 @@ s1ap::allocate_m_tmsi(uint64_t imsi)
 {
   uint32_t m_tmsi = m_next_m_tmsi++;
   m_tmsi_to_imsi.insert(std::pair<uint32_t,uint64_t>(m_tmsi,imsi));
-  m_s1ap_log->info("Allocated M-TMSI %d,\n");
+  m_s1ap_log->info("Allocated M-TMSI 0x%x,\n",m_tmsi);
   //uint32_t m_tmsi = 0x0123;
   return m_tmsi;
 }
