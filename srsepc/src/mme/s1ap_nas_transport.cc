@@ -255,9 +255,9 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   {
     if(ue_emm_ctx != NULL)
     {
-      ue_emm_ctx->security_ctxt.dl_nas_count++;
       m_s1ap_log->console("DL NAS: Sent Downlink NAs Message. DL NAS Count=%d\n",ue_emm_ctx->security_ctxt.dl_nas_count);
       m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d\n",ue_emm_ctx->security_ctxt.dl_nas_count);
+      //ue_emm_ctx->security_ctxt.dl_nas_count++;
     }
   }
   m_pool->deallocate(nas_msg);
@@ -1034,7 +1034,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
 
   uint8_t  sec_hdr_type=3;
   
-  ue_emm_ctx->security_ctxt.dl_nas_count = 0;
+  // ue_emm_ctx->security_ctxt.dl_nas_count = 0;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
