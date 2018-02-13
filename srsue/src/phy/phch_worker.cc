@@ -1436,7 +1436,7 @@ void phch_worker::update_measurements()
     dl_metrics.rsrp   = phy->avg_rsrp_dbm;
     dl_metrics.rsrq   = phy->avg_rsrq_db;
     dl_metrics.rssi   = phy->avg_rssi_dbm;
-    dl_metrics.pathloss = phy->pathloss;
+    dl_metrics.pathloss = phy->get_radio()->get_rx_gain();
     dl_metrics.sinr   = phy->avg_snr_db;
     dl_metrics.turbo_iters = srslte_pdsch_last_noi(&ue_dl.pdsch);
     phy->set_dl_metrics(dl_metrics);

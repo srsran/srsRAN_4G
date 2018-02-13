@@ -174,6 +174,16 @@ bool phch_recv::wait_radio_reset() {
 void phch_recv::set_agc_enable(bool enable)
 {
   do_agc = enable;
+  if (do_agc) {
+    if (running && radio_h) {
+      srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, radio_h->get_rx_gain());
+      search_p.set_agc_enable(true);
+    } else {
+      fprintf(stderr, "Error setting AGC: PHY not initiatec\n");
+    }
+  } else {
+    fprintf(stderr, "Error stopping AGC: not implemented\n");
+  }
 }
 
 void phch_recv::set_time_adv_sec(float _time_adv_sec)
@@ -832,6 +842,14 @@ float phch_recv::search::get_last_cfo()
   return srslte_ue_sync_get_cfo(&ue_mib_sync.ue_sync);
 }
 
+void phch_recv::search::set_agc_enable(bool enable) {
+  if (enable) {
+    srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync, callback_set_rx_gain, p->radio_h->get_rx_gain());
+  } else {
+    fprintf(stderr, "Error stop AGC not implemented\n");
+  }
+}
+
 phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
 {
 
@@ -890,11 +908,6 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
 
   // Set options defined in expert section
   p->set_ue_sync_opts(&ue_mib_sync.ue_sync, cfo);
-
-  // Start AGC after initial cell search
-  if (p->do_agc) {
-    srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync, callback_set_rx_gain, p->radio_h->get_rx_gain());
-  }
 
   srslte_ue_sync_reset(&ue_mib_sync.ue_sync);
 
@@ -1011,7 +1024,6 @@ phch_recv::sfn_sync::ret_code phch_recv::sfn_sync::run_subframe(srslte_cell_t *c
           Info("SYNC:  DONE, TTI=%d, sfn_offset=%d\n", *tti_cnt, sfn_offset);
         }
 
-        srslte_ue_sync_set_agc_period(ue_sync, 20);
         srslte_ue_sync_decode_sss_on_track(ue_sync, true);
         reset();
         return SFN_FOUND;
