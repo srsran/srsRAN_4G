@@ -117,37 +117,101 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
 bool
 s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
-
-  bool     ue_valid = true;
+  uint8_t pd, msg_type, sec_hdr_type;
   uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  ue_emm_ctx_t *ue_emm_ctx = NULL;
+  bool mac_valid = false;
 
+  //Get UE ECM context
   ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if(ue_ecm_ctx == NULL)
   {
     m_s1ap_log->warning("Received uplink NAS, but could not find UE ECM context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
     return false;
   }
-  m_s1ap_log->debug("Received uplink NAS and found UE. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
 
-  //Get NAS message type
-  uint8_t pd, msg_type;
+  m_s1ap_log->debug("Received uplink NAS and found UE ECM context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+
+  //Parse NAS message header
   srslte::byte_buffer_t *nas_msg = m_pool->allocate();
-
   memcpy(nas_msg->msg, &ul_xport->NAS_PDU.buffer, ul_xport->NAS_PDU.n_octets);
   nas_msg->N_bytes = ul_xport->NAS_PDU.n_octets;
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
 
-  switch (msg_type) {
+  // Parse the message security header
+  liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg, &pd, &sec_hdr_type);
+
+  //Find UE EMM context if message is security protected.
+  if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
+  {
+    //Get EMM context to do integrity check/de-chiphering
+    ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+    if(ue_emm_ctx == NULL)
+    {
+      m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+      m_pool->deallocate(nas_msg);
+      return false;
+    }
+  }
+
+  if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
+  {
+    //Plain NAS, only identity response is valid.
+    switch(msg_type)
+    {
+    case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
+      m_s1ap_log->info("Uplink NAS: Received Identity Response\n");
+      m_s1ap_log->console("Uplink NAS: Received Identity Response\n");
+      handle_identity_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
+      break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
       m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
       handle_nas_authentication_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
-    case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
+    default:
+      m_s1ap_log->warning("Unhandled Plain NAS message 0x%x\n", msg_type );
+      m_s1ap_log->console("Unhandled Plain NAS message 0x%x\n", msg_type );
+      m_pool->deallocate(nas_msg);
+      return false;
+    }
+  }
+  else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT)
+  {
+    switch (msg_type) {
+      case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
       m_s1ap_log->info("Uplink NAS: Received Security Mode Complete\n");
       m_s1ap_log->console("Uplink NAS: Received Security Mode Complete\n");
-      handle_nas_security_mode_complete(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
+      ue_emm_ctx->security_ctxt.ul_nas_count = 0;
+      ue_emm_ctx->security_ctxt.dl_nas_count = 0;
+      mac_valid = integrity_check(ue_emm_ctx,nas_msg);
+      if(mac_valid){
+        handle_nas_security_mode_complete(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
+      } else {
+        m_s1ap_log->warning("Invalid MAC in Security Mode Command Complete message.\n" );
+      }
+      break;
+    default:
+      m_s1ap_log->warning("Unhandled NAS message with new EPS security context 0x%x\n", msg_type );
+      m_s1ap_log->warning("Unhandled NAS message with new EPS security context 0x%x\n", msg_type );
+    }
+  }
+  else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED)
+  {
+    //Integrity protected NAS message, possibly chiphered.
+    ue_emm_ctx->security_ctxt.ul_nas_count++;
+    mac_valid = integrity_check(ue_emm_ctx,nas_msg);
+    if(!mac_valid && msg_type != LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE){
+      m_s1ap_log->warning("Invalid MAC in NAS message type 0x%x.\n", msg_type);
+      m_pool->deallocate(nas_msg);
+      return false;
+    }
+    switch (msg_type) {
+    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
+      m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
+      m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
+      handle_nas_authentication_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_s1ap_log->info("Uplink NAS: Received Attach Complete\n");
@@ -159,11 +223,6 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       m_s1ap_log->console("Uplink NAS: Received ESM Information Response\n");
       handle_esm_information_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
-    case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
-      m_s1ap_log->info("Uplink NAS: Received Identity Response\n");
-      m_s1ap_log->console("Uplink NAS: Received Identity Response\n");
-      handle_identity_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
-      break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
       m_s1ap_log->info("UL NAS: Tracking Area Update Request\n");
       handle_tracking_area_update_request(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
@@ -173,7 +232,15 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       m_s1ap_log->console("Unhandled NAS message 0x%x\n", msg_type );
       m_pool->deallocate(nas_msg);
       return false;
+    }
   }
+  else
+  {
+    m_s1ap_log->error("Unhandled security header type in Uplink NAS Transport: %d\n", sec_hdr_type);
+    m_pool->deallocate(nas_msg);
+    return false;
+  }
+
 
   if(*reply_flag == true)
   {
@@ -221,11 +288,11 @@ s1ap_nas_transport::handle_nas_attach_request(uint32_t enb_ue_s1ap_id,
   {
     m_s1ap_log->console("Attach Request -- IMSI-style attach request\n");
     m_s1ap_log->info("Attach Request -- IMSI-style attach request\n");
-    if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
+    /*if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
     {
       m_s1ap_log->error("Attach request -- IMSI-stlye attach request is not plain NAS\n");
       return false;
-    }
+    }*/
     handle_nas_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
   }
   else if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI)
@@ -548,8 +615,6 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
     return false;
   }
 
-  //TODO Check integrity
-
   //TODO Handle imeisv
   if(sm_comp.imeisv_present)
   {
@@ -858,7 +923,7 @@ s1ap_nas_transport::pack_authentication_reject(srslte::byte_buffer_t *reply_msg,
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->error("Error packing Athentication Reject\n");
-    m_s1ap_log->console("Error packing Athentication Reject\n");
+   m_s1ap_log->console("Error packing Athentication Reject\n");
     return false;
   }
 
