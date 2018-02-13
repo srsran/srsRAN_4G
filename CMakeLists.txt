@@ -77,6 +77,7 @@ option(RPATH           "Enable RPATH"                             OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
+option(ENABLE_SOCKRF   "Enable SocketRF"                           ON)
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
 
@@ -155,12 +156,12 @@ if(SOAPYSDR_FOUND)
   link_directories(${SOAPYSDR_LIBRARY_DIRS})
 endif(SOAPYSDR_FOUND)
 
-if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ENABLE_SOCKRF)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
-else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ENABLE_SOCKRF)
   set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
   add_definitions(-DDISABLE_RF)
-endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ENABLE_SOCKRF)
 
 # Boost
 if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
