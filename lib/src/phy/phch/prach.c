@@ -282,9 +282,11 @@ int srslte_prach_gen_seqs(srslte_prach_t *p) {
           N_shift = (p->N_zc - 2 * d_u) / p->N_cs;
           d_start = p->N_zc - 2 * d_u + N_shift * p->N_cs;
           N_group = d_u / d_start;
-          N_neg_shift = (d_u - N_group * d_start) / p->N_cs;
-          if (N_neg_shift < 0)
+          if (d_u > N_group * d_start) {
+            N_neg_shift = (d_u - N_group * d_start) / p->N_cs;
+          } else {
             N_neg_shift = 0;
+          }
           if (N_neg_shift > N_shift)
             N_neg_shift = N_shift;
         } else {
