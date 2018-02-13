@@ -347,8 +347,7 @@ void ra_proc::tb_decoded_ok() {
       
       if (preambleIndex > 0) {
         // Preamble selected by Network
-        phy_h->set_crnti(rntis->crnti);
-        state = COMPLETION;
+        state = COMPLETION; 
       } else {
         // Preamble selected by UE MAC
         mux_unit->msg3_prepare();
