@@ -237,8 +237,8 @@ private:
           // New transmission
           reset();
 
-          // Uplink grant in a RAR
-          if (grant->is_from_rar) {
+          // Uplink grant in a RAR and there is a PDU in the Msg3 buffer
+          if (grant->is_from_rar && !harq_entity->mux_unit->msg3_is_transmitted()) {
             Debug("Getting Msg3 buffer payload, grant size=%d bytes\n", grant->n_bytes[0]);
             pdu_ptr  = harq_entity->mux_unit->msg3_get(payload_buffer, grant->n_bytes[0]);
             if (pdu_ptr) {
