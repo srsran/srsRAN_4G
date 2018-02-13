@@ -147,14 +147,16 @@ typedef struct {
 
 int main(int argc, char **argv) {
   srslte_pdcch_t pdcch_tx, pdcch_rx;
-  testcase_dci_t testcases[10] = {0};
+  testcase_dci_t testcases[10] = {};
   srslte_ra_dl_dci_t ra_dl;
   srslte_regs_t regs;
   int i, j, k;
   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   int nof_re;
   cf_t *tx_slot_symbols[SRSLTE_MAX_PORTS], *rx_slot_symbols[SRSLTE_MAX_PORTS];
-  int nof_dcis; 
+  int nof_dcis;
+
+  bzero(&testcases, sizeof(testcase_dci_t)*10);
 
   int ret = -1;
 
@@ -196,11 +198,6 @@ int main(int argc, char **argv) {
 
   if (srslte_regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
-    exit(-1);
-  }
-
-  if (srslte_regs_set_cfi(&regs, cfi)) {
-    fprintf(stderr, "Error setting CFI\n");
     exit(-1);
   }
 
@@ -297,7 +294,7 @@ int main(int argc, char **argv) {
   /* Decode DCIs */
   for (i=0;i<nof_dcis;i++) {
     uint16_t crc_rem;
-    if (srslte_pdcch_decode_msg(&pdcch_rx, &testcases[i].dci_rx, &testcases[i].dci_location, testcases[i].dci_format, &crc_rem)) {
+    if (srslte_pdcch_decode_msg(&pdcch_rx, &testcases[i].dci_rx, &testcases[i].dci_location, testcases[i].dci_format, cfi, &crc_rem)) {
       fprintf(stderr, "Error decoding DCI message\n");
       goto quit;
     }
