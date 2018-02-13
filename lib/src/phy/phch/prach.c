@@ -316,9 +316,6 @@ int srslte_prach_gen_seqs(srslte_prach_t *p) {
     } else {
       C_v = v * p->N_cs;
     }
-    if (i == 46) {
-      printf("i=%d, C_v=%d\n", i, C_v);
-    }
     for (int j = 0; j < p->N_zc; j++) {
       p->seqs[i][j] = root[(j + C_v) % p->N_zc];
     }
