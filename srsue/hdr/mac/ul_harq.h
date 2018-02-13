@@ -250,6 +250,9 @@ private:
 
             // Normal UL grant
           } else {
+            if (grant->is_from_rar) {
+              grant->rnti = harq_entity->rntis->crnti;
+            }
             // Request a MAC PDU from the Multiplexing & Assemble Unit
             pdu_ptr = harq_entity->mux_unit->pdu_get(payload_buffer, grant->n_bytes[0], tti_tx, pid);
             if (pdu_ptr) {
