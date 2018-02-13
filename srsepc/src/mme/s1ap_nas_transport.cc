@@ -176,6 +176,15 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       m_pool->deallocate(nas_msg);
       return false;
     }
+    //Increment UL NAS count.
+    ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+    if(ue_emm_ctx == NULL)
+    {
+      m_s1ap_log->warning("Could not find UE EMM context in ", msg_type );
+      m_pool->deallocate(nas_msg);
+      return false;
+    }
+    ue_emm_ctx->security_ctxt.ul_nas_count++;
   }
   else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT)
   {
@@ -244,8 +253,12 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
 
   if(*reply_flag == true)
   {
-    m_s1ap_log->info("DL NAS: Sent Downlink NAS message\n");
-    m_s1ap_log->console("DL NAS: Sent Downlink NAs Message\n");
+    if(ue_emm_ctx != NULL)
+    {
+      ue_emm_ctx->security_ctxt.dl_nas_count++;
+      m_s1ap_log->console("DL NAS: Sent Downlink NAs Message. DL NAS Count=%d\n",ue_emm_ctx->security_ctxt.dl_nas_count);
+      m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d\n",ue_emm_ctx->security_ctxt.dl_nas_count);
+    }
   }
   m_pool->deallocate(nas_msg);
 
@@ -734,9 +747,9 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   //Get UE EMM context
   ue_emm_ctx_t ue_emm_ctx;
   if(m_s1ap->get_tmp_ue_emm_ctx(ue_ecm_ctx->mme_ue_s1ap_id, &ue_emm_ctx) == false)
-    {
-      m_s1ap_log->error("Could not find UE's temporary EMM context. MME UE S1AP Id: %d\n",ue_ecm_ctx->mme_ue_s1ap_id);
-      return false;
+  {
+    m_s1ap_log->error("Could not find UE's temporary EMM context. MME UE S1AP Id: %d\n",ue_ecm_ctx->mme_ue_s1ap_id);
+    return false;
   }
   ue_emm_ctx.imsi=imsi;
   
