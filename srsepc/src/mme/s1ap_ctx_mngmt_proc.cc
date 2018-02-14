@@ -167,10 +167,9 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     }
     // in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
   }
-  uint8_t key_enb[32];
-  liblte_security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, key_enb);
-  liblte_unpack(key_enb, 32, in_ctxt_req->SecurityKey.buffer);
-  m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
+  //Get K eNB
+  liblte_unpack(ue_emm_ctx->security_ctxt.k_enb, 32, in_ctxt_req->SecurityKey.buffer);
+  m_s1ap_log->info_hex(ue_emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB\n");
   //Set Attach accepted and activat default bearer NAS messages
   if(cs_resp->paa_present != true)
   {
