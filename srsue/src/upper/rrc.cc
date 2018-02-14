@@ -2602,6 +2602,7 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
       }
     }
     if (gen_report) {
+      log_h->info("Generate report MeasId=%d, from event\n", m->first);
       generate_report(m->first);
     }
   }
@@ -2631,6 +2632,7 @@ void rrc::rrc_meas::ho_finish() {
 bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
     if (iter->second.periodic_timer == timer_id) {
+      log_h->info("Generate report MeasId=%d, from timerId=%d\n", iter->first, timer_id);
       generate_report(iter->first);
       return true;
     }
@@ -2814,6 +2816,8 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
     remove_meas_id(cfg->meas_id_to_remove_list[i]);
   }
 
+  log_h->info("nof active measId=%d\n", active.size());
+
   // Measurement identity addition/modification 5.5.2.3
   if (cfg->meas_id_to_add_mod_list_present) {
     for (uint32_t i=0;i<cfg->meas_id_to_add_mod_list.N_meas_id;i++) {
@@ -2828,8 +2832,9 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
       }
       active[measId->meas_id].object_id = measId->meas_obj_id;
       active[measId->meas_id].report_id = measId->rep_cnfg_id;
-      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d\n",
-                  is_new?"Added":"Updated", measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id);
+      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, nof_values=%d\n",
+                  is_new?"Added":"Updated", measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id,
+                  active[measId->meas_id].cell_values.size());
     }
   }
 
