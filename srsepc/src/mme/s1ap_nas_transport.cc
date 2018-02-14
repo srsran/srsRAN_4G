@@ -199,8 +199,11 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
 
   if(*reply_flag == true)
   {
-    m_s1ap_log->info("DL NAS: Sent Downlink NAS message\n");
-    m_s1ap_log->console("DL NAS: Sent Downlink NAs Message\n");
+    if(ue_ctx != NULL)
+    {
+      m_s1ap_log->console("DL NAS: Sent Downlink NAs Message. DL NAS Count=%d, UL NAS Count=%d\n",ue_ctx->security_ctxt.dl_nas_count, ue_ctx->security_ctxt.ul_nas_count);
+      m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d, UL NAS Count=%d\n",ue_ctx->security_ctxt.dl_nas_count, ue_ctx->security_ctxt.ul_nas_count);
+    }
   }
   m_pool->deallocate(nas_msg);
 
