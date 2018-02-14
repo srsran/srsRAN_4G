@@ -2539,6 +2539,8 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
     }
   }
 
+
+
   for (std::map<uint32_t, meas_t>::iterator m = active.begin(); m != active.end(); ++m) {
     report_cfg_t *cfg = &reports_cfg[m->second.report_id];
     float hyst = 0.5*cfg->event.hysteresis;
@@ -2563,41 +2565,48 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
           enter_condition = Mp + hyst < range_to_value(cfg->trigger_quantity, cfg->event.event_a1.eutra.range);
           exit_condition  = Mp - hyst > range_to_value(cfg->trigger_quantity, cfg->event.event_a1.eutra.range);
         }
-        gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
-                                        &m->second, &m->second.cell_values[serving_cell_idx]);
 
+        // check only if
+        gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
+                                        &m->second, &pcell_measurement);
+
+        if (gen_report) {
+          log_h->info("Triggered by A1/A2 event\n");
+        }
       // Rest are evaluated for every cell in frequency
       } else {
         meas_obj_t *obj = &objects[m->second.object_id];
         for (std::map<uint32_t, meas_cell_t>::iterator cell = obj->cells.begin(); cell != obj->cells.end(); ++cell) {
-          float Ofn = obj->q_offset;
-          float Ocn = cell->second.q_offset;
-          float Mn = m->second.cell_values[cell->second.pci].ms[cfg->trigger_quantity];
-          float Off=0, th=0, th1=0, th2=0;
-          bool enter_condition = false;
-          bool exit_condition  = false;
-          switch (event_id) {
-            case LIBLTE_RRC_EVENT_ID_EUTRA_A3:
-              Off = 0.5*cfg->event.event_a3.offset;
-              enter_condition = Mn + Ofn + Ocn - hyst > Mp + Ofp + Ocp + Off;
-              exit_condition  = Mn + Ofn + Ocn + hyst < Mp + Ofp + Ocp + Off;
-              break;
-            case LIBLTE_RRC_EVENT_ID_EUTRA_A4:
-              th = range_to_value(cfg->trigger_quantity, cfg->event.event_a4.eutra.range);
-              enter_condition = Mn + Ofn + Ocn - hyst > th;
-              exit_condition  = Mn + Ofn + Ocn + hyst < th;
-              break;
-            case LIBLTE_RRC_EVENT_ID_EUTRA_A5:
-              th1 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra1.range);
-              th2 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra2.range);
-              enter_condition = (Mp + hyst < th1) && (Mn + Ofn + Ocn - hyst > th2);
-              exit_condition  = (Mp - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
-              break;
-            default:
-              log_h->error("Error event %s not implemented\n", event_str);
+          if (m->second.cell_values.count(cell->second.pci)) {
+            float Ofn = obj->q_offset;
+            float Ocn = cell->second.q_offset;
+            float Mn = m->second.cell_values[cell->second.pci].ms[cfg->trigger_quantity];
+            float Off=0, th=0, th1=0, th2=0;
+            bool enter_condition = false;
+            bool exit_condition  = false;
+            switch (event_id) {
+              case LIBLTE_RRC_EVENT_ID_EUTRA_A3:
+                Off = 0.5*cfg->event.event_a3.offset;
+                enter_condition = Mn + Ofn + Ocn - hyst > Mp + Ofp + Ocp + Off;
+                exit_condition  = Mn + Ofn + Ocn + hyst < Mp + Ofp + Ocp + Off;
+                break;
+              case LIBLTE_RRC_EVENT_ID_EUTRA_A4:
+                th = range_to_value(cfg->trigger_quantity, cfg->event.event_a4.eutra.range);
+                enter_condition = Mn + Ofn + Ocn - hyst > th;
+                exit_condition  = Mn + Ofn + Ocn + hyst < th;
+                break;
+              case LIBLTE_RRC_EVENT_ID_EUTRA_A5:
+                th1 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra1.range);
+                th2 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra2.range);
+                enter_condition = (Mp + hyst < th1) && (Mn + Ofn + Ocn - hyst > th2);
+                exit_condition  = (Mp - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
+                break;
+              default:
+                log_h->error("Error event %s not implemented\n", event_str);
+            }
+            gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
+                                        &m->second, &m->second.cell_values[cell->second.pci]);
           }
-          gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
-                                      &m->second, &m->second.cell_values[cell->second.pci]);
         }
       }
     }
