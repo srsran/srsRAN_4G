@@ -115,6 +115,7 @@ typedef struct{
   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
   uint8_t k_nas_enc[32];
   uint8_t k_nas_int[32];
+  uint8_t k_enb[32];
   LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
   bool ms_network_cap_present;
   LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;

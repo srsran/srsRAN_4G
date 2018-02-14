@@ -27,6 +27,7 @@
 #include "mme/s1ap.h"
 #include "mme/s1ap_nas_transport.h"
 #include "srslte/common/security.h"
+#include "srslte/common/liblte_security.h"
 
 namespace srsepc{
 
@@ -1042,17 +1043,25 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
     return false;
   }
 
-  //Generate MAC for integrity protection
-  //FIXME Write wrapper to support EIA1, EIA2, etc.
+  //Generate EPS security context
   uint8_t mac[4];
-
   srslte::security_generate_k_nas( ue_emm_ctx->security_ctxt.k_asme,
                            srslte::CIPHERING_ALGORITHM_ID_EEA0,
                            srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
                            ue_emm_ctx->security_ctxt.k_nas_enc,
                            ue_emm_ctx->security_ctxt.k_nas_int
                          );
-
+  srslte::security_generate_k_nas( ue_emm_ctx->security_ctxt.k_asme,
+                                   srslte::CIPHERING_ALGORITHM_ID_EEA0,
+                                   srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
+                                   ue_emm_ctx->security_ctxt.k_nas_enc,
+                                   ue_emm_ctx->security_ctxt.k_nas_int
+                                   );
+  uint8_t key_enb[32];
+  liblte_security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, ue_emm_ctx->security_ctxt.k_enb);
+  m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
+  //Generate MAC for integrity protection
+  //FIXME Write wrapper to support EIA1, EIA2, etc.
   srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
                      ue_emm_ctx->security_ctxt.dl_nas_count,
                      0,
