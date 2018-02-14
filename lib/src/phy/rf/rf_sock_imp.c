@@ -81,7 +81,7 @@ static bool rf_sock_log_warn  = true;
                                    struct tm _tm;                                                          \
                                    gettimeofday(&_tv_now, NULL);                                           \
                                    localtime_r(&_tv_now.tv_sec, &_tm);                                     \
-                                   fprintf(stdout, RF_SOCK_LOG_FMT  _fmt "\n",                             \
+                                   fprintf(stdout, RF_SOCK_LOG_FMT _fmt "\n",                              \
                                            _tm.tm_hour,                                                    \
                                            _tm.tm_min,                                                     \
                                            _tm.tm_sec,                                                     \
@@ -100,7 +100,7 @@ static bool rf_sock_log_warn  = true;
                                    struct tm _tm;                                                          \
                                    gettimeofday(&_tv_now, NULL);                                           \
                                    localtime_r(&_tv_now.tv_sec, &_tm);                                     \
-                                   fprintf(stdout, RF_SOCK_LOG_FMT  _fmt "\n",                             \
+                                   fprintf(stdout, RF_SOCK_LOG_FMT _fmt "\n",                              \
                                            _tm.tm_hour,                                                    \
                                            _tm.tm_min,                                                     \
                                            _tm.tm_sec,                                                     \
@@ -118,7 +118,7 @@ static bool rf_sock_log_warn  = true;
                                    struct tm _tm;                                                          \
                                    gettimeofday(&_tv_now, NULL);                                           \
                                    localtime_r(&_tv_now.tv_sec, &_tm);                                     \
-                                   fprintf(stdout, RF_SOCK_LOG_FMT  _fmt "\n",                             \
+                                   fprintf(stdout, RF_SOCK_LOG_FMT _fmt "\n",                              \
                                            _tm.tm_hour,                                                    \
                                            _tm.tm_min,                                                     \
                                            _tm.tm_sec,                                                     \
@@ -230,6 +230,7 @@ typedef struct {
    struct timeval       tv_sos;   // start of stream
    struct timeval       tv_next_tti;
    int                  rx_n_tries;
+   size_t               tx_noverruns;
    size_t               tx_nerrors;
    size_t               rx_nlate;
    struct sockaddr_un   tx_addr;
@@ -290,6 +291,7 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .tv_sos          = {0,0},
                                         .tv_next_tti     = {0,0},
                                         .rx_n_tries      = 0,
+                                        .tx_noverruns    = 0,
                                         .tx_nerrors      = 0,
                                         .rx_nlate        = 0,
                                         .tx_addr         = {0,{0}},
@@ -447,16 +449,40 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
                            {(void*)tx_info->cf_data, nbytes_out }
                          };
 
-   struct msghdr mhdr = { &_info->tx_addr,      
-                          sizeof(_info->tx_addr),
-                          iov,                  
-                          2,
-                          NULL,
-                          0,
-                          0
-                        };
+  const struct msghdr mhdr = { &_info->tx_addr,      
+                               sizeof(_info->tx_addr),
+                               iov,                  
+                               2,
+                               NULL,
+                               0,
+                               0
+                             };
+   
 
-   // unix socket blocking should help keep tx/rx in sync 
+   while(1)
+    {
+      int nbytes_inq;
+
+      if(ioctl(_info->tx_handle, TIOCOUTQ, &nbytes_inq) < 0)
+        {
+          RF_SOCK_WARN("ioctl error, %s,", strerror(errno));
+
+          break;
+        }
+
+       // dont over run the tx socket,
+       if(nbytes_inq > 0)
+        {
+          ++_info->tx_noverruns;
+
+          usleep(100);
+        }
+       else
+        {
+          break;
+        }
+    } 
+
    const int rc = sendmsg(_info->tx_handle, &mhdr, 0);
 
    if(rc != (iov[0].iov_len + iov[1].iov_len))
@@ -465,15 +491,15 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
          {
            if(! (++_info->tx_nerrors % 1000))
              {
-               RF_SOCK_WARN("semdmsg, peer not connected, please re-start UE");
+               RF_SOCK_WARN("semdmsg, %s, please re-start UE", strerror(errno));
              }
          }
        else if(errno == EPERM || errno == EACCES)
         {
-          RF_SOCK_WARN("sendmsg error %s, check file permission and sudo priviledge, shutting down now", 
-                       strerror(errno));
+           RF_SOCK_WARN("sendmsg error %s, check file permission and sudo priviledge, shutting down now", 
+                        strerror(errno));
         
-          exit(0);
+           exit(0);
         }
       else
         {
@@ -1118,13 +1144,8 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          if(timercmp(&tv_diff, &tv_tti_step, >))
            {
-             // track late msgs but dont be too noisy
-             // logging just seems to make things worse
-             if(! (++_info->rx_nlate % 100))
-               {
-                 RF_SOCK_WARN("RX late seqn %lu, total %zu late msgs", 
-                              hdr.io_seqnum, _info->rx_nlate);
-               }
+             // track late msgs
+             ++_info->rx_nlate;
            }
 
          // use tx time tag as the rx time to help align tti boundry
