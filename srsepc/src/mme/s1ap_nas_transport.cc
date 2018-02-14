@@ -80,7 +80,7 @@ bool
 s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
 
-  LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
+  //LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
 
   m_s1ap_log->console("Received Initial UE Message.\n");
   m_s1ap_log->info("Received Initial UE Message.\n");
@@ -107,7 +107,26 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   {
     m_s1ap_log->info("Received Service Request \n");
     m_s1ap_log->console("Received Service Request \n");
-    liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &service_req);
+    if(!init_ue->S_TMSI_present)
+    {
+      m_s1ap_log->error("Service request -- S-TMSI  not present\n ");
+      m_s1ap_log->console("Service request -- S-TMSI not present\n" );
+    }
+    /*
+    typedef struct{
+      bool                                                         ext;
+      LIBLTE_S1AP_MME_CODE_STRUCT                                  mMEC;
+      LIBLTE_S1AP_M_TMSI_STRUCT                                    m_TMSI;
+      LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
+      bool                                                         iE_Extensions_present;
+    }LIBLTE_S1AP_S_TMSI_STRUCT;
+    typedef struct{
+      uint8_t  buffer[4];
+      }LIBLTE_S1AP_M_TMSI_STRUCT;*/
+    uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
+    m_s1ap_log->info("Service request -- S-TMSI 0x%x\n ", *m_tmsi);
+    m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", *m_tmsi );
+    handle_nas_service_request(*m_tmsi, nas_msg, reply_buffer,reply_flag, enb_sri);
     return false;
   }
   m_pool->deallocate(nas_msg);
@@ -545,6 +564,52 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 }
 
 bool
+s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
+                                                srslte::byte_buffer_t *nas_msg,
+                                                srslte::byte_buffer_t *reply_buffer,
+                                                bool* reply_flag,
+                                                struct sctp_sndrcvinfo *enb_sri)
+{
+
+  bool mac_valid = false;
+  LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &service_req);
+  if(err !=LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Could not unpack service request\n");
+    return false;
+  }
+
+  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
+  if(it == m_s1ap->m_tmsi_to_imsi.end())
+  {
+    m_s1ap_log->console("Could not find IMSI from M-TMSI\n");
+    m_s1ap_log->error("Could not find IMSI from M-TMSI\n");
+    //FIXME send service reject
+    return false;
+  }
+
+  ue_emm_ctx_t *ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(it->second);
+  if(ue_emm_ctx == NULL)
+  {
+    m_s1ap_log->console("Could not find UE security context\n");
+    m_s1ap_log->error("Could not find UE security context\n");
+    //FIXME send service reject
+    return false;
+  }
+  mac_valid = short_integrity_check(ue_emm_ctx,nas_msg);
+  if(mac_valid)
+    m_s1ap_log->console("Banzai!!!\n");
+  /*
+  typedef struct{
+    LIBLTE_MME_KSI_AND_SEQUENCE_NUMBER_STRUCT ksi_and_seq_num;
+    uint16                                    short_mac;
+  }LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT;
+  */
+  return true;
+}
+bool
 s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
 {
 
@@ -816,6 +881,36 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   //*reply_flag = true;
 
   return true;
+}
+
+bool
+s1ap_nas_transport::short_integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu)
+{
+  uint8_t exp_mac[2];
+  uint8_t *mac = &pdu->msg[2];
+  int i;
+
+  srslte::security_128_eia1(&emm_ctx->security_ctxt.k_nas_int[16],
+                     emm_ctx->security_ctxt.ul_nas_count,
+                     0,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[0],
+                     2,
+                     &exp_mac[0]);
+
+  // Check if expected mac equals the sent mac
+  for(i=0; i<2; i++){
+    if(exp_mac[i] != mac[i]){
+      m_s1ap_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x], "
+                       "Received: count=%d, [%02x %02x]\n",
+                       emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1],
+                          pdu->msg[1] & 0x1F, mac[0], mac[1]);
+      return false;
+    }
+  }
+  m_s1ap_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
+                emm_ctx->security_ctxt.ul_nas_count, pdu->msg[1] & 0x1F);
+    return true;
 }
 
 
