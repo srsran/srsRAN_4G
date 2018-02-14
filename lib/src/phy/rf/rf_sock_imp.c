@@ -55,7 +55,9 @@
 // noted n_prb 6 and 15 are not reliable when DEBUG_MODE is enabled 
 
 // n_prb or 6 thru 50 have worked with the increasing cpu utilization
-// your mileage will vary.
+// your mileage will vary. Running w/o linux window manager etc
+// is preferred. Running at 1 msec i/o interval really puts a strain
+// on the linux scheduler and eventually it falls apart
 // 
 // running as sudo/root will allow real time priorities to take effect
 // and allow unix socket endpoint creation in /tmp
@@ -138,7 +140,6 @@ static bool rf_sock_log_warn  = true;
 
 // unix socket endpoints should have visibility for LXC container
 // deployment of ue/enb.
-// Not sure if VM's are viable here due to timing constraints.
 #define RF_SOCK_SERVER_PATH "/tmp/srslte-ipc-server-sock"
 #define RF_SOCK_CLIENT_PATH "/tmp/srslte-ipc-client-sock"
 
@@ -154,33 +155,45 @@ static bool rf_sock_log_warn  = true;
 // max msg len in bytes
 #define RF_SOCK_MAX_MSG_LEN (RF_SOCK_MAX_SF_LEN * sizeof(cf_t))
 
-// node type
-#define RF_SOCK_NTYPE_LOOP  (0)  // XXX TODO need more mileage w/test apps in loopback mode
-#define RF_SOCK_NTYPE_UE    (1)  // currently only 1 ue and 1 enb per test deplyoment
-                                 // no signal mixing implemented as of yet but open to ideas.
+// XXX TODO need more mileage w/test apps in loopback mode
+// currently only 1 ue and 1 enb per test deplyoment
+// no signal mixing for multiple ue as of yet but open to ideas.
+#define RF_SOCK_NTYPE_LOOP  (0)  
+#define RF_SOCK_NTYPE_UE    (1)  
 #define RF_SOCK_NTYPE_ENB   (2)
 
 // tx_offset (delay) workers tti+4 and a few more
-#define RF_SOCK_NOF_TX_WORKERS (8)
+#define RF_SOCK_NOF_TX_WORKERS (10)
 #define RF_SOCK_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_SOCK_NOF_TX_WORKERS)
 
-// the idea here was to 'scale' timeout/timerdelay/offset and usleep() calls
-// by say a factor of 10 to slow down relative time throughout the entire codebase.
+// The idea here was to 'scale' timeout/timerdelay/offset and usleep() calls
+// by say a factor of 10 to slow down relative time throughout the entire codebase
+// to get around the linux scheduler latency.
 // Meaning subframes are now 10 msec internally, externally thruput will suffer
-// but for basic sanity testing should not be an immediate issue,
-// found to be useful on limited resource (cpu) hardware or tracking logs/gdb.
+// but for network related testing this could be acceptable.
+// This found was to be useful on limited resource (cpu) hardware or tracking logs/gdb.
+// Possibly all sleep/delay calls could be wrapped in a "time service" to allow
+// for homogeneous timing and tti source between all components.
 #define FAUX_TIME_SCALE 1
 
-#define RF_SOCK_IS_LATE(tv, s, u) ((tv).tv_sec > (s) || (tv).tv_usec > (u))
-
- // rx op before next tti each recv method should wait a fair amount of time
- // to recv any message in the current/correct tti.
- // smaller waits longer  TTI0  RRRRRRRRRRRRRRRAAAAA  TTI1
-static const struct timeval tv_rx_abort = {0, 1000 * FAUX_TIME_SCALE / 4};
+// rx op before next tti each recv method should wait a fair amount of time
+// to recv any message in the current/correct tti.
+static const struct timeval tv_rx_abort = {0, 1000 * FAUX_TIME_SCALE / 4}; // wait 3/4 sf
 static const struct timeval tv_zero     = {0, 0};
 static const struct timeval tv_tti_step = {0, FAUX_TIME_SCALE * 1000};
 
-// tx msg info for work threads
+
+// tx msg meta data
+typedef struct {
+  uint64_t       io_seqnum;
+  uint32_t       io_nbytes;
+  float          io_srate;
+  float          io_gain;
+  struct timeval io_time;
+} rf_sock_iohdr_t;
+
+
+// tx msg info for worker threads
 typedef struct {
   void *   h;
   cf_t     cf_data[RF_SOCK_MAX_SF_LEN];
@@ -188,6 +201,9 @@ typedef struct {
   struct   timeval tx_time;
   bool     is_sob;
   bool     is_eob;
+  struct iovec    iov[2];
+  rf_sock_iohdr_t iohdr;
+  struct msghdr   mhdr;
 } rf_sock_tx_info_t;
 
 
@@ -233,19 +249,10 @@ typedef struct {
    size_t               tx_noverruns;
    size_t               tx_nerrors;
    size_t               rx_nlate;
+   size_t               tx_nlate;
    struct sockaddr_un   tx_addr;
    cf_t *               sf_in;
 } rf_sock_info_t;
-
-
-// tx msg meta data
-typedef struct {
-  uint64_t       io_seqnum;
-  uint32_t       io_nbytes;
-  float          io_srate;
-  float          io_gain;
-  struct timeval io_time;
-} rf_sock_iohdr_t;
 
 
 void rf_sock_suppress_stdout(void *h)
@@ -294,6 +301,7 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .tx_noverruns    = 0,
                                         .tx_nerrors      = 0,
                                         .rx_nlate        = 0,
+                                        .tx_nlate        = 0,
                                         .tx_addr         = {0,{0}},
                                         .sf_in           = NULL,
                                       };
@@ -404,9 +412,8 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
        tv_delay = tv_tti_step;
     }
 
-   // within rx window, briefly wait for UL msg
+   // within rx window, briefly wait for a msg
    // if too late, then go ahead and do a non blocking read
-   // and see what we can grab
    if(timercmp(&tv_delay, &tv_zero, >))
      {
        if(select(_info->rx_handle + 1, &rfds, NULL, NULL, &tv_delay) <= 0 ||
@@ -421,48 +428,25 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 
    if(rc < 0)
      {
-       RF_SOCK_WARN("RX reqlen %d, error %s", iov[0].iov_len + iov[1].iov_len, strerror(errno));
+       if(! (errno == EAGAIN || errno == EWOULDBLOCK))
+         {
+           RF_SOCK_WARN("RX reqlen %d, error %s", iov[0].iov_len + iov[1].iov_len, strerror(errno));
+         }
      }
 
    return rc;
 }
 
 
-
-
-void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
+void rf_sock_send_msg(rf_sock_tx_info_t * tx_info)
 {
-   GET_DEV_INFO(worker->tx_info->h);
-
-   rf_sock_tx_info_t * tx_info = worker->tx_info;
-
-   const int nbytes_out = BYTES_PER_SAMPLE(tx_info->nsamples);
-
-   const rf_sock_iohdr_t hdr = { seqn, 
-                                 nbytes_out,
-                                 _info->tx_srate,
-                                 _info->tx_gain,
-                                 tx_info->tx_time,
-                               };
-
-   struct iovec iov[2] = { {(void*)&hdr,             sizeof(hdr)},
-                           {(void*)tx_info->cf_data, nbytes_out }
-                         };
-
-  const struct msghdr mhdr = { &_info->tx_addr,      
-                               sizeof(_info->tx_addr),
-                               iov,                  
-                               2,
-                               NULL,
-                               0,
-                               0
-                             };
-   
+   GET_DEV_INFO(tx_info->h);
 
    while(1)
     {
-      int nbytes_inq;
+      int nbytes_inq = 0;
 
+      // check tx socket backlog
       if(ioctl(_info->tx_handle, TIOCOUTQ, &nbytes_inq) < 0)
         {
           RF_SOCK_WARN("ioctl error, %s,", strerror(errno));
@@ -470,7 +454,11 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
           break;
         }
 
-       // dont over run the tx socket,
+       // do not over run the tx socket when the ue
+       // finish sync there is a brief pause before
+       // streaming is restarted so lets not load it up
+       // or possibly discard on the tx to save time
+       // vs discarding on the rx side (TBD)
        if(nbytes_inq > 0)
         {
           ++_info->tx_noverruns;
@@ -483,11 +471,11 @@ void rf_sock_send_msg(rf_sock_tx_worker_t * worker, uint64_t seqn)
         }
     } 
 
-   const int rc = sendmsg(_info->tx_handle, &mhdr, 0);
+   const int rc = sendmsg(_info->tx_handle, &tx_info->mhdr, 0);
 
-   if(rc != (iov[0].iov_len + iov[1].iov_len))
+   if(rc != (tx_info->iov[0].iov_len + tx_info->iov[1].iov_len))
      {
-       if(errno == ENOTCONN || errno == ECONNREFUSED || errno == EAGAIN)
+       if(errno == ENOTCONN || errno == ECONNREFUSED || errno == EAGAIN || errno == EWOULDBLOCK)
          {
            if(! (++_info->tx_nerrors % 1000))
              {
@@ -518,7 +506,9 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
    GET_DEV_INFO(worker->h);
 
-   struct timeval tv_now, tv_delay;
+   rf_sock_tx_info_t * tx_info = worker->tx_info;
+
+   struct timeval tv_now, tv_delay, tv_diff;
 
    while(worker->is_running)
      {
@@ -526,7 +516,7 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
        gettimeofday(&tv_now, NULL);
 
-       timersub(&worker->tx_info->tx_time, &tv_now, &tv_delay);
+       timersub(&worker->tx_info->iohdr.io_time, &tv_now, &tv_delay);
 
        if(timercmp(&tv_delay, &tv_zero, >))
          {
@@ -535,15 +525,28 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
        pthread_mutex_lock(&_info->tx_workers_lock);
 
+       gettimeofday(&tv_now, NULL);
+
+       tx_info->iohdr.io_seqnum = _info->tx_seqn++;
+
+       rf_sock_send_msg(tx_info);
+
+       timersub(&worker->tx_info->iohdr.io_time, &tv_now, &tv_diff);
+
+       if(timercmp(&tv_diff, &tv_tti_step, >))
+         {
+           // track tx_late
+           if(! (++_info->tx_nlate % 1000))
+             {
+               RF_SOCK_WARN("TX seqn %lu, late by %ld:%06ld, total %zu", 
+                             _info->tx_seqn, 
+                             tv_diff.tv_sec,
+                             tv_diff.tv_usec,
+                             _info->tx_nlate);
+             }
+         }
+
        _info->tx_nof_workers -= 1;
-
-#ifdef DEBUG_MODE
-       RF_SOCK_DBUG("fire tx_worker %02d, %d tx_workers pending",
-                     worker->id,
-                    _info->tx_nof_workers);
-#endif
-
-       rf_sock_send_msg(worker, _info->tx_seqn++);
 
        worker->is_pending = false;
 
@@ -864,12 +867,28 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
           return -1;
         }
 
-       memset(worker->tx_info, 0x0, sizeof(rf_sock_tx_info_t));
+       rf_sock_tx_info_t * tx_info = worker->tx_info;
+
+       memset(tx_info, 0x0, sizeof(rf_sock_tx_info_t));
 
        worker->is_pending = false;
        worker->id         = id;
        worker->h          = &rf_sock_info;
        worker->is_running = true;
+
+       // preload any tx info we can here once
+       tx_info->iov[0].iov_base = (void*)&tx_info->iohdr;
+       tx_info->iov[0].iov_len  = sizeof(tx_info->iohdr);
+       tx_info->iov[1].iov_base = (void*)&tx_info->cf_data;
+       tx_info->iov[1].iov_len  = 0;
+ 
+       tx_info->mhdr.msg_name       = &rf_sock_info.tx_addr;
+       tx_info->mhdr.msg_namelen    = sizeof(rf_sock_info.tx_addr);
+       tx_info->mhdr.msg_iov        = tx_info->iov;
+       tx_info->mhdr.msg_iovlen     = sizeof(tx_info->iov) / sizeof(tx_info->iov[0]);
+       tx_info->mhdr.msg_control    = 0;
+       tx_info->mhdr.msg_controllen = 0;
+       tx_info->mhdr.msg_flags      = 0;
 
        if(pthread_create(&worker->tid, 
                          NULL, 
@@ -1071,26 +1090,9 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
           select(0, NULL, NULL, NULL, &tv_delay);
         }
 
-#ifdef DEBUG_MODE
-        struct timeval tv_now, tv_diff;
-
-        gettimeofday(&tv_now, NULL);
-
-        timersub(&tv_now, &_info->tv_next_tti, &tv_diff);
-
-        if(RF_SOCK_IS_LATE(tv_diff, 1, 1000))
-         {
-           RF_SOCK_WARN("tv_tti %ld:%06ld, overrun %ld:%06ld",
-                         _info->tv_next_tti.tv_sec,
-                         _info->tv_next_tti.tv_usec,
-                         tv_diff.tv_sec,
-                         tv_diff.tv_usec);
-         }
-#endif
-
-        do{ // makeup any tti over runs here
+       do{ // makeup any tti over runs here
            timeradd(&_info->tv_next_tti, &tv_tti_step, &_info->tv_next_tti);
-        } while(timercmp(&tv_in, &_info->tv_next_tti, >=));
+       } while(timercmp(&tv_in, &_info->tv_next_tti, >=));
      }
 
    // set tv_rxtimestamp to time now (this tti)
@@ -1102,7 +1104,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    int nsamples_pending = nsamples;
 
-   rf_sock_iohdr_t hdr;
+   rf_sock_iohdr_t iohdr;
 
    int n_tries = _info->rx_n_tries;
 
@@ -1111,7 +1113,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
    // allow for slight mis-match between rx/tx 1922 vs 1920 etc
    while(((float)nsamples_pending > (.01f * nsamples)) && (n_tries--) > 0)
      {   
-       struct iovec iov[2] = { {(void*)&hdr,  sizeof(hdr) },
+       struct iovec iov[2] = { {(void*)&iohdr,  sizeof(iohdr) },
                                {(void*)_info->sf_in, RF_SOCK_MAX_MSG_LEN }};
 
        const int rc = rf_sock_vecio_recv(h, iov);
@@ -1129,30 +1131,38 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
         }
        else
         {
-          const int nbytes_this_msg = rc - sizeof(hdr);
+          const int nbytes_this_msg = rc - sizeof(iohdr);
 
-          if(nbytes_this_msg != hdr.io_nbytes)
+          if(nbytes_this_msg != iohdr.io_nbytes)
            {
              RF_SOCK_WARN("RX seqn %lu, msglen error expected %d, got %d, drop", 
-                           hdr.io_seqnum, hdr.io_nbytes, nbytes_this_msg);
+                           iohdr.io_seqnum, iohdr.io_nbytes, nbytes_this_msg);
 
              // error bail out
              goto rxout;
            }
 
-         timersub(&tv_rxtime, &hdr.io_time, &tv_diff);
+         timersub(&tv_rxtime, &iohdr.io_time, &tv_diff);
 
          if(timercmp(&tv_diff, &tv_tti_step, >))
            {
-             // track late msgs
-             ++_info->rx_nlate;
+             // track rx_late 
+             // what to do with late msgs (TBD)
+             if(! (++_info->rx_nlate % 1000))
+              { 
+                RF_SOCK_WARN("RX seqn %lu, late by %ld:%06ld, total %zu", 
+                              iohdr.io_seqnum, 
+                              tv_diff.tv_sec,
+                              tv_diff.tv_usec,
+                              _info->rx_nlate);
+              }
            }
 
          // use tx time tag as the rx time to help align tti boundry
-         tv_rxtimestamp = hdr.io_time;
+         tv_rxtimestamp = iohdr.io_time;
 
          // works for downsample, have not able to sync when upsample
-         const int nsamples_out = rf_sock_resample(hdr.io_srate,
+         const int nsamples_out = rf_sock_resample(iohdr.io_srate,
                                                    _info->rx_srate,
                                                    _info->sf_in,
                                                    p2data, 
@@ -1233,18 +1243,25 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
    // set the abs tx time
    if(has_time_spec)
      {
-       rf_sock_ts_to_tv(&tx_info->tx_time, full_secs, frac_secs);
+       rf_sock_ts_to_tv(&tx_info->iohdr.io_time, full_secs, frac_secs);
      }
    else
      {
-       gettimeofday(&(tx_info->tx_time), NULL);
+       gettimeofday(&(tx_info->iohdr.io_time), NULL);
      }
 
-   memcpy(tx_info->cf_data, data, BYTES_PER_SAMPLE(nsamples));
+   tx_info->iohdr.io_nbytes  = BYTES_PER_SAMPLE(nsamples);
+   tx_info->iohdr.io_srate   = _info->tx_srate;
+   tx_info->iohdr.io_gain    = _info->tx_gain;
+   tx_info->iov[1].iov_len = tx_info->iohdr.io_nbytes;
+
+   memcpy(tx_info->cf_data, data, tx_info->iohdr.io_nbytes);
+
    tx_info->h          = h;
    tx_info->nsamples   = nsamples;
    tx_info->is_sob     = is_sob;
    tx_info->is_eob     = is_eob;
+   
    worker->is_pending = true;
 
    _info->tx_nof_workers += 1;
