@@ -341,11 +341,14 @@ void rrc::run_si_acquisition_procedure()
       // Instruct MAC to look for SIB1
       tti = mac->get_current_tti();
       si_win_start = sib_start_tti(tti, 2, 0, 5);
-      if (tti > last_win_start + 10) {
+      if (last_win_start == 0 ||
+          (srslte_tti_interval(last_win_start, tti) > 20 && srslte_tti_interval(last_win_start, tti) < 1000))
+      {
+
         last_win_start = si_win_start;
         mac->bcch_start_rx(si_win_start, 1);
-        rrc_log->debug("Instructed MAC to search for SIB1, win_start=%d, win_len=%d\n",
-                       si_win_start, 1);
+        rrc_log->info("Instructed MAC to search for SIB1, win_start=%d, win_len=%d, interval=%d\n",
+                       si_win_start, 1, srslte_tti_interval(last_win_start, tti));
         nof_sib1_trials++;
         if (nof_sib1_trials >= SIB1_SEARCH_TIMEOUT) {
           if (state == RRC_STATE_CELL_SELECTING) {
@@ -369,13 +372,15 @@ void rrc::run_si_acquisition_procedure()
         tti          = mac->get_current_tti();
         period       = liblte_rrc_si_periodicity_num[serving_cell->sib1.sched_info[sysinfo_index].si_periodicity];
         si_win_start = sib_start_tti(tti, period, offset, sf);
+        si_win_len = liblte_rrc_si_window_length_num[serving_cell->sib1.si_window_length];
 
-        if (tti > last_win_start + 10) {
+        if (last_win_start == 0 ||
+            (srslte_tti_interval(last_win_start, tti) > period*10 && srslte_tti_interval(last_win_start, tti) < 1000))
+        {
           last_win_start = si_win_start;
-          si_win_len = liblte_rrc_si_window_length_num[serving_cell->sib1.si_window_length];
 
           mac->bcch_start_rx(si_win_start, si_win_len);
-          rrc_log->debug("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
+          rrc_log->info("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
                          si_win_start, si_win_len);
         }
 
@@ -1313,6 +1318,9 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
       handle_sib13();
     }
   }
+
+  last_win_start = 0;
+
   if(serving_cell->has_valid_sib2) {
     sysinfo_index++;
   }
