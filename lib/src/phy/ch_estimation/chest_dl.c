@@ -291,7 +291,7 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id, srslt
       norm /= norm3;
     }
   }
-  float power = norm*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
+  float power = norm*srslte_vec_avg_power_cf(q->tmp_noise, nref);
   return power; 
 }
 
@@ -543,7 +543,7 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
 
   /* Compute RSRP for the channel estimates in this port */
   uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
-  q->rsrp[rxant_id][port_id] = __real__ srslte_vec_dot_prod_conj_ccc(q->pilot_estimates, q->pilot_estimates, npilots) / npilots;
+  q->rsrp[rxant_id][port_id] = srslte_vec_avg_power_cf(q->pilot_estimates, npilots);
   q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);
 }
 
@@ -639,7 +639,10 @@ float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
   for (int i=0;i<q->last_nof_antennas;i++) {
     n += srslte_vec_acc_ff(q->noise_estimate[i], q->cell.nof_ports)/q->cell.nof_ports;
   }
-  return n/q->last_nof_antennas;
+  if (q->last_nof_antennas) {
+    n /= q->last_nof_antennas;
+  }
+  return n;
 }
 
 float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
@@ -691,20 +694,23 @@ float srslte_chest_dl_get_rsrp_ant_port(srslte_chest_dl_t *q, uint32_t ant_idx, 
 }
 
 float srslte_chest_dl_get_rsrp_port(srslte_chest_dl_t *q, uint32_t port) {
-  float max = -INFINITY;
-  for (int i = 0; i < q->last_nof_antennas; i++) {
-      if (q->rsrp[i][port] > max) {
-        max = q->rsrp[i][port];
-      }
+  float sum = 0.0f;
+  for (int j = 0; j < q->cell.nof_ports; ++j) {
+    sum +=q->rsrp[port][j];
   }
-  return max;
+
+  if (q->cell.nof_ports) {
+    sum /= q->cell.nof_ports;
+  }
+
+  return sum;
 }
 
 float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {
-  float max = -INFINITY;
-  for (int i = 0; i < q->cell.nof_ports; ++i) {
+  float max = -0.0f;
+  for (int i = 0; i < q->last_nof_antennas; ++i) {
     float v = srslte_chest_dl_get_rsrp_port(q, i);
-    if (max < v) {
+    if (v > max) {
       max = v;
     }
   }
