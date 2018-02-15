@@ -264,7 +264,7 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
 }
 
 bool
-s1ap_ctx_mngmt_proc::handle_ue_context_release_request(uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *reply_buffer)
+s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
 
   LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT ue_rel_req;
@@ -319,10 +319,20 @@ s1ap_ctx_mngmt_proc::pack_ue_context_release_request(uint32_t mme_ue_s1ap_id, sr
 
   LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &pdu.choice.initiatingMessage;
   init->procedureCode = LIBLTE_S1AP_PROC_ID_UECONTEXTRELEASEREQUEST;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALCONTEXTRELEASEREQUEST;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASEREQUEST;
 
   LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ctx_rel_req = &init->choice.UEContextReleaseRequest;
-   
+  
+  /*
+    typedef struct{
+    bool                                                         ext;
+    LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
+    LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
+    LIBLTE_S1AP_CAUSE_STRUCT                                     Cause;
+    LIBLTE_S1AP_GWCONTEXTRELEASEINDICATION_ENUM_EXT              GWContextReleaseIndication;
+    bool                                                         GWContextReleaseIndication_present;
+    }LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT;
+   */
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if(err != LIBLTE_SUCCESS)
   {
