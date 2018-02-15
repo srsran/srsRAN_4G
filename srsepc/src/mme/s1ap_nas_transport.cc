@@ -124,9 +124,9 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
       uint8_t  buffer[4];
       }LIBLTE_S1AP_M_TMSI_STRUCT;*/
     uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
-    m_s1ap_log->info("Service request -- S-TMSI 0x%x\n ", *m_tmsi);
-    m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", *m_tmsi );
-    handle_nas_service_request(*m_tmsi, nas_msg, reply_buffer,reply_flag, enb_sri);
+    m_s1ap_log->info("Service request -- S-TMSI 0x%x\n ", ntohl(*m_tmsi));
+    m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
+    handle_nas_service_request(ntohl(*m_tmsi), nas_msg, reply_buffer,reply_flag, enb_sri);
     return false;
   }
   m_pool->deallocate(nas_msg);
@@ -584,8 +584,8 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
   std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
   if(it == m_s1ap->m_tmsi_to_imsi.end())
   {
-    m_s1ap_log->console("Could not find IMSI from M-TMSI\n");
-    m_s1ap_log->error("Could not find IMSI from M-TMSI\n");
+    m_s1ap_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    m_s1ap_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
     //FIXME send service reject
     return false;
   }
