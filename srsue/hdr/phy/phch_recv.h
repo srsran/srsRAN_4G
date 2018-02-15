@@ -237,7 +237,7 @@ private:
   };
 
   // 36.133 9.1.2.1 for band 7
-  const static float ABSOLUTE_RSRP_THRESHOLD_DBM = -125;
+  constexpr static float ABSOLUTE_RSRP_THRESHOLD_DBM = -125;
 
   std::vector<uint32_t> earfcn;
 

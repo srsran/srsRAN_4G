@@ -66,11 +66,10 @@ public:
 
   uint32_t get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   
-private: 
-  
-  const static float PUSCH_RL_SNR_DB_TH = 1.0; 
-  const static float PUCCH_RL_CORR_TH = 0.15;
-  
+private:
+  constexpr static float PUSCH_RL_SNR_DB_TH = 1.0;
+  constexpr static float PUCCH_RL_CORR_TH   = 0.15;
+
   void work_imp();
   
   int encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants);
