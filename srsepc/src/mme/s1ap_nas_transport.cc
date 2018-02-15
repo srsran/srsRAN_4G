@@ -593,18 +593,19 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
   {
     m_s1ap_log->console("Service Request -- Short MAC valid\n");
     m_s1ap_log->info("Service Request -- Short MAC valid\n");
-    ue_ecm_ctx_t ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(ue_emm_ctx.mme_ue_s1ap_id);
+    ue_ecm_ctx_t *ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(ue_emm_ctx->mme_ue_s1ap_id);
     if(ecm_ctx !=NULL)
     {
       //Service request to Connected UE.
       //Delete ECM context and connect.
-      m_mme_gtpc->send_delete_session_request(ue_ecm_ctx);
-      pack_context_release_request();
+      m_mme_gtpc->send_delete_session_request(ecm_ctx);
+      //pack_context_release_request();
     }
     else
     {
       //UE not connect. Connect normally.
     }
+  }
   else
   {
     m_s1ap_log->console("Service Request -- Short MAC invalid. Re-starting authentication procedure \n");
