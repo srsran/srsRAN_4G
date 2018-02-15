@@ -112,17 +112,6 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
       m_s1ap_log->error("Service request -- S-TMSI  not present\n ");
       m_s1ap_log->console("Service request -- S-TMSI not present\n" );
     }
-    /*
-    typedef struct{
-      bool                                                         ext;
-      LIBLTE_S1AP_MME_CODE_STRUCT                                  mMEC;
-      LIBLTE_S1AP_M_TMSI_STRUCT                                    m_TMSI;
-      LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT                iE_Extensions;
-      bool                                                         iE_Extensions_present;
-    }LIBLTE_S1AP_S_TMSI_STRUCT;
-    typedef struct{
-      uint8_t  buffer[4];
-      }LIBLTE_S1AP_M_TMSI_STRUCT;*/
     uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
     m_s1ap_log->info("Service request -- S-TMSI 0x%x\n ", ntohl(*m_tmsi));
     m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
@@ -598,6 +587,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     //FIXME send service reject
     return false;
   }
+  ue_emm_ctx->security_ctxt.ul_nas_count++;
   mac_valid = short_integrity_check(ue_emm_ctx,nas_msg);
   if(mac_valid)
     m_s1ap_log->console("Banzai!!!\n");
@@ -886,7 +876,7 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
 bool
 s1ap_nas_transport::short_integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu)
 {
-  uint8_t exp_mac[2];
+  uint8_t exp_mac[4];
   uint8_t *mac = &pdu->msg[2];
   int i;
 
@@ -900,10 +890,10 @@ s1ap_nas_transport::short_integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_bu
 
   // Check if expected mac equals the sent mac
   for(i=0; i<2; i++){
-    if(exp_mac[i] != mac[i]){
-      m_s1ap_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x], "
+    if(exp_mac[i+2] != mac[i]){
+      m_s1ap_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
                        "Received: count=%d, [%02x %02x]\n",
-                       emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1],
+                          emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
                           pdu->msg[1] & 0x1F, mac[0], mac[1]);
       return false;
     }
