@@ -590,13 +590,26 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
   ue_emm_ctx->security_ctxt.ul_nas_count++;
   mac_valid = short_integrity_check(ue_emm_ctx,nas_msg);
   if(mac_valid)
-    m_s1ap_log->console("Banzai!!!\n");
-  /*
-  typedef struct{
-    LIBLTE_MME_KSI_AND_SEQUENCE_NUMBER_STRUCT ksi_and_seq_num;
-    uint16                                    short_mac;
-  }LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT;
-  */
+  {
+    m_s1ap_log->console("Service Request -- Short MAC valid\n");
+    m_s1ap_log->info("Service Request -- Short MAC valid\n");
+    ue_ecm_ctx_t ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(ue_emm_ctx.mme_ue_s1ap_id);
+    if(ecm_ctx !=NULL)
+    {
+      //Service request to Connected UE.
+      //Delete ECM context and connect.
+      m_mme_gtpc->send_delete_session_request(ue_ecm_ctx);
+      pack_context_release_request();
+    }
+    else
+    {
+      //UE not connect. Connect normally.
+    }
+  else
+  {
+    m_s1ap_log->console("Service Request -- Short MAC invalid. Re-starting authentication procedure \n");
+    m_s1ap_log->console("Service Request -- Short MAC invalid. Re-starting authentication procedure \n");
+  }
   return true;
 }
 bool
@@ -866,7 +879,110 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ecm_ctx->mme_ue_s1ap_id);
  
   LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT tau_acc;
- 
+
+
+  bool                                          t3412_present;
+  bool                                          guti_present;
+  bool                                          tai_list_present;
+  bool                                          eps_bearer_context_status_present;
+  bool                                          lai_present;
+  bool                                          ms_id_present;
+  bool                                          emm_cause_present;
+  bool                                          t3402_present;
+  bool                                          t3423_present;
+  bool                                          equivalent_plmns_present;
+  bool                                          emerg_num_list_present;
+  bool                                          eps_network_feature_support_present;
+  bool                                          additional_update_result_present;
+  bool                                          t3412_ext_present;
+
+  //Get decimal MCC and MNC
+  uint32_t mcc = 0;
+  mcc += 0x000F & m_s1ap->m_s1ap_args.mcc;
+  mcc += 10*( (0x00F0 & m_s1ap->m_s1ap_args.mcc) >> 4);
+  mcc += 100*( (0x0F00 & m_s1ap->m_s1ap_args.mcc) >> 8);
+
+  uint32_t mnc = 0;
+  if( 0xFF00 == (m_s1ap->m_s1ap_args.mnc & 0xFF00 ))
+  {
+    //Two digit MNC
+    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
+    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
+  }
+  else
+  {
+    //Three digit MNC
+    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
+    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
+    mnc += 100*((0x0F00 & m_s1ap->m_s1ap_args.mnc) >> 8);
+  }
+
+  //T3412 Timer
+  tau_acc.t3412_present = true;
+  tau_acc.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
+  tau_acc.t3412.value = 30;                                   // 30 minute periodic timer
+
+  //GUTI
+  tau_acc.guti_present=true;
+  tau_acc.guti.type_of_id = 6; //110 -> GUTI
+  tau_acc.guti.guti.mcc = mcc;
+  tau_acc.guti.guti.mnc = mnc;
+  tau_acc.guti.guti.mme_group_id = m_s1ap->m_s1ap_args.mme_group;
+  tau_acc.guti.guti.mme_code = m_s1ap->m_s1ap_args.mme_code;
+  tau_acc.guti.guti.m_tmsi = 0xF000;
+  m_s1ap_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
+                    tau_acc.guti.guti.mcc,
+                    tau_acc.guti.guti.mnc,
+                    tau_acc.guti.guti.mme_group_id,
+                    tau_acc.guti.guti.mme_code,
+                    tau_acc.guti.guti.m_tmsi);
+
+  //Unused Options
+  tau_acc.t3402_present = false;
+  tau_acc.t3423_present = false;
+  tau_acc.equivalent_plmns_present = false;
+  tau_acc.emerg_num_list_present = false;
+  tau_acc.eps_network_feature_support_present = false;
+  tau_acc.additional_update_result_present = false;
+  tau_acc.t3412_ext_present = false;
+
+
+  //eps_update_result = LIBLTE_MME_TR
+  /*
+typedef struct{
+    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3412;
+    LIBLTE_MME_EPS_MOBILE_ID_STRUCT               guti;
+    LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_STRUCT tai_list;
+    LIBLTE_MME_EPS_BEARER_CONTEXT_STATUS_STRUCT   eps_bearer_context_status;
+    LIBLTE_MME_LOCATION_AREA_ID_STRUCT            lai;
+    LIBLTE_MME_MOBILE_ID_STRUCT                   ms_id;
+    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3402;
+    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3423;
+    LIBLTE_MME_PLMN_LIST_STRUCT                   equivalent_plmns;
+    LIBLTE_MME_EMERGENCY_NUMBER_LIST_STRUCT       emerg_num_list;
+    LIBLTE_MME_EPS_NETWORK_FEATURE_SUPPORT_STRUCT eps_network_feature_support;
+    LIBLTE_MME_GPRS_TIMER_3_STRUCT                t3412_ext;
+    LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_ENUM      additional_update_result;
+    uint8                                         eps_update_result;
+    uint8                                         emm_cause;
+    bool                                          t3412_present;
+    bool                                          guti_present;
+    bool                                          tai_list_present;
+    bool                                          eps_bearer_context_status_present;
+    bool                                          lai_present;
+    bool                                          ms_id_present;
+    bool                                          emm_cause_present;
+    bool                                          t3402_present;
+    bool                                          t3423_present;
+    bool                                          equivalent_plmns_present;
+    bool                                          emerg_num_list_present;
+    bool                                          eps_network_feature_support_present;
+    bool                                          additional_update_result_present;
+    bool                                          t3412_ext_present;v
+}LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT;
+   */
+
+
   //Send reply to eNB
   //*reply_flag = true;
 
