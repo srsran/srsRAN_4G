@@ -118,7 +118,7 @@ mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
   m_mme_gtpc_log->console("Creating Session Response -- IMSI: %015lu \n", imsi);
   m_mme_gtpc_log->console("Creating Session Response -- MME control TEID: %lu \n", cs_req->sender_f_teid.teid);
   // APN
-  memcpy(cs_req->apn, "internet", sizeof("internet"));
+  strcpy(cs_req->apn, m_s1ap->m_s1ap_args.mme_apn.c_str());
   // RAT Type
   //cs_req->rat_type = srslte::GTPC_RAT_TYPE::EUTRAN;
 
