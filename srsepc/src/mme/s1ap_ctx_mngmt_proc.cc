@@ -264,8 +264,10 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
 }
 
 bool
-s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
+s1ap_ctx_mngmt_proc::handle_ue_context_release_request(uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *reply_buffer)
 {
+
+  LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT ue_rel_req;
 
   uint32_t mme_ue_s1ap_id = ue_rel->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
   m_s1ap_log->info("Received UE Context Release Request. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
@@ -305,5 +307,31 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   m_s1ap_log->info("Deleted UE Context.\n");
   return true;
 }
+
+bool
+s1ap_ctx_mngmt_proc::pack_ue_context_release_request(uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *reply_buffer)
+{
+
+  //Prepare reply PDU
+  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
+  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_UECONTEXTRELEASEREQUEST;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALCONTEXTRELEASEREQUEST;
+
+  LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ctx_rel_req = &init->choice.UEContextReleaseRequest;
+   
+  LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
+    return false;
+  }
+
+  return true;
+}
+
 
 } //namespace srsepc
