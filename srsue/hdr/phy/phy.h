@@ -53,7 +53,7 @@ public:
   bool init(srslte::radio_multi *radio_handler, 
             mac_interface_phy *mac, 
             rrc_interface_phy *rrc,
-            std::vector<void*> log_vec,
+            std::vector<srslte::log*> log_vec,
             phy_args_t *args = NULL);
   
   void stop();
@@ -159,7 +159,7 @@ private:
   const static int WORKERS_THREAD_PRIO = 0; 
   
   srslte::radio_multi      *radio_handler;
-  std::vector<void*>        log_vec;
+  std::vector<srslte::log*>        log_vec;
   srslte::log              *log_h;
   srslte::log              *log_phy_lib_h;
   srsue::mac_interface_phy *mac;
