@@ -68,7 +68,7 @@ bool ue::init(all_args_t *args_)
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
     mylog->init(tmp, logger, true);
-    phy_log.push_back((void*) mylog);
+    phy_log.push_back(mylog);
   }
 
   mac_log.init("MAC ", logger, true);
@@ -91,7 +91,7 @@ bool ue::init(all_args_t *args_)
   char tmp[16];
   sprintf(tmp, "PHY_LIB");
   lib_log->init(tmp, logger, true);
-  phy_log.push_back((void*) lib_log);
+  phy_log.push_back(lib_log);
   ((srslte::log_filter*) phy_log[args->expert.phy.nof_phy_threads])->set_level(level(args->log.phy_lib_level));
  
   
