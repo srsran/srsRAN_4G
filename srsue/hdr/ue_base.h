@@ -126,6 +126,7 @@ typedef struct {
   usim_args_t   usim;
   rrc_args_t    rrc;
   std::string   ue_category_str;
+  std::string   apn;
   expert_args_t expert;
 }all_args_t;
 
