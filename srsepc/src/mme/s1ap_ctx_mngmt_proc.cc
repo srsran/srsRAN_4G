@@ -309,8 +309,10 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
 }
 
 bool
-s1ap_ctx_mngmt_proc::pack_ue_context_release_request(uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *reply_buffer)
+s1ap_ctx_mngmt_proc::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_buffer)
 {
+
+  int s1mme = m_s1ap->get_s1_mme();
 
   //Prepare reply PDU
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
@@ -318,27 +320,33 @@ s1ap_ctx_mngmt_proc::pack_ue_context_release_request(uint32_t mme_ue_s1ap_id, sr
   pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
 
   LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_UECONTEXTRELEASEREQUEST;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASEREQUEST;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_UECONTEXTRELEASE;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASECOMMAND;
 
-  LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ctx_rel_req = &init->choice.UEContextReleaseRequest;
-  
-  /*
-    typedef struct{
-    bool                                                         ext;
-    LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
-    LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
-    LIBLTE_S1AP_CAUSE_STRUCT                                     Cause;
-    LIBLTE_S1AP_GWCONTEXTRELEASEINDICATION_ENUM_EXT              GWContextReleaseIndication;
-    bool                                                         GWContextReleaseIndication_present;
-    }LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT;
-   */
+  LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMAND_STRUCT *ctx_rel_cmd = &init->choice.UEContextReleaseCommand;
+
+  ctx_rel_cmd->UE_S1AP_IDs.choice_type = LIBLTE_S1AP_UE_S1AP_IDS_CHOICE_UE_S1AP_ID_PAIR;
+  ctx_rel_cmd->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.mME_UE_S1AP_ID.MME_UE_S1AP_ID = ecm_ctx->mme_ue_s1ap_id;
+  ctx_rel_cmd->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ecm_ctx->enb_ue_s1ap_id;
+
+  ctx_rel_cmd->Cause.choice_type = LIBLTE_S1AP_CAUSE_CHOICE_NAS;
+  ctx_rel_cmd->Cause.choice.nas.ext = false;
+  ctx_rel_cmd->Cause.choice.nas.e =  LIBLTE_S1AP_CAUSENAS_NORMAL_RELEASE;
+
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
     return false;
   }
+  //Send Reply to eNB 
+  int n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ecm_ctx->enb_sri, 0);
+  if(n_sent == -1)
+  {
+    m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
+    return false;
+  }
+
 
   return true;
 }
