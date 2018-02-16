@@ -309,10 +309,11 @@ private:
     CELL_SELECT,
     CELL_RESELECT,
     CELL_MEASURE,
-    CELL_CAMP
+    CELL_CAMP,
+    IDLE_RX
   } phy_state;
 
-  bool is_in_idle;
+  bool is_in_idle, is_in_idle_rx;
 
   // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
   enum {

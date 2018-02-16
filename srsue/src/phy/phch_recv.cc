@@ -380,20 +380,30 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
     log_h->info("Cell HO: Waiting pending PHICH\n");
   }
 
-  bool ret;
+  bool ret = false;
   this->cell = cell;
   Info("Cell HO: Stopping sync with current cell\n");
   worker_com->reset_ul();
-  //stop_sync();
-  Info("Cell HO: Reconfiguring cell\n");
-  if (set_cell()) {
-    Info("Cell HO: Synchronizing with new cell\n");
-    //resync_sfn(true, true);
-    sfn_p.reset();
-    phy_state = CELL_RESELECT;
-    ret = true;
+  phy_state = IDLE_RX;
+  cnt = 0;
+  while(!is_in_idle_rx && cnt<20) {
+    usleep(1000);
+    cnt++;
+  }
+  if (is_in_idle_rx) {
+    Info("Cell HO: Reconfiguring cell\n");
+    if (set_cell()) {
+      //resync_sfn(true, true);
+      sfn_p.reset();
+      phy_state = CELL_RESELECT;
+      Info("Cell HO: Synchronizing with new cell\n");
+      ret = true;
+    } else {
+      log_h->error("Cell HO: Configuring cell PCI=%d\n", cell.id);
+      ret = false;
+    }
   } else {
-    log_h->error("Cell HO: Configuring cell PCI=%d\n", cell.id);
+    log_h->error("Cell HO: Could not stop sync\n");
     ret = false;
   }
   return ret;
@@ -574,12 +584,17 @@ void phch_recv::run_thread()
   uint32_t sf_idx = 0;
   phy_state  = IDLE;
   is_in_idle = true;
+  is_in_idle_rx = false;
 
   while (running)
   {
     if (phy_state != IDLE) {
       is_in_idle = false;
       Debug("SYNC:  state=%d\n", phy_state);
+    }
+
+    if (phy_state != IDLE_RX) {
+      is_in_idle_rx = false;
     }
 
     log_h->step(tti);
@@ -745,6 +760,23 @@ void phch_recv::run_thread()
         }
         is_in_idle = true;
         usleep(1000);
+        break;
+      case IDLE_RX:
+        if (!worker) {
+          worker = (phch_worker *) workers_pool->wait_worker(tti);
+        }
+        is_in_idle_rx = true;
+        if (worker) {
+          for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
+            buffer[i] = worker->get_buffer(i);
+          }
+          if (!radio_h->rx_now(buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), NULL)) {
+            Error("SYNC:  Receiving from radio while in IDLE_RX\n");
+          }
+        } else {
+          // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
+          running = false;
+        }
         break;
     }
 
