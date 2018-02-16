@@ -114,7 +114,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
       m_pool->deallocate(nas_msg);
       return false;
     }
-    handle_nas_attach_request(enb_ue_s1ap_id, attach_req,pdn_con_req,reply_buffer,reply_flag, enb_sri);
+    handle_nas_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
   }
   else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST)
   {
@@ -201,7 +201,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   if(*reply_flag == true)
   {
     m_s1ap_log->info("DL NAS: Sent Downlink NAS message\n");
-    m_s1ap_log->console("DL NAS: Sent Downlink NAs Message\n");
+    m_s1ap_log->console("DL NAS: Sent Downlink NAS Message\n");
   }
   m_pool->deallocate(nas_msg);
 
@@ -326,8 +326,8 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   
   //Send reply to eNB
   *reply_flag = true;
-  m_s1ap_log->info("Downlink NAS: Sending Athentication Request\n");
-  m_s1ap_log->console("Downlink NAS: Sending Athentication Request\n");
+  m_s1ap_log->info("Downlink NAS: Sending Authentication Request\n");
+  m_s1ap_log->console("Downlink NAS: Sending Authentication Request\n");
   return true;
 }
 
@@ -358,7 +358,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
       memcpy(&ue_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
     }
     uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
-    ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id; 
+    ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id;
 
     //Save whether ESM information transfer is necessary
     ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
@@ -467,7 +467,7 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
 
     m_s1ap_log->console("UE Authentication Rejected.\n");
     m_s1ap_log->warning("UE Authentication Rejected.\n");
-    //Send back Athentication Reject
+    //Send back Authentication Reject
     pack_authentication_reject(reply_buffer, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id);
     *reply_flag = true;
     m_s1ap_log->console("Downlink NAS: Sending Authentication Reject.\n");
@@ -511,6 +511,7 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   {
     pack_esm_information_request(reply_buffer, ue_ctx);
     m_s1ap_log->console("Sending ESM information request\n");
+    m_s1ap_log->info("Sending ESM information request\n");
     *reply_flag = true;
   }
   else
@@ -532,7 +533,7 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
   srslte::byte_buffer_t *esm_msg = m_pool->allocate();
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_bearer;
 
-  m_s1ap_log->info_hex(nas_msg->msg, nas_msg->N_bytes, "NAS Attach complte");
+  m_s1ap_log->info_hex(nas_msg->msg, nas_msg->N_bytes, "NAS Attach complete");
 
   //Get NAS authentication response
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_comp);
@@ -548,7 +549,7 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
   }
 
   m_s1ap_log->console("Unpacked Attached Complete Message\n");
-  m_s1ap_log->console("Unpacked Activavate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
+  m_s1ap_log->console("Unpacked Activate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
   //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
   if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 15)
   {
@@ -575,6 +576,11 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
   {
     m_s1ap_log->info("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
     m_s1ap_log->console("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
+  }
+  if(esm_info_resp.protocol_cnfg_opts_present)
+  {
+    m_s1ap_log->info("ESM Info: %d Protocol Configuration Options %s\n",esm_info_resp.protocol_cnfg_opts.N_opts);
+    m_s1ap_log->console("ESM Info: %d Protocol Configuration Options %s\n",esm_info_resp.protocol_cnfg_opts.N_opts);
   }
 
   //FIXME The packging of GTP-C messages is not ready.
@@ -794,8 +800,8 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Athentication Request\n");
-    m_s1ap_log->console("Error packing Athentication Request\n");
+    m_s1ap_log->error("Error packing Authentication Request\n");
+    m_s1ap_log->console("Error packing Authentication Request\n");
     return false;
   }
 
@@ -807,8 +813,8 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Athentication Request\n");
-    m_s1ap_log->console("Error packing Athentication Request\n");
+    m_s1ap_log->error("Error packing Authentication Request\n");
+    m_s1ap_log->console("Error packing Authentication Request\n");
     return false;
   }
    
@@ -845,8 +851,8 @@ s1ap_nas_transport::pack_authentication_reject(srslte::byte_buffer_t *reply_msg,
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_reject_msg(&auth_rej, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Athentication Reject\n");
-    m_s1ap_log->console("Error packing Athentication Reject\n");
+    m_s1ap_log->error("Error packing Authentication Reject\n");
+    m_s1ap_log->console("Error packing Authentication Reject\n");
     return false;
   }
 
@@ -858,8 +864,8 @@ s1ap_nas_transport::pack_authentication_reject(srslte::byte_buffer_t *reply_msg,
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Dw NAS Transport: Athentication Reject\n");
-    m_s1ap_log->console("Error packing Downlink NAS Transport: Athentication Reject\n");
+    m_s1ap_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
     return false;
   } 
 
@@ -948,7 +954,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, ue_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->console("Error packing Athentication Request\n");
+    m_s1ap_log->console("Error packing Authentication Request\n");
     return false;
   }
 
@@ -982,7 +988,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->console("Error packing Athentication Request\n");
+    m_s1ap_log->console("Error packing Authentication Request\n");
     return false;
   }
   m_s1ap_log->debug_hex(reply_msg->msg, reply_msg->N_bytes, "Security Mode Command: ");
@@ -1015,7 +1021,7 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
   LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
-  esm_info_req.eps_bearer_id=0;
+  esm_info_req.eps_bearer_id = 0;
   esm_info_req.proc_transaction_id = ue_ctx->procedure_transaction_id;
   uint8_t  sec_hdr_type=2;
   
@@ -1048,8 +1054,8 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Dw NAS Transport: Athentication Reject\n");
-    m_s1ap_log->console("Error packing Downlink NAS Transport: Athentication Reject\n");
+    m_s1ap_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
     return false;
   }
 
@@ -1140,8 +1146,7 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
   //set apn
   //act_def_eps_bearer_context_req.apn
-  std::string apn("test123");
-  act_def_eps_bearer_context_req.apn.apn = apn; //FIXME
+  act_def_eps_bearer_context_req.apn.apn = m_s1ap->m_s1ap_args.mme_apn;
   act_def_eps_bearer_context_req.proc_transaction_id = ue_ctx->procedure_transaction_id; //FIXME
 
   //Set DNS server
@@ -1230,8 +1235,8 @@ s1ap_nas_transport::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->error("Error packing Dw NAS Transport: Athentication Reject\n");
-    m_s1ap_log->console("Error packing Downlink NAS Transport: Athentication Reject\n");
+    m_s1ap_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
     return false;
   } 
 
