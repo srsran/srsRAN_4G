@@ -80,11 +80,6 @@ bool
 s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
 
-  //LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
-
-  m_s1ap_log->console("Received Initial UE Message.\n");
-  m_s1ap_log->info("Received Initial UE Message.\n");
-
   //Get info from initial UE message
   uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
 
@@ -101,6 +96,8 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
   if(msg_type == LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST)
   {
+    m_s1ap_log->info("Received Attach Request \n");
+    m_s1ap_log->console("Received Attach Request \n");
     handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
   }
   else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST)
@@ -117,6 +114,11 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
     handle_nas_service_request(ntohl(*m_tmsi), nas_msg, reply_buffer,reply_flag, enb_sri);
     return false;
+  }
+  else
+  {
+    m_s1ap_log->info("Unhandled Initial UE Message 0x%x\n",msg_type);
+    m_s1ap_log->console("Unhandled Initial UE Message 0x%x \n", msg_type);
   }
   m_pool->deallocate(nas_msg);
 
@@ -238,11 +240,6 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       return false;
     }
     switch (msg_type) {
-  /*case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
-      m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
-      m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
-      handle_nas_authentication_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
-      break;*/
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_s1ap_log->info("Uplink NAS: Received Attach Complete\n");
       m_s1ap_log->console("Uplink NAS: Received Attach Complete\n");
@@ -258,8 +255,8 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       handle_tracking_area_update_request(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     default:
-      m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type );
-      m_s1ap_log->console("Unhandled NAS message 0x%x\n", msg_type );
+      m_s1ap_log->warning("Unhandled NAS integrity protected message 0x%x\n", msg_type );
+      m_s1ap_log->console("Unhandled NAS integrity protected message 0x%x\n", msg_type );
       m_pool->deallocate(nas_msg);
       return false;
     }
@@ -311,33 +308,17 @@ s1ap_nas_transport::handle_nas_attach_request(uint32_t enb_ue_s1ap_id,
     return false;
   }
 
-  //Parse the message security header
-  uint8 pd = 0;
-  uint8 msg_type = 0;
-  uint8 sec_hdr_type = 0;
-  liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg, &pd, &sec_hdr_type);
-
   //Get attach type from attach request
   if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
   {
     m_s1ap_log->console("Attach Request -- IMSI-style attach request\n");
     m_s1ap_log->info("Attach Request -- IMSI-style attach request\n");
-    /*if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
-    {
-      m_s1ap_log->error("Attach request -- IMSI-stlye attach request is not plain NAS\n");
-      return false;
-    }*/
     handle_nas_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
   }
   else if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI)
   {
     m_s1ap_log->console("Attach Request -- GUTI-style attach request\n");
     m_s1ap_log->info("Attach Request -- GUTI-style attach request\n");
-    if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY)
-    {
-      m_s1ap_log->error("Attach request -- GUTI-stlye attach request is not integrity protected\n");
-      return false;
-    }
     handle_nas_guti_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, nas_msg, reply_buffer, reply_flag, enb_sri);
   }
   else
@@ -462,6 +443,23 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
                                                      bool* reply_flag,
                                                      struct sctp_sndrcvinfo *enb_sri)
 {
+  //Parse the message security header
+  uint8 pd = 0;
+  uint8 sec_hdr_type = 0;
+  liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg, &pd, &sec_hdr_type);
+
+  bool integrity_valid = false;
+  if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY)
+  {
+    m_s1ap_log->info("Attach request -- GUTI-stlye attach request is not integrity protected\n");
+    m_s1ap_log->console("Attach request -- GUTI-stlye attach request is not integrity protected\n");
+  }
+  else{
+    m_s1ap_log->info("Attach request -- GUTI-stlye attach request is integrity protected\n");
+    m_s1ap_log->console("Attach request -- GUTI-stlye attach request is integrity protected\n");
+  }
+
+
   //GUTI style attach
   uint32_t m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
   std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
@@ -541,6 +539,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_emm_ctx->imsi);
       //Check NAS integrity
       bool msg_valid = false;
+      ue_emm_ctx->security_ctxt.ul_nas_count++;
       msg_valid = integrity_check(ue_emm_ctx,nas_msg);
       if(msg_valid == true)
       {
