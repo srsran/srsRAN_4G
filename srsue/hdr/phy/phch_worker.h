@@ -70,6 +70,9 @@ public:
   void start_plot();
 
   float get_ref_cfo();
+  float get_snr();
+  float get_rsrp();
+  float get_noise();
   float get_cfo();
   float get_ul_cfo();
 
