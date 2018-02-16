@@ -272,7 +272,7 @@ private:
         generate_retx(tti_tx, action);
       }
       if (harq_entity->pcap && grant) {
-        if (grant->is_from_rar) {
+        if (grant->is_from_rar && harq_entity->rntis->temp_rnti) {
           grant->rnti = harq_entity->rntis->temp_rnti;
         }
         harq_entity->pcap->write_ul_crnti(pdu_ptr, grant->n_bytes[0], grant->rnti, get_nof_retx(), tti_tx);
