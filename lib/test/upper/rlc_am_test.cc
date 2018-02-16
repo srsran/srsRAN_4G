@@ -64,6 +64,7 @@ public:
   {
     assert(lcid == 1);
     sdus[n_sdus++] = sdu;
+    byte_buffer_pool::get_instance()->deallocate(sdu);
   }
   void write_pdu_bcch_bch(byte_buffer_t *sdu) {}
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu) {}
