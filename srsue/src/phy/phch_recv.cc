@@ -186,14 +186,9 @@ void phch_recv::set_agc_enable(bool enable)
   }
 }
 
-void phch_recv::set_time_adv_sec(float _time_adv_sec)
+void phch_recv::set_time_adv_sec(float time_adv_sec)
 {
-  if (TX_MODE_CONTINUOUS && !radio_h->is_first_of_burst()) {
-    int nsamples = ceil(current_srate*_time_adv_sec);
-    next_offset = -nsamples;
-  } else {
-    time_adv_sec = _time_adv_sec;
-  }
+  this->time_adv_sec = time_adv_sec;
 }
 
 void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q, float cfo)
