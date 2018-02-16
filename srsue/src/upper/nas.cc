@@ -889,7 +889,14 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 
   // Set the optional flags
   pdn_con_req.esm_info_transfer_flag_present = false; //FIXME: Check if this is needed
-  pdn_con_req.apn_present = false;
+  if (cfg.apn == "") {
+    pdn_con_req.apn_present = false;
+  } else {
+    pdn_con_req.apn_present = true;
+    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT apn;
+    apn.apn = cfg.apn;
+    pdn_con_req.apn = apn;
+  }
   pdn_con_req.protocol_cnfg_opts_present = false;
   pdn_con_req.device_properties_present = false;
 

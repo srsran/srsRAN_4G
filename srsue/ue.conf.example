@@ -109,6 +109,15 @@ imei = 353490069873319
 #ue_category   = 4
 #feature_group = 0xe6041c00
 
+#####################################################################
+# NAS configuration
+#
+# apn:		Set Access Point Name (APN)
+#####################################################################
+[nas]
+# apn = internetinternet
+
+
 [gui]
 enable = false
 
