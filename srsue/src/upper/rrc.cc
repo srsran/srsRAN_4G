@@ -1089,6 +1089,7 @@ bool rrc::ho_prepare() {
     ho_src_rnti = uernti.crnti;
 
     // Reset/Reestablish stack
+    mac->bcch_stop_rx(); // FIXME: change function name
     phy->meas_reset();
     mac->wait_uplink();
     pdcp->reestablish();
