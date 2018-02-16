@@ -384,11 +384,13 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
   this->cell = cell;
   Info("Cell HO: Stopping sync with current cell\n");
   worker_com->reset_ul();
-  stop_sync();
+  //stop_sync();
   Info("Cell HO: Reconfiguring cell\n");
   if (set_cell()) {
     Info("Cell HO: Synchronizing with new cell\n");
-    resync_sfn(true, true);
+    //resync_sfn(true, true);
+    sfn_p.reset();
+    phy_state = CELL_RESELECT;
     ret = true;
   } else {
     log_h->error("Cell HO: Configuring cell PCI=%d\n", cell.id);
