@@ -59,6 +59,14 @@ public:
     n_sdus = 0;
   }
 
+  ~rlc_am_tester(){
+    for (uint32_t i = 0; i < 10; i++) {
+      if (sdus[i] != NULL) {
+        byte_buffer_pool::get_instance()->deallocate(sdus[i]);
+      }
+    }
+  }
+
   // PDCP interface
   void write_pdu(uint32_t lcid, byte_buffer_t *sdu)
   {
@@ -1051,21 +1059,31 @@ void resegment_test_6()
 int main(int argc, char **argv) {
   basic_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   concat_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   segment_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   retx_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_1();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_2();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_3();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_4();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_5();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_6();
+  byte_buffer_pool::get_instance()->cleanup();
 }
