@@ -158,15 +158,27 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
     if(ue_emm_ctx == NULL)
     {
-      m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
-      m_pool->deallocate(nas_msg);
-      return false;
+      //No EMM context found.
+      //Perhaps a temporary context is being created?
+      //This can happen with integrity protected identity reponse and authentication response messages
+      if( !(msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) &&
+          !(msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
+      {
+        m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+        m_pool->deallocate(nas_msg);
+        return false;
+      }
     }
   }
 
-  if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
+  if( sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS ||
+      (msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) ||
+      (msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
   {
-    //Plain NAS, only identity response is valid.
+    //Only identity response and authentication response are valid as plain NAS.
+    //Sometimes authentication response and identity are sent as integrity protected,
+    //but these messages are sent when the securty context is not setup yet, so we cannot integrity check it.
+    //FIXME Double-check
     switch(msg_type)
     {
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
@@ -220,17 +232,17 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     //Integrity protected NAS message, possibly chiphered.
     ue_emm_ctx->security_ctxt.ul_nas_count++;
     mac_valid = integrity_check(ue_emm_ctx,nas_msg);
-    if(!mac_valid && msg_type != LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE){
+    if(!mac_valid){
       m_s1ap_log->warning("Invalid MAC in NAS message type 0x%x.\n", msg_type);
       m_pool->deallocate(nas_msg);
       return false;
     }
     switch (msg_type) {
-    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
+  /*case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
       m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
       handle_nas_authentication_response(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
-      break;
+      break;*/
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_s1ap_log->info("Uplink NAS: Received Attach Complete\n");
       m_s1ap_log->console("Uplink NAS: Received Attach Complete\n");
@@ -599,7 +611,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       //Service request to Connected UE.
       //Delete ECM context and connect.
       m_mme_gtpc->send_delete_session_request(ecm_ctx);
-      //pack_context_release_request();
+      //m_s1ap send_context_release_request(ecm_ctx, reply_buffer);
     }
     else
     {

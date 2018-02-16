@@ -234,7 +234,7 @@ s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buff
   LIBLTE_S1AP_SERVEDGUMMEISITEM_STRUCT *serv_gummei = &s1_resp->ServedGUMMEIs.buffer[0];
 
   serv_gummei->ext=false;
-  //serv_gummei->iE_Extensions=false;
+  serv_gummei->iE_Extensions_present = false;
 
   uint32_t plmn=0;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
@@ -257,7 +257,9 @@ s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buff
 
   //Relay Unsupported
   s1_resp->MMERelaySupportIndicator_present=false;
-    
+
+  s1_resp->CriticalityDiagnostics_present = false;
+
   liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)msg);
   
  return true;
