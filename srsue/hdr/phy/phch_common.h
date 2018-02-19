@@ -87,6 +87,9 @@ public:
   uint32_t last_ul_tti[2*HARQ_DELAY_MS];
   srslte_mod_t last_ul_mod[2*HARQ_DELAY_MS];
 
+  uint8_t last_ri;
+  uint8_t last_pmi;
+
   phch_common(uint32_t max_mutex = 3);
   void init(phy_interface_rrc::phy_cfg_t *config,
             phy_args_t  *args,
