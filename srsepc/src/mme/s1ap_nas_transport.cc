@@ -1163,7 +1163,7 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
     //TODO Start T3460 Timer! 
 
     break;
-    }
+  }
   return true;  
 
 }
