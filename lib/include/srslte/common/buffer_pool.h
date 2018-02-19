@@ -99,7 +99,6 @@ public:
       
       if (is_almost_empty()) {
         printf("Warning buffer pool capacity is %f %%\n", (float) 100*available.size()/capacity);
-        print_all_buffers();
       }
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     if (debug_name) {

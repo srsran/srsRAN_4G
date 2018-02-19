@@ -246,7 +246,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
 
     ("expert.average_subframe_enabled",
-     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(false),
+     bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
      "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
     ("expert.time_correct_period",
