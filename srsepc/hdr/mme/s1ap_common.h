@@ -126,6 +126,8 @@ typedef struct{
     uint8_t erab_id;
     srslte::gtpc_f_teid_ie enb_fteid;
     srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
+    srslte::gtpc_f_teid_ie sgw_s1u_fteid;
+    srslte::gtpc_pdn_address_allocation_ie pdn_addr_alloc;
 } erab_ctx_t;
 
 typedef struct{
