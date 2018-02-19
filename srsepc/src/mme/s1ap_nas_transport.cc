@@ -259,8 +259,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
       m_s1ap_log->info("Uplink NAS: Authentication Failure\n");
-      handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      ue_ctx->security_ctxt.ul_nas_count++;
+      handle_authentication_failure(nas_msg, ue_ecm_ctx, reply_buffer, reply_flag);
       break;
     default:
       m_s1ap_log->warning("Unhandled NAS integrity protected message 0x%x\n", msg_type );
@@ -929,10 +928,10 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
  //m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
-  /* 
+   
   LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT tau_acc;
 
-
+  /*
   bool                                          t3412_present;
   bool                                          guti_present;
   bool                                          tai_list_present;
@@ -1104,7 +1103,7 @@ s1ap_nas_transport::integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t
 
 
 bool 
-s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
   uint8_t     autn[16]; 
   uint8_t     rand[16];
@@ -1117,6 +1116,12 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
     return false;
   }
 
+  ue_emm_ctx_t *emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+  if(emm_ctx == NULL)
+  {
+    m_s1ap_log->error("Could not find UE EMM context\n");
+    return false;
+  }
 
   switch(auth_fail.emm_cause){
     case 20:
@@ -1134,22 +1139,22 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
       m_s1ap_log->error("Missing fail parameter\n");
       return false;
     }
-    if(!m_hss->resync_sqn(ue_ctx->imsi, auth_fail.auth_fail_param))
+    if(!m_hss->resync_sqn(ue_ecm_ctx->imsi, auth_fail.auth_fail_param))
     {
-      m_s1ap_log->console("Resynchronization failed. IMSI %015lu\n", ue_ctx->imsi);
-      m_s1ap_log->info("Resynchronization failed. IMSI %015lu\n", ue_ctx->imsi);
+      m_s1ap_log->console("Resynchronization failed. IMSI %015lu\n", ue_ecm_ctx->imsi);
+      m_s1ap_log->info("Resynchronization failed. IMSI %015lu\n", ue_ecm_ctx->imsi);
       return false;
     }
     //Get Authentication Vectors from HSS
-    if(!m_hss->gen_auth_info_answer(ue_ctx->imsi, ue_ctx->security_ctxt.k_asme, autn, rand, ue_ctx->security_ctxt.xres))
+    if(!m_hss->gen_auth_info_answer(ue_ecm_ctx->imsi, emm_ctx->security_ctxt.k_asme, autn, rand, emm_ctx->security_ctxt.xres))
     {
-      m_s1ap_log->console("User not found. IMSI %015lu\n", ue_ctx->imsi);
-      m_s1ap_log->info("User not found. IMSI %015lu\n", ue_ctx->imsi);
+      m_s1ap_log->console("User not found. IMSI %015lu\n", ue_ecm_ctx->imsi);
+      m_s1ap_log->info("User not found. IMSI %015lu\n", ue_ecm_ctx->imsi);
       return false;
     }
     
     //Pack NAS Authentication Request in Downlink NAS Transport msg
-    pack_authentication_request(reply_msg, ue_ctx->enb_ue_s1ap_id, ue_ctx->mme_ue_s1ap_id, autn, rand);
+    pack_authentication_request(reply_msg, ue_ecm_ctx->enb_ue_s1ap_id, ue_ecm_ctx->mme_ue_s1ap_id, autn, rand);
 
     //Send reply to eNB
     *reply_flag = true;

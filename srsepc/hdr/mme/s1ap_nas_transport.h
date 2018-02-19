@@ -79,6 +79,8 @@ public:
   bool handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
   bool handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
 
+  bool handle_authentication_failure(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t* ue_ecm_ctx,  srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+
   bool integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
   bool short_integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
 
