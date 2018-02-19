@@ -110,9 +110,12 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
       m_s1ap_log->console("Service request -- S-TMSI not present\n" );
     }
     uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
+    uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
     m_s1ap_log->info("Service request -- S-TMSI 0x%x\n ", ntohl(*m_tmsi));
     m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
-    handle_nas_service_request(ntohl(*m_tmsi), nas_msg, reply_buffer,reply_flag, enb_sri);
+    m_s1ap_log->info("Service request -- eNB UE S1AP Id %d\n ", enb_ue_s1ap_id);
+    m_s1ap_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
+    handle_nas_service_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     return false;
   }
   else
@@ -586,6 +589,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
 bool
 s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
+                                               uint32_t enb_ue_s1ap_id,
                                                 srslte::byte_buffer_t *nas_msg,
                                                 srslte::byte_buffer_t *reply_buffer,
                                                 bool* reply_flag,
@@ -629,6 +633,11 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     if(ecm_ctx !=NULL)
     {
       //Service request to Connected UE.
+      //Set eNB UE S1ap identity
+      ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+      m_s1ap_log->console("Service Request -- eNB UE S1AP Id %d \n", enb_ue_s1ap_id);
+      m_s1ap_log->info("Service Request -- eNB UE S1AP Id %d\n ", enb_ue_s1ap_id);
+
       //Delete eNB context and connect.
       m_s1ap_log->console("Service Request -- User has ECM context already\n");
       m_s1ap_log->info("Service Request -- User has ECM context already\n");
