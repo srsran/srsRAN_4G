@@ -79,10 +79,7 @@ s1ap_ctx_mngmt_proc::init(void)
 bool
 s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
                                                         ue_ecm_ctx_t *ecm_ctx,
-                                                        uint16_t erab_id,
-                                                        struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid,
-                                                        struct srslte::gtpc_f_teid_ie sgw_s1u_fteid,
-                                                        struct srslte::gtpc_pdn_address_allocation_ie pdn_addr_alloc)
+                                                        erab_ctx_t *erab_ctx)
 {
   int s1mme = m_s1ap->get_s1_mme();
 
@@ -97,7 +94,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
 
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *in_ctxt_req = &init->choice.InitialContextSetupRequest;
   
-  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
+  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx_req = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
 
   m_s1ap_log->info("Preparing to send Initial Context Setup request\n");
@@ -112,28 +109,28 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
 
   //Setup eRAB context
   in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
-  erab_ctxt->e_RAB_ID.E_RAB_ID = erab_id;
+  erab_ctx_req->e_RAB_ID.E_RAB_ID = erab_ctx->erab_id;
   //Setup E-RAB QoS parameters
-  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI = 9;
-  erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.priorityLevel.PriorityLevel = 15 ;//Lowest
-  erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionCapability = LIBLTE_S1AP_PRE_EMPTIONCAPABILITY_SHALL_NOT_TRIGGER_PRE_EMPTION;
-  erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionVulnerability = LIBLTE_S1AP_PRE_EMPTIONVULNERABILITY_PRE_EMPTABLE;
+  erab_ctx_req->e_RABlevelQoSParameters.qCI.QCI = 9;
+  erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.priorityLevel.PriorityLevel = 15 ;//Lowest
+  erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionCapability = LIBLTE_S1AP_PRE_EMPTIONCAPABILITY_SHALL_NOT_TRIGGER_PRE_EMPTION;
+  erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionVulnerability = LIBLTE_S1AP_PRE_EMPTIONVULNERABILITY_PRE_EMPTABLE;
 
-  erab_ctxt->e_RABlevelQoSParameters.gbrQosInformation_present=false;
+  erab_ctx_req->e_RABlevelQoSParameters.gbrQosInformation_present=false;
   
   //Set E-RAB S-GW F-TEID
   //if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
   //  m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
   //  return false;
   //} 
-  erab_ctxt->transportLayerAddress.n_bits = 32; //IPv4
-  uint32_t sgw_s1u_ip = htonl(sgw_s1u_fteid.ipv4);
+  erab_ctx_req->transportLayerAddress.n_bits = 32; //IPv4
+  uint32_t sgw_s1u_ip = htonl(erab_ctx->sgw_s1u_fteid.ipv4);
   //uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
-  uint8_t *tmp_ptr =  erab_ctxt->transportLayerAddress.buffer;
+  uint8_t *tmp_ptr =  erab_ctx_req->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
 
-  uint32_t sgw_s1u_teid = sgw_s1u_fteid.teid; 
-  memcpy(erab_ctxt->gTP_TEID.buffer, &sgw_s1u_teid, sizeof(uint32_t));
+  uint32_t sgw_s1u_teid = erab_ctx->sgw_s1u_fteid.teid; 
+  memcpy(erab_ctx_req->gTP_TEID.buffer, &sgw_s1u_teid, sizeof(uint32_t));
 
   //Set UE security capabilities and k_enb
   bzero(in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer,sizeof(uint8_t)*16); 
@@ -156,25 +153,13 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
     {
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 0;          //EEA not supported
     }
-    // in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
   }
   //Get K eNB
   liblte_unpack(emm_ctx->security_ctxt.k_enb, 32, in_ctxt_req->SecurityKey.buffer);
   m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB\n");
 
-  //Set Attach accepted and activat default bearer NAS messages
-  //if(cs_resp->paa_present != true)
-  //{
-  //  m_s1ap_log->error("PDN Adress Allocation not present\n");
-  //  return false;
-  //}
-  //if(cs_resp->paa.pdn_type != srslte::GTPC_PDN_TYPE_IPV4)
-  //{
-  //  m_s1ap_log->error("IPv6 not supported yet\n");
-  //  return false;
-  //}
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-  m_s1ap_nas_transport->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctxt, &pdn_addr_alloc, nas_buffer); 
+  m_s1ap_nas_transport->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &erab_ctx->pdn_addr_alloc, nas_buffer); 
 
   
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
@@ -192,15 +177,15 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   }
 
   //Change E-RAB state to Context Setup Requested and save S-GW control F-TEID
-  ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
-  ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.teid = sgw_ctrl_fteid.teid;
-  ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
+  ecm_ctx->erabs_ctx[erab_ctx_req->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
+  //ecm_ctx->erabs_ctx[erab_ctx_req->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.teid = sgw_ctrl_fteid.teid;
+  //ecm_ctx->erabs_ctx[erab_ctx_req->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
 
   struct in_addr addr;
   addr.s_addr = htonl(sgw_s1u_ip);
-  m_s1ap_log->info("Sent Intial Context Setup Request. E-RAB id %d \n",erab_ctxt->e_RAB_ID.E_RAB_ID);
+  m_s1ap_log->info("Sent Intial Context Setup Request. E-RAB id %d \n",erab_ctx_req->e_RAB_ID.E_RAB_ID);
   m_s1ap_log->info("Initial Context -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
-  m_s1ap_log->console("Sent Intial Context Setup Request, E-RAB id %d\n",erab_ctxt->e_RAB_ID.E_RAB_ID);
+  m_s1ap_log->console("Sent Intial Context Setup Request, E-RAB id %d\n",erab_ctx_req->e_RAB_ID.E_RAB_ID);
   m_s1ap_log->console("Initial Context -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
 
   m_pool->deallocate(reply_buffer);

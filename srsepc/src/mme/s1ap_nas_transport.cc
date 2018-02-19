@@ -630,13 +630,17 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     {
       //Service request to Connected UE.
       //Delete eNB context and connect.
-
+      m_s1ap_log->console("Service Request -- User has ECM context already\n");
+      m_s1ap_log->info("Service Request -- User has ECM context already\n");
       m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ecm_ctx);
+      int default_bearer_id = 5;
+      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id]);
     }
     else
     {
       //UE not connect. Connect normally.
+      m_s1ap_log->console("Service Request -- User without ECM context\n");
+      m_s1ap_log->info("Service Request -- User without ECM context\n");
     }
   }
   else
