@@ -77,7 +77,12 @@ s1ap_ctx_mngmt_proc::init(void)
 }
 
 bool
-s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid)
+s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
+                                                        ue_ecm_ctx_t *ecm_ctx,
+                                                        uint16_t erab_id,
+                                                        struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid,
+                                                        struct srslte::gtpc_f_teid_ie sgw_s1u_fteid,
+                                                        struct srslte::gtpc_pdn_address_allocation_ie pdn_addr_alloc)
 {
   int s1mme = m_s1ap->get_s1_mme();
 
@@ -97,23 +102,9 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
 
   m_s1ap_log->info("Preparing to send Initial Context Setup request\n");
 
-  //Find UE Context
-  ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
-  if(ue_ecm_ctx == NULL)
-  {
-    m_s1ap_log->error("Could not find UE to send Setup Context Request. MME S1AP Id: %d", mme_ue_s1ap_id);
-    return false;
-  }
-  ue_emm_ctx_t *ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
-  if(ue_emm_ctx == NULL)
-  {
-    m_s1ap_log->error("Could not find UE to send Setup Context Request. MME S1AP Id: %d", mme_ue_s1ap_id);
-    return false;
-  }
-
   //Add MME and eNB S1AP Ids
-  in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ecm_ctx->mme_ue_s1ap_id;
-  in_ctxt_req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ecm_ctx->enb_ue_s1ap_id;
+  in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ecm_ctx->mme_ue_s1ap_id;
+  in_ctxt_req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ecm_ctx->enb_ue_s1ap_id;
 
   //Set UE-AMBR
   in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=1000000000;
@@ -121,7 +112,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
 
   //Setup eRAB context
   in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
-  erab_ctxt->e_RAB_ID.E_RAB_ID = cs_resp->eps_bearer_context_created.ebi;
+  erab_ctxt->e_RAB_ID.E_RAB_ID = erab_id;
   //Setup E-RAB QoS parameters
   erab_ctxt->e_RABlevelQoSParameters.qCI.QCI = 9;
   erab_ctxt->e_RABlevelQoSParameters.allocationRetentionPriority.priorityLevel.PriorityLevel = 15 ;//Lowest
@@ -131,25 +122,25 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
   erab_ctxt->e_RABlevelQoSParameters.gbrQosInformation_present=false;
   
   //Set E-RAB S-GW F-TEID
-  if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
-    m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
-    return false;
-  } 
+  //if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
+  //  m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
+  //  return false;
+  //} 
   erab_ctxt->transportLayerAddress.n_bits = 32; //IPv4
-  uint32_t sgw_s1u_ip = htonl(cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4);
+  uint32_t sgw_s1u_ip = htonl(sgw_s1u_fteid.ipv4);
   //uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
   uint8_t *tmp_ptr =  erab_ctxt->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
 
-  uint32_t tmp_teid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid; 
-  memcpy(erab_ctxt->gTP_TEID.buffer, &tmp_teid, sizeof(uint32_t));
+  uint32_t sgw_s1u_teid = sgw_s1u_fteid.teid; 
+  memcpy(erab_ctxt->gTP_TEID.buffer, &sgw_s1u_teid, sizeof(uint32_t));
 
   //Set UE security capabilities and k_enb
   bzero(in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer,sizeof(uint8_t)*16); 
   bzero(in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer,sizeof(uint8_t)*16); 
   for(int i = 0; i<3; i++)
   {
-    if(ue_emm_ctx->security_ctxt.ue_network_cap.eea[i+1] == true)
+    if(emm_ctx->security_ctxt.ue_network_cap.eea[i+1] == true)
     {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 1;          //EEA supported
     }
@@ -157,7 +148,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 0;          //EEA not supported
     }
-    if(ue_emm_ctx->security_ctxt.ue_network_cap.eia[i+1] == true)
+    if(emm_ctx->security_ctxt.ue_network_cap.eia[i+1] == true)
     {
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 1;          //EEA supported
     }
@@ -168,21 +159,22 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     // in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[0] = 1; //EIA1
   }
   //Get K eNB
-  liblte_unpack(ue_emm_ctx->security_ctxt.k_enb, 32, in_ctxt_req->SecurityKey.buffer);
-  m_s1ap_log->info_hex(ue_emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB\n");
+  liblte_unpack(emm_ctx->security_ctxt.k_enb, 32, in_ctxt_req->SecurityKey.buffer);
+  m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB\n");
+
   //Set Attach accepted and activat default bearer NAS messages
-  if(cs_resp->paa_present != true)
-  {
-    m_s1ap_log->error("PAA not present\n");
-    return false;
-  }
-  if(cs_resp->paa.pdn_type != srslte::GTPC_PDN_TYPE_IPV4)
-  {
-    m_s1ap_log->error("IPv6 not supported yet\n");
-    return false;
-  }
+  //if(cs_resp->paa_present != true)
+  //{
+  //  m_s1ap_log->error("PDN Adress Allocation not present\n");
+  //  return false;
+  //}
+  //if(cs_resp->paa.pdn_type != srslte::GTPC_PDN_TYPE_IPV4)
+  //{
+  //  m_s1ap_log->error("IPv6 not supported yet\n");
+  //  return false;
+  //}
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-  m_s1ap_nas_transport->pack_attach_accept(ue_emm_ctx, ue_ecm_ctx, erab_ctxt, &cs_resp->paa, nas_buffer); 
+  m_s1ap_nas_transport->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctxt, &pdn_addr_alloc, nas_buffer); 
 
   
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
@@ -192,7 +184,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
     return false;
   }
   //Send Reply to eNB 
-  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ue_ecm_ctx->enb_sri, 0);
+  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ecm_ctx->enb_sri, 0);
   if(n_sent == -1)
   {
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
@@ -200,16 +192,16 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(uint32_t mme_ue_s1ap_id,
   }
 
   //Change E-RAB state to Context Setup Requested and save S-GW control F-TEID
-  ue_ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
-  ue_ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.teid = sgw_ctrl_fteid.teid;
-  ue_ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
+  ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
+  ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.teid = sgw_ctrl_fteid.teid;
+  ecm_ctx->erabs_ctx[erab_ctxt->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
 
   struct in_addr addr;
   addr.s_addr = htonl(sgw_s1u_ip);
   m_s1ap_log->info("Sent Intial Context Setup Request. E-RAB id %d \n",erab_ctxt->e_RAB_ID.E_RAB_ID);
-  m_s1ap_log->info("Initial Context -- S1-U TEID 0x%x. IP %s \n", tmp_teid,inet_ntoa(addr));
+  m_s1ap_log->info("Initial Context -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
   m_s1ap_log->console("Sent Intial Context Setup Request, E-RAB id %d\n",erab_ctxt->e_RAB_ID.E_RAB_ID);
-  m_s1ap_log->console("Initial Context -- S1-U TEID 0x%x. IP %s \n", tmp_teid,inet_ntoa(addr));
+  m_s1ap_log->console("Initial Context -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
 
   m_pool->deallocate(reply_buffer);
   m_pool->deallocate(nas_buffer);
