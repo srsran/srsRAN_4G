@@ -378,7 +378,6 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   //Save whether secure ESM information transfer is necessary
   ue_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
 
-  //Add eNB info to UE ctxt
   //Initialize E-RABs
   for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
   {
@@ -543,6 +542,28 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       msg_valid = integrity_check(ue_emm_ctx,nas_msg);
       if(msg_valid == true)
       {
+        //Create new MME UE S1AP Identity
+        ue_emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+
+        //Create UE ECM context
+        ue_ecm_ctx_t ue_ecm_ctx;
+
+        //Set UE ECM context
+        ue_ecm_ctx.imsi = ue_emm_ctx->imsi;
+        ue_ecm_ctx.mme_ue_s1ap_id = ue_emm_ctx->mme_ue_s1ap_id;
+        //Set eNB information
+        ue_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+        memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+        //Save whether secure ESM information transfer is necessary
+        ue_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
+
+        //Initialize E-RABs
+        for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
+        {
+            ue_ecm_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
+            ue_ecm_ctx.erabs_ctx[i].erab_id = i;
+        }
+        m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
         //Create session request
         m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.");
         m_mme_gtpc->send_create_session_request(ue_emm_ctx->imsi, ue_emm_ctx->mme_ue_s1ap_id);
@@ -608,9 +629,10 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     if(ecm_ctx !=NULL)
     {
       //Service request to Connected UE.
-      //Delete ECM context and connect.
-      m_mme_gtpc->send_delete_session_request(ecm_ctx);
-      //m_s1ap send_context_release_request(ecm_ctx, reply_buffer);
+      //Delete eNB context and connect.
+
+      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
+      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ecm_ctx);
     }
     else
     {
