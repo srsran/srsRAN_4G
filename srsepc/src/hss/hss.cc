@@ -27,6 +27,7 @@
 #include <time.h>       /* time */
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <boost/thread/mutex.hpp>
 #include "hss/hss.h"
 #include "srslte/common/security.h"
@@ -39,8 +40,6 @@ hss*          hss::m_instance = NULL;
 boost::mutex  hss_instance_mutex;
 
 hss::hss()
-// :m_sqn(0x112233445566)
-  :m_sqn(0)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();
   return;
@@ -92,26 +91,25 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
 
   mcc = hss_args->mcc;
   mnc = hss_args->mnc;
+  
+  db_file = hss_args->db_file;
 
   m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s, MCC: %d, MNC: %d\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str(), mcc, mnc);
-  m_hss_log->console("HSS Initialized\n");
+  m_hss_log->console("HSS Initialized.\n");
   return 0;
 }
 
 void
 hss::stop(void)
 {
+  write_db_file(db_file);
   std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
   while(it!=m_imsi_to_ue_ctx.end())
     {
-      m_hss_log->info("Deleting UE context in HSS. IMSI: %lu\n", it->second->imsi);
-      m_hss_log->console("Deleting UE context in HSS. IMSI: %lu\n", it->second->imsi);
+      m_hss_log->info("Deleting UE context in HSS. IMSI: %015lu\n", it->second->imsi);
+      m_hss_log->console("Deleting UE context in HSS. IMSI: %015lu\n", it->second->imsi);
       delete it->second;
       m_imsi_to_ue_ctx.erase(it++);
-    }
-  if(m_db_file.is_open())
-    {
-      m_db_file.close();
     }
   return;
 }
@@ -139,6 +137,8 @@ hss::set_auth_algo(std::string auth_algo)
 bool
 hss::read_db_file(std::string db_filename)
 {
+  std::ifstream m_db_file;
+  
   m_db_file.open(db_filename.c_str(), std::ifstream::in);
   if(!m_db_file.is_open())
   {
@@ -152,7 +152,7 @@ hss::read_db_file(std::string db_filename)
     if(line[0] != '#')
     {
       std::vector<std::string> split = split_string(line,','); 
-      if(split.size()!=5)
+      if(split.size()!=6)
       {
         m_hss_log->error("Error parsing UE database\n");
         return false;
@@ -163,16 +163,65 @@ hss::read_db_file(std::string db_filename)
       get_uint_vec_from_hex_str(split[2],ue_ctx->key,16);
       get_uint_vec_from_hex_str(split[3],ue_ctx->op,16);
       get_uint_vec_from_hex_str(split[4],ue_ctx->amf,2);
+      get_uint_vec_from_hex_str(split[5],ue_ctx->sqn,6);
 
       m_hss_log->debug("Added user from DB, IMSI: %015lu\n", ue_ctx->imsi);
       m_hss_log->debug_hex(ue_ctx->key, 16, "User Key : ");
       m_hss_log->debug_hex(ue_ctx->op, 16, "User OP : ");
       m_hss_log->debug_hex(ue_ctx->amf, 2, "AMF : ");
+      m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN : ");
 
       m_imsi_to_ue_ctx.insert(std::pair<uint64_t,hss_ue_ctx_t*>(ue_ctx->imsi,ue_ctx));
     }
   }
 
+  if(m_db_file.is_open())
+  {
+    m_db_file.close();
+  }
+
+  return true;
+}
+
+bool hss::write_db_file(std::string db_filename)
+{
+  std::string line;
+  uint8_t k[16];
+  uint8_t amf[2];
+  uint8_t op[16];
+  uint8_t sqn[6];
+
+  std::ofstream m_db_file;
+  
+  m_db_file.open(db_filename.c_str(), std::ofstream::out);
+  if(!m_db_file.is_open())
+  {
+    return false;
+  }
+  m_hss_log->info("Opened DB file: %s\n", db_filename.c_str() );
+
+  std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
+  while(it!=m_imsi_to_ue_ctx.end())
+  {
+      m_db_file << it->second->name;
+      m_db_file << ",";
+      m_db_file << std::setfill('0') << std::setw(15) << it->second->imsi;
+      m_db_file << ",";
+      m_db_file << hex_string(it->second->key, 16);
+      m_db_file << ",";
+      m_db_file << hex_string(it->second->op, 16);
+      m_db_file << ",";
+      m_db_file << hex_string(it->second->amf, 2);
+      m_db_file << ",";
+      m_db_file << hex_string(it->second->sqn, 6);
+      m_db_file << std::endl;
+      it++;
+  }
+  
+  if(m_db_file.is_open())
+  {
+    m_db_file.close();
+  }
   return true;
 }
 
@@ -189,8 +238,99 @@ hss::gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t
     ret = gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, xres);
     break;
   }
+  increment_sqn(imsi);
   return ret;
 
+}
+
+bool 
+hss::resync_sqn(uint64_t imsi, uint8_t *auts)
+{
+  bool ret = false;
+  switch (m_auth_algo)
+  {
+  case HSS_ALGO_XOR:
+    ret = resync_sqn_xor(imsi, auts);
+    break;
+  case HSS_ALGO_MILENAGE:
+    ret = resync_sqn_milenage(imsi, auts);
+    break;
+  }
+  increment_sqn(imsi);
+  return ret;
+}
+
+bool 
+hss::resync_sqn_xor(uint64_t imsi, uint8_t *auts)
+{
+  m_hss_log->error("XOR SQN synchronization not supported yet\n");
+  m_hss_log->console("XOR SQNs synchronization not supported yet\n");
+  return false;
+}
+
+
+bool 
+hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
+{
+  uint8_t last_rand[16];
+  uint8_t ak[6];
+  uint8_t mac_s[8];
+  uint8_t sqn_ms_xor_ak[6];
+
+  uint8_t k[16];
+  uint8_t amf[2];
+  uint8_t op[16];
+  uint8_t sqn[6];
+
+  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
+  {
+    return false;
+  }
+
+  get_last_rand(imsi, last_rand);
+
+  for(int i=0; i<6; i++){
+    sqn_ms_xor_ak[i] = auts[i];
+  }
+
+  for(int i=0; i<8; i++){
+    mac_s[i] = auts[i+6];
+  }
+
+  m_hss_log->debug_hex(k, 16, "User Key : ");
+  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(last_rand, 16, "User Last Rand : ");
+  m_hss_log->debug_hex(auts, 16, "AUTS : ");
+  m_hss_log->debug_hex(sqn_ms_xor_ak, 6, "SQN xor AK : ");
+  m_hss_log->debug_hex(mac_s, 8, "MAC : ");
+
+  security_milenage_f5_star(k, op, last_rand, ak);
+  m_hss_log->debug_hex(ak, 6, "Resynch AK : ");
+
+  uint8_t sqn_ms[6];
+  for(int i=0; i<6; i++){
+    sqn_ms[i] = sqn_ms_xor_ak[i] ^ ak[i];
+  }
+  m_hss_log->debug_hex(sqn_ms, 6, "SQN MS : ");
+
+  m_hss_log->debug_hex(amf, 2, "AMF : ");
+
+  uint8_t mac_s_tmp[8];
+
+  security_milenage_f1_star(k, op, last_rand, sqn_ms, amf, mac_s_tmp);
+
+  m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
+  /*
+  for(int i=0; i<8; i++){
+    if(!(mac_s_tmp[i] == mac_s[i])){
+      m_hss_log->error("Calculated MAC does not match sent MAC\n");
+      return false;
+    }
+  }
+  */
+  set_sqn(imsi, sqn_ms);
+
+  return true;
 }
 
 bool
@@ -207,13 +347,12 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   uint8_t     mac[8];
 
 
-  if(!get_k_amf_op(imsi,k,amf,op))
+  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
   {
     return false;
   }
   gen_rand(rand);
-  get_sqn(sqn);
- 
+  
   security_milenage_f2345( k,
                            op,
                            rand,
@@ -268,6 +407,8 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   
   m_hss_log->debug_hex(autn, 16, "User AUTN: ");
 
+  set_last_rand(imsi, rand);
+
   return true;
 }
 
@@ -289,12 +430,11 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
 
   int i = 0;
 
-  if(!get_k_amf_op(imsi,k,amf,op))
+  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
   {
     return false;
   }
   gen_rand(rand);
-  get_sqn(sqn);
 
   // Use RAND and K to compute RES, CK, IK and AK
   for(i=0; i<16; i++) {
@@ -376,19 +516,16 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
 
   m_hss_log->debug_hex(autn, 8, "User AUTN: ");
 
+  set_last_rand(imsi, rand);
+
   return true;
 }
 
 
 bool
-hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
+hss::get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint8_t *sqn)
 {
 
-  /*
-  uint8_t k_tmp[16] ={0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff};
-  uint8_t amf_tmp[2]={0x80,0x00};
-  uint8_t op_tmp[16]={0x63,0xbf,0xA5,0x0E,0xE6,0x52,0x33,0x65,0xFF,0x14,0xC1,0xF4,0x5F,0x88,0x73,0x7D};
-  */
   std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if(ue_ctx_it == m_imsi_to_ue_ctx.end())
   {
@@ -398,22 +535,76 @@ hss::get_k_amf_op(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op )
   }
   hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
   m_hss_log->info("Found User %015lu\n",imsi);
-  memcpy(k,ue_ctx->key,16);
-  memcpy(amf,ue_ctx->amf,2);
-  memcpy(op,ue_ctx->op,16);
+  memcpy(k, ue_ctx->key, 16);
+  memcpy(amf, ue_ctx->amf, 2);
+  memcpy(op, ue_ctx->op, 16);
+  memcpy(sqn, ue_ctx->sqn, 6);
 
   return true;
 }
 
-void
-hss::get_sqn(uint8_t sqn[6])
+void 
+hss::increment_sqn(uint64_t imsi)
 {
-  for (int i=0; i<6; i++)
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
+  if(ret == false)
   {
-    sqn[i] = ((uint8_t *)&m_sqn)[i];  
+    return;
   }
-  m_sqn++;
-  return; //TODO See TS 33.102, Annex C
+
+  // Awkward 48 bit sqn and doing arithmetic 
+  uint64_t sqn = 0;
+  uint8_t *p = (uint8_t *)&sqn;
+
+  for(int i = 0; i < 6; i++) {
+    p[5-i] = (uint8_t) ((ue_ctx->sqn[i]));
+  }
+  
+  sqn++;
+  
+  m_hss_log->debug("Incremented SQN (IMSI: %015lu) SQN: %d\n", imsi, sqn);
+
+  for(int i = 0; i < 6; i++){
+    ue_ctx->sqn[i] = p[5-i];
+  }
+}
+
+void
+hss::set_sqn(uint64_t imsi, uint8_t *sqn)
+{
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
+  if(ret == false)
+  {
+    return;
+  }
+  memcpy(ue_ctx->sqn, sqn, 6);
+}
+
+void
+hss::set_last_rand(uint64_t imsi, uint8_t *rand)
+{
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
+  if(ret == false)
+  {
+    return;
+  }
+  memcpy(ue_ctx->last_rand, rand, 16);
+
+}
+
+void
+hss::get_last_rand(uint64_t imsi, uint8_t *rand)
+{
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
+  if(ret == false)
+  {
+    return;
+  }
+  memcpy(rand, ue_ctx->last_rand, 16);
 }
 
 void
@@ -424,6 +615,19 @@ hss::gen_rand(uint8_t rand_[16])
     rand_[i]=rand()%256; //Pulls on byte at a time. It's slow, but does not depend on RAND_MAX.
   }
   return;
+}
+
+bool hss::get_ue_ctx(uint64_t imsi, hss_ue_ctx_t **ue_ctx)
+{
+  std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
+  if(ue_ctx_it == m_imsi_to_ue_ctx.end())
+  {
+    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
+    return false;
+  }
+  
+  *ue_ctx = ue_ctx_it->second;
+  return true;
 }
 
 /* Helper functions*/
@@ -454,6 +658,18 @@ hss::get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint le
   return;
 }
 
+
+std::string 
+hss::hex_string(uint8_t *hex, int size)
+{
+  std::stringstream ss;
+
+  ss << std::hex << std::setfill('0');
+  for(int i=0;i<size;i++) {
+    ss << std::setw(2) << static_cast<unsigned>(hex[i]);
+  }
+  return ss.str();
+}
   /*
 uint64_t
 string_to_imsi()

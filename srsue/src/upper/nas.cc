@@ -665,6 +665,11 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
 
   pdu->reset();
   liblte_mme_pack_identity_response_msg(&id_resp, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
+
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
   rrc->write_sdu(lcid, pdu);
 }
 
