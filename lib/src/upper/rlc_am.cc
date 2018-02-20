@@ -72,14 +72,6 @@ rlc_am::~rlc_am()
 {
   // reset RLC and dealloc SDUs
   stop();
-
-  if(rx_sdu) {
-    pool->deallocate(rx_sdu);
-  }
-
-  if(tx_sdu) {
-    pool->deallocate(tx_sdu);
-  }
 }
 
 void rlc_am::init(srslte::log                 *log_,
