@@ -42,7 +42,10 @@ namespace srslte {
   {
   public:
     void log(std::string *msg) {
-      fprintf(stdout, "%s", msg->c_str());
+      if (msg) {
+        fprintf(stdout, "%s", msg->c_str());
+        delete msg;
+      }
     }
   };
 
