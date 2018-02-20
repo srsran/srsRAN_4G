@@ -224,6 +224,9 @@ spgw::init_sgi_if(spgw_args_t *args)
     return srslte::ERROR_CANT_START;
   }
 
+  //Set initial time of setup
+  gettimeofday(&m_t_last_dl, NULL);
+
   m_sgi_up = true;
   return(srslte::ERROR_NONE);
 }
@@ -297,15 +300,11 @@ spgw::run_thread()
       if (FD_ISSET(m_s1u, &set))
       {
         msg->N_bytes = recvfrom(m_s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen );
-        //m_spgw_log->console("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
-        //m_spgw_log->debug("Received PDU from S1-U. Bytes %d\n", msg->N_bytes);
         handle_s1u_pdu(msg);
       }
       if (FD_ISSET(m_sgi_if, &set))
       {
         msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-        //m_spgw_log->console("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
-        //m_spgw_log->debug("Received PDU from SGi. Bytes %d\n", msg->N_bytes);
         handle_sgi_pdu(msg);
       }
     }
@@ -328,6 +327,8 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   bool ip_found = false;
   srslte::gtpc_f_teid_ie enb_fteid;
 
+  struct timeval t_now, t_delta;
+ 
   version = msg->msg[0]>>4;
   ((uint8_t*)&dest_ip)[0] = msg->msg[16]; 
   ((uint8_t*)&dest_ip)[1] = msg->msg[17];
@@ -380,8 +381,18 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
     m_spgw_log->error("Error sending packet to eNB\n");
     return;
   }
-  //m_spgw_log->console("Sent packet to %s:%d. Bytes=%d/%d\n",inet_ntoa(enb_addr.sin_addr), GTPU_RX_PORT,n,msg->N_bytes);
-
+  else if((unsigned int) n!=msg->N_bytes)
+  {
+    m_spgw_log->error("Mis-match between packet bytes and sent bytes: Sent: %d, Packet: %d \n",n,msg->N_bytes);
+  }
+  t_delta.tv_sec = t_now.tv_sec - m_t_last_dl.tv_sec;
+  t_delta.tv_usec = t_now.tv_sec - m_t_last_dl.tv_usec;
+  gettimeofday(&t_now, NULL);
+  if(t_delta.tv_sec>=5)
+  {
+    m_t_last_dl = t_now;
+    m_spgw_log->console("Sent %d bytes DL over the last %d.%d seconds. Bitrate = \n",msg->N_bytes, t_delta.tv_sec, t_delta.tv_usec/1000);
+  }
   return;
 }
 

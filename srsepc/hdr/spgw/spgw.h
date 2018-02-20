@@ -117,6 +117,10 @@ private:
 
   uint32_t m_h_next_ue_ip;
 
+  /*Time*/
+  struct timeval m_t_last_dl;
+  struct timeval m_t_last_ul;
+
   /*Logs*/
   srslte::log_filter  *m_spgw_log;
 
