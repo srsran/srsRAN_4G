@@ -305,7 +305,7 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   pthread_mutex_lock(&mutex);
 
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
-  log->debug("tx_window size - %d PDUs\n", tx_window.size());
+  log->debug("tx_window size - %zu PDUs\n", tx_window.size());
 
   // Tx STATUS if requested
   if(do_status && !status_prohibited()) {
@@ -657,7 +657,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
   if(pdu_len > (int)nof_bytes) {
     log->error("%s Retx PDU segment length error. Available: %d, Used: %d\n",
                rrc->get_rb_name(lcid).c_str(), nof_bytes, pdu_len);
-    log->debug("%s Retx PDU segment length error. Header len: %d, Payload len: %d, N_li: %d\n",
+    log->debug("%s Retx PDU segment length error. Header len: %ld, Payload len: %d, N_li: %d\n",
                rrc->get_rb_name(lcid).c_str(), (ptr-payload), len, new_header.N_li);
   }
   return pdu_len;

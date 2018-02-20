@@ -201,7 +201,7 @@ void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte
     float scale = sqrtf(pow(10,tx_power/10)/digital_power);
     
     srslte_vec_sc_prod_cfc(signal_buffer, scale, signal_buffer, len);
-    log_h->console("PRACH: Pathloss=%.2f dB, Target power %.2f dBm, TX_power %.2f dBm, TX_gain %.1f dB\n",
+    log_h->console("PRACH: Pathloss=%.2f dB, Target power %.2f dBm, TX_power %.2f dBm, TX_gain %.1f dB, scale %.2f\n",
           pathloss, target_power_dbm, tx_power, radio_handler->get_tx_gain(), scale);
     
   } else {

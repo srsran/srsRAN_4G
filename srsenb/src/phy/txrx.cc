@@ -127,7 +127,7 @@ void txrx::run_thread()
       srslte_timestamp_copy(&tx_time, &rx_time);
       srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3);
       
-      Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
+      Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d\n", 
             tti, tx_mutex_cnt, 
             tx_time.full_secs, tx_time.frac_secs,
             worker->get_id());
