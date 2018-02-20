@@ -71,6 +71,7 @@ class rlc_am
 {
 public:
   rlc_am();
+  ~rlc_am();
   void init(log          *rlc_entity_log_,
             uint32_t              lcid_,
             srsue::pdcp_interface_rlc   *pdcp_,

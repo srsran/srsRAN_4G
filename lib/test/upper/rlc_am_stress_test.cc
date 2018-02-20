@@ -85,6 +85,7 @@ private:
       usleep(100);
     }
     running = false;
+    byte_buffer_pool::get_instance()->deallocate(pdu);
   }
 
   rlc_interface_mac *rlc1;
