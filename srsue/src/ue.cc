@@ -196,7 +196,8 @@ bool ue::init(all_args_t *args_)
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
   usim.init(&args->usim, &usim_log);
-  nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
+  srslte_nas_config_t nas_cfg(1, args->apn); /* RB_ID_SRB1 */
+  nas.init(&usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
 
   gw.set_netmask(args->expert.ip_netmask);

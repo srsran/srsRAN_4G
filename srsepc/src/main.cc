@@ -81,6 +81,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string mcc;
   string mnc;
   string mme_bind_addr;
+  string mme_apn;
   string spgw_bind_addr;
   string sgi_if_addr;
   string hss_db_file;
@@ -105,6 +106,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("mme.mcc",             bpo::value<string>(&mcc)->default_value("001"),                          "Mobile Country Code")
     ("mme.mnc",             bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
     ("mme.mme_bind_addr",   bpo::value<string>(&mme_bind_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connnection")
+    ("mme.apn",             bpo::value<string>(&mme_apn)->default_value(""),                   "Set Access Point Name (APN) for data services")
     ("hss.db_file",         bpo::value<string>(&hss_db_file)->default_value("ue_db.csv"),".csv file that stores UE's keys")
     ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),"HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"),"IP address of SP-GW for the S1-U connection")
@@ -204,6 +206,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   }
 
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
+  args->mme_args.s1ap_args.mme_apn = mme_apn;
   args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
   args->spgw_args.sgi_if_addr = sgi_if_addr;
   args->hss_args.db_file = hss_db_file;
