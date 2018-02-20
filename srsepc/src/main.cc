@@ -204,6 +204,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   }
 
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
+  args->mme_args.s1ap_args.mme_name = mme_name;
   args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
   args->spgw_args.sgi_if_addr = sgi_if_addr;
   args->hss_args.db_file = hss_db_file;

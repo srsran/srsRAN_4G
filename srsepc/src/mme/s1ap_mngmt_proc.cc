@@ -102,6 +102,7 @@ s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRU
     {
       //eNB already registered
       //TODO replace enb_ctx
+      m_s1ap_log->warning("eNB Already registered\n");
     }
     else
     {
@@ -218,11 +219,11 @@ s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buff
   succ->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
   succ->criticality = LIBLTE_S1AP_CRITICALITY_IGNORE;
   succ->choice_type = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE;
- 
+
   LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* s1_resp=(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT*)&succ->choice;
 
   s1_resp->ext=false;
-  
+
   //MME Name
   s1_resp->MMEname_present=true;
   s1_resp->MMEname.ext=false;
