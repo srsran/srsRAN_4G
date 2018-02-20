@@ -164,6 +164,7 @@ public:
     }
     b->reset();
     pool->deallocate(b);
+    b = NULL;
   }
 private:
   buffer_pool<byte_buffer_t> *pool; 

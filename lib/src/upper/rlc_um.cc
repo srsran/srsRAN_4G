@@ -59,6 +59,11 @@ rlc_um::rlc_um() : tx_sdu_queue(16)
   pdu_lost = false;
 }
 
+rlc_um::~rlc_um()
+{
+  stop();
+}
+
 void rlc_um::init(srslte::log                 *log_,
                   uint32_t                     lcid_,
                   srsue::pdcp_interface_rlc   *pdcp_,
@@ -114,12 +119,13 @@ void rlc_um::empty_queue() {
 void rlc_um::stop()
 {
   reset();
-  mac_timers->timer_release_id(reordering_timer_id);
+  if (mac_timers) {
+    mac_timers->timer_release_id(reordering_timer_id);
+  }
 }
 
 void rlc_um::reset()
 {
-  
   // Empty tx_sdu_queue before locking the mutex 
   empty_queue();
 
@@ -129,12 +135,17 @@ void rlc_um::reset()
   vr_ux    = 0;
   vr_uh    = 0;
   pdu_lost = false;
-  if(rx_sdu)
-    rx_sdu->reset();
-  if(tx_sdu)
-    tx_sdu->reset();
-  if(mac_timers)
+  if(rx_sdu) {
+    pool->deallocate(rx_sdu);
+  }
+
+  if(tx_sdu) {
+    pool->deallocate(tx_sdu);
+  }
+
+  if(mac_timers) {
     reordering_timer->stop();
+  }
   
   // Drop all messages in RX window
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it;
