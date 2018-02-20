@@ -1680,7 +1680,7 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
       parse_dl_dcch(lcid, pdu);
       break;
     default:
-      rrc_log->error("RX PDU with invalid bearer id: %s", lcid);
+      rrc_log->error("RX PDU with invalid bearer id: %d", lcid);
       break;
   }
 }
@@ -2891,8 +2891,8 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 
           log_h->info("MEAS: Added measObjectId=%d, earfcn=%d, q_offset=%f, pci=%d, offset_cell=%f\n",
                       cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_id, dst_obj->earfcn, dst_obj->q_offset,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci);
+                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci,
+                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset);
 
         }
 

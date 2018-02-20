@@ -1128,13 +1128,13 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
   m_s1ap_log->info("ESM Info: EPS bearer id %d\n",esm_info_resp.eps_bearer_id);
   if(esm_info_resp.apn_present)
   {
-    m_s1ap_log->info("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
-    m_s1ap_log->console("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
+    m_s1ap_log->info("ESM Info: APN %d\n",esm_info_resp.eps_bearer_id);
+    m_s1ap_log->console("ESM Info: APN %d\n",esm_info_resp.eps_bearer_id);
   }
   if(esm_info_resp.protocol_cnfg_opts_present)
   {
-    m_s1ap_log->info("ESM Info: %d Protocol Configuration Options %s\n",esm_info_resp.protocol_cnfg_opts.N_opts);
-    m_s1ap_log->console("ESM Info: %d Protocol Configuration Options %s\n",esm_info_resp.protocol_cnfg_opts.N_opts);
+    m_s1ap_log->info("ESM Info: %d Protocol Configuration Options\n",esm_info_resp.protocol_cnfg_opts.N_opts);
+    m_s1ap_log->console("ESM Info: %d Protocol Configuration Options\n",esm_info_resp.protocol_cnfg_opts.N_opts);
   }
 
   //FIXME The packging of GTP-C messages is not ready.
