@@ -954,7 +954,7 @@ phch_recv::sfn_sync::ret_code phch_recv::sfn_sync::run_subframe(srslte_cell_t *c
   srslte_ue_sync_decode_sss_on_track(ue_sync, true);
   int ret = srslte_ue_sync_zerocopy_multi(ue_sync, buffer);
   if (ret < 0) {
-    Error("SYNC:  Error calling ue_sync_get_buffer");
+    Error("SYNC:  Error calling ue_sync_get_buffer.\n");
     return ERROR;
   }
 
