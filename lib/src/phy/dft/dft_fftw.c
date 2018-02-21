@@ -58,10 +58,12 @@ void srslte_dft_exit() {
 #ifdef FFTW_WISDOM_FILE
   fftwf_export_wisdom_to_filename(FFTW_WISDOM_FILE);
 #endif
+  fftwf_cleanup();
 }
 
 int srslte_dft_plan(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir,
              srslte_dft_mode_t mode) {
+  bzero(plan, sizeof(srslte_dft_plan_t));
   if(mode == SRSLTE_DFT_COMPLEX){
     return srslte_dft_plan_c(plan,dft_points,dir);
   } else {
