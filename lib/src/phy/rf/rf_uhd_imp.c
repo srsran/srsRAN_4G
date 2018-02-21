@@ -334,11 +334,12 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       perror("malloc");
       return -1; 
     }
+    bzero(handler, sizeof(rf_uhd_handler_t));
     *h = handler; 
-    
+
     /* Set priority to UHD threads */
     uhd_set_thread_priority(uhd_default_thread_priority, true);
-    
+
     /* Find available devices */
     uhd_string_vector_handle devices_str;
     uhd_string_vector_make(&devices_str);
