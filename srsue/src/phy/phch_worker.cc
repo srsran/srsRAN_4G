@@ -203,6 +203,22 @@ float phch_worker::get_ref_cfo()
   return srslte_chest_dl_get_cfo(&ue_dl.chest);
 }
 
+float phch_worker::get_snr()
+{
+  return 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest));
+}
+
+float phch_worker::get_rsrp()
+{
+  return 10*log10(srslte_chest_dl_get_rsrp(&ue_dl.chest));
+}
+
+float phch_worker::get_noise()
+{
+  return 10*log10(srslte_chest_dl_get_noise_estimate(&ue_dl.chest));
+}
+
+
 float phch_worker::get_cfo()
 {
   return cfo;
@@ -1370,7 +1386,7 @@ void phch_worker::update_measurements()
           phy->last_radio_rssi = phy->get_radio()->get_rssi();
           phy->rx_gain_offset = phy->avg_rssi_dbm - phy->last_radio_rssi + 30;
         } else {
-          phy->rx_gain_offset = phy->get_radio()->get_rx_gain();
+          phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
         }
       }
       rssi_read_cnt++;

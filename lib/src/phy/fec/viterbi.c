@@ -166,8 +166,14 @@ void free37_avx2_16bit(void *o) {
   if (q->symbols_uc) {
     free(q->symbols_uc);
   }
+  if (q->symbols_us) {
+    free(q->symbols_us);
+  }
   if (q->tmp) {
     free(q->tmp);
+  }
+  if (q->tmp_s) {
+    free(q->tmp_s);
   }
   delete_viterbi37_avx2_16bit(q->ptr);
 }
