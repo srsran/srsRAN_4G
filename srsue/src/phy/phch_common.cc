@@ -48,6 +48,8 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   max_mutex = max_mutex_;
   nof_mutex = 0;
   rx_gain_offset = 0;
+  last_ri = 0;
+  last_pmi = 0;
 
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   dl_metrics_read = true;
