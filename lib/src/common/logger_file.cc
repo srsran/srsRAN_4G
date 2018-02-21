@@ -35,6 +35,7 @@ namespace srslte{
 
 logger_file::logger_file()
   :inited(false)
+  ,logfile(NULL)
   ,not_done(true)
   ,cur_length(0)
   ,max_length(0)
@@ -46,7 +47,9 @@ logger_file::~logger_file() {
   if(inited) {
     wait_thread_finish();
     flush();
-    fclose(logfile);
+    if (logfile) {
+      fclose(logfile);
+    }
   }
 }
 
