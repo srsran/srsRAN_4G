@@ -675,7 +675,7 @@ void phch_recv::run_thread()
             case 1:
 
               if (last_worker) {
-                Info("SF: cfo_tot=%7.1f Hz, ref=%f Hz, pss=%f Hz, snr_sf=%.2f dB, rsrp=%.2f dB, noise=%.2f dB\n",
+                Debug("SF: cfo_tot=%7.1f Hz, ref=%f Hz, pss=%f Hz, snr_sf=%.2f dB, rsrp=%.2f dB, noise=%.2f dB\n",
                         srslte_ue_sync_get_cfo(&ue_sync),
                      15000*last_worker->get_ref_cfo(),
                      15000*ue_sync.strack.cfo_pss_mean,
