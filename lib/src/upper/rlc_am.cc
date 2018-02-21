@@ -68,6 +68,12 @@ rlc_am::rlc_am() : tx_sdu_queue(16)
   do_status     = false;
 }
 
+rlc_am::~rlc_am()
+{
+  // reset RLC and dealloc SDUs
+  stop();
+}
+
 void rlc_am::init(srslte::log                 *log_,
                   uint32_t                     lcid_,
                   srsue::pdcp_interface_rlc   *pdcp_,
