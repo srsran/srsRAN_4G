@@ -136,11 +136,11 @@ void rlc_um::reset()
   vr_uh    = 0;
   pdu_lost = false;
   if(rx_sdu) {
-    rx_sdu->reset();
+    pool->deallocate(rx_sdu);
   }
 
   if(tx_sdu) {
-    tx_sdu->reset();
+    pool->deallocate(tx_sdu);
   }
 
   if(mac_timers) {
