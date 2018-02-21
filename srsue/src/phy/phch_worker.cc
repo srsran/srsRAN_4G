@@ -1386,7 +1386,7 @@ void phch_worker::update_measurements()
           phy->last_radio_rssi = phy->get_radio()->get_rssi();
           phy->rx_gain_offset = phy->avg_rssi_dbm - phy->last_radio_rssi + 30;
         } else {
-          phy->rx_gain_offset = phy->get_radio()->get_rx_gain();
+          phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
         }
       }
       rssi_read_cnt++;
