@@ -618,7 +618,7 @@ TEST(srslte_vec_div_ccc,
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] / y[i];
-           mse += cabsf(gold - z[i]);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
          }
          mse /= block_size;
 
@@ -636,14 +636,14 @@ TEST(srslte_vec_div_cfc,
          cf_t gold;
          for (int i = 0; i < block_size; i++) {
            x[i] = RANDOM_CF();
-           y[i] = RANDOM_F();
+           y[i] = RANDOM_F() + 0.0001f;
          }
 
          TEST_CALL(srslte_vec_div_cfc(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] / y[i];
-           mse += cabsf(gold - z[i])/cabsf(gold);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
          }
          mse /= block_size;
 
@@ -660,15 +660,15 @@ TEST(srslte_vec_div_fff,
 
          cf_t gold;
          for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_F() + 0.0001;
-           y[i] = RANDOM_F()+ 0.0001;
+           x[i] = RANDOM_F();
+           y[i] = RANDOM_F() + 0.0001f;
          }
 
          TEST_CALL(srslte_vec_div_fff(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] / y[i];
-           mse += cabsf(gold - z[i]);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
          }
          mse /= block_size;
 
