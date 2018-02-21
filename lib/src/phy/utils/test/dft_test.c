@@ -157,6 +157,8 @@ int main(int argc, char **argv) {
   if(test_dft(in) != 0)
     return -1;
 
+  srslte_dft_exit();
+
   free(in);
 	printf("Done\n");
 	exit(0);
