@@ -40,6 +40,7 @@ log_filter::log_filter()
   do_tti      = false;
   time_src    = NULL;
   time_format = TIME;
+  logger_h    = NULL;
 }
 
 log_filter::log_filter(std::string layer)
