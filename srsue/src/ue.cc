@@ -40,12 +40,10 @@ namespace srsue{
 ue::ue()
     :started(false)
 {
-  pool = byte_buffer_pool::get_instance();
 }
 
 ue::~ue()
 {
-  byte_buffer_pool::cleanup();
 }
 
 bool ue::init(all_args_t *args_)

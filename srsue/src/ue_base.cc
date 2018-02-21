@@ -64,6 +64,12 @@ ue_base::ue_base() {
 
   // load FFTW wisdom
   srslte_dft_load();
+
+  pool = byte_buffer_pool::get_instance();
+}
+
+ue_base::~ue_base() {
+  byte_buffer_pool::cleanup();
 }
 
 void ue_base::cleanup(void)
