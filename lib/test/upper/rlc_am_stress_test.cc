@@ -44,6 +44,8 @@ typedef struct {
   uint32_t test_duration_sec;
   float    error_rate;
   uint32_t sdu_gen_delay_usec;
+  uint32_t pdu_tx_delay_usec;
+  bool     reestablish;
 } stress_test_args_t;
 
 void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
@@ -58,9 +60,11 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   // Command line or config file options
   bpo::options_description common("Configuration options");
   common.add_options()
-  ("duration", bpo::value<uint32_t>(&args->test_duration_sec)->default_value(10), "Duration (sec)")
+  ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(10), "Duration (sec)")
   ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(10), "SDU generation delay (usec)")
-  ("error_rate",     bpo::value<float>(&args->error_rate)->default_value(0.1),      "Rate at which RLC PDUs are dropped");
+  ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(10), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
+  ("error_rate",    bpo::value<float>(&args->error_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
+  ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution");
 
   // these options are allowed on the command line
   bpo::options_description cmdline_options;
@@ -83,14 +87,14 @@ class mac_reader
     :public thread
 {
 public:
-  mac_reader(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, uint32_t sdu_gen_delay_usec_)
+  mac_reader(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, uint32_t pdu_tx_delay_usec_)
   {
     rlc1 = rlc1_;
     rlc2 = rlc2_;
     fail_rate = fail_rate_;
     run_enable = true;
     running = false;
-    sdu_gen_delay_usec = sdu_gen_delay_usec_;
+    pdu_tx_delay_usec = pdu_tx_delay_usec_;
   }
 
   void stop()
@@ -125,7 +129,7 @@ private:
       if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
         rlc2->write_pdu(1, pdu->msg, opp_size);
       }
-      usleep(sdu_gen_delay_usec);
+      usleep(pdu_tx_delay_usec);
     }
     running = false;
     byte_buffer_pool::get_instance()->deallocate(pdu);
@@ -134,7 +138,7 @@ private:
   rlc_interface_mac *rlc1;
   rlc_interface_mac *rlc2;
   float fail_rate;
-  uint32_t sdu_gen_delay_usec;
+  uint32_t pdu_tx_delay_usec;
 
   bool run_enable;
   bool running;
@@ -144,9 +148,9 @@ class mac_dummy
     :public srslte::mac_interface_timers
 {
 public:
-  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, uint32_t sdu_gen_delay_usec_)
-    :r1(rlc1_, rlc2_, fail_rate_, sdu_gen_delay_usec_)
-    ,r2(rlc2_, rlc1_, fail_rate_, sdu_gen_delay_usec_)
+  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, uint32_t pdu_tx_delay)
+    :r1(rlc1_, rlc2_, fail_rate_, pdu_tx_delay)
+    ,r2(rlc2_, rlc1_, fail_rate_, pdu_tx_delay)
   {
   }
 
@@ -184,12 +188,13 @@ class rlc_am_tester
     ,public thread
 {
 public:
-  rlc_am_tester(rlc_interface_pdcp *rlc_, std::string name_=""){
+  rlc_am_tester(rlc_interface_pdcp *rlc_, std::string name_, uint32_t sdu_gen_delay_usec_){
     rlc = rlc_;
     run_enable = true;
     running = false;
     rx_pdus = 0;
     name = name_;
+    sdu_gen_delay_usec = sdu_gen_delay_usec_;
   }
 
   void stop()
@@ -235,7 +240,7 @@ private:
       pdu->N_bytes = 1500;
       pdu->msg[0]   = sn++;
       rlc->write_sdu(1, pdu);
-      usleep(10);
+      usleep(sdu_gen_delay_usec);
     }
     running = false;
   }
@@ -245,6 +250,8 @@ private:
   long rx_pdus;
 
   std::string name;
+
+  uint32_t sdu_gen_delay_usec;
 
   rlc_interface_pdcp *rlc;
 };
@@ -261,9 +268,9 @@ void stress_test(stress_test_args_t args)
   rlc rlc1;
   rlc rlc2;
 
-  rlc_am_tester tester1(&rlc1, "tester1");
-  rlc_am_tester tester2(&rlc2, "tester2");
-  mac_dummy     mac(&rlc1, &rlc2, args.error_rate, args.sdu_gen_delay_usec);
+  rlc_am_tester tester1(&rlc1, "tester1", args.sdu_gen_delay_usec);
+  rlc_am_tester tester2(&rlc2, "tester2", args.sdu_gen_delay_usec);
+  mac_dummy     mac(&rlc1, &rlc2, args.error_rate, args.pdu_tx_delay_usec);
   ue_interface  ue;
 
   rlc1.init(&tester1, &tester1, &ue, &log1, &mac, 0);
@@ -287,7 +294,14 @@ void stress_test(stress_test_args_t args)
   tester2.start(7);
   mac.start();
 
-  usleep(args.test_duration_sec * 1e6);
+  for (uint32_t i = 0; i < args.test_duration_sec; i++) {
+    // if enabled, mimic reestablishment every second
+    if (args.reestablish) {
+      rlc1.reestablish();
+      rlc2.reestablish();
+    }
+    usleep(1e6);
+  }
 
   tester1.stop();
   tester2.stop();
