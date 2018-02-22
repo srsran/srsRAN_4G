@@ -54,7 +54,7 @@ void logger_file::init(std::string file, int max_length_) {
   pthread_mutex_init(&mutex, NULL); 
   pthread_cond_init(&not_empty, NULL);
   pthread_cond_init(&not_full, NULL);
-  max_length = max_length_*1024;
+  max_length = (int64_t)max_length_*1024;
   name_idx = 0;
   filename = file;
   logfile = fopen(filename.c_str(), "w");

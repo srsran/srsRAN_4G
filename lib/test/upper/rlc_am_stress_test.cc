@@ -47,6 +47,7 @@ public:
     rlc2 = rlc2_;
     fail_rate = fail_rate_;
     run_enable = true;
+    running = false;
   }
 
   void stop()
@@ -81,9 +82,10 @@ private:
       if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
         rlc2->write_pdu(1, pdu->msg, opp_size);
       }
-      usleep(1000);
+      usleep(100);
     }
     running = false;
+    byte_buffer_pool::get_instance()->deallocate(pdu);
   }
 
   rlc_interface_mac *rlc1;
@@ -138,10 +140,12 @@ class rlc_am_tester
     ,public thread
 {
 public:
-  rlc_am_tester(rlc_interface_pdcp *rlc_){
+  rlc_am_tester(rlc_interface_pdcp *rlc_, std::string name_=""){
     rlc = rlc_;
     run_enable = true;
     running = false;
+    rx_pdus = 0;
+    name = name_;
   }
 
   void stop()
@@ -163,6 +167,7 @@ public:
   {
     assert(lcid == 1);
     byte_buffer_pool::get_instance()->deallocate(sdu);
+    std::cout << "rlc_am_tester " << name << " received " << rx_pdus++ << " PDUs" << std::endl;
   }
   void write_pdu_bcch_bch(byte_buffer_t *sdu) {}
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu) {}
@@ -186,13 +191,16 @@ private:
       pdu->N_bytes = 1500;
       pdu->msg[0]   = sn++;
       rlc->write_sdu(1, pdu);
-      usleep(1000);
+      usleep(100);
     }
     running = false;
   }
 
   bool run_enable;
   bool running;
+  long rx_pdus;
+
+  std::string name;
 
   rlc_interface_pdcp *rlc;
 };
@@ -211,13 +219,13 @@ void stress_test()
   rlc rlc1;
   rlc rlc2;
 
-  rlc_am_tester tester1(&rlc1);
-  rlc_am_tester tester2(&rlc2);
+  rlc_am_tester tester1(&rlc1, "tester1");
+  rlc_am_tester tester2(&rlc2, "tester2");
   mac_dummy     mac(&rlc1, &rlc2, fail_rate);
   ue_interface  ue;
 
   rlc1.init(&tester1, &tester1, &ue, &log1, &mac, 0);
-  rlc2.init(&tester1, &tester1, &ue, &log2, &mac, 0);
+  rlc2.init(&tester2, &tester2, &ue, &log2, &mac, 0);
 
   LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
   cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
@@ -234,7 +242,7 @@ void stress_test()
   rlc2.add_bearer(1, cnfg_);
 
   tester1.start(7);
-  //tester2.start(7);
+  tester2.start(7);
   mac.start();
 
   usleep(100e6);

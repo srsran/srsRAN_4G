@@ -162,7 +162,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(true),
      "Enable or disable RF frontend RSSI sensor. In some USRP devices can cause segmentation fault")
 
-    ("expert.prach_gain",
+    ("expert.rx_gain_offset",
+     bpo::value<float>(&args->expert.phy.rx_gain_offset)->default_value(10),
+     "RX Gain offset to add to rx_gain to correct RSRP value")
+
+      ("expert.prach_gain",
      bpo::value<float>(&args->expert.phy.prach_gain)->default_value(-1.0),
      "Disable PRACH power control")
 

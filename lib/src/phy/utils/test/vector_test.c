@@ -452,6 +452,28 @@ TEST(srslte_vec_convert_fi,
   free(z);
 )
 
+TEST(srslte_vec_convert_if,
+  MALLOC(int16_t, x);
+  MALLOC(float, z);
+      float scale = 1000.0f;
+
+  float gold;
+  float k = 1.0f/scale;
+  for (int i = 0; i < block_size; i++) {
+    x[i] = (int16_t) RANDOM_S();
+  }
+
+  TEST_CALL(srslte_vec_convert_if(x, scale, z, block_size))
+
+  for (int i = 0; i < block_size; i++) {
+      gold = ((float)x[i]) * k;
+      mse += fabsf(gold - z[i]);
+  }
+
+  free(x);
+  free(z);
+)
+
 TEST(srslte_vec_prod_fff,
   MALLOC(float, x);
   MALLOC(float, y);
@@ -596,7 +618,7 @@ TEST(srslte_vec_div_ccc,
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] / y[i];
-           mse += cabsf(gold - z[i]);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
          }
          mse /= block_size;
 
@@ -614,14 +636,14 @@ TEST(srslte_vec_div_cfc,
          cf_t gold;
          for (int i = 0; i < block_size; i++) {
            x[i] = RANDOM_CF();
-           y[i] = RANDOM_F();
+           y[i] = RANDOM_F() + 0.0001f;
          }
 
          TEST_CALL(srslte_vec_div_cfc(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] / y[i];
-           mse += cabsf(gold - z[i])/cabsf(gold);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
          }
          mse /= block_size;
 
@@ -638,15 +660,15 @@ TEST(srslte_vec_div_fff,
 
          cf_t gold;
          for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_F() + 0.0001;
-           y[i] = RANDOM_F()+ 0.0001;
+           x[i] = RANDOM_F();
+           y[i] = RANDOM_F() + 0.0001f;
          }
 
          TEST_CALL(srslte_vec_div_fff(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] / y[i];
-           mse += cabsf(gold - z[i]);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
          }
          mse /= block_size;
 
@@ -751,6 +773,9 @@ int main(int argc, char **argv) {
     func_count++;
 
     passed[func_count][size_count] = test_srslte_vec_convert_fi(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+     passed[func_count][size_count] = test_srslte_vec_convert_if(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     passed[func_count][size_count] = test_srslte_vec_prod_fff(func_names[func_count], &timmings[func_count][size_count], block_size);

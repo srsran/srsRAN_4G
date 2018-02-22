@@ -120,7 +120,7 @@ bool phy::check_args(phy_args_t *args)
 }
 
 bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_interface_phy *rrc,
-               std::vector<void*> log_vec, phy_args_t *phy_args) {
+               std::vector<srslte::log*> log_vec, phy_args_t *phy_args) {
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -226,7 +226,7 @@ void phy::set_timeadv_rar(uint32_t ta_cmd) {
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   uint32_t new_nta = srslte_N_ta_new(n_ta, ta_cmd);
-  sf_recv.set_time_adv_sec(((float) (new_nta - n_ta))*SRSLTE_LTE_TS);
+  //sf_recv.set_time_adv_sec(((float) new_nta)*SRSLTE_LTE_TS);
   Info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, old_n_ta: %d, ta_usec: %.1f\n", ta_cmd, new_nta, n_ta, ((float) new_nta)*SRSLTE_LTE_TS*1e6);
   n_ta = new_nta;
 }

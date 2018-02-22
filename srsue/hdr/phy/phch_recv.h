@@ -125,6 +125,7 @@ private:
     float    get_last_gain();
     float    get_last_cfo();
     void     set_N_id_2(int N_id_2);
+    void     set_agc_enable(bool enable);
     ret_code run(srslte_cell_t *cell);
 
   private:
@@ -308,10 +309,11 @@ private:
     CELL_SELECT,
     CELL_RESELECT,
     CELL_MEASURE,
-    CELL_CAMP
+    CELL_CAMP,
+    IDLE_RX
   } phy_state;
 
-  bool is_in_idle;
+  bool is_in_idle, is_in_idle_rx;
 
   // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
   enum {

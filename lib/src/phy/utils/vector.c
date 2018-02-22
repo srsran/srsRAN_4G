@@ -93,10 +93,7 @@ void srslte_vec_sc_prod_ccc(const cf_t *x, const cf_t h, cf_t *z, const uint32_t
 
 // Used in turbo decoder 
 void srslte_vec_convert_if(const int16_t *x, const float scale, float *z, const uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = ((float) x[i])/scale;
-  }
+  srslte_vec_convert_if_simd(x, z, scale, len);
 }
 
 void srslte_vec_convert_fi(const float *x, const float scale, int16_t *z, const uint32_t len) {

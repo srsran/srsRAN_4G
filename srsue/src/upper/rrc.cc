@@ -49,10 +49,18 @@ rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
   ,sysinfo_index(0)
+  ,serving_cell(NULL)
 {
   n310_cnt       = 0;
   n311_cnt       = 0;
   serving_cell = new cell_t();
+}
+
+rrc::~rrc()
+{
+  if (serving_cell) {
+    delete(serving_cell);
+  }
 }
 
 static void liblte_rrc_handler(void *ctx, char *str) {
@@ -333,11 +341,14 @@ void rrc::run_si_acquisition_procedure()
       // Instruct MAC to look for SIB1
       tti = mac->get_current_tti();
       si_win_start = sib_start_tti(tti, 2, 0, 5);
-      if (tti > last_win_start + 10) {
+      if (last_win_start == 0 ||
+          (srslte_tti_interval(last_win_start, tti) > 20 && srslte_tti_interval(last_win_start, tti) < 1000))
+      {
+
         last_win_start = si_win_start;
         mac->bcch_start_rx(si_win_start, 1);
-        rrc_log->debug("Instructed MAC to search for SIB1, win_start=%d, win_len=%d\n",
-                       si_win_start, 1);
+        rrc_log->info("Instructed MAC to search for SIB1, win_start=%d, win_len=%d, interval=%d\n",
+                       si_win_start, 1, srslte_tti_interval(last_win_start, tti));
         nof_sib1_trials++;
         if (nof_sib1_trials >= SIB1_SEARCH_TIMEOUT) {
           if (state == RRC_STATE_CELL_SELECTING) {
@@ -361,13 +372,15 @@ void rrc::run_si_acquisition_procedure()
         tti          = mac->get_current_tti();
         period       = liblte_rrc_si_periodicity_num[serving_cell->sib1.sched_info[sysinfo_index].si_periodicity];
         si_win_start = sib_start_tti(tti, period, offset, sf);
+        si_win_len = liblte_rrc_si_window_length_num[serving_cell->sib1.si_window_length];
 
-        if (tti > last_win_start + 10) {
+        if (last_win_start == 0 ||
+            (srslte_tti_interval(last_win_start, tti) > period*10 && srslte_tti_interval(last_win_start, tti) < 1000))
+        {
           last_win_start = si_win_start;
-          si_win_len = liblte_rrc_si_window_length_num[serving_cell->sib1.si_window_length];
 
           mac->bcch_start_rx(si_win_start, si_win_len);
-          rrc_log->debug("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
+          rrc_log->info("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
                          si_win_start, si_win_len);
         }
 
@@ -1054,6 +1067,7 @@ bool rrc::ho_prepare() {
 
     int target_cell_idx = find_neighbour_cell(serving_cell->earfcn, mob_reconf.mob_ctrl_info.target_pci);
     if (target_cell_idx < 0) {
+      rrc_log->console("Received HO command to unknown PCI=%d\n", mob_reconf.mob_ctrl_info.target_pci);
       rrc_log->error("Could not find target cell earfcn=%d, pci=%d\n", serving_cell->earfcn, mob_reconf.mob_ctrl_info.target_pci);
       return false;
     }
@@ -1075,6 +1089,7 @@ bool rrc::ho_prepare() {
     ho_src_rnti = uernti.crnti;
 
     // Reset/Reestablish stack
+    mac->bcch_stop_rx(); // FIXME: change function name
     phy->meas_reset();
     mac->wait_uplink();
     pdcp->reestablish();
@@ -1304,6 +1319,9 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
       handle_sib13();
     }
   }
+
+  last_win_start = 0;
+
   if(serving_cell->has_valid_sib2) {
     sysinfo_index++;
   }
@@ -1762,9 +1780,9 @@ void rrc::apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config) 
   mac->get_config(&mac_cfg);
   if (config->rach_cnfg_present) {
     memcpy(&mac_cfg.rach, &config->rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT));
+    mac_cfg.ul_harq_params.max_harq_msg3_tx = config->rach_cnfg.max_harq_msg3_tx;
   }
   mac_cfg.prach_config_index = config->prach_cnfg.root_sequence_index;
-  mac_cfg.ul_harq_params.max_harq_msg3_tx = config->rach_cnfg.max_harq_msg3_tx;
 
   mac->set_config(&mac_cfg);
 
@@ -2530,6 +2548,8 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
     }
   }
 
+
+
   for (std::map<uint32_t, meas_t>::iterator m = active.begin(); m != active.end(); ++m) {
     report_cfg_t *cfg = &reports_cfg[m->second.report_id];
     float hyst = 0.5*cfg->event.hysteresis;
@@ -2554,45 +2574,53 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
           enter_condition = Mp + hyst < range_to_value(cfg->trigger_quantity, cfg->event.event_a1.eutra.range);
           exit_condition  = Mp - hyst > range_to_value(cfg->trigger_quantity, cfg->event.event_a1.eutra.range);
         }
-        gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
-                                        &m->second, &m->second.cell_values[serving_cell_idx]);
 
+        // check only if
+        gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
+                                        &m->second, &pcell_measurement);
+
+        if (gen_report) {
+          log_h->info("Triggered by A1/A2 event\n");
+        }
       // Rest are evaluated for every cell in frequency
       } else {
         meas_obj_t *obj = &objects[m->second.object_id];
         for (std::map<uint32_t, meas_cell_t>::iterator cell = obj->cells.begin(); cell != obj->cells.end(); ++cell) {
-          float Ofn = obj->q_offset;
-          float Ocn = cell->second.q_offset;
-          float Mn = m->second.cell_values[cell->second.pci].ms[cfg->trigger_quantity];
-          float Off=0, th=0, th1=0, th2=0;
-          bool enter_condition = false;
-          bool exit_condition  = false;
-          switch (event_id) {
-            case LIBLTE_RRC_EVENT_ID_EUTRA_A3:
-              Off = 0.5*cfg->event.event_a3.offset;
-              enter_condition = Mn + Ofn + Ocn - hyst > Mp + Ofp + Ocp + Off;
-              exit_condition  = Mn + Ofn + Ocn + hyst < Mp + Ofp + Ocp + Off;
-              break;
-            case LIBLTE_RRC_EVENT_ID_EUTRA_A4:
-              th = range_to_value(cfg->trigger_quantity, cfg->event.event_a4.eutra.range);
-              enter_condition = Mn + Ofn + Ocn - hyst > th;
-              exit_condition  = Mn + Ofn + Ocn + hyst < th;
-              break;
-            case LIBLTE_RRC_EVENT_ID_EUTRA_A5:
-              th1 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra1.range);
-              th2 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra2.range);
-              enter_condition = (Mp + hyst < th1) && (Mn + Ofn + Ocn - hyst > th2);
-              exit_condition  = (Mp - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
-              break;
-            default:
-              log_h->error("Error event %s not implemented\n", event_str);
+          if (m->second.cell_values.count(cell->second.pci)) {
+            float Ofn = obj->q_offset;
+            float Ocn = cell->second.q_offset;
+            float Mn = m->second.cell_values[cell->second.pci].ms[cfg->trigger_quantity];
+            float Off=0, th=0, th1=0, th2=0;
+            bool enter_condition = false;
+            bool exit_condition  = false;
+            switch (event_id) {
+              case LIBLTE_RRC_EVENT_ID_EUTRA_A3:
+                Off = 0.5*cfg->event.event_a3.offset;
+                enter_condition = Mn + Ofn + Ocn - hyst > Mp + Ofp + Ocp + Off;
+                exit_condition  = Mn + Ofn + Ocn + hyst < Mp + Ofp + Ocp + Off;
+                break;
+              case LIBLTE_RRC_EVENT_ID_EUTRA_A4:
+                th = range_to_value(cfg->trigger_quantity, cfg->event.event_a4.eutra.range);
+                enter_condition = Mn + Ofn + Ocn - hyst > th;
+                exit_condition  = Mn + Ofn + Ocn + hyst < th;
+                break;
+              case LIBLTE_RRC_EVENT_ID_EUTRA_A5:
+                th1 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra1.range);
+                th2 = range_to_value(cfg->trigger_quantity, cfg->event.event_a5.eutra2.range);
+                enter_condition = (Mp + hyst < th1) && (Mn + Ofn + Ocn - hyst > th2);
+                exit_condition  = (Mp - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
+                break;
+              default:
+                log_h->error("Error event %s not implemented\n", event_str);
+            }
+            gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
+                                        &m->second, &m->second.cell_values[cell->second.pci]);
           }
-          gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition,
-                                      &m->second, &m->second.cell_values[cell->second.pci]);
         }
       }
     }
     if (gen_report) {
+      log_h->info("Generate report MeasId=%d, from event\n", m->first);
       generate_report(m->first);
     }
   }
@@ -2622,6 +2650,7 @@ void rrc::rrc_meas::ho_finish() {
 bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
     if (iter->second.periodic_timer == timer_id) {
+      log_h->info("Generate report MeasId=%d, from timerId=%d\n", iter->first, timer_id);
       generate_report(iter->first);
       return true;
     }
@@ -2805,6 +2834,8 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
     remove_meas_id(cfg->meas_id_to_remove_list[i]);
   }
 
+  log_h->info("nof active measId=%d\n", active.size());
+
   // Measurement identity addition/modification 5.5.2.3
   if (cfg->meas_id_to_add_mod_list_present) {
     for (uint32_t i=0;i<cfg->meas_id_to_add_mod_list.N_meas_id;i++) {
@@ -2819,8 +2850,9 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
       }
       active[measId->meas_id].object_id = measId->meas_obj_id;
       active[measId->meas_id].report_id = measId->rep_cnfg_id;
-      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d\n",
-                  is_new?"Added":"Updated", measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id);
+      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, nof_values=%d\n",
+                  is_new?"Added":"Updated", measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id,
+                  active[measId->meas_id].cell_values.size());
     }
   }
 
