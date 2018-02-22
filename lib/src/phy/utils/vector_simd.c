@@ -228,6 +228,36 @@ void srslte_vec_lut_sss_simd(const short *x, const unsigned short *lut, short *y
   }
 }
 
+void srslte_vec_convert_if_simd(const int16_t *x, float *z, const float scale, const int len) {
+  int i = 0;
+  const float gain = 1.0f / scale;
+
+#ifdef LV_HAVE_SSE
+  __m128 s = _mm_set1_ps(gain);
+  if (SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - 3; i += 4) {
+      __m64 *ptr = (__m64 *) &x[i];
+      __m128 fl = _mm_cvtpi16_ps(*ptr);
+      __m128 v = _mm_mul_ps(fl, s);
+
+      _mm_store_ps(&z[i], v);
+    }
+  } else {
+    for (; i < len - 3; i += 4) {
+      __m64 *ptr = (__m64 *) &x[i];
+      __m128 fl = _mm_cvtpi16_ps(*ptr);
+      __m128 v = _mm_mul_ps(fl, s);
+
+      _mm_storeu_ps(&z[i], v);
+    }
+  }
+#endif /* LV_HAVE_SSE */
+
+  for (; i < len; i++) {
+    z[i] = ((float) x[i]) * gain;
+  }
+}
+
 void srslte_vec_convert_fi_simd(const float *x, int16_t *z, const float scale, const int len) {
   int i = 0;
 

@@ -50,6 +50,7 @@ class rlc_um
 {
 public:
   rlc_um();
+  ~rlc_um();
 
   void init(log          *rlc_entity_log_,
             uint32_t              lcid_,

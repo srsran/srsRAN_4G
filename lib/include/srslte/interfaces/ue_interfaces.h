@@ -492,6 +492,7 @@ typedef struct {
   float estimator_fil_w;   
   bool rssi_sensor_enabled;
   bool sic_pss_enabled;
+  float rx_gain_offset;
 } phy_args_t; 
 
 
