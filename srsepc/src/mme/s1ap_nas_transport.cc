@@ -651,9 +651,30 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     }
     else
     {
+      ue_ecm_ctx_t ue_ecm_ctx;
       //UE not connect. Connect normally.
       m_s1ap_log->console("Service Request -- User without ECM context\n");
       m_s1ap_log->info("Service Request -- User without ECM context\n");
+      //Create ECM context
+      ue_ecm_ctx.imsi = ue_emm_ctx->imsi;
+      ue_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+      ue_emm_ctx->mme_ue_s1ap_id = ue_ecm_ctx.mme_ue_s1ap_id;
+      //Set eNB information
+      ue_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+      memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+
+      //Save whether secure ESM information transfer is necessary
+      ue_ecm_ctx.eit = false;
+
+      //Initialize E-RABs
+      for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
+      {
+        ue_ecm_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
+        ue_ecm_ctx.erabs_ctx[i].erab_id = i;
+      }
+      memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+      m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
+      m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi, ue_ecm_ctx.mme_ue_s1ap_id);
     }
   }
   else
