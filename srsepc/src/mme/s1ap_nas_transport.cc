@@ -1561,10 +1561,13 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
                     attach_accept.guti.guti.mme_code,
                     attach_accept.guti.guti.m_tmsi);
 
+  //Set EMM cause to no CS available
+  attach_accept.emm_cause_present=true;
+  attach_accept.emm_cause=18;
+
   //Make sure all unused options are set to false
   attach_accept.lai_present=false;
   attach_accept.ms_id_present=false;
-  attach_accept.emm_cause_present=false;
   attach_accept.t3402_present=false;
   attach_accept.t3423_present=false;
   attach_accept.equivalent_plmns_present=false;
@@ -1608,7 +1611,8 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   act_def_eps_bearer_context_req.radio_prio_present = false;
   act_def_eps_bearer_context_req.packet_flow_id_present = false;
   act_def_eps_bearer_context_req.apn_ambr_present = false;
-  act_def_eps_bearer_context_req.esm_cause_present = false;
+  act_def_eps_bearer_context_req.esm_cause_present = true;
+  act_def_eps_bearer_context_req.esm_cause = 50;
 
   uint8_t sec_hdr_type =2;
   ue_emm_ctx->security_ctxt.dl_nas_count++;
