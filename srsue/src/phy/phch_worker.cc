@@ -203,6 +203,22 @@ float phch_worker::get_ref_cfo()
   return srslte_chest_dl_get_cfo(&ue_dl.chest);
 }
 
+float phch_worker::get_snr()
+{
+  return 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest));
+}
+
+float phch_worker::get_rsrp()
+{
+  return 10*log10(srslte_chest_dl_get_rsrp(&ue_dl.chest));
+}
+
+float phch_worker::get_noise()
+{
+  return 10*log10(srslte_chest_dl_get_noise_estimate(&ue_dl.chest));
+}
+
+
 float phch_worker::get_cfo()
 {
   return cfo;
@@ -874,19 +890,20 @@ void phch_worker::set_uci_periodic_cqi()
   int cqi_fixed     = phy->args->cqi_fixed;
   int cqi_max       = phy->args->cqi_max;
 
-  uint8_t ri = (uint8_t) ue_dl.ri;
-  uint8_t pmi = (uint8_t) ue_dl.pmi[ri];
-  float sinr = ue_dl.sinr[ri][pmi];
+  float sinr = ue_dl.sinr[phy->last_ri & SRSLTE_MAX_LAYERS][phy->last_pmi % SRSLTE_MAX_CODEBOOKS];
 
   if (period_cqi.configured && rnti_is_set) {
     if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, TTI_TX(tti))) {
       /* Compute RI, PMI and SINR */
-      compute_ri(&ri, &pmi, &sinr);
-      uci_data.uci_ri = ri;
+      compute_ri(&phy->last_ri, &phy->last_pmi, &sinr);
+      uci_data.uci_ri = phy->last_ri;
       uci_data.uci_ri_len = 1;
       uci_data.ri_periodic_report = true;
-      Debug("PUCCH: Periodic ri=%d\n", ri);
+      Debug("PUCCH: Periodic ri=%d, SINR=%.1f\n", phy->last_ri, sinr);
     } else if (srslte_cqi_send(period_cqi.pmi_idx, TTI_TX(tti))) {
+      compute_ri(NULL, NULL, NULL);
+      phy->last_pmi = (uint8_t) ue_dl.pmi[phy->last_ri % SRSLTE_MAX_LAYERS];
+
       srslte_cqi_value_t cqi_report = {0};
       if (period_cqi.format_is_subband) {
         // TODO: Implement subband periodic reports
@@ -907,8 +924,8 @@ void phch_worker::set_uci_periodic_cqi()
         }
         if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
           cqi_report.wideband.pmi_present = true;
-          cqi_report.wideband.pmi = pmi;
-          cqi_report.wideband.rank_is_not_one = (ri != 0);
+          cqi_report.wideband.pmi = phy->last_pmi;
+          cqi_report.wideband.rank_is_not_one = (phy->last_ri != 0);
         }
         Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db);
       }
@@ -920,13 +937,11 @@ void phch_worker::set_uci_periodic_cqi()
 
 void phch_worker::set_uci_aperiodic_cqi()
 {
-  uint8_t ri = (uint8_t) ue_dl.ri;
-  uint8_t pmi = (uint8_t) ue_dl.pmi[ri];
-  float sinr_db = ue_dl.sinr[ri][pmi];
+  float sinr_db = ue_dl.sinr[phy->last_ri % SRSLTE_MAX_LAYERS][phy->last_pmi%SRSLTE_MAX_CODEBOOKS];
 
   if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
     /* Compute RI, PMI and SINR */
-    compute_ri(&ri, &pmi, &sinr_db);
+    compute_ri(&phy->last_ri, &phy->last_pmi, &sinr_db);
 
     switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
@@ -961,7 +976,7 @@ void phch_worker::set_uci_aperiodic_cqi()
           /* Set RI = 1 */
           if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
               phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-            uci_data.uci_ri = ri;
+            uci_data.uci_ri = phy->last_ri;
             uci_data.uci_ri_len = 1;
           } else {
             uci_data.uci_ri_len = 0;
@@ -991,13 +1006,13 @@ void phch_worker::set_uci_aperiodic_cqi()
           cqi_report.subband_hl.wideband_cqi_cw0 = srslte_cqi_from_snr(sinr_db);
           cqi_report.subband_hl.subband_diff_cqi_cw0 = 0; // Always report zero offset on all subbands
 
-          if (ri > 0) {
+          if (phy->last_ri > 0) {
             cqi_report.subband_hl.rank_is_not_one = true;
             cqi_report.subband_hl.wideband_cqi_cw1 = srslte_cqi_from_snr(sinr_db);
             cqi_report.subband_hl.subband_diff_cqi_cw1 = 0; // Always report zero offset on all subbands
           }
 
-          cqi_report.subband_hl.pmi = pmi;
+          cqi_report.subband_hl.pmi = phy->last_pmi;
           cqi_report.subband_hl.pmi_present = true;
           cqi_report.subband_hl.four_antenna_ports = (cell.nof_ports == 4);
 
@@ -1011,7 +1026,7 @@ void phch_worker::set_uci_aperiodic_cqi()
           }
           uci_data.uci_cqi_len = (uint32_t) cqi_len;
           uci_data.uci_ri_len = 1;
-          uci_data.uci_ri = ri;
+          uci_data.uci_ri = phy->last_ri;
 
           char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = {0};
           srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
@@ -1019,11 +1034,11 @@ void phch_worker::set_uci_aperiodic_cqi()
           if (cqi_report.subband_hl.rank_is_not_one) {
             Info("PUSCH: Aperiodic RM31 ri~1, CQI=%02d/%02d, SINR=%2.1f/%2.1fdB, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0, cqi_report.subband_hl.wideband_cqi_cw1,
-                 sinr_db, sinr_db, pmi, cqi_report.subband_hl.N);
+                 sinr_db, sinr_db, phy->last_pmi, cqi_report.subband_hl.N);
           } else {
             Info("PUSCH: Aperiodic RM31 ri=1, CQI=%02d, SINR=%2.1f, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0,
-                 sinr_db, pmi, cqi_report.subband_hl.N);
+                 sinr_db, phy->last_pmi, cqi_report.subband_hl.N);
           }
         }
         break;
@@ -1370,7 +1385,7 @@ void phch_worker::update_measurements()
           phy->last_radio_rssi = phy->get_radio()->get_rssi();
           phy->rx_gain_offset = phy->avg_rssi_dbm - phy->last_radio_rssi + 30;
         } else {
-          phy->rx_gain_offset = phy->get_radio()->get_rx_gain();
+          phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
         }
       }
       rssi_read_cnt++;

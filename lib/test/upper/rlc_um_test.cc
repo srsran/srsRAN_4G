@@ -62,6 +62,14 @@ public:
     n_sdus = 0;
   }
 
+  ~rlc_um_tester(){
+    for (uint32_t i = 0; i < NBUFS; i++) {
+      if (sdus[i] != NULL) {
+        byte_buffer_pool::get_instance()->deallocate(sdus[i]);
+      }
+    }
+  }
+
   // PDCP interface
   void write_pdu(uint32_t lcid, byte_buffer_t *sdu)
   {

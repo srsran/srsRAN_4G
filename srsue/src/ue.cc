@@ -68,7 +68,7 @@ bool ue::init(all_args_t *args_)
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
     mylog->init(tmp, logger, true);
-    phy_log.push_back((void*) mylog);
+    phy_log.push_back(mylog);
   }
 
   mac_log.init("MAC ", logger, true);
@@ -91,7 +91,7 @@ bool ue::init(all_args_t *args_)
   char tmp[16];
   sprintf(tmp, "PHY_LIB");
   lib_log->init(tmp, logger, true);
-  phy_log.push_back((void*) lib_log);
+  phy_log.push_back(lib_log);
   ((srslte::log_filter*) phy_log[args->expert.phy.nof_phy_threads])->set_level(level(args->log.phy_lib_level));
  
   
@@ -130,11 +130,7 @@ bool ue::init(all_args_t *args_)
   
   // Init layers
 
-  if (args->rf.rx_gain < 0) {
-    phy.set_agc_enable(true);
-  }
-
-    // PHY initis in background, start before radio
+  // PHY inits in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
   phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
 
@@ -221,6 +217,11 @@ bool ue::init(all_args_t *args_)
   printf("Waiting PHY to initialize...\n");
   phy.wait_initialize();
   phy.configure_ul_params();
+
+  // Enable AGC once PHY is initialized
+  if (args->rf.rx_gain < 0) {
+    phy.set_agc_enable(true);
+  }
 
   printf("...\n");
   nas.attach_request();

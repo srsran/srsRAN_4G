@@ -460,15 +460,15 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
         pmi = grant->pinfo - 1;
       } else {
         ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
-        return SRSLTE_ERROR;
+        pmi = grant->pinfo % 4;
       }
     } else {
-      if (grant->pinfo < 2) {
-        pmi = grant->pinfo;
-      } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
-        return SRSLTE_ERROR;
+      if (grant->pinfo == 2) {
+        ERROR("Not implemented codebook index (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+      } else if (grant->pinfo > 2) {
+        ERROR("Reserved codebook index (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
       }
+      pmi = grant->pinfo % 2;
     }
   }
   if(SRSLTE_SF_MBSFN == grant->sf_type) {
