@@ -472,6 +472,10 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
   std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
   if(it == m_s1ap->m_tmsi_to_imsi.end())
   {
+
+    m_s1ap_log->console("Attach Request -- Could not find M-TMSI 0x%x", m_tmsi);
+    m_s1ap_log->info("Attach Request -- Could not find M-TMSI 0x%x", m_tmsi);
+
     //Could not find IMSI from M-TMSI, send Id request
     ue_emm_ctx_t tmp_ue_emm_ctx;
     ue_ecm_ctx_t ue_ecm_ctx;
@@ -653,6 +657,8 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     else
     {
       ue_ecm_ctx_t ue_ecm_ctx;
+      ue_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+
       //UE not connect. Connect normally.
       m_s1ap_log->console("Service Request -- User without ECM context\n");
       m_s1ap_log->info("Service Request -- User without ECM context\n");
@@ -675,6 +681,10 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       }
       memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
       m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
+
+      //Re-generate K_eNB
+      liblte_security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, ue_emm_ctx->security_ctxt.k_enb);
+      m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
       m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi, ue_ecm_ctx.mme_ue_s1ap_id);
     }
   }
