@@ -129,6 +129,7 @@ inline FILE *LTE_PCAP_Open(uint32_t DLT, const char *fileName)
 
     /* Write the file header */
     fwrite(&file_header, sizeof(pcap_hdr_t), 1, fd);
+    fflush(fd);
 
     return fd;
 }
@@ -208,6 +209,7 @@ inline int LTE_PCAP_MAC_WritePDU(FILE *fd, MAC_Context_Info_t *context,
     fwrite(&packet_header, sizeof(pcaprec_hdr_t), 1, fd);
     fwrite(context_header, 1, offset, fd);
     fwrite(PDU, 1, length, fd);
+    fflush(fd);
 
     return 1;
 }
@@ -243,6 +245,7 @@ inline int LTE_PCAP_NAS_WritePDU(FILE *fd, NAS_Context_Info_t *context,
     /* Now write everything to the file                            */
     fwrite(&packet_header, sizeof(pcaprec_hdr_t), 1, fd);
     fwrite(PDU, 1, length, fd);
+    fflush(fd);
 
     return 1;
 }
