@@ -1529,10 +1529,13 @@ byte_buffer_t* rrc::byte_align_and_pack(byte_buffer_t *pdu)
     pdcp_buf = pool_allocate;
   }
 
-  srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
-  pdcp_buf->N_bytes = bit_buf.N_bits / 8;
-  pdcp_buf->set_timestamp();
-
+  if (pdcp_buf != NULL) {
+    srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
+    pdcp_buf->N_bytes = bit_buf.N_bits / 8;
+    pdcp_buf->set_timestamp();
+  } else {
+    rrc_log->error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().\n");
+  }
   return pdcp_buf;
 }
 
@@ -1540,20 +1543,21 @@ void rrc::send_ul_ccch_msg(byte_buffer_t *pdu)
 {
   liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
   pdu = byte_align_and_pack(pdu);
+  if (pdu) {
+    // Set UE contention resolution ID in MAC
+    uint64_t uecri = 0;
+    uint8_t *ue_cri_ptr = (uint8_t *) &uecri;
+    uint32_t nbytes = 6;
+    for (uint32_t i = 0; i < nbytes; i++) {
+      ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
+    }
 
-  // Set UE contention resolution ID in MAC
-  uint64_t uecri = 0;
-  uint8_t *ue_cri_ptr = (uint8_t *) &uecri;
-  uint32_t nbytes = 6;
-  for (uint32_t i = 0; i < nbytes; i++) {
-    ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
+    rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
+    mac->set_contention_id(uecri);
+
+    rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
+    pdcp->write_sdu(RB_ID_SRB0, pdu);
   }
-
-  rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
-  mac->set_contention_id(uecri);
-
-  rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
-  pdcp->write_sdu(RB_ID_SRB0, pdu);
 }
 
 void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
@@ -1561,9 +1565,10 @@ void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
   liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
   pdu = byte_align_and_pack(pdu);
-
-  rrc_log->info("Sending %s\n", liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
-  pdcp->write_sdu(RB_ID_SRB1, pdu);
+  if (pdu) {
+    rrc_log->info("Sending %s\n", liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
+    pdcp->write_sdu(RB_ID_SRB1, pdu);
+  }
 }
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
