@@ -65,6 +65,7 @@ void mux::reset()
   for (uint32_t i=0;i<lch.size();i++) {
     lch[i].Bj = 0;
   }
+  msg3_pending = false;
   pending_crnti_ce = 0;
 }
 
@@ -343,13 +344,22 @@ void mux::msg3_flush()
   if (log_h) {
     Debug("Msg3 buffer flushed\n");
   }
-  msg3_has_been_transmitted = false; 
+  msg3_has_been_transmitted = false;
+  msg3_pending = false;
   bzero(msg3_buff, sizeof(MSG3_BUFF_SZ));
 }
 
 bool mux::msg3_is_transmitted()
 {
   return msg3_has_been_transmitted; 
+}
+
+void mux::msg3_prepare() {
+  msg3_pending = true;
+}
+
+bool mux::msg3_is_pending() {
+  return msg3_pending;
 }
 
 /* Returns a pointer to the Msg3 buffer */
@@ -363,6 +373,7 @@ uint8_t* mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
     }
     memcpy(payload, msg3_buff_start_pdu, sizeof(uint8_t)*pdu_sz);
     msg3_has_been_transmitted = true;
+    msg3_pending = false;
     return payload;
   } else {
     Error("Msg3 size (%d) is longer than internal msg3_buff size=%d, (see mux.h)\n", pdu_sz, MSG3_BUFF_SZ-32);

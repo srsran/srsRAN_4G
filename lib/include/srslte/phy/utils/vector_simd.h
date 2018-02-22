@@ -120,6 +120,8 @@ SRSLTE_API void srslte_vec_abs_square_cf_simd(const cf_t *x, float *z, const int
 /* Other Functions */
 SRSLTE_API void srslte_vec_lut_sss_simd(const short *x, const unsigned short *lut, short *y, const int len);
 
+SRSLTE_API void srslte_vec_convert_if_simd(const int16_t *x, float *z, const float scale, const int len);
+
 SRSLTE_API void srslte_vec_convert_fi_simd(const float *x, int16_t *z, const float scale, const int len);
 
 SRSLTE_API void srslte_vec_cp_simd(const cf_t *src, cf_t *dst, int len);
