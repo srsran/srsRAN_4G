@@ -65,12 +65,14 @@ class cell_t
     return earfcn == this->earfcn && pci == phy_cell.id;
   }
   bool greater(cell_t *x) {
-    return x->rsrp > rsrp;
+    return rsrp > x->rsrp;
   }
   bool plmn_equals(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
-    for (uint32_t i = 0; i < sib1.N_plmn_ids; i++) {
-      if (plmn_id.mcc == sib1.plmn_id[i].id.mcc && plmn_id.mnc == sib1.plmn_id[i].id.mnc) {
-        return true;
+    if (has_valid_sib1) {
+      for (uint32_t i = 0; i < sib1.N_plmn_ids; i++) {
+        if (plmn_id.mcc == sib1.plmn_id[i].id.mcc && plmn_id.mnc == sib1.plmn_id[i].id.mnc) {
+          return true;
+        }
       }
     }
     return false;
@@ -80,6 +82,7 @@ class cell_t
     cell_t(tmp, 0, 0);
   }
   cell_t(srslte_cell_t phy_cell, uint32_t earfcn, float rsrp) {
+    gettimeofday(&last_update, NULL);
     this->has_valid_sib1 = false;
     this->has_valid_sib2 = false;
     this->has_valid_sib3 = false;
@@ -94,14 +97,106 @@ class cell_t
     bzero(&sib13, sizeof(sib13));
   }
 
-  uint32_t earfcn;
+  uint32_t get_earfcn() {
+    return earfcn;
+  }
+
+  uint32_t get_pci() {
+    return phy_cell.id;
+  }
+
+  void set_rsrp(float rsrp) {
+    this->rsrp = rsrp;
+    in_sync = true;
+    gettimeofday(&last_update, NULL);
+  }
+
+  float get_rsrp() {
+    return rsrp;
+  }
+
+  void set_sib1(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1) {
+    memcpy(&this->sib1, sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
+    has_valid_sib1 = true;
+  }
+  void set_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
+    memcpy(&this->sib2, sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
+    has_valid_sib2 = true;
+  }
+  void set_sib3(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *sib3) {
+    memcpy(&this->sib3, sib3, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT));
+    has_valid_sib3 = true;
+  }
+  void set_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13) {
+    memcpy(&this->sib13, sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT));
+    has_valid_sib13 = true;
+  }
+
+  uint32_t timeout_secs(struct timeval now) {
+    struct timeval t[3];
+    memcpy(&t[2], &now, sizeof(struct timeval));
+    memcpy(&t[1], &last_update, sizeof(struct timeval));
+    get_time_interval(t);
+    return t[0].tv_sec;
+  }
+
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1ptr() {
+    return &sib1;
+  }
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2ptr() {
+    return &sib2;
+  }
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *sib3ptr() {
+    return &sib3;
+  }
+
+  uint32_t get_cell_id() {
+    return sib1.cell_id;
+  }
+
+  bool has_sib1() {
+    return has_valid_sib1;
+  }
+  bool has_sib2() {
+    return has_valid_sib2;
+  }
+  bool has_sib3() {
+    return has_valid_sib3;
+  }
+  bool has_sib13() {
+    return has_valid_sib13;
+  }
+
+  uint16_t get_mcc() {
+    if (has_valid_sib1) {
+      if (sib1.N_plmn_ids > 0) {
+        return sib1.plmn_id[0].id.mcc;
+      }
+    }
+    return 0;
+  }
+
+  uint16_t get_mnc() {
+    if (has_valid_sib1) {
+      if (sib1.N_plmn_ids > 0) {
+        return sib1.plmn_id[0].id.mnc;
+      }
+    }
+    return 0;
+  }
+
   srslte_cell_t phy_cell;
+  bool     in_sync;
+
+ private:
   float    rsrp;
+  uint32_t earfcn;
+  struct timeval last_update;
+
   bool     has_valid_sib1;
   bool     has_valid_sib2;
   bool     has_valid_sib3;
   bool     has_valid_sib13;
-  bool     in_sync;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT  sib2;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT  sib3;
@@ -274,6 +369,7 @@ private:
   }
 
   // List of strongest neighbour cell
+  const static int NEIGHBOUR_TIMEOUT   = 5;
   const static int NOF_NEIGHBOUR_CELLS = 8;
   std::vector<cell_t*> neighbour_cells;
   cell_t *serving_cell;
@@ -285,6 +381,9 @@ private:
   bool add_neighbour_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
   bool add_neighbour_cell(cell_t *cell);
   void sort_neighbour_cells();
+  void clean_neighbours();
+  std::vector<cell_t*>::iterator delete_neighbour(std::vector<cell_t*>::iterator it);
+  void delete_neighbour(uint32_t cell_idx);
 
   typedef enum {
     SI_ACQUIRE_IDLE = 0,
@@ -315,6 +414,7 @@ private:
     void run_tti(uint32_t tti);
     bool timer_expired(uint32_t timer_id);
     void ho_finish();
+    void delete_report(uint32_t earfcn, uint32_t pci);
   private:
 
     const static int NOF_MEASUREMENTS = 3;
