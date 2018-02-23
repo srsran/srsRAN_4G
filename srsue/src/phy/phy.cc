@@ -366,7 +366,6 @@ void phy::reset()
     workers[i].reset();
   }
   workers_common.reset();
-  usleep(4000);
   workers_common.reset_ul();
 }
 
