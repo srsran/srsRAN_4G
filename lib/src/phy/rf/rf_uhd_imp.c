@@ -96,6 +96,19 @@ static void log_underflow(rf_uhd_handler_t *h) {
   }
 }
 
+static void log_rx_error(rf_uhd_handler_t *h) {
+  if (h->uhd_error_handler) {
+    char error_string[512];
+    uhd_usrp_last_error(h->usrp, error_string, 512);
+    fprintf(stderr, "USRP reported the following error: %s\n", error_string);
+
+    srslte_rf_error_t error;
+    bzero(&error, sizeof(srslte_rf_error_t));
+    error.type = SRSLTE_RF_ERROR_RX;
+    h->uhd_error_handler(error);
+  }
+}
+
 static void* async_thread(void *h) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h; 
   uhd_async_metadata_handle md; 
@@ -740,6 +753,7 @@ int rf_uhd_recv_with_time_multi(void *h,
                                              num_rx_samples, md, 1.0, false, &rxd_samples);
       if (error) {
         fprintf(stderr, "Error receiving from UHD: %d\n", error);
+        log_rx_error(handler);
         return -1; 
       }
 
@@ -762,8 +776,12 @@ int rf_uhd_recv_with_time_multi(void *h,
       }
     }
   } else {
-    return uhd_rx_streamer_recv(handler->rx_stream, data, 
-                                nsamples, md, 0.0, false, &rxd_samples);
+    uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, data, nsamples, md, 0.0, false, &rxd_samples);
+    if (error) {
+      fprintf(stderr, "Error receiving from UHD: %d\n", error);
+      log_rx_error(handler);
+      return -1;
+    }
   }
   if (secs && frac_secs) {
     uhd_rx_metadata_time_spec(handler->rx_md_first, secs, frac_secs);
