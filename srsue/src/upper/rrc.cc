@@ -389,7 +389,7 @@ void rrc::run_si_acquisition_procedure()
           last_win_start = si_win_start;
 
           mac->bcch_start_rx(si_win_start, si_win_len);
-          rrc_log->info("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
+          rrc_log->debug("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
                          si_win_start, si_win_len);
         }
 
