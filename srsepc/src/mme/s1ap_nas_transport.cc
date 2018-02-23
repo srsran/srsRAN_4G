@@ -837,6 +837,13 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
     return false;
   }
   m_mme_gtpc->send_modify_bearer_request(&ue_ecm_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
+
+  //Send reply to eNB
+  m_s1ap_log->console("Packing EMM infromationi\n");
+  *reply_flag = pack_emm_information(ue_ecm_ctx, reply_msg);
+  m_s1ap_log->console("Sending EMM infromation, bytes %d\n",reply_msg->N_bytes);
+  m_s1ap_log->info("Sending EMM infromation\n");
+  
   return true;
 }
 
@@ -1536,6 +1543,7 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
 
   //Attach accept
   attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
+  //attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_COMBINED_EPS_IMSI_ATTACH;
   //Mandatory
   //FIXME: Set t3412 from config
   attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
@@ -1562,6 +1570,7 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
                     attach_accept.guti.guti.m_tmsi);
 
   //Set EMM cause to no CS available
+  //attach_accept.emm_cause_present=false;
   attach_accept.emm_cause_present=true;
   attach_accept.emm_cause=18;
 
@@ -1611,8 +1620,8 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   act_def_eps_bearer_context_req.radio_prio_present = false;
   act_def_eps_bearer_context_req.packet_flow_id_present = false;
   act_def_eps_bearer_context_req.apn_ambr_present = false;
-  act_def_eps_bearer_context_req.esm_cause_present = true;
-  act_def_eps_bearer_context_req.esm_cause = 50;
+  act_def_eps_bearer_context_req.esm_cause_present = false;
+  //act_def_eps_bearer_context_req.esm_cause = 50;
 
   uint8_t sec_hdr_type =2;
   ue_emm_ctx->security_ctxt.dl_nas_count++;
@@ -1692,7 +1701,7 @@ s1ap_nas_transport::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint
 }
 
 bool
-s1ap_nas_transport::pack_emm_information(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id)
+s1ap_nas_transport::pack_emm_information( ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_msg)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -1710,8 +1719,8 @@ s1ap_nas_transport::pack_emm_information(srslte::byte_buffer_t *reply_msg, uint3
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;//FIXME Change name
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ecm_ctx->mme_ue_s1ap_id;//FIXME Change name
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ecm_ctx->enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
@@ -1727,20 +1736,12 @@ s1ap_nas_transport::pack_emm_information(srslte::byte_buffer_t *reply_msg, uint3
   emm_info.utc_and_local_time_zone_present = false;
   emm_info.net_dst_present = false;
 
-  //Integrity check
-  ue_ecm_ctx_t * ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
-  if(ue_ecm_ctx == NULL)
-  {
+  ue_emm_ctx_t *ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+  if(ue_emm_ctx ==NULL)
     return false;
-  }
-  ue_emm_ctx_t * ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
-  if(ue_emm_ctx == NULL)
-  {
-    return false;
-  }
 
   uint8_t sec_hdr_type =2;
-  ue_emm_ctx->security_ctxt.dl_nas_count++;
+  //ue_emm_ctx->security_ctxt.dl_nas_count++;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
@@ -1760,9 +1761,20 @@ s1ap_nas_transport::pack_emm_information(srslte::byte_buffer_t *reply_msg, uint3
                              );
 
   memcpy(&nas_buffer->msg[1],mac,4);
+  //Copy NAS PDU to Downlink NAS Trasport message buffer
+  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
 
+  //Pack Downlink NAS Transport Message
+  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Dw NAS Transport: EMM Info\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: EMM Info\n");
+    return false;
+  } 
 
-  m_s1ap_log->info("Packed \n"); 
+  m_s1ap_log->info("Packed UE EMM information\n"); 
   return true;
 }
 
