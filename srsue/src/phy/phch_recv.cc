@@ -265,17 +265,22 @@ bool phch_recv::set_cell() {
   return cell_is_set;
 }
 
-void phch_recv::resync_sfn(bool is_connected, bool now) {
+void phch_recv::resync_sfn(bool restart_radio, bool restart_now) {
 
-  if (!now) {
+  if (restart_radio) {
     wait_radio_reset();
     stop_rx();
+    usleep(100000);
   }
-  start_rx(now);
   sfn_p.reset();
-  Info("SYNC:  Starting SFN synchronization\n");
+  search_p.reset();
+  srslte_ue_sync_reset(&ue_sync);
 
-  phy_state = is_connected?CELL_RESELECT:CELL_SELECT;
+  if (restart_radio) {
+    start_rx(restart_now);
+  }
+
+  phy_state = CELL_SELECT;
 }
 
 void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
@@ -294,7 +299,7 @@ bool phch_recv::stop_sync() {
   if (phy_state == IDLE && is_in_idle) {
     return true;
   } else {
-    Info("SYNC:  Going to IDLE\n");
+    Info("SYNC:  Going to IDLE (state=%d)\n", phy_state);
     phy_state = IDLE;
     int cnt = 0;
     while (!is_in_idle && cnt < 100) {
@@ -302,7 +307,7 @@ bool phch_recv::stop_sync() {
       cnt++;
     }
     if (!is_in_idle) {
-      Warning("SYNC:  Could not go to IDLE\n");
+      Warning("SYNC:  Could not go to IDLE (state=%d)\n", phy_state);
     }
     return is_in_idle;
   }
@@ -310,11 +315,12 @@ bool phch_recv::stop_sync() {
 
 void phch_recv::reset_sync() {
 
-  Warning("SYNC:  Resetting sync, cell_search_in_progress=%s\n", cell_search_in_progress?"yes":"no");
-
-  search_p.reset();
-  srslte_ue_sync_reset(&ue_sync);
-  resync_sfn(true, true);
+  if (phy_state != CELL_SELECT) {
+    Warning("SYNC:  Resetting sync, cell_search_in_progress=%s\n", cell_search_in_progress?"yes":"no");
+    resync_sfn(false);
+  } else {
+    Warning("SYNC:  Trying to reset sync while in cell reselection\n");
+  }
 }
 
 void phch_recv::cell_search_inc()
@@ -323,6 +329,8 @@ void phch_recv::cell_search_inc()
   if (cur_earfcn_index >= 0) {
     if (cur_earfcn_index >= (int) earfcn.size()) {
       cur_earfcn_index = 0;
+      cell_search_in_progress = false;
+      phy_state = IDLE;
       rrc->earfcn_end();
     } else {
       Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
@@ -338,7 +346,7 @@ void phch_recv::cell_search_next(bool reset) {
   if (cell_search_in_progress || reset) {
     cell_search_in_progress = false;
     if (!stop_sync()) {
-      log_h->warning("SYNC:  Couldn't stop PHY\n");
+      log_h->warning("SYNC:  Couldn't stop PHY (state=%d)\n", phy_state);
     }
     if (reset) {
       cur_earfcn_index = -1;
@@ -393,9 +401,7 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
   if (is_in_idle_rx) {
     Info("Cell HO: Reconfiguring cell\n");
     if (set_cell()) {
-      //resync_sfn(true, true);
-      sfn_p.reset();
-      phy_state = CELL_RESELECT;
+      resync_sfn(false);
       Info("Cell HO: Synchronizing with new cell\n");
       ret = true;
     } else {
@@ -419,7 +425,7 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
       set_sampling_rate();
     }
     if (phy_state < CELL_SELECT) {
-      resync_sfn();
+      resync_sfn(true, false);
     }
     return true;
   } else {
@@ -444,9 +450,7 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
     if (set_cell()) {
       log_h->info("Cell Select: Synchronizing on cell...\n");
 
-      resync_sfn();
-
-      usleep(500000); // Time offset we set start_rx to start receiving samples
+      resync_sfn(true, false);
       return true;
     }
     return false;
@@ -616,13 +620,14 @@ void phch_recv::run_thread()
             }
             if (set_cell()) {
               set_sampling_rate();
-              resync_sfn();
+              resync_sfn(true, false);
             }
             break;
           case search::CELL_NOT_FOUND:
             if (cell_search_in_progress) {
               cell_search_inc();
             }
+            phy_state = IDLE;
             break;
           default:
             radio_error();
@@ -630,7 +635,6 @@ void phch_recv::run_thread()
           }
         }
         break;
-      case CELL_RESELECT:
       case CELL_SELECT:
         switch (sfn_p.run_subframe(&cell, &tti))
         {
@@ -650,7 +654,7 @@ void phch_recv::run_thread()
               phy_state = CELL_SEARCH;
             } else {
               log_h->warning("SYNC:  Timeout while synchronizing SFN. Reselecting cell\n");
-              resync_sfn(true, true);
+              resync_sfn(false);
             }
             break;
           case sfn_sync::IDLE:
@@ -666,6 +670,7 @@ void phch_recv::run_thread()
           case measure::MEASURE_OK:
             log_h->info("SYNC:  Measured OK. Camping on cell PCI=%d...\n", cell.id);
             phy_state = CELL_CAMP;
+            cell_search_in_progress = false;
             rrc->cell_found(earfcn[cur_earfcn_index], cell, measure_p.rsrp());
             break;
           case measure::IDLE:

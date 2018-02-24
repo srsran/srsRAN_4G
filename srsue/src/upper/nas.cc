@@ -171,7 +171,10 @@ void nas::plmn_search_end() {
 
     rrc->plmn_select(known_plmns[0]);
   } else {
-    nas_log->debug("Finished searching PLMN in current EARFCN set but no networks were found.\n");
+    nas_log->info("Finished searching PLMN in current EARFCN set but no networks were found.\n");
+    if (state == EMM_STATE_REGISTERED_INITIATED && plmn_selection == PLMN_NOT_SELECTED) {
+      rrc->plmn_search();
+    }
   }
 }
 
