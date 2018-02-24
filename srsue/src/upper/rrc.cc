@@ -202,6 +202,12 @@ void rrc::run_thread() {
           // If not attached, PLMN selection will be triggered from higher layers
         }
         break;
+      case RRC_STATE_PLMN_START:
+        rrc_log->info("RRC PLMN Search: Starting cell search\n");
+        plmn_select_timeout = 0;
+        phy->cell_search_start();
+        state = RRC_STATE_PLMN_SELECTION;
+        break;
       case RRC_STATE_PLMN_SELECTION:
         plmn_select_timeout++;
         if (plmn_select_timeout >= RRC_PLMN_SELECT_TIMEOUT) {
@@ -209,8 +215,7 @@ void rrc::run_thread() {
           phy->cell_search_stop();
           sleep(1);
           rrc_log->console("\nRRC PLMN Search: timeout expired. Searching again\n");
-          plmn_select_timeout = 0;
-          phy->cell_search_start();
+
         }
         break;
       case RRC_STATE_CELL_SELECTING:
@@ -230,7 +235,7 @@ void rrc::run_thread() {
             state = RRC_STATE_CELL_SELECTED;
           }
         }
-        // Don't time out during restablishment (T311 running)
+        // Don't time out during reestablishment (T311 running)
         if (!mac_timers->timer_get(t311)->is_running()) {
           select_cell_timeout++;
           if (select_cell_timeout >= RRC_SELECT_CELL_TIMEOUT) {
@@ -351,7 +356,7 @@ void rrc::run_si_acquisition_procedure()
       tti = mac->get_current_tti();
       si_win_start = sib_start_tti(tti, 2, 0, 5);
       if (last_win_start == 0 ||
-          (srslte_tti_interval(last_win_start, tti) > 20 && srslte_tti_interval(last_win_start, tti) < 1000))
+          (srslte_tti_interval(tti, last_win_start) >= 20 && srslte_tti_interval(tti, last_win_start) < 1000))
       {
 
         last_win_start = si_win_start;
@@ -384,12 +389,12 @@ void rrc::run_si_acquisition_procedure()
         si_win_len = liblte_rrc_si_window_length_num[serving_cell->sib1ptr()->si_window_length];
 
         if (last_win_start == 0 ||
-            (srslte_tti_interval(last_win_start, tti) > period*10 && srslte_tti_interval(last_win_start, tti) < 1000))
+            (srslte_tti_interval(tti, last_win_start) > period*10 && srslte_tti_interval(tti, last_win_start) < 1000))
         {
           last_win_start = si_win_start;
 
           mac->bcch_start_rx(si_win_start, si_win_len);
-          rrc_log->info("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
+          rrc_log->debug("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
                          si_win_start, si_win_len);
         }
 
@@ -433,10 +438,7 @@ uint16_t rrc::get_mnc() {
 }
 
 void rrc::plmn_search() {
-  rrc_log->info("Starting PLMN search procedure\n");
-  state = RRC_STATE_PLMN_SELECTION;
-  phy->cell_search_start();
-  plmn_select_timeout = 0;
+  state = RRC_STATE_PLMN_START;
 }
 
 /* This is the NAS interface. When NAS requests to select a PLMN we have to
@@ -576,7 +578,8 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
     }
 
     // Verify cell selection criteria with strongest neighbour cell (always first)
-    if (cell_selection_eval(neighbour_cells[0]->get_rsrp())     &&
+    if (neighbour_cells.size() > 1                           &&
+        cell_selection_eval(neighbour_cells[0]->get_rsrp())  &&
         neighbour_cells[0]->get_rsrp() > serving_cell->get_rsrp() + 5)
     {
       set_serving_cell(0);
@@ -761,10 +764,6 @@ void rrc::earfcn_end() {
   // If searching for PLMN, indicate NAS we scanned all frequencies
   if (state == RRC_STATE_PLMN_SELECTION) {
     nas->plmn_search_end();
-  } else if (state == RRC_STATE_CELL_SELECTING) {
-    select_cell_timeout = 0;
-    rrc_log->info("Starting cell search again\n");
-    phy->cell_search_start();
   }
 }
 
@@ -825,11 +824,11 @@ void rrc::out_of_sync() {
     if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
       n310_cnt++;
       if (n310_cnt == N310) {
+        rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n",
+                      N310, mac_timers->timer_get(t310)->get_timeout());
         mac_timers->timer_get(t310)->reset();
         mac_timers->timer_get(t310)->run();
         n310_cnt = 0;
-        phy->sync_reset();
-        rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer\n", N310);
       }
     }
   } else {
@@ -856,7 +855,6 @@ void rrc::in_sync() {
 void rrc::radio_link_failure() {
   // TODO: Generate and store failure report
 
-  phy->sync_reset();
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state != RRC_STATE_CONNECTED) {
@@ -1016,6 +1014,7 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause,
   set_phy_default();
   mac->reset();
   set_mac_default();
+  phy->sync_reset();
   state = RRC_STATE_CELL_SELECTING;
 }
 

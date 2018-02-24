@@ -104,7 +104,7 @@ private:
   bool   set_cell();
 
   void   cell_search_inc();
-  void   resync_sfn(bool is_connected = false, bool rx_now = false);
+  void   resync_sfn(bool restart_radio, bool restart_now = false);
   bool   stop_sync();
 
   void   stop_rx();
@@ -307,7 +307,6 @@ private:
     IDLE = 0,
     CELL_SEARCH,
     CELL_SELECT,
-    CELL_RESELECT,
     CELL_MEASURE,
     CELL_CAMP,
     IDLE_RX
