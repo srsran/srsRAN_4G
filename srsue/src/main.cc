@@ -159,11 +159,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Pregenerate uplink signals after attach. Improves CPU performance.")
 
     ("expert.rssi_sensor_enabled",
-     bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(true),
+     bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(false),
      "Enable or disable RF frontend RSSI sensor. In some USRP devices can cause segmentation fault")
 
     ("expert.rx_gain_offset",
-     bpo::value<float>(&args->expert.phy.rx_gain_offset)->default_value(10),
+     bpo::value<float>(&args->expert.phy.rx_gain_offset)->default_value(62),
      "RX Gain offset to add to rx_gain to correct RSRP value")
 
       ("expert.prach_gain",
