@@ -246,7 +246,6 @@ private:
             } else {
               Warning("UL RAR grant available but no Msg3 on buffer\n");
             }
-            printf("Transmitted Msg3\n");
 
             // Normal UL grant
           } else {
