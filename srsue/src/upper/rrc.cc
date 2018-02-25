@@ -590,14 +590,16 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
   }
 }
 
-void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
+/* PHY begins camping in a cell. RRC updates RSRP measurement,
+ * proceeds with PLMN selection/cell search if applicable and sets
+ * new cell as current serving cell */
+void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
   bool found = false;
   int cell_idx = -1; 
   
   if (serving_cell->equals(earfcn, phy_cell.id)) {
     serving_cell->set_rsrp(rsrp);
-    serving_cell->in_sync = true;
     found = true;
   } else {
     // Check if cell is in our list of neighbour cells 
@@ -605,7 +607,6 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
     if (cell_idx >= 0) {
       set_serving_cell(cell_idx);
       serving_cell->set_rsrp(rsrp);
-      serving_cell->in_sync = true;
       found = true;
     }
   }
@@ -629,7 +630,6 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
       phy->cell_search_next();
     } else {
       set_serving_cell(earfcn, phy_cell.id);
-
       si_acquire_state = SI_ACQUIRE_SIB1;
     }
   }
