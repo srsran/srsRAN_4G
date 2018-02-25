@@ -91,7 +91,7 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   sfn_p.init(&ue_sync, sf_buffer, log_h);
 
   // Initialize measurement class for the primary cell 
-  measure_p.init(sf_buffer, log_h, radio_h, nof_rx_antennas);
+  measure_p.init(sf_buffer, log_h, nof_rx_antennas);
 
   // Start intra-frequency measurement
   intra_freq_meas.init(worker_com, rrc, log_h);
@@ -675,9 +675,18 @@ void phch_recv::run_thread()
         }
         break;
       case CELL_MEASURE:
+
         switch(measure_p.run_subframe_sync(&ue_sync, sf_idx))
         {
           case measure::MEASURE_OK:
+
+            // Calibrate measure object since worker not yet calibrated
+            if (worker_com->args->rssi_sensor_enabled) {
+              measure_p.set_rx_gain_offset(measure_p.rssi() - radio_h->get_rssi() + 30);
+            } else {
+              measure_p.set_rx_gain_offset(worker_com->args->rx_gain_offset + radio_h->get_rx_gain());
+            }
+
             log_h->info("SYNC:  Measured OK. Camping on cell PCI=%d...\n", cell.id);
             phy_state = CELL_CAMP;
             cell_search_in_progress = false;
@@ -1095,11 +1104,10 @@ phch_recv::sfn_sync::ret_code phch_recv::sfn_sync::run_subframe(srslte_cell_t *c
 /*********
  * Measurement class 
  */
-void phch_recv::measure::init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, srslte::radio *radio_h, uint32_t nof_rx_antennas, uint32_t nof_subframes)
+void phch_recv::measure::init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, uint32_t nof_rx_antennas, uint32_t nof_subframes)
 
 {
-  this->radio_h       = radio_h;
-  this->log_h         = log_h; 
+  this->log_h         = log_h;
   this->nof_subframes = nof_subframes;
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     this->buffer[i] = buffer[i]; 
@@ -1132,17 +1140,21 @@ void phch_recv::measure::set_cell(srslte_cell_t cell)
   }
   reset();
 }
-  
+
+float phch_recv::measure::rssi() {
+  return 10*log10(mean_rssi);
+}
+
 float phch_recv::measure::rsrp() {
-  return mean_rsrp;
+  return 10*log10(mean_rsrp) + 30 - rx_gain_offset;
 }
 
 float phch_recv::measure::rsrq() {
-  return mean_rsrq;
+  return 10*log10(mean_rsrq);
 }
 
 float phch_recv::measure::snr() {
-  return mean_snr;
+  return 10*log10(mean_snr);
 }
 
 uint32_t phch_recv::measure::frame_st_idx() {
@@ -1243,10 +1255,10 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
     return ERROR;
   }
 
-  float rsrp   = 10*log10(srslte_chest_dl_get_rsrp(&ue_dl.chest)) + 30 - rx_gain_offset;
-  float rsrq   = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
-  float snr    = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest));
-  float rssi   = 10*log10(srslte_vec_avg_power_cf(buffer[0], SRSLTE_SF_LEN_PRB(current_prb))) + 30;
+  float rsrp   = srslte_chest_dl_get_rsrp(&ue_dl.chest);
+  float rsrq   = srslte_chest_dl_get_rsrq(&ue_dl.chest);
+  float snr    = srslte_chest_dl_get_snr(&ue_dl.chest);
+  float rssi   = srslte_vec_avg_power_cf(buffer[0], SRSLTE_SF_LEN_PRB(current_prb));
 
   if (cnt == 0) {
     mean_rsrp  = rsrp;
@@ -1265,17 +1277,6 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
               cnt, nof_subframes, sf_idx, rsrp, snr);
 
   if (cnt >= nof_subframes) {
-
-    // Calibrate RSRP if no gain offset measurements
-    if (fabsf(rx_gain_offset) < 1.0 && radio_h) {
-      float temporal_offset = 0;
-      if (radio_h->has_rssi()) {
-        temporal_offset = mean_rssi - radio_h->get_rssi() + 30;
-      } else {
-        temporal_offset = radio_h->get_rx_gain();
-      }
-      mean_rsrp -= temporal_offset;
-    }
     return MEASURE_OK;
   } else {
     return IDLE;
@@ -1304,7 +1305,7 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled, uint3
   sf_buffer[0]        = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*max_sf_size);
   input_cfo_corrected = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*15*max_sf_size);
 
-  measure_p.init(sf_buffer, log_h, NULL, 1, max_sf_window);
+  measure_p.init(sf_buffer, log_h, 1, max_sf_window);
 
   //do this different we don't need all this search window.
   if(srslte_sync_init(&sync_find, max_sf_window*max_sf_size, 5*max_sf_size, max_fft_sz)) {
@@ -1609,6 +1610,7 @@ void phch_recv::intra_measure::run_thread()
     }
 
     if (running) {
+
       // Read data from buffer and find cells in it
       srslte_ringbuffer_read(&ring_buffer, search_buffer, INTRA_FREQ_MEAS_LEN_MS*current_sflen*sizeof(cf_t));
       int found_cells = scell.find_cells(search_buffer, common->rx_gain_offset, primary_cell, INTRA_FREQ_MEAS_LEN_MS, info);
