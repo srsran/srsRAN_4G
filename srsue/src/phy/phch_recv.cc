@@ -651,6 +651,7 @@ void phch_recv::run_thread()
             if (!cell_search_in_progress) {
               log_h->info("Sync OK. Camping on cell PCI=%d...\n", cell.id);
               phy_state = CELL_CAMP;
+              rrc->cell_camping(earfcn[cur_earfcn_index], cell);
             } else {
               log_h->info("Sync OK. Measuring PCI=%d...\n", cell.id);
               measure_p.reset();
@@ -680,7 +681,7 @@ void phch_recv::run_thread()
             log_h->info("SYNC:  Measured OK. Camping on cell PCI=%d...\n", cell.id);
             phy_state = CELL_CAMP;
             cell_search_in_progress = false;
-            rrc->cell_found(earfcn[cur_earfcn_index], cell, measure_p.rsrp());
+            rrc->cell_camping(earfcn[cur_earfcn_index], cell, measure_p.rsrp());
             break;
           case measure::IDLE:
             break;

@@ -37,6 +37,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
 
+#include <math.h>
 #include <map>
 #include <queue>
 
@@ -106,7 +107,9 @@ class cell_t
   }
 
   void set_rsrp(float rsrp) {
-    this->rsrp = rsrp;
+    if (~isnan(rsrp)) {
+      this->rsrp = rsrp;
+    }
     in_sync = true;
     gettimeofday(&last_update, NULL);
   }
@@ -252,7 +255,7 @@ public:
   void in_sync();
   void out_of_sync();
   void earfcn_end();
-  void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
+  void cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
   void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn, int pci);
 
   // MAC interface
