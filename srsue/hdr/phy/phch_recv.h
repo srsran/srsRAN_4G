@@ -167,13 +167,14 @@ private:
     typedef enum {IDLE, MEASURE_OK, ERROR} ret_code;
 
     ~measure();
-    void      init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, srslte::radio *radio_h,
+    void      init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h,
                    uint32_t nof_rx_antennas, uint32_t nof_subframes = RSRP_MEASURE_NOF_FRAMES);
     void      reset();
     void      set_cell(srslte_cell_t cell);
     ret_code  run_subframe(uint32_t sf_idx);
     ret_code  run_subframe_sync(srslte_ue_sync_t *ue_sync, uint32_t sf_idx);
     ret_code  run_multiple_subframes(cf_t *buffer, uint32_t offset, uint32_t sf_idx, uint32_t nof_sf);
+    float     rssi();
     float     rsrp();
     float     rsrq();
     float     snr();
@@ -183,7 +184,6 @@ private:
     srslte::log      *log_h;
     srslte_ue_dl_t    ue_dl;
     cf_t              *buffer[SRSLTE_MAX_PORTS];
-    srslte::radio    *radio_h;
     uint32_t cnt;
     uint32_t nof_subframes;
     uint32_t current_prb;
@@ -235,7 +235,7 @@ private:
     void write(uint32_t tti, cf_t *data, uint32_t nsamples);
   private:
     void run_thread();
-    const static int INTRA_FREQ_MEAS_LEN_MS    = 20;
+    const static int INTRA_FREQ_MEAS_LEN_MS    = 50;
     const static int INTRA_FREQ_MEAS_PERIOD_MS = 200;
     const static int INTRA_FREQ_MEAS_PRIO      = DEFAULT_PRIORITY + 5;
 
