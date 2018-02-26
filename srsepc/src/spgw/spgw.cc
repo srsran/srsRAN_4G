@@ -338,7 +338,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   dest_addr.s_addr = dest_ip;
 
   //m_spgw_log->console("IP version: %d\n", version);
-  //m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(dest_addr));
+  m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(dest_addr));
 
   pthread_mutex_lock(&m_mutex);
   gtp_fteid_it = m_ip_to_teid.find(dest_ip);
@@ -351,7 +351,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
 
   if(ip_found == false)
   {
-    //m_spgw_log->console("IP Packet is not for any UE\n");
+    m_spgw_log->console("IP Packet is not for any UE\n");
     return;
   }
   struct sockaddr_in enb_addr;
@@ -449,8 +449,8 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   //Setup uplink user TEID
   uint64_t spgw_uplink_user_teid = get_new_user_teid();
   //Allocate UE IP
-  in_addr_t ue_ip = get_new_ue_ipv4();
-
+  //in_addr_t ue_ip = get_new_ue_ipv4();
+  in_addr_t ue_ip = inet_addr("172.16.0.2");
   uint8_t default_bearer_id = 5;
 
   //Save the UE IP to User TEID map 

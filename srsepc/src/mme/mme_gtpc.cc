@@ -157,6 +157,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu, bool pac
   }
   uint32_t mme_s1ap_id = id_it->second;
 
+  m_mme_gtpc_log->info("MME GTPC Ctrl TEID %d,  MME UE S1AP Id %d\n", cs_resp_pdu->header.teid, mme_s1ap_id);
   //Get S-GW Control F-TEID
   srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
   sgw_ctrl_fteid.teid = cs_resp_pdu->header.teid;
@@ -168,9 +169,11 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu, bool pac
     return;
   }
   m_mme_gtpc_log->console("Create Session Response -- SPGW control TEID %d\n", sgw_ctrl_fteid.teid);
+  m_mme_gtpc_log->info("Create Session Response -- SPGW control TEID %d\n", sgw_ctrl_fteid.teid);
   in_addr s1u_addr;
   s1u_addr.s_addr = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
   m_mme_gtpc_log->console("Create Session Response -- SPGW S1-U Address: %s\n", inet_ntoa(s1u_addr));
+  m_mme_gtpc_log->info("Create Session Response -- SPGW S1-U Address: %s\n", inet_ntoa(s1u_addr));
 
   //Check UE Ipv4 address was allocated
   if(cs_resp->paa_present != true)
