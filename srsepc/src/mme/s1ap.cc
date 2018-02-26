@@ -250,7 +250,8 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(&msg->choice.UEContextReleaseRequest, enb_sri, reply_buffer, &reply_flag);
     break;
   default:
-    m_s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
+    m_s1ap_log->error("Unhandled S1AP intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
+    m_s1ap_log->console("Unhandled S1APintiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
   //Send Reply to eNB
   if(reply_flag == true)
