@@ -88,7 +88,7 @@ mme_gtpc::get_new_ctrl_teid()
   return m_next_ctrl_teid++; //FIXME Use a Id pool?
 }
 void
-mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
+mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id, bool pack_attach)
 {
   m_mme_gtpc_log->info("Sending Create Session Request.\n");
   m_mme_gtpc_log->console("Sending Create Session Request.\n");
@@ -125,12 +125,12 @@ mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id)
   //Save RX Control TEID
   m_teid_to_mme_s1ap_id.insert(std::pair<uint32_t,uint32_t>(cs_req->sender_f_teid.teid, mme_ue_s1ap_id));
 
-  m_spgw->handle_create_session_request(cs_req, &cs_resp_pdu);
+  m_spgw->handle_create_session_request(cs_req, &cs_resp_pdu, pack_attach);
  
 }
 
 void
-mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
+mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu, bool pack_attach)
 {
   struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu->choice.create_session_response;
   m_mme_gtpc_log->info("Received Create Session Response\n");
@@ -206,7 +206,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   erab_ctx->sgw_ctrl_fteid = sgw_ctrl_fteid;
   erab_ctx->sgw_s1u_fteid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid;
 
-  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, erab_ctx);
+  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, erab_ctx, pack_attach);
 }
 
 

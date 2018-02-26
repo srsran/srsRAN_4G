@@ -578,7 +578,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
         //Create session request
         m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.");
-        m_mme_gtpc->send_create_session_request(ue_emm_ctx->imsi, ue_emm_ctx->mme_ue_s1ap_id);
+        m_mme_gtpc->send_create_session_request(ue_emm_ctx->imsi, ue_emm_ctx->mme_ue_s1ap_id,true);
         *reply_flag = false; //No reply needed
         return true;
       }
@@ -652,7 +652,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       m_s1ap_log->info("Service Request -- User has ECM context already\n");
       m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
       int default_bearer_id = 5;
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id]);
+      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id],false);
     }
     else
     {
@@ -685,7 +685,9 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       //Re-generate K_eNB
       liblte_security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, ue_emm_ctx->security_ctxt.k_enb);
       m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
-      m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi, ue_ecm_ctx.mme_ue_s1ap_id);
+
+      m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi, ue_ecm_ctx.mme_ue_s1ap_id,false);
+      // m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_);
     }
   }
   else
@@ -798,7 +800,7 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   {
     //FIXME The packging of GTP-C messages is not ready.
     //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-    m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi, ue_ecm_ctx->mme_ue_s1ap_id);
+    m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi, ue_ecm_ctx->mme_ue_s1ap_id,true);
     *reply_flag = false; //No reply needed
   }
   return true;
@@ -867,7 +869,7 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
 
   //FIXME The packging of GTP-C messages is not ready.
   //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-  m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi, ue_ecm_ctx->mme_ue_s1ap_id);
+  m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi, ue_ecm_ctx->mme_ue_s1ap_id,true);
   return true;
 }
 
@@ -1577,12 +1579,12 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
 
   //Set up LAI for combined EPS/IMSI attach
   //attach_accept.lai_present=false;
-  attach_accept.lai_present=true;
+  attach_accept.lai_present=false;
   attach_accept.lai.mcc = mcc;
   attach_accept.lai.mnc = mnc;
   attach_accept.lai.lac = 001;
 
-  attach_accept.ms_id_present=true;
+  attach_accept.ms_id_present=false;
   attach_accept.ms_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_TMSI;
   attach_accept.ms_id.tmsi = attach_accept.guti.guti.m_tmsi;
 
