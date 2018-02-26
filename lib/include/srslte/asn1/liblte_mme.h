@@ -175,6 +175,7 @@ typedef struct{
     uint8 imsi[15];
     uint8 imei[15];
     uint8 imeisv[16];
+    uint32 tmsi;
 }LIBLTE_MME_MOBILE_ID_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_id_ie(LIBLTE_MME_MOBILE_ID_STRUCT  *mobile_id,

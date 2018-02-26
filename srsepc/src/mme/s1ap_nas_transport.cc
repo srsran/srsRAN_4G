@@ -1542,8 +1542,9 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   }
 
   //Attach accept
-  attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
-  //attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_COMBINED_EPS_IMSI_ATTACH;
+  //attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
+  attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_COMBINED_EPS_IMSI_ATTACH;
+
   //Mandatory
   //FIXME: Set t3412 from config
   attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
@@ -1570,13 +1571,22 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
                     attach_accept.guti.guti.m_tmsi);
 
   //Set EMM cause to no CS available
-  //attach_accept.emm_cause_present=false;
-  attach_accept.emm_cause_present=true;
-  attach_accept.emm_cause=18;
+  attach_accept.emm_cause_present=false;
+  //attach_accept.emm_cause_present=true;
+  //attach_accept.emm_cause=18;
+
+  //Set up LAI for combined EPS/IMSI attach
+  //attach_accept.lai_present=false;
+  attach_accept.lai_present=true;
+  attach_accept.lai.mcc = mcc;
+  attach_accept.lai.mnc = mnc;
+  attach_accept.lai.lac = 001;
+
+  attach_accept.ms_id_present=true;
+  attach_accept.ms_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_TMSI;
+  attach_accept.ms_id.tmsi = attach_accept.guti.guti.m_tmsi;
 
   //Make sure all unused options are set to false
-  attach_accept.lai_present=false;
-  attach_accept.ms_id_present=false;
   attach_accept.t3402_present=false;
   attach_accept.t3423_present=false;
   attach_accept.equivalent_plmns_present=false;
