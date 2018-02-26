@@ -687,7 +687,8 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
 
       m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi, ue_ecm_ctx.mme_ue_s1ap_id,false);
-      // m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_);
+      m_s1ap_log->console("UE ESM Ctr TEID %d\n", ue_ecm_ctx.erabs_ctx[5].sgw_ctrl_fteid.teid);
+     // m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_);
     }
   }
   else
