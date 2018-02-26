@@ -437,7 +437,7 @@ spgw::get_new_ue_ipv4()
 }
 
 void
-spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu)
+spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu, bool pack_attach)
 {
   srslte::gtpc_header *header = &cs_resp_pdu->header;
   srslte::gtpc_create_session_response *cs_resp = &cs_resp_pdu->choice.create_session_response;
@@ -492,7 +492,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   cs_resp->paa.ipv4_present = true;
   cs_resp->paa.ipv4 = ue_ip;
   m_spgw_log->info("Sending Create Session Response\n");
-  m_mme_gtpc->handle_create_session_response(cs_resp_pdu);
+  m_mme_gtpc->handle_create_session_response(cs_resp_pdu, pack_attach );
   return;
 }
 
