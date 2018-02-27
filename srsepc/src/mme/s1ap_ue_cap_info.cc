@@ -71,6 +71,7 @@ bool
 s1ap_ue_cap_info::handle_ue_capability_info_indication(LIBLTE_S1AP_MESSAGE_UECAPABILITYINFOINDICATION_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
   m_s1ap_log->info("UE Capability Info Indication\n");
+  m_s1ap_log->console("UE Capability Info Indication\n");
   return true;
 }
 
