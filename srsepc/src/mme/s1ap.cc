@@ -82,12 +82,15 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
   m_hss = hss_;
 
   //Init message handlers
-  m_s1ap_mngmt_proc = s1ap_mngmt_proc::get_instance(); //Managment procedures
+  m_s1ap_mngmt_proc = s1ap_mngmt_proc::get_instance();         //Managment procedures
   m_s1ap_mngmt_proc->init();
-  m_s1ap_nas_transport = s1ap_nas_transport::get_instance(); //NAS Transport procedures
+  m_s1ap_nas_transport = s1ap_nas_transport::get_instance();   //NAS Transport procedures
   m_s1ap_nas_transport->init(m_hss);
   m_s1ap_ctx_mngmt_proc = s1ap_ctx_mngmt_proc::get_instance(); //Context Management Procedures
   m_s1ap_ctx_mngmt_proc->init();
+  m_s1ap_ue_cap_info = s1ap_ue_cap_info::get_instance();    //UE Capability Information
+  m_s1ap_ue_cap_info->init();
+
 
   //Get pointer to GTP-C class
   m_mme_gtpc = mme_gtpc::get_instance();
@@ -126,6 +129,7 @@ s1ap::stop()
   s1ap_mngmt_proc::cleanup();
   s1ap_nas_transport::cleanup();
   s1ap_ctx_mngmt_proc::cleanup();
+  s1ap_ue_cap_info::cleanup();
   return;
 }
 
@@ -226,7 +230,7 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb
 
 }
 
-bool 
+bool
 s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  struct sctp_sndrcvinfo *enb_sri)
 {
   bool reply_flag = false;
@@ -249,7 +253,7 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     m_s1ap_log->info("Received UE Context Release Request Message.\n");
     m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(&msg->choice.UEContextReleaseRequest, enb_sri, reply_buffer, &reply_flag);
     break;
-  case LIBLTE_S1AP_PROC_ID_UECAPABILITYINFOINDICATION:
+  case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECAPABILITYINFOINDICATION:
     m_s1ap_log->info("Received UE Context Release Request Message.\n");
     m_s1ap_ue_cap_info->handle_ue_capability_info_indication(&msg->choice.UECapabilityInfoIndication, enb_sri, reply_buffer, &reply_flag);
     break;

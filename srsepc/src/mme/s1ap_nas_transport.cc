@@ -1580,12 +1580,12 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
 
   //Set up LAI for combined EPS/IMSI attach
   //attach_accept.lai_present=false;
-  attach_accept.lai_present=false;
+  attach_accept.lai_present=true;
   attach_accept.lai.mcc = mcc;
   attach_accept.lai.mnc = mnc;
   attach_accept.lai.lac = 001;
 
-  attach_accept.ms_id_present=false;
+  attach_accept.ms_id_present=true;
   attach_accept.ms_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_TMSI;
   attach_accept.ms_id.tmsi = attach_accept.guti.guti.m_tmsi;
 
