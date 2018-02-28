@@ -137,6 +137,7 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_ph
   srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask);
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
+  srslte_pdsch_enable_csi(&ue_dl.pdsch, phy->args->pdsch_csi_enabled);
 
   mem_initiated = true;
 
