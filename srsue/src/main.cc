@@ -269,6 +269,9 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<float>(&args->expert.phy.estimator_fil_w)->default_value(0.1),
      "Chooses the coefficients for the 3-tap channel estimator centered filter.")
 
+    ("expert.pdsch_csi_enabled",
+     bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(false),
+     "Stores the Channel State Information and uses it for weightening the softbits. It is only compatible with TM1.")
 
     ("rf_calibration.tx_corr_dc_gain", bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),
      "TX DC offset gain correction")

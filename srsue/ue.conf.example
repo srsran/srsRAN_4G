@@ -173,6 +173,9 @@ enable = false
 # cfo_loop_pss_timeout:  After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively,
 #                        RS adjustments are allowed.
 #
+# pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
+#                        compatible with TM1. It is False by default.
+#
 #####################################################################
 [expert]
 #ip_netmask          = 255.255.255.0
@@ -196,6 +199,7 @@ enable = false
 #pregenerate_signals = false
 #metrics_csv_enable  = false
 #metrics_csv_filename = /tmp/ue_metrics.csv
+#pdsch_csi_enabled  = true     # Caution! Only TM1 supported!
 
 # CFO related values
 #cfo_integer_enabled = false
