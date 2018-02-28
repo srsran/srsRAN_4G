@@ -76,6 +76,9 @@ typedef struct SRSLTE_API {
   cf_t *d[SRSLTE_MAX_CODEWORDS];                /* Modulated/Demodulated codewords */
   void *e[SRSLTE_MAX_CODEWORDS];
 
+  bool csi_enabled;
+  float *csi[SRSLTE_MAX_CODEWORDS];             /* Channel Strengh Indicator */
+
   /* tx & rx objects */
   srslte_modem_table_t mod[4];
   
@@ -106,6 +109,9 @@ SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q,
 
 SRSLTE_API void srslte_pdsch_set_power_allocation(srslte_pdsch_t *q,
                                                   float rho_a);
+
+SRSLTE_API int srslte_pdsch_enable_csi(srslte_pdsch_t *q,
+                                       bool enable);
 
 SRSLTE_API void srslte_pdsch_free_rnti(srslte_pdsch_t *q, 
                                       uint16_t rnti);

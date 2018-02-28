@@ -787,7 +787,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
     }
     
     // Equalization
-    srslte_predecoding_single(q->z_tmp, q->ce, q->z, nof_re, 1.0f, noise_estimate);
+    srslte_predecoding_single(q->z_tmp, q->ce, q->z, NULL, nof_re, 1.0f, noise_estimate);
 
     // Perform ML-decoding 
     float corr=0, corr_max=-1e9;
