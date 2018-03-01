@@ -397,16 +397,11 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
     usleep(1000);
     cnt++;
   }
-  cnt = 0;
-  while(!is_in_idle_rx && cnt<20) {
-    usleep(1000);
-    cnt++;
-  }
   for(uint32_t i=0;i<workers_pool->get_nof_workers();i++) {
     ((phch_worker*) workers_pool->get_worker(i))->reset();
   }
   worker_com->reset();
-  worker_com->reset_ul();
+  radio_h->tx_end();
   if (is_in_idle_rx) {
     Info("Cell HO: Reconfiguring cell\n");
     if (set_cell()) {
