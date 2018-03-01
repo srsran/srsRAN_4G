@@ -401,7 +401,7 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
     ((phch_worker*) workers_pool->get_worker(i))->reset();
   }
   worker_com->reset();
-  radio_h->tx_end();
+  //radio_h->tx_end();
   if (is_in_idle_rx) {
     Info("Cell HO: Reconfiguring cell\n");
     if (set_cell()) {
