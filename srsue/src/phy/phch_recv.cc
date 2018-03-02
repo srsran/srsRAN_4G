@@ -657,10 +657,11 @@ void phch_recv::run_thread()
               tx_mutex_cnt = (tx_mutex_cnt+1) % nof_tx_mutex;
 
               // Reset Uplink TX buffer to avoid mixing packets in TX queue
+              /*
               if (prach_buffer->is_pending()) {
                 Info("SYNC:  PRACH pending: Reset UL\n");
-                worker_com->reset_ul();
-              }
+                radio_h->tx_end();
+              }*/
 
               // Check if we need to TX a PRACH
               if (prach_buffer->is_ready_to_send(tti)) {
