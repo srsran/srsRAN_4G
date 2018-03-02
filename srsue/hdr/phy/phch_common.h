@@ -27,7 +27,7 @@
 #ifndef UEPHYWORKERCOMMON_H
 #define UEPHYWORKERCOMMON_H
 
-#define TX_MODE_CONTINUOUS 1
+#define TX_MODE_CONTINUOUS 0
 
 
 #include <pthread.h>
