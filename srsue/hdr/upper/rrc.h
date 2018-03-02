@@ -325,7 +325,7 @@ private:
   static const uint32_t RRC_PLMN_SELECT_TIMEOUT = 10000;
 
   uint32_t select_cell_timeout;
-  static const uint32_t RRC_SELECT_CELL_TIMEOUT = 2000;
+  static const uint32_t RRC_SELECT_CELL_TIMEOUT = 1000;
 
   uint8_t k_rrc_enc[32];
   uint8_t k_rrc_int[32];

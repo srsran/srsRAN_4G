@@ -134,7 +134,6 @@ void phch_recv::reset()
   srate_mode = SRATE_NONE;
   cell_search_in_progress = false;
   current_earfcn = 0;
-  radio_is_resetting = false;
   sfn_p.reset();
   measure_p.reset();
   search_p.reset();
@@ -145,7 +144,6 @@ void phch_recv::radio_error()
 {
   log_h->error("SYNC:  Receiving from radio.\n");
   phy_state = IDLE;
-  radio_is_resetting=true;
 
   // Need to find a method to effectively reset radio, reloading the driver does not work
   //radio_h->reset();
@@ -155,20 +153,10 @@ void phch_recv::radio_error()
   exit(-1);
 
   reset();
-  radio_is_resetting=false;
 }
 
 void phch_recv::set_cfo(float cfo) {
   srslte_ue_sync_set_cfo_ref(&ue_sync, cfo);
-}
-
-bool phch_recv::wait_radio_reset() {
-  int cnt=0;
-  while(cnt < 20 && radio_is_resetting) {
-    sleep(1);
-    cnt++;
-  }
-  return radio_is_resetting;
 }
 
 void phch_recv::set_agc_enable(bool enable)
@@ -265,24 +253,6 @@ bool phch_recv::set_cell() {
   return cell_is_set;
 }
 
-void phch_recv::resync_sfn(bool restart_radio, bool restart_now) {
-
-  if (restart_radio) {
-    wait_radio_reset();
-    stop_rx();
-    usleep(100000);
-  }
-  sfn_p.reset();
-  search_p.reset();
-  srslte_ue_sync_reset(&ue_sync);
-
-  if (restart_radio) {
-    start_rx(restart_now);
-  }
-
-  phy_state = CELL_SELECT;
-}
-
 void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
   this->earfcn = earfcn;
 }
@@ -292,35 +262,14 @@ void phch_recv::force_freq(float dl_freq, float ul_freq) {
   this->ul_freq = ul_freq;
 }
 
-bool phch_recv::stop_sync() {
-
-  wait_radio_reset();
-
-  if (phy_state == IDLE && is_in_idle) {
-    return true;
-  } else {
-    Info("SYNC:  Going to IDLE (state=%d)\n", phy_state);
-    phy_state = IDLE;
-    int cnt = 0;
-    while (!is_in_idle && cnt < 100) {
-      usleep(10000);
-      cnt++;
-    }
-    if (!is_in_idle) {
-      Warning("SYNC:  Could not go to IDLE (state=%d)\n", phy_state);
-    }
-    return is_in_idle;
-  }
-}
-
 void phch_recv::reset_sync() {
 
-  if (phy_state != CELL_SELECT) {
-    Warning("SYNC:  Resetting sync, cell_search_in_progress=%s\n", cell_search_in_progress?"yes":"no");
-    resync_sfn(false);
-  } else {
-    Warning("SYNC:  Trying to reset sync while in cell reselection\n");
-  }
+  sfn_p.reset();
+  search_p.reset();
+  measure_p.reset();
+  srslte_ue_sync_reset(&ue_sync);
+
+  phy_state = CELL_SELECT;
 }
 
 void phch_recv::cell_search_inc()
@@ -345,9 +294,6 @@ void phch_recv::cell_search_inc()
 void phch_recv::cell_search_next(bool reset) {
   if (cell_search_in_progress || reset) {
     cell_search_in_progress = false;
-    if (!stop_sync()) {
-      log_h->warning("SYNC:  Couldn't stop PHY (state=%d)\n", phy_state);
-    }
     if (reset) {
       cur_earfcn_index = -1;
     }
@@ -373,9 +319,6 @@ void phch_recv::cell_search_start() {
 
 void phch_recv::cell_search_stop() {
   Info("SYNC:  Stopping Cell Search procedure...\n");
-  if (!stop_sync()) {
-    Error("SYNC:  Stopping cell search\n");
-  }
   cell_search_in_progress = false;
 }
 
@@ -391,9 +334,9 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
   bool ret = false;
   this->cell = cell;
   Info("Cell HO: Stopping sync with current cell\n");
-  phy_state = IDLE_RX;
+  phy_state = IDLE;
   cnt = 0;
-  while(!is_in_idle_rx && cnt<20) {
+  while(!is_in_idle && cnt<20) {
     usleep(1000);
     cnt++;
   }
@@ -401,12 +344,11 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
     ((phch_worker*) workers_pool->get_worker(i))->reset();
   }
   worker_com->reset();
-  //radio_h->tx_end();
-  if (is_in_idle_rx) {
+  if (is_in_idle) {
     Info("Cell HO: Reconfiguring cell\n");
     if (set_cell()) {
-      resync_sfn(false);
       Info("Cell HO: Synchronizing with new cell\n");
+      phy_state = CELL_SELECT;
       ret = true;
     } else {
       log_h->error("Cell HO: Configuring cell PCI=%d\n", cell.id);
@@ -428,17 +370,11 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
     if (srate_mode != SRATE_CAMP) {
       set_sampling_rate();
     }
-    if (phy_state < CELL_SELECT) {
-      resync_sfn(true, false);
-    }
+    phy_state = CELL_SELECT;
     return true;
   } else {
 
     cell_search_in_progress = false;
-
-    if (!stop_sync()) {
-      log_h->warning("Still not in idle\n");
-    }
 
     if (earfcn != current_earfcn) {
       if (set_frequency()) {
@@ -453,8 +389,7 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
     if (set_cell()) {
       log_h->info("Cell Select: Synchronizing on cell...\n");
-
-      resync_sfn(true, false);
+      phy_state = CELL_SELECT;
       return true;
     }
     return false;
@@ -522,22 +457,6 @@ void phch_recv::set_sampling_rate()
   }
 }
 
-void phch_recv::stop_rx() {
-  if (radio_is_rx) {
-    Info("SYNC:  Stopping RX streaming\n");
-    radio_h->stop_rx();
-  }
-  radio_is_rx = false;
-}
-
-void phch_recv::start_rx(bool now) {
-  if (!radio_is_rx) {
-    Info("SYNC:  Starting RX streaming\n");
-    radio_h->start_rx(now);
-  }
-  radio_is_rx = true;
-}
-
 uint32_t phch_recv::get_current_tti() {
   return tti;
 }
@@ -592,18 +511,19 @@ void phch_recv::run_thread()
   uint32_t sf_idx = 0;
   phy_state  = IDLE;
   is_in_idle = true;
-  is_in_idle_rx = false;
+
+  cf_t *dummy_buffer[SRSLTE_MAX_PORTS];
+
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    dummy_buffer[i] = (cf_t*) malloc(sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
+  }
 
   while (running)
   {
     if (phy_state != IDLE) {
       is_in_idle = false;
-      Debug("SYNC:  state=%d\n", phy_state);
     }
-
-    if (phy_state != IDLE_RX) {
-      is_in_idle_rx = false;
-    }
+    Debug("SYNC:  state=%d\n", phy_state);
 
     log_h->step(tti);
     log_phy_lib_h->step(tti);
@@ -624,7 +544,7 @@ void phch_recv::run_thread()
             }
             if (set_cell()) {
               set_sampling_rate();
-              resync_sfn(true, false);
+              phy_state = CELL_SELECT;
             }
             break;
           case search::CELL_NOT_FOUND:
@@ -659,7 +579,7 @@ void phch_recv::run_thread()
               phy_state = CELL_SEARCH;
             } else {
               log_h->warning("SYNC:  Timeout while synchronizing SFN. Reselecting cell\n");
-              resync_sfn(false);
+              phy_state = CELL_SELECT;
             }
             break;
           case sfn_sync::IDLE:
@@ -775,28 +695,18 @@ void phch_recv::run_thread()
         }
         break;
       case IDLE:
-        if (!is_in_idle) {
-          stop_rx();
-        }
-        is_in_idle = true;
-        usleep(1000);
-        break;
-      case IDLE_RX:
-        if (!worker) {
-          worker = (phch_worker *) workers_pool->wait_worker(tti);
-        }
-        is_in_idle_rx = true;
-        if (worker) {
-          for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
-            buffer[i] = worker->get_buffer(i);
+        if (radio_h->is_init()) {
+          uint32_t nsamples = 1920;
+          if (current_srate > 0) {
+            nsamples = current_srate/1000;
           }
-          if (!radio_h->rx_now(buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), NULL)) {
-            Error("SYNC:  Receiving from radio while in IDLE_RX\n");
+          if (!radio_h->rx_now(dummy_buffer, nsamples, NULL)) {
+            printf("SYNC:  Receiving from radio while in IDLE_RX\n");
           }
         } else {
-          // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
-          running = false;
+          usleep(1000);
         }
+        is_in_idle = true;
         break;
     }
 
@@ -917,7 +827,6 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
     p->srate_mode = SRATE_FIND;
     p->radio_h->set_rx_srate(1.92e6);
   }
-  p->start_rx();
 
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
   uint32_t max_peak_cell = 0;
@@ -935,10 +844,8 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
 
   if (ret < 0) {
     Error("SYNC:  Error decoding MIB: Error searching PSS\n");
-    p->stop_rx();
     return ERROR;
   } else if (ret == 0) {
-    p->stop_rx();
     Info("SYNC:  Could not find any cell in this frequency\n");
     return CELL_NOT_FOUND;
   }
@@ -966,8 +873,6 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
   ret = srslte_ue_mib_sync_decode(&ue_mib_sync,
                                   40,
                                   bch_payload, &cell->nof_ports, &sfn_offset);
-  p->stop_rx();
-
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, cell, NULL);
 

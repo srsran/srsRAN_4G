@@ -95,7 +95,6 @@ private:
 
   void   reset();
   void   radio_error();
-  bool   wait_radio_reset();
   void   set_ue_sync_opts(srslte_ue_sync_t *q, float cfo);
   void   run_thread();
 
@@ -104,14 +103,7 @@ private:
   bool   set_cell();
 
   void   cell_search_inc();
-  void   resync_sfn(bool restart_radio, bool restart_now = false);
-  bool   stop_sync();
 
-  void   stop_rx();
-  void   start_rx(bool now = false);
-  bool   radio_is_rx;
-
-  bool   radio_is_resetting;
   bool   running;
 
   // Class to run cell search
@@ -309,10 +301,9 @@ private:
     CELL_SELECT,
     CELL_MEASURE,
     CELL_CAMP,
-    IDLE_RX
   } phy_state;
 
-  bool is_in_idle, is_in_idle_rx;
+  bool is_in_idle;
 
   // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
   enum {
