@@ -366,7 +366,6 @@ void phy::reset()
     workers[i].reset();
   }
   workers_common.reset();
-  workers_common.reset_ul();
 }
 
 uint32_t phy::get_current_tti()

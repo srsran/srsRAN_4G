@@ -104,9 +104,7 @@ void txrx::run_thread()
   
   log_h->info("Starting RX/TX thread nof_prb=%d, sf_len=%d\n",worker_com->cell.nof_prb, sf_len);
 
-  // Start streaming RX samples
-  radio_h->start_rx();
-  
+
   // Set TTI so that first TX is at tti=0
   tti = 10235; 
     

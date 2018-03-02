@@ -1380,7 +1380,7 @@ void phch_worker::update_measurements()
 
     /* Only worker 0 reads the RSSI sensor every ~1-nof_cores s */
     if (get_id() == 0) {
-      if (rssi_read_cnt) {
+      if (!rssi_read_cnt) {
         if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
           phy->last_radio_rssi = phy->get_radio()->get_rssi();
           phy->rx_gain_offset = phy->avg_rssi_dbm - phy->last_radio_rssi + 30;

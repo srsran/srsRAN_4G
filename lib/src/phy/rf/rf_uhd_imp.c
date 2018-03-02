@@ -557,11 +557,12 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_meta_range_free(&gain_range);
 
     // Start low priority thread to receive async commands
-    handler->async_thread_running = true; 
+    /*
+    handler->async_thread_running = true;
     if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
       perror("pthread_create");
       return -1; 
-    }
+    }*/
 
     /* Restore priorities  */
     uhd_set_thread_priority(0, false);
