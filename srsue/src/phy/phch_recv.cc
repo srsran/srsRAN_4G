@@ -935,6 +935,7 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
 
   if (ret < 0) {
     Error("SYNC:  Error decoding MIB: Error searching PSS\n");
+    p->stop_rx();
     return ERROR;
   } else if (ret == 0) {
     p->stop_rx();
