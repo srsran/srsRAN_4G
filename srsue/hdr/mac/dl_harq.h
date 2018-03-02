@@ -253,13 +253,13 @@ private:
           n_retx = 0;
         }
 
-        // Save grant
-        grant.last_ndi[tid] = cur_grant.ndi[tid];
-        grant.last_tti = cur_grant.tti;
-        memcpy(&cur_grant, &grant, sizeof(Tgrant));
-
         // If data has not yet been successfully decoded
         if (!ack) {
+
+          // Save grant
+          grant.last_ndi[tid] = cur_grant.ndi[tid];
+          grant.last_tti = cur_grant.tti;
+          memcpy(&cur_grant, &grant, sizeof(Tgrant));
 
           // Instruct the PHY To combine the received data and attempt to decode it
           if (pid == HARQ_BCCH_PID) {
@@ -281,7 +281,8 @@ private:
 
         } else {
           action->default_ack[tid] = true;
-          Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
+          Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK (grant_tti=%d, ndi=%d, sz=%d)\n",
+                  pid, cur_grant.tti, cur_grant.ndi[tid], cur_grant.n_bytes[tid]);
         }
 
         if (pid == HARQ_BCCH_PID || harq_entity->timer_aligment_timer->is_expired()) {
