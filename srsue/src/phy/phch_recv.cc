@@ -143,16 +143,10 @@ void phch_recv::reset()
 void phch_recv::radio_error()
 {
   log_h->error("SYNC:  Receiving from radio.\n");
-  phy_state = IDLE;
-
-  // Need to find a method to effectively reset radio, reloading the driver does not work
-  //radio_h->reset();
-  radio_h->stop();
-
-  fprintf(stdout, "Error while receiving samples. Restart srsUE\n");
-  exit(-1);
-
+  phy_state = CELL_SEARCH;
   reset();
+  // Need to find a method to effectively reset radio, reloading the driver does not work
+  radio_h->reset();
 }
 
 void phch_recv::set_cfo(float cfo) {
