@@ -48,7 +48,7 @@ bool radio_multi::rx_now(cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, s
     ptr[i] = buffer[i];
   }
   if (!radio_is_streaming) {
-    srslte_rf_start_rx_stream(&rf_device, true);
+    srslte_rf_start_rx_stream(&rf_device, false);
     radio_is_streaming = true;
   }
   if (srslte_rf_recv_with_time_multi(&rf_device, ptr, nof_samples, true,
