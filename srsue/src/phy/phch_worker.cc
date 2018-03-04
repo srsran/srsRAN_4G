@@ -86,7 +86,6 @@ phch_worker::~phch_worker()
 
 void phch_worker::reset()
 {
-  pthread_mutex_lock(&mutex);
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   bzero(&ul_metrics, sizeof(ul_metrics_t));
   bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
@@ -102,7 +101,6 @@ void phch_worker::reset()
   I_sr = 0;
   cfi  = 0;
   rssi_read_cnt = 0;
-  pthread_mutex_unlock(&mutex);
 }
 
 void phch_worker::set_common(phch_common* phy_)
