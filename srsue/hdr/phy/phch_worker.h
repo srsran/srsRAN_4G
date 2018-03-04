@@ -119,7 +119,8 @@ private:
   struct timeval tr_time[3];
   srslte::trace<uint32_t> tr_exec;
   bool trace_enabled; 
-  
+
+  pthread_mutex_t mutex;
   
   /* Common objects */  
   phch_common    *phy;
