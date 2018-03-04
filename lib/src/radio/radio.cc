@@ -147,7 +147,7 @@ bool radio::rx_at(void* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time
 bool radio::rx_now(void* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time)
 {
   if (!radio_is_streaming) {
-    srslte_rf_start_rx_stream(&rf_device, true);
+    srslte_rf_start_rx_stream(&rf_device, false);
     radio_is_streaming = true;
   }
   if (srslte_rf_recv_with_time_multi(&rf_device, buffer, nof_samples, true,
