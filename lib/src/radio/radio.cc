@@ -87,11 +87,8 @@ void radio::stop()
 void radio::reset()
 {
   printf("Resetting Radio...\n");
-  srslte_rf_close(&rf_device);
-  sleep(3);
-  if (srslte_rf_open_devname(&rf_device, saved_devname, saved_args, saved_nof_channels)) {
-    fprintf(stderr, "Error opening RF device\n");
-  }
+  srslte_rf_stop_rx_stream(&rf_device);
+  radio_is_streaming = false;
 }
 
 void radio::set_manual_calibration(rf_cal_t* calibration)
