@@ -582,7 +582,7 @@ public:
   virtual void cell_search_start() = 0;
   virtual void cell_search_stop() = 0;
   virtual void cell_search_next() = 0;
-  virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
+  virtual void cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
   virtual bool cell_handover(srslte_cell_t cell) = 0;
 
   /* Is the PHY downlink synchronized? */

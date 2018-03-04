@@ -525,20 +525,14 @@ void rrc::select_next_cell_in_plmn() {
         neighbour_cells[i]->in_sync) // matches S criteria
     {
       // Try to select Cell
-      if (phy->cell_select(neighbour_cells[i]->get_earfcn(), neighbour_cells[i]->phy_cell)) {
-        set_serving_cell(i);
-        rrc_log->info("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
-                      serving_cell->phy_cell.id, serving_cell->get_earfcn(),
-                      serving_cell->get_cell_id());
-        rrc_log->console("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
-                         serving_cell->phy_cell.id, serving_cell->get_earfcn(),
-                         serving_cell->get_cell_id());
-      } else {
-        // Set to out-of-sync if can't synchronize
-        neighbour_cells[i]->in_sync = false;
-        rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x.\n",
-                         neighbour_cells[i]->get_earfcn(), neighbour_cells[i]->get_cell_id());
-      }
+      phy->cell_select(neighbour_cells[i]->get_earfcn(), neighbour_cells[i]->phy_cell);
+      set_serving_cell(i);
+      rrc_log->info("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
+                    serving_cell->phy_cell.id, serving_cell->get_earfcn(),
+                    serving_cell->get_cell_id());
+      rrc_log->console("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
+                       serving_cell->phy_cell.id, serving_cell->get_earfcn(),
+                       serving_cell->get_cell_id());
       return;
     }
   }
