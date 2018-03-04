@@ -86,6 +86,7 @@ phch_worker::~phch_worker()
 
 void phch_worker::reset()
 {
+  pthread_mutex_lock(&mutex);
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   bzero(&ul_metrics, sizeof(ul_metrics_t));
   bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
@@ -101,6 +102,7 @@ void phch_worker::reset()
   I_sr = 0;
   cfi  = 0;
   rssi_read_cnt = 0;
+  pthread_mutex_unlock(&mutex);
 }
 
 void phch_worker::set_common(phch_common* phy_)
@@ -140,29 +142,35 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_ph
 
   mem_initiated = true;
 
+  pthread_mutex_init(&mutex, NULL);
   return true;
 }
 
 bool phch_worker::set_cell(srslte_cell_t cell_)
 {
+  bool ret = false;
+  pthread_mutex_lock(&mutex);
   if (cell.id != cell_.id || !cell_initiated) {
     memcpy(&cell, &cell_, sizeof(srslte_cell_t));
 
     if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
       Error("Initiating UE DL\n");
-      return false;
+      goto unlock;
     }
 
     if (srslte_ue_ul_set_cell(&ue_ul, cell)) {
       Error("Initiating UE UL\n");
-      return false;
+      goto unlock;
     }
     srslte_ue_ul_set_normalization(&ue_ul, true);
     srslte_ue_ul_set_cfo_enable(&ue_ul, true);
 
     cell_initiated = true;
   }
-  return true;
+  ret = true;
+unlock:
+  pthread_mutex_unlock(&mutex);
+  return ret;
 }
 
 cf_t* phch_worker::get_buffer(uint32_t antenna_idx)
@@ -193,9 +201,11 @@ void phch_worker::set_sample_offset(float sample_offset)
 
 void phch_worker::set_crnti(uint16_t rnti)
 {
+  pthread_mutex_lock(&mutex);
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
-  rnti_is_set = true; 
+  rnti_is_set = true;
+  pthread_mutex_unlock(&mutex);
 }
 
 float phch_worker::get_ref_cfo()
@@ -243,7 +253,9 @@ void phch_worker::work_imp()
   if (!cell_initiated) {
     return; 
   }
-  
+
+  pthread_mutex_lock(&mutex);
+
   Debug("TTI %d running\n", tti);
 
 #ifdef LOG_EXECTIME
@@ -412,7 +424,9 @@ void phch_worker::work_imp()
       chest_loop->out_of_sync();
     }
   }
-  
+
+  pthread_mutex_unlock(&mutex);
+
   /* Tell the plotting thread to draw the plots */
 #ifdef ENABLE_GUI
   if ((int) get_id() == plot_worker_id) {
@@ -1211,6 +1225,7 @@ void phch_worker::enable_pregen_signals(bool enabled)
 
 void phch_worker::set_ul_params(bool pregen_disabled)
 {
+
   phy_interface_rrc::phy_cfg_common_t         *common    = &phy->config->common;
   LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &phy->config->dedicated;
   
