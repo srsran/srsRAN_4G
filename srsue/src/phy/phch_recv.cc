@@ -361,9 +361,21 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
   return ret;
 }
 
-bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
+/* interface from higher layers to select a new cell */
+void phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
-  // Check if we are already camping in this cell
+  new_earfcn = earfcn;
+  new_cell = cell;
+  phy_state = CELL_RESELECT;
+}
+
+/* Perform cell (re)-selection on IDLE or CAMP */
+void phch_recv::cell_reselect()
+{
+  uint32_t earfcn = new_earfcn;
+  srslte_cell_t cell = new_cell;
+
+  // If we are already in the new cell, just resynchronize
   if (earfcn == current_earfcn && this->cell.id == cell.id) {
     log_h->info("Cell Select: Already in cell EARFCN=%d\n", earfcn);
     cell_search_in_progress = false;
@@ -371,15 +383,14 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
       set_sampling_rate();
     }
     phy_state = CELL_SELECT;
-    return true;
   } else {
 
+    /* If we are going to a new cell, configure it */
     cell_search_in_progress = false;
 
     if (earfcn != current_earfcn) {
       if (set_frequency()) {
         log_h->error("Cell Select: Configuring cell in EARFCN=%d, PCI=%d\n", earfcn, cell.id);
-        return false;
       }
       current_earfcn = earfcn;
     }
@@ -390,9 +401,7 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
     if (set_cell()) {
       log_h->info("Cell Select: Synchronizing on cell...\n");
       phy_state = CELL_SELECT;
-      return true;
     }
-    return false;
   }
 }
 
@@ -558,6 +567,9 @@ void phch_recv::run_thread()
             break;
           }
         }
+        break;
+      case CELL_RESELECT:
+        cell_reselect();
         break;
       case CELL_SELECT:
         switch (sfn_p.run_subframe(&cell, &tti))

@@ -63,7 +63,7 @@ public:
   void    cell_search_start();
   void    cell_search_stop();
   void    cell_search_next(bool reset = false);
-  bool    cell_select(uint32_t earfcn, srslte_cell_t cell);
+  void    cell_select(uint32_t earfcn, srslte_cell_t cell);
   bool    cell_handover(srslte_cell_t cell);
 
   void    meas_reset();
@@ -103,6 +103,10 @@ private:
   bool   set_cell();
 
   void   cell_search_inc();
+  void   cell_reselect();
+
+  uint32_t new_earfcn;
+  srslte_cell_t new_cell;
 
   bool   running;
 
@@ -299,6 +303,7 @@ private:
     IDLE = 0,
     CELL_SEARCH,
     CELL_SELECT,
+    CELL_RESELECT,
     CELL_MEASURE,
     CELL_CAMP,
   } phy_state;

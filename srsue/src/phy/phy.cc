@@ -282,9 +282,9 @@ int phy::meas_stop(uint32_t earfcn, int pci) {
   return sf_recv.meas_stop(earfcn, pci);
 }
 
-bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
+void phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
 {
-  return sf_recv.cell_select(earfcn, phy_cell);
+  sf_recv.cell_select(earfcn, phy_cell);
 }
 
 bool phy::cell_handover(srslte_cell_t cell) {
