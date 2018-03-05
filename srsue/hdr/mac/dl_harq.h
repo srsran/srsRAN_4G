@@ -196,7 +196,7 @@ private:
         is_initiated = false;
         ack = false;
         bzero(&cur_grant, sizeof(Tgrant));
-
+        payload_buffer_ptr = NULL; 
         pthread_mutex_init(&mutex, NULL);
       }
 
