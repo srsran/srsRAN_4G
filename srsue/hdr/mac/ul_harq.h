@@ -159,6 +159,8 @@ private:
       tti_last_tx = 0;
       payload_buffer = NULL;
       bzero(&cur_grant, sizeof(Tgrant));
+
+      pthread_mutex_init(&mutex, NULL);
     }
 
     ~ul_harq_process()
@@ -193,17 +195,21 @@ private:
 
     void reset()
     {
+      pthread_mutex_lock(&mutex);
       current_tx_nb = 0;
       current_irv = 0;
       tti_last_tx = 0;
       is_grant_configured = false;
       bzero(&cur_grant, sizeof(Tgrant));
+      pthread_mutex_unlock(&mutex);
     }
 
     void reset_ndi() { cur_grant.ndi[0] = false; }
 
     void run_tti(uint32_t tti_tx, Tgrant *grant, bool *ack, Taction* action)
     {
+      pthread_mutex_lock(&mutex);
+
       if (ack) {
         if (grant) {
           if (grant->ndi[0] == get_ndi() && grant->phy_grant.ul.mcs.tbs != 0) {
@@ -276,6 +282,8 @@ private:
         }
         harq_entity->pcap->write_ul_crnti(pdu_ptr, grant->n_bytes[0], grant->rnti, get_nof_retx(), tti_tx);
       }
+
+      pthread_mutex_unlock(&mutex);
     }
 
     uint32_t get_rv()
@@ -304,7 +312,8 @@ private:
     bool                        is_msg3;
     bool                        is_initiated;    
     uint32_t                    tti_last_tx;
-    
+
+    pthread_mutex_t mutex;
     
     const static int payload_buffer_len = 128*1024; 
     uint8_t *payload_buffer;

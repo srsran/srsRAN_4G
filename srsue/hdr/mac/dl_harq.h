@@ -196,6 +196,8 @@ private:
         is_initiated = false;
         ack = false;
         bzero(&cur_grant, sizeof(Tgrant));
+
+        pthread_mutex_init(&mutex, NULL);
       }
 
       ~dl_tb_process() {
@@ -220,16 +222,23 @@ private:
       }
 
       void reset(void) {
+        pthread_mutex_lock(&mutex);
         is_first_tb = true;
         ack = false;
-        payload_buffer_ptr = NULL;
+        if (payload_buffer_ptr) {
+          harq_entity->demux_unit->deallocate(payload_buffer_ptr);
+        }
         bzero(&cur_grant, sizeof(Tgrant));
         if (is_initiated) {
           srslte_softbuffer_rx_reset(&softbuffer);
         }
+        pthread_mutex_unlock(&mutex);
       }
 
       void new_grant_dl(Tgrant grant, Taction *action) {
+
+        pthread_mutex_lock(&mutex);
+
         // Compute RV for BCCH when not specified in PDCCH format
         if (pid == HARQ_BCCH_PID && grant.rv[tid] == -1) {
           uint32_t k;
@@ -271,6 +280,7 @@ private:
           if (!action->payload_ptr[tid]) {
             action->decode_enabled[tid] = false;
             Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes[tid]);
+            pthread_mutex_unlock(&mutex);
             return;
           }
           action->decode_enabled[tid]= true;
@@ -299,6 +309,8 @@ private:
             Debug("Generating ACK\n");
           }
         }
+
+        pthread_mutex_unlock(&mutex);
       }
 
       void tb_decoded(bool ack_) {
@@ -363,6 +375,8 @@ private:
 
         return is_new_transmission;
       }
+
+      pthread_mutex_t mutex;
 
       bool is_initiated;
       dl_harq_entity *harq_entity;
