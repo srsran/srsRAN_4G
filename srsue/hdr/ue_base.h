@@ -146,7 +146,7 @@ class ue_base
 {
 public:
   ue_base();
-  virtual ~ue_base() {}
+  virtual ~ue_base();
 
   static ue_base* get_instance(srsue_instance_type_t type);
 
@@ -173,6 +173,9 @@ public:
   std::string get_build_mode();
   std::string get_build_info();
   std::string get_build_string();
+
+private:
+  srslte::byte_buffer_pool *pool;
 };
 
 } // namespace srsue
