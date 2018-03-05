@@ -132,7 +132,6 @@ void phch_recv::reset()
   next_offset  = 0;
   cell_is_set = false;
   srate_mode = SRATE_NONE;
-  cell_search_in_progress = false;
   current_earfcn = 0;
   sfn_p.reset();
   measure_p.reset();
@@ -262,17 +261,17 @@ void phch_recv::reset_sync() {
   search_p.reset();
   measure_p.reset();
   srslte_ue_sync_reset(&ue_sync);
-
+  Info("----- PHY RESET----\n");
   phy_state = CELL_SELECT;
 }
 
 void phch_recv::cell_search_inc()
 {
+  Info("cell_search_inc, cur_idx=%d, size=%d\n", cur_earfcn_index, earfcn.size());
   cur_earfcn_index++;
   if (cur_earfcn_index >= 0) {
     if (cur_earfcn_index >= (int) earfcn.size()) {
       cur_earfcn_index = 0;
-      cell_search_in_progress = false;
       phy_state = IDLE;
       rrc->earfcn_end();
     } else {
@@ -281,20 +280,16 @@ void phch_recv::cell_search_inc()
         current_earfcn = earfcn[cur_earfcn_index];
         set_frequency();
       }
+      phy_state = CELL_SEARCH;
     }
   }
 }
 
 void phch_recv::cell_search_next(bool reset) {
-  if (cell_search_in_progress || reset) {
-    cell_search_in_progress = false;
-    if (reset) {
-      cur_earfcn_index = -1;
-    }
-    cell_search_inc();
-    phy_state = CELL_SEARCH;
-    cell_search_in_progress = true;
+  if (reset) {
+    cur_earfcn_index = -1;
   }
+  cell_search_inc();
 }
 
 void phch_recv::cell_search_start() {
@@ -309,11 +304,6 @@ void phch_recv::cell_search_start() {
       log_h->console("Empty EARFCN list. Stopping cell search...\n");
     }
   }
-}
-
-void phch_recv::cell_search_stop() {
-  Info("SYNC:  Stopping Cell Search procedure...\n");
-  cell_search_in_progress = false;
 }
 
 bool phch_recv::cell_handover(srslte_cell_t cell)
@@ -369,18 +359,17 @@ void phch_recv::cell_reselect()
   uint32_t earfcn = new_earfcn;
   srslte_cell_t cell = new_cell;
 
+  Info("Reset from cell_reselect\n");
+  reset_sync();
+
   // If we are already in the new cell, just resynchronize
   if (earfcn == current_earfcn && this->cell.id == cell.id) {
-    log_h->info("Cell Select: Already in cell EARFCN=%d\n", earfcn);
-    cell_search_in_progress = false;
+    log_h->info("Cell Select: Already in cell EARFCN=%d, PCI=%d\n", earfcn, cell.id);
     if (srate_mode != SRATE_CAMP) {
       set_sampling_rate();
+      log_h->info("Cell Select: Setting Camping sampling rate\n");
     }
-    phy_state = CELL_SELECT;
   } else {
-
-    /* If we are going to a new cell, configure it */
-    cell_search_in_progress = false;
 
     if (earfcn != current_earfcn) {
       if (set_frequency()) {
@@ -394,7 +383,6 @@ void phch_recv::cell_reselect()
 
     if (set_cell()) {
       log_h->info("Cell Select: Synchronizing on cell...\n");
-      phy_state = CELL_SELECT;
     }
   }
 }
@@ -533,33 +521,29 @@ void phch_recv::run_thread()
     
     sf_idx = tti%10;
 
+    prev_state = phy_state;
+
     switch (phy_state) {
       case CELL_SEARCH:
-        if (cell_search_in_progress)
+        switch(search_p.run(&cell))
         {
-          switch(search_p.run(&cell))
-          {
-          case search::CELL_FOUND:
-            if (!srslte_cell_isvalid(&cell)) {
-              Error("SYNC:  Detected invalid cell\n");
-              phy_state = IDLE;
-              break;
-            }
-            if (set_cell()) {
-              set_sampling_rate();
-              phy_state = CELL_SELECT;
-            }
-            break;
-          case search::CELL_NOT_FOUND:
-            if (cell_search_in_progress) {
-              cell_search_inc();
-            }
+        case search::CELL_FOUND:
+          if (!srslte_cell_isvalid(&cell)) {
+            Error("SYNC:  Detected invalid cell\n");
             phy_state = IDLE;
             break;
-          default:
-            radio_error();
-            break;
           }
+          if (set_cell()) {
+            set_sampling_rate();
+            phy_state = CELL_SELECT;
+          }
+          break;
+        case search::CELL_NOT_FOUND:
+          cell_search_inc();
+          break;
+        default:
+          radio_error();
+          break;
         }
         break;
       case CELL_RESELECT:
@@ -569,7 +553,7 @@ void phch_recv::run_thread()
         switch (sfn_p.run_subframe(&cell, &tti))
         {
           case sfn_sync::SFN_FOUND:
-            if (!cell_search_in_progress) {
+            if (prev_state == CELL_SEARCH) {
               log_h->info("Sync OK. Camping on cell PCI=%d...\n", cell.id);
               phy_state = CELL_CAMP;
               rrc->cell_camping(earfcn[cur_earfcn_index], cell);
@@ -580,13 +564,8 @@ void phch_recv::run_thread()
             }
             break;
           case sfn_sync::TIMEOUT:
-            if (cell_search_in_progress) {
-              log_h->warning("SYNC:  Timeout while synchronizing SFN. Going back to cell search\n");
-              phy_state = CELL_SEARCH;
-            } else {
-              log_h->warning("SYNC:  Timeout while synchronizing SFN. Reselecting cell\n");
-              phy_state = CELL_SELECT;
-            }
+            log_h->warning("SYNC:  Timeout while synchronizing SFN. Going back to cell search\n");
+            phy_state = CELL_SEARCH;
             break;
           case sfn_sync::IDLE:
             break;
@@ -610,7 +589,6 @@ void phch_recv::run_thread()
 
             log_h->info("SYNC:  Measured OK. Camping on cell PCI=%d...\n", cell.id);
             phy_state = CELL_CAMP;
-            cell_search_in_progress = false;
             rrc->cell_camping(earfcn[cur_earfcn_index], cell, measure_p.rsrp());
             break;
           case measure::IDLE:
@@ -833,6 +811,7 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
   if (p->srate_mode != SRATE_FIND) {
     p->srate_mode = SRATE_FIND;
     p->radio_h->set_rx_srate(1.92e6);
+    Info("SYNC:  Setting Cell Search sampling rate\n");
   }
 
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
@@ -992,7 +971,7 @@ phch_recv::sfn_sync::ret_code phch_recv::sfn_sync::run_subframe(srslte_cell_t *c
       }
     }
   } else {
-    Debug("SYNC:  PSS/SSS not found...\n");
+    Info("SYNC:  PSS/SSS not found...\n");
   }
 
   cnt++;

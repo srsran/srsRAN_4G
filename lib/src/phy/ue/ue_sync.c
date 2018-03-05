@@ -755,7 +755,9 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           if (q->do_agc) {
             srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);        
           }
-          
+
+          INFO("SYNC FIND: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
+
         break;
         case SF_TRACK:
          
@@ -817,6 +819,9 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
 
             q->frame_total_cnt++;
           }
+
+          INFO("SYNC TRACK: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
+
         break;
       }
     }

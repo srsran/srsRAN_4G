@@ -161,14 +161,15 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
 // RRC indicates that the UE has gone through all EARFCN and finished PLMN selection
 void nas::plmn_search_end() {
   if (known_plmns.size() > 0) {
-    nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
-                  plmn_id_to_string(home_plmn).c_str(),
-                  plmn_id_to_string(known_plmns[0]).c_str());
+    if (home_plmn.mcc != known_plmns[0].mcc && home_plmn.mnc != known_plmns[0].mnc) {
+      nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
+                    plmn_id_to_string(home_plmn).c_str(),
+                    plmn_id_to_string(known_plmns[0]).c_str());
 
-    nas_log->console("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
-                     plmn_id_to_string(home_plmn).c_str(),
-                     plmn_id_to_string(known_plmns[0]).c_str());
-
+      nas_log->console("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
+                       plmn_id_to_string(home_plmn).c_str(),
+                       plmn_id_to_string(known_plmns[0]).c_str());
+    }
     rrc->plmn_select(known_plmns[0]);
   } else {
     nas_log->info("Finished searching PLMN in current EARFCN set but no networks were found.\n");
