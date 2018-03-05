@@ -187,6 +187,7 @@ void rrc::run_thread() {
             sleep(1);
             rrc_log->info("RRC IDLE: NAS is attaching and camping on cell, reselecting...\n");
             plmn_select_rrc(selected_plmn_id);
+            connection_requested = true; 
           }
         // If not camping on a cell
         } else {
