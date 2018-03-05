@@ -227,6 +227,7 @@ private:
         ack = false;
         if (payload_buffer_ptr) {
           harq_entity->demux_unit->deallocate(payload_buffer_ptr);
+          payload_buffer_ptr = NULL;
         }
         bzero(&cur_grant, sizeof(Tgrant));
         if (is_initiated) {
@@ -314,6 +315,7 @@ private:
       }
 
       void tb_decoded(bool ack_) {
+        pthread_mutex_lock(&mutex);
         ack = ack_;
         if (ack) {
           if (pid == HARQ_BCCH_PID) {
@@ -344,10 +346,14 @@ private:
           harq_entity->demux_unit->deallocate(payload_buffer_ptr);
         }
 
+        payload_buffer_ptr = NULL;
+
         Info("DL %d (TB %d):  %s tbs=%d, rv=%d, ack=%s, ndi=%d (%d), tti=%d (%d)\n",
              pid, tid, is_new_transmission ? "newTX" : "reTX ",
              cur_grant.n_bytes[tid], cur_grant.rv[tid], ack ? "OK" : "KO",
              cur_grant.ndi[tid], cur_grant.last_ndi[tid], cur_grant.tti, cur_grant.last_tti);
+
+        pthread_mutex_unlock(&mutex);
 
         if (ack && pid == HARQ_BCCH_PID) {
           reset();
