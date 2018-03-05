@@ -553,7 +553,7 @@ void phch_recv::run_thread()
         switch (sfn_p.run_subframe(&cell, &tti))
         {
           case sfn_sync::SFN_FOUND:
-            if (prev_state == CELL_SEARCH) {
+            if (prev_state != CELL_SEARCH) {
               log_h->info("Sync OK. Camping on cell PCI=%d...\n", cell.id);
               phy_state = CELL_CAMP;
               rrc->cell_camping(earfcn[cur_earfcn_index], cell);
@@ -662,7 +662,9 @@ void phch_recv::run_thread()
               if ((tti%5) == 0 && worker_com->args->sic_pss_enabled) {
                 srslte_pss_sic(&ue_sync.strack.pss, &buffer[0][SRSLTE_SF_LEN_PRB(cell.nof_prb)/2-ue_sync.strack.fft_size]);
               }
-              intra_freq_meas.write(tti, buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb));
+              if (srslte_cell_isvalid(&cell)) {
+                intra_freq_meas.write(tti, buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb));
+              }
               break;
             case 0:
               Warning("SYNC:  Out-of-sync detected in PSS/SSS\n");
