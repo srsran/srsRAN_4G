@@ -121,7 +121,12 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->info("Received Service Request \n");
     m_s1ap_log->console("Received Service Request \n");
     liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &service_req);
-    return false;
+
+    m_s1ap_log->info("Service Request not implemented. Sending Service Reject.");
+    m_s1ap_log->console("Service Request not implemented. Sending Service Reject.");
+    /* Force UE to re-attach */
+    pack_service_reject(reply_buffer, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED, enb_ue_s1ap_id);
+    *reply_flag = true;
   }
   m_pool->deallocate(nas_msg);
 
@@ -1322,6 +1327,59 @@ s1ap_nas_transport::pack_emm_information(srslte::byte_buffer_t *reply_msg, uint3
   return true;
 }
 
+bool
+s1ap_nas_transport::pack_service_reject(srslte::byte_buffer_t *reply_msg, uint8_t emm_cause, uint32_t enb_ue_s1ap_id)
+{
+  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
+
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_s1ap->get_next_mme_ue_s1ap_id();
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+  LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT service_rej;
+  service_rej.t3442_present = true;
+  service_rej.t3442.unit = LIBLTE_MME_GPRS_TIMER_DEACTIVATED;
+  service_rej.t3442.value = 0;
+  service_rej.t3446_present = true;
+  service_rej.t3446 = 0;
+  service_rej.emm_cause = emm_cause;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_service_reject_msg(&service_rej, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, 0, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Service Reject\n");
+    m_s1ap_log->console("Error packing Service Reject\n");
+    return false;
+  }
+
+  //Copy NAS PDU to Downlink NAS Trasport message buffer
+  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
+
+  //Pack Downlink NAS Transport Message
+  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if(err != LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Error packing Dw NAS Transport: Service Reject\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport: Service Reject\n");
+    return false;
+  }
+  return true;
+}
 /*Helper functions*/
 void
 s1ap_nas_transport::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req)
