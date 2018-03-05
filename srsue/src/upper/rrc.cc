@@ -768,6 +768,8 @@ void rrc::earfcn_end() {
   // If searching for PLMN, indicate NAS we scanned all frequencies
   if (state == RRC_STATE_PLMN_SELECTION) {
     nas->plmn_search_end();
+  } else if (state == RRC_STATE_CONNECTED) {
+    leave_connected();
   }
 }
 
