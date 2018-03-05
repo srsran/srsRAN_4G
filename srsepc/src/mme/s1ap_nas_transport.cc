@@ -1166,6 +1166,7 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   act_def_eps_bearer_context_req.packet_flow_id_present = false;
   act_def_eps_bearer_context_req.apn_ambr_present = false;
   act_def_eps_bearer_context_req.esm_cause_present = false;
+  act_def_eps_bearer_context_req.connectivity_type_present = false;
 
   uint8_t sec_hdr_type =2;
   ue_ctx->security_ctxt.dl_nas_count++;
