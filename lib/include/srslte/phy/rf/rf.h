@@ -60,6 +60,7 @@ typedef struct {
     SRSLTE_RF_ERROR_LATE,
     SRSLTE_RF_ERROR_UNDERFLOW,
     SRSLTE_RF_ERROR_OVERFLOW,
+    SRSLTE_RF_ERROR_RX,
     SRSLTE_RF_ERROR_OTHER
   } type;
   int opt;

@@ -40,12 +40,10 @@ namespace srsue{
 ue::ue()
     :started(false)
 {
-  pool = byte_buffer_pool::get_instance();
 }
 
 ue::~ue()
 {
-  byte_buffer_pool::cleanup();
 }
 
 bool ue::init(all_args_t *args_)
@@ -306,8 +304,13 @@ void ue::rf_msg(srslte_rf_error_t error)
 {
   ue_base *ue = ue_base::get_instance(LTE);
   ue->handle_rf_msg(error);
-  if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
     ue->radio_overflow();
+  } else
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_RX) {
+    ue->stop();
+    ue->cleanup();
+    exit(-1);
   }
 }
 
