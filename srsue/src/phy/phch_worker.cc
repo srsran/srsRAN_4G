@@ -199,11 +199,9 @@ void phch_worker::set_sample_offset(float sample_offset)
 
 void phch_worker::set_crnti(uint16_t rnti)
 {
-  pthread_mutex_lock(&mutex);
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
   rnti_is_set = true;
-  pthread_mutex_unlock(&mutex);
 }
 
 float phch_worker::get_ref_cfo()
