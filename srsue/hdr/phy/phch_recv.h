@@ -61,7 +61,6 @@ public:
   
   void    reset_sync();
   void    cell_search_start();
-  void    cell_search_stop();
   void    cell_search_next(bool reset = false);
   void    cell_select(uint32_t earfcn, srslte_cell_t cell);
   bool    cell_handover(srslte_cell_t cell);
@@ -299,14 +298,16 @@ private:
   const static uint32_t NOF_IN_SYNC_SF     = 100;
 
   // State for primary cell
-  enum {
+  typedef enum {
     IDLE = 0,
     CELL_SEARCH,
     CELL_SELECT,
     CELL_RESELECT,
     CELL_MEASURE,
     CELL_CAMP,
-  } phy_state;
+  } phy_state_t;
+
+  phy_state_t phy_state, prev_state;
 
   bool is_in_idle;
 
@@ -330,7 +331,6 @@ private:
   float         ul_dl_factor;
   uint32_t      current_earfcn;
   int           cur_earfcn_index;
-  bool          cell_search_in_progress;
 
   float         dl_freq;
   float         ul_freq;

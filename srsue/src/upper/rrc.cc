@@ -212,10 +212,8 @@ void rrc::run_thread() {
         plmn_select_timeout++;
         if (plmn_select_timeout >= RRC_PLMN_SELECT_TIMEOUT) {
           rrc_log->info("RRC PLMN Search: timeout expired\n");
-          phy->cell_search_stop();
-          sleep(1);
-          rrc_log->console("\nRRC PLMN Search: timeout expired. Searching again\n");
-
+          rrc_log->console("\nRRC PLMN Search: timeout expired.\n");
+          state = RRC_STATE_IDLE;
         }
         break;
       case RRC_STATE_CELL_SELECTING:
@@ -236,14 +234,13 @@ void rrc::run_thread() {
           }
         }
         // Don't time out during reestablishment (T311 running)
-        if (!mac_timers->timer_get(t311)->is_running()) {
+        if (!mac_timers->timer_get(t311)->is_running() || !phy->sync_status()) {
           select_cell_timeout++;
           if (select_cell_timeout >= RRC_SELECT_CELL_TIMEOUT) {
             rrc_log->info("RRC Cell Selecting: timeout expired. Starting Cell Search...\n");
-            plmn_select_timeout = 0;
             select_cell_timeout = 0;
+            state = RRC_STATE_PLMN_START;
             serving_cell->in_sync = false;
-            phy->cell_search_start();
           }
         }
         break;
@@ -457,17 +454,30 @@ void rrc::plmn_select_rrc(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
   if (state == RRC_STATE_IDLE || state == RRC_STATE_CONNECTED || state == RRC_STATE_PLMN_SELECTION) {
     if (phy->sync_status() && selected_plmn_id.mcc == plmn_id.mcc && selected_plmn_id.mnc == plmn_id.mnc) {
       rrc_log->info("Already camping on selected PLMN, connecting...\n");
-      state = RRC_STATE_CELL_SELECTING;
-      select_cell_timeout = 0;
     } else {
-      rrc_log->info("PLMN Id=%s selected\n", plmn_id_to_string(plmn_id).c_str());
-      // Sort cells according to RSRP
-
       selected_plmn_id = plmn_id;
-      select_cell_timeout = 0;
 
-      state = RRC_STATE_CELL_SELECTING;
+      if (serving_cell->plmn_equals(selected_plmn_id)) {
+        phy->cell_select(serving_cell->get_earfcn(), serving_cell->phy_cell);
+      } else {
+        bool found = false;
+        for (uint32_t i=0;i<neighbour_cells.size() && !found;i++) {
+          if (neighbour_cells[i]->plmn_equals(selected_plmn_id)) {
+            rrc_log->info("PLMN Id=%s selected, PCI=%d\n", plmn_id_to_string(plmn_id).c_str(), neighbour_cells[i]->get_pci());
+            phy->cell_select(neighbour_cells[i]->get_earfcn(), neighbour_cells[i]->phy_cell);
+            found = true;
+          }
+        }
+        if (!found) {
+          rrc_log->warning("Could not find any cell for the selected PLMN\n");
+          state = RRC_STATE_IDLE;
+          return;
+        }
+      }
     }
+
+    state = RRC_STATE_CELL_SELECTING;
+    select_cell_timeout = 0;
   } else {
     rrc_log->warning("Requested PLMN select in incorrect state %s\n", rrc_state_text[state]);
   }
@@ -988,7 +998,6 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause,
       break;
     default:
       rrc_log->info("Unsupported integrity algorithm during reestablishment\n");
-      return;
   }
 
   // Prepare ConnectionRestalishmentRequest packet

@@ -256,11 +256,6 @@ void phy::cell_search_start()
   sf_recv.cell_search_start();
 }
 
-void phy::cell_search_stop()
-{
-  sf_recv.cell_search_stop();
-}
-
 void phy::cell_search_next()
 {
   sf_recv.cell_search_next();
