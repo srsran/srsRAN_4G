@@ -311,7 +311,10 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   m_s1ap_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
   m_s1ap_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
   m_s1ap_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
- 
+
+  //Save attach request type
+  ue_ctx.attach_type = attach_req.eps_attach_type;
+
   //Get Authentication Vectors from HSS
   if(!m_hss->gen_auth_info_answer(ue_ctx.imsi, ue_ctx.security_ctxt.k_asme, autn, rand, ue_ctx.security_ctxt.xres))
   {
@@ -359,6 +362,9 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
     }
     uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
     ue_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id;
+
+    //Save attach request type
+    ue_ctx.attach_type = attach_req.eps_attach_type;
 
     //Save whether ESM information transfer is necessary
     ue_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
@@ -412,6 +418,8 @@ s1ap_nas_transport::handle_nas_guti_attach_request(uint32_t enb_ue_s1ap_id,
     ue_ctx_t *ue_ctx_ptr = m_s1ap->find_ue_ctx(it->second);
     if(ue_ctx_ptr!=NULL)
     {
+      //Save attach request type
+      ue_ctx_ptr->attach_type = attach_req.eps_attach_type;
       m_s1ap_log->console("Found UE context. IMSI: %015lu\n",ue_ctx_ptr->imsi);
       m_mme_gtpc->send_create_session_request(ue_ctx_ptr->imsi, ue_ctx_ptr->mme_ue_s1ap_id);
       *reply_flag = false; //No reply needed

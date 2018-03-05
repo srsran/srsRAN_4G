@@ -97,6 +97,7 @@ typedef struct{
   LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
   bool eit;
   uint8_t procedure_transaction_id;
+  uint8_t attach_type;
 } ue_ctx_t;
 }//namespace
 #endif
