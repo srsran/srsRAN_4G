@@ -301,7 +301,9 @@ void radio::set_master_clock_rate(double rate)
 
 void radio::set_rx_srate(double srate)
 {
+  srslte_rf_stop_rx_stream(&rf_device);
   srslte_rf_set_rx_srate(&rf_device, srate);
+  srslte_rf_start_rx_stream(&rf_device, false);
 }
 
 void radio::set_tx_freq(double freq)
