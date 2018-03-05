@@ -293,6 +293,10 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
 
   m_s1ap_log->console("Attach request -- IMSI: %015lu\n", ue_ctx.imsi);
   m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ue_ctx.imsi);
+
+  m_s1ap_log->console("Attach request -- Attach type: %d\n", attach_req.eps_attach_type);
+  m_s1ap_log->info("Attach request -- Attach type: %d\n", attach_req.eps_attach_type);
+
   m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ue_ctx.enb_ue_s1ap_id, ue_ctx.mme_ue_s1ap_id);
   m_s1ap_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
                       attach_req.ue_network_cap.eea[0],
@@ -1106,7 +1110,7 @@ s1ap_nas_transport::pack_attach_accept(ue_ctx_t *ue_ctx, LIBLTE_S1AP_E_RABTOBESE
   }
 
   //Attach accept
-  attach_accept.eps_attach_result = LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY;
+  attach_accept.eps_attach_result = ue_ctx->attach_type;
   //Mandatory
   //FIXME: Set t3412 from config
   attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
