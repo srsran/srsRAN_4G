@@ -650,7 +650,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       //Delete eNB context and connect.
       m_s1ap_log->console("Service Request -- User has ECM context already\n");
       m_s1ap_log->info("Service Request -- User has ECM context already\n");
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
+      //m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
       int default_bearer_id = 5;
       m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id],false);
     }
@@ -1622,10 +1622,15 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   act_def_eps_bearer_context_req.protocol_cnfg_opts.N_opts = 1;
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].id = 0x0d;
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].len = 4;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[0] = 8;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[1] = 8;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[2] = 8;
-  act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[3] = 8;
+
+  struct sockaddr_in dns_addr;
+  inet_pton(AF_INET, m_s1ap->m_s1ap_args.dns_addr.c_str(), &(dns_addr.sin_addr));
+
+  memcpy(act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents,&dns_addr.sin_addr.s_addr, 4);
+  //act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[0] = 8;
+  //act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[1] = 8;
+  //act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[2] = 8;
+  //act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents[3] = 8;
 
   //Make sure all unused options are set to false
   act_def_eps_bearer_context_req.negotiated_qos_present = false;
