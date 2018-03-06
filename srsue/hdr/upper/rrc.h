@@ -311,6 +311,8 @@ private:
 
   uint16_t ho_src_rnti;
   cell_t   ho_src_cell;
+  uint32_t ho_target_pci;
+  bool     ho_syncing;
   phy_interface_rrc::phy_cfg_t ho_src_phy_cfg;
   mac_interface_rrc::mac_cfg_t ho_src_mac_cfg;
   bool pending_mob_reconf;
@@ -542,6 +544,7 @@ private:
   // Helpers
   void          ho_failed();
   bool          ho_prepare();
+  void          ho_synced(uint32_t target_pci);
   void          rrc_connection_release();
   void          con_restablish_cell_reselected();
   void          radio_link_failure();
