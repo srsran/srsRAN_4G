@@ -810,6 +810,11 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
 void nas::send_attach_request() {
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_attach_request().\n");
+    return;
+  }
+
   u_int32_t i;
 
   attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
@@ -911,6 +916,10 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 
 void nas::send_security_mode_reject(uint8_t cause) {
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_security_mode_reject().\n");
+    return;
+  }
 
   LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT sec_mode_rej;
   sec_mode_rej.emm_cause = cause;
@@ -926,6 +935,10 @@ void nas::send_identity_response() {}
 
 void nas::send_service_request() {
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_service_request().\n");
+    return;
+  }
 
   // Pack the service request message directly
   msg->msg[0] = (LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
