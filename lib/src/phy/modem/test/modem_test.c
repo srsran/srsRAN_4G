@@ -197,6 +197,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  free(llr2);
   free(llr);
   free(symbols);
   free(symbols_bytes);
