@@ -95,6 +95,7 @@ public:
   bool pack_identity_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
 
   bool pack_emm_information(ue_ecm_ctx_t* ue_ecm_ctx, srslte::byte_buffer_t *reply_msg);
+  bool pack_service_reject(srslte::byte_buffer_t *reply_msg, uint8_t emm_cause, uint32_t enb_ue_s1ap_id);
 
   void log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req);
   void log_unhandled_pdn_con_request_ies(const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);
@@ -112,7 +113,5 @@ private:
   hss_interface_s1ap*  m_hss;
   mme_gtpc* m_mme_gtpc;
 };
-
 } //namespace srsepc
-
 #endif //S1AP_NAS_TRANSPORT

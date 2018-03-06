@@ -397,7 +397,9 @@ void phch_worker::work_imp()
 
   if (!dl_action.generate_ack_callback) {
     if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH && dl_action.decode_enabled[0]) {
-      phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
+      if (dl_ack[0]) {
+        phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
+      }
     } else if (!rar_delivered) {
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
         if (dl_action.decode_enabled[tb]) {
@@ -410,13 +412,13 @@ void phch_worker::work_imp()
   update_measurements();
 
   if (chest_ok) {
-    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db > -20.0) {
+    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db > -10.0) {
       log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
-                   10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), phy->avg_rsrp_dbm);
+                   phy->avg_snr_db, phy->avg_rsrp_dbm);
       chest_loop->in_sync();
     } else {
       log_h->warning("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
-                   10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), phy->avg_rsrp_dbm);
+                     phy->avg_snr_db, phy->avg_rsrp_dbm);
       chest_loop->out_of_sync();
     }
   }
@@ -519,11 +521,16 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 
     srslte_dci_msg_t dci_msg; 
     srslte_ra_dl_dci_t dci_unpacked;
-    
-    Debug("Looking for RNTI=0x%x\n", dl_rnti);
+
+    if (type == SRSLTE_RNTI_RAR) {
+      Info("Looking for RNTI=0x%x\n", dl_rnti);
+    }
 
     if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
                                       dl_rnti, type, &dci_msg) != 1) {
+      if (type == SRSLTE_RNTI_RAR) {
+        Info("RAR not found\n");
+      }
       return false;
     }
     

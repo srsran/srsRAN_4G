@@ -54,7 +54,5 @@ private:
   s1ap* m_s1ap;
   srslte::log_filter *m_s1ap_log;
 };
-
 } //namespace srsepc
-
-#endif //S1AP_MNGMT_PROC
+#endif 

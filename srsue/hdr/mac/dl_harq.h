@@ -226,7 +226,9 @@ private:
         is_first_tb = true;
         ack = false;
         if (payload_buffer_ptr) {
-          harq_entity->demux_unit->deallocate(payload_buffer_ptr);
+          if (pid != HARQ_BCCH_PID) {
+            harq_entity->demux_unit->deallocate(payload_buffer_ptr);
+          }
           payload_buffer_ptr = NULL;
         }
         bzero(&cur_grant, sizeof(Tgrant));
@@ -342,7 +344,7 @@ private:
                                                          harq_entity->nof_pkts++);
             }
           }
-        } else {
+        } else if (pid != HARQ_BCCH_PID) {
           harq_entity->demux_unit->deallocate(payload_buffer_ptr);
         }
 
