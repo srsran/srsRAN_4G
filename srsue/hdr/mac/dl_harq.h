@@ -196,6 +196,8 @@ private:
         is_initiated = false;
         ack = false;
         bzero(&cur_grant, sizeof(Tgrant));
+        payload_buffer_ptr = NULL; 
+        pthread_mutex_init(&mutex, NULL);
       }
 
       ~dl_tb_process() {
@@ -220,16 +222,24 @@ private:
       }
 
       void reset(void) {
+        pthread_mutex_lock(&mutex);
         is_first_tb = true;
         ack = false;
-        payload_buffer_ptr = NULL;
+        if (payload_buffer_ptr) {
+          harq_entity->demux_unit->deallocate(payload_buffer_ptr);
+          payload_buffer_ptr = NULL;
+        }
         bzero(&cur_grant, sizeof(Tgrant));
         if (is_initiated) {
           srslte_softbuffer_rx_reset(&softbuffer);
         }
+        pthread_mutex_unlock(&mutex);
       }
 
       void new_grant_dl(Tgrant grant, Taction *action) {
+
+        pthread_mutex_lock(&mutex);
+
         // Compute RV for BCCH when not specified in PDCCH format
         if (pid == HARQ_BCCH_PID && grant.rv[tid] == -1) {
           uint32_t k;
@@ -253,13 +263,13 @@ private:
           n_retx = 0;
         }
 
-        // Save grant
-        grant.last_ndi[tid] = cur_grant.ndi[tid];
-        grant.last_tti = cur_grant.tti;
-        memcpy(&cur_grant, &grant, sizeof(Tgrant));
-
         // If data has not yet been successfully decoded
         if (!ack) {
+
+          // Save grant
+          grant.last_ndi[tid] = cur_grant.ndi[tid];
+          grant.last_tti = cur_grant.tti;
+          memcpy(&cur_grant, &grant, sizeof(Tgrant));
 
           // Instruct the PHY To combine the received data and attempt to decode it
           if (pid == HARQ_BCCH_PID) {
@@ -271,6 +281,7 @@ private:
           if (!action->payload_ptr[tid]) {
             action->decode_enabled[tid] = false;
             Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes[tid]);
+            pthread_mutex_unlock(&mutex);
             return;
           }
           action->decode_enabled[tid]= true;
@@ -281,7 +292,8 @@ private:
 
         } else {
           action->default_ack[tid] = true;
-          Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
+          Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK (grant_tti=%d, ndi=%d, sz=%d)\n",
+                  pid, cur_grant.tti, cur_grant.ndi[tid], cur_grant.n_bytes[tid]);
         }
 
         if (pid == HARQ_BCCH_PID || harq_entity->timer_aligment_timer->is_expired()) {
@@ -298,9 +310,12 @@ private:
             Debug("Generating ACK\n");
           }
         }
+
+        pthread_mutex_unlock(&mutex);
       }
 
       void tb_decoded(bool ack_) {
+        pthread_mutex_lock(&mutex);
         ack = ack_;
         if (ack) {
           if (pid == HARQ_BCCH_PID) {
@@ -331,10 +346,14 @@ private:
           harq_entity->demux_unit->deallocate(payload_buffer_ptr);
         }
 
+        payload_buffer_ptr = NULL;
+
         Info("DL %d (TB %d):  %s tbs=%d, rv=%d, ack=%s, ndi=%d (%d), tti=%d (%d)\n",
              pid, tid, is_new_transmission ? "newTX" : "reTX ",
              cur_grant.n_bytes[tid], cur_grant.rv[tid], ack ? "OK" : "KO",
              cur_grant.ndi[tid], cur_grant.last_ndi[tid], cur_grant.tti, cur_grant.last_tti);
+
+        pthread_mutex_unlock(&mutex);
 
         if (ack && pid == HARQ_BCCH_PID) {
           reset();
@@ -362,6 +381,8 @@ private:
 
         return is_new_transmission;
       }
+
+      pthread_mutex_t mutex;
 
       bool is_initiated;
       dl_harq_entity *harq_entity;

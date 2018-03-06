@@ -54,6 +54,7 @@ rrc::rrc()
   n310_cnt       = 0;
   n311_cnt       = 0;
   serving_cell = new cell_t();
+  neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
 }
 
 rrc::~rrc()
@@ -168,6 +169,7 @@ void rrc::set_args(rrc_args_t *args) {
 void rrc::run_thread() {
 
   uint32_t failure_test = 0;
+  uint32_t cell_clean_cnt = 0;
 
   while (thread_running) {
 
@@ -185,6 +187,7 @@ void rrc::run_thread() {
             sleep(1);
             rrc_log->info("RRC IDLE: NAS is attaching and camping on cell, reselecting...\n");
             plmn_select_rrc(selected_plmn_id);
+            connection_requested = true; 
           }
         // If not camping on a cell
         } else {
@@ -200,15 +203,18 @@ void rrc::run_thread() {
           // If not attached, PLMN selection will be triggered from higher layers
         }
         break;
+      case RRC_STATE_PLMN_START:
+        rrc_log->info("RRC PLMN Search: Starting cell search\n");
+        plmn_select_timeout = 0;
+        phy->cell_search_start();
+        state = RRC_STATE_PLMN_SELECTION;
+        break;
       case RRC_STATE_PLMN_SELECTION:
         plmn_select_timeout++;
         if (plmn_select_timeout >= RRC_PLMN_SELECT_TIMEOUT) {
           rrc_log->info("RRC PLMN Search: timeout expired\n");
-          phy->cell_search_stop();
-          sleep(1);
-          rrc_log->console("\nRRC PLMN Search: timeout expired. Searching again\n");
-          plmn_select_timeout = 0;
-          phy->cell_search_start();
+          rrc_log->console("\nRRC PLMN Search: timeout expired.\n");
+          state = RRC_STATE_IDLE;
         }
         break;
       case RRC_STATE_CELL_SELECTING:
@@ -217,26 +223,25 @@ void rrc::run_thread() {
          * Cell is selected when all SIBs downloaded or applied.
          */
         if (phy->sync_status()) {
-          if (!serving_cell->has_valid_sib1) {
+          if (!serving_cell->has_sib1()) {
             si_acquire_state = SI_ACQUIRE_SIB1;
             sysinfo_index = 0;
-          } else if (!serving_cell->has_valid_sib2) {
+          } else if (!serving_cell->has_sib2()) {
             si_acquire_state = SI_ACQUIRE_SIB2;
           } else {
-            apply_sib2_configs(&serving_cell->sib2);
+            apply_sib2_configs(serving_cell->sib2ptr());
             si_acquire_state = SI_ACQUIRE_IDLE;
             state = RRC_STATE_CELL_SELECTED;
           }
         }
-        // Don't time out during restablishment (T311 running)
-        if (!mac_timers->timer_get(t311)->is_running()) {
+        // Don't time out during reestablishment (T311 running)
+        if (!mac_timers->timer_get(t311)->is_running() || !phy->sync_status()) {
           select_cell_timeout++;
           if (select_cell_timeout >= RRC_SELECT_CELL_TIMEOUT) {
             rrc_log->info("RRC Cell Selecting: timeout expired. Starting Cell Search...\n");
-            plmn_select_timeout = 0;
             select_cell_timeout = 0;
+            state = RRC_STATE_PLMN_START;
             serving_cell->in_sync = false;
-            phy->cell_search_start();
           }
         }
         break;
@@ -302,6 +307,13 @@ void rrc::run_thread() {
       default:
         break;
     }
+    if (state == RRC_STATE_CONNECTED || RRC_STATE_IDLE) {
+      cell_clean_cnt++;
+      if (cell_clean_cnt==1000) {
+        clean_neighbours();
+        cell_clean_cnt = 0;
+      }
+    }
     usleep(1000);
   }
 }
@@ -342,7 +354,7 @@ void rrc::run_si_acquisition_procedure()
       tti = mac->get_current_tti();
       si_win_start = sib_start_tti(tti, 2, 0, 5);
       if (last_win_start == 0 ||
-          (srslte_tti_interval(last_win_start, tti) > 20 && srslte_tti_interval(last_win_start, tti) < 1000))
+          (srslte_tti_interval(tti, last_win_start) >= 20 && srslte_tti_interval(tti, last_win_start) < 1000))
       {
 
         last_win_start = si_win_start;
@@ -363,24 +375,24 @@ void rrc::run_si_acquisition_procedure()
       break;
     case SI_ACQUIRE_SIB2:
       // Instruct MAC to look for next SIB
-      if(sysinfo_index < serving_cell->sib1.N_sched_info) {
-        si_win_len   = liblte_rrc_si_window_length_num[serving_cell->sib1.si_window_length];
+      if(sysinfo_index < serving_cell->sib1ptr()->N_sched_info) {
+        si_win_len   = liblte_rrc_si_window_length_num[serving_cell->sib1ptr()->si_window_length];
         x            = sysinfo_index*si_win_len;
         sf           = x%10;
         offset       = x/10;
 
         tti          = mac->get_current_tti();
-        period       = liblte_rrc_si_periodicity_num[serving_cell->sib1.sched_info[sysinfo_index].si_periodicity];
+        period       = liblte_rrc_si_periodicity_num[serving_cell->sib1ptr()->sched_info[sysinfo_index].si_periodicity];
         si_win_start = sib_start_tti(tti, period, offset, sf);
-        si_win_len = liblte_rrc_si_window_length_num[serving_cell->sib1.si_window_length];
+        si_win_len = liblte_rrc_si_window_length_num[serving_cell->sib1ptr()->si_window_length];
 
         if (last_win_start == 0 ||
-            (srslte_tti_interval(last_win_start, tti) > period*10 && srslte_tti_interval(last_win_start, tti) < 1000))
+            (srslte_tti_interval(tti, last_win_start) > period*10 && srslte_tti_interval(tti, last_win_start) < 1000))
         {
           last_win_start = si_win_start;
 
           mac->bcch_start_rx(si_win_start, si_win_len);
-          rrc_log->info("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
+          rrc_log->debug("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
                          si_win_start, si_win_len);
         }
 
@@ -416,24 +428,15 @@ void rrc::run_si_acquisition_procedure()
 *******************************************************************************/
 
 uint16_t rrc::get_mcc() {
-  if (serving_cell->sib1.N_plmn_ids > 0) {
-    return serving_cell->sib1.plmn_id[0].id.mcc;
-  }
-  return 0;
+  return serving_cell->get_mcc();
 }
 
 uint16_t rrc::get_mnc() {
-  if (serving_cell->sib1.N_plmn_ids > 0) {
-    return serving_cell->sib1.plmn_id[0].id.mnc;
-  }
-  return 0;
+  return serving_cell->get_mnc();
 }
 
 void rrc::plmn_search() {
-  rrc_log->info("Starting PLMN search procedure\n");
-  state = RRC_STATE_PLMN_SELECTION;
-  phy->cell_search_start();
-  plmn_select_timeout = 0;
+  state = RRC_STATE_PLMN_START;
 }
 
 /* This is the NAS interface. When NAS requests to select a PLMN we have to
@@ -452,17 +455,30 @@ void rrc::plmn_select_rrc(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
   if (state == RRC_STATE_IDLE || state == RRC_STATE_CONNECTED || state == RRC_STATE_PLMN_SELECTION) {
     if (phy->sync_status() && selected_plmn_id.mcc == plmn_id.mcc && selected_plmn_id.mnc == plmn_id.mnc) {
       rrc_log->info("Already camping on selected PLMN, connecting...\n");
-      state = RRC_STATE_CELL_SELECTING;
-      select_cell_timeout = 0;
     } else {
-      rrc_log->info("PLMN Id=%s selected\n", plmn_id_to_string(plmn_id).c_str());
-      // Sort cells according to RSRP
-
       selected_plmn_id = plmn_id;
-      select_cell_timeout = 0;
 
-      state = RRC_STATE_CELL_SELECTING;
+      if (serving_cell->plmn_equals(selected_plmn_id)) {
+        phy->cell_select(serving_cell->get_earfcn(), serving_cell->phy_cell);
+      } else {
+        bool found = false;
+        for (uint32_t i=0;i<neighbour_cells.size() && !found;i++) {
+          if (neighbour_cells[i]->plmn_equals(selected_plmn_id)) {
+            rrc_log->info("PLMN Id=%s selected, PCI=%d\n", plmn_id_to_string(plmn_id).c_str(), neighbour_cells[i]->get_pci());
+            phy->cell_select(neighbour_cells[i]->get_earfcn(), neighbour_cells[i]->phy_cell);
+            found = true;
+          }
+        }
+        if (!found) {
+          rrc_log->warning("Could not find any cell for the selected PLMN\n");
+          state = RRC_STATE_IDLE;
+          return;
+        }
+      }
     }
+
+    state = RRC_STATE_CELL_SELECTING;
+    select_cell_timeout = 0;
   } else {
     rrc_log->warning("Requested PLMN select in incorrect state %s\n", rrc_state_text[state]);
   }
@@ -491,7 +507,7 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
     // Move serving cell to neighbours list
     if (serving_cell->is_valid()) {
       // Make sure it does not exist already
-      int serving_idx = find_neighbour_cell(serving_cell->earfcn, serving_cell->phy_cell.id);
+      int serving_idx = find_neighbour_cell(serving_cell->get_earfcn(), serving_cell->phy_cell.id);
       if (serving_idx >= 0 && (uint32_t) serving_idx < neighbour_cells.size()) {
         printf("Error serving cell is already in the neighbour list. Removing it\n");
         neighbour_cells.erase(std::remove(neighbour_cells.begin(), neighbour_cells.end(), neighbour_cells[serving_idx]), neighbour_cells.end());
@@ -506,7 +522,7 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
     serving_cell = new_serving_cell;
 
     rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, nof_neighbours=%d\n",
-                  cell_idx, serving_cell->earfcn, serving_cell->phy_cell.id, neighbour_cells.size());
+                  cell_idx, serving_cell->get_earfcn(), serving_cell->phy_cell.id, neighbour_cells.size());
 
   } else {
     rrc_log->error("Setting invalid serving cell idx %d\n", cell_idx);
@@ -520,20 +536,14 @@ void rrc::select_next_cell_in_plmn() {
         neighbour_cells[i]->in_sync) // matches S criteria
     {
       // Try to select Cell
-      if (phy->cell_select(neighbour_cells[i]->earfcn, neighbour_cells[i]->phy_cell)) {
-        set_serving_cell(i);
-        rrc_log->info("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
-                      serving_cell->phy_cell.id, serving_cell->earfcn,
-                      serving_cell->sib1.cell_id);
-        rrc_log->console("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
-                         serving_cell->phy_cell.id, serving_cell->earfcn,
-                         serving_cell->sib1.cell_id);
-      } else {
-        // Set to out-of-sync if can't synchronize
-        neighbour_cells[i]->in_sync = false;
-        rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x.\n",
-                         neighbour_cells[i]->earfcn, neighbour_cells[i]->sib1.cell_id);
-      }
+      phy->cell_select(neighbour_cells[i]->get_earfcn(), neighbour_cells[i]->phy_cell);
+      set_serving_cell(i);
+      rrc_log->info("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
+                    serving_cell->phy_cell.id, serving_cell->get_earfcn(),
+                    serving_cell->get_cell_id());
+      rrc_log->console("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
+                       serving_cell->phy_cell.id, serving_cell->get_earfcn(),
+                       serving_cell->get_cell_id());
       return;
     }
   }
@@ -543,7 +553,7 @@ void rrc::select_next_cell_in_plmn() {
 void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int pci_i) {
 
   if (earfcn_i < 0 || pci_i < 0) {
-    earfcn_i = serving_cell->earfcn;
+    earfcn_i = serving_cell->get_earfcn();
     pci_i    = serving_cell->phy_cell.id;
   }
 
@@ -560,7 +570,7 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
     // Update serving cell 
     if (serving_cell->equals(earfcn, pci)) {
       cell_reselection_eval(rsrp, rsrq);
-      serving_cell->rsrp = rsrp;
+      serving_cell->set_rsrp(rsrp);
       rrc_log->info("MEAS:  New measurement serving cell in IDLE, rsrp=%f, rsrq=%f, tti=%d\n", rsrp, rsrq, tti);
       
     // Or update/add neighbour cell
@@ -573,43 +583,45 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
     }
 
     // Verify cell selection criteria with strongest neighbour cell (always first)
-    if (cell_selection_eval(neighbour_cells[0]->rsrp)     &&
-        neighbour_cells[0]->rsrp > serving_cell->rsrp + 5)
+    if (neighbour_cells.size() > 1                           &&
+        cell_selection_eval(neighbour_cells[0]->get_rsrp())  &&
+        neighbour_cells[0]->get_rsrp() > serving_cell->get_rsrp() + 5)
     {
       set_serving_cell(0);
-      rrc_log->info("Selecting best neighbour cell PCI=%d, rsrp=%.1f dBm\n", serving_cell->phy_cell.id, serving_cell->rsrp);
+      rrc_log->info("Selecting best neighbour cell PCI=%d, rsrp=%.1f dBm\n", serving_cell->phy_cell.id, serving_cell->get_rsrp());
       state = RRC_STATE_CELL_SELECTING;
-      phy->cell_select(serving_cell->earfcn, serving_cell->phy_cell);
+      phy->cell_select(serving_cell->get_earfcn(), serving_cell->phy_cell);
     }
   }
 }
 
-void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
+/* PHY begins camping in a cell. RRC updates RSRP measurement,
+ * proceeds with PLMN selection/cell search if applicable and sets
+ * new cell as current serving cell */
+void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
   bool found = false;
   int cell_idx = -1; 
   
   if (serving_cell->equals(earfcn, phy_cell.id)) {
-    serving_cell->rsrp = rsrp;
-    serving_cell->in_sync = true;
+    serving_cell->set_rsrp(rsrp);
     found = true;
   } else {
     // Check if cell is in our list of neighbour cells 
     cell_idx = find_neighbour_cell(earfcn, phy_cell.id);
     if (cell_idx >= 0) {
       set_serving_cell(cell_idx);
-      serving_cell->rsrp = rsrp;
-      serving_cell->in_sync = true;
+      serving_cell->set_rsrp(rsrp);
       found = true;
     }
   }
   if (found) {
 
-    if (!serving_cell->has_valid_sib1) {
+    if (!serving_cell->has_sib1()) {
       si_acquire_state = SI_ACQUIRE_SIB1;
     } else if (state == RRC_STATE_PLMN_SELECTION) {
-      for (uint32_t j = 0; j < serving_cell->sib1.N_plmn_ids; j++) {
-        nas->plmn_found(serving_cell->sib1.plmn_id[j].id, serving_cell->sib1.tracking_area_code);
+      for (uint32_t j = 0; j < serving_cell->sib1ptr()->N_plmn_ids; j++) {
+        nas->plmn_found(serving_cell->sib1ptr()->plmn_id[j].id, serving_cell->sib1ptr()->tracking_area_code);
       }
       usleep(5000);
       phy->cell_search_next();
@@ -623,7 +635,6 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
       phy->cell_search_next();
     } else {
       set_serving_cell(earfcn, phy_cell.id);
-
       si_acquire_state = SI_ACQUIRE_SIB1;
     }
   }
@@ -631,22 +642,54 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
   rrc_log->info("%s %s cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n",
                 found?"Updating":"Adding",
                 cell_idx>=0?"neighbour":"serving",
-                serving_cell->earfcn,
+                serving_cell->get_earfcn(),
                 serving_cell->phy_cell.id,
-                serving_cell->rsrp);
+                serving_cell->get_rsrp());
 }
 
 bool sort_rsrp(cell_t *u1, cell_t *u2) {
-  return !u1->greater(u2);
+  return u1->greater(u2);
+}
+
+void rrc::delete_neighbour(uint32_t cell_idx) {
+  measurements.delete_report(neighbour_cells[cell_idx]->get_earfcn(), neighbour_cells[cell_idx]->get_pci());
+  delete neighbour_cells[cell_idx];
+  neighbour_cells.erase(std::remove(neighbour_cells.begin(), neighbour_cells.end(), neighbour_cells[cell_idx]), neighbour_cells.end());
+}
+
+std::vector<cell_t*>::iterator rrc::delete_neighbour(std::vector<cell_t*>::iterator it) {
+  measurements.delete_report((*it)->get_earfcn(), (*it)->get_pci());
+  delete (*it);
+  return neighbour_cells.erase(it);
+}
+
+void rrc::clean_neighbours()
+{
+  struct timeval now;
+  gettimeofday(&now, NULL);
+
+  std::vector<cell_t*>::iterator it = neighbour_cells.begin();
+  while(it != neighbour_cells.end()) {
+    if ((*it)->timeout_secs(now) > NEIGHBOUR_TIMEOUT) {
+      rrc_log->info("Neighbour PCI=%d timed out. Deleting\n", (*it)->get_pci());
+      it = delete_neighbour(it);
+    } else {
+      ++it;
+    }
+  }
 }
 
 // Sort neighbour cells by decreasing order of RSRP
-void rrc::sort_neighbour_cells() {
-
-  for (uint32_t i=1;i<neighbour_cells.size();i++) {
-    if (neighbour_cells[i]->in_sync == false) {
-      rrc_log->info("Removing neighbour cell PCI=%d, out_of_sync\n", neighbour_cells[i]->phy_cell.id);
-      neighbour_cells.erase(std::remove(neighbour_cells.begin(), neighbour_cells.end(), neighbour_cells[i]), neighbour_cells.end());
+void rrc::sort_neighbour_cells()
+{
+  // Remove out-of-sync cells
+  std::vector<cell_t*>::iterator it = neighbour_cells.begin();
+  while(it != neighbour_cells.end()) {
+    if ((*it)->in_sync == false) {
+      rrc_log->info("Neighbour PCI=%d is out-of-sync. Deleting\n", (*it)->get_pci());
+      it = delete_neighbour(it);
+    } else {
+      ++it;
     }
   }
 
@@ -654,28 +697,27 @@ void rrc::sort_neighbour_cells() {
 
   char ordered[512];
   int n=0;
-  n += snprintf(ordered, 512, "[pci=%d, rsrsp=%.2f", neighbour_cells[0]->phy_cell.id, neighbour_cells[0]->rsrp);
+  n += snprintf(ordered, 512, "[pci=%d, rsrsp=%.2f", neighbour_cells[0]->phy_cell.id, neighbour_cells[0]->get_rsrp());
   for (uint32_t i=1;i<neighbour_cells.size();i++) {
-    n += snprintf(&ordered[n], 512-n, " | pci=%d, rsrp=%.2f", neighbour_cells[i]->phy_cell.id, neighbour_cells[i]->rsrp);
+    n += snprintf(&ordered[n], 512-n, " | pci=%d, rsrp=%.2f", neighbour_cells[i]->get_pci(), neighbour_cells[i]->get_rsrp());
   }
-  rrc_log->info("Sorted neighbour cells: %s]\n", ordered);
+  rrc_log->info("Neighbours: %s]\n", ordered);
 }
 
 bool rrc::add_neighbour_cell(cell_t *new_cell) {
   bool ret = false;
-  if (neighbour_cells.size() < NOF_NEIGHBOUR_CELLS - 1) {
+  if (neighbour_cells.size() < NOF_NEIGHBOUR_CELLS) {
     ret = true;
-  } else if (!neighbour_cells[neighbour_cells.size()-1]->greater(new_cell)) {
-    // Delete old one
-    delete neighbour_cells[neighbour_cells.size()-1];
-    neighbour_cells.erase(std::remove(neighbour_cells.begin(), neighbour_cells.end(), neighbour_cells[neighbour_cells.size()-1]), neighbour_cells.end());
+  } else if (new_cell->greater(neighbour_cells[neighbour_cells.size()-1])) {
+    // Replace old one by new one
+    delete_neighbour(neighbour_cells.size()-1);
     ret = true;
   }
   if (ret) {
     neighbour_cells.push_back(new_cell);
   }
   rrc_log->info("Added neighbour cell EARFCN=%d, PCI=%d, nof_neighbours=%d\n",
-                new_cell->earfcn, new_cell->phy_cell.id, neighbour_cells.size());
+                new_cell->get_earfcn(), new_cell->get_pci(), neighbour_cells.size());
   sort_neighbour_cells();
   return ret;
 }
@@ -690,7 +732,7 @@ bool rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
 
 bool rrc::add_neighbour_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
   if (earfcn == 0) {
-    earfcn = serving_cell->earfcn;
+    earfcn = serving_cell->get_earfcn();
   }
 
   // First check if already exists
@@ -700,7 +742,7 @@ bool rrc::add_neighbour_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp
 
   // If exists, update RSRP, sort again and return
   if (cell_idx >= 0) {
-    neighbour_cells[cell_idx]->rsrp = rsrp;
+    neighbour_cells[cell_idx]->set_rsrp(rsrp);
     sort_neighbour_cells();
     return true; 
   }
@@ -727,10 +769,8 @@ void rrc::earfcn_end() {
   // If searching for PLMN, indicate NAS we scanned all frequencies
   if (state == RRC_STATE_PLMN_SELECTION) {
     nas->plmn_search_end();
-  } else if (state == RRC_STATE_CELL_SELECTING) {
-    select_cell_timeout = 0;
-    rrc_log->info("Starting cell search again\n");
-    phy->cell_search_start();
+  } else if (state == RRC_STATE_CONNECTED) {
+    leave_connected();
   }
 }
 
@@ -791,11 +831,11 @@ void rrc::out_of_sync() {
     if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
       n310_cnt++;
       if (n310_cnt == N310) {
+        rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n",
+                      N310, mac_timers->timer_get(t310)->get_timeout());
         mac_timers->timer_get(t310)->reset();
         mac_timers->timer_get(t310)->run();
         n310_cnt = 0;
-        phy->sync_reset();
-        rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer\n", N310);
       }
     }
   } else {
@@ -822,7 +862,6 @@ void rrc::in_sync() {
 void rrc::radio_link_failure() {
   // TODO: Generate and store failure report
 
-  phy->sync_reset();
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state != RRC_STATE_CONNECTED) {
@@ -929,7 +968,7 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause,
   uint8_t *msg_ptr = varShortMAC;
 
   // ASN.1 encode byte-aligned VarShortMAC-Input
-  liblte_rrc_pack_cell_identity_ie(serving_cell->sib1.cell_id, &msg_ptr);
+  liblte_rrc_pack_cell_identity_ie(serving_cell->get_cell_id(), &msg_ptr);
   msg_ptr = &varShortMAC[4];
   liblte_rrc_pack_phys_cell_id_ie(phy->get_current_pci(), &msg_ptr);
   msg_ptr = &varShortMAC[4+2];
@@ -937,7 +976,7 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause,
   srslte_bit_pack_vector(varShortMAC, varShortMAC_packed, (4+2+4)*8);
 
   rrc_log->info("Generated varShortMAC: cellId=0x%x, PCI=%d, rnti=%d\n",
-                serving_cell->sib1.cell_id, phy->get_current_pci(), crnti);
+                serving_cell->get_cell_id(), phy->get_current_pci(), crnti);
 
   // Compute MAC-I
   uint8_t mac_key[4];
@@ -962,7 +1001,6 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause,
       break;
     default:
       rrc_log->info("Unsupported integrity algorithm during reestablishment\n");
-      return;
   }
 
   // Prepare ConnectionRestalishmentRequest packet
@@ -982,6 +1020,7 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause,
   set_phy_default();
   mac->reset();
   set_mac_default();
+  phy->sync_reset();
   state = RRC_STATE_CELL_SELECTING;
 }
 
@@ -1065,10 +1104,10 @@ bool rrc::ho_prepare() {
   if (pending_mob_reconf) {
     rrc_log->info("Processing HO command to target PCell=%d\n", mob_reconf.mob_ctrl_info.target_pci);
 
-    int target_cell_idx = find_neighbour_cell(serving_cell->earfcn, mob_reconf.mob_ctrl_info.target_pci);
+    int target_cell_idx = find_neighbour_cell(serving_cell->get_earfcn(), mob_reconf.mob_ctrl_info.target_pci);
     if (target_cell_idx < 0) {
       rrc_log->console("Received HO command to unknown PCI=%d\n", mob_reconf.mob_ctrl_info.target_pci);
-      rrc_log->error("Could not find target cell earfcn=%d, pci=%d\n", serving_cell->earfcn, mob_reconf.mob_ctrl_info.target_pci);
+      rrc_log->error("Could not find target cell earfcn=%d, pci=%d\n", serving_cell->get_earfcn(), mob_reconf.mob_ctrl_info.target_pci);
       return false;
     }
 
@@ -1076,7 +1115,7 @@ bool rrc::ho_prepare() {
     mac_timers->timer_get(t310)->stop();
     mac_timers->timer_get(t304)->set(this, liblte_rrc_t304_num[mob_reconf.mob_ctrl_info.t304]);
     if (mob_reconf.mob_ctrl_info.carrier_freq_eutra_present &&
-        mob_reconf.mob_ctrl_info.carrier_freq_eutra.dl_carrier_freq != serving_cell->earfcn) {
+        mob_reconf.mob_ctrl_info.carrier_freq_eutra.dl_carrier_freq != serving_cell->get_earfcn()) {
       rrc_log->warning("Received mobilityControlInfo for inter-frequency handover\n");
     }
 
@@ -1095,13 +1134,14 @@ bool rrc::ho_prepare() {
     pdcp->reestablish();
     rlc->reestablish();
     mac->reset();
-    phy->reset();
+    // PHY is reset inside cell_handover() function
+
     mac->set_ho_rnti(mob_reconf.mob_ctrl_info.new_ue_id, mob_reconf.mob_ctrl_info.target_pci);
     apply_rr_config_common_dl(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
 
-    rrc_log->info("Selecting new cell pci=%d\n", neighbour_cells[target_cell_idx]->phy_cell.id);
+    rrc_log->info("Selecting new cell pci=%d\n", neighbour_cells[target_cell_idx]->get_pci());
     if (!phy->cell_handover(neighbour_cells[target_cell_idx]->phy_cell)) {
-      rrc_log->error("Could not synchronize with target cell pci=%d\n", neighbour_cells[target_cell_idx]->phy_cell.id);
+      rrc_log->error("Could not synchronize with target cell pci=%d\n", neighbour_cells[target_cell_idx]->get_pci());
       return false;
     }
 
@@ -1177,7 +1217,7 @@ void rrc::ho_failed() {
 
   // Instruct PHY to resync with source PCI
   if (!phy->cell_handover(ho_src_cell.phy_cell)) {
-    rrc_log->error("Could not synchronize with target cell pci=%d\n", ho_src_cell.phy_cell.id);
+    rrc_log->error("Could not synchronize with target cell pci=%d\n", ho_src_cell.get_pci());
     return;
   }
 
@@ -1302,27 +1342,23 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
     rrc_log->info("Processing SIB: %d\n", liblte_rrc_sys_info_block_type_num[dlsch_msg.sibs[i].sib_type]);
 
     if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[i].sib_type && SI_ACQUIRE_SIB1 == si_acquire_state) {
-      memcpy(&serving_cell->sib1, &dlsch_msg.sibs[i].sib.sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
-      serving_cell->has_valid_sib1 = true;
+      serving_cell->set_sib1(&dlsch_msg.sibs[i].sib.sib1);
       handle_sib1();
-    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_valid_sib2) {
-      memcpy(&serving_cell->sib2, &dlsch_msg.sibs[i].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
-      serving_cell->has_valid_sib2 = true;
+    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib2()) {
+      serving_cell->set_sib2(&dlsch_msg.sibs[i].sib.sib2);
       handle_sib2();
-    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_valid_sib3) {
-      memcpy(&serving_cell->sib3, &dlsch_msg.sibs[i].sib.sib3, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT));
-      serving_cell->has_valid_sib3 = true;
+    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib3()) {
+      serving_cell->set_sib3(&dlsch_msg.sibs[i].sib.sib3);
       handle_sib3();
-    }else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_valid_sib13) {
-      memcpy(&serving_cell->sib13, &dlsch_msg.sibs[0].sib.sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT));
-      serving_cell->has_valid_sib13 = true;
+    }else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib13()) {
+      serving_cell->set_sib13(&dlsch_msg.sibs[i].sib.sib13);
       handle_sib13();
     }
   }
 
   last_win_start = 0;
 
-  if(serving_cell->has_valid_sib2) {
+  if(serving_cell->has_sib2()) {
     sysinfo_index++;
   }
 }
@@ -1330,16 +1366,16 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 void rrc::handle_sib1()
 {
   rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
-                serving_cell->sib1.cell_id&0xfff,
-                liblte_rrc_si_window_length_num[serving_cell->sib1.si_window_length],
-                liblte_rrc_si_periodicity_num[serving_cell->sib1.sched_info[0].si_periodicity]);
+                serving_cell->get_cell_id()&0xfff,
+                liblte_rrc_si_window_length_num[serving_cell->sib1ptr()->si_window_length],
+                liblte_rrc_si_periodicity_num[serving_cell->sib1ptr()->sched_info[0].si_periodicity]);
 
   // Print SIB scheduling info
   uint32_t i,j;
-  for(i=0;i<serving_cell->sib1.N_sched_info;i++){
-    for(j=0;j<serving_cell->sib1.sched_info[i].N_sib_mapping_info;j++){
-      LIBLTE_RRC_SIB_TYPE_ENUM t       = serving_cell->sib1.sched_info[i].sib_mapping_info[j].sib_type;
-      LIBLTE_RRC_SI_PERIODICITY_ENUM p = serving_cell->sib1.sched_info[i].si_periodicity;
+  for(i=0;i<serving_cell->sib1ptr()->N_sched_info;i++){
+    for(j=0;j<serving_cell->sib1ptr()->sched_info[i].N_sib_mapping_info;j++){
+      LIBLTE_RRC_SIB_TYPE_ENUM t       = serving_cell->sib1ptr()->sched_info[i].sib_mapping_info[j].sib_type;
+      LIBLTE_RRC_SI_PERIODICITY_ENUM p = serving_cell->sib1ptr()->sched_info[i].si_periodicity;
       rrc_log->debug("SIB scheduling info, sib_type=%d, si_periodicity=%d\n",
                     liblte_rrc_sib_type_num[t],
                     liblte_rrc_si_periodicity_num[p]);
@@ -1347,16 +1383,14 @@ void rrc::handle_sib1()
   }
 
   // Set TDD Config
-  if(serving_cell->sib1.tdd) {
-    phy->set_config_tdd(&serving_cell->sib1.tdd_cnfg);
+  if(serving_cell->sib1ptr()->tdd) {
+    phy->set_config_tdd(&serving_cell->sib1ptr()->tdd_cnfg);
   }
-
-  serving_cell->has_valid_sib1 = true;
 
   // Send PLMN and TAC to NAS
   std::stringstream ss;
-  for (uint32_t i = 0; i < serving_cell->sib1.N_plmn_ids; i++) {
-    nas->plmn_found(serving_cell->sib1.plmn_id[i].id, serving_cell->sib1.tracking_area_code);
+  for (uint32_t i = 0; i < serving_cell->sib1ptr()->N_plmn_ids; i++) {
+    nas->plmn_found(serving_cell->sib1ptr()->plmn_id[i].id, serving_cell->sib1ptr()->tracking_area_code);
   }
 
   // Jump to next state
@@ -1379,7 +1413,7 @@ void rrc::handle_sib2()
 {
   rrc_log->info("SIB2 received\n");
 
-  apply_sib2_configs(&serving_cell->sib2);
+  apply_sib2_configs(serving_cell->sib2ptr());
 
 }
 
@@ -1387,7 +1421,7 @@ void rrc::handle_sib3()
 {
   rrc_log->info("SIB3 received\n");
 
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *sib3 = &serving_cell->sib3;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *sib3 = serving_cell->sib3ptr();
 
   // cellReselectionInfoCommon
   cell_resel_cfg.q_hyst = liblte_rrc_q_hyst_num[sib3->q_hyst];
@@ -1507,10 +1541,13 @@ byte_buffer_t* rrc::byte_align_and_pack(byte_buffer_t *pdu)
     pdcp_buf = pool_allocate;
   }
 
-  srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
-  pdcp_buf->N_bytes = bit_buf.N_bits / 8;
-  pdcp_buf->set_timestamp();
-
+  if (pdcp_buf != NULL) {
+    srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
+    pdcp_buf->N_bytes = bit_buf.N_bits / 8;
+    pdcp_buf->set_timestamp();
+  } else {
+    rrc_log->error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().\n");
+  }
   return pdcp_buf;
 }
 
@@ -1518,20 +1555,21 @@ void rrc::send_ul_ccch_msg(byte_buffer_t *pdu)
 {
   liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
   pdu = byte_align_and_pack(pdu);
+  if (pdu) {
+    // Set UE contention resolution ID in MAC
+    uint64_t uecri = 0;
+    uint8_t *ue_cri_ptr = (uint8_t *) &uecri;
+    uint32_t nbytes = 6;
+    for (uint32_t i = 0; i < nbytes; i++) {
+      ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
+    }
 
-  // Set UE contention resolution ID in MAC
-  uint64_t uecri = 0;
-  uint8_t *ue_cri_ptr = (uint8_t *) &uecri;
-  uint32_t nbytes = 6;
-  for (uint32_t i = 0; i < nbytes; i++) {
-    ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
+    rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
+    mac->set_contention_id(uecri);
+
+    rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
+    pdcp->write_sdu(RB_ID_SRB0, pdu);
   }
-
-  rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
-  mac->set_contention_id(uecri);
-
-  rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
-  pdcp->write_sdu(RB_ID_SRB0, pdu);
 }
 
 void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
@@ -1539,9 +1577,10 @@ void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
   liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
   pdu = byte_align_and_pack(pdu);
-
-  rrc_log->info("Sending %s\n", liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
-  pdcp->write_sdu(RB_ID_SRB1, pdu);
+  if (pdu) {
+    rrc_log->info("Sending %s\n", liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
+    pdcp->write_sdu(RB_ID_SRB1, pdu);
+  }
 }
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
@@ -1699,7 +1738,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
 *
 *******************************************************************************/
 void rrc::enable_capabilities() {
-  bool enable_ul_64 = args.ue_category >= 5 && serving_cell->sib2.rr_config_common_sib.pusch_cnfg.enable_64_qam;
+  bool enable_ul_64 = args.ue_category >= 5 && serving_cell->sib2ptr()->rr_config_common_sib.pusch_cnfg.enable_64_qam;
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64 ? "Enabling" : "Disabling");
   phy->set_config_64qam_en(enable_ul_64);
 }
@@ -2373,28 +2412,45 @@ void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, floa
     L3_filter(&pcell_measurement, values);
 
     // Update serving cell measurement
-    parent->serving_cell->rsrp = rsrp;
+    parent->serving_cell->set_rsrp(rsrp);
 
   } else {
 
     // Add to list of neighbour cells
-    parent->add_neighbour_cell(earfcn, pci, rsrp);
+    bool added = parent->add_neighbour_cell(earfcn, pci, rsrp);
 
-    log_h->info("MEAS:  New measurement earfcn=%d, pci=%d, rsrp=%f, rsrq=%f, tti=%d\n", earfcn, pci, rsrp, rsrq, tti);
+    log_h->info("MEAS:  New measurement %s earfcn=%d, pci=%d, rsrp=%f, rsrq=%f, tti=%d\n",
+                added?"added":"not added", earfcn, pci, rsrp, rsrq, tti);
 
-    // Save PHY measurement for all active measurements whose earfcn/pci matches
-    for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
-      meas_t *m = &iter->second;
-      if (objects[m->object_id].earfcn == earfcn) {
-        // If it's a newly discovered cell, add it to objects
-        if (!m->cell_values.count(pci)) {
-          uint32_t cell_idx = objects[m->object_id].cells.size();
-          objects[m->object_id].cells[cell_idx].pci      = pci;
-          objects[m->object_id].cells[cell_idx].q_offset = 0;
+    // Only report measurements of 8th strongest cells
+    if (added) {
+      // Save PHY measurement for all active measurements whose earfcn/pci matches
+      for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
+        meas_t *m = &iter->second;
+        if (objects[m->object_id].earfcn == earfcn) {
+          // If it's a newly discovered cell, add it to objects
+          if (!m->cell_values.count(pci)) {
+            uint32_t cell_idx = objects[m->object_id].cells.size();
+            objects[m->object_id].cells[cell_idx].pci      = pci;
+            objects[m->object_id].cells[cell_idx].q_offset = 0;
+          }
+          // Update or add cell
+          L3_filter(&m->cell_values[pci], values);
+          return;
         }
-        // Update or add cell
-        L3_filter(&m->cell_values[pci], values);
-        return;
+      }
+    }
+  }
+}
+
+// Remove all stored measurements for a given cell
+void rrc::rrc_meas::delete_report(uint32_t earfcn, uint32_t pci) {
+  for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
+    meas_t *m = &iter->second;
+    if (objects[m->object_id].earfcn == earfcn) {
+      if (m->cell_values.count(pci)) {
+        m->cell_values.erase(pci);
+        log_h->info("Deleting report PCI=%d from cell_values\n", pci);
       }
     }
   }

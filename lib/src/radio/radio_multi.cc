@@ -37,6 +37,7 @@ bool radio_multi::init_multi(uint32_t nof_rx_antennas, char* args, char* devname
     strncpy(saved_devname, devname, 127);
   }
 
+  is_initialized = true;
   return true;    
 }
 
@@ -46,7 +47,11 @@ bool radio_multi::rx_now(cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, s
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     ptr[i] = buffer[i];
   }
-  if (srslte_rf_recv_with_time_multi(&rf_device, ptr, nof_samples, true, 
+  if (!radio_is_streaming) {
+    srslte_rf_start_rx_stream(&rf_device, false);
+    radio_is_streaming = true;
+  }
+  if (srslte_rf_recv_with_time_multi(&rf_device, ptr, nof_samples, true,
     rxd_time?&rxd_time->full_secs:NULL, rxd_time?&rxd_time->frac_secs:NULL) > 0) {
     return true; 
   } else {

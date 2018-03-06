@@ -33,6 +33,7 @@ namespace srsue {
 // RRC states (3GPP 36.331 v10.0.0)
 typedef enum {
   RRC_STATE_IDLE = 0,
+  RRC_STATE_PLMN_START,
   RRC_STATE_PLMN_SELECTION,
   RRC_STATE_CELL_SELECTING,
   RRC_STATE_CELL_SELECTED,
@@ -44,11 +45,14 @@ typedef enum {
   RRC_STATE_N_ITEMS,
 } rrc_state_t;
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
+                                                            "PLMN SELECTED",
                                                             "PLMN SELECTION",
                                                             "CELL SELECTING",
                                                             "CELL SELECTED",
                                                             "CONNECTING",
                                                             "CONNECTED",
+                                                            "HO PREPARE",
+                                                            "HO PROCESS",
                                                             "LEAVE CONNECTED"};
 
 } // namespace srsue
