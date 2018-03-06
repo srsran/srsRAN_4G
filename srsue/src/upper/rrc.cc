@@ -767,9 +767,9 @@ void rrc::earfcn_end() {
   rrc_log->info("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
 
   // If searching for PLMN, indicate NAS we scanned all frequencies
-  if (state == RRC_STATE_PLMN_SELECTION) {
+  if (state >= RRC_STATE_PLMN_SELECTION && state < RRC_STATE_CONNECTING) {
     nas->plmn_search_end();
-  } else if (state == RRC_STATE_CONNECTED) {
+  } else if (state >= RRC_STATE_CONNECTING && state < RRC_STATE_LEAVE_CONNECTED) {
     leave_connected();
   }
 }
