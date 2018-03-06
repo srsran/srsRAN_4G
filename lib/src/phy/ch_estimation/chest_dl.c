@@ -88,7 +88,7 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, uint32_t max_prb)
       goto clean_exit;
     }
     
-    q->mbsfn_refs = calloc(SRSLTE_MAX_MBSFN_AREA_IDS, sizeof(srslte_refsignal_t*));
+    q->mbsfn_refs = calloc(SRSLTE_MAX_MBSFN_AREA_IDS, sizeof(srslte_refsignal_t));
     if (!q->mbsfn_refs) {
       fprintf(stderr, "Calloc error initializing mbsfn_refs (%d)\n", ret);
       goto clean_exit;
@@ -169,14 +169,14 @@ clean_exit:
 
 void srslte_chest_dl_free(srslte_chest_dl_t *q) 
 {
-  int i;
   if(&q->csr_refs)
     srslte_refsignal_free(&q->csr_refs);
 
   if (q->mbsfn_refs) {
-    for (i=0; i<SRSLTE_MAX_MBSFN_AREA_IDS; i++) {
+    for (int i=0; i<SRSLTE_MAX_MBSFN_AREA_IDS; i++) {
       if (q->mbsfn_refs[i]) {
         srslte_refsignal_free(q->mbsfn_refs[i]);
+        free(q->mbsfn_refs[i]);
       }
     }
     free(q->mbsfn_refs);
@@ -206,15 +206,18 @@ void srslte_chest_dl_free(srslte_chest_dl_t *q)
 
 
 int srslte_chest_dl_set_mbsfn_area_id(srslte_chest_dl_t *q, uint16_t mbsfn_area_id){
-  if(!q->mbsfn_refs[mbsfn_area_id]){
-    q->mbsfn_refs[mbsfn_area_id] = calloc(1, sizeof(srslte_refsignal_t));
-  }
-  if(q->mbsfn_refs[mbsfn_area_id]) {
-    if(srslte_refsignal_mbsfn_init(q->mbsfn_refs[mbsfn_area_id], q->cell, mbsfn_area_id)) {
-      return SRSLTE_ERROR;
+  if (mbsfn_area_id < SRSLTE_MAX_MBSFN_AREA_IDS) {
+    if(!q->mbsfn_refs[mbsfn_area_id]) {
+      q->mbsfn_refs[mbsfn_area_id] = calloc(1, sizeof(srslte_refsignal_t));
     }
-  }  
-  return SRSLTE_SUCCESS;
+    if(q->mbsfn_refs[mbsfn_area_id]) {
+      if(srslte_refsignal_mbsfn_init(q->mbsfn_refs[mbsfn_area_id], q->cell, mbsfn_area_id)) {
+        return SRSLTE_ERROR;
+      }
+    }
+    return SRSLTE_SUCCESS;
+  }
+  return SRSLTE_ERROR;
 }
 
 int srslte_chest_dl_set_cell(srslte_chest_dl_t *q, srslte_cell_t cell)
