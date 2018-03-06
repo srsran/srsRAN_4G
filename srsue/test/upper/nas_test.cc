@@ -76,6 +76,7 @@ public:
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
     srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    byte_buffer_pool::get_instance()->deallocate(sdu);
   }
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
   uint32_t get_last_sdu_len() { return last_sdu_len; }

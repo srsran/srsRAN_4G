@@ -1283,9 +1283,14 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
     byte_buffer_t *nas_sdu;
     for (i = 0; i < reconfig->N_ded_info_nas; i++) {
       nas_sdu = pool_allocate;
-      memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
-      nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
-      nas->write_pdu(lcid, nas_sdu);
+      if (nas_sdu) {
+        memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
+        nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
+        nas->write_pdu(lcid, nas_sdu);
+      } else {
+        rrc_log->error("Fatal Error: Couldn't allocate PDU in handle_rrc_con_reconfig().\n");
+        return;
+      }
     }
   }
 }

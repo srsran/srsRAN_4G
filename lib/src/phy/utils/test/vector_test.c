@@ -265,6 +265,7 @@ TEST(srslte_vec_sum_fff,
 
          free(x);
          free(y);
+         free(z);
 )
 
 TEST(srslte_vec_sub_fff,
@@ -287,6 +288,7 @@ TEST(srslte_vec_sub_fff,
 
          free(x);
          free(y);
+         free(z);
 )
 
 TEST(srslte_vec_dot_prod_ccc,
@@ -354,6 +356,7 @@ TEST(srslte_vec_prod_ccc,
   }
 
   free(x);
+  free(y);
   free(z);
 )
 
@@ -407,6 +410,7 @@ TEST(srslte_vec_prod_conj_ccc,
   }
 
   free(x);
+  free(y);
   free(z);
 )
 
