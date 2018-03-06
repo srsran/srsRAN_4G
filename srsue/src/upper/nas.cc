@@ -784,7 +784,6 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
                 rrc->get_rb_name(lcid).c_str());
   rrc->write_sdu(lcid, pdu);
   ctxt.tx_count++;
-  pool->deallocate(pdu);
 }
 
 void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
