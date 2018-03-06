@@ -529,7 +529,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
                                       dl_rnti, type, &dci_msg) != 1) {
       if (type == SRSLTE_RNTI_RAR) {
-        Info("RAR not found\n");
+        Info("RAR not found, SNR=%.1f dB\n", 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)));
       }
       return false;
     }
