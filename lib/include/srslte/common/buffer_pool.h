@@ -173,6 +173,9 @@ public:
     pool->deallocate(b);
     b = NULL;
   }
+  void print_all_buffers() {
+    pool->print_all_buffers();
+  }
 private:
   buffer_pool<byte_buffer_t> *pool; 
 };

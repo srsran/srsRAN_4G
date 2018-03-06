@@ -39,7 +39,8 @@ boost::mutex   s1ap_instance_mutex;
 s1ap::s1ap():
   m_s1mme(-1),
   m_next_mme_ue_s1ap_id(1),
-  m_next_m_tmsi(0xA000)
+  m_mme_gtpc(NULL),
+  m_pool(NULL)
 {
 }
 

@@ -222,7 +222,7 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
     default:
       nas_log->error("Not handling NAS message with SEC_HDR_TYPE=%02X\n", sec_hdr_type);
       pool->deallocate(pdu);
-      break;
+      return;
   }
 
   // Write NAS pcap
@@ -266,7 +266,7 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
       pool->deallocate(pdu);
-      break;
+      return;
   }
 }
 
@@ -547,6 +547,8 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     act_def_eps_bearer_context_accept.protocol_cnfg_opts_present = false;
     liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_def_eps_bearer_context_accept,
                                                                    &attach_complete.esm_msg);
+
+    pdu->reset();
     liblte_mme_pack_attach_complete_msg(&attach_complete,
                                         LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
                                         ctxt.tx_count,
@@ -762,36 +764,36 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   }
 
   // Send response
-  byte_buffer_t *sdu = pool_allocate;
+  pdu->reset();
   liblte_mme_pack_security_mode_complete_msg(&sec_mode_comp,
                                              LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT,
                                              ctxt.tx_count,
-                                             (LIBLTE_BYTE_MSG_STRUCT *) sdu);
+                                             (LIBLTE_BYTE_MSG_STRUCT *) pdu);
   if(pcap != NULL) {
-    pcap->write_nas(sdu->msg, sdu->N_bytes);
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
-  cipher_encrypt(sdu);
+  cipher_encrypt(pdu);
   integrity_generate(&k_nas_int[16],
                      ctxt.tx_count,
                      SECURITY_DIRECTION_UPLINK,
-                     &sdu->msg[5],
-                     sdu->N_bytes - 5,
-                     &sdu->msg[1]);
+                     &pdu->msg[5],
+                     pdu->N_bytes - 5,
+                     &pdu->msg[1]);
   nas_log->info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s\n",
                 ctxt.tx_count,
                 rrc->get_rb_name(lcid).c_str());
-  rrc->write_sdu(lcid, sdu);
+  rrc->write_sdu(lcid, pdu);
   ctxt.tx_count++;
-  pool->deallocate(pdu);
 }
 
 void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
   nas_log->error("TODO:parse_service_reject\n");
+  pool->deallocate(pdu);
 }
 
 void nas::parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu) {
   nas_log->error("TODO:parse_esm_information_request\n");
-
+  pool->deallocate(pdu);
 }
 
 void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
@@ -800,6 +802,7 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
   nas_log->info("Received EMM Information: %s\n", str.c_str());
   nas_log->console("%s\n", str.c_str());
   ctxt.rx_count++;
+  pool->deallocate(pdu);
 }
 
 /*******************************************************************************
@@ -893,7 +896,14 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 
   // Set the optional flags
   pdn_con_req.esm_info_transfer_flag_present = false; //FIXME: Check if this is needed
-  pdn_con_req.apn_present = false;
+  if (cfg.apn == "") {
+    pdn_con_req.apn_present = false;
+  } else {
+    pdn_con_req.apn_present = true;
+    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT apn;
+    apn.apn = cfg.apn;
+    pdn_con_req.apn = apn;
+  }
   pdn_con_req.protocol_cnfg_opts_present = false;
   pdn_con_req.device_properties_present = false;
 

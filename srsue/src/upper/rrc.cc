@@ -1070,34 +1070,36 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   send_ul_dcch_msg();
 }
 
-void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu) {
+void rrc::send_ul_info_transfer(byte_buffer_t *nas_msg) {
   rrc_log->debug("Preparing RX Info Transfer\n");
 
   // Prepare RX INFO packet
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_UL_INFO_TRANSFER;
   ul_dcch_msg.msg.ul_info_transfer.dedicated_info_type = LIBLTE_RRC_UL_INFORMATION_TRANSFER_TYPE_NAS;
-  memcpy(ul_dcch_msg.msg.ul_info_transfer.dedicated_info.msg, sdu->msg, sdu->N_bytes);
-  ul_dcch_msg.msg.ul_info_transfer.dedicated_info.N_bytes = sdu->N_bytes;
+  memcpy(ul_dcch_msg.msg.ul_info_transfer.dedicated_info.msg, nas_msg->msg, nas_msg->N_bytes);
+  ul_dcch_msg.msg.ul_info_transfer.dedicated_info.N_bytes = nas_msg->N_bytes;
 
-  send_ul_dcch_msg(sdu);
+  pool->deallocate(nas_msg);
+
+  send_ul_dcch_msg();
 }
 
-void rrc::send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu) {
+void rrc::send_security_mode_complete() {
   rrc_log->debug("Preparing Security Mode Complete\n");
 
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_SECURITY_MODE_COMPLETE;
   ul_dcch_msg.msg.security_mode_complete.rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg(pdu);
+  send_ul_dcch_msg();
 }
 
-void rrc::send_rrc_con_reconfig_complete(byte_buffer_t *pdu) {
+void rrc::send_rrc_con_reconfig_complete() {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_RECONFIG_COMPLETE;
   ul_dcch_msg.msg.rrc_con_reconfig_complete.rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg(pdu);
+  send_ul_dcch_msg();
 }
 
 bool rrc::ho_prepare() {
@@ -1177,7 +1179,7 @@ bool rrc::ho_prepare() {
                               k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
 
     pdcp->config_security_all(k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
-    send_rrc_con_reconfig_complete(NULL);
+    send_rrc_con_reconfig_complete();
   }
   return true;
 }
@@ -1229,15 +1231,14 @@ void rrc::ho_failed() {
   send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_HANDOVER_FAILURE, ho_src_rnti);
 }
 
-void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig,
-                                  byte_buffer_t *pdu) {
+void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig) {
   uint32_t i;
 
   if (reconfig->mob_ctrl_info_present) {
 
     if (reconfig->mob_ctrl_info.target_pci == phy->get_current_pci()) {
       rrc_log->warning("Received HO command to own cell\n");
-      send_rrc_con_reconfig_complete(pdu);
+      send_rrc_con_reconfig_complete();
     } else {
       rrc_log->info("Received HO command to target PCell=%d\n", reconfig->mob_ctrl_info.target_pci);
       rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
@@ -1259,7 +1260,7 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
       measurements.parse_meas_config(&reconfig->meas_cnfg);
     }
 
-    send_rrc_con_reconfig_complete(pdu);
+    send_rrc_con_reconfig_complete();
 
     byte_buffer_t *nas_sdu;
     for (i = 0; i < reconfig->N_ded_info_nas; i++) {
@@ -1318,10 +1319,10 @@ void rrc::leave_connected()
 *
 *******************************************************************************/
 void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu) {
-  pool->deallocate(pdu);
   if (state == RRC_STATE_PLMN_SELECTION) {
     // Do we need to do something with BCH?
     rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
+    pool->deallocate(pdu);
   } else {
     rrc_log->warning("Received BCCH BCH in incorrect state\n");
   }
@@ -1523,7 +1524,7 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
 *
 *
 *******************************************************************************/
-byte_buffer_t* rrc::byte_align_and_pack(byte_buffer_t *pdu)
+byte_buffer_t* rrc::byte_align_and_pack()
 {
   // Byte align and pack the message bits for PDCP
   if ((bit_buf.N_bits % 8) != 0) {
@@ -1533,15 +1534,8 @@ byte_buffer_t* rrc::byte_align_and_pack(byte_buffer_t *pdu)
   }
 
   // Reset and reuse sdu buffer if provided
-  byte_buffer_t *pdcp_buf = pdu;
-
+  byte_buffer_t *pdcp_buf = pool_allocate;
   if (pdcp_buf) {
-    pdcp_buf->reset();
-  } else {
-    pdcp_buf = pool_allocate;
-  }
-
-  if (pdcp_buf != NULL) {
     srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
     pdcp_buf->N_bytes = bit_buf.N_bits / 8;
     pdcp_buf->set_timestamp();
@@ -1551,10 +1545,10 @@ byte_buffer_t* rrc::byte_align_and_pack(byte_buffer_t *pdu)
   return pdcp_buf;
 }
 
-void rrc::send_ul_ccch_msg(byte_buffer_t *pdu)
+void rrc::send_ul_ccch_msg()
 {
   liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
-  pdu = byte_align_and_pack(pdu);
+  byte_buffer_t *pdu = byte_align_and_pack();
   if (pdu) {
     // Set UE contention resolution ID in MAC
     uint64_t uecri = 0;
@@ -1572,11 +1566,10 @@ void rrc::send_ul_ccch_msg(byte_buffer_t *pdu)
   }
 }
 
-void rrc::send_ul_dcch_msg(byte_buffer_t *pdu)
+void rrc::send_ul_dcch_msg()
 {
   liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
-
-  pdu = byte_align_and_pack(pdu);
+  byte_buffer_t *pdu = byte_align_and_pack();
   if (pdu) {
     rrc_log->info("Sending %s\n", liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
     pdcp->write_sdu(RB_ID_SRB1, pdu);
@@ -1591,7 +1584,7 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
       send_con_setup_complete(sdu);
       break;
     case RRC_STATE_CONNECTED:
-      send_ul_info_transfer(lcid, sdu);
+      send_ul_info_transfer(sdu);
       break;
     default:
       rrc_log->error("SDU received from NAS while RRC state = %s\n", rrc_state_text[state]);
@@ -1665,11 +1658,15 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
                 get_rb_name(lcid).c_str(),
                 liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
-  // Reset and reuse pdu buffer if possible
-  pdu->reset();
+  pool->deallocate(pdu);
 
   switch (dl_dcch_msg.msg_type) {
     case LIBLTE_RRC_DL_DCCH_MSG_TYPE_DL_INFO_TRANSFER:
+      pdu = pool_allocate;
+      if (!pdu) {
+        rrc_log->error("Fatal error: out of buffers in pool\n");
+        return;
+      }
       memcpy(pdu->msg, dl_dcch_msg.msg.dl_info_transfer.dedicated_info.msg,
              dl_dcch_msg.msg.dl_info_transfer.dedicated_info.N_bytes);
       pdu->N_bytes = dl_dcch_msg.msg.dl_info_transfer.dedicated_info.N_bytes;
@@ -1696,18 +1693,18 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       // Configure PDCP for security
       pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
       pdcp->enable_integrity(lcid);
-      send_security_mode_complete(lcid, pdu);
+      send_security_mode_complete();
       pdcp->enable_encryption(lcid);
       break;
     case LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG:
       transaction_id = dl_dcch_msg.msg.rrc_con_reconfig.rrc_transaction_id;
-      handle_rrc_con_reconfig(lcid, &dl_dcch_msg.msg.rrc_con_reconfig, pdu);
+      handle_rrc_con_reconfig(lcid, &dl_dcch_msg.msg.rrc_con_reconfig);
       break;
     case LIBLTE_RRC_DL_DCCH_MSG_TYPE_UE_CAPABILITY_ENQUIRY:
       transaction_id = dl_dcch_msg.msg.ue_cap_enquiry.rrc_transaction_id;
       for (uint32_t i = 0; i < dl_dcch_msg.msg.ue_cap_enquiry.N_ue_cap_reqs; i++) {
         if (LIBLTE_RRC_RAT_TYPE_EUTRA == dl_dcch_msg.msg.ue_cap_enquiry.ue_capability_request[i]) {
-          send_rrc_ue_cap_info(pdu);
+          send_rrc_ue_cap_info();
           break;
         }
       }
@@ -1743,7 +1740,7 @@ void rrc::enable_capabilities() {
   phy->set_config_64qam_en(enable_ul_64);
 }
 
-void rrc::send_rrc_ue_cap_info(byte_buffer_t *pdu) {
+void rrc::send_rrc_ue_cap_info() {
   rrc_log->debug("Preparing UE Capability Info\n");
 
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_UE_CAPABILITY_INFO;
@@ -1792,7 +1789,7 @@ void rrc::send_rrc_ue_cap_info(byte_buffer_t *pdu) {
 
   liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
 
-  send_ul_dcch_msg(pdu);
+  send_ul_dcch_msg();
 }
 
 

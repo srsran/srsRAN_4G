@@ -126,6 +126,7 @@ typedef struct {
   usim_args_t   usim;
   rrc_args_t    rrc;
   std::string   ue_category_str;
+  std::string   apn;
   expert_args_t expert;
 }all_args_t;
 
@@ -156,6 +157,8 @@ public:
   virtual void stop() = 0;
   virtual bool is_attached() = 0;
   virtual void start_plot() = 0;
+
+  virtual void print_pool() = 0;
 
   virtual void radio_overflow() = 0;
   

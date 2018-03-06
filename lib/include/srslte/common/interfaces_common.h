@@ -30,6 +30,7 @@
 #include "srslte/common/timers.h"
 #include "srslte/common/security.h"
 #include "srslte/asn1/liblte_rrc.h"
+#include <string>
 
 
 namespace srslte {
@@ -37,11 +38,13 @@ namespace srslte {
 class srslte_nas_config_t
 {
 public:
-  srslte_nas_config_t(uint32_t lcid_ = 0)
-    :lcid(lcid_)
+  srslte_nas_config_t(uint32_t lcid_ = 0, std::string apn_ = "")
+    :lcid(lcid_),
+     apn(apn_)
     {}
 
-  uint32_t lcid;
+  uint32_t    lcid;
+  std::string apn;
 };
 
 

@@ -142,8 +142,8 @@ void phch_recv::reset()
 void phch_recv::radio_error()
 {
   log_h->error("SYNC:  Receiving from radio.\n");
-  phy_state = CELL_SEARCH;
   reset();
+  phy_state = CELL_SEARCH;
   // Need to find a method to effectively reset radio, reloading the driver does not work
   radio_h->reset();
 }
@@ -257,20 +257,20 @@ void phch_recv::force_freq(float dl_freq, float ul_freq) {
 
 void phch_recv::reset_sync() {
 
+  Info("SYNC:  Reset. Going to Cell Select\n");
   sfn_p.reset();
   search_p.reset();
   measure_p.reset();
   srslte_ue_sync_reset(&ue_sync);
-  Info("----- PHY RESET----\n");
   phy_state = CELL_SELECT;
 }
 
 void phch_recv::cell_search_inc()
 {
-  Info("cell_search_inc, cur_idx=%d, size=%d\n", cur_earfcn_index, earfcn.size());
   cur_earfcn_index++;
   if (cur_earfcn_index >= 0) {
     if (cur_earfcn_index >= (int) earfcn.size()) {
+      Info("SYNC:  Cell Search finished. Going to IDLE\n");
       cur_earfcn_index = 0;
       phy_state = IDLE;
       rrc->earfcn_end();
@@ -346,8 +346,9 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
 }
 
 /* interface from higher layers to select a new cell */
-void phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
-
+void phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell)
+{
+  Info("SYNC:  Cell Reselect to EARFCN=%d, PCI=%d\n", earfcn, cell.id);
   new_earfcn = earfcn;
   new_cell = cell;
   phy_state = CELL_RESELECT;
@@ -359,7 +360,6 @@ void phch_recv::cell_reselect()
   uint32_t earfcn = new_earfcn;
   srslte_cell_t cell = new_cell;
 
-  Info("Reset from cell_reselect\n");
   reset_sync();
 
   // If we are already in the new cell, just resynchronize
@@ -529,11 +529,12 @@ void phch_recv::run_thread()
         {
         case search::CELL_FOUND:
           if (!srslte_cell_isvalid(&cell)) {
-            Error("SYNC:  Detected invalid cell\n");
+            Error("SYNC:  Detected invalid cell. Going to IDLE\n");
             phy_state = IDLE;
             break;
           }
           if (set_cell()) {
+            Info("SYNC:  Setting sampling rate and going to Cell Select\n");
             set_sampling_rate();
             phy_state = CELL_SELECT;
           }
@@ -704,23 +705,23 @@ void phch_recv::run_thread()
 }
 
 void phch_recv::in_sync() {
-  out_of_sync_cnt = 0;
   in_sync_cnt++;
   // Send RRC in-sync signal after 100 ms consecutive subframes
   if (in_sync_cnt == NOF_IN_SYNC_SF) {
     rrc->in_sync();
     in_sync_cnt = 0;
+    out_of_sync_cnt = 0;
   }
 }
 
 // Out of sync called by worker or phch_recv every 1 or 5 ms
 void phch_recv::out_of_sync() {
-  in_sync_cnt = 0;
   // Send RRC out-of-sync signal after 200 ms consecutive subframes
   out_of_sync_cnt++;
   if (out_of_sync_cnt >= NOF_OUT_OF_SYNC_SF) {
     rrc->out_of_sync();
     out_of_sync_cnt = 0;
+    in_sync_cnt = 0;
   }
 }
 
@@ -973,7 +974,7 @@ phch_recv::sfn_sync::ret_code phch_recv::sfn_sync::run_subframe(srslte_cell_t *c
       }
     }
   } else {
-    Info("SYNC:  PSS/SSS not found...\n");
+    Debug("SYNC:  PSS/SSS not found...\n");
   }
 
   cnt++;

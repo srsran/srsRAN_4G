@@ -91,6 +91,7 @@ typedef struct{
   std::string   mme_bind_addr;
   std::string   mme_name;
   std::string   dns_addr;
+  std::string   mme_apn;
 } s1ap_args_t;
 
 typedef struct{
@@ -138,6 +139,7 @@ typedef struct{
     uint8_t procedure_transaction_id;
     emm_state_t emm_state;
     uint32_t mme_ue_s1ap_id;
+    uint8_t attach_type;
 } ue_emm_ctx_t;
 
 typedef struct{
@@ -162,6 +164,7 @@ typedef struct{
   erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
   bool eit;
   uint8_t procedure_transaction_id;
+  uint8_t attach_type;
 } ue_ctx_t;
 }//namespace
 #endif
