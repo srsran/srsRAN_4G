@@ -46,6 +46,7 @@ typedef struct {
   uint32_t sdu_gen_delay_usec;
   uint32_t pdu_tx_delay_usec;
   bool     reestablish;
+  uint32_t log_level;
 } stress_test_args_t;
 
 void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
@@ -64,7 +65,8 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(10), "SDU generation delay (usec)")
   ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(10), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
   ("error_rate",    bpo::value<float>(&args->error_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
-  ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution");
+  ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution")
+  ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug");
 
   // these options are allowed on the command line
   bpo::options_description cmdline_options;
@@ -80,6 +82,11 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
     cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
     cout << common << endl << general << endl;
     exit(0);
+  }
+
+  if (args->log_level > 4) {
+    args->log_level = 4;
+    printf("Set log level to %d (%s)\n", args->log_level, srslte::log_level_text[args->log_level]);
   }
 }
 
@@ -260,8 +267,8 @@ void stress_test(stress_test_args_t args)
 {
   srslte::log_filter log1("RLC_AM_1");
   srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_level((LOG_LEVEL_ENUM)args.log_level);
+  log2.set_level((LOG_LEVEL_ENUM)args.log_level);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
 
