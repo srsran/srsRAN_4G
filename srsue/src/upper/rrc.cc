@@ -126,6 +126,8 @@ void rrc::init(phy_interface_rrc *phy_,
 
   pending_mob_reconf = false;
 
+  connection_requested = false;
+
   // Set default values for all layers
   set_rrc_default();
   set_phy_default();
@@ -184,10 +186,8 @@ void rrc::run_thread() {
         if (phy->sync_status()) {
           // If attempting to attach, reselect cell
           if (nas->is_attaching()) {
-            sleep(1);
-            rrc_log->info("RRC IDLE: NAS is attaching and camping on cell, reselecting...\n");
+            rrc_log->info("RRC IDLE: NAS has pending data and camping on cell, connecting...\n");
             plmn_select_rrc(selected_plmn_id);
-            connection_requested = true; 
           }
         // If not camping on a cell
         } else {
@@ -196,7 +196,6 @@ void rrc::run_thread() {
             rrc_log->info("RRC IDLE: NAS is attached, PHY not synchronized. Re-selecting cell...\n");
             plmn_select_rrc(selected_plmn_id);
           } else if (nas->is_attaching()) {
-            sleep(1);
             rrc_log->info("RRC IDLE: NAS is attaching, searching again PLMN\n");
             plmn_search();
           }
@@ -234,16 +233,6 @@ void rrc::run_thread() {
             state = RRC_STATE_CELL_SELECTED;
           }
         }
-        // Don't time out during reestablishment (T311 running)
-        if (!mac_timers->timer_get(t311)->is_running() || !phy->sync_status()) {
-          select_cell_timeout++;
-          if (select_cell_timeout >= RRC_SELECT_CELL_TIMEOUT) {
-            rrc_log->info("RRC Cell Selecting: timeout expired. Starting Cell Search...\n");
-            select_cell_timeout = 0;
-            state = RRC_STATE_PLMN_START;
-            serving_cell->in_sync = false;
-          }
-        }
         break;
       case RRC_STATE_CELL_SELECTED:
 
@@ -258,9 +247,9 @@ void rrc::run_thread() {
           con_restablish_cell_reselected();
           state = RRC_STATE_CONNECTING;
           connecting_timeout = 0;
-        } else if (connection_requested) {
-          connection_requested = false;
+        } else if (nas->is_attaching() || connection_requested) {
           rrc_log->info("RRC Cell Selected: Sending connection request...\n");
+          connection_requested = false;
           send_con_request();
           state = RRC_STATE_CONNECTING;
           connecting_timeout = 0;
@@ -442,8 +431,8 @@ void rrc::plmn_search() {
 /* This is the NAS interface. When NAS requests to select a PLMN we have to
  * connect to either register or because there is pending higher layer traffic.
  */
-void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
-  connection_requested = true;
+void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, bool connect_request) {
+  connection_requested = connect_request;
   plmn_select_rrc(plmn_id);
 }
 
@@ -451,37 +440,41 @@ void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
  * selected PLMN
  */
 void rrc::plmn_select_rrc(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
+  pthread_mutex_lock(&mutex);
+
   // If already camping on the selected PLMN, select this cell
   if (state == RRC_STATE_IDLE || state == RRC_STATE_CONNECTED || state == RRC_STATE_PLMN_SELECTION) {
     if (phy->sync_status() && selected_plmn_id.mcc == plmn_id.mcc && selected_plmn_id.mnc == plmn_id.mnc) {
-      rrc_log->info("Already camping on selected PLMN, connecting...\n");
+      rrc_log->info("Already camping on selected PLMN\n");
     } else {
       selected_plmn_id = plmn_id;
 
-      if (serving_cell->plmn_equals(selected_plmn_id)) {
-        phy->cell_select(serving_cell->get_earfcn(), serving_cell->phy_cell);
+      if (serving_cell->plmn_equals(selected_plmn_id) && serving_cell->in_sync) {
+        rrc_log->info("PLMN Id=%s selected, Selecting serving cell earfcn=%d, pci=%d\n",
+                      plmn_id_to_string(plmn_id).c_str(), serving_cell->get_earfcn(), serving_cell->phy_cell.id);
       } else {
         bool found = false;
         for (uint32_t i=0;i<neighbour_cells.size() && !found;i++) {
           if (neighbour_cells[i]->plmn_equals(selected_plmn_id)) {
-            rrc_log->info("PLMN Id=%s selected, PCI=%d\n", plmn_id_to_string(plmn_id).c_str(), neighbour_cells[i]->get_pci());
+            rrc_log->info("PLMN Id=%s selected, Selecting neighbour cell PCI=%d\n", plmn_id_to_string(plmn_id).c_str(), neighbour_cells[i]->get_pci());
             phy->cell_select(neighbour_cells[i]->get_earfcn(), neighbour_cells[i]->phy_cell);
             found = true;
           }
         }
         if (!found) {
-          rrc_log->warning("Could not find any cell for the selected PLMN\n");
-          state = RRC_STATE_IDLE;
+          rrc_log->warning("Could not find any cell for the selected PLMN. Searching another PLMN\n");
+          plmn_search();
+          pthread_mutex_unlock(&mutex);
           return;
         }
       }
     }
 
     state = RRC_STATE_CELL_SELECTING;
-    select_cell_timeout = 0;
   } else {
     rrc_log->warning("Requested PLMN select in incorrect state %s\n", rrc_state_text[state]);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rrc::set_serving_cell(uint32_t earfcn, uint32_t pci) {
@@ -494,6 +487,7 @@ void rrc::set_serving_cell(uint32_t earfcn, uint32_t pci) {
 }
 
 void rrc::set_serving_cell(uint32_t cell_idx) {
+
   if (cell_idx < neighbour_cells.size())
   {
     // Remove future serving cell from neighbours to make space for current serving cell
@@ -529,28 +523,36 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
   }
 }
 
-void rrc::select_next_cell_in_plmn() {
+bool rrc::select_next_cell_in_plmn() {
   // Neighbour cells are sorted in descending order of RSRP
   for (uint32_t i = 0; i < neighbour_cells.size(); i++) {
-    if (neighbour_cells[i]->plmn_equals(selected_plmn_id) &&
+    if (/*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
+         * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
         neighbour_cells[i]->in_sync) // matches S criteria
     {
-      // Try to select Cell
-      phy->cell_select(neighbour_cells[i]->get_earfcn(), neighbour_cells[i]->phy_cell);
-      set_serving_cell(i);
-      rrc_log->info("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
-                    serving_cell->phy_cell.id, serving_cell->get_earfcn(),
-                    serving_cell->get_cell_id());
-      rrc_log->console("Selected cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
-                       serving_cell->phy_cell.id, serving_cell->get_earfcn(),
-                       serving_cell->get_cell_id());
-      return;
+      // If currently connected, verify cell selection criteria
+      if (!serving_cell->in_sync ||
+          (cell_selection_eval(neighbour_cells[i]->get_rsrp())  &&
+          neighbour_cells[i]->get_rsrp() > serving_cell->get_rsrp() + 5))
+      {
+        // Try to select Cell
+        set_serving_cell(i);
+        rrc_log->info("Selected cell idx=%d, PCI=%d, EARFCN=%d\n",
+                      i, serving_cell->phy_cell.id, serving_cell->get_earfcn());
+        rrc_log->console("Selected cell PCI=%d, EARFCN=%d\n",
+                         serving_cell->phy_cell.id, serving_cell->get_earfcn());
+        phy->cell_select(serving_cell->get_earfcn(), serving_cell->phy_cell);
+        state = RRC_STATE_CELL_SELECTING;
+        return true;
+      }
     }
   }
-  rrc_log->info("No more known cells. Starting again\n");
+  return false;
 }
 
 void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int pci_i) {
+
+  pthread_mutex_lock(&mutex);
 
   if (earfcn_i < 0 || pci_i < 0) {
     earfcn_i = serving_cell->get_earfcn();
@@ -582,16 +584,22 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
       }
     }
 
-    // Verify cell selection criteria with strongest neighbour cell (always first)
-    if (neighbour_cells.size() > 1                           &&
-        cell_selection_eval(neighbour_cells[0]->get_rsrp())  &&
-        neighbour_cells[0]->get_rsrp() > serving_cell->get_rsrp() + 5)
-    {
-      set_serving_cell(0);
-      rrc_log->info("Selecting best neighbour cell PCI=%d, rsrp=%.1f dBm\n", serving_cell->phy_cell.id, serving_cell->get_rsrp());
-      state = RRC_STATE_CELL_SELECTING;
-      phy->cell_select(serving_cell->get_earfcn(), serving_cell->phy_cell);
-    }
+    // Evaluate if we need to select a new cell
+    select_next_cell_in_plmn();
+  }
+  pthread_mutex_unlock(&mutex);
+}
+
+// PHY indicates that has gone through all known EARFCN
+void rrc::earfcn_end() {
+  rrc_log->info("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
+
+  // If searching for PLMN, indicate NAS we scanned all frequencies
+  if (state == RRC_STATE_PLMN_SELECTION) {
+    nas->plmn_search_end();
+  } else {
+    rrc_log->info("Restarting Cell search...\n");
+    phy->cell_search_start();
   }
 }
 
@@ -600,51 +608,53 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
  * new cell as current serving cell */
 void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
-  bool found = false;
-  int cell_idx = -1; 
-  
+  int cell_idx = -1;
+  bool found = true;
+
+  pthread_mutex_lock(&mutex);
+
   if (serving_cell->equals(earfcn, phy_cell.id)) {
     serving_cell->set_rsrp(rsrp);
-    found = true;
   } else {
     // Check if cell is in our list of neighbour cells 
     cell_idx = find_neighbour_cell(earfcn, phy_cell.id);
     if (cell_idx >= 0) {
       set_serving_cell(cell_idx);
       serving_cell->set_rsrp(rsrp);
-      found = true;
+    } else {
+      found = false;
+      if (!add_neighbour_cell(earfcn, phy_cell, rsrp)) {
+        rrc_log->info(
+            "No more space for neighbour cells (detected cell RSRP=%.1f dBm worse than current %d neighbours)\n",
+            rsrp,
+            NOF_NEIGHBOUR_CELLS);
+      } else {
+        set_serving_cell(earfcn, phy_cell.id);
+        serving_cell->set_rsrp(rsrp);
+      }
     }
   }
-  if (found) {
 
-    if (!serving_cell->has_sib1()) {
-      si_acquire_state = SI_ACQUIRE_SIB1;
-    } else if (state == RRC_STATE_PLMN_SELECTION) {
-      for (uint32_t j = 0; j < serving_cell->sib1ptr()->N_plmn_ids; j++) {
-        nas->plmn_found(serving_cell->sib1ptr()->plmn_id[j].id, serving_cell->sib1ptr()->tracking_area_code);
-      }
-      usleep(5000);
-      phy->cell_search_next();
+  pthread_mutex_unlock(&mutex);
+
+  if (!serving_cell->has_sib1()) {
+    si_acquire_state = SI_ACQUIRE_SIB1;
+  } else if (state == RRC_STATE_PLMN_SELECTION) {
+    bool ret = false;
+    for (uint32_t j = 0; j < serving_cell->sib1ptr()->N_plmn_ids; j++) {
+      ret |= nas->plmn_found(serving_cell->sib1ptr()->plmn_id[j].id, serving_cell->sib1ptr()->tracking_area_code);
     }
-  } else {
-    // add to list of known cells and set current_cell
-    if (!add_neighbour_cell(earfcn, phy_cell, rsrp)) {
-      rrc_log->info("No more space for neighbour cells (detected cell RSRP=%.1f dBm worse than current %d neighbours)\n", 
-                    rsrp, NOF_NEIGHBOUR_CELLS);
-      usleep(5000);
+    // If any of the PLMNs in this cell is selected, search next cell
+    if (!ret) {
       phy->cell_search_next();
-    } else {
-      set_serving_cell(earfcn, phy_cell.id);
-      si_acquire_state = SI_ACQUIRE_SIB1;
     }
   }
 
   rrc_log->info("%s %s cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n",
                 found?"Updating":"Adding",
-                cell_idx>=0?"neighbour":"serving",
-                serving_cell->get_earfcn(),
-                serving_cell->phy_cell.id,
-                serving_cell->get_rsrp());
+                cell_idx>=0?"neighbour":"serving", earfcn, phy_cell.id, rsrp);
+
+
 }
 
 bool sort_rsrp(cell_t *u1, cell_t *u2) {
@@ -668,6 +678,8 @@ void rrc::clean_neighbours()
   struct timeval now;
   gettimeofday(&now, NULL);
 
+  pthread_mutex_lock(&mutex);
+
   std::vector<cell_t*>::iterator it = neighbour_cells.begin();
   while(it != neighbour_cells.end()) {
     if ((*it)->timeout_secs(now) > NEIGHBOUR_TIMEOUT) {
@@ -677,6 +689,7 @@ void rrc::clean_neighbours()
       ++it;
     }
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 // Sort neighbour cells by decreasing order of RSRP
@@ -695,13 +708,17 @@ void rrc::sort_neighbour_cells()
 
   std::sort(neighbour_cells.begin(), neighbour_cells.end(), sort_rsrp);
 
-  char ordered[512];
-  int n=0;
-  n += snprintf(ordered, 512, "[pci=%d, rsrsp=%.2f", neighbour_cells[0]->phy_cell.id, neighbour_cells[0]->get_rsrp());
-  for (uint32_t i=1;i<neighbour_cells.size();i++) {
-    n += snprintf(&ordered[n], 512-n, " | pci=%d, rsrp=%.2f", neighbour_cells[i]->get_pci(), neighbour_cells[i]->get_rsrp());
+  if (neighbour_cells.size() > 0) {
+    char ordered[512];
+    int n=0;
+    n += snprintf(ordered, 512, "[pci=%d, rsrsp=%.2f", neighbour_cells[0]->phy_cell.id, neighbour_cells[0]->get_rsrp());
+    for (uint32_t i=1;i<neighbour_cells.size();i++) {
+      n += snprintf(&ordered[n], 512-n, " | pci=%d, rsrp=%.2f", neighbour_cells[i]->get_pci(), neighbour_cells[i]->get_rsrp());
+    }
+    rrc_log->info("Neighbours: %s]\n", ordered);
+  } else {
+    rrc_log->info("Neighbours: Empty\n");
   }
-  rrc_log->info("Neighbours: %s]\n", ordered);
 }
 
 bool rrc::add_neighbour_cell(cell_t *new_cell) {
@@ -744,7 +761,7 @@ bool rrc::add_neighbour_cell(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp
   if (cell_idx >= 0) {
     neighbour_cells[cell_idx]->set_rsrp(rsrp);
     sort_neighbour_cells();
-    return true; 
+    return true;
   }
 
   // If not, create a new one
@@ -760,18 +777,6 @@ int rrc::find_neighbour_cell(uint32_t earfcn, uint32_t pci) {
     }
   }
   return -1;
-}
-
-// PHY indicates that has gone through all known EARFCN
-void rrc::earfcn_end() {
-  rrc_log->info("Finished searching cells in EARFCN set while in state %s\n", rrc_state_text[state]);
-
-  // If searching for PLMN, indicate NAS we scanned all frequencies
-  if (state >= RRC_STATE_PLMN_SELECTION && state < RRC_STATE_CONNECTING) {
-    nas->plmn_search_end();
-  } else if (state >= RRC_STATE_CONNECTING && state < RRC_STATE_LEAVE_CONNECTED) {
-    leave_connected();
-  }
 }
 
 // Cell reselection in IDLE Section 5.2.4 of 36.304
@@ -826,7 +831,6 @@ float rrc::get_squal(float Qqualmeas) {
 
 // Detection of physical layer problems in RRC_CONNECTED (5.3.11.1)
 void rrc::out_of_sync() {
-  serving_cell->in_sync = false;
   if (state == RRC_STATE_CONNECTED) {
     if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
       n310_cnt++;
@@ -838,9 +842,23 @@ void rrc::out_of_sync() {
         n310_cnt = 0;
       }
     }
-  } else {
-    phy->sync_reset();
+  } else if (state != RRC_STATE_LEAVE_CONNECTED) {
+    if (!mac_timers->timer_get(t311)->is_running()) {
+      if (serving_cell->in_sync) {
+        rrc_log->info("Detected out-of-sync while in IDLE. Resetting sync\n");
+        phy->sync_reset();
+      } else {
+        rrc_log->info("Detected out-of-sync while in IDLE. Selecting another cell in the PLMN\n");
+        if (!select_next_cell_in_plmn()) {
+          rrc_log->info("Could not find any available cell in this PLMN. Searching PLMN again.\n");
+          plmn_search();
+        }
+      }
+    } else {
+      rrc_log->info("Detected out-of-sync while T311 is running\n");
+    }
   }
+  serving_cell->in_sync = false;
 }
 
 // Recovery of physical layer problems (5.3.11.2)

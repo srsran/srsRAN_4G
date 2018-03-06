@@ -119,7 +119,7 @@ public:
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
   virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
-  virtual void      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
+  virtual bool      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
   virtual void      plmn_search_end() = 0;
 };
 
@@ -173,7 +173,7 @@ public:
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
   virtual void plmn_search() = 0;
-  virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
+  virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, bool connect_request = false) = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
