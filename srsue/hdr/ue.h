@@ -72,6 +72,8 @@ public:
   bool is_attached();
   void start_plot();
 
+  void print_pool();
+
   static void rf_msg(srslte_rf_error_t error);
 
   // UE metrics interface
