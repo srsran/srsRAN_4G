@@ -90,6 +90,7 @@ typedef struct{
   uint16_t      mnc;        // BCD-coded with 0xF filler
   std::string   mme_bind_addr;
   std::string   mme_name;
+  std::string   dns_addr;
 } s1ap_args_t;
 
 typedef struct{
