@@ -278,6 +278,10 @@ void ue::start_plot() {
   phy.start_plot();
 }
 
+void ue::print_pool() {
+  byte_buffer_pool::get_instance()->print_all_buffers();
+}
+
 bool ue::get_metrics(ue_metrics_t &m)
 {
   m.rf = rf_metrics;

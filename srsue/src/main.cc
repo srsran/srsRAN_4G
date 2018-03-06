@@ -474,7 +474,8 @@ int main(int argc, char *argv[])
         plot_started = true;
       }
     }
-    sleep(1);
+    ue->print_pool();
+    sleep(10);
   }
   pthread_cancel(input);
   metricshub.stop();
