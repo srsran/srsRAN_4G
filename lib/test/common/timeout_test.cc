@@ -89,7 +89,7 @@ int timer_thread_test()
   printf("Target duration: %dms, started: %ld:%ld, ended: %ld:%ld, actual duration %dms\n",
          duration_msec, c.start_time[1].tv_sec, c.start_time[1].tv_usec, c.start_time[2].tv_sec, c.start_time[2].tv_usec, diff_ms);
 
-  result = (duration_msec - result_tolerance <= diff_ms < duration_msec + result_tolerance);
+  result = ((duration_msec - result_tolerance) < diff_ms || diff_ms < (duration_msec + result_tolerance));
 
   if(result) {
     printf("Timer thread test passed\n");
