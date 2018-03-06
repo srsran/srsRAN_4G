@@ -80,8 +80,8 @@ static void log_overflow(rf_uhd_handler_t *h) {
 static void log_late(rf_uhd_handler_t *h, bool is_rx) {
   if (h->uhd_error_handler) {
     srslte_rf_error_t error;
-    error.opt = is_rx?1:0;
     bzero(&error, sizeof(srslte_rf_error_t));
+    error.opt = is_rx?1:0;
     error.type = SRSLTE_RF_ERROR_LATE;
     h->uhd_error_handler(error);
   }
