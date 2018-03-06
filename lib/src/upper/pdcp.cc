@@ -92,8 +92,12 @@ bool pdcp::is_drb_enabled(uint32_t lcid)
 
 void pdcp::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 {
-  if(valid_lcid(lcid))
+  if(valid_lcid(lcid)) {
     pdcp_array[lcid].write_sdu(sdu);
+  } else {
+    pdcp_log->warning("Writing sdu: lcid=%d. Deallocating sdu\n", lcid);
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+  }
 }
 
 void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
@@ -149,8 +153,12 @@ void pdcp::enable_encryption(uint32_t lcid)
 *******************************************************************************/
 void pdcp::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 {
-  if(valid_lcid(lcid))
+  if(valid_lcid(lcid)) {
     pdcp_array[lcid].write_pdu(pdu);
+  } else {
+    pdcp_log->warning("Writing pdu: lcid=%d. Deallocating pdu\n", lcid);
+    byte_buffer_pool::get_instance()->deallocate(pdu);
+  }
 }
 
 void pdcp::write_pdu_bcch_bch(byte_buffer_t *sdu)
