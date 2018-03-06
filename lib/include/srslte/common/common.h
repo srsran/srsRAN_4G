@@ -96,6 +96,8 @@ static const char error_text[ERROR_N_ITEMS][20] = { "None",
                                                     "Can't start",
                                                     "Already started"};
 
+//#define ENABLE_TIMESTAMP
+
 /******************************************************************************
  * Byte and Bit buffers
  *
@@ -147,33 +149,27 @@ public:
     }
     long get_latency_us()
     {
+#ifdef ENABLE_TIMESTAMP
       if(!timestamp_is_set)
         return 0;
       gettimeofday(&timestamp[2], NULL); 
       get_time_interval(timestamp);
       return timestamp[0].tv_usec;
+#else
+      return 0;
+#endif
     }
     
     void set_timestamp() 
     {
-      gettimeofday(&timestamp[1], NULL); 
-      timestamp_is_set = true; 
+#ifdef ENABLE_TIMESTAMP
+      gettimeofday(&timestamp[1], NULL);
+      timestamp_is_set = true;
+#endif
     }
 
 private:
-  
-  
-  void get_time_interval(struct timeval * tdata) {
 
-    tdata[0].tv_sec = tdata[2].tv_sec - tdata[1].tv_sec;
-    tdata[0].tv_usec = tdata[2].tv_usec - tdata[1].tv_usec;
-    if (tdata[0].tv_usec < 0) {
-      tdata[0].tv_sec--;
-      tdata[0].tv_usec += 1000000;
-    }
-  }
-
-  
     struct timeval timestamp[3];
     bool           timestamp_is_set; 
     byte_buffer_t *next;
@@ -215,15 +211,21 @@ struct bit_buffer_t{
     }
     long get_latency_us()
     {
+#ifdef ENABLE_TIMESTAMP
       if(!timestamp_is_set)
         return 0;
       gettimeofday(&timestamp[2], NULL); 
       return timestamp[0].tv_usec;
+#else
+      return 0;
+#endif
     }
     void set_timestamp() 
     {
-      gettimeofday(&timestamp[1], NULL); 
-      timestamp_is_set = true; 
+#ifdef ENABLE_TIMESTAMP
+      gettimeofday(&timestamp[1], NULL);
+      timestamp_is_set = true;
+#endif
     }
 
 private: 
