@@ -160,7 +160,7 @@ public:
   virtual void in_sync() = 0;
   virtual void out_of_sync() = 0;
   virtual void earfcn_end() = 0;
-  virtual void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) = 0;
+  virtual void cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp = NAN) = 0;
   virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1) = 0;
 };
 
@@ -580,9 +580,8 @@ public:
 
   /* Cell search and selection procedures */
   virtual void cell_search_start() = 0;
-  virtual void cell_search_stop() = 0;
   virtual void cell_search_next() = 0;
-  virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
+  virtual void cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
   virtual bool cell_handover(srslte_cell_t cell) = 0;
 
   /* Is the PHY downlink synchronized? */

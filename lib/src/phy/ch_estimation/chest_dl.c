@@ -540,22 +540,23 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
       }
     } 
   }
-
-  /* Compute RSRP for the channel estimates in this port */
-  uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
-  q->rsrp[rxant_id][port_id] = srslte_vec_avg_power_cf(q->pilot_estimates, npilots);
-  q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);
 }
 
 int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id) 
 {
+  uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
+
   /* Get references from the input signal */
   srslte_refsignal_cs_get_sf(q->cell, port_id, input, q->pilot_recv_signal);
   
   /* Use the known CSR signal to compute Least-squares estimates */
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->csr_refs.pilots[port_id/2][sf_idx], 
-              q->pilot_estimates, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
+              q->pilot_estimates, npilots);
 
+  /* Compute RSRP for the channel estimates in this port */
+  double energy = cabs(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
+  q->rsrp[rxant_id][port_id] = energy*energy;
+  q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);
 
   chest_interpolate_noise_est(q, input, ce, sf_idx, port_id, rxant_id, SRSLTE_SF_NORM);
 

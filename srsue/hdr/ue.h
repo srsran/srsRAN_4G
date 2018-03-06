@@ -110,8 +110,6 @@ private:
   srslte::log_filter  gw_log;
   srslte::log_filter  usim_log;
 
-  srslte::byte_buffer_pool *pool;
-
   all_args_t       *args;
   bool              started;
 

@@ -85,9 +85,8 @@ public:
   void    sync_reset();
   void    configure_ul_params(bool pregen_disabled = false);
   void    cell_search_start();
-  void    cell_search_stop();
   void    cell_search_next();
-  bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
+  void    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
   bool    cell_handover(srslte_cell_t cell);
 
   void    meas_reset();

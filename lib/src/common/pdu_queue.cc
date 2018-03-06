@@ -76,10 +76,14 @@ void pdu_queue::deallocate(uint8_t* pdu)
  */ 
 void pdu_queue::push(uint8_t *ptr, uint32_t len, uint32_t tstamp)
 {
-  pdu_t *pdu  = (pdu_t*) ptr; 
-  pdu->len    = len; 
-  pdu->tstamp = tstamp; 
-  pdu_q.push(pdu);    
+  if (ptr) {
+    pdu_t *pdu  = (pdu_t*) ptr;
+    pdu->len    = len;
+    pdu->tstamp = tstamp;
+    pdu_q.push(pdu);
+  } else {
+    log_h->warning("Error pushing pdu: ptr is empty\n");
+  }
 }
 
 bool pdu_queue::process_pdus()
