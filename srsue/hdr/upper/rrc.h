@@ -249,7 +249,7 @@ public:
 
   void enable_capabilities();
   void plmn_search();
-  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
+  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, bool connect_request);
 
   // PHY interface
   void in_sync();
@@ -323,9 +323,6 @@ private:
 
   uint32_t plmn_select_timeout;
   static const uint32_t RRC_PLMN_SELECT_TIMEOUT = 10000;
-
-  uint32_t select_cell_timeout;
-  static const uint32_t RRC_SELECT_CELL_TIMEOUT = 1000;
 
   uint8_t k_rrc_enc[32];
   uint8_t k_rrc_int[32];
@@ -401,7 +398,7 @@ private:
   uint16_t           sysinfo_index;
   uint32_t           last_win_start;
 
-  void select_next_cell_in_plmn();
+  bool select_next_cell_in_plmn();
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT selected_plmn_id;
 
   bool thread_running;
