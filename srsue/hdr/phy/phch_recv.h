@@ -150,7 +150,7 @@ private:
     srslte_ue_mib_t   ue_mib;
     uint32_t          cnt;
     uint32_t          timeout;
-    const static uint32_t SYNC_SFN_TIMEOUT = 500;
+    const static uint32_t SYNC_SFN_TIMEOUT = 80;
   };
 
   // Class to perform cell measurements

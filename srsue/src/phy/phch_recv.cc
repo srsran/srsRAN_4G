@@ -565,8 +565,8 @@ void phch_recv::run_thread()
             }
             break;
           case sfn_sync::TIMEOUT:
-            log_h->warning("SYNC:  Timeout while synchronizing SFN. Going back to cell search\n");
-            phy_state = CELL_SEARCH;
+            log_h->warning("SYNC:  Timeout while synchronizing SFN\n");
+            rrc->out_of_sync();
             break;
           case sfn_sync::IDLE:
             break;
@@ -1271,7 +1271,7 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
 
         for (uint32_t sf5_cnt=0;sf5_cnt<nof_sf/5;sf5_cnt++) {
           sync_res = srslte_sync_find(&sync_find, input_buffer, sf5_cnt*5*sf_len, &peak_idx);
-          Info("INTRA: n_id_2=%d, cnt=%d/%d, sync_res=%d, sf_idx=%d, peak_idx=%d, peak_value=%f\n",
+          Debug("INTRA: n_id_2=%d, cnt=%d/%d, sync_res=%d, sf_idx=%d, peak_idx=%d, peak_value=%f\n",
                  n_id_2, sf5_cnt, nof_sf/5, sync_res, srslte_sync_get_sf_idx(&sync_find), peak_idx, sync_find.peak_value);
 
           if (sync_find.peak_value > max_peak && sync_res == SRSLTE_SYNC_FOUND) {

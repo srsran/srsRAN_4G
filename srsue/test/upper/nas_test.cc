@@ -82,7 +82,7 @@ public:
   uint32_t get_last_sdu_len() { return last_sdu_len; }
 
   void plmn_search() {};
-  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {};
+  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, bool con_req) {};
 
   uint16_t get_mcc() { return mcc; }
   uint16_t get_mnc() { return mnc; }
