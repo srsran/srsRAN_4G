@@ -295,9 +295,9 @@ private:
   LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
 
-  byte_buffer_t* byte_align_and_pack(byte_buffer_t *pdu = NULL);
-  void send_ul_ccch_msg(byte_buffer_t *pdu = NULL);
-  void send_ul_dcch_msg(byte_buffer_t *pdu = NULL);
+  byte_buffer_t* byte_align_and_pack();
+  void send_ul_ccch_msg();
+  void send_ul_dcch_msg();
   srslte::bit_buffer_t          bit_buf;
 
   pthread_mutex_t mutex;
@@ -532,10 +532,10 @@ private:
   void          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause, uint16_t crnti);
   void          send_con_restablish_complete();
   void          send_con_setup_complete(byte_buffer_t *nas_msg);
-  void          send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu);
-  void          send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu);
-  void          send_rrc_con_reconfig_complete(byte_buffer_t *pdu);
-  void          send_rrc_ue_cap_info(byte_buffer_t *pdu);
+  void          send_ul_info_transfer(byte_buffer_t *nas_msg);
+  void          send_security_mode_complete();
+  void          send_rrc_con_reconfig_complete();
+  void          send_rrc_ue_cap_info();
 
   // Parsers
   void          parse_dl_ccch(byte_buffer_t *pdu);
@@ -562,7 +562,7 @@ private:
   void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
   void          handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
   void          handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
-  void          handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig, byte_buffer_t *pdu);
+  void          handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig);
   void          add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);
   void          add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
   void          release_drb(uint8_t lcid);
