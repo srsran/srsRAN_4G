@@ -659,8 +659,13 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
     int16_t *e = q->e[codeword_idx];
 
     if (q->csi_enabled) {
+      const uint32_t csi_max_idx = srslte_vec_max_fi(q->csi[codeword_idx], nbits->nof_bits / qm);
+      float csi_max = 1.0f;
+      if (csi_max_idx < nbits->nof_bits / qm) {
+        csi_max = q->csi[codeword_idx][csi_max_idx];
+      }
       for (int i = 0; i < nbits->nof_bits / qm; i++) {
-        float csi = q->csi[codeword_idx][i];
+        const float csi = q->csi[codeword_idx][i] / csi_max;
         for (int k = 0; k < qm; k++) {
           e[qm * i + k] = (int16_t) ((float) e[qm * i + k] * csi);
         }
