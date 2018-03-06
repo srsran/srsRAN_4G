@@ -190,6 +190,9 @@ private:
     }
 
   private:
+
+    const static int RESET_DUPLICATE_TIMEOUT = 8*6;
+
     class dl_tb_process {
     public:
       dl_tb_process(void) {
@@ -273,6 +276,10 @@ private:
           grant.last_tti = cur_grant.tti;
           memcpy(&cur_grant, &grant, sizeof(Tgrant));
 
+          if (payload_buffer_ptr) {
+            Warning("DL PID %d: Allocating buffer already allocated\n", pid);
+          }
+
           // Instruct the PHY To combine the received data and attempt to decode it
           if (pid == HARQ_BCCH_PID) {
             payload_buffer_ptr = harq_entity->demux_unit->request_buffer_bcch(cur_grant.n_bytes[tid]);
@@ -294,8 +301,14 @@ private:
 
         } else {
           action->default_ack[tid] = true;
-          Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK (grant_tti=%d, ndi=%d, sz=%d)\n",
-                  pid, cur_grant.tti, cur_grant.ndi[tid], cur_grant.n_bytes[tid]);
+          uint32_t interval = srslte_tti_interval(grant.tti, cur_grant.tti);
+          Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK (grant_tti=%d, ndi=%d, sz=%d, reset=%s)\n",
+                  pid, cur_grant.tti, cur_grant.ndi[tid], cur_grant.n_bytes[tid], interval>RESET_DUPLICATE_TIMEOUT?"yes":"no");
+          if (interval > RESET_DUPLICATE_TIMEOUT) {
+            pthread_mutex_unlock(&mutex);
+            reset();
+            pthread_mutex_lock(&mutex);
+          }
         }
 
         if (pid == HARQ_BCCH_PID || harq_entity->timer_aligment_timer->is_expired()) {
