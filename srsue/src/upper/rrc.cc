@@ -99,6 +99,8 @@ void rrc::init(phy_interface_rrc *phy_,
   state = RRC_STATE_IDLE;
   si_acquire_state = SI_ACQUIRE_IDLE;
 
+  ho_syncing = false;
+
   thread_running = true;
   start();
 
@@ -610,6 +612,11 @@ void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
   int cell_idx = -1;
   bool found = true;
+
+  if (ho_syncing && phy_cell.id == ho_target_pci) {
+    ho_synced(ho_target_pci);
+    return;
+  }
 
   pthread_mutex_lock(&mutex);
 
@@ -1127,7 +1134,9 @@ bool rrc::ho_prepare() {
     int target_cell_idx = find_neighbour_cell(serving_cell->get_earfcn(), mob_reconf.mob_ctrl_info.target_pci);
     if (target_cell_idx < 0) {
       rrc_log->console("Received HO command to unknown PCI=%d\n", mob_reconf.mob_ctrl_info.target_pci);
-      rrc_log->error("Could not find target cell earfcn=%d, pci=%d\n", serving_cell->get_earfcn(), mob_reconf.mob_ctrl_info.target_pci);
+      rrc_log->error("Could not find target cell earfcn=%d, pci=%d\n",
+                     serving_cell->get_earfcn(),
+                     mob_reconf.mob_ctrl_info.target_pci);
       return false;
     }
 
@@ -1159,12 +1168,22 @@ bool rrc::ho_prepare() {
     mac->set_ho_rnti(mob_reconf.mob_ctrl_info.new_ue_id, mob_reconf.mob_ctrl_info.target_pci);
     apply_rr_config_common_dl(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
 
+    ho_target_pci = neighbour_cells[target_cell_idx]->phy_cell.id;
+    ho_syncing = true;
+
     rrc_log->info("Selecting new cell pci=%d\n", neighbour_cells[target_cell_idx]->get_pci());
     if (!phy->cell_handover(neighbour_cells[target_cell_idx]->phy_cell)) {
       rrc_log->error("Could not synchronize with target cell pci=%d\n", neighbour_cells[target_cell_idx]->get_pci());
       return false;
     }
+  }
+  return true;
+}
 
+void rrc::ho_synced(uint32_t current_pci)
+{
+  ho_syncing = false;
+  if (current_pci == ho_target_pci) {
     if (mob_reconf.mob_ctrl_info.rach_cnfg_ded_present) {
       rrc_log->info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
                     mob_reconf.mob_ctrl_info.rach_cnfg_ded.preamble_index,
@@ -1181,7 +1200,7 @@ bool rrc::ho_prepare() {
       ncc = mob_reconf.sec_cnfg_ho.intra_lte.next_hop_chaining_count;
       if (mob_reconf.sec_cnfg_ho.intra_lte.key_change_ind) {
         rrc_log->console("keyChangeIndicator in securityConfigHO not supported\n");
-        return false;
+        return;
       }
       if (mob_reconf.sec_cnfg_ho.intra_lte.sec_alg_cnfg_present) {
         cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) mob_reconf.sec_cnfg_ho.intra_lte.sec_alg_cnfg.cipher_alg;
@@ -1198,8 +1217,11 @@ bool rrc::ho_prepare() {
 
     pdcp->config_security_all(k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     send_rrc_con_reconfig_complete();
+  } else {
+    rrc_log->error("HO: Synchronized with incorrect cell. Target PCI=%d, current PCI=%d\n", ho_target_pci, current_pci);
+    ho_failed();
   }
-  return true;
+  return;
 }
 
 void rrc::ho_ra_completed(bool ra_successful) {
