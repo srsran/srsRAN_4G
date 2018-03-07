@@ -298,4 +298,31 @@ mme_gtpc::send_delete_session_request(ue_ecm_ctx_t *ue_ecm_ctx)
   //TODO Handle delete session response
   return;
 }
+
+void
+mme_gtpc::send_release_access_bearers_request(ue_ecm_ctx_t *ecm_ctx) 
+{
+  m_mme_gtpc_log->info("Sending GTP-C Delete Access Bearers Request\n");
+  srslte::gtpc_pdu rel_req_pdu;
+  if(ecm_ctx->state != ECM_ )
+  {
+
+  }
+  srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = NULL;
+
+  srslte::gtpc_header *header = &rel_req_pdu.header;
+  header->teid_present = true;
+  header->teid = sgw_ctrl_fteid->teid;
+  header->type = srslte::GTPC_MSG_TYPE_RELEASE_ACCESS_BEARERS_REQUEST;
+
+  srslte::gtpc_release_access_bearers_request *rel_req = &rel_req_pdu.choice.release_access_bearers_request;
+  del_req->cause.cause_value = srslte::GTPC_CAUSE_VALUE_ISR_DEACTIVATION;
+  m_mme_gtpc_log->info("GTP-C Release Access Berarers Request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
+
+  srslte::gtpc_pdu del_resp_pdu;
+  m_spgw->handle_delete_session_request(&del_req_pdu, &del_resp_pdu);
+
+  //TODO Handle delete session response
+  return;
+}
 } //namespace srsepc
