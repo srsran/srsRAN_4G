@@ -861,7 +861,7 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
     m_s1ap_log->error("EPS Bearer ID out of range\n");
     return false;
   }
-  m_mme_gtpc->send_modify_bearer_request(&ue_ecm_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
+  m_mme_gtpc->send_modify_bearer_request(ue_ecm_ctx->imsi, &ue_ecm_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
 
   //Send reply to eNB
   m_s1ap_log->console("Packing EMM infromationi\n");
