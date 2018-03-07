@@ -157,6 +157,7 @@ int main(int argc, char **argv) {
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(tx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(rx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
+  bzero(t, 3 * sizeof(struct timeval));
 
   cell.nof_ports = 1;
 
@@ -469,5 +470,8 @@ quit:
   } else {
     printf("Ok\n");
   }
+
+  srslte_dft_exit();
+
   exit(ret);
 }
