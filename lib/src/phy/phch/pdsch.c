@@ -294,6 +294,10 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
     if (q->d[i]) {
       free(q->d[i]);
     }
+
+    if (q->csi[i]) {
+      free(q->csi[i]);
+    }
   }
 
   /* Free sch objects */
@@ -392,6 +396,22 @@ void srslte_pdsch_set_power_allocation(srslte_pdsch_t *q, float rho_a) {
   if (q) {
     q->rho_a = rho_a;
   }
+}
+
+int srslte_pdsch_enable_csi(srslte_pdsch_t *q, bool enable) {
+  if (enable) {
+    for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      if (!q->csi[i]) {
+        q->csi[i] = srslte_vec_malloc(sizeof(float) * q->max_re);
+        if (!q->csi[i]) {
+          return SRSLTE_ERROR;
+        }
+      }
+    }
+  }
+  q->csi_enabled = enable;
+
+  return SRSLTE_SUCCESS;
 }
 
 void srslte_pdsch_free_rnti(srslte_pdsch_t* q, uint16_t rnti)
@@ -617,6 +637,41 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
     /* Bit scrambling */
     srslte_scrambling_s_offset(seq, q->e[codeword_idx], 0, nbits->nof_bits);
 
+    uint32_t qm = nbits->nof_bits/nbits->nof_re;
+    switch(cfg->grant.mcs[tb_idx].mod) {
+
+      case SRSLTE_MOD_BPSK:
+        qm = 1;
+        break;
+      case SRSLTE_MOD_QPSK:
+        qm = 2;
+        break;
+      case SRSLTE_MOD_16QAM:
+        qm = 4;
+        break;
+      case SRSLTE_MOD_64QAM:
+        qm = 6;
+        break;
+      default:
+        ERROR("No modulation");
+    }
+
+    int16_t *e = q->e[codeword_idx];
+
+    if (q->csi_enabled) {
+      const uint32_t csi_max_idx = srslte_vec_max_fi(q->csi[codeword_idx], nbits->nof_bits / qm);
+      float csi_max = 1.0f;
+      if (csi_max_idx < nbits->nof_bits / qm) {
+        csi_max = q->csi[codeword_idx][csi_max_idx];
+      }
+      for (int i = 0; i < nbits->nof_bits / qm; i++) {
+        const float csi = q->csi[codeword_idx][i] / csi_max;
+        for (int k = 0; k < qm; k++) {
+          e[qm * i + k] = (int16_t) ((float) e[qm * i + k] * csi);
+        }
+      }
+    }
+
     /* Return  */
     ret = srslte_dlsch_decode2(&q->dl_sch, cfg, softbuffer, q->e[codeword_idx], data, tb_idx);
 
@@ -702,7 +757,7 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
     }
 
     // Pre-decoder
-    if (srslte_predecoding_type(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
+    if (srslte_predecoding_type(q->symbols, q->ce, x, q->csi[0], q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
                                       cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, pdsch_scaling, noise_estimate)<0) {
       DEBUG("Error predecoding\n");
       return SRSLTE_ERROR;

@@ -336,14 +336,17 @@ bool decode_tb_cb(srslte_sch_t *q,
     decoder_input[i] = NULL;
   }
   
+  uint32_t remaining_cb = 0;
   for (int i=0;i<nof_cb;i++) {
-    cb_map[i] = false; 
+    /* Do not process blocks with CRC Ok */
+    cb_map[i] = softbuffer->cb_crc[i];
+    if (softbuffer->cb_crc[i] == false) {
+      remaining_cb ++;
+    }
   }
     
   srslte_tdec_reset(&q->decoder, cb_len);
   
-  uint32_t remaining_cb = nof_cb;
-
   q->nof_iterations = 0;
 
   while(remaining_cb>0) {
@@ -401,7 +404,8 @@ bool decode_tb_cb(srslte_sch_t *q,
         // CRC is OK
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
 
-          memcpy(&data[(cb_idx[i]*rlen)/8], q->cb_in, rlen/8 * sizeof(uint8_t));
+          memcpy(softbuffer->data[cb_idx[i]], q->cb_in, rlen/8 * sizeof(uint8_t));
+          softbuffer->cb_crc[cb_idx[i]] = true;
 
           q->nof_iterations += srslte_tdec_get_nof_iterations_cb(&q->decoder, i);
 
@@ -418,15 +422,28 @@ bool decode_tb_cb(srslte_sch_t *q,
                 cb_idx[i], remaining_cb, i, first_cb, nof_cb);
 
           q->nof_iterations += q->max_iterations;
-          q->nof_iterations /= (nof_cb-remaining_cb+1);
-          return false;
+          srslte_tdec_reset_cb(&q->decoder, i);
+          remaining_cb--;
+          decoder_input[i] = NULL;
+          cb_idx[i] = 0;
         }
       }
     }    
   }
 
+  softbuffer->tb_crc = true;
+  for (int i = 0; i < nof_cb && softbuffer->tb_crc; i++) {
+    /* If one CB failed return false */
+    softbuffer->tb_crc = softbuffer->cb_crc[i];
+  }
+  if (softbuffer->tb_crc) {
+    for (int i = 0; i < nof_cb; i++) {
+      memcpy(&data[i * rlen / 8], softbuffer->data[i], rlen/8 * sizeof(uint8_t));
+    }
+  }
+
   q->nof_iterations /= nof_cb;
-  return true;  
+  return softbuffer->tb_crc;
 }
 
 /**

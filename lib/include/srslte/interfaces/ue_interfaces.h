@@ -493,6 +493,7 @@ typedef struct {
   bool rssi_sensor_enabled;
   bool sic_pss_enabled;
   float rx_gain_offset;
+  bool pdsch_csi_enabled;
 } phy_args_t; 
 
 
