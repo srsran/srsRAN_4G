@@ -303,25 +303,13 @@ mme_gtpc::handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu)
 }
 
 void
-mme_gtpc::send_delete_session_request(ue_ecm_ctx_t *ue_ecm_ctx) 
+mme_gtpc::send_delete_session_request(uint64_t imsi) 
 {
-  m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request\n");
+  m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request. IMSI %d\n",imsi);
   srslte::gtpc_pdu del_req_pdu;
-  srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = NULL;
+  srslte::gtp_fteid_t sgw_ctrl_fteid;
 
-  //FIXME the UE control TEID sould be stored in the UE ctxt, not in the E-RAB ctxt
-  //Maybe a mme_s1ap_id to ctrl teid map as well?
-
-  for(int i = 0; i<MAX_ERABS_PER_UE; i++)
-  {
-    if(ue_ecm_ctx->erabs_ctx[i].state != ERAB_DEACTIVATED)
-    {
-      sgw_ctrl_fteid = &ue_ecm_ctx->erabs_ctx[i].sgw_ctrl_fteid;
-      break;
-    }
-  }
-  //FIXME: add proper error handling
-  assert(sgw_ctrl_fteid != NULL);
+  std::map<uint64_t,gtpc_ctx_t>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
 
   srslte::gtpc_header *header = &del_req_pdu.header;
   header->teid_present = true;
