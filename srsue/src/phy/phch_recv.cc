@@ -309,7 +309,7 @@ void phch_recv::cell_search_start() {
 bool phch_recv::cell_handover(srslte_cell_t cell)
 {
 
-  if (srslte_cell_isvalid(&cell)) {
+  if (!srslte_cell_isvalid(&cell)) {
     log_h->error("Received HO command to invalid cell. ID=%d, PRB=%d, ports=%d\n", cell.id, cell.nof_prb, cell.nof_ports);
     return false;
   }
