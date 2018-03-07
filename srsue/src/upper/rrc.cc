@@ -1268,7 +1268,8 @@ void rrc::ho_failed() {
 
   // Instruct PHY to resync with source PCI
   if (!phy->cell_handover(ho_src_cell.phy_cell)) {
-    rrc_log->error("Could not synchronize with target cell pci=%d\n", ho_src_cell.get_pci());
+    rrc_log->error("Could not synchronize with target cell pci=%d. Going to PLMN Search\n", ho_src_cell.get_pci());
+    plmn_search();
     return;
   }
 

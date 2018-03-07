@@ -220,7 +220,7 @@ bool phch_recv::set_cell() {
 
   // Set cell in all objects
   if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
-    Error("SYNC:  Setting cell: initiating ue_sync");
+    Error("SYNC:  Setting cell: initiating ue_sync\n");
     return false;
   }
   measure_p.set_cell(cell);
@@ -308,6 +308,12 @@ void phch_recv::cell_search_start() {
 
 bool phch_recv::cell_handover(srslte_cell_t cell)
 {
+
+  if (srslte_cell_isvalid(&cell)) {
+    log_h->error("Received HO command to invalid cell. ID=%d, PRB=%d, ports=%d\n", cell.id, cell.nof_prb, cell.nof_ports);
+    return false;
+  }
+
   int cnt = 0;
   while(worker_com->is_any_pending_ack() && cnt < 10) {
     usleep(1000);
