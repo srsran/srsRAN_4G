@@ -452,8 +452,12 @@ void rrc::plmn_select_rrc(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
       selected_plmn_id = plmn_id;
 
       if (serving_cell->plmn_equals(selected_plmn_id) && serving_cell->in_sync) {
-        rrc_log->info("PLMN Id=%s selected, Selecting serving cell earfcn=%d, pci=%d\n",
-                      plmn_id_to_string(plmn_id).c_str(), serving_cell->get_earfcn(), serving_cell->phy_cell.id);
+        rrc_log->info("PLMN Id=%s selected, Selecting serving cell earfcn=%d, pci=%d, status=%d\n",
+                      plmn_id_to_string(plmn_id).c_str(), serving_cell->get_earfcn(), serving_cell->phy_cell.id,
+                      phy->sync_status());
+        if (!phy->sync_status()) {
+          phy->cell_select(serving_cell->get_earfcn(), serving_cell->phy_cell);
+        }
       } else {
         bool found = false;
         for (uint32_t i=0;i<neighbour_cells.size() && !found;i++) {
@@ -838,6 +842,10 @@ float rrc::get_squal(float Qqualmeas) {
 
 // Detection of physical layer problems in RRC_CONNECTED (5.3.11.1)
 void rrc::out_of_sync() {
+  rrc_log->info("Received out-of-sync state %s. n310=%d, t311=%s, t310=%s\n",
+                rrc_state_text[state], n310_cnt,
+                mac_timers->timer_get(t311)->is_running()?"running":"stop",
+                mac_timers->timer_get(t310)->is_running()?"running":"stop");
   if (state == RRC_STATE_CONNECTED) {
     if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
       n310_cnt++;
@@ -1168,14 +1176,15 @@ bool rrc::ho_prepare() {
     mac->set_ho_rnti(mob_reconf.mob_ctrl_info.new_ue_id, mob_reconf.mob_ctrl_info.target_pci);
     apply_rr_config_common_dl(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
 
-    ho_target_pci = neighbour_cells[target_cell_idx]->phy_cell.id;
-    ho_syncing = true;
-
     rrc_log->info("Selecting new cell pci=%d\n", neighbour_cells[target_cell_idx]->get_pci());
     if (!phy->cell_handover(neighbour_cells[target_cell_idx]->phy_cell)) {
-      rrc_log->error("Could not synchronize with target cell pci=%d\n", neighbour_cells[target_cell_idx]->get_pci());
+      rrc_log->error("Could not synchronize with target cell pci=%d. Trying to return to source PCI\n",
+                     neighbour_cells[target_cell_idx]->get_pci());
+      ho_failed();
       return false;
     }
+    ho_target_pci = neighbour_cells[target_cell_idx]->phy_cell.id;
+    ho_syncing = true;
   }
   return true;
 }
