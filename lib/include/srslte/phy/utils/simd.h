@@ -530,7 +530,7 @@ static inline simd_cf_t srslte_simd_cfi_loadu(const cf_t *ptr) {
                                                          0x11, 0x13, 0x15, 0x17,
                                                          0x19, 0x1B, 0x1D, 0x1F), in2);
 #else /* LV_HAVE_AVX512 */
-  #ifdef LV_HAVE_AVX2
+#ifdef LV_HAVE_AVX2
   __m256 in1 = _mm256_permute_ps(_mm256_loadu_ps((float*)(ptr)), 0b11011000);
   __m256 in2 = _mm256_permute_ps(_mm256_loadu_ps((float*)(ptr + 4)), 0b11011000);
   ret.re = _mm256_unpacklo_ps(in1, in2);
@@ -703,6 +703,18 @@ static inline void srslte_simd_cf_storeu(float *re, float *im, simd_cf_t simdreg
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
+}
+
+static inline simd_f_t srslte_simd_cf_re(simd_cf_t in) {
+  simd_f_t out = in.re;
+#ifndef LV_HAVE_AVX512
+#ifdef LV_HAVE_AVX2
+  /* Permute for AVX registers (mis SSE registers) */
+  const __m256i idx = _mm256_setr_epi32(0, 2, 4, 6, 1, 3, 5, 7);
+  out = _mm256_permutevar8x32_ps(out, idx);
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+  return out;
 }
 
 static inline simd_cf_t srslte_simd_cf_set1 (cf_t x) {
