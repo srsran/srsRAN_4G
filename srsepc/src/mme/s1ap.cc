@@ -501,23 +501,31 @@ s1ap::delete_ues_ecm_ctx_in_enb(uint16_t enb_id)
 
 //UE Bearer Managment
 void
-s1ap::activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi)
+s1ap::activate_eps_bearer(uint64_t imsi, uint8_t ebi)
 {
-  std::map<uint32_t,ue_ecm_ctx_t*>::iterator ue_ctx_it = m_mme_ue_s1ap_id_to_ue_ecm_ctx.find(mme_s1ap_id);
-  if(ue_ctx_it == m_mme_ue_s1ap_id_to_ue_ecm_ctx.end())
+  std::map<uint64_t,ue_emm_ctx_t*>::iterator emm_ctx_it = m_imsi_to_ue_emm_ctx.find(imsi);
+  if(emm_ctx_it == m_imsi_to_ue_emm_ctx.end())
   {
-    m_s1ap_log->error("Could not find UE context\n");
+      m_s1ap_log->error("Could not find UE EMM context\n");
+      return;
+  }
+  uint32_t mme_ue_s1ap_id = emm_ctx_it->second->mme_ue_s1ap_id;
+  std::map<uint32_t,ue_ecm_ctx_t*>::iterator ecm_ctx_it = m_mme_ue_s1ap_id_to_ue_ecm_ctx.find(mme_s1ap_id);
+  if(ecm_ctx_it == m_mme_ue_s1ap_id_to_ue_ecm_ctx.end())
+  {
+    m_s1ap_log->error("Could not find UE ECM context\n");
     return;
   }
-  ue_ecm_ctx_t * ue_ctx = ue_ctx_it->second;
-  if (ue_ctx->erabs_ctx[ebi].state != ERAB_CTX_SETUP)
+
+  ue_ecm_ctx_t * ecm_ctx = ue_ctx_it->second;
+  if (ecm_ctx->erabs_ctx[ebi].state != ERAB_CTX_SETUP)
   {
     m_s1ap_log->error("EPS Bearer could not be activated. MME S1AP Id %d, EPS Bearer id %d, state %d\n",mme_s1ap_id,ebi,ue_ctx->erabs_ctx[ebi].state);
     m_s1ap_log->console("EPS Bearer could not be activated. MME S1AP Id %d, EPS Bearer id %d\n",mme_s1ap_id,ebi,ue_ctx->erabs_ctx[ebi].state);
     return;
   }
 
-  ue_ctx->erabs_ctx[ebi].state = ERAB_ACTIVE;
+  ecm_ctx->erabs_ctx[ebi].state = ERAB_ACTIVE;
   m_s1ap_log->info("Activated EPS Bearer\n");
   return;
 }
