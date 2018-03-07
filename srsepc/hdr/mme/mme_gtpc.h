@@ -72,8 +72,8 @@ private:
   in_addr_t m_mme_gtpc_ip;
 
   uint32_t m_next_ctrl_teid;
-  std::map<uint32_t,uint64_t> m_ctr_teid_to_imsi;
-  std::map<uint64_t,srslte::gtpc_f_teid_ie> m_imsi_to_ctr_fteid;
+  std::map<uint32_t,uint64_t> m_mme_ctr_teid_to_imsi;
+  std::map<uint64_t,struct gtpc_ctx> m_imsi_to_gtpc_ctx;
 
 };
 

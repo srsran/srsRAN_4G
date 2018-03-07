@@ -124,21 +124,21 @@ mme_gtpc::send_create_session_request(uint64_t imsi, bool pack_attach)
   //cs_req->rat_type = srslte::GTPC_RAT_TYPE::EUTRAN;
 
   //Check whether this UE is already registed
-  std::map<uint64_t, srslte::gtcp_f_teid>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
-  if(it == m_imsi_to_ctr_fteid.end())
+  std::map<uint64_t, struct gtpc_ctx>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
+  if(it == m_imsi_to_gtpc_ctx.end())
   {
     m_mme_gtpc_log->warning("Create Session Request being called for an UE with an active GTP-C connection.\n");
     m_mme_gtpc_log->warning("Deleting previous GTP-C connection.\n");
     std::map<uint32_t, uint64_t>::iterator jt = m_mme_ctr_teid_to_imsi.find(it->second.mme_ctr_fteid.teid);
-    if(jt == m_ctr_teid_to_imsi.end())
+    if(jt == m_mme_ctr_teid_to_imsi.end())
     {
-      m_mme_gtpc_log->error("Could not find IMSI from MME Ctrl TEID.\n")
+      m_mme_gtpc_log->error("Could not find IMSI from MME Ctrl TEID. MME Ctr TEID: %d\n", it->second.mme_ctr_fteid.teid);
     }
     else
     {
-      m_ctr_teid_to_imsi.erease(jt);
+      m_mme_ctr_teid_to_imsi.erase(jt);
     }
-    m_imsi_to_ctr_fteid.erease(it);
+    m_imsi_to_gtpc_ctx.erase(it);
     //No need to send delete session request to the SPGW.
     //The create session request will be interpreted as a new request and SPGW will delete locally in existing context.
   }
