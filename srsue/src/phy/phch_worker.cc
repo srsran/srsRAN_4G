@@ -577,7 +577,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     char hexstr[16];
     hexstr[0]='\0';
     if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-      srslte_vec_sprint_hex(hexstr, dci_msg.data, dci_msg.nof_bits);
+      srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
     }
     Info("PDCCH: DL DCI %s cce_index=%2d, L=%d, n_data_bits=%d, hex=%s\n", srslte_dci_format_string(dci_msg.format), 
          last_dl_pdcch_ncce, (1<<ue_dl.last_location.L), dci_msg.nof_bits, hexstr);
@@ -815,7 +815,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       char hexstr[16];
       hexstr[0]='\0';
       if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-        srslte_vec_sprint_hex(hexstr, dci_msg.data, dci_msg.nof_bits);
+        srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
       }
       // Change to last_location_ul
       Info("PDCCH: UL DCI Format0  cce_index=%d, L=%d, n_data_bits=%d, hex=%s\n", 
