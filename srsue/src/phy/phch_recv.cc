@@ -717,8 +717,10 @@ void phch_recv::in_sync() {
 // Out of sync called by worker or phch_recv every 1 or 5 ms
 void phch_recv::out_of_sync() {
   // Send RRC out-of-sync signal after 200 ms consecutive subframes
+  Info("Out-of-sync %d/%d\n", out_of_sync_cnt, NOF_OUT_OF_SYNC_SF);
   out_of_sync_cnt++;
   if (out_of_sync_cnt >= NOF_OUT_OF_SYNC_SF) {
+    Info("Sending to RRC\n");
     rrc->out_of_sync();
     out_of_sync_cnt = 0;
     in_sync_cnt = 0;
