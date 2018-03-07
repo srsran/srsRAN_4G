@@ -592,7 +592,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
         //Create session request
         m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.");
-        m_mme_gtpc->send_create_session_request(ue_emm_ctx->imsi, ue_emm_ctx->mme_ue_s1ap_id,true);
+        m_mme_gtpc->send_create_session_request(ue_emm_ctx->imsi,true);
         *reply_flag = false; //No reply needed
         return true;
       }
@@ -706,7 +706,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       liblte_security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, ue_emm_ctx->security_ctxt.k_enb);
       m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
       //FIXME Send Modify context request OR send ctx release command and wait for the reply.
-      m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi, ue_ecm_ctx.mme_ue_s1ap_id,false);
+      m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi,false);
       m_s1ap_log->console("UE ESM Ctr TEID %d\n", ue_ecm_ctx.sgw_ctrl_fteid.teid);
       // m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_);
     }
@@ -823,7 +823,7 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   {
     //FIXME The packging of GTP-C messages is not ready.
     //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-    m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi, ue_ecm_ctx->mme_ue_s1ap_id,true);
+    m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi,true);
     *reply_flag = false; //No reply needed
   }
   return true;
@@ -897,7 +897,7 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
 
   //FIXME The packging of GTP-C messages is not ready.
   //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-  m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi, ue_ecm_ctx->mme_ue_s1ap_id,true);
+  m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi,true);
   return true;
 }
 

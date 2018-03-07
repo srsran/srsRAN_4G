@@ -88,7 +88,7 @@ mme_gtpc::get_new_ctrl_teid()
   return m_next_ctrl_teid++; //FIXME Use a Id pool?
 }
 void
-mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id, bool pack_attach)
+mme_gtpc::send_create_session_request(uint64_t imsi, bool pack_attach)
 {
   m_mme_gtpc_log->info("Sending Create Session Request.\n");
   m_mme_gtpc_log->console("Sending Create Session Request.\n");
@@ -96,7 +96,6 @@ mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id, bo
   struct srslte::gtpc_create_session_request *cs_req = &cs_req_pdu.choice.create_session_request;
 
   struct srslte::gtpc_pdu cs_resp_pdu;
- 
 
   //Initialize GTP-C message to zero
   bzero(&cs_req_pdu, sizeof(struct srslte::gtpc_pdu));
@@ -113,19 +112,39 @@ mme_gtpc::send_create_session_request(uint64_t imsi, uint32_t mme_ue_s1ap_id, bo
   cs_req->sender_f_teid.teid = get_new_ctrl_teid();
   cs_req->sender_f_teid.ipv4 = m_mme_gtpc_ip;
 
-  m_mme_gtpc_log->info("Next control TEID: %lu \n", m_next_ctrl_teid);
-  m_mme_gtpc_log->info("Allocated control TEID: %lu \n", cs_req->sender_f_teid.teid);
+  m_mme_gtpc_log->info("Next MME control TEID: %lu \n", m_next_ctrl_teid);
+  m_mme_gtpc_log->info("Allocated MME control TEID: %lu \n", cs_req->sender_f_teid.teid);
   m_mme_gtpc_log->console("Creating Session Response -- IMSI: %015lu \n", imsi);
   m_mme_gtpc_log->console("Creating Session Response -- MME control TEID: %lu \n", cs_req->sender_f_teid.teid);
+
   // APN
   strncpy(cs_req->apn, m_s1ap->m_s1ap_args.mme_apn.c_str(), sizeof(cs_req->apn)-1);
   cs_req->apn[sizeof(cs_req->apn)-1] = 0;
   // RAT Type
   //cs_req->rat_type = srslte::GTPC_RAT_TYPE::EUTRAN;
 
-  //Save RX Control TEID
-  m_teid_to_mme_s1ap_id.insert(std::pair<uint32_t,uint32_t>(cs_req->sender_f_teid.teid, mme_ue_s1ap_id));
+  //Check whether this UE is already registed
+  std::map<uint64_t, srslte::gtcp_f_teid>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
+  if(it == m_imsi_to_ctr_fteid.end())
+  {
+    m_mme_gtpc_log->warning("Create Session Request being called for an UE with an active GTP-C connection.\n");
+    m_mme_gtpc_log->warning("Deleting previous GTP-C connection.\n");
+    std::map<uint32_t, uint64_t>::iterator jt = m_mme_ctr_teid_to_imsi.find(it->second.mme_ctr_fteid.teid);
+    if(jt == m_ctr_teid_to_imsi.end())
+    {
+      m_mme_gtpc_log->error("Could not find IMSI from MME Ctrl TEID.\n")
+    }
+    else
+    {
+      m_ctr_teid_to_imsi.erease(jt);
+    }
+    m_imsi_to_ctr_fteid.erease(it);
+    //No need to send delete session request to the SPGW.
+    //The create session request will be interpreted as a new request and SPGW will delete locally in existing context.
+  }
 
+  //Save RX Control TEID
+  m_mme_ctr_teid_to_imsi.insert(std::pair<uint32_t,uint64_t>(cs_req->sender_f_teid.teid, imsi));
   m_spgw->handle_create_session_request(cs_req, &cs_resp_pdu, pack_attach);
  
 }
@@ -190,14 +209,12 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu, bool pac
 
   //Save create session response info to E-RAB context
   ue_ecm_ctx_t *ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_s1ap_id);
-  if(ecm_ctx ==NULL)
-  {
+  if(ecm_ctx ==NULL){
     m_mme_gtpc_log->error("Could not find UE ECM context\n");
     return;
   }
   ue_emm_ctx_t *emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ecm_ctx->imsi);
-  if(emm_ctx ==NULL)
-  {
+  if(emm_ctx ==NULL){
     m_mme_gtpc_log->error("Could not find UE EMM context\n");
     return;
   }
@@ -304,9 +321,9 @@ mme_gtpc::send_release_access_bearers_request(ue_ecm_ctx_t *ecm_ctx)
 {
   m_mme_gtpc_log->info("Sending GTP-C Delete Access Bearers Request\n");
   srslte::gtpc_pdu rel_req_pdu;
-  if(ecm_ctx->state != ECM_ )
+  if(ecm_ctx->state != ECM_STATE_CONNECTED )
   {
-
+    m_mme_gtpc_log->error("ECM State is not connected. No valid SGW Ctr TEID present\n");
   }
   srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = NULL;
 
