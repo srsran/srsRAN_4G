@@ -246,7 +246,7 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
   }
   if(send_modify)
   {
-    m_mme_gtpc->send_modify_bearer_request(&ue_ecm_ctx->erabs_ctx[5]);
+    m_mme_gtpc->send_modify_bearer_request(ue_ecm_ctx->imsi, &ue_ecm_ctx->erabs_ctx[5]);
   }
   send_modify = true;
   return true;
