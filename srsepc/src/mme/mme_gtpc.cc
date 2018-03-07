@@ -288,16 +288,16 @@ void
 mme_gtpc::handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu)
 {
   uint32_t mme_ctrl_teid = mb_resp_pdu->header.teid;
-  std::map<uint32_t,uint32_t>::iterator mme_s1ap_id_it = m_teid_to_mme_s1ap_id.find(mme_ctrl_teid);
-  if(mme_s1ap_id_it == m_teid_to_mme_s1ap_id.end())
+  std::map<uint32_t,uint64_t>::iterator imsi_it = m_mme_ctr_teid_to_imsi.find(mme_ctrl_teid);
+  if(imsi_it == m_mme_ctr_teid_to_imsi.end())
   {
-    m_mme_gtpc_log->error("Could not find MME S1AP Id from control TEID\n");
+    m_mme_gtpc_log->error("Could not find IMSI from control TEID\n");
     return;
   }
 
   uint8_t ebi = mb_resp_pdu->choice.modify_bearer_response.eps_bearer_context_modified.ebi;
   m_mme_gtpc_log->debug("Activating EPS bearer with id %d\n", ebi);
-  m_s1ap->activate_eps_bearer(mme_s1ap_id_it->second,ebi);
+  m_s1ap->activate_eps_bearer(imsi_it->second,ebi);
 
   return;
 }

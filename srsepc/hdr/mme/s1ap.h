@@ -72,7 +72,7 @@ public:
   bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
   bool handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg);
 
-  void activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi);
+  void activate_eps_bearer(uint64_t imsi, uint8_t ebi);
 
   void print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx);
 
