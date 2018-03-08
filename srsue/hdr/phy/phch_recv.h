@@ -199,6 +199,7 @@ private:
       uint32_t offset;
     } cell_info_t;
     void init(srslte::log *log_h, bool sic_pss_enabled, uint32_t max_sf_window);
+    void deinit();
     void reset();
     int find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
   private:
@@ -220,6 +221,7 @@ private:
   // Class to perform intra-frequency measurements
   class intra_measure : public thread {
   public:
+    ~intra_measure();
     void init(phch_common *common, rrc_interface_phy *rrc, srslte::log *log_h);
     void stop();
     void add_cell(int pci);

@@ -711,6 +711,12 @@ void phch_recv::run_thread()
     mac->tti_clock(tti);
     tti = (tti+1) % 10240;
   }
+
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    if (dummy_buffer[i]) {
+      free(dummy_buffer[i]);
+    }
+  }
 }
 
 void phch_recv::in_sync() {
@@ -1238,6 +1244,13 @@ void phch_recv::scell_recv::reset()
   measure_p.reset();
 }
 
+void phch_recv::scell_recv::deinit()
+{
+  srslte_sync_free(&sync_find);
+  free(input_cfo_corrected);
+  free(sf_buffer[0]);
+}
+
 int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t cell, uint32_t nof_sf, cell_info_t cells[MAX_CELLS])
 {
   uint32_t fft_sz  = srslte_symbol_sz(cell.nof_prb);
@@ -1431,6 +1444,12 @@ void phch_recv::intra_measure::stop() {
   srslte_ringbuffer_stop(&ring_buffer);
   tti_sync.increase();
   wait_thread_finish();
+}
+
+phch_recv::intra_measure::~intra_measure() {
+  srslte_ringbuffer_free(&ring_buffer);
+  scell.deinit();
+  free(search_buffer);
 }
 
 void phch_recv::intra_measure::set_primay_cell(uint32_t earfcn, srslte_cell_t cell) {
