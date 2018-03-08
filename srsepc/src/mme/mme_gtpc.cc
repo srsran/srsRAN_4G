@@ -307,28 +307,47 @@ mme_gtpc::send_delete_session_request(uint64_t imsi)
 {
   m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request. IMSI %d\n",imsi);
   srslte::gtpc_pdu del_req_pdu;
-  srslte::gtp_fteid_t sgw_ctrl_fteid;
-
-  std::map<uint64_t,gtpc_ctx_t>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
-
+  srslte::gtp_fteid_t sgw_ctr_fteid;
+  srslte::gtp_fteid_t mme_ctr_fteid;
+  //Get S-GW Ctr TEID
+  std::map<uint64_t,gtpc_ctx_t>::iterator it_ctx = m_imsi_to_gtpc_ctx.find(imsi);
+  if(it_ctx == m_imsi_to_gtpc_ctx.end())
+  {
+      m_mme_gtpc_log->error("Could not find GTP-C context to remove\n");
+      return;
+  }
+  sgw_ctr_fteid = it_ctx->second.sgw_ctr_fteid;
+  mme_ctr_fteid = it_ctx->second.mme_ctr_fteid;
   srslte::gtpc_header *header = &del_req_pdu.header;
   header->teid_present = true;
-  header->teid = sgw_ctrl_fteid->teid;
+  header->teid = sgw_ctr_fteid.teid;
   header->type = srslte::GTPC_MSG_TYPE_DELETE_SESSION_REQUEST;
 
   srslte::gtpc_delete_session_request *del_req = &del_req_pdu.choice.delete_session_request;
   del_req->cause.cause_value = srslte::GTPC_CAUSE_VALUE_ISR_DEACTIVATION;
-  m_mme_gtpc_log->info("GTP-C Delete Session Request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
+  m_mme_gtpc_log->info("GTP-C Delete Session Request -- S-GW Control TEID %d\n", sgw_ctr_fteid.teid );
 
   srslte::gtpc_pdu del_resp_pdu;
   m_spgw->handle_delete_session_request(&del_req_pdu, &del_resp_pdu);
 
   //TODO Handle delete session response
+
+  //Delete GTP-C context
+  std::map<uint32_t,uint64_t>::iterator it_imsi = m_mme_ctr_teid_to_imsi.find(mme_ctr_fteid.teid);
+  if(it_imsi == m_mme_ctr_teid_to_imsi.end())
+  {
+    m_mme_gtpc_log->error("Could not find IMSI from MME ctr TEID");
+  }
+  else
+  {
+    m_mme_ctr_teid_to_imsi.erase(it_imsi);
+  }
+  m_imsi_to_gtpc_ctx.erase(it_ctx);
   return;
 }
 
 void
-mme_gtpc::send_release_access_bearers_request(ue_ecm_ctx_t *ecm_ctx) 
+mme_gtpc::send_release_access_bearers_request(uint64_t imsi) 
 {
   m_mme_gtpc_log->info("Sending GTP-C Delete Access Bearers Request\n");
   srslte::gtpc_pdu rel_req_pdu;
