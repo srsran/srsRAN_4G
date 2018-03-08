@@ -351,15 +351,25 @@ mme_gtpc::send_release_access_bearers_request(uint64_t imsi)
 {
   m_mme_gtpc_log->info("Sending GTP-C Delete Access Bearers Request\n");
   srslte::gtpc_pdu rel_req_pdu;
-  srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = NULL;
+  srslte::gtp_fteid_t sgw_ctr_fteid;
 
+  //Get S-GW Ctr TEID
+  std::map<uint64_t,gtpc_ctx_t>::iterator it_ctx = m_imsi_to_gtpc_ctx.find(imsi);
+  if(it_ctx == m_imsi_to_gtpc_ctx.end())
+  {
+    m_mme_gtpc_log->error("Could not find GTP-C context to remove\n");
+    return;
+  }
+  sgw_ctr_fteid = it_ctx->second.sgw_ctr_fteid;
+
+  //Set GTP-C header
   srslte::gtpc_header *header = &rel_req_pdu.header;
   header->teid_present = true;
-  header->teid = sgw_ctrl_fteid->teid;
+  header->teid = sgw_ctr_fteid.teid;
   header->type = srslte::GTPC_MSG_TYPE_RELEASE_ACCESS_BEARERS_REQUEST;
 
   srslte::gtpc_release_access_bearers_request *rel_req = &rel_req_pdu.choice.release_access_bearers_request;
-  m_mme_gtpc_log->info("GTP-C Release Access Berarers Request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
+  m_mme_gtpc_log->info("GTP-C Release Access Berarers Request -- S-GW Control TEID %d\n", sgw_ctr_fteid.teid );
 
   srslte::gtpc_pdu rel_resp_pdu;
   m_spgw->handle_release_access_bearers_request(&rel_req_pdu, &rel_resp_pdu);
