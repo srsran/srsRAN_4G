@@ -166,8 +166,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
     }    
   }
   
-// Logical Channel Procedure
-
+  // Logical Channel Procedure
   bool is_rar = false;
 
   pdu_msg.init_tx(payload, pdu_sz, true);
@@ -325,7 +324,6 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
       if (pdu_msg->new_subh()) { // there is space for a new subheader
         sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc);
         if (sdu_len > 0) { // new SDU could be added
-          
           Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n",
                  lcid, buffer_state, sdu_len, sdu_space, max_sdu_sz, pdu_msg->rem_size());
           return true;               

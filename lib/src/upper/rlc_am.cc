@@ -198,7 +198,7 @@ uint32_t rlc_am::get_bearer()
 void rlc_am::write_sdu(byte_buffer_t *sdu)
 {
   tx_sdu_queue.write(sdu);
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, tx_sdu_queue_len=%d", rrc->get_rb_name(lcid).c_str(), tx_sdu_queue.size());
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
 }
 
 /****************************************************************************
@@ -848,7 +848,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Set SN
   header.sn = vt_s;
   vt_s = (vt_s + 1)%MOD;
-  log->info("%s PDU scheduled for tx. SN: %d\n", rrc->get_rb_name(lcid).c_str(), header.sn);
+  log->info("%s PDU scheduled for tx. SN: %d (%d B)\n", rrc->get_rb_name(lcid).c_str(), header.sn, pdu->N_bytes);
 
   // Place PDU in tx_window, write header and TX
   tx_window[header.sn].buf        = pdu;
