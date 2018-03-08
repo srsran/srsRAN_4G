@@ -526,6 +526,7 @@ s1ap::activate_eps_bearer(uint64_t imsi, uint8_t ebi)
   }
 
   ecm_ctx->erabs_ctx[ebi].state = ERAB_ACTIVE;
+  ecm_ctx->state = ECM_STATE_CONNECTED;
   m_s1ap_log->info("Activated EPS Bearer\n");
   return;
 }
