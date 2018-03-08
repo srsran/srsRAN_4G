@@ -125,7 +125,7 @@ mme_gtpc::send_create_session_request(uint64_t imsi, bool pack_attach)
 
   //Check whether this UE is already registed
   std::map<uint64_t, struct gtpc_ctx>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
-  if(it == m_imsi_to_gtpc_ctx.end())
+  if(it != m_imsi_to_gtpc_ctx.end())
   {
     m_mme_gtpc_log->warning("Create Session Request being called for an UE with an active GTP-C connection.\n");
     m_mme_gtpc_log->warning("Deleting previous GTP-C connection.\n");
