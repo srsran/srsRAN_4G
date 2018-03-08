@@ -617,11 +617,6 @@ void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
   int cell_idx = -1;
   bool found = true;
 
-  if (ho_syncing && phy_cell.id == ho_target_pci) {
-    ho_synced(ho_target_pci);
-    return;
-  }
-
   pthread_mutex_lock(&mutex);
 
   if (serving_cell->equals(earfcn, phy_cell.id)) {
@@ -665,6 +660,9 @@ void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
                 found?"Updating":"Adding",
                 cell_idx>=0?"neighbour":"serving", earfcn, phy_cell.id, rsrp);
 
+  if (ho_syncing && phy_cell.id == ho_target_pci) {
+    ho_synced(ho_target_pci);
+  }
 
 }
 
