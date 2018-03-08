@@ -120,7 +120,7 @@ bool phy::check_args(phy_args_t *args)
 }
 
 bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_interface_phy *rrc,
-               std::vector<srslte::log*> log_vec, phy_args_t *phy_args) {
+               std::vector<srslte::log_filter*> log_vec, phy_args_t *phy_args) {
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
 

@@ -44,6 +44,9 @@ ue::ue()
 
 ue::~ue()
 {
+  for (uint32_t i = 0; i < phy_log.size(); i++) {
+    delete(phy_log[i]);
+  }
 }
 
 bool ue::init(all_args_t *args_)
