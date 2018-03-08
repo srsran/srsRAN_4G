@@ -571,7 +571,7 @@ spgw::handle_delete_session_request(struct srslte::gtpc_pdu *del_req_pdu, struct
 
   //Delete data tunnel
   pthread_mutex_lock(&m_mutex);
-  std::map<in_addr_t,srslte::gtpc_f_teid_ie>::iterator data_it = m_ip_to_teid.find(tunnel_ctx->ue_ipv4);
+  std::map<in_addr_t,srslte::gtp_fteid_t>::iterator data_it = m_ip_to_teid.find(tunnel_ctx->ue_ipv4);
   if(data_it != m_ip_to_teid.end())
   {
     m_ip_to_teid.erase(data_it);
@@ -580,6 +580,33 @@ spgw::handle_delete_session_request(struct srslte::gtpc_pdu *del_req_pdu, struct
   m_teid_to_tunnel_ctx.erase(tunnel_it);
 
   delete tunnel_ctx; 
+  return;
+}
+
+void
+spgw::handle_release_access_bearers_request(struct srslte::gtpc_pdu *rel_req_pdu, struct srslte::gtpc_pdu *rel_resp_pdu)
+{
+  //Find tunel ctxt
+  uint32_t ctrl_teid = rel_req_pdu->header.teid;
+  std::map<uint32_t,spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
+  if(tunnel_it == m_teid_to_tunnel_ctx.end())
+  {
+    m_spgw_log->warning("Could not find TEID %d to release bearers from\n",ctrl_teid);
+    return;
+  }
+  spgw_tunnel_ctx_t *tunnel_ctx = tunnel_it->second;
+  in_addr_t ue_ipv4 = tunnel_ctx->ue_ipv4;
+
+  //Delete data tunnel
+  pthread_mutex_lock(&m_mutex);
+  std::map<in_addr_t,srslte::gtpc_f_teid_ie>::iterator data_it = m_ip_to_teid.find(tunnel_ctx->ue_ipv4);
+  if(data_it != m_ip_to_teid.end())
+  {
+    m_ip_to_teid.erase(data_it);
+  }
+  pthread_mutex_unlock(&m_mutex);
+
+  //Do NOT delete control tunnel
   return;
 }
 

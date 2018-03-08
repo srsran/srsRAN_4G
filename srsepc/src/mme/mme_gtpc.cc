@@ -362,7 +362,7 @@ mme_gtpc::send_release_access_bearers_request(uint64_t imsi)
   m_mme_gtpc_log->info("GTP-C Release Access Berarers Request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
 
   srslte::gtpc_pdu rel_resp_pdu;
-  m_spgw->handle_release_access_bearers_response(&del_req_pdu, &rel_resp_pdu);
+  m_spgw->handle_release_access_bearers_request(&rel_req_pdu, &rel_resp_pdu);
 
   //The GTP-C connection will not be torn down, just the user plane bearers.
   return;
