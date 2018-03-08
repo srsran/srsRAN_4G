@@ -132,7 +132,11 @@ void phch_recv::reset()
   next_offset  = 0;
   cell_is_set = false;
   srate_mode = SRATE_NONE;
-  current_earfcn = 0;
+  if (!earfcn.empty()) {
+    current_earfcn = earfcn[0];
+  } else {
+    current_earfcn = 0;
+  }
   sfn_p.reset();
   measure_p.reset();
   search_p.reset();
