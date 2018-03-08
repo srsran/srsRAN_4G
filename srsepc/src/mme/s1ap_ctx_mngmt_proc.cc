@@ -262,38 +262,34 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   m_s1ap_log->info("Received UE Context Release Request. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
   m_s1ap_log->console("Received UE Context Release Request. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
 
-  ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
-  if(ue_ecm_ctx == NULL)
+  ue_ecm_ctx_t *ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if(ecm_ctx == NULL)
   {
-    m_s1ap_log->info("UE not found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    m_s1ap_log->info("No UE ECM context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    m_s1ap_log->console("No UE ECM context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     return false;
   }
 
-  //Delete any context at the SPGW
-  bool active = false;
-  for(int i=0;i<MAX_ERABS_PER_UE;i++)
+  //Delete user plane context at the SPGW (but keep GTP-C connection).
+  if (ecm_ctx->state == ECM_STATE_CONNECTED)
   {
-    if(ue_ecm_ctx->erabs_ctx[i].state != ERAB_DEACTIVATED) //FIXME use ECM state
-    {
-      active = true;
-      //ue_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
-      break;
-    }
+    //There are active E-RABs, send release access mearers request
+    m_mme_gtpc->send_release_access_bearers_request(ecm_ctx->imsi);
   }
-  if(active == true)
+  else
   {
-    //There are active E-RABs, send delete session request
-    m_mme_gtpc->send_delete_session_request(ue_ecm_ctx->imsi);
+    //No ECM Context to release
+    m_s1ap_log->info("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
+    m_s1ap_log->console("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
   }
   //m_s1ap->delete_ue_ctx(ue_ctx);
   for(int i=0;i<MAX_ERABS_PER_UE;i++)
   {
-    ue_ecm_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
+    ecm_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
   }
   //Delete UE context
-  m_s1ap->delete_ue_ecm_ctx(ue_ecm_ctx->mme_ue_s1ap_id);
-
-  m_s1ap_log->info("Deleted UE Context.\n");
+  m_s1ap->delete_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id); 
+  m_s1ap_log->info("Deleted UE ECM Context.\n");
   return true;
 }
 
