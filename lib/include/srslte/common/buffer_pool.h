@@ -72,6 +72,10 @@ public:
       delete available.top();
       available.pop();
     }
+
+    for (uint32_t i = 0; i < used.size(); i++) {
+      delete used[i];
+    }
   }
   
   void print_all_buffers()
