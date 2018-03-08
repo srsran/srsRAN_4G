@@ -351,10 +351,6 @@ mme_gtpc::send_release_access_bearers_request(uint64_t imsi)
 {
   m_mme_gtpc_log->info("Sending GTP-C Delete Access Bearers Request\n");
   srslte::gtpc_pdu rel_req_pdu;
-  if(ecm_ctx->state != ECM_STATE_CONNECTED )
-  {
-    m_mme_gtpc_log->error("ECM State is not connected. No valid SGW Ctr TEID present\n");
-  }
   srslte::gtpc_f_teid_ie *sgw_ctrl_fteid = NULL;
 
   srslte::gtpc_header *header = &rel_req_pdu.header;
@@ -363,13 +359,12 @@ mme_gtpc::send_release_access_bearers_request(uint64_t imsi)
   header->type = srslte::GTPC_MSG_TYPE_RELEASE_ACCESS_BEARERS_REQUEST;
 
   srslte::gtpc_release_access_bearers_request *rel_req = &rel_req_pdu.choice.release_access_bearers_request;
-  del_req->cause.cause_value = srslte::GTPC_CAUSE_VALUE_ISR_DEACTIVATION;
   m_mme_gtpc_log->info("GTP-C Release Access Berarers Request -- S-GW Control TEID %d\n", sgw_ctrl_fteid->teid );
 
-  srslte::gtpc_pdu del_resp_pdu;
-  m_spgw->handle_delete_session_request(&del_req_pdu, &del_resp_pdu);
+  srslte::gtpc_pdu rel_resp_pdu;
+  m_spgw->handle_release_access_bearers_response(&del_req_pdu, &rel_resp_pdu);
 
-  //TODO Handle delete session response
+  //The GTP-C connection will not be torn down, just the user plane bearers.
   return;
 }
 } //namespace srsepc
