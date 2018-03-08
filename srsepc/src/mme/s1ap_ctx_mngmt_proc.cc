@@ -283,7 +283,7 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   if(active == true)
   {
     //There are active E-RABs, send delete session request
-    m_mme_gtpc->send_delete_session_request(ue_ecm_ctx);
+    m_mme_gtpc->send_delete_session_request(ue_ecm_ctx->imsi);
   }
   //m_s1ap->delete_ue_ctx(ue_ctx);
   for(int i=0;i<MAX_ERABS_PER_UE;i++)
