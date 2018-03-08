@@ -146,7 +146,7 @@ typedef struct{
   uint32_t enb_ue_s1ap_id;
   uint32_t mme_ue_s1ap_id;
   struct   sctp_sndrcvinfo enb_sri;
-  ecm_state_t ecm_state; 
+  ecm_state_t state;
   srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
   erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
   bool eit;
