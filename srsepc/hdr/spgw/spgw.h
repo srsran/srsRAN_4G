@@ -73,7 +73,7 @@ public:
   void stop();
   void run_thread();
 
-  void handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu,bool pack_attach);
+  void handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu);
   void handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu);
   void handle_delete_session_request(struct srslte::gtpc_pdu *del_req_pdu, struct srslte::gtpc_pdu *del_resp_pdu);
   void handle_release_access_bearers_request(struct srslte::gtpc_pdu *rel_req_pdu, struct srslte::gtpc_pdu *rel_resp_pdu);

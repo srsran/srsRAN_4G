@@ -144,8 +144,8 @@ spgw::stop()
   std::map<uint32_t,spgw_tunnel_ctx*>::iterator it = m_teid_to_tunnel_ctx.begin();         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
   while(it!=m_teid_to_tunnel_ctx.end())
   {
-    m_spgw_log->info("Deleting SP-GW Tunnel. IMSI: %lu\n", it->second->imsi);
-    m_spgw_log->console("Deleting SP-GW Tunnel. IMSI: %lu\n", it->second->imsi);
+    m_spgw_log->info("Deleting SP-GW GTP-C Tunnel. IMSI: %lu\n", it->second->imsi);
+    m_spgw_log->console("Deleting SP-GW GTP-C Tunnel. IMSI: %lu\n", it->second->imsi);
     delete it->second;
     m_teid_to_tunnel_ctx.erase(it++);
   }
@@ -437,7 +437,7 @@ spgw::get_new_ue_ipv4()
 }
 
 void
-spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu, bool pack_attach)
+spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu)
 {
   srslte::gtpc_header *header = &cs_resp_pdu->header;
   srslte::gtpc_create_session_response *cs_resp = &cs_resp_pdu->choice.create_session_response;
@@ -492,7 +492,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   cs_resp->paa.ipv4_present = true;
   cs_resp->paa.ipv4 = ue_ip;
   m_spgw_log->info("Sending Create Session Response\n");
-  m_mme_gtpc->handle_create_session_response(cs_resp_pdu, pack_attach );
+  m_mme_gtpc->handle_create_session_response(cs_resp_pdu);
   return;
 }
 

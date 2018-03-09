@@ -79,8 +79,7 @@ s1ap_ctx_mngmt_proc::init(void)
 bool
 s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
                                                         ue_ecm_ctx_t *ecm_ctx,
-                                                        erab_ctx_t *erab_ctx,
-                                                        bool pack_attach)
+                                                        erab_ctx_t *erab_ctx)
 {
 
   int s1mme = m_s1ap->get_s1_mme();
@@ -161,12 +160,12 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB\n");
 
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-  if(pack_attach)
+  if(emm_ctx->state == EMM_STATE_DEREGISTERED)
   {
-    pack_attach = false;
+    //Attach procedure initiated from an attach request
     m_s1ap_nas_transport->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &erab_ctx->pdn_addr_alloc, nas_buffer); 
-
   }
+
 
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if(err != LIBLTE_SUCCESS)

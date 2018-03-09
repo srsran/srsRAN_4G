@@ -107,14 +107,15 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->console("Received Service Request \n");
     if(!init_ue->S_TMSI_present)
     {
-      m_s1ap_log->error("Service request -- S-TMSI  not present\n ");
+      m_s1ap_log->error("Service request -- S-TMSI  not present\n");
       m_s1ap_log->console("Service request -- S-TMSI not present\n" );
+      return false;
     }
     uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
     uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
-    m_s1ap_log->info("Service request -- S-TMSI 0x%x\n ", ntohl(*m_tmsi));
+    m_s1ap_log->info("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
     m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
-    m_s1ap_log->info("Service request -- eNB UE S1AP Id %d\n ", enb_ue_s1ap_id);
+    m_s1ap_log->info("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
     m_s1ap_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
     handle_nas_service_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     return false;
@@ -320,7 +321,7 @@ s1ap_nas_transport::handle_nas_attach_request(uint32_t enb_ue_s1ap_id,
 
   //Get attach type from attach request
   if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
-  {
+  { 
     m_s1ap_log->console("Attach Request -- IMSI-style attach request\n");
     m_s1ap_log->info("Attach Request -- IMSI-style attach request\n");
     handle_nas_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
@@ -592,7 +593,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
         //Create session request
         m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.");
-        m_mme_gtpc->send_create_session_request(ue_emm_ctx->imsi,true);
+        m_mme_gtpc->send_create_session_request(ue_emm_ctx->imsi);
         *reply_flag = false; //No reply needed
         return true;
       }
@@ -643,22 +644,22 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     return true;
   }
 
-  ue_emm_ctx_t *ue_emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(it->second);
-  if(ue_emm_ctx == NULL)
+  ue_emm_ctx_t *emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(it->second);
+  if(emm_ctx == NULL || emm_ctx->state != EMM_STATE_REGISTERED)
   {
-    m_s1ap_log->console("Could not find UE security context\n");
-    m_s1ap_log->error("Could not find UE security context\n");
+    m_s1ap_log->console("UE is not EMM-Registered.\n");
+    m_s1ap_log->error("UE is not EMM-Registered.\n");
     pack_service_reject(reply_buffer, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED, enb_ue_s1ap_id);
     *reply_flag = true;
     return true;
   }
-  ue_emm_ctx->security_ctxt.ul_nas_count++;
-  mac_valid = short_integrity_check(ue_emm_ctx,nas_msg);
+  emm_ctx->security_ctxt.ul_nas_count++;
+  mac_valid = short_integrity_check(emm_ctx,nas_msg);
   if(mac_valid)
   {
     m_s1ap_log->console("Service Request -- Short MAC valid\n");
     m_s1ap_log->info("Service Request -- Short MAC valid\n");
-    ue_ecm_ctx_t *ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(ue_emm_ctx->mme_ue_s1ap_id);
+    ue_ecm_ctx_t *ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(emm_ctx->mme_ue_s1ap_id);
     if(ecm_ctx !=NULL)
     {
       //Service request to Connected UE.
@@ -672,7 +673,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       m_s1ap_log->info("Service Request -- User has ECM context already\n");
       //m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
       int default_bearer_id = 5;
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id],false);
+      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id]);
     }
     else
     {
@@ -683,9 +684,9 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       m_s1ap_log->console("Service Request -- User without ECM context\n");
       m_s1ap_log->info("Service Request -- User without ECM context\n");
       //Create ECM context
-      ue_ecm_ctx.imsi = ue_emm_ctx->imsi;
+      ue_ecm_ctx.imsi = emm_ctx->imsi;
       ue_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-      ue_emm_ctx->mme_ue_s1ap_id = ue_ecm_ctx.mme_ue_s1ap_id;
+      emm_ctx->mme_ue_s1ap_id = ue_ecm_ctx.mme_ue_s1ap_id;
       //Set eNB information
       ue_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
       memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
@@ -703,12 +704,11 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
 
       //Re-generate K_eNB
-      liblte_security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, ue_emm_ctx->security_ctxt.k_enb);
-      m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
+      liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
+      m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
       //FIXME Send Modify context request OR send ctx release command and wait for the reply.
-      m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi,false);
+      m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi);
       m_s1ap_log->console("UE ESM Ctr TEID %d\n", ue_ecm_ctx.sgw_ctrl_fteid.teid);
-      // m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(ue_);
     }
   }
   else
@@ -823,14 +823,14 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   {
     //FIXME The packging of GTP-C messages is not ready.
     //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-    m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi,true);
+    m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi);
     *reply_flag = false; //No reply needed
   }
   return true;
 }
 
 bool
-s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, ue_ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
 
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_comp;
@@ -853,7 +853,13 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
     return false;
   }
 
-  m_s1ap_log->console("Unpacked Attached Complete Message\n");
+  ue_emm_ctx_t *emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ecm_ctx->imsi);
+  if(emm_ctx == NULL)
+  {
+    m_s1ap_log->error("Received Attach complete, but could not find UE's EMM Context.\n");
+  }
+
+  m_s1ap_log->console("Unpacked Attached Complete Message. IMSI %d\n", emm_ctx->imsi);
   m_s1ap_log->console("Unpacked Activate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
   //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
   if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 15)
@@ -861,14 +867,17 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
     m_s1ap_log->error("EPS Bearer ID out of range\n");
     return false;
   }
-  m_mme_gtpc->send_modify_bearer_request(ue_ecm_ctx->imsi, &ue_ecm_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
-
-  //Send reply to eNB
-  m_s1ap_log->console("Packing EMM infromationi\n");
-  *reply_flag = pack_emm_information(ue_ecm_ctx, reply_msg);
-  m_s1ap_log->console("Sending EMM infromation, bytes %d\n",reply_msg->N_bytes);
-  m_s1ap_log->info("Sending EMM infromation\n");
-  
+  if(emm_ctx->state == EMM_STATE_DEREGISTERED)
+  {
+    //Attach requested from attach request
+    m_mme_gtpc->send_modify_bearer_request(ecm_ctx->imsi, &ecm_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
+    //Send reply to eNB
+    m_s1ap_log->console("Packing EMM infromationi\n");
+    *reply_flag = pack_emm_information(ecm_ctx, reply_msg);
+    m_s1ap_log->console("Sending EMM infromation, bytes %d\n",reply_msg->N_bytes);
+    m_s1ap_log->info("Sending EMM infromation\n");
+  }
+  emm_ctx->state = EMM_STATE_REGISTERED;
   return true;
 }
 
@@ -897,7 +906,7 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
 
   //FIXME The packging of GTP-C messages is not ready.
   //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-  m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi,true);
+  m_mme_gtpc->send_create_session_request(ue_ecm_ctx->imsi);
   return true;
 }
 
@@ -1756,7 +1765,7 @@ s1ap_nas_transport::pack_emm_information( ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte
 
   LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
   emm_info.full_net_name_present = true;
-  emm_info.full_net_name.name = std::string("srsLTE");
+  emm_info.full_net_name.name = std::string("Software Radio Systems LTE");
   emm_info.full_net_name.add_ci = LIBLTE_MME_ADD_CI_DONT_ADD;
   emm_info.short_net_name_present = true;
   emm_info.short_net_name.name = std::string("srsLTE");
@@ -1771,7 +1780,7 @@ s1ap_nas_transport::pack_emm_information( ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte
     return false;
 
   uint8_t sec_hdr_type =2;
-  //ue_emm_ctx->security_ctxt.dl_nas_count++;
+  // ue_emm_ctx->security_ctxt.dl_nas_count++;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
