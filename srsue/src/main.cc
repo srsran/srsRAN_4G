@@ -422,6 +422,9 @@ void *input_loop(void *m) {
           cout << "Enter t to restart trace." << endl;
         }
         metrics_screen.toggle_print(do_metrics);
+      } else
+      if ('q' == key) {
+        running = false;
       }
     }
   }
