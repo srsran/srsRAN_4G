@@ -163,6 +163,8 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   if(emm_ctx->state == EMM_STATE_DEREGISTERED)
   {
     //Attach procedure initiated from an attach request
+    m_s1ap_log->console("Adding attach accept to Initial Context Setup Request\n");
+    m_s1ap_log->info("Adding attach accept to Initial Context Setup Request\n");
     m_s1ap_nas_transport->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &erab_ctx->pdn_addr_alloc, nas_buffer); 
   }
 
@@ -202,12 +204,17 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
 bool
 s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp)
 {
-  static bool send_modify = false;
   uint32_t mme_ue_s1ap_id = in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
   ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if (ue_ecm_ctx == NULL)
   {
-    m_s1ap_log->error("Could not find UE's context in active UE's map\n");
+    m_s1ap_log->error("Could not find UE's ECM context in active UE's map\n");
+    return false;
+  }
+  ue_emm_ctx_t *emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
+  if (emm_ctx == NULL)
+  {
+    m_s1ap_log->error("Could not find UE's EMM context in active UE's map\n");
     return false;
   }
 
@@ -243,11 +250,10 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
     m_s1ap_log->console("E-RAB Context -- eNB TEID 0x%x; eNB GTP-U Address %s\n", erab_ctx->enb_fteid.teid, enb_addr_str);
 
   }
-  if(send_modify)
+  if(emm_ctx->state == EMM_STATE_DEREGISTERED)
   {
     m_mme_gtpc->send_modify_bearer_request(ue_ecm_ctx->imsi, &ue_ecm_ctx->erabs_ctx[5]);
   }
-  send_modify = true;
   return true;
 }
 

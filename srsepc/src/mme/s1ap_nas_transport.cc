@@ -363,7 +363,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
     ue_emm_ctx.imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
   }
   ue_emm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-
+  ue_emm_ctx.state = EMM_STATE_DEREGISTERED;
   //Save UE network capabilities
   memcpy(&ue_emm_ctx.security_ctxt.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
   ue_emm_ctx.security_ctxt.ms_network_cap_present =  attach_req.ms_network_cap_present;
@@ -671,9 +671,9 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       //Delete eNB context and connect.
       m_s1ap_log->console("Service Request -- User has ECM context already\n");
       m_s1ap_log->info("Service Request -- User has ECM context already\n");
-      //m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
-      int default_bearer_id = 5;
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id]);
+      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
+      //int default_bearer_id = 5;
+      //m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id]);
     }
     else
     {
@@ -1780,7 +1780,7 @@ s1ap_nas_transport::pack_emm_information( ue_ecm_ctx_t *ue_ecm_ctx, srslte::byte
     return false;
 
   uint8_t sec_hdr_type =2;
-  // ue_emm_ctx->security_ctxt.dl_nas_count++;
+  ue_emm_ctx->security_ctxt.dl_nas_count++;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
