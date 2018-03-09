@@ -95,6 +95,10 @@ private:
   uint64_t get_new_user_teid();
   in_addr_t get_new_ue_ipv4();
 
+  spgw_tunnel_ctx_t* create_gtp_ctx(struct srslte::gtpc_create_session_request *cs_req);
+  bool delete_gtp_ctx(uint32_t ctrl_teid);
+
+
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
   mme_gtpc *m_mme_gtpc;
@@ -113,6 +117,8 @@ private:
   sockaddr_in m_s1u_addr;
 
   pthread_mutex_t m_mutex;
+
+  std::map<uint64_t,uint32_t> m_imsi_to_ctr_teid;                   //IMSI to control TEID map. Important to check if UE is previously connected
   std::map<uint32_t,spgw_tunnel_ctx*> m_teid_to_tunnel_ctx;         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
   std::map<in_addr_t,srslte::gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
 

@@ -417,6 +417,10 @@ spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
   }
   return;
 }
+
+/*
+ * Helper Functions
+ */
 uint64_t
 spgw::get_new_ctrl_teid()
 {
@@ -436,61 +440,115 @@ spgw::get_new_ue_ipv4()
   return ntohl(m_h_next_ue_ip);//FIXME Tmp hack
 }
 
-void
-spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu)
+spgw_tunnel_ctx_t*
+spgw::create_gtp_ctx(struct srslte::gtpc_create_session_request *cs_req)
 {
-  srslte::gtpc_header *header = &cs_resp_pdu->header;
-  srslte::gtpc_create_session_response *cs_resp = &cs_resp_pdu->choice.create_session_response;
-
-
-  m_spgw_log->info("Received Create Session Request\n");
-    //Setup uplink control TEID
+  //Setup uplink control TEID
   uint64_t spgw_uplink_ctrl_teid = get_new_ctrl_teid();
   //Setup uplink user TEID
   uint64_t spgw_uplink_user_teid = get_new_user_teid();
   //Allocate UE IP
-  //in_addr_t ue_ip = get_new_ue_ipv4();
-  in_addr_t ue_ip = inet_addr("172.16.0.2");
+  in_addr_t ue_ip = get_new_ue_ipv4();
+  //in_addr_t ue_ip = inet_addr("172.16.0.2");
   uint8_t default_bearer_id = 5;
+
+  m_spgw_log->console("SPGW: Allocated Ctrl TEID %d\n", spgw_uplink_ctrl_teid);
+  m_spgw_log->console("SPGW: Allocated User TEID %d\n", spgw_uplink_user_teid);
+  struct in_addr ue_ip_;
+  ue_ip_.s_addr=ue_ip;
+  m_spgw_log->console("SPGW: Allocate UE IP %s\n", inet_ntoa(ue_ip_));
+
 
   //Save the UE IP to User TEID map 
   spgw_tunnel_ctx_t *tunnel_ctx = new spgw_tunnel_ctx_t;
+  bzero(tunnel_ctx,sizeof(spgw_tunnel_ctx_t));
+
   tunnel_ctx->imsi = cs_req->imsi;
   tunnel_ctx->ebi = default_bearer_id;
   tunnel_ctx->up_user_fteid.teid = spgw_uplink_user_teid;
   tunnel_ctx->up_user_fteid.ipv4 = m_s1u_addr.sin_addr.s_addr;
   tunnel_ctx->dw_ctrl_fteid.teid = cs_req->sender_f_teid.teid;
   tunnel_ctx->dw_ctrl_fteid.ipv4 = cs_req->sender_f_teid.ipv4;
-  
+
   tunnel_ctx->up_ctrl_fteid.teid = spgw_uplink_ctrl_teid;
   tunnel_ctx->ue_ipv4 = ue_ip;
   m_teid_to_tunnel_ctx.insert(std::pair<uint32_t,spgw_tunnel_ctx_t*>(spgw_uplink_ctrl_teid,tunnel_ctx));
+  m_imsi_to_ctr_teid.insert(std::pair<uint64_t,uint32_t>(cs_req->imsi,spgw_uplink_ctrl_teid));
+  return tunnel_ctx; 
+}
+
+bool
+spgw::delete_gtp_ctx(uint32_t ctrl_teid)
+{
+  spgw_tunnel_ctx_t *tunnel_ctx;
+  if(!m_teid_to_tunnel_ctx.count(ctrl_teid)){
+    m_spgw_log->error("Could not find GTP context to delete.\n");
+    return false;
+  }
+  tunnel_ctx = m_teid_to_tunnel_ctx[ctrl_teid];
+
+  //Remove GTP-U connections, if any.
+  if(m_ip_to_teid.count(tunnel_ctx->ue_ipv4))
+  {
+    pthread_mutex_lock(&m_mutex);
+    m_ip_to_teid.erase(tunnel_ctx->ue_ipv4);
+    pthread_mutex_unlock(&m_mutex);   
+  }
+  //Remove Ctrl TEID from IMSI to control TEID map
+  m_imsi_to_ctr_teid.erase(tunnel_ctx->imsi);
+
+  //Remove GTP context from control TEID mapping
+  m_teid_to_tunnel_ctx.erase(ctrl_teid);
+  delete tunnel_ctx; 
+  return true;
+}
+
+void
+spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu)
+{
+  m_spgw_log->info("Received Create Session Request\n");
+  spgw_tunnel_ctx_t *tunnel_ctx;
+  int default_bearer_id = 5;
+  //Check if IMSI has active GTP-C and/or GTP-U
+  bool gtpc_present = m_imsi_to_ctr_teid.count(cs_req->imsi);
+  if(gtpc_present)
+  {
+    m_spgw_log->console("SPGW: GTP-C context for IMSI %015ul already exists.\n", cs_req->imsi);
+    delete_gtp_ctx(m_imsi_to_ctr_teid[cs_req->imsi]);
+    m_spgw_log->console("SPGW: Deleted previous context.\n");
+  }
+
+  m_spgw_log->info("Creating new GTP-C context\n");
+  tunnel_ctx = create_gtp_ctx(cs_req);
 
   //Create session response message
+  srslte::gtpc_header *header = &cs_resp_pdu->header;
+  srslte::gtpc_create_session_response *cs_resp = &cs_resp_pdu->choice.create_session_response;
+
   //Setup GTP-C header
   header->piggyback = false;
   header->teid_present = true;
-  header->teid = cs_req->sender_f_teid.teid;  //Send create session requesponse to the CS Request TEID
+  header->teid = tunnel_ctx->dw_ctrl_fteid.teid;  //Send create session requesponse to the UE's MME Ctrl TEID
   header->type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE;
+
   //Initialize to zero
   bzero(cs_resp,sizeof(struct srslte::gtpc_create_session_response));
   //Setup Cause
   cs_resp->cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   //Setup sender F-TEID (ctrl)
   cs_resp->sender_f_teid.ipv4_present = true;
-  cs_resp->sender_f_teid.teid = spgw_uplink_ctrl_teid;
-  cs_resp->sender_f_teid.ipv4 = 0;//FIXME This is not relevant, as the GTP-C is not transmitted over sockets yet.
+  cs_resp->sender_f_teid = tunnel_ctx->up_ctrl_fteid;
+
   //Bearer context created
   cs_resp->eps_bearer_context_created.ebi = default_bearer_id;
   cs_resp->eps_bearer_context_created.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present=true;
-  cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.teid = spgw_uplink_user_teid;
-  cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4 = m_s1u_addr.sin_addr.s_addr;
+  cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid =  tunnel_ctx->up_user_fteid;
   //Fill in the PAA
   cs_resp->paa_present = true;
   cs_resp->paa.pdn_type = srslte::GTPC_PDN_TYPE_IPV4;
   cs_resp->paa.ipv4_present = true;
-  cs_resp->paa.ipv4 = ue_ip;
+  cs_resp->paa.ipv4 = tunnel_ctx->ue_ipv4;
   m_spgw_log->info("Sending Create Session Response\n");
   m_mme_gtpc->handle_create_session_response(cs_resp_pdu);
   return;
