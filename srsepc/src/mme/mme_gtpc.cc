@@ -88,7 +88,7 @@ mme_gtpc::get_new_ctrl_teid()
   return m_next_ctrl_teid++; //FIXME Use a Id pool?
 }
 void
-mme_gtpc::send_create_session_request(uint64_t imsi, bool pack_attach)
+mme_gtpc::send_create_session_request(uint64_t imsi)
 {
   m_mme_gtpc_log->info("Sending Create Session Request.\n");
   m_mme_gtpc_log->console("Sending Create Session Request.\n");
@@ -151,12 +151,12 @@ mme_gtpc::send_create_session_request(uint64_t imsi, bool pack_attach)
   bzero(&gtpc_ctx,sizeof(gtpc_ctx_t));
   gtpc_ctx.mme_ctr_fteid = cs_req->sender_f_teid;
   m_imsi_to_gtpc_ctx.insert(std::pair<uint64_t,gtpc_ctx_t>(imsi,gtpc_ctx));
-  m_spgw->handle_create_session_request(cs_req, &cs_resp_pdu, pack_attach);
+  m_spgw->handle_create_session_request(cs_req, &cs_resp_pdu);
 
 }
 
 void
-mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu, bool pack_attach)
+mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
 {
   struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu->choice.create_session_response;
   m_mme_gtpc_log->info("Received Create Session Response\n");
@@ -243,7 +243,8 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu, bool pac
   erab_ctx->pdn_addr_alloc= cs_resp->paa;
   erab_ctx->sgw_s1u_fteid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid;
 
-  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, erab_ctx, pack_attach);
+  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, erab_ctx);
+  return;
 }
 
 

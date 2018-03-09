@@ -136,9 +136,12 @@ typedef struct{
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
     eps_security_ctx_t security_ctxt;
     uint8_t procedure_transaction_id;
-    emm_state_t emm_state;
+    emm_state_t state;
     uint32_t mme_ue_s1ap_id;
     uint8_t attach_type;
+    //enum nas_init_msg init_msg;
+    //enum emm_connection_management conn_mngmnt_state;
+    //enum emm_common_proc common_proc_state;
 } ue_emm_ctx_t;
 
 typedef struct{

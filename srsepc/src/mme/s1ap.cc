@@ -350,9 +350,16 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
 void
 s1ap::add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx)
 {
+  std::map<uint64_t, ue_emm_ctx_t*>::iterator emm_ctx_it = m_imsi_to_ue_emm_ctx.find(ue_emm_ctx.imsi);
+  if(emm_ctx_it != m_imsi_to_ue_emm_ctx.end())
+  {
+    m_s1ap_log->warning("EMM Context already exists. Replacing EMM Context\n");
+    delete emm_ctx_it->second;
+    m_imsi_to_ue_emm_ctx.erase(emm_ctx_it);
+  }
+
   ue_emm_ctx_t *ue_ptr = new ue_emm_ctx_t;
   memcpy(ue_ptr,&ue_emm_ctx,sizeof(ue_emm_ctx));
-
   //This map will store UEs EMM context 
   m_imsi_to_ue_emm_ctx.insert(std::pair<uint64_t,ue_emm_ctx_t*>(ue_ptr->imsi,ue_ptr));
 }

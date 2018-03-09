@@ -52,8 +52,8 @@ public:
   bool init(srslte::log_filter *mme_gtpc_log);
 
   uint32_t get_new_ctrl_teid();
-  void send_create_session_request(uint64_t imsi, bool pack_attach);
-  void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu, bool pack_attach);
+  void send_create_session_request(uint64_t imsi);
+  void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
   void send_modify_bearer_request(uint64_t imsi, erab_ctx_t *bearer_ctx);
   void handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu);
   void send_release_access_bearers_request(uint64_t imsi);
