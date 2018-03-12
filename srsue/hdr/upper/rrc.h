@@ -341,7 +341,7 @@ private:
   srslte::mac_interface_timers *mac_timers;
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
-  uint32_t t301, t310, t311, t304;
+  uint32_t t300, t301, t310, t311, t304;
 
   // Radio bearers
   typedef enum{
