@@ -113,6 +113,7 @@ void rrc::init(phy_interface_rrc *phy_,
   args.nof_supported_bands = 1;
   args.feature_group = 0xe6041c00;
 
+  t300 = mac_timers->timer_get_unique_id();
   t301 = mac_timers->timer_get_unique_id();
   t310 = mac_timers->timer_get_unique_id();
   t311 = mac_timers->timer_get_unique_id();
@@ -930,6 +931,13 @@ void rrc::timer_expired(uint32_t timeout_id) {
   } else if (timeout_id == t311) {
     rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
     state = RRC_STATE_LEAVE_CONNECTED;
+  } else if (timeout_id == t300) {
+    rrc_log->info("Timer T300 expired: ConnectionRequest failed. Reset MAC and restablished RLC.\n");
+    rlc->reestablish();
+    mac->reset();
+    set_mac_default();
+    state = RRC_STATE_IDLE;
+    nas->plmn_search_end();
   } else if (timeout_id == t301) {
     if (state == RRC_STATE_IDLE) {
       rrc_log->info("Timer T301 expired: Already in IDLE.\n");
@@ -985,6 +993,8 @@ void rrc::send_con_request() {
 
   ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;
 
+  mac_timers->timer_get(t300)->reset();
+  mac_timers->timer_get(t300)->run();
   send_ul_ccch_msg();
 
 }
@@ -1676,6 +1686,8 @@ void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
     case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
       rrc_log->info("Connection Reject received. Wait time: %d\n",
                     dl_ccch_msg.msg.rrc_con_rej.wait_time);
+      // Stop T300 timer
+      mac_timers->timer_get(t300)->stop();
       state = RRC_STATE_LEAVE_CONNECTED;
       break;
     case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP:
@@ -1978,14 +1990,15 @@ void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
                 liblte_rrc_srs_subfr_config_num[sib2->rr_config_common_sib.srs_ul_cnfg.subfr_cnfg],
                 sib2->rr_config_common_sib.srs_ul_cnfg.ack_nack_simul_tx ? "yes" : "no");
 
+  mac_timers->timer_get(t300)->set(this, liblte_rrc_t300_num[sib2->ue_timers_and_constants.t300]);
   mac_timers->timer_get(t301)->set(this, liblte_rrc_t301_num[sib2->ue_timers_and_constants.t301]);
   mac_timers->timer_get(t310)->set(this, liblte_rrc_t310_num[sib2->ue_timers_and_constants.t310]);
   mac_timers->timer_get(t311)->set(this, liblte_rrc_t311_num[sib2->ue_timers_and_constants.t311]);
   N310 = liblte_rrc_n310_num[sib2->ue_timers_and_constants.n310];
   N311 = liblte_rrc_n311_num[sib2->ue_timers_and_constants.n311];
 
-  rrc_log->info("Set Constants and Timers: N310=%d, N311=%d, t301=%d, t310=%d, t311=%d\n",
-                N310, N311, mac_timers->timer_get(t301)->get_timeout(),
+  rrc_log->info("Set Constants and Timers: N310=%d, N311=%d, t300=%d, t301=%d, t310=%d, t311=%d\n",
+                N310, N311, mac_timers->timer_get(t300)->get_timeout(), mac_timers->timer_get(t301)->get_timeout(),
                 mac_timers->timer_get(t310)->get_timeout(), mac_timers->timer_get(t311)->get_timeout());
 
 }
@@ -2222,6 +2235,10 @@ void rrc::apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg)
 }
 
 void rrc::handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup) {
+
+  // Stop T300 timer
+  mac_timers->timer_get(t300)->stop();
+
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->rr_cnfg);
 }
