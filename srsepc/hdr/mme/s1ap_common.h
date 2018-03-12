@@ -82,6 +82,7 @@ enum erab_state
   ERAB_ACTIVE
 };
 
+
 typedef struct{
   uint8_t       mme_code;
   uint16_t      mme_group;
@@ -139,9 +140,7 @@ typedef struct{
     emm_state_t state;
     uint32_t mme_ue_s1ap_id;
     uint8_t attach_type;
-    //enum nas_init_msg init_msg;
-    //enum emm_connection_management conn_mngmnt_state;
-    //enum emm_common_proc common_proc_state;
+    srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
 } ue_emm_ctx_t;
 
 typedef struct{
@@ -150,24 +149,14 @@ typedef struct{
   uint32_t mme_ue_s1ap_id;
   struct   sctp_sndrcvinfo enb_sri;
   ecm_state_t state;
-  srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
   erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
   bool eit;
 } ue_ecm_ctx_t;
 
 
 typedef struct{
-  uint64_t imsi;
-  uint32_t enb_ue_s1ap_id;
-  uint32_t mme_ue_s1ap_id;
-  uint16_t enb_id;
-  struct   sctp_sndrcvinfo enb_sri;
-  emm_state_t emm_state;
-  eps_security_ctx_t security_ctxt;
-  erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
-  bool eit;
-  uint8_t procedure_transaction_id;
-  uint8_t attach_type;
+  ue_emm_ctx_t emm_ctx;
+  ue_ecm_ctx_t ecm_ctx;
 } ue_ctx_t;
 }//namespace
 #endif

@@ -492,6 +492,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
     //Set tmp UE EMM context
     tmp_ue_emm_ctx.imsi = 0;
+    tmp_ue_emm_ctx.state = EMM_STATE_DEREGISTERED;
 
     //Save UE network capabilities
     memcpy(&tmp_ue_emm_ctx.security_ctxt.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
@@ -570,6 +571,8 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         //Create new MME UE S1AP Identity
         ue_emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
 
+        //Set EMM as de-registered
+        ue_emm_ctx->state = EMM_STATE_DEREGISTERED;
         //Save Attach type
         ue_emm_ctx->attach_type = attach_req.eps_attach_type;
         //Create UE ECM context
@@ -602,7 +605,9 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         //NAS integrity failed. Re-start authentication process.
         m_s1ap_log->console("GUTI Attach request NAS integrity failed.\n");
         m_s1ap_log->console("RE-starting authentication procedure.\n");
-        //FIXME
+        //pack_identity_request();
+        //(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id)
+        return true;
       }
     }
     else
@@ -660,61 +665,80 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     m_s1ap_log->console("Service Request -- Short MAC valid\n");
     m_s1ap_log->info("Service Request -- Short MAC valid\n");
     ue_ecm_ctx_t *ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(emm_ctx->mme_ue_s1ap_id);
-    if(ecm_ctx !=NULL)
+    if(ecm_ctx == NULL)
     {
-      //Service request to Connected UE.
-      //Set eNB UE S1ap identity
-      ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
-      m_s1ap_log->console("Service Request -- eNB UE S1AP Id %d \n", enb_ue_s1ap_id);
-      m_s1ap_log->info("Service Request -- eNB UE S1AP Id %d\n ", enb_ue_s1ap_id);
-
-      //Delete eNB context and connect.
-      m_s1ap_log->console("Service Request -- User has ECM context already\n");
-      m_s1ap_log->info("Service Request -- User has ECM context already\n");
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
-      //int default_bearer_id = 5;
-      //m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id]);
+      m_s1ap_log->console("UE ECM context is not initialized.\n");
+      m_s1ap_log->error("UE ECM context is not initialized.\n");
+      pack_service_reject(reply_buffer, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED, enb_ue_s1ap_id);
+      *reply_flag = true;
+      return true;
     }
     else
     {
-      ue_ecm_ctx_t ue_ecm_ctx;
-      ue_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-
-      //UE not connect. Connect normally.
-      m_s1ap_log->console("Service Request -- User without ECM context\n");
-      m_s1ap_log->info("Service Request -- User without ECM context\n");
-      //Create ECM context
-      ue_ecm_ctx.imsi = emm_ctx->imsi;
-      ue_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-      emm_ctx->mme_ue_s1ap_id = ue_ecm_ctx.mme_ue_s1ap_id;
-      //Set eNB information
-      ue_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-      memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-
-      //Save whether secure ESM information transfer is necessary
-      ue_ecm_ctx.eit = false;
-
-      //Initialize E-RABs
-      for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
+      if(ecm_ctx->state == ECM_STATE_CONNECTED)
       {
-        ue_ecm_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
-        ue_ecm_ctx.erabs_ctx[i].erab_id = i;
-      }
-      memcpy(&ue_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-      m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
+        m_s1ap_log->error("Service Request -- User is ECM CONNECTED\n");
 
-      //Re-generate K_eNB
-      liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
-      m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
-      //FIXME Send Modify context request OR send ctx release command and wait for the reply.
-      m_mme_gtpc->send_create_session_request(ue_ecm_ctx.imsi);
-      m_s1ap_log->console("UE ESM Ctr TEID %d\n", ue_ecm_ctx.sgw_ctrl_fteid.teid);
+        //Service request to Connected UE.
+        //Set eNB UE S1ap identity
+        ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+        m_s1ap_log->console("Service Request -- eNB UE S1AP Id %d \n", enb_ue_s1ap_id);
+        m_s1ap_log->info("Service Request -- eNB UE S1AP Id %d\n ", enb_ue_s1ap_id);
+
+        //Delete eNB context and connect.
+        m_s1ap_log->console("Service Request -- User has ECM context already\n");
+        m_s1ap_log->info("Service Request -- User has ECM context already\n");
+        m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
+        //int default_bearer_id = 5;
+        //m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[default_bearer_id]);
+        //FIXME Send Modify context request OR send ctx release command and wait for the reply.
+
+      }
+      else if(ecm_ctx->state == ECM_STATE_DISCONNECTED)
+      {
+        ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+
+        //UE not connect. Connect normally.
+        m_s1ap_log->console("Service Request -- User is ECM DISCONNECTED\n");
+        m_s1ap_log->info("Service Request -- User is ECM DISCONNECTED\n");
+        //Create ECM context
+        ecm_ctx->imsi = emm_ctx->imsi;
+        ecm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+        emm_ctx->mme_ue_s1ap_id = ecm_ctx->mme_ue_s1ap_id;
+        //Set eNB information
+        ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+        memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+
+        //Save whether secure ESM information transfer is necessary
+        ecm_ctx->eit = false;
+
+        //Initialize E-RABs
+        for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
+        {
+          ue_ecm_ctx.erabs_ctx[i].state = ERAB_DEACTIVATED;
+          ue_ecm_ctx.erabs_ctx[i].erab_id = i;
+        }
+        ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(emm_ctx->mme_ue_s1ap_id);
+
+        //Re-generate K_eNB
+        liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
+        m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
+        m_s1ap_log->console("UE Ctr TEID %d\n", emm_ctx->sgw_ctrl_fteid.teid);
+        m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx,&ecm_ctx->erabs_ctx[5]);
+
+      }
+      else
+      {
+        m_s1ap_log->console("ECM context is un-initialized.\n");
+        m_s1ap_log->error("ECM context is un-initialized.\n");
+      }
     }
   }
   else
   {
     m_s1ap_log->console("Service Request -- Short MAC invalid. Re-starting authentication procedure \n");
     m_s1ap_log->console("Service Request -- Short MAC invalid. Re-starting authentication procedure \n");
+    m_s1ap_log->console("Authentication procedure is not restarted yet!\n");
   }
   return true;
 }
