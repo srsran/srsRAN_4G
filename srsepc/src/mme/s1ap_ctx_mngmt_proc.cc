@@ -216,8 +216,8 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
   {
     m_s1ap_log->error("Could not find UE's EMM context in active UE's map\n");
     return false;
-  }
-
+  } 
+  m_s1ap_log->console("Received Initial Context Setup Response\n");
   //Setup E-RABs
   for(uint32_t i=0; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
   {
@@ -250,8 +250,10 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
     m_s1ap_log->console("E-RAB Context -- eNB TEID 0x%x; eNB GTP-U Address %s\n", erab_ctx->enb_fteid.teid, enb_addr_str);
 
   }
-  if(emm_ctx->state == EMM_STATE_DEREGISTERED)
+  if(emm_ctx->state == EMM_STATE_REGISTERED)
   {
+    m_s1ap_log->console("Initial Context Setup Response triggered from Service Request.\n");
+    m_s1ap_log->console("Sending Modify Bearer Request.\n");
     m_mme_gtpc->send_modify_bearer_request(ue_ecm_ctx->imsi, &ue_ecm_ctx->erabs_ctx[5]);
   }
   return true;
@@ -279,6 +281,8 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   if (ecm_ctx->state == ECM_STATE_CONNECTED)
   {
     //There are active E-RABs, send release access mearers request
+    m_s1ap_log->console("There are active E-RABs, send release access mearers request");
+    m_s1ap_log->info("There are active E-RABs, send release access mearers request");
     m_mme_gtpc->send_release_access_bearers_request(ecm_ctx->imsi);
   }
   else
@@ -293,8 +297,10 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
     ecm_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
   }
   //Delete UE context
-  m_s1ap->delete_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id); 
-  m_s1ap_log->info("Deleted UE ECM Context.\n");
+  ecm_ctx->state = ECM_STATE_DISCONNECTED;
+  ecm_ctx->mme_ue_s1ap_id = 0;
+  m_s1ap_log->info("UE ECM Disconnected.\n");
+  m_s1ap_log->console("Deleted UE ECM Context.\n");
   return true;
 }
 
