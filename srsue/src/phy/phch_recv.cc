@@ -1099,7 +1099,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
   ret_code ret = IDLE;
 
   offset = offset-sf_len/2;
-  if (offset < 0) {
+  while (offset < 0) {
     offset += sf_len;
     sf_idx ++;
   }
