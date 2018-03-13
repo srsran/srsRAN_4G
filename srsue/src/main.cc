@@ -258,10 +258,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
      "Period for sampling time offset correction.")
 
-    ("expert.sfo_correct_disable",
-     bpo::value<bool>(&args->expert.phy.sfo_correct_disable)->default_value(false),
-     "Disables phase correction before channel estimation.")
-
     ("expert.sss_algorithm",
      bpo::value<string>(&args->expert.phy.sss_algorithm)->default_value("full"),
      "Selects the SSS estimation algorithm.")

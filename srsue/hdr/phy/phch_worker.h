@@ -54,8 +54,7 @@ public:
   void  set_tti(uint32_t tti, uint32_t tx_tti); 
   void  set_tx_time(srslte_timestamp_t tx_time, uint32_t next_offset);
   void  set_cfo(float cfo);
-  void  set_sample_offset(float sample_offset); 
-  
+
   void  set_ul_params(bool pregen_disabled = false);
   void  set_crnti(uint16_t rnti);
   void  enable_pregen_signals(bool enabled);
