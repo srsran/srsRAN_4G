@@ -190,14 +190,6 @@ void phch_worker::set_cfo(float cfo_)
   cfo = cfo_;
 }
 
-void phch_worker::set_sample_offset(float sample_offset)
-{
-  if (phy->args->sfo_correct_disable) {
-    sample_offset = 0; 
-  }
-  srslte_ue_dl_set_sample_offset(&ue_dl, sample_offset);
-}
-
 void phch_worker::set_crnti(uint16_t rnti)
 {
   srslte_ue_dl_set_rnti(&ue_dl, rnti);

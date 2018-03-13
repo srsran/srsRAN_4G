@@ -636,8 +636,6 @@ void phch_recv::run_thread()
               worker->set_cfo(ul_dl_factor * metrics.cfo / 15000);
               worker_com->set_sync_metrics(metrics);
 
-              worker->set_sample_offset(srslte_ue_sync_get_sfo(&ue_sync)/1000);
-
               /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
               srslte_timestamp_t rx_time, tx_time, tx_time_prach;
               srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);

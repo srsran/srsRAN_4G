@@ -97,8 +97,7 @@ void phy::set_default_args(phy_args_t *args)
   args->cfo_integer_enabled = false; 
   args->cfo_correct_tol_hz  = 50; 
   args->time_correct_period = 5; 
-  args->sfo_correct_disable = false; 
-  args->sss_algorithm       = "full"; 
+  args->sss_algorithm       = "full";
   args->estimator_fil_w     = 0.1; 
 }
 

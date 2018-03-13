@@ -487,8 +487,7 @@ typedef struct {
   uint32_t cfo_ref_mask;
   bool average_subframe_enabled;
   int time_correct_period; 
-  bool sfo_correct_disable; 
-  std::string sss_algorithm; 
+  std::string sss_algorithm;
   float estimator_fil_w;   
   bool rssi_sensor_enabled;
   bool sic_pss_enabled;
