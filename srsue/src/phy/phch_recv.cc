@@ -1090,7 +1090,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe_sync(srslte_ue_syn
 }
 
 phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *input_buffer,
-                                                                        uint32_t offset,
+                                                                        int offset,
                                                                         uint32_t sf_idx,
                                                                         uint32_t max_sf)
 {
@@ -1099,7 +1099,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
   ret_code ret = IDLE;
 
   offset = offset-sf_len/2;
-  while (offset < 0) {
+  while (offset < 0 && sf_idx < max_sf) {
     offset += sf_len;
     sf_idx ++;
   }
