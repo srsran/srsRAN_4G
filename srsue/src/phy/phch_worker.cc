@@ -574,7 +574,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
-    char hexstr[16];
+    char hexstr[SRSLTE_DCI_MAX_BITS/8];
     hexstr[0]='\0';
     if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
       srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
@@ -812,7 +812,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       grant->has_cqi_request = dci_unpacked.cqi_request;
       ret = true; 
       
-      char hexstr[16];
+      char hexstr[SRSLTE_DCI_MAX_BITS/8];
       hexstr[0]='\0';
       if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
         srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
