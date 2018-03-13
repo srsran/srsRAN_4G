@@ -152,7 +152,9 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, uint32_t max_prb)
     }
     
     q->noise_alg = SRSLTE_NOISE_ALG_REFS; 
-    
+
+    q->rsrp_neighbour = false;
+
     q->smooth_filter_len = 3; 
     srslte_chest_dl_set_smooth_filter3_coeff(q, 0.1);
     
@@ -545,7 +547,7 @@ void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, ui
   }
 }
 
-int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id) 
+int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id)
 {
   uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
 
@@ -557,14 +559,18 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
               q->pilot_estimates, npilots);
 
   /* Compute RSRP for the channel estimates in this port */
-  double energy = cabs(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
-  q->rsrp[rxant_id][port_id] = energy*energy;
+  if (q->rsrp_neighbour) {
+    double energy = cabs(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
+    q->rsrp_corr[rxant_id][port_id] = energy*energy;
+  }
+  q->rsrp[rxant_id][port_id] = srslte_vec_avg_power_cf(q->pilot_recv_signal, npilots);
   q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);
 
   chest_interpolate_noise_est(q, input, ce, sf_idx, port_id, rxant_id, SRSLTE_SF_NORM);
 
   return 0;
 }
+
 int srslte_chest_dl_estimate_port_mbsfn(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id, uint16_t mbsfn_area_id)
 {
 
@@ -621,6 +627,10 @@ int srslte_chest_dl_estimate_multi_mbsfn(srslte_chest_dl_t *q, cf_t *input[SRSLT
   }
   q->last_nof_antennas = nof_rx_antennas;
   return SRSLTE_SUCCESS;
+}
+
+void srslte_chest_dl_set_rsrp_neighbour(srslte_chest_dl_t *q, bool rsrp_for_neighbour) {
+  q->rsrp_neighbour = rsrp_for_neighbour;
 }
 
 void srslte_chest_dl_average_subframe(srslte_chest_dl_t *q, bool enable)
@@ -710,10 +720,34 @@ float srslte_chest_dl_get_rsrp_port(srslte_chest_dl_t *q, uint32_t port) {
   return sum;
 }
 
+float srslte_chest_dl_get_rsrp_neighbour_port(srslte_chest_dl_t *q, uint32_t port) {
+  float sum = 0.0f;
+  for (int j = 0; j < q->cell.nof_ports; ++j) {
+    sum +=q->rsrp_corr[port][j];
+  }
+
+  if (q->cell.nof_ports) {
+    sum /= q->cell.nof_ports;
+  }
+
+  return sum;
+}
+
 float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {
   float max = -0.0f;
   for (int i = 0; i < q->last_nof_antennas; ++i) {
     float v = srslte_chest_dl_get_rsrp_port(q, i);
+    if (v > max) {
+      max = v;
+    }
+  }
+  return max;
+}
+
+float srslte_chest_dl_get_rsrp_neighbour(srslte_chest_dl_t *q) {
+  float max = -0.0f;
+  for (int i = 0; i < q->last_nof_antennas; ++i) {
+    float v = srslte_chest_dl_get_rsrp_neighbour_port(q, i);
     if (v > max) {
       max = v;
     }
