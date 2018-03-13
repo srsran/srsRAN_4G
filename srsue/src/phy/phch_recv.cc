@@ -1022,6 +1022,7 @@ void phch_recv::measure::init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h
     Error("SYNC:  Initiating ue_dl_measure\n");
     return;
   }
+  srslte_chest_dl_set_rsrp_neighbour(&ue_dl.chest, true);
   reset();
 }
 
@@ -1052,6 +1053,10 @@ float phch_recv::measure::rssi() {
 
 float phch_recv::measure::rsrp() {
   return 10*log10(mean_rsrp) + 30 - rx_gain_offset;
+}
+
+float phch_recv::measure::rsrp_n() {
+  return 10*log10(mean_rsrp_n) + 30 - rx_gain_offset;
 }
 
 float phch_recv::measure::rsrq() {
@@ -1099,12 +1104,13 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
     sf_idx ++;
   }
 
+
+  // Fine-tune offset using RS
+#ifdef FINE_TUNE_OFFSET_WITH_RS
   float max_rsrp = -200;
   int best_test_offset = 0;
   int test_offset = 0;
   bool found_best = false;
-
-  // Fine-tune offset using RS
   for (uint32_t n=0;n<5;n++) {
 
     test_offset = offset-2+n;
@@ -1128,11 +1134,14 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
     }
   }
 
+  Debug("INTRA: fine-tuning offset: %d, found_best=%d, rem_sf=%d\n", offset, found_best, nof_sf);
+
   offset = found_best?best_test_offset:offset;
+#endif
+
   if (offset >= 0 && offset < sf_len*max_sf) {
     uint32_t nof_sf = (sf_len*max_sf - offset)/sf_len;
 
-    Debug("INTRA: fine-tuning offset: %d, found_best=%d, rem_sf=%d\n", offset, found_best, nof_sf);
 
     final_offset = offset;
 
@@ -1161,25 +1170,28 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
   }
 
   float rsrp   = srslte_chest_dl_get_rsrp(&ue_dl.chest);
+  float rsrp_n = srslte_chest_dl_get_rsrp_neighbour(&ue_dl.chest);
   float rsrq   = srslte_chest_dl_get_rsrq(&ue_dl.chest);
   float snr    = srslte_chest_dl_get_snr(&ue_dl.chest);
   float rssi   = srslte_vec_avg_power_cf(buffer[0], SRSLTE_SF_LEN_PRB(current_prb));
 
   if (cnt == 0) {
-    mean_rsrp  = rsrp;
-    mean_rsrq  = rsrq;
-    mean_snr   = snr;
-    mean_rssi  = rssi;
+    mean_rsrp   = rsrp;
+    mean_rsrp_n = rsrp_n;
+    mean_rsrq   = rsrq;
+    mean_snr    = snr;
+    mean_rssi   = rssi;
   } else {
-    mean_rsrp = SRSLTE_VEC_CMA(rsrp, mean_rsrp, cnt);
-    mean_rsrq = SRSLTE_VEC_CMA(rsrq, mean_rsrq, cnt);
-    mean_snr  = SRSLTE_VEC_CMA(snr,  mean_snr,  cnt);
-    mean_rssi = SRSLTE_VEC_CMA(rssi, mean_rssi, cnt);
+    mean_rsrp   = SRSLTE_VEC_CMA(rsrp, mean_rsrp, cnt);
+    mean_rsrp_n = SRSLTE_VEC_CMA(rsrp_n, mean_rsrp_n, cnt);
+    mean_rsrq   = SRSLTE_VEC_CMA(rsrq, mean_rsrq, cnt);
+    mean_snr    = SRSLTE_VEC_CMA(snr,  mean_snr,  cnt);
+    mean_rssi   = SRSLTE_VEC_CMA(rssi, mean_rssi, cnt);
   }
   cnt++;
 
-  log_h->debug("SYNC:  Measuring RSRP %d/%d, sf_idx=%d, RSRP=%.1f dBm, SNR=%.1f dB\n",
-              cnt, nof_subframes, sf_idx, rsrp, snr);
+  log_h->debug("SYNC:  Measuring RSRP %d/%d, sf_idx=%d, RSRP=%.1f dBm, corr-RSRP=%.1f dBm, SNR=%.1f dB\n",
+              cnt, nof_subframes, sf_idx, rsrp, rsrp_n, snr);
 
   if (cnt >= nof_subframes) {
     return MEASURE_OK;
@@ -1217,6 +1229,7 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled, uint3
     fprintf(stderr, "Error initiating sync_find\n");
     return;
   }
+  srslte_sync_set_sss_algorithm(&sync_find, SSS_FULL);
   srslte_sync_cp_en(&sync_find, false);
   srslte_sync_set_cfo_pss_enable(&sync_find, true);
   srslte_sync_set_threshold(&sync_find, 1.7);
@@ -1230,8 +1243,7 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled, uint3
   srslte_sync_set_sss_eq_enable(&sync_find,    true);
 
   sync_find.pss.chest_on_filter = true;
-
-  sync_find.sss_channel_equalize = true;
+  sync_find.sss_channel_equalize = false;
 
   reset();
 }
@@ -1336,17 +1348,27 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
                   case measure::MEASURE_OK:
                     // Consider a cell to be detectable 8.1.2.2.1.1 from 36.133. Currently only using first condition
                     if (measure_p.rsrp() > ABSOLUTE_RSRP_THRESHOLD_DBM) {
-                      cells[nof_cells].pci = found_cell.id;
-                      cells[nof_cells].rsrp = measure_p.rsrp();
-                      cells[nof_cells].rsrq = measure_p.rsrq();
-                      cells[nof_cells].offset = measure_p.frame_st_idx();
 
-                      Info(
-                          "INTRA: Found neighbour cell %d: PCI=%03d, RSRP=%5.1f dBm, peak_idx=%5d, peak_value=%3.2f, sf=%d, max_sf=%d, n_id_2=%d, CFO=%6.1f Hz\n",
-                          nof_cells, cell_id, measure_p.rsrp(), measure_p.frame_st_idx(), sync_find.peak_value,
-                          sf_idx, max_sf5, n_id_2, 15000 * srslte_sync_get_cfo(&sync_find));
+                      // Check the cell id has been correctly identified by using the correlation of the RS sequences
+                      // By experimentation, typically the cross-correlation is ~3/4 dB less
+                      if (measure_p.rsrp_n() > measure_p.rsrp() - 6) {
+                        cells[nof_cells].pci = found_cell.id;
+                        cells[nof_cells].rsrp = measure_p.rsrp();
+                        cells[nof_cells].rsrq = measure_p.rsrq();
+                        cells[nof_cells].offset = measure_p.frame_st_idx();
 
-                      nof_cells++;
+                        Info(
+                            "INTRA: Found neighbour cell %d: PCI=%03d, RSRP=%5.1f dBm, corr-RSRP=%5.1f dBm, peak_idx=%5d, peak_value=%3.2f, sf=%d, max_sf=%d, n_id_2=%d, CFO=%6.1f Hz\n",
+                            nof_cells, cell_id, measure_p.rsrp(), measure_p.rsrp_n(), measure_p.frame_st_idx(), sync_find.peak_value,
+                            sf_idx, max_sf5, n_id_2, 15000 * srslte_sync_get_cfo(&sync_find));
+
+                        nof_cells++;
+                      } else {
+                        Info(
+                            "INTRA: Found phantom cell %d: PCI=%03d, RSRP=%5.1f dBm, corr-RSRP=%5.1f dBm, peak_idx=%5d, peak_value=%3.2f, sf=%d, max_sf=%d, n_id_2=%d, CFO=%6.1f Hz\n",
+                            nof_cells, cell_id, measure_p.rsrp(), measure_p.rsrp_n(), measure_p.frame_st_idx(), sync_find.peak_value,
+                            sf_idx, max_sf5, n_id_2, 15000 * srslte_sync_get_cfo(&sync_find));
+                      }
 
                       /*
                       if (sic_pss_enabled) {
