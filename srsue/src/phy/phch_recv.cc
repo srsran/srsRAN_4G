@@ -428,6 +428,25 @@ bool phch_recv::set_frequency()
   }
 }
 
+float phch_recv::get_cfo()
+{
+  float cfo = srslte_ue_sync_get_cfo(&ue_sync);
+
+  float ret = cfo*ul_dl_factor;
+
+  if (worker_com->args->cfo_is_doppler) {
+    ret *= -1;
+  }
+
+  if (radio_h->get_freq_offset() != 0.0f) {
+    /* Compensates the radio frequency offset applied equally to DL and UL */
+    const float offset_hz = (float) radio_h->get_freq_offset() * (1.0f - ul_dl_factor);
+    ret = cfo - offset_hz;
+  }
+
+  return ret/15000;
+}
+
 void phch_recv::set_sampling_rate()
 {
   current_srate = (float) srslte_sampling_freq_hz(cell.nof_prb);
@@ -633,7 +652,7 @@ void phch_recv::run_thread()
 
               metrics.sfo = srslte_ue_sync_get_sfo(&ue_sync);
               metrics.cfo = srslte_ue_sync_get_cfo(&ue_sync);
-              worker->set_cfo(ul_dl_factor * metrics.cfo / 15000);
+              worker->set_cfo(get_cfo());
               worker_com->set_sync_metrics(metrics);
 
               /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
@@ -659,7 +678,7 @@ void phch_recv::run_thread()
               if (prach_buffer->is_ready_to_send(tti)) {
                 srslte_timestamp_copy(&tx_time_prach, &rx_time);
                 srslte_timestamp_add(&tx_time_prach, 0, prach::tx_advance_sf * 1e-3);
-                prach_buffer->send(radio_h, ul_dl_factor * metrics.cfo / 15000, worker_com->pathloss, tx_time_prach);
+                prach_buffer->send(radio_h, get_cfo(), worker_com->pathloss, tx_time_prach);
                 radio_h->tx_end();
                 worker_com->p0_preamble = prach_buffer->get_p0_preamble();
                 worker_com->cur_radio_power = SRSLTE_MIN(SRSLTE_PC_MAX, worker_com->pathloss+worker_com->p0_preamble);

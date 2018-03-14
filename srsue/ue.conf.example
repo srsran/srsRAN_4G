@@ -172,6 +172,8 @@ enable = false
 # cfo_correct_tol_hz:   Tolerance (in Hz) for digial CFO compensation. Lower tolerance means that
 #                       a new table will be generated more often.
 #
+# cfo_is_doppler:        Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed
+#                        to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.
 # cfo_pss_ema:           CFO Exponential Moving Average coefficient for PSS estimation during TRACK.
 # cfo_ref_ema:           CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition
 # cfo_ref_mask:          Bitmask for subframes on which to run RS estimation (set to 0 to disable, default sf=[1, 5])
@@ -211,6 +213,7 @@ enable = false
 #pdsch_csi_enabled  = true     # Caution! Only TM1 supported!
 
 # CFO related values
+#cfo_is_doppler      = false
 #cfo_integer_enabled = false
 #cfo_correct_tol_hz  = 1.0
 #cfo_pss_ema         = 0.05

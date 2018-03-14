@@ -104,6 +104,8 @@ private:
   void   cell_search_inc();
   void   cell_reselect();
 
+  float  get_cfo();
+
   uint32_t new_earfcn;
   srslte_cell_t new_cell;
 
