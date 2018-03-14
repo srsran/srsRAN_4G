@@ -384,7 +384,7 @@ s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
 }
 */
 bool
-s1ap::add_ue_ctx_to_imsi_map(const ue_ctx_t *ue_ctx)
+s1ap::add_ue_ctx_to_imsi_map(ue_ctx_t *ue_ctx)
 {
   std::map<uint64_t, ue_ctx_t*>::iterator ctx_it = m_imsi_to_ue_ctx.find(ue_ctx->emm_ctx.imsi);
   if(ctx_it != m_imsi_to_ue_ctx.end())
@@ -401,11 +401,13 @@ s1ap::add_ue_ctx_to_imsi_map(const ue_ctx_t *ue_ctx)
       return false;
     }
   }
+  m_imsi_to_ue_ctx.insert(std::pair<uint64_t,ue_ctx_t*>(ue_ctx->emm_ctx.imsi, ue_ctx));
+  m_s1ap_log->debug("Saved UE context corresponding to IMSI %015lu\n",ue_ctx->emm_ctx.imsi);
   return true;
 }
 
 bool
-s1ap::add_ue_ctx_to_mme_ue_s1ap_id_map(const ue_ctx_t *ue_ctx)
+s1ap::add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx)
 {
   if(ue_ctx->ecm_ctx.mme_ue_s1ap_id == 0)
   {
@@ -427,6 +429,8 @@ s1ap::add_ue_ctx_to_mme_ue_s1ap_id_map(const ue_ctx_t *ue_ctx)
       return false;
     }
   }
+  m_mme_ue_s1ap_id_to_ue_ctx.insert(std::pair<uint32_t,ue_ctx_t*>(ue_ctx->ecm_ctx.mme_ue_s1ap_id, ue_ctx));
+  m_s1ap_log->debug("Saved UE context corresponding to MME UE S1AP Id %d\n",ue_ctx->ecm_ctx.mme_ue_s1ap_id);
   return true;
 }
 
