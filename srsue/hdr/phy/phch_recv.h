@@ -171,7 +171,6 @@ private:
     ret_code  run_multiple_subframes(cf_t *buffer, int offset, uint32_t sf_idx, uint32_t nof_sf);
     float     rssi();
     float     rsrp();
-    float     rsrp_n();
     float     rsrq();
     float     snr();
     uint32_t  frame_st_idx();
@@ -184,7 +183,7 @@ private:
     uint32_t nof_subframes;
     uint32_t current_prb;
     float rx_gain_offset;
-    float mean_rsrp, mean_rsrp_n, mean_rsrq, mean_snr, mean_rssi;
+    float mean_rsrp, mean_rsrq, mean_snr, mean_rssi;
     uint32_t final_offset;
     const static int RSRP_MEASURE_NOF_FRAMES = 5;
   };
@@ -205,7 +204,6 @@ private:
     int find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
   private:
 
-    cf_t               *input_cfo_corrected;
     cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
     srslte::log        *log_h;
     srslte_sync_t       sync_find;
@@ -233,7 +231,7 @@ private:
     void write(uint32_t tti, cf_t *data, uint32_t nsamples);
   private:
     void run_thread();
-    const static int INTRA_FREQ_MEAS_LEN_MS    = 50;
+    const static int INTRA_FREQ_MEAS_LEN_MS    = 20;
     const static int INTRA_FREQ_MEAS_PERIOD_MS = 200;
     const static int INTRA_FREQ_MEAS_PRIO      = DEFAULT_PRIORITY + 5;
 

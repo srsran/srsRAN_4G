@@ -734,7 +734,7 @@ float srslte_chest_dl_get_rsrp_neighbour_port(srslte_chest_dl_t *q, uint32_t por
 }
 
 float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {
-  float max = -0.0f;
+  float max = -1e9;
   for (int i = 0; i < q->last_nof_antennas; ++i) {
     float v = srslte_chest_dl_get_rsrp_port(q, i);
     if (v > max) {
@@ -745,7 +745,7 @@ float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {
 }
 
 float srslte_chest_dl_get_rsrp_neighbour(srslte_chest_dl_t *q) {
-  float max = -0.0f;
+  float max = -1e9;
   for (int i = 0; i < q->last_nof_antennas; ++i) {
     float v = srslte_chest_dl_get_rsrp_neighbour_port(q, i);
     if (v > max) {
