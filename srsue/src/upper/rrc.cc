@@ -98,6 +98,7 @@ void rrc::init(phy_interface_rrc *phy_,
   mac_timers = mac_timers_;
   state = RRC_STATE_IDLE;
   si_acquire_state = SI_ACQUIRE_IDLE;
+  last_win_start = 0;
 
   ho_syncing = false;
 
@@ -178,10 +179,6 @@ void rrc::run_thread() {
 
   while (thread_running) {
 
-    if (state >= RRC_STATE_IDLE && state < RRC_STATE_CONNECTING) {
-      run_si_acquisition_procedure();
-    }
-
     switch(state) {
       /* Procedures in IDLE state 36.304 Sec 4 */
       case RRC_STATE_IDLE:
@@ -232,12 +229,15 @@ void rrc::run_thread() {
             si_acquire_state = SI_ACQUIRE_SIB2;
           } else {
             apply_sib2_configs(serving_cell->sib2ptr());
-            si_acquire_state = SI_ACQUIRE_IDLE;
             state = RRC_STATE_CELL_SELECTED;
           }
+          run_si_acquisition_procedure();
         }
         break;
       case RRC_STATE_CELL_SELECTED:
+
+        si_acquire_state = SI_ACQUIRE_IDLE;
+        last_win_start = 0;
 
         /* The cell is selected when the SIBs are received and applied.
          * If we were in RRC_CONNECTED and arrive here it means a RLF occurred and we are in Reestablishment procedure.
@@ -267,6 +267,8 @@ void rrc::run_thread() {
         if (connecting_timeout >= RRC_CONNECTING_TIMEOUT) {
           // Select another cell
           rrc_log->info("RRC Connecting: timeout expired. Selecting next cell\n");
+          si_acquire_state = SI_ACQUIRE_IDLE;
+          last_win_start = 0;
           state = RRC_STATE_CELL_SELECTING;
         }
         break;
@@ -358,6 +360,7 @@ void rrc::run_si_acquisition_procedure()
           if (state == RRC_STATE_CELL_SELECTING) {
             select_next_cell_in_plmn();
             si_acquire_state = SI_ACQUIRE_IDLE;
+            last_win_start = 0;
           } else if (state == RRC_STATE_PLMN_SELECTION) {
             phy->cell_search_next();
           }
@@ -384,13 +387,14 @@ void rrc::run_si_acquisition_procedure()
           last_win_start = si_win_start;
 
           mac->bcch_start_rx(si_win_start, si_win_len);
-          rrc_log->debug("Instructed MAC to search for system info, win_start=%d, win_len=%d\n",
-                         si_win_start, si_win_len);
+          rrc_log->info("Instructed MAC to search for system info=%d, win_start=%d, win_len=%d\n",
+                        sysinfo_index, si_win_start, si_win_len);
         }
 
       } else {
         // We've received all SIBs, move on to connection request
         si_acquire_state = SI_ACQUIRE_IDLE;
+        last_win_start = 0;
         state = RRC_STATE_CELL_SELECTED;
       }
       break;
@@ -477,6 +481,8 @@ void rrc::plmn_select_rrc(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
       }
     }
 
+    si_acquire_state = SI_ACQUIRE_IDLE;
+    last_win_start = 0;
     state = RRC_STATE_CELL_SELECTING;
   } else {
     rrc_log->warning("Requested PLMN select in incorrect state %s\n", rrc_state_text[state]);
@@ -549,6 +555,8 @@ bool rrc::select_next_cell_in_plmn() {
         rrc_log->console("Selected cell PCI=%d, EARFCN=%d\n",
                          serving_cell->phy_cell.id, serving_cell->get_earfcn());
         phy->cell_select(serving_cell->get_earfcn(), serving_cell->phy_cell);
+        si_acquire_state = SI_ACQUIRE_IDLE;
+        last_win_start = 0;
         state = RRC_STATE_CELL_SELECTING;
         return true;
       }
@@ -644,9 +652,7 @@ void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
   pthread_mutex_unlock(&mutex);
 
-  if (!serving_cell->has_sib1()) {
-    si_acquire_state = SI_ACQUIRE_SIB1;
-  } else if (state == RRC_STATE_PLMN_SELECTION) {
+  if (state == RRC_STATE_PLMN_SELECTION && serving_cell->has_sib1()) {
     bool ret = false;
     for (uint32_t j = 0; j < serving_cell->sib1ptr()->N_plmn_ids; j++) {
       ret |= nas->plmn_found(serving_cell->sib1ptr()->plmn_id[j].id, serving_cell->sib1ptr()->tracking_area_code);
@@ -655,6 +661,8 @@ void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
     if (!ret) {
       phy->cell_search_next();
     }
+  } else if (!ho_syncing) {
+    state = RRC_STATE_CELL_SELECTING;
   }
 
   rrc_log->info("%s %s cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n",
@@ -1062,6 +1070,8 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause,
   mac->reset();
   set_mac_default();
   phy->sync_reset();
+  si_acquire_state = SI_ACQUIRE_IDLE;
+  last_win_start = 0;
   state = RRC_STATE_CELL_SELECTING;
 }
 
@@ -1347,6 +1357,8 @@ void rrc::leave_connected()
 {
   rrc_log->console("RRC IDLE\n");
   rrc_log->info("Leaving RRC_CONNECTED state\n");
+  si_acquire_state = SI_ACQUIRE_IDLE;
+  last_win_start = 0;
   drb_up = false;
   measurements.reset();
   pdcp->reset();
@@ -1424,6 +1436,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 
   if(serving_cell->has_sib2()) {
     sysinfo_index++;
+    rrc_log->info("Increasing sysinfo_index=%d\n", sysinfo_index);
   }
 }
 

@@ -1139,7 +1139,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
   offset = found_best?best_test_offset:offset;
 #endif
 
-  if (offset >= 0 && offset < sf_len*max_sf) {
+  if (offset >= 0 && offset < (int) sf_len*max_sf) {
     uint32_t nof_sf = (sf_len*max_sf - offset)/sf_len;
 
 
