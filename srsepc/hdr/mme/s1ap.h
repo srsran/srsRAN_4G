@@ -66,7 +66,6 @@ public:
   int get_s1_mme();
 
   void delete_enb_ctx(int32_t assoc_id);
-  void release_ues_ecm_ctx_in_enb(uint16_t enb_id);
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri);
   bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
@@ -82,8 +81,15 @@ public:
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
 
   void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
+  bool add_ue_ctx_to_imsi_map(const ue_ctx_t *ue_ctx);
+  bool add_ue_ctx_to_mme_ue_s1ap_id_map(const ue_ctx_t *ue_ctx);
+
   ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
   ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
+
+  bool release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
+  void release_ues_ecm_ctx_in_enb(uint16_t enb_id);
+  bool delete_ue_ctx(uint64_t imsi);
 
   //ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
   //void add_new_ue_ctx(const ue_ctx_t &ue_ctx);

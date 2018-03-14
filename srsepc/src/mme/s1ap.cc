@@ -346,7 +346,7 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
 
 
 //UE Context Management
-void
+/*void
 s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
 {
   std::map<uint64_t, ue_ctx_t*>::iterator ctx_it = m_imsi_to_ue_ctx.find(ue_ctx.emm_ctx.imsi);
@@ -382,7 +382,7 @@ s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
   it_ue_id->second.insert(new_ctx->ecm_ctx.mme_ue_s1ap_id);
   return;
 }
-
+*/
 bool
 s1ap::add_ue_ctx_to_imsi_map(const ue_ctx_t *ue_ctx)
 {
@@ -394,8 +394,8 @@ s1ap::add_ue_ctx_to_imsi_map(const ue_ctx_t *ue_ctx)
   }
   if(ue_ctx->ecm_ctx.mme_ue_s1ap_id != 0)
   {
-    std::map<uint32_t,ue_ctx_t*>::iterator ctx_it2 = m_mme_ue_s1ap_id_to_ue_ctx.find(ue_ctx.ecm_ctx.mme_ue_s1ap_id);
-    if(ctx_it2 != m_mme_ue_s1ap_id_to_imsi.end() && ctx_it2->second != ue_ctx)
+    std::map<uint32_t,ue_ctx_t*>::iterator ctx_it2 = m_mme_ue_s1ap_id_to_ue_ctx.find(ue_ctx->ecm_ctx.mme_ue_s1ap_id);
+    if(ctx_it2 != m_mme_ue_s1ap_id_to_ue_ctx.end() && ctx_it2->second != ue_ctx)
     {
       m_s1ap_log->error("Context identified with IMSI does not match context identified by MME UE S1AP Id.\n");
       return false;
@@ -409,7 +409,7 @@ s1ap::add_ue_ctx_to_mme_ue_s1ap_id_map(const ue_ctx_t *ue_ctx)
 {
   if(ue_ctx->ecm_ctx.mme_ue_s1ap_id == 0)
   {
-    m_s1ap_log->error("Could not add UE context to MME UE S1AP map. MME UE S1AP ID 0 is not valid.")
+    m_s1ap_log->error("Could not add UE context to MME UE S1AP map. MME UE S1AP ID 0 is not valid.");
     return false;
   }
   std::map<uint32_t, ue_ctx_t*>::iterator ctx_it = m_mme_ue_s1ap_id_to_ue_ctx.find(ue_ctx->ecm_ctx.mme_ue_s1ap_id);
@@ -420,18 +420,17 @@ s1ap::add_ue_ctx_to_mme_ue_s1ap_id_map(const ue_ctx_t *ue_ctx)
   }
   if(ue_ctx->ecm_ctx.imsi != 0)
   {
-    std::map<uint32_t,ue_ctx_t*>::iterator ctx_it2 = m_mme_ue_s1ap_id_to_ue_ctx.find(ue_ctx.ecm_ctx.mme_ue_s1ap_id);
-    if(ctx_it2 != m_mme_ue_s1ap_id_to_imsi.end() && ctx_it2->second != ue_ctx)
+    std::map<uint32_t,ue_ctx_t*>::iterator ctx_it2 = m_mme_ue_s1ap_id_to_ue_ctx.find(ue_ctx->ecm_ctx.mme_ue_s1ap_id);
+    if(ctx_it2 != m_mme_ue_s1ap_id_to_ue_ctx.end() && ctx_it2->second != ue_ctx)
     {
       m_s1ap_log->error("Context identified with MME UE S1AP Id does not match context identified by IMSI.\n");
       return false;
     }
   }
-  
-
   return true;
 }
 
+  /*
 void
 s1ap::store_tmp_ue_emm_ctx(const ue_emm_ctx_t &tmp_ue_emm_ctx)
 {
@@ -456,12 +455,13 @@ s1ap::get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr)
   m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx.erase(it);
   return true;
 }
+  */
 
 ue_ctx_t*
 s1ap::find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
 {
   std::map<uint32_t, ue_ctx_t*>::iterator it = m_mme_ue_s1ap_id_to_ue_ctx.find(mme_ue_s1ap_id);
-  if(it == m_mme_ue_s1ap_id_to_imsi.end())
+  if(it == m_mme_ue_s1ap_id_to_ue_ctx.end())
   {
     return NULL;
   }
@@ -494,17 +494,20 @@ s1ap::release_ues_ecm_ctx_in_enb(uint16_t enb_id)
   while(ue_id != ues_in_enb->second.end() )
   {
     std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_mme_ue_s1ap_id_to_ue_ctx.find(*ue_id);
-    m_s1ap_log->info("Deleting UE context. UE-MME S1AP Id: %d\n", ue_ctx->second->mme_ue_s1ap_id);
-    m_s1ap_log->console("Deleting UE context. UE-MME S1AP Id: %d\n", ue_ctx->second->mme_ue_s1ap_id);
-    
-    ue_set->second.erase(mme_ue_s1ap_id);
+    ue_ecm_ctx_t *ecm_ctx = &ue_ctx->second->ecm_ctx;
+    m_s1ap_log->info("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
+    m_s1ap_log->console("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
+    ues_in_enb->second.erase(ecm_ctx->mme_ue_s1ap_id);
+    ecm_ctx->state = ECM_STATE_IDLE;
+    ecm_ctx->mme_ue_s1ap_id = 0;
+    ecm_ctx->enb_ue_s1ap_id = 0;
   }
 }
 
 bool
 s1ap::release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
 {
-  ue_ctx_t *ue_ctx = find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id)
+  ue_ctx_t *ue_ctx = find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if(ue_ctx == NULL)
   {
     m_s1ap_log->error("Cannot release UE ECM context, UE not found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
@@ -529,7 +532,7 @@ s1ap::release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
   ue_set->second.erase(mme_ue_s1ap_id);
 
   //Release UE ECM context
-  m_mme_ue_s1ap_id_to_imsi.erase(mme_ue_s1ap_id);
+  m_mme_ue_s1ap_id_to_ue_ctx.erase(mme_ue_s1ap_id);
   ecm_ctx->state = ECM_STATE_IDLE;
   ecm_ctx->mme_ue_s1ap_id = 0;
   ecm_ctx->enb_ue_s1ap_id = 0;
@@ -549,9 +552,9 @@ s1ap::delete_ue_ctx(uint64_t imsi)
   }
 
   //Make sure to release ECM ctx
-  if(ue_ctx->ecm_ctx.state == ECM_STATE_CONNECTED)
+  if(ue_ctx->ecm_ctx.mme_ue_s1ap_id != 0)
   {
-    release_ue_ecm_ctx(ue_ctx->ecm_state.mme_ue_s1ap_id);
+    release_ue_ecm_ctx(ue_ctx->ecm_ctx.mme_ue_s1ap_id);
   }
 
   //Delete UE context
@@ -568,31 +571,32 @@ s1ap::delete_ue_ctx(uint64_t imsi)
 void
 s1ap::activate_eps_bearer(uint64_t imsi, uint8_t ebi)
 {
-  std::map<uint64_t,ue_emm_ctx_t*>::iterator emm_ctx_it = m_imsi_to_ue_emm_ctx.find(imsi);
-  if(emm_ctx_it == m_imsi_to_ue_emm_ctx.end())
+  std::map<uint64_t,ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
+  if(ue_ctx_it == m_imsi_to_ue_ctx.end())
   {
-      m_s1ap_log->error("Could not find UE EMM context\n");
+    m_s1ap_log->error("Could not activate EPS bearer: Could not find UE context\n");
       return;
   }
-  uint32_t mme_ue_s1ap_id = emm_ctx_it->second->mme_ue_s1ap_id;
-  std::map<uint32_t,ue_ecm_ctx_t*>::iterator ecm_ctx_it = m_mme_ue_s1ap_id_to_ue_ecm_ctx.find(mme_ue_s1ap_id);
-  if(ecm_ctx_it == m_mme_ue_s1ap_id_to_ue_ecm_ctx.end())
+  //Make sure NAS is active
+  uint32_t mme_ue_s1ap_id = ue_ctx_it->second->ecm_ctx.mme_ue_s1ap_id;
+  std::map<uint32_t,ue_ctx_t*>::iterator it = m_mme_ue_s1ap_id_to_ue_ctx.find(mme_ue_s1ap_id);
+  if(it == m_mme_ue_s1ap_id_to_ue_ctx.end())
   {
-    m_s1ap_log->error("Could not find UE ECM context\n");
+    m_s1ap_log->error("Could not activate EPS bearer: ECM context seems to be missing\n");
     return;
   }
 
-  ue_ecm_ctx_t * ecm_ctx = ecm_ctx_it->second;
+  ue_ecm_ctx_t * ecm_ctx = &ue_ctx_it->second->ecm_ctx;
   if (ecm_ctx->erabs_ctx[ebi].state != ERAB_CTX_SETUP)
   {
-    m_s1ap_log->error("EPS Bearer could not be activated. MME S1AP Id %d, EPS Bearer id %d, state %d\n",mme_ue_s1ap_id,ebi,ecm_ctx->erabs_ctx[ebi].state);
-    m_s1ap_log->console("EPS Bearer could not be activated. MME S1AP Id %d, EPS Bearer id %d\n",mme_ue_s1ap_id,ebi,ecm_ctx->erabs_ctx[ebi].state);
+    m_s1ap_log->error("Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d, state %d\n",mme_ue_s1ap_id,ebi,ecm_ctx->erabs_ctx[ebi].state);
+    m_s1ap_log->console("Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d\n",mme_ue_s1ap_id,ebi,ecm_ctx->erabs_ctx[ebi].state);
     return;
   }
 
   ecm_ctx->erabs_ctx[ebi].state = ERAB_ACTIVE;
   ecm_ctx->state = ECM_STATE_CONNECTED;
-  m_s1ap_log->info("Activated EPS Bearer\n");
+  m_s1ap_log->info("Activated EPS Bearer: Bearer id %d\n",ebi);
   return;
 }
 
