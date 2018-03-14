@@ -80,7 +80,6 @@ public:
   enb_ctx_t* find_enb_ctx(uint16_t enb_id);
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
 
-  void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
   bool add_ue_ctx_to_imsi_map(const ue_ctx_t *ue_ctx);
   bool add_ue_ctx_to_mme_ue_s1ap_id_map(const ue_ctx_t *ue_ctx);
 
@@ -102,8 +101,8 @@ public:
   //bool delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
   //void delete_ues_ecm_ctx_in_enb(uint16_t enb_id);
 
-  void store_tmp_ue_emm_ctx(const ue_emm_ctx_t &ue_ecm_ctx);
-  bool get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr);
+  //void store_tmp_ue_emm_ctx(const ue_emm_ctx_t &ue_ecm_ctx);
+  //bool get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr);
 
   uint32_t allocate_m_tmsi(uint64_t imsi);
 
