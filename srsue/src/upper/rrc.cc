@@ -661,7 +661,7 @@ void rrc::cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
     if (!ret) {
       phy->cell_search_next();
     }
-  } else if (!ho_syncing) {
+  } else if (state < RRC_STATE_CONNECTING) {
     state = RRC_STATE_CELL_SELECTING;
   }
 
