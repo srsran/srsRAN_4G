@@ -214,16 +214,13 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   }
 
   //Save create session response info to E-RAB context
-  ue_emm_ctx_t *emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(imsi);
-  if(emm_ctx == NULL){
-    m_mme_gtpc_log->error("Could not find UE EMM context\n");
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
+  if(ue_ctx == NULL){
+    m_mme_gtpc_log->error("Could not find UE context\n");
     return;
   }
-  ue_ecm_ctx_t *ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(emm_ctx->mme_ue_s1ap_id);
-  if(ecm_ctx == NULL){
-    m_mme_gtpc_log->error("Could not find UE ECM context\n");
-    return;
-  }
+  ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
+  ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
   //Save SGW ctrl F-TEID in GTP-C context
   std::map<uint64_t,struct gtpc_ctx>::iterator it_g = m_imsi_to_gtpc_ctx.find(imsi);
