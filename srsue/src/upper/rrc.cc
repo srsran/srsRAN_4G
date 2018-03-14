@@ -2462,7 +2462,10 @@ void rrc::rrc_meas::reset()
   filter_k_rsrp = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
   filter_k_rsrq = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
   objects.clear();
-  active.clear();
+  std::map<uint32_t, meas_t>::iterator iter = active.begin();
+  while (iter != active.end()) {
+    remove_meas_id(iter++);
+  }
   reports_cfg.clear();
   phy->meas_reset();
   bzero(&pcell_measurement, sizeof(meas_value_t));
@@ -2983,12 +2986,15 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
       } else {
         is_new = true;
         active[measId->meas_id].periodic_timer   = mac_timers->timer_get_unique_id();
+        if (!active[measId->meas_id].periodic_timer) {
+          log_h->error("Could not get unique timer id\n");
+        }
       }
       active[measId->meas_id].object_id = measId->meas_obj_id;
       active[measId->meas_id].report_id = measId->rep_cnfg_id;
-      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, nof_values=%d\n",
+      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, timer_id=%d, nof_values=%d\n",
                   is_new?"Added":"Updated", measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id,
-                  active[measId->meas_id].cell_values.size());
+                  active[measId->meas_id].periodic_timer, active[measId->meas_id].cell_values.size());
     }
   }
 
