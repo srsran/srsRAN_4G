@@ -120,8 +120,14 @@ uint8_t* sch_pdu::write_packet(srslte::log *log_h)
 {
   int init_rem_len=rem_len; 
   sch_subh padding; 
-  padding.set_padding(); 
-  
+  padding.set_padding();
+
+  if (nof_subheaders <= 0) {
+    log_h->error("Writting PDU: nof_subheaders=%d\n", nof_subheaders);
+    log_h->console("Writting PDU: nof_subheaders=%d\n", nof_subheaders);
+    return NULL;
+  }
+
   if (init_rem_len < 0) {
     log_h->error("init_rem_len=%d\n", init_rem_len);
     return NULL; 
