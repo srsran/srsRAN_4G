@@ -136,7 +136,6 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   uint8_t pd, msg_type, sec_hdr_type;
   uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
-  ue_emm_ctx_t *ue_emm_ctx = NULL;
   bool mac_valid = false;
 
   //Get UE ECM context
@@ -231,7 +230,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   {
     //Integrity protected NAS message, possibly chiphered.
     emm_ctx->security_ctxt.ul_nas_count++;
-    mac_valid = integrity_check(ue_emm_ctx,nas_msg);
+    mac_valid = integrity_check(emm_ctx,nas_msg);
     if(!mac_valid){
       m_s1ap_log->warning("Invalid MAC in NAS message type 0x%x.\n", msg_type);
       m_pool->deallocate(nas_msg);
@@ -273,14 +272,8 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
 
   if(*reply_flag == true)
   {
-    if(ue_emm_ctx != NULL){
-      m_s1ap_log->console("DL NAS: Sent Downlink NAs Message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count,emm_ctx->security_ctxt.ul_nas_count );
-      m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count, emm_ctx->security_ctxt.ul_nas_count);
-    }
-    else{
-      m_s1ap_log->console("DL NAS: Sent Downlink NAS Message\n");
-      m_s1ap_log->console("DL NAS: Sent Downlink NAS Message\n");
-    }
+    m_s1ap_log->console("DL NAS: Sent Downlink NAs Message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count,emm_ctx->security_ctxt.ul_nas_count );
+    m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count, emm_ctx->security_ctxt.ul_nas_count);
   }
   m_pool->deallocate(nas_msg);
   return true;
