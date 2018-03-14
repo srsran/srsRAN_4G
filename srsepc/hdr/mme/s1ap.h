@@ -66,7 +66,7 @@ public:
   int get_s1_mme();
 
   void delete_enb_ctx(int32_t assoc_id);
-  void delete_ues_in_enb(uint16_t enb_id);
+  void release_ues_ecm_ctx_in_enb(uint16_t enb_id);
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri);
   bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
@@ -81,16 +81,20 @@ public:
   enb_ctx_t* find_enb_ctx(uint16_t enb_id);
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
 
-  ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
   void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
+  ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
+  ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
 
-  void add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx);
-  void add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx);
-  ue_emm_ctx_t* find_ue_emm_ctx_from_imsi(uint64_t imsi);
-  ue_ecm_ctx_t* find_ue_ecm_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
-  bool delete_ue_emm_ctx(uint64_t imsi);
-  bool delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
-  void delete_ues_ecm_ctx_in_enb(uint16_t enb_id);
+  //ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
+  //void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
+
+  //void add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx);
+  //void add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx);
+  //ue_emm_ctx_t* find_ue_emm_ctx_from_imsi(uint64_t imsi);
+  //ue_ecm_ctx_t* find_ue_ecm_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
+  //bool delete_ue_emm_ctx(uint64_t imsi);
+  //bool delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
+  //void delete_ues_ecm_ctx_in_enb(uint16_t enb_id);
 
   void store_tmp_ue_emm_ctx(const ue_emm_ctx_t &ue_ecm_ctx);
   bool get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr);
@@ -122,9 +126,13 @@ private:
   std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
   std::map<uint16_t,std::set<uint32_t> >            m_enb_id_to_ue_ids;
 
-  std::map<uint64_t, ue_emm_ctx_t*>                 m_imsi_to_ue_emm_ctx;
-  std::map<uint32_t, ue_ecm_ctx_t*>                 m_mme_ue_s1ap_id_to_ue_ecm_ctx;
-  std::map<int32_t,ue_emm_ctx_t*>                   m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx;
+
+  std::map<uint64_t, ue_ctx_t*>                     m_imsi_to_ue_ctx;
+  std::map<uint32_t, ue_ctx_t*>                     m_mme_ue_s1ap_id_to_ue_ctx;
+
+  //std::map<uint64_t, ue_emm_ctx_t*>                 m_imsi_to_ue_emm_ctx;
+  //std::map<uint32_t, ue_ecm_ctx_t*>                 m_mme_ue_s1ap_id_to_ue_ecm_ctx;
+  //std::map<int32_t,ue_emm_ctx_t*>                   m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx;
 
   uint32_t                                          m_next_mme_ue_s1ap_id;
   uint32_t                                          m_next_m_tmsi;

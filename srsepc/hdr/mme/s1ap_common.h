@@ -122,7 +122,7 @@ typedef struct{
   LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
   bool ms_network_cap_present;
   LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
-} eps_security_ctx_t;
+} eps_sec_ctx_t;
 
 typedef struct{
     enum erab_state state;
@@ -135,7 +135,7 @@ typedef struct{
 typedef struct{
     uint64_t imsi;
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
-    eps_security_ctx_t security_ctxt;
+    eps_sec_ctx_t security_ctxt;
     uint8_t procedure_transaction_id;
     emm_state_t state;
     uint32_t mme_ue_s1ap_id;
@@ -156,7 +156,9 @@ typedef struct{
 
 typedef struct{
   ue_emm_ctx_t emm_ctx;
+  eps_sec_ctx_t sec_ctx;
   ue_ecm_ctx_t ecm_ctx;
+  erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
 } ue_ctx_t;
 }//namespace
 #endif

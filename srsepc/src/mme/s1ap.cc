@@ -113,18 +113,17 @@ s1ap::stop()
   {
     m_s1ap_log->info("Deleting eNB context. eNB Id: 0x%x\n", enb_it->second->enb_id);
     m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_it->second->enb_id);
-    delete_ues_ecm_ctx_in_enb(enb_it->second->enb_id);
     delete enb_it->second;
     m_active_enbs.erase(enb_it++);
   }
 
-  std::map<uint64_t,ue_emm_ctx_t*>::iterator ue_it = m_imsi_to_ue_emm_ctx.begin();
-  while(ue_it!=m_imsi_to_ue_emm_ctx.end())
+  std::map<uint64_t,ue_ctx_t*>::iterator ue_it = m_imsi_to_ue_ctx.begin();
+  while(ue_it!=m_imsi_to_ue_ctx.end())
   {
     m_s1ap_log->info("Deleting UE EMM context. IMSI: %015lu\n", ue_it->first);
     m_s1ap_log->console("Deleting UE EMM context. IMSI: %015lu\n", ue_it->first);
     delete ue_it->second;
-    m_imsi_to_ue_emm_ctx.erase(ue_it++);
+    m_imsi_to_ue_ctx.erase(ue_it++);
   }
   //Cleanup message handlers
   s1ap_mngmt_proc::cleanup();
@@ -336,7 +335,7 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
   m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
 
   //Delete connected UEs ctx
-  delete_ues_ecm_ctx_in_enb(enb_id);
+  release_ues_ecm_ctx_in_enb(enb_id);
 
   //Delete eNB
   delete it_ctx->second;
@@ -348,20 +347,89 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
 
 //UE Context Management
 void
-s1ap::add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx)
+s1ap::add_new_ue_ctx(const ue_ctx_t &ue_ctx)
 {
-  std::map<uint64_t, ue_emm_ctx_t*>::iterator emm_ctx_it = m_imsi_to_ue_emm_ctx.find(ue_emm_ctx.imsi);
-  if(emm_ctx_it != m_imsi_to_ue_emm_ctx.end())
+  std::map<uint64_t, ue_ctx_t*>::iterator ctx_it = m_imsi_to_ue_ctx.find(ue_ctx.emm_ctx.imsi);
+  if(ctx_it != m_imsi_to_ue_ctx.end())
   {
-    m_s1ap_log->warning("EMM Context already exists. Replacing EMM Context\n");
-    delete emm_ctx_it->second;
-    m_imsi_to_ue_emm_ctx.erase(emm_ctx_it);
+    m_s1ap_log->warning("UE Context already exists. Replacing UE Context\n");
+    delete ctx_it->second;
+    m_imsi_to_ue_ctx.erase(ctx_it);
+  }
+  std::map<uint32_t,uint64_t>::iterator imsi_it = m_mme_ue_s1ap_id_to_imsi.find(ue_ctx.ecm_ctx.mme_ue_s1ap_id);
+  if(imsi_it != m_mme_ue_s1ap_id_to_imsi.end())
+  {
+    m_s1ap_log->warning("MME UE S1AP Id already exists, replacing it.\n");
+    m_mme_ue_s1ap_id_to_imsi.erase(imsi_it);
   }
 
-  ue_emm_ctx_t *ue_ptr = new ue_emm_ctx_t;
-  memcpy(ue_ptr,&ue_emm_ctx,sizeof(ue_emm_ctx));
-  //This map will store UEs EMM context 
-  m_imsi_to_ue_emm_ctx.insert(std::pair<uint64_t,ue_emm_ctx_t*>(ue_ptr->imsi,ue_ptr));
+  ue_ctx_t *new_ctx = new ue_ctx_t;
+  memcpy(new_ctx, &ue_ctx,sizeof(ue_ctx));
+
+  //This map will store UEs context
+  m_imsi_to_ue_ctx.insert(std::pair<uint64_t,ue_ctx_t*>(new_ctx->emm_ctx.imsi,new_ctx));
+  m_mme_ue_s1ap_id_to_imsi.insert(std::pair<uint32_t,uint64_t>(ue_ctx.ecm_ctx.mme_ue_s1ap_id,ue_ctx.emm_ctx.imsi));
+
+  //Store which enb currently holds the UE
+  std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(new_ctx->ecm_ctx.enb_sri.sinfo_assoc_id);
+  uint16_t enb_id = it_enb->second;
+  std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
+  if(it_ue_id==m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find eNB's UEs\n");
+    return;
+  }
+  it_ue_id->second.insert(new_ctx->ecm_ctx.mme_ue_s1ap_id);
+  return;
+}
+
+bool
+s1ap::add_ue_ctx_to_imsi_map(const ue_ctx_t *ue_ctx)
+{
+  std::map<uint64_t, ue_ctx_t*>::iterator ctx_it = m_imsi_to_ue_ctx.find(ue_ctx->emm_ctx.imsi);
+  if(ctx_it != m_imsi_to_ue_ctx.end())
+  {
+    m_s1ap_log->error("UE Context already exists. IMSI %015lu",ue_ctx->emm_ctx.imsi);
+    return false;
+  }
+  if(ue_ctx->ecm_ctx.mme_ue_s1ap_id != 0)
+  {
+    std::map<uint32_t,ue_ctx_t*>::iterator ctx_it2 = m_mme_ue_s1ap_id_to_ue_ctx.find(ue_ctx.ecm_ctx.mme_ue_s1ap_id);
+    if(ctx_it2 != m_mme_ue_s1ap_id_to_imsi.end() && ctx_it2->second != ue_ctx)
+    {
+      m_s1ap_log->error("Context identified with IMSI does not match context identified by MME UE S1AP Id.\n");
+      return false;
+    }
+  }
+  return true;
+}
+
+bool
+s1ap::add_ue_ctx_to_mme_ue_s1ap_id_map(const ue_ctx_t *ue_ctx)
+{
+  if(ue_ctx->ecm_ctx.mme_ue_s1ap_id == 0)
+  {
+    m_s1ap_log->error("Could not add UE context to MME UE S1AP map. MME UE S1AP ID 0 is not valid.")
+    return false;
+  }
+  std::map<uint32_t, ue_ctx_t*>::iterator ctx_it = m_mme_ue_s1ap_id_to_ue_ctx.find(ue_ctx->ecm_ctx.mme_ue_s1ap_id);
+  if(ctx_it != m_mme_ue_s1ap_id_to_ue_ctx.end())
+  {
+    m_s1ap_log->error("UE Context already exists. MME UE S1AP Id %015lu",ue_ctx->emm_ctx.imsi);
+    return false;
+  }
+  if(ue_ctx->ecm_ctx.imsi != 0)
+  {
+    std::map<uint32_t,ue_ctx_t*>::iterator ctx_it2 = m_mme_ue_s1ap_id_to_ue_ctx.find(ue_ctx.ecm_ctx.mme_ue_s1ap_id);
+    if(ctx_it2 != m_mme_ue_s1ap_id_to_imsi.end() && ctx_it2->second != ue_ctx)
+    {
+      m_s1ap_log->error("Context identified with MME UE S1AP Id does not match context identified by IMSI.\n");
+      return false;
+    }
+  }
+  
+
+  return true;
 }
 
 void
@@ -389,87 +457,66 @@ s1ap::get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr)
   return true;
 }
 
+ue_ctx_t*
+s1ap::find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
+{
+  std::map<uint32_t, ue_ctx_t*>::iterator it = m_mme_ue_s1ap_id_to_ue_ctx.find(mme_ue_s1ap_id);
+  if(it == m_mme_ue_s1ap_id_to_imsi.end())
+  {
+    return NULL;
+  }
+  else
+  {
+    return it->second;
+  }
+}
+
+ue_ctx_t*
+s1ap::find_ue_ctx_from_imsi(uint64_t imsi)
+{
+  std::map<uint64_t, ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.find(imsi);
+  if(it == m_imsi_to_ue_ctx.end())
+  {
+    return NULL;
+  }
+  else
+  {
+    return it->second;
+  }
+}
+
 void
-s1ap::add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx)
+s1ap::release_ues_ecm_ctx_in_enb(uint16_t enb_id)
 {
-  ue_ecm_ctx_t *ue_ptr = new ue_ecm_ctx_t;
-  memcpy(ue_ptr,&ue_ecm_ctx,sizeof(ue_ecm_ctx));
-
-  //This map will store UE's ECM context.
-  m_mme_ue_s1ap_id_to_ue_ecm_ctx.insert(std::pair<uint32_t,ue_ecm_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
-  //Store which enb currently holds the UE
-  std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
-  uint16_t enb_id = it_enb->second;
-  std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
-  if(it_ue_id==m_enb_id_to_ue_ids.end())
+  //delete UEs ctx
+  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
+  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
+  while(ue_id != ues_in_enb->second.end() )
   {
-    m_s1ap_log->error("Could not find eNB's UEs\n");
-    return;
+    std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_mme_ue_s1ap_id_to_ue_ctx.find(*ue_id);
+    m_s1ap_log->info("Deleting UE context. UE-MME S1AP Id: %d\n", ue_ctx->second->mme_ue_s1ap_id);
+    m_s1ap_log->console("Deleting UE context. UE-MME S1AP Id: %d\n", ue_ctx->second->mme_ue_s1ap_id);
+    
+    ue_set->second.erase(mme_ue_s1ap_id);
   }
-  it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
-}
-
-
-ue_emm_ctx_t*
-s1ap::find_ue_emm_ctx_from_imsi(uint64_t imsi)
-{
-  std::map<uint64_t, ue_emm_ctx_t*>::iterator it = m_imsi_to_ue_emm_ctx.find(imsi);
-  if(it == m_imsi_to_ue_emm_ctx.end())
-  {
-    return NULL;
-  }
-  else
-  {
-    return it->second;
-  }
-}
-
-ue_ecm_ctx_t*
-s1ap::find_ue_ecm_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
-{
-  std::map<uint32_t, ue_ecm_ctx_t*>::iterator it = m_mme_ue_s1ap_id_to_ue_ecm_ctx.find(mme_ue_s1ap_id);
-  if(it == m_mme_ue_s1ap_id_to_ue_ecm_ctx.end()) 
-  {
-    return NULL;
-  }
-  else
-  {
-    return it->second;
-  }
-}
-bool
-s1ap::delete_ue_emm_ctx(uint64_t imsi)
-{
-  std::map<uint64_t, ue_emm_ctx_t*>::iterator ue_emm_ctx_it = m_imsi_to_ue_emm_ctx.find(imsi);
-  if(ue_emm_ctx_it == m_imsi_to_ue_emm_ctx.end()) 
-  {
-    m_s1ap_log->info("Cannot delete UE EMM context, UE not found. IMSI: %d\n", imsi);
-    return false;
-  }
-
-  //Delete UE context
-  m_imsi_to_ue_emm_ctx.erase(ue_emm_ctx_it);
-  delete ue_emm_ctx_it->second;
-  m_s1ap_log->info("Deleted UE EMM Context.\n");
-  return true;
 }
 
 bool
-s1ap::delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
+s1ap::release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
 {
-  std::map<uint32_t, ue_ecm_ctx_t*>::iterator ue_ecm_ctx_it = m_mme_ue_s1ap_id_to_ue_ecm_ctx.find(mme_ue_s1ap_id);
-  if(ue_ecm_ctx_it == m_mme_ue_s1ap_id_to_ue_ecm_ctx.end()) 
+  ue_ctx_t *ue_ctx = find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id)
+  if(ue_ctx == NULL)
   {
-    m_s1ap_log->info("Cannot delete UE ECM context, UE not found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    m_s1ap_log->error("Cannot release UE ECM context, UE not found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     return false;
   }
-  ue_ecm_ctx_t* ue_ecm_ctx = ue_ecm_ctx_it->second;
+  ue_ecm_ctx_t* ecm_ctx = &ue_ctx->ecm_ctx;
 
   //Delete UE within eNB UE set
-  std::map<int32_t,uint16_t>::iterator it = m_sctp_to_enb_id.find(ue_ecm_ctx->enb_sri.sinfo_assoc_id);
+  std::map<int32_t,uint16_t>::iterator it = m_sctp_to_enb_id.find(ecm_ctx->enb_sri.sinfo_assoc_id);
   if(it == m_sctp_to_enb_id.end() )
   {
-    m_s1ap_log->error("Could not find eNB for this request.\n");
+    m_s1ap_log->error("Could not find eNB for UE release request.\n");
     return false;
   }
   uint16_t enb_id = it->second; 
@@ -481,30 +528,41 @@ s1ap::delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
   }
   ue_set->second.erase(mme_ue_s1ap_id);
 
-  //Delete UE context
-  m_mme_ue_s1ap_id_to_ue_ecm_ctx.erase(ue_ecm_ctx_it);
-  delete ue_ecm_ctx;
-  m_s1ap_log->info("Deleted UE ECM Context.\n");
+  //Release UE ECM context
+  m_mme_ue_s1ap_id_to_imsi.erase(mme_ue_s1ap_id);
+  ecm_ctx->state = ECM_STATE_IDLE;
+  ecm_ctx->mme_ue_s1ap_id = 0;
+  ecm_ctx->enb_ue_s1ap_id = 0;
 
+  m_s1ap_log->info("Released UE ECM Context.\n");
   return true;
 }
 
-void
-s1ap::delete_ues_ecm_ctx_in_enb(uint16_t enb_id)
+bool
+s1ap::delete_ue_ctx(uint64_t imsi)
 {
-  //delete UEs ctx
-  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
-  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
-  while(ue_id != ues_in_enb->second.end() )
+  ue_ctx_t *ue_ctx = find_ue_ctx_from_imsi(imsi);
+  if(ue_ctx == NULL)
   {
-    std::map<uint32_t, ue_ecm_ctx_t*>::iterator ue_ctx = m_mme_ue_s1ap_id_to_ue_ecm_ctx.find(*ue_id);
-    m_s1ap_log->info("Deleting UE context. UE-MME S1AP Id: %d\n", ue_ctx->second->mme_ue_s1ap_id);
-    m_s1ap_log->console("Deleting UE context. UE-MME S1AP Id: %d\n", ue_ctx->second->mme_ue_s1ap_id);
-    m_mme_ue_s1ap_id_to_ue_ecm_ctx.erase(ue_ctx);        //remove from general MME map 
-    delete ue_ctx->second;             //delete UE context
-    ues_in_enb->second.erase(ue_id++); //erase from the eNB's UE set
+    m_s1ap_log->info("Cannot delete UE context, UE not found. IMSI: %d\n", imsi);
+    return false;
   }
+
+  //Make sure to release ECM ctx
+  if(ue_ctx->ecm_ctx.state == ECM_STATE_CONNECTED)
+  {
+    release_ue_ecm_ctx(ue_ctx->ecm_state.mme_ue_s1ap_id);
+  }
+
+  //Delete UE context
+  m_imsi_to_ue_ctx.erase(imsi);
+  delete ue_ctx;
+  m_s1ap_log->info("Deleted UE Context.\n");
+  return true;
 }
+
+
+
 
 //UE Bearer Managment
 void
@@ -580,3 +638,126 @@ s1ap::print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx)
 }
 
 } //namespace srsepc
+
+  /*
+void
+s1ap::add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx)
+{
+  std::map<uint64_t, ue_emm_ctx_t*>::iterator emm_ctx_it = m_imsi_to_ue_emm_ctx.find(ue_emm_ctx.imsi);
+  if(emm_ctx_it != m_imsi_to_ue_emm_ctx.end())
+  {
+    m_s1ap_log->warning("EMM Context already exists. Replacing EMM Context\n");
+    delete emm_ctx_it->second;
+    m_imsi_to_ue_emm_ctx.erase(emm_ctx_it);
+  }
+
+  ue_emm_ctx_t *ue_ptr = new ue_emm_ctx_t;
+  memcpy(ue_ptr,&ue_emm_ctx,sizeof(ue_emm_ctx));
+  //This map will store UEs EMM context 
+  m_imsi_to_ue_emm_ctx.insert(std::pair<uint64_t,ue_emm_ctx_t*>(ue_ptr->imsi,ue_ptr));
+}
+  */
+
+/*
+  void
+  s1ap::add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx)
+  {
+    ue_ecm_ctx_t *ue_ptr = new ue_ecm_ctx_t;
+    memcpy(ue_ptr,&ue_ecm_ctx,sizeof(ue_ecm_ctx));
+
+    //This map will store UE's ECM context.
+    m_mme_ue_s1ap_id_to_ue_ecm_ctx.insert(std::pair<uint32_t,ue_ecm_ctx_t*>(ue_ptr->mme_ue_s1ap_id,ue_ptr));
+    //Store which enb currently holds the UE
+    std::map<int32_t,uint16_t>::iterator it_enb = m_sctp_to_enb_id.find(ue_ptr->enb_sri.sinfo_assoc_id);
+    uint16_t enb_id = it_enb->second;
+    std::map<uint16_t,std::set<uint32_t> >::iterator it_ue_id = m_enb_id_to_ue_ids.find(enb_id);
+    if(it_ue_id==m_enb_id_to_ue_ids.end())
+    {
+      m_s1ap_log->error("Could not find eNB's UEs\n");
+      return;
+    }
+    it_ue_id->second.insert(ue_ptr->mme_ue_s1ap_id);
+  }
+  */
+  /*
+ue_emm_ctx_t*
+s1ap::find_ue_emm_ctx_from_imsi(uint64_t imsi)
+{
+  std::map<uint64_t, ue_emm_ctx_t*>::iterator it = m_imsi_to_ue_emm_ctx.find(imsi);
+  if(it == m_imsi_to_ue_emm_ctx.end())
+  {
+    return NULL;
+  }
+  else
+  {
+    return it->second;
+  }
+}
+
+ue_ecm_ctx_t*
+s1ap::find_ue_ecm_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
+{
+  std::map<uint32_t, ue_ecm_ctx_t*>::iterator it = m_mme_ue_s1ap_id_to_ue_ecm_ctx.find(mme_ue_s1ap_id);
+  if(it == m_mme_ue_s1ap_id_to_ue_ecm_ctx.end()) 
+  {
+    return NULL;
+  }
+  else
+  {
+    return it->second;
+  }
+}*/
+  /*
+bool
+s1ap::delete_ue_emm_ctx(uint64_t imsi)
+{
+  std::map<uint64_t, ue_emm_ctx_t*>::iterator ue_emm_ctx_it = m_imsi_to_ue_emm_ctx.find(imsi);
+  if(ue_emm_ctx_it == m_imsi_to_ue_emm_ctx.end()) 
+  {
+    m_s1ap_log->info("Cannot delete UE EMM context, UE not found. IMSI: %d\n", imsi);
+    return false;
+  }
+
+  //Delete UE context
+  m_imsi_to_ue_emm_ctx.erase(ue_emm_ctx_it);
+  delete ue_emm_ctx_it->second;
+  m_s1ap_log->info("Deleted UE EMM Context.\n");
+  return true;
+}
+  */
+  /*
+bool
+s1ap::delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
+{
+  std::map<uint32_t, ue_ecm_ctx_t*>::iterator ue_ecm_ctx_it = m_mme_ue_s1ap_id_to_ue_ecm_ctx.find(mme_ue_s1ap_id);
+  if(ue_ecm_ctx_it == m_mme_ue_s1ap_id_to_ue_ecm_ctx.end()) 
+  {
+    m_s1ap_log->info("Cannot delete UE ECM context, UE not found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    return false;
+  }
+  ue_ecm_ctx_t* ue_ecm_ctx = ue_ecm_ctx_it->second;
+
+  //Delete UE within eNB UE set
+  std::map<int32_t,uint16_t>::iterator it = m_sctp_to_enb_id.find(ue_ecm_ctx->enb_sri.sinfo_assoc_id);
+  if(it == m_sctp_to_enb_id.end() )
+  {
+    m_s1ap_log->error("Could not find eNB for this request.\n");
+    return false;
+  }
+  uint16_t enb_id = it->second; 
+  std::map<uint16_t,std::set<uint32_t> >::iterator ue_set = m_enb_id_to_ue_ids.find(enb_id);
+  if(ue_set == m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find the eNB's UEs.\n");
+    return false;
+  }
+  ue_set->second.erase(mme_ue_s1ap_id);
+
+  //Delete UE context
+  m_mme_ue_s1ap_id_to_ue_ecm_ctx.erase(ue_ecm_ctx_it);
+  delete ue_ecm_ctx;
+  m_s1ap_log->info("Deleted UE ECM Context.\n");
+
+  return true;
+}
+  */

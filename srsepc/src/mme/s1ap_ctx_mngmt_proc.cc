@@ -205,27 +205,24 @@ bool
 s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp)
 {
   uint32_t mme_ue_s1ap_id = in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
-  ue_ecm_ctx_t *ue_ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
-  if (ue_ecm_ctx == NULL)
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if (ue_ctx == NULL)
   {
-    m_s1ap_log->error("Could not find UE's ECM context in active UE's map\n");
+    m_s1ap_log->error("Could not find UE's context in active UE's map\n");
     return false;
   }
-  ue_emm_ctx_t *emm_ctx = m_s1ap->find_ue_emm_ctx_from_imsi(ue_ecm_ctx->imsi);
-  if (emm_ctx == NULL)
-  {
-    m_s1ap_log->error("Could not find UE's EMM context in active UE's map\n");
-    return false;
-  } 
+  ue_emm_ctx_t * emm_ctx = &ue_ctx->emm_ctx;
+  ue_ecm_ctx_t * ecm_ctx = &ue_ctx->ecm_ctx;
+
   m_s1ap_log->console("Received Initial Context Setup Response\n");
   //Setup E-RABs
   for(uint32_t i=0; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
   {
     uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
-    erab_ctx_t *erab_ctx = &ue_ecm_ctx->erabs_ctx[erab_id];
+    erab_ctx_t *erab_ctx = &ecm_ctx->erabs_ctx[erab_id];
     if (erab_ctx->state != ERAB_CTX_REQUESTED)
     {
-      m_s1ap_log->error("E-RAB requested was not active %d\n",erab_id);
+      m_s1ap_log->error("E-RAB requested was not previously requested %d\n",erab_id);
       return false;
     }
     //Mark E-RAB with context setup
@@ -254,7 +251,7 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
   {
     m_s1ap_log->console("Initial Context Setup Response triggered from Service Request.\n");
     m_s1ap_log->console("Sending Modify Bearer Request.\n");
-    m_mme_gtpc->send_modify_bearer_request(ue_ecm_ctx->imsi, &ue_ecm_ctx->erabs_ctx[5]);
+    m_mme_gtpc->send_modify_bearer_request(emm_ctx->imsi, &ecm_ctx->erabs_ctx[5]);
   }
   return true;
 }
@@ -269,13 +266,14 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   m_s1ap_log->info("Received UE Context Release Request. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
   m_s1ap_log->console("Received UE Context Release Request. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
 
-  ue_ecm_ctx_t *ecm_ctx = m_s1ap->find_ue_ecm_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
-  if(ecm_ctx == NULL)
+  ue_ctx_t * ue_ctx = m_s1ap->find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if(ue_ctx == NULL)
   {
-    m_s1ap_log->info("No UE ECM context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
-    m_s1ap_log->console("No UE ECM context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    m_s1ap_log->info("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
+    m_s1ap_log->console("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     return false;
   }
+  ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx; 
 
   //Delete user plane context at the SPGW (but keep GTP-C connection).
   if (ecm_ctx->state == ECM_STATE_CONNECTED)
@@ -284,23 +282,27 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
     m_s1ap_log->console("There are active E-RABs, send release access mearers request");
     m_s1ap_log->info("There are active E-RABs, send release access mearers request");
     m_mme_gtpc->send_release_access_bearers_request(ecm_ctx->imsi);
+    //The handle_releease_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
+    //It will release the UEs downstream S1-u and keep the upstream S1-U connection active.
   }
   else
   {
     //No ECM Context to release
     m_s1ap_log->info("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
     m_s1ap_log->console("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
+    //Make sure E-RABS are merked as DEACTIVATED.
+    for(int i=0;i<MAX_ERABS_PER_UE;i++)
+    {
+      ecm_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
+    }
   }
-  //m_s1ap->delete_ue_ctx(ue_ctx);
-  for(int i=0;i<MAX_ERABS_PER_UE;i++)
-  {
-    ecm_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
-  }
+  
   //Delete UE context
-  ecm_ctx->state = ECM_STATE_DISCONNECTED;
+  ecm_ctx->state = ECM_STATE_IDLE;
+  ecm_ctx->enb_ue_s1ap_id = 0;
   ecm_ctx->mme_ue_s1ap_id = 0;
-  m_s1ap_log->info("UE ECM Disconnected.\n");
-  m_s1ap_log->console("Deleted UE ECM Context.\n");
+  m_s1ap_log->info("UE is ECM IDLE.\n");
+  m_s1ap_log->console("UE is ECM IDLE.\n");
   return true;
 }
 
