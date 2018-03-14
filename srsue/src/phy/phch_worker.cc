@@ -223,20 +223,6 @@ float phch_worker::get_cfo()
   return cfo;
 }
 
-float phch_worker::get_ul_cfo() {
-  srslte::radio *radio = phy->get_radio();
-
-  if (radio->get_freq_offset() != 0.0f) {
-    /* Compensates the radio frequency offset applied equally to DL and UL */
-    const float ul_dl_ratio = (float) radio->get_tx_freq() / (float) radio->get_rx_freq();
-    const float offset_hz = (float) radio->get_freq_offset() * (1.0f - ul_dl_ratio);
-    return cfo - offset_hz / (15000);
-  } else {
-    return cfo;
-  }
-
-}
-
 void phch_worker::work_imp()
 {
   if (!cell_initiated) {
@@ -360,7 +346,7 @@ void phch_worker::work_imp()
   }
 
   /* Set UL CFO before transmission */  
-  srslte_ue_ul_set_cfo(&ue_ul, get_ul_cfo());
+  srslte_ue_ul_set_cfo(&ue_ul, cfo);
 
   /* Transmit PUSCH, PUCCH or SRS */
   bool signal_ready = false; 
