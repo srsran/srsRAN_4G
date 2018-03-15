@@ -152,9 +152,8 @@ int srslte_pmch_init(srslte_pmch_t *q, uint32_t max_prb)
 int srslte_pmch_init_multi(srslte_pmch_t *q, uint32_t max_prb, uint32_t nof_rx_antennas)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  int i;
 
- if (q != NULL                  &&
+  if (q != NULL                  &&
      nof_rx_antennas <= SRSLTE_MAX_PORTS) 
   {   
     
@@ -169,7 +168,7 @@ int srslte_pmch_init_multi(srslte_pmch_t *q, uint32_t max_prb, uint32_t nof_rx_a
     INFO("Init PMCH: %d PRBs, max_symbols: %d\n",
         max_prb, q->max_re);
 
-    for (i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
       if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
         goto clean;
       }
@@ -189,7 +188,7 @@ int srslte_pmch_init_multi(srslte_pmch_t *q, uint32_t max_prb, uint32_t nof_rx_a
       goto clean;
     }
 
-    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
       q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
       if (!q->x[i]) {
         goto clean;
@@ -232,7 +231,7 @@ void srslte_pmch_free(srslte_pmch_t *q) {
   if (q->d) {
     free(q->d);
   }
-  for (i = 0; i < q->cell.nof_ports; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     if (q->x[i]) {
       free(q->x[i]);
     }
@@ -378,7 +377,7 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
     }
      
     // No tx diversity in MBSFN
-    srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, cfg->nbits[0].nof_re, 1.0f, noise_estimate);
+    srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, NULL, q->nof_rx_antennas, cfg->nbits[0].nof_re, 1.0f, noise_estimate);
     
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       DEBUG("SAVED FILE subframe.dat: received subframe symbols\n");

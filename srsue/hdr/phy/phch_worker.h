@@ -54,8 +54,7 @@ public:
   void  set_tti(uint32_t tti, uint32_t tx_tti); 
   void  set_tx_time(srslte_timestamp_t tx_time, uint32_t next_offset);
   void  set_cfo(float cfo);
-  void  set_sample_offset(float sample_offset); 
-  
+
   void  set_ul_params(bool pregen_disabled = false);
   void  set_crnti(uint16_t rnti);
   void  enable_pregen_signals(bool enabled);
@@ -74,7 +73,6 @@ public:
   float get_rsrp();
   float get_noise();
   float get_cfo();
-  float get_ul_cfo();
 
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
@@ -119,7 +117,8 @@ private:
   struct timeval tr_time[3];
   srslte::trace<uint32_t> tr_exec;
   bool trace_enabled; 
-  
+
+  pthread_mutex_t mutex;
   
   /* Common objects */  
   phch_common    *phy;

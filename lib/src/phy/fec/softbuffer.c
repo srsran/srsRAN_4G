@@ -47,32 +47,56 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, uint32_t nof_prb) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL) {    
-    ret = SRSLTE_ERROR; 
-    
     bzero(q, sizeof(srslte_softbuffer_rx_t));
     
     ret = srslte_ra_tbs_from_idx(26, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
+      ret = SRSLTE_ERROR;
       
       q->buffer_f = srslte_vec_malloc(sizeof(int16_t*) * q->max_cb);
       if (!q->buffer_f) {
         perror("malloc");
-        return SRSLTE_ERROR;
+        goto clean_exit;
       }
       
+      q->data = srslte_vec_malloc(sizeof(uint8_t*) * q->max_cb);
+      if (!q->data) {
+        perror("malloc");
+        goto clean_exit;
+      }
+
+      q->cb_crc = srslte_vec_malloc(sizeof(bool) * q->max_cb);
+      if (!q->cb_crc) {
+        perror("malloc");
+        goto clean_exit;
+      }
+      bzero(q->cb_crc, sizeof(bool) * q->max_cb);
+
       // FIXME: Use HARQ buffer limitation based on UE category
       for (uint32_t i=0;i<q->max_cb;i++) {
         q->buffer_f[i] = srslte_vec_malloc(sizeof(int16_t) * SOFTBUFFER_SIZE);
         if (!q->buffer_f[i]) {
           perror("malloc");
-          return SRSLTE_ERROR;
+          goto clean_exit;
+        }
+
+        q->data[i] = srslte_vec_malloc(sizeof(uint8_t) * 6144/8);
+        if (!q->data[i]) {
+          perror("malloc");
+          goto clean_exit;
         }
       }      
       //srslte_softbuffer_rx_reset(q);
       ret = SRSLTE_SUCCESS;
     }
   }
+
+  clean_exit:
+  if (ret != SRSLTE_SUCCESS) {
+    srslte_softbuffer_rx_free(q);
+  }
+
   return ret;
 }
 
@@ -85,6 +109,17 @@ void srslte_softbuffer_rx_free(srslte_softbuffer_rx_t *q) {
         }
       }
       free(q->buffer_f);
+    }
+    if (q->data) {
+      for (uint32_t i=0;i<q->max_cb;i++) {
+        if (q->data[i]) {
+          free(q->data[i]);
+        }
+      }
+      free(q->data);
+    }
+    if (q->cb_crc) {
+      free(q->cb_crc);
     }
     bzero(q, sizeof(srslte_softbuffer_rx_t));
   }
@@ -109,6 +144,9 @@ void srslte_softbuffer_rx_reset_cb(srslte_softbuffer_rx_t *q, uint32_t nof_cb) {
         bzero(q->buffer_f[i], SOFTBUFFER_SIZE*sizeof(int16_t));
       }
     }
+  }
+  if (q->cb_crc) {
+    bzero(q->cb_crc, sizeof(bool) * q->max_cb);
   }
 }
 

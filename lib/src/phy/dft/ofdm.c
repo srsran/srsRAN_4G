@@ -128,6 +128,8 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, c
   if (sf_type == SRSLTE_SF_MBSFN) {
     q->mbsfn_subframe = true;
     q->non_mbsfn_region = 2; // default set to 2
+  } else {
+    q->mbsfn_subframe = false;
   }
   
   return SRSLTE_SUCCESS;

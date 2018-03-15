@@ -151,15 +151,16 @@ public:
       fprintf(stderr, "Error getting unique timer id: no more timers available\n");
       return 0;
     } else {
-      while(used_timers[next_timer]) {
-        next_timer++;
-        if (next_timer >= nof_timers) {
-          next_timer=0;
+      for (uint32_t i=0;i<nof_timers;i++) {
+        if (!used_timers[i]) {
+          used_timers[i] = true;
+          nof_used_timers++;
+          return i;
         }
       }
-      used_timers[next_timer] = true;
-      nof_used_timers++;
-      return next_timer;
+      fprintf(stderr, "Error getting unique timer id: no more timers available but nof_used_timers=%d, nof_timers=%d\n",
+              nof_used_timers, nof_timers);
+      return 0;
     }
   }
 private:

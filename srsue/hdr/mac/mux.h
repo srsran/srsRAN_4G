@@ -104,7 +104,8 @@ private:
   /* Msg3 Buffer */
   static const uint32_t MSG3_BUFF_SZ = 1024;
   uint8_t               msg3_buff[MSG3_BUFF_SZ];
-  
+  uint8_t              *msg3_buff_start_pdu;
+
   /* PDU Buffer */
   srslte::sch_pdu    pdu_msg; 
   bool msg3_has_been_transmitted;

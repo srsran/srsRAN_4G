@@ -34,6 +34,7 @@
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/mat.h"
+#include "srslte/phy/utils/simd.h"
 
 #ifdef LV_HAVE_SSE
 #include <immintrin.h>
@@ -252,8 +253,49 @@ int srslte_predecoding_single_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
   return nof_symbols;
 }
 
+int srslte_predecoding_single_csi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, float *csi, int nof_rxant, int nof_symbols, float scaling, float noise_estimate) {
+  int i = 0;
+
+#if SRSLTE_SIMD_CF_SIZE
+  const simd_f_t _noise = srslte_simd_f_set1(noise_estimate);
+  const simd_f_t _scaling = srslte_simd_f_set1(1.0f / scaling);
+
+  for (; i < nof_symbols - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+    simd_cf_t _r = srslte_simd_cf_zero();
+    simd_f_t _hh = srslte_simd_f_zero();
+
+    for (int p = 0; p < nof_rxant; p++) {
+      simd_cf_t _y = srslte_simd_cfi_load(&y[p][i]);
+      simd_cf_t _h = srslte_simd_cfi_load(&h[p][i]);
+
+      _r = srslte_simd_cf_add(_r, srslte_simd_cf_conjprod(_y, _h));
+      _hh = srslte_simd_f_add(_hh, srslte_simd_cf_re(srslte_simd_cf_conjprod(_h, _h)));
+    }
+
+    simd_f_t _csi = srslte_simd_f_add(_hh, _noise);
+    simd_cf_t _x = srslte_simd_cf_mul(srslte_simd_cf_mul(_r, _scaling), srslte_simd_f_rcp(_csi));
+
+    srslte_simd_f_store(&csi[i], _csi);
+    srslte_simd_cfi_store(&x[i], _x);
+  }
+#endif
+
+  for (; i < nof_symbols; i++) {
+    cf_t r = 0;
+    float hh = 0;
+    float _scaling = 1.0f / scaling;
+    for (int p = 0; p < nof_rxant; p++) {
+      r += y[p][i] * conj(h[p][i]);
+      hh += (__real__ h[p][i] * __real__ h[p][i]) + (__imag__ h[p][i] * __imag__ h[p][i]);
+    }
+    csi[i] = hh + noise_estimate;
+    x[i] = r * _scaling / csi[i];
+  }
+  return nof_symbols;
+}
+
 /* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
-int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, float scaling, float noise_estimate) {
+int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, float *csi, int nof_symbols, float scaling, float noise_estimate) {
   
   cf_t *y[SRSLTE_MAX_PORTS]; 
   cf_t *h[SRSLTE_MAX_PORTS];
@@ -261,6 +303,10 @@ int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, floa
   h[0] = h_; 
   int nof_rxant = 1; 
   
+  if (csi) {
+    return srslte_predecoding_single_csi(y, h, x, csi, nof_rxant, nof_symbols, scaling, noise_estimate);
+  }
+
 #ifdef LV_HAVE_AVX
   if (nof_symbols > 32 && nof_rxant <= 2) {
     return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
@@ -281,8 +327,12 @@ int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, floa
 }
 
 /* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
-int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x,
+int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, float *csi,
                                     int nof_rxant, int nof_symbols, float scaling, float noise_estimate) {
+  if (csi) {
+    return srslte_predecoding_single_csi(y, h, x, csi, nof_rxant, nof_symbols, scaling, noise_estimate);
+  }
+
 #ifdef LV_HAVE_AVX
   if (nof_symbols > 32) {
     return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
@@ -1418,7 +1468,7 @@ void srslte_predecoding_set_mimo_decoder (srslte_mimo_decoder_t _mimo_decoder) {
 
 /* 36.211 v10.3.0 Section 6.3.4 */
 int srslte_predecoding_type(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                            cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_ports, int nof_layers,
+                            cf_t *x[SRSLTE_MAX_LAYERS], float *csi, int nof_rxant, int nof_ports, int nof_layers,
                             int codebook_idx, int nof_symbols, srslte_mimo_type_t type, float scaling,
                             float noise_estimate) {
 
@@ -1451,7 +1501,7 @@ int srslte_predecoding_type(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS]
     return -1; 
   case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     if (nof_ports == 1 && nof_layers == 1) {
-      return srslte_predecoding_single_multi(y, h[0], x[0], nof_rxant, nof_symbols, scaling, noise_estimate);
+      return srslte_predecoding_single_multi(y, h[0], x[0], csi, nof_rxant, nof_symbols, scaling, noise_estimate);
     } else {
       fprintf(stderr,
           "Number of ports and layers must be 1 for transmission on single antenna ports (%d, %d)\n", nof_ports, nof_layers);

@@ -40,12 +40,13 @@ namespace srsue{
 ue::ue()
     :started(false)
 {
-  pool = byte_buffer_pool::get_instance();
 }
 
 ue::~ue()
 {
-  byte_buffer_pool::cleanup();
+  for (uint32_t i = 0; i < phy_log.size(); i++) {
+    delete(phy_log[i]);
+  }
 }
 
 bool ue::init(all_args_t *args_)
@@ -192,7 +193,8 @@ bool ue::init(all_args_t *args_)
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
   usim.init(&args->usim, &usim_log);
-  nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
+  srslte_nas_config_t nas_cfg(1, args->apn); /* RB_ID_SRB1 */
+  nas.init(&usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
 
   gw.set_netmask(args->expert.ip_netmask);
@@ -273,11 +275,15 @@ void ue::stop()
 
 bool ue::is_attached()
 {
-  return (RRC_STATE_CONNECTED == rrc.get_state());
+  return rrc.is_connected();
 }
 
 void ue::start_plot() {
   phy.start_plot();
+}
+
+void ue::print_pool() {
+  byte_buffer_pool::get_instance()->print_all_buffers();
 }
 
 bool ue::get_metrics(ue_metrics_t &m)
@@ -306,8 +312,13 @@ void ue::rf_msg(srslte_rf_error_t error)
 {
   ue_base *ue = ue_base::get_instance(LTE);
   ue->handle_rf_msg(error);
-  if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
     ue->radio_overflow();
+  } else
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_RX) {
+    ue->stop();
+    ue->cleanup();
+    exit(-1);
   }
 }
 

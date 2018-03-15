@@ -82,6 +82,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
                                                                                            "UECapabilityInformation message. Default 0xe6041c00")
     ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
 
+    ("nas.apn",   bpo::value<string>(&args->apn)->default_value(""),  "Set Access Point Name (APN) for data services")
 
     ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
@@ -159,11 +160,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Pregenerate uplink signals after attach. Improves CPU performance.")
 
     ("expert.rssi_sensor_enabled",
-     bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(true),
+     bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(false),
      "Enable or disable RF frontend RSSI sensor. In some USRP devices can cause segmentation fault")
 
     ("expert.rx_gain_offset",
-     bpo::value<float>(&args->expert.phy.rx_gain_offset)->default_value(10),
+     bpo::value<float>(&args->expert.phy.rx_gain_offset)->default_value(62),
      "RX Gain offset to add to rx_gain to correct RSRP value")
 
       ("expert.prach_gain",
@@ -202,6 +203,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<string>(&args->expert.phy.equalizer_mode)->default_value("mmse"),
      "Equalizer mode")
 
+    ("expert.cfo_is_doppler",
+       bpo::value<bool>(&args->expert.phy.cfo_is_doppler)->default_value(false),
+       "Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed"
+        "to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.")
+
     ("expert.cfo_integer_enabled",
      bpo::value<bool>(&args->expert.phy.cfo_integer_enabled)->default_value(false),
      "Enables integer CFO estimation and correction.")
@@ -213,12 +219,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.cfo_pss_ema",
      bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(DEFAULT_CFO_EMA_TRACK),
      "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
-
-    /* REF EMA is currently not used
-    ("expert.cfo_ref_ema",
-     bpo::value<float>(&args->expert.phy.cfo_ref_ema)->default_value(0.01),
-     "CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition")
-    */
 
     ("expert.cfo_ref_mask",
      bpo::value<uint32_t>(&args->expert.phy.cfo_ref_mask)->default_value(1023),
@@ -257,10 +257,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
      "Period for sampling time offset correction.")
 
-    ("expert.sfo_correct_disable",
-     bpo::value<bool>(&args->expert.phy.sfo_correct_disable)->default_value(false),
-     "Disables phase correction before channel estimation.")
-
     ("expert.sss_algorithm",
      bpo::value<string>(&args->expert.phy.sss_algorithm)->default_value("full"),
      "Selects the SSS estimation algorithm.")
@@ -269,6 +265,9 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<float>(&args->expert.phy.estimator_fil_w)->default_value(0.1),
      "Chooses the coefficients for the 3-tap channel estimator centered filter.")
 
+    ("expert.pdsch_csi_enabled",
+     bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(false),
+     "Stores the Channel State Information and uses it for weightening the softbits. It is only compatible with TM1.")
 
     ("rf_calibration.tx_corr_dc_gain", bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),
      "TX DC offset gain correction")
@@ -418,6 +417,9 @@ void *input_loop(void *m) {
           cout << "Enter t to restart trace." << endl;
         }
         metrics_screen.toggle_print(do_metrics);
+      } else
+      if ('q' == key) {
+        running = false;
       }
     }
   }
@@ -474,7 +476,8 @@ int main(int argc, char *argv[])
         plot_started = true;
       }
     }
-    sleep(1);
+    ue->print_pool();
+    sleep(10);
   }
   pthread_cancel(input);
   metricshub.stop();

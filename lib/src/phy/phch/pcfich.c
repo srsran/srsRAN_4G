@@ -219,7 +219,7 @@ int srslte_pcfich_decode_multi(srslte_pcfich_t *q, cf_t *sf_symbols[SRSLTE_MAX_P
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single_multi(q_symbols, q_ce[0], q->d, q->nof_rx_antennas, q->nof_symbols, 1.0f, noise_estimate);
+      srslte_predecoding_single_multi(q_symbols, q_ce[0], q->d, NULL, q->nof_rx_antennas, q->nof_symbols, 1.0f, noise_estimate);
     } else {
       srslte_predecoding_diversity_multi(q_symbols, q_ce, x, q->nof_rx_antennas, q->cell.nof_ports, q->nof_symbols, 1.0f);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, q->nof_symbols / q->cell.nof_ports);

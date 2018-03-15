@@ -165,7 +165,14 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
       // Route logical channel 
       if (route_pdu) {
         Info("Delivering PDU for lcid=%d, %d bytes\n", pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_payload_size());
-        rlc->write_pdu(pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());      
+        if (pdu_msg->get()->get_payload_size() < MAX_PDU_LEN) {
+          rlc->write_pdu(pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());
+        } else {
+          char tmp[1024];
+          srslte_vec_sprint_hex(tmp, sizeof(tmp), pdu_msg->get()->get_sdu_ptr(), 32);
+          Error("PDU size %d exceeds maximum PDU buffer size, lcid=%d, hex=[%s]\n",
+                pdu_msg->get()->get_payload_size(), pdu_msg->get()->get_sdu_lcid(), tmp);
+        }
       }
     } else {
       // Process MAC Control Element

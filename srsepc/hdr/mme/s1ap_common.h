@@ -49,6 +49,7 @@ typedef struct{
   uint16_t      mnc;        // BCD-coded with 0xF filler
   std::string   mme_bind_addr;
   std::string   mme_name;
+  std::string   mme_apn;
 } s1ap_args_t;
 
 typedef struct{
@@ -96,6 +97,7 @@ typedef struct{
   LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
   bool eit;
   uint8_t procedure_transaction_id;
+  uint8_t attach_type;
 } ue_ctx_t;
 }//namespace
 #endif

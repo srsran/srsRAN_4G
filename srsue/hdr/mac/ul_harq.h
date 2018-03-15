@@ -246,7 +246,6 @@ private:
             } else {
               Warning("UL RAR grant available but no Msg3 on buffer\n");
             }
-            printf("Transmitted Msg3\n");
 
             // Normal UL grant
           } else {
@@ -305,7 +304,7 @@ private:
     bool                        is_msg3;
     bool                        is_initiated;    
     uint32_t                    tti_last_tx;
-    
+
     
     const static int payload_buffer_len = 128*1024; 
     uint8_t *payload_buffer;

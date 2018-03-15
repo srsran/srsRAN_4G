@@ -74,7 +74,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "adgetvsfil")) != -1) {
+  while ((opt = getopt(argc, argv, "adgetvnsfil")) != -1) {
     switch (opt) {
     case 'a':
       rf_args = argv[optind];

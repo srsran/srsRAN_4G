@@ -88,9 +88,10 @@ public:
   uint32_t get_ul_count();
   bool is_attached();
   bool is_attaching();
+  bool is_data_requested();
   bool get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
   bool get_k_asme(uint8_t *k_asme_, uint32_t n);
-  void plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code);
+  bool plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code);
   void plmn_search_end();
 
   // UE interface

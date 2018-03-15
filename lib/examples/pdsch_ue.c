@@ -451,9 +451,6 @@ int main(int argc, char **argv) {
       exit(0);
     }
 
-    srslte_rf_stop_rx_stream(&rf);
-    srslte_rf_flush_buffer(&rf);    
-
     /* set sampling frequency */
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  

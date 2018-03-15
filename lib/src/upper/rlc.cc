@@ -187,10 +187,14 @@ void rlc::write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes)
   rlc_log->info_hex(payload, nof_bytes, "BCCH BCH message received.");
   dl_tput_bytes[0] += nof_bytes;
   byte_buffer_t *buf = pool_allocate;
-  memcpy(buf->msg, payload, nof_bytes);
-  buf->N_bytes = nof_bytes;
-  buf->set_timestamp();
-  pdcp->write_pdu_bcch_bch(buf);
+  if (buf) {
+    memcpy(buf->msg, payload, nof_bytes);
+    buf->N_bytes = nof_bytes;
+    buf->set_timestamp();
+    pdcp->write_pdu_bcch_bch(buf);
+  } else {
+    rlc_log->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_bch()\n");
+  }
 }
 
 void rlc::write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes)
@@ -198,10 +202,14 @@ void rlc::write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes)
   rlc_log->info_hex(payload, nof_bytes, "BCCH TXSCH message received.");
   dl_tput_bytes[0] += nof_bytes;
   byte_buffer_t *buf = pool_allocate;
-  memcpy(buf->msg, payload, nof_bytes);
-  buf->N_bytes = nof_bytes;
-  buf->set_timestamp();
-  pdcp->write_pdu_bcch_dlsch(buf);
+  if (buf) {
+    memcpy(buf->msg, payload, nof_bytes);
+    buf->N_bytes = nof_bytes;
+    buf->set_timestamp();
+    pdcp->write_pdu_bcch_dlsch(buf);
+  } else {
+    rlc_log->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_dlsch()\n");
+  }
 }
 
 void rlc::write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes)
@@ -209,10 +217,14 @@ void rlc::write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes)
   rlc_log->info_hex(payload, nof_bytes, "PCCH message received.");
   dl_tput_bytes[0] += nof_bytes;
   byte_buffer_t *buf = pool_allocate;
-  memcpy(buf->msg, payload, nof_bytes);
-  buf->N_bytes = nof_bytes;
-  buf->set_timestamp();
-  pdcp->write_pdu_pcch(buf);
+  if (buf) {
+    memcpy(buf->msg, payload, nof_bytes);
+    buf->N_bytes = nof_bytes;
+    buf->set_timestamp();
+    pdcp->write_pdu_pcch(buf);
+  } else {
+    rlc_log->error("Fatal error: Out of buffers from the pool in write_pdu_pcch()\n");
+  }
 }
 
 /*******************************************************************************
@@ -281,6 +293,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
 bool rlc::valid_lcid(uint32_t lcid)
 {
   if(lcid >= SRSLTE_N_RADIO_BEARERS) {
+    rlc_log->warning("Invalid LCID=%d\n", lcid);
     return false;
   } else if(!rlc_array[lcid].active()) {
     return false;
