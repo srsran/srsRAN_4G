@@ -140,6 +140,7 @@ typedef struct{
     emm_state_t state;
     uint32_t mme_ue_s1ap_id;
     uint8_t attach_type;
+    struct in_addr ue_ip;
     srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
 } ue_emm_ctx_t;
 

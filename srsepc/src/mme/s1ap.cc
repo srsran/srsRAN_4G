@@ -283,6 +283,9 @@ s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
   case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_INITIALCONTEXTSETUPRESPONSE:
     m_s1ap_log->info("Received Initial Context Setup Response.\n");
     return m_s1ap_ctx_mngmt_proc->handle_initial_context_setup_response(&msg->choice.InitialContextSetupResponse);
+  case  LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_UECONTEXTRELEASECOMPLETE:
+    m_s1ap_log->info("Received UE Context Release Complete\n");
+    return m_s1ap_ctx_mngmt_proc->handle_ue_context_release_complete(&msg->choice.UEContextReleaseComplete);
   default:
     m_s1ap_log->error("Unhandled successful outcome message: %s\n", liblte_s1ap_successfuloutcome_choice_text[msg->choice_type]);
   }

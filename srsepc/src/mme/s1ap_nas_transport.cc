@@ -699,12 +699,14 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       //Save whether secure ESM information transfer is necessary
       ecm_ctx->eit = false;
 
-      //Initialize E-RABs
-      for(uint i = 0 ; i< MAX_ERABS_PER_UE; i++)
+      //Get UE IP, and uplink F-TEID
+      if(emm_ctx->ue_ip.s_addr == 0 )
       {
-        ecm_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
-        ecm_ctx->erabs_ctx[i].erab_id = i;
+        m_s1ap_log->error("UE has no valid IP assigned upon reception of service request");
       }
+      
+      m_s1ap_log->console("UE previously assigned IP: %s",inet_ntoa(emm_ctx->ue_ip));
+      //Mark E-RABs as setup, but not active yet 
 
       //Re-generate K_eNB
       liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
@@ -932,16 +934,11 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
 
   m_s1ap_log->info("Id Response -- IMSI: %015lu\n", imsi);
   m_s1ap_log->console("Id Response -- IMSI: %015lu\n", imsi);
+
+  //Set UE's context IMSI
+  emm_ctx->imsi=imsi;
   ecm_ctx->imsi = imsi;
 
-  //Get UE EMM context
-  //if(m_s1ap->get_tmp_ue_emm_ctx(ue_ecm_ctx->mme_ue_s1ap_id, &ue_emm_ctx) == false)
-  //{
-  //  m_s1ap_log->error("Could not find UE's temporary EMM context. MME UE S1AP Id: %d\n",ue_ecm_ctx->mme_ue_s1ap_id);
-  //  return false;
-  //}
-  emm_ctx->imsi=imsi;
-  
   //Get Authentication Vectors from HSS
   if(!m_hss->gen_auth_info_answer(imsi, emm_ctx->security_ctxt.k_asme, autn, rand, emm_ctx->security_ctxt.xres))
   {
