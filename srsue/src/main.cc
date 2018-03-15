@@ -203,6 +203,14 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<string>(&args->expert.phy.equalizer_mode)->default_value("mmse"),
      "Equalizer mode")
 
+    ("expert.intra_freq_meas_len_ms",
+       bpo::value<uint32_t>(&args->expert.phy.intra_freq_meas_len_ms)->default_value(20),
+       "Duration of the intra-frequency neighbour cell measurement in ms.")
+
+    ("expert.intra_freq_meas_period_ms",
+       bpo::value<uint32_t>(&args->expert.phy.intra_freq_meas_period_ms)->default_value(200),
+       "Period of intra-frequency neighbour cell measurement in ms. Maximum as per 3GPP is 200 ms.")
+
     ("expert.cfo_is_doppler",
        bpo::value<bool>(&args->expert.phy.cfo_is_doppler)->default_value(false),
        "Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed"
