@@ -2846,7 +2846,7 @@ void rrc::rrc_meas::remove_meas_id(uint32_t measId) {
 void rrc::rrc_meas::remove_meas_id(std::map<uint32_t, meas_t>::iterator it) {
   mac_timers->timer_get(it->second.periodic_timer)->stop();
   mac_timers->timer_release_id(it->second.periodic_timer);
-  log_h->info("MEAS: Removed measId=%d, timer_id=%d\n", it->first, active[measId].periodic_timer);
+  log_h->info("MEAS: Removed measId=%d, timer_id=%d\n", it->first, it->second.periodic_timer);
   active.erase(it);
 }
 
