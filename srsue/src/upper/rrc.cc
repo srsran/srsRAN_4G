@@ -2836,7 +2836,7 @@ void rrc::rrc_meas::remove_meas_id(uint32_t measId) {
   if (active.count(measId)) {
     mac_timers->timer_get(active[measId].periodic_timer)->stop();
     mac_timers->timer_release_id(active[measId].periodic_timer);
-    log_h->info("MEAS: Removed measId=%d\n", measId);
+    log_h->info("MEAS: Removed measId=%d, timer_id=%d\n", measId, active[measId].periodic_timer);
     active.erase(measId);
   } else {
     log_h->warning("MEAS: Removing unexistent measId=%d\n", measId);
@@ -2846,7 +2846,7 @@ void rrc::rrc_meas::remove_meas_id(uint32_t measId) {
 void rrc::rrc_meas::remove_meas_id(std::map<uint32_t, meas_t>::iterator it) {
   mac_timers->timer_get(it->second.periodic_timer)->stop();
   mac_timers->timer_release_id(it->second.periodic_timer);
-  log_h->info("MEAS: Removed measId=%d\n", it->first);
+  log_h->info("MEAS: Removed measId=%d, timer_id=%d\n", it->first, active[measId].periodic_timer);
   active.erase(it);
 }
 
