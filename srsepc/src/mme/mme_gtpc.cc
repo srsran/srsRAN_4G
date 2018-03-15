@@ -216,7 +216,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   //Save create session response info to E-RAB context
   ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
   if(ue_ctx == NULL){
-    m_mme_gtpc_log->error("Could not find UE context\n");
+    m_mme_gtpc_log->error("Could not find UE context. IMSI %015lu\n", imsi);
     return;
   }
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
