@@ -489,6 +489,8 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
     q->frame_idx++;
     ret = 0;
 
+    uint32_t frame_idx = q->frame_idx;
+
     /* Try decoding for 1 to cell.nof_ports antennas */
     if (q->search_all_ports) {
       nant = 1; 
@@ -498,7 +500,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
 
     do {
       if (nant != 3) {
-        DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
+        DEBUG("Trying %d TX antennas with %d frames\n", nant, frame_idx);
 
         /* in control channels, only diversity is supported */
         if (nant == 1) {
@@ -511,19 +513,19 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
         }
 
         /* demodulate symbols */
-        srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, &q->llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
+        srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, &q->llr[nof_bits * (frame_idx - 1)], q->nof_symbols);
         
         /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
         * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
         * We know they are ordered.
         */
-        for (nb = 0; nb < q->frame_idx; nb++) {
+        for (nb = 0; nb < frame_idx; nb++) {
           for (dst = 0; (dst < 4 - nb); dst++) {
-            for (src = 0; src < q->frame_idx - nb; src++) {
+            for (src = 0; src < frame_idx - nb; src++) {
               ret = decode_frame(q, src, dst, nb + 1, nof_bits, nant);
               if (ret == 1) {
                 if (sfn_offset) {
-                  *sfn_offset = (int) dst - src + q->frame_idx - 1;
+                  *sfn_offset = (int) dst - src + frame_idx - 1;
                 }
                 if (nof_tx_ports) {
                   *nof_tx_ports = nant; 
@@ -531,7 +533,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
                 if (bch_payload) {
                   memcpy(bch_payload, q->data, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);      
                 }
-                INFO("Decoded PBCH: src=%d, dst=%d, nb=%d, sfn_offset=%d\n", src, dst, nb+1, (int) dst - src + q->frame_idx - 1);
+                INFO("Decoded PBCH: src=%d, dst=%d, nb=%d, sfn_offset=%d\n", src, dst, nb+1, (int) dst - src + frame_idx - 1);
                 srslte_pbch_decode_reset(q);
                 return 1;
               }
