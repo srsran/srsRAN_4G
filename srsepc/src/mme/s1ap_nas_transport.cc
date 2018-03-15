@@ -950,8 +950,8 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
     return false;
   }
 
-  //Store UE EMM context
-  //m_s1ap->add_new_ue_emm_ctx(ue_emm_ctx);
+  //Store UE context im IMSI map
+  m_s1ap->add_ue_ctx_to_imsi_map(ue_ctx);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
