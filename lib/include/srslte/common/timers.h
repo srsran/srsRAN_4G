@@ -153,6 +153,7 @@ public:
     } else {
       for (uint32_t i=0;i<nof_timers;i++) {
         if (!used_timers[i]) {
+          used_timers[i] = true;
           nof_used_timers++;
           return i;
         }
