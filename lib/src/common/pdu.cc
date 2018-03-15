@@ -123,19 +123,14 @@ uint8_t* sch_pdu::write_packet(srslte::log *log_h)
   padding.set_padding();
 
   if (nof_subheaders <= 0) {
-    log_h->error("Writting PDU: nof_subheaders=%d\n", nof_subheaders);
-    log_h->console("Writting PDU: nof_subheaders=%d\n", nof_subheaders);
+    log_h->error("Trying to write packet with invalid number of subheaders (nof_subheaders=%d).\n", nof_subheaders);
+    log_h->console("Trying to write packet with invalid number of subheaders (nof_subheaders=%d).\n", nof_subheaders);
     return NULL;
   }
 
   if (init_rem_len < 0) {
     log_h->error("init_rem_len=%d\n", init_rem_len);
     return NULL; 
-  }
-
-  if (nof_subheaders <= 0) {
-    log_h->error("Trying to write packet with invalid number of subheaders (nof_subheaders=%d).\n", nof_subheaders);
-    return NULL;
   }
 
   /* If last SDU has zero payload, remove it. FIXME: Why happens this?? */
