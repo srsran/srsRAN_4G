@@ -119,7 +119,7 @@ public:
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
   virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
-  virtual void      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
+  virtual bool      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
   virtual void      plmn_search_end() = 0;
 };
 
@@ -160,7 +160,7 @@ public:
   virtual void in_sync() = 0;
   virtual void out_of_sync() = 0;
   virtual void earfcn_end() = 0;
-  virtual void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) = 0;
+  virtual void cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp = NAN) = 0;
   virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1) = 0;
 };
 
@@ -173,7 +173,7 @@ public:
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
   virtual void plmn_search() = 0;
-  virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
+  virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, bool connect_request = false) = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
@@ -474,7 +474,8 @@ typedef struct {
   int cqi_max; 
   int cqi_fixed; 
   float snr_ema_coeff; 
-  std::string snr_estim_alg; 
+  std::string snr_estim_alg;
+  bool cfo_is_doppler;
   bool cfo_integer_enabled; 
   float cfo_correct_tol_hz;
   float cfo_pss_ema;
@@ -487,12 +488,12 @@ typedef struct {
   uint32_t cfo_ref_mask;
   bool average_subframe_enabled;
   int time_correct_period; 
-  bool sfo_correct_disable; 
-  std::string sss_algorithm; 
+  std::string sss_algorithm;
   float estimator_fil_w;   
   bool rssi_sensor_enabled;
   bool sic_pss_enabled;
   float rx_gain_offset;
+  bool pdsch_csi_enabled;
 } phy_args_t; 
 
 
@@ -580,9 +581,8 @@ public:
 
   /* Cell search and selection procedures */
   virtual void cell_search_start() = 0;
-  virtual void cell_search_stop() = 0;
   virtual void cell_search_next() = 0;
-  virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
+  virtual void cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
   virtual bool cell_handover(srslte_cell_t cell) = 0;
 
   /* Is the PHY downlink synchronized? */

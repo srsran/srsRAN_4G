@@ -84,8 +84,6 @@ typedef struct SRSLTE_API {
   srslte_ofdm_t fft_mbsfn;
   srslte_chest_dl_t chest;
   
-  srslte_cfo_t sfo_correct; 
-  
   srslte_pdsch_cfg_t pdsch_cfg;
   srslte_pdsch_cfg_t pmch_cfg;
   srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS];
@@ -126,8 +124,6 @@ typedef struct SRSLTE_API {
   srslte_dci_msg_t pending_ul_dci_msg; 
   uint16_t pending_ul_dci_rnti; 
   
-  float sample_offset;
-
   float last_phich_corr;
 }srslte_ue_dl_t;
 
@@ -194,9 +190,6 @@ SRSLTE_API int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q,
                                              srslte_dci_msg_t *dci_msg);
 
 SRSLTE_API uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q);
-
-SRSLTE_API void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, 
-                                               float sample_offset); 
 
 SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t *q,
                                    uint8_t *data[SRSLTE_MAX_CODEWORDS],

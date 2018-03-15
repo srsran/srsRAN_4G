@@ -54,12 +54,5 @@ void byte_buffer_pool::cleanup(void)
   }
   pthread_mutex_unlock(&instance_mutex);
 }
-
   
-
-
-
-
-
-
 } // namespace srsue

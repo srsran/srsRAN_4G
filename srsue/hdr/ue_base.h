@@ -126,6 +126,7 @@ typedef struct {
   usim_args_t   usim;
   rrc_args_t    rrc;
   std::string   ue_category_str;
+  std::string   apn;
   expert_args_t expert;
 }all_args_t;
 
@@ -146,7 +147,7 @@ class ue_base
 {
 public:
   ue_base();
-  virtual ~ue_base() {}
+  virtual ~ue_base();
 
   static ue_base* get_instance(srsue_instance_type_t type);
 
@@ -156,6 +157,8 @@ public:
   virtual void stop() = 0;
   virtual bool is_attached() = 0;
   virtual void start_plot() = 0;
+
+  virtual void print_pool() = 0;
 
   virtual void radio_overflow() = 0;
   
@@ -173,6 +176,9 @@ public:
   std::string get_build_mode();
   std::string get_build_info();
   std::string get_build_string();
+
+private:
+  srslte::byte_buffer_pool *pool;
 };
 
 } // namespace srsue

@@ -355,13 +355,16 @@ void phch_common::reset() {
 
 void phch_common::reset_ul()
 {
+  /*
   is_first_tx = true;
-  is_first_of_burst = true; 
+  is_first_of_burst = true;
+
   for (uint32_t i=0;i<nof_mutex;i++) {
     pthread_mutex_trylock(&tx_mutex[i]);
     pthread_mutex_unlock(&tx_mutex[i]);
   }
   radio_h->tx_end();
+   */
 }
 
 }
