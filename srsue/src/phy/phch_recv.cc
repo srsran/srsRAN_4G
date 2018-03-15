@@ -1436,11 +1436,11 @@ void phch_recv::intra_measure::init(phch_common *common, rrc_interface_phy *rrc,
   receive_enabled = false;
 
   // Start scell
-  scell.init(log_h, common->args->sic_pss_enabled, INTRA_FREQ_MEAS_LEN_MS);
+  scell.init(log_h, common->args->sic_pss_enabled, common->args->intra_freq_meas_len_ms);
 
-  search_buffer = (cf_t*) srslte_vec_malloc(INTRA_FREQ_MEAS_LEN_MS*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)*sizeof(cf_t));
+  search_buffer = (cf_t*) srslte_vec_malloc(common->args->intra_freq_meas_len_ms*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)*sizeof(cf_t));
 
-  if (srslte_ringbuffer_init(&ring_buffer, sizeof(cf_t)*INTRA_FREQ_MEAS_LEN_MS*2*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB))) {
+  if (srslte_ringbuffer_init(&ring_buffer, sizeof(cf_t)*common->args->intra_freq_meas_len_ms*2*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB))) {
     return;
   }
 
@@ -1510,7 +1510,7 @@ void phch_recv::intra_measure::rem_cell(int pci) {
 
 void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples) {
   if (receive_enabled) {
-    if ((tti%INTRA_FREQ_MEAS_PERIOD_MS) == 0) {
+    if ((tti%common->args->intra_freq_meas_period_ms) == 0) {
       receiving   = true;
       receive_cnt = 0;
       measure_tti = tti;
@@ -1522,7 +1522,7 @@ void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples
         receiving = false;
       } else {
         receive_cnt++;
-        if (receive_cnt == INTRA_FREQ_MEAS_LEN_MS) {
+        if (receive_cnt == common->args->intra_freq_meas_len_ms) {
           tti_sync.increase();
           receiving = false; 
         }
@@ -1541,8 +1541,8 @@ void phch_recv::intra_measure::run_thread()
     if (running) {
 
       // Read data from buffer and find cells in it
-      srslte_ringbuffer_read(&ring_buffer, search_buffer, INTRA_FREQ_MEAS_LEN_MS*current_sflen*sizeof(cf_t));
-      int found_cells = scell.find_cells(search_buffer, common->rx_gain_offset, primary_cell, INTRA_FREQ_MEAS_LEN_MS, info);
+      srslte_ringbuffer_read(&ring_buffer, search_buffer, common->args->intra_freq_meas_len_ms*current_sflen*sizeof(cf_t));
+      int found_cells = scell.find_cells(search_buffer, common->rx_gain_offset, primary_cell, common->args->intra_freq_meas_len_ms, info);
       receiving = false;
 
       for (int i=0;i<found_cells;i++) {
