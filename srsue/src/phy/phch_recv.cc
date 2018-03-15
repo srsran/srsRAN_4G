@@ -280,8 +280,10 @@ void phch_recv::cell_search_inc()
       rrc->earfcn_end();
     } else {
       Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
-      current_earfcn = earfcn[cur_earfcn_index];
-      set_frequency();
+      if (current_earfcn != earfcn[cur_earfcn_index]) {
+        current_earfcn = earfcn[cur_earfcn_index];
+        set_frequency();
+      }
       phy_state = CELL_SEARCH;
     }
   }
