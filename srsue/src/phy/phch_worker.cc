@@ -418,7 +418,9 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
       /* If 2 ort more receiving antennas, select RI */
       float cn = 0.0f;
       srslte_ue_dl_ri_select(&ue_dl, ri, &cn);
-      Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
+      if (ri) {
+        Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
+      }
     } else {
       /* If only one receiving antenna, force RI for 1 layer */
       if (ri) {
