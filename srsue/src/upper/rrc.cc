@@ -156,7 +156,7 @@ rrc_state_t rrc::get_state() {
 }
 
 bool rrc::is_connected() {
-  return (RRC_STATE_CONNECTED >= state && state < RRC_STATE_LEAVE_CONNECTED);
+  return (state >= RRC_STATE_CONNECTED && state < RRC_STATE_LEAVE_CONNECTED);
 }
 
 bool rrc::have_drb() {

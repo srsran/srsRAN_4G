@@ -63,8 +63,16 @@ public:
   void write_trace(std::string filename);
   
   int read_ce_abs(float *ce_abs, uint32_t tx_antenna, uint32_t rx_antenna);
-  uint32_t get_cell_nof_ports() {return cell.nof_ports;};
-  uint32_t get_rx_nof_antennas() {return ue_dl.nof_rx_antennas;};
+  uint32_t get_cell_nof_ports() {
+    if (cell_initiated) {
+      return cell.nof_ports;
+    } else {
+      return 1;
+    }
+  };
+  uint32_t get_rx_nof_antennas() {
+    return ue_dl.nof_rx_antennas;
+  };
   int read_pdsch_d(cf_t *pdsch_d);
   void start_plot();
 
