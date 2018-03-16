@@ -222,6 +222,9 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
+  //Save UE IP to nas ctxt
+  emm_ctx->ue_ip.s_addr = cs_resp->paa.ipv4;
+  m_mme_gtpc_log->console("SPGW Allocated IP %s to ISMI %015lu",inet_ntoa(emm_ctx->ue_ip),emm_ctx->imsi);
   //Save SGW ctrl F-TEID in GTP-C context
   std::map<uint64_t,struct gtpc_ctx>::iterator it_g = m_imsi_to_gtpc_ctx.find(imsi);
   if(it_g == m_imsi_to_gtpc_ctx.end())
