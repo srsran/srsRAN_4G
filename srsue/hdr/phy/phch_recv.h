@@ -233,8 +233,6 @@ private:
     void write(uint32_t tti, cf_t *data, uint32_t nsamples);
   private:
     void run_thread();
-    const static int INTRA_FREQ_MEAS_LEN_MS    = 20;
-    const static int INTRA_FREQ_MEAS_PERIOD_MS = 200;
     const static int INTRA_FREQ_MEAS_PRIO      = DEFAULT_PRIORITY + 5;
 
     scell_recv         scell;
