@@ -13,11 +13,10 @@ int srslte_ringbuffer_init(srslte_ringbuffer_t *q, int capacity)
   }
   q->active     = true;
   q->capacity   = capacity;
-  srslte_ringbuffer_reset(q);
-  
   pthread_mutex_init(&q->mutex, NULL); 
   pthread_cond_init(&q->cvar, NULL);
-  
+  srslte_ringbuffer_reset(q);
+
   return 0; 
 }
 
@@ -46,6 +45,11 @@ void srslte_ringbuffer_reset(srslte_ringbuffer_t *q)
 int srslte_ringbuffer_status(srslte_ringbuffer_t *q)
 {
   return q->count;
+}
+
+int srslte_ringbuffer_space(srslte_ringbuffer_t *q)
+{
+  return q->capacity - q->count;
 }
 
 int srslte_ringbuffer_write(srslte_ringbuffer_t *q, void *p, int nof_bytes)
