@@ -155,6 +155,8 @@ public:
 
   virtual bool init(all_args_t *args_) = 0;
   virtual void stop() = 0;
+  virtual bool attach() = 0;
+  virtual bool deattach() = 0;
   virtual bool is_attached() = 0;
   virtual void start_plot() = 0;
 

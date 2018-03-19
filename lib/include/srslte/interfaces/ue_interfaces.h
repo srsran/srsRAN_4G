@@ -112,30 +112,28 @@ public:
 class nas_interface_rrc
 {
 public:
+  virtual void      rrc_connection_failure() = 0;
+  virtual void      paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy) = 0;
   virtual bool      is_attached() = 0;
-  virtual bool      is_attaching() = 0;
-  virtual void      notify_connection_setup() = 0;
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
   virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
-  virtual bool      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
-  virtual void      plmn_search_end() = 0;
 };
 
 // NAS interface for UE
 class nas_interface_ue
 {
 public:
-  virtual void attach_request() = 0;
-  virtual void deattach_request() = 0;
+  virtual bool attach_request() = 0;
+  virtual bool deattach_request() = 0;
 };
 
 // NAS interface for UE
 class nas_interface_gw
 {
 public:
-  virtual void attach_request() = 0;
+  virtual bool attach_request() = 0;
 };
 
 // RRC interface for MAC
@@ -159,8 +157,6 @@ class rrc_interface_phy
 public:
   virtual void in_sync() = 0;
   virtual void out_of_sync() = 0;
-  virtual void earfcn_end() = 0;
-  virtual void cell_camping(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp = NAN) = 0;
   virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1) = 0;
 };
 
@@ -168,12 +164,21 @@ public:
 class rrc_interface_nas
 {
 public:
+  typedef struct {
+    LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id;
+    uint16_t                        tac;
+  } found_plmn_t;
+
+  const static int MAX_FOUND_PLMNS = 16;
+
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
   virtual uint16_t get_mcc() = 0;
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
-  virtual void plmn_search() = 0;
-  virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, bool connect_request = false) = 0;
+  virtual int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]) = 0;
+  virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
+  virtual bool connection_request() = 0;
+  virtual bool is_connected() = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
@@ -380,12 +385,7 @@ public:
   
   /* Indicate successfull decoding of PCH TB through PDSCH */
   virtual void pch_decoded_ok(uint32_t len) = 0;  
-  
-  /* Function called every start of a subframe (TTI). Warning, this function is called 
-   * from a high priority thread and should terminate asap 
-   */
-  virtual void tti_clock(uint32_t tti) = 0;
-  
+
 };
 
 /* Interface RRC -> MAC shared between different RATs */
@@ -503,9 +503,7 @@ typedef struct {
 class phy_interface_mac_common
 {
 public:
-  /* Start synchronization with strongest cell in the current carrier frequency */
-  virtual bool sync_status() = 0;
-  
+
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   virtual void set_crnti(uint16_t rnti) = 0;
 
@@ -581,15 +579,22 @@ public:
   virtual int  meas_start(uint32_t earfcn, int pci = -1) = 0;
   virtual int  meas_stop(uint32_t earfcn, int pci = -1) = 0;
 
-  /* Cell search and selection procedures */
-  virtual void cell_search_start() = 0;
-  virtual void cell_search_next() = 0;
-  virtual void cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
-  virtual bool cell_handover(srslte_cell_t cell) = 0;
+  typedef enum {
+    CELL_NOT_FOUND = 0,
+    CELL_FOUND,
+    NO_MORE_FREQS,
+    ERROR
+  } cell_search_ret_t;
 
-  /* Is the PHY downlink synchronized? */
-  virtual bool sync_status() = 0;
-  virtual void sync_reset()  = 0;
+  typedef struct {
+    srslte_cell_t cell;
+    uint32_t      earfcn;
+  } phy_cell_t;
+
+  /* Cell search and selection procedures */
+  virtual cell_search_ret_t  cell_search(phy_cell_t *cell, float *rsrp) = 0;
+  virtual bool cell_select(phy_cell_t *cell = NULL) = 0;
+  virtual bool cell_is_camping() = 0;
 
   /* Configure UL using parameters written with set_param() */
   virtual void configure_ul_params(bool pregen_disabled = false) = 0;

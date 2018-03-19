@@ -41,27 +41,21 @@
 
 namespace srsue {
 
-mac::mac() : ttisync(10240), 
-             timers(64),
+mac::mac() : timers(64),
              mux_unit(MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
 {
-  started = false;
   pcap    = NULL;
   bzero(&metrics, sizeof(mac_metrics_t));
 }
 
 bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
 {
-  started = false;
   phy_h = phy;
   rlc_h = rlc;
   rrc_h = rrc;
   log_h = log_h_;
   tti = 0;
-  is_synchronized = false;
-  last_temporal_crnti = 0;
-  phy_rnti = 0;
 
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
 
@@ -79,23 +73,18 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
 
   reset();
 
-  started = true;
-  start(MAC_MAIN_THREAD_PRIO);
+  start_periodic(1000, MAC_MAIN_THREAD_PRIO);
 
-  mactimers.init(&timers, log_h);
-
-  return started;
+  return true;
 }
 
 void mac::stop()
 {
   srslte_softbuffer_rx_free(&pch_softbuffer);
 
-  started = false;
-  ttisync.increase();
   pdu_process_thread.stop();
+  stop_thread();
   wait_thread_finish();
-  mactimers.stop();
 }
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
@@ -150,59 +139,38 @@ void mac::reset()
   bzero(&uernti, sizeof(ue_rnti_t));
 }
 
-void mac::mac_timers::init(srslte::timers *timers, srslte::log *log_h) {
-  this->timers = timers;
-  running = true;
-  this->log_h = log_h;
-  start_periodic(1000);
-}
+void mac::run_period() {
 
-void mac::mac_timers::run_period() {
-  timers->step_all();
-}
+  /* Warning: Here order of invocation of procedures is important!! */
 
-void mac::run_thread() {
-  int cnt=0;
+  tti = phy_h->get_current_tti();
 
-  while (!phy_h->sync_status() && started) {
-    usleep(5000);
-    if (phy_h->sync_status()) {
-      Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
-      ttisync.set_producer_cntr(phy_h->get_current_tti());
-    }
+  log_h->step(tti);
+
+  // Step all procedures
+  bsr_procedure.step(tti);
+  phr_procedure.step(tti);
+
+  // Check if BSR procedure need to start SR
+
+  if (bsr_procedure.need_to_send_sr(tti)) {
+    Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", tti);
+    sr_procedure.start();
+  }
+  if (bsr_procedure.need_to_reset_sr()) {
+    Debug("Resetting SR procedure by BSR request\n");
+    sr_procedure.reset();
+  }
+  sr_procedure.step(tti);
+
+  // Check SR if we need to start RA
+  if (sr_procedure.need_random_access()) {
+    ra_procedure.start_mac_order();
   }
 
-  while(started) {
-
-    /* Warning: Here order of invocation of procedures is important!! */
-    tti = ttisync.wait();
-
-    log_h->step(tti);
-
-    // Step all procedures
-    bsr_procedure.step(tti);
-    phr_procedure.step(tti);
-
-    // Check if BSR procedure need to start SR
-
-    if (bsr_procedure.need_to_send_sr(tti)) {
-      Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", tti);
-      sr_procedure.start();
-    }
-    if (bsr_procedure.need_to_reset_sr()) {
-      Debug("Resetting SR procedure by BSR request\n");
-      sr_procedure.reset();
-    }
-    sr_procedure.step(tti);
-
-    // Check SR if we need to start RA
-    if (sr_procedure.need_random_access()) {
-      ra_procedure.start_mac_order();
-    }
-    ra_procedure.step(tti);
-
-    rrc_h->run_tti(tti);
-  }
+  ra_procedure.step(tti);
+  timers.step_all();
+  rrc_h->run_tti(tti);
 }
 
 void mac::bcch_start_rx()
@@ -235,12 +203,6 @@ void mac::pcch_start_rx()
 void mac::pcch_stop_rx()
 {
   phy_h->pdcch_dl_search_reset();
-}
-
-
-void mac::tti_clock(uint32_t tti)
-{
-  ttisync.increase(tti);
 }
 
 void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)

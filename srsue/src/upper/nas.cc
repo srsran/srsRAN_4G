@@ -45,7 +45,7 @@ namespace srsue {
  ********************************************************************/
 
 nas::nas()
-  : state(EMM_STATE_DEREGISTERED), plmn_selection(PLMN_SELECTED), have_guti(false), have_ctxt(false), ip_addr(0), eps_bearer_id(0)
+  : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), ip_addr(0), eps_bearer_id(0)
 {
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
@@ -63,7 +63,6 @@ void nas::init(usim_interface_nas *usim_,
   gw = gw_;
   nas_log = nas_log_;
   state = EMM_STATE_DEREGISTERED;
-  plmn_selection = PLMN_NOT_SELECTED;
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
     nas_log->error("Getting Home PLMN Id from USIM. Defaulting to 001-01\n");
@@ -94,104 +93,196 @@ emm_state_t nas::get_state() {
  * UE interface
  ******************************************************************************/
 
-void nas::attach_request() {
+/** Blocking function to Attach to the network and establish RRC connection if not established.
+ * The function returns true if the UE could attach correctly or false in case of error or timeout during attachment.
+ *
+ */
+bool nas::attach_request() {
+  rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
+  int nof_plmns = 0;
+
+  uint32_t tout = 0;
   nas_log->info("Attach Request\n");
-  if (state == EMM_STATE_DEREGISTERED) {
-    state = EMM_STATE_REGISTERED_INITIATED;
-    if (plmn_selection == PLMN_NOT_SELECTED) {
-      nas_log->info("Starting PLMN Search...\n");
-      rrc->plmn_search();
-    } else if (plmn_selection == PLMN_SELECTED) {
-      nas_log->info("Selecting PLMN %s\n", plmn_id_to_string(current_plmn).c_str());
-      rrc->plmn_select(current_plmn);
-      selecting_plmn = current_plmn;
-    }
-  } else if (state == EMM_STATE_REGISTERED) {
-    nas_log->info("NAS state is registered, selecting current PLMN\n");
-    rrc->plmn_select(current_plmn, true);
-  } else {
-    nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
-  }
-}
+  switch (state) {
+    case EMM_STATE_DEREGISTERED:
 
-void nas::deattach_request() {
-  state = EMM_STATE_DEREGISTERED_INITIATED;
-  nas_log->info("Dettach request not supported\n");
-}
-
-/*******************************************************************************
- * RRC interface
- ******************************************************************************/
-
-bool nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
-
-  // Check if already registered
-  for (uint32_t i=0;i<known_plmns.size();i++) {
-    if (plmn_id.mcc == known_plmns[i].mcc && plmn_id.mnc == known_plmns[i].mnc) {
-      nas_log->info("Found known PLMN Id=%s\n", plmn_id_to_string(plmn_id).c_str());
-      if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
-        nas_log->info("Connecting Home PLMN Id=%s\n", plmn_id_to_string(plmn_id).c_str());
-        rrc->plmn_select(plmn_id, state == EMM_STATE_REGISTERED_INITIATED);
-        selecting_plmn = plmn_id;
-        return true;
+      // Search PLMN is not selected
+      if (!plmn_is_selected) {
+        nas_log->info("No PLMN selected. Starting PLMN Search...\n");
+        nof_plmns = rrc->plmn_search(found_plmns);
+        if (nof_plmns > 0) {
+          // Save PLMNs
+          known_plmns.clear();
+          for (int i=0;i<nof_plmns;i++) {
+            known_plmns.push_back(found_plmns[i].plmn_id);
+            nas_log->info("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_string(found_plmns[i].plmn_id).c_str(),
+                          found_plmns[i].tac);
+            nas_log->console("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_string(found_plmns[i].plmn_id).c_str(),
+                             found_plmns[i].tac);
+          }
+          select_plmn();
+        } else if (nof_plmns == 0) {
+          nas_log->warning("Did not find any PLMN in the set of frequencies\n");
+          return false;
+        } else if (nof_plmns < 0) {
+          nas_log->error("Error while searching for PLMNs\n");
+          return false;
+        }
       }
-      return false;
-    }
-  }
-
-  // Save if new PLMN
-  known_plmns.push_back(plmn_id);
-
-  nas_log->info("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_string(plmn_id).c_str(),
-                tracking_area_code);
-  nas_log->console("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_string(plmn_id).c_str(),
-                tracking_area_code);
-
-  if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
-    rrc->plmn_select(plmn_id, state == EMM_STATE_REGISTERED_INITIATED);
-    selecting_plmn = plmn_id;
-    return true;
+      // Select PLMN in request establishment of RRC connection
+      if (plmn_is_selected) {
+        rrc->plmn_select(current_plmn);
+        if (rrc_connect()) {
+          nas_log->info("RRC connection established. Sending NAS attach request\n");
+          if (attach(false)) {
+            nas_log->info("NAS attached successfully.\n");
+            return true;
+          }
+        }
+      } else {
+        nas_log->error("PLMN is not selected because no suitable PLMN was found\n");
+      }
+      break;
+    case EMM_STATE_REGISTERED:
+      if (rrc->is_connected()) {
+        nas_log->info("NAS is already registered and RRC connected\n");
+        return true;
+      } else {
+        nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
+        if (rrc_connect()) {
+          nas_log->info("RRC connection established. Sending NAS attach request\n");
+          if (attach(true)) {
+            nas_log->info("NAS attached successfully.\n");
+            return true;
+          }
+        }
+      }
+      break;
+    default:
+      nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
   }
   return false;
 }
 
-// RRC indicates that the UE has gone through all EARFCN and finished PLMN selection
-void nas::plmn_search_end() {
-  if (known_plmns.size() > 0) {
-    if (home_plmn.mcc != known_plmns[0].mcc && home_plmn.mnc != known_plmns[0].mnc) {
-      nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
-                    plmn_id_to_string(home_plmn).c_str(),
-                    plmn_id_to_string(known_plmns[0]).c_str());
-
-      nas_log->console("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
-                       plmn_id_to_string(home_plmn).c_str(),
-                       plmn_id_to_string(known_plmns[0]).c_str());
-    }
-    rrc->plmn_select(known_plmns[0], state == EMM_STATE_REGISTERED_INITIATED);
-  } else {
-    nas_log->info("Finished searching PLMN in current EARFCN set but no networks were found.\n");
-    if (state == EMM_STATE_REGISTERED_INITIATED && plmn_selection == PLMN_NOT_SELECTED) {
-      rrc->plmn_search();
-    }
-  }
+bool nas::deattach_request() {
+  state = EMM_STATE_DEREGISTERED_INITIATED;
+  nas_log->info("Dettach request not supported\n");
+  return false;
 }
+
 
 bool nas::is_attached() {
   return state == EMM_STATE_REGISTERED;
 }
 
-bool nas::is_attaching() {
-  return state == EMM_STATE_REGISTERED_INITIATED;
-}
-
-void nas::notify_connection_setup() {
-  nas_log->debug("State = %s\n", emm_state_text[state]);
-  if (EMM_STATE_REGISTERED_INITIATED == state) {
-    send_attach_request();
-  } else {
-    send_service_request();
+void nas::paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy) {
+  if (state == EMM_STATE_REGISTERED) {
+    nas_log->info("Received paging: requesting RRC connection establishment\n");
+    if (rrc_connect()) {
+      nas_log->info("Connected successfully. Initiating service request\n");
+      if (attach(true)) {
+        nas_log->info("Attached successfully\n");
+      } else {
+        nas_log->error("Could not attach\n");
+      }
+    } else {
+      nas_log->error("Could not establish RRC connection\n");
+    }
   }
 }
+
+void nas::rrc_connection_failure() {
+  nas_log->debug("Received RRC Connection Failure\n");
+  rrc_connection_is_failure = true;
+}
+
+/* Internal function that requests RRC connection, waits for positive or negative response and returns true/false
+ */
+bool nas::rrc_connect() {
+  if (rrc->is_connected()) {
+    nas_log->info("Already connected\n");
+    return true;
+  }
+  uint32_t tout;
+  rrc_connection_is_failure = false;
+  if (rrc->connection_request()) {
+    // Wait until RRCConnected or connection error
+    tout = 0;
+    while (tout < 10000 && !rrc->is_connected() && !rrc_connection_is_failure) {
+      usleep(1000);
+      tout++;
+    }
+    if (rrc->is_connected()) {
+      rrc_connection_is_failure = false;
+      return true;
+    } else if (rrc_connection_is_failure) {
+      nas_log->info("Failed to establish RRC connection\n");
+    } else {
+      nas_log->error("Timed out while establishing RRC connection (%d s)\n", tout/1000);
+    }
+  } else {
+    nas_log->warning("Could initiate RRC connection request\n");
+  }
+  return false;
+}
+
+/* Internal function that requests NAS attach, waits for positive or negative response and returns true/false
+ */
+bool nas::attach(bool is_service_req) {
+  uint32_t tout;
+
+  if (is_service_req) {
+    send_service_request();
+  } else {
+    send_attach_request();
+  }
+
+  state = EMM_STATE_REGISTERED_INITIATED;
+
+  // Wait until NAS is registered
+  tout = 0;
+  while (tout < 10000 && state == EMM_STATE_REGISTERED_INITIATED) {
+    usleep(1000);
+    tout++;
+  }
+  if (state == EMM_STATE_REGISTERED) {
+    return true;
+  } else if (state == EMM_STATE_DEREGISTERED) {
+    nas_log->error("Received attach reject while trying to attach\n");
+  } else {
+    nas_log->error("Timed out while trying to attach\n");
+  }
+  return false;
+}
+
+void nas::select_plmn() {
+
+  plmn_is_selected = false;
+
+  // First find if Home PLMN is available
+  for (uint32_t i=0;i<known_plmns.size();i++) {
+    if (known_plmns[i].mcc == home_plmn.mcc && known_plmns[i].mnc == home_plmn.mnc) {
+      nas_log->info("Selecting Home PLMN Id=%s\n", plmn_id_to_string(known_plmns[i]).c_str());
+      plmn_is_selected = true;
+      current_plmn = known_plmns[i];
+      return;
+    }
+  }
+
+  // If not, select the first available PLMN
+  if (known_plmns.size() > 0) {
+    nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
+                  plmn_id_to_string(home_plmn).c_str(),
+                  plmn_id_to_string(known_plmns[0]).c_str());
+
+    nas_log->console("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
+                     plmn_id_to_string(home_plmn).c_str(),
+                     plmn_id_to_string(known_plmns[0]).c_str());
+    plmn_is_selected = true;
+    current_plmn = known_plmns[0];
+  }
+}
+
 
 void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   uint8 pd = 0;
@@ -534,8 +625,6 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     // FIXME: Setup the default EPS bearer context
 
     state = EMM_STATE_REGISTERED;
-    current_plmn = selecting_plmn;
-    plmn_selection = PLMN_SELECTED;
 
     ctxt.rx_count++;
 

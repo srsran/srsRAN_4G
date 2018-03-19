@@ -28,6 +28,7 @@
 #define UEPHYRECV_H
 
 #include <map>
+#include <pthread.h>
 
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
@@ -50,28 +51,22 @@ class phch_recv : public thread, public chest_feedback_itf
 public:
   phch_recv();
   ~phch_recv();
+
   void init(srslte::radio_multi* radio_handler, mac_interface_phy *mac,rrc_interface_phy *rrc,
             prach *prach_buffer, srslte::thread_pool *_workers_pool,
             phch_common *_worker_com, srslte::log* _log_h, srslte::log *_log_phy_lib_h, uint32_t nof_rx_antennas, uint32_t prio, int sync_cpu_affinity = -1);
   void stop();
-  void set_agc_enable(bool enable);
+  void radio_overflow();
 
-  void    set_earfcn(std::vector<uint32_t> earfcn);
-  void    force_freq(float dl_freq, float ul_freq);
-  
-  void    reset_sync();
-  void    cell_search_start();
-  void    cell_search_next(bool reset = false);
-  void    cell_select(uint32_t earfcn, srslte_cell_t cell);
-  bool    cell_handover(srslte_cell_t cell);
+  // RRC interface for controling the SYNC state
+  phy_interface_rrc::cell_search_ret_t cell_search(phy_interface_rrc::phy_cell_t *cell, float *rsrpq);
+  bool    cell_select(phy_interface_rrc::phy_cell_t *cell);
+  bool    cell_is_camping();
 
+  // RRC interface for controlling the neighbour cell measurement
   void    meas_reset();
   int     meas_start(uint32_t earfcn, int pci);
   int     meas_stop(uint32_t earfcn, int pci);
-
-  uint32_t get_current_tti();
-  
-  bool    status_is_sync();
 
   // from chest_feedback_itf
   void    in_sync();
@@ -80,36 +75,20 @@ public:
 
   void    set_time_adv_sec(float time_adv_sec);
   void    get_current_cell(srslte_cell_t *cell, uint32_t *earfcn = NULL);
+  uint32_t get_current_tti();
 
+  // From UE configuration
+  void    set_agc_enable(bool enable);
+  void    set_earfcn(std::vector<uint32_t> earfcn);
+  void    force_freq(float dl_freq, float ul_freq);
 
+  // Other functions
   const static int MUTEX_X_WORKER = 4;
-
   double set_rx_gain(double gain);
   int radio_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
   int scell_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
 
 private:
-
-  std::vector<uint32_t> earfcn;
-
-  void   reset();
-  void   radio_error();
-  void   set_ue_sync_opts(srslte_ue_sync_t *q, float cfo);
-  void   run_thread();
-
-  void   set_sampling_rate();
-  bool   set_frequency();
-  bool   set_cell();
-
-  void   cell_search_inc();
-  void   cell_reselect();
-
-  float  get_cfo();
-
-  uint32_t new_earfcn;
-  srslte_cell_t new_cell;
-
-  bool   running;
 
   // Class to run cell search
   class search {
@@ -137,22 +116,23 @@ private:
   // Class to synchronize system frame number
   class sfn_sync {
   public:
-    typedef enum {IDLE, SFN_FOUND, SFX0_FOUND, ERROR, TIMEOUT} ret_code;
+    typedef enum {IDLE, SFN_FOUND, SFX0_FOUND, SFN_NOFOUND, ERROR} ret_code;
 
     ~sfn_sync();
-    void     init(srslte_ue_sync_t *ue_sync, cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, uint32_t timeout = SYNC_SFN_TIMEOUT);
+    void     init(srslte_ue_sync_t *ue_sync, cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, uint32_t nof_subframes = SFN_SYNC_NOF_SUBFRAMES);
     void     reset();
     bool     set_cell(srslte_cell_t cell);
     ret_code run_subframe(srslte_cell_t *cell, uint32_t *tti_cnt, bool sfidx_only = false);
 
   private:
+    const static int SFN_SYNC_NOF_SUBFRAMES = 100;
+
+    uint32_t          cnt;
+    uint32_t          timeout;
     srslte::log      *log_h;
     srslte_ue_sync_t *ue_sync;
     cf_t             *buffer[SRSLTE_MAX_PORTS];
     srslte_ue_mib_t   ue_mib;
-    uint32_t          cnt;
-    uint32_t          timeout;
-    const static uint32_t SYNC_SFN_TIMEOUT = 80;
   };
 
   // Class to perform cell measurements
@@ -170,7 +150,7 @@ private:
     void      set_cell(srslte_cell_t cell);
     ret_code  run_subframe(uint32_t sf_idx);
     ret_code  run_subframe_sync(srslte_ue_sync_t *ue_sync, uint32_t sf_idx);
-    ret_code  run_multiple_subframes(cf_t *buffer, int offset, uint32_t sf_idx, uint32_t nof_sf);
+    ret_code  run_multiple_subframes(cf_t *buffer, uint32_t offset, uint32_t sf_idx, uint32_t nof_sf);
     float     rssi();
     float     rsrp();
     float     rsrq();
@@ -201,11 +181,11 @@ private:
       uint32_t offset;
     } cell_info_t;
     void init(srslte::log *log_h, bool sic_pss_enabled, uint32_t max_sf_window);
-    void deinit();
     void reset();
     int find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
   private:
 
+    cf_t               *input_cfo_corrected;
     cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
     srslte::log        *log_h;
     srslte_sync_t       sync_find;
@@ -222,7 +202,6 @@ private:
   // Class to perform intra-frequency measurements
   class intra_measure : public thread {
   public:
-    ~intra_measure();
     void init(phch_common *common, rrc_interface_phy *rrc, srslte::log *log_h);
     void stop();
     void add_cell(int pci);
@@ -233,6 +212,8 @@ private:
     void write(uint32_t tti, cf_t *data, uint32_t nsamples);
   private:
     void run_thread();
+    const static int INTRA_FREQ_MEAS_LEN_MS    = 50;
+    const static int INTRA_FREQ_MEAS_PERIOD_MS = 200;
     const static int INTRA_FREQ_MEAS_PRIO      = DEFAULT_PRIORITY + 5;
 
     scell_recv         scell;
@@ -261,6 +242,23 @@ private:
   // 36.133 9.1.2.1 for band 7
   const static float ABSOLUTE_RSRP_THRESHOLD_DBM = -125;
 
+  std::vector<uint32_t> earfcn;
+
+  void   reset();
+  void   radio_error();
+  void   set_ue_sync_opts(srslte_ue_sync_t *q, float cfo);
+  void   run_thread();
+
+  void   set_sampling_rate();
+  bool   set_frequency();
+  bool   set_cell();
+
+  uint32_t new_earfcn;
+  srslte_cell_t new_cell;
+
+  bool   radio_is_overflow;
+  bool   radio_overflow_return;
+  bool   running;
 
   // Objects for internal use
   measure               measure_p;
@@ -298,19 +296,128 @@ private:
   const static uint32_t NOF_OUT_OF_SYNC_SF = 200;
   const static uint32_t NOF_IN_SYNC_SF     = 100;
 
-  // State for primary cell
-  typedef enum {
-    IDLE = 0,
-    CELL_SEARCH,
-    CELL_SELECT,
-    CELL_RESELECT,
-    CELL_MEASURE,
-    CELL_CAMP,
-  } phy_state_t;
+  // State machine for SYNC thread
+  class sync_state {
+   public:
+    typedef enum {
+      IDLE = 0,
+      CELL_SEARCH,
+      SFN_SYNC,
+      MEASURE,
+      CAMPING,
+    } state_t;
 
-  phy_state_t phy_state, prev_state;
+    /* Run_state is called by the main thread at the start of each loop. It updates the state
+     * and returns the current state
+     */
+    state_t run_state() {
+      pthread_mutex_lock(&inside);
+      cur_state = next_state;
+      pthread_cond_broadcast(&cvar);
+      pthread_mutex_unlock(&inside);
+      return cur_state;
+    }
 
-  bool is_in_idle;
+    // Called by the main thread at the end of each state to indicate it has finished.
+    void state_exit() {
+      pthread_mutex_lock(&inside);
+      next_state = IDLE;
+      pthread_mutex_unlock(&inside);
+    }
+    void force_sfn_sync() {
+      pthread_mutex_lock(&inside);
+      next_state = SFN_SYNC;
+      pthread_mutex_unlock(&inside);
+    }
+    void force_camping() {
+      pthread_mutex_lock(&inside);
+      next_state = CAMPING;
+      pthread_mutex_unlock(&inside);
+    }
+
+    /* Functions to be called from outside the STM thread to instruct the STM to switch state.
+     * The functions change the state and wait until it has changed it.
+     *
+     * These functions are mutexed and only 1 can be called at a time
+     */
+    void go_idle() {
+      pthread_mutex_lock(&outside);
+      go_state(IDLE);
+      pthread_mutex_unlock(&outside);
+    }
+    void go_camping() {
+      pthread_mutex_lock(&outside);
+      go_state(CAMPING);
+      pthread_mutex_unlock(&outside);
+    }
+    void run_cell_search() {
+      pthread_mutex_lock(&outside);
+      go_state(CELL_SEARCH);
+      wait_idle();
+      pthread_mutex_unlock(&outside);
+    }
+    void run_sfn_sync() {
+      pthread_mutex_lock(&outside);
+      go_state(SFN_SYNC);
+      wait_idle();
+      pthread_mutex_unlock(&outside);
+    }
+    void run_measure() {
+      pthread_mutex_lock(&outside);
+      go_state(MEASURE);
+      wait_idle();
+      pthread_mutex_unlock(&outside);
+    }
+
+
+    /* Helpers below this */
+    bool is_idle() {
+      return cur_state == IDLE;
+    }
+    bool is_camping() {
+      return cur_state == CAMPING;
+    }
+
+    sync_state() {
+      pthread_mutex_init(&inside, NULL);
+      pthread_mutex_init(&outside, NULL);
+      pthread_cond_init(&cvar, NULL);
+      cur_state = IDLE;
+      next_state = IDLE;
+    }
+   private:
+
+    void go_state(state_t s) {
+      pthread_mutex_lock(&inside);
+      next_state = s;
+      while(cur_state != s) {
+        pthread_cond_wait(&cvar, &inside);
+      }
+      pthread_mutex_unlock(&inside);
+    }
+
+    /* Waits until there is a call to set_state() and then run_state(). Returns when run_state() returns */
+    void wait_idle() {
+      pthread_mutex_lock(&inside);
+      while(cur_state != IDLE) {
+        pthread_cond_wait(&cvar, &inside);
+      }
+      pthread_mutex_unlock(&inside);
+    }
+
+    state_t cur_state, next_state;
+    pthread_mutex_t inside, outside;
+    pthread_cond_t  cvar;
+
+  };
+
+  pthread_mutex_t rrc_mutex;
+
+  sync_state phy_state;
+
+  search::ret_code   cell_search_ret;
+  sfn_sync::ret_code sfn_sync_ret;
+  measure::ret_code  measure_ret;
 
   // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
   enum {
@@ -330,8 +437,8 @@ private:
   uint32_t      tx_mutex_cnt;
 
   float         ul_dl_factor;
-  uint32_t      current_earfcn;
-  int           cur_earfcn_index;
+  int           current_earfcn;
+  uint32_t      cellsearch_earfcn_index;
 
   float         dl_freq;
   float         ul_freq;

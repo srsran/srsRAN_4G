@@ -50,7 +50,7 @@ class mac
     ,public mac_interface_rrc
     ,public srslte::timer_callback
     ,public srslte::mac_interface_timers
-    ,public thread
+    ,public periodic_thread
 {
 public:
   mac();
@@ -68,7 +68,6 @@ public:
   void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid);
   void bch_decoded_ok(uint8_t *payload, uint32_t len);
   void pch_decoded_ok(uint32_t len);    
-  void tti_clock(uint32_t tti);
 
   
   /******** Interface from RLC (RLC -> MAC) ****************/ 
@@ -110,15 +109,14 @@ public:
 
 
 private:  
-  void run_thread(); 
+  void run_period();
   
   static const int MAC_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
   static const int MAC_PDU_THREAD_PRIO  = DEFAULT_PRIORITY-5;
   static const int MAC_NOF_HARQ_PROC    = 2*HARQ_DELAY_MS;
 
   // Interaction with PHY 
-  srslte::tti_sync_cv   ttisync; 
-  phy_interface_mac    *phy_h; 
+  phy_interface_mac    *phy_h;
   rlc_interface_mac    *rlc_h; 
   rrc_interface_mac    *rrc_h; 
   srslte::log          *log_h;
@@ -130,11 +128,7 @@ private:
   ue_rnti_t     uernti; 
   
   uint32_t      tti; 
-  bool          started; 
-  bool          is_synchronized; 
-  uint16_t      last_temporal_crnti;
-  uint16_t      phy_rnti;
-  
+
   /* Multiplexing/Demultiplexing Units */
   mux           mux_unit; 
   demux         demux_unit; 
@@ -167,19 +161,6 @@ private:
   bool is_first_ul_grant;
 
   mac_metrics_t metrics;
-
-  /* Class to run Timers in a dedicated thread */
-  class mac_timers : public periodic_thread {
-   public:
-    void init(srslte::timers *timers, srslte::log *log_h);
-   private:
-    void run_period();
-    srslte::timers *timers;
-    bool running;
-    srslte::log *log_h;
-  };
-
-  mac_timers mactimers;
 
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {

@@ -226,7 +226,6 @@ bool ue::init(all_args_t *args_)
   }
 
   printf("...\n");
-  nas.attach_request();
 
   started = true;
   return true;
@@ -273,9 +272,17 @@ void ue::stop()
   }
 }
 
+bool ue::attach() {
+  return nas.attach_request();
+}
+
+bool ue::deattach() {
+  return nas.deattach_request();
+}
+
 bool ue::is_attached()
 {
-  return rrc.is_connected();
+  return nas.is_attached();
 }
 
 void ue::start_plot() {

@@ -61,11 +61,6 @@ static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
 static const bool eia_caps[8] = {false, true, true, false, false, false, false, false};
 static const bool eea_caps[8] = {true,  true, true, false, false, false, false, false};
 
-typedef enum {
-  PLMN_NOT_SELECTED = 0,
-  PLMN_SELECTED
-} plmn_selection_state_t;
-
 class nas
   : public nas_interface_rrc,
     public nas_interface_ue,
@@ -83,20 +78,17 @@ public:
   emm_state_t get_state();
 
   // RRC interface
-  void notify_connection_setup();
+  void paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy);
+  void rrc_connection_failure();
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
   uint32_t get_ul_count();
   bool is_attached();
-  bool is_attaching();
-  bool is_data_requested();
   bool get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
   bool get_k_asme(uint8_t *k_asme_, uint32_t n);
-  bool plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code);
-  void plmn_search_end();
 
   // UE interface
-  void attach_request();
-  void deattach_request();
+  bool attach_request();
+  bool deattach_request();
 
   // PCAP
   void start_pcap(srslte::nas_pcap *pcap_);
@@ -112,9 +104,9 @@ private:
 
   emm_state_t state;
 
-  plmn_selection_state_t plmn_selection;
+  bool rrc_connection_is_failure;
+  bool plmn_is_selected;
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT current_plmn;
-  LIBLTE_RRC_PLMN_IDENTITY_STRUCT selecting_plmn;
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT home_plmn;
 
   std::vector<LIBLTE_RRC_PLMN_IDENTITY_STRUCT > known_plmns;
@@ -148,6 +140,9 @@ private:
   // PCAP
   srslte::nas_pcap *pcap = NULL;
 
+  bool rrc_connect();
+  bool attach(bool is_service_req);
+
   void integrity_generate(uint8_t *key_128,
                           uint32_t count,
                           uint8_t direction,
@@ -159,6 +154,8 @@ private:
   void cipher_decrypt(byte_buffer_t *pdu);
 
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps);
+
+  void select_plmn();
 
   // Parsers
   void parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu);

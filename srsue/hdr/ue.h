@@ -69,6 +69,8 @@ public:
 
   bool init(all_args_t *args_);
   void stop();
+  bool attach();
+  bool deattach();
   bool is_attached();
   void start_plot();
 

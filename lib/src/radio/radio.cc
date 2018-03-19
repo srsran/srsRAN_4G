@@ -89,6 +89,7 @@ void radio::reset()
   printf("Resetting Radio...\n");
   srslte_rf_stop_rx_stream(&rf_device);
   radio_is_streaming = false;
+  usleep(100000);
 }
 
 void radio::set_manual_calibration(rf_cal_t* calibration)

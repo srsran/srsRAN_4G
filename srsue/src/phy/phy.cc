@@ -250,20 +250,6 @@ void phy::configure_ul_params(bool pregen_disabled)
   }
 }
 
-void phy::cell_search_start()
-{
-  sf_recv.cell_search_start();
-}
-
-void phy::cell_search_next()
-{
-  sf_recv.cell_search_next();
-}
-
-void phy::sync_reset() {
-  sf_recv.reset_sync();
-}
-
 void phy::meas_reset() {
   sf_recv.meas_reset();
 }
@@ -276,13 +262,16 @@ int phy::meas_stop(uint32_t earfcn, int pci) {
   return sf_recv.meas_stop(earfcn, pci);
 }
 
-void phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
-{
-  sf_recv.cell_select(earfcn, phy_cell);
+bool phy::cell_select(phy_cell_t *cell) {
+  return sf_recv.cell_select(cell);
 }
 
-bool phy::cell_handover(srslte_cell_t cell) {
-  return sf_recv.cell_handover(cell);
+phy_interface_rrc::cell_search_ret_t  phy::cell_search(phy_cell_t *cell, float *rsrp) {
+  return sf_recv.cell_search(cell, rsrp);
+}
+
+bool phy::cell_is_camping() {
+  return sf_recv.cell_is_camping();
 }
 
 float phy::get_phr()
@@ -348,7 +337,7 @@ int phy::prach_tx_tti()
 
 // Handle the case of a radio overflow. Resynchronise inmediatly
 void phy::radio_overflow() {
-  sf_recv.reset_sync();
+  sf_recv.radio_overflow();
 }
 
 void phy::reset()
@@ -386,11 +375,6 @@ void phy::set_earfcn(vector< uint32_t > earfcns)
 void phy::force_freq(float dl_freq, float ul_freq)
 {
   sf_recv.force_freq(dl_freq, ul_freq);
-}
-
-bool phy::sync_status()
-{
-  return sf_recv.status_is_sync();
 }
 
 void phy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])

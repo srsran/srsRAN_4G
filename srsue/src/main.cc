@@ -483,9 +483,15 @@ int main(int argc, char *argv[])
         ue->start_plot();
         plot_started = true;
       }
+    } else {
+      while (!ue->attach() && running) {
+        sleep(1);
+      }
     }
-    ue->print_pool();
-    sleep(10);
+    if (running) {
+      ue->print_pool();
+      sleep(10);
+    }
   }
   pthread_cancel(input);
   metricshub.stop();

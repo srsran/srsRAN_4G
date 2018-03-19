@@ -81,8 +81,10 @@ public:
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
   uint32_t get_last_sdu_len() { return last_sdu_len; }
 
-  void plmn_search() {};
-  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, bool con_req) {};
+  int plmn_search(srsue::rrc_interface_nas::found_plmn_t*) { return 0; };
+  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {};
+  bool connection_request() {return true;}
+  bool is_connected() {return true;}
 
   uint16_t get_mcc() { return mcc; }
   uint16_t get_mnc() { return mnc; }
@@ -190,7 +192,6 @@ int mme_attach_request_test()
   nas.init(&usim, &rrc_dummy, &gw, &nas_log, nas_cfg);
 
   nas.attach_request();
-  nas.notify_connection_setup();
 
   // check length of generated NAS SDU
   if (rrc_dummy.get_last_sdu_len() > 3) {
