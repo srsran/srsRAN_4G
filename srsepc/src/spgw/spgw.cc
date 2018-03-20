@@ -593,8 +593,10 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   m_spgw_log->info("eNB Rx User TEID 0x%x, eNB Rx User IP %s\n", tunnel_ctx->dw_user_fteid.teid, inet_ntoa(addr3));
 
   //Setup IP to F-TEID map
+  //bool ret = false;
   pthread_mutex_lock(&m_mutex);
-  m_ip_to_teid.insert(std::pair<uint32_t,srslte::gtpc_f_teid_ie>(tunnel_ctx->ue_ipv4, tunnel_ctx->dw_user_fteid));
+  m_ip_to_teid[tunnel_ctx->ue_ipv4]=tunnel_ctx->dw_user_fteid;
+  //ret = m_ip_to_teid.insert(std::pair<uint32_t,srslte::gtpc_f_teid_ie>(tunnel_ctx->ue_ipv4, tunnel_ctx->dw_user_fteid));
   pthread_mutex_unlock(&m_mutex);
 
   //Setting up Modify bearer response PDU
