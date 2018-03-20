@@ -33,7 +33,7 @@
 namespace srsepc{
 
 s1ap_nas_transport*          s1ap_nas_transport::m_instance = NULL;
-boost::mutex                 s1ap_nas_transport_instance_mutex;
+pthread_mutex_t s1ap_nas_transport_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 s1ap_nas_transport::s1ap_nas_transport()
 {
@@ -48,21 +48,23 @@ s1ap_nas_transport::~s1ap_nas_transport()
 s1ap_nas_transport*
 s1ap_nas_transport::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_nas_transport_instance_mutex);
+  pthread_mutex_lock(&s1ap_nas_transport_instance_mutex);
   if(NULL == m_instance) {
     m_instance = new s1ap_nas_transport();
   }
+  pthread_mutex_unlock(&s1ap_nas_transport_instance_mutex);
   return(m_instance);
 }
 
 void
 s1ap_nas_transport::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_nas_transport_instance_mutex);
+  pthread_mutex_lock(&s1ap_nas_transport_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&s1ap_nas_transport_instance_mutex);
 }
 
 void
@@ -118,7 +120,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->info("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
     m_s1ap_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
     handle_nas_service_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-    return false;
+    return true;
   }
   else
   {
@@ -735,6 +737,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
   }
   return true;
 }
+
 bool
 s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
 {
