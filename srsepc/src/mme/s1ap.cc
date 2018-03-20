@@ -34,7 +34,7 @@
 namespace srsepc{
 
 s1ap*          s1ap::m_instance = NULL;
-boost::mutex   s1ap_instance_mutex;
+pthread_mutex_t s1ap_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 s1ap::s1ap():
   m_s1mme(-1),
@@ -51,21 +51,24 @@ s1ap::~s1ap()
 s1ap*
 s1ap::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_instance_mutex);
-  if(NULL == m_instance) {
+
+  pthread_mutex_lock(&s1ap_instance_mutex);
+  if(m_instance == NULL) {
     m_instance = new s1ap();
   }
+  pthread_mutex_unlock(&s1ap_instance_mutex);
   return(m_instance);
 }
 
 void
 s1ap::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_instance_mutex);
+  pthread_mutex_lock(&s1ap_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&s1ap_instance_mutex);
 }
 
 int
@@ -267,7 +270,8 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, enb_sri, 0);
     if(n_sent == -1)
     {
-      m_s1ap_log->console("Failed to send S1AP Initiating Message Reply\n");
+      m_s1ap_log->console("Failed to send S1AP Initiating Reply.\n");
+      m_s1ap_log->error("Failed to send S1AP Initiating Reply. \n");
       m_pool->deallocate(reply_buffer);
       return false;
     }
