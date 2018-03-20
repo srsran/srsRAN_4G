@@ -667,22 +667,26 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     {
       m_s1ap_log->error("Service Request -- User is ECM CONNECTED\n");
 
-      //Service request to Connected UE.
+      //Release previous context
+      m_s1ap_log->info("Service Request -- Releasing previouse ECM context. eNB S1AP Id %d, MME UE S1AP Id %d\n", ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
+      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
+      m_s1ap->release_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id);
+    }
+      //Handle service request from Connected UE.
       //Set eNB UE S1ap identity
-      ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
-      m_s1ap_log->console("Service Request -- eNB UE S1AP Id %d \n", enb_ue_s1ap_id);
-      m_s1ap_log->info("Service Request -- eNB UE S1AP Id %d\n ", enb_ue_s1ap_id);
+      //  ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+      // m_s1ap_log->console("Service Request -- eNB UE S1AP Id %d \n", enb_ue_s1ap_id);
+      //m_s1ap_log->info("Service Request -- eNB UE S1AP Id %d\n ", enb_ue_s1ap_id);
 
       //Delete eNB context and connect.
-      m_s1ap_log->console("Service Request -- User has ECM context already\n");
-      m_s1ap_log->info("Service Request -- User has ECM context already\n");
+      //m_s1ap_log->console("Service Request -- User has ECM context already\n");
+      //m_s1ap_log->info("Service Request -- User has ECM context already\n");
       //m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
       //int default_bearer_id = 5;
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[5]);
-      //FIXME Send Modify context request OR send ctx release command and wait for the reply.
-    }
-    else if(ecm_ctx->state == ECM_STATE_IDLE)
-    {
+      //m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, &ecm_ctx->erabs_ctx[5]);
+    //}
+    //else if(ecm_ctx->state == ECM_STATE_IDLE)
+    //{
       ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
 
       //UE not connect. Connect normally.
@@ -716,12 +720,12 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
       //Save UE ctx to MME UE S1AP id
       m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
       m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx,&ecm_ctx->erabs_ctx[5]);
-    }
+      /*}
     else
     {
       m_s1ap_log->console("ECM context is un-initialized.\n");
       m_s1ap_log->error("ECM context is un-initialized.\n");
-    }
+      }*/
   }
   else
   {
