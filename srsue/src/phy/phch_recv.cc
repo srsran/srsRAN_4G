@@ -1247,7 +1247,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
     return ERROR;
   }
 
-  float rsrp   = srslte_chest_dl_get_rsrp(&ue_dl.chest);
+  float rsrp   = srslte_chest_dl_get_rsrp_neighbour(&ue_dl.chest);
   float rsrq   = srslte_chest_dl_get_rsrq(&ue_dl.chest);
   float snr    = srslte_chest_dl_get_snr(&ue_dl.chest);
   float rssi   = srslte_vec_avg_power_cf(buffer[0], SRSLTE_SF_LEN_PRB(current_prb));
@@ -1294,9 +1294,11 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled, uint3
   uint32_t max_fft_sz  = srslte_symbol_sz(100);
   uint32_t max_sf_size = SRSLTE_SF_LEN(max_fft_sz);
 
-  sf_buffer[0]        = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*max_sf_size);
-  input_cfo_corrected = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*15*max_sf_size);
-
+  sf_buffer[0] = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*max_sf_size);
+  if (!sf_buffer[0]) {
+    fprintf(stderr, "Error allocating %d bytes for scell\n", sizeof(cf_t)*max_sf_size);
+    return;
+  }
   measure_p.init(sf_buffer, log_h, 1, max_sf_window);
 
   //do this different we don't need all this search window.
@@ -1304,6 +1306,7 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled, uint3
     fprintf(stderr, "Error initiating sync_find\n");
     return;
   }
+  srslte_sync_set_sss_algorithm(&sync_find, SSS_FULL);
   srslte_sync_cp_en(&sync_find, false);
   srslte_sync_set_cfo_pss_enable(&sync_find, true);
   srslte_sync_set_threshold(&sync_find, 1.7);
@@ -1317,10 +1320,14 @@ void phch_recv::scell_recv::init(srslte::log *log_h, bool sic_pss_enabled, uint3
   srslte_sync_set_sss_eq_enable(&sync_find,    true);
 
   sync_find.pss.chest_on_filter = true;
-
-  sync_find.sss_channel_equalize = true;
+  sync_find.sss_channel_equalize = false;
 
   reset();
+}
+
+void phch_recv::scell_recv::deinit() {
+  srslte_sync_free(&sync_find);
+  free(sf_buffer[0]);
 }
 
 void phch_recv::scell_recv::reset()
@@ -1498,6 +1505,12 @@ int phch_recv::meas_stop(uint32_t earfcn, int pci) {
   return -1;
 }
 
+phch_recv::intra_measure::~intra_measure() {
+  srslte_ringbuffer_free(&ring_buffer);
+  scell.deinit();
+  free(search_buffer);
+}
+
 void phch_recv::intra_measure::init(phch_common *common, rrc_interface_phy *rrc, srslte::log *log_h) {
   this->rrc    = rrc;
   this->log_h  = log_h;
@@ -1505,11 +1518,11 @@ void phch_recv::intra_measure::init(phch_common *common, rrc_interface_phy *rrc,
   receive_enabled = false;
 
   // Start scell
-  scell.init(log_h, common->args->sic_pss_enabled, INTRA_FREQ_MEAS_LEN_MS);
+  scell.init(log_h, common->args->sic_pss_enabled, common->args->intra_freq_meas_len_ms);
 
-  search_buffer = (cf_t*) srslte_vec_malloc(INTRA_FREQ_MEAS_LEN_MS*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)*sizeof(cf_t));
+  search_buffer = (cf_t*) srslte_vec_malloc(common->args->intra_freq_meas_len_ms*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)*sizeof(cf_t));
 
-  if (srslte_ringbuffer_init(&ring_buffer, sizeof(cf_t)*INTRA_FREQ_MEAS_LEN_MS*2*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB))) {
+  if (srslte_ringbuffer_init(&ring_buffer, sizeof(cf_t)*common->args->intra_freq_meas_len_ms*2*SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB))) {
     return;
   }
 
@@ -1573,7 +1586,7 @@ void phch_recv::intra_measure::rem_cell(int pci) {
 
 void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples) {
   if (receive_enabled) {
-    if ((tti%INTRA_FREQ_MEAS_PERIOD_MS) == 0) {
+    if ((tti%common->args->intra_freq_meas_period_ms) == 0) {
       receiving   = true;
       receive_cnt = 0;
       measure_tti = tti;
@@ -1585,7 +1598,7 @@ void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples
         receiving = false;
       } else {
         receive_cnt++;
-        if (receive_cnt == INTRA_FREQ_MEAS_LEN_MS) {
+        if (receive_cnt == common->args->intra_freq_meas_len_ms) {
           tti_sync.increase();
           receiving = false; 
         }
@@ -1604,8 +1617,8 @@ void phch_recv::intra_measure::run_thread()
     if (running) {
 
       // Read data from buffer and find cells in it
-      srslte_ringbuffer_read(&ring_buffer, search_buffer, INTRA_FREQ_MEAS_LEN_MS*current_sflen*sizeof(cf_t));
-      int found_cells = scell.find_cells(search_buffer, common->rx_gain_offset, primary_cell, INTRA_FREQ_MEAS_LEN_MS, info);
+      srslte_ringbuffer_read(&ring_buffer, search_buffer, common->args->intra_freq_meas_len_ms*current_sflen*sizeof(cf_t));
+      int found_cells = scell.find_cells(search_buffer, common->rx_gain_offset, primary_cell, common->args->intra_freq_meas_len_ms, info);
       receiving = false;
 
       for (int i=0;i<found_cells;i++) {

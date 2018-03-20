@@ -429,8 +429,10 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
     }
     uci_data.uci_ri_len = 1;
   } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-    srslte_ue_dl_ri_pmi_select(&ue_dl, ri, pmi, sinr);
-    Debug("TM4 ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
+    if (sinr) {
+      srslte_ue_dl_ri_pmi_select(&ue_dl, ri, pmi, sinr);
+      Debug("TM4 ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
+    }
   }
 }
 
