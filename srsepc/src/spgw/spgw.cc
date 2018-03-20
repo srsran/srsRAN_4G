@@ -340,7 +340,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   dest_addr.s_addr = dest_ip;
 
   //m_spgw_log->console("IP version: %d\n", version);
-  m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(dest_addr));
+  //m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(dest_addr));
 
   pthread_mutex_lock(&m_mutex);
   gtp_fteid_it = m_ip_to_teid.find(dest_ip);
@@ -353,7 +353,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
 
   if(ip_found == false)
   {
-    m_spgw_log->console("IP Packet is not for any UE\n");
+    //m_spgw_log->console("IP Packet is not for any UE\n");
     return;
   }
   struct sockaddr_in enb_addr;
