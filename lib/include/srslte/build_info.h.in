@@ -32,10 +32,18 @@
 extern "C" {
 # endif
 
-#ifdef NDEBUG
-    static char build_mode[] = "Release";
+#ifdef BUILD_TYPE_RELEASE
+  static char build_mode[] = "Release";
 #else
+  #ifdef BUILD_TYPE_DEBUG
     static char build_mode[] = "Debug";
+  #else
+    #ifdef BUILD_TYPE_RELWITHDEBINFO
+      static char build_mode[] = "RelWithDebInfo";
+    #else
+      static char build_mode[] = "unknown";
+    #endif
+  #endif
 #endif
 
 // the configured build options for srsLTE
