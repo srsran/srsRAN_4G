@@ -32,26 +32,27 @@
 namespace srsenb {
 
 enb*          enb::instance = NULL;
-boost::mutex  enb_instance_mutex;
-
+pthread_mutex_t enb_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 enb* enb::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(enb_instance_mutex);
+  pthread_mutex_lock(&enb_instance_mutex);
   if(NULL == instance) {
-      instance = new enb();
+    instance = new enb();
   }
+  pthread_mutex_unlock(&enb_instance_mutex);
   return(instance);
 }
 void enb::cleanup(void)
 {
   srslte_dft_exit();
   srslte::byte_buffer_pool::cleanup();
-  boost::mutex::scoped_lock lock(enb_instance_mutex);
+  pthread_mutex_lock(&enb_instance_mutex);
   if(NULL != instance) {
       delete instance;
       instance = NULL;
   }
+  pthread_mutex_unlock(&enb_instance_mutex);
 }
 
 enb::enb() : started(false) {
