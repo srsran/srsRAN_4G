@@ -33,7 +33,8 @@
 namespace srsepc{
 
 mme_gtpc*          mme_gtpc::m_instance = NULL;
-boost::mutex  mme_gtpc_instance_mutex;
+pthread_mutex_t mme_gtpc_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 mme_gtpc::mme_gtpc()
 {
@@ -46,21 +47,23 @@ mme_gtpc::~mme_gtpc()
 mme_gtpc*
 mme_gtpc::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(mme_gtpc_instance_mutex);
+  pthread_mutex_lock(&mme_gtpc_instance_mutex);
   if(NULL == m_instance) {
     m_instance = new mme_gtpc();
   }
+  pthread_mutex_unlock(&mme_gtpc_instance_mutex);
   return(m_instance);
 }
 
 void
 mme_gtpc::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(mme_gtpc_instance_mutex);
+  pthread_mutex_lock(&mme_gtpc_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&mme_gtpc_instance_mutex);
 }
 
 
