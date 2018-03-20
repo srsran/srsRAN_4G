@@ -42,6 +42,9 @@
 typedef struct SRSLTE_API {
   uint32_t max_cb;
   int16_t **buffer_f;  
+  uint8_t **data;
+  bool *cb_crc;
+  bool tb_crc;
 } srslte_softbuffer_rx_t;
 
 typedef struct SRSLTE_API {

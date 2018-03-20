@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
   /* predecoding / equalization */
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
-  srslte_predecoding_type(r, h, xr, nof_rx_ports, nof_tx_ports, nof_layers,
+  srslte_predecoding_type(r, h, xr, NULL, nof_rx_ports, nof_tx_ports, nof_layers,
                           codebook_idx, nof_re, type, scaling, powf(10, -snr_db / 10));
   gettimeofday(&t[2], NULL);
   get_time_interval(t);

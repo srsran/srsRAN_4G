@@ -104,6 +104,8 @@ private:
   void   cell_search_inc();
   void   cell_reselect();
 
+  float  get_cfo();
+
   uint32_t new_earfcn;
   srslte_cell_t new_cell;
 
@@ -150,7 +152,7 @@ private:
     srslte_ue_mib_t   ue_mib;
     uint32_t          cnt;
     uint32_t          timeout;
-    const static uint32_t SYNC_SFN_TIMEOUT = 500;
+    const static uint32_t SYNC_SFN_TIMEOUT = 80;
   };
 
   // Class to perform cell measurements
@@ -168,7 +170,7 @@ private:
     void      set_cell(srslte_cell_t cell);
     ret_code  run_subframe(uint32_t sf_idx);
     ret_code  run_subframe_sync(srslte_ue_sync_t *ue_sync, uint32_t sf_idx);
-    ret_code  run_multiple_subframes(cf_t *buffer, uint32_t offset, uint32_t sf_idx, uint32_t nof_sf);
+    ret_code  run_multiple_subframes(cf_t *buffer, int offset, uint32_t sf_idx, uint32_t nof_sf);
     float     rssi();
     float     rsrp();
     float     rsrq();
@@ -199,11 +201,11 @@ private:
       uint32_t offset;
     } cell_info_t;
     void init(srslte::log *log_h, bool sic_pss_enabled, uint32_t max_sf_window);
+    void deinit();
     void reset();
     int find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
   private:
 
-    cf_t               *input_cfo_corrected;
     cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
     srslte::log        *log_h;
     srslte_sync_t       sync_find;
@@ -220,6 +222,7 @@ private:
   // Class to perform intra-frequency measurements
   class intra_measure : public thread {
   public:
+    ~intra_measure();
     void init(phch_common *common, rrc_interface_phy *rrc, srslte::log *log_h);
     void stop();
     void add_cell(int pci);
@@ -230,8 +233,6 @@ private:
     void write(uint32_t tti, cf_t *data, uint32_t nsamples);
   private:
     void run_thread();
-    const static int INTRA_FREQ_MEAS_LEN_MS    = 50;
-    const static int INTRA_FREQ_MEAS_PERIOD_MS = 200;
     const static int INTRA_FREQ_MEAS_PRIO      = DEFAULT_PRIORITY + 5;
 
     scell_recv         scell;

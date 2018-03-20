@@ -195,6 +195,10 @@ void gtpu::rem_user(uint16_t rnti)
 void gtpu::run_thread()
 {
   byte_buffer_t *pdu = pool_allocate;
+  if (!pdu) {
+    gtpu_log->error("Fatal Error: Couldn't allocate buffer in gtpu::run_thread().\n");
+    return;
+  }
   run_enable = true;
 
   running=true; 

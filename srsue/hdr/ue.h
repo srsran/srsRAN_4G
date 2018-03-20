@@ -103,7 +103,7 @@ private:
   srslte::logger        *logger;
 
   // rf_log is on ue_base
-  std::vector<srslte::log*>  phy_log;
+  std::vector<srslte::log_filter*>  phy_log;
   srslte::log_filter  mac_log;
   srslte::log_filter  rlc_log;
   srslte::log_filter  pdcp_log;

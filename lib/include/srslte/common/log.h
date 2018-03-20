@@ -84,6 +84,8 @@ public:
     level_text_short = true;
   }
 
+  virtual ~log() {};
+
   // This function shall be called at the start of every tti for printing tti
   void step(uint32_t tti_) {
     tti = tti_;

@@ -198,7 +198,7 @@ uint32_t rlc_am::get_bearer()
 void rlc_am::write_sdu(byte_buffer_t *sdu)
 {
   tx_sdu_queue.write(sdu);
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, tx_sdu_len=%d", rrc->get_rb_name(lcid).c_str(), tx_sdu_queue.size());
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
 }
 
 /****************************************************************************
@@ -271,6 +271,27 @@ uint32_t rlc_am::get_buffer_state()
     n_bytes = prepare_status();
     log->debug("Buffer state - status report: %d bytes\n", n_bytes);
     goto unlock_and_return;
+  }
+
+  // check if pollRetx timer expired (Section 5.2.2.3 in TS 36.322)
+  if (poll_retx()) {
+    // if both tx and retx buffer are empty, retransmit next PDU to be ack'ed
+    log->info("Poll reTx timer expired (lcid=%d)\n", lcid);
+    if ((tx_window.size() > 0 && retx_queue.size() == 0 && tx_sdu_queue.size() == 0)) {
+      std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.find(vt_s - 1);
+      if (it != tx_window.end()) {
+        log->info("Schedule last PDU (SN=%d) for reTx.\n", vt_s - 1);
+        rlc_amd_retx_t retx;
+        retx.is_segment = false;
+        retx.so_start = 0;
+        retx.so_end = tx_window[vt_s - 1].buf->N_bytes;
+        retx.sn = vt_s - 1;
+        retx_queue.push_back(retx);
+      } else {
+        log->error("Found invalid PDU in tx_window.\n");
+      }
+      poll_retx_timeout.start(cfg.t_poll_retx);
+    }
   }
 
   // Bytes needed for retx
@@ -827,7 +848,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Set SN
   header.sn = vt_s;
   vt_s = (vt_s + 1)%MOD;
-  log->info("%s PDU scheduled for tx. SN: %d\n", rrc->get_rb_name(lcid).c_str(), header.sn);
+  log->info("%s PDU scheduled for tx. SN: %d (%d B)\n", rrc->get_rb_name(lcid).c_str(), header.sn, pdu->N_bytes);
 
   // Place PDU in tx_window, write header and TX
   tx_window[header.sn].buf        = pdu;

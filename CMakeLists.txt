@@ -74,6 +74,7 @@ option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
+option(ENABLE_ASAN     "Enable gcc address sanitizer"             OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
@@ -256,8 +257,13 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -DDEBUG_MODE")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    if(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDEBUG_MODE")
+    else(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    endif(${CMAKE_BUILD_TYPE} STREQUAL "RelWithDebInfo")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
 
   if (USE_LTE_RATES)
     message(STATUS "Using standard LTE sampling rates")
@@ -303,6 +309,10 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
   endif(NOT WIN32)
+ if (ENABLE_ASAN)
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+ endif (ENABLE_ASAN)
 endif(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
