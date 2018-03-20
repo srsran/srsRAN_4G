@@ -28,6 +28,8 @@ SRSLTE_API void srslte_ringbuffer_reset(srslte_ringbuffer_t *q);
 
 SRSLTE_API int  srslte_ringbuffer_status(srslte_ringbuffer_t *q);
 
+SRSLTE_API int srslte_ringbuffer_space(srslte_ringbuffer_t *q);
+
 SRSLTE_API int  srslte_ringbuffer_write(srslte_ringbuffer_t *q,
                                        void *ptr,
                                        int nof_bytes);

@@ -137,6 +137,7 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_ph
   srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask);
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
+  srslte_pdsch_enable_csi(&ue_dl.pdsch, phy->args->pdsch_csi_enabled);
 
   mem_initiated = true;
 
@@ -189,14 +190,6 @@ void phch_worker::set_cfo(float cfo_)
   cfo = cfo_;
 }
 
-void phch_worker::set_sample_offset(float sample_offset)
-{
-  if (phy->args->sfo_correct_disable) {
-    sample_offset = 0; 
-  }
-  srslte_ue_dl_set_sample_offset(&ue_dl, sample_offset);
-}
-
 void phch_worker::set_crnti(uint16_t rnti)
 {
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
@@ -228,20 +221,6 @@ float phch_worker::get_noise()
 float phch_worker::get_cfo()
 {
   return cfo;
-}
-
-float phch_worker::get_ul_cfo() {
-  srslte::radio *radio = phy->get_radio();
-
-  if (radio->get_freq_offset() != 0.0f) {
-    /* Compensates the radio frequency offset applied equally to DL and UL */
-    const float ul_dl_ratio = (float) radio->get_tx_freq() / (float) radio->get_rx_freq();
-    const float offset_hz = (float) radio->get_freq_offset() * (1.0f - ul_dl_ratio);
-    return cfo - offset_hz / (15000);
-  } else {
-    return cfo;
-  }
-
 }
 
 void phch_worker::work_imp()
@@ -367,7 +346,7 @@ void phch_worker::work_imp()
   }
 
   /* Set UL CFO before transmission */  
-  srslte_ue_ul_set_cfo(&ue_ul, get_ul_cfo());
+  srslte_ue_ul_set_cfo(&ue_ul, cfo);
 
   /* Transmit PUSCH, PUCCH or SRS */
   bool signal_ready = false; 
@@ -439,7 +418,9 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
       /* If 2 ort more receiving antennas, select RI */
       float cn = 0.0f;
       srslte_ue_dl_ri_select(&ue_dl, ri, &cn);
-      Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
+      if (ri) {
+        Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
+      }
     } else {
       /* If only one receiving antenna, force RI for 1 layer */
       if (ri) {
@@ -529,7 +510,9 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
                                       dl_rnti, type, &dci_msg) != 1) {
       if (type == SRSLTE_RNTI_RAR) {
-        Info("RAR not found\n");
+        Info("RAR not found, SNR=%.1f dB, tti=%d, cfi=%d, tx_mode=%d, cell_id=%d\n",
+             10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), tti, cfi,
+             phy->config->dedicated.antenna_info_explicit_value.tx_mode, cell.id);
       }
       return false;
     }
@@ -571,10 +554,10 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
-    char hexstr[16];
+    char hexstr[512];
     hexstr[0]='\0';
     if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-      srslte_vec_sprint_hex(hexstr, dci_msg.data, dci_msg.nof_bits);
+      srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
     }
     Info("PDCCH: DL DCI %s cce_index=%2d, L=%d, n_data_bits=%d, hex=%s\n", srslte_dci_format_string(dci_msg.format), 
          last_dl_pdcch_ncce, (1<<ue_dl.last_location.L), dci_msg.nof_bits, hexstr);
@@ -809,10 +792,10 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       grant->has_cqi_request = dci_unpacked.cqi_request;
       ret = true; 
       
-      char hexstr[16];
+      char hexstr[512];
       hexstr[0]='\0';
       if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-        srslte_vec_sprint_hex(hexstr, dci_msg.data, dci_msg.nof_bits);
+        srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
       }
       // Change to last_location_ul
       Info("PDCCH: UL DCI Format0  cce_index=%d, L=%d, n_data_bits=%d, hex=%s\n", 

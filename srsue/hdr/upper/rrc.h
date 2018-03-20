@@ -249,7 +249,7 @@ public:
 
   void enable_capabilities();
   void plmn_search();
-  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
+  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, bool connect_request);
 
   // PHY interface
   void in_sync();
@@ -311,6 +311,8 @@ private:
 
   uint16_t ho_src_rnti;
   cell_t   ho_src_cell;
+  uint32_t ho_target_pci;
+  bool     ho_syncing;
   phy_interface_rrc::phy_cfg_t ho_src_phy_cfg;
   mac_interface_rrc::mac_cfg_t ho_src_mac_cfg;
   bool pending_mob_reconf;
@@ -323,9 +325,6 @@ private:
 
   uint32_t plmn_select_timeout;
   static const uint32_t RRC_PLMN_SELECT_TIMEOUT = 10000;
-
-  uint32_t select_cell_timeout;
-  static const uint32_t RRC_SELECT_CELL_TIMEOUT = 1000;
 
   uint8_t k_rrc_enc[32];
   uint8_t k_rrc_int[32];
@@ -342,7 +341,7 @@ private:
   srslte::mac_interface_timers *mac_timers;
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
-  uint32_t t301, t310, t311, t304;
+  uint32_t t300, t301, t310, t311, t304;
 
   // Radio bearers
   typedef enum{
@@ -401,7 +400,7 @@ private:
   uint16_t           sysinfo_index;
   uint32_t           last_win_start;
 
-  void select_next_cell_in_plmn();
+  bool select_next_cell_in_plmn();
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT selected_plmn_id;
 
   bool thread_running;
@@ -545,6 +544,7 @@ private:
   // Helpers
   void          ho_failed();
   bool          ho_prepare();
+  void          ho_synced(uint32_t target_pci);
   void          rrc_connection_release();
   void          con_restablish_cell_reselected();
   void          radio_link_failure();

@@ -44,6 +44,9 @@ ue::ue()
 
 ue::~ue()
 {
+  for (uint32_t i = 0; i < phy_log.size(); i++) {
+    delete(phy_log[i]);
+  }
 }
 
 bool ue::init(all_args_t *args_)
@@ -272,7 +275,7 @@ void ue::stop()
 
 bool ue::is_attached()
 {
-  return (RRC_STATE_CONNECTED == rrc.get_state());
+  return rrc.is_connected();
 }
 
 void ue::start_plot() {

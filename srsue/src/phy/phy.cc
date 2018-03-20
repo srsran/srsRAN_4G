@@ -97,8 +97,7 @@ void phy::set_default_args(phy_args_t *args)
   args->cfo_integer_enabled = false; 
   args->cfo_correct_tol_hz  = 50; 
   args->time_correct_period = 5; 
-  args->sfo_correct_disable = false; 
-  args->sss_algorithm       = "full"; 
+  args->sss_algorithm       = "full";
   args->estimator_fil_w     = 0.1; 
 }
 
@@ -120,7 +119,7 @@ bool phy::check_args(phy_args_t *args)
 }
 
 bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_interface_phy *rrc,
-               std::vector<srslte::log*> log_vec, phy_args_t *phy_args) {
+               std::vector<srslte::log_filter*> log_vec, phy_args_t *phy_args) {
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
 

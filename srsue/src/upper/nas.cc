@@ -107,8 +107,8 @@ void nas::attach_request() {
       selecting_plmn = current_plmn;
     }
   } else if (state == EMM_STATE_REGISTERED) {
-    nas_log->info("NAS state is registered, connecting to same PLMN\n");
-    rrc->plmn_select(current_plmn);
+    nas_log->info("NAS state is registered, selecting current PLMN\n");
+    rrc->plmn_select(current_plmn, true);
   } else {
     nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
   }
@@ -123,12 +123,7 @@ void nas::deattach_request() {
  * RRC interface
  ******************************************************************************/
 
-void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
-
-  // Do not process new PLMN if already selected
-  if (plmn_selection == PLMN_SELECTED) {
-    return;
-  }
+bool nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
 
   // Check if already registered
   for (uint32_t i=0;i<known_plmns.size();i++) {
@@ -136,10 +131,11 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
       nas_log->info("Found known PLMN Id=%s\n", plmn_id_to_string(plmn_id).c_str());
       if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
         nas_log->info("Connecting Home PLMN Id=%s\n", plmn_id_to_string(plmn_id).c_str());
-        rrc->plmn_select(plmn_id);
+        rrc->plmn_select(plmn_id, state == EMM_STATE_REGISTERED_INITIATED);
         selecting_plmn = plmn_id;
+        return true;
       }
-      return;
+      return false;
     }
   }
 
@@ -152,10 +148,11 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
                 tracking_area_code);
 
   if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
-    rrc->plmn_select(plmn_id);
+    rrc->plmn_select(plmn_id, state == EMM_STATE_REGISTERED_INITIATED);
     selecting_plmn = plmn_id;
+    return true;
   }
-
+  return false;
 }
 
 // RRC indicates that the UE has gone through all EARFCN and finished PLMN selection
@@ -170,7 +167,7 @@ void nas::plmn_search_end() {
                        plmn_id_to_string(home_plmn).c_str(),
                        plmn_id_to_string(known_plmns[0]).c_str());
     }
-    rrc->plmn_select(known_plmns[0]);
+    rrc->plmn_select(known_plmns[0], state == EMM_STATE_REGISTERED_INITIATED);
   } else {
     nas_log->info("Finished searching PLMN in current EARFCN set but no networks were found.\n");
     if (state == EMM_STATE_REGISTERED_INITIATED && plmn_selection == PLMN_NOT_SELECTED) {
@@ -538,6 +535,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 
     state = EMM_STATE_REGISTERED;
     current_plmn = selecting_plmn;
+    plmn_selection = PLMN_SELECTED;
 
     ctxt.rx_count++;
 
@@ -812,6 +810,11 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
 void nas::send_attach_request() {
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_attach_request().\n");
+    return;
+  }
+
   u_int32_t i;
 
   attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
@@ -913,6 +916,10 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 
 void nas::send_security_mode_reject(uint8_t cause) {
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_security_mode_reject().\n");
+    return;
+  }
 
   LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT sec_mode_rej;
   sec_mode_rej.emm_cause = cause;
@@ -928,6 +935,10 @@ void nas::send_identity_response() {}
 
 void nas::send_service_request() {
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_service_request().\n");
+    return;
+  }
 
   // Pack the service request message directly
   msg->msg[0] = (LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);

@@ -71,8 +71,6 @@ int main(int argc, char **argv) {
 
   parse_args(argc, argv);
   
-  srslte_tcod_gentable();
-
   srslte_tcod_t tcod;
   srslte_tcod_init(&tcod, 6144);
 
