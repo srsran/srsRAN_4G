@@ -79,9 +79,11 @@ void nas::init(usim_interface_nas *usim_,
     have_guti = true;
     have_ctxt = true;
   }
+  running = true;
 }
 
 void nas::stop() {
+  running = false;
   write_ctxt_file(ctxt);
 }
 
@@ -133,11 +135,10 @@ bool nas::attach_request() {
       if (plmn_is_selected) {
         rrc->plmn_select(current_plmn);
         if (rrc_connect()) {
-          nas_log->info("RRC connection established. Sending NAS attach request\n");
-          if (attach(false)) {
-            nas_log->info("NAS attached successfully.\n");
-            return true;
-          }
+          nas_log->info("NAS attached successfully.\n");
+          return true;
+        } else {
+          nas_log->error("Could not attach\n");
         }
       } else {
         nas_log->error("PLMN is not selected because no suitable PLMN was found\n");
@@ -150,11 +151,9 @@ bool nas::attach_request() {
       } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
         if (rrc_connect()) {
-          nas_log->info("RRC connection established. Sending NAS attach request\n");
-          if (attach(true)) {
-            nas_log->info("NAS attached successfully.\n");
-            return true;
-          }
+          nas_log->info("NAS attached successfully.\n");
+        } else {
+          nas_log->error("Could not attach\n");
         }
       }
       break;
@@ -179,21 +178,17 @@ void nas::paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy) {
   if (state == EMM_STATE_REGISTERED) {
     nas_log->info("Received paging: requesting RRC connection establishment\n");
     if (rrc_connect()) {
-      nas_log->info("Connected successfully. Initiating service request\n");
-      if (attach(true)) {
-        nas_log->info("Attached successfully\n");
-      } else {
-        nas_log->error("Could not attach\n");
-      }
+      nas_log->info("Attached successfully\n");
     } else {
-      nas_log->error("Could not establish RRC connection\n");
+      nas_log->error("Could not attach\n");
     }
+  } else {
+    nas_log->warning("Received paging while in state %s\n", emm_state_text[state]);
   }
 }
 
-void nas::rrc_connection_failure() {
-  nas_log->debug("Received RRC Connection Failure\n");
-  rrc_connection_is_failure = true;
+void nas::set_barring(barring_t barring) {
+  current_barring = barring;
 }
 
 /* Internal function that requests RRC connection, waits for positive or negative response and returns true/false
@@ -203,54 +198,49 @@ bool nas::rrc_connect() {
     nas_log->info("Already connected\n");
     return true;
   }
-  uint32_t tout;
-  rrc_connection_is_failure = false;
-  if (rrc->connection_request()) {
-    // Wait until RRCConnected or connection error
-    tout = 0;
-    while (tout < 10000 && !rrc->is_connected() && !rrc_connection_is_failure) {
+
+  // Generate service request or attach request message
+  byte_buffer_t *dedicatedInfoNAS = pool_allocate;
+  if (state == EMM_STATE_REGISTERED) {
+    gen_service_request(dedicatedInfoNAS);
+  } else {
+    gen_attach_request(dedicatedInfoNAS);
+  }
+
+  // Provide UE-Identity to RRC if have one
+  if (have_guti) {
+    LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
+    s_tmsi.mmec   = ctxt.guti.mme_code;
+    s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
+    rrc->set_ue_idenity(s_tmsi);
+  }
+
+  // Set establishment cause
+  LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM establish_cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;
+
+  if (rrc->connection_request(establish_cause, dedicatedInfoNAS))
+  {
+    nas_log->info("Connection established correctly. Waiting for Attach\n");
+
+    // Wait until attachment. If doing a service request is already attached
+    uint32_t tout = 0;
+    while (tout < 5000 && state != EMM_STATE_REGISTERED && running && rrc->is_connected()) {
       usleep(1000);
       tout++;
     }
-    if (rrc->is_connected()) {
-      rrc_connection_is_failure = false;
+    if (state == EMM_STATE_REGISTERED) {
+      nas_log->info("EMM Registered correctly\n");
       return true;
-    } else if (rrc_connection_is_failure) {
-      nas_log->info("Failed to establish RRC connection\n");
+    } else if (state == EMM_STATE_DEREGISTERED) {
+      nas_log->error("Received attach reject while trying to attach\n");
+      nas_log->console("Failed to Attach\n");
+    } else if (!rrc->is_connected()) {
+      nas_log->error("Was disconnected while attaching\n");
     } else {
-      nas_log->error("Timed out while establishing RRC connection (%d s)\n", tout/1000);
+      nas_log->error("Timed out while trying to attach\n");
     }
   } else {
-    nas_log->warning("Could initiate RRC connection request\n");
-  }
-  return false;
-}
-
-/* Internal function that requests NAS attach, waits for positive or negative response and returns true/false
- */
-bool nas::attach(bool is_service_req) {
-  uint32_t tout;
-
-  if (is_service_req) {
-    send_service_request();
-  } else {
-    send_attach_request();
-  }
-
-  state = EMM_STATE_REGISTERED_INITIATED;
-
-  // Wait until NAS is registered
-  tout = 0;
-  while (tout < 10000 && state == EMM_STATE_REGISTERED_INITIATED) {
-    usleep(1000);
-    tout++;
-  }
-  if (state == EMM_STATE_REGISTERED) {
-    return true;
-  } else if (state == EMM_STATE_DEREGISTERED) {
-    nas_log->error("Received attach reject while trying to attach\n");
-  } else {
-    nas_log->error("Timed out while trying to attach\n");
+    nas_log->error("Could not establish RRC connection\n");
   }
   return false;
 }
@@ -360,16 +350,6 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
 
 uint32_t nas::get_ul_count() {
   return ctxt.tx_count;
-}
-
-bool nas::get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) {
-  if (have_guti) {
-    s_tmsi->mmec   = ctxt.guti.mme_code;
-    s_tmsi->m_tmsi = ctxt.guti.m_tmsi;
-    return true;
-  } else {
-    return false;
-  }
 }
 
 bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
@@ -560,6 +540,11 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     if (attach_accept.guti_present) {
       memcpy(&ctxt.guti, &attach_accept.guti.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
       have_guti = true;
+      // Update RRC UE-Idenity
+      LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
+      s_tmsi.mmec   = ctxt.guti.mme_code;
+      s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
+      rrc->set_ue_idenity(s_tmsi);
     }
     if (attach_accept.lai_present) {}
     if (attach_accept.ms_id_present) {}
@@ -896,19 +881,18 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
  * Senders
  ******************************************************************************/
 
-void nas::send_attach_request() {
-  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
-  byte_buffer_t *msg = pool_allocate;
+void nas::gen_attach_request(byte_buffer_t *msg) {
   if (!msg) {
-    nas_log->error("Fatal Error: Couldn't allocate PDU in send_attach_request().\n");
+    nas_log->error("Fatal Error: Couldn't allocate PDU in gen_attach_request().\n");
     return;
   }
+  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
 
-  u_int32_t i;
+  nas_log->info("Generating attach request\n");
 
   attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
 
-  for (i = 0; i < 8; i++) {
+  for (u_int32_t i = 0; i < 8; i++) {
     attach_req.ue_network_cap.eea[i] = eea_caps[i];
     attach_req.ue_network_cap.eia[i] = eia_caps[i];
   }
@@ -967,12 +951,45 @@ void nas::send_attach_request() {
     pcap->write_nas(msg->msg, msg->N_bytes);
   }
 
-  nas_log->info("Sending attach request\n");
-  rrc->write_sdu(cfg.lcid, msg);
-
   if (have_ctxt) {
     ctxt.tx_count++;
   }
+}
+
+
+void nas::gen_service_request(byte_buffer_t *msg) {
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in gen_service_request().\n");
+    return;
+  }
+
+  nas_log->info("Generating service request\n");
+
+  // Pack the service request message directly
+  msg->msg[0] = (LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+  msg->N_bytes++;
+  msg->msg[1] = (ctxt.ksi & 0x07) << 5;
+  msg->msg[1] |= ctxt.tx_count & 0x1F;
+  msg->N_bytes++;
+
+  uint8_t mac[4];
+  integrity_generate(&k_nas_int[16],
+                     ctxt.tx_count,
+                     SECURITY_DIRECTION_UPLINK,
+                     &msg->msg[0],
+                     2,
+                     &mac[0]);
+  // Set the short MAC
+  msg->msg[2] = mac[2];
+  msg->N_bytes++;
+  msg->msg[3] = mac[3];
+  msg->N_bytes++;
+
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+
+  ctxt.tx_count++;
 }
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
@@ -1021,42 +1038,6 @@ void nas::send_security_mode_reject(uint8_t cause) {
 }
 
 void nas::send_identity_response() {}
-
-void nas::send_service_request() {
-  byte_buffer_t *msg = pool_allocate;
-  if (!msg) {
-    nas_log->error("Fatal Error: Couldn't allocate PDU in send_service_request().\n");
-    return;
-  }
-
-  // Pack the service request message directly
-  msg->msg[0] = (LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
-  msg->N_bytes++;
-  msg->msg[1] = (ctxt.ksi & 0x07) << 5;
-  msg->msg[1] |= ctxt.tx_count & 0x1F;
-  msg->N_bytes++;
-
-  uint8_t mac[4];
-  integrity_generate(&k_nas_int[16],
-                     ctxt.tx_count,
-                     SECURITY_DIRECTION_UPLINK,
-                     &msg->msg[0],
-                     2,
-                     &mac[0]);
-  // Set the short MAC
-  msg->msg[2] = mac[2];
-  msg->N_bytes++;
-  msg->msg[3] = mac[3];
-  msg->N_bytes++;
-
-  if(pcap != NULL) {
-    pcap->write_nas(msg->msg, msg->N_bytes);
-  }
-
-  nas_log->info("Sending service request\n");
-  rrc->write_sdu(cfg.lcid, msg);
-  ctxt.tx_count++;
-}
 
 void nas::send_esm_information_response() {}
 

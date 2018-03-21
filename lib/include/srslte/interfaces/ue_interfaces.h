@@ -112,12 +112,18 @@ public:
 class nas_interface_rrc
 {
 public:
-  virtual void      rrc_connection_failure() = 0;
+  typedef enum {
+    BARRING_NONE = 0,
+    BARRING_MO_DATA,
+    BARRING_MO_SIGNALLING,
+    BARRING_MT,
+    BARRING_ALL
+  } barring_t;
+  virtual void      set_barring(barring_t barring) = 0;
   virtual void      paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy) = 0;
   virtual bool      is_attached() = 0;
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
-  virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
   virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
 };
 
@@ -177,7 +183,9 @@ public:
   virtual void enable_capabilities() = 0;
   virtual int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]) = 0;
   virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
-  virtual bool connection_request() = 0;
+  virtual bool connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
+                                  srslte::byte_buffer_t *dedicatedInfoNAS) = 0;
+  virtual void set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi) = 0;
   virtual bool is_connected() = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
@@ -420,15 +428,14 @@ public:
     uint32_t prach_config_index;
   } mac_cfg_t;
 
+  virtual void    clear_rntis() = 0;
+
   /* Instructs the MAC to start receiving BCCH */
-  virtual void    bcch_start_rx() = 0; 
-  virtual void    bcch_stop_rx() = 0; 
   virtual void    bcch_start_rx(int si_window_start, int si_window_length) = 0;
 
   /* Instructs the MAC to start receiving PCCH */
   virtual void    pcch_start_rx() = 0; 
-  virtual void    pcch_stop_rx() = 0; 
-  
+
   /* RRC configures a logical channel */
   virtual void    setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;
 
@@ -487,7 +494,6 @@ typedef struct {
   uint32_t cfo_loop_pss_conv;
   uint32_t cfo_ref_mask;
   bool average_subframe_enabled;
-  int time_correct_period; 
   std::string sss_algorithm;
   float estimator_fil_w;   
   bool rssi_sensor_enabled;
@@ -579,11 +585,9 @@ public:
   virtual int  meas_start(uint32_t earfcn, int pci = -1) = 0;
   virtual int  meas_stop(uint32_t earfcn, int pci = -1) = 0;
 
-  typedef enum {
-    CELL_NOT_FOUND = 0,
-    CELL_FOUND,
-    NO_MORE_FREQS,
-    ERROR
+  typedef struct {
+    enum {CELL_FOUND = 0, CELL_NOT_FOUND, ERROR} found;
+    enum {MORE_FREQS = 0, NO_MORE_FREQS} last_freq;
   } cell_search_ret_t;
 
   typedef struct {
@@ -592,7 +596,7 @@ public:
   } phy_cell_t;
 
   /* Cell search and selection procedures */
-  virtual cell_search_ret_t  cell_search(phy_cell_t *cell, float *rsrp) = 0;
+  virtual cell_search_ret_t  cell_search(phy_cell_t *cell) = 0;
   virtual bool cell_select(phy_cell_t *cell = NULL) = 0;
   virtual bool cell_is_camping() = 0;
 

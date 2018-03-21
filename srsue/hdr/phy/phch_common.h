@@ -76,7 +76,7 @@ public:
   float avg_snr_db;
   float avg_noise;
 
-  bool     pcell_meas_enabled;
+  bool     pcell_first_measurement;
   uint32_t pcell_report_period;
 
   // Save last TBS for mcs>28 cases

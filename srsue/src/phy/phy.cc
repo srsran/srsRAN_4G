@@ -96,7 +96,6 @@ void phy::set_default_args(phy_args_t *args)
   args->equalizer_mode      = "mmse"; 
   args->cfo_integer_enabled = false; 
   args->cfo_correct_tol_hz  = 50; 
-  args->time_correct_period = 5; 
   args->sss_algorithm       = "full";
   args->estimator_fil_w     = 0.1; 
 }
@@ -266,8 +265,8 @@ bool phy::cell_select(phy_cell_t *cell) {
   return sf_recv.cell_select(cell);
 }
 
-phy_interface_rrc::cell_search_ret_t  phy::cell_search(phy_cell_t *cell, float *rsrp) {
-  return sf_recv.cell_search(cell, rsrp);
+phy_interface_rrc::cell_search_ret_t  phy::cell_search(phy_cell_t *cell) {
+  return sf_recv.cell_search(cell);
 }
 
 bool phy::cell_is_camping() {

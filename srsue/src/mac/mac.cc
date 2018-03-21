@@ -189,18 +189,13 @@ void mac::bcch_start_rx(int si_window_start, int si_window_length)
   Info("SCHED: Searching for DL grant for SI-RNTI window_st=%d, window_len=%d\n", si_window_start, si_window_length);
 }
 
-void mac::bcch_stop_rx()
-{
-  phy_h->pdcch_dl_search_reset();
-}
-
 void mac::pcch_start_rx()
 {
   phy_h->pdcch_dl_search(SRSLTE_RNTI_PCH, SRSLTE_PRNTI);
   Info("SCHED: Searching for DL grant for P-RNTI\n");
 }
 
-void mac::pcch_stop_rx()
+void mac::clear_rntis()
 {
   phy_h->pdcch_dl_search_reset();
 }

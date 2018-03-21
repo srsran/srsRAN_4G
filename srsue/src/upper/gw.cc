@@ -248,9 +248,8 @@ void gw::run_thread()
     return;
   }
 
-  const static uint32_t ATTACH_TIMEOUT_MS   = 10000;
+  const static uint32_t ATTACH_TIMEOUT_S    = 4;
   const static uint32_t ATTACH_MAX_ATTEMPTS = 3;
-  uint32_t attach_cnt = 0;
   uint32_t attach_attempts = 0;
 
   gw_log->info("GW IP packet receiver thread run_enable\n");
@@ -279,16 +278,13 @@ void gw::run_thread()
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
           while(run_enable && !pdcp->is_drb_enabled(cfg.lcid) && attach_attempts < ATTACH_MAX_ATTEMPTS) {
-            if (attach_cnt == 0) {
-              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
-              nas->attach_request();
+            gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
+            if (!nas->attach_request()) {
               attach_attempts++;
+              sleep(ATTACH_TIMEOUT_S);
+            } else {
+              attach_attempts = 0;
             }
-            attach_cnt++;
-            if (attach_cnt == ATTACH_TIMEOUT_MS) {
-              attach_cnt = 0;
-            }
-            usleep(1000);
           }
 
           if (attach_attempts == ATTACH_MAX_ATTEMPTS) {
@@ -296,7 +292,6 @@ void gw::run_thread()
           }
 
           attach_attempts = 0;
-          attach_cnt = 0;
 
           if (!run_enable) {
             break;

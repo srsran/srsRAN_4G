@@ -83,7 +83,7 @@ public:
   /********** RRC INTERFACE ********************/
   void    reset();
   void    configure_ul_params(bool pregen_disabled = false);
-  cell_search_ret_t cell_search(phy_cell_t *cell, float *rsrp);
+  cell_search_ret_t cell_search(phy_cell_t *cell);
   bool    cell_select(phy_cell_t *cell);
 
   void    meas_reset();

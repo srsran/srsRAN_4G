@@ -43,18 +43,14 @@ namespace srsue {
 typedef enum {
   EMM_STATE_NULL = 0,
   EMM_STATE_DEREGISTERED,
-  EMM_STATE_REGISTERED_INITIATED,
   EMM_STATE_REGISTERED,
-  EMM_STATE_SERVICE_REQUEST_INITIATED,
   EMM_STATE_DEREGISTERED_INITIATED,
   EMM_STATE_TAU_INITIATED,
   EMM_STATE_N_ITEMS,
 } emm_state_t;
 static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
                                                             "DEREGISTERED",
-                                                            "REGISTERED INITIATED",
                                                             "REGISTERED",
-                                                            "SERVICE REQUEST INITIATED",
                                                             "DEREGISTERED INITIATED",
                                                             "TRACKING AREA UPDATE INITIATED"};
 
@@ -79,11 +75,10 @@ public:
 
   // RRC interface
   void paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy);
-  void rrc_connection_failure();
+  void set_barring(barring_t barring);
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
   uint32_t get_ul_count();
   bool is_attached();
-  bool get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
   bool get_k_asme(uint8_t *k_asme_, uint32_t n);
 
   // UE interface
@@ -104,7 +99,8 @@ private:
 
   emm_state_t state;
 
-  bool rrc_connection_is_failure;
+  nas_interface_rrc::barring_t current_barring;
+
   bool plmn_is_selected;
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT current_plmn;
   LIBLTE_RRC_PLMN_IDENTITY_STRUCT home_plmn;
@@ -140,8 +136,9 @@ private:
   // PCAP
   srslte::nas_pcap *pcap = NULL;
 
+  bool running;
+
   bool rrc_connect();
-  bool attach(bool is_service_req);
 
   void integrity_generate(uint8_t *key_128,
                           uint32_t count,
@@ -168,10 +165,12 @@ private:
   void parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu);
   void parse_emm_information(uint32_t lcid, byte_buffer_t *pdu);
 
+  // Packet generators
+  void gen_attach_request(byte_buffer_t *msg);
+  void gen_service_request(byte_buffer_t *msg);
+
   // Senders
-  void send_attach_request();
   void send_identity_response();
-  void send_service_request();
   void send_esm_information_response();
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
   void send_security_mode_reject(uint8_t cause);

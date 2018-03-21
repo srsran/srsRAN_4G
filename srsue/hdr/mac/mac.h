@@ -72,10 +72,9 @@ public:
   
   /******** Interface from RLC (RLC -> MAC) ****************/ 
   void bcch_start_rx(); 
-  void bcch_stop_rx(); 
   void bcch_start_rx(int si_window_start, int si_window_length);
   void pcch_start_rx(); 
-  void pcch_stop_rx(); 
+  void clear_rntis();
   void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
   void reconfiguration(); 
   void reset();

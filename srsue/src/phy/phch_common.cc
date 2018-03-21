@@ -346,7 +346,6 @@ void phch_common::reset() {
   avg_rsrp_dbm = 0;
   avg_rsrq_db = 0;
 
-  pcell_meas_enabled  = false;
   pcell_report_period = 20;
 
   bzero(pending_ack, sizeof(pending_ack_t)*TTIMOD_SZ);

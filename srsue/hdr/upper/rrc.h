@@ -64,8 +64,9 @@ class cell_t
   bool equals(uint32_t earfcn, uint32_t pci) {
     return earfcn == this->phy_cell.earfcn && pci == phy_cell.cell.id;
   }
+  // NaN means an RSRP value has not yet been obtained. Keep then in the list and clean them if never updated
   bool greater(cell_t *x) {
-    return rsrp > x->rsrp;
+    return rsrp > x->rsrp || isnan(rsrp);
   }
   bool plmn_equals(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
     if (has_valid_sib1) {
@@ -282,7 +283,9 @@ public:
   uint16_t get_mnc();
   int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]);
   void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
-  bool connection_request();
+  bool connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
+                          srslte::byte_buffer_t *dedicatedInfoNAS);
+  void set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi);
 
   // PHY interface
   void in_sync();
@@ -321,6 +324,8 @@ private:
   LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
 
+  byte_buffer_t *dedicatedInfoNAS;
+
   byte_buffer_t* byte_align_and_pack();
   void send_ul_ccch_msg();
   void send_ul_dcch_msg();
@@ -330,6 +335,9 @@ private:
 
   rrc_state_t state;
   uint8_t transaction_id;
+  LIBLTE_RRC_S_TMSI_STRUCT ueIdentity;
+  bool ueIdentity_configured;
+
   bool drb_up;
 
   rrc_args_t args;
@@ -358,7 +366,7 @@ private:
   srslte::mac_interface_timers *mac_timers;
   uint32_t n310_cnt, N310;
   uint32_t n311_cnt, N311;
-  uint32_t t300, t301, t310, t311, t304;
+  uint32_t t300, t301, t302, t310, t311, t304;
 
   // Radio bearers
   typedef enum{
@@ -408,7 +416,7 @@ private:
 
   bool               si_acquire(uint32_t index);
   uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf);
-  const static int SIB_SEARCH_TIMEOUT_MS = 5000;
+  const static int SIB_SEARCH_TIMEOUT_MS = 1000;
 
   const static uint32_t NOF_REQUIRED_SIBS = 3; // SIB1, SIB2 and SIB3
 
@@ -510,6 +518,18 @@ private:
 
   rrc_meas measurements;
 
+  // Measurement object from phy
+  typedef struct {
+    float rsrp;
+    float rsrq;
+    uint32_t tti;
+    uint32_t earfcn;
+    uint32_t pci;
+  } phy_meas_t;
+
+  void process_phy_meas();
+  void process_new_phy_meas(phy_meas_t meas);
+  std::queue<phy_meas_t> phy_meas_q;
 
   // Cell selection/reselection functions/variables
   typedef struct {
@@ -542,7 +562,7 @@ private:
   void          max_retx_attempted();
 
   // Senders
-  void          send_con_request();
+  void          send_con_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause);
   void          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause);
   void          send_con_restablish_complete();
   void          send_con_setup_complete(byte_buffer_t *nas_msg);

@@ -83,7 +83,9 @@ public:
 
   int plmn_search(srsue::rrc_interface_nas::found_plmn_t*) { return 0; };
   void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {};
-  bool connection_request() {return true;}
+  void set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi) {}
+  bool connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
+                          srslte::byte_buffer_t *dedicatedInfoNAS) {return true;}
   bool is_connected() {return true;}
 
   uint16_t get_mcc() { return mcc; }

@@ -59,7 +59,7 @@ public:
   void radio_overflow();
 
   // RRC interface for controling the SYNC state
-  phy_interface_rrc::cell_search_ret_t cell_search(phy_interface_rrc::phy_cell_t *cell, float *rsrpq);
+  phy_interface_rrc::cell_search_ret_t cell_search(phy_interface_rrc::phy_cell_t *cell);
   bool    cell_select(phy_interface_rrc::phy_cell_t *cell);
   bool    cell_is_camping();
 
@@ -98,9 +98,7 @@ private:
     ~search();
     void     init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, uint32_t nof_rx_antennas, phch_recv *parent);
     void     reset();
-    float    get_last_gain();
     float    get_last_cfo();
-    void     set_N_id_2(int N_id_2);
     void     set_agc_enable(bool enable);
     ret_code run(srslte_cell_t *cell);
 
@@ -247,6 +245,7 @@ private:
   void   radio_error();
   void   set_ue_sync_opts(srslte_ue_sync_t *q, float cfo);
   void   run_thread();
+  float  get_tx_cfo();
 
   void   set_sampling_rate();
   bool   set_frequency();
@@ -302,7 +301,6 @@ private:
       IDLE = 0,
       CELL_SEARCH,
       SFN_SYNC,
-      MEASURE,
       CAMPING,
     } state_t;
 
@@ -318,19 +316,18 @@ private:
     }
 
     // Called by the main thread at the end of each state to indicate it has finished.
-    void state_exit() {
+    void state_exit(bool exit_ok = true) {
       pthread_mutex_lock(&inside);
-      next_state = IDLE;
+      if (cur_state == SFN_SYNC && exit_ok == true) {
+        next_state = CAMPING;
+      } else {
+        next_state = IDLE;
+      }
       pthread_mutex_unlock(&inside);
     }
     void force_sfn_sync() {
       pthread_mutex_lock(&inside);
       next_state = SFN_SYNC;
-      pthread_mutex_unlock(&inside);
-    }
-    void force_camping() {
-      pthread_mutex_lock(&inside);
-      next_state = CAMPING;
       pthread_mutex_unlock(&inside);
     }
 
@@ -344,27 +341,16 @@ private:
       go_state(IDLE);
       pthread_mutex_unlock(&outside);
     }
-    void go_camping() {
-      pthread_mutex_lock(&outside);
-      go_state(CAMPING);
-      pthread_mutex_unlock(&outside);
-    }
     void run_cell_search() {
       pthread_mutex_lock(&outside);
       go_state(CELL_SEARCH);
-      wait_idle();
+      wait_state_change(CELL_SEARCH);
       pthread_mutex_unlock(&outside);
     }
     void run_sfn_sync() {
       pthread_mutex_lock(&outside);
       go_state(SFN_SYNC);
-      wait_idle();
-      pthread_mutex_unlock(&outside);
-    }
-    void run_measure() {
-      pthread_mutex_lock(&outside);
-      go_state(MEASURE);
-      wait_idle();
+      wait_state_change(SFN_SYNC);
       pthread_mutex_unlock(&outside);
     }
 
@@ -375,6 +361,21 @@ private:
     }
     bool is_camping() {
       return cur_state == CAMPING;
+    }
+
+    const char *to_string() {
+      switch(cur_state) {
+        case IDLE:
+          return "IDLE";
+        case CELL_SEARCH:
+          return "SEARCH";
+        case SFN_SYNC:
+          return "SYNC";
+        case CAMPING:
+          return "CAMPING";
+        default:
+          return "UNKNOWN";
+      }
     }
 
     sync_state() {
@@ -396,9 +397,9 @@ private:
     }
 
     /* Waits until there is a call to set_state() and then run_state(). Returns when run_state() returns */
-    void wait_idle() {
+    void wait_state_change(state_t prev_state) {
       pthread_mutex_lock(&inside);
-      while(cur_state != IDLE) {
+      while(cur_state == prev_state) {
         pthread_cond_wait(&cvar, &inside);
       }
       pthread_mutex_unlock(&inside);
@@ -415,8 +416,6 @@ private:
   sync_state phy_state;
 
   search::ret_code   cell_search_ret;
-  sfn_sync::ret_code sfn_sync_ret;
-  measure::ret_code  measure_ret;
 
   // Sampling rate mode (find is 1.96 MHz, camp is the full cell BW)
   enum {
@@ -426,7 +425,6 @@ private:
 
   // This is the primary cell
   srslte_cell_t cell;
-  bool          cell_is_set;
   bool          started;
   float         time_adv_sec;
   uint32_t      tti;

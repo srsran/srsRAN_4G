@@ -261,10 +261,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
      "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
-    ("expert.time_correct_period",
-     bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
-     "Period for sampling time offset correction.")
-
     ("expert.sss_algorithm",
      bpo::value<string>(&args->expert.phy.sss_algorithm)->default_value("full"),
      "Selects the SSS estimation algorithm.")

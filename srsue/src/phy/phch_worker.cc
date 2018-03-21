@@ -164,6 +164,8 @@ bool phch_worker::set_cell(srslte_cell_t cell_)
     srslte_ue_ul_set_normalization(&ue_ul, true);
     srslte_ue_ul_set_cfo_enable(&ue_ul, true);
 
+    phy->pcell_first_measurement = true;
+
     cell_initiated = true;
   }
   ret = true;
@@ -439,33 +441,31 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
 bool phch_worker::extract_fft_and_pdcch_llr() {
   bool decode_pdcch = true;
 
-  /* Without a grant, we might need to do fft processing if need to decode PHICH */
-  if (phy->get_pending_ack(tti) || decode_pdcch) {
-    
-    // Setup estimator filter 
-    float w_coeff = phy->args->estimator_fil_w; 
-    if (w_coeff > 0.0) {
-      srslte_chest_dl_set_smooth_filter3_coeff(&ue_dl.chest, w_coeff); 
-    } else if (w_coeff == 0.0) {
-      srslte_chest_dl_set_smooth_filter(&ue_dl.chest, NULL, 0); 
-    }
-    
-    if (!phy->args->snr_estim_alg.compare("refs")) {
-      srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_REFS);
-    } else if (!phy->args->snr_estim_alg.compare("empty")) {
-      srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_EMPTY);
-    } else {
-      srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_PSS);      
-    }
-  
-    if (srslte_ue_dl_decode_fft_estimate(&ue_dl, tti%10, &cfi) < 0) {
-      Error("Getting PDCCH FFT estimate\n");
-      return false; 
-    }        
-    chest_done = true; 
-  } else {
-    chest_done = false; 
+  // Do always channel estimation to keep track of out-of-sync and send measurements to RRC
+
+  // Setup estimator filter
+  float w_coeff = phy->args->estimator_fil_w;
+  if (w_coeff > 0.0) {
+    srslte_chest_dl_set_smooth_filter3_coeff(&ue_dl.chest, w_coeff);
+  } else if (w_coeff == 0.0) {
+    srslte_chest_dl_set_smooth_filter(&ue_dl.chest, NULL, 0);
   }
+
+  if (!phy->args->snr_estim_alg.compare("refs")) {
+    srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_REFS);
+  } else if (!phy->args->snr_estim_alg.compare("empty")) {
+    srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_EMPTY);
+  } else {
+    srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_PSS);
+  }
+
+  if (srslte_ue_dl_decode_fft_estimate(&ue_dl, tti%10, &cfi) < 0) {
+    Error("Getting PDCCH FFT estimate\n");
+    return false;
+  }
+
+  chest_done = true;
+
   if (chest_done && decode_pdcch) { /* and not in DRX mode */
     
     float noise_estimate = phy->avg_noise;
@@ -1427,7 +1427,8 @@ void phch_worker::update_measurements()
       } else {
         phy->avg_rsrp_dbm = SRSLTE_VEC_EMA(rsrp_dbm, phy->avg_rsrp_dbm, snr_ema_coeff);
       }
-      if ((tti%phy->pcell_report_period) == 0 && phy->pcell_meas_enabled) {
+      if ((tti%phy->pcell_report_period) == 0 || phy->pcell_first_measurement) {
+        phy->pcell_first_measurement = false;
         phy->rrc->new_phy_meas(phy->avg_rsrp_dbm, phy->avg_rsrq_db, tti);
       }
     }
