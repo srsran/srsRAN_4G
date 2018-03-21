@@ -64,6 +64,7 @@ sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_
   }
 
   pthread_mutex_init(&mutex, NULL);
+  pthread_mutex_init(&mutex2, NULL);
   reset();
 }
 
@@ -71,6 +72,7 @@ sched::~sched()
 {
   srslte_regs_free(&regs);
   pthread_mutex_destroy(&mutex);
+  pthread_mutex_destroy(&mutex2);
 }
 
 void sched::init(rrc_interface_mac *rrc_, srslte::log* log)
@@ -173,13 +175,15 @@ int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t *ue_cfg)
 int sched::ue_rem(uint16_t rnti)
 {
   pthread_mutex_lock(&mutex);
-  int ret = 0; 
+  pthread_mutex_lock(&mutex2);
+  int ret = 0;
   if (ue_db.count(rnti)) {         
     ue_db.erase(rnti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
+  pthread_mutex_unlock(&mutex2);
   pthread_mutex_unlock(&mutex);
   return ret; 
 }
@@ -217,13 +221,15 @@ int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bear
 int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
   pthread_mutex_lock(&mutex);
-  int ret = 0; 
+  pthread_mutex_lock(&mutex2);
+  int ret = 0;
   if (ue_db.count(rnti)) {         
     ue_db[rnti].rem_bearer(lc_id);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
+  pthread_mutex_unlock(&mutex2);
   pthread_mutex_unlock(&mutex);
   return ret; 
 }
@@ -259,9 +265,13 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
  * Ideally we would like the scheduler to query the RLC for buffer states in order to get the most updated
  * buffer state with the minimum overhead. However, the current architecture is designed to be compliant
  * with the FAPI interface
+ *
+ * We add a new mutex used only in ue_rem to avoid the UE being removed in between the access to
+ * ue_db.count() and the access to the std::map.
  */
 int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
+  pthread_mutex_lock(&mutex2);
   int ret = 0;
   if (ue_db.count(rnti)) {
     ue_db[rnti].dl_buffer_state(lc_id, tx_queue, retx_queue);
@@ -269,21 +279,23 @@ int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue,
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
+  pthread_mutex_unlock(&mutex2);
   return ret;
 }
 
+/* \Warning Read comment in dl_rlc_buffer_state() */
 int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
+  pthread_mutex_lock(&mutex2);
+  int ret = 0;
   if (ue_db.count(rnti)) {         
     ue_db[rnti].mac_buffer_state(ce_code);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_mutex_unlock(&mutex2);
+  return ret;
 }
 
 int sched::dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) {
