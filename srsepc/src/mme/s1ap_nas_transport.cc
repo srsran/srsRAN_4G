@@ -274,8 +274,10 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
 
   if(*reply_flag == true)
   {
-    m_s1ap_log->console("DL NAS: Sent Downlink NAs Message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count,emm_ctx->security_ctxt.ul_nas_count );
+    m_s1ap_log->console("DL NAS: Sent Downlink NAS Message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count,emm_ctx->security_ctxt.ul_nas_count );
     m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count, emm_ctx->security_ctxt.ul_nas_count);
+    m_s1ap_log->info("DL NAS: MME UE S1AP id %d\n",ecm_ctx->mme_ue_s1ap_id);
+    m_s1ap_log->console("DL NAS: MME UE S1AP id %d\n",ecm_ctx->mme_ue_s1ap_id);
   }
   m_pool->deallocate(nas_msg);
   return true;
@@ -473,8 +475,8 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
   if(it == m_s1ap->m_tmsi_to_imsi.end())
   {
 
-    m_s1ap_log->console("Attach Request -- Could not find M-TMSI 0x%x", m_tmsi);
-    m_s1ap_log->info("Attach Request -- Could not find M-TMSI 0x%x", m_tmsi);
+    m_s1ap_log->console("Attach Request -- Could not find M-TMSI 0x%x\n", m_tmsi);
+    m_s1ap_log->info("Attach Request -- Could not find M-TMSI 0x%x\n", m_tmsi);
 
     //Could not find IMSI from M-TMSI, send Id request
     ue_ctx_t ue_ctx;
@@ -558,8 +560,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
     {
       ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
       ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
-      m_s1ap_log->console("Found UE context. IMSI: %015lu\n",emm_ctx->imsi);
-
+      m_s1ap_log->console("Found UE context. IMSI: %015lu, old MME UE S1AP Id %d\n",emm_ctx->imsi, ecm_ctx->mme_ue_s1ap_id);
       //Check NAS integrity
       bool msg_valid = false;
       emm_ctx->security_ctxt.ul_nas_count++;
@@ -567,8 +568,15 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       if(msg_valid == true)
       {
         //Create new MME UE S1AP Identity
-        emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+        uint32_t new_mme_ue_s1ap_id =  m_s1ap->get_next_mme_ue_s1ap_id();
 
+        //Make sure context from previous MME
+        if(ecm_ctx->mme_ue_s1ap_id!=0)
+        {
+          m_s1ap->release_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id);
+        }
+        emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+        ecm_ctx->mme_ue_s1ap_id = emm_ctx->mme_ue_s1ap_id;
         //Set EMM as de-registered
         emm_ctx->state = EMM_STATE_DEREGISTERED;
         //Save Attach type
@@ -591,7 +599,8 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
             ecm_ctx->erabs_ctx[i].erab_id = i;
         }
 
-        //m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
+        //Store context based on MME UE S1AP id
+        m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
         //Create session request
         m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.");
         m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
@@ -1158,8 +1167,8 @@ s1ap_nas_transport::integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t
   // Check if expected mac equals the sent mac
   for(i=0; i<4; i++){
     if(exp_mac[i] != mac[i]){
-      m_s1ap_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
-                       "Received: count=%d, [%02x %02x %02x %02x]\n",
+      m_s1ap_log->warning("Integrity check failure. UL Local: count=%d, [%02x %02x %02x %02x], "
+                       "Received: UL count=%d, [%02x %02x %02x %02x]\n",
                        emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
                        pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
       return false;
