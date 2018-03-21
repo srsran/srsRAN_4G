@@ -148,9 +148,7 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
   if (pending_data || (h && !h->is_empty())) {
 #endif
     if (nof_users_with_data) {
-      if (nof_users_with_data == 2) {
-      }
-      if ((current_tti%nof_users_with_data) != user->ue_idx) {      
+      if ((current_tti%nof_users_with_data) != user->ue_idx) {
         return NULL; 
       }    
     }
