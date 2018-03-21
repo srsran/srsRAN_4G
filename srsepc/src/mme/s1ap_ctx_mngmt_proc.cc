@@ -179,7 +179,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   }
 
   //Send Reply to eNB
-  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ecm_ctx->enb_sri, 0);
+  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ecm_ctx->enb_sri, 0); 
   if(n_sent == -1)
   {
       m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
@@ -195,8 +195,10 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   addr.s_addr = htonl(sgw_s1u_ip);
   m_s1ap_log->info("Sent Intial Context Setup Request. E-RAB id %d \n",erab_ctx_req->e_RAB_ID.E_RAB_ID);
   m_s1ap_log->info("Initial Context -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
-  m_s1ap_log->console("Sent Intial Context Setup Request, E-RAB id %d\n",erab_ctx_req->e_RAB_ID.E_RAB_ID);
-  m_s1ap_log->console("Initial Context -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
+  m_s1ap_log->console("Initial Context Setup Request -- eNB UE S1AP Id %d, MME UE S1AP Id %d\n",in_ctxt_req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID, in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID);
+  m_s1ap_log->console("Initial Context Setup Request -- E-RAB id %d\n",erab_ctx_req->e_RAB_ID.E_RAB_ID);
+  m_s1ap_log->console("Initial Context Setup Request -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
+  m_s1ap_log->console("Initial Context Setup Request -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
 
   m_pool->deallocate(reply_buffer);
   m_pool->deallocate(nas_buffer);
