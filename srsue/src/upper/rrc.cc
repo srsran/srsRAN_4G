@@ -598,6 +598,7 @@ bool rrc::si_acquire(uint32_t sib_index)
   uint32_t tti;
   uint32_t si_win_start=0, si_win_len=0;
   uint16_t period;
+  uint32_t sched_index;
   uint32_t x, sf, offset;
 
   uint32_t last_win_start = 0;
@@ -619,31 +620,50 @@ bool rrc::si_acquire(uint32_t sib_index)
         si_win_len = 1;
         instruct_phy = true;
       }
+      period = 20;
+      sched_index = 0;
     } else {
       // Instruct MAC to look for SIB2..13
       if (serving_cell->has_sib1()) {
-        uint32_t sysinfo_index = sib_index-1;
+
         LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1 = serving_cell->sib1ptr();
-        if(sysinfo_index < sib1->N_sched_info) {
-          si_win_len   = liblte_rrc_si_window_length_num[sib1->si_window_length];
-          x            = sysinfo_index*si_win_len;
-          sf           = x%10;
-          offset       = x/10;
 
-          tti          = mac->get_current_tti();
-          period       = liblte_rrc_si_periodicity_num[sib1->sched_info[sysinfo_index].si_periodicity];
-          si_win_start = sib_start_tti(tti, period, offset, sf);
-          si_win_len = liblte_rrc_si_window_length_num[sib1->si_window_length];
-
-          if (last_win_start == 0 ||
-              (srslte_tti_interval(tti, last_win_start) > period*10 && srslte_tti_interval(tti, last_win_start) < 1000))
-          {
-            last_win_start = si_win_start;
-            instruct_phy = true;
-          }
+        // SIB2 scheduling
+        if (sib_index == 1) {
+          period      = liblte_rrc_si_periodicity_num[sib1->sched_info[0].si_periodicity];
+          sched_index = 0;
         } else {
-          rrc_log->warning("Trying to receive SIB%d but only %d available\n", sysinfo_index, sib1->N_sched_info);
-          return false;
+          // SIB3+ scheduling Section 5.2.3
+          if (sib_index >= 2) {
+            bool found = false;
+            for (uint32_t i=0;i<sib1->N_sched_info && !found;i++) {
+              for (uint32_t j=0;j<sib1->sched_info[i].N_sib_mapping_info && !found;j++) {
+                if ((uint32_t) sib1->sched_info[i].sib_mapping_info[j].sib_type == sib_index - 2) {
+                  period      = liblte_rrc_si_periodicity_num[sib1->sched_info[i].si_periodicity];
+                  sched_index = i;
+                }
+              }
+            }
+            if (!found) {
+              rrc_log->error("Could not find SIB%d scheduling in SIB1\n", sib_index+1);
+              return false;
+            }
+          }
+        }
+        si_win_len   = liblte_rrc_si_window_length_num[sib1->si_window_length];
+        x            = sched_index*si_win_len;
+        sf           = x%10;
+        offset       = x/10;
+
+        tti          = mac->get_current_tti();
+        si_win_start = sib_start_tti(tti, period, offset, sf);
+        si_win_len = liblte_rrc_si_window_length_num[sib1->si_window_length];
+
+        if (last_win_start == 0 ||
+            (srslte_tti_interval(tti, last_win_start) > period*10 && srslte_tti_interval(tti, last_win_start) < 1000))
+        {
+          last_win_start = si_win_start;
+          instruct_phy = true;
         }
       } else {
         rrc_log->error("Trying to receive SIB%d but SIB1 not received\n", sib_index+1);
@@ -653,8 +673,8 @@ bool rrc::si_acquire(uint32_t sib_index)
     // Instruct MAC to decode SIB
     if (instruct_phy && !serving_cell->has_sib(sib_index)) {
       mac->bcch_start_rx(si_win_start, si_win_len);
-      rrc_log->info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d\n",
-                    sib_index+1, si_win_start, si_win_len);
+      rrc_log->info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",
+                    sib_index+1, si_win_start, si_win_len, period, sched_index);
     }
     usleep(1000);
     timeout++;
@@ -1512,7 +1532,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
   liblte_rrc_unpack_bcch_dlsch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dlsch_msg);
 
   for(uint32_t i=0; i<dlsch_msg.N_sibs; i++) {
-    rrc_log->info("Processing SIB: %d\n", liblte_rrc_sys_info_block_type_num[dlsch_msg.sibs[i].sib_type]);
+    rrc_log->info("Processing SIB%d (%d/%d)\n", liblte_rrc_sys_info_block_type_num[dlsch_msg.sibs[i].sib_type], i, dlsch_msg.N_sibs);
 
     if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[i].sib_type) {
       serving_cell->set_sib1(&dlsch_msg.sibs[i].sib.sib1);
