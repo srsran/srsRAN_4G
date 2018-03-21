@@ -11771,7 +11771,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_rrc_connection_reject_msg(LIBLTE_RRC_CONNECTIO
         liblte_value_2_bits(0, &msg_ptr, 1);
 
         // Wait Time
-        liblte_value_2_bits(con_rej->wait_time, &msg_ptr, 4);
+        liblte_value_2_bits(con_rej->wait_time - 1, &msg_ptr, 4);
 
         // Fill in the number of bits used
         msg->N_bits = msg_ptr - msg->msg;
@@ -11800,7 +11800,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_rrc_connection_reject_msg(LIBLTE_BIT_MSG_STR
         liblte_rrc_warning_not_handled(liblte_bits_2_value(&msg_ptr, 1), __func__);;
 
         // Wait Time
-        con_rej->wait_time = liblte_bits_2_value(&msg_ptr, 4);
+        con_rej->wait_time = liblte_bits_2_value(&msg_ptr, 4) + 1;
 
         liblte_rrc_consume_noncrit_extension(ext, __func__, &msg_ptr);
         
