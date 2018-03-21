@@ -100,8 +100,8 @@ public:
   uint32_t get_ul_buffer(uint16_t rnti); 
   uint32_t get_dl_buffer(uint16_t rnti); 
 
-  int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue); 
-  int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code); 
+  int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
+  int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code);
     
   int dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dedicated);
   int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
@@ -217,7 +217,7 @@ private:
   
   bool configured;
   
-  pthread_mutex_t mutex; 
+  pthread_mutex_t mutex, mutex2;
   
   
 };
