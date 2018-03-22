@@ -257,6 +257,10 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       m_s1ap_log->info("Uplink NAS: Authentication Failure\n");
       handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
+      /*    case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
+      m_s1ap_log->info("Uplink NAS: Detach Request\n");
+      handle_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      break;*/
     default:
       m_s1ap_log->warning("Unhandled NAS integrity protected message 0x%x\n", msg_type );
       m_s1ap_log->console("Unhandled NAS integrity protected message 0x%x\n", msg_type );
@@ -601,6 +605,11 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
         //Store context based on MME UE S1AP id
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
+
+        //Re-generate K_eNB
+        liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
+        m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
+
         //Create session request
         m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.");
         m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
@@ -972,14 +981,6 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
 
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
-  //Check if EMM context already exists
-  //ue_ctx_t *ue_tmp_ptr = m_s1ap->find_ue_ctx_from_imsi(imsi);
-  //if(ue_tmp_ptr != NULL)
-  //{
-  //  m_s1ap_log->warning("Unkonw GUTI, but UE's EMM context present.\n");
-  //  m_s1ap->delete_ue_emm_ctx(imsi);
-  //}
-
 
   m_s1ap_log->info("Id Response -- IMSI: %015lu\n", imsi);
   m_s1ap_log->console("Id Response -- IMSI: %015lu\n", imsi);
@@ -1036,25 +1037,9 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctx->ecm_ctx.enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
- //m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
+  //m_s1ap_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
   LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT tau_acc;
 
-  /*
-  bool                                          t3412_present;
-  bool                                          guti_present;
-  bool                                          tai_list_present;
-  bool                                          eps_bearer_context_status_present;
-  bool                                          lai_present;
-  bool                                          ms_id_present;
-  bool                                          emm_cause_present;
-  bool                                          t3402_present;
-  bool                                          t3423_present;
-  bool                                          equivalent_plmns_present;
-  bool                                          emerg_num_list_present;
-  bool                                          eps_network_feature_support_present;
-  bool                                          additional_update_result_present;
-  bool                                          t3412_ext_present;
-  */
   //Get decimal MCC and MNC
   uint32_t mcc = 0;
   mcc += 0x000F & m_s1ap->m_s1ap_args.mcc;
@@ -1104,46 +1089,6 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   tau_acc.eps_network_feature_support_present = false;
   tau_acc.additional_update_result_present = false;
   tau_acc.t3412_ext_present = false;
-
-
-  //eps_update_result = LIBLTE_MME_TR
-  /*
-typedef struct{
-    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3412;
-    LIBLTE_MME_EPS_MOBILE_ID_STRUCT               guti;
-    LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_STRUCT tai_list;
-    LIBLTE_MME_EPS_BEARER_CONTEXT_STATUS_STRUCT   eps_bearer_context_status;
-    LIBLTE_MME_LOCATION_AREA_ID_STRUCT            lai;
-    LIBLTE_MME_MOBILE_ID_STRUCT                   ms_id;
-    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3402;
-    LIBLTE_MME_GPRS_TIMER_STRUCT                  t3423;
-    LIBLTE_MME_PLMN_LIST_STRUCT                   equivalent_plmns;
-    LIBLTE_MME_EMERGENCY_NUMBER_LIST_STRUCT       emerg_num_list;
-    LIBLTE_MME_EPS_NETWORK_FEATURE_SUPPORT_STRUCT eps_network_feature_support;
-    LIBLTE_MME_GPRS_TIMER_3_STRUCT                t3412_ext;
-    LIBLTE_MME_ADDITIONAL_UPDATE_RESULT_ENUM      additional_update_result;
-    uint8                                         eps_update_result;
-    uint8                                         emm_cause;
-    bool                                          t3412_present;
-    bool                                          guti_present;
-    bool                                          tai_list_present;
-    bool                                          eps_bearer_context_status_present;
-    bool                                          lai_present;
-    bool                                          ms_id_present;
-    bool                                          emm_cause_present;
-    bool                                          t3402_present;
-    bool                                          t3423_present;
-    bool                                          equivalent_plmns_present;
-    bool                                          emerg_num_list_present;
-    bool                                          eps_network_feature_support_present;
-    bool                                          additional_update_result_present;
-    bool                                          t3412_ext_present;v
-}LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT;
-   */
-
-
-  //Send reply to eNB
-  //*reply_flag = true;
 
   return true;
 }
@@ -1256,7 +1201,6 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
       m_s1ap_log->info("User not found. IMSI %015lu\n", emm_ctx->imsi);
       return false;
     }
-    
     //Pack NAS Authentication Request in Downlink NAS Transport msg
     pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
 
@@ -1268,10 +1212,14 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
 
     break;
   }
-  return true;  
-
+  return true;
 }
-
+  /*
+bool
+s1ap_nas_transport::handle_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag)
+{
+  return true;
+  }*/
 /*Packing/Unpacking helper functions*/
 bool
 s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t *autn, uint8_t *rand)
