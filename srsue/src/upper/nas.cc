@@ -152,6 +152,7 @@ bool nas::attach_request() {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
         if (rrc_connect()) {
           nas_log->info("NAS attached successfully.\n");
+          return true;
         } else {
           nas_log->error("Could not attach\n");
         }
