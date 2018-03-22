@@ -122,6 +122,26 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     handle_nas_service_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     return true;
   }
+  else if(msg_type == LIBLTE_MME_MSG_TYPE_DETACH_REQUEST)
+  {
+    m_s1ap_log->console("Received Detach Request\n");
+    m_s1ap_log->info("Received Detach Request\n");
+    if(!init_ue->S_TMSI_present)
+    {
+      m_s1ap_log->error("Service request -- S-TMSI  not present\n");
+      m_s1ap_log->console("Service request -- S-TMSI not present\n" );
+      return false;
+    }
+    uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
+    uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+    m_s1ap_log->info("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
+    m_s1ap_log->console("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
+    m_s1ap_log->info("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+    m_s1ap_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
+
+    handle_nas_detach_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+    return true;
+  }
   else
   {
     m_s1ap_log->info("Unhandled Initial UE Message 0x%x\n",msg_type);
@@ -240,27 +260,25 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     }
     switch (msg_type) {
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
-      m_s1ap_log->info("Uplink NAS: Received Attach Complete\n");
-      m_s1ap_log->console("Uplink NAS: Received Attach Complete\n");
+      m_s1ap_log->info("Integrity Protected UL NAS: Received Attach Complete\n");
+      m_s1ap_log->console("Integrity Protected UL NAS: Received Attach Complete\n");
       handle_nas_attach_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
-      m_s1ap_log->info("Uplink NAS: Received ESM Information Response\n");
-      m_s1ap_log->console("Uplink NAS: Received ESM Information Response\n");
+      m_s1ap_log->info("Integrity Protected UL NAS: Received ESM Information Response\n");
+      m_s1ap_log->console("Integrity Protected UL NAS: Received ESM Information Response\n");
       handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
-      m_s1ap_log->info("UL NAS: Tracking Area Update Request\n");
+      m_s1ap_log->info("Integrity Protected UL NAS: Tracking Area Update Request\n");
+      m_s1ap_log->console("Integrity Protected UL NAS: Tracking Area Update Request\n");
       handle_tracking_area_update_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
-      m_s1ap_log->info("Uplink NAS: Authentication Failure\n");
+      m_s1ap_log->info("Integrity Protected UL NAS: Authentication Failure\n");
+      m_s1ap_log->info("Integrity Protected UL NAS: Authentication Failure\n");
       handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
-      /*    case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
-      m_s1ap_log->info("Uplink NAS: Detach Request\n");
-      handle_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      break;*/
     default:
       m_s1ap_log->warning("Unhandled NAS integrity protected message 0x%x\n", msg_type );
       m_s1ap_log->console("Unhandled NAS integrity protected message 0x%x\n", msg_type );
@@ -557,7 +575,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
   else{
 
     m_s1ap_log->console("Attach Request -- Found M-TMSI: %d\n",m_tmsi);
-    m_s1ap_log->console("Attach Request -- IMSI: %d\n",it->second);
+    m_s1ap_log->console("Attach Request -- IMSI: %015lu\n",it->second);
     //Get UE EMM context
     ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(it->second);
     if(ue_ctx!=NULL)
@@ -569,8 +587,11 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       bool msg_valid = false;
       emm_ctx->security_ctxt.ul_nas_count++;
       msg_valid = integrity_check(emm_ctx,nas_msg);
+
+      
       if(msg_valid == true)
       {
+        m_s1ap_log->console("GUTI Attach Integrity valid. UL count %d, DL count %d\n",emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.dl_nas_count);
         //Create new MME UE S1AP Identity
         uint32_t new_mme_ue_s1ap_id =  m_s1ap->get_next_mme_ue_s1ap_id();
 
@@ -609,6 +630,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         //Re-generate K_eNB
         liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
         m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
+        m_s1ap_log->console("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
 
         //Create session request
         m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.");
@@ -787,6 +809,39 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
 }
 
 bool
+s1ap_nas_transport::handle_nas_detach_request(uint32_t m_tmsi,
+                                              uint32_t enb_ue_s1ap_id,
+                                              srslte::byte_buffer_t *nas_msg,
+                                              srslte::byte_buffer_t *reply_buffer,
+                                              bool* reply_flag,
+                                              struct sctp_sndrcvinfo *enb_sri)
+{
+  bool mac_valid = false;
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &detach_req);
+  if(err !=LIBLTE_SUCCESS)
+  {
+    m_s1ap_log->error("Could not unpack detach request\n");
+    return false;
+  }
+
+  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
+  if(it == m_s1ap->m_tmsi_to_imsi.end())
+  {
+    m_s1ap_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    m_s1ap_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    return true;
+  }
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(it->second);
+  ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
+  ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
+
+  m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
+  emm_ctx->security_ctxt.ul_nas_count++;
+  return true;
+}
+bool
 s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
 {
 
@@ -881,6 +936,7 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   }
   return true;
 }
+
 
 bool
 s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
