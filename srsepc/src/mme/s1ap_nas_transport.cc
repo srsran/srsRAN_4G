@@ -282,7 +282,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_s1ap_log->info("Integrity Protected UL NAS: Detach Request\n");
       m_s1ap_log->console("Integrity Protected UL NAS: Detach Request\n");
-      handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      handle_nas_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
     default:
       m_s1ap_log->warning("Unhandled NAS integrity protected message 0x%x\n", msg_type );
@@ -894,7 +894,7 @@ s1ap_nas_transport::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue
   ue_ctx->emm_ctx.state = EMM_STATE_DEREGISTERED;
   if(ue_ctx->ecm_ctx.mme_ue_s1ap_id!=0)
   {
-    m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(&ue_ctx->ecm_ctx, reply_msg); 
+    m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(&ue_ctx->ecm_ctx, reply_msg);
   }
   return true;
 }
