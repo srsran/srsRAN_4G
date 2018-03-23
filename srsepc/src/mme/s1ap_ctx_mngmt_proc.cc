@@ -285,9 +285,13 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
     //There are active E-RABs, send release access mearers request
     m_s1ap_log->console("There are active E-RABs, send release access mearers request");
     m_s1ap_log->info("There are active E-RABs, send release access mearers request");
-    m_mme_gtpc->send_release_access_bearers_request(ecm_ctx->imsi);
-    //The handle_releease_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
+
+    //The handle_release_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
     //It will release the UEs downstream S1-u and keep the upstream S1-U connection active.
+    m_mme_gtpc->send_release_access_bearers_request(ecm_ctx->imsi);
+
+    //Send release context command to enb, so that it can release it's bearers
+    send_ue_context_release_command(ecm_ctx,reply_buffer);
   }
   else
   {

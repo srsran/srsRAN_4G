@@ -592,7 +592,6 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       bool msg_valid = false;
       emm_ctx->security_ctxt.ul_nas_count++;
       msg_valid = integrity_check(emm_ctx,nas_msg);
-
       if(msg_valid == true)
       {
         m_s1ap_log->console("GUTI Attach Integrity valid. UL count %d, DL count %d\n",emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.dl_nas_count);
@@ -609,6 +608,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
         ecm_ctx->imsi = ecm_ctx->imsi;
 
+        emm_ctx->procedure_transaction_id = pdn_con_req.proc_transaction_id;
         //Save Attach type
         emm_ctx->attach_type = attach_req.eps_attach_type;
 
@@ -627,16 +627,40 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
         //Store context based on MME UE S1AP id
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
-
+        
         //Re-generate K_eNB
         liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
         m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
         m_s1ap_log->console("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
+        
+        m_s1ap_log->console("Attach request -- IMSI: %015lu\n", ecm_ctx->imsi);
+        m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ecm_ctx->imsi);
+        m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
+        m_s1ap_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
+                      attach_req.ue_network_cap.eea[0], attach_req.ue_network_cap.eea[1], attach_req.ue_network_cap.eea[2], attach_req.ue_network_cap.eea[3],
+                      attach_req.ue_network_cap.eea[4], attach_req.ue_network_cap.eea[5], attach_req.ue_network_cap.eea[6], attach_req.ue_network_cap.eea[7]);
+        m_s1ap_log->console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
+                      attach_req.ue_network_cap.eia[0], attach_req.ue_network_cap.eia[1], attach_req.ue_network_cap.eia[2], attach_req.ue_network_cap.eia[3],
+                      attach_req.ue_network_cap.eia[4], attach_req.ue_network_cap.eia[5], attach_req.ue_network_cap.eia[6], attach_req.ue_network_cap.eia[7]);
+        m_s1ap_log->console("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
+        m_s1ap_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
+        m_s1ap_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
+        m_s1ap_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
 
         //Create session request
-        m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.");
-        m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
-        *reply_flag = false; //No reply needed
+        m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.\n");
+        if(ecm_ctx->eit)
+        {
+          m_s1ap_log->console("Secure ESM information transfer requested.\n");
+          m_s1ap_log->info("Secure ESM information transfer requested.\n");
+          pack_esm_information_request(reply_buffer, emm_ctx, ecm_ctx);
+          *reply_flag = true;
+        }
+        else
+        {
+          m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
+          *reply_flag = false; //No reply needed
+        }
         return true;
       }
       else
@@ -843,7 +867,10 @@ s1ap_nas_transport::handle_nas_detach_request(uint32_t m_tmsi,
 
   m_s1ap_log->console("Received. M-TMSI 0x%x\n", m_tmsi);
   //Received detach request as an initial UE message
-  //No need to clear ECM context; the request would have been sent as Uplink NAS transport if it was present.
+  //eNB created new ECM context to send the detach request; this needs to be cleared.
+  ecm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+  ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+  m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx, reply_buffer); 
   return true;
 }
 
@@ -863,6 +890,8 @@ s1ap_nas_transport::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue
     return false;
   }
 
+  m_mme_gtpc->send_delete_session_request(ue_ctx->emm_ctx.imsi);
+  ue_ctx->emm_ctx.state = EMM_STATE_DEREGISTERED;
   if(ue_ctx->ecm_ctx.mme_ue_s1ap_id!=0)
   {
     m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(&ue_ctx->ecm_ctx, reply_msg); 
