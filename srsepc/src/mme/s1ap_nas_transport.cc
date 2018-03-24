@@ -374,10 +374,27 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx.ecm_ctx;
 
   //Set UE's EMM context
-  emm_ctx->imsi = 0;
+  uint64_t imsi = 0;
   for(int i=0;i<=14;i++){
-    emm_ctx->imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
+    imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
   }
+
+  //Check if UE is 
+  ue_ctx_t *old_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
+  if(old_ctx!=NULL)
+  {
+    m_s1ap_log->console("Attach Request -- UE is already attached.");
+    m_s1ap_log->info("Attach Request -- UE is already attached.");
+    //Detaching previoulsy attached UE.
+    m_mme_gtpc->send_delete_session_request(imsi);
+    if(old_ctx->ecm_ctx.mme_ue_s1ap_id!=0)
+    {
+        m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(&old_ctx->ecm_ctx, reply_buffer);
+    }
+    m_s1ap->delete_ue_ctx(imsi);
+  }
+
+  emm_ctx->imsi = imsi;
   emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
   emm_ctx->state = EMM_STATE_DEREGISTERED;
   //Save UE network capabilities
