@@ -849,9 +849,8 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
   }
   else
   {
-    m_s1ap_log->console("Service Request -- Short MAC invalid. Re-starting authentication procedure \n");
-    m_s1ap_log->console("Service Request -- Short MAC invalid. Re-starting authentication procedure \n");
-    m_s1ap_log->console("Authentication procedure is not restarted yet!\n");
+    m_s1ap_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
+    m_s1ap_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
   }
   return true;
 }
