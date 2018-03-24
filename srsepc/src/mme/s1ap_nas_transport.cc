@@ -609,16 +609,10 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       bool msg_valid = false;
       emm_ctx->security_ctxt.ul_nas_count++;
       msg_valid = integrity_check(emm_ctx,nas_msg);
-      if(msg_valid == true)
+      if(msg_valid == true && emm_ctx->state == EMM_STATE_DEREGISTERED)
       {
         m_s1ap_log->console("GUTI Attach Integrity valid. UL count %d, DL count %d\n",emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.dl_nas_count);
-        if(emm_ctx->state != EMM_STATE_DEREGISTERED)
-        {
-          m_s1ap_log->error("Received Attach Request from attached user.\n");
-          m_s1ap_log->console("Received Attach Request from attached user.\n");
-          //FIXME handle error case
-          return false;
-        }
+        
         //Create new MME UE S1AP Identity
         emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
         ecm_ctx->mme_ue_s1ap_id = emm_ctx->mme_ue_s1ap_id;
@@ -682,6 +676,19 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       }
       else
       {
+        if(emm_ctx->state != EMM_STATE_DEREGISTERED)
+        {
+          m_s1ap_log->error("Received GUTI-Attach Request from attached user.\n");
+          m_s1ap_log->console("Received GUTI-Attach Request from attached user.\n");
+
+          //Delete previous Ctx, restart authentication
+          //Detaching previoulsy attached UE.
+          m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
+          if(ecm_ctx->mme_ue_s1ap_id!=0)
+          {
+            m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx, reply_buffer);
+          }
+        }
         emm_ctx->security_ctxt.ul_nas_count = 0;
         emm_ctx->security_ctxt.dl_nas_count = 0;
 
