@@ -118,12 +118,12 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   }
   else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST)
   {
-    m_s1ap_log->info("Received Service Request \n");
-    m_s1ap_log->console("Received Service Request \n");
+    m_s1ap_log->info("Received Service Request\n");
+    m_s1ap_log->console("Received Service Request\n");
     liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &service_req);
 
-    m_s1ap_log->info("Service Request not implemented. Sending Service Reject.");
-    m_s1ap_log->console("Service Request not implemented. Sending Service Reject.");
+    m_s1ap_log->info("Service Request not implemented. Sending Service Reject.\n");
+    m_s1ap_log->console("Service Request not implemented. Sending Service Reject.\n");
     /* Force UE to re-attach */
     pack_service_reject(reply_buffer, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED, enb_ue_s1ap_id);
     *reply_flag = true;
