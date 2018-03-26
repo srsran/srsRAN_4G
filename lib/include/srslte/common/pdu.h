@@ -133,11 +133,15 @@ public:
   // Section 6.1.2
   void parse_packet(uint8_t *ptr) {
     uint8_t *init_ptr = ptr; 
-    nof_subheaders = 0; 
-    while(subheaders[nof_subheaders].read_subheader(&ptr)) {
-      nof_subheaders++;
-    }
-    nof_subheaders++;
+    nof_subheaders = 0;
+    bool ret = false;
+    do {
+      if (nof_subheaders < (int)max_subheaders) {
+        ret = subheaders[nof_subheaders].read_subheader(&ptr);
+        nof_subheaders++;
+      }
+    } while (ret && (nof_subheaders + 1) < (int)max_subheaders);
+
     for (int i=0;i<nof_subheaders;i++) {
       subheaders[i].read_payload(&ptr);
     }
