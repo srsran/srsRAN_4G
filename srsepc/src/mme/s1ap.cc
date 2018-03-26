@@ -92,9 +92,6 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
   m_s1ap_nas_transport->init(m_hss);
   m_s1ap_ctx_mngmt_proc = s1ap_ctx_mngmt_proc::get_instance(); //Context Management Procedures
   m_s1ap_ctx_mngmt_proc->init();
-  m_s1ap_ue_cap_info = s1ap_ue_cap_info::get_instance();    //UE Capability Information
-  m_s1ap_ue_cap_info->init();
-
 
   //Get pointer to GTP-C class
   m_mme_gtpc = mme_gtpc::get_instance();
@@ -132,7 +129,6 @@ s1ap::stop()
   s1ap_mngmt_proc::cleanup();
   s1ap_nas_transport::cleanup();
   s1ap_ctx_mngmt_proc::cleanup();
-  s1ap_ue_cap_info::cleanup();
   return;
 }
 
@@ -142,7 +138,7 @@ s1ap::get_s1_mme()
   return m_s1mme;
 }
 
-uint32_t 
+uint32_t
 s1ap::get_next_mme_ue_s1ap_id()
 {
     return m_next_mme_ue_s1ap_id++;
@@ -255,10 +251,6 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASEREQUEST:
     m_s1ap_log->info("Received UE Context Release Request Message.\n");
     m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(&msg->choice.UEContextReleaseRequest, enb_sri, reply_buffer, &reply_flag);
-    break;
-  case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECAPABILITYINFOINDICATION:
-    m_s1ap_log->info("Received UE Context Release Request Message.\n");
-    m_s1ap_ue_cap_info->handle_ue_capability_info_indication(&msg->choice.UECapabilityInfoIndication, enb_sri, reply_buffer, &reply_flag);
     break;
   default:
     m_s1ap_log->error("Unhandled S1AP intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);

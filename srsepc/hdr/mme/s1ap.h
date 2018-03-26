@@ -44,7 +44,6 @@
 #include "mme/s1ap_mngmt_proc.h"
 #include "mme/s1ap_nas_transport.h"
 #include "mme/s1ap_ctx_mngmt_proc.h"
-#include "mme/s1ap_ue_cap_info.h"
 #include "mme/mme_gtpc.h"
 #include "hss/hss.h"
 
@@ -112,7 +111,6 @@ public:
   s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
   s1ap_nas_transport*            m_s1ap_nas_transport;
   s1ap_ctx_mngmt_proc*           m_s1ap_ctx_mngmt_proc;
-  s1ap_ue_cap_info*              m_s1ap_ue_cap_info;
 
   std::map<uint32_t, uint64_t>                      m_tmsi_to_imsi;
 
