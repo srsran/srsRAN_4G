@@ -10,12 +10,9 @@
 # tac:              16-bit Tracking Area Code.
 # mcc:              Mobile Country Code
 # mnc:              Mobile Network Code
-<<<<<<< HEAD
 # mme_bindx_addr:   IP subnet to listen for eNB S1 connnections
 # apn:		        Set Access Point Name (APN)
-=======
 # mme_bind_addr:    IP bind addr to listen for eNB S1 connnections
->>>>>>> epc
 #
 #####################################################################
 [mme]
