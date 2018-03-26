@@ -296,10 +296,10 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_id_ie(LIBLTE_MME_MOBILE_ID_STRUCT  *mob
                                                uint8                       **ie_ptr)
 {
     LIBLTE_ERROR_ENUM  err = LIBLTE_ERROR_INVALID_INPUTS;
-    uint8             *id;
-    uint32             id32;
+    uint8             *id = NULL;
+    uint32             id32 = 0;
     uint32             i;
-    uint8              length;
+    uint8              length = 0;
     bool               odd = false;
 
     if(mobile_id != NULL &&
