@@ -387,15 +387,6 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   {
     m_spgw_log->error("Mis-match between packet bytes and sent bytes: Sent: %d, Packet: %d \n",n,msg->N_bytes);
   }
-
-  gettimeofday(&t_now, NULL);
-  t_delta.tv_sec = t_now.tv_sec - m_t_last_dl.tv_sec;
-  t_delta.tv_usec = t_now.tv_sec - m_t_last_dl.tv_usec;
-  if(t_delta.tv_sec>=5)
-  {
-    m_t_last_dl = t_now;
-    m_spgw_log->console("Sent %d bytes DL over the last %d.%d seconds. Bitrate = \n",msg->N_bytes, t_delta.tv_sec, t_delta.tv_usec/1000);
-  }
   return;
 }
 
