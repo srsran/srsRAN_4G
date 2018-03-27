@@ -64,4 +64,9 @@ typedef _Complex float cf_t;
 typedef _Complex short int c16_t;
 #endif /* ENABLE_C16 */
 
+// slow down timing by this factor or set to 1 for normal operation
+// set via cmake -DENABLE_EMURF=ON at build time
+#define get_time_scaled(x) ((x) * SRSLTE_TIME_SCALE)
+#define usleep_scaled(x)   usleep(get_time_scaled((x)))
+
 #endif // CONFIG_H

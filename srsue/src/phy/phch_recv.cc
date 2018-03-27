@@ -293,7 +293,7 @@ bool phch_recv::stop_sync() {
     phy_state = IDLE;
     int cnt = 0;
     while (!is_in_idle && cnt < 100) {
-      usleep(10000);
+      usleep_scaled(10000);
       cnt++;
     }
     if (!is_in_idle) {
@@ -370,7 +370,7 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
 {
   int cnt = 0;
   while(worker_com->is_any_pending_ack() && cnt < 10) {
-    usleep(1000);
+    usleep_scaled(1000);
     cnt++;
     log_h->info("Cell HO: Waiting pending PHICH\n");
   }
@@ -429,7 +429,7 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
       resync_sfn();
 
-      usleep(500000); // Time offset we set start_rx to start receiving samples
+      usleep_scaled(500000); // Time offset we set start_rx to start receiving samples
       return true;
     }
     return false;
@@ -737,7 +737,7 @@ void phch_recv::run_thread()
           stop_rx();
         }
         is_in_idle = true;
-        usleep(1000);
+        usleep_scaled(1000);
         break;
     }
 

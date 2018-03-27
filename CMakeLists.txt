@@ -77,7 +77,7 @@ option(RPATH           "Enable RPATH"                             OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
-option(ENABLE_SOCKRF   "Enable SocketRF"                           ON)
+option(ENABLE_SOCKRF   "Enable SocketRF"                          OFF)
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
 
@@ -133,35 +133,46 @@ else(POLARSSL_FOUND)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
-# UHD
-find_package(UHD)
-if(UHD_FOUND)
-  include_directories(${UHD_INCLUDE_DIRS})
-  link_directories(${UHD_LIBRARY_DIRS})
-endif(UHD_FOUND)
-
-# BladeRF
-if(ENABLE_BLADERF)
-  find_package(bladeRF)
-  if(BLADERF_FOUND)
-    include_directories(${BLADERF_INCLUDE_DIRS})
-    link_directories(${BLADERF_LIBRARY_DIRS})
-  endif(BLADERF_FOUND)
-endif(ENABLE_BLADERF)
-
-# Soapy
-find_package(SoapySDR)
-if(SOAPYSDR_FOUND)
-  include_directories(${SOAPYSDR_INCLUDE_DIRS})
-  link_directories(${SOAPYSDR_LIBRARY_DIRS})
-endif(SOAPYSDR_FOUND)
-
-if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ENABLE_SOCKRF)
+if(ENABLE_EMURF)
+  message(STATUS "Building for emulated RF only, running at 1/2 speed")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DSRSLTE_TIME_SCALE=2")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSRSLTE_TIME_SCALE=2")
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
-else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ENABLE_SOCKRF)
-  set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
-  add_definitions(-DDISABLE_RF)
-endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ENABLE_SOCKRF)
+  set(ENABLE_SOCKRF TRUE CACHE INTERNAL "Using Emulated RF module sockrf")
+else(ENABLE_EMURF)
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DSRSLTES_TIME_SCALE=1")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSRSLTES_TIME_SCALE=1")
+
+# UHD
+  find_package(UHD)
+  if(UHD_FOUND)
+    include_directories(${UHD_INCLUDE_DIRS})
+    link_directories(${UHD_LIBRARY_DIRS})
+  endif(UHD_FOUND)
+
+  # BladeRF
+  if(ENABLE_BLADERF)
+    find_package(bladeRF)
+    if(BLADERF_FOUND)
+      include_directories(${BLADERF_INCLUDE_DIRS})
+      link_directories(${BLADERF_LIBRARY_DIRS})
+    endif(BLADERF_FOUND)
+  endif(ENABLE_BLADERF)
+
+  # Soapy
+  find_package(SoapySDR)
+  if(SOAPYSDR_FOUND)
+    include_directories(${SOAPYSDR_INCLUDE_DIRS})
+    link_directories(${SOAPYSDR_LIBRARY_DIRS})
+  endif(SOAPYSDR_FOUND)
+
+  if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+    set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
+  else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+    set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
+    add_definitions(-DDISABLE_RF)
+  endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+endif(ENABLE_EMURF)
 
 # Boost
 if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)

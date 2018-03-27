@@ -105,7 +105,7 @@ void gtpu::stop()
     // Wait thread to exit gracefully otherwise might leave a mutex locked
     int cnt=0;
     while(running && cnt<100) {
-      usleep(10000);
+      usleep_scaled(10000);
       cnt++;
     }
     if (running) {
@@ -241,7 +241,7 @@ void gtpu::run_thread()
       pdu = pool_allocate;
       if (!pdu) {
         gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
-        usleep(10000);
+        usleep_scaled(10000);
       }
     } while(!pdu); 
   }

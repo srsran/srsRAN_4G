@@ -294,7 +294,7 @@ void rrc::run_thread() {
         // wait for HO to finish
         break;
       case RRC_STATE_LEAVE_CONNECTED:
-        usleep(60000);
+        usleep_scaled(60000);
         leave_connected();
         // Move to RRC_IDLE
         state = RRC_STATE_IDLE;
@@ -302,7 +302,7 @@ void rrc::run_thread() {
       default:
         break;
     }
-    usleep(1000);
+    usleep_scaled(1000);
   }
 }
 
@@ -606,7 +606,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
       for (uint32_t j = 0; j < serving_cell->sib1.N_plmn_ids; j++) {
         nas->plmn_found(serving_cell->sib1.plmn_id[j].id, serving_cell->sib1.tracking_area_code);
       }
-      usleep(5000);
+      usleep_scaled(5000);
       phy->cell_search_next();
     }
   } else {
@@ -614,7 +614,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
     if (!add_neighbour_cell(earfcn, phy_cell, rsrp)) {
       rrc_log->info("No more space for neighbour cells (detected cell RSRP=%.1f dBm worse than current %d neighbours)\n", 
                     rsrp, NOF_NEIGHBOUR_CELLS);
-      usleep(5000);
+      usleep_scaled(5000);
       phy->cell_search_next();
     } else {
       set_serving_cell(earfcn, phy_cell.id);
@@ -1357,7 +1357,7 @@ void rrc::handle_sib1()
     case RRC_STATE_PLMN_SELECTION:
       si_acquire_state = SI_ACQUIRE_IDLE;
       rrc_log->info("SI Acquisition done. Searching next cell...\n");
-      usleep(5000);
+      usleep_scaled(5000);
       phy->cell_search_next();
       break;
     default:

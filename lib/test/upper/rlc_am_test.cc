@@ -368,7 +368,7 @@ void retx_test()
   }
 
   // Sleep to let reordering timeout expire
-  usleep(10000);
+  usleep_scaled(10000);
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -466,7 +466,7 @@ void resegment_test_1()
   }
 
   // Sleep to let reordering timeout expire
-  usleep(10000);
+  usleep_scaled(10000);
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -576,7 +576,7 @@ void resegment_test_2()
   }
 
   // Sleep to let reordering timeout expire
-  usleep(10000);
+  usleep_scaled(10000);
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -683,7 +683,7 @@ void resegment_test_3()
   }
 
   // Sleep to let reordering timeout expire
-  usleep(10000);
+  usleep_scaled(10000);
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -786,7 +786,7 @@ void resegment_test_4()
   }
 
   // Sleep to let reordering timeout expire
-  usleep(10000);
+  usleep_scaled(10000);
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -889,7 +889,7 @@ void resegment_test_5()
   }
 
   // Sleep to let reordering timeout expire
-  usleep(10000);
+  usleep_scaled(10000);
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -1001,7 +1001,7 @@ void resegment_test_6()
   }
 
   // Sleep to let reordering timeout expire
-  usleep(10000);
+  usleep_scaled(10000);
 
   assert(4 == rlc2.get_buffer_state());
 

@@ -161,9 +161,9 @@ public:
       case srsue::RRC_STATE_SIB1_SEARCH:
         // Instruct MAC to look for SIB1
         while(!phy->status_is_sync()){
-          usleep(50000);
+          usleep_scaled(50000);
         }
-        usleep(10000); 
+        usleep_scaled(10000); 
         tti          = mac->get_current_tti();
         si_win_start = sib_start_tti(tti, 2, 5);
         mac->bcch_start_rx(si_win_start, 1);
@@ -179,7 +179,7 @@ public:
         break;
       case srsue::RRC_STATE_SIB2_SEARCH:
         // Instruct MAC to look for SIB2
-        usleep(10000);
+        usleep_scaled(10000);
         tti          = mac->get_current_tti();
         period       = liblte_rrc_si_periodicity_num[sib1.sched_info[0].si_periodicity];
         si_win_start = sib_start_tti(tti, period, 0);
@@ -194,7 +194,7 @@ public:
         searching = false;
         break;
       }
-      usleep(100000);
+      usleep_scaled(100000);
     }
   }
   

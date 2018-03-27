@@ -490,16 +490,16 @@ int main(int argc, char *argv[])
     uint32_t tti; 
     if (my_rlc.mib_decoded && mac.get_current_tti()) {
       if (!my_rlc.sib1_decoded) {
-        usleep(10000);
+        usleep_scaled(10000);
         tti = mac.get_current_tti();           
         mac.bcch_start_rx(sib_start_tti(tti, 2, 5), 1);        
       } else if (!my_rlc.sib2_decoded) {        
-        usleep(10000);
+        usleep_scaled(10000);
         tti = mac.get_current_tti(); 
         mac.bcch_start_rx(sib_start_tti(tti, my_rlc.sib2_period, 0), my_rlc.si_window_len);                     
       }
     }
-    usleep(50000);
+    usleep_scaled(50000);
   }
 }
 

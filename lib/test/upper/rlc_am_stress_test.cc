@@ -55,7 +55,7 @@ public:
     run_enable = false;
     int cnt=0;
     while(running && cnt<100) {
-      usleep(10000);
+      usleep_scaled(10000);
       cnt++;
     }
     if(running) {
@@ -82,7 +82,7 @@ private:
       if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
         rlc2->write_pdu(1, pdu->msg, opp_size);
       }
-      usleep(1000);
+      usleep_scaled(1000);
     }
     running = false;
   }
@@ -150,7 +150,7 @@ public:
     run_enable = false;
     int cnt=0;
     while(running && cnt<100) {
-      usleep(10000);
+      usleep_scaled(10000);
       cnt++;
     }
     if(running) {
@@ -187,7 +187,7 @@ private:
       pdu->N_bytes = 1500;
       pdu->msg[0]   = sn++;
       rlc->write_sdu(1, pdu);
-      usleep(1000);
+      usleep_scaled(1000);
     }
     running = false;
   }
@@ -238,7 +238,7 @@ void stress_test()
   //tester2.start(7);
   mac.start();
 
-  usleep(100e6);
+  usleep_scaled(100e6);
 
   tester1.stop();
   tester2.stop();

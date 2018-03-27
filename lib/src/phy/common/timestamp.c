@@ -30,8 +30,8 @@
 int srslte_timestamp_init(srslte_timestamp_t *t, time_t full_secs, double frac_secs){
   int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
-    t->full_secs = full_secs;
-    t->frac_secs = frac_secs;
+    t->full_secs = get_time_scaled(full_secs);
+    t->frac_secs = get_time_scaled(frac_secs);
     ret = SRSLTE_SUCCESS;
   }
   return ret;
@@ -50,8 +50,8 @@ int srslte_timestamp_copy(srslte_timestamp_t *dest, srslte_timestamp_t *src){
 int srslte_timestamp_add(srslte_timestamp_t *t, time_t full_secs, double frac_secs){
   int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
-    t->frac_secs += frac_secs;
-    t->full_secs += full_secs;
+    t->frac_secs += get_time_scaled(frac_secs);
+    t->full_secs += get_time_scaled(full_secs);
     double r = floor(t->frac_secs);
     t->full_secs += r;
     t->frac_secs -= r;
@@ -63,8 +63,8 @@ int srslte_timestamp_add(srslte_timestamp_t *t, time_t full_secs, double frac_se
 int srslte_timestamp_sub(srslte_timestamp_t *t, time_t full_secs, double frac_secs){
   int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
-    t->frac_secs -= frac_secs;
-    t->full_secs -= full_secs;
+    t->frac_secs -= get_time_scaled(frac_secs);
+    t->full_secs -= get_time_scaled(full_secs);
     if(t->frac_secs < 0){
       t->frac_secs = 1-t->frac_secs;
       t->full_secs--;

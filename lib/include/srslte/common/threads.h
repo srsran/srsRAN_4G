@@ -30,6 +30,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include "srslte/config.h"
+
 // Default priority for all threads below UHD threads
 #define DEFAULT_PRIORITY 60
 
@@ -85,7 +87,7 @@ class periodic_thread : public thread
 public:
   void start_periodic(int period_us_, int priority = -1) {
     run_enable = true;
-    period_us = period_us_; 
+    period_us = get_time_scaled(period_us_); 
     start(priority);
   }
   void stop() {
