@@ -294,7 +294,7 @@ void enb::handle_rf_msg(srslte_rf_error_t error)
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
     str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
     str.push_back('\n');
-    rf_log.info(str.c_str());
+    rf_log.info(str);
   }
 }
 

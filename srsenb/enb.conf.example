@@ -65,8 +65,8 @@ dl_earfcn = 3400
 tx_gain = 80
 rx_gain = 40
 
-device_name = sockrf
-device_args = enb
+#device_name = auto
+#device_args = auto
 #time_adv_nsamples = auto
 #burst_preamble_us = auto
 

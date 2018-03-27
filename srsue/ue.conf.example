@@ -30,8 +30,8 @@ tx_gain = 80
 rx_gain = 40
 
 #nof_rx_ant = 1
-device_name = sockrf
-device_args = ue
+#device_name = auto
+#device_args = auto
 #time_adv_nsamples = auto
 #burst_preamble_us = auto
 

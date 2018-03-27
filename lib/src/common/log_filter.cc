@@ -134,55 +134,55 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
   }
 }
 
-void log_filter::console(const char * message, ...) {
+void log_filter::console(std::string message, ...) {
   char     *args_msg;
   va_list   args;
   va_start(args, message);
-  if(vasprintf(&args_msg, message, args) > 0)
+  if(vasprintf(&args_msg, message.c_str(), args) > 0)
     printf("%s",args_msg); // Print directly to stdout
   va_end(args);
   free(args_msg);
 }
 
-void log_filter::error(const char * message, ...) {
+void log_filter::error(std::string message, ...) {
   if (level >= LOG_LEVEL_ERROR) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message, args) > 0)
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_ERROR, tti, args_msg);
     va_end(args);
     free(args_msg);
   }
 }
-void log_filter::warning(const char * message, ...) {
+void log_filter::warning(std::string message, ...) {
   if (level >= LOG_LEVEL_WARNING) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message, args) > 0)
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_WARNING, tti, args_msg);
     va_end(args);
     free(args_msg);
   }
 }
-void log_filter::info(const char * message, ...) {
+void log_filter::info(std::string message, ...) {
   if (level >= LOG_LEVEL_INFO) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message, args) > 0)
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_INFO, tti, args_msg);
     va_end(args);
     free(args_msg);
   }
 }
-void log_filter::debug(const char * message, ...) {
+void log_filter::debug(std::string message, ...) {
   if (level >= LOG_LEVEL_DEBUG) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message, args) > 0)
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_DEBUG, tti, args_msg);
     va_end(args);
     free(args_msg);

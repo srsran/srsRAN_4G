@@ -57,11 +57,11 @@ public:
 
   void init(std::string layer, logger *logger_, bool tti=false);
 
-  void console(const char * message, ...);
-  void error(const char * message, ...);
-  void warning(const char * message, ...);
-  void info(const char * message, ...);
-  void debug(const char * message, ...);
+  void console(std::string message, ...);
+  void error(std::string message, ...);
+  void warning(std::string message, ...);
+  void info(std::string message, ...);
+  void debug(std::string message, ...);
 
   void error_hex(uint8_t *hex, int size, std::string message, ...);
   void warning_hex(uint8_t *hex, int size, std::string message, ...);

@@ -77,7 +77,6 @@ option(RPATH           "Enable RPATH"                             OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
-option(ENABLE_EMURF    "Enable emulated RF"                       ON)
 option(ENABLE_EMURF    "Enable emulated RF"                       OFF)
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
@@ -246,7 +245,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -DDEBUG_MODE")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
   find_package(SSE)
@@ -269,7 +268,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -DDEBUG_MODE")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -O0")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
   if (USE_LTE_RATES)
