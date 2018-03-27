@@ -24,7 +24,7 @@ mcc = 001
 mnc = 01
 mme_addr = 127.0.1.100
 gtp_bind_addr = 127.0.0.1
-n_prb = 50
+n_prb = 25
 
 #####################################################################
 # eNB configuration files 
@@ -65,8 +65,8 @@ dl_earfcn = 3400
 tx_gain = 80
 rx_gain = 40
 
-#device_name = auto
-#device_args = auto
+device_name = sockrf
+device_args = enb
 #time_adv_nsamples = auto
 #burst_preamble_us = auto
 
