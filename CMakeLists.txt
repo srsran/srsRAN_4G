@@ -78,6 +78,7 @@ option(RPATH           "Enable RPATH"                             OFF)
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
 option(ENABLE_EMURF    "Enable emulated RF"                       ON)
+option(ENABLE_EMURF    "Enable emulated RF"                       OFF)
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
 
