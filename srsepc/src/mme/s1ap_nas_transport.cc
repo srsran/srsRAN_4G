@@ -128,8 +128,8 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->info("Received Initial UE message -- Detach Request\n");
     if(!init_ue->S_TMSI_present)
     {
-      m_s1ap_log->error("Service request -- S-TMSI  not present\n");
-      m_s1ap_log->console("Service request -- S-TMSI not present\n" );
+      m_s1ap_log->error("Detach request -- S-TMSI  not present\n");
+      m_s1ap_log->console("Detach request -- S-TMSI not present\n" );
       return false;
     }
     uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
@@ -141,6 +141,26 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
 
     handle_nas_detach_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     return true;
+  }
+  else if(msg_type == LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST)
+  {
+      m_s1ap_log->console("Received Initial UE message -- Tracking Area Update Request\n");
+      m_s1ap_log->info("Received Initial UE message -- Tracking Area Update Request\n");
+      if(!init_ue->S_TMSI_present)
+      {
+        m_s1ap_log->error("Tracking Area Update Request -- S-TMSI  not present\n");
+        m_s1ap_log->console("Tracking Area Update Request -- S-TMSI not present\n" );
+        return false;
+      }
+      uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
+      uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+      m_s1ap_log->info("Tracking Area Update Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
+      m_s1ap_log->console("Tracking Area Update Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
+      m_s1ap_log->info("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+      m_s1ap_log->console("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
+
+      handle_nas_tracking_area_update_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+      return true;
   }
   else
   {
@@ -922,6 +942,31 @@ s1ap_nas_transport::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue
   return true;
 }
 
+bool
+s1ap_nas_transport::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
+                                              uint32_t enb_ue_s1ap_id,
+                                              srslte::byte_buffer_t *nas_msg,
+                                              srslte::byte_buffer_t *reply_buffer,
+                                              bool* reply_flag,
+                                              struct sctp_sndrcvinfo *enb_sri)
+{
+  m_s1ap_log->console("Warning: Tracking area update requests are not handled yet.\n");
+  m_s1ap_log->warning("Tracking area update requests are not handled yet.\n");
+
+  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
+  if(it == m_s1ap->m_tmsi_to_imsi.end())
+  {
+    m_s1ap_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    m_s1ap_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    return true;
+  }
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(it->second);
+  ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
+  ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
+
+  emm_ctx->security_ctxt.ul_nas_count++;//Increment the NAS count, not to break the security ctx
+  return true;
+}
 bool
 s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
 {
