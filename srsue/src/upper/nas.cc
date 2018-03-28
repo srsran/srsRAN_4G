@@ -376,6 +376,7 @@ bool nas::integrity_check(byte_buffer_t *pdu)
     return true;
   } else {
     nas_log->error("Invalid integrity check PDU size (%d)\n", pdu->N_bytes);
+    return false;
   }
 }
 

@@ -32,26 +32,27 @@
 namespace srsenb {
 
 enb*          enb::instance = NULL;
-boost::mutex  enb_instance_mutex;
-
+pthread_mutex_t enb_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 enb* enb::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(enb_instance_mutex);
+  pthread_mutex_lock(&enb_instance_mutex);
   if(NULL == instance) {
-      instance = new enb();
+    instance = new enb();
   }
+  pthread_mutex_unlock(&enb_instance_mutex);
   return(instance);
 }
 void enb::cleanup(void)
 {
   srslte_dft_exit();
   srslte::byte_buffer_pool::cleanup();
-  boost::mutex::scoped_lock lock(enb_instance_mutex);
+  pthread_mutex_lock(&enb_instance_mutex);
   if(NULL != instance) {
       delete instance;
       instance = NULL;
   }
+  pthread_mutex_unlock(&enb_instance_mutex);
 }
 
 enb::enb() : started(false) {
@@ -66,6 +67,9 @@ enb::enb() : started(false) {
 
 enb::~enb()
 {
+  for (uint32_t i = 0; i < phy_log.size(); i++) {
+    delete (phy_log[i]);
+  }
 }
 
 bool enb::init(all_args_t *args_)
@@ -88,7 +92,7 @@ bool enb::init(all_args_t *args_)
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
     mylog->init(tmp, logger, true);
-    phy_log.push_back((void*) mylog); 
+    phy_log.push_back(mylog);
   }
   mac_log.init("MAC ", logger, true);
   rlc_log.init("RLC ", logger);
