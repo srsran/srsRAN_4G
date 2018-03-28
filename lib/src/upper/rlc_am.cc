@@ -1739,14 +1739,24 @@ std::string rlc_am_to_string(rlc_status_pdu_t *status)
   return ss.str();
 }
 
-bool rlc_am_start_aligned(uint8_t fi)
+bool rlc_am_start_aligned(const uint8_t fi)
 {
   return (fi == RLC_FI_FIELD_START_AND_END_ALIGNED || fi == RLC_FI_FIELD_NOT_END_ALIGNED);
 }
 
-bool rlc_am_end_aligned(uint8_t fi)
+bool rlc_am_end_aligned(const uint8_t fi)
 {
   return (fi == RLC_FI_FIELD_START_AND_END_ALIGNED || fi == RLC_FI_FIELD_NOT_START_ALIGNED);
+}
+
+bool rlc_am_is_unaligned(const uint8_t fi)
+{
+  return (fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
+}
+
+bool rlc_am_not_start_aligned(const uint8_t fi)
+{
+  return (fi == RLC_FI_FIELD_NOT_START_ALIGNED || fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
 }
 
 } // namespace srsue

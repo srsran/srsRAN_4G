@@ -217,8 +217,10 @@ bool        rlc_am_is_control_pdu(byte_buffer_t *pdu);
 bool        rlc_am_is_control_pdu(uint8_t *payload);
 bool        rlc_am_is_pdu_segment(uint8_t *payload);
 std::string rlc_am_to_string(rlc_status_pdu_t *status);
-bool        rlc_am_start_aligned(uint8_t fi);
-bool        rlc_am_end_aligned(uint8_t fi);
+bool        rlc_am_start_aligned(const uint8_t fi);
+bool        rlc_am_end_aligned(const uint8_t fi);
+bool        rlc_am_is_unaligned(const uint8_t fi);
+bool        rlc_am_not_start_aligned(const uint8_t fi);
 
 } // namespace srsue
 
