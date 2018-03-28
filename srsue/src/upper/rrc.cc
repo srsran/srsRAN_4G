@@ -500,7 +500,7 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
     // Set new serving cell
     serving_cell = new_serving_cell;
 
-    rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, nof_neighbours=%d\n",
+    rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, nof_neighbours=%zu\n",
                   cell_idx, serving_cell->earfcn, serving_cell->phy_cell.id, neighbour_cells.size());
 
   } else {
@@ -669,7 +669,7 @@ bool rrc::add_neighbour_cell(cell_t *new_cell) {
   if (ret) {
     neighbour_cells.push_back(new_cell);
   }
-  rrc_log->info("Added neighbour cell EARFCN=%d, PCI=%d, nof_neighbours=%d\n",
+  rrc_log->info("Added neighbour cell EARFCN=%d, PCI=%d, nof_neighbours=%zu\n",
                 new_cell->earfcn, new_cell->phy_cell.id, neighbour_cells.size());
   sort_neighbour_cells();
   return ret;
@@ -1517,7 +1517,7 @@ void rrc::send_ul_ccch_msg(byte_buffer_t *pdu)
     ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
   }
 
-  rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
+  rrc_log->debug("Setting UE contention resolution ID: %lu\n", uecri);
   mac->set_contention_id(uecri);
 
   rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
@@ -1562,7 +1562,7 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
       parse_dl_dcch(lcid, pdu);
       break;
     default:
-      rrc_log->error("RX PDU with invalid bearer id: %s", lcid);
+      rrc_log->error("RX PDU with invalid bearer id: %d", lcid);
       break;
   }
 }
@@ -2731,8 +2731,8 @@ void rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 
           log_h->info("MEAS: Added measObjectId=%d, earfcn=%d, q_offset=%f, pci=%d, offset_cell=%f\n",
                       cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_id, dst_obj->earfcn, dst_obj->q_offset,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci);
+                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci,
+                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset);
 
         }
 

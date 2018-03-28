@@ -320,7 +320,7 @@ void phch_recv::cell_search_inc()
       cur_earfcn_index = 0;
       rrc->earfcn_end();
     } else {
-      Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
+      Info("SYNC:  Cell Search idx %d/%zu\n", cur_earfcn_index, earfcn.size());
       if (current_earfcn != earfcn[cur_earfcn_index]) {
         current_earfcn = earfcn[cur_earfcn_index];
         set_frequency();
@@ -349,7 +349,7 @@ void phch_recv::cell_search_start() {
     Warning("SYNC:  Can't start cell search procedure while camping on cell\n");
   } else {
     if (earfcn.size() > 0) {
-      Info("SYNC:  Starting Cell Search procedure in %d EARFCNs...\n", earfcn.size());
+      Info("SYNC:  Starting Cell Search procedure in %zu EARFCNs...\n", earfcn.size());
       cell_search_next(true);
     } else {
       Info("SYNC:  Empty EARFCN list. Stopping cell search...\n");
@@ -1519,7 +1519,7 @@ void phch_recv::intra_measure::rem_cell(int pci) {
     if (active_pci.size() == 0) {
       receive_enabled = false;
     }
-    Info("INTRA: Stopping intra-frequency measurement for pci=%d. Number of cells: %d\n", pci, active_pci.size());
+    Info("INTRA: Stopping intra-frequency measurement for pci=%d. Number of cells: %zu\n", pci, active_pci.size());
   } else {
     Warning("INTRA: Requested to stop non-existing intra-frequency measurement for PCI=%d\n", pci);
   }

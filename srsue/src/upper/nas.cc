@@ -658,7 +658,7 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
     usim->get_imei_vec(id_resp.mobile_id.imei, 15);
     break;
   default:
-    nas_log->error("Unhandled ID type: %d\n");
+    nas_log->error("Unhandled ID type: %d\n", id_req.id_type);
     pool->deallocate(pdu);
     return;
   }
