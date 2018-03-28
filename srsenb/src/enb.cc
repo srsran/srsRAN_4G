@@ -67,6 +67,9 @@ enb::enb() : started(false) {
 
 enb::~enb()
 {
+  for (uint32_t i = 0; i < phy_log.size(); i++) {
+    delete (phy_log[i]);
+  }
 }
 
 bool enb::init(all_args_t *args_)
@@ -89,7 +92,7 @@ bool enb::init(all_args_t *args_)
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
     mylog->init(tmp, logger, true);
-    phy_log.push_back((void*) mylog); 
+    phy_log.push_back(mylog);
   }
   mac_log.init("MAC ", logger, true);
   rlc_log.init("RLC ", logger);
