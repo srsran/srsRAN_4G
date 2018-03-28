@@ -78,7 +78,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
 
   m_s1ap_args = s1ap_args;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
-  m_next_m_tmsi = 0xF000;
+  m_next_m_tmsi = rand();
   //Init log
   m_s1ap_log = s1ap_log;
 
@@ -542,8 +542,8 @@ s1ap::activate_eps_bearer(uint64_t imsi, uint8_t ebi)
 uint32_t
 s1ap::allocate_m_tmsi(uint64_t imsi)
 {
-  // uint32_t m_tmsi = m_next_m_tmsi++;
-  uint32_t m_tmsi = m_next_m_tmsi;
+  uint32_t m_tmsi = m_next_m_tmsi++;
+  //uint32_t m_tmsi = m_next_m_tmsi;
   m_tmsi_to_imsi.insert(std::pair<uint32_t,uint64_t>(m_tmsi,imsi));
   m_s1ap_log->debug("Allocated M-TMSI 0x%x to IMSI %015lu,\n",m_tmsi,imsi);
   return m_tmsi;
