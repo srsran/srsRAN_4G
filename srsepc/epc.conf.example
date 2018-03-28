@@ -12,6 +12,7 @@
 # mnc:              Mobile Network Code
 # mme_bindx_addr:   IP subnet to listen for eNB S1 connnections
 # apn:		        Set Access Point Name (APN)
+# mme_bind_addr:    IP bind addr to listen for eNB S1 connnections
 #
 #####################################################################
 [mme]
@@ -21,7 +22,7 @@ tac = 0x0007
 mcc = 001
 mnc = 01
 mme_bind_addr = 127.0.1.100
-apn = test123
+apn = srsapn
 
 #####################################################################
 # HSS configuration
