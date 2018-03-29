@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <inttypes.h> // for printing uint64_t
 #include "mme/s1ap.h"
 #include "mme/s1ap_nas_transport.h"
 #include "srslte/common/security.h"
@@ -185,11 +186,11 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if(ue_ctx == NULL)
   {
-    m_s1ap_log->warning("Received uplink NAS, but could not find UE ECM context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+    m_s1ap_log->warning("Received uplink NAS, but could not find UE ECM context. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
     return false;
   }
 
-  m_s1ap_log->debug("Received uplink NAS and found UE ECM context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+  m_s1ap_log->debug("Received uplink NAS and found UE ECM context. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
@@ -213,7 +214,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       //This can happen with integrity protected identity reponse messages
       if( !(msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
       {
-        m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+        m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
         m_pool->deallocate(nas_msg);
         return false;
       }
@@ -1092,7 +1093,7 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
-  m_s1ap_log->console("Unpacked Attached Complete Message. IMSI %d\n", emm_ctx->imsi);
+  m_s1ap_log->console("Unpacked Attached Complete Message. IMSI %" PRIu64 "\n", emm_ctx->imsi);
   m_s1ap_log->console("Unpacked Activate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
   //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
   if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 15)
