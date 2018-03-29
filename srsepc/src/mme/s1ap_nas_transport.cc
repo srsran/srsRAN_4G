@@ -25,6 +25,7 @@
  */
 
 #include <iostream>
+#include <cmath>
 #include "mme/s1ap.h"
 #include "mme/s1ap_nas_transport.h"
 #include "srslte/common/security.h"
