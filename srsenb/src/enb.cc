@@ -25,7 +25,6 @@
  */
 
 #include <boost/algorithm/string.hpp>
-#include <boost/thread/mutex.hpp>
 #include <enb.h>
 #include "enb.h"
 

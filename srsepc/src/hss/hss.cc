@@ -28,7 +28,6 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
-#include <boost/thread/mutex.hpp>
 #include "hss/hss.h"
 #include "srslte/common/security.h"
 
