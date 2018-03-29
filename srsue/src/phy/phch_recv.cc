@@ -1198,7 +1198,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_subframe(uint32_t sf_idx)
   }
   cnt++;
 
-  log_h->debug("SYNC:  Measuring RSRP %d/%d, sf_idx=%d, RSRP=%.1f dBm, corr-RSRP=%.1f dBm, SNR=%.1f dB\n",
+  log_h->debug("SYNC:  Measuring RSRP %d/%d, sf_idx=%d, RSRP=%.1f dBm, SNR=%.1f dB\n",
               cnt, nof_subframes, sf_idx, rsrp, snr);
 
   if (cnt >= nof_subframes) {
