@@ -42,8 +42,8 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_AGC_DEFAULT_TARGET 0.7
-#define SRSLTE_AGC_DEFAULT_BW     (5e-1)
+#define SRSLTE_AGC_DEFAULT_TARGET 0.3
+#define SRSLTE_AGC_DEFAULT_BW     0.7
 
 typedef enum SRSLTE_API {
   SRSLTE_AGC_MODE_ENERGY = 0, 

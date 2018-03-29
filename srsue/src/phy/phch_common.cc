@@ -48,6 +48,8 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   max_mutex = max_mutex_;
   nof_mutex = 0;
   rx_gain_offset = 0;
+  last_ri = 0;
+  last_pmi = 0;
 
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   dl_metrics_read = true;
@@ -62,9 +64,10 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
   bzero(zeros, 50000*sizeof(cf_t));
 
   // FIXME: This is an ugly fix to avoid the TX filters to empty
+  /*
   for (int i=0;i<50000;i++) {
     zeros[i] = 0.01*cexpf(((float) i/50000)*0.1*_Complex_I);
-  }
+  }*/
 
   reset();
 
@@ -352,13 +355,16 @@ void phch_common::reset() {
 
 void phch_common::reset_ul()
 {
+  /*
   is_first_tx = true;
-  is_first_of_burst = true; 
+  is_first_of_burst = true;
+
   for (uint32_t i=0;i<nof_mutex;i++) {
     pthread_mutex_trylock(&tx_mutex[i]);
     pthread_mutex_unlock(&tx_mutex[i]);
   }
   radio_h->tx_end();
+   */
 }
 
 }

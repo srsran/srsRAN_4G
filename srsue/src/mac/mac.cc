@@ -82,6 +82,7 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
   started = true;
   start(MAC_MAIN_THREAD_PRIO);
 
+  mactimers.init(&timers, log_h);
 
   return started;
 }
@@ -94,6 +95,7 @@ void mac::stop()
   ttisync.increase();
   pdu_process_thread.stop();
   wait_thread_finish();
+  mactimers.stop();
 }
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
@@ -148,6 +150,17 @@ void mac::reset()
   bzero(&uernti, sizeof(ue_rnti_t));
 }
 
+void mac::mac_timers::init(srslte::timers *timers, srslte::log *log_h) {
+  this->timers = timers;
+  running = true;
+  this->log_h = log_h;
+  start_periodic(1000);
+}
+
+void mac::mac_timers::run_period() {
+  timers->step_all();
+}
+
 void mac::run_thread() {
   int cnt=0;
 
@@ -165,7 +178,6 @@ void mac::run_thread() {
     tti = ttisync.wait();
 
     log_h->step(tti);
-    timers.step_all();
 
     // Step all procedures
     bsr_procedure.step(tti);

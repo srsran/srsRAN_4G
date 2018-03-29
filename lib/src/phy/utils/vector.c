@@ -93,10 +93,7 @@ void srslte_vec_sc_prod_ccc(const cf_t *x, const cf_t h, cf_t *z, const uint32_t
 
 // Used in turbo decoder 
 void srslte_vec_convert_if(const int16_t *x, const float scale, float *z, const uint32_t len) {
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = ((float) x[i])/scale;
-  }
+  srslte_vec_convert_if_simd(x, z, scale, len);
 }
 
 void srslte_vec_convert_fi(const float *x, const float scale, int16_t *z, const uint32_t len) {
@@ -203,10 +200,16 @@ void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, const uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_sprint_hex(char *str, uint8_t *x, const uint32_t len) {
+void srslte_vec_sprint_hex(char *str, const uint32_t max_str_len, uint8_t *x, const uint32_t len) {
   uint32_t i, nbytes; 
   uint8_t byte;
   nbytes = len/8;
+  // check that hex string fits in buffer (every byte takes 3 characters, plus brackets)
+  if ((3*(len/8 + ((len%8)?1:0))) + 2 >= max_str_len) {
+    fprintf(stderr, "Buffer too small for printing hex string (max_str_len=%d, payload_len=%d).\n", max_str_len, len);
+    return;
+  }
+
   int n=0;
   n+=sprintf(&str[n], "[");
   for (i=0;i<nbytes;i++) {
@@ -218,6 +221,7 @@ void srslte_vec_sprint_hex(char *str, uint8_t *x, const uint32_t len) {
     n+=sprintf(&str[n], "%02x ", byte);
   }
   n+=sprintf(&str[n], "]");
+  str[max_str_len-1] = 0;
 }
 
 void srslte_vec_save_file(char *filename, const void *buffer, const uint32_t len) {

@@ -296,9 +296,10 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_id_ie(LIBLTE_MME_MOBILE_ID_STRUCT  *mob
                                                uint8                       **ie_ptr)
 {
     LIBLTE_ERROR_ENUM  err = LIBLTE_ERROR_INVALID_INPUTS;
-    uint8             *id;
+    uint8             *id = NULL;
+    uint32             id32 = 0;
     uint32             i;
-    uint8              length;
+    uint8              length = 0;
     bool               odd = false;
 
     if(mobile_id != NULL &&
@@ -317,6 +318,11 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_id_ie(LIBLTE_MME_MOBILE_ID_STRUCT  *mob
             id  = mobile_id->imeisv;
             length = 9;
             odd = false;
+        }else if(LIBLTE_MME_MOBILE_ID_TYPE_TMSI == mobile_id->type_of_id){
+            id32 = mobile_id->tmsi;
+            length = 4;
+            odd = false;
+        }
         }else{
             // FIXME: Not handling these IDs
             return(err);
@@ -325,30 +331,48 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_id_ie(LIBLTE_MME_MOBILE_ID_STRUCT  *mob
         // Length
         **ie_ptr = length;
         *ie_ptr += 1;
-
-        // | Identity digit 1 | odd/even | Id type |
-        if(odd)
+        if(LIBLTE_MME_MOBILE_ID_TYPE_TMSI != mobile_id->type_of_id)
         {
-          **ie_ptr  = (id[0] << 4) | (1 << 3) | mobile_id->type_of_id;
-        }else{
-          **ie_ptr  = (id[0] << 4) | (0 << 3) | mobile_id->type_of_id;
-        }
-        *ie_ptr  += 1;
+            // | Identity digit 1 | odd/even | Id type |
+            if(odd)
+            {
+                **ie_ptr  = (id[0] << 4) | (1 << 3) | mobile_id->type_of_id;
+            }else{
+                **ie_ptr  = (id[0] << 4) | (0 << 3) | mobile_id->type_of_id;
+            }
+            *ie_ptr  += 1;
 
-        // | Identity digit p+1 | Identity digit p |
-        for(i=0; i<7; i++)
-        {
-            (*ie_ptr)[i] = (id[i*2+2] << 4) | id[i*2+1];
-        }
-        *ie_ptr += 7;
-        if(!odd)
-        {
-          **ie_ptr = 0xF0 | id[15];
-          *ie_ptr += 1;
-        }
+        
+            // | Identity digit p+1 | Identity digit p |
+            for(i=0; i<7; i++)
+            {
+                (*ie_ptr)[i] = (id[i*2+2] << 4) | id[i*2+1];
+            }
+            *ie_ptr += 7;
+            if(!odd)
+            {
+              **ie_ptr = 0xF0 | id[15];
+              *ie_ptr += 1;
+            }
 
-        err = LIBLTE_SUCCESS;
-    }
+            err = LIBLTE_SUCCESS;
+        }
+        else{
+
+          **ie_ptr  = (0xFF << 4) | (0 << 3) | mobile_id->type_of_id;
+          *ie_ptr  += 1;
+          //4-Byte based ids
+          **ie_ptr  = (id32 >> 24) & 0xFF;
+          *ie_ptr  += 1;
+          **ie_ptr  = (id32 >> 16) & 0xFF;
+          *ie_ptr  += 1;
+          **ie_ptr  = (id32 >> 8) & 0xFF;
+          *ie_ptr  += 1;
+          **ie_ptr  = id32 & 0xFF;
+          *ie_ptr  += 1;
+
+          err = LIBLTE_SUCCESS;
+        }
 
     return(err);
 }

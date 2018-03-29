@@ -104,9 +104,7 @@ void txrx::run_thread()
   
   log_h->info("Starting RX/TX thread nof_prb=%d, sf_len=%d\n",worker_com->cell.nof_prb, sf_len);
 
-  // Start streaming RX samples
-  radio_h->start_rx();
-  
+
   // Set TTI so that first TX is at tti=0
   tti = 10235; 
     
@@ -127,7 +125,7 @@ void txrx::run_thread()
       srslte_timestamp_copy(&tx_time, &rx_time);
       srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3);
       
-      Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%d:%f to worker %d\n", 
+      Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d\n", 
             tti, tx_mutex_cnt, 
             tx_time.full_secs, tx_time.frac_secs,
             worker->get_id());

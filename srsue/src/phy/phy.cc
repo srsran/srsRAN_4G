@@ -97,8 +97,7 @@ void phy::set_default_args(phy_args_t *args)
   args->cfo_integer_enabled = false; 
   args->cfo_correct_tol_hz  = 50; 
   args->time_correct_period = 5; 
-  args->sfo_correct_disable = false; 
-  args->sss_algorithm       = "full"; 
+  args->sss_algorithm       = "full";
   args->estimator_fil_w     = 0.1; 
 }
 
@@ -120,7 +119,7 @@ bool phy::check_args(phy_args_t *args)
 }
 
 bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_interface_phy *rrc,
-               std::vector<void*> log_vec, phy_args_t *phy_args) {
+               std::vector<srslte::log_filter*> log_vec, phy_args_t *phy_args) {
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -226,7 +225,7 @@ void phy::set_timeadv_rar(uint32_t ta_cmd) {
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   uint32_t new_nta = srslte_N_ta_new(n_ta, ta_cmd);
-  sf_recv.set_time_adv_sec(((float) (new_nta - n_ta))*SRSLTE_LTE_TS);
+  //sf_recv.set_time_adv_sec(((float) new_nta)*SRSLTE_LTE_TS);
   Info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, old_n_ta: %d, ta_usec: %.1f\n", ta_cmd, new_nta, n_ta, ((float) new_nta)*SRSLTE_LTE_TS*1e6);
   n_ta = new_nta;
 }
@@ -256,11 +255,6 @@ void phy::cell_search_start()
   sf_recv.cell_search_start();
 }
 
-void phy::cell_search_stop()
-{
-  sf_recv.cell_search_stop();
-}
-
 void phy::cell_search_next()
 {
   sf_recv.cell_search_next();
@@ -282,9 +276,9 @@ int phy::meas_stop(uint32_t earfcn, int pci) {
   return sf_recv.meas_stop(earfcn, pci);
 }
 
-bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
+void phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
 {
-  return sf_recv.cell_select(earfcn, phy_cell);
+  sf_recv.cell_select(earfcn, phy_cell);
 }
 
 bool phy::cell_handover(srslte_cell_t cell) {
@@ -366,8 +360,6 @@ void phy::reset()
     workers[i].reset();
   }
   workers_common.reset();
-  usleep_scaled(4000);
-  workers_common.reset_ul();
 }
 
 uint32_t phy::get_current_tti()

@@ -242,7 +242,11 @@ void gw::run_thread()
   struct iphdr   *ip_pkt;
   uint32          idx = 0;
   int32           N_bytes;
-  srslte::byte_buffer_t  *pdu = pool_allocate;
+  srslte::byte_buffer_t *pdu = pool_allocate;
+  if (!pdu) {
+    gw_log->error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
+    return;
+  }
 
   const static uint32_t ATTACH_TIMEOUT_MS   = 10000;
   const static uint32_t ATTACH_MAX_ATTEMPTS = 3;
@@ -307,7 +311,7 @@ void gw::run_thread()
             do {
               pdu = pool_allocate;
               if (!pdu) {
-                printf("Not enough buffers in pool\n");
+                gw_log->error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
                 usleep_scaled(100000);
               }
             } while(!pdu);

@@ -54,8 +54,7 @@ public:
   void  set_tti(uint32_t tti, uint32_t tx_tti); 
   void  set_tx_time(srslte_timestamp_t tx_time, uint32_t next_offset);
   void  set_cfo(float cfo);
-  void  set_sample_offset(float sample_offset); 
-  
+
   void  set_ul_params(bool pregen_disabled = false);
   void  set_crnti(uint16_t rnti);
   void  enable_pregen_signals(bool enabled);
@@ -64,14 +63,24 @@ public:
   void write_trace(std::string filename);
   
   int read_ce_abs(float *ce_abs, uint32_t tx_antenna, uint32_t rx_antenna);
-  uint32_t get_cell_nof_ports() {return cell.nof_ports;};
-  uint32_t get_rx_nof_antennas() {return ue_dl.nof_rx_antennas;};
+  uint32_t get_cell_nof_ports() {
+    if (cell_initiated) {
+      return cell.nof_ports;
+    } else {
+      return 1;
+    }
+  };
+  uint32_t get_rx_nof_antennas() {
+    return ue_dl.nof_rx_antennas;
+  };
   int read_pdsch_d(cf_t *pdsch_d);
   void start_plot();
 
   float get_ref_cfo();
+  float get_snr();
+  float get_rsrp();
+  float get_noise();
   float get_cfo();
-  float get_ul_cfo();
 
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
@@ -116,7 +125,8 @@ private:
   struct timeval tr_time[3];
   srslte::trace<uint32_t> tr_exec;
   bool trace_enabled; 
-  
+
+  pthread_mutex_t mutex;
   
   /* Common objects */  
   phch_common    *phy;

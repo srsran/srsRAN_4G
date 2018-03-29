@@ -186,9 +186,11 @@ int rf_cell_search(srslte_rf_t *rf, uint32_t nof_rx_antennas,
     ret = srslte_ue_cellsearch_scan(&cs, found_cells, &max_peak_cell); 
   }
   if (ret < 0) {
+    srslte_rf_stop_rx_stream(rf);
     fprintf(stderr, "Error searching cell\n");
     return SRSLTE_ERROR;
   } else if (ret == 0) {
+    srslte_rf_stop_rx_stream(rf);
     fprintf(stderr, "Could not find any cell in this frequency\n");
     return SRSLTE_SUCCESS;
   }

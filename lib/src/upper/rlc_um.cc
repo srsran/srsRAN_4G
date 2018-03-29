@@ -59,6 +59,11 @@ rlc_um::rlc_um() : tx_sdu_queue(16)
   pdu_lost = false;
 }
 
+rlc_um::~rlc_um()
+{
+  stop();
+}
+
 void rlc_um::init(srslte::log                 *log_,
                   uint32_t                     lcid_,
                   srsue::pdcp_interface_rlc   *pdcp_,
@@ -114,12 +119,13 @@ void rlc_um::empty_queue() {
 void rlc_um::stop()
 {
   reset();
-  mac_timers->timer_release_id(reordering_timer_id);
+  if (mac_timers) {
+    mac_timers->timer_release_id(reordering_timer_id);
+  }
 }
 
 void rlc_um::reset()
 {
-  
   // Empty tx_sdu_queue before locking the mutex 
   empty_queue();
 
@@ -129,12 +135,17 @@ void rlc_um::reset()
   vr_ux    = 0;
   vr_uh    = 0;
   pdu_lost = false;
-  if(rx_sdu)
-    rx_sdu->reset();
-  if(tx_sdu)
-    tx_sdu->reset();
-  if(mac_timers)
+  if(rx_sdu) {
+    pool->deallocate(rx_sdu);
+  }
+
+  if(tx_sdu) {
+    pool->deallocate(tx_sdu);
+  }
+
+  if(mac_timers) {
     reordering_timer->stop();
+  }
   
   // Drop all messages in RX window
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it;
@@ -162,7 +173,7 @@ uint32_t rlc_um::get_bearer()
 void rlc_um::write_sdu(byte_buffer_t *sdu)
 {
   tx_sdu_queue.write(sdu);
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, tx_sdu_len=%d", rrc->get_rb_name(lcid).c_str(), tx_sdu_queue.size());
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
 }
 
 /****************************************************************************
@@ -437,8 +448,13 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 void rlc_um::reassemble_rx_sdus()
 {
-  if(!rx_sdu)
+  if(!rx_sdu) {
     rx_sdu = pool_allocate;
+    if (!rx_sdu) {
+      log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
+      return;
+    }
+  }
 
   // First catch up with lower edge of reordering window
   while(!inside_reordering_window(vr_ur))
@@ -463,6 +479,10 @@ void rlc_um::reassemble_rx_sdus()
           rx_sdu->set_timestamp();
           pdcp->write_pdu(lcid, rx_sdu);
           rx_sdu = pool_allocate;
+          if (!rx_sdu) {
+            log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
+            return;
+          }
         }
         pdu_lost = false;
       }
@@ -483,6 +503,10 @@ void rlc_um::reassemble_rx_sdus()
           rx_sdu->set_timestamp();
           pdcp->write_pdu(lcid, rx_sdu);
           rx_sdu = pool_allocate;
+          if (!rx_sdu) {
+            log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
+            return;
+          }
         }
         pdu_lost = false;
       }
@@ -517,6 +541,10 @@ void rlc_um::reassemble_rx_sdus()
         rx_sdu->set_timestamp();
         pdcp->write_pdu(lcid, rx_sdu);
         rx_sdu = pool_allocate;
+        if (!rx_sdu) {
+          log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
+          return;
+        }
       }
       pdu_lost = false;
     }
@@ -546,6 +574,10 @@ void rlc_um::reassemble_rx_sdus()
         rx_sdu->set_timestamp();
         pdcp->write_pdu(lcid, rx_sdu);
         rx_sdu = pool_allocate;
+        if (!rx_sdu) {
+          log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
+          return;
+        }
       }
       pdu_lost = false;
     }

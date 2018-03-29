@@ -45,6 +45,7 @@
 #define FFTW_TYPE 0
 #endif
 
+pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void srslte_dft_load() {
 #ifdef FFTW_WISDOM_FILE
@@ -58,10 +59,12 @@ void srslte_dft_exit() {
 #ifdef FFTW_WISDOM_FILE
   fftwf_export_wisdom_to_filename(FFTW_WISDOM_FILE);
 #endif
+  fftwf_cleanup();
 }
 
 int srslte_dft_plan(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir,
              srslte_dft_mode_t mode) {
+  bzero(plan, sizeof(srslte_dft_plan_t));
   if(mode == SRSLTE_DFT_COMPLEX){
     return srslte_dft_plan_c(plan,dft_points,dir);
   } else {
@@ -99,10 +102,15 @@ int srslte_dft_replan_guru_c(srslte_dft_plan_t *plan, const int new_dft_points, 
   const fftwf_iodim iodim = {new_dft_points, istride, ostride};
   const fftwf_iodim howmany_dims = {how_many, idist, odist};
 
+  pthread_mutex_lock(&fft_mutex);
+
   /* Destroy current plan */
   fftwf_destroy_plan(plan->p);
 
   plan->p = fftwf_plan_guru_dft(1, &iodim, 1, &howmany_dims, in_buffer, out_buffer, sign, FFTW_TYPE);
+
+  pthread_mutex_unlock(&fft_mutex);
+
   if (!plan->p) {
     return -1;
   }
@@ -114,11 +122,15 @@ int srslte_dft_replan_guru_c(srslte_dft_plan_t *plan, const int new_dft_points, 
 
 int srslte_dft_replan_c(srslte_dft_plan_t *plan, const int new_dft_points) {
   int sign = (plan->dir == SRSLTE_DFT_FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
+
+  pthread_mutex_lock(&fft_mutex);
   if (plan->p) {
     fftwf_destroy_plan(plan->p);
     plan->p = NULL;
   }
   plan->p = fftwf_plan_dft_1d(new_dft_points, plan->in, plan->out, sign, FFTW_TYPE);
+  pthread_mutex_unlock(&fft_mutex);
+
   if (!plan->p) {
     return -1;
   }
@@ -134,10 +146,14 @@ int srslte_dft_plan_guru_c(srslte_dft_plan_t *plan, const int dft_points, srslte
   const fftwf_iodim iodim = {dft_points, istride, ostride};
   const fftwf_iodim howmany_dims = {how_many, idist, odist};
 
+  pthread_mutex_lock(&fft_mutex);
+
   plan->p = fftwf_plan_guru_dft(1, &iodim, 1, &howmany_dims, in_buffer, out_buffer, sign, FFTW_TYPE);
   if (!plan->p) {
     return -1;
   }
+  pthread_mutex_unlock(&fft_mutex);
+
   plan->size = dft_points;
   plan->init_size = plan->size;
   plan->mode = SRSLTE_DFT_COMPLEX;
@@ -154,8 +170,14 @@ int srslte_dft_plan_guru_c(srslte_dft_plan_t *plan, const int dft_points, srslte
 
 int srslte_dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir) {
   allocate(plan,sizeof(fftwf_complex),sizeof(fftwf_complex), dft_points);
+
+  pthread_mutex_lock(&fft_mutex);
+
   int sign = (dir == SRSLTE_DFT_FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
   plan->p = fftwf_plan_dft_1d(dft_points, plan->in, plan->out, sign, FFTW_TYPE);
+
+  pthread_mutex_unlock(&fft_mutex);
+
   if (!plan->p) {
     return -1;
   }
@@ -175,11 +197,15 @@ int srslte_dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_
 
 int srslte_dft_replan_r(srslte_dft_plan_t *plan, const int new_dft_points) {
   int sign = (plan->dir == SRSLTE_DFT_FORWARD) ? FFTW_R2HC : FFTW_HC2R;
+
+  pthread_mutex_lock(&fft_mutex);
   if (plan->p) {
     fftwf_destroy_plan(plan->p);
     plan->p = NULL;
   }
   plan->p = fftwf_plan_r2r_1d(new_dft_points, plan->in, plan->out, sign, FFTW_TYPE);
+  pthread_mutex_unlock(&fft_mutex);
+
   if (!plan->p) {
     return -1;
   }
@@ -190,7 +216,11 @@ int srslte_dft_replan_r(srslte_dft_plan_t *plan, const int new_dft_points) {
 int srslte_dft_plan_r(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir) {
   allocate(plan,sizeof(float),sizeof(float), dft_points);
   int sign = (dir == SRSLTE_DFT_FORWARD) ? FFTW_R2HC : FFTW_HC2R;
+
+  pthread_mutex_lock(&fft_mutex);
   plan->p = fftwf_plan_r2r_1d(dft_points, plan->in, plan->out, sign, FFTW_TYPE);
+  pthread_mutex_unlock(&fft_mutex);
+
   if (!plan->p) {
     return -1;
   }
@@ -309,11 +339,15 @@ void srslte_dft_run_r(srslte_dft_plan_t *plan, const float *in, float *out) {
 void srslte_dft_plan_free(srslte_dft_plan_t *plan) {
   if (!plan) return;
   if (!plan->size) return;
+
+  pthread_mutex_lock(&fft_mutex);
   if (!plan->is_guru) {
     if (plan->in) fftwf_free(plan->in);
     if (plan->out) fftwf_free(plan->out);
   }
   if (plan->p) fftwf_destroy_plan(plan->p);
+  pthread_mutex_unlock(&fft_mutex);
+
   bzero(plan, sizeof(srslte_dft_plan_t));
 }
 

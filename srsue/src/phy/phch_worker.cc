@@ -137,32 +137,39 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_ph
   srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask);
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
+  srslte_pdsch_enable_csi(&ue_dl.pdsch, phy->args->pdsch_csi_enabled);
 
   mem_initiated = true;
 
+  pthread_mutex_init(&mutex, NULL);
   return true;
 }
 
 bool phch_worker::set_cell(srslte_cell_t cell_)
 {
+  bool ret = false;
+  pthread_mutex_lock(&mutex);
   if (cell.id != cell_.id || !cell_initiated) {
     memcpy(&cell, &cell_, sizeof(srslte_cell_t));
 
     if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
       Error("Initiating UE DL\n");
-      return false;
+      goto unlock;
     }
 
     if (srslte_ue_ul_set_cell(&ue_ul, cell)) {
       Error("Initiating UE UL\n");
-      return false;
+      goto unlock;
     }
     srslte_ue_ul_set_normalization(&ue_ul, true);
     srslte_ue_ul_set_cfo_enable(&ue_ul, true);
 
     cell_initiated = true;
   }
-  return true;
+  ret = true;
+unlock:
+  pthread_mutex_unlock(&mutex);
+  return ret;
 }
 
 cf_t* phch_worker::get_buffer(uint32_t antenna_idx)
@@ -183,19 +190,11 @@ void phch_worker::set_cfo(float cfo_)
   cfo = cfo_;
 }
 
-void phch_worker::set_sample_offset(float sample_offset)
-{
-  if (phy->args->sfo_correct_disable) {
-    sample_offset = 0; 
-  }
-  srslte_ue_dl_set_sample_offset(&ue_dl, sample_offset);
-}
-
 void phch_worker::set_crnti(uint16_t rnti)
 {
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
-  rnti_is_set = true; 
+  rnti_is_set = true;
 }
 
 float phch_worker::get_ref_cfo()
@@ -203,23 +202,25 @@ float phch_worker::get_ref_cfo()
   return srslte_chest_dl_get_cfo(&ue_dl.chest);
 }
 
+float phch_worker::get_snr()
+{
+  return 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest));
+}
+
+float phch_worker::get_rsrp()
+{
+  return 10*log10(srslte_chest_dl_get_rsrp(&ue_dl.chest));
+}
+
+float phch_worker::get_noise()
+{
+  return 10*log10(srslte_chest_dl_get_noise_estimate(&ue_dl.chest));
+}
+
+
 float phch_worker::get_cfo()
 {
   return cfo;
-}
-
-float phch_worker::get_ul_cfo() {
-  srslte::radio *radio = phy->get_radio();
-
-  if (radio->get_freq_offset() != 0.0f) {
-    /* Compensates the radio frequency offset applied equally to DL and UL */
-    const float ul_dl_ratio = (float) radio->get_tx_freq() / (float) radio->get_rx_freq();
-    const float offset_hz = (float) radio->get_freq_offset() * (1.0f - ul_dl_ratio);
-    return cfo - offset_hz / (15000);
-  } else {
-    return cfo;
-  }
-
 }
 
 void phch_worker::work_imp()
@@ -227,7 +228,9 @@ void phch_worker::work_imp()
   if (!cell_initiated) {
     return; 
   }
-  
+
+  pthread_mutex_lock(&mutex);
+
   Debug("TTI %d running\n", tti);
 
 #ifdef LOG_EXECTIME
@@ -343,7 +346,7 @@ void phch_worker::work_imp()
   }
 
   /* Set UL CFO before transmission */  
-  srslte_ue_ul_set_cfo(&ue_ul, get_ul_cfo());
+  srslte_ue_ul_set_cfo(&ue_ul, cfo);
 
   /* Transmit PUSCH, PUCCH or SRS */
   bool signal_ready = false; 
@@ -373,7 +376,9 @@ void phch_worker::work_imp()
 
   if (!dl_action.generate_ack_callback) {
     if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH && dl_action.decode_enabled[0]) {
-      phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
+      if (dl_ack[0]) {
+        phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
+      }
     } else if (!rar_delivered) {
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
         if (dl_action.decode_enabled[tb]) {
@@ -386,17 +391,19 @@ void phch_worker::work_imp()
   update_measurements();
 
   if (chest_ok) {
-    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db > -30.0) {
+    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db > -10.0) {
       log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
-                   10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), phy->avg_rsrp_dbm);
+                   phy->avg_snr_db, phy->avg_rsrp_dbm);
       chest_loop->in_sync();
     } else {
       log_h->warning("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
-                   10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), phy->avg_rsrp_dbm);
+                     phy->avg_snr_db, phy->avg_rsrp_dbm);
       chest_loop->out_of_sync();
     }
   }
-  
+
+  pthread_mutex_unlock(&mutex);
+
   /* Tell the plotting thread to draw the plots */
 #ifdef ENABLE_GUI
   if ((int) get_id() == plot_worker_id) {
@@ -411,7 +418,9 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
       /* If 2 ort more receiving antennas, select RI */
       float cn = 0.0f;
       srslte_ue_dl_ri_select(&ue_dl, ri, &cn);
-      Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
+      if (ri) {
+        Debug("TM3 RI select %d layers, κ=%fdB\n", (*ri) + 1, cn);
+      }
     } else {
       /* If only one receiving antenna, force RI for 1 layer */
       if (ri) {
@@ -493,11 +502,18 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 
     srslte_dci_msg_t dci_msg; 
     srslte_ra_dl_dci_t dci_unpacked;
-    
-    Debug("Looking for RNTI=0x%x\n", dl_rnti);
+
+    if (type == SRSLTE_RNTI_RAR) {
+      Info("Looking for RNTI=0x%x\n", dl_rnti);
+    }
 
     if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
                                       dl_rnti, type, &dci_msg) != 1) {
+      if (type == SRSLTE_RNTI_RAR) {
+        Info("RAR not found, SNR=%.1f dB, tti=%d, cfi=%d, tx_mode=%d, cell_id=%d\n",
+             10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), tti, cfi,
+             phy->config->dedicated.antenna_info_explicit_value.tx_mode, cell.id);
+      }
       return false;
     }
     
@@ -538,10 +554,10 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
-    char hexstr[16];
+    char hexstr[512];
     hexstr[0]='\0';
     if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-      srslte_vec_sprint_hex(hexstr, dci_msg.data, dci_msg.nof_bits);
+      srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
     }
     Info("PDCCH: DL DCI %s cce_index=%2d, L=%d, n_data_bits=%d, hex=%s\n", srslte_dci_format_string(dci_msg.format), 
          last_dl_pdcch_ncce, (1<<ue_dl.last_location.L), dci_msg.nof_bits, hexstr);
@@ -776,10 +792,10 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       grant->has_cqi_request = dci_unpacked.cqi_request;
       ret = true; 
       
-      char hexstr[16];
+      char hexstr[512];
       hexstr[0]='\0';
       if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-        srslte_vec_sprint_hex(hexstr, dci_msg.data, dci_msg.nof_bits);
+        srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
       }
       // Change to last_location_ul
       Info("PDCCH: UL DCI Format0  cce_index=%d, L=%d, n_data_bits=%d, hex=%s\n", 
@@ -874,19 +890,20 @@ void phch_worker::set_uci_periodic_cqi()
   int cqi_fixed     = phy->args->cqi_fixed;
   int cqi_max       = phy->args->cqi_max;
 
-  uint8_t ri = (uint8_t) ue_dl.ri;
-  uint8_t pmi = (uint8_t) ue_dl.pmi[ri];
-  float sinr = ue_dl.sinr[ri][pmi];
+  float sinr = ue_dl.sinr[phy->last_ri & SRSLTE_MAX_LAYERS][phy->last_pmi % SRSLTE_MAX_CODEBOOKS];
 
   if (period_cqi.configured && rnti_is_set) {
     if (period_cqi.ri_idx_present && srslte_ri_send(period_cqi.pmi_idx, period_cqi.ri_idx, TTI_TX(tti))) {
       /* Compute RI, PMI and SINR */
-      compute_ri(&ri, &pmi, &sinr);
-      uci_data.uci_ri = ri;
+      compute_ri(&phy->last_ri, &phy->last_pmi, &sinr);
+      uci_data.uci_ri = phy->last_ri;
       uci_data.uci_ri_len = 1;
       uci_data.ri_periodic_report = true;
-      Debug("PUCCH: Periodic ri=%d\n", ri);
+      Debug("PUCCH: Periodic ri=%d, SINR=%.1f\n", phy->last_ri, sinr);
     } else if (srslte_cqi_send(period_cqi.pmi_idx, TTI_TX(tti))) {
+      compute_ri(NULL, NULL, NULL);
+      phy->last_pmi = (uint8_t) ue_dl.pmi[phy->last_ri % SRSLTE_MAX_LAYERS];
+
       srslte_cqi_value_t cqi_report = {0};
       if (period_cqi.format_is_subband) {
         // TODO: Implement subband periodic reports
@@ -907,8 +924,8 @@ void phch_worker::set_uci_periodic_cqi()
         }
         if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
           cqi_report.wideband.pmi_present = true;
-          cqi_report.wideband.pmi = pmi;
-          cqi_report.wideband.rank_is_not_one = (ri != 0);
+          cqi_report.wideband.pmi = phy->last_pmi;
+          cqi_report.wideband.rank_is_not_one = (phy->last_ri != 0);
         }
         Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db);
       }
@@ -920,13 +937,11 @@ void phch_worker::set_uci_periodic_cqi()
 
 void phch_worker::set_uci_aperiodic_cqi()
 {
-  uint8_t ri = (uint8_t) ue_dl.ri;
-  uint8_t pmi = (uint8_t) ue_dl.pmi[ri];
-  float sinr_db = ue_dl.sinr[ri][pmi];
+  float sinr_db = ue_dl.sinr[phy->last_ri % SRSLTE_MAX_LAYERS][phy->last_pmi%SRSLTE_MAX_CODEBOOKS];
 
   if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
     /* Compute RI, PMI and SINR */
-    compute_ri(&ri, &pmi, &sinr_db);
+    compute_ri(&phy->last_ri, &phy->last_pmi, &sinr_db);
 
     switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
@@ -961,7 +976,7 @@ void phch_worker::set_uci_aperiodic_cqi()
           /* Set RI = 1 */
           if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
               phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
-            uci_data.uci_ri = ri;
+            uci_data.uci_ri = phy->last_ri;
             uci_data.uci_ri_len = 1;
           } else {
             uci_data.uci_ri_len = 0;
@@ -991,13 +1006,13 @@ void phch_worker::set_uci_aperiodic_cqi()
           cqi_report.subband_hl.wideband_cqi_cw0 = srslte_cqi_from_snr(sinr_db);
           cqi_report.subband_hl.subband_diff_cqi_cw0 = 0; // Always report zero offset on all subbands
 
-          if (ri > 0) {
+          if (phy->last_ri > 0) {
             cqi_report.subband_hl.rank_is_not_one = true;
             cqi_report.subband_hl.wideband_cqi_cw1 = srslte_cqi_from_snr(sinr_db);
             cqi_report.subband_hl.subband_diff_cqi_cw1 = 0; // Always report zero offset on all subbands
           }
 
-          cqi_report.subband_hl.pmi = pmi;
+          cqi_report.subband_hl.pmi = phy->last_pmi;
           cqi_report.subband_hl.pmi_present = true;
           cqi_report.subband_hl.four_antenna_ports = (cell.nof_ports == 4);
 
@@ -1011,7 +1026,7 @@ void phch_worker::set_uci_aperiodic_cqi()
           }
           uci_data.uci_cqi_len = (uint32_t) cqi_len;
           uci_data.uci_ri_len = 1;
-          uci_data.uci_ri = ri;
+          uci_data.uci_ri = phy->last_ri;
 
           char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = {0};
           srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
@@ -1019,11 +1034,11 @@ void phch_worker::set_uci_aperiodic_cqi()
           if (cqi_report.subband_hl.rank_is_not_one) {
             Info("PUSCH: Aperiodic RM31 ri~1, CQI=%02d/%02d, SINR=%2.1f/%2.1fdB, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0, cqi_report.subband_hl.wideband_cqi_cw1,
-                 sinr_db, sinr_db, pmi, cqi_report.subband_hl.N);
+                 sinr_db, sinr_db, phy->last_pmi, cqi_report.subband_hl.N);
           } else {
             Info("PUSCH: Aperiodic RM31 ri=1, CQI=%02d, SINR=%2.1f, pmi=%d for %d subbands\n",
                  cqi_report.subband_hl.wideband_cqi_cw0,
-                 sinr_db, pmi, cqi_report.subband_hl.N);
+                 sinr_db, phy->last_pmi, cqi_report.subband_hl.N);
           }
         }
         break;
@@ -1093,7 +1108,8 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
   uint8_t dummy[2] = {0,0};
-  log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s%s\n",
+  log_h->info_hex(payload, grant->mcs.tbs/8,
+              "PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s%s\n",
               (tti + HARQ_DELAY_MS) % 10240,
               grant->n_prb[0], grant->n_prb[0] + grant->L_prb,
               grant->mcs.tbs / 8, grant->mcs.idx, rv,
@@ -1196,6 +1212,7 @@ void phch_worker::enable_pregen_signals(bool enabled)
 
 void phch_worker::set_ul_params(bool pregen_disabled)
 {
+
   phy_interface_rrc::phy_cfg_common_t         *common    = &phy->config->common;
   LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &phy->config->dedicated;
   
@@ -1365,12 +1382,12 @@ void phch_worker::update_measurements()
 
     /* Only worker 0 reads the RSSI sensor every ~1-nof_cores s */
     if (get_id() == 0) {
-      if (rssi_read_cnt) {
+      if (!rssi_read_cnt) {
         if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
           phy->last_radio_rssi = phy->get_radio()->get_rssi();
           phy->rx_gain_offset = phy->avg_rssi_dbm - phy->last_radio_rssi + 30;
         } else {
-          phy->rx_gain_offset = phy->get_radio()->get_rx_gain();
+          phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
         }
       }
       rssi_read_cnt++;

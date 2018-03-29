@@ -451,12 +451,12 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  std::vector<void*> phy_log;
+  std::vector<srslte::log_filter*> phy_log;
 
   srslte::log_filter *mylog = new srslte::log_filter("PHY");
   char tmp[16];
   sprintf(tmp, "PHY%d",0);
-  phy_log.push_back((void*) mylog);
+  phy_log.push_back(mylog);
 
   switch (prog_args.verbose) {
     case 1:

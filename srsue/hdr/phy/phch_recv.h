@@ -61,9 +61,8 @@ public:
   
   void    reset_sync();
   void    cell_search_start();
-  void    cell_search_stop();
   void    cell_search_next(bool reset = false);
-  bool    cell_select(uint32_t earfcn, srslte_cell_t cell);
+  void    cell_select(uint32_t earfcn, srslte_cell_t cell);
   bool    cell_handover(srslte_cell_t cell);
 
   void    meas_reset();
@@ -95,7 +94,6 @@ private:
 
   void   reset();
   void   radio_error();
-  bool   wait_radio_reset();
   void   set_ue_sync_opts(srslte_ue_sync_t *q, float cfo);
   void   run_thread();
 
@@ -104,14 +102,13 @@ private:
   bool   set_cell();
 
   void   cell_search_inc();
-  void   resync_sfn(bool is_connected = false, bool rx_now = false);
-  bool   stop_sync();
+  void   cell_reselect();
 
-  void   stop_rx();
-  void   start_rx(bool now = false);
-  bool   radio_is_rx;
+  float  get_cfo();
 
-  bool   radio_is_resetting;
+  uint32_t new_earfcn;
+  srslte_cell_t new_cell;
+
   bool   running;
 
   // Class to run cell search
@@ -125,6 +122,7 @@ private:
     float    get_last_gain();
     float    get_last_cfo();
     void     set_N_id_2(int N_id_2);
+    void     set_agc_enable(bool enable);
     ret_code run(srslte_cell_t *cell);
 
   private:
@@ -154,7 +152,7 @@ private:
     srslte_ue_mib_t   ue_mib;
     uint32_t          cnt;
     uint32_t          timeout;
-    const static uint32_t SYNC_SFN_TIMEOUT = 500;
+    const static uint32_t SYNC_SFN_TIMEOUT = 80;
   };
 
   // Class to perform cell measurements
@@ -166,13 +164,14 @@ private:
     typedef enum {IDLE, MEASURE_OK, ERROR} ret_code;
 
     ~measure();
-    void      init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h, srslte::radio *radio_h,
+    void      init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h,
                    uint32_t nof_rx_antennas, uint32_t nof_subframes = RSRP_MEASURE_NOF_FRAMES);
     void      reset();
     void      set_cell(srslte_cell_t cell);
     ret_code  run_subframe(uint32_t sf_idx);
     ret_code  run_subframe_sync(srslte_ue_sync_t *ue_sync, uint32_t sf_idx);
-    ret_code  run_multiple_subframes(cf_t *buffer, uint32_t offset, uint32_t sf_idx, uint32_t nof_sf);
+    ret_code  run_multiple_subframes(cf_t *buffer, int offset, uint32_t sf_idx, uint32_t nof_sf);
+    float     rssi();
     float     rsrp();
     float     rsrq();
     float     snr();
@@ -182,7 +181,6 @@ private:
     srslte::log      *log_h;
     srslte_ue_dl_t    ue_dl;
     cf_t              *buffer[SRSLTE_MAX_PORTS];
-    srslte::radio    *radio_h;
     uint32_t cnt;
     uint32_t nof_subframes;
     uint32_t current_prb;
@@ -203,11 +201,11 @@ private:
       uint32_t offset;
     } cell_info_t;
     void init(srslte::log *log_h, bool sic_pss_enabled, uint32_t max_sf_window);
+    void deinit();
     void reset();
     int find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
   private:
 
-    cf_t               *input_cfo_corrected;
     cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
     srslte::log        *log_h;
     srslte_sync_t       sync_find;
@@ -224,6 +222,7 @@ private:
   // Class to perform intra-frequency measurements
   class intra_measure : public thread {
   public:
+    ~intra_measure();
     void init(phch_common *common, rrc_interface_phy *rrc, srslte::log *log_h);
     void stop();
     void add_cell(int pci);
@@ -234,8 +233,6 @@ private:
     void write(uint32_t tti, cf_t *data, uint32_t nsamples);
   private:
     void run_thread();
-    const static int INTRA_FREQ_MEAS_LEN_MS    = 20;
-    const static int INTRA_FREQ_MEAS_PERIOD_MS = 200;
     const static int INTRA_FREQ_MEAS_PRIO      = DEFAULT_PRIORITY + 5;
 
     scell_recv         scell;
@@ -302,14 +299,16 @@ private:
   const static uint32_t NOF_IN_SYNC_SF     = 100;
 
   // State for primary cell
-  enum {
+  typedef enum {
     IDLE = 0,
     CELL_SEARCH,
     CELL_SELECT,
     CELL_RESELECT,
     CELL_MEASURE,
-    CELL_CAMP
-  } phy_state;
+    CELL_CAMP,
+  } phy_state_t;
+
+  phy_state_t phy_state, prev_state;
 
   bool is_in_idle;
 
@@ -333,7 +332,6 @@ private:
   float         ul_dl_factor;
   uint32_t      current_earfcn;
   int           cur_earfcn_index;
-  bool          cell_search_in_progress;
 
   float         dl_freq;
   float         ul_freq;

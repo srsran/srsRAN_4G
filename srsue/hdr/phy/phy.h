@@ -28,7 +28,7 @@
 #define UEPHY_H
 
 #include "srslte/srslte.h"
-#include "srslte/common/log.h"
+#include "srslte/common/log_filter.h"
 #include "phy/phy_metrics.h"
 #include "phy/phch_recv.h"
 #include "phy/prach.h"
@@ -53,7 +53,7 @@ public:
   bool init(srslte::radio_multi *radio_handler, 
             mac_interface_phy *mac, 
             rrc_interface_phy *rrc,
-            std::vector<void*> log_vec,
+            std::vector<srslte::log_filter*> log_vec,
             phy_args_t *args = NULL);
   
   void stop();
@@ -85,9 +85,8 @@ public:
   void    sync_reset();
   void    configure_ul_params(bool pregen_disabled = false);
   void    cell_search_start();
-  void    cell_search_stop();
   void    cell_search_next();
-  bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
+  void    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
   bool    cell_handover(srslte_cell_t cell);
 
   void    meas_reset();
@@ -159,7 +158,7 @@ private:
   const static int WORKERS_THREAD_PRIO = 0; 
   
   srslte::radio_multi      *radio_handler;
-  std::vector<void*>        log_vec;
+  std::vector<srslte::log_filter*>        log_vec;
   srslte::log              *log_h;
   srslte::log              *log_phy_lib_h;
   srsue::mac_interface_phy *mac;

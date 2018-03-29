@@ -52,7 +52,6 @@ typedef struct {
   int           spgw_hex_limit;
   std::string   hss_level;
   int           hss_hex_limit;
-
   std::string   all_level;
   int           all_hex_limit;
   std::string   filename;
@@ -84,6 +83,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string mme_apn;
   string spgw_bind_addr;
   string sgi_if_addr;
+  string dns_addr;
   string hss_db_file;
   string hss_auth_algo;
   string log_filename;
@@ -106,6 +106,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("mme.mcc",             bpo::value<string>(&mcc)->default_value("001"),                          "Mobile Country Code")
     ("mme.mnc",             bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
     ("mme.mme_bind_addr",   bpo::value<string>(&mme_bind_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connnection")
+    ("mme.dns_addr",        bpo::value<string>(&dns_addr)->default_value("8.8.8.8"),"IP address of the DNS server for the UEs")
     ("mme.apn",             bpo::value<string>(&mme_apn)->default_value(""),                   "Set Access Point Name (APN) for data services")
     ("hss.db_file",         bpo::value<string>(&hss_db_file)->default_value("ue_db.csv"),".csv file that stores UE's keys")
     ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),"HSS uthentication algorithm.")
@@ -206,6 +207,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   }
 
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
+  args->mme_args.s1ap_args.mme_name = mme_name;
+  args->mme_args.s1ap_args.dns_addr = dns_addr;
   args->mme_args.s1ap_args.mme_apn = mme_apn;
   args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
   args->spgw_args.sgi_if_addr = sgi_if_addr;

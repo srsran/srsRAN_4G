@@ -64,7 +64,43 @@ private:
   pthread_mutex_t   mutex; 
 };
 
-int main(int argc, char **argv) {
+
+int timer_thread_test()
+{
+  bool result;
+  uint32_t id       = 0;
+  uint32_t duration_msec = 5;
+  uint32_t result_tolerance = 1;
+
+  callback c;
+  timeout t;
+
+  gettimeofday(&c.start_time[1], NULL);
+  t.start(duration_msec);
+
+  while (t.is_running() && !t.expired()) {
+    printf("time to expire=%dms\n", t.get_msec_to_expire());
+    usleep(1000);
+  }
+
+  gettimeofday(&c.start_time[2], NULL);
+  get_time_interval(c.start_time);
+  uint32_t diff_ms = c.start_time[0].tv_usec*1e-3;
+  printf("Target duration: %dms, started: %ld:%ld, ended: %ld:%ld, actual duration %dms\n",
+         duration_msec, c.start_time[1].tv_sec, c.start_time[1].tv_usec, c.start_time[2].tv_sec, c.start_time[2].tv_usec, diff_ms);
+
+  result = ((duration_msec - result_tolerance) < diff_ms || diff_ms < (duration_msec + result_tolerance));
+
+  if(result) {
+    printf("Timer thread test passed\n");
+    return 0;
+  }else{
+    return -1;
+  }
+}
+
+int single_thread_test()
+{
   bool result;
   uint32_t id       = 0;
   uint32_t duration_msec = 5;
@@ -84,10 +120,25 @@ int main(int argc, char **argv) {
   result = (diff_ms == duration_msec);
 
   if(result) {
-    printf("Passed\n");
-    exit(0);
+    printf("Single thread test passed\n");
+    return 0;
   }else{
-    printf("Failed\n;");
-    exit(1);
+    return -1;
   }
+}
+
+
+int main(int argc, char **argv)
+{
+  if (single_thread_test()) {
+    printf("Single thread test failed.\n");
+    return -1;
+  }
+
+  if (timer_thread_test()) {
+    printf("Timer thread test failed.\n");
+    return -1;
+  }
+
+  return 0;
 }
