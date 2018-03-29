@@ -136,7 +136,7 @@ private:
       if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
         rlc2->write_pdu(1, pdu->msg, opp_size);
       }
-      usleep(pdu_tx_delay_usec);
+      usleep_scaled(pdu_tx_delay_usec);
     }
     running = false;
     byte_buffer_pool::get_instance()->deallocate(pdu);
@@ -247,7 +247,7 @@ private:
       pdu->N_bytes = 1500;
       pdu->msg[0]   = sn++;
       rlc->write_sdu(1, pdu);
-      usleep(sdu_gen_delay_usec);
+      usleep_scaled(sdu_gen_delay_usec);
     }
     running = false;
   }

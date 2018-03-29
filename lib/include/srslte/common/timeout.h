@@ -90,7 +90,7 @@ public:
     
     int32_t usec = duration_msec*1000-start_time[0].tv_usec;
     if(usec > 0)
-      usleep(usec);
+      usleep_scaled(usec);
     if(callback && running)
         callback->timeout_expired(timeout_id);
   }

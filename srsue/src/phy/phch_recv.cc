@@ -326,7 +326,7 @@ bool phch_recv::cell_handover(srslte_cell_t cell)
   phy_state = IDLE;
   cnt = 0;
   while(!is_in_idle && cnt<20) {
-    usleep(1000);
+    usleep_scaled(1000);
     cnt++;
   }
   for(uint32_t i=0;i<workers_pool->get_nof_workers();i++) {
@@ -714,7 +714,7 @@ void phch_recv::run_thread()
             printf("SYNC:  Receiving from radio while in IDLE_RX\n");
           }
         } else {
-          usleep(1000);
+          usleep_scaled(1000);
         }
         is_in_idle = true;
         usleep_scaled(1000);
