@@ -25,6 +25,8 @@
  */
 
 #include <iostream>
+#include <cmath>
+#include <inttypes.h> // for printing uint64_t
 #include "mme/s1ap.h"
 #include "mme/s1ap_nas_transport.h"
 #include "srslte/common/security.h"
@@ -128,8 +130,8 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->info("Received Initial UE message -- Detach Request\n");
     if(!init_ue->S_TMSI_present)
     {
-      m_s1ap_log->error("Service request -- S-TMSI  not present\n");
-      m_s1ap_log->console("Service request -- S-TMSI not present\n" );
+      m_s1ap_log->error("Detach request -- S-TMSI  not present\n");
+      m_s1ap_log->console("Detach request -- S-TMSI not present\n" );
       return false;
     }
     uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
@@ -141,6 +143,26 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
 
     handle_nas_detach_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     return true;
+  }
+  else if(msg_type == LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST)
+  {
+      m_s1ap_log->console("Received Initial UE message -- Tracking Area Update Request\n");
+      m_s1ap_log->info("Received Initial UE message -- Tracking Area Update Request\n");
+      if(!init_ue->S_TMSI_present)
+      {
+        m_s1ap_log->error("Tracking Area Update Request -- S-TMSI  not present\n");
+        m_s1ap_log->console("Tracking Area Update Request -- S-TMSI not present\n" );
+        return false;
+      }
+      uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
+      uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+      m_s1ap_log->info("Tracking Area Update Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
+      m_s1ap_log->console("Tracking Area Update Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
+      m_s1ap_log->info("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+      m_s1ap_log->console("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
+
+      handle_nas_tracking_area_update_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+      return true;
   }
   else
   {
@@ -164,11 +186,11 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if(ue_ctx == NULL)
   {
-    m_s1ap_log->warning("Received uplink NAS, but could not find UE ECM context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+    m_s1ap_log->warning("Received uplink NAS, but could not find UE ECM context. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
     return false;
   }
 
-  m_s1ap_log->debug("Received uplink NAS and found UE ECM context. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+  m_s1ap_log->debug("Received uplink NAS and found UE ECM context. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
@@ -192,7 +214,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       //This can happen with integrity protected identity reponse messages
       if( !(msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
       {
-        m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %lu\n",mme_ue_s1ap_id);
+        m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
         m_pool->deallocate(nas_msg);
         return false;
       }
@@ -923,6 +945,31 @@ s1ap_nas_transport::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue
 }
 
 bool
+s1ap_nas_transport::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
+                                              uint32_t enb_ue_s1ap_id,
+                                              srslte::byte_buffer_t *nas_msg,
+                                              srslte::byte_buffer_t *reply_buffer,
+                                              bool* reply_flag,
+                                              struct sctp_sndrcvinfo *enb_sri)
+{
+  m_s1ap_log->console("Warning: Tracking area update requests are not handled yet.\n");
+  m_s1ap_log->warning("Tracking area update requests are not handled yet.\n");
+
+  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
+  if(it == m_s1ap->m_tmsi_to_imsi.end())
+  {
+    m_s1ap_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    m_s1ap_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    return true;
+  }
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(it->second);
+  ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
+  ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
+
+  emm_ctx->security_ctxt.ul_nas_count++;//Increment the NAS count, not to break the security ctx
+  return true;
+}
+bool
 s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
 {
 
@@ -1046,7 +1093,7 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
-  m_s1ap_log->console("Unpacked Attached Complete Message. IMSI %d\n", emm_ctx->imsi);
+  m_s1ap_log->console("Unpacked Attached Complete Message. IMSI %" PRIu64 "\n", emm_ctx->imsi);
   m_s1ap_log->console("Unpacked Activate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
   //ue_ctx->erabs_ctx[act_bearer->eps_bearer_id].enb_fteid;
   if(act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 15)
@@ -1082,13 +1129,13 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
   m_s1ap_log->info("ESM Info: EPS bearer id %d\n",esm_info_resp.eps_bearer_id);
   if(esm_info_resp.apn_present)
   {
-    m_s1ap_log->info("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
-    m_s1ap_log->console("ESM Info: APN %s\n",esm_info_resp.eps_bearer_id);
+    m_s1ap_log->info("ESM Info: APN %d\n",esm_info_resp.eps_bearer_id);
+    m_s1ap_log->console("ESM Info: APN %d\n",esm_info_resp.eps_bearer_id);
   }
   if(esm_info_resp.protocol_cnfg_opts_present)
   {
-    m_s1ap_log->info("ESM Info: %d Protocol Configuration Options %s\n",esm_info_resp.protocol_cnfg_opts.N_opts);
-    m_s1ap_log->console("ESM Info: %d Protocol Configuration Options %s\n",esm_info_resp.protocol_cnfg_opts.N_opts);
+    m_s1ap_log->info("ESM Info: %d Protocol Configuration Options\n",esm_info_resp.protocol_cnfg_opts.N_opts);
+    m_s1ap_log->console("ESM Info: %d Protocol Configuration Options\n",esm_info_resp.protocol_cnfg_opts.N_opts);
   }
 
   //FIXME The packging of GTP-C messages is not ready.

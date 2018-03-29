@@ -227,7 +227,7 @@ void phch_worker::set_conf_dedicated_ack(uint16_t rnti, bool ack){
   if (ue_db.count(rnti)) {
     ue_db[rnti].dedicated_ack = ack;
   } else {
-    Error("Setting dedicated ack: rnti=0x%x does not exist\n");
+    Error("Setting dedicated ack: rnti=0x%x does not exist\n", rnti);
   }
   pthread_mutex_unlock(&mutex);
 }
@@ -309,7 +309,7 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
       ue_db[rnti].dedicated.pdsch_cnfg_ded = dedicated->pdsch_cnfg_ded;
     }
   } else {
-    Error("Setting config dedicated: rnti=0x%x does not exist\n");
+    Error("Setting config dedicated: rnti=0x%x does not exist\n", rnti);
   }
   pthread_mutex_unlock(&mutex);
 }

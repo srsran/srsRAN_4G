@@ -26,7 +26,6 @@
 
 #include <iostream> 
 #include <algorithm>
-#include <boost/thread/mutex.hpp>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
