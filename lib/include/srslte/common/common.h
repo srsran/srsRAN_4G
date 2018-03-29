@@ -147,6 +147,11 @@ public:
     {
       return msg-buffer;
     }
+    // Returns the remaining space from what is reported to be the length of msg
+    uint32_t get_tailroom()
+    {
+      return (sizeof(buffer) - (msg-buffer) - N_bytes);
+    }
     long get_latency_us()
     {
 #ifdef ENABLE_TIMESTAMP
