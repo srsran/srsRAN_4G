@@ -1,6 +1,9 @@
 Change Log for Releases
 ==============================
 
+## 18.03
+  * Many bug-fixes and improved stability and performance in all parts
+
 ## 17.12
   * Added support for MIMO 2x2 in srsENB (i.e. TM3/TM4)
   * Added srsEPC, a light-weight core network implementation
