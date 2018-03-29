@@ -107,8 +107,8 @@ void nas::attach_request() {
       selecting_plmn = current_plmn;
     }
   } else if (state == EMM_STATE_REGISTERED) {
-    nas_log->info("NAS state is registered, connecting to same PLMN\n");
-    rrc->plmn_select(current_plmn);
+    nas_log->info("NAS state is registered, selecting current PLMN\n");
+    rrc->plmn_select(current_plmn, true);
   } else {
     nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
   }
@@ -123,12 +123,7 @@ void nas::deattach_request() {
  * RRC interface
  ******************************************************************************/
 
-void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
-
-  // Do not process new PLMN if already selected
-  if (plmn_selection == PLMN_SELECTED) {
-    return;
-  }
+bool nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
 
   // Check if already registered
   for (uint32_t i=0;i<known_plmns.size();i++) {
@@ -136,10 +131,11 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
       nas_log->info("Found known PLMN Id=%s\n", plmn_id_to_string(plmn_id).c_str());
       if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
         nas_log->info("Connecting Home PLMN Id=%s\n", plmn_id_to_string(plmn_id).c_str());
-        rrc->plmn_select(plmn_id);
+        rrc->plmn_select(plmn_id, state == EMM_STATE_REGISTERED_INITIATED);
         selecting_plmn = plmn_id;
+        return true;
       }
-      return;
+      return false;
     }
   }
 
@@ -152,26 +148,31 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
                 tracking_area_code);
 
   if (plmn_id.mcc == home_plmn.mcc && plmn_id.mnc == home_plmn.mnc) {
-    rrc->plmn_select(plmn_id);
+    rrc->plmn_select(plmn_id, state == EMM_STATE_REGISTERED_INITIATED);
     selecting_plmn = plmn_id;
+    return true;
   }
-
+  return false;
 }
 
 // RRC indicates that the UE has gone through all EARFCN and finished PLMN selection
 void nas::plmn_search_end() {
   if (known_plmns.size() > 0) {
-    nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
-                  plmn_id_to_string(home_plmn).c_str(),
-                  plmn_id_to_string(known_plmns[0]).c_str());
+    if (home_plmn.mcc != known_plmns[0].mcc && home_plmn.mnc != known_plmns[0].mnc) {
+      nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
+                    plmn_id_to_string(home_plmn).c_str(),
+                    plmn_id_to_string(known_plmns[0]).c_str());
 
-    nas_log->console("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
-                     plmn_id_to_string(home_plmn).c_str(),
-                     plmn_id_to_string(known_plmns[0]).c_str());
-
-    rrc->plmn_select(known_plmns[0]);
+      nas_log->console("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
+                       plmn_id_to_string(home_plmn).c_str(),
+                       plmn_id_to_string(known_plmns[0]).c_str());
+    }
+    rrc->plmn_select(known_plmns[0], state == EMM_STATE_REGISTERED_INITIATED);
   } else {
-    nas_log->debug("Finished searching PLMN in current EARFCN set but no networks were found.\n");
+    nas_log->info("Finished searching PLMN in current EARFCN set but no networks were found.\n");
+    if (state == EMM_STATE_REGISTERED_INITIATED && plmn_selection == PLMN_NOT_SELECTED) {
+      rrc->plmn_search();
+    }
   }
 }
 
@@ -218,7 +219,7 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
     default:
       nas_log->error("Not handling NAS message with SEC_HDR_TYPE=%02X\n", sec_hdr_type);
       pool->deallocate(pdu);
-      break;
+      return;
   }
 
   // Write NAS pcap
@@ -262,7 +263,7 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
       pool->deallocate(pdu);
-      break;
+      return;
   }
 }
 
@@ -344,30 +345,39 @@ void nas::integrity_generate(uint8_t *key_128,
 
 bool nas::integrity_check(byte_buffer_t *pdu)
 {
-  uint8_t exp_mac[4];
-  uint8_t *mac = &pdu->msg[1];
-  int i;
-
-  integrity_generate(&k_nas_int[16],
-                     ctxt.rx_count,
-                     SECURITY_DIRECTION_DOWNLINK,
-                     &pdu->msg[5],
-                     pdu->N_bytes-5,
-                     &exp_mac[0]);
-
-  // Check if expected mac equals the sent mac
-  for(i=0; i<4; i++){
-    if(exp_mac[i] != mac[i]){
-     nas_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
-                      "Received: count=%d, [%02x %02x %02x %02x]\n",
-                      ctxt.rx_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
-                      pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
-     return false;
-    }
+  if (!pdu) {
+    nas_log->error("Invalid PDU\n");
+    return NULL;
   }
-  nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                ctxt.rx_count, pdu->msg[5]);
-  return true;
+  if (pdu->N_bytes > 5) {
+    uint8_t exp_mac[4];
+    uint8_t *mac = &pdu->msg[1];
+    int i;
+
+    integrity_generate(&k_nas_int[16],
+                       ctxt.rx_count,
+                       SECURITY_DIRECTION_DOWNLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes-5,
+                       &exp_mac[0]);
+
+    // Check if expected mac equals the sent mac
+    for(i=0; i<4; i++){
+      if(exp_mac[i] != mac[i]){
+        nas_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
+                             "Received: count=%d, [%02x %02x %02x %02x]\n",
+                         ctxt.rx_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                         pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
+        return false;
+      }
+    }
+    nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
+                  ctxt.rx_count, pdu->msg[5]);
+    return true;
+  } else {
+    nas_log->error("Invalid integrity check PDU size (%d)\n", pdu->N_bytes);
+    return false;
+  }
 }
 
 void nas::cipher_encrypt(byte_buffer_t *pdu)
@@ -453,6 +463,17 @@ bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps)
  ******************************************************************************/
 
 void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
+
+  if (!pdu) {
+    nas_log->error("Invalid PDU\n");
+    return;
+  }
+
+  if (pdu->N_bytes <= 5) {
+    nas_log->error("Invalid attach accept PDU size (%d)\n", pdu->N_bytes);
+    return;
+  }
+
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_complete;
@@ -534,6 +555,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 
     state = EMM_STATE_REGISTERED;
     current_plmn = selecting_plmn;
+    plmn_selection = PLMN_SELECTED;
 
     ctxt.rx_count++;
 
@@ -543,6 +565,8 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     act_def_eps_bearer_context_accept.protocol_cnfg_opts_present = false;
     liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_def_eps_bearer_context_accept,
                                                                    &attach_complete.esm_msg);
+
+    pdu->reset();
     liblte_mme_pack_attach_complete_msg(&attach_complete,
                                         LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
                                         ctxt.tx_count,
@@ -658,7 +682,7 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
     usim->get_imei_vec(id_resp.mobile_id.imei, 15);
     break;
   default:
-    nas_log->error("Unhandled ID type: %d\n");
+    nas_log->error("Unhandled ID type: %d\n", id_req.id_type);
     pool->deallocate(pdu);
     return;
   }
@@ -675,6 +699,17 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
 
 void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
 {
+
+  if (!pdu) {
+    nas_log->error("Invalid PDU\n");
+    return;
+  }
+
+  if (pdu->N_bytes <= 5) {
+    nas_log->error("Invalid security mode command PDU size (%d)\n", pdu->N_bytes);
+    return;
+  }
+
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sec_mode_cmd;
   LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sec_mode_comp;
 
@@ -758,36 +793,36 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   }
 
   // Send response
-  byte_buffer_t *sdu = pool_allocate;
+  pdu->reset();
   liblte_mme_pack_security_mode_complete_msg(&sec_mode_comp,
                                              LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT,
                                              ctxt.tx_count,
-                                             (LIBLTE_BYTE_MSG_STRUCT *) sdu);
+                                             (LIBLTE_BYTE_MSG_STRUCT *) pdu);
   if(pcap != NULL) {
-    pcap->write_nas(sdu->msg, sdu->N_bytes);
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
-  cipher_encrypt(sdu);
+  cipher_encrypt(pdu);
   integrity_generate(&k_nas_int[16],
                      ctxt.tx_count,
                      SECURITY_DIRECTION_UPLINK,
-                     &sdu->msg[5],
-                     sdu->N_bytes - 5,
-                     &sdu->msg[1]);
+                     &pdu->msg[5],
+                     pdu->N_bytes - 5,
+                     &pdu->msg[1]);
   nas_log->info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s\n",
                 ctxt.tx_count,
                 rrc->get_rb_name(lcid).c_str());
-  rrc->write_sdu(lcid, sdu);
+  rrc->write_sdu(lcid, pdu);
   ctxt.tx_count++;
-  pool->deallocate(pdu);
 }
 
 void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
   nas_log->error("TODO:parse_service_reject\n");
+  pool->deallocate(pdu);
 }
 
 void nas::parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu) {
   nas_log->error("TODO:parse_esm_information_request\n");
-
+  pool->deallocate(pdu);
 }
 
 void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
@@ -796,6 +831,7 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
   nas_log->info("Received EMM Information: %s\n", str.c_str());
   nas_log->console("%s\n", str.c_str());
   ctxt.rx_count++;
+  pool->deallocate(pdu);
 }
 
 /*******************************************************************************
@@ -803,8 +839,15 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
  ******************************************************************************/
 
 void nas::send_attach_request() {
+
+
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_attach_request().\n");
+    return;
+  }
+
   u_int32_t i;
 
   attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
@@ -851,12 +894,16 @@ void nas::send_attach_request() {
                                        (LIBLTE_BYTE_MSG_STRUCT *) msg);
 
     // Add MAC
-    integrity_generate(&k_nas_int[16],
-                       ctxt.tx_count,
-                       SECURITY_DIRECTION_UPLINK,
-                       &msg->msg[5],
-                       msg->N_bytes - 5,
-                       &msg->msg[1]);
+    if (msg->N_bytes > 5) {
+      integrity_generate(&k_nas_int[16],
+                         ctxt.tx_count,
+                         SECURITY_DIRECTION_UPLINK,
+                         &msg->msg[5],
+                         msg->N_bytes - 5,
+                         &msg->msg[1]);
+    } else {
+      nas_log->error("Invalid PDU size %d\n", msg->N_bytes);
+    }
   } else {
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
     usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
@@ -906,6 +953,10 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 
 void nas::send_security_mode_reject(uint8_t cause) {
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_security_mode_reject().\n");
+    return;
+  }
 
   LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT sec_mode_rej;
   sec_mode_rej.emm_cause = cause;
@@ -921,6 +972,10 @@ void nas::send_identity_response() {}
 
 void nas::send_service_request() {
   byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_service_request().\n");
+    return;
+  }
 
   // Pack the service request message directly
   msg->msg[0] = (LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);

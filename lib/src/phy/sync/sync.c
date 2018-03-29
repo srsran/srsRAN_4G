@@ -71,7 +71,7 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     q->N_id_1 = 1000;
 
     q->cfo_ema_alpha = CFO_EMA_ALPHA;
-    q->sss_alg = SSS_PARTIAL_3;
+    q->sss_alg = SSS_FULL;
 
     q->detect_cp       = true;
     q->sss_en          = true;
@@ -152,21 +152,19 @@ clean_exit:
 void srslte_sync_free(srslte_sync_t *q)
 {
   if (q) {
-
     srslte_pss_free(&q->pss);
     srslte_sss_free(&q->sss);
     srslte_cfo_free(&q->cfo_corr_frame);
     srslte_cfo_free(&q->cfo_corr_symbol);
     srslte_cp_synch_free(&q->cp_synch);
 
-    if (q->cfo_i_initiated) {
-      for (int i=0;i<2;i++) {
-        if (q->cfo_i_corr[i]) {
-          free(q->cfo_i_corr[i]);
-        }
-        srslte_pss_free(&q->pss_i[i]);
+    for (int i = 0; i < 2; i++) {
+      if (q->cfo_i_corr[i]) {
+        free(q->cfo_i_corr[i]);
       }
+      srslte_pss_free(&q->pss_i[i]);
     }
+
     if (q->temp) {
       free(q->temp);
     }

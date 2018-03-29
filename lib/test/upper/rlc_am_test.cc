@@ -59,6 +59,14 @@ public:
     n_sdus = 0;
   }
 
+  ~rlc_am_tester(){
+    for (uint32_t i = 0; i < 10; i++) {
+      if (sdus[i] != NULL) {
+        byte_buffer_pool::get_instance()->deallocate(sdus[i]);
+      }
+    }
+  }
+
   // PDCP interface
   void write_pdu(uint32_t lcid, byte_buffer_t *sdu)
   {
@@ -482,17 +490,17 @@ void resegment_test_1()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  len = rlc1.read_pdu(retx1.msg, 11); // 4 byte header + 5 data
+  len = rlc1.read_pdu(retx1.msg, 9); // 4 byte header + 5 data
   retx1.N_bytes = len;
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
-  assert(9 == rlc1.get_buffer_state()); // 4 byte header + 5 data
+  assert(9 == rlc1.get_buffer_state());
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  len = rlc1.read_pdu(retx2.msg, 11); // 4 byte header + 5 data
+  len = rlc1.read_pdu(retx2.msg, 9); // 4 byte header + 5 data
   retx2.N_bytes = len;
 
   // Write the retx PDU to RLC2
@@ -591,16 +599,16 @@ void resegment_test_2()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 18); // 6 byte header + 10 data
+  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 16); // 6 byte header + 10 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
-  assert(16 == rlc1.get_buffer_state()); // 6 byte header + 10 data
+  assert(16 == rlc1.get_buffer_state());
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 18); // 6 byte header + 10 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 16); // 6 byte header + 10 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -696,14 +704,14 @@ void resegment_test_3()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 16); // 4 byte header + 10 data
+  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 14); // 4 byte header + 10 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 16); // 4 byte header + 10 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 14); // 4 byte header + 10 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -799,14 +807,14 @@ void resegment_test_4()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 23); // 6 byte header + 15 data
+  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 21); // 6 byte header + 15 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 23); // 6 byte header + 15 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 21); // 6 byte header + 15 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -902,14 +910,14 @@ void resegment_test_5()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 29); // 7 byte header + 20 data
+  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 27); // 7 byte header + 20 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 29); // 7 byte header + 20 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 27); // 7 byte header + 20 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -1023,11 +1031,11 @@ void resegment_test_6()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
-  assert(157 == rlc1.get_buffer_state());
+  assert(155 == rlc1.get_buffer_state());
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  len = rlc1.read_pdu(retx2.msg, 159);
+  len = rlc1.read_pdu(retx2.msg, 157);
   retx2.N_bytes = len;
 
   // Write the retx PDU to RLC2
@@ -1048,24 +1056,91 @@ void resegment_test_6()
   }
 }
 
+void reset_test()
+{
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log2.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_hex_limit(-1);
+  log2.set_hex_limit(-1);
+  rlc_am_tester     tester;
+  mac_dummy_timers  timers;
+
+  rlc_am rlc1;
+  int len;
+
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+
+  rlc1.init(&log1, 1, &tester, &tester, &timers);
+
+  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
+  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
+  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
+  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
+  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
+  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
+  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+
+  rlc1.configure(&cnfg);
+
+  // Push 1 SDU of size 10 into RLC1
+  byte_buffer_t sdu_buf;
+  *sdu_buf.msg    = 1; // Write the index into the buffer
+  sdu_buf.N_bytes = 100;
+  rlc1.write_sdu(&sdu_buf);
+
+  // read 1 PDU from RLC1 and force segmentation
+  byte_buffer_t pdu_bufs;
+  len = rlc1.read_pdu(pdu_bufs.msg, 4);
+  pdu_bufs.N_bytes = len;
+
+  // reset RLC1
+  rlc1.reset();
+
+  // read another PDU segment from RLC1
+  len = rlc1.read_pdu(pdu_bufs.msg, 4);
+  pdu_bufs.N_bytes = len;
+
+  // now empty RLC buffer
+  len = rlc1.read_pdu(pdu_bufs.msg, 100);
+  pdu_bufs.N_bytes = len;
+
+  assert(0 == rlc1.get_buffer_state());
+}
+
 int main(int argc, char **argv) {
   basic_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   concat_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   segment_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   retx_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_1();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_2();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_3();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_4();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_5();
   byte_buffer_pool::get_instance()->cleanup();
+
   resegment_test_6();
+  byte_buffer_pool::get_instance()->cleanup();
+
+  reset_test();
+  byte_buffer_pool::get_instance()->cleanup();
 }

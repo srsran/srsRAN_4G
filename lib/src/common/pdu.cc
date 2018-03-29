@@ -120,13 +120,18 @@ uint8_t* sch_pdu::write_packet(srslte::log *log_h)
 {
   int init_rem_len=rem_len; 
   sch_subh padding; 
-  padding.set_padding(); 
-  
+  padding.set_padding();
+
+  if (nof_subheaders <= 0 && nof_subheaders < (int)max_subheaders) {
+    log_h->error("Trying to write packet with invalid number of subheaders (nof_subheaders=%d).\n", nof_subheaders);
+    return NULL;
+  }
+
   if (init_rem_len < 0) {
     log_h->error("init_rem_len=%d\n", init_rem_len);
     return NULL; 
   }
-  
+
   /* If last SDU has zero payload, remove it. FIXME: Why happens this?? */
   if (subheaders[nof_subheaders-1].get_payload_size() == 0) {
     del_subh();

@@ -127,6 +127,7 @@ enable = false
 # ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
 # rssi_sensor_enabled:  Enable or disable RF frontend RSSI sensor. Required for RSRP metrics but
 #                       can cause UHD instability for long-duration testing. Default true.
+# rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
 # prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only.,
 #                       Default is to use tx_gain in [rf] section. 
 # cqi_max:              Upper bound on the maximum CQI to be reported. Default 15. 
@@ -171,6 +172,8 @@ enable = false
 # cfo_correct_tol_hz:   Tolerance (in Hz) for digial CFO compensation. Lower tolerance means that
 #                       a new table will be generated more often.
 #
+# cfo_is_doppler:        Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed
+#                        to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.
 # cfo_pss_ema:           CFO Exponential Moving Average coefficient for PSS estimation during TRACK.
 # cfo_ref_ema:           CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition
 # cfo_ref_mask:          Bitmask for subframes on which to run RS estimation (set to 0 to disable, default sf=[1, 5])
@@ -181,10 +184,14 @@ enable = false
 # cfo_loop_pss_timeout:  After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively,
 #                        RS adjustments are allowed.
 #
+# pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
+#                        compatible with TM1. It is False by default.
+#
 #####################################################################
 [expert]
 #ip_netmask          = 255.255.255.0
 #rssi_sensor_enabled = false
+#rx_gain_offset      = 72
 #prach_gain          = 30
 #cqi_max             = 15
 #cqi_fixed           = 10
@@ -203,8 +210,10 @@ enable = false
 #pregenerate_signals = false
 #metrics_csv_enable  = false
 #metrics_csv_filename = /tmp/ue_metrics.csv
+#pdsch_csi_enabled  = true     # Caution! Only TM1 supported!
 
 # CFO related values
+#cfo_is_doppler      = false
 #cfo_integer_enabled = false
 #cfo_correct_tol_hz  = 1.0
 #cfo_pss_ema         = 0.05

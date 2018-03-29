@@ -84,6 +84,8 @@ int mbsfn_area_id = -1;
 char *rf_args = "";
 float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 2400000000;
 
+float output_file_snr = +INFINITY;
+
 bool null_file_sink=false; 
 srslte_filesink_t fsink;
 srslte_ofdm_t ifft[SRSLTE_MAX_PORTS];
@@ -145,13 +147,14 @@ void usage(char *prog) {
   printf("\t-w Number of codewords/layers (multiplex mode only)* [Default %d]\n", multiplex_nof_layers);
   printf("\t-u listen TCP port for input data (-1 is random) [Default %d]\n", net_port);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-s output file SNR [Default %f]\n", output_file_snr);
   printf("\n");
   printf("\t*: See 3GPP 36.212 Table  5.3.3.1.5-4 for more information\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "aglfmoncpvutxbwM")) != -1) {
+  while ((opt = getopt(argc, argv, "aglfmoncpvutxbwMs")) != -1) {
 
     switch (opt) {
     case 'a':
@@ -199,6 +202,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'v':
       srslte_verbose++;
+      break;
+    case 's':
+      output_file_snr = atof(argv[optind]);
       break;
     default:
       usage(argv[0]);
@@ -989,7 +995,14 @@ int main(int argc, char **argv) {
       /* send to file or usrp */
       if (output_file_name) {
         if (!null_file_sink) {
-           srslte_filesink_write_multi(&fsink, (void**) output_buffer, sf_n_samples, cell.nof_ports);       
+          /* Apply AWGN */
+          if (output_file_snr != +INFINITY) {
+            float var = powf(10.0f, -(output_file_snr + 3.0f) / 20.0f);
+            for (int k = 0; k < cell.nof_ports; k++) {
+              srslte_ch_awgn_c(output_buffer[k], output_buffer[k], var, sf_n_samples);
+            }
+          }
+          srslte_filesink_write_multi(&fsink, (void**) output_buffer, sf_n_samples, cell.nof_ports);
         }
         usleep(1000);
       } else {

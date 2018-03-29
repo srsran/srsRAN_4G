@@ -46,8 +46,9 @@ mux::mux(uint8_t nof_harq_proc_) : pdu_msg(MAX_NOF_SUBHEADERS), pid_has_bsr(nof_
   log_h = NULL; 
   rlc   = NULL; 
   bsr_procedure = NULL; 
-  phr_procedure = NULL; 
-  
+  phr_procedure = NULL;
+  msg3_buff_start_pdu = NULL;
+
   msg3_flush();
 }
 
@@ -65,6 +66,7 @@ void mux::reset()
   for (uint32_t i=0;i<lch.size();i++) {
     lch[i].Bj = 0;
   }
+  msg3_pending = false;
   pending_crnti_ce = 0;
 }
 
@@ -164,8 +166,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
     }    
   }
   
-// Logical Channel Procedure
-
+  // Logical Channel Procedure
   bool is_rar = false;
 
   pdu_msg.init_tx(payload, pdu_sz, true);
@@ -323,7 +324,6 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
       if (pdu_msg->new_subh()) { // there is space for a new subheader
         sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc);
         if (sdu_len > 0) { // new SDU could be added
-          
           Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n",
                  lcid, buffer_state, sdu_len, sdu_space, max_sdu_sz, pdu_msg->rem_size());
           return true;               
@@ -343,8 +343,10 @@ void mux::msg3_flush()
   if (log_h) {
     Debug("Msg3 buffer flushed\n");
   }
-  msg3_has_been_transmitted = false; 
+  msg3_has_been_transmitted = false;
+  msg3_pending = false;
   bzero(msg3_buff, sizeof(MSG3_BUFF_SZ));
+  msg3_buff_start_pdu = NULL;
 }
 
 bool mux::msg3_is_transmitted()
@@ -352,22 +354,34 @@ bool mux::msg3_is_transmitted()
   return msg3_has_been_transmitted; 
 }
 
+void mux::msg3_prepare() {
+  msg3_pending = true;
+}
+
+bool mux::msg3_is_pending() {
+  return msg3_pending;
+}
+
 /* Returns a pointer to the Msg3 buffer */
 uint8_t* mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
 {
   if (pdu_sz < MSG3_BUFF_SZ - 32) {
-    uint8_t* msg3_buff_start_pdu = pdu_get(msg3_buff, pdu_sz, 0, 0);
     if (!msg3_buff_start_pdu) {
-      Error("Moving PDU from Mux unit to Msg3 buffer\n");
-      return NULL;
+      msg3_buff_start_pdu = pdu_get(msg3_buff, pdu_sz, 0, 0);
+      if (!msg3_buff_start_pdu) {
+        Error("Moving PDU from Mux unit to Msg3 buffer\n");
+        return NULL;
+      }
+      msg3_has_been_transmitted = true;
+      msg3_pending = false;
     }
-    memcpy(payload, msg3_buff_start_pdu, sizeof(uint8_t)*pdu_sz);
-    msg3_has_been_transmitted = true;
-    return payload;
   } else {
     Error("Msg3 size (%d) is longer than internal msg3_buff size=%d, (see mux.h)\n", pdu_sz, MSG3_BUFF_SZ-32);
     return NULL;
   }
+  memcpy(payload, msg3_buff_start_pdu, sizeof(uint8_t)*pdu_sz);
+  msg3_has_been_transmitted = true;
+  return payload;
 }
 
   

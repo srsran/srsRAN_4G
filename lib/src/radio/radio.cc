@@ -71,7 +71,12 @@ bool radio::init(char *args, char *devname, uint32_t nof_channels)
   }
   saved_nof_channels = nof_channels;
 
-  return true;    
+  is_initialized = true;
+  return true;
+}
+
+bool radio::is_init() {
+  return is_initialized;
 }
 
 void radio::stop() 
@@ -82,11 +87,8 @@ void radio::stop()
 void radio::reset()
 {
   printf("Resetting Radio...\n");
-  srslte_rf_close(&rf_device);
-  sleep(3);
-  if (srslte_rf_open_devname(&rf_device, saved_devname, saved_args, saved_nof_channels)) {
-    fprintf(stderr, "Error opening RF device\n");
-  }
+  srslte_rf_stop_rx_stream(&rf_device);
+  radio_is_streaming = false;
 }
 
 void radio::set_manual_calibration(rf_cal_t* calibration)
@@ -141,6 +143,10 @@ bool radio::rx_at(void* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time
 
 bool radio::rx_now(void* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time)
 {
+  if (!radio_is_streaming) {
+    srslte_rf_start_rx_stream(&rf_device, false);
+    radio_is_streaming = true;
+  }
   if (srslte_rf_recv_with_time_multi(&rf_device, buffer, nof_samples, true,
     rxd_time?&rxd_time->full_secs:NULL, rxd_time?&rxd_time->frac_secs:NULL) > 0) {
     return true; 
@@ -444,16 +450,6 @@ void radio::set_tx_srate(double srate)
   
   // Calculate TX advance in seconds from samples and sampling rate 
   tx_adv_sec = nsamples/cur_tx_srate;
-}
-
-void radio::start_rx(bool now)
-{
-  srslte_rf_start_rx_stream(&rf_device, now);
-}
-
-void radio::stop_rx()
-{
-  srslte_rf_stop_rx_stream(&rf_device);
 }
 
 void radio::register_error_handler(srslte_rf_error_handler_t h)

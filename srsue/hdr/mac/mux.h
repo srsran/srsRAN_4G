@@ -67,6 +67,9 @@ public:
   
   void     msg3_flush();
   bool     msg3_is_transmitted();
+
+  void     msg3_prepare();
+  bool     msg3_is_pending();
   
   void     append_crnti_ce_next_tx(uint16_t crnti); 
   
@@ -101,10 +104,12 @@ private:
   /* Msg3 Buffer */
   static const uint32_t MSG3_BUFF_SZ = 1024;
   uint8_t               msg3_buff[MSG3_BUFF_SZ];
-  
+  uint8_t              *msg3_buff_start_pdu;
+
   /* PDU Buffer */
   srslte::sch_pdu    pdu_msg; 
   bool msg3_has_been_transmitted;
+  bool msg3_pending;
 };
 
 } // namespace srsue

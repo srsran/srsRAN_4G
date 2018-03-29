@@ -144,18 +144,11 @@ void srslte_ue_sync_reset(srslte_ue_sync_t *q) {
 
 
 int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(void*, double), float init_gain_value) {
-  uint32_t nframes; 
-  if (q->nof_recv_sf == 1) {
-    nframes = 10; 
-  } else {
-    nframes = 0; 
-  }
-  int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, nframes, set_gain_callback, q->stream); 
+  int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, 0, set_gain_callback, q->stream);
   q->do_agc = n==0?true:false;
   if (q->do_agc) {
     srslte_agc_set_gain(&q->agc, init_gain_value);
-    srslte_agc_set_target(&q->agc, 0.3);
-    srslte_agc_set_bandwidth(&q->agc, 0.8);
+    srslte_ue_sync_set_agc_period(q, 4);
   }
   return n; 
 }
@@ -329,7 +322,6 @@ int srslte_ue_sync_set_cell(srslte_ue_sync_t *q, srslte_cell_t cell)
     memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
     q->fft_size = srslte_symbol_sz(q->cell.nof_prb);
     q->sf_len = SRSLTE_SF_LEN(q->fft_size);
-    q->agc_period = 0;
 
     if (cell.id == 1000) {
 
@@ -763,7 +755,9 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
           if (q->do_agc) {
             srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);        
           }
-          
+
+          INFO("SYNC FIND: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
+
         break;
         case SF_TRACK:
          
@@ -789,7 +783,7 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
             if (q->do_agc && (q->agc_period == 0 || 
                              (q->agc_period && (q->frame_total_cnt%q->agc_period) == 0))) 
             {
-              srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);        
+              srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);
             }
 
             /* Track PSS/SSS around the expected PSS position
@@ -825,6 +819,9 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
 
             q->frame_total_cnt++;
           }
+
+          INFO("SYNC TRACK: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
+
         break;
       }
     }

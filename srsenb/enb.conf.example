@@ -13,6 +13,8 @@
 # mme_addr:       IP address of MME for S1 connnection
 # gtp_bind_addr:  Local IP address to bind for GTP connection
 # n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
+# tm:             Transmission mode 1-4 (TM1 default)
+# nof_ports:      Number of Tx ports (1 port default, set to 2 for TM2/3/4)
 #
 #####################################################################
 [enb]
@@ -25,6 +27,9 @@ mnc = 01
 mme_addr = 127.0.1.100
 gtp_bind_addr = 127.0.0.1
 n_prb = 50
+#tm = 4
+#nof_ports = 2
+
 
 #####################################################################
 # eNB configuration files 

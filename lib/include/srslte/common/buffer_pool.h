@@ -30,6 +30,8 @@
 #include <pthread.h>
 #include <vector>
 #include <stack>
+#include <map>
+#include <string>
 #include <algorithm>
 
 /*******************************************************************************
@@ -70,14 +72,23 @@ public:
       delete available.top();
       available.pop();
     }
+
+    for (uint32_t i = 0; i < used.size(); i++) {
+      delete used[i];
+    }
   }
   
   void print_all_buffers()
   {
     printf("%d buffers in queue\n", (int) used.size());
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    std::map<std::string, uint32_t> buffer_cnt;
     for (uint32_t i=0;i<used.size();i++) {
-      printf("%s\n", strlen(used[i]->debug_name)?used[i]->debug_name:"Undefined");
+      buffer_cnt[strlen(used[i]->debug_name)?used[i]->debug_name:"Undefined"]++;
+    }
+    std::map<std::string, uint32_t>::iterator it;
+    for (it = buffer_cnt.begin(); it != buffer_cnt.end(); it++) {
+      printf(" - %dx %s\n", it->second, it->first.c_str());
     }
 #endif
   }
@@ -164,6 +175,10 @@ public:
     }
     b->reset();
     pool->deallocate(b);
+    b = NULL;
+  }
+  void print_all_buffers() {
+    pool->print_all_buffers();
   }
 private:
   buffer_pool<byte_buffer_t> *pool; 

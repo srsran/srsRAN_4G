@@ -400,7 +400,8 @@ enum gtpc_interface_type
   S2B_U_PGW_GTP_U_INTERFACE
 };
 
-struct gtpc_f_teid_ie
+
+typedef struct gtpc_f_teid_ie
 {
   bool ipv4_present;
   bool ipv6_present;
@@ -408,7 +409,7 @@ struct gtpc_f_teid_ie
   uint32_t teid;
   in_addr_t  ipv4;
   struct in6_addr ipv6; //FIXME
-};
+} gtp_fteid_t;
 
 //TODO
 //TODO IEs between 8.22 and 8.28 missing

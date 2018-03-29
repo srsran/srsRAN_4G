@@ -31,23 +31,77 @@
 #include "srslte/common/logger_stdout.h"
 #include "srslte/common/threads.h"
 #include "srslte/upper/rlc.h"
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
 #include <assert.h>
-#define NBUFS 5
 
+using namespace std;
 using namespace srsue;
 using namespace srslte;
+namespace bpo = boost::program_options;
+
+typedef struct {
+  uint32_t test_duration_sec;
+  float    error_rate;
+  uint32_t sdu_gen_delay_usec;
+  uint32_t pdu_tx_delay_usec;
+  bool     reestablish;
+  uint32_t log_level;
+} stress_test_args_t;
+
+void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
+
+  // Command line only options
+  bpo::options_description general("General options");
+
+  general.add_options()
+  ("help,h", "Produce help message")
+  ("version,v", "Print version information and exit");
+
+  // Command line or config file options
+  bpo::options_description common("Configuration options");
+  common.add_options()
+  ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(10), "Duration (sec)")
+  ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(10), "SDU generation delay (usec)")
+  ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(10), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
+  ("error_rate",    bpo::value<float>(&args->error_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
+  ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution")
+  ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug");
+
+  // these options are allowed on the command line
+  bpo::options_description cmdline_options;
+  cmdline_options.add(common).add(general);
+
+  // parse the command line and store result in vm
+  bpo::variables_map vm;
+  bpo::store(bpo::command_line_parser(argc, argv).options(cmdline_options).run(), vm);
+  bpo::notify(vm);
+
+  // help option was given - print usage and exit
+  if (vm.count("help")) {
+    cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
+    cout << common << endl << general << endl;
+    exit(0);
+  }
+
+  if (args->log_level > 4) {
+    args->log_level = 4;
+    printf("Set log level to %d (%s)\n", args->log_level, srslte::log_level_text[args->log_level]);
+  }
+}
 
 class mac_reader
     :public thread
 {
 public:
-  mac_reader(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_)
+  mac_reader(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, uint32_t pdu_tx_delay_usec_)
   {
     rlc1 = rlc1_;
     rlc2 = rlc2_;
     fail_rate = fail_rate_;
     run_enable = true;
     running = false;
+    pdu_tx_delay_usec = pdu_tx_delay_usec_;
   }
 
   void stop()
@@ -82,14 +136,16 @@ private:
       if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
         rlc2->write_pdu(1, pdu->msg, opp_size);
       }
-      usleep(1000);
+      usleep(pdu_tx_delay_usec);
     }
     running = false;
+    byte_buffer_pool::get_instance()->deallocate(pdu);
   }
 
   rlc_interface_mac *rlc1;
   rlc_interface_mac *rlc2;
   float fail_rate;
+  uint32_t pdu_tx_delay_usec;
 
   bool run_enable;
   bool running;
@@ -99,9 +155,9 @@ class mac_dummy
     :public srslte::mac_interface_timers
 {
 public:
-  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_)
-    :r1(rlc1_, rlc2_, fail_rate_)
-    ,r2(rlc2_, rlc1_, fail_rate_)
+  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, uint32_t pdu_tx_delay)
+    :r1(rlc1_, rlc2_, fail_rate_, pdu_tx_delay)
+    ,r2(rlc2_, rlc1_, fail_rate_, pdu_tx_delay)
   {
   }
 
@@ -139,10 +195,13 @@ class rlc_am_tester
     ,public thread
 {
 public:
-  rlc_am_tester(rlc_interface_pdcp *rlc_){
+  rlc_am_tester(rlc_interface_pdcp *rlc_, std::string name_, uint32_t sdu_gen_delay_usec_){
     rlc = rlc_;
     run_enable = true;
     running = false;
+    rx_pdus = 0;
+    name = name_;
+    sdu_gen_delay_usec = sdu_gen_delay_usec_;
   }
 
   void stop()
@@ -164,6 +223,7 @@ public:
   {
     assert(lcid == 1);
     byte_buffer_pool::get_instance()->deallocate(sdu);
+    std::cout << "rlc_am_tester " << name << " received " << rx_pdus++ << " PDUs" << std::endl;
   }
   void write_pdu_bcch_bch(byte_buffer_t *sdu) {}
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu) {}
@@ -187,38 +247,41 @@ private:
       pdu->N_bytes = 1500;
       pdu->msg[0]   = sn++;
       rlc->write_sdu(1, pdu);
-      usleep(1000);
+      usleep(sdu_gen_delay_usec);
     }
     running = false;
   }
 
   bool run_enable;
   bool running;
+  long rx_pdus;
+
+  std::string name;
+
+  uint32_t sdu_gen_delay_usec;
 
   rlc_interface_pdcp *rlc;
 };
 
-void stress_test()
+void stress_test(stress_test_args_t args)
 {
   srslte::log_filter log1("RLC_AM_1");
   srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_level((LOG_LEVEL_ENUM)args.log_level);
+  log2.set_level((LOG_LEVEL_ENUM)args.log_level);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-
-  float fail_rate = 0.1;
 
   rlc rlc1;
   rlc rlc2;
 
-  rlc_am_tester tester1(&rlc1);
-  rlc_am_tester tester2(&rlc2);
-  mac_dummy     mac(&rlc1, &rlc2, fail_rate);
+  rlc_am_tester tester1(&rlc1, "tester1", args.sdu_gen_delay_usec);
+  rlc_am_tester tester2(&rlc2, "tester2", args.sdu_gen_delay_usec);
+  mac_dummy     mac(&rlc1, &rlc2, args.error_rate, args.pdu_tx_delay_usec);
   ue_interface  ue;
 
   rlc1.init(&tester1, &tester1, &ue, &log1, &mac, 0);
-  rlc2.init(&tester1, &tester1, &ue, &log2, &mac, 0);
+  rlc2.init(&tester2, &tester2, &ue, &log2, &mac, 0);
 
   LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
   cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
@@ -235,10 +298,17 @@ void stress_test()
   rlc2.add_bearer(1, cnfg_);
 
   tester1.start(7);
-  //tester2.start(7);
+  tester2.start(7);
   mac.start();
 
-  usleep(100e6);
+  for (uint32_t i = 0; i < args.test_duration_sec; i++) {
+    // if enabled, mimic reestablishment every second
+    if (args.reestablish) {
+      rlc1.reestablish();
+      rlc2.reestablish();
+    }
+    usleep(1e6);
+  }
 
   tester1.stop();
   tester2.stop();
@@ -247,6 +317,9 @@ void stress_test()
 
 
 int main(int argc, char **argv) {
-  stress_test();
+  stress_test_args_t args;
+  parse_args(&args, argc, argv);
+
+  stress_test(args);
   byte_buffer_pool::get_instance()->cleanup();
 }

@@ -33,6 +33,47 @@ static const uint8_t MAX_TA=255;  //Maximum TA supported
 static const uint8_t MAX_BPLMN=6; //Maximum broadcasted PLMNs per TAC
 static const uint8_t MAX_ERABS_PER_UE = 16;
 
+// MME EMM states (3GPP 24.301 v10.0.0, section 5.1.3.4)
+typedef enum {
+  EMM_STATE_DEREGISTERED = 0,
+  EMM_STATE_COMMON_PROCEDURE_INITIATED,
+  EMM_STATE_REGISTERED,
+  EMM_STATE_DEREGISTERED_INITIATED,
+  EMM_STATE_N_ITEMS,
+} emm_state_t;
+static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"DEREGISTERED",
+                                                            "COMMON PROCEDURE INITIATED",
+                                                            "REGISTERED",
+                                                            "DEREGISTERED INITIATED"};
+
+// MME ECM states (3GPP 23.401 v10.0.0, section 4.6.3)
+typedef enum {
+  ECM_STATE_IDLE = 0,
+  ECM_STATE_CONNECTED,
+  ECM_STATE_N_ITEMS,
+} ecm_state_t;
+static const char ecm_state_text[ECM_STATE_N_ITEMS][100] = {"IDLE",
+                                                            "CONNECTED"};
+
+// MME ESM states (3GPP 23.401 v10.0.0, section 4.6.3)
+typedef enum {
+  ESM_BEARER_CONTEXT_INACTIVE = 0,
+  ESM_BEARER_CONTEXT_ACTIVE_PENDING,
+  ESM_BEARER_CONTEXT_ACTIVE,
+  ESM_BEARER_CONTEXT_INACTIVE_PENDING,
+  ESM_BEARER_CONTEXT_MODIFY_PENDING,
+  ESM_BEARER_PROCEDURE_TRANSACTION_INACTIVE,
+  ESM_BEARER_PROCEDURE_TRANSACTION_PENDING,
+  ESM_STATE_N_ITEMS,
+} esm_state_t;
+static const char esm_state_text[ESM_STATE_N_ITEMS][100] = {"CONTEXT INACTIVE",
+                                                            "CONTEXT ACTIVE PENDING",
+                                                            "CONTEXT ACTIVE",
+                                                            "CONTEXT_INACTIVE_PENDING",
+                                                            "CONTEXT_MODIFY_PENDING",
+                                                            "PROCEDURE_TRANSACTION_INACTIVE"
+                                                            "PROCEDURE_TRANSACTION_PENDING"};
+
 enum erab_state
 {
   ERAB_DEACTIVATED,
@@ -40,6 +81,7 @@ enum erab_state
   ERAB_CTX_SETUP,
   ERAB_ACTIVE
 };
+
 
 typedef struct{
   uint8_t       mme_code;
@@ -49,6 +91,7 @@ typedef struct{
   uint16_t      mnc;        // BCD-coded with 0xF filler
   std::string   mme_bind_addr;
   std::string   mme_name;
+  std::string   dns_addr;
   std::string   mme_apn;
 } s1ap_args_t;
 
@@ -75,28 +118,48 @@ typedef struct{
   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
   uint8_t k_nas_enc[32];
   uint8_t k_nas_int[32];
-} eps_security_ctx_t;
+  uint8_t k_enb[32];
+  LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
+  bool ms_network_cap_present;
+  LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
+} eps_sec_ctx_t;
 
 typedef struct{
     enum erab_state state;
     uint8_t erab_id;
     srslte::gtpc_f_teid_ie enb_fteid;
-    srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
+    srslte::gtpc_f_teid_ie sgw_s1u_fteid;
+    srslte::gtpc_pdn_address_allocation_ie pdn_addr_alloc;
 } erab_ctx_t;
+
+typedef struct{
+    uint64_t imsi;
+    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
+    eps_sec_ctx_t security_ctxt;
+    uint8_t procedure_transaction_id;
+    emm_state_t state;
+    uint32_t mme_ue_s1ap_id;
+    uint8_t attach_type;
+    struct in_addr ue_ip;
+    srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
+} ue_emm_ctx_t;
 
 typedef struct{
   uint64_t imsi;
   uint32_t enb_ue_s1ap_id;
   uint32_t mme_ue_s1ap_id;
-  uint16_t enb_id;
   struct   sctp_sndrcvinfo enb_sri;
-  eps_security_ctx_t security_ctxt;
+  ecm_state_t state;
   erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
-  LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
-  bool ms_network_cap_present;
-  LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
   bool eit;
-  uint8_t procedure_transaction_id;
+} ue_ecm_ctx_t;
+
+
+typedef struct{
+  ue_emm_ctx_t emm_ctx;
+  eps_sec_ctx_t sec_ctx;
+  ue_ecm_ctx_t ecm_ctx;
+  erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
 } ue_ctx_t;
 }//namespace
 #endif

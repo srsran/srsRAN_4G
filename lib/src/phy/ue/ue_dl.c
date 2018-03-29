@@ -71,7 +71,6 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
     q->pmch_pkt_errors = 0;
     q->pmch_pkts_total = 0;
     q->pending_ul_dci_rnti = 0; 
-    q->sample_offset = 0; 
     q->nof_rx_antennas = nof_rx_antennas;
 
     for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
@@ -147,12 +146,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
         goto clean_exit;
       }
     }
-    if (srslte_cfo_init(&q->sfo_correct, max_prb*SRSLTE_NRE)) {
-      fprintf(stderr, "Error initiating SFO correct\n");
-      goto clean_exit;
-    }
-    srslte_cfo_set_tol(&q->sfo_correct, 1e-5f/q->fft[0].symbol_sz);
-    
+
     ret = SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid parametres\n");
@@ -178,7 +172,6 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
     srslte_pdcch_free(&q->pdcch);
     srslte_pdsch_free(&q->pdsch);
     srslte_pmch_free(&q->pmch);
-    srslte_cfo_free(&q->sfo_correct);
     for (int i = 0; i < SRSLTE_MAX_TB; i++) {
       srslte_softbuffer_rx_free(q->softbuffers[i]);
       if (q->softbuffers[i]) {
@@ -209,7 +202,6 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
     q->pkt_errors = 0;
     q->pkts_total = 0;
     q->pending_ul_dci_rnti = 0;
-    q->sample_offset = 0;
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
       if (q->cell.nof_prb != 0) {
@@ -220,11 +212,6 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
         fprintf(stderr, "Error resizing REGs\n");
         return SRSLTE_ERROR;
       }
-      if (srslte_cfo_resize(&q->sfo_correct, q->cell.nof_prb*SRSLTE_NRE)) {
-        fprintf(stderr, "Error resizing SFO correct\n");
-        return SRSLTE_ERROR;
-      }
-      srslte_cfo_set_tol(&q->sfo_correct, 1e-5f/q->fft[0].symbol_sz);
       for (int port = 0; port < q->nof_rx_antennas; port++) {
         if (srslte_ofdm_rx_set_prb(&q->fft[port], q->cell.cp, q->cell.nof_prb)) {
           fprintf(stderr, "Error resizing FFT\n");
@@ -348,10 +335,6 @@ void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
   bzero(&q->pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
 }
 
-void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, float sample_offset) {
-  q->sample_offset = sample_offset; 
-}
-
 /** Applies the following operations to a subframe of synchronized samples: 
  *    - OFDM demodulation
  *    - Channel estimation 
@@ -395,17 +378,6 @@ int srslte_ue_dl_decode_fft_estimate_noguru(srslte_ue_dl_t *q, cf_t *input[SRSLT
     /* Run FFT for all subframe data */
     for (int j=0;j<q->nof_rx_antennas;j++) {
       srslte_ofdm_rx_sf_ng(&q->fft[j], input[j], q->sf_symbols_m[j]);
-
-      /* Correct SFO multiplying by complex exponential in the time domain */
-      if (q->sample_offset) {
-        int nsym = SRSLTE_CP_NSYMB(q->cell.cp);
-        for (int i=0;i<2*nsym;i++) {
-          srslte_cfo_correct(&q->sfo_correct,
-                             &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE],
-                             &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE],
-                             q->sample_offset / q->fft[j].symbol_sz);
-        }
-      }
     }
     return srslte_ue_dl_decode_estimate_mbsfn(q, sf_idx, cfi, SRSLTE_SF_NORM);
   } else {
@@ -460,15 +432,15 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
         pmi = grant->pinfo - 1;
       } else {
         ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
-        return SRSLTE_ERROR;
+        pmi = grant->pinfo % 4;
       }
     } else {
-      if (grant->pinfo < 2) {
-        pmi = grant->pinfo;
-      } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
-        return SRSLTE_ERROR;
+      if (grant->pinfo == 2) {
+        ERROR("Not implemented codebook index (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+      } else if (grant->pinfo > 2) {
+        ERROR("Reserved codebook index (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
       }
+      pmi = grant->pinfo % 2;
     }
   }
   if(SRSLTE_SF_MBSFN == grant->sf_type) {

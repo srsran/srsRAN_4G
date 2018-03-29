@@ -73,7 +73,7 @@ SRSLTE_API void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, const uint32_t 
 SRSLTE_API void srslte_vec_fprint_i(FILE *stream, int *x, const uint32_t len);
 SRSLTE_API void srslte_vec_fprint_s(FILE *stream, short *x, const uint32_t len); 
 SRSLTE_API void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, const uint32_t len);
-SRSLTE_API void srslte_vec_sprint_hex(char *str, uint8_t *x, const uint32_t len); 
+SRSLTE_API void srslte_vec_sprint_hex(char *str, const uint32_t max_str_len, uint8_t *x, const uint32_t len);
 
 /* Saves/loads a vector to a file */
 SRSLTE_API void srslte_vec_save_file(char *filename, const void *buffer, const uint32_t len);

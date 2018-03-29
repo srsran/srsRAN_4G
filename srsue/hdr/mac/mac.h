@@ -162,13 +162,24 @@ private:
   void            timer_alignment_expire();
   srslte::timers  timers;
 
-
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap;
   bool is_first_ul_grant;
 
+  mac_metrics_t metrics;
 
-  mac_metrics_t metrics; 
+  /* Class to run Timers in a dedicated thread */
+  class mac_timers : public periodic_thread {
+   public:
+    void init(srslte::timers *timers, srslte::log *log_h);
+   private:
+    void run_period();
+    srslte::timers *timers;
+    bool running;
+    srslte::log *log_h;
+  };
+
+  mac_timers mactimers;
 
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {

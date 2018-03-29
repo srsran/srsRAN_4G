@@ -84,6 +84,8 @@ public:
     level_text_short = true;
   }
 
+  virtual ~log() {};
+
   // This function shall be called at the start of every tti for printing tti
   void step(uint32_t tti_) {
     tti = tti_;
@@ -120,11 +122,11 @@ public:
   }
 
   // Pure virtual methods for logging
-  virtual void console(std::string message, ...) = 0;
-  virtual void error(std::string message, ...)   = 0;
-  virtual void warning(std::string message, ...) = 0;
-  virtual void info(std::string message, ...)    = 0;
-  virtual void debug(std::string message, ...)   = 0;
+  virtual void console(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void error(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
 
   // Same with hex dump
   virtual void error_hex(uint8_t *hex, int size, std::string message, ...){error("error_hex not implemented.\n");}
