@@ -188,7 +188,7 @@ private:
   srslte::logger        *logger;
 
   srslte::log_filter  rf_log;
-  std::vector<void*>  phy_log;
+  std::vector<srslte::log_filter*>  phy_log;
   srslte::log_filter  mac_log;
   srslte::log_filter  rlc_log;
   srslte::log_filter  pdcp_log;
