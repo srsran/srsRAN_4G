@@ -29,7 +29,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
-#include <boost/thread/mutex.hpp>
 #include "srslte/asn1/gtpc.h"
 #include "mme/s1ap_common.h"
 namespace srsepc
