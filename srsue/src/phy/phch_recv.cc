@@ -717,7 +717,6 @@ void phch_recv::run_thread()
           usleep_scaled(1000);
         }
         is_in_idle = true;
-        usleep_scaled(1000);
         break;
     }
 

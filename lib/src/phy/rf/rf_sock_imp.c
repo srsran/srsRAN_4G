@@ -278,8 +278,8 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .nodetype        = RF_SOCK_NTYPE_LOOP,
                                         .rx_gain         = 0.0,
                                         .tx_gain         = 0.0,
-                                        .rx_srate        = 0.0,
-                                        .tx_srate        = 0.0,
+                                        .rx_srate        = SRSLTE_CS_SAMP_FREQ / 1.0e6,
+                                        .tx_srate        = SRSLTE_CS_SAMP_FREQ / 1.0e6,
                                         .rx_freq         = 0.0,
                                         .tx_freq         = 0.0,
                                         .rx_cal          = {0.0, 0.0, 0.0, 0.0},
@@ -333,6 +333,20 @@ static int rf_sock_resample(double srate_in,
                             void * out, 
                             int nof_samples_in)
 {
+  if(srate_out == 0.0)
+    {
+      RF_SOCK_WARN("srate_out can not be 0, check config, shutting down now");
+
+      exit(0);
+    }
+
+  if(srate_in == 0.0)
+    {
+      RF_SOCK_WARN("srate_in can not be 0, check config, shutting down now");
+
+      exit(0);
+    }
+
   if(srate_in != srate_out)
    {
      const double sratio = srate_out / srate_in;
@@ -411,8 +425,9 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
        tv_delay = tv_tti_step;
     }
 
-   // within rx window, briefly wait for a msg
-   // if too late, then go ahead and do a non blocking read
+   // within rx window, briefly wait for a msg within the window
+   // and see if anything shows up
+   // if too late, then go ahead and do a non blocking read now
    if(timercmp(&tv_delay, &tv_zero, >))
      {
        if(select(_info->rx_handle + 1, &rfds, NULL, NULL, &tv_delay) <= 0 ||
@@ -437,7 +452,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
 }
 
 
-void rf_sock_send_msg(rf_sock_tx_info_t * tx_info)
+int rf_sock_send_msg(rf_sock_tx_info_t * tx_info)
 {
    GET_DEV_INFO(tx_info->h);
 
@@ -500,6 +515,8 @@ void rf_sock_send_msg(rf_sock_tx_info_t * tx_info)
            exit(0);
         }
      }
+
+   return rc;
 }
 
 
@@ -533,21 +550,31 @@ static void * rf_sock_tx_worker_proc(void * arg)
 
        tx_info->iohdr.io_seqnum = _info->tx_seqn++;
 
-       rf_sock_send_msg(tx_info);
+       const int result = rf_sock_send_msg(tx_info);
 
        timersub(&worker->tx_info->iohdr.io_time, &tv_now, &tv_diff);
 
        if(timercmp(&tv_diff, &tv_tti_step, >))
          {
            // track tx_late
-           if(! (++_info->tx_nof_late % (1000/ get_time_scaled(1))))
-             {
-               RF_SOCK_WARN("TX seqn %lu, late by %ld:%06ld, total %zu", 
-                             _info->tx_seqn, 
-                             tv_diff.tv_sec,
-                             tv_diff.tv_usec,
-                             _info->tx_nof_late);
-             }
+           ++_info->tx_nof_late;
+
+           RF_SOCK_WARN("TX len %d, seqn %lu, tx_time %ld:%06ld, late by %ld:%06ld, total %zu",
+                         result,
+                         _info->tx_seqn,
+                         worker->tx_info->iohdr.io_time.tv_sec,
+                         worker->tx_info->iohdr.io_time.tv_usec,
+                         tv_diff.tv_sec,
+                         tv_diff.tv_usec,
+                         _info->tx_nof_late);
+         }
+       else
+         {
+           RF_SOCK_INFO("TX len %d, seqn %lu, tx_time %ld:%06ld", 
+                         result,
+                         _info->tx_seqn, 
+                         worker->tx_info->iohdr.io_time.tv_sec,
+                         worker->tx_info->iohdr.io_time.tv_usec);
          }
 
        _info->tx_nof_workers -= 1;
@@ -1150,21 +1177,29 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          timersub(&tv_rxtime, &iohdr.io_time, &tv_diff);
 
+         // what to do with late msgs (TBD)
          if(timercmp(&tv_diff, &tv_tti_step, >))
            {
              // track rx_late 
-             // what to do with late msgs (TBD)
-             if(! (++_info->rx_nof_late % 1000))
-              { 
-                RF_SOCK_WARN("RX seqn %lu, late by %ld:%06ld, total %zu", 
-                              iohdr.io_seqnum, 
-                              tv_diff.tv_sec,
-                              tv_diff.tv_usec,
-                              _info->rx_nof_late);
-              }
+             ++_info->rx_nof_late;
+
+             RF_SOCK_WARN("RX len %d, seqn %lu, late by %ld:%06ld, total %zu",
+                          rc,
+                          iohdr.io_seqnum, 
+                          tv_diff.tv_sec,
+                          tv_diff.tv_usec,
+                          _info->rx_nof_late);
+           }
+         else
+           {
+             RF_SOCK_INFO("RX len %d, seqn %lu, tx_time %ld:%06ld", 
+                          rc,
+                          iohdr.io_seqnum, 
+                          iohdr.io_time.tv_sec,
+                          iohdr.io_time.tv_usec);
            }
 
-         // use tx time tag as the rx time to help align tti boundry
+         // use tx_time tag as the rx time to help align tti boundry
          tv_rxtimestamp = iohdr.io_time;
 
          // works for downsample, have not able to sync when upsample
@@ -1195,7 +1230,7 @@ rxout:
 #endif
 
    // we always just return what was asked for
-   // enb doenst seem to care and ue is not happy with 0
+   // enb does not seem to care and ue is not happy with 0
    return nsamples;
  }
 
@@ -1246,7 +1281,7 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
 
    rf_sock_tx_info_t * tx_info = worker->tx_info;
 
-   // set the abs tx time
+   // set the abs tx_time
    if(has_time_spec)
      {
        rf_sock_ts_to_tv(&tx_info->iohdr.io_time, full_secs, frac_secs);
@@ -1263,10 +1298,10 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
 
    memcpy(tx_info->cf_data, data, tx_info->iohdr.io_nof_bytes);
 
-   tx_info->h          = h;
-   tx_info->nsamples   = nsamples;
-   tx_info->is_sob     = is_sob;
-   tx_info->is_eob     = is_eob;
+   tx_info->h        = h;
+   tx_info->nsamples = nsamples;
+   tx_info->is_sob   = is_sob;
+   tx_info->is_eob   = is_eob;
    
    worker->is_pending = true;
 
