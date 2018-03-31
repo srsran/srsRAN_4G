@@ -31,8 +31,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef THREAD_POOL_H
-#define THREAD_POOL_H
+#ifndef SRSLTE_THREAD_POOL_H
+#define SRSLTE_THREAD_POOL_H
 
 #include <stdint.h>
 #include <string>
@@ -102,4 +102,4 @@ private:
 };
 }
   
-#endif
+#endif // SRSLTE_THREAD_POOL_H

@@ -23,8 +23,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef S1AP_NAS_TRANSPORT_H
-#define S1AP_NAS_TRANSPORT_H
+#ifndef SRSEPC_S1AP_NAS_TRANSPORT_H
+#define SRSEPC_S1AP_NAS_TRANSPORT_H
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/buffer_pool.h"
@@ -130,4 +130,4 @@ private:
   mme_gtpc* m_mme_gtpc;
 };
 } //namespace srsepc
-#endif //S1AP_NAS_TRANSPORT
+#endif // SRSEPC_S1AP_NAS_TRANSPORT_H

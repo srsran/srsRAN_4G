@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENBPHY_H
-#define ENBPHY_H
+#ifndef SRSENB_PHY_H
+#define SRSENB_PHY_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
@@ -99,4 +99,4 @@ private:
 
 } // namespace srsenb
 
-#endif // UEPHY_H
+#endif // SRSENB_PHY_H

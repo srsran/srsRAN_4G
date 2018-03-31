@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef DL_HARQ_H
-#define DL_HARQ_H
+#ifndef SRSUE_DL_HARQ_H
+#define SRSUE_DL_HARQ_H
 
 #define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
@@ -447,4 +447,4 @@ private:
 
 } // namespace srsue
 
-#endif // DL_HARQ_H
+#endif // SRSUE_DL_HARQ_H

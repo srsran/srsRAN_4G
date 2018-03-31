@@ -33,8 +33,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef VITERBI_
-#define VITERBI_
+#ifndef SRSLTE_VITERBI_H
+#define SRSLTE_VITERBI_H
 
 #include <stdbool.h>
 #include "srslte/config.h"
@@ -119,4 +119,4 @@ SRSLTE_API int srslte_viterbi_init_avx2(srslte_viterbi_t *q,
 
 
 
-#endif
+#endif // SRSLTE_VITERBI_H

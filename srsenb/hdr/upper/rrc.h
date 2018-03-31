@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RRC_H
-#define RRC_H
+#ifndef SRSENB_RRC_H
+#define SRSENB_RRC_H
 
 #include <map>
 #include <queue>
@@ -364,4 +364,4 @@ private:
 
 } // namespace srsenb
 
-#endif // RRC_H
+#endif // SRSENB_RRC_H

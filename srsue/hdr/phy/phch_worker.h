@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHYWORKER_H
-#define UEPHYWORKER_H
+#ifndef SRSUE_PHCH_WORKER_H
+#define SRSUE_PHCH_WORKER_H
 
 #include <string.h>
 #include "srslte/srslte.h"
@@ -185,5 +185,5 @@ private:
 
 } // namespace srsue
 
-#endif // UEPHYWORKER_H
+#endif // SRSUE_PHCH_WORKER_H
 

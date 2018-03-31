@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef MUX_H
-#define MUX_H
+#ifndef SRSUE_MUX_H
+#define SRSUE_MUX_H
 
 #include <pthread.h>
 
@@ -114,5 +114,5 @@ private:
 
 } // namespace srsue
 
-#endif // MUX_H
+#endif // SRSUE_MUX_H
 

@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.4
  *****************************************************************************/
 
-#ifndef PDSCHCFG_
-#define PDSCHCFG_
+#ifndef SRSLTE_PDSCH_CFG_H
+#define SRSLTE_PDSCH_CFG_H
 
 #include "srslte/phy/phch/ra.h"
 #include "srslte/phy/fec/softbuffer.h"
@@ -58,5 +58,5 @@ typedef struct SRSLTE_API {
   bool tb_cw_swap;
 } srslte_pdsch_cfg_t;
 
-#endif
+#endif // SRSLTE_PDSCH_CFG_H
 

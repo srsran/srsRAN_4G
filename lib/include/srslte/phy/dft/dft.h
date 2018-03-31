@@ -25,8 +25,8 @@
  */
 
 
-#ifndef DFT_H_
-#define DFT_H_
+#ifndef SRSLTE_DFT_H
+#define SRSLTE_DFT_H
  
 #include <stdbool.h>
 #include "srslte/config.h"
@@ -157,5 +157,5 @@ SRSLTE_API void srslte_dft_run_r(srslte_dft_plan_t *plan,
                                  const float *in,
                                  float *out);
 
-#endif // DFT_H_
+#endif // SRSLTE_DFT_H
 

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef GW_H
-#define GW_H
+#ifndef SRSUE_GW_H
+#define SRSUE_GW_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -94,4 +94,4 @@ private:
 } // namespace srsue
 
 
-#endif // GW_H
+#endif // SRSUE_GW_H

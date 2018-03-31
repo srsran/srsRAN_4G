@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef DEMUX_H
-#define DEMUX_H
+#ifndef SRSUE_DEMUX_H
+#define SRSUE_DEMUX_H
 
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/pdu_queue.h"
@@ -86,7 +86,7 @@ private:
 
 } // namespace srsue
 
-#endif // DEMUX_H
+#endif // SRSUE_DEMUX_H
 
 
 

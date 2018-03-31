@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef S1AP_H
-#define S1AP_H
+#ifndef SRSENB_S1AP_H
+#define SRSENB_S1AP_H
 
 #include <map>
 
@@ -148,4 +148,4 @@ private:
 } // namespace srsenb
 
 
-#endif // S1AP_H
+#endif // SRSENB_S1AP_H

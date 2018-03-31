@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHYRECV_H
-#define UEPHYRECV_H
+#ifndef SRSUE_PHCH_RECV_H
+#define SRSUE_PHCH_RECV_H
 
 #include <map>
 
@@ -340,4 +340,4 @@ private:
 
 } // namespace srsue
 
-#endif // UEPHYRECV_H
+#endif // SRSUE_PHCH_RECV_H

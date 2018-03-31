@@ -36,8 +36,8 @@
  *  Reference:
  *********************************************************************************************/
 
-#ifndef CHEST_UL_
-#define CHEST_UL_
+#ifndef SRSLTE_CHEST_UL_H
+#define SRSLTE_CHEST_UL_H
 
 #include <stdio.h>
 
@@ -118,4 +118,4 @@ SRSLTE_API float srslte_chest_ul_get_noise_estimate(srslte_chest_ul_t *q);
 SRSLTE_API float srslte_chest_ul_get_snr(srslte_chest_ul_t *q);
 
 
-#endif
+#endif // SRSLTE_CHEST_UL_H

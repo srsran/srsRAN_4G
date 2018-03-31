@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHY_H
-#define UEPHY_H
+#ifndef SRSUE_PHY_H
+#define SRSUE_PHY_H
 
 #include "srslte/srslte.h"
 #include "srslte/common/log_filter.h"
@@ -187,4 +187,4 @@ private:
 
 } // namespace srsue
 
-#endif // UEPHY_H
+#endif // SRSUE_PHY_H

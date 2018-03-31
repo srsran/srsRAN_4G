@@ -23,8 +23,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef S1AP_H
-#define S1AP_H
+#ifndef SRSEPC_S1AP_H
+#define SRSEPC_S1AP_H
 
 #include "srslte/asn1/gtpc.h"
 #include "srslte/asn1/liblte_s1ap.h"
@@ -153,4 +153,4 @@ s1ap::get_plmn()
 
 } //namespace srsepc
 
-#endif //S1AP_H
+#endif // SRSEPC_S1AP_H

@@ -29,8 +29,8 @@
  * Description: Metrics class printing to stdout.
  *****************************************************************************/
 
-#ifndef METRICS_STDOUT_H
-#define METRICS_STDOUT_H
+#ifndef SRSUE_METRICS_STDOUT_H
+#define SRSUE_METRICS_STDOUT_H
 
 #include <pthread.h>
 #include <stdint.h>
@@ -64,4 +64,4 @@ private:
 
 } // namespace srsue
 
-#endif // METRICS_STDOUT_H
+#endif // SRSUE_METRICS_STDOUT_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef SCHED_METRIC_H
-#define SCHED_METRIC_H
+#ifndef SRSENB_SCHEDULER_METRIC_H
+#define SRSENB_SCHEDULER_METRIC_H
 
 #include "mac/scheduler.h"
 
@@ -84,5 +84,5 @@ private:
   
 }
 
-#endif
+#endif // SRSENB_SCHEDULER_METRIC_H
 

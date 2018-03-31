@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENBTXRX_H
-#define ENBTXRX_H
+#ifndef SRSENB_TXRX_H
+#define SRSENB_TXRX_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/threads.h"
@@ -73,4 +73,4 @@ private:
 
 } // namespace srsenb
 
-#endif // UEPHY_H
+#endif // SRSENB_TXRX_H

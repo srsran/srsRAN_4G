@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RRC_H
-#define RRC_H
+#ifndef SRSUE_RRC_H
+#define SRSUE_RRC_H
 
 #include "pthread.h"
 
@@ -580,4 +580,4 @@ private:
 } // namespace srsue
 
 
-#endif // RRC_H
+#endif // SRSUE_RRC_H
