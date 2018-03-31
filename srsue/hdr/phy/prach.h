@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPRACH_H
-#define UEPRACH_H
+#ifndef SRSUE_PRACH_H
+#define SRSUE_PRACH_H
 
 #include <string.h>
 
@@ -87,4 +87,4 @@ namespace srsue {
 
 } // namespace srsue
 
-#endif // UEPRACH_H
+#endif // SRSUE_PRACH_H

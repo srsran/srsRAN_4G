@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef MAC_H
-#define MAC_H
+#ifndef SRSUE_MAC_H
+#define SRSUE_MAC_H
 
 #include "srslte/common/log.h"
 #include "mac/dl_harq.h"
@@ -200,4 +200,4 @@ private:
 
 } // namespace srsue
 
-#endif // MAC_H
+#endif // SRSUE_MAC_H

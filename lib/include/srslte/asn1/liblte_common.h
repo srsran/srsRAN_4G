@@ -33,8 +33,8 @@
 
 *******************************************************************************/
 
-#ifndef __LIBLTE_COMMON_H__
-#define __LIBLTE_COMMON_H__
+#ifndef SRSLTE_LIBLTE_COMMON_H
+#define SRSLTE_LIBLTE_COMMON_H
 
 /*******************************************************************************
                               INCLUDES
@@ -244,4 +244,4 @@ void liblte_align_up(uint8_t **ptr, uint32_t align);
 *********************************************************************/
 void liblte_align_up_zero(uint8_t **ptr, uint32_t align);
 
-#endif /* __LIBLTE_COMMON_H__ */
+#endif // SRSLTE_LIBLTE_COMMON_H

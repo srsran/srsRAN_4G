@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef MAC_H
-#define MAC_H
+#ifndef SRSENB_MAC_H
+#define SRSENB_MAC_H
 
 #include <vector>
 #include "srslte/common/log.h"
@@ -211,6 +211,6 @@ private:
   
 };
 
-} // namespace srsue
+} // namespace srsenb
 
-#endif // MAC_H
+#endif // SRSENB_MAC_H

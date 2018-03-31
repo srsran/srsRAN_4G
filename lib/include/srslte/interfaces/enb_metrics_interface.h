@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENB_METRICS_INTERFACE_H
-#define ENB_METRICS_INTERFACE_H
+#ifndef SRSLTE_ENB_METRICS_INTERFACE_H
+#define SRSLTE_ENB_METRICS_INTERFACE_H
 
 #include <stdint.h>
 
@@ -64,4 +64,4 @@ public:
 
 } // namespace srsenb
 
-#endif // ENB_METRICS_INTERFACE_H
+#endif // SRSLTE_ENB_METRICS_INTERFACE_H

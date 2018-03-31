@@ -33,8 +33,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.3.4
  *****************************************************************************/
 
-#ifndef PRECODING_H_
-#define PRECODING_H_
+#ifndef SRSLTE_PRECODING_H
+#define SRSLTE_PRECODING_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -137,4 +137,4 @@ SRSLTE_API int srslte_precoding_cn(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                    float *cn);
 
 
-#endif /* PRECODING_H_ */
+#endif // SRSLTE_PRECODING_H

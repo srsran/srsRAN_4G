@@ -29,8 +29,8 @@
  * Description: Interface for logging output
  *****************************************************************************/
 
-#ifndef PHY_LOGGER_H
-#define PHY_LOGGER_H
+#ifndef SRSLTE_PHY_LOGGER_H
+#define SRSLTE_PHY_LOGGER_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,4 +56,4 @@ void srslte_phy_log_register_handler(void *ctx, phy_log_handler_t handler);
 }
 #endif // C++ 
 
-#endif // LOGGER_H
+#endif // SRSLTE_PHY_LOGGER_H

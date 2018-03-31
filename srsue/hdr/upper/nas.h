@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef NAS_H
-#define NAS_H
+#ifndef SRSUE_NAS_H
+#define SRSUE_NAS_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -220,4 +220,4 @@ private:
 } // namespace srsue
 
 
-#endif // NAS_H
+#endif // SRSUE_NAS_H

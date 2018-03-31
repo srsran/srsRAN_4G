@@ -25,8 +25,8 @@
  */
 
 
-#ifndef LTEFFT_
-#define LTEFFT_
+#ifndef SRSLTE_OFDM_H
+#define SRSLTE_OFDM_H
 
 /**********************************************************************************************
  *  File:         ofdm.h
@@ -158,4 +158,4 @@ SRSLTE_API void srslte_ofdm_set_non_mbsfn_region(srslte_ofdm_t *q,
                                                uint8_t non_mbsfn_region);
 
 
-#endif
+#endif // SRSLTE_OFDM_H

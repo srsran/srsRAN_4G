@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef DL_SPS_H
-#define DL_SPS_H
+#ifndef SRSUE_DL_SPS_H
+#define SRSUE_DL_SPS_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
@@ -50,4 +50,4 @@ private:
 
 } // namespace srsue
 
-#endif // DL_SPS_H
+#endif // SRSUE_DL_SPS_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENBPHYWORKER_H
-#define ENBPHYWORKER_H
+#ifndef SRSENB_PHCH_WORKER_H
+#define SRSENB_PHCH_WORKER_H
 
 #include <string.h>
 
@@ -137,5 +137,5 @@ private:
 
 } // namespace srsenb
 
-#endif // ENBPHYWORKER_H
+#endif // SRSENB_PHCH_WORKER_H
 

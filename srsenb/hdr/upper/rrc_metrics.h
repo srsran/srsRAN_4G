@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENB_RRC_METRICS_H
-#define ENB_RRC_METRICS_H
+#ifndef SRSENB_RRC_METRICS_H
+#define SRSENB_RRC_METRICS_H
 
 #include "upper/common_enb.h"
 
@@ -55,4 +55,4 @@ struct rrc_metrics_t
 
 } // namespace srsenb
 
-#endif // ENB_S1AP_METRICS_H
+#endif // SRSENB_RRC_METRICS_H

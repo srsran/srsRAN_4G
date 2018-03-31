@@ -30,8 +30,8 @@
  *              to other layers.
  *****************************************************************************/
 
-#ifndef INTERFACES_H
-#define INTERFACES_H
+#ifndef SRSLTE_UE_INTERFACES_H
+#define SRSLTE_UE_INTERFACES_H
 
 #include <string>
 
@@ -599,6 +599,6 @@ public:
 };
   
 
-} // namespace srslte
+} // namespace srsue
 
-#endif // INTERFACES_H
+#endif // SRSLTE_UE_INTERFACES_H

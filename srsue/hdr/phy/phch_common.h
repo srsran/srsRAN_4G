@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHYWORKERCOMMON_H
-#define UEPHYWORKERCOMMON_H
+#ifndef SRSUE_PHCH_COMMON_H
+#define SRSUE_PHCH_COMMON_H
 
 #define TX_MODE_CONTINUOUS 1
 
@@ -187,4 +187,4 @@ private:
   
 } // namespace srsue
 
-#endif // UEPHYWORKERCOMMON_H
+#endif // SRSUE_PDCH_COMMON_H

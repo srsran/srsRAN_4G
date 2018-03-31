@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UE_RLC_METRICS_H
-#define UE_RLC_METRICS_H
+#ifndef SRSLTE_RLC_METRICS_H
+#define SRSLTE_RLC_METRICS_H
 
 
 namespace srslte {
@@ -36,6 +36,6 @@ struct rlc_metrics_t
   float ul_tput_mbps;
 };
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // UE_RLC_METRICS_H
+#endif // SRSLTE_RLC_METRICS_H

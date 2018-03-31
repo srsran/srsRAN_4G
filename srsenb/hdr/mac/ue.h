@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UE_H
-#define UE_H
+#ifndef SRSENB_UE_H
+#define SRSENB_UE_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/pdu.h"
@@ -167,5 +167,5 @@ private:
 
 }
 
-#endif
+#endif // SRSENB_UE_H
 

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RLC_H
-#define RLC_H
+#ifndef SRSLTE_RLC_H
+#define SRSLTE_RLC_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -105,4 +105,4 @@ private:
 } // namespace srsue
 
 
-#endif // RLC_H
+#endif // SRSLTE_RLC_H

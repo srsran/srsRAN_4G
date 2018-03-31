@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef INTERFACE_COMMON_H
-#define INTERFACE_COMMON_H
+#ifndef SRSLTE_INTERFACES_COMMON_H
+#define SRSLTE_INTERFACES_COMMON_H
 
 #include "srslte/common/timers.h"
 #include "srslte/common/security.h"
@@ -96,4 +96,4 @@ public:
 
 }
 
-#endif
+#endif // SRSLTE_INTERFACES_COMMON_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PROCRA_H
-#define PROCRA_H
+#ifndef SRSUE_PROC_RA_H
+#define SRSUE_PROC_RA_H
 
 #include <stdint.h>
 
@@ -216,4 +216,4 @@ private:
 
 } // namespace srsue
 
-#endif // PROCRA_H
+#endif // SRSUE_PROC_RA_H
