@@ -31,7 +31,7 @@
 #include "srslte/srslte.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/trace.h"
-#include "phy/phch_common.h"
+#include "phch_common.h"
 
 #define LOG_EXECTIME
 

@@ -29,7 +29,7 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
-#include "upper/common_enb.h"
+#include "common_enb.h"
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
 #include "srslte/interfaces/enb_interfaces.h"

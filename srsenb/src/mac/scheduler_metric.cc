@@ -25,8 +25,8 @@
  */
 
 #include <string.h>
-#include "mac/scheduler_harq.h"
-#include "mac/scheduler_metric.h"
+#include "srsenb/hdr/mac/scheduler_harq.h"
+#include "srsenb/hdr/mac/scheduler_metric.h"
 
 #define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)

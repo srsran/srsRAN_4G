@@ -40,12 +40,12 @@
 #include <unistd.h>
 #include <map>
 #include <set>
-#include "mme/s1ap_common.h"
-#include "mme/s1ap_mngmt_proc.h"
-#include "mme/s1ap_nas_transport.h"
-#include "mme/s1ap_ctx_mngmt_proc.h"
-#include "mme/mme_gtpc.h"
-#include "hss/hss.h"
+#include "s1ap_common.h"
+#include "s1ap_mngmt_proc.h"
+#include "s1ap_nas_transport.h"
+#include "s1ap_ctx_mngmt_proc.h"
+#include "mme_gtpc.h"
+#include "srsepc/hdr/hss/hss.h"
 
 namespace srsepc{
 

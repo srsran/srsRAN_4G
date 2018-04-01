@@ -29,13 +29,13 @@
 
 #include <stdint.h>
 
-#include "upper/common_enb.h"
-#include "upper/s1ap_metrics.h"
-#include "upper/rrc_metrics.h"
-#include "../../../../srsue/hdr/upper/gw_metrics.h"
+#include "srsenb/hdr/upper/common_enb.h"
+#include "srsenb/hdr/upper/s1ap_metrics.h"
+#include "srsenb/hdr/upper/rrc_metrics.h"
+#include "srsue/hdr/upper/gw_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
-#include "mac/mac_metrics.h"
-#include "phy/phy_metrics.h"
+#include "srsenb/hdr/mac/mac_metrics.h"
+#include "srsenb/hdr/phy/phy_metrics.h"
 
 namespace srsenb {
   

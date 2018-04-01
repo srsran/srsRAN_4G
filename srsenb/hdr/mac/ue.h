@@ -34,7 +34,7 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include <pthread.h>
-#include "mac/mac_metrics.h"
+#include "mac_metrics.h"
 
 namespace srsenb {
   

@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "srslte/srslte.h"
-#include "phy/phch_common.h"
+#include "phch_common.h"
 
 #define LOG_EXECTIME
 

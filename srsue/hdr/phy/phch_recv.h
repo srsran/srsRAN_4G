@@ -35,9 +35,9 @@
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/radio/radio_multi.h"
-#include "phy/prach.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_common.h"
+#include "prach.h"
+#include "phch_worker.h"
+#include "phch_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {

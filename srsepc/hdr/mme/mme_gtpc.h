@@ -30,7 +30,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/asn1/gtpc.h"
-#include "mme/s1ap_common.h"
+#include "s1ap_common.h"
 namespace srsepc
 {
 

@@ -28,10 +28,10 @@
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/buffer_pool.h"
-#include "mme/s1ap_common.h"
+#include "s1ap_common.h"
 #include "srslte/asn1/gtpc.h"
-#include "hss/hss.h"
-#include "mme/mme_gtpc.h"
+#include "srsepc/hdr/hss/hss.h"
+#include "mme_gtpc.h"
 
 namespace srsepc{
 

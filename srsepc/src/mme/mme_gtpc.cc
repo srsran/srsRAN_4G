@@ -26,9 +26,9 @@
 
 #include <iostream>
 #include "srslte/asn1/gtpc.h"
-#include "mme/mme_gtpc.h"
-#include "mme/s1ap.h"
-#include "spgw/spgw.h"
+#include "srsepc/hdr/mme/mme_gtpc.h"
+#include "srsepc/hdr/mme/s1ap.h"
+#include "srsepc/hdr/spgw/spgw.h"
 
 namespace srsepc{
 

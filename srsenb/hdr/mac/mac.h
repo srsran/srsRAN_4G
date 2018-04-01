@@ -36,10 +36,10 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/common/mac_pcap.h"
-#include "mac/scheduler.h"
-#include "mac/scheduler_metric.h"
+#include "scheduler.h"
+#include "scheduler_metric.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
-#include "mac/ue.h"
+#include "ue.h"
 
 namespace srsenb {
   

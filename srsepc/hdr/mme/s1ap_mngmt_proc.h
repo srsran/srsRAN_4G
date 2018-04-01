@@ -28,7 +28,7 @@
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/common.h"
-#include "mme/s1ap_common.h"
+#include "s1ap_common.h"
 #include "srslte/common/log_filter.h"
 
 namespace srsepc{
