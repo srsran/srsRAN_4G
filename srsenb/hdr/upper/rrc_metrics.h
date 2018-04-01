@@ -27,7 +27,7 @@
 #ifndef SRSENB_RRC_METRICS_H
 #define SRSENB_RRC_METRICS_H
 
-#include "upper/common_enb.h"
+#include "common_enb.h"
 
 namespace srsenb {
 

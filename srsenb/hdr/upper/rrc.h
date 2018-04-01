@@ -36,7 +36,7 @@
 #include "srslte/common/timeout.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "upper/common_enb.h"
+#include "common_enb.h"
 #include "rrc_metrics.h"
 
 namespace srsenb {

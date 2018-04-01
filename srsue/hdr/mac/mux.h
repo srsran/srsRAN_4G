@@ -34,8 +34,8 @@
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/pdu.h"
-#include "mac/proc_bsr.h"
-#include "mac/proc_phr.h"
+#include "proc_bsr.h"
+#include "proc_phr.h"
 
 /* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */   
 

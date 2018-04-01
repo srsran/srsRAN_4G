@@ -31,8 +31,8 @@
 
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
-#include "mac/mux.h"
-#include "mac/demux.h"
+#include "mux.h"
+#include "demux.h"
 #include "srslte/common/pdu.h"
 #include "srslte/common/mac_pcap.h"
 

@@ -34,8 +34,8 @@
 
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
-#include "mac/demux.h"
-#include "mac/dl_sps.h"
+#include "demux.h"
+#include "dl_sps.h"
 #include "srslte/common/mac_pcap.h"
 
 #include "srslte/interfaces/ue_interfaces.h"

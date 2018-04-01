@@ -31,8 +31,8 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/radio/radio.h"
-#include "phy/phch_common.h"
-#include "phy/prach_worker.h"
+#include "phch_common.h"
+#include "prach_worker.h"
 
 namespace srsenb {
     

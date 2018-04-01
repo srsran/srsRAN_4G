@@ -35,7 +35,7 @@
 #include "srslte/common/msg_queue.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "upper/common_enb.h"
+#include "common_enb.h"
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "s1ap_metrics.h"

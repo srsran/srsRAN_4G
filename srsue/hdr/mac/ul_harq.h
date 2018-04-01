@@ -34,8 +34,8 @@
 
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log.h"
-#include "mac/mux.h"
-#include "mac/ul_sps.h"
+#include "mux.h"
+#include "ul_sps.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
 #include "srslte/common/interfaces_common.h"
