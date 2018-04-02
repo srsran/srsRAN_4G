@@ -63,10 +63,10 @@ public:
   void info(const char * message, ...);
   void debug(const char * message, ...);
 
-  void error_hex(uint8_t *hex, int size, std::string message, ...);
-  void warning_hex(uint8_t *hex, int size, std::string message, ...);
-  void info_hex(uint8_t *hex, int size, std::string message, ...);
-  void debug_hex(uint8_t *hex, int size, std::string message, ...);
+  void error_hex(uint8_t *hex, int size, const char * message, ...);
+  void warning_hex(uint8_t *hex, int size, const char * message, ...);
+  void info_hex(uint8_t *hex, int size, const char * message, ...);
+  void debug_hex(uint8_t *hex, int size, const char * message, ...);
 
   class time_itf {
   public:
