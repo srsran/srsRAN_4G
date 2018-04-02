@@ -190,45 +190,45 @@ void log_filter::debug(const char * message, ...) {
   }
 }
 
-void log_filter::error_hex(uint8_t *hex, int size, std::string message, ...) {
+void log_filter::error_hex(uint8_t *hex, int size, const char * message, ...) {
   if (level >= LOG_LEVEL_ERROR) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0)
+    if(vasprintf(&args_msg, message, args) > 0)
       all_log(LOG_LEVEL_ERROR, tti, args_msg, hex, size);
     va_end(args);
     free(args_msg);
   }
 }
-void log_filter::warning_hex(uint8_t *hex, int size, std::string message, ...) {
+void log_filter::warning_hex(uint8_t *hex, int size, const char * message, ...) {
   if (level >= LOG_LEVEL_WARNING) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0)
+    if(vasprintf(&args_msg, message, args) > 0)
       all_log(LOG_LEVEL_WARNING, tti, args_msg, hex, size);
     va_end(args);
     free(args_msg);
   }
 }
-void log_filter::info_hex(uint8_t *hex, int size, std::string message, ...) {
+void log_filter::info_hex(uint8_t *hex, int size, const char * message, ...) {
   if (level >= LOG_LEVEL_INFO) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0)
+    if(vasprintf(&args_msg, message, args) > 0)
       all_log(LOG_LEVEL_INFO, tti, args_msg, hex, size);
     va_end(args);
     free(args_msg);
   }
 }
-void log_filter::debug_hex(uint8_t *hex, int size, std::string message, ...) {
+void log_filter::debug_hex(uint8_t *hex, int size, const char * message, ...) {
   if (level >= LOG_LEVEL_DEBUG) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0)
+    if(vasprintf(&args_msg, message, args) > 0)
       all_log(LOG_LEVEL_DEBUG, tti, args_msg, hex, size);
     va_end(args);
     free(args_msg);
