@@ -63,7 +63,7 @@ public:
       return;
     reset();
     gettimeofday(&start_time[1], NULL);
-    duration_msec = duration_msec_;
+    duration_msec = get_time_scaled(duration_msec_);
     running       = true;
     timeout_id    = timeout_id_;
     callback      = callback_;
@@ -90,7 +90,7 @@ public:
     
     int32_t usec = duration_msec*1000-start_time[0].tv_usec;
     if(usec > 0)
-      usleep_scaled(usec);
+      usleep(usec);
     if(callback && running)
         callback->timeout_expired(timeout_id);
   }
