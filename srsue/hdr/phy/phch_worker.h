@@ -24,14 +24,14 @@
  *
  */
 
-#ifndef UEPHYWORKER_H
-#define UEPHYWORKER_H
+#ifndef SRSUE_PHCH_WORKER_H
+#define SRSUE_PHCH_WORKER_H
 
 #include <string.h>
 #include "srslte/srslte.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/trace.h"
-#include "phy/phch_common.h"
+#include "phch_common.h"
 
 #define LOG_EXECTIME
 
@@ -185,5 +185,5 @@ private:
 
 } // namespace srsue
 
-#endif // UEPHYWORKER_H
+#endif // SRSUE_PHCH_WORKER_H
 

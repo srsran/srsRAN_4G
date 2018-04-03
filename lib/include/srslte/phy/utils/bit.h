@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef BIT_
-#define BIT_
+#ifndef SRSLTE_BIT_H
+#define SRSLTE_BIT_H
 
 #include <stdint.h>
 #include <stdio.h>
@@ -108,5 +108,5 @@ SRSLTE_API uint32_t srslte_bit_diff(uint8_t *x,
 
 SRSLTE_API uint32_t srslte_bit_count(uint32_t n);
 
-#endif // BIT_
+#endif // SRSLTE_BIT_H
 

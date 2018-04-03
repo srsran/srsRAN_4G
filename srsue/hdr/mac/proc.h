@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PROC_H
-#define PROC_H
+#ifndef SRSUE_PROC_H
+#define SRSUE_PROC_H
 
 #include <stdint.h>
 
@@ -56,4 +56,4 @@ private:
 
 } // namespace srsue
 
-#endif // PROC_H
+#endif // SRSUE_PROC_H

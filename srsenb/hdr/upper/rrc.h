@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RRC_H
-#define RRC_H
+#ifndef SRSENB_RRC_H
+#define SRSENB_RRC_H
 
 #include <map>
 #include <queue>
@@ -36,7 +36,7 @@
 #include "srslte/common/timeout.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "upper/common_enb.h"
+#include "common_enb.h"
 #include "rrc_metrics.h"
 
 namespace srsenb {
@@ -364,4 +364,4 @@ private:
 
 } // namespace srsenb
 
-#endif // RRC_H
+#endif // SRSENB_RRC_H

@@ -5,8 +5,8 @@
  *              to get metrics 
  *****************************************************************************/
 
-#ifndef METRICS_HUB_H
-#define METRICS_HUB_H
+#ifndef SRSLTE_METRICS_HUB_H
+#define SRSLTE_METRICS_HUB_H
 
 #include <vector>
 #include "srslte/common/threads.h"
@@ -79,4 +79,4 @@ private:
 
 } // namespace srslte
 
-#endif // METRICS_HUB_H
+#endif // SRSLTE_METRICS_HUB_H

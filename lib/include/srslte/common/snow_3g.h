@@ -9,6 +9,8 @@
 * and Integrity Algorithms UEA2 & UIA2.
 * Document 2: SNOW 3G Specification"
 *---------------------------------------------------------*/
+#ifndef SRSLTE_SNOW_3G_H
+#define SRSLTE_SNOW_3G_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,3 +71,4 @@ void snow3g_f8( u8 *key, u32 count, u32 bearer, u32 dir, \
 u8* snow3g_f9( u8* key, u32 count, u32 fresh, u32 dir, \
                  u8 *data, u64 length);
 
+#endif // SRSLTE_SNOW_3G_H

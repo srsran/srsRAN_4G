@@ -34,8 +34,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.1
  *********************************************************************************************/
 
-#ifndef CRC_
-#define CRC_
+#ifndef SRSLTE_CRC_H
+#define SRSLTE_CRC_H
 
 #include "srslte/config.h"
 #include <stdint.h>
@@ -73,4 +73,4 @@ SRSLTE_API uint32_t srslte_crc_checksum(srslte_crc_t *h,
                                         uint8_t *data, 
                                         int len);
 
-#endif
+#endif // SRSLTE_CRC_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef MACPDU_H
-#define MACPDU_H
+#ifndef SRSLTE_PDU_H
+#define SRSLTE_PDU_H
 
 #include <stdint.h>
 #include "srslte/common/log.h"
@@ -338,6 +338,6 @@ private:
   uint8_t    backoff_indicator; 
 };
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // MACPDU_H
+#endif // SRSLTE_PDU_H

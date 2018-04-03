@@ -18,8 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef S1AP_COMMON_H
-#define S1AP_COMMON_H
+#ifndef SRSEPC_S1AP_COMMON_H
+#define SRSEPC_S1AP_COMMON_H
 
 #include "srslte/common/security.h"
 #include "srslte/asn1/gtpc_ies.h"
@@ -162,4 +162,5 @@ typedef struct{
   erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
 } ue_ctx_t;
 }//namespace
-#endif
+
+#endif // SRSEPC_S1AP_COMMON_H

@@ -27,8 +27,8 @@
 #include <iostream>
 #include <cmath>
 #include <inttypes.h> // for printing uint64_t
-#include "mme/s1ap.h"
-#include "mme/s1ap_nas_transport.h"
+#include "srsepc/hdr/mme/s1ap.h"
+#include "srsepc/hdr/mme/s1ap_nas_transport.h"
 #include "srslte/common/security.h"
 #include "srslte/common/liblte_security.h"
 

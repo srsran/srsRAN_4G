@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PRACH_WORKER_H
-#define PRACH_WORKER_H
+#ifndef SRSENB_PRACH_WORKER_H
+#define SRSENB_PRACH_WORKER_H
 
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/log.h"
@@ -85,4 +85,4 @@ private:
   uint32_t sf_cnt;
 };
 }
-#endif // PRACH_WORKER_H
+#endif // SRSENB_PRACH_WORKER_H

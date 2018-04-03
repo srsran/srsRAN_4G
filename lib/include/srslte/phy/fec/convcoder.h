@@ -34,8 +34,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.3.1
  *********************************************************************************************/
 
-#ifndef CONVCODER_
-#define CONVCODER_
+#ifndef SRSLTE_CONVCODER_H
+#define SRSLTE_CONVCODER_H
 
 #include <stdbool.h>
 #include "srslte/config.h"
@@ -53,4 +53,4 @@ SRSLTE_API int srslte_convcoder_encode(srslte_convcoder_t *q,
                                        uint32_t frame_length);
 
 
-#endif
+#endif // SRSLTE_CONVCODER_H

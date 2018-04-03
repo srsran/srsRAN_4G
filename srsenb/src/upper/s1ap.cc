@@ -24,8 +24,8 @@
  *
  */
 
-#include "upper/s1ap.h"
-#include "upper/common_enb.h"
+#include "srsenb/hdr/upper/s1ap.h"
+#include "srsenb/hdr/upper/common_enb.h"
 
 #include <stdio.h>
 #include <string.h>

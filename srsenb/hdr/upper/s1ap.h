@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef S1AP_H
-#define S1AP_H
+#ifndef SRSENB_S1AP_H
+#define SRSENB_S1AP_H
 
 #include <map>
 
@@ -35,7 +35,7 @@
 #include "srslte/common/msg_queue.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "upper/common_enb.h"
+#include "common_enb.h"
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "s1ap_metrics.h"
@@ -148,4 +148,4 @@ private:
 } // namespace srsenb
 
 
-#endif // S1AP_H
+#endif // SRSENB_S1AP_H

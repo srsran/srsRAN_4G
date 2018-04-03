@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef SRSLTE_SIMD_H_H
-#define SRSLTE_SIMD_H_H
+#ifndef SRSLTE_SIMD_H
+#define SRSLTE_SIMD_H
 
 #ifdef LV_HAVE_SSE /* AVX, AVX2, FMA, AVX512  are in this group */
 #ifndef __OPTIMIZE__
@@ -1636,4 +1636,4 @@ static inline simd_b_t srslte_simd_b_xor(simd_b_t a, simd_b_t b) {
 #endif /*SRSLTE_SIMD_B_SIZE */
 
 
-#endif //SRSLTE_SIMD_H_H
+#endif // SRSLTE_SIMD_H
