@@ -35,8 +35,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef ENBUL_H
-#define ENBUL_H
+#ifndef SRSLTE_ENB_UL_H
+#define SRSLTE_ENB_UL_H
 
 #include <stdbool.h>
 
@@ -153,4 +153,4 @@ SRSLTE_API int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q,
                                           float *peak2avg);
 
 
-#endif
+#endif // SRSLTE_ENB_UL_H

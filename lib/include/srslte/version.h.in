@@ -25,8 +25,8 @@
  *
  */
 
-#ifndef VERSION_
-#define VERSION_
+#ifndef SRSLTE_VERSION_H_IN
+#define SRSLTE_VERSION_H_IN
 
 // the configured options and settings for SRSLTE
 #define SRSLTE_VERSION_MAJOR @SRSLTE_VERSION_MAJOR@

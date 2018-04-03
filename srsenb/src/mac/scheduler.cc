@@ -28,7 +28,7 @@
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
-#include "mac/scheduler.h"
+#include "srsenb/hdr/mac/scheduler.h"
 
 #define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)

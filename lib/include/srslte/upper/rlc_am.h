@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RLC_AM_H
-#define RLC_AM_H
+#ifndef SRSLTE_RLC_AM_H
+#define SRSLTE_RLC_AM_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -220,7 +220,7 @@ std::string rlc_am_to_string(rlc_status_pdu_t *status);
 bool        rlc_am_start_aligned(uint8_t fi);
 bool        rlc_am_end_aligned(uint8_t fi);
 
-} // namespace srsue
+} // namespace srslte
 
 
-#endif // RLC_AM_H
+#endif // SRSLTE_RLC_AM_H

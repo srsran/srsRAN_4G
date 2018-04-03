@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef LOG_H
-#define LOG_H
+#ifndef SRSLTE_LOG_H
+#define SRSLTE_LOG_H
 
 #include <stdint.h>
 #include <string>
@@ -153,5 +153,5 @@ protected:
 
 } // namespace srslte
 
-#endif // LOG_H
+#endif // SRSLTE_LOG_H
 

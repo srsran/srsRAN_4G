@@ -103,4 +103,4 @@ SRSLTE_API void srslte_mat_2x2_mmse_avx(__m256 y0, __m256 y1,
 
 #endif /* LV_HAVE_AVX */
 
-#endif /* SRSLTE_MAT_H */
+#endif // SRSLTE_MAT_H 

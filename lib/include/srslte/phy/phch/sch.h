@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10
  *****************************************************************************/
 
-#ifndef SCH_
-#define SCH_
+#ifndef SRSLTE_SCH_H
+#define SRSLTE_SCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -159,4 +159,4 @@ SRSLTE_API uint32_t srslte_sch_find_Ioffset_cqi(float beta);
 
 SRSLTE_API uint32_t srslte_sch_find_Ioffset_ri(float beta); 
 
-#endif
+#endif // SRSLTE_SCH_H

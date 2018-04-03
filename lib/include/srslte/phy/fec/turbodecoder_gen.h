@@ -36,8 +36,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.3.2
  *********************************************************************************************/
 
-#ifndef TURBODECODER_GEN_
-#define TURBODECODER_GEN_
+#ifndef SRSLTE_TURBODECODER_GEN_H
+#define SRSLTE_TURBODECODER_GEN_H
 
 #include "srslte/config.h"
 #include "srslte/phy/fec/tc_interl.h"
@@ -96,4 +96,4 @@ SRSLTE_API int srslte_tdec_gen_run_all(srslte_tdec_gen_t * h,
                                    uint32_t nof_iterations, 
                                    uint32_t long_cb);
 
-#endif
+#endif // SRSLTE_TURBODECODER_GEN_H

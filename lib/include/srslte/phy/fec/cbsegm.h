@@ -29,8 +29,8 @@
 
 #include "srslte/config.h"
 
-#ifndef CBSEGM_H
-#define CBSEGM_H
+#ifndef SRSLTE_CBSEGM_H
+#define SRSLTE_CBSEGM_H
 
 #define SRSLTE_NOF_TC_CB_SIZES 188
 
@@ -56,4 +56,4 @@ SRSLTE_API bool srslte_cbsegm_cbsize_isvalid(uint32_t size);
 
 SRSLTE_API int  srslte_cbsegm_cbindex(uint32_t long_cb);
 
-#endif
+#endif // SRSLTE_CBSEGM_H

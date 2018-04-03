@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENB_MAC_METRICS_H
-#define ENB_MAC_METRICS_H
+#ifndef SRSENB_MAC_METRICS_H
+#define SRSENB_MAC_METRICS_H
 
 
 namespace srsenb {
@@ -51,4 +51,4 @@ struct mac_metrics_t
 
 } // namespace srsenb
 
-#endif // ENB_MAC_METRICS_H
+#endif // SRSENB_MAC_METRICS_H

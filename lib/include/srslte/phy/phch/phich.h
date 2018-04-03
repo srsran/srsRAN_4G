@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.9
  *****************************************************************************/
 
-#ifndef PHICH_
-#define PHICH_
+#ifndef SRSLTE_PHICH_H
+#define SRSLTE_PHICH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -124,4 +124,4 @@ SRSLTE_API uint32_t srslte_phich_ngroups(srslte_phich_t *q);
 
 SRSLTE_API uint32_t srslte_phich_nsf(srslte_phich_t *q);
 
-#endif // PHICH_
+#endif // SRSLTE_PHICH_H

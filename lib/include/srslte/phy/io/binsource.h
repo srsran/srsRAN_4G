@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef BINSOURCE_
-#define BINSOURCE_
+#ifndef SRSLTE_BINSOURCE_H
+#define SRSLTE_BINSOURCE_H
 
 
 #include <stdint.h>
@@ -68,4 +68,4 @@ SRSLTE_API int srslte_binsource_generate(srslte_binsource_t* q,
                                          uint8_t *bits, 
                                          int nbits);
 
-#endif // BINSOURCE_
+#endif // SRSLTE_BINSOURCE_H

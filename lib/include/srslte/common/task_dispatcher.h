@@ -30,8 +30,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef TASK_DISPATCHER_H
-#define TASK_DISPATCHER_H
+#ifndef SRSLTE_TASK_DISPATCHER_H
+#define SRSLTE_TASK_DISPATCHER_H
 
 #include <pthread.h>
 #include <stdint.h>
@@ -56,6 +56,6 @@ private:
   bool running;
 };
 
-} // namespace srsue
+} // namespace srslte
   
-#endif // TASK_DISPATCHER_H
+#endif // SRSLTE_TASK_DISPATCHER_H

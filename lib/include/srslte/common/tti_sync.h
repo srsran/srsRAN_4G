@@ -33,8 +33,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef TTISYNC_H
-#define TTISYNC_H
+#ifndef SRSLTE_TTI_SYNC_H
+#define SRSLTE_TTI_SYNC_H
 
 #include <stdint.h>
 
@@ -77,4 +77,4 @@ class tti_sync
 
 } // namespace srsue
 
-#endif // TTISYNC_H
+#endif // SRSLTE_TTI_SYNC_H

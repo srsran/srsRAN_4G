@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10
  *****************************************************************************/
 
-#ifndef _REGS_H_
-#define _REGS_H_
+#ifndef SRSLTE_REGS_H
+#define SRSLTE_REGS_H
 
 #include <stdbool.h>
 #include "srslte/config.h"
@@ -136,6 +136,6 @@ SRSLTE_API int srslte_regs_pdcch_get_offset(srslte_regs_t *h,
                                             uint32_t start_reg, 
                                             uint32_t nof_regs);
 
-#endif // REGS_H_
+#endif // SRSLTE_REGS_H
 
 

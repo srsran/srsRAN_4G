@@ -34,8 +34,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.3.3
  *****************************************************************************/
 
-#ifndef LAYERMAP_H_
-#define LAYERMAP_H_
+#ifndef SRSLTE_LAYERMAP_H
+#define SRSLTE_LAYERMAP_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -91,4 +91,4 @@ SRSLTE_API int srslte_layerdemap_type(cf_t *x[SRSLTE_MAX_LAYERS],
                                       int nof_symbols[SRSLTE_MAX_CODEWORDS], 
                                       srslte_mimo_type_t type);
 
-#endif // LAYERMAP_H_
+#endif // SRSLTE_LAYERMAP_H

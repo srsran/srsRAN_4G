@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef SRSENB_PARSER_H
+#define SRSENB_PARSER_H
 
 #include <stdarg.h>
 #include <string>
