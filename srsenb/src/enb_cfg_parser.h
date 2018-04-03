@@ -33,9 +33,9 @@
 #include <libconfig.h++>
 #include <string.h>
 #include <iostream>
-#include "parser.h"
+#include "srsenb/hdr/parser.h"
 
-#include "upper/rrc.h"
+#include "srsenb/hdr/upper/rrc.h"
 #include "srslte/asn1/liblte_rrc.h"
 
 namespace srsenb {

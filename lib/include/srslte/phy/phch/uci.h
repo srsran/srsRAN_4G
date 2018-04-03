@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.2.3, 5.2.4
  *****************************************************************************/
 
-#ifndef UCI_
-#define UCI_
+#ifndef SRSLTE_UCI_H
+#define SRSLTE_UCI_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -153,4 +153,4 @@ SRSLTE_API int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t *cfg,
                                         bool is_ri);
 
 
-#endif
+#endif // SRSLTE_UCI_H

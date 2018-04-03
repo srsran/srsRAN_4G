@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef GTPC_IES_H
-#define GTPC_IES_H
+#ifndef SRSLTE_GTPC_IES_H
+#define SRSLTE_GTPC_IES_H
 
 #include "srslte/phy/io/netsource.h"
 
@@ -426,4 +426,4 @@ typedef struct gtpc_f_teid_ie
 //locally, according to the rules of  TS 29.274 v10.14.0 Section 7.
 
 } //namespace
-#endif //GTPC_IES_H
+#endif // SRSLTE_GTPC_IES_H

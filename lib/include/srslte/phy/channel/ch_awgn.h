@@ -37,8 +37,8 @@
 
 #include "srslte/config.h"
 
-#ifndef CH_AWGN_
-#define CH_AWGN_
+#ifndef SRSLTE_CH_AWGN_H
+#define SRSLTE_CH_AWGN_H
 
 SRSLTE_API void srslte_ch_awgn_c(const cf_t* input, 
                                  cf_t* output, 
@@ -54,4 +54,4 @@ SRSLTE_API float srslte_ch_awgn_get_variance(float ebno_db,
                                              float rate);
 
 
-#endif
+#endif // SRSLTE_CH_AWGN_H

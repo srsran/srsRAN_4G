@@ -26,7 +26,7 @@
 
 #include <unistd.h>
 #include <string.h>
-#include "phy/phch_worker.h"
+#include "srsue/hdr/phy/phch_worker.h"
 #include "srslte/srslte.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/asn1/liblte_rrc.h"

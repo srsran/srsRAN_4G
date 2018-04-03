@@ -34,8 +34,8 @@ extern "C" {
 
 #include "srslte/radio/radio.h"
 
-#ifndef RADIO_MULTI_H
-#define RADIO_MULTI_H
+#ifndef SRSLTE_RADIO_MULTI_H
+#define SRSLTE_RADIO_MULTI_H
 
 
 namespace srslte {
@@ -51,4 +51,4 @@ namespace srslte {
   }; 
 }
 
-#endif
+#endif // SRSLTE_RADIO_MULTI_H

@@ -24,8 +24,8 @@
  *
  */
 
-#include "ue_base.h"
-#include "ue.h"
+#include "srsue/hdr/ue_base.h"
+#include "srsue/hdr/ue.h"
 #include "srslte/srslte.h"
 #include "srslte/build_info.h"
 #include <pthread.h>

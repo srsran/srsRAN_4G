@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef DECIM_H
-#define DECIM_H
+#ifndef SRSLTE_DECIM_H
+#define SRSLTE_DECIM_H
 
 #include "srslte/config.h"
 
@@ -48,4 +48,4 @@ SRSLTE_API void srslte_decim_f(float *input,
                                int M, 
                                int len);
 
-#endif // DECIM_H
+#endif // SRSLTE_DECIM_H

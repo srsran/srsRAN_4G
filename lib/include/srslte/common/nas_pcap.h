@@ -1,5 +1,5 @@
-#ifndef NAS_PCAP_H
-#define NAS_PCAP_H
+#ifndef SRSLTE_NAS_PCAP_H
+#define SRSLTE_NAS_PCAP_H
 
 #include "srslte/common/pcap.h"
 
@@ -20,6 +20,6 @@ private:
     void pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes);
 };
 
-} //namespace srsue
+} //namespace srslte
 
-#endif // NAS_PCAP_H
+#endif // SRSLTE_NAS_PCAP_H

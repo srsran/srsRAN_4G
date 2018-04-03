@@ -28,7 +28,7 @@
 #include <string.h>
 
 #include "srslte/interfaces/enb_interfaces.h"
-#include "mac/ue.h"
+#include "srsenb/hdr/mac/ue.h"
 
 #define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)

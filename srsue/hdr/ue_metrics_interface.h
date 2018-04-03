@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UE_METRICS_INTERFACE_H
-#define UE_METRICS_INTERFACE_H
+#ifndef SRSUE_UE_METRICS_INTERFACE_H
+#define SRSUE_UE_METRICS_INTERFACE_H
 
 #include <stdint.h>
 
@@ -62,4 +62,4 @@ public:
 
 } // namespace srsue
 
-#endif // UE_METRICS_INTERFACE_H
+#endif // SRSUE_UE_METRICS_INTERFACE_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef BLOCK_QUEUE
-#define BLOCK_QUEUE
+#ifndef SRSLTE_BLOCK_QUEUE_H
+#define SRSLTE_BLOCK_QUEUE_H
 
 #include <queue>
 #include <memory>
@@ -94,4 +94,4 @@ private:
 
 }
 
-#endif
+#endif // SRSLTE_BLOCK_QUEUE_H

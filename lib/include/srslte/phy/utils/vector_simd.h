@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef VECTORSIMD_
-#define VECTORSIMD_
+#ifndef SRSLTE_VECTOR_SIMD_H
+#define SRSLTE_VECTOR_SIMD_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,4 +139,4 @@ SRSLTE_API uint32_t srslte_vec_max_ci_simd(const cf_t *x, const int len);
 }
 #endif
 
-#endif
+#endif // SRSLTE_VECTOR_SIMD_H

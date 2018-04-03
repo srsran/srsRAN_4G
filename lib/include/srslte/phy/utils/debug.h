@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef DEBUG_H
-#define DEBUG_H
+#ifndef SRSLTE_DEBUG_H
+#define SRSLTE_DEBUG_H
 
 #include <stdio.h>
 #include "srslte/config.h"
@@ -80,4 +80,4 @@ SRSLTE_API extern int handler_registered;
 
 void srslte_debug_handle_crash(int argc, char **argv);
 
-#endif // DEBUG_H
+#endif // SRSLTE_DEBUG_H

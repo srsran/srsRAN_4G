@@ -29,7 +29,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/sctp.h>
-#include "mme/mme.h"
+#include "srsepc/hdr/mme/mme.h"
 
 namespace srsepc{
 

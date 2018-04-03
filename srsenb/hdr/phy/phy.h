@@ -24,14 +24,14 @@
  *
  */
 
-#ifndef ENBPHY_H
-#define ENBPHY_H
+#ifndef SRSENB_PHY_H
+#define SRSENB_PHY_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
-#include "phy/txrx.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_common.h"
+#include "txrx.h"
+#include "phch_worker.h"
+#include "phch_common.h"
 #include "srslte/radio/radio.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/task_dispatcher.h"
@@ -99,4 +99,4 @@ private:
 
 } // namespace srsenb
 
-#endif // UEPHY_H
+#endif // SRSENB_PHY_H

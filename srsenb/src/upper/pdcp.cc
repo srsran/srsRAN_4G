@@ -24,8 +24,8 @@
  *
  */
 
-#include "upper/pdcp.h"
-#include "upper/common_enb.h"
+#include "srsenb/hdr/upper/pdcp.h"
+#include "srsenb/hdr/upper/common_enb.h"
 
 namespace srsenb {
   

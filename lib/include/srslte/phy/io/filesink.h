@@ -34,8 +34,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef FILESINK_
-#define FILESINK_
+#ifndef SRSLTE_FILESINK_H
+#define SRSLTE_FILESINK_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -64,4 +64,4 @@ SRSLTE_API int srslte_filesink_write_multi(srslte_filesink_t *q,
                                            int nsamples,
                                            int nchannels);
 
-#endif // FILESINK_
+#endif // SRSLTE_FILESINK_H

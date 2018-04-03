@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef BCD_HELPERS
-#define BCD_HELPERS
+#ifndef SRSLTE_BCD_HELPERS_H
+#define SRSLTE_BCD_HELPERS_H
 
 #include <ctype.h>
 #include <stdint.h>
@@ -194,4 +194,4 @@ inline void s1ap_mccmnc_to_plmn(uint16_t mcc, uint16_t mnc, uint32_t *plmn)
 
 } // namespace srslte
 
-#endif // BCD_HELPERS
+#endif // SRSLTE_BCD_HELPERS_H

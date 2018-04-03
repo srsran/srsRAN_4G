@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef VECTOR_
-#define VECTOR_
+#ifndef SRSLTE_VECTOR_H
+#define SRSLTE_VECTOR_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -159,4 +159,4 @@ SRSLTE_API void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z,
 }
 #endif
 
-#endif // VECTOR_
+#endif // SRSLTE_VECTOR_H

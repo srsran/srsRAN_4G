@@ -33,8 +33,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 7.1
  *****************************************************************************/
 
-#ifndef DEMOD_SOFT_
-#define DEMOD_SOFT_
+#ifndef SRSLTE_DEMOD_SOFT_H
+#define SRSLTE_DEMOD_SOFT_H
 
 #include <complex.h>
 #include <stdint.h>
@@ -53,4 +53,4 @@ SRSLTE_API int srslte_demod_soft_demodulate_s(srslte_mod_t modulation,
                                               short* llr, 
                                               int nsymbols); 
 
-#endif // DEMOD_SOFT_
+#endif // SRSLTE_DEMOD_SOFT_H

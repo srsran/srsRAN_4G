@@ -21,8 +21,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef GTPC_V2_H
-#define GTPC_V2_H
+#ifndef SRSLTE_GTPC_H
+#define SRSLTE_GTPC_H
 
 #include <stdint.h>
 #include "srslte/asn1/gtpc_msg.h"
@@ -94,4 +94,4 @@ typedef struct gtpc_pdu
   union gtpc_msg_choice choice;
 }gtpc_pdu_t;
 }//namespace
-#endif
+#endif // SRSLTE_GTPC_H

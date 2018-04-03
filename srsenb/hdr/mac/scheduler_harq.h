@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef SCHED_HARQ_H
-#define SCHED_HARQ_H
+#ifndef SRSENB_SCHEDULER_HARQ_H
+#define SRSENB_SCHEDULER_HARQ_H
 
 #include <map>
 #include "srslte/common/log.h"
@@ -125,4 +125,4 @@ private:
 }      
 
 
-#endif 
+#endif // SRSENB_SCHEDULER_HARQ_H

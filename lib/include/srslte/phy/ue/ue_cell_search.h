@@ -40,8 +40,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef UE_CELLSEARCH_
-#define UE_CELLSEARCH_
+#ifndef SRSLTE_UE_CELL_SEARCH_H
+#define SRSLTE_UE_CELL_SEARCH_H
 
 #include <stdbool.h>
 
@@ -110,5 +110,5 @@ SRSLTE_API int srslte_ue_cellsearch_set_nof_valid_frames(srslte_ue_cellsearch_t 
 
 
 
-#endif // SYNC_FRAME_
+#endif // SRSLTE_UE_CELL_SEARCH_H
 

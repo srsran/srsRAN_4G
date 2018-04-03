@@ -33,8 +33,8 @@
  *  Reference:
  *********************************************************************************************/
 
-#ifndef AGC_
-#define AGC_
+#ifndef SRSLTE_AGC_H
+#define SRSLTE_AGC_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -101,4 +101,4 @@ SRSLTE_API void srslte_agc_process(srslte_agc_t *q,
                                    cf_t *signal,
                                    uint32_t len);
 
-#endif // AGC_
+#endif // SRSLTE_AGC_H

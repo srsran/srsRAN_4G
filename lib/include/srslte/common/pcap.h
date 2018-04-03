@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPCAP_H
-#define UEPCAP_H
+#ifndef SRSLTE_PCAP_H
+#define SRSLTE_PCAP_H
 
 #include <stdio.h>
 #include <string.h>
@@ -309,6 +309,7 @@ inline int LTE_PCAP_NAS_WritePDU(FILE *fd, NAS_Context_Info_t *context,
     return 1;
 }
 
+
 /**************************************************************************
  * API functions for writing RLC-LTE PCAP files                           *
  **************************************************************************/
@@ -397,4 +398,4 @@ inline int LTE_PCAP_RLC_WritePDU(FILE *fd, RLC_Context_Info_t *context,
     return 1;
 }
 
-#endif /* UEPCAP_H */
+#endif // SRSLTE_PCAP_H

@@ -29,8 +29,8 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/upper/pdcp.h"
 
-#ifndef PDCP_ENB_H
-#define PDCP_ENB_H
+#ifndef SRSENB_PDCP_H
+#define SRSENB_PDCP_H
 
 namespace srsenb {
   
@@ -113,4 +113,4 @@ private:
 
 }
 
-#endif // PDCP_ENB_H
+#endif // SRSENB_PDCP_H

@@ -25,8 +25,7 @@
  */
 
 #include <boost/algorithm/string.hpp>
-#include <enb.h>
-#include "enb.h"
+#include "srsenb/hdr/enb.h"
 
 namespace srsenb {
 
