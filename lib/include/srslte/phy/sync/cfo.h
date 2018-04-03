@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef CFO_
-#define CFO_
+#ifndef SRSLTE_CFO_H
+#define SRSLTE_CFO_H
 
 #include <complex.h>
 
@@ -67,4 +67,4 @@ SRSLTE_API void srslte_cfo_correct(srslte_cfo_t *h,
                                    cf_t *output,
                                    float freq);
 
-#endif // CFO_
+#endif // SRSLTE_CFO_H

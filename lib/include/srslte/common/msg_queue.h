@@ -30,8 +30,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef MSG_QUEUE_H
-#define MSG_QUEUE_H
+#ifndef SRSLTE_MSG_QUEUE_H
+#define SRSLTE_MSG_QUEUE_H
 
 #include "srslte/common/common.h"
 #include <pthread.h>
@@ -149,7 +149,7 @@ private:
   uint32_t              tail;
 };
 
-} // namespace srsue
+} // namespace srslte
 
 
-#endif // MSG_QUEUE_H
+#endif // SRSLTE_MSG_QUEUE_H

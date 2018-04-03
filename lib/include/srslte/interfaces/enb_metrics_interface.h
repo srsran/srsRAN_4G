@@ -24,18 +24,18 @@
  *
  */
 
-#ifndef ENB_METRICS_INTERFACE_H
-#define ENB_METRICS_INTERFACE_H
+#ifndef SRSLTE_ENB_METRICS_INTERFACE_H
+#define SRSLTE_ENB_METRICS_INTERFACE_H
 
 #include <stdint.h>
 
-#include "upper/common_enb.h"
-#include "upper/s1ap_metrics.h"
-#include "upper/rrc_metrics.h"
-#include "../../../../srsue/hdr/upper/gw_metrics.h"
+#include "srsenb/hdr/upper/common_enb.h"
+#include "srsenb/hdr/upper/s1ap_metrics.h"
+#include "srsenb/hdr/upper/rrc_metrics.h"
+#include "srsue/hdr/upper/gw_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
-#include "mac/mac_metrics.h"
-#include "phy/phy_metrics.h"
+#include "srsenb/hdr/mac/mac_metrics.h"
+#include "srsenb/hdr/phy/phy_metrics.h"
 
 namespace srsenb {
   
@@ -64,4 +64,4 @@ public:
 
 } // namespace srsenb
 
-#endif // ENB_METRICS_INTERFACE_H
+#endif // SRSLTE_ENB_METRICS_INTERFACE_H

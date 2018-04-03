@@ -35,8 +35,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef ENBDL_H
-#define ENBDL_H
+#ifndef SRSLTE_ENB_DL_H
+#define SRSLTE_ENB_DL_H
 
 #include <stdbool.h>
 
@@ -195,4 +195,4 @@ SRSLTE_API void srslte_enb_dl_save_signal(srslte_enb_dl_t *q,
                                           uint16_t rnti,
                                           uint32_t cfi);
 
-#endif
+#endif // SRSLTE_ENB_DL_H

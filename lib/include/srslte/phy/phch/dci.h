@@ -34,8 +34,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.3.3
  *****************************************************************************/
 
-#ifndef DCI_
-#define DCI_
+#ifndef SRSLTE_DCI_H
+#define SRSLTE_DCI_H
 
 #include <stdint.h>
 

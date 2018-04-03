@@ -36,8 +36,8 @@
 
 #include <vector>
 
-#ifndef ENBINTERFACES_H
-#define ENBINTERFACES_H
+#ifndef SRSLTE_ENB_INTERFACES_H
+#define SRSLTE_ENB_INTERFACES_H
 
 namespace srsenb {
 
@@ -272,4 +272,4 @@ public:
 
 }
 
-#endif
+#endif // SRSLTE_ENB_INTERFACES_H

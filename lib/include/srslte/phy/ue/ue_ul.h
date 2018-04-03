@@ -35,8 +35,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef UEUL_H
-#define UEUL_H
+#ifndef SRSLTE_UE_UL_H
+#define SRSLTE_UE_UL_H
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/ch_estimation/chest_dl.h"
@@ -210,4 +210,4 @@ SRSLTE_API bool srslte_ue_ul_srs_tx_enabled(srslte_refsignal_srs_cfg_t *srs_cfg,
                                             uint32_t tti); 
 
 
-#endif
+#endif // SRSLTE_UE_UL_H

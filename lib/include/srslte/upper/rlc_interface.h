@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RLC_INTERFACE_H
-#define RLC_INTERFACE_H
+#ifndef SRSLTE_RLC_INTERFACE_H
+#define SRSLTE_RLC_INTERFACE_H
 
 // for custom constructors
 #include "srslte/asn1/liblte_rrc.h"
@@ -123,4 +123,4 @@ public:
 
 } // namespace srslte
 
-#endif // RLC_INTERFACE_H
+#endif // SRSLTE_RLC_INTERFACE_H

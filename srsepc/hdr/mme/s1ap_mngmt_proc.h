@@ -23,12 +23,12 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef S1AP_MNGMT_PROC_H
-#define S1AP_MNGMT_PROC_H
+#ifndef SRSEPC_S1AP_MNGMT_PROC_H
+#define SRSEPC_S1AP_MNGMT_PROC_H
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/common.h"
-#include "mme/s1ap_common.h"
+#include "s1ap_common.h"
 #include "srslte/common/log_filter.h"
 
 namespace srsepc{
@@ -65,4 +65,4 @@ private:
 
 } //namespace srsepc
 
-#endif //S1AP_MNGMT_PROC
+#endif // SRSEPC_S1AP_MNGMT_PROC_H

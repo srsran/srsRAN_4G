@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.4
  *****************************************************************************/
 
-#ifndef PUSCHCFG_
-#define PUSCHCFG_
+#ifndef SRSLTE_PUSCH_CFG_H
+#define SRSLTE_PUSCH_CFG_H
 
 #include "srslte/phy/phch/ra.h"
 #include "srslte/phy/fec/softbuffer.h"
@@ -57,5 +57,5 @@ typedef struct SRSLTE_API {
   uint32_t last_O_cqi;
 } srslte_pusch_cfg_t;
 
-#endif
+#endif // SRSLTE_PUSCH_CFG_H
 

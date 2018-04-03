@@ -35,8 +35,8 @@
 
 *******************************************************************************/
 
-#ifndef __LIBLTE_MME_H__
-#define __LIBLTE_MME_H__
+#ifndef SRSLTE_LIBLTE_MME_H
+#define SRSLTE_LIBLTE_MME_H
 
 /*******************************************************************************
                               INCLUDES
@@ -4038,4 +4038,4 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_pdn_disconnect_request_msg(LIBLTE_MME_PDN_DISC
 LIBLTE_ERROR_ENUM liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_STRUCT                       *msg,
                                                                LIBLTE_MME_PDN_DISCONNECT_REQUEST_MSG_STRUCT *pdn_discon_req);
 
-#endif /* __LIBLTE_MME_H__ */
+#endif // SRSLTE_LIBLTE_MME_H

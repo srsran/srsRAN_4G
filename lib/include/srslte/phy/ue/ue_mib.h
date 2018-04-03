@@ -43,8 +43,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef UE_MIB_
-#define UE_MIB_
+#ifndef SRSLTE_UE_MIB_H
+#define SRSLTE_UE_MIB_H
 
 #include <stdbool.h>
 
@@ -129,5 +129,5 @@ SRSLTE_API int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
 
 
 
-#endif // SYNC_FRAME_
+#endif // SRSLTE_UE_MIB_H
 

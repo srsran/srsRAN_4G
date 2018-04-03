@@ -32,8 +32,8 @@
  *              common logger object.
  *****************************************************************************/
 
-#ifndef LOG_FILTER_H
-#define LOG_FILTER_H
+#ifndef SRSLTE_LOG_FILTER_H
+#define SRSLTE_LOG_FILTER_H
 
 #include <stdarg.h>
 #include <string>
@@ -98,4 +98,4 @@ private:
 
 } // namespace srsue
 
-#endif // LOG_FILTER_H
+#endif // SRSLTE_LOG_FILTER_H

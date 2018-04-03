@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UE_GW_METRICS_H
-#define UE_GW_METRICS_H
+#ifndef SRSUE_GW_METRICS_H
+#define SRSUE_GW_METRICS_H
 
 
 namespace srsue {
@@ -38,4 +38,4 @@ struct gw_metrics_t
 
 } // namespace srsue
 
-#endif // UE_GW_METRICS_H
+#endif // SRSUE_GW_METRICS_H

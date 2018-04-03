@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENB_S1AP_METRICS_H
-#define ENB_S1AP_METRICS_H
+#ifndef SRSENB_S1AP_METRICS_H
+#define SRSENB_S1AP_METRICS_H
 
 
 namespace srsenb {
@@ -43,4 +43,4 @@ struct s1ap_metrics_t
 
 } // namespace srsenb
 
-#endif // ENB_S1AP_METRICS_H
+#endif // SRSENB_S1AP_METRICS_H

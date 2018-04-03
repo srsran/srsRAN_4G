@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef INTERP_H
-#define INTERP_H
+#ifndef SRSLTE_INTERP_H
+#define SRSLTE_INTERP_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -133,4 +133,4 @@ SRSLTE_API void srslte_interp_linear_offset(srslte_interp_lin_t *q,
                                             uint32_t off_end);
 
 
-#endif // INTERP_H
+#endif // SRSLTE_INTERP_H

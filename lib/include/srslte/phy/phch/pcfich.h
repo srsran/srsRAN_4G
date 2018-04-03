@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.7
  *****************************************************************************/
 
-#ifndef PCFICH_
-#define PCFICH_
+#ifndef SRSLTE_PCFICH_H
+#define SRSLTE_PCFICH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -108,4 +108,4 @@ SRSLTE_API int srslte_pcfich_encode(srslte_pcfich_t *q,
                              cf_t *sf_symbols[SRSLTE_MAX_PORTS],
                              uint32_t subframe);
 
-#endif
+#endif // SRSLTE_PCFICH_H

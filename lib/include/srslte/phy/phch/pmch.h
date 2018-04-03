@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.5
  *****************************************************************************/
 
-#ifndef PMCH_
-#define PMCH_
+#ifndef SRSLTE_PMCH_H
+#define SRSLTE_PMCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -149,4 +149,4 @@ SRSLTE_API float srslte_pmch_average_noi(srslte_pmch_t *q);
 
 SRSLTE_API uint32_t srslte_pmch_last_noi(srslte_pmch_t *q);
 
-#endif
+#endif // SRSLTE_PMCH_H

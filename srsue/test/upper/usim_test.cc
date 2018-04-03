@@ -25,7 +25,7 @@
  */
 
 #include <iostream>
-#include "upper/usim.h"
+#include "srsue/hdr/upper/usim.h"
 #include "srslte/common/log_filter.h"
 #include <assert.h>
 

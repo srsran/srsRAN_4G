@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef CONVOLUTION_H_
-#define CONVOLUTION_H_
+#ifndef SRSLTE_CONVOLUTION_H
+#define SRSLTE_CONVOLUTION_H
 
 #include "srslte/config.h"
 #include "srslte/phy/dft/dft.h"
@@ -94,4 +94,4 @@ SRSLTE_API uint32_t srslte_conv_same_cc(cf_t *input,
                                         uint32_t input_len, 
                                         uint32_t filter_len);
 
-#endif // CONVOLUTION_H_
+#endif // SRSLTE_CONVOLUTION_H

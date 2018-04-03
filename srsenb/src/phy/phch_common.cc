@@ -27,7 +27,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/log.h"
 
-#include "phy/txrx.h"
+#include "srsenb/hdr/phy/txrx.h"
 
 #include <assert.h>
 

@@ -25,8 +25,8 @@
  */
 
 
-#ifndef _LTE_
-#define _LTE_
+#ifndef SRSLTE_SRSLTE_H
+#define SRSLTE_SRSLTE_H
 
 #ifdef __cplusplus
     extern "C" {
@@ -128,4 +128,4 @@
 #undef I // Fix complex.h #define I nastiness when using C++
 #endif
 
-#endif
+#endif // SRSLTE_SRSLTE_H

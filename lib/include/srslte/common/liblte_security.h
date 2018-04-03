@@ -29,8 +29,8 @@
 
 *******************************************************************************/
 
-#ifndef __LIBLTE_SECURITY_H__
-#define __LIBLTE_SECURITY_H__
+#ifndef SRSLTE_LIBLTE_SECURITY_H
+#define SRSLTE_LIBLTE_SECURITY_H
 
 /*******************************************************************************
                               INCLUDES
@@ -345,4 +345,4 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
                                                    uint8 *rand,
                                                    uint8 *ak);
 
-#endif /* __LIBLTE_SECURITY_H__ */
+#endif // SRSLTE_LIBLTE_SECURITY_H
