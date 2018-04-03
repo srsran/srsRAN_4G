@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RLC_ENTITY_H
-#define RLC_ENTITY_H
+#ifndef SRSLTE_RLC_ENTITY_H
+#define SRSLTE_RLC_ENTITY_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -82,7 +82,7 @@ private:
   rlc_common *rlc;
 };
 
-} // namespace srsue
+} // namespace srslte
 
 
-#endif // RLC_ENTITY_H
+#endif // SRSLTE_RLC_ENTITY_H

@@ -30,8 +30,8 @@
  *              layers and helpers.
  *****************************************************************************/
 
-#ifndef ENB_H
-#define ENB_H
+#ifndef SRSENB_ENB_H
+#define SRSENB_ENB_H
 
 #include <stdarg.h>
 #include <string>
@@ -219,5 +219,5 @@ private:
 
 } // namespace srsenb
 
-#endif // UE_H
+#endif // SRSENB_ENB_H
   

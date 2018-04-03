@@ -1,6 +1,6 @@
 
-#ifndef RINGBUFFER_H
-#define RINGBUFFER_H
+#ifndef SRSLTE_RINGBUFFER_H
+#define SRSLTE_RINGBUFFER_H
 
 #include "srslte/config.h"
 #include <pthread.h>
@@ -40,6 +40,6 @@ SRSLTE_API int  srslte_ringbuffer_read(srslte_ringbuffer_t *q,
 
 SRSLTE_API void srslte_ringbuffer_stop(srslte_ringbuffer_t *q);
 
-#endif
+#endif // SRSLTE_RINGBUFFER_H
 
 

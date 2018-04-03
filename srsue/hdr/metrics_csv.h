@@ -29,8 +29,8 @@
  * Description: Metrics class writing to CSV file.
  *****************************************************************************/
 
-#ifndef METRICS_CSV_H
-#define METRICS_CSV_H
+#ifndef SRSUE_METRICS_CSV_H
+#define SRSUE_METRICS_CSV_H
 
 #include <pthread.h>
 #include <stdint.h>
@@ -64,4 +64,4 @@ private:
 
 } // namespace srsue
 
-#endif // METRICS_CSV_H
+#endif // SRSUE_METRICS_CSV_H

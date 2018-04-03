@@ -30,8 +30,8 @@
  *              interfaces and helpers.
  *****************************************************************************/
 
-#ifndef HSS_H
-#define HSS_H
+#ifndef SRSEPC_HSS_H
+#define SRSEPC_HSS_H
 
 #include <cstddef>
 #include "srslte/common/log.h"
@@ -124,4 +124,4 @@ private:
 
 } // namespace srsepc
 
-#endif // MME_H
+#endif // SRSEPC_HSS_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PROCBSR_H
-#define PROCBSR_H
+#ifndef SRSUE_PROC_BSR_H
+#define SRSUE_PROC_BSR_H
 
 #include <stdint.h>
 
@@ -88,4 +88,4 @@ private:
 
 } // namespace srsue
 
-#endif // PROCBSR_H
+#endif // SRSUE_PROC_BSR_H

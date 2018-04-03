@@ -24,15 +24,15 @@
  *
  */
 
-#ifndef PROCRA_H
-#define PROCRA_H
+#ifndef SRSUE_PROC_RA_H
+#define SRSUE_PROC_RA_H
 
 #include <stdint.h>
 
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
-#include "mac/mux.h"
-#include "mac/demux.h"
+#include "mux.h"
+#include "demux.h"
 #include "srslte/common/pdu.h"
 #include "srslte/common/mac_pcap.h"
 
@@ -216,4 +216,4 @@ private:
 
 } // namespace srsue
 
-#endif // PROCRA_H
+#endif // SRSUE_PROC_RA_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UE_H
-#define UE_H
+#ifndef SRSENB_UE_H
+#define SRSENB_UE_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/pdu.h"
@@ -34,7 +34,7 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include <pthread.h>
-#include "mac/mac_metrics.h"
+#include "mac_metrics.h"
 
 namespace srsenb {
   
@@ -167,5 +167,5 @@ private:
 
 }
 
-#endif
+#endif // SRSENB_UE_H
 

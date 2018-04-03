@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RRC_COMMON_H
-#define RRC_COMMON_H
+#ifndef SRSUE_RRC_COMMON_H
+#define SRSUE_RRC_COMMON_H
 
 namespace srsue {
 
@@ -58,4 +58,4 @@ static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
 } // namespace srsue
 
 
-#endif // RRC_COMMON_H
+#endif // SRSUE_RRC_COMMON_H

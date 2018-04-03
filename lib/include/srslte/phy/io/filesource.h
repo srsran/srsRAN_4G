@@ -34,8 +34,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef FILESOURCE_
-#define FILESOURCE_
+#ifndef SRSLTE_FILESOURCE_H
+#define SRSLTE_FILESOURCE_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -67,4 +67,4 @@ SRSLTE_API int srslte_filesource_read_multi(srslte_filesource_t *q,
                                             int nsamples,
                                             int nof_channels);
 
-#endif // FILESOURCE_
+#endif // SRSLTE_FILESOURCE_H

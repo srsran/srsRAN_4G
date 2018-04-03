@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PROCPHR_H
-#define PROCPHR_H
+#ifndef SRSUE_PROC_PHR_H
+#define SRSUE_PROC_PHR_H
 
 #include <stdint.h>
 #include "srslte/common/timers.h"
@@ -74,4 +74,4 @@ private:
 
 } // namespace srsue
 
-#endif // PROCPHR_H
+#endif // SRSUE_PROC_PHR_H

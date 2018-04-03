@@ -31,7 +31,7 @@
 #include <fstream>
 #include <sstream>
 #include "srslte/asn1/liblte_rrc.h"
-#include "upper/nas.h"
+#include "srsue/hdr/upper/nas.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 

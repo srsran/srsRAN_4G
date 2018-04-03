@@ -24,7 +24,7 @@
  *
  */
 
-#include "upper/gtpu.h"
+#include "srsenb/hdr/upper/gtpu.h"
 #include <unistd.h>
 #include <sys/socket.h>
 #include <fcntl.h>

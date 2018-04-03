@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ULSPS_H
-#define ULSPS_H
+#ifndef SRSUE_UL_SPS_H
+#define SRSUE_UL_SPS_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
@@ -50,4 +50,4 @@ private:
 
 } // namespace srsue
 
-#endif // ULSPS_H
+#endif // SRSUE_UL_SPS_H

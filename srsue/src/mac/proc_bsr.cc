@@ -29,9 +29,9 @@
 #define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
-#include "mac/proc_bsr.h"
-#include "mac/mac.h"
-#include "mac/mux.h"
+#include "srsue/hdr/mac/proc_bsr.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/mac/mux.h"
 
 
   namespace srsue {

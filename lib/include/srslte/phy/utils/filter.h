@@ -32,8 +32,9 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef FILTER_H
-#define FILTER_H
+#ifndef SRSLTE_FILTER_H
+#define SRSLTE_FILTER_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "srslte/config.h"
@@ -57,4 +58,4 @@ void srslte_filt_decim_cc_free(srslte_filt_cc_t *q);
 void srslte_filt_decim_cc_execute(srslte_filt_cc_t *q, cf_t *input, cf_t *downsampled_input, cf_t *output, int size);
 
 void srslte_downsample_cc(cf_t *input, cf_t *output, int M, int size) ;
-#endif // FILTER_H
+#endif // SRSLTE_FILTER_H

@@ -24,6 +24,8 @@
  *
  */
 
+#ifndef SRSLTE_RF_UTILS_H 
+#define SRSLTE_RF_UTILS_H
 
 #include "srslte/srslte.h"
 #include "srslte/phy/rf/rf.h"
@@ -62,4 +64,5 @@ SRSLTE_API int rf_search_and_decode_mib(srslte_rf_t *rf,
                                         srslte_cell_t *cell, 
                                         float *cfo);
 
+#endif // SRSLTE_RF_UTILS_H
 

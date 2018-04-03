@@ -26,10 +26,9 @@
 
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/asn1/liblte_rrc.h"
-#include "upper/rrc.h"
+#include "srsenb/hdr/upper/rrc.h"
 #include "srslte/srslte.h"
 #include "srslte/asn1/liblte_mme.h"
-#include "upper/rrc.h"
 
 using srslte::byte_buffer_t;
 using srslte::bit_buffer_t;

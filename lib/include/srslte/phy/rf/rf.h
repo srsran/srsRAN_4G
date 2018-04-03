@@ -24,8 +24,8 @@
  *
  */
   
-#ifndef RF_H 
-#define RF_H
+#ifndef SRSLTE_RF_H 
+#define SRSLTE_RF_H
 
 #include <sys/time.h>
 #include <stdbool.h>
@@ -213,5 +213,5 @@ SRSLTE_API int srslte_rf_send_multi(srslte_rf_t *rf,
                                     bool is_start_of_burst,
                                     bool is_end_of_burst);
 
-#endif
+#endif // SRSLTE_RF_H
 
