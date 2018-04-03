@@ -57,16 +57,16 @@ public:
 
   void init(std::string layer, logger *logger_, bool tti=false);
 
-  void console(const char * message, ...);
-  void error(const char * message, ...);
-  void warning(const char * message, ...);
-  void info(const char * message, ...);
-  void debug(const char * message, ...);
+  void console(const char * message, ...) __attribute__ ((format (printf, 2, 3)));
+  void error(const char * message, ...)   __attribute__ ((format (printf, 2, 3)));
+  void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3)));
+  void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3)));
+  void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3)));
 
-  void error_hex(const uint8_t *hex, int size, const char * message, ...);
-  void warning_hex(const uint8_t *hex, int size, const char * message, ...);
-  void info_hex(const uint8_t *hex, int size, const char * message, ...);
-  void debug_hex(const uint8_t *hex, int size, const char * message, ...);
+  void error_hex(const uint8_t *hex, int size, const char * message, ...)   __attribute__((format (printf, 4, 5)));
+  void warning_hex(const uint8_t *hex, int size, const char * message, ...) __attribute__((format (printf, 4, 5)));
+  void info_hex(const uint8_t *hex, int size, const char * message, ...)    __attribute__((format (printf, 4, 5)));
+  void debug_hex(const uint8_t *hex, int size, const char * message, ...)   __attribute__((format (printf, 4, 5)));
 
   class time_itf {
   public:
