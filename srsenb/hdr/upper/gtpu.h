@@ -29,13 +29,13 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
-#include "upper/common_enb.h"
+#include "common_enb.h"
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
 #include "srslte/interfaces/enb_interfaces.h"
 
-#ifndef GTPU_H
-#define GTPU_H
+#ifndef SRSENB_GTPU_H
+#define SRSENB_GTPU_H
 
 namespace srsenb {
 
@@ -127,4 +127,4 @@ private:
 
 } // namespace srsenb
 
-#endif // GTPU_H
+#endif // SRSENB_GTPU_H

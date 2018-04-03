@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.7
  *****************************************************************************/
 
-#ifndef PRACH_
-#define PRACH_
+#ifndef SRSLTE_PRACH_H
+#define SRSLTE_PRACH_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -174,4 +174,4 @@ SRSLTE_API int srslte_prach_free(srslte_prach_t *p);
 
 SRSLTE_API int srslte_prach_print_seqs(srslte_prach_t *p);
 
-#endif // PRACH_
+#endif // SRSLTE_PRACH_H

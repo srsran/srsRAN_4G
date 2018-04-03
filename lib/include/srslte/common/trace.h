@@ -30,8 +30,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef TRACE_H
-#define TRACE_H
+#ifndef SRSLTE_TRACE_H
+#define SRSLTE_TRACE_H
 
 #include <stdio.h>
 #include <string>
@@ -98,4 +98,4 @@ private:
 
 } // namespace srslte
   
-#endif // TRACE_H
+#endif // SRSLTE_TRACE_H

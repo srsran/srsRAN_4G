@@ -33,8 +33,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 7.1
  *****************************************************************************/
 
-#ifndef DEMOD_HARD_
-#define DEMOD_HARD_
+#ifndef SRSLTE_DEMOD_HARD_H
+#define SRSLTE_DEMOD_HARD_H
 
 #include <complex.h>
 #include <stdint.h>
@@ -57,4 +57,4 @@ SRSLTE_API int srslte_demod_hard_demodulate(srslte_demod_hard_t* q,
                                             uint8_t *bits, 
                                             uint32_t nsymbols);
 
-#endif // DEMOD_HARD_
+#endif // SRSLTE_DEMOD_HARD_H

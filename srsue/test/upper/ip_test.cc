@@ -16,15 +16,15 @@
 #include <assert.h>
 
 #include "srslte/phy/utils/debug.h"
-#include "mac/mac.h"
-#include "phy/phy.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/phy/phy.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/common.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/upper/rlc.h"
-#include "upper/rrc.h"
+#include "srsue/hdr/upper/rrc.h"
 #include "srslte/radio/radio_multi.h"
 
 #define START_TUNTAP

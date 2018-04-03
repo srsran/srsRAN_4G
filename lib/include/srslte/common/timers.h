@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef TIMERS_H
-#define TIMERS_H
+#ifndef SRSLTE_TIMERS_H
+#define SRSLTE_TIMERS_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -175,4 +175,4 @@ private:
 
 } // namespace srslte
   
-#endif // TIMERS_H
+#endif // SRSLTE_TIMERS_H

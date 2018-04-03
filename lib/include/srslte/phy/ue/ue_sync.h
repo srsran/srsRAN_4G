@@ -46,8 +46,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef UE_SYNC_
-#define UE_SYNC_
+#ifndef SRSLTE_UE_SYNC_H
+#define SRSLTE_UE_SYNC_H
 
 #include <stdbool.h>
 
@@ -255,5 +255,5 @@ SRSLTE_API void srslte_ue_sync_get_last_timestamp(srslte_ue_sync_t *q,
                                                   srslte_timestamp_t *timestamp);
 
 
-#endif // SYNC_FRAME_
+#endif // SRSLTE_UE_SYNC_H
 

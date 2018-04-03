@@ -28,9 +28,9 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include "srslte/common/bcd_helpers.h"
-#include "mme/mme.h"
-#include "hss/hss.h"
-#include "spgw/spgw.h"
+#include "srsepc/hdr/mme/mme.h"
+#include "srsepc/hdr/hss/hss.h"
+#include "srsepc/hdr/spgw/spgw.h"
 
 using namespace std;
 using namespace srsepc;

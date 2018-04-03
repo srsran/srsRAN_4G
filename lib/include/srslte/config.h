@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef SRSLTE_CONFIG_H
+#define SRSLTE_CONFIG_H
 
 // Generic helper definitions for shared library support
 #if defined _WIN32 || defined __CYGWIN__
@@ -69,4 +69,4 @@ typedef _Complex short int c16_t;
 #define get_time_scaled(x) ((x) * SRSLTE_TIME_SCALE)
 #define usleep_scaled(x)   usleep(get_time_scaled((x)))
 
-#endif // CONFIG_H
+#endif // SRSLTE_CONFIG_H

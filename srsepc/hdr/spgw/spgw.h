@@ -30,8 +30,8 @@
  *              interfaces and helpers.
  *****************************************************************************/
 
-#ifndef SPGW_H
-#define SPGW_H
+#ifndef SRSEPC_SPGW_H
+#define SRSEPC_SPGW_H
 
 #include <cstddef>
 #include "srslte/common/log.h"
@@ -135,4 +135,4 @@ private:
 
 } // namespace srsepc
 
-#endif // SGW_H
+#endif // SRSEPC_SPGW_H

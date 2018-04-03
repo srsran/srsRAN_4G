@@ -25,8 +25,8 @@
  */
 
 
-#ifndef FORMAT_
-#define FORMAT_
+#ifndef SRSLTE_FORMAT_H
+#define SRSLTE_FORMAT_H
 
 typedef enum { 
   SRSLTE_FLOAT, 
@@ -37,4 +37,4 @@ typedef enum {
   SRSLTE_COMPLEX_SHORT_BIN  
 } srslte_datatype_t;
 
-#endif // FORMAT_
+#endif // SRSLTE_FORMAT_H

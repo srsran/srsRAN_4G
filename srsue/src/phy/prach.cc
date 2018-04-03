@@ -30,8 +30,8 @@
 
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
-#include "phy/prach.h"
-#include "phy/phy.h"
+#include "srsue/hdr/phy/prach.h"
+#include "srsue/hdr/phy/phy.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)

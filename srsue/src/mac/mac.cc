@@ -35,7 +35,7 @@
 #include <unistd.h>
 
 #include "srslte/common/log.h"
-#include "mac/mac.h"
+#include "srsue/hdr/mac/mac.h"
 #include "srslte/common/pcap.h"
 
 

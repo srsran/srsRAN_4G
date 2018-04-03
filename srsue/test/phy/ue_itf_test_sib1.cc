@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 #include "srslte/phy/utils/debug.h"
-#include "phy/phy.h"
+#include "srsue/hdr/phy/phy.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio_multi.h"

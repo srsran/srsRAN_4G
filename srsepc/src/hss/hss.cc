@@ -28,7 +28,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
-#include "hss/hss.h"
+#include "srsepc/hdr/hss/hss.h"
 #include "srslte/common/security.h"
 
 using namespace srslte;

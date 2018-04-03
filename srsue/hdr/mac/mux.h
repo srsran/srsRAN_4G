@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef MUX_H
-#define MUX_H
+#ifndef SRSUE_MUX_H
+#define SRSUE_MUX_H
 
 #include <pthread.h>
 
@@ -34,8 +34,8 @@
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/pdu.h"
-#include "mac/proc_bsr.h"
-#include "mac/proc_phr.h"
+#include "proc_bsr.h"
+#include "proc_phr.h"
 
 /* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */   
 
@@ -114,5 +114,5 @@ private:
 
 } // namespace srsue
 
-#endif // MUX_H
+#endif // SRSUE_MUX_H
 

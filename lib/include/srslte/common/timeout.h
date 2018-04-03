@@ -31,8 +31,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef TIMEOUT_H
-#define TIMEOUT_H
+#ifndef SRSLTE_TIMEOUT_H
+#define SRSLTE_TIMEOUT_H
 
 #include <stdint.h>
 #include <pthread.h>
@@ -126,6 +126,6 @@ private:
   int duration_msec;
 };
 
-} // namespace srsue
+} // namespace srslte
   
-#endif // TIMEOUT_H
+#endif // SRSLTE_TIMEOUT_H

@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10
  *********************************************************************************************/
 
-#ifndef _LTEBASE_
-#define _LTEBASE_
+#ifndef SRSLTE_PHY_COMMON_H
+#define SRSLTE_PHY_COMMON_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -305,4 +305,4 @@ SRSLTE_API char *srslte_mimotype2str(srslte_mimo_type_t mimo_type);
 SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1,
                                         uint32_t tti2); 
 
-#endif
+#endif // SRSLTE_PHY_COMMON_H

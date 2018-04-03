@@ -38,8 +38,8 @@
  *  Reference:
  *********************************************************************************************/
 
-#ifndef CHEST_DL_
-#define CHEST_DL_
+#ifndef SRSLTE_CHEST_DL_H
+#define SRSLTE_CHEST_DL_H
 
 #include <stdio.h>
 
@@ -193,4 +193,4 @@ SRSLTE_API float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q);
 
 SRSLTE_API float srslte_chest_dl_get_rsrp_neighbour(srslte_chest_dl_t *q);
 
-#endif
+#endif // SRSLTE_CHEST_DL_H

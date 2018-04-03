@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef SECURITY_H
-#define SECURITY_H
+#ifndef SRSLTE_SECURITY_H
+#define SRSLTE_SECURITY_H
 
 /******************************************************************************
  * Common security header - wraps ciphering/integrity check algorithms.
@@ -175,6 +175,6 @@ uint8_t security_milenage_f5_star( uint8_t *k,
                                    uint8_t *ak);
 
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // SECURITY_H
+#endif // SRSLTE_SECURITY_H

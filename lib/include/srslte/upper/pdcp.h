@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PDCP_H
-#define PDCP_H
+#ifndef SRSLTE_PDCP_H
+#define SRSLTE_PDCP_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -89,7 +89,7 @@ private:
   bool valid_lcid(uint32_t lcid);
 };
 
-} // namespace srsue
+} // namespace srslte
 
 
-#endif // PDCP_H
+#endif // SRSLTE_PDCP_H

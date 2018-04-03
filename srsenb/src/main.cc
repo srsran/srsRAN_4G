@@ -36,8 +36,8 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 
-#include "enb.h"
-#include "metrics_stdout.h"
+#include "srsenb/hdr/enb.h"
+#include "srsenb/hdr/metrics_stdout.h"
 
 using namespace std;
 using namespace srsenb;

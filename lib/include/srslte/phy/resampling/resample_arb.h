@@ -34,8 +34,8 @@
  *                fredric j. harris
  *****************************************************************************/
 
-#ifndef RESAMPLE_ARB_
-#define RESAMPLE_ARB_
+#ifndef SRSLTE_RESAMPLE_ARB_H
+#define SRSLTE_RESAMPLE_ARB_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -65,4 +65,4 @@ SRSLTE_API int srslte_resample_arb_compute(srslte_resample_arb_t *q,
                                            cf_t *output, 
                                            int n_in);
 
-#endif //RESAMPLE_ARB_
+#endif // SRSLTE_RESAMPLE_ARB_

@@ -42,8 +42,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.11.1, 6.11.2
  *****************************************************************************/
 
-#ifndef SYNC_
-#define SYNC_
+#ifndef SRSLTE_SYNC_H
+#define SRSLTE_SYNC_H
 
 #include <stdbool.h>
 #include <math.h>
@@ -240,5 +240,5 @@ SRSLTE_API bool srslte_sync_sss_detected(srslte_sync_t *q);
 SRSLTE_API void srslte_sync_cp_en(srslte_sync_t *q, 
                                   bool enabled);
 
-#endif // SYNC_
+#endif // SRSLTE_SYNC_H
 

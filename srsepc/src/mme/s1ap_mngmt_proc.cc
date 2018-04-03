@@ -26,8 +26,8 @@
 
 //#include "srslte/upper/s1ap_common.h"
 #include "srslte/common/bcd_helpers.h"
-#include "mme/s1ap.h"
-#include "mme/s1ap_mngmt_proc.h"
+#include "srsepc/hdr/mme/s1ap.h"
+#include "srsepc/hdr/mme/s1ap_mngmt_proc.h"
 
 namespace srsepc{
 

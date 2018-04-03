@@ -30,8 +30,8 @@
  *              layers and helpers.
  *****************************************************************************/
 
-#ifndef UE_H
-#define UE_H
+#ifndef SRSUE_UE_H
+#define SRSUE_UE_H
 
 #include <stdarg.h>
 #include <string>
@@ -120,5 +120,5 @@ private:
 
 } // namespace srsue
 
-#endif // UE_H
+#endif // SRSUE_UE_H
   

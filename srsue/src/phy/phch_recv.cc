@@ -28,8 +28,8 @@
 #include <algorithm>
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_recv.h"
+#include "srsue/hdr/phy/phch_worker.h"
+#include "srsue/hdr/phy/phch_recv.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)

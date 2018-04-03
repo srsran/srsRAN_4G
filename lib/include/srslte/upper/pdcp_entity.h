@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PDCP_ENTITY_H
-#define PDCP_ENTITY_H
+#ifndef SRSLTE_PDCP_ENTITY_H
+#define SRSLTE_PDCP_ENTITY_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -144,7 +144,7 @@ void pdcp_unpack_data_pdu_short_sn(byte_buffer_t *sdu, uint32_t *sn);
 void pdcp_pack_data_pdu_long_sn(uint32_t sn, byte_buffer_t *sdu);
 void pdcp_unpack_data_pdu_long_sn(byte_buffer_t *sdu, uint32_t *sn);
 
-} // namespace srsue
+} // namespace srslte
 
 
-#endif // PDCP_ENTITY_H
+#endif // SRSLTE_PDCP_ENTITY_H

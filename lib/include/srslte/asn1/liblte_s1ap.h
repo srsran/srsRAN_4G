@@ -4,8 +4,8 @@
 /*
 ********************************************************************************/
 
-#ifndef LIBLTE_S1AP_H
-#define LIBLTE_S1AP_H
+#ifndef SRSLTE_LIBLTE_S1AP_H
+#define SRSLTE_LIBLTE_S1AP_H
 
 /*******************************************************************************
 /* Warnings/Todos
@@ -10352,4 +10352,4 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_s1ap_pdu(
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_s1ap_pdu(
   LIBLTE_BYTE_MSG_STRUCT      *msg,
   LIBLTE_S1AP_S1AP_PDU_STRUCT *s1ap_pdu);
-#endif // LIBLTE_S1AP_H
+#endif // SRSLTE_LIBLTE_S1AP_H

@@ -23,8 +23,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef S1AP_H
-#define S1AP_H
+#ifndef SRSEPC_S1AP_H
+#define SRSEPC_S1AP_H
 
 #include "srslte/asn1/gtpc.h"
 #include "srslte/asn1/liblte_s1ap.h"
@@ -40,12 +40,12 @@
 #include <unistd.h>
 #include <map>
 #include <set>
-#include "mme/s1ap_common.h"
-#include "mme/s1ap_mngmt_proc.h"
-#include "mme/s1ap_nas_transport.h"
-#include "mme/s1ap_ctx_mngmt_proc.h"
-#include "mme/mme_gtpc.h"
-#include "hss/hss.h"
+#include "s1ap_common.h"
+#include "s1ap_mngmt_proc.h"
+#include "s1ap_nas_transport.h"
+#include "s1ap_ctx_mngmt_proc.h"
+#include "mme_gtpc.h"
+#include "srsepc/hdr/hss/hss.h"
 
 namespace srsepc{
 
@@ -153,4 +153,4 @@ s1ap::get_plmn()
 
 } //namespace srsepc
 
-#endif //S1AP_H
+#endif // SRSEPC_S1AP_H

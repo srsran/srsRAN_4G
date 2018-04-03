@@ -32,8 +32,8 @@
  *              increase queue size. If empty, consumer blocks.
  *****************************************************************************/
 
-#ifndef LOGGER_FILE_H
-#define LOGGER_FILE_H
+#ifndef SRSLTE_LOGGER_FILE_H
+#define SRSLTE_LOGGER_FILE_H
 
 #include <stdio.h>
 #include <deque>
@@ -74,6 +74,6 @@ private:
   std::deque<str_ptr> buffer;
 };
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // LOGGER_H
+#endif // SRSLTE_LOGGER_FILE_H

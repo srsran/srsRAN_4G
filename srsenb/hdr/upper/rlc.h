@@ -29,8 +29,8 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/upper/rlc.h"
 
-#ifndef RLC_ENB_H
-#define RLC_ENB_H
+#ifndef SRSENB_RLC_H
+#define SRSENB_RLC_H
 
 namespace srsenb {
   
@@ -96,4 +96,4 @@ private:
 
 }
 
-#endif // RLC_H
+#endif // SRSENB_RLC_H

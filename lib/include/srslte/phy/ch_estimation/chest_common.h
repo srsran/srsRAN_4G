@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef CHEST_
-#define CHEST_
+#ifndef SRSLTE_CHEST_COMMON_H
+#define SRSLTE_CHEST_COMMON_H
 
 #include <stdint.h>
 #include "srslte/config.h"
@@ -51,5 +51,5 @@ SRSLTE_API float srslte_chest_estimate_noise_pilots(cf_t *noisy,
 SRSLTE_API void srslte_chest_set_triangle_filter(float *fil, 
                                                  int filter_len); 
 
-#endif
+#endif // SRSLTE_CHEST_COMMON_H
 

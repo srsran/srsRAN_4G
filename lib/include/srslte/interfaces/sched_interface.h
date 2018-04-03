@@ -26,8 +26,8 @@
 
 #include "srslte/srslte.h"
 
-#ifndef SCHED_INTERFACE_H
-#define SCHED_INTERFACE_H
+#ifndef SRSLTE_SCHED_INTERFACE_H
+#define SRSLTE_SCHED_INTERFACE_H
 
 namespace srsenb {
 
@@ -248,4 +248,4 @@ public:
 
 }
 
-#endif
+#endif // SRSLTE_SCHED_INTERFACE_H

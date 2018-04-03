@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PDUPROC_H
-#define PDUPROC_H
+#ifndef SRSLTE_PDU_QUEUE_H
+#define SRSLTE_PDU_QUEUE_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/block_queue.h"
@@ -79,7 +79,7 @@ private:
 
 } // namespace srslte
 
-#endif // PDUPROC_H
+#endif // SRSLTE_PDU_QUEUE_H
 
 
 

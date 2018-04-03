@@ -36,10 +36,10 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 
-#include "ue.h"
+#include "srsue/hdr/ue.h"
 #include "srslte/srslte.h"
-#include "metrics_stdout.h"
-#include "metrics_csv.h"
+#include "srsue/hdr/metrics_stdout.h"
+#include "srsue/hdr/metrics_csv.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/version.h"
 
