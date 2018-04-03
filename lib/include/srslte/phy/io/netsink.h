@@ -33,8 +33,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef NETSINK_
-#define NETSINK_
+#ifndef SRSLTE_NETSINK_H
+#define SRSLTE_NETSINK_H
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -71,4 +71,4 @@ SRSLTE_API int srslte_netsink_write(srslte_netsink_t *q,
 
 SRSLTE_API int srslte_netsink_set_nonblocking(srslte_netsink_t *q); 
 
-#endif // UDPSINK_
+#endif // SRSLTE_NETSINK_H

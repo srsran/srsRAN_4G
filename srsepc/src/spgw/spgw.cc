@@ -33,8 +33,8 @@
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <linux/ip.h>
-#include "spgw/spgw.h"
-#include "mme/mme_gtpc.h"
+#include "srsepc/hdr/spgw/spgw.h"
+#include "srsepc/hdr/mme/mme_gtpc.h"
 #include "srslte/upper/gtpu.h"
 
 namespace srsepc{

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENB_PHY_METRICS_H
-#define ENB_PHY_METRICS_H
+#ifndef SRSENB_PHY_METRICS_H
+#define SRSENB_PHY_METRICS_H
 
 
 namespace srsenb {
@@ -56,4 +56,4 @@ struct phy_metrics_t
 
 } // namespace srsenb
 
-#endif // ENB_PHY_METRICS_H
+#endif // SRSENB_PHY_METRICS_H

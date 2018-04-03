@@ -33,9 +33,9 @@
 #include <stdint.h>
 #include <signal.h>
 
-#include "mac/proc_ra.h"
-#include "mac/mac.h"
-#include "mac/mux.h"
+#include "srsue/hdr/mac/proc_ra.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/mac/mux.h"
 
 /* Random access procedure as specified in Section 5.1 of 36.321 */
 

@@ -25,7 +25,7 @@
  */
 
 #include "srslte/srslte.h"
-#include "phy/prach_worker.h"
+#include "srsenb/hdr/phy/prach_worker.h"
 
 namespace srsenb {
 

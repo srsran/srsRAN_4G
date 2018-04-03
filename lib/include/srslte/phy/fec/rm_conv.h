@@ -33,8 +33,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.4.2
  *********************************************************************************************/
 
-#ifndef RM_CONV_
-#define RM_CONV_
+#ifndef SRSLTE_RM_CONV_H
+#define SRSLTE_RM_CONV_H
 
 #include "srslte/config.h"
 
@@ -63,4 +63,4 @@ SRSLTE_API int srslte_rm_conv_rx_s(int16_t *input,
                                    int16_t *output, 
                                    uint32_t out_len);
 
-#endif
+#endif // SRSLTE_RM_CONV_H

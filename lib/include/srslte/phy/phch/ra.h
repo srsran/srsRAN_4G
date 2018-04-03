@@ -33,8 +33,8 @@
  *  Reference:    3GPP TS 36.213 version 10.0.1 Release 10
  *****************************************************************************/
 
-#ifndef RB_ALLOC_H_
-#define RB_ALLOC_H_
+#ifndef SRSLTE_RA_H
+#define SRSLTE_RA_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -300,4 +300,4 @@ SRSLTE_API int srslte_dl_fill_ra_mcs_pmch(srslte_ra_mcs_t *mcs, uint32_t nprb);
 SRSLTE_API int srslte_dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb);
 
 
-#endif /* RB_ALLOC_H_ */
+#endif // SRSLTE_RA_H

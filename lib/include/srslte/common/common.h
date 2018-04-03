@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef SRSLTE_COMMON_H
+#define SRSLTE_COMMON_H
 
 /*******************************************************************************
                               INCLUDES
@@ -239,6 +239,6 @@ private:
 
 };
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // COMMON_H
+#endif // SRSLTE_COMMON_H

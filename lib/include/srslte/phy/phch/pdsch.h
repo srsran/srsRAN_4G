@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.4
  *****************************************************************************/
 
-#ifndef PDSCH_
-#define PDSCH_
+#ifndef SRSLTE_PDSCH_H
+#define SRSLTE_PDSCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -170,4 +170,4 @@ SRSLTE_API float srslte_pdsch_last_noi(srslte_pdsch_t *q);
 SRSLTE_API uint32_t srslte_pdsch_last_noi_cw(srslte_pdsch_t *q,
                                              uint32_t cw_idx);
 
-#endif
+#endif // SRSLTE_PDSCH_H

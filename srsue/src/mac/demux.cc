@@ -30,8 +30,8 @@
 #define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
-#include "mac/mac.h"
-#include "mac/demux.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/mac/demux.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {

@@ -21,8 +21,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef GTPC_V2_MSG_H
-#define GTPC_V2_MSG_H
+#ifndef SRSLTE_GTPC_MSG_H
+#define SRSLTE_GTPC_MSG_H
 
 #include "srslte/asn1/gtpc_ies.h"
 
@@ -442,4 +442,4 @@ struct gtpc_release_access_bearers_request
 
 
 } //namespace
-#endif //GTPC_V2_MSG_H
+#endif // SRSLTE_GTPC_MSG_H

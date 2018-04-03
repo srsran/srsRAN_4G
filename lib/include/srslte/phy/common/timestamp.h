@@ -34,8 +34,8 @@
  *  Reference:
  *********************************************************************************************/
 
-#ifndef TIMESTAMP_
-#define TIMESTAMP_
+#ifndef SRSLTE_TIMESTAMP_H
+#define SRSLTE_TIMESTAMP_H
 
 #include <time.h>
 #include <stdint.h>
@@ -65,4 +65,4 @@ SRSLTE_API double srslte_timestamp_real(srslte_timestamp_t *t);
 
 SRSLTE_API uint32_t srslte_timestamp_uint32(srslte_timestamp_t *t);
 
-#endif // TIMESTAMP_
+#endif // SRSLTE_TIMESTAMP_H

@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.4
  *****************************************************************************/
 
-#ifndef PUCCH_
-#define PUCCH_
+#ifndef SRSLTE_PUCCH_H
+#define SRSLTE_PUCCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -211,4 +211,4 @@ SRSLTE_API bool srslte_n_pucch_isvalid(srslte_pucch_t *q,
 
 SRSLTE_API void srslte_pucch_cfg_default(srslte_pucch_cfg_t *cfg); 
 
-#endif
+#endif // SRSLTE_PUCCH_H

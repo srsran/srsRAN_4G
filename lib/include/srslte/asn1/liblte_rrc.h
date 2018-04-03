@@ -51,8 +51,8 @@
 
 *******************************************************************************/
 
-#ifndef __LIBLTE_RRC_H__
-#define __LIBLTE_RRC_H__
+#ifndef SRSLTE_LIBLTE_RRC_H
+#define SRSLTE_LIBLTE_RRC_H
 
 /*******************************************************************************
                               INCLUDES
@@ -7013,4 +7013,4 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_ul_dcch_msg(LIBLTE_RRC_UL_DCCH_MSG_STRUCT *ul_
 LIBLTE_ERROR_ENUM liblte_rrc_unpack_ul_dcch_msg(LIBLTE_BIT_MSG_STRUCT         *msg,
                                                 LIBLTE_RRC_UL_DCCH_MSG_STRUCT *ul_dcch_msg);
 
-#endif /* __LIBLTE_RRC_H__ */
+#endif // SRSLTE_LIBLTE_RRC_H

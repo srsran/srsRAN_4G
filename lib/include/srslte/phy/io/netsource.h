@@ -33,8 +33,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef NETSOURCE_
-#define NETSOURCE_
+#ifndef SRSLTE_NETSOURCE_H
+#define SRSLTE_NETSOURCE_H
 
 #include <stdbool.h>
 #include <sys/socket.h>
@@ -75,4 +75,4 @@ SRSLTE_API int srslte_netsource_read(srslte_netsource_t *q,
 SRSLTE_API int srslte_netsource_set_timeout(srslte_netsource_t *q, 
                                             uint32_t microseconds); 
 
-#endif // UDPSOURCE_
+#endif // SRSLTE_NETSOURCE_H

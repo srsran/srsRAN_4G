@@ -29,7 +29,7 @@
 #define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
-#include "mac/proc_sr.h"
+#include "srsue/hdr/mac/proc_sr.h"
 
 
 namespace srsue {

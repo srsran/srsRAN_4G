@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef USIM_H
-#define USIM_H
+#ifndef SRSUE_USIM_H
+#define SRSUE_USIM_H
 
 #include <string>
 #include "srslte/common/log.h"
@@ -151,4 +151,4 @@ private:
 } // namespace srsue
 
 
-#endif // USIM_H
+#endif // SRSUE_USIM_H

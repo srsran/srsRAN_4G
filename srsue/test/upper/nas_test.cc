@@ -26,11 +26,11 @@
 
 #include <iostream>
 #include <assert.h>
-#include "upper/usim.h"
-#include "upper/nas.h"
+#include "srsue/hdr/upper/usim.h"
+#include "srsue/hdr/upper/nas.h"
 #include "srslte/upper/rlc.h"
-#include "upper/rrc.h"
-#include "mac/mac.h"
+#include "srsue/hdr/upper/rrc.h"
+#include "srsue/hdr/mac/mac.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/upper/pdcp_entity.h"
 #include "srslte/upper/pdcp.h"
