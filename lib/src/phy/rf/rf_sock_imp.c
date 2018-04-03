@@ -376,21 +376,21 @@ static int rf_sock_resample(double srate_in,
 }
 
 
-static bool rf_sock_is_loopback(rf_sock_info_t * info)
+static bool rf_sock_is_loopback(rf_sock_info_t * _info)
 {
-  return (info->nodetype == RF_SOCK_NTYPE_LOOP);
+  return (_info->nodetype == RF_SOCK_NTYPE_LOOP);
 }
 
 
-static bool rf_sock_is_enb(rf_sock_info_t * info)
+static bool rf_sock_is_enb(rf_sock_info_t * _info)
 {
-  return (info->nodetype == RF_SOCK_NTYPE_ENB);
+  return (_info->nodetype == RF_SOCK_NTYPE_ENB);
 }
 
 
-static bool rf_sock_is_ue(rf_sock_info_t * info)
+static bool rf_sock_is_ue(rf_sock_info_t * _info)
 {
-  return (info->nodetype == RF_SOCK_NTYPE_UE);
+  return (_info->nodetype == RF_SOCK_NTYPE_UE);
 }
 
 
@@ -498,7 +498,9 @@ int rf_sock_send_msg(rf_sock_tx_info_t * tx_info)
          {
            if(! (++_info->tx_nof_errors % (1000/ get_time_scaled(1))))
              {
-               RF_SOCK_WARN("semdmsg, %s, please re-start UE", strerror(errno));
+               RF_SOCK_WARN("semdmsg, %s, please re-start %s", 
+                            strerror(errno), 
+                            rf_sock_is_ue(_info) ? "eNb" : "Ue");
              }
          }
        else if(errno == EPERM || errno == EACCES)
@@ -633,7 +635,7 @@ int rf_sock_set_sock_nonblock(int fd)
 }
 
 
-static int rf_sock_open_unix_sock(rf_sock_info_t * info, 
+static int rf_sock_open_unix_sock(rf_sock_info_t * _info, 
                                   const char * local,
                                   const char * remote)
 {
@@ -689,36 +691,36 @@ static int rf_sock_open_unix_sock(rf_sock_info_t * info,
       RF_SOCK_INFO("unix sock bind to %s", local);
     }
 
-  memset(&info->tx_addr, 0, sizeof(info->tx_addr));
-  info->tx_addr.sun_family = AF_UNIX;
-  strncpy(info->tx_addr.sun_path, remote, strlen(remote));
+  memset(&_info->tx_addr, 0, sizeof(_info->tx_addr));
+  _info->tx_addr.sun_family = AF_UNIX;
+  strncpy(_info->tx_addr.sun_path, remote, strlen(remote));
 
   RF_SOCK_INFO("unix sock send to %s", remote);
 
-  info->tx_handle = tx_fd;
-  info->rx_handle = rx_fd;
+  _info->tx_handle = tx_fd;
+  _info->rx_handle = rx_fd;
 
   return 0;
 }
 
 
-static int rf_sock_open_ipc(rf_sock_info_t * info)
+static int rf_sock_open_ipc(rf_sock_info_t * _info)
 {
-  if(rf_sock_is_enb(info))
+  if(rf_sock_is_enb(_info))
     {
-      return rf_sock_open_unix_sock(info,
+      return rf_sock_open_unix_sock(_info,
                                     RF_SOCK_SERVER_PATH,
                                     RF_SOCK_CLIENT_PATH);
     }
-  else if(rf_sock_is_ue(info))
+  else if(rf_sock_is_ue(_info))
     {
-      return rf_sock_open_unix_sock(info,
+      return rf_sock_open_unix_sock(_info,
                                     RF_SOCK_CLIENT_PATH, 
                                     RF_SOCK_SERVER_PATH);
     }
   else
     {
-      return rf_sock_open_unix_sock(info,
+      return rf_sock_open_unix_sock(_info,
                                     RF_SOCK_CLIENT_PATH, 
                                     RF_SOCK_CLIENT_PATH);
     }
