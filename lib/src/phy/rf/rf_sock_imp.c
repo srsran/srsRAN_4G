@@ -166,6 +166,9 @@ static bool rf_sock_log_warn  = true;
 #define RF_SOCK_NOF_TX_WORKERS (10)
 #define RF_SOCK_SET_NEXT_WORKER(x) ((x) = ((x) + 1) % RF_SOCK_NOF_TX_WORKERS)
 
+#define IOV_2_LEN(iov)  (iov)[0].iov_len + (iov)[1].iov_len
+#define IOV_NUM 2
+
 // The idea here was to 'scale' timeout/timerdelay/offset and usleep() calls
 // by say a factor of 2 to slow down relative time throughout the entire codebase
 // to get around the linux scheduler latency.
@@ -194,13 +197,13 @@ typedef struct {
 
 // tx msg info for worker threads
 typedef struct {
-  void *   h;
-  cf_t     cf_data[RF_SOCK_MAX_SF_LEN];
-  int      nsamples;
-  struct   timeval tx_time;
-  bool     is_sob;
-  bool     is_eob;
-  struct iovec    iov[2];
+  void *          h;
+  cf_t            cf_data[RF_SOCK_MAX_SF_LEN];
+  int             nsamples;
+  struct timeval  tx_time;
+  bool            is_sob;
+  bool            is_eob;
+  struct iovec    iov[IOV_NUM];
   rf_sock_iohdr_t iohdr;
   struct msghdr   mhdr;
 } rf_sock_tx_info_t;
@@ -395,7 +398,7 @@ static bool rf_sock_is_ue(rf_sock_info_t * _info)
 
 
 
-static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
+static int rf_sock_vecio_recv(void *h, struct iovec iov[IOV_NUM])
 {
    GET_DEV_INFO(h);
 
@@ -425,8 +428,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
        tv_delay = tv_tti_step;
     }
 
-   // within rx window, briefly wait for a msg within the window
-   // and see if anything shows up
+   // within rx window, wait for a msg within the window timespan
    // if too late, then go ahead and do a non blocking read now
    if(timercmp(&tv_delay, &tv_zero, >))
      {
@@ -435,16 +437,17 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[2])
         {
           // nothing to read
           return 0;
-       }
+        }
      }
 
-   const int rc = readv(_info->rx_handle, iov, 2);
+   const int rc = readv(_info->rx_handle, iov, IOV_NUM);
 
    if(rc < 0)
      {
        if(! (errno == EAGAIN || errno == EWOULDBLOCK))
          {
-           RF_SOCK_WARN("RX reqlen %d, error %s", iov[0].iov_len + iov[1].iov_len, strerror(errno));
+           RF_SOCK_WARN("RX reqlen %d, error %s", 
+                        IOV_2_LEN(iov), strerror(errno));
          }
      }
 
@@ -456,39 +459,30 @@ int rf_sock_send_msg(rf_sock_tx_info_t * tx_info)
 {
    GET_DEV_INFO(tx_info->h);
 
-   while(1)
-    {
-      int nbytes_inq = 0;
+   int nbytes_inq = 0;
 
-      // check tx socket backlog
-      if(ioctl(_info->tx_handle, TIOCOUTQ, &nbytes_inq) < 0)
-        {
-          RF_SOCK_WARN("ioctl error, %s,", strerror(errno));
+   // check tx socket backlog
+   if(ioctl(_info->tx_handle, TIOCOUTQ, &nbytes_inq) < 0)
+     {
+       RF_SOCK_WARN("ioctl error, %s,", strerror(errno));
 
-          break;
-        }
+       return -1;
+     }
 
-       // do not over run the tx socket when the ue
-       // finish sync there is a brief pause before
-       // streaming is restarted so lets not load it up
-       // or possibly discard on the tx to save time
-       // vs discarding on the rx side (TBD)
-       if(nbytes_inq > 0)
-        {
-          ++_info->tx_nof_overruns;
+    // do not over run the tx socket
+    if(nbytes_inq > 0)
+     {
+       ++_info->tx_nof_overruns;
 
-          struct timeval tv_timeout  = {0, get_time_scaled(100)};
-          select(0, NULL, NULL, NULL, &tv_timeout);
-        }
-       else
-        {
-          break;
-        }
-    } 
+       RF_SOCK_WARN("%d bytes already in Q, discard this msg len %d,",
+                    nbytes_inq, IOV_2_LEN(tx_info->iov));
+
+       return 0;
+     } 
 
    const int rc = sendmsg(_info->tx_handle, &tx_info->mhdr, 0);
 
-   if(rc != (tx_info->iov[0].iov_len + tx_info->iov[1].iov_len))
+   if(rc != (IOV_2_LEN(tx_info->iov)))
      {
        if(errno == ENOTCONN     || 
           errno == ECONNREFUSED || 
@@ -1148,8 +1142,8 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
    // allow for slight mis-match between rx/tx 1922 vs 1920 etc
    while(((float)nof_samples_pending > (.01f * nsamples)) && (nof_retries--) > 0)
      {   
-       struct iovec iov[2] = { {(void*)&iohdr,  sizeof(iohdr) },
-                               {(void*)_info->sf_in, RF_SOCK_MAX_MSG_LEN }};
+       struct iovec iov[IOV_NUM] = { {(void*)&iohdr,       sizeof(iohdr) },
+                                     {(void*)_info->sf_in, RF_SOCK_MAX_MSG_LEN }};
 
        const int rc = rf_sock_vecio_recv(h, iov);
    
@@ -1179,18 +1173,20 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
          timersub(&tv_rxtime, &iohdr.io_time, &tv_diff);
 
-         // what to do with late msgs (TBD)
+         // discard late messages
          if(timercmp(&tv_diff, &tv_tti_step, >))
            {
              // track rx_late 
              ++_info->rx_nof_late;
 
-             RF_SOCK_WARN("RX len %d, seqn %lu, late by %ld:%06ld, total %zu",
+             RF_SOCK_WARN("RX len %d, seqn %lu, late by %ld:%06ld, total %zu, discard",
                           rc,
                           iohdr.io_seqnum, 
                           tv_diff.tv_sec,
                           tv_diff.tv_usec,
                           _info->rx_nof_late);
+
+             continue;
            }
          else
            {
