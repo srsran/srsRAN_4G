@@ -35,7 +35,6 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <assert.h>
-#include <boost/thread.hpp>
 
 #define SDU_SIZE 1500
 
@@ -55,8 +54,6 @@ typedef struct {
   bool     write_pcap;
   float    opp_sdu_ratio;
 } stress_test_args_t;
-
-boost::mutex mutex;
 
 void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
 
@@ -147,7 +144,6 @@ private:
       // generate MAC opportunities of random size or with fixed ratio
       float r = opp_sdu_ratio ? opp_sdu_ratio : (float)rand()/RAND_MAX;
       int opp_size = r*SDU_SIZE;
-      mutex.lock();
       uint32_t buf_state = rlc1->get_buffer_state(1);
       if (buf_state) {
         int read = rlc1->read_pdu(1, pdu->msg, opp_size);
@@ -162,7 +158,6 @@ private:
           }
         }
       }
-      mutex.unlock();
     }
     running = false;
     byte_buffer_pool::get_instance()->deallocate(pdu);
@@ -344,13 +339,8 @@ void stress_test(stress_test_args_t args)
   for (uint32_t i = 0; i < args.test_duration_sec; i++) {
     // if enabled, mimic reestablishment every second
     if (args.reestablish) {
-      // lock mutex during reestablish to prevent a RLC PDU that is already been transmitted before
-      // resetting the tx'ing RLC entity, but not yet received before resetting the
-      // rx'ing RLC entity to screw the test
-      mutex.lock();
       rlc1.reestablish();
       rlc2.reestablish();
-      mutex.unlock();
     }
     usleep(1e6);
   }
