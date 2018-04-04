@@ -25,6 +25,7 @@
  */
 
 #include <iostream>
+#include <inttypes.h> // for printing uint64_t
 #include "srslte/asn1/gtpc.h"
 #include "srsepc/hdr/mme/mme_gtpc.h"
 #include "srsepc/hdr/mme/s1ap.h"
@@ -115,10 +116,10 @@ mme_gtpc::send_create_session_request(uint64_t imsi)
   cs_req->sender_f_teid.teid = get_new_ctrl_teid();
   cs_req->sender_f_teid.ipv4 = m_mme_gtpc_ip;
 
-  m_mme_gtpc_log->info("Next MME control TEID: %lu \n", m_next_ctrl_teid);
-  m_mme_gtpc_log->info("Allocated MME control TEID: %lu \n", cs_req->sender_f_teid.teid);
-  m_mme_gtpc_log->console("Creating Session Response -- IMSI: %015lu \n", imsi);
-  m_mme_gtpc_log->console("Creating Session Response -- MME control TEID: %lu \n", cs_req->sender_f_teid.teid);
+  m_mme_gtpc_log->info("Next MME control TEID: %d\n", m_next_ctrl_teid);
+  m_mme_gtpc_log->info("Allocated MME control TEID: %d\n", cs_req->sender_f_teid.teid);
+  m_mme_gtpc_log->console("Creating Session Response -- IMSI: %" PRIu64 "\n", imsi);
+  m_mme_gtpc_log->console("Creating Session Response -- MME control TEID: %d\n", cs_req->sender_f_teid.teid);
 
   // APN
   strncpy(cs_req->apn, m_s1ap->m_s1ap_args.mme_apn.c_str(), sizeof(cs_req->apn)-1);
@@ -185,7 +186,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   }
   uint64_t imsi = id_it->second;
 
-  m_mme_gtpc_log->info("MME GTPC Ctrl TEID %d,  IMSI %d\n", cs_resp_pdu->header.teid, imsi);
+  m_mme_gtpc_log->info("MME GTPC Ctrl TEID %" PRIu64 ", IMSI %" PRIu64 "\n", cs_resp_pdu->header.teid, imsi);
 
   //Get S-GW Control F-TEID
   srslte::gtp_fteid_t sgw_ctr_fteid;
@@ -309,7 +310,7 @@ mme_gtpc::handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu)
 void
 mme_gtpc::send_delete_session_request(uint64_t imsi) 
 {
-  m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request. IMSI %d\n",imsi);
+  m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request. IMSI %" PRIu64 "\n",imsi);
   srslte::gtpc_pdu del_req_pdu;
   srslte::gtp_fteid_t sgw_ctr_fteid;
   srslte::gtp_fteid_t mme_ctr_fteid;
