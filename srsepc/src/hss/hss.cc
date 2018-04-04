@@ -28,6 +28,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <inttypes.h> // for printing uint64_t
 #include "srsepc/hdr/hss/hss.h"
 #include "srslte/common/security.h"
 
@@ -564,7 +565,7 @@ hss::increment_sqn(uint64_t imsi)
   
   sqn++;
   
-  m_hss_log->debug("Incremented SQN (IMSI: %015lu) SQN: %d\n", imsi, sqn);
+  m_hss_log->debug("Incremented SQN (IMSI: %" PRIu64 ") SQN: %" PRIu64 "\n", imsi, sqn);
 
   for(int i = 0; i < 6; i++){
     ue_ctx->sqn[i] = p[5-i];
