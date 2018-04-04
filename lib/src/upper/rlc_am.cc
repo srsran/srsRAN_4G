@@ -668,6 +668,13 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
     lower += old_header.li[i];
   }
 
+  // Make sure LI is not deleted in case the SDU boundary is crossed
+  // FIXME: fix if N_li > 1
+  if (new_header.N_li == 1 && retx.so_start + new_header.li[0] < retx.so_end && retx.so_end <= retx.so_start + pdu_space) {
+    // This segment crosses a SDU boundary
+    new_header.N_li++;
+  }
+
   // Update retx_queue
   if(tx_window[retx.sn].buf->N_bytes == retx.so_end) {
     retx_queue.pop_front();
