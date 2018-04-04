@@ -1065,10 +1065,10 @@ void resegment_test_6()
 void resegment_test_7()
 {
   // SDUs:                |         30         |         30         |
-  // PDUs:                |    15   |   15  |   15   |   15   |   15   |
-  // Rxed PDUs            |    15   |                |   15   |   15   |
-  // Retx PDU segments:                 | 7 | 7 | 7 | 7 |
-  // Retx PDU segments:             | 7 | 7 ] 7 | 7 | 7 | 7 | 7 | 7 |
+  // PDUs:                |    13  |   13  |  11   |   13   |   10  |
+  // Rxed PDUs            |    13  |   13  |       |   13   |   10  |
+  // Retx PDU segments:                    | 4 | 7 |
+  // Retx PDU segments:                    |3|3]3|2|
   const uint32_t N_SDU_BUFS = 2;
   const uint32_t N_PDU_BUFS = 5;
   const uint32_t sdu_size = 30;
@@ -1129,15 +1129,15 @@ void resegment_test_7()
   byte_buffer_t pdu_bufs[N_PDU_BUFS];
   for(uint32_t i=0;i<N_PDU_BUFS;i++)
   {
-    pdu_bufs[i].N_bytes = rlc1.read_pdu(pdu_bufs[i].msg, 15); // 12 bytes for header + payload
+    pdu_bufs[i].N_bytes = rlc1.read_pdu(pdu_bufs[i].msg, 15); // 2 bytes for header + 12 B payload
     assert(pdu_bufs[i].N_bytes);
   }
 
   assert(0 == rlc1.get_buffer_state());
 
-  // Skip PDU one and two
+  // Skip PDU with SN 2
   for(uint32_t i=0;i<N_PDU_BUFS;i++) {
-    if (i < 1 || i > 2) {
+    if (i!=2) {
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
 #if HAVE_PCAP
       pcap.write_dl_am_ccch(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
@@ -1181,9 +1181,10 @@ void resegment_test_7()
 
   assert(15 == rlc1.get_buffer_state());
 
+
   // second round of retx, forcing resegmentation
-  byte_buffer_t retx2[9];
-  for (uint32_t i = 0; i < 9; i++) {
+  byte_buffer_t retx2[4];
+  for (uint32_t i = 0; i < 4; i++) {
     assert(rlc1.get_buffer_state() != 0);
     retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 7);
     assert(retx2[i].N_bytes != 0);
@@ -1304,9 +1305,9 @@ void resegment_test_8()
 
   // first round of retx, forcing resegmentation
   byte_buffer_t retx[4];
-  for (uint32_t i = 0; i < 4; i++) {
+  for (uint32_t i = 0; i < 3; i++) {
     assert(rlc1.get_buffer_state());
-    retx[i].N_bytes = rlc1.read_pdu(retx[i].msg, 7);
+    retx[i].N_bytes = rlc1.read_pdu(retx[i].msg, 8);
     assert(retx[i].N_bytes);
 
     // Write the last two segments to RLC2
@@ -1335,9 +1336,9 @@ void resegment_test_8()
 
   // second round of retx, reduce grant size to force different segment sizes
   byte_buffer_t retx2[20];
-  for (uint32_t i = 0; i < 13; i++) {
+  for (uint32_t i = 0; i < 9; i++) {
     assert(rlc1.get_buffer_state() != 0);
-    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 6);
+    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 7);
     assert(retx2[i].N_bytes != 0);
     rlc2.write_pdu(retx2[i].msg, retx2[i].N_bytes);
 #if HAVE_PCAP
