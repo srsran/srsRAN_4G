@@ -47,11 +47,13 @@ ue::~ue()
   for (uint32_t i = 0; i < phy_log.size(); i++) {
     delete(phy_log[i]);
   }
+  if (usim) {
+    delete usim;
+  }
 }
 
-bool ue::init(all_args_t *args_)
-{
-  args     = args_;
+bool ue::init(all_args_t *args_) {
+  args = args_;
 
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
@@ -195,15 +197,15 @@ bool ue::init(all_args_t *args_)
   mac.init(&phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
-
-  usim.init(&args->usim, &usim_log);
+  usim = usim_base::get_instance(&args->usim, &usim_log);
+  usim->init(&args->usim, &usim_log);
   srslte_nas_config_t nas_cfg(1, args->apn); /* RB_ID_SRB1 */
-  nas.init(&usim, &rrc, &gw, &nas_log, nas_cfg);
+  nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
 
   gw.set_netmask(args->expert.ip_netmask);
 
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &mac, &rrc_log);
 
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
@@ -244,7 +246,7 @@ void ue::stop()
 {
   if(started)
   {
-    usim.stop();
+    usim->stop();
     nas.stop();
     rrc.stop();
     

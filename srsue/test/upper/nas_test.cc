@@ -26,7 +26,9 @@
 
 #include <iostream>
 #include <assert.h>
+#include <srsue/hdr/upper/usim_base.h>
 #include "srsue/hdr/upper/usim.h"
+#include "srsue/hdr/upper/pcsc_usim.h"
 #include "srsue/hdr/upper/nas.h"
 #include "srslte/upper/rlc.h"
 #include "srsue/hdr/upper/rrc.h"
@@ -195,13 +197,16 @@ int mme_attach_request_test()
 
   nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
+  usim_log.set_hex_limit(100000);
 
   rrc_dummy rrc_dummy;
   gw_dummy gw;
-  srsue::usim usim;
+  srsue::pcsc_usim usim;
   usim_args_t args;
+  args.mode = "pcsc";
   args.algo = "xor";
   args.imei = "353490069873319";
   args.imsi = "001010123456789";

@@ -189,18 +189,18 @@ bool usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
   return true;
 }
 
-void usim::generate_authentication_response(uint8_t  *rand,
-                                            uint8_t  *autn_enb,
-                                            uint16_t  mcc,
-                                            uint16_t  mnc,
-                                            bool     *net_valid,
-                                            uint8_t  *res,
-                                            uint8_t  *k_asme)
+auth_result_t usim::generate_authentication_response(uint8_t  *rand,
+                                                     uint8_t  *autn_enb,
+                                                     uint16_t  mcc,
+                                                     uint16_t  mnc,
+                                                     uint8_t  *res,
+                                                     int      *res_len,
+                                                     uint8_t  *k_asme)
 {
   if(auth_algo_xor == auth_algo) {
-    gen_auth_res_xor(rand, autn_enb, mcc, mnc, net_valid, res, k_asme);
+    return gen_auth_res_xor(rand, autn_enb, mcc, mnc, res, res_len, k_asme);
   } else {
-    gen_auth_res_milenage(rand, autn_enb, mcc, mnc, net_valid, res, k_asme);
+    return gen_auth_res_milenage(rand, autn_enb, mcc, mnc, res, res_len, k_asme);
   }
 }
 
@@ -322,18 +322,17 @@ void usim::generate_as_keys_ho(uint32_t pci,
   Helpers
 *******************************************************************************/
 
-void usim::gen_auth_res_milenage( uint8_t  *rand,
-                                  uint8_t  *autn_enb,
-                                  uint16_t  mcc,
-                                  uint16_t  mnc,
-                                  bool     *net_valid,
-                                  uint8_t  *res,
-                                  uint8_t  *k_asme)
+auth_result_t usim::gen_auth_res_milenage(uint8_t  *rand,
+                                          uint8_t  *autn_enb,
+                                          uint16_t  mcc,
+                                          uint16_t  mnc,
+                                          uint8_t  *res,
+                                          int      *res_len,
+                                          uint8_t  *k_asme)
 {
+  auth_result_t result =  AUTH_OK;
   uint32_t i;
   uint8_t  sqn[6];
-
-  *net_valid = true;
 
   // Use RAND and K to compute RES, CK, IK and AK
   security_milenage_f2345( k,
@@ -343,6 +342,8 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
                            ck,
                            ik,
                            ak);
+
+  *res_len = 8;
 
   // Extract sqn from autn
   for(i=0;i<6;i++)
@@ -382,7 +383,7 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
   {
     if(autn[i] != autn_enb[i])
     {
-      *net_valid = false;
+      result = AUTH_FAILED;
     }
   }
 
@@ -394,23 +395,24 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
                             mcc,
                             mnc,
                             k_asme);
+
+  return result;
 }
 
 // 3GPP TS 34.108 version 10.0.0 Section 8
-void usim::gen_auth_res_xor(uint8_t  *rand,
-                            uint8_t  *autn_enb,
-                            uint16_t  mcc,
-                            uint16_t  mnc,
-                            bool     *net_valid,
-                            uint8_t  *res,
-                            uint8_t  *k_asme)
+auth_result_t usim::gen_auth_res_xor(uint8_t  *rand,
+                                     uint8_t  *autn_enb,
+                                     uint16_t  mcc,
+                                     uint16_t  mnc,
+                                     uint8_t  *res,
+                                     int      *res_len,
+                                     uint8_t  *k_asme)
 {
+  auth_result_t result = AUTH_OK;
   uint32_t i;
   uint8_t  sqn[6];
   uint8_t  xdout[16];
   uint8_t  cdout[8];
-
-  *net_valid = true;
 
   // Use RAND and K to compute RES, CK, IK and AK
   for(i=0; i<16; i++) {
@@ -424,6 +426,8 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
   for(i=0; i<6; i++) {
     ak[i] = xdout[i+3];
   }
+
+  *res_len = 8;
 
   // Extract sqn from autn
   for(i=0;i<6;i++) {
@@ -466,7 +470,7 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
   {
     if(autn[i] != autn_enb[i])
     {
-      *net_valid = false;
+      result = AUTH_FAILED;
     }
   }
 
@@ -478,6 +482,8 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
                             mcc,
                             mnc,
                             k_asme);
+
+  return result;
 }
 
 void usim::str_to_hex(std::string str, uint8_t *hex)

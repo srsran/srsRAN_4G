@@ -98,7 +98,7 @@ private:
   srsue::rrc         rrc;
   srsue::nas         nas;
   srsue::gw          gw;
-  srsue::usim        usim;
+  srsue::usim_base*  usim;
 
   srslte::logger_stdout logger_stdout;
   srslte::logger_file   logger_file;

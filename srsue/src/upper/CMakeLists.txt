@@ -18,6 +18,16 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.cc")
+set(SOURCES gw.cc nas.cc rrc.cc usim_base.cc usim.cc)
+
+if(HAVE_PCSC)
+  list(APPEND SOURCES "pcsc_usim.cc")
+endif(HAVE_PCSC)
+
 add_library(srsue_upper STATIC ${SOURCES})
+
+if(HAVE_PCSC)
+  target_link_libraries(srsue_upper ${PCSCLITE_LIBRARY})
+endif(HAVE_PCSC)
+
 install(TARGETS srsue_upper DESTINATION ${LIBRARY_DIR})

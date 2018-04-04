@@ -43,6 +43,12 @@
 
 namespace srsue {
 
+typedef enum {
+  AUTH_OK,
+  AUTH_FAILED,
+  AUTH_SYNCH_FAILURE
+} auth_result_t;
+
 // UE interface
 class ue_interface
 {
@@ -57,12 +63,12 @@ public:
   virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
   virtual bool get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
   virtual bool get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id) = 0;
-  virtual void generate_authentication_response(uint8_t  *rand,
+  virtual auth_result_t generate_authentication_response(uint8_t  *rand,
                                                 uint8_t  *autn_enb,
                                                 uint16_t  mcc,
                                                 uint16_t  mnc,
-                                                bool     *net_valid,
                                                 uint8_t  *res,
+                                                int      *res_len,
                                                 uint8_t  *k_asme) = 0;
   virtual void generate_nas_keys(uint8_t *k_asme,
                                  uint8_t *k_nas_enc,

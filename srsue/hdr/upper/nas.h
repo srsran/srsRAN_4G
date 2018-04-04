@@ -172,6 +172,8 @@ private:
   // Senders
   void send_identity_response();
   void send_esm_information_response();
+  void send_authentication_response(const uint8_t* res, const size_t res_len);
+  void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
   void send_security_mode_reject(uint8_t cause);
 

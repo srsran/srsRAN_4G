@@ -695,14 +695,12 @@ void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
 void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
   bzero(&auth_req, sizeof(LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT));
-  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res;
-  bzero(&auth_res, sizeof(LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT));
 
   nas_log->info("Received Authentication Request\n");
   liblte_mme_unpack_authentication_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &auth_req);
 
-  // Reuse the pdu for the response message
-  pdu->reset();
+  // Deallocate PDU after parsing
+  pool->deallocate(pdu);
 
   // Generate authentication response using RAND, AUTN & KSI-ASME
   uint16 mcc, mnc;
@@ -711,11 +709,12 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
 
   nas_log->info("MCC=%d, MNC=%d\n", mcc, mnc);
 
-  bool net_valid;
   uint8_t res[16];
-  usim->generate_authentication_response(auth_req.rand, auth_req.autn, mcc, mnc,
-                                         &net_valid, res, ctxt.k_asme);
-  nas_log->info("Generated k_asme=%s\n", hex_to_string(ctxt.k_asme, 32).c_str());
+  int res_len = 0;
+  nas_log->debug_hex(auth_req.rand, 16, "Authentication request RAND\n");
+  nas_log->debug_hex(auth_req.autn, 16, "Authentication request AUTN\n");
+  auth_result_t auth_result = usim->generate_authentication_response(auth_req.rand, auth_req.autn, mcc, mnc,
+                                                                     res, &res_len, ctxt.k_asme);
   if(LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE == auth_req.nas_ksi.tsc_flag) {
     ctxt.ksi = auth_req.nas_ksi.nas_ksi;
   } else {
@@ -723,23 +722,17 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
     nas_log->console("Warning: NAS mapped security context not currently supported\n");
   }
 
-  if (net_valid) {
+  if (auth_result == AUTH_OK) {
     nas_log->info("Network authentication successful\n");
-    for (int i = 0; i < 8; i++) {
-      auth_res.res[i] = res[i];
-    }
-    liblte_mme_pack_authentication_response_msg(&auth_res, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-
-    nas_log->info("Sending Authentication Response\n");
-    // Write NAS pcap
-    if (pcap != NULL) {
-      pcap->write_nas(pdu->msg, pdu->N_bytes);
-    }
-    rrc->write_sdu(lcid, pdu);
+    send_authentication_response(res, res_len);
+    nas_log->info("Generated k_asme=%s\n", hex_to_string(ctxt.k_asme, 32).c_str());
+  } else if (auth_result == AUTH_SYNCH_FAILURE) {
+    nas_log->error("Network authentication synchronization failure.\n");
+    send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
   } else {
     nas_log->warning("Network authentication failure\n");
     nas_log->console("Warning: Network authentication failure\n");
-    pool->deallocate(pdu);
+    send_authentication_failure(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE, NULL);
   }
 }
 
@@ -1065,7 +1058,13 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
     strncpy(apn.apn, cfg.apn.c_str(), LIBLTE_STRING_LEN);
     pdn_con_req.apn = apn;
   }
-  pdn_con_req.protocol_cnfg_opts_present = false;
+
+  // Request DNS Server
+  pdn_con_req.protocol_cnfg_opts_present = true;
+  pdn_con_req.protocol_cnfg_opts.opt[0].id = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_P_CSCF_IPV4_ADDRESS_REQUEST;
+  pdn_con_req.protocol_cnfg_opts.opt[1].id = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_DNS_SERVER_IPV4_ADDRESS_REQUEST;
+  pdn_con_req.protocol_cnfg_opts.N_opts = 2;
+
   pdn_con_req.device_properties_present = false;
 
   // Pack the message
@@ -1088,6 +1087,57 @@ void nas::send_security_mode_reject(uint8_t cause) {
   nas_log->info("Sending security mode reject\n");
   rrc->write_sdu(cfg.lcid, msg);
 }
+
+
+void nas::send_authentication_response(const uint8_t* res, const size_t res_len) {
+  byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_authentication_response().\n");
+    return;
+  }
+
+  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res;
+  bzero(&auth_res, sizeof(LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT));
+
+  for (uint32_t i = 0; i < res_len; i++) {
+    auth_res.res[i] = res[i];
+  }
+  auth_res.res_len = res_len;
+  liblte_mme_pack_authentication_response_msg(&auth_res, (LIBLTE_BYTE_MSG_STRUCT *)msg);
+
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+  nas_log->info("Sending Authentication Response\n");
+  rrc->write_sdu(cfg.lcid, msg);
+}
+
+
+void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param) {
+  byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_authentication_failure().\n");
+    return;
+  }
+
+  LIBLTE_MME_AUTHENTICATION_FAILURE_MSG_STRUCT auth_failure;
+  auth_failure.emm_cause = cause;
+  if (auth_fail_param) {
+    memcpy(auth_failure.auth_fail_param, auth_fail_param, 14);
+    nas_log->debug_hex(auth_failure.auth_fail_param, 14, "auth_failure.auth_fail_param\n");
+    auth_failure.auth_fail_param_present = true;
+  } else {
+    auth_failure.auth_fail_param_present = false;
+  }
+
+  liblte_mme_pack_authentication_failure_msg(&auth_failure, (LIBLTE_BYTE_MSG_STRUCT *)msg);
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+  nas_log->info("Sending authentication failure.\n");
+  rrc->write_sdu(cfg.lcid, msg);
+}
+
 
 void nas::send_identity_response() {}
 
