@@ -1350,7 +1350,13 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
         count += it->header.li[i];
       }
     }
-    carryover = it->buf->N_bytes - count;
+
+    // accumulate segment sizes until end aligned PDU is received
+    if (rlc_am_not_start_aligned(it->header.fi)) {
+      carryover += it->buf->N_bytes - count;
+    } else {
+      carryover = it->buf->N_bytes - count;
+    }
     tmpit = it;
     if(rlc_am_end_aligned(it->header.fi) && ++tmpit != pdu->segments.end()) {
       header.li[header.N_li++] = carryover;
