@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <inttypes.h> // for printing uint64_t
 #include "srslte/common/bcd_helpers.h"
 #include "srsepc/hdr/mme/s1ap.h"
 #include "srslte/asn1/gtpc.h"
@@ -486,7 +487,7 @@ s1ap::delete_ue_ctx(uint64_t imsi)
   ue_ctx_t *ue_ctx = find_ue_ctx_from_imsi(imsi);
   if(ue_ctx == NULL)
   {
-    m_s1ap_log->info("Cannot delete UE context, UE not found. IMSI: %d\n", imsi);
+    m_s1ap_log->info("Cannot delete UE context, UE not found. IMSI: %" PRIu64 "\n", imsi);
     return false;
   }
 
@@ -528,8 +529,8 @@ s1ap::activate_eps_bearer(uint64_t imsi, uint8_t ebi)
   ue_ecm_ctx_t * ecm_ctx = &ue_ctx_it->second->ecm_ctx;
   if (ecm_ctx->erabs_ctx[ebi].state != ERAB_CTX_SETUP)
   {
-    m_s1ap_log->error("Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d, state %d\n",mme_ue_s1ap_id,ebi,ecm_ctx->erabs_ctx[ebi].state);
-    m_s1ap_log->console("Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d\n",mme_ue_s1ap_id,ebi,ecm_ctx->erabs_ctx[ebi].state);
+    m_s1ap_log->error("Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d, state %d\n", mme_ue_s1ap_id, ebi, ecm_ctx->erabs_ctx[ebi].state);
+    m_s1ap_log->console("Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d, state %d\n", mme_ue_s1ap_id, ebi, ecm_ctx->erabs_ctx[ebi].state);
     return;
   }
 
