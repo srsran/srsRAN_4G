@@ -1178,6 +1178,11 @@ void rlc_am::reassemble_rx_sdus()
     for(uint32_t i=0; i<rx_window[vr_r].header.N_li; i++)
     {
       uint32_t len = rx_window[vr_r].header.li[i];
+      // sanity check to avoid zero-size SDUs
+      if (len == 0) {
+        break;
+      }
+
       if (rx_sdu->get_tailroom() >= len) {
         memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
         rx_sdu->N_bytes += len;
