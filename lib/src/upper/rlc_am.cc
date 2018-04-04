@@ -127,10 +127,10 @@ void rlc_am::reset()
   pthread_mutex_lock(&mutex);
   reordering_timeout.reset();
   if(tx_sdu) {
-    pool->deallocate(tx_sdu);
+    tx_sdu->reset();
   }
   if(rx_sdu) {
-    pool->deallocate(rx_sdu);
+    rx_sdu->reset();
   }
 
   vt_a    = 0;
