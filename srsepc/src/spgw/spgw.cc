@@ -33,6 +33,7 @@
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <linux/ip.h>
+#include <inttypes.h> // for printing uint64_t
 #include "srsepc/hdr/spgw/spgw.h"
 #include "srsepc/hdr/mme/mme_gtpc.h"
 #include "srslte/upper/gtpu.h"
@@ -401,7 +402,7 @@ spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
   int n = write(m_sgi_if, msg->msg, msg->N_bytes);
   if(n<0)
   {
-    m_spgw_log->error("Could not write to TUN interface.\n",n);
+    m_spgw_log->error("Could not write to TUN interface.\n");
   }
   else
   {
@@ -444,8 +445,8 @@ spgw::create_gtp_ctx(struct srslte::gtpc_create_session_request *cs_req)
   //in_addr_t ue_ip = inet_addr("172.16.0.2");
   uint8_t default_bearer_id = 5;
 
-  m_spgw_log->console("SPGW: Allocated Ctrl TEID %d\n", spgw_uplink_ctrl_teid);
-  m_spgw_log->console("SPGW: Allocated User TEID %d\n", spgw_uplink_user_teid);
+  m_spgw_log->console("SPGW: Allocated Ctrl TEID %" PRIu64 "\n", spgw_uplink_ctrl_teid);
+  m_spgw_log->console("SPGW: Allocated User TEID %" PRIu64 "\n", spgw_uplink_user_teid);
   struct in_addr ue_ip_;
   ue_ip_.s_addr=ue_ip;
   m_spgw_log->console("SPGW: Allocate UE IP %s\n", inet_ntoa(ue_ip_));
