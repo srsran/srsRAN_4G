@@ -90,7 +90,7 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
     }
     ss << msg;
 
-    str_ptr s_ptr(new std::string(ss.str()));
+    str_ptr s_ptr(new std::string(std::move(ss.str())));
     logger_h->log(s_ptr);
   }
 }
@@ -130,7 +130,7 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
     if (hex_limit > 0 && hex && size > 0) {
       ss << hex_string(hex, size);
     } 
-    str_ptr s_ptr(new std::string(ss.str()));
+    str_ptr s_ptr(new std::string(std::move(ss.str())));
     logger_h->log(s_ptr);
   }
 }
