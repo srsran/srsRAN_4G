@@ -592,9 +592,6 @@ float chest_estimate_cfo(srslte_chest_dl_t *q)
 }
 
 void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id, srslte_sf_t ch_mode){
-  uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
-  uint32_t nsymbols = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_nof_symbols():srslte_refsignal_cs_nof_symbols(port_id);
-
   if (q->cfo_estimate_enable && ((1<<sf_idx) & q->cfo_estimate_sf_mask)) {
     q->cfo = chest_estimate_cfo(q);
   }
