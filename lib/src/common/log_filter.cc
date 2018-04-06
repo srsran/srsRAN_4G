@@ -136,7 +136,7 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
 }
 
 void log_filter::console(const char * message, ...) {
-  char     *args_msg;
+  char     *args_msg{};
   va_list   args;
   va_start(args, message);
   if(vasprintf(&args_msg, message, args) > 0)
@@ -147,7 +147,7 @@ void log_filter::console(const char * message, ...) {
 
 void log_filter::error(const char * message, ...) {
   if (level >= LOG_LEVEL_ERROR) {
-    char     *args_msg;
+    char     *args_msg{};
     va_list   args;
     va_start(args, message);
     if(vasprintf(&args_msg, message, args) > 0)
@@ -158,7 +158,7 @@ void log_filter::error(const char * message, ...) {
 }
 void log_filter::warning(const char * message, ...) {
   if (level >= LOG_LEVEL_WARNING) {
-    char     *args_msg;
+    char     *args_msg{};
     va_list   args;
     va_start(args, message);
     if(vasprintf(&args_msg, message, args) > 0)
@@ -169,7 +169,7 @@ void log_filter::warning(const char * message, ...) {
 }
 void log_filter::info(const char * message, ...) {
   if (level >= LOG_LEVEL_INFO) {
-    char     *args_msg;
+    char     *args_msg{};
     va_list   args;
     va_start(args, message);
     if(vasprintf(&args_msg, message, args) > 0)
@@ -180,7 +180,7 @@ void log_filter::info(const char * message, ...) {
 }
 void log_filter::debug(const char * message, ...) {
   if (level >= LOG_LEVEL_DEBUG) {
-    char     *args_msg;
+    char     *args_msg{};
     va_list   args;
     va_start(args, message);
     if(vasprintf(&args_msg, message, args) > 0)
@@ -192,7 +192,7 @@ void log_filter::debug(const char * message, ...) {
 
 void log_filter::error_hex(const uint8_t *hex, int size, const char * message, ...) {
   if (level >= LOG_LEVEL_ERROR) {
-    char     *args_msg;
+    char     *args_msg{};
     va_list   args;
     va_start(args, message);
     if(vasprintf(&args_msg, message, args) > 0)
@@ -203,7 +203,7 @@ void log_filter::error_hex(const uint8_t *hex, int size, const char * message, .
 }
 void log_filter::warning_hex(const uint8_t *hex, int size, const char * message, ...) {
   if (level >= LOG_LEVEL_WARNING) {
-    char     *args_msg;
+    char     *args_msg{};
     va_list   args;
     va_start(args, message);
     if(vasprintf(&args_msg, message, args) > 0)
@@ -214,7 +214,7 @@ void log_filter::warning_hex(const uint8_t *hex, int size, const char * message,
 }
 void log_filter::info_hex(const uint8_t *hex, int size, const char * message, ...) {
   if (level >= LOG_LEVEL_INFO) {
-    char     *args_msg;
+    char     *args_msg{};
     va_list   args;
     va_start(args, message);
     if(vasprintf(&args_msg, message, args) > 0)
@@ -225,7 +225,7 @@ void log_filter::info_hex(const uint8_t *hex, int size, const char * message, ..
 }
 void log_filter::debug_hex(const uint8_t *hex, int size, const char * message, ...) {
   if (level >= LOG_LEVEL_DEBUG) {
-    char     *args_msg;
+    char     *args_msg{};
     va_list   args;
     va_start(args, message);
     if(vasprintf(&args_msg, message, args) > 0)
@@ -243,19 +243,19 @@ void log_filter::set_time_src(time_itf *source, time_format_t format) {
 std::string log_filter::now_time()
 {
   struct timeval rawtime;
-  struct tm * timeinfo;
-  char buffer[64];
-  char us[16];
+  struct tm timeinfo{};
+  char buffer[64]{};
+  char us[16]{};
 
   srslte_timestamp_t now;
   uint64_t usec_epoch;
 
   if (!time_src) {
     gettimeofday(&rawtime, NULL);
-    timeinfo = localtime(&rawtime.tv_sec);
+    localtime_r(&rawtime.tv_sec, &timeinfo); //re-entrant
 
     if (time_format == TIME) {
-      strftime(buffer, 64, "%H:%M:%S", timeinfo);
+      strftime(buffer, 64, "%H:%M:%S", &timeinfo);
       strcat(buffer, ".");
       snprintf(us, 16, "%06ld", rawtime.tv_usec);
       strcat(buffer, us);
