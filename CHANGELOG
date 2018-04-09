@@ -1,6 +1,10 @@
 Change Log for Releases
 ==============================
 
+## 18.03.1
+  * Fixed compilation for NEON
+  * Fixed logging and RLC AM issue
+
 ## 18.03
   * Many bug-fixes and improved stability and performance in all parts
 
