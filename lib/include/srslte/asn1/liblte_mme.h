@@ -2810,6 +2810,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_request_msg(LIBLTE_BYTE_MSG_S
 // Structs
 typedef struct{
     uint8 res[16];
+    int res_len;
 }LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_response_msg(LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT *auth_resp,
