@@ -4417,7 +4417,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_pdn_address_ie(uint8                        
                 pdn_addr->addr[i] = (*ie_ptr)[2+i];
             }
         }
-        *ie_ptr += (*ie_ptr)[0];
+        *ie_ptr += (*ie_ptr)[0] + 1;
 
         err = LIBLTE_SUCCESS;
     }
