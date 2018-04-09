@@ -622,6 +622,24 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       transaction_id = act_def_eps_bearer_context_req.proc_transaction_id;
     }
 
+    // Search for DNS entry in protocol config options
+    if (act_def_eps_bearer_context_req.protocol_cnfg_opts_present) {
+      for (uint32_t i = 0; i < act_def_eps_bearer_context_req.protocol_cnfg_opts.N_opts; i++) {
+        if (act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].id == LIBLTE_MME_ADDITIONAL_PARAMETERS_DL_DNS_SERVER_IPV4_ADDRESS) {
+          uint32_t dns_addr = 0;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[0] << 24;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[1] << 16;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[2] << 8;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[3];
+          nas_log->info("DNS: %u.%u.%u.%u\n",
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[0],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[1],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[2],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[3]);
+        }
+      }
+    }
+
     //FIXME: Handle the following parameters
 //    act_def_eps_bearer_context_req.eps_qos.qci
 //    act_def_eps_bearer_context_req.eps_qos.br_present
