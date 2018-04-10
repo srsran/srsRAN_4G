@@ -37,7 +37,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
 
-#include <math.h>
+#include <cmath>
 #include <map>
 #include <queue>
 
@@ -107,7 +107,7 @@ class cell_t
   }
 
   void set_rsrp(float rsrp) {
-    if (~isnan(rsrp)) {
+    if (!std::isnan(rsrp)) {
       this->rsrp = rsrp;
     }
     in_sync = true;

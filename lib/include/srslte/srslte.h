@@ -28,13 +28,13 @@
 #ifndef SRSLTE_SRSLTE_H
 #define SRSLTE_SRSLTE_H
 
+#include <complex.h>
+#include <math.h>
+
 #ifdef __cplusplus
     extern "C" {
 #endif
       
-#include <complex.h>
-#include <math.h>
-
 #include "srslte/config.h"
 #include "srslte/version.h"
 

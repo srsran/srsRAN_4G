@@ -70,8 +70,8 @@ public:
   
 private: 
   
-  const static float PUSCH_RL_SNR_DB_TH = 1.0; 
-  const static float PUCCH_RL_CORR_TH = 0.1; 
+  constexpr static float PUSCH_RL_SNR_DB_TH = 1.0; 
+  constexpr static float PUCCH_RL_CORR_TH = 0.1; 
   
   void work_imp();
   
