@@ -29,8 +29,8 @@
  * Description: Base class for UEs.
  *****************************************************************************/
 
-#ifndef UE_BASE_H
-#define UE_BASE_H
+#ifndef SRSUE_UE_BASE_H
+#define SRSUE_UE_BASE_H
 
 #include <stdarg.h>
 #include <string>
@@ -185,5 +185,5 @@ private:
 
 } // namespace srsue
 
-#endif // UE_BASE_H
+#endif // SRSUE_UE_BASE_H
   

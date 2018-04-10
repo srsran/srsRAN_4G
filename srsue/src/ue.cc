@@ -25,7 +25,7 @@
  */
 
 
-#include "ue.h"
+#include "srsue/hdr/ue.h"
 #include "srslte/srslte.h"
 #include <pthread.h>
 #include <iostream>

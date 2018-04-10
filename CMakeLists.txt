@@ -41,8 +41,6 @@ include(SRSLTEVersion) #sets version information
 include(SRSLTEPackage) #setup cpack
 
 include(CTest)
-set(CTEST_MEMORYCHECK_COMMAND valgrind)
-set(CTEST_MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full" )
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
@@ -171,7 +169,6 @@ if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
 
   set(BOOST_REQUIRED_COMPONENTS
       program_options
-      system
   )
   if(UNIX AND EXISTS "/usr/lib64")
       list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
@@ -229,7 +226,7 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -std=c++03")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -std=c++03")
 
   find_package(SSE)
   if (HAVE_AVX2)

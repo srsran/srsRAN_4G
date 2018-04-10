@@ -30,8 +30,8 @@
  *              interfaces and helpers.
  *****************************************************************************/
 
-#ifndef SPGW_H
-#define SPGW_H
+#ifndef SRSEPC_SPGW_H
+#define SRSEPC_SPGW_H
 
 #include <cstddef>
 #include "srslte/common/log.h"
@@ -76,6 +76,7 @@ public:
   void handle_create_session_request(struct srslte::gtpc_create_session_request *cs_req, struct srslte::gtpc_pdu *cs_resp_pdu);
   void handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu);
   void handle_delete_session_request(struct srslte::gtpc_pdu *del_req_pdu, struct srslte::gtpc_pdu *del_resp_pdu);
+  void handle_release_access_bearers_request(struct srslte::gtpc_pdu *rel_req_pdu, struct srslte::gtpc_pdu *rel_resp_pdu);
 
   void handle_sgi_pdu(srslte::byte_buffer_t *msg);
   void handle_s1u_pdu(srslte::byte_buffer_t *msg);
@@ -93,6 +94,10 @@ private:
   uint64_t get_new_ctrl_teid();
   uint64_t get_new_user_teid();
   in_addr_t get_new_ue_ipv4();
+
+  spgw_tunnel_ctx_t* create_gtp_ctx(struct srslte::gtpc_create_session_request *cs_req);
+  bool delete_gtp_ctx(uint32_t ctrl_teid);
+
 
   bool m_running;
   srslte::byte_buffer_pool *m_pool;
@@ -112,10 +117,16 @@ private:
   sockaddr_in m_s1u_addr;
 
   pthread_mutex_t m_mutex;
+
+  std::map<uint64_t,uint32_t> m_imsi_to_ctr_teid;                   //IMSI to control TEID map. Important to check if UE is previously connected
   std::map<uint32_t,spgw_tunnel_ctx*> m_teid_to_tunnel_ctx;         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
   std::map<in_addr_t,srslte::gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
 
   uint32_t m_h_next_ue_ip;
+
+  /*Time*/
+  struct timeval m_t_last_dl;
+  struct timeval m_t_last_ul;
 
   /*Logs*/
   srslte::log_filter  *m_spgw_log;
@@ -124,4 +135,4 @@ private:
 
 } // namespace srsepc
 
-#endif // SGW_H
+#endif // SRSEPC_SPGW_H

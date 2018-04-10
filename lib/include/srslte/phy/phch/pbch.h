@@ -34,8 +34,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.6
  *****************************************************************************/
 
-#ifndef PBCH_
-#define PBCH_
+#ifndef SRSLTE_PBCH_H
+#define SRSLTE_PBCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -115,4 +115,4 @@ SRSLTE_API void srslte_pbch_mib_pack(srslte_cell_t *cell,
                               uint32_t sfn, 
                               uint8_t *msg);
 
-#endif // PBCH_
+#endif // SRSLTE_PBCH_H

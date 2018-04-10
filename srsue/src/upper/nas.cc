@@ -31,7 +31,7 @@
 #include <fstream>
 #include <sstream>
 #include "srslte/asn1/liblte_rrc.h"
-#include "upper/nas.h"
+#include "srsue/hdr/upper/nas.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 
@@ -417,30 +417,39 @@ void nas::integrity_generate(uint8_t *key_128,
 
 bool nas::integrity_check(byte_buffer_t *pdu)
 {
-  uint8_t exp_mac[4];
-  uint8_t *mac = &pdu->msg[1];
-  int i;
-
-  integrity_generate(&k_nas_int[16],
-                     ctxt.rx_count,
-                     SECURITY_DIRECTION_DOWNLINK,
-                     &pdu->msg[5],
-                     pdu->N_bytes-5,
-                     &exp_mac[0]);
-
-  // Check if expected mac equals the sent mac
-  for(i=0; i<4; i++){
-    if(exp_mac[i] != mac[i]){
-     nas_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
-                      "Received: count=%d, [%02x %02x %02x %02x]\n",
-                      ctxt.rx_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
-                      pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
-     return false;
-    }
+  if (!pdu) {
+    nas_log->error("Invalid PDU\n");
+    return NULL;
   }
-  nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                ctxt.rx_count, pdu->msg[5]);
-  return true;
+  if (pdu->N_bytes > 5) {
+    uint8_t exp_mac[4];
+    uint8_t *mac = &pdu->msg[1];
+    int i;
+
+    integrity_generate(&k_nas_int[16],
+                       ctxt.rx_count,
+                       SECURITY_DIRECTION_DOWNLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes-5,
+                       &exp_mac[0]);
+
+    // Check if expected mac equals the sent mac
+    for(i=0; i<4; i++){
+      if(exp_mac[i] != mac[i]){
+        nas_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
+                             "Received: count=%d, [%02x %02x %02x %02x]\n",
+                         ctxt.rx_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                         pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
+        return false;
+      }
+    }
+    nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
+                  ctxt.rx_count, pdu->msg[5]);
+    return true;
+  } else {
+    nas_log->error("Invalid integrity check PDU size (%d)\n", pdu->N_bytes);
+    return false;
+  }
 }
 
 void nas::cipher_encrypt(byte_buffer_t *pdu)
@@ -526,6 +535,17 @@ bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps)
  ******************************************************************************/
 
 void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
+
+  if (!pdu) {
+    nas_log->error("Invalid PDU\n");
+    return;
+  }
+
+  if (pdu->N_bytes <= 5) {
+    nas_log->error("Invalid attach accept PDU size (%d)\n", pdu->N_bytes);
+    return;
+  }
+
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_complete;
@@ -737,7 +757,7 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
     usim->get_imei_vec(id_resp.mobile_id.imei, 15);
     break;
   default:
-    nas_log->error("Unhandled ID type: %d\n");
+    nas_log->error("Unhandled ID type: %d\n", id_req.id_type);
     pool->deallocate(pdu);
     return;
   }
@@ -754,6 +774,17 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
 
 void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
 {
+
+  if (!pdu) {
+    nas_log->error("Invalid PDU\n");
+    return;
+  }
+
+  if (pdu->N_bytes <= 5) {
+    nas_log->error("Invalid security mode command PDU size (%d)\n", pdu->N_bytes);
+    return;
+  }
+
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sec_mode_cmd;
   LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sec_mode_comp;
 
@@ -935,12 +966,16 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
                                        (LIBLTE_BYTE_MSG_STRUCT *) msg);
 
     // Add MAC
-    integrity_generate(&k_nas_int[16],
-                       ctxt.tx_count,
-                       SECURITY_DIRECTION_UPLINK,
-                       &msg->msg[5],
-                       msg->N_bytes - 5,
-                       &msg->msg[1]);
+    if (msg->N_bytes > 5) {
+      integrity_generate(&k_nas_int[16],
+                         ctxt.tx_count,
+                         SECURITY_DIRECTION_UPLINK,
+                         &msg->msg[5],
+                         msg->N_bytes - 5,
+                         &msg->msg[1]);
+    } else {
+      nas_log->error("Invalid PDU size %d\n", msg->N_bytes);
+    }
   } else {
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
     usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);

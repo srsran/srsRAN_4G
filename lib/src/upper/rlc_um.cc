@@ -173,7 +173,7 @@ uint32_t rlc_um::get_bearer()
 void rlc_um::write_sdu(byte_buffer_t *sdu)
 {
   tx_sdu_queue.write(sdu);
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (% B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
 }
 
 /****************************************************************************

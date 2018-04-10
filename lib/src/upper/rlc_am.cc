@@ -130,8 +130,10 @@ void rlc_am::reset()
     pool->deallocate(tx_sdu);
     tx_sdu = NULL;
   }
-  if(rx_sdu)
-    rx_sdu->reset();
+  if(rx_sdu) {
+    pool->deallocate(rx_sdu);
+    rx_sdu = NULL;
+  }
 
   vt_a    = 0;
   vt_ms   = RLC_AM_WINDOW_SIZE;
@@ -342,7 +344,7 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   pthread_mutex_lock(&mutex);
 
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
-  log->debug("tx_window size - %d PDUs\n", tx_window.size());
+  log->debug("tx_window size - %zu PDUs\n", tx_window.size());
 
   // Tx STATUS if requested
   if(do_status && !status_prohibited()) {
@@ -698,7 +700,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
   if(pdu_len > (int)nof_bytes) {
     log->error("%s Retx PDU segment length error. Available: %d, Used: %d\n",
                rrc->get_rb_name(lcid).c_str(), nof_bytes, pdu_len);
-    log->debug("%s Retx PDU segment length error. Header len: %d, Payload len: %d, N_li: %d\n",
+    log->debug("%s Retx PDU segment length error. Header len: %ld, Payload len: %d, N_li: %d\n",
                rrc->get_rb_name(lcid).c_str(), (ptr-payload), len, new_header.N_li);
   }
   return pdu_len;
@@ -827,6 +829,12 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
                rrc->get_rb_name(lcid).c_str(), to_move, pdu_space, head_len);
   }
 
+  // Make sure, at least one SDU (segment) has been added until this point
+  if (pdu->N_bytes == 0) {
+    log->error("Generated empty RLC PDU.\n");
+    return 0;
+  }
+
   if(tx_sdu)
     header.fi |= RLC_FI_FIELD_NOT_END_ALIGNED; // Last byte does not correspond to last byte of SDU
 
@@ -848,7 +856,6 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Set SN
   header.sn = vt_s;
   vt_s = (vt_s + 1)%MOD;
-  log->info("%s PDU scheduled for tx. SN: %d (%d B)\n", rrc->get_rb_name(lcid).c_str(), header.sn, pdu->N_bytes);
 
   // Place PDU in tx_window, write header and TX
   tx_window[header.sn].buf        = pdu;
@@ -859,6 +866,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint8_t *ptr = payload;
   rlc_am_write_data_pdu_header(&header, &ptr);
   memcpy(ptr, pdu->msg, pdu->N_bytes);
+  log->info_hex(payload, pdu->N_bytes, "%s PDU scheduled for tx. SN: %d (%d B)\n", rrc->get_rb_name(lcid).c_str(), header.sn, pdu->N_bytes);
 
   debug_state();
   return (ptr-payload) + pdu->N_bytes;
@@ -868,8 +876,8 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
 {
   std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator it;
 
-  log->info_hex(payload, nof_bytes, "%s Rx data PDU SN: %d",
-                rrc->get_rb_name(lcid).c_str(), header.sn);
+  log->info_hex(payload, nof_bytes, "%s Rx data PDU SN: %d (%d B), %s",
+                rrc->get_rb_name(lcid).c_str(), header.sn, nof_bytes, rlc_fi_field_text[header.fi]);
 
   if(!inside_rx_window(header.sn)) {
     if(header.p) {
@@ -1157,38 +1165,55 @@ void rlc_am::reassemble_rx_sdus()
 #endif
     }
   }
+
   // Iterate through rx_window, assembling and delivering SDUs
   while(rx_window.end() != rx_window.find(vr_r))
   {
     // Handle any SDU segments
     for(uint32_t i=0; i<rx_window[vr_r].header.N_li; i++)
     {
-      int len = rx_window[vr_r].header.li[i];
-      memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
-      rx_sdu->N_bytes += len;
-      rx_window[vr_r].buf->msg += len;
-      rx_window[vr_r].buf->N_bytes -= len;
-      log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU", rrc->get_rb_name(lcid).c_str());
-      rx_sdu->set_timestamp();
-      pdcp->write_pdu(lcid, rx_sdu);
-      rx_sdu = pool_allocate;
-      if (!rx_sdu) {
+      uint32_t len = rx_window[vr_r].header.li[i];
+      if (rx_sdu->get_tailroom() >= len) {
+        memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
+        rx_sdu->N_bytes += len;
+        rx_window[vr_r].buf->msg += len;
+        rx_window[vr_r].buf->N_bytes -= len;
+        log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", rrc->get_rb_name(lcid).c_str(), rx_sdu->N_bytes);
+        rx_sdu->set_timestamp();
+        pdcp->write_pdu(lcid, rx_sdu);
+
+        rx_sdu = pool_allocate;
+        if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
-        log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
-        exit(-1);
+          log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+          exit(-1);
 #else
-        log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
-        return;
+          log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+          return;
 #endif
+        }
+      } else {
+        log->error("Cannot fit RLC PDU in SDU buffer, dropping both.\n");
+        pool->deallocate(rx_sdu);
+        pool->deallocate(rx_window[vr_r].buf);
+        rx_window.erase(vr_r);
       }
     }
 
     // Handle last segment
-    memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, rx_window[vr_r].buf->N_bytes);
-    rx_sdu->N_bytes += rx_window[vr_r].buf->N_bytes;
-    if(rlc_am_end_aligned(rx_window[vr_r].header.fi))
-    {
-      log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU", rrc->get_rb_name(lcid).c_str());
+    uint32_t len = rx_window[vr_r].buf->N_bytes;
+    if (rx_sdu->get_tailroom() >= len) {
+      memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
+      rx_sdu->N_bytes += rx_window[vr_r].buf->N_bytes;
+    } else {
+      log->error("Cannot fit RLC PDU in SDU buffer, dropping both.\n");
+      pool->deallocate(rx_sdu);
+      pool->deallocate(rx_window[vr_r].buf);
+      rx_window.erase(vr_r);
+    }
+
+    if(rlc_am_end_aligned(rx_window[vr_r].header.fi)) {
+      log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", rrc->get_rb_name(lcid).c_str(), rx_sdu->N_bytes);
       rx_sdu->set_timestamp();
       pdcp->write_pdu(lcid, rx_sdu);
       rx_sdu = pool_allocate;
@@ -1250,7 +1275,7 @@ void rlc_am::print_rx_segments()
   for(it=rx_segments.begin();it!=rx_segments.end();it++) {
     std::list<rlc_amd_rx_pdu_t>::iterator segit;
     for(segit = it->second.segments.begin(); segit != it->second.segments.end(); segit++) {
-      ss << "    SN:" << segit->header.sn << " SO:" << segit->header.so << " N:" << segit->buf->N_bytes << std::endl;
+      ss << "    SN:" << segit->header.sn << " SO:" << segit->header.so << " N:" << segit->buf->N_bytes <<  " N_li: " << segit->header.N_li << std::endl;
     }
   }
   log->debug("%s\n", ss.str().c_str());

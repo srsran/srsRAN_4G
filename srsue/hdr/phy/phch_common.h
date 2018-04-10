@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHYWORKERCOMMON_H
-#define UEPHYWORKERCOMMON_H
+#ifndef SRSUE_PHCH_COMMON_H
+#define SRSUE_PHCH_COMMON_H
 
 #define TX_MODE_CONTINUOUS 1
 
@@ -37,7 +37,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/common/log.h"
-#include "phy/phy_metrics.h"
+#include "phy_metrics.h"
 
 
 namespace srsue {
@@ -187,4 +187,4 @@ private:
   
 } // namespace srsue
 
-#endif // UEPHYWORKERCOMMON_H
+#endif // SRSUE_PDCH_COMMON_H

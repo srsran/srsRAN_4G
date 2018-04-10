@@ -30,8 +30,9 @@
 #include <sstream>
 #include <stdlib.h>
 #include <time.h>
+#include <inttypes.h> // for printing uint64_t
 #include <srslte/asn1/liblte_rrc.h>
-#include "upper/rrc.h"
+#include "srsue/hdr/upper/rrc.h"
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
@@ -485,7 +486,7 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
  */
 void rrc::process_phy_meas() {
   while(!phy_meas_q.empty()) {
-    rrc_log->debug("MEAS:  Processing measurement. %d measurements in queue\n", phy_meas_q.size());
+    rrc_log->debug("MEAS:  Processing measurement. %lu measurements in queue\n", phy_meas_q.size());
     process_new_phy_meas(phy_meas_q.front());
     phy_meas_q.pop();
   }
@@ -862,7 +863,7 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
     // Set new serving cell
     serving_cell = new_serving_cell;
 
-    rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, nof_neighbours=%d\n",
+    rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, nof_neighbours=%lu\n",
                   cell_idx, serving_cell->get_earfcn(), serving_cell->get_pci(), neighbour_cells.size());
 
   } else {
@@ -945,7 +946,7 @@ bool rrc::add_neighbour_cell(cell_t *new_cell) {
   if (ret) {
     neighbour_cells.push_back(new_cell);
   }
-  rrc_log->info("Added neighbour cell EARFCN=%d, PCI=%d, nof_neighbours=%d\n",
+  rrc_log->info("Added neighbour cell EARFCN=%d, PCI=%d, nof_neighbours=%zd\n",
                 new_cell->get_earfcn(), new_cell->get_pci(), neighbour_cells.size());
   sort_neighbour_cells();
   return ret;
@@ -1723,7 +1724,7 @@ void rrc::send_ul_ccch_msg()
       ue_cri_ptr[nbytes - i - 1] = pdu->msg[i];
     }
 
-    rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
+    rrc_log->debug("Setting UE contention resolution ID: %" PRIu64 "\n", uecri);
     mac->set_contention_id(uecri);
 
     rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
@@ -1763,7 +1764,7 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
       parse_dl_dcch(lcid, pdu);
       break;
     default:
-      rrc_log->error("RX PDU with invalid bearer id: %s", lcid);
+      rrc_log->error("RX PDU with invalid bearer id: %d", lcid);
       break;
   }
 }
@@ -2333,8 +2334,8 @@ bool rrc::apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg)
     N310 = liblte_rrc_n310_num[cnfg->rlf_timers_and_constants.n310];
     N311 = liblte_rrc_n311_num[cnfg->rlf_timers_and_constants.n311];
 
-    rrc_log->info("Updated Constants and Timers: N310=%d, N311=%d, t300=%d, t301=%d, t310=%d, t311=%d\n",
-                  N310, N311, mac_timers->timer_get(t301)->get_timeout(),
+    rrc_log->info("Updated Constants and Timers: N310=%d, N311=%d, t300=%u, t301=%u, t310=%u, t311=%u\n",
+                  N310, N311, mac_timers->timer_get(t300)->get_timeout(), mac_timers->timer_get(t301)->get_timeout(),
                   mac_timers->timer_get(t310)->get_timeout(), mac_timers->timer_get(t311)->get_timeout());
   }
   for (uint32_t i = 0; i < cnfg->srb_to_add_mod_list_size; i++) {
@@ -3004,8 +3005,8 @@ bool rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 
           log_h->info("MEAS: Added measObjectId=%d, earfcn=%d, q_offset=%f, pci=%d, offset_cell=%f\n",
                       cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_id, dst_obj->earfcn, dst_obj->q_offset,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci);
+                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci,
+                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset);
 
         }
 
@@ -3086,7 +3087,7 @@ bool rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
     remove_meas_id(cfg->meas_id_to_remove_list[i]);
   }
 
-  log_h->info("nof active measId=%d\n", active.size());
+  log_h->info("nof active measId=%zd\n", active.size());
 
   // Measurement identity addition/modification 5.5.2.3
   if (cfg->meas_id_to_add_mod_list_present) {
@@ -3102,8 +3103,9 @@ bool rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
       }
       active[measId->meas_id].object_id = measId->meas_obj_id;
       active[measId->meas_id].report_id = measId->rep_cnfg_id;
-      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, nof_values=%d\n",
+      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, timer_id=%u, nof_values=%lu\n",
                   is_new?"Added":"Updated", measId->meas_id, measId->meas_obj_id, measId->rep_cnfg_id,
+                  active[measId->meas_id].periodic_timer,
                   active[measId->meas_id].cell_values.size());
     }
   }

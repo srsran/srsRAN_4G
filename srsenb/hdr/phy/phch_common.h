@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENBPHCHCOMMON_H
-#define ENBPHCHCOMMON_H
+#ifndef SRSENB_PHCH_COMMON_H
+#define SRSENB_PHCH_COMMON_H
 
 #include <map>
 #include "srslte/interfaces/enb_interfaces.h"
@@ -133,4 +133,4 @@ private:
 
 } // namespace srsenb
 
-#endif // UEPHY_H
+#endif // SRSENB_PHCH_COMMON_H

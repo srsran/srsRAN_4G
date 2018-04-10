@@ -30,8 +30,8 @@
 #include "srslte/phy/rf/rf.h"
 #include "srslte/common/trace.h"
 
-#ifndef RADIO_H
-#define RADIO_H
+#ifndef SRSLTE_RADIO_H
+#define SRSLTE_RADIO_H
 
 typedef struct {
   float         tx_corr_dc_gain;
@@ -180,4 +180,4 @@ namespace srslte {
   }; 
 }
 
-#endif
+#endif // SRSLTE_RADIO_H

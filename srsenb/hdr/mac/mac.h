@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef MAC_H
-#define MAC_H
+#ifndef SRSENB_MAC_H
+#define SRSENB_MAC_H
 
 #include <vector>
 #include "srslte/common/log.h"
@@ -36,10 +36,10 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/common/mac_pcap.h"
-#include "mac/scheduler.h"
-#include "mac/scheduler_metric.h"
+#include "scheduler.h"
+#include "scheduler_metric.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
-#include "mac/ue.h"
+#include "ue.h"
 
 namespace srsenb {
   
@@ -211,6 +211,6 @@ private:
   
 };
 
-} // namespace srsue
+} // namespace srsenb
 
-#endif // MAC_H
+#endif // SRSENB_MAC_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef SRSLTE_CONFIG_H
+#define SRSLTE_CONFIG_H
 
 // Generic helper definitions for shared library support
 #if defined _WIN32 || defined __CYGWIN__
@@ -54,4 +54,4 @@
 // cf_t definition
 typedef _Complex float cf_t;
 
-#endif // CONFIG_H
+#endif // SRSLTE_CONFIG_H

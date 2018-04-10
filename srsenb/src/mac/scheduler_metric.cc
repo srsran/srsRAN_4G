@@ -25,8 +25,8 @@
  */
 
 #include <string.h>
-#include "mac/scheduler_harq.h"
-#include "mac/scheduler_metric.h"
+#include "srsenb/hdr/mac/scheduler_harq.h"
+#include "srsenb/hdr/mac/scheduler_metric.h"
 
 #define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
@@ -148,9 +148,7 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
   if (pending_data || (h && !h->is_empty())) {
 #endif
     if (nof_users_with_data) {
-      if (nof_users_with_data == 2) {
-      }
-      if ((current_tti%nof_users_with_data) != user->ue_idx) {      
+      if ((current_tti%nof_users_with_data) != user->ue_idx) {
         return NULL; 
       }    
     }

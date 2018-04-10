@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef BUFFER_POOL_H
-#define BUFFER_POOL_H
+#ifndef SRSLTE_BUFFER_POOL_H
+#define SRSLTE_BUFFER_POOL_H
 
 #include <pthread.h>
 #include <vector>
@@ -187,4 +187,4 @@ private:
 
 } // namespace srsue
 
-#endif // BUFFER_POOL_H
+#endif // SRSLTE_BUFFER_POOL_H

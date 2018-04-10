@@ -26,7 +26,7 @@
 
 #include <unistd.h>
 #include <string.h>
-#include "phy/phch_worker.h"
+#include "srsue/hdr/phy/phch_worker.h"
 #include "srslte/srslte.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/asn1/liblte_rrc.h"
@@ -1110,7 +1110,8 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
   uint8_t dummy[2] = {0,0};
-  log_h->info("PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s%s\n",
+  log_h->info_hex(payload, grant->mcs.tbs/8,
+              "PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s%s\n",
               (tti + HARQ_DELAY_MS) % 10240,
               grant->n_prb[0], grant->n_prb[0] + grant->L_prb,
               grant->mcs.tbs / 8, grant->mcs.idx, rv,

@@ -24,13 +24,14 @@
  *
  */
 
-#ifndef ENBPHY_H
-#define ENBPHY_H
+#ifndef SRSENB_PHY_H
+#define SRSENB_PHY_H
 
 #include "srslte/common/log.h"
-#include "phy/txrx.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_common.h"
+#include "srslte/common/log_filter.h"
+#include "txrx.h"
+#include "phch_worker.h"
+#include "phch_common.h"
 #include "srslte/radio/radio.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/task_dispatcher.h"
@@ -54,8 +55,8 @@ class phy : public phy_interface_mac,
 public:
 
   phy();
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log* log_h);
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, std::vector<void*> log_vec);
+  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log_filter* log_h);
+  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, std::vector<srslte::log_filter *> log_vec);
   void stop();
   
   /* MAC->PHY interface */
@@ -98,4 +99,4 @@ private:
 
 } // namespace srsenb
 
-#endif // UEPHY_H
+#endif // SRSENB_PHY_H

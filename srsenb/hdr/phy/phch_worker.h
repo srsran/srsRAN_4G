@@ -24,13 +24,13 @@
  *
  */
 
-#ifndef ENBPHYWORKER_H
-#define ENBPHYWORKER_H
+#ifndef SRSENB_PHCH_WORKER_H
+#define SRSENB_PHCH_WORKER_H
 
 #include <string.h>
 
 #include "srslte/srslte.h"
-#include "phy/phch_common.h"
+#include "phch_common.h"
 
 #define LOG_EXECTIME
 
@@ -137,5 +137,5 @@ private:
 
 } // namespace srsenb
 
-#endif // ENBPHYWORKER_H
+#endif // SRSENB_PHCH_WORKER_H
 

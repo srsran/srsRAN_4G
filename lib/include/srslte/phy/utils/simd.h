@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef SRSLTE_SIMD_H_H
-#define SRSLTE_SIMD_H_H
+#ifndef SRSLTE_SIMD_H
+#define SRSLTE_SIMD_H
 
 #ifdef LV_HAVE_SSE /* AVX, AVX2, FMA, AVX512  are in this group */
 #ifndef __OPTIMIZE__
@@ -706,7 +706,11 @@ static inline void srslte_simd_cf_storeu(float *re, float *im, simd_cf_t simdreg
 }
 
 static inline simd_f_t srslte_simd_cf_re(simd_cf_t in) {
+#ifdef HAVE_NEON
+  simd_f_t out = in.val[0];
+#else
   simd_f_t out = in.re;
+#endif /*HAVE_NEON*/
 #ifndef LV_HAVE_AVX512
 #ifdef LV_HAVE_AVX2
   /* Permute for AVX registers (mis SSE registers) */
@@ -1636,4 +1640,4 @@ static inline simd_b_t srslte_simd_b_xor(simd_b_t a, simd_b_t b) {
 #endif /*SRSLTE_SIMD_B_SIZE */
 
 
-#endif //SRSLTE_SIMD_H_H
+#endif // SRSLTE_SIMD_H

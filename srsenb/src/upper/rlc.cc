@@ -24,8 +24,8 @@
  *
  */
 
-#include "upper/rlc.h"
-#include "upper/common_enb.h"
+#include "srsenb/hdr/upper/rlc.h"
+#include "srsenb/hdr/upper/common_enb.h"
 
 namespace srsenb {
   

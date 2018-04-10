@@ -34,7 +34,7 @@
 
 #include "srslte/common/threads.h"
 #include "srslte/common/log.h"
-#include "phy/phy.h"
+#include "srsenb/hdr/phy/phy.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
@@ -92,12 +92,12 @@ void phy::parse_config(phy_cfg_t* cfg)
 bool phy::init(phy_args_t *args, 
                phy_cfg_t *cfg, 
                srslte::radio* radio_handler_, 
-               mac_interface_phy *mac, 
-               srslte::log* log_h)
+               mac_interface_phy *mac,
+               srslte::log_filter* log_h)
 {
-  std::vector<void*> log_vec;
+  std::vector<srslte::log_filter*> log_vec;
   for (int i=0;i<args->nof_phy_threads;i++) {
-    log_vec.push_back((void*)log_h);
+    log_vec.push_back(log_h);
   }
   init(args, cfg, radio_handler_, mac, log_vec);
   return true; 
@@ -107,7 +107,7 @@ bool phy::init(phy_args_t *args,
                phy_cfg_t *cfg, 
                srslte::radio* radio_handler_, 
                mac_interface_phy *mac, 
-               std::vector<void*> log_vec)
+               std::vector<srslte::log_filter*> log_vec)
 {
 
   mlockall(MCL_CURRENT | MCL_FUTURE);

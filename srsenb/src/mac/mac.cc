@@ -36,7 +36,7 @@
 #include <srslte/interfaces/sched_interface.h>
 
 #include "srslte/common/log.h"
-#include "mac/mac.h"
+#include "srsenb/hdr/mac/mac.h"
 
 //#define WRITE_SIB_PCAP
 

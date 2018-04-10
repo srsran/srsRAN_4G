@@ -29,9 +29,9 @@
 #define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
-#include "mac/proc_phr.h"
-#include "mac/mac.h"
-#include "mac/mux.h"
+#include "srsue/hdr/mac/proc_phr.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/mac/mux.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 
@@ -91,7 +91,7 @@ void phr_proc::timer_expired(uint32_t timer_id) {
   } else if (timer_id == timer_prohibit_id) {
     int pathloss_db = liblte_rrc_dl_pathloss_change_num[mac_cfg->main.phr_cnfg.dl_pathloss_change];
     if (pathloss_changed()) {
-      Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%f (timer expired)\n", last_pathloss_db);
+      Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d (timer expired)\n", last_pathloss_db);
       phr_is_triggered = true;
     }
   } else {
@@ -132,7 +132,7 @@ void phr_proc::step(uint32_t tti)
   }  
   if (pathloss_changed() && timers_db->get(timer_prohibit_id)->is_expired())
   {
-    Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%f\n", last_pathloss_db);
+    Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d\n", last_pathloss_db);
     phr_is_triggered = true;        
   }
 }

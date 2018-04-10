@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef GTPC_IES_H
-#define GTPC_IES_H
+#ifndef SRSLTE_GTPC_IES_H
+#define SRSLTE_GTPC_IES_H
 
 #include "srslte/phy/io/netsource.h"
 
@@ -400,7 +400,8 @@ enum gtpc_interface_type
   S2B_U_PGW_GTP_U_INTERFACE
 };
 
-struct gtpc_f_teid_ie
+
+typedef struct gtpc_f_teid_ie
 {
   bool ipv4_present;
   bool ipv6_present;
@@ -408,7 +409,7 @@ struct gtpc_f_teid_ie
   uint32_t teid;
   in_addr_t  ipv4;
   struct in6_addr ipv6; //FIXME
-};
+} gtp_fteid_t;
 
 //TODO
 //TODO IEs between 8.22 and 8.28 missing
@@ -425,4 +426,4 @@ struct gtpc_f_teid_ie
 //locally, according to the rules of  TS 29.274 v10.14.0 Section 7.
 
 } //namespace
-#endif //GTPC_IES_H
+#endif // SRSLTE_GTPC_IES_H

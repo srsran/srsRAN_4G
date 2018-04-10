@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.8
  *****************************************************************************/
 
-#ifndef PDCCH_
-#define PDCCH_
+#ifndef SRSLTE_PDCCH_H
+#define SRSLTE_PDCCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -186,4 +186,4 @@ SRSLTE_API uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce,
                                                        uint32_t max_candidates); 
 
 
-#endif
+#endif // SRSLTE_PDCCH_H

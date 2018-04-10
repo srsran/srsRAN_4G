@@ -1,5 +1,5 @@
-#ifndef EPC_INTERFACE_H
-#define EPC_INTERFACE_H
+#ifndef SRSLTE_EPC_INTERFACES_H
+#define SRSLTE_EPC_INTERFACES_H
 
 #include "srslte/srslte.h"
 
@@ -15,4 +15,4 @@ public:
 };
 
 }
-#endif // ENB_METRICS_INTERFACE_H
+#endif // SRSLTE_EPC_INTERFACES_H

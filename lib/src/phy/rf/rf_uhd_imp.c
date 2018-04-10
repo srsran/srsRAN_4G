@@ -35,6 +35,8 @@
 #include "srslte/phy/rf/rf.h"
 #include "uhd_c_api.h"
 
+#define HAVE_ASYNC_THREAD 0
+
 typedef struct {
   char *devname; 
   uhd_usrp_handle usrp;
@@ -87,6 +89,7 @@ static void log_late(rf_uhd_handler_t *h, bool is_rx) {
   }
 }
 
+#if HAVE_ASYNC_THREAD
 static void log_underflow(rf_uhd_handler_t *h) {  
   if (h->uhd_error_handler) {
     srslte_rf_error_t error; 
@@ -95,6 +98,7 @@ static void log_underflow(rf_uhd_handler_t *h) {
     h->uhd_error_handler(error);
   }
 }
+#endif
 
 static void log_rx_error(rf_uhd_handler_t *h) {
   if (h->uhd_error_handler) {
@@ -109,6 +113,7 @@ static void log_rx_error(rf_uhd_handler_t *h) {
   }
 }
 
+#if HAVE_ASYNC_THREAD
 static void* async_thread(void *h) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h; 
   uhd_async_metadata_handle md; 
@@ -135,6 +140,7 @@ static void* async_thread(void *h) {
   uhd_async_metadata_free(&md);
   return NULL; 
 }
+#endif
 
 void rf_uhd_suppress_stdout(void *h) {
   rf_uhd_register_msg_handler_c(suppress_handler);
@@ -570,13 +576,14 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     rf_uhd_set_rx_gain(handler, max_gain*0.7);
     uhd_meta_range_free(&gain_range);
 
+#if HAVE_ASYNC_THREAD
     // Start low priority thread to receive async commands
-    /*
     handler->async_thread_running = true;
     if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
       perror("pthread_create");
       return -1; 
-    }*/
+    }
+#endif
 
     /* Restore priorities  */
     uhd_set_thread_priority(0, false);

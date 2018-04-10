@@ -33,8 +33,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 7.1
  *****************************************************************************/
 
-#ifndef MODEM_TABLE_
-#define MODEM_TABLE_
+#ifndef SRSLTE_MODEM_TABLE_H
+#define SRSLTE_MODEM_TABLE_H
 
 #include <stdbool.h>
 #include <complex.h>
@@ -83,4 +83,4 @@ SRSLTE_API int srslte_modem_table_lte(srslte_modem_table_t* q,
 
 SRSLTE_API void srslte_modem_table_bytes(srslte_modem_table_t* q); 
 
-#endif // MODEM_TABLE_
+#endif // SRSLTE_MODEM_TABLE_H

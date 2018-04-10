@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.2.2.6, 5.2.3.3
  *****************************************************************************/
 
-#ifndef CQI_
-#define CQI_
+#ifndef SRSLTE_CQI_H
+#define SRSLTE_CQI_H
 
 #include <stdint.h>
 
@@ -179,4 +179,4 @@ SRSLTE_API int srslte_cqi_hl_get_no_subbands(int num_prbs);
 
 SRSLTE_API void srslte_cqi_to_str(const uint8_t *cqi_value, int cqi_len, char *str, int str_len);
 
-#endif // CQI_
+#endif // SRSLTE_CQI_H

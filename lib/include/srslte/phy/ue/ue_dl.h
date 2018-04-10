@@ -35,8 +35,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef UEDL_H
-#define UEDL_H
+#ifndef SRSLTE_UE_DL_H
+#define SRSLTE_UE_DL_H
 
 #include <stdbool.h>
 
@@ -254,4 +254,4 @@ SRSLTE_API void srslte_ue_dl_save_signal(srslte_ue_dl_t *q,
                                          uint32_t cfi); 
 
 
-#endif
+#endif // SRSLTE_UE_DL_H

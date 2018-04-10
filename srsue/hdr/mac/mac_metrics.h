@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UE_MAC_METRICS_H
-#define UE_MAC_METRICS_H
+#ifndef SRSUE_MAC_METRICS_H
+#define SRSUE_MAC_METRICS_H
 
 
 namespace srsue {
@@ -43,4 +43,4 @@ struct mac_metrics_t
 
 } // namespace srsue
 
-#endif // UE_MAC_METRICS_H
+#endif // SRSUE_MAC_METRICS_H

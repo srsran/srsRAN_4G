@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPHYRECV_H
-#define UEPHYRECV_H
+#ifndef SRSUE_PHCH_RECV_H
+#define SRSUE_PHCH_RECV_H
 
 #include <map>
 #include <pthread.h>
@@ -36,9 +36,9 @@
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/radio/radio_multi.h"
-#include "phy/prach.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_common.h"
+#include "prach.h"
+#include "phch_worker.h"
+#include "phch_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
@@ -444,4 +444,4 @@ private:
 
 } // namespace srsue
 
-#endif // UEPHYRECV_H
+#endif // SRSUE_PHCH_RECV_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef COMMON_ENB_H
-#define COMMON_ENB_H
+#ifndef SRSENB_COMMON_ENB_H
+#define SRSENB_COMMON_ENB_H
 
 /*******************************************************************************
                               INCLUDES
@@ -181,4 +181,4 @@ inline void uint16_to_uint8(uint16_t i, uint8_t *buf)
 
 } // namespace srsenb
 
-#endif // COMMON_ENB_H
+#endif // SRSENB_COMMON_ENB_H

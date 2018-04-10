@@ -24,20 +24,20 @@
  *
  */
 
-#ifndef MAC_H
-#define MAC_H
+#ifndef SRSUE_MAC_H
+#define SRSUE_MAC_H
 
 #include "srslte/common/log.h"
-#include "mac/dl_harq.h"
-#include "mac/ul_harq.h"
+#include "dl_harq.h"
+#include "ul_harq.h"
 #include "srslte/common/timers.h"
-#include "mac/mac_metrics.h"
-#include "mac/proc_ra.h"
-#include "mac/proc_sr.h"
-#include "mac/proc_bsr.h"
-#include "mac/proc_phr.h"
-#include "mac/mux.h"
-#include "mac/demux.h"
+#include "mac_metrics.h"
+#include "proc_ra.h"
+#include "proc_sr.h"
+#include "proc_bsr.h"
+#include "proc_phr.h"
+#include "mux.h"
+#include "demux.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/tti_sync_cv.h"
@@ -180,4 +180,4 @@ private:
 
 } // namespace srsue
 
-#endif // MAC_H
+#endif // SRSUE_MAC_H

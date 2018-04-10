@@ -29,7 +29,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/log.h"
 
-#include "phy/phch_worker.h"
+#include "srsenb/hdr/phy/phch_worker.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
@@ -227,7 +227,7 @@ void phch_worker::set_conf_dedicated_ack(uint16_t rnti, bool ack){
   if (ue_db.count(rnti)) {
     ue_db[rnti].dedicated_ack = ack;
   } else {
-    Error("Setting dedicated ack: rnti=0x%x does not exist\n");
+    Error("Setting dedicated ack: rnti=0x%x does not exist\n", rnti);
   }
   pthread_mutex_unlock(&mutex);
 }
@@ -309,7 +309,7 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
       ue_db[rnti].dedicated.pdsch_cnfg_ded = dedicated->pdsch_cnfg_ded;
     }
   } else {
-    Error("Setting config dedicated: rnti=0x%x does not exist\n");
+    Error("Setting config dedicated: rnti=0x%x does not exist\n", rnti);
   }
   pthread_mutex_unlock(&mutex);
 }
@@ -602,8 +602,8 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       }
       */
       log_h->info_hex(grants[i].data, phy_grant.mcs.tbs / 8,
-                      "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s%s\n",
-                      rnti, phy_grant.n_prb[0], phy_grant.n_prb[0] + phy_grant.L_prb,
+                      "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, idx=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s%s%s\n",
+                      rnti, phy_grant.n_prb[0], phy_grant.n_prb[0], phy_grant.L_prb,
                       phy_grant.mcs.tbs / 8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
                       snr_db,
                       srslte_pusch_last_noi(&enb_ul.pusch),

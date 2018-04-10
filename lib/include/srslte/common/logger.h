@@ -29,8 +29,8 @@
  * Description: Interface for logging output
  *****************************************************************************/
 
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef SRSLTE_LOGGER_H
+#define SRSLTE_LOGGER_H
 
 #include <stdio.h>
 #include <string>
@@ -45,4 +45,4 @@ public:
 
 } // namespace srslte
 
-#endif // LOGGER_H
+#endif // SRSLTE_LOGGER_H

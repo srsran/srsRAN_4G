@@ -21,8 +21,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef GTPC_V2_H
-#define GTPC_V2_H
+#ifndef SRSLTE_GTPC_H
+#define SRSLTE_GTPC_H
 
 #include <stdint.h>
 #include "srslte/asn1/gtpc_msg.h"
@@ -52,16 +52,15 @@ const uint8_t GTPC_V2 = 2;
  * n+2    |           Sequence            |
  * n+3    |            Spare              |
  ***************************************************************************/
-
-  typedef struct gtpc_header
-  {
-    uint8_t version;
-    bool piggyback;
-    bool teid_present;
-    uint8_t type;
-    uint64_t teid;
-    uint64_t sequence;
-  } gtpc_header_t;
+typedef struct gtpc_header
+{
+  uint8_t version;
+  bool piggyback;
+  bool teid_present;
+  uint8_t type;
+  uint64_t teid;
+  uint64_t sequence;
+}gtpc_header_t;
 
 /****************************************************************************
  * GTP-C v2 Payload
@@ -69,16 +68,17 @@ const uint8_t GTPC_V2 = 2;
  *
  * Union that hold the different structures for the possible message types.
  ***************************************************************************/
-
 typedef union gtpc_msg_choice
 {
   struct gtpc_create_session_request create_session_request;
   struct gtpc_create_session_response create_session_response;
   struct gtpc_modify_bearer_request modify_bearer_request;
   struct gtpc_modify_bearer_response modify_bearer_response;
+  struct gtpc_release_access_bearers_request release_access_bearers_request;
+  struct gtpc_release_access_bearers_response release_access_bearers_response;
   struct gtpc_delete_session_request delete_session_request;
   struct gtpc_delete_session_response delete_session_response;
-} gtpc_msg_choice_t;
+}gtpc_msg_choice_t;
 
 /****************************************************************************
  * GTP-C v2 Message
@@ -88,15 +88,10 @@ typedef union gtpc_msg_choice
  * of one GTP-C header and one union of structures, which can hold
  * all the possible GTP-C messages
  ***************************************************************************/
-
 typedef struct gtpc_pdu
 {
   struct gtpc_header header;
   union gtpc_msg_choice choice;
-} gtpc_pdu_t;
-
-
-
-};
-
-#endif
+}gtpc_pdu_t;
+}//namespace
+#endif // SRSLTE_GTPC_H

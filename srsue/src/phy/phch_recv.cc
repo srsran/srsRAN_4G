@@ -28,8 +28,8 @@
 #include <algorithm>
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_recv.h"
+#include "srsue/hdr/phy/phch_worker.h"
+#include "srsue/hdr/phy/phch_recv.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
@@ -192,7 +192,7 @@ phy_interface_rrc::cell_search_ret_t phch_recv::cell_search(phy_interface_rrc::p
   pthread_mutex_lock(&rrc_mutex);
 
   // Move state to IDLE
-  Info("Cell Search: Start EARFCN index=%d/%d\n", cellsearch_earfcn_index, earfcn.size());
+  Info("Cell Search: Start EARFCN index=%u/%lu\n", cellsearch_earfcn_index, earfcn.size());
   phy_state.go_idle();
 
   if (current_earfcn != (int) earfcn[cellsearch_earfcn_index]) {
@@ -1544,7 +1544,7 @@ void phch_recv::intra_measure::rem_cell(int pci) {
     if (active_pci.size() == 0) {
       receive_enabled = false;
     }
-    Info("INTRA: Stopping intra-frequency measurement for pci=%d. Number of cells: %d\n", pci, active_pci.size());
+    Info("INTRA: Stopping intra-frequency measurement for pci=%d. Number of cells: %zu\n", pci, active_pci.size());
   } else {
     Warning("INTRA: Requested to stop non-existing intra-frequency measurement for PCI=%d\n", pci);
   }

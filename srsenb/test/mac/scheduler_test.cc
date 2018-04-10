@@ -26,8 +26,8 @@
 
 #include <unistd.h>
 
-#include "mac/mac.h"
-#include "phy/phy.h"
+#include "srsenb/hdr/mac/mac.h"
+#include "srsenb/hdr/phy/phy.h"
 
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"

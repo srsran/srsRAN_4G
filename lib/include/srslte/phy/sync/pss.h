@@ -42,8 +42,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.11.1
  *****************************************************************************/
 
-#ifndef PSS_
-#define PSS_
+#ifndef SRSLTE_PSS_H
+#define SRSLTE_PSS_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -176,4 +176,4 @@ SRSLTE_API int srslte_pss_chest(srslte_pss_t *q,
 SRSLTE_API float srslte_pss_cfo_compute(srslte_pss_t* q,
                                               const cf_t *pss_recv);
 
-#endif // PSS_
+#endif // SRSLTE_PSS_H

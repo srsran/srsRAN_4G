@@ -28,8 +28,8 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
-#include <boost/thread/mutex.hpp>
-#include "hss/hss.h"
+#include <inttypes.h> // for printing uint64_t
+#include "srsepc/hdr/hss/hss.h"
 #include "srslte/common/security.h"
 
 using namespace srslte;
@@ -37,7 +37,7 @@ using namespace srslte;
 namespace srsepc{
 
 hss*          hss::m_instance = NULL;
-boost::mutex  hss_instance_mutex;
+pthread_mutex_t hss_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 hss::hss()
 {
@@ -52,22 +52,24 @@ hss::~hss()
 
 hss*
 hss::get_instance(void)
-{
-  boost::mutex::scoped_lock lock(hss_instance_mutex);
+{ 
+  pthread_mutex_lock(&hss_instance_mutex);
   if(NULL == m_instance) {
     m_instance = new hss();
   }
+  pthread_mutex_unlock(&hss_instance_mutex);
   return(m_instance);
 }
 
 void
 hss::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(hss_instance_mutex);
+  pthread_mutex_lock(&hss_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&hss_instance_mutex);
 }
 
 int
@@ -563,7 +565,7 @@ hss::increment_sqn(uint64_t imsi)
   
   sqn++;
   
-  m_hss_log->debug("Incremented SQN (IMSI: %015lu) SQN: %d\n", imsi, sqn);
+  m_hss_log->debug("Incremented SQN (IMSI: %" PRIu64 ") SQN: %" PRIu64 "\n", imsi, sqn);
 
   for(int i = 0; i < 6; i++){
     ue_ctx->sqn[i] = p[5-i];

@@ -24,16 +24,16 @@
  *
  */
 
-#ifndef UEPHY_H
-#define UEPHY_H
+#ifndef SRSUE_PHY_H
+#define SRSUE_PHY_H
 
 #include "srslte/srslte.h"
 #include "srslte/common/log_filter.h"
-#include "phy/phy_metrics.h"
-#include "phy/phch_recv.h"
-#include "phy/prach.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_common.h"
+#include "phy_metrics.h"
+#include "phch_recv.h"
+#include "prach.h"
+#include "phch_worker.h"
+#include "phch_common.h"
 #include "srslte/radio/radio.h"
 #include "srslte/common/task_dispatcher.h"
 #include "srslte/common/trace.h"
@@ -184,4 +184,4 @@ private:
 
 } // namespace srsue
 
-#endif // UEPHY_H
+#endif // SRSUE_PHY_H

@@ -27,7 +27,7 @@
 #include <assert.h>
 #include <string.h>
 #include "srslte/srslte.h"
-#include "phy/phch_common.h"
+#include "srsue/hdr/phy/phch_common.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)

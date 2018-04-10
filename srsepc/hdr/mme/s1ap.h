@@ -23,8 +23,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef S1AP_H
-#define S1AP_H
+#ifndef SRSEPC_S1AP_H
+#define SRSEPC_S1AP_H
 
 #include "srslte/asn1/gtpc.h"
 #include "srslte/asn1/liblte_s1ap.h"
@@ -40,12 +40,12 @@
 #include <unistd.h>
 #include <map>
 #include <set>
-#include "mme/s1ap_common.h"
-#include "mme/s1ap_mngmt_proc.h"
-#include "mme/s1ap_nas_transport.h"
-#include "mme/s1ap_ctx_mngmt_proc.h"
-#include "mme/mme_gtpc.h"
-#include "hss/hss.h"
+#include "s1ap_common.h"
+#include "s1ap_mngmt_proc.h"
+#include "s1ap_nas_transport.h"
+#include "s1ap_ctx_mngmt_proc.h"
+#include "mme_gtpc.h"
+#include "srsepc/hdr/hss/hss.h"
 
 namespace srsepc{
 
@@ -65,13 +65,12 @@ public:
   int get_s1_mme();
 
   void delete_enb_ctx(int32_t assoc_id);
-  void delete_ues_in_enb(uint16_t enb_id);
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri);
   bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg, struct sctp_sndrcvinfo *enb_sri);
   bool handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg);
 
-  void activate_eps_bearer(uint32_t mme_s1ap_id, uint8_t ebi);
+  void activate_eps_bearer(uint64_t imsi, uint8_t ebi);
 
   void print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx);
 
@@ -79,20 +78,41 @@ public:
   uint32_t get_next_mme_ue_s1ap_id();
   enb_ctx_t* find_enb_ctx(uint16_t enb_id);
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
-  ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
-  void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
-  bool delete_ue_ctx(ue_ctx_t *ue_ctx);
 
-  uint32_t allocate_m_tmsi(uint32_t mme_ue_s1ap_id);
+  bool add_ue_ctx_to_imsi_map(ue_ctx_t *ue_ctx);
+  bool add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx);
+
+  ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
+  ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
+
+  bool release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
+  void release_ues_ecm_ctx_in_enb(uint16_t enb_id);
+  bool delete_ue_ctx(uint64_t imsi);
+
+  //ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
+  //void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
+
+  //void add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx);
+  //void add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx);
+  //ue_emm_ctx_t* find_ue_emm_ctx_from_imsi(uint64_t imsi);
+  //ue_ecm_ctx_t* find_ue_ecm_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
+  //bool delete_ue_emm_ctx(uint64_t imsi);
+  //bool delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
+  //void delete_ues_ecm_ctx_in_enb(uint16_t enb_id);
+
+  //void store_tmp_ue_emm_ctx(const ue_emm_ctx_t &ue_ecm_ctx);
+  //bool get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr);
+
+  uint32_t allocate_m_tmsi(uint64_t imsi);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
 
   s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
-  s1ap_nas_transport*             m_s1ap_nas_transport;
-  s1ap_ctx_mngmt_proc*             m_s1ap_ctx_mngmt_proc;
+  s1ap_nas_transport*            m_s1ap_nas_transport;
+  s1ap_ctx_mngmt_proc*           m_s1ap_ctx_mngmt_proc;
 
-  std::map<uint32_t, uint32_t>                      m_tmsi_to_s1ap_id;
+  std::map<uint32_t, uint64_t>                      m_tmsi_to_imsi;
 
 private:
   s1ap();
@@ -107,12 +127,20 @@ private:
   int m_s1mme;
   std::map<uint16_t, enb_ctx_t*>                    m_active_enbs;
   std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
-  std::map<uint32_t, ue_ctx_t*>                     m_active_ues;
   std::map<uint16_t,std::set<uint32_t> >            m_enb_id_to_ue_ids;
+
+
+  std::map<uint64_t, ue_ctx_t*>                     m_imsi_to_ue_ctx;
+  std::map<uint32_t, ue_ctx_t*>                     m_mme_ue_s1ap_id_to_ue_ctx;
+
+  //std::map<uint64_t, ue_emm_ctx_t*>                 m_imsi_to_ue_emm_ctx;
+  //std::map<uint32_t, ue_ecm_ctx_t*>                 m_mme_ue_s1ap_id_to_ue_ecm_ctx;
+  //std::map<int32_t,ue_emm_ctx_t*>                   m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx;
+
   uint32_t                                          m_next_mme_ue_s1ap_id;
   uint32_t                                          m_next_m_tmsi;
 
-  //FIXME the GTP-C should be moved to the MME class, the the packaging of GTP-C messages is done.
+  //FIXME the GTP-C should be moved to the MME class, when the packaging of GTP-C messages is done.
   mme_gtpc *m_mme_gtpc;
 };
 
@@ -125,4 +153,4 @@ s1ap::get_plmn()
 
 } //namespace srsepc
 
-#endif //S1AP_H
+#endif // SRSEPC_S1AP_H

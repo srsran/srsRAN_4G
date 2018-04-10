@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ULHARQ_H
-#define ULHARQ_H
+#ifndef SRSUE_UL_HARQ_H
+#define SRSUE_UL_HARQ_H
 
 #define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
@@ -34,8 +34,8 @@
 
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log.h"
-#include "mac/mux.h"
-#include "mac/ul_sps.h"
+#include "mux.h"
+#include "ul_sps.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/timers.h"
 #include "srslte/common/interfaces_common.h"
@@ -429,4 +429,4 @@ private:
 
 } // namespace srsue
 
-#endif // ULHARQ_H
+#endif // SRSUE_UL_HARQ_H

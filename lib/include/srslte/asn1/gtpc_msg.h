@@ -21,8 +21,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef GTPC_V2_MSG_H
-#define GTPC_V2_MSG_H
+#ifndef SRSLTE_GTPC_MSG_H
+#define SRSLTE_GTPC_MSG_H
 
 #include "srslte/asn1/gtpc_ies.h"
 
@@ -410,5 +410,36 @@ struct gtpc_delete_session_response
   //Private extension
 };
 
+/****************************************************************************
+ *
+ * GTP-C v2 Release Access Bearers Request
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.21.1-1
+ *
+ ***************************************************************************/
+struct gtpc_release_access_bearers_request
+{
+  bool list_of_rabs_present;
+  //Linked EPS Bearer ID
+  bool originating_node_present;
+  //Indication Flags
+  //Private Extension
+};
+
+  /****************************************************************************
+   *
+   * GTP-C v2 Delete Session Response
+   * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.22.1-1
+   *
+   ***************************************************************************/
+
+  struct gtpc_release_access_bearers_response
+  {
+    struct gtpc_cause_ie cause;
+    //Recovery
+    //Private extension
+  };
+
+
+
 } //namespace
-#endif //GTPC_V2_MSG_H
+#endif // SRSLTE_GTPC_MSG_H

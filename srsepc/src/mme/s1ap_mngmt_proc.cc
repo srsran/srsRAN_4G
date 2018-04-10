@@ -26,13 +26,13 @@
 
 //#include "srslte/upper/s1ap_common.h"
 #include "srslte/common/bcd_helpers.h"
-#include "mme/s1ap.h"
-#include "mme/s1ap_mngmt_proc.h"
+#include "srsepc/hdr/mme/s1ap.h"
+#include "srsepc/hdr/mme/s1ap_mngmt_proc.h"
 
 namespace srsepc{
 
 s1ap_mngmt_proc*          s1ap_mngmt_proc::m_instance = NULL;
-boost::mutex   s1ap_mngmt_proc_instance_mutex;
+pthread_mutex_t s1ap_mngmt_proc_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 s1ap_mngmt_proc::s1ap_mngmt_proc()
@@ -46,21 +46,23 @@ s1ap_mngmt_proc::~s1ap_mngmt_proc()
 s1ap_mngmt_proc*
 s1ap_mngmt_proc::get_instance(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_mngmt_proc_instance_mutex);
+  pthread_mutex_lock(&s1ap_mngmt_proc_instance_mutex);
   if(NULL == m_instance) {
     m_instance = new s1ap_mngmt_proc();
   }
+  pthread_mutex_unlock(&s1ap_mngmt_proc_instance_mutex);
   return(m_instance);
 }
 
 void
 s1ap_mngmt_proc::cleanup(void)
 {
-  boost::mutex::scoped_lock lock(s1ap_mngmt_proc_instance_mutex);
+  pthread_mutex_lock(&s1ap_mngmt_proc_instance_mutex);
   if(NULL != m_instance) {
     delete m_instance;
     m_instance = NULL;
   }
+  pthread_mutex_unlock(&s1ap_mngmt_proc_instance_mutex);
 }
 
 void
@@ -102,6 +104,7 @@ s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRU
     {
       //eNB already registered
       //TODO replace enb_ctx
+      m_s1ap_log->warning("eNB Already registered\n");
     }
     else
     {
@@ -218,11 +221,11 @@ s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buff
   succ->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
   succ->criticality = LIBLTE_S1AP_CRITICALITY_IGNORE;
   succ->choice_type = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE;
- 
+
   LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* s1_resp=(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT*)&succ->choice;
 
   s1_resp->ext=false;
-  
+
   //MME Name
   s1_resp->MMEname_present=true;
   s1_resp->MMEname.ext=false;
@@ -234,7 +237,7 @@ s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buff
   LIBLTE_S1AP_SERVEDGUMMEISITEM_STRUCT *serv_gummei = &s1_resp->ServedGUMMEIs.buffer[0];
 
   serv_gummei->ext=false;
-  //serv_gummei->iE_Extensions=false;
+  serv_gummei->iE_Extensions_present = false;
 
   uint32_t plmn=0;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
@@ -257,7 +260,9 @@ s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buff
 
   //Relay Unsupported
   s1_resp->MMERelaySupportIndicator_present=false;
-    
+
+  s1_resp->CriticalityDiagnostics_present = false;
+
   liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)msg);
   
  return true;

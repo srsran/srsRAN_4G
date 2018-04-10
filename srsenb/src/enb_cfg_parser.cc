@@ -26,10 +26,10 @@
 
 #include "srslte/asn1/liblte_common.h"
 #include "srslte/asn1/liblte_rrc.h"
-#include "cfg_parser.h"
+#include "srsenb/hdr/cfg_parser.h"
 #include "srslte/srslte.h"
 
-#include "parser.h"
+#include "srsenb/hdr/parser.h"
 #include "enb_cfg_parser.h"
 
 namespace srsenb {
@@ -1072,7 +1072,9 @@ int field_qci::parse(libconfig::Setting &root)
       parser::field_enum_num<LIBLTE_RRC_SN_FIELD_LENGTH_ENUM,uint8> sn_field_len
         ("sn_field_length", &rlc_cfg->sn_field_len, 
         liblte_rrc_sn_field_length_num, LIBLTE_RRC_SN_FIELD_LENGTH_N_ITEMS);      
-      sn_field_len.parse(q["rlc_config"]["ul_um"]);
+      if (sn_field_len.parse(q["rlc_config"]["ul_um"])) {
+        fprintf(stderr, "Error can't find sn_field_length in section ul_um\n");
+      }
     }
     
     if (q["rlc_config"].exists("dl_um")) {
@@ -1085,12 +1087,16 @@ int field_qci::parse(libconfig::Setting &root)
       parser::field_enum_num<LIBLTE_RRC_SN_FIELD_LENGTH_ENUM,uint8> sn_field_len
         ("sn_field_length", &rlc_cfg->sn_field_len, 
         liblte_rrc_sn_field_length_num, LIBLTE_RRC_SN_FIELD_LENGTH_N_ITEMS);      
-      sn_field_len.parse(q["rlc_config"]["dl_um"]);
+      if (sn_field_len.parse(q["rlc_config"]["dl_um"])) {
+        fprintf(stderr, "Error can't find sn_field_length in section dl_um\n");
+      }
       
       parser::field_enum_num<LIBLTE_RRC_T_REORDERING_ENUM,int32> t_reordering
         ("t_reordering", &rlc_cfg->t_reordering, 
         liblte_rrc_t_reordering_num, LIBLTE_RRC_T_REORDERING_N_ITEMS);      
-      t_reordering.parse(q["rlc_config"]["dl_um"]);
+      if (t_reordering.parse(q["rlc_config"]["dl_um"])) {
+        fprintf(stderr, "Error can't find t_reordering in section dl_um\n");
+      }
     }    
       
     // Parse RLC-AM section 
@@ -1100,22 +1106,30 @@ int field_qci::parse(libconfig::Setting &root)
       parser::field_enum_num<LIBLTE_RRC_T_POLL_RETRANSMIT_ENUM,int32> t_poll_retx
         ("t_poll_retx", &rlc_cfg->t_poll_retx, 
         liblte_rrc_t_poll_retransmit_num, LIBLTE_RRC_T_POLL_RETRANSMIT_N_ITEMS);      
-      t_poll_retx.parse(q["rlc_config"]["ul_am"]);
+      if (t_poll_retx.parse(q["rlc_config"]["ul_am"])) {
+        fprintf(stderr, "Error can't find t_poll_retx in section ul_am\n");
+      }
       
       parser::field_enum_num<LIBLTE_RRC_POLL_PDU_ENUM,int32> poll_pdu
         ("poll_pdu", &rlc_cfg->poll_pdu, 
         liblte_rrc_poll_pdu_num, LIBLTE_RRC_POLL_PDU_N_ITEMS);      
-      poll_pdu.parse(q["rlc_config"]["ul_am"]);
+      if (poll_pdu.parse(q["rlc_config"]["ul_am"])) {
+        fprintf(stderr, "Error can't find poll_pdu in section ul_am\n");
+      }
 
       parser::field_enum_num<LIBLTE_RRC_POLL_BYTE_ENUM,int32> poll_byte
         ("poll_byte", &rlc_cfg->poll_byte, 
         liblte_rrc_poll_byte_num, LIBLTE_RRC_POLL_BYTE_N_ITEMS);      
-      poll_byte.parse(q["rlc_config"]["ul_am"]);
+      if (poll_byte.parse(q["rlc_config"]["ul_am"])) {
+        fprintf(stderr, "Error can't find poll_byte in section ul_am\n");
+      }
 
       parser::field_enum_num<LIBLTE_RRC_MAX_RETX_THRESHOLD_ENUM,uint32_t> max_retx_thresh
         ("max_retx_thresh", &rlc_cfg->max_retx_thresh, 
         liblte_rrc_max_retx_threshold_num, LIBLTE_RRC_MAX_RETX_THRESHOLD_N_ITEMS);      
-      max_retx_thresh.parse(q["rlc_config"]["ul_am"]);      
+      if (max_retx_thresh.parse(q["rlc_config"]["ul_am"])) {
+        fprintf(stderr, "Error can't find max_retx_thresh in section ul_am\n");
+      }
     }
     
     if (q["rlc_config"].exists("dl_am")) {      
@@ -1124,12 +1138,16 @@ int field_qci::parse(libconfig::Setting &root)
       parser::field_enum_num<LIBLTE_RRC_T_REORDERING_ENUM,int32> t_reordering
         ("t_reordering", &rlc_cfg->t_reordering, 
         liblte_rrc_t_reordering_num, LIBLTE_RRC_T_REORDERING_N_ITEMS);      
-      t_reordering.parse(q["rlc_config"]["dl_am"]);
+      if (t_reordering.parse(q["rlc_config"]["dl_am"])) {
+        fprintf(stderr, "Error can't find t_reordering in section dl_am\n");
+      }
       
       parser::field_enum_num<LIBLTE_RRC_T_STATUS_PROHIBIT_ENUM,int32> t_status_prohibit
         ("t_status_prohibit", &rlc_cfg->t_status_prohibit, 
         liblte_rrc_t_status_prohibit_num, LIBLTE_RRC_T_STATUS_PROHIBIT_N_ITEMS);      
-      t_status_prohibit.parse(q["rlc_config"]["dl_am"]);
+      if (t_status_prohibit.parse(q["rlc_config"]["dl_am"])) {
+        fprintf(stderr, "Error can't find t_status_prohibit in section dl_am\n");
+      }
     }    
     
 
@@ -1141,17 +1159,23 @@ int field_qci::parse(libconfig::Setting &root)
     LIBLTE_RRC_UL_SPECIFIC_PARAMETERS_STRUCT *lc_cfg = &cfg[qci].lc_cfg; 
 
     parser::field<uint8> priority ("priority", &lc_cfg->priority);      
-    priority.parse(q["logical_channel_config"]);
+    if (priority.parse(q["logical_channel_config"])) {
+      fprintf(stderr, "Error can't find logical_channel_config in section priority\n");
+    }
     
     parser::field_enum_num<LIBLTE_RRC_PRIORITIZED_BIT_RATE_ENUM,int32> prioritized_bit_rate
         ("prioritized_bit_rate", &lc_cfg->prioritized_bit_rate, 
         liblte_rrc_prioritized_bit_rate_num, LIBLTE_RRC_PRIORITIZED_BIT_RATE_N_ITEMS);      
-    prioritized_bit_rate.parse(q["logical_channel_config"]);
+    if (prioritized_bit_rate.parse(q["logical_channel_config"])) {
+      fprintf(stderr, "Error can't find prioritized_bit_rate in section logical_channel_config\n");
+    }
 
     parser::field_enum_num<LIBLTE_RRC_BUCKET_SIZE_DURATION_ENUM,int16> bucket_size_duration
         ("bucket_size_duration", &lc_cfg->bucket_size_duration, 
         liblte_rrc_bucket_size_duration_num, LIBLTE_RRC_BUCKET_SIZE_DURATION_N_ITEMS);      
-    bucket_size_duration.parse(q["logical_channel_config"]);
+    if (bucket_size_duration.parse(q["logical_channel_config"])) {
+      fprintf(stderr, "Error can't find bucket_size_duration in section logical_channel_config\n");
+    }
 
     parser::field<uint8> log_chan_group ("log_chan_group", &lc_cfg->log_chan_group);      
     if (log_chan_group.parse(q["logical_channel_config"])) {

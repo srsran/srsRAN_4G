@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RLC_COMMON_H
-#define RLC_COMMON_H
+#ifndef SRSLTE_RLC_COMMON_H
+#define SRSLTE_RLC_COMMON_H
 
 #include "srslte/upper/rlc_interface.h"
 
@@ -176,4 +176,4 @@ public:
 
 } // namespace srslte
 
-#endif // RLC_COMMON_H
+#endif // SRSLTE_RLC_COMMON_H

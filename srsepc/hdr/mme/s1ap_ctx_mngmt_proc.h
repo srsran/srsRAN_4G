@@ -23,14 +23,14 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef S1AP_CTX_MNGMT_PROC_H
-#define S1AP_CTX_MNGMT_PROC_H
+#ifndef SRSEPC_S1AP_CTX_MNGMT_PROC_H
+#define SRSEPC_S1AP_CTX_MNGMT_PROC_H
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/common.h"
-#include "mme/s1ap_common.h"
+#include "s1ap_common.h"
 #include "srslte/common/log_filter.h"
-#include "mme/mme_gtpc.h"
+#include "mme_gtpc.h"
 #include "srslte/common/buffer_pool.h"
 
 namespace srsepc{
@@ -47,9 +47,12 @@ public:
 
   void init(void);
 
-  bool send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid);
+  //bool send_initial_context_setup_request(uint32_t mme_ue_s1ap_id, struct srslte::gtpc_create_session_response *cs_resp, struct srslte::gtpc_f_teid_ie sgw_ctrl_fteid);
+  bool send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx, ue_ecm_ctx_t *ecm_ctx, erab_ctx_t *erab_ctx);
   bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp);
   bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_buffer);
+  bool handle_ue_context_release_complete(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMPLETE_STRUCT *rel_comp);
 
 private:
   s1ap_ctx_mngmt_proc();
@@ -67,4 +70,4 @@ private:
 
 } //namespace srsepc
 
-#endif //S1AP_MNGMT_PROC
+#endif // SRSEPC_S1AP_CTX_MNGMT_PROC_H

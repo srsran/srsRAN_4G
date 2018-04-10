@@ -30,8 +30,8 @@
  *              layers and helpers.
  *****************************************************************************/
 
-#ifndef ENB_H
-#define ENB_H
+#ifndef SRSENB_ENB_H
+#define SRSENB_ENB_H
 
 #include <stdarg.h>
 #include <string>
@@ -188,7 +188,7 @@ private:
   srslte::logger        *logger;
 
   srslte::log_filter  rf_log;
-  std::vector<void*>  phy_log;
+  std::vector<srslte::log_filter*>  phy_log;
   srslte::log_filter  mac_log;
   srslte::log_filter  rlc_log;
   srslte::log_filter  pdcp_log;
@@ -219,5 +219,5 @@ private:
 
 } // namespace srsenb
 
-#endif // UE_H
+#endif // SRSENB_ENB_H
   

@@ -26,10 +26,9 @@
 
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/asn1/liblte_rrc.h"
-#include "upper/rrc.h"
+#include "srsenb/hdr/upper/rrc.h"
 #include "srslte/srslte.h"
 #include "srslte/asn1/liblte_mme.h"
-#include "upper/rrc.h"
 
 using srslte::byte_buffer_t;
 using srslte::bit_buffer_t;
@@ -225,7 +224,7 @@ void rrc::add_user(uint16_t rnti)
     pdcp->add_user(rnti);    
     rrc_log->info("Added new user rnti=0x%x\n", rnti);
   } else {
-    rrc_log->error("Adding user rnti=0x%x (already exists)\n");
+    rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
   }
   pthread_mutex_unlock(&user_mutex);
 }
@@ -584,7 +583,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
         if (users[rnti].is_idle()) {
           old_rnti = ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti;
           if (users.count(old_rnti)) {
-            rrc_log->error("Not supported: ConnectionReestablishment. Sending Connection Reject\n", old_rnti);
+            rrc_log->error("Not supported: ConnectionReestablishment for rnti=0x%x. Sending Connection Reject\n", old_rnti);
             users[rnti].send_connection_reest_rej();
             rem_user_thread(old_rnti);
           } else {
@@ -649,7 +648,7 @@ void rrc::run_thread()
           pthread_mutex_lock(&user_mutex);
           break;
         default:
-          rrc_log->error("Rx PDU with invalid bearer id: %s", p.lcid);
+          rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
           break;
       }
     } else {
@@ -799,7 +798,7 @@ bool rrc::ue::is_timeout()
     int64_t deadline = deadline_s*1e6  + deadline_us;
     int64_t elapsed  = t[0].tv_sec*1e6 + t[0].tv_usec;
     if (elapsed > deadline && elapsed > 0) {
-      parent->rrc_log->warning("User rnti=0x%x expired %s deadline: %d:%d>%d:%d us\n", 
+      parent->rrc_log->warning("User rnti=0x%x expired %s deadline: %ld:%ld>%d:%d us\n", 
                                 rnti, deadline_str, 
                                 t[0].tv_sec, t[0].tv_usec, 
                                deadline_s, deadline_us);
@@ -1069,6 +1068,9 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 {
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT res;
   res.ext = false;
+  res.E_RABFailedToSetupListCtxtSURes_present = false;
+  res.CriticalityDiagnostics_present = false;
+
   res.E_RABSetupListCtxtSURes.len = 0;
   res.E_RABFailedToSetupListCtxtSURes.len = 0;
 
