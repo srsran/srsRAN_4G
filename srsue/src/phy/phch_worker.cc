@@ -441,13 +441,11 @@ bool phch_worker::extract_fft_and_pdcch_llr() {
   if (phy->get_pending_ack(tti) || decode_pdcch) {
     
     // Setup estimator filter 
-    float w_coeff = phy->args->estimator_fil_w; 
-    if (w_coeff > 0.0) {
-      srslte_chest_dl_set_smooth_filter3_coeff(&ue_dl.chest, w_coeff); 
-    } else if (w_coeff == 0.0) {
-      srslte_chest_dl_set_smooth_filter(&ue_dl.chest, NULL, 0); 
-    }
-    
+    srslte_chest_dl_set_smooth_filter_gauss(&ue_dl.chest,
+                                            phy->args->estimator_fil_order,
+                                            phy->args->estimator_fil_stddev);
+    srslte_chest_dl_set_smooth_filter_auto(&ue_dl.chest, phy->args->estimator_fil_auto);
+
     if (!phy->args->snr_estim_alg.compare("refs")) {
       srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_REFS);
     } else if (!phy->args->snr_estim_alg.compare("empty")) {

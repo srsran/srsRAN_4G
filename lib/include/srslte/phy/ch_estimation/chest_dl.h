@@ -74,6 +74,7 @@ typedef struct {
   float snr_vector[12000];
   float pilot_power[12000];
 #endif
+  bool smooth_filter_auto;
   uint32_t smooth_filter_len; 
   float smooth_filter[SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN];
 
@@ -122,6 +123,13 @@ SRSLTE_API void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q,
 
 SRSLTE_API void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q, 
                                                          float w); 
+
+SRSLTE_API void srslte_chest_dl_set_smooth_filter_gauss(srslte_chest_dl_t* q,
+                                                        uint32_t order,
+                                                        float std_dev);
+
+SRSLTE_API void srslte_chest_dl_set_smooth_filter_auto(srslte_chest_dl_t* q,
+                                            bool enable);
 
 SRSLTE_API void srslte_chest_dl_set_noise_alg(srslte_chest_dl_t *q, 
                                               srslte_chest_dl_noise_alg_t noise_estimation_alg); 
