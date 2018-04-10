@@ -26,6 +26,7 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <cmath>
 #include "srsue/hdr/phy/phch_worker.h"
 #include "srslte/srslte.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -256,7 +257,7 @@ void phch_worker::work_imp()
 
   // Average RSSI over all symbols (make sure SF length is non-zero)
   float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0 ? (10*log10(srslte_vec_avg_power_cf(signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb))) + 30) : 0;
-  if (isnormal(rssi_dbm)) {
+  if (std::isnormal(rssi_dbm)) {
     phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
   }
 
@@ -1357,7 +1358,7 @@ int phch_worker::read_ce_abs(float *ce_abs, uint32_t tx_antenna, uint32_t rx_ant
   int g = (sz - 12*cell.nof_prb)/2;
   for (i = 0; i < 12*cell.nof_prb; i++) {
     ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[tx_antenna][rx_antenna][i]));
-    if (isinf(ce_abs[g+i])) {
+    if (std::isinf(ce_abs[g+i])) {
       ce_abs[g+i] = -80;
     }
   }
@@ -1398,7 +1399,7 @@ void phch_worker::update_measurements()
     
     // Average RSRQ
     float rsrq_db = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
-    if (isnormal(rsrq_db)) {
+    if (std::isnormal(rsrq_db)) {
       if (!phy->avg_rsrq_db) {
         phy->avg_rsrq_db = SRSLTE_VEC_EMA(rsrq_db, phy->avg_rsrq_db, snr_ema_coeff);
       } else {
@@ -1408,7 +1409,7 @@ void phch_worker::update_measurements()
 
     // Average RSRP
     float rsrp_lin = srslte_chest_dl_get_rsrp(&ue_dl.chest);
-    if (isnormal(rsrp_lin)) {
+    if (std::isnormal(rsrp_lin)) {
       if (!phy->avg_rsrp) {
         phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
       } else {
@@ -1420,7 +1421,7 @@ void phch_worker::update_measurements()
     float rsrp_dbm = 10*log10(rsrp_lin) + 30 - phy->rx_gain_offset;
 
     // Serving cell measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
-    if (isnormal(rsrp_dbm)) {
+    if (std::isnormal(rsrp_dbm)) {
       if (!phy->avg_rsrp_dbm) {
         phy->avg_rsrp_dbm = rsrp_dbm;
       } else {
@@ -1437,7 +1438,7 @@ void phch_worker::update_measurements()
 
     // Average noise 
     float cur_noise = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);
-    if (isnormal(cur_noise)) {
+    if (std::isnormal(cur_noise)) {
       if (!phy->avg_noise) {  
         phy->avg_noise = cur_noise;          
       } else {
