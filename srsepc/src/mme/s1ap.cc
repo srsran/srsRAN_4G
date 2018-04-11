@@ -434,8 +434,15 @@ s1ap::release_ues_ecm_ctx_in_enb(uint16_t enb_id)
   while(ue_id != ues_in_enb->second.end() )
   {
     std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_mme_ue_s1ap_id_to_ue_ctx.find(*ue_id);
+    ue_emm_ctx_t *emm_ctx = &ue_ctx->second->emm_ctx;
     ue_ecm_ctx_t *ecm_ctx = &ue_ctx->second->ecm_ctx;
-    m_s1ap_log->info("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
+
+    m_s1ap_log->info("Releasing UE context. IMSI: %015lu, UE-MME S1AP Id: %d\n", emm_ctx->imsi, ecm_ctx->mme_ue_s1ap_id);
+    if(emm_ctx->state == EMM_STATE_REGISTERED)
+    {
+      m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
+      emm_ctx->state = EMM_STATE_DEREGISTERED;
+    }
     m_s1ap_log->console("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
     ues_in_enb->second.erase(ecm_ctx->mme_ue_s1ap_id);
     ecm_ctx->state = ECM_STATE_IDLE;
