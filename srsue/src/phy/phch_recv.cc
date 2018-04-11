@@ -26,6 +26,8 @@
 
 #include <unistd.h>
 #include <algorithm>
+#include <srsue/hdr/phy/phch_recv.h>
+#include <srslte/srslte.h>
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
 #include "srsue/hdr/phy/phch_worker.h"
@@ -90,9 +92,6 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   // Initialize SFN synchronizer
   sfn_p.init(&ue_sync, sf_buffer, log_h);
 
-  // Initialize measurement class for the primary cell 
-  measure_p.init(sf_buffer, log_h, nof_rx_antennas);
-
   // Start intra-frequency measurement
   intra_freq_meas.init(worker_com, rrc, log_h);
 
@@ -137,7 +136,6 @@ void phch_recv::reset()
   srate_mode = SRATE_NONE;
   current_earfcn = -1;
   sfn_p.reset();
-  measure_p.reset();
   search_p.reset();
   phy_state.go_idle();
 
@@ -289,7 +287,6 @@ bool phch_recv::cell_select(phy_interface_rrc::phy_cell_t *new_cell) {
   worker_com->reset();
   sfn_p.reset();
   search_p.reset();
-  measure_p.reset();
   srslte_ue_sync_reset(&ue_sync);
 
   /* Reconfigure cell if necessary */
@@ -351,8 +348,7 @@ bool phch_recv::cell_is_camping() {
  *
  * It has 3 states: Cell search, SFN syncrhonization, intial measurement and camping.
  * - CELL_SEARCH:   Initial Cell id and MIB acquisition. Uses 1.92 MHz sampling rate
- * - CELL_SFN_SYNC: Full sampling rate, uses MIB to obtain SFN. When SFN is obtained, moves to CELL_MEASURE or CELL_CAMP
- * - CELL_MEASURE:  RSRP/SNR measurement to determine suitability for camping.
+ * - CELL_SYNC:     Full sampling rate, uses MIB to obtain SFN. When SFN is obtained, moves to CELL_CAMP
  * - CELL_CAMP:     Cell camping state. Calls the PHCH workers to process subframes and mantains cell synchronization.
  * - IDLE:          Receives and discards received samples. Does not mantain synchronization.
  *
@@ -550,7 +546,6 @@ void phch_recv::run_thread()
  * 
  */
 void phch_recv::radio_overflow() {
-  log_h->warning("Overflow\n");
   radio_is_overflow = true;
 }
 
@@ -677,7 +672,6 @@ bool phch_recv::set_cell() {
     Error("SYNC:  Setting cell: initiating ue_sync\n");
     return false;
   }
-  measure_p.set_cell(cell);
   sfn_p.set_cell(cell);
   worker_com->set_cell(cell);
   intra_freq_meas.set_primay_cell(current_earfcn, cell);
@@ -1075,6 +1069,7 @@ void phch_recv::measure::init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h
     Error("SYNC:  Initiating ue_dl_measure\n");
     return;
   }
+  srslte_chest_dl_set_rsrp_neighbour(&ue_dl.chest, true);
   reset();
 }
 
@@ -1148,6 +1143,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
 
   offset = offset-sf_len/2;
   while (offset < 0 && sf_idx < max_sf) {
+    Info("INTRA: offset=%d, sf_idx=%d\n", offset, sf_idx);
     offset += sf_len;
     sf_idx ++;
   }
@@ -1205,6 +1201,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
     }
   } else {
     Info("INTRA: not running because offset=%d, sf_len*max_sf=%d*%d\n", offset, sf_len, max_sf);
+    ret = ERROR;
   }
   return ret;
 }
@@ -1372,7 +1369,7 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
             if (cell_id >= 0) {
               // We found the same cell as before, look another N_id_2
               if ((uint32_t) cell_id == found_cell.id || (uint32_t) cell_id == cell.id) {
-                Info("n_id_2=%d, PCI=%d, found_cell.id=%d, cell.id=%d\n", n_id_2, cell_id, found_cell.id, cell.id);
+                Debug("INTRA: n_id_2=%d, PCI=%d, found_cell.id=%d, cell.id=%d\n", n_id_2, cell_id, found_cell.id, cell.id);
                 sync_res = SRSLTE_SYNC_NOFOUND;
               } else {
                 // We found a new cell ID
@@ -1390,7 +1387,7 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
 
                 switch(measure_p.run_multiple_subframes(input_buffer, peak_idx, sf_idx, nof_sf))
                 {
-                  case measure::MEASURE_OK:
+                  default:
                     // Consider a cell to be detectable 8.1.2.2.1.1 from 36.133. Currently only using first condition
                     if (measure_p.rsrp() > ABSOLUTE_RSRP_THRESHOLD_DBM) {
                       cells[nof_cells].pci = found_cell.id;
@@ -1409,13 +1406,13 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
                       if (sic_pss_enabled) {
                         srslte_pss_sic(&sync_find.pss, &input_buffer[sf5_cnt * 5 * sf_len + sf_len / 2 - fft_sz]);
                       }*/
+                    } else {
+                      Info("INTRA: Found neighbour cell but RSRP=%.1f dBm is below threshold (%.1f dBm)\n",
+                           measure_p.rsrp(), ABSOLUTE_RSRP_THRESHOLD_DBM);
                     }
                     break;
-                  default:
-                    Info("INTRA: Not enough samples to measure PCI=%d\n", cell_id);
-                    break;
                   case measure::ERROR:
-                    Error("Measuring neighbour cell\n");
+                    Error("INTRA: Measuring neighbour cell\n");
                     return SRSLTE_ERROR;
                 }
               }

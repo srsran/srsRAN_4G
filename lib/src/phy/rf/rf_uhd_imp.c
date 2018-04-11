@@ -772,7 +772,6 @@ int rf_uhd_recv_with_time_multi(void *h,
       trials++;
 
       if (error_code == UHD_RX_METADATA_ERROR_CODE_OVERFLOW) {
-        printf("OVERFLOW\n");
         log_overflow(handler);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND) {
         log_late(handler, true);

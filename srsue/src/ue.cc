@@ -282,7 +282,7 @@ bool ue::deattach() {
 
 bool ue::is_attached()
 {
-  return nas.is_attached();
+  return rrc.is_connected();
 }
 
 void ue::start_plot() {

@@ -259,7 +259,6 @@ private:
   bool   running;
 
   // Objects for internal use
-  measure               measure_p;
   search                search_p;
   sfn_sync              sfn_p;
   intra_measure         intra_freq_meas;

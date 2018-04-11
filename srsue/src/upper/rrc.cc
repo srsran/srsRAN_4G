@@ -470,16 +470,21 @@ bool rrc::configure_serving_cell() {
  * Queue the values of the measurements and process them from the RRC thread
  */
 void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int pci_i) {
+  uint32_t pci    = 0;
+  uint32_t earfcn = 0;
   if (earfcn_i < 0) {
-    earfcn_i = (int) serving_cell->get_earfcn();
+    earfcn = (uint32_t) serving_cell->get_earfcn();
+  } else {
+    earfcn = (uint32_t) earfcn_i;
   }
   if (pci_i < 0) {
-    pci_i    = (int) serving_cell->get_pci();
+    pci    = (uint32_t) serving_cell->get_pci();
+  } else {
+    pci    = (uint32_t) pci_i;
   }
-
-  phy_meas_t new_meas = {rsrp, rsrq, tti, (uint32_t) earfcn_i, (uint32_t) pci_i};
+  phy_meas_t new_meas = {rsrp, rsrq, tti, earfcn, pci};
   phy_meas_q.push(new_meas);
-  rrc_log->info("MEAS:  New measurement pci=%d, rsrp=%.1f dBm.\n", pci_i, rsrp);
+  rrc_log->info("MEAS:  New measurement pci=%d, rsrp=%.1f dBm.\n", pci, rsrp);
 }
 
 /* Processes all pending PHY measurements in queue. Must be called from a mutexed function
@@ -1311,6 +1316,9 @@ bool rrc::ho_prepare() {
                      neighbour_cells[target_cell_idx]->get_pci());
       return false;
     }
+
+    set_serving_cell(target_cell_idx);
+
     if (mob_reconf.mob_ctrl_info.rach_cnfg_ded_present) {
       rrc_log->info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
                     mob_reconf.mob_ctrl_info.rach_cnfg_ded.preamble_index,
