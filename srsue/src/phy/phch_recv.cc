@@ -498,30 +498,33 @@ void phch_recv::run_thread()
     /* Radio overflow detected. If CAMPING, go through SFN sync again and when
      * SFN is found again go back to camping
      */
-    if (radio_is_overflow) {
-      // If we are coming back from an overflow
-      if (radio_overflow_return) {
-        if (phy_state.is_camping()) {
-          log_h->info("Successfully resynchronized after overflow. Returning to CAMPING\n");
-          radio_overflow_return = false;
-          radio_is_overflow     = false;
-        } else if (phy_state.is_idle()) {
-          log_h->warning("Could not synchronize SFN after radio overflow. Trying again\n");
-          rrc->out_of_sync();
-          phy_state.force_sfn_sync();
-        }
-      } else {
-        // Overflow has occurred now while camping
-        if (phy_state.is_camping()) {
-          log_h->warning("Detected radio overflow while camping. Resynchronizing cell\n");
-          sfn_p.reset();
-          phy_state.force_sfn_sync();
-          radio_overflow_return = true;
+    if (!pthread_mutex_trylock(&rrc_mutex)) {
+      if (radio_is_overflow) {
+        // If we are coming back from an overflow
+        if (radio_overflow_return) {
+          if (phy_state.is_camping()) {
+            log_h->info("Successfully resynchronized after overflow. Returning to CAMPING\n");
+            radio_overflow_return = false;
+            radio_is_overflow     = false;
+          } else if (phy_state.is_idle()) {
+            log_h->warning("Could not synchronize SFN after radio overflow. Trying again\n");
+            rrc->out_of_sync();
+            phy_state.force_sfn_sync();
+          }
         } else {
-          radio_is_overflow = false;
+          // Overflow has occurred now while camping
+          if (phy_state.is_camping()) {
+            log_h->warning("Detected radio overflow while camping. Resynchronizing cell\n");
+            sfn_p.reset();
+            phy_state.force_sfn_sync();
+            radio_overflow_return = true;
+          } else {
+            radio_is_overflow = false;
+          }
+          // If overflow occurs in any other state, it does not harm
         }
-        // If overflow occurs in any other state, it does not harm
       }
+      pthread_mutex_unlock(&rrc_mutex);
     }
 
     // Increase TTI counter
