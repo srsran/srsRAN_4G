@@ -442,7 +442,9 @@ bool rrc::configure_serving_cell() {
       rrc_log->info("Cell has no SIB%d. Obtaining SIB%d\n", i+1, i+1);
       if (!si_acquire(i)) {
         rrc_log->info("Timeout while acquiring SIB%d\n", i+1);
-        return false;
+        if (i < 2) {
+          return false;
+        }
       }
     } else {
       rrc_log->info("Cell has SIB%d\n", i+1);

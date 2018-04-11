@@ -394,7 +394,7 @@ void phch_worker::work_imp()
 
   if (chest_ok) {
     if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db > -10.0) {
-      log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
+      log_h->info("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
                    phy->avg_snr_db, phy->avg_rsrp_dbm);
       chest_loop->in_sync();
     } else {
@@ -1460,7 +1460,7 @@ void phch_worker::update_measurements()
     dl_metrics.sinr   = phy->avg_snr_db;
     dl_metrics.turbo_iters = srslte_pdsch_last_noi(&ue_dl.pdsch);
     phy->set_dl_metrics(dl_metrics);
-    
+
   }
 }
 
