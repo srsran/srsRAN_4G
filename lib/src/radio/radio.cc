@@ -175,7 +175,7 @@ float radio::set_tx_power(float power)
 
 float radio::get_max_tx_power()
 {
-  return 10;
+  return 40;
 }
 
 float radio::get_rssi()
