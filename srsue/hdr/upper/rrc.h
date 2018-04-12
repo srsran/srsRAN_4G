@@ -107,7 +107,7 @@ class cell_t
   }
 
   void set_rsrp(float rsrp) {
-    if (~isnan(rsrp)) {
+    if (!isnan(rsrp)) {
       this->rsrp = rsrp;
     }
     in_sync = true;
