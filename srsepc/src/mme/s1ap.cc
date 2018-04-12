@@ -428,10 +428,11 @@ s1ap::find_ue_ctx_from_imsi(uint64_t imsi)
 void
 s1ap::release_ues_ecm_ctx_in_enb(uint16_t enb_id)
 {
+  m_s1ap_log->console("Releasing UEs context\n");
   //delete UEs ctx
   std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
   std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
-  if(ue_id == ues_in_enb.end())
+  if(ue_id == ues_in_enb->second.end())
   {
     m_s1ap_log->console("No UEs to be released\n");
   } else{
