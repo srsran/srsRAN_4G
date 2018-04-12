@@ -41,7 +41,7 @@
 
 #define MAX_TIME_OFFSET 128
 
-#define TRACK_MAX_LOST          4
+#define TRACK_MAX_LOST          100
 #define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     4
 #define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  0

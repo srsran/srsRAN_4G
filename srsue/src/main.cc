@@ -261,13 +261,21 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
      "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
+    ("expert.estimator_fil_auto",
+     bpo::value<bool>(&args->expert.phy.estimator_fil_auto)->default_value(false),
+     "The channel estimator smooths the channel estimate with an adaptative filter.")
+
+    ("expert.estimator_fil_stddev",
+     bpo::value<float>(&args->expert.phy.estimator_fil_stddev)->default_value(1.0f),
+     "Sets the channel estimator smooth gaussian filter standard deviation.")
+
+    ("expert.estimator_fil_order",
+     bpo::value<uint32_t>(&args->expert.phy.estimator_fil_order)->default_value(4),
+     "Sets the channel estimator smooth gaussian filter order (even values perform better).")
+
     ("expert.sss_algorithm",
      bpo::value<string>(&args->expert.phy.sss_algorithm)->default_value("full"),
      "Selects the SSS estimation algorithm.")
-
-    ("expert.estimator_fil_w",
-     bpo::value<float>(&args->expert.phy.estimator_fil_w)->default_value(0.1),
-     "Chooses the coefficients for the 3-tap channel estimator centered filter.")
 
     ("expert.pdsch_csi_enabled",
      bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(false),

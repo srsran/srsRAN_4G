@@ -494,8 +494,10 @@ typedef struct {
   uint32_t cfo_loop_pss_conv;
   uint32_t cfo_ref_mask;
   bool average_subframe_enabled;
+  bool estimator_fil_auto;
+  float estimator_fil_stddev;
+  uint32_t estimator_fil_order;
   std::string sss_algorithm;
-  float estimator_fil_w;   
   bool rssi_sensor_enabled;
   bool sic_pss_enabled;
   float rx_gain_offset;

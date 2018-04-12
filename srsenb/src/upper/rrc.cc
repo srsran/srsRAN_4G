@@ -1447,6 +1447,8 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   // Get DRB1 configuration 
   if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0], 1)) {
     parent->rrc_log->error("Getting DRB1 configuration\n");
+    printf("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qCI.QCI);
+    return;
   } else {
     conn_reconf->rr_cnfg_ded.drb_to_add_mod_list_size = 1; 
   }
@@ -1524,8 +1526,10 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     uint8_t lcid  = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
 
     // Get DRB configuration
-    if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i], lcid)) {
-      parent->rrc_log->error("Getting DRB configuration\n");
+    if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i], lcid-2)) {
+      parent->rrc_log->error("Getting DRB configuration\n");    
+      printf("ERROR: The QCI %d is invalid or not configured.\n", erabs[lcid+4].qos_params.qCI.QCI);
+      return;
     } else {
       conn_reconf->rr_cnfg_ded.drb_to_add_mod_list_size++;
     }
