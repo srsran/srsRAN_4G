@@ -397,6 +397,27 @@ s1ap::add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx)
   return true;
 }
 
+bool
+s1ap::add_ue_to_enb_set(uint16_t enb_id, uint32_t mme_ue_s1ap_id)
+{
+
+  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
+  if(ues_in_enb == m_enb_id_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find eNB from eNB Id 0x%x",enb_id);
+    return false;
+  }
+  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.find(mme_ue_s1ap_id);
+  if(ue_id != ues_in_enb->second.end())
+  {
+    m_s1ap_log->error("Could not find eNB from eNB Id %d",enb_id);
+    return false;
+  }
+  ues_in_enb->second.insert(mme_ue_s1ap_id);
+  m_s1ap_log->debug("Added UE with MME-UE S1AP Id %d to eNB 0x%xcontext %d\n", mme_ue_s1ap_id, enb_id);
+  return true;
+}
+
 ue_ctx_t*
 s1ap::find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
 {
@@ -435,7 +456,7 @@ s1ap::release_ues_ecm_ctx_in_enb(uint16_t enb_id)
   if(ue_id == ues_in_enb->second.end())
   {
     m_s1ap_log->console("No UEs to be released\n");
-  } else{
+  } else {
     while(ue_id != ues_in_enb->second.end() )
     {
       std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_mme_ue_s1ap_id_to_ue_ctx.find(*ue_id);

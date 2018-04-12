@@ -81,6 +81,7 @@ public:
 
   bool add_ue_ctx_to_imsi_map(ue_ctx_t *ue_ctx);
   bool add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx);
+  bool add_ue_to_enb_set(uint16_t enb_id, uint32_t mme_ue_s1ap_id);
 
   ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
   ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
