@@ -45,12 +45,12 @@ pcsc_usim::~pcsc_usim()
   sc.deinit();
 }
 
-void pcsc_usim::init(usim_args_t *args, srslte::log *log_)
+int pcsc_usim::init(usim_args_t *args, srslte::log *log_)
 {
   log = log_;
 
-  if (sc.init(args, log_) == SRSLTE_SUCCESS) {
-    initiated = true;
+  if (sc.init(args, log_) != SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
   }
 
   // Read IMSI from SIM card
@@ -92,6 +92,10 @@ void pcsc_usim::init(usim_args_t *args, srslte::log *log_)
   // Get MNC length
   mnc_length = sc.get_mnc_len();
   log->debug("MNC length %d\n", mnc_length);
+
+  initiated = true;
+
+  return SRSLTE_SUCCESS;
 }
 
 void pcsc_usim::stop()

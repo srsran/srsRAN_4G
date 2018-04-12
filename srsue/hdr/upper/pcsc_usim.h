@@ -65,7 +65,7 @@ class pcsc_usim
 public:
   pcsc_usim();
   ~pcsc_usim();
-  void init(usim_args_t *args, srslte::log *usim_log_);
+  int init(usim_args_t *args, srslte::log *usim_log_);
   void stop();
 
   // NAS interface

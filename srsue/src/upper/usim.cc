@@ -36,7 +36,7 @@ namespace srsue{
 usim::usim() : initiated(false)
 {}
 
-void usim::init(usim_args_t *args, srslte::log *usim_log_)
+int usim::init(usim_args_t *args, srslte::log *usim_log_)
 {
   usim_log = usim_log_;
   imsi_str = args->imsi;
@@ -89,6 +89,8 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
     auth_algo = auth_algo_xor;
   }
   initiated = true;
+
+  return SRSLTE_SUCCESS;
 }
 
 void usim::stop()
