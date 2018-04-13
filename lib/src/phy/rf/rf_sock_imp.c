@@ -268,7 +268,7 @@ void rf_sock_suppress_stdout(void *h)
 static void rf_sock_handle_error(srslte_rf_error_t error)
 {
   // XXX TODO make use of this handler
-  RF_SOCK_INFO("%s:%s type %s, opt %d, msg %s\b", 
+  RF_SOCK_INFO("type %s", 
                 error.type == SRSLTE_RF_ERROR_LATE      ? "late"      :
                 error.type == SRSLTE_RF_ERROR_UNDERFLOW ? "underflow" :
                 error.type == SRSLTE_RF_ERROR_OVERFLOW  ? "overflow"  :
@@ -446,7 +446,7 @@ static int rf_sock_vecio_recv(void *h, struct iovec iov[IOV_NUM])
      {
        if(! (errno == EAGAIN || errno == EWOULDBLOCK))
          {
-           RF_SOCK_WARN("RX reqlen %d, error %s", 
+           RF_SOCK_WARN("RX reqlen %ld, error %s", 
                         IOV_2_LEN(iov), strerror(errno));
          }
      }
@@ -474,7 +474,7 @@ int rf_sock_send_msg(rf_sock_tx_info_t * tx_info)
      {
        ++_info->tx_nof_overruns;
 
-       RF_SOCK_WARN("%d bytes already in Q, discard this msg len %d,",
+       RF_SOCK_DBUG("%d bytes already in Q, discard this msg len %ld,",
                     nbytes_inq, IOV_2_LEN(tx_info->iov));
 
        return 0;
@@ -700,23 +700,41 @@ static int rf_sock_open_unix_sock(rf_sock_info_t * _info,
 
 static int rf_sock_open_ipc(rf_sock_info_t * _info)
 {
+  const char * client_path = getenv("SRSLTE_IPC_CLIENT_SOCK");
+
+  if(!client_path)
+    {
+      client_path = RF_SOCK_CLIENT_PATH;
+    }
+
+  RF_SOCK_INFO("unix_socket client %s", client_path);
+
+  const char * server_path = getenv("SRSLTE_IPC_SERVER_SOCK");
+
+  if(!server_path)
+    {
+      server_path = RF_SOCK_SERVER_PATH;
+    }
+
+  RF_SOCK_INFO("unix_socket server %s", server_path);
+
   if(rf_sock_is_enb(_info))
     {
       return rf_sock_open_unix_sock(_info,
-                                    RF_SOCK_SERVER_PATH,
-                                    RF_SOCK_CLIENT_PATH);
+                                    server_path,
+                                    client_path);
     }
   else if(rf_sock_is_ue(_info))
     {
       return rf_sock_open_unix_sock(_info,
-                                    RF_SOCK_CLIENT_PATH, 
-                                    RF_SOCK_SERVER_PATH);
+                                    client_path, 
+                                    server_path);
     }
   else
     {
       return rf_sock_open_unix_sock(_info,
-                                    RF_SOCK_CLIENT_PATH, 
-                                    RF_SOCK_CLIENT_PATH);
+                                    client_path, 
+                                    client_path);
     }
 }
 
@@ -907,7 +925,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
        tx_info->iov[0].iov_base = (void*)&tx_info->iohdr;
        tx_info->iov[0].iov_len  = sizeof(tx_info->iohdr);
        tx_info->iov[1].iov_base = (void*)&tx_info->cf_data;
-       tx_info->iov[1].iov_len  = 0;
+       tx_info->iov[1].iov_len  = 0; // TBD per msg
  
        tx_info->mhdr.msg_name       = &rf_sock_info.tx_addr;
        tx_info->mhdr.msg_namelen    = sizeof(rf_sock_info.tx_addr);
