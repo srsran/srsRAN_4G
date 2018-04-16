@@ -47,23 +47,25 @@ pcsc_usim::~pcsc_usim()
 
 int pcsc_usim::init(usim_args_t *args, srslte::log *log_)
 {
+  int ret = SRSLTE_ERROR;
   log = log_;
 
   if (sc.init(args, log_) != SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
+    return ret;
   }
 
   // Read IMSI from SIM card
-  char tmp[100];
-  size_t tmp_len;
+  char tmp[15];
+  size_t tmp_len = 15; // set to max IMSI length
   if (sc.get_imsi(tmp, &tmp_len)) {
-    log->error("Error reading IMSI from SIM\n");
+    log->error("Error reading IMSI from SIM.\n");
+    return ret;
   }
   imsi_str = tmp;
 
   // Check extracted IMSI and convert
-  const char *imsi_c = imsi_str.c_str();
-  if(15 == args->imsi.length()) {
+  if(15 == imsi_str.length()) {
+    const char *imsi_c = imsi_str.c_str();
     imsi = 0;
     for(int i = 0; i < 15; i++)
     {
@@ -71,13 +73,14 @@ int pcsc_usim::init(usim_args_t *args, srslte::log *log_)
       imsi += imsi_c[i] - '0';
     }
   } else {
-    log->error("Invalid length for ISMI: %zu should be %d\n", imsi_str.length(), 15);
+    log->error("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
     log->console("Invalid length for IMSI: %zu should be %d\n", imsi_str.length(), 15);
+    return ret;
   }
 
   // Check IMEI
-  const char *imei_c = args->imei.c_str();
   if(15 == args->imei.length()) {
+    const char *imei_c = args->imei.c_str();
     imei = 0;
     for(int i = 0; i < 15; i++)
     {
@@ -87,6 +90,7 @@ int pcsc_usim::init(usim_args_t *args, srslte::log *log_)
   } else {
     log->error("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
     log->console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+    return ret;
   }
 
   // Get MNC length
@@ -94,8 +98,9 @@ int pcsc_usim::init(usim_args_t *args, srslte::log *log_)
   log->debug("MNC length %d\n", mnc_length);
 
   initiated = true;
+  ret = SRSLTE_SUCCESS;
 
-  return SRSLTE_SUCCESS;
+  return ret;
 }
 
 void pcsc_usim::stop()
@@ -415,7 +420,7 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
 
   ret = SCardListReaders(scard_context, NULL, readers, &len);
   if (ret != SCARD_S_SUCCESS) {
-    log->error("%s\n", pcsc_stringify_error(ret));
+    log->error("SCardListReaders() 2: %s\n", pcsc_stringify_error(ret));
     goto clean_exit;
   }
   if (len < 3) {
@@ -508,6 +513,12 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
     pin1_needed = true;
   } else {
     pin1_needed = false;
+  }
+
+  // stop before pin retry counter reaches zero
+  if (pin1_needed && get_pin_retry_counter() <= 1) {
+    log->error("PIN1 needed for SIM access (retry counter=%d), emergency stop.\n", get_pin_retry_counter());
+    goto clean_exit;
   }
 
   // Set pin

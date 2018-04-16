@@ -53,9 +53,14 @@ int main(int argc, char **argv)
   args.imei = "353490069873319";
 
   srsue::pcsc_usim usim;
-  usim.init(&args, &usim_log);
+  if (usim.init(&args, &usim_log)) {
+    printf("Error initializing PC/SC USIM.\n");
+    return SRSLTE_ERROR;
+  };
 
   std::string imsi = usim.get_imsi_str();
   cout << "IMSI: " << imsi << endl;
   auth_result_t result = usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme);
+
+  return SRSLTE_SUCCESS;
 }
