@@ -320,6 +320,11 @@ void mac::harq_recv(uint32_t tti, bool ack, mac_interface_phy::tb_action_ul_t* a
 
 void mac::setup_timers()
 {
+  // stop currently running time alignment timer
+  if (timers.get(timer_alignment)->is_running()) {
+    timers.get(timer_alignment)->stop();
+  }
+
   int value = liblte_rrc_time_alignment_timer_num[config.main.time_alignment_timer];
   if (value > 0) {
     timers.get(timer_alignment)->set(this, value);
