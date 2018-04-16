@@ -402,7 +402,7 @@ int srslte_pdsch_enable_csi(srslte_pdsch_t *q, bool enable) {
   if (enable) {
     for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       if (!q->csi[i]) {
-        q->csi[i] = srslte_vec_malloc(sizeof(float) * q->max_re);
+        q->csi[i] = srslte_vec_malloc(sizeof(float) * q->max_re * 2);
         if (!q->csi[i]) {
           return SRSLTE_ERROR;
         }
@@ -757,7 +757,7 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
     }
 
     // Pre-decoder
-    if (srslte_predecoding_type(q->symbols, q->ce, x, q->csi[0], q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
+    if (srslte_predecoding_type(q->symbols, q->ce, x, q->csi, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
                                       cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, pdsch_scaling, noise_estimate)<0) {
       DEBUG("Error predecoding\n");
       return SRSLTE_ERROR;
