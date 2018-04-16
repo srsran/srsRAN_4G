@@ -258,7 +258,7 @@ public:
 private: 
   static const int MAX_CE_PAYLOAD_LEN = 8; 
   uint32_t lcid;
-  int      nof_bytes; 
+  uint32_t nof_bytes; 
   uint8_t* payload; 
   uint8_t  w_payload_ce[8];
   bool     F_bit;    
