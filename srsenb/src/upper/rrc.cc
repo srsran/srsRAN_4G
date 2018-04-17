@@ -1090,8 +1090,12 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
   LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT res;
+  res.ext=false;
   res.E_RABSetupListBearerSURes.len = 0;
   res.E_RABFailedToSetupListBearerSURes.len = 0;
+
+  res.CriticalityDiagnostics_present = false;
+  res.E_RABFailedToSetupListBearerSURes_present = false;
 
   for(uint32_t i=0; i<e->len; i++) {
     res.E_RABSetupListBearerSURes_present = true;
