@@ -729,18 +729,17 @@ static int srslte_predecoding_ccd_2x2_zf_csi(cf_t *y[SRSLTE_MAX_PORTS],
   float norm = 2.0f / scaling;
 
 #if SRSLTE_SIMD_CF_SIZE != 0
-
 #if SRSLTE_SIMD_CF_SIZE == 16
-  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f,
-                                       +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f};
-  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f
-                                       -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f};
+  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f,
+                                       +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f};
+  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f,
+                                       -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f};
 #elif SRSLTE_SIMD_CF_SIZE == 8
-  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f};
-  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f};
+  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f};
+  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f};
 #elif SRSLTE_SIMD_CF_SIZE == 4
-  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, +0.0f, -0.0f, -0.0f};
-  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, -0.0f, +0.0f, +0.0f};
+  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, -0.0f, +0.0f, -0.0f};
+  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, +0.0f, -0.0f, +0.0f};
 #endif
 
   simd_f_t mask1 = srslte_simd_f_loadu(_mask1);
@@ -821,18 +820,17 @@ static int srslte_predecoding_ccd_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS],
   float norm = 2.0f / scaling;
 
 #if SRSLTE_SIMD_CF_SIZE != 0
-
 #if SRSLTE_SIMD_CF_SIZE == 16
-  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f,
-                                       +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f};
-  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f
-                                       -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f};
+  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f,
+                                       +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f};
+  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f,
+                                       -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f};
 #elif SRSLTE_SIMD_CF_SIZE == 8
-  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f};
-  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f};
+  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f};
+  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f, -0.0f, +0.0f};
 #elif SRSLTE_SIMD_CF_SIZE == 4
-  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, +0.0f, -0.0f, -0.0f};
-  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, -0.0f, +0.0f, +0.0f};
+  float _mask1[SRSLTE_SIMD_CF_SIZE] = {+0.0f, -0.0f, +0.0f, -0.0f};
+  float _mask2[SRSLTE_SIMD_CF_SIZE] = {-0.0f, +0.0f, -0.0f, +0.0f};
 #endif
 
   simd_f_t mask1 = srslte_simd_f_loadu(_mask1);
@@ -1070,7 +1068,7 @@ static int srslte_predecoding_ccd_2x2_mmse(cf_t *y[SRSLTE_MAX_PORTS],
 #endif /* SRSLTE_SIMD_CF_SIZE != 0 */
 
   cf_t h00, h01, h10, h11;
-  for (i = 0; i < nof_symbols; i++) {
+  for (; i < nof_symbols; i++) {
 
     // Even precoder
     h00 = +h[0][0][i] + h[1][0][i];
