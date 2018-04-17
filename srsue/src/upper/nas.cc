@@ -30,6 +30,7 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <srslte/asn1/liblte_mme.h>
 #include "srslte/asn1/liblte_rrc.h"
 #include "srsue/hdr/upper/nas.h"
 #include "srslte/common/security.h"
@@ -51,7 +52,10 @@ nas::nas()
   ctxt.tx_count = 0;
   ctxt.cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   ctxt.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
+<<<<<<< HEAD
   plmn_is_selected = false;
+=======
+>>>>>>> perform initial attach with ESM info transfer
 }
 
 void nas::init(usim_interface_nas *usim_,
@@ -353,7 +357,13 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 uint32_t nas::get_ul_count() {
-  return ctxt.tx_count;
+  // UL count for RRC key derivation depends on ESM information transfer procedure
+  if (cfg.apn.empty()) {
+    // No ESM info transfer has been sent
+    return ctxt.tx_count - 1;
+  } else {
+    return ctxt.tx_count - 2;
+  }
 }
 
 bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
@@ -483,7 +493,11 @@ void nas::cipher_encrypt(byte_buffer_t *pdu)
       memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
       break;
   default:
+<<<<<<< HEAD
       nas_log->error("Ciphering algorithm not known\n");
+=======
+      nas_log->error("Ciphering algorithmus not known\n");
+>>>>>>> perform initial attach with ESM info transfer
       break;
   }
 }
@@ -517,7 +531,7 @@ void nas::cipher_decrypt(byte_buffer_t *pdu)
       memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
       break;
     default:
-      nas_log->error("Ciphering algorithmus not known");
+      nas_log->error("Ciphering algorithmus not known\n");
       break;
   }
 }
@@ -921,8 +935,15 @@ void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu) {
-  nas_log->error("TODO:parse_esm_information_request\n");
+  LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
+  liblte_mme_unpack_esm_information_request_msg((LIBLTE_BYTE_MSG_STRUCT *)pdu, &esm_info_req);
+
+  nas_log->info("ESM information request received for beaser=%d, transaction_id=%d\n", esm_info_req.eps_bearer_id, esm_info_req.proc_transaction_id);
+  ctxt.rx_count++;
   pool->deallocate(pdu);
+
+  // send response
+  send_esm_information_response(esm_info_req.proc_transaction_id);
 }
 
 void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
@@ -1065,24 +1086,18 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
   pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
   pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
+  pdn_con_req.apn_present = false;
 
   // Set the optional flags
-  pdn_con_req.esm_info_transfer_flag_present = false; //FIXME: Check if this is needed
   if (cfg.apn == "") {
-    pdn_con_req.apn_present = false;
+    pdn_con_req.esm_info_transfer_flag_present = false;
   } else {
-    pdn_con_req.apn_present = true;
-    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT apn = {0};
-    strncpy(apn.apn, cfg.apn.c_str(), LIBLTE_STRING_LEN);
-    pdn_con_req.apn = apn;
+    // request ESM info transfer is APN is specified
+    pdn_con_req.esm_info_transfer_flag_present = true;
+    pdn_con_req.esm_info_transfer_flag = LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_REQUIRED;
   }
 
-  // Request DNS Server
-  pdn_con_req.protocol_cnfg_opts_present = true;
-  pdn_con_req.protocol_cnfg_opts.opt[0].id = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_P_CSCF_IPV4_ADDRESS_REQUEST;
-  pdn_con_req.protocol_cnfg_opts.opt[1].id = LIBLTE_MME_ADDITIONAL_PARAMETERS_UL_DNS_SERVER_IPV4_ADDRESS_REQUEST;
-  pdn_con_req.protocol_cnfg_opts.N_opts = 2;
-
+  pdn_con_req.protocol_cnfg_opts_present = false;
   pdn_con_req.device_properties_present = false;
 
   // Pack the message
@@ -1159,7 +1174,91 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
 
 void nas::send_identity_response() {}
 
-void nas::send_esm_information_response() {}
+void nas::send_service_request() {
+  byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_service_request().\n");
+    return;
+  }
+
+  // Pack the service request message directly
+  msg->msg[0] = (LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+  msg->N_bytes++;
+  msg->msg[1] = (ctxt.ksi & 0x07) << 5;
+  msg->msg[1] |= ctxt.tx_count & 0x1F;
+  msg->N_bytes++;
+
+  uint8_t mac[4];
+  integrity_generate(&k_nas_int[16],
+                     ctxt.tx_count,
+                     SECURITY_DIRECTION_UPLINK,
+                     &msg->msg[0],
+                     2,
+                     &mac[0]);
+  // Set the short MAC
+  msg->msg[2] = mac[2];
+  msg->N_bytes++;
+  msg->msg[3] = mac[3];
+  msg->N_bytes++;
+
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+
+  nas_log->info("Sending service request\n");
+  rrc->write_sdu(cfg.lcid, msg);
+  ctxt.tx_count++;
+}
+
+void nas::send_esm_information_response(const uint8 proc_transaction_id) {
+  LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT esm_info_resp;
+  esm_info_resp.proc_transaction_id = proc_transaction_id;
+  esm_info_resp.eps_bearer_id = 0; // respone shall always have no bearer assigned
+
+  if (cfg.apn == "") {
+    esm_info_resp.apn_present = false;
+  } else {
+    esm_info_resp.apn_present = true;
+    esm_info_resp.apn.apn = cfg.apn;
+  }
+  esm_info_resp.protocol_cnfg_opts_present = false;
+
+  byte_buffer_t *pdu = pool_allocate;
+  if (!pdu) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_attach_request().\n");
+    return;
+  }
+
+  if (liblte_mme_pack_esm_information_response_msg(&esm_info_resp,
+                                                   LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                                   ctxt.tx_count,
+                                                   (LIBLTE_BYTE_MSG_STRUCT *)pdu)) {
+    nas_log->error("Error packing ESM information response.\n");
+    return;
+  }
+
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  cipher_encrypt(pdu);
+  if (pdu->N_bytes > 5) {
+    integrity_generate(&k_nas_int[16],
+                       ctxt.tx_count,
+                       SECURITY_DIRECTION_UPLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes - 5,
+                       &pdu->msg[1]);
+  } else {
+    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+    return;
+  }
+
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending ESM information response\n");
+  rrc->write_sdu(cfg.lcid, pdu);
+
+  ctxt.tx_count++;
+}
 
 
 /*******************************************************************************

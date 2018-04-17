@@ -10041,10 +10041,19 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_information_request_msg(LIBLTE_BYTE_MSG_
 {
     LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
     uint8             *msg_ptr = msg->msg;
+    uint8              sec_hdr_type;
 
     if(msg          != NULL &&
        esm_info_req != NULL)
     {
+        // Security Header Type
+        sec_hdr_type = (msg->msg[0] & 0xF0) >> 4;
+        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS == sec_hdr_type) {
+            msg_ptr++;
+        } else{
+            msg_ptr += 6;
+        }
+
         // EPS Bearer ID
         esm_info_req->eps_bearer_id = (*msg_ptr >> 4);
         msg_ptr++;
@@ -10072,6 +10081,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_information_request_msg(LIBLTE_BYTE_MSG_
     Document Reference: 24.301 v10.2.0 Section 8.3.14
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_esm_information_response_msg(LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT *esm_info_resp,
+                                                               uint8                                         sec_hdr_type,
+                                                               uint32                                        count,
                                                                LIBLTE_BYTE_MSG_STRUCT                         *msg)
 {
     LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
@@ -10080,6 +10091,20 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_esm_information_response_msg(LIBLTE_MME_ESM_IN
     if(esm_info_resp != NULL &&
        msg           != NULL)
     {
+        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS != sec_hdr_type)
+        {
+          // Protocol Discriminator and Security Header Type
+          *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+          msg_ptr++;
+
+          // MAC will be filled in later
+          msg_ptr += 4;
+
+          // Sequence Number
+          *msg_ptr = count & 0xFF;
+          msg_ptr++;
+        }
+
         // Protocol Discriminator and EPS Bearer ID
         *msg_ptr = (esm_info_resp->eps_bearer_id << 4) | (LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT);
         msg_ptr++;
@@ -10116,6 +10141,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_esm_information_response_msg(LIBLTE_MME_ESM_IN
 
     return(err);
 }
+
+
 LIBLTE_ERROR_ENUM srslte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT                         *msg,
                                                                  LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT *esm_info_resp)
 {
