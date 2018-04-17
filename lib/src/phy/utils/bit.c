@@ -205,6 +205,65 @@ void srslte_bit_interleaver_run(srslte_bit_interleaver_t *q, uint8_t *input, uin
 }
 
 
+void srslte_bit_interleave_i(uint8_t *input, uint8_t *output, uint32_t *interleaver, uint32_t nof_bits) {
+  srslte_bit_interleave_i_w_offset(input, output, interleaver, nof_bits, 0);
+}
+
+void srslte_bit_interleave_i_w_offset(uint8_t *input, uint8_t *output, uint32_t *interleaver, uint32_t nof_bits, uint32_t w_offset) {
+  uint32_t st=0, w_offset_p=0;
+  static const uint8_t mask[] = { 0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
+
+  if (w_offset < 8 && w_offset > 0) {
+    st=1;
+    for (uint32_t j=0;j<8-w_offset;j++) {
+      uint32_t i_p = interleaver[j];
+      if (input[i_p/8] & mask[i_p%8]) {
+        output[0] |= mask[j+w_offset];
+      } else {
+        output[0] &= ~(mask[j+w_offset]);
+      }
+    }
+    w_offset_p=8-w_offset;
+  }
+  for (uint32_t i=st;i<nof_bits/8;i++) {
+
+    uint32_t i_p0 = interleaver[i*8+0-w_offset_p];
+    uint32_t i_p1 = interleaver[i*8+1-w_offset_p];
+    uint32_t i_p2 = interleaver[i*8+2-w_offset_p];
+    uint32_t i_p3 = interleaver[i*8+3-w_offset_p];
+    uint32_t i_p4 = interleaver[i*8+4-w_offset_p];
+    uint32_t i_p5 = interleaver[i*8+5-w_offset_p];
+    uint32_t i_p6 = interleaver[i*8+6-w_offset_p];
+    uint32_t i_p7 = interleaver[i*8+7-w_offset_p];
+
+    uint8_t out0  = (input[i_p0/8] & mask[i_p0%8])?mask[0]:0;
+    uint8_t out1  = (input[i_p1/8] & mask[i_p1%8])?mask[1]:0;
+    uint8_t out2  = (input[i_p2/8] & mask[i_p2%8])?mask[2]:0;
+    uint8_t out3  = (input[i_p3/8] & mask[i_p3%8])?mask[3]:0;
+    uint8_t out4  = (input[i_p4/8] & mask[i_p4%8])?mask[4]:0;
+    uint8_t out5  = (input[i_p5/8] & mask[i_p5%8])?mask[5]:0;
+    uint8_t out6  = (input[i_p6/8] & mask[i_p6%8])?mask[6]:0;
+    uint8_t out7  = (input[i_p7/8] & mask[i_p7%8])?mask[7]:0;
+
+    output[i] = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7;
+  }
+  for (uint32_t j=0;j<nof_bits%8;j++) {
+    uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];
+    if (input[i_p/8] & mask[i_p%8]) {
+      output[nof_bits/8] |= mask[j];
+    } else {
+      output[nof_bits/8] &= ~(mask[j]);
+    }
+  }
+  for (uint32_t j=0;j<w_offset;j++) {
+    uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];
+    if (input[i_p/8] & (1<<(7-i_p%8))) {
+      output[nof_bits/8] |= mask[j];
+    } else {
+      output[nof_bits/8] &= ~(mask[j]);
+    }
+  }
+}
 
 void srslte_bit_interleave(uint8_t *input, uint8_t *output, uint16_t *interleaver, uint32_t nof_bits) {
   srslte_bit_interleave_w_offset(input, output, interleaver, nof_bits, 0);

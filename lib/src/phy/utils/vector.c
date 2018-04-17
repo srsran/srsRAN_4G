@@ -104,6 +104,12 @@ void srslte_vec_lut_sss(const short *x, const unsigned short *lut, short *y, con
   srslte_vec_lut_sss_simd(x, lut, y, len);
 }
 
+void srslte_vec_lut_sis(const short *x, const unsigned int *lut, short *y, const uint32_t len) {
+  for (int i=0; i < len; i++) {
+    y[lut[i]] = x[i];
+  }
+}
+
 void *srslte_vec_malloc(uint32_t size) {
   void *ptr;
   if (posix_memalign(&ptr, SRSLTE_SIMD_BIT_ALIGN, size)) {
