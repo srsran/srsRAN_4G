@@ -474,6 +474,7 @@ s1ap::release_ues_ecm_ctx_in_enb(int32_t enb_assoc)
       ecm_ctx->state = ECM_STATE_IDLE;
       ecm_ctx->mme_ue_s1ap_id = 0;
       ecm_ctx->enb_ue_s1ap_id = 0;
+      ues_in_enb->second.erase(++ue_id);
     }
   }
 }
