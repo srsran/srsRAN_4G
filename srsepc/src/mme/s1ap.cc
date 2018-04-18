@@ -470,11 +470,10 @@ s1ap::release_ues_ecm_ctx_in_enb(int32_t enb_assoc)
         emm_ctx->state = EMM_STATE_DEREGISTERED;
       }
       m_s1ap_log->console("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
-      ues_in_enb->second.erase(ecm_ctx->mme_ue_s1ap_id);
       ecm_ctx->state = ECM_STATE_IDLE;
       ecm_ctx->mme_ue_s1ap_id = 0;
       ecm_ctx->enb_ue_s1ap_id = 0;
-      ues_in_enb->second.erase(++ue_id);
+      ues_in_enb->second.erase(ue_id++);
     }
   }
 }
