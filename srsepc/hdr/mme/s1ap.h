@@ -82,13 +82,13 @@ public:
 
   bool add_ue_ctx_to_imsi_map(ue_ctx_t *ue_ctx);
   bool add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx);
-  bool add_ue_to_enb_set(uint16_t enb_id, uint32_t mme_ue_s1ap_id);
+  bool add_ue_to_enb_set(int32_t enb_assoc, uint32_t mme_ue_s1ap_id);
 
   ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
   ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
 
   bool release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
-  void release_ues_ecm_ctx_in_enb(uint16_t enb_id);
+  void release_ues_ecm_ctx_in_enb(int32_t enb_assoc);
   bool delete_ue_ctx(uint64_t imsi);
 
   uint32_t allocate_m_tmsi(uint64_t imsi);
@@ -115,7 +115,7 @@ private:
   int m_s1mme;
   std::map<uint16_t, enb_ctx_t*>                    m_active_enbs;
   std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
-  std::map<uint16_t,std::set<uint32_t> >            m_enb_id_to_ue_ids;
+  std::map<int32_t,std::set<uint32_t> >             m_enb_assoc_to_ue_ids;
 
   std::map<uint64_t, ue_ctx_t*>                     m_imsi_to_ue_ctx;
   std::map<uint32_t, ue_ctx_t*>                     m_mme_ue_s1ap_id_to_ue_ctx;

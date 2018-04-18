@@ -359,7 +359,7 @@ s1ap_nas_transport::handle_nas_attach_request(uint32_t enb_ue_s1ap_id,
 
   //Get attach type from attach request
   if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
-  { 
+  {
     m_s1ap_log->console("Attach Request -- IMSI-style attach request\n");
     m_s1ap_log->info("Attach Request -- IMSI-style attach request\n");
     handle_nas_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
@@ -498,7 +498,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   memcpy(new_ctx,&ue_ctx,sizeof(ue_ctx_t));
   m_s1ap->add_ue_ctx_to_imsi_map(new_ctx);
   m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(new_ctx);
-  m_s1ap->add_ue_to_enb_set(enb_id,mme_ue_s1ap_id);
+  m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
   pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
@@ -612,7 +612,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
     ue_ctx_t *new_ctx = new ue_ctx_t;
     memcpy(new_ctx,&ue_ctx,sizeof(ue_ctx_t));
     m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(new_ctx);
-    m_s1ap->add_ue_to_enb_set(enb_id,mme_ue_s1ap_id);
+    m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
 
     pack_identity_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
     *reply_flag = true;
@@ -636,7 +636,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       if(msg_valid == true && emm_ctx->state == EMM_STATE_DEREGISTERED)
       {
         m_s1ap_log->console("GUTI Attach Integrity valid. UL count %d, DL count %d\n",emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.dl_nas_count);
-        
+
         //Create new MME UE S1AP Identity
         emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
         ecm_ctx->mme_ue_s1ap_id = emm_ctx->mme_ue_s1ap_id;
@@ -662,7 +662,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
         //Store context based on MME UE S1AP id
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
-        m_s1ap->add_ue_to_enb_set(enb_id,mme_ue_s1ap_id);
+        m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
 
         //Re-generate K_eNB
         liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
