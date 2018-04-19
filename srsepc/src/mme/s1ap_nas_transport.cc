@@ -1068,7 +1068,7 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   {
     pack_esm_information_request(reply_buffer, emm_ctx, ecm_ctx);
     m_s1ap_log->console("Sending ESM information request\n");
-    m_s1ap_log->info("Sending ESM information request\n");
+    m_s1ap_log->info_hex(reply_buffer->msg, reply_buffer->N_bytes, "Sending ESM information request\n");
     *reply_flag = true;
   }
   else
@@ -1698,6 +1698,8 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
     return false;
   }
 
+  m_s1ap_log->debug_hex(nas_buffer->msg, nas_buffer->N_bytes, "ESM info request after packing: ");
+
   uint8_t mac[4];
   srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
                              ue_emm_ctx->security_ctxt.dl_nas_count,
@@ -1709,6 +1711,9 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
                              );
 
   memcpy(&nas_buffer->msg[1],mac,4);
+
+  m_s1ap_log->debug_hex(nas_buffer->msg, nas_buffer->N_bytes, "ESM info request after security&integrity: ");
+
   //Copy NAS PDU to Downlink NAS Trasport message buffer
   memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
   dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
