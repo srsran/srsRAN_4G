@@ -9962,7 +9962,7 @@ LIBLTE_ERROR_ENUM srslte_mme_pack_esm_information_request_msg(LIBLTE_MME_ESM_INF
        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS != sec_hdr_type)
        {
            // Protocol Discriminator and Security Header Type
-           *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT);
+           *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
            msg_ptr++;
 
            // MAC will be filled in later
@@ -10160,7 +10160,7 @@ LIBLTE_ERROR_ENUM srslte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG
         {
           msg_ptr++;
         }else{
-          msg_ptr += 7;
+          msg_ptr += 6;
         }
         // EPS Bearer ID
         esm_info_resp->eps_bearer_id = (*msg_ptr >> 4);
