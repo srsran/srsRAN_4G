@@ -985,7 +985,7 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
     // preload any tx info
     rf_sock_info.tx_msg.iov[0].iov_base = &rf_sock_info.tx_msg.iomsg.hdr;
     rf_sock_info.tx_msg.iov[0].iov_len  = sizeof(rf_sock_info.tx_msg.iomsg.hdr);
-    rf_sock_info.tx_msg.iov[1].iov_base = rf_sock_info.tx_msg.iomsg.data;
+    rf_sock_info.tx_msg.iov[1].iov_base = NULL;
     rf_sock_info.tx_msg.iov[1].iov_len  = 0; // set per tx msg
  
     rf_sock_info.tx_msg.mhdr.msg_name       = &rf_sock_info.tx_addr;
@@ -1417,7 +1417,7 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
    _info->tx_msg.iomsg.hdr.nof_bytes   = nof_bytes;
    _info->tx_msg.iomsg.hdr.nof_samples = nsamples;
    _info->tx_msg.iov[1].iov_len        = nof_bytes;
-   memcpy(_info->tx_msg.iomsg.data, data, nof_bytes);
+   _info->tx_msg.iov[1].iov_base       = data;
 
    struct timeval tv_now, tv_diff;
 
