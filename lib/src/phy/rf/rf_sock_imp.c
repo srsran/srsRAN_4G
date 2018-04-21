@@ -146,10 +146,10 @@ static char rf_sock_node_type[2] = {0};
                              } while(0);
 
 
-#define RF_SOCK_LOG_FUNC_TODO printf("XXX_TODO file:%s func:%s line:%d XXX_TODO\n", \
-                                     __FILE__,                                      \
-                                     __func__,                                      \
-                                     __LINE__);
+#define RF_SOCK_LOG_FUNC_TODO fprintf(stderr, "XXX_TODO file:%s func:%s line:%d XXX_TODO\n", \
+                                      __FILE__,                                              \
+                                      __func__,                                              \
+                                      __LINE__);
 
 // unix socket endpoints should have visibility for LXC container
 // deployment of ue/enb.
@@ -390,16 +390,16 @@ static void rf_sock_print_hex(const char * note, void * buf, const int buflen)
   int cnt = 0;
   const int strl = 17;
   char str[strl];
-  memset (str, 0, sizeof (str));
+  memset(str, 0, sizeof (str));
 
-  printf ("  %s", note);
+  printf("  %s", note);
 
   for(i = 0; i < buflen; ++i)
     {
       if(cnt % (strl - 1) == 0)
         {
-          printf ("  %s\n%04X: ", str, cnt);
-          memset (str, 0, strl);
+          printf("  %s\n%04X: ", str, cnt);
+          memset(str, 0, strl);
         }
 
       if(p[cnt] < ' ' || p[cnt] >= 127)
@@ -410,17 +410,17 @@ static void rf_sock_print_hex(const char * note, void * buf, const int buflen)
         {
           str[cnt % (strl - 1)] = p[cnt];
         }
-      printf ("%02X ", p[cnt++]);
+      printf("%02X ", p[cnt++]);
     }
 
   if (i % 16)
     {
-      printf ("  %*s\n\n",
+      printf("  %*s\n\n",
               (strl - 1) + ((strl - 1) - buflen % (strl - 1)) * 2, str);
     }
   else
     {
-      printf ("  %s\n", str);
+      printf("  %s\n", str);
     }
 }
 #endif
@@ -493,13 +493,12 @@ static int rf_sock_send_msg(void * h)
      }
    else
      {
-
-       // do not over run the tx socket
-       if(nbytes_inq > 0)
+       // if more than 1 sf pending back off
+       if(nbytes_inq > 2 * n_bytes)
         {
           ++_info->tx_nof_discard;
 
-          RF_SOCK_WARN("%d bytes already in Q, discard this msg len %d, total discard %zu",
+          RF_SOCK_WARN("%d bytes already in Q, this msg len %d, total discard %zu",
                        nbytes_inq, 
                        n_bytes,
                        _info->tx_nof_discard);
@@ -568,7 +567,7 @@ static rf_sock_iomsg_t * rf_sock_rxQ_pop(void *h, pthread_mutex_t * lock)
 
         _info->rx_msgQ_table[_info->rx_msgQ_tail] = NULL;
 
-        _info->rx_msgQ_num -= 1;
+        --_info->rx_msgQ_num;
 
         RF_SOCK_BUMP_MSGQ_IDX(_info->rx_msgQ_tail);
      }
@@ -600,18 +599,17 @@ static void rf_sock_rxQ_push(void *h, rf_sock_iomsg_t * msg, pthread_mutex_t * l
 
    _info->rx_msgQ_table[_info->rx_msgQ_head] = msg;
 
+   RF_SOCK_BUMP_MSGQ_IDX(_info->rx_msgQ_head);
+
    // full
    if(_info->rx_msgQ_num == RF_SOCK_MSGQ_SIZE)
      {
-        RF_SOCK_BUMP_MSGQ_IDX(_info->rx_msgQ_head);
-
+        // kick the tail
         RF_SOCK_BUMP_MSGQ_IDX(_info->rx_msgQ_tail);
      }
    else
      {
         ++_info->rx_msgQ_num;
-
-        RF_SOCK_BUMP_MSGQ_IDX(_info->rx_msgQ_head);
      }
 
    pthread_cond_signal(&_info->rx_msgQ_cond);
@@ -638,6 +636,7 @@ static void * rf_sock_rx_worker(void * h)
    _info->rx_worker.is_running = true;
 
    // circular buffer to hold sf as they come in
+   // no copies needed
    rf_sock_iomsg_t rxQ[RF_SOCK_MSGQ_SIZE];
 
    for(int i = 0; i < RF_SOCK_MSGQ_SIZE; ++i)
@@ -658,7 +657,7 @@ static void * rf_sock_rx_worker(void * h)
    iov[0].iov_len  = sizeof(rf_sock_iohdr_t);
    iov[1].iov_len  = RF_SOCK_MAX_SF_LEN_BYTES;
 
-   struct timeval tv_rx_time, tv_diff, tv_tx_delay;
+   struct timeval tv_rx_time, tv_diff, tv_rx_delay;
 
    int Qidx = 0;
 
@@ -697,14 +696,14 @@ static void * rf_sock_rx_worker(void * h)
            {
              ++_info->rx_nof_late;
 
-             timersub(&tv_rx_time, &iomsg->hdr.tv_tx_time, &tv_tx_delay);
+             timersub(&tv_rx_time, &iomsg->hdr.tv_tx_time, &tv_rx_delay);
 
              timersub(&iomsg->hdr.tv_tx_tti, &tv_rx_time, &tv_diff);
 
-             RF_SOCK_WARN(" RX LATE, seqnum %lu, tx_delay %ld:%06ld, tx_tti %ld:%06ld, tti_diff %ld:%06ld, total late %zu",
+             RF_SOCK_WARN(" RX LATE, seqnum %lu, rx_delay %ld:%06ld, tx_tti %ld:%06ld, tti_diff %ld:%06ld, total late %zu",
                           iomsg->hdr.seqnum,
-                          tv_tx_delay.tv_sec,
-                          tv_tx_delay.tv_usec,
+                          tv_rx_delay.tv_sec,
+                          tv_rx_delay.tv_usec,
                           iomsg->hdr.tv_tx_tti.tv_sec % 60,
                           iomsg->hdr.tv_tx_tti.tv_usec,
                           tv_diff.tv_sec,
@@ -717,22 +716,26 @@ static void * rf_sock_rx_worker(void * h)
 
              rf_sock_rxQ_push(h, iomsg, &_info->rx_msgQ_lock);
 
-             if(! (++_info->rx_nof_ok % LOG_MODUL))
+             ++_info->rx_nof_ok;
+
+#ifdef DEBUG_MODE
+             if(! (info->rx_nof_ok % LOG_MODUL))
               {
-                timersub(&tv_rx_time, &iomsg->hdr.tv_tx_time, &tv_tx_delay);
+                timersub(&tv_rx_time, &iomsg->hdr.tv_tx_time, &tv_rx_delay);
 
                 timersub(&iomsg->hdr.tv_tx_tti, &tv_rx_time, &tv_diff);
 
-                RF_SOCK_WARN(" RX OK, seqnum %lu, tx_delay %ld:%06ld, tx_tti %ld:%06ld, tti_diff %ld:%06ld, total ok %zu",
+                RF_SOCK_INFO(" RX OK, seqnum %lu, rx_delay %ld:%06ld, tx_tti %ld:%06ld, tti_diff %ld:%06ld, total ok %zu",
                              iomsg->hdr.seqnum,
-                             tv_tx_delay.tv_sec,
-                             tv_tx_delay.tv_usec,
+                             tv_rx_delay.tv_sec,
+                             tv_rx_delay.tv_usec,
                              iomsg->hdr.tv_tx_tti.tv_sec % 60,
                              iomsg->hdr.tv_tx_tti.tv_usec,
                              tv_diff.tv_sec,
                              tv_diff.tv_usec,
                              _info->rx_nof_ok);
               }
+#endif
            }
        }
     }     
@@ -1333,11 +1336,13 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
    // lock msgQ
    pthread_mutex_lock(&_info->rx_msgQ_lock);
 
-   RF_SOCK_INFO("RX IN  pending %d, rx_srate %6.2f Mhz, nsamples %d, inQ %d",
+#ifdef DEBUG_MODE
+   RF_SOCK_DBUG("RX IN  pending %d, rx_srate %6.2f Mhz, nsamples %d, inQ %d",
                 nof_sf_pending,
                 _info->rx_srate / 1.0e6,
                 nsamples,
                 _info->rx_msgQ_num);
+#endif
 
    rf_sock_iomsg_t * readyQ[RF_SOCK_MSGQ_SIZE];
 
@@ -1566,25 +1571,31 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
 
        const int rc = rf_sock_send_msg(h) % 60;
 
-       if(rc > 0 && !(++_info->tx_nof_ok % LOG_MODUL))
+       if(rc > 0)
          {
-            struct timeval tv_diff;
+           ++_info->tx_nof_ok;
 
-            timersub(&tv_tx_tti, &tv_now, &tv_diff);
+#ifdef DEBUG_MODE
+           if(!(_info->tx_nof_ok % LOG_MODUL))
+             {     
+               struct timeval tv_diff;
 
-            RF_SOCK_WARN("TX OK, seqnum %lu, tx_tti %ld:%06ld, tti_diff %ld:%06ld, total ok %zu",
-                         _info->tx_msg.iomsg.hdr.seqnum,
-                          tv_tx_tti.tv_sec % 60,
-                         tv_tx_tti.tv_usec,
-                         tv_diff.tv_sec,
-                         tv_diff.tv_usec,
-                         _info->tx_nof_ok);
-         }
-     }
+               timersub(&tv_tx_tti, &tv_now, &tv_diff);
 
+               RF_SOCK_INFO("TX OK, seqnum %lu, tx_tti %ld:%06ld, tti_diff %ld:%06ld, total ok %zu",
+                            _info->tx_msg.iomsg.hdr.seqnum,
+                            tv_tx_tti.tv_sec % 60,
+                            tv_tx_tti.tv_usec,
+                            tv_diff.tv_sec,
+                            tv_diff.tv_usec,
+                            _info->tx_nof_ok);
+            }
 #ifdef HEX_DEBUG_MODE
-   rf_sock_print_hex("sample data", data, 64);
+      rf_sock_print_hex("sample data", data, 64);
 #endif
+#endif
+        }
+     }
 
    return nsamples;
 }

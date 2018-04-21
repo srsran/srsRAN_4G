@@ -25,6 +25,7 @@
  */
 
 #include "srsenb/hdr/metrics_stdout.h"
+#include "srslte/config.h"
 
 #include <unistd.h>
 #include <sstream>
@@ -89,7 +90,7 @@ void metrics_stdout::metrics_thread_run()
 {
   while(started)
   {
-    usleep(metrics_report_period*1e6);
+    usleep_scaled(metrics_report_period*1e6);
     if(enb_->get_metrics(metrics)) {
       if (metrics.rrc.n_ues > 0) {
         print_metrics();

@@ -43,7 +43,7 @@ namespace srsue{
 
 metrics_csv::metrics_csv(std::string filename)
   :n_reports(0)
-  ,metrics_report_period(1.0)
+  ,metrics_report_period(get_time_scaled(1.0))
   ,ue(NULL)
 {
   file.open(filename.c_str(), std::ios_base::out);
