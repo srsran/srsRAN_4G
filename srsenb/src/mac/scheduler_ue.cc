@@ -49,7 +49,7 @@ namespace srsenb {
  * 
  *******************************************************/
 
-sched_ue::sched_ue() : ue_idx(0), has_pucch(false), power_headroom(0), rnti(0), max_mcs_dl(0), max_mcs_ul(0),
+sched_ue::sched_ue() : dl_next_alloc(NULL), ul_next_alloc(NULL), has_pucch(false), power_headroom(0), rnti(0), max_mcs_dl(0), max_mcs_ul(0),
                        fixed_mcs_ul(0), fixed_mcs_dl(0), phy_config_dedicated_enabled(false)
 {
   log_h = NULL;
