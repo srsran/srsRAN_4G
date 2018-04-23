@@ -241,6 +241,18 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
       handle_nas_authentication_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
+    // Authentication failure with the option sync failure can be sent not integrity protected
+    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
+      m_s1ap_log->info("Plain UL NAS: Authentication Failure\n");
+      m_s1ap_log->console("Plain UL NAS: Authentication Failure\n");
+      handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      break;
+    // Detach request can be sent not integrity protected when "power off" option is used
+    case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
+      m_s1ap_log->info("Plain Protected UL NAS: Detach Request\n");
+      m_s1ap_log->console("Plain Protected UL NAS: Detach Request\n");
+      handle_nas_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      break;
     default:
       m_s1ap_log->warning("Unhandled Plain NAS message 0x%x\n", msg_type );
       m_s1ap_log->console("Unhandled Plain NAS message 0x%x\n", msg_type );
@@ -924,8 +936,8 @@ bool
 s1ap_nas_transport::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
 
-  m_s1ap_log->console("Detach request -- IMSI %015lu", ue_ctx->emm_ctx.imsi);
-  m_s1ap_log->info("Detach request -- IMSI %015lu", ue_ctx->emm_ctx.imsi);
+  m_s1ap_log->console("Detach request -- IMSI %015lu\n", ue_ctx->emm_ctx.imsi);
+  m_s1ap_log->info("Detach request -- IMSI %015lu\n", ue_ctx->emm_ctx.imsi);
   LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &detach_req);
