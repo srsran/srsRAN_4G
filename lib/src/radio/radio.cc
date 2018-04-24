@@ -451,6 +451,10 @@ void radio::set_tx_srate(double srate)
   
   // Calculate TX advance in seconds from samples and sampling rate 
   tx_adv_sec = nsamples/cur_tx_srate;
+  if (tx_adv_sec<0) {
+    tx_adv_sec *= -1;
+    tx_adv_negative = true; 
+  }
 }
 
 void radio::register_error_handler(srslte_rf_error_handler_t h)
