@@ -1293,7 +1293,8 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
         rijndael_key_schedule(k, &round_keys);
 
         // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
+        //compute_OPc(&round_keys, op, op_c);
+        memcpy(op_c,op,16);
 
         // Compute temp
         for(i=0; i<16; i++)
