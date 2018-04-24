@@ -524,13 +524,13 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     srslte_ra_dl_dci_t dci_unpacked;
 
     if (type == SRSLTE_RNTI_RAR) {
-      Info("Looking for RNTI=0x%x\n", dl_rnti);
+      Debug("Looking for RNTI=0x%x\n", dl_rnti);
     }
 
     if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
                                       dl_rnti, type, &dci_msg) != 1) {
       if (type == SRSLTE_RNTI_RAR) {
-        Info("RAR not found, SNR=%.1f dB, tti=%d, cfi=%d, tx_mode=%d, cell_id=%d\n",
+        Debug("RAR not found, SNR=%.1f dB, tti=%d, cfi=%d, tx_mode=%d, cell_id=%d\n",
              10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), tti, cfi,
              phy->config->dedicated.antenna_info_explicit_value.tx_mode, cell.id);
       }
