@@ -1308,7 +1308,7 @@ bool rrc::ho_prepare() {
     pdcp->reestablish();
     rlc->reestablish();
     mac->reset();
-    // PHY is reset inside cell_handover() function
+    phy->reset();
 
     mac->set_ho_rnti(mob_reconf.mob_ctrl_info.new_ue_id, mob_reconf.mob_ctrl_info.target_pci);
     apply_rr_config_common_dl(&mob_reconf.mob_ctrl_info.rr_cnfg_common);
