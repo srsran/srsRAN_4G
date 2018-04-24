@@ -453,6 +453,9 @@ void phch_recv::run_thread()
               worker->set_tti(tti, tx_mutex_cnt);
               worker->set_tx_time(tx_time, next_offset);
               next_offset  = 0;
+              if (next_time_adv_sec != time_adv_sec) {
+                time_adv_sec = next_time_adv_sec;
+              }
               tx_mutex_cnt = (tx_mutex_cnt+1) % nof_tx_mutex;
 
               // Advance/reset prach subframe pointer
@@ -614,8 +617,11 @@ void phch_recv::set_agc_enable(bool enable)
 
 void phch_recv::set_time_adv_sec(float time_adv_sec)
 {
-  this->time_adv_sec = time_adv_sec;
-  next_offset = -time_adv_sec*srslte_sampling_freq_hz(cell.nof_prb);
+  // If transmitting earlier, transmit less samples to align time advance. If transmit later just delay next TX
+  if (time_adv_sec > this->time_adv_sec) {
+    next_offset = -floor(time_adv_sec*srslte_sampling_freq_hz(cell.nof_prb)+1);
+  }
+  this->next_time_adv_sec = time_adv_sec;
   Info("Applying time_adv_sec=%.1f us, next_offset=%d\n", time_adv_sec*1e6, next_offset);
 }
 

@@ -425,7 +425,7 @@ private:
   // This is the primary cell
   srslte_cell_t cell;
   bool          started;
-  float         time_adv_sec;
+  float         time_adv_sec, next_time_adv_sec;
   uint32_t      tti;
   bool          do_agc;
   
