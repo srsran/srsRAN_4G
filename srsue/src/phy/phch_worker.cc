@@ -393,11 +393,11 @@ void phch_worker::work_imp()
 
   if (chest_ok) {
     if (phy->avg_rsrp_sync_dbm > -130.0 && phy->avg_snr_db_sync > -10.0) {
-      log_h->info("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
+      log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
                    phy->avg_snr_db_sync, phy->avg_rsrp_sync_dbm);
       chest_loop->in_sync();
     } else {
-      log_h->info("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
+      log_h->warning("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
                      phy->avg_snr_db_sync, phy->avg_rsrp_sync_dbm);
       chest_loop->out_of_sync();
     }
