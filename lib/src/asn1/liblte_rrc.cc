@@ -2715,8 +2715,10 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_report_config_eutra_ie(LIBLTE_RRC_REPORT_CONFI
         liblte_value_2_bits(rep_cnfg_eutra->trigger_type, ie_ptr, 1);
         if(LIBLTE_RRC_TRIGGER_TYPE_EUTRA_EVENT == rep_cnfg_eutra->trigger_type)
         {
+            // Event ID choice extension indicator
+            liblte_value_2_bits(0, ie_ptr, 1); // Choice with extension - unlikely to be >63 choices
+
             // Event ID
-            // FIXME: Handle extension properly
             liblte_value_2_bits(rep_cnfg_eutra->event.event_id, ie_ptr, 3);
             if(LIBLTE_RRC_EVENT_ID_EUTRA_A1 == rep_cnfg_eutra->event.event_id)
             {
