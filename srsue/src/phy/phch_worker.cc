@@ -133,6 +133,7 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_ph
     return false;
   }
 
+  srslte_chest_dl_set_rsrp_neighbour(&ue_dl.chest, true);
   srslte_chest_dl_average_subframe(&ue_dl.chest, phy->args->average_subframe_enabled);
   srslte_chest_dl_cfo_estimate_enable(&ue_dl.chest, phy->args->cfo_ref_mask!=0, phy->args->cfo_ref_mask);
   srslte_ue_ul_set_normalization(&ue_ul, true);
@@ -163,8 +164,6 @@ bool phch_worker::set_cell(srslte_cell_t cell_)
     }
     srslte_ue_ul_set_normalization(&ue_ul, true);
     srslte_ue_ul_set_cfo_enable(&ue_ul, true);
-
-    phy->pcell_first_measurement = true;
 
     cell_initiated = true;
   }
@@ -393,13 +392,13 @@ void phch_worker::work_imp()
   update_measurements();
 
   if (chest_ok) {
-    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db > -10.0) {
-      log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
-                   phy->avg_snr_db, phy->avg_rsrp_dbm);
+    if (phy->avg_rsrp_sync_dbm > -130.0 && phy->avg_snr_db_sync > -10.0) {
+      log_h->info("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
+                   phy->avg_snr_db_sync, phy->avg_rsrp_sync_dbm);
       chest_loop->in_sync();
     } else {
-      log_h->warning("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
-                     phy->avg_snr_db, phy->avg_rsrp_dbm);
+      log_h->info("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
+                     phy->avg_snr_db_sync, phy->avg_rsrp_sync_dbm);
       chest_loop->out_of_sync();
     }
   }
@@ -914,16 +913,16 @@ void phch_worker::set_uci_periodic_cqi()
       if (period_cqi.format_is_subband) {
         // TODO: Implement subband periodic reports
         cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND;
-        cqi_report.subband.subband_cqi = srslte_cqi_from_snr(phy->avg_snr_db);
+        cqi_report.subband.subband_cqi = srslte_cqi_from_snr(phy->avg_snr_db_cqi);
         cqi_report.subband.subband_label = 0;
         log_h->console("Warning: Subband CQI periodic reports not implemented\n");
-        Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.subband.subband_cqi, phy->avg_snr_db);
+        Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.subband.subband_cqi, phy->avg_snr_db_cqi);
       } else {
         cqi_report.type = SRSLTE_CQI_TYPE_WIDEBAND;
         if (cqi_fixed >= 0) {
           cqi_report.wideband.wideband_cqi = cqi_fixed;
         } else {
-          cqi_report.wideband.wideband_cqi = srslte_cqi_from_snr(phy->avg_snr_db);      
+          cqi_report.wideband.wideband_cqi = srslte_cqi_from_snr(phy->avg_snr_db_cqi);      
         }
         if (cqi_max >= 0 && cqi_report.wideband.wideband_cqi > cqi_max) {
           cqi_report.wideband.wideband_cqi = cqi_max; 
@@ -933,7 +932,7 @@ void phch_worker::set_uci_periodic_cqi()
           cqi_report.wideband.pmi = phy->last_pmi;
           cqi_report.wideband.rank_is_not_one = (phy->last_ri != 0);
         }
-        Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db);
+        Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db_cqi);
       }
       uci_data.uci_cqi_len = (uint32_t) srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
       rar_cqi_request = false;       
@@ -963,7 +962,7 @@ void phch_worker::set_uci_aperiodic_cqi()
         if (rnti_is_set) {
           srslte_cqi_value_t cqi_report = {0};
           cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
-          cqi_report.subband_hl.wideband_cqi_cw0 = srslte_cqi_from_snr(phy->avg_snr_db);
+          cqi_report.subband_hl.wideband_cqi_cw0 = srslte_cqi_from_snr(phy->avg_snr_db_cqi);
 
           // TODO: implement subband CQI properly
           cqi_report.subband_hl.subband_diff_cqi_cw0 = 0; // Always report zero offset on all subbands
@@ -989,7 +988,7 @@ void phch_worker::set_uci_aperiodic_cqi()
           }
 
           Info("PUSCH: Aperiodic RM30 CQI=%s, %sSNR=%.1f dB, for %d subbands\n",
-               cqi_str, (uci_data.uci_ri_len)?((uci_data.uci_ri == 0)?"ri=0, ":"ri=1, "):"", phy->avg_snr_db, cqi_report.subband_hl.N);
+               cqi_str, (uci_data.uci_ri_len)?((uci_data.uci_ri == 0)?"ri=0, ":"ri=1, "):"", phy->avg_snr_db_cqi, cqi_report.subband_hl.N);
         }
         break;
       case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
@@ -1402,18 +1401,18 @@ void phch_worker::update_measurements()
       }
     }
     
-    // Average RSRQ
+    // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
     float rsrq_db = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
     if (isnormal(rsrq_db)) {
-      if (!phy->avg_rsrq_db) {
-        phy->avg_rsrq_db = SRSLTE_VEC_EMA(rsrq_db, phy->avg_rsrq_db, snr_ema_coeff);
-      } else {
+      if (!(tti%phy->pcell_report_period) || !phy->avg_rsrq_db) {
         phy->avg_rsrq_db = rsrq_db;
+      } else {
+        phy->avg_rsrq_db = SRSLTE_VEC_CMA(rsrq_db, phy->avg_rsrq_db, tti%phy->pcell_report_period);
       }
     }
 
-    // Average RSRP
-    float rsrp_lin = srslte_chest_dl_get_rsrp(&ue_dl.chest);
+    // Average RSRP taken from CRS
+    float rsrp_lin = srslte_chest_dl_get_rsrp_neighbour(&ue_dl.chest);
     if (isnormal(rsrp_lin)) {
       if (!phy->avg_rsrp) {
         phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
@@ -1425,17 +1424,18 @@ void phch_worker::update_measurements()
     /* Correct absolute power measurements by RX gain offset */
     float rsrp_dbm = 10*log10(rsrp_lin) + 30 - phy->rx_gain_offset;
 
-    // Serving cell measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
+    // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
     if (isnormal(rsrp_dbm)) {
-      if (!phy->avg_rsrp_dbm) {
+      if (!(tti%phy->pcell_report_period) || !phy->avg_rsrp_dbm) {
         phy->avg_rsrp_dbm = rsrp_dbm;
       } else {
-        phy->avg_rsrp_dbm = SRSLTE_VEC_EMA(rsrp_dbm, phy->avg_rsrp_dbm, snr_ema_coeff);
+        phy->avg_rsrp_dbm = SRSLTE_VEC_CMA(rsrp_dbm, phy->avg_rsrp_dbm, tti%phy->pcell_report_period);
       }
-      if ((tti%phy->pcell_report_period) == 0 || phy->pcell_first_measurement) {
-        phy->pcell_first_measurement = false;
-        phy->rrc->new_phy_meas(phy->avg_rsrp_dbm, phy->avg_rsrq_db, tti);
-      }
+    }
+
+    // Send PCell measurement
+    if ((tti%phy->pcell_report_period) == phy->pcell_report_period-1) {
+      phy->rrc->new_phy_meas(phy->avg_rsrp_dbm, phy->avg_rsrq_db, tti);
     }
 
     // Compute PL
@@ -1451,17 +1451,37 @@ void phch_worker::update_measurements()
         phy->avg_noise = SRSLTE_VEC_EMA(cur_noise, phy->avg_noise, snr_ema_coeff);
       }
     }
-    
-    // Compute SNR
-    phy->avg_snr_db = 10*log10(phy->avg_rsrp/phy->avg_noise);
-    
+
+    // To compute CQI use RSRP measurements from resource elements in RS since is more robust to time offset
+    float rsrp_lin_cqi = srslte_chest_dl_get_rsrp(&ue_dl.chest);
+    if (isnormal(rsrp_lin_cqi)) {
+      if (!phy->avg_rsrp_cqi) {
+        phy->avg_rsrp_cqi = SRSLTE_VEC_EMA(rsrp_lin_cqi, phy->avg_rsrp_cqi, snr_ema_coeff);
+      } else {
+        phy->avg_rsrp_cqi = rsrp_lin_cqi;
+      }
+    }
+    float rsrp_sync_dbm = 10*log10(rsrp_lin_cqi) + 30 - phy->rx_gain_offset;
+    if (isnormal(rsrp_sync_dbm)) {
+      if (!phy->avg_rsrp_sync_dbm) {
+        phy->avg_rsrp_sync_dbm = rsrp_sync_dbm;
+      } else {
+        phy->avg_rsrp_sync_dbm = SRSLTE_VEC_EMA(rsrp_sync_dbm, phy->avg_rsrp_sync_dbm, snr_ema_coeff);
+      }
+    }
+
+    // We compute 2 SNR metrics, 1 for deciding in-sync/out-of-sync and another for CQI measurements
+    phy->avg_snr_db_cqi  = 10*log10(phy->avg_rsrp_cqi/phy->avg_noise); // this for CQI
+    phy->avg_snr_db_sync = 10*log10(phy->avg_rsrp/phy->avg_noise);     // this for sync
+
+
     // Store metrics
     dl_metrics.n      = phy->avg_noise;
     dl_metrics.rsrp   = phy->avg_rsrp_dbm;
     dl_metrics.rsrq   = phy->avg_rsrq_db;
     dl_metrics.rssi   = phy->avg_rssi_dbm;
     dl_metrics.pathloss = phy->pathloss;
-    dl_metrics.sinr   = phy->avg_snr_db;
+    dl_metrics.sinr   = phy->avg_snr_db_cqi;
     dl_metrics.turbo_iters = srslte_pdsch_last_noi(&ue_dl.pdsch);
     phy->set_dl_metrics(dl_metrics);
 
