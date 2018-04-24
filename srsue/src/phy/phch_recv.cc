@@ -615,6 +615,8 @@ void phch_recv::set_agc_enable(bool enable)
 void phch_recv::set_time_adv_sec(float time_adv_sec)
 {
   this->time_adv_sec = time_adv_sec;
+  next_offset = -time_adv_sec*srslte_sampling_freq_hz(cell.nof_prb);
+  Info("Applying time_adv_sec=%.1f us, next_offset=%d\n", time_adv_sec*1e6, next_offset);
 }
 
 float phch_recv::get_tx_cfo()
