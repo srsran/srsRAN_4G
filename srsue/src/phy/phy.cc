@@ -341,6 +341,7 @@ void phy::reset()
 {
   Info("Resetting PHY\n");
   n_ta = 0;
+  sf_recv.set_time_adv_sec(0);
   pdcch_dl_search_reset();
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();

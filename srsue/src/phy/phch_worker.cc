@@ -186,6 +186,11 @@ void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
   log_phy_lib_h->step(tti);
 }
 
+void phch_worker::set_prach(cf_t *prach_ptr, float prach_power) {
+  this->prach_ptr   = prach_ptr;
+  this->prach_power = prach_power;
+}
+
 void phch_worker::set_cfo(float cfo_)
 {
   cfo = cfo_;
@@ -319,60 +324,70 @@ void phch_worker::work_imp()
 
 
   /***** Uplink Processing + Transmission *******/
-  
-  /* Generate SR if required*/
-  set_uci_sr();
 
-  /* Check if we have UL grant. ul_phy_grant will be overwritten by new grant */
-  ul_grant_available = decode_pdcch_ul(&ul_mac_grant);
+  bool signal_ready = false;
+  cf_t *signal_ptr = NULL;
 
-  /* Generate CQI reports if required, note that in case both aperiodic
-      and periodic ones present, only aperiodic is sent (36.213 section 7.2) */
-  if (ul_grant_available && ul_mac_grant.has_cqi_request) {
-    set_uci_aperiodic_cqi();
+  /* Transmit PRACH if pending, or PUSCH/PUCCH otherwise */
+  if (prach_ptr) {
+    signal_ready = true;
+    signal_ptr   = prach_ptr;
   } else {
-    set_uci_periodic_cqi();
-  }
+    /* Generate SR if required*/
+    set_uci_sr();
 
-  /* TTI offset for UL */
-  ul_action.tti_offset = HARQ_DELAY_MS;
+    /* Check if we have UL grant. ul_phy_grant will be overwritten by new grant */
+    ul_grant_available = decode_pdcch_ul(&ul_mac_grant);
 
-  /* Send UL grant or HARQ information (from PHICH) to MAC */
-  if (ul_grant_available         && ul_ack_available)  {
-    phy->mac->new_grant_ul_ack(ul_mac_grant, ul_ack, &ul_action);      
-  } else if (ul_grant_available  && !ul_ack_available) {
-    phy->mac->new_grant_ul(ul_mac_grant, &ul_action);
-  } else if (!ul_grant_available && ul_ack_available)  {    
-    phy->mac->harq_recv(tti, ul_ack, &ul_action);        
-  }
-
-  /* Set UL CFO before transmission */  
-  srslte_ue_ul_set_cfo(&ue_ul, cfo);
-
-  /* Transmit PUSCH, PUCCH or SRS */
-  bool signal_ready = false; 
-  if (ul_action.tx_enabled) {
-    encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr[0], ul_action.current_tx_nb,
-                 &ul_action.softbuffers[0], ul_action.rv[0], ul_action.rnti, ul_mac_grant.is_from_rar);
-    signal_ready = true; 
-    if (ul_action.expect_ack) {
-      phy->set_pending_ack(TTI_RX_ACK(tti), ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
+    /* Generate CQI reports if required, note that in case both aperiodic
+        and periodic ones present, only aperiodic is sent (36.213 section 7.2) */
+    if (ul_grant_available && ul_mac_grant.has_cqi_request) {
+      set_uci_aperiodic_cqi();
+    } else {
+      set_uci_periodic_cqi();
     }
 
-  } else if (dl_action.generate_ack || uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ri_len > 0) {
-    encode_pucch();
-    signal_ready = true; 
-  } else if (srs_is_ready_to_send()) {
-    encode_srs();
-    signal_ready = true; 
-  } 
+    /* TTI offset for UL */
+    ul_action.tti_offset = HARQ_DELAY_MS;
+
+    /* Send UL grant or HARQ information (from PHICH) to MAC */
+    if (ul_grant_available         && ul_ack_available)  {
+      phy->mac->new_grant_ul_ack(ul_mac_grant, ul_ack, &ul_action);
+    } else if (ul_grant_available  && !ul_ack_available) {
+      phy->mac->new_grant_ul(ul_mac_grant, &ul_action);
+    } else if (!ul_grant_available && ul_ack_available)  {
+      phy->mac->harq_recv(tti, ul_ack, &ul_action);
+    }
+
+    /* Set UL CFO before transmission */
+    srslte_ue_ul_set_cfo(&ue_ul, cfo);
+
+    /* Transmit PUSCH, PUCCH or SRS */
+    if (ul_action.tx_enabled) {
+      encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr[0], ul_action.current_tx_nb,
+                   &ul_action.softbuffers[0], ul_action.rv[0], ul_action.rnti, ul_mac_grant.is_from_rar);
+      signal_ready = true;
+      if (ul_action.expect_ack) {
+        phy->set_pending_ack(TTI_RX_ACK(tti), ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
+      }
+
+    } else if (dl_action.generate_ack || uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ri_len > 0) {
+      encode_pucch();
+      signal_ready = true;
+    } else if (srs_is_ready_to_send()) {
+      encode_srs();
+      signal_ready = true;
+    }
+    signal_ptr = signal_buffer[0];
+  }
+
 
   tr_log_end();
 
   if (next_offset > 0) {
-    phy->worker_end(tx_tti, signal_ready, signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
+    phy->worker_end(tx_tti, signal_ready, signal_ptr, SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
   } else {
-    phy->worker_end(tx_tti, signal_ready, &signal_buffer[0][-next_offset], SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
+    phy->worker_end(tx_tti, signal_ready, &signal_ptr[-next_offset], SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
   }
 
   if (!dl_action.generate_ack_callback) {

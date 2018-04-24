@@ -367,6 +367,11 @@ void phch_recv::run_thread()
     dummy_buffer[i] = (cf_t*) malloc(sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
   }
 
+  uint32_t prach_nof_sf = 0;
+  uint32_t prach_sf_cnt = 0;
+  cf_t    *prach_ptr    = NULL;
+  float    prach_power  = 0;
+
   while (running)
   {
     Debug("SYNC:  state=%s\n", phy_state.to_string());
@@ -423,40 +428,46 @@ void phch_recv::run_thread()
 
               metrics.sfo = srslte_ue_sync_get_sfo(&ue_sync);
               metrics.cfo = srslte_ue_sync_get_cfo(&ue_sync);
-              worker->set_cfo(get_tx_cfo());
               worker_com->set_sync_metrics(metrics);
-
-              /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
-              srslte_timestamp_t rx_time, tx_time, tx_time_prach;
-              srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
-              srslte_timestamp_copy(&tx_time, &rx_time);
-              srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3 - time_adv_sec);
-              worker->set_tx_time(tx_time, next_offset);
-              next_offset = 0;
-
-              Debug("SYNC:  Setting TTI=%d, tx_mutex=%d to worker %d\n", tti, tx_mutex_cnt, worker->get_id());
-              worker->set_tti(tti, tx_mutex_cnt);
-              tx_mutex_cnt = (tx_mutex_cnt+1) % nof_tx_mutex;
-
-              // Reset Uplink TX buffer to avoid mixing packets in TX queue
-              /*
-              if (prach_buffer->is_pending()) {
-                Info("SYNC:  PRACH pending: Reset UL\n");
-                radio_h->tx_end();
-              }*/
 
               // Check if we need to TX a PRACH
               if (prach_buffer->is_ready_to_send(tti)) {
-                srslte_timestamp_copy(&tx_time_prach, &rx_time);
-                srslte_timestamp_add(&tx_time_prach, 0, prach::tx_advance_sf * 1e-3);
-                prach_buffer->send(radio_h, get_tx_cfo(), worker_com->pathloss, tx_time_prach);
-                radio_h->tx_end();
-                worker_com->p0_preamble = prach_buffer->get_p0_preamble();
-                worker_com->cur_radio_power = SRSLTE_MIN(SRSLTE_PC_MAX, worker_com->pathloss+worker_com->p0_preamble);
+                prach_ptr = prach_buffer->generate(get_tx_cfo(), &prach_nof_sf, &prach_power);
+                if (!prach_ptr) {
+                  Error("Generating PRACH\n");
+                }
               }
 
+              /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
+              srslte_timestamp_t rx_time, tx_time;
+              srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
+              srslte_timestamp_copy(&tx_time, &rx_time);
+              if (prach_ptr) {
+                srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3);
+              } else {
+                srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3 - time_adv_sec);
+              }
+
+              worker->set_prach(prach_ptr?&prach_ptr[prach_sf_cnt*SRSLTE_SF_LEN_PRB(cell.nof_prb)]:NULL, prach_power);
+              worker->set_cfo(get_tx_cfo());
+              worker->set_tti(tti, tx_mutex_cnt);
+              worker->set_tx_time(tx_time, next_offset);
+              next_offset  = 0;
+              tx_mutex_cnt = (tx_mutex_cnt+1) % nof_tx_mutex;
+
+              // Advance/reset prach subframe pointer
+              if (prach_ptr) {
+                prach_sf_cnt++;
+                if (prach_sf_cnt == prach_nof_sf) {
+                  prach_sf_cnt = 0;
+                  prach_ptr    = NULL;
+                }
+              }
+
+              // Start worker
               workers_pool->start_worker(worker);
 
+              // Save signal for Intra-frequency measurement
               if ((tti%5) == 0 && worker_com->args->sic_pss_enabled) {
                 srslte_pss_sic(&ue_sync.strack.pss, &buffer[0][SRSLTE_SF_LEN_PRB(cell.nof_prb)/2-ue_sync.strack.fft_size]);
               }
