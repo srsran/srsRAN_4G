@@ -474,28 +474,22 @@ int main(int argc, char *argv[])
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &args);
 
-  bool plot_started = false;
-  bool signals_pregenerated = false;
-
+  printf("Attaching UE...\n");
+  while (!ue->attach() && running) {
+    sleep(1);
+    printf("Could not attach. Trying again...\n");
+  }
+  if (running) {
+    if (args.expert.pregenerate_signals) {
+      ue->pregenerate_signals(true);
+    }
+    if (args.gui.enable) {
+      ue->start_plot();
+    }
+  }
   while (running) {
-    if (ue->is_attached()) {
-      if (!signals_pregenerated && args.expert.pregenerate_signals) {
-        ue->pregenerate_signals(true);
-        signals_pregenerated = true;
-      }
-      if (!plot_started && args.gui.enable) {
-        ue->start_plot();
-        plot_started = true;
-      }
-    } else {
-      while (!ue->attach() && running) {
-        sleep(1);
-      }
-    }
-    if (running) {
-      ue->print_pool();
-      sleep(10);
-    }
+    ue->print_pool();
+    sleep(10);
   }
   pthread_cancel(input);
   metricshub.stop();
