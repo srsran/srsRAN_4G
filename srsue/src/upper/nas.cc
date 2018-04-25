@@ -978,7 +978,12 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
 
   attach_req.ue_network_cap.uea_present = false;  // UMTS encryption algos
   attach_req.ue_network_cap.uia_present = false;  // UMTS integrity algos
+  attach_req.ue_network_cap.ucs2_present = false;
   attach_req.ms_network_cap_present = false;      // A/Gb mode (2G) or Iu mode (3G)
+  attach_req.ue_network_cap.lpp_present = false;
+  attach_req.ue_network_cap.lcs_present = false;
+  attach_req.ue_network_cap.onexsrvcc_present = false;
+  attach_req.ue_network_cap.nf_present = false;
   attach_req.old_p_tmsi_signature_present = false;
   attach_req.additional_guti_present = false;
   attach_req.last_visited_registered_tai_present = false;
@@ -1025,6 +1030,8 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
     }
   } else {
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
+    attach_req.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+    attach_req.nas_ksi.nas_ksi       = 0;
     usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
     nas_log->info("Requesting IMSI attach (IMSI=%s)\n", usim->get_imsi_str().c_str());
     liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT *) msg);
