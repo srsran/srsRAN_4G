@@ -564,7 +564,13 @@ private:
   float         get_srxlev(float Qrxlevmeas);
   float         get_squal(float Qqualmeas);
 
-  bool          cell_selection();
+  typedef enum {
+    CHANGED_CELL = 0,
+    SAME_CELL    = 1,
+    NO_CELL      = 2
+  } cs_ret_t;
+
+  cs_ret_t      cell_selection();
   bool          cell_selection_criteria(float rsrp, float rsrq = 0);
   void          cell_reselection(float rsrp, float rsrq);
 

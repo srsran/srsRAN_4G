@@ -220,11 +220,16 @@ void rrc::run_tti(uint32_t tti) {
         // If attached but not camping on the cell, perform cell reselection
         if (nas->is_attached()) {
           rrc_log->debug("Running cell selection and reselection in IDLE\n");
-          if (cell_selection()) {
-            // New cell has been selected, start receiving PCCH
-            mac->pcch_start_rx();
-          } else {
-            rrc_log->warning("Could not find any cell to camp on\n");
+          switch(cell_selection()) {
+            case rrc::CHANGED_CELL:
+              // New cell has been selected, start receiving PCCH
+              mac->pcch_start_rx();
+              break;
+            case rrc::NO_CELL:
+              rrc_log->warning("Could not find any cell to camp on\n");
+              break;
+            case rrc::SAME_CELL:
+              break;
           }
         }
         break;
@@ -768,7 +773,7 @@ phy_interface_rrc::cell_search_ret_t rrc::cell_search()
 /* Cell selection procedure 36.304 5.2.3
  * Select the best cell to camp on among the list of known cells
  */
-bool rrc::cell_selection()
+rrc::cs_ret_t rrc::cell_selection()
 {
   // Neighbour cells are sorted in descending order of RSRP
   for (uint32_t i = 0; i < neighbour_cells.size(); i++) {
@@ -791,7 +796,7 @@ bool rrc::cell_selection()
         if (phy->cell_select(&serving_cell->phy_cell)) {
           if (configure_serving_cell()) {
             rrc_log->info("Selected and configured cell successfully\n");
-            return true;
+            return CHANGED_CELL;
           } else {
             rrc_log->error("While configuring serving cell\n");
           }
@@ -803,14 +808,14 @@ bool rrc::cell_selection()
     }
   }
   if (serving_cell->in_sync) {
-    return true;
+    return SAME_CELL;
   }
   // If can not find any suitable cell, search again
   rrc_log->info("Cell selection and reselection in IDLE did not find any suitable cell. Searching again\n");
   // If can not camp on any cell, search again for new cells
   phy_interface_rrc::cell_search_ret_t ret = cell_search();
 
-  return ret.found == phy_interface_rrc::cell_search_ret_t::CELL_FOUND;
+  return (ret.found == phy_interface_rrc::cell_search_ret_t::CELL_FOUND)?CHANGED_CELL:NO_CELL;
 }
 
 // Cell selection criteria Section 5.2.3.2 of 36.304

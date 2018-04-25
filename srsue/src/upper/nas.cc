@@ -138,7 +138,7 @@ bool nas::attach_request() {
           nas_log->info("NAS attached successfully.\n");
           return true;
         } else {
-          nas_log->error("Could not attach\n");
+          nas_log->error("Could not attach in attach request\n");
         }
       } else {
         nas_log->error("PLMN is not selected because no suitable PLMN was found\n");
@@ -154,7 +154,7 @@ bool nas::attach_request() {
           nas_log->info("NAS attached successfully.\n");
           return true;
         } else {
-          nas_log->error("Could not attach\n");
+          nas_log->error("Could not attach from attach_request\n");
         }
       }
       break;
@@ -181,7 +181,7 @@ void nas::paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy) {
     if (rrc_connect()) {
       nas_log->info("Attached successfully\n");
     } else {
-      nas_log->error("Could not attach\n");
+      nas_log->error("Could not attach from paging\n");
     }
   } else {
     nas_log->warning("Received paging while in state %s\n", emm_state_text[state]);

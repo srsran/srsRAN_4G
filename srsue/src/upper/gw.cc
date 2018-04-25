@@ -280,8 +280,7 @@ void gw::run_thread()
             if (!attach_wait) {
               gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_wait, ATTACH_WAIT_TOUT);
               if (!nas->attach_request()) {
-                gw_log->info("Could not re-establish the connection\n");
-                break;
+                gw_log->warning("Could not re-establish the connection\n");
               }
             }
             usleep(100000);
