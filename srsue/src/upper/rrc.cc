@@ -1116,6 +1116,7 @@ void rrc::timer_expired(uint32_t timeout_id) {
 
 void rrc::send_con_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause) {
   rrc_log->debug("Preparing RRC Connection Request\n");
+  bzero(&ul_ccch_msg, sizeof(LIBLTE_RRC_UL_CCCH_MSG_STRUCT));
 
   // Prepare ConnectionRequest packet
   ul_ccch_msg.msg_type = LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REQ;
@@ -1142,6 +1143,7 @@ void rrc::send_con_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause) {
 /* RRC connection re-establishment procedure (5.3.7) */
 void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
 {
+  bzero(&ul_ccch_msg, sizeof(LIBLTE_RRC_UL_CCCH_MSG_STRUCT));
 
   uint16_t crnti;
   if (cause == LIBLTE_RRC_CON_REEST_REQ_CAUSE_HANDOVER_FAILURE) {
@@ -1239,6 +1241,8 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
 }
 
 void rrc::send_con_restablish_complete() {
+  bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
+
   rrc_log->debug("Preparing RRC Connection Reestablishment Complete\n");
 
   rrc_log->console("RRC Connected\n");
@@ -1251,6 +1255,7 @@ void rrc::send_con_restablish_complete() {
 }
 
 void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
+  bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
   rrc_log->debug("Preparing RRC Connection Setup Complete\n");
 
   // Prepare ConnectionSetupComplete packet
@@ -1267,6 +1272,8 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
 }
 
 void rrc::send_ul_info_transfer(byte_buffer_t *nas_msg) {
+  bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
+
   rrc_log->debug("Preparing RX Info Transfer\n");
 
   // Prepare RX INFO packet
@@ -1281,6 +1288,7 @@ void rrc::send_ul_info_transfer(byte_buffer_t *nas_msg) {
 }
 
 void rrc::send_security_mode_complete() {
+  bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
   rrc_log->debug("Preparing Security Mode Complete\n");
 
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_SECURITY_MODE_COMPLETE;
@@ -1290,6 +1298,7 @@ void rrc::send_security_mode_complete() {
 }
 
 void rrc::send_rrc_con_reconfig_complete() {
+  bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_RECONFIG_COMPLETE;
@@ -1561,7 +1570,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH DLSCH message received.");
   rrc_log->info("BCCH DLSCH message Stack latency: %ld us\n", pdu->get_latency_us());
-  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
+  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg = {0};
   srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
   bit_buf.N_bits = pdu->N_bytes * 8;
   pool->deallocate(pdu);
@@ -1676,7 +1685,7 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
     rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
     rrc_log->console("PCCH message received %d bytes\n", pdu->N_bytes);
 
-    LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg;
+    LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg = {0};
     srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
     bit_buf.N_bits = pdu->N_bytes * 8;
     pool->deallocate(pdu);

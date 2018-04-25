@@ -477,7 +477,6 @@ int main(int argc, char *argv[])
   printf("Attaching UE...\n");
   while (!ue->attach() && running) {
     sleep(1);
-    printf("Could not attach. Trying again...\n");
   }
   if (running) {
     if (args.expert.pregenerate_signals) {

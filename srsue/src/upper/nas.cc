@@ -546,10 +546,10 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     return;
   }
 
-  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
-  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_complete;
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept;
+  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept = {0};
+  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_complete = {0};
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req = {0};
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept = {0};
 
   nas_log->info("Received Attach Accept\n");
 
@@ -588,7 +588,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[3];
 
       nas_log->info("Network attach successful. APN: %s, IP: %u.%u.%u.%u\n",
-                    act_def_eps_bearer_context_req.apn.apn.c_str(),
+                    act_def_eps_bearer_context_req.apn.apn,
                     act_def_eps_bearer_context_req.pdn_addr.addr[0],
                     act_def_eps_bearer_context_req.pdn_addr.addr[1],
                     act_def_eps_bearer_context_req.pdn_addr.addr[2],
@@ -674,7 +674,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
-  LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT attach_rej;
+  LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT attach_rej = {0};
 
   liblte_mme_unpack_attach_reject_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &attach_rej);
   nas_log->warning("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
@@ -686,7 +686,9 @@ void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
 
 void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
+  bzero(&auth_req, sizeof(LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT));
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res;
+  bzero(&auth_res, sizeof(LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT));
 
   nas_log->info("Received Authentication Request\n");
   liblte_mme_unpack_authentication_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &auth_req);
@@ -741,8 +743,8 @@ void nas::parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
-  LIBLTE_MME_ID_REQUEST_MSG_STRUCT  id_req;
-  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
+  LIBLTE_MME_ID_REQUEST_MSG_STRUCT  id_req = {0};
+  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp = {0};
 
   liblte_mme_unpack_identity_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &id_req);
   nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
@@ -786,7 +788,9 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   }
 
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sec_mode_cmd;
+  bzero(&sec_mode_cmd, sizeof(LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT));
   LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sec_mode_comp;
+  bzero(&sec_mode_comp, sizeof(LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT));
 
   liblte_mme_unpack_security_mode_command_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &sec_mode_cmd);
   nas_log->info("Received Security Mode Command ksi: %d, eea: %s, eia: %s\n",
@@ -919,6 +923,7 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
     return;
   }
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
+  bzero(&attach_req, sizeof(LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT));
 
   nas_log->info("Generating attach request\n");
 
@@ -1029,7 +1034,7 @@ void nas::gen_service_request(byte_buffer_t *msg) {
 }
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
-  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {0};
 
   nas_log->info("Generating PDN Connectivity Request\n");
 
@@ -1045,8 +1050,8 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
     pdn_con_req.apn_present = false;
   } else {
     pdn_con_req.apn_present = true;
-    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT apn;
-    apn.apn = cfg.apn;
+    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT apn = {0};
+    strncpy(apn.apn, cfg.apn.c_str(), LIBLTE_STRING_LEN);
     pdn_con_req.apn = apn;
   }
   pdn_con_req.protocol_cnfg_opts_present = false;
@@ -1063,7 +1068,7 @@ void nas::send_security_mode_reject(uint8_t cause) {
     return;
   }
 
-  LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT sec_mode_rej;
+  LIBLTE_MME_SECURITY_MODE_REJECT_MSG_STRUCT sec_mode_rej = {0};
   sec_mode_rej.emm_cause = cause;
   liblte_mme_pack_security_mode_reject_msg(&sec_mode_rej, (LIBLTE_BYTE_MSG_STRUCT *) msg);
   if(pcap != NULL) {

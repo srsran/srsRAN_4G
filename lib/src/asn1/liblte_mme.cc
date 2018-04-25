@@ -2225,14 +2225,14 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_network_name_ie(LIBLTE_MME_NETWORK_NAME_STRUCT
     uint32             i;
     uint32             bit_offset;
     uint32             byte_offset;
-    const char        *char_str = net_name->name.c_str();
+    const char        *char_str = net_name->name;
 
     if(net_name != NULL &&
        ie_ptr   != NULL)
     {
         bit_offset  = 0;
         byte_offset = 2;
-        for(i=0; i<net_name->name.size(); i++)
+        for(i=0; i<strnlen(char_str, LIBLTE_STRING_LEN); i++)
         {
             if(char_str[i]  == 0x0A  ||
                char_str[i]  == 0x0D  ||
@@ -2319,6 +2319,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_network_name_ie(uint8                       
     uint32            N_bytes;
     uint8             spare_field;
     char              tmp_char;
+    uint32            str_cnt;
 
     if(ie_ptr   != NULL &&
        net_name != NULL)
@@ -2328,8 +2329,9 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_network_name_ie(uint8                       
         N_bytes          = (*ie_ptr)[0];
         bit_offset       = 0;
         byte_offset      = 2;
-        net_name->name   = "";
-        while(byte_offset < N_bytes)
+        str_cnt          = 0;
+
+        while(byte_offset < N_bytes && str_cnt < LIBLTE_STRING_LEN)
         {
             switch(bit_offset)
             {
@@ -2389,7 +2391,10 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_network_name_ie(uint8                       
                (tmp_char >= 0x61  &&
                 tmp_char <= 0x7A))
             {
-                net_name->name += tmp_char;
+                if (str_cnt < LIBLTE_STRING_LEN) {
+                    net_name->name[str_cnt] = tmp_char;
+                    str_cnt++;
+                }
             }
         }
 
@@ -2412,8 +2417,16 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_network_name_ie(uint8                       
                (tmp_char >= 0x61  &&
                 tmp_char <= 0x7A))
             {
-                net_name->name += tmp_char;
+                if (str_cnt < LIBLTE_STRING_LEN) {
+                    net_name->name[str_cnt] = tmp_char;
+                    str_cnt++;
+                }
             }
+        }
+
+        if (str_cnt < LIBLTE_STRING_LEN) {
+            net_name->name[str_cnt] = '\0';
+            str_cnt++;
         }
 
         *ie_ptr += byte_offset + 1;
@@ -3765,12 +3778,12 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_access_point_name_ie(LIBLTE_MME_ACCESS_POINT_N
     if(apn    != NULL &&
        ie_ptr != NULL)
     {
-        apn_str      = apn->apn.c_str();
-        (*ie_ptr)[0] = apn->apn.length()+1;
+        apn_str      = apn->apn;
+        (*ie_ptr)[0] = strnlen(apn->apn, LIBLTE_STRING_LEN)+1;
         len_idx      = 0;
         apn_idx      = 0;
         label_len    = 0;
-        while(apn->apn.length() > apn_idx)
+        while(strnlen(apn->apn, LIBLTE_STRING_LEN) > apn_idx)
         {
             (*ie_ptr)[1+apn_idx+1] = (uint8)apn_str[apn_idx];
             apn_idx++;
@@ -3785,7 +3798,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_access_point_name_ie(LIBLTE_MME_ACCESS_POINT_N
             }
         }
         (*ie_ptr)[1+len_idx]  = label_len;
-        *ie_ptr              += apn->apn.length() + 2;
+        *ie_ptr              += strnlen(apn->apn, LIBLTE_STRING_LEN) + 2;
 
         err = LIBLTE_SUCCESS;
     }
@@ -3799,26 +3812,31 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_access_point_name_ie(uint8                  
     uint32            i;
     uint32            ie_idx;
     uint32            label_len;
+    uint32            str_cnt;
 
     if(ie_ptr != NULL &&
        apn    != NULL)
     {
-        apn->apn.clear();
         ie_idx = 0;
-        while(ie_idx < (*ie_ptr)[0])
+        str_cnt = 0;
+        while(ie_idx < (*ie_ptr)[0] && str_cnt < LIBLTE_STRING_LEN)
         {
             label_len = (*ie_ptr)[1+ie_idx];
-            for(i=0; i<label_len; i++)
+            for(i=0; i<label_len && str_cnt < LIBLTE_STRING_LEN; i++)
             {
-                apn->apn += (char)((*ie_ptr)[1+ie_idx+i+1]);
+                apn->apn[str_cnt] = (char)((*ie_ptr)[1+ie_idx+i+1]);
+                str_cnt++;
             }
             ie_idx += label_len + 1;
-            if(ie_idx < (*ie_ptr)[0])
+            if(ie_idx < (*ie_ptr)[0] && str_cnt < LIBLTE_STRING_LEN)
             {
-                apn->apn += '.';
+                apn->apn[str_cnt] = '.';
+                str_cnt++;
             }
         }
-        apn->apn += "\0";
+        if (str_cnt < LIBLTE_STRING_LEN) {
+            apn->apn[str_cnt] = '\0';
+        }
         *ie_ptr  += (*ie_ptr)[0] + 1;
 
         err = LIBLTE_SUCCESS;
