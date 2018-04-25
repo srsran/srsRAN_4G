@@ -37,7 +37,7 @@
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/liblte_ssl.h"
 #include "math.h"
-
+#include <stdio.h>
 /*******************************************************************************
                               DEFINES
 *******************************************************************************/
@@ -1294,8 +1294,13 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
 
         // Compute OPc
         //compute_OPc(&round_keys, op, op_c);
-        memcpy(op_c,op,16);
-
+        printf("OPc 0x: ");
+        for(i=0;i<16;i++)
+        {
+          op_c[i] = op[i];
+          printf("%02x", op_c[i]);
+        }
+        printf("\n");
         // Compute temp
         for(i=0; i<16; i++)
         {
