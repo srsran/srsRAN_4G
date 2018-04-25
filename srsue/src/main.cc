@@ -159,6 +159,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<bool>(&args->expert.pregenerate_signals)->default_value(false),
      "Pregenerate uplink signals after attach. Improves CPU performance.")
 
+    ("expert.print_buffer_state",
+     bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
+     "Prints on the console the buffer state every 10 seconds")
+
     ("expert.rssi_sensor_enabled",
      bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(false),
      "Enable or disable RF frontend RSSI sensor. In some USRP devices can cause segmentation fault")
@@ -486,9 +490,16 @@ int main(int argc, char *argv[])
       ue->start_plot();
     }
   }
+  int cnt=0;
   while (running) {
-    ue->print_pool();
-    sleep(10);
+    if (args.expert.print_buffer_state) {
+      cnt++;
+      if (cnt==10) {
+        cnt=0;
+        ue->print_pool();
+      }
+    }
+    sleep(1);
   }
   pthread_cancel(input);
   metricshub.stop();

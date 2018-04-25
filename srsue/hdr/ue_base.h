@@ -112,6 +112,7 @@ typedef struct {
   phy_args_t    phy;
   float         metrics_period_secs;
   bool          pregenerate_signals;
+  bool          print_buffer_state;
   bool          metrics_csv_enable;
   std::string   metrics_csv_filename;
 }expert_args_t;
