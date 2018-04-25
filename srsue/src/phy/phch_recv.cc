@@ -257,19 +257,21 @@ phy_interface_rrc::cell_search_ret_t phch_recv::cell_search(phy_interface_rrc::p
 bool phch_recv::cell_select(phy_interface_rrc::phy_cell_t *new_cell) {
   pthread_mutex_lock(&rrc_mutex);
 
+  bool ret = false;
+  int cnt = 0;
+
   // Move state to IDLE
   if (!new_cell) {
     Info("Cell Select: Starting cell resynchronization\n");
   } else {
     if (!srslte_cell_isvalid(&cell)) {
       log_h->error("Cell Select: Invalid cell. ID=%d, PRB=%d, ports=%d\n", cell.id, cell.nof_prb, cell.nof_ports);
-      return false;
+      goto unlock;
     }
     Info("Cell Select: Starting cell selection for PCI=%d, EARFCN=%d\n", new_cell->cell.id, new_cell->earfcn);
   }
 
   // Wait for any pending PHICH
-  int cnt = 0;
   while(worker_com->is_any_pending_ack() && cnt < 10) {
     usleep(1000);
     cnt++;
@@ -296,7 +298,7 @@ bool phch_recv::cell_select(phy_interface_rrc::phy_cell_t *new_cell) {
       cell = new_cell->cell;
       if (!set_cell()) {
         Error("Cell Select: Reconfiguring cell\n");
-        return false;
+        goto unlock;
       }
     }
 
@@ -305,7 +307,7 @@ bool phch_recv::cell_select(phy_interface_rrc::phy_cell_t *new_cell) {
       Info("Cell Select: Setting new frequency EARFCN=%d\n", new_cell->earfcn);
       if (set_frequency()) {
         Error("Cell Select: Setting new frequency EARFCN=%d\n", new_cell->earfcn);
-        return false;
+        goto unlock;
       }
       current_earfcn = new_cell->earfcn;
     }
@@ -318,7 +320,6 @@ bool phch_recv::cell_select(phy_interface_rrc::phy_cell_t *new_cell) {
   }
 
   /* SFN synchronization */
-  bool ret = false;
   phy_state.run_sfn_sync();
   if (phy_state.is_camping()) {
     Info("Cell Select: SFN synchronized. CAMPING...\n");
@@ -327,6 +328,7 @@ bool phch_recv::cell_select(phy_interface_rrc::phy_cell_t *new_cell) {
     Info("Cell Select: Could not synchronize SFN\n");
   }
 
+unlock:
   pthread_mutex_unlock(&rrc_mutex);
   return ret;
 }

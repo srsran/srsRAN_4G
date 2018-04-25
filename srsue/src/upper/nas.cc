@@ -242,6 +242,7 @@ bool nas::rrc_connect() {
     }
   } else {
     nas_log->error("Could not establish RRC connection\n");
+    pool->deallocate(dedicatedInfoNAS);
   }
   return false;
 }

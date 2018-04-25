@@ -220,21 +220,11 @@ void rrc::run_tti(uint32_t tti) {
         // If attached but not camping on the cell, perform cell reselection
         if (nas->is_attached()) {
           rrc_log->debug("Running cell selection and reselection in IDLE\n");
-          if (!cell_selection()) {
-            if (!serving_cell->in_sync) {
-              rrc_log->info("Cell selection and reselection in IDLE did not find any suitable cell. Searching again\n");
-              // If can not camp on any cell, search again for new cells
-              phy_interface_rrc::cell_search_ret_t ret = cell_search();
-
-              // TODO: Should not camp on it until we have checked is a valid PLMN
-              if (ret.found == phy_interface_rrc::cell_search_ret_t::CELL_FOUND) {
-                // New cell has been selected, start receiving PCCH
-                mac->pcch_start_rx();
-              }
-            }
-          } else {
+          if (cell_selection()) {
             // New cell has been selected, start receiving PCCH
             mac->pcch_start_rx();
+          } else {
+            rrc_log->warning("Could not find any cell to camp on\n");
           }
         }
         break;
@@ -780,14 +770,12 @@ phy_interface_rrc::cell_search_ret_t rrc::cell_search()
  */
 bool rrc::cell_selection()
 {
-  int candidates = 0;
   // Neighbour cells are sorted in descending order of RSRP
   for (uint32_t i = 0; i < neighbour_cells.size(); i++) {
     if (/*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
          * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
         neighbour_cells[i]->in_sync) // matches S criteria
     {
-      candidates++;
       // If currently connected, verify cell selection criteria
       if (!serving_cell->in_sync ||
           (cell_selection_criteria(neighbour_cells[i]->get_rsrp())  &&
@@ -814,7 +802,15 @@ bool rrc::cell_selection()
       }
     }
   }
-  return false;
+  if (serving_cell->in_sync) {
+    return true;
+  }
+  // If can not find any suitable cell, search again
+  rrc_log->info("Cell selection and reselection in IDLE did not find any suitable cell. Searching again\n");
+  // If can not camp on any cell, search again for new cells
+  phy_interface_rrc::cell_search_ret_t ret = cell_search();
+
+  return ret.found == phy_interface_rrc::cell_search_ret_t::CELL_FOUND;
 }
 
 // Cell selection criteria Section 5.2.3.2 of 36.304
