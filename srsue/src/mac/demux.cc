@@ -107,27 +107,29 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
     
     Debug("Saved MAC PDU with Temporal C-RNTI in buffer\n");
     
-    pdus.push(buff, nof_bytes);
+    pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH);
   } else {
     Warning("Trying to push PDU with payload size zero\n");
   }
 }
 
-/* Demultiplexing of logical channels and dissassemble of MAC CE 
- * This function enqueues the packet and returns quicly because ACK 
- * deadline is important here. 
- */ 
+/* Demultiplexing of logical channels and dissassemble of MAC CE
+ * This function enqueues the packet and returns quickly because ACK
+ * deadline is important here.
+ */
 void demux::push_pdu(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
-  return pdus.push(buff, nof_bytes, tstamp);
+  return pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH, tstamp);
 }
 
 /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through
 * the MAC in transparent mode.
-* Warning: In this case function sends the message to RLC now, since SI blocks do not
-* require ACK feedback to be transmitted quickly.
 */
 void demux::push_pdu_bcch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
-  rlc->write_pdu_bcch_dlsch(buff, nof_bytes);
+  pdus.push(buff, nof_bytes, srslte::pdu_queue::BCH, tstamp);
+}
+
+void demux::push_pdu_mch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
+  pdus.push(buff, nof_bytes, srslte::pdu_queue::MCH, tstamp);
 }
 
 bool demux::process_pdus()
@@ -135,15 +137,25 @@ bool demux::process_pdus()
   return pdus.process_pdus();
 }
 
-void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, uint32_t tstamp)
+void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp)
 {
-  // Unpack DLSCH MAC PDU 
-  mac_msg.init_rx(nof_bytes);
-  mac_msg.parse_packet(mac_pdu);
+  Debug("Processing MAC PDU channel %d\n", channel);
+  switch(channel) {
+    case srslte::pdu_queue::DCH:
+      // Unpack DLSCH MAC PDU
+      mac_msg.init_rx(nof_bytes);
+      mac_msg.parse_packet(mac_pdu);
 
-  process_sch_pdu(&mac_msg);
-  //srslte_vec_fprint_byte(stdout, mac_pdu, nof_bytes);
-  Debug("MAC PDU processed\n");
+      process_sch_pdu(&mac_msg);
+      //srslte_vec_fprint_byte(stdout, mac_pdu, nof_bytes);
+      break;
+    case srslte::pdu_queue::BCH:
+      rlc->write_pdu_bcch_dlsch(mac_pdu, nof_bytes);
+      break;
+    case srslte::pdu_queue::MCH:
+      // Process downlink MCH
+      break;
+  }
 }
 
 void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)

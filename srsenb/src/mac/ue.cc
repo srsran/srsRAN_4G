@@ -142,7 +142,7 @@ void ue::set_tti(uint32_t tti) {
 
 #include <assert.h>
 
-void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
+void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp)
 {
   // Unpack ULSCH MAC PDU 
   mac_msg_ul.init_rx(nof_bytes, true);

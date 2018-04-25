@@ -56,6 +56,7 @@ rrc::rrc()
   serving_cell = new cell_t();
   neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
   initiated = false;
+  running = false;
 }
 
 rrc::~rrc()
@@ -139,10 +140,17 @@ void rrc::init(phy_interface_rrc *phy_,
   // set seed for rand (used in attach)
   srand(time(NULL));
 
+  running = true;
+  start();
   initiated = true;
 }
 
 void rrc::stop() {
+  running = false;
+  cmd_msg_t msg;
+  msg.command = cmd_msg_t::STOP;
+  cmd_q.push(msg);
+  wait_thread_finish();
 }
 
 rrc_state_t rrc::get_state() {
@@ -160,6 +168,23 @@ bool rrc::have_drb() {
 void rrc::set_args(rrc_args_t *args) {
   memcpy(&this->args, args, sizeof(rrc_args_t));
 }
+
+/*
+ * Low priority thread to run functions that can not be executed from main thread
+ */
+void rrc::run_thread() {
+  while(running) {
+    cmd_msg_t msg = cmd_q.wait_pop();
+    switch(msg.command) {
+      case cmd_msg_t::STOP:
+        return;
+      case cmd_msg_t::PCCH:
+        process_pcch(msg.pdu);
+        break;
+    }
+  }
+}
+
 
 /*
  *
@@ -1639,6 +1664,13 @@ void rrc::handle_sib13()
 *
 *******************************************************************************/
 void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
+  cmd_msg_t msg;
+  msg.pdu = pdu;
+  msg.command = cmd_msg_t::PCCH;
+  cmd_q.push(msg);
+}
+
+void rrc::process_pcch(byte_buffer_t *pdu) {
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     rrc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received %d bytes\n", pdu->N_bytes);
     rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());

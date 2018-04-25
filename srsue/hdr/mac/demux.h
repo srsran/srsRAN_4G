@@ -51,12 +51,13 @@ public:
   
   void     push_pdu(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp);
   void     push_pdu_bcch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp);
+  void     push_pdu_mch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp);
   void     push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes);
 
   void     set_uecrid_callback(bool (*callback)(void*, uint64_t), void *arg);
   bool     get_uecrid_successful();
-  
-  void     process_pdu(uint8_t *pdu, uint32_t nof_bytes, uint32_t tstamp);
+
+  void     process_pdu(uint8_t *pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp);
   
 private:
   const static int MAX_PDU_LEN     = 150*1024/8; // ~ 150 Mbps  

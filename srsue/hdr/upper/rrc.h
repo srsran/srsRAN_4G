@@ -36,6 +36,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
+#include "srslte/common/block_queue.h"
 
 #include <math.h>
 #include <map>
@@ -253,6 +254,7 @@ class rrc
   ,public rrc_interface_pdcp
   ,public rrc_interface_rlc
   ,public srslte::timer_callback
+  ,public thread
 {
 public:
   rrc();
@@ -310,6 +312,21 @@ public:
 
 
 private:
+
+  typedef struct {
+    enum {
+      PCCH,
+      STOP
+    } command;
+    byte_buffer_t *pdu;
+  } cmd_msg_t;
+
+  bool running;
+  srslte::block_queue<cmd_msg_t> cmd_q;
+  void run_thread();
+
+  void process_pcch(byte_buffer_t *pdu);
+
   srslte::byte_buffer_pool *pool;
   srslte::log *rrc_log;
   phy_interface_rrc *phy;
