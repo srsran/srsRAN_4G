@@ -60,8 +60,9 @@ void rlc_tm::empty_queue()
   // Drop all messages in TX queue
   byte_buffer_t *buf;
   while(ul_queue.size() > 0) {
-    ul_queue.read(&buf);
-    pool->deallocate(buf);
+    if (ul_queue.try_read(&buf)) {
+      pool->deallocate(buf);
+    }
   }
 }
 
@@ -112,14 +113,18 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
   byte_buffer_t *buf;
-  ul_queue.read(&buf);
-  pdu_size = buf->N_bytes;
-  memcpy(payload, buf->msg, buf->N_bytes);
-  log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
-            rrc->get_rb_name(lcid).c_str(), buf->get_latency_us());
-  pool->deallocate(buf);
-  log->info_hex(payload, pdu_size, "TX %s, %s PDU", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[RLC_MODE_TM]);
-  return pdu_size;
+  if (ul_queue.try_read(&buf)) {
+    pdu_size = buf->N_bytes;
+    memcpy(payload, buf->msg, buf->N_bytes);
+    log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
+               rrc->get_rb_name(lcid).c_str(), buf->get_latency_us());
+    pool->deallocate(buf);
+    log->info_hex(payload, pdu_size, "TX %s, %s PDU", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[RLC_MODE_TM]);
+    return pdu_size;
+  } else {
+    log->warning("Queue empty while trying to read\n");
+    return 0;
+  }
 }
 
 void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
