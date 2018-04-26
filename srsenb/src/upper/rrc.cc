@@ -121,7 +121,7 @@ uint32_t rrc::generate_sibs()
   
   // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
   // all SIBs in a SI message msg[i] share the same periodicity
-  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT *msg = (LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT*)calloc(nof_messages, sizeof(LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT));
+  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT *msg = (LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT*)calloc(nof_messages+1, sizeof(LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT));
 
   // Copy SIB1 to first SI message
   msg[0].N_sibs = 1;
