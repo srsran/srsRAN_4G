@@ -229,6 +229,10 @@ void rrc::run_tti(uint32_t tti) {
               rrc_log->warning("Could not find any cell to camp on\n");
               break;
             case rrc::SAME_CELL:
+              if (!phy->cell_is_camping()) {
+                rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
+                serving_cell->in_sync = false;
+              }
               break;
           }
         }
@@ -378,7 +382,7 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
   rrc_log->info("Initiation of Connection establishment procedure\n");
 
   // Perform cell selection & reselection for the selected PLMN
-  cell_selection();
+  cs_ret_t cs_ret = cell_selection();
 
   // .. and SI acquisition
   if (phy->cell_is_camping()) {
@@ -431,7 +435,18 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
       rrc_log->error("Configuring serving cell\n");
     }
   } else {
-    rrc_log->error("Could not find any suitable cell to connect\n");
+    switch(cs_ret) {
+      case SAME_CELL:
+        rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
+        serving_cell->in_sync = false;
+      break;
+      case CHANGED_CELL:
+        rrc_log->warning("Selected a new cell but could not camp on. Setting out-of-sync.\n");
+        serving_cell->in_sync = false;
+        break;
+      default:
+        rrc_log->warning("Could not find any suitable cell to connect\n");
+    }
   }
 
   pthread_mutex_unlock(&mutex);
@@ -1523,6 +1538,7 @@ void rrc::leave_connected()
 {
   rrc_log->console("RRC IDLE\n");
   rrc_log->info("Leaving RRC_CONNECTED state\n");
+  state = RRC_STATE_IDLE;
   drb_up = false;
   security_is_activated = false;
   measurements.reset();
@@ -1537,7 +1553,6 @@ void rrc::leave_connected()
   mac_timers->timer_get(t311)->stop();
   mac_timers->timer_get(t304)->stop();
   rrc_log->info("Going RRC_IDLE\n");
-  state = RRC_STATE_IDLE;
   if (phy->cell_is_camping()) {
     // Receive paging
     mac->pcch_start_rx();
@@ -2630,8 +2645,15 @@ void rrc::rrc_meas::reset()
 {
   filter_k_rsrp = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
   filter_k_rsrq = liblte_rrc_filter_coefficient_num[LIBLTE_RRC_FILTER_COEFFICIENT_FC4];
+
+  // FIXME: Turn struct into a class and use destructor
+  std::map<uint32_t, meas_t>::iterator iter = active.begin();
+  while (iter != active.end()) {
+    remove_meas_id(iter++);
+  }
+
+  // These objects do not need destructor
   objects.clear();
-  active.clear();
   reports_cfg.clear();
   phy->meas_reset();
   bzero(&pcell_measurement, sizeof(meas_value_t));
