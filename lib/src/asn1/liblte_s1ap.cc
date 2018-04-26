@@ -44006,7 +44006,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_s1ap_pdu(
     }
 
     liblte_align_up_zero(ptr, 8);
-    bit_msg.N_bits += (*ptr - bit_msg.msg);
+    bit_msg.N_bits = (*ptr - bit_msg.msg);
 
     liblte_pack(&bit_msg, msg);
     err = LIBLTE_SUCCESS;
