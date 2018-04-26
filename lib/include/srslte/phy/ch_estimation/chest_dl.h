@@ -113,9 +113,9 @@ SRSLTE_API void srslte_chest_dl_free(srslte_chest_dl_t *q);
 
 SRSLTE_API int srslte_chest_dl_set_mbsfn_area_id(srslte_chest_dl_t *q,
                                                  uint16_t mbsfn_area_id);
+
 SRSLTE_API int srslte_chest_dl_set_cell(srslte_chest_dl_t *q,
                                         srslte_cell_t cell);
-
 
 SRSLTE_API void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, 
                                                   float *filter, 

@@ -363,6 +363,8 @@ void phch_recv::run_thread()
   cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL};
   uint32_t sf_idx = 0;
 
+  bool is_end_of_burst = false;
+
   cf_t *dummy_buffer[SRSLTE_MAX_PORTS];
 
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
@@ -469,6 +471,8 @@ void phch_recv::run_thread()
                 }
               }
 
+              is_end_of_burst = true;
+
               // Start worker
               workers_pool->start_worker(worker);
 
@@ -504,6 +508,10 @@ void phch_recv::run_thread()
           Debug("Discarting %d samples\n", nsamples);
           if (!radio_h->rx_now(dummy_buffer, nsamples, NULL)) {
             printf("SYNC:  Receiving from radio while in IDLE_RX\n");
+          }
+          if (is_end_of_burst) {
+            radio_h->tx_end();
+            is_end_of_burst = true;
           }
         } else {
           usleep(1000);
@@ -896,6 +904,7 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
   if (p->srate_mode != SRATE_FIND) {
     p->srate_mode = SRATE_FIND;
     p->radio_h->set_rx_srate(1.92e6);
+    p->radio_h->set_tx_srate(1.92e6);
     Info("SYNC:  Setting Cell Search sampling rate\n");
   }
 
