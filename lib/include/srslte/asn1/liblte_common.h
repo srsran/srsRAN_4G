@@ -55,7 +55,7 @@
 // Caution these values must match SRSLTE_ ones in common.h
 #define LIBLTE_MAX_MSG_SIZE_BITS  102048
 #define LIBLTE_MAX_MSG_SIZE_BYTES 12756
-#define LIBLTE_MSG_HEADER_OFFSET  1024
+#define LIBLTE_MSG_HEADER_OFFSET  1020
 
 /*******************************************************************************
                               TYPEDEFS
