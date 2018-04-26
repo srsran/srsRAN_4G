@@ -116,15 +116,17 @@ public:
 
     byte_buffer_t():N_bytes(0)
     {
-      timestamp_is_set = false; 
+      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+      timestamp_is_set = false;
       msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       next = NULL; 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-      debug_name[0] = 0;
+      bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
 #endif
     }
     byte_buffer_t(const byte_buffer_t& buf)
     {
+      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
     }
@@ -133,6 +135,7 @@ public:
       // avoid self assignment
       if (&buf == this)
         return *this;
+      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
       return *this;
