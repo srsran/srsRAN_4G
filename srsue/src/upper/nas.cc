@@ -49,6 +49,9 @@ nas::nas()
 {
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
+  ctxt.cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
+  ctxt.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
+  plmn_is_selected = false;
 }
 
 void nas::init(usim_interface_nas *usim_,
@@ -103,7 +106,6 @@ bool nas::attach_request() {
   rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
   int nof_plmns = 0;
 
-  uint32_t tout = 0;
   nas_log->info("Attach Request\n");
   switch (state) {
     case EMM_STATE_DEREGISTERED:
@@ -233,7 +235,7 @@ bool nas::rrc_connect() {
       nas_log->info("EMM Registered correctly\n");
       return true;
     } else if (state == EMM_STATE_DEREGISTERED) {
-      nas_log->error("Received attach reject while trying to attach\n");
+      nas_log->error("Timeout or received attach reject while trying to attach\n");
       nas_log->console("Failed to Attach\n");
     } else if (!rrc->is_connected()) {
       nas_log->error("Was disconnected while attaching\n");
@@ -423,7 +425,7 @@ bool nas::integrity_check(byte_buffer_t *pdu)
     return NULL;
   }
   if (pdu->N_bytes > 5) {
-    uint8_t exp_mac[4];
+    uint8_t exp_mac[4] = {0};
     uint8_t *mac = &pdu->msg[1];
     int i;
 
@@ -481,7 +483,7 @@ void nas::cipher_encrypt(byte_buffer_t *pdu)
       memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
       break;
   default:
-      nas_log->error("Ciphering algorithmus not known");
+      nas_log->error("Ciphering algorithm not known\n");
       break;
   }
 }
