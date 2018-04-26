@@ -58,7 +58,7 @@ metrics_stdout::metrics_stdout() : started(false) ,do_print(false), metrics_repo
 bool metrics_stdout::init(enb_metrics_interface *u, float report_period_secs)
 {
   enb_ = u;
-  metrics_report_period = report_period_secs;
+  metrics_report_period = get_time_scaled(report_period_secs);
 
   started = true;
   pthread_create(&metrics_thread, NULL, &metrics_thread_start, this);
@@ -90,7 +90,7 @@ void metrics_stdout::metrics_thread_run()
 {
   while(started)
   {
-    usleep_scaled(metrics_report_period*1e6);
+    usleep(metrics_report_period*1e6);
     if(enb_->get_metrics(metrics)) {
       if (metrics.rrc.n_ues > 0) {
         print_metrics();
