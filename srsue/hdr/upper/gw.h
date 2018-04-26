@@ -30,7 +30,6 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/msg_queue.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/threads.h"
