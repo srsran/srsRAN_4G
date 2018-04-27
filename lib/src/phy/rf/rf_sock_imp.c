@@ -198,8 +198,7 @@ static char rf_sock_node_type[2] = {0};
 
 static const struct timeval tv_zero      = {};
 static const struct timeval tv_tti_step  = {0, get_time_scaled(1000)};
-static const double fs_tti_step          = get_time_scaled(1000) / 1.0e6;
-// static const double fs_tti_jump  = get_time_scaled(4000) / 1.0e6;
+static const double fs_tti_window        = get_time_scaled(1500) / 1.0e6; // 1.5 sf
 
 // tx msg header info
 typedef struct {
@@ -218,7 +217,7 @@ typedef struct {
   cf_t *           data;
   uint8_t          xtra[128];
 } rf_sock_iomsg_t;
-#define RF_SOCK_MSGQ_SIZE 20
+#define RF_SOCK_MSGQ_SIZE 24
 #define RF_SOCK_BUMP_MSGQ_IDX(x) ((x) = ((x) + 1) % RF_SOCK_MSGQ_SIZE)
 
 
@@ -1376,7 +1375,11 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
    // clear out requested data block
    memset(data, 0x0, nof_bytes_pending);
 
-   // lock msgQ
+   rf_sock_iomsg_t * readyQ[RF_SOCK_MSGQ_SIZE];
+
+   double fs_diff;
+
+   // lock msgQ members
    pthread_mutex_lock(&_info->rx_lock);
 
    RF_SOCK_DBUG("RX IN  pending %d, rx_srate %6.2f Mhz, nsamples %d, inQ %d",
@@ -1384,10 +1387,6 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                 _info->rx_srate / 1.0e6,
                 nsamples,
                 _info->rx_msgQ_num);
-
-   rf_sock_iomsg_t * readyQ[RF_SOCK_MSGQ_SIZE];
-
-   double fs_diff;
 
    while((_info->rx_msgQ_num > 0) && (nof_sf_pending > 0))
      {   
@@ -1412,23 +1411,23 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
           fs_diff = rf_sock_get_fs(&tv_diff);
 
-          // tti time has come around 
+          // tti tx time has come around 
           if(fs_diff <= 0.0)
             {
               // but too late
-              if(fabs(fs_diff) >= fs_tti_step)
+              if(fabs(fs_diff) > fs_tti_window)
                 {
-                   RF_SOCK_INFO("RX EXPIRED sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6lf",
-                                nof_sf_pending - nof_sf_ready,
-                                _info->rx_msgQ_num,
-                                Qidx,
-                                iomsg->hdr.seqnum,
-                                iomsg->hdr.tv_tx_tti.tv_sec % 60,
-                                iomsg->hdr.tv_tx_tti.tv_usec,
-                                fs_diff);
-
                   // discard, Q already locked
                   rf_sock_rxQ_pop(h);
+
+                  RF_SOCK_INFO("RX EXPIRED sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6lf",
+                               nof_sf_pending - nof_sf_ready,
+                               _info->rx_msgQ_num,
+                               Qidx,
+                               iomsg->hdr.seqnum,
+                               iomsg->hdr.tv_tx_tti.tv_sec % 60,
+                               iomsg->hdr.tv_tx_tti.tv_usec,
+                               fs_diff);
                }
              else
                {
@@ -1448,21 +1447,18 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
           else
             {
               // not yet
-              if(fs_diff > 0.0)
-                {
-                   RF_SOCK_DBUG("RX NOT READY sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6f",
-                                nof_sf_pending - nof_sf_ready,
-                                _info->rx_msgQ_num,
-                                Qidx,
-                                iomsg->hdr.seqnum,
-                                iomsg->hdr.tv_tx_tti.tv_sec % 60,
-                                iomsg->hdr.tv_tx_tti.tv_usec,
-                                fs_diff);
-                }
+              RF_SOCK_DBUG("RX NOT READY sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6f",
+                           nof_sf_pending - nof_sf_ready,
+                           _info->rx_msgQ_num,
+                           Qidx,
+                           iomsg->hdr.seqnum,
+                           iomsg->hdr.tv_tx_tti.tv_sec % 60,
+                           iomsg->hdr.tv_tx_tti.tv_usec,
+                           fs_diff);
             }
          }
 
-       if(nof_sf_ready > 0 && nof_sf_ready >= nof_sf_pending)
+       if((nof_sf_ready > 0) && (nof_sf_ready >= nof_sf_pending))
          {
            for(int i = 0; i < nof_sf_ready; ++i)
              {
@@ -1517,6 +1513,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
               // ue needs to wait around for 5 sf and return in one chunk
               // when trying to obtain initial sync
+              // wait for more sf to arrive
               pthread_cond_wait(&_info->rx_msgQ_cond, &_info->rx_lock);
             }
          }
@@ -1542,7 +1539,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    fs_diff = rf_sock_get_fs(&tv_tx_tti) - rf_sock_get_fs(&_info->tv_this_tti);
 
-   if(fabs(fs_diff) >= fs_tti_step)
+   if(fabs(fs_diff) > fs_tti_window)
      {
        RF_SOCK_INFO("RX OUT out of sync by %6.6lf", fs_diff);
      }
