@@ -1506,10 +1506,8 @@ void rrc::con_reconfig_failed()
   }
 }
 
-void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig) {
-
-  pthread_mutex_lock(&mutex);
-
+void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig)
+{
   phy->get_config(&previous_phy_cfg);
   mac->get_config(&previous_mac_cfg);
 
@@ -1522,8 +1520,6 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
       con_reconfig_failed();
     }
   }
-
-  pthread_mutex_unlock(&mutex);
 }
 
 /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
