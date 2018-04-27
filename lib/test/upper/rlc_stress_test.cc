@@ -106,7 +106,7 @@ class mac_reader
     :public thread
 {
 public:
-  mac_reader(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, uint32_t pdu_tx_delay_usec_, rlc_pcap *pcap_, bool is_dl_ = true)
+  mac_reader(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, uint32_t pdu_tx_delay_usec_, rlc_pcap *pcap_, uint32_t lcid_, bool is_dl_ = true)
   {
     rlc1 = rlc1_;
     rlc2 = rlc2_;
@@ -117,6 +117,7 @@ public:
     pdu_tx_delay_usec = pdu_tx_delay_usec_;
     pcap = pcap_;
     is_dl = is_dl_;
+    lcid = lcid_;
   }
 
   void stop()
@@ -147,13 +148,13 @@ private:
       // generate MAC opportunities of random size or with fixed ratio
       float r = opp_sdu_ratio ? opp_sdu_ratio : (float)rand()/RAND_MAX;
       int opp_size = r*SDU_SIZE;
-      uint32_t buf_state = rlc1->get_buffer_state(1);
+      uint32_t buf_state = rlc1->get_buffer_state(lcid);
       if (buf_state) {
-        int read = rlc1->read_pdu(1, pdu->msg, opp_size);
+        int read = rlc1->read_pdu(lcid, pdu->msg, opp_size);
         usleep(pdu_tx_delay_usec);
         if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
           pdu->N_bytes = read;
-          rlc2->write_pdu(1, pdu->msg, pdu->N_bytes);
+          rlc2->write_pdu(lcid, pdu->msg, pdu->N_bytes);
           if (is_dl) {
             pcap->write_dl_am_ccch(pdu->msg, pdu->N_bytes);
           } else {
@@ -172,6 +173,7 @@ private:
   float opp_sdu_ratio;
   uint32_t pdu_tx_delay_usec;
   rlc_pcap *pcap;
+  uint32_t lcid;
   bool is_dl;
 
   bool run_enable;
@@ -182,9 +184,9 @@ class mac_dummy
     :public srslte::mac_interface_timers
 {
 public:
-  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, int32_t pdu_tx_delay, rlc_pcap* pcap = NULL)
-    :r1(rlc1_, rlc2_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, true)
-    ,r2(rlc2_, rlc1_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, false)
+  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, int32_t pdu_tx_delay, uint32_t lcid, rlc_pcap* pcap = NULL)
+    :r1(rlc1_, rlc2_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, lcid, true)
+    ,r2(rlc2_, rlc1_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, lcid, false)
   {
   }
 
@@ -222,13 +224,14 @@ class rlc_tester
     ,public thread
 {
 public:
-  rlc_tester(rlc_interface_pdcp *rlc_, std::string name_, uint32_t sdu_gen_delay_usec_){
+  rlc_tester(rlc_interface_pdcp *rlc_, std::string name_, uint32_t sdu_gen_delay_usec_, uint32_t lcid_){
     rlc = rlc_;
     run_enable = true;
     running = false;
     rx_pdus = 0;
     name = name_;
     sdu_gen_delay_usec = sdu_gen_delay_usec_;
+    lcid = lcid_;
   }
 
   void stop()
@@ -246,9 +249,9 @@ public:
   }
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, byte_buffer_t *sdu)
+  void write_pdu(uint32_t rx_lcid, byte_buffer_t *sdu)
   {
-    assert(lcid == 1);
+    assert(rx_lcid == lcid);
     assert(sdu->N_bytes==SDU_SIZE);
     byte_buffer_pool::get_instance()->deallocate(sdu);
     std::cout << "rlc_tester " << name << " received " << rx_pdus++ << " PDUs" << std::endl;
@@ -259,7 +262,7 @@ public:
   
   // RRC interface
   void max_retx_attempted(){}
-  std::string get_rb_name(uint32_t lcid) { return std::string(""); }
+  std::string get_rb_name(uint32_t rx_lcid) { return std::string(""); }
 
 private:
   void run_thread()
@@ -277,7 +280,7 @@ private:
       }
       sn++;
       pdu->N_bytes = SDU_SIZE;
-      rlc->write_sdu(1, pdu);
+      rlc->write_sdu(lcid, pdu);
       usleep(sdu_gen_delay_usec);
     }
     running = false;
@@ -286,6 +289,7 @@ private:
   bool run_enable;
   bool running;
   long rx_pdus;
+  uint32_t lcid;
 
   std::string name;
 
@@ -303,21 +307,11 @@ void stress_test(stress_test_args_t args)
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
   rlc_pcap pcap;
+  uint32_t lcid = 1;
 
   if (args.write_pcap) {
     pcap.open("rlc_stress_test.pcap", 0);
   }
-
-  rlc rlc1;
-  rlc rlc2;
-
-  rlc_tester tester1(&rlc1, "tester1", args.sdu_gen_delay_usec);
-  rlc_tester tester2(&rlc2, "tester2", args.sdu_gen_delay_usec);
-  mac_dummy     mac(&rlc1, &rlc2, args.error_rate, args.opp_sdu_ratio, args.pdu_tx_delay_usec, &pcap);
-  ue_interface  ue;
-
-  rlc1.init(&tester1, &tester1, &ue, &log1, &mac, 0);
-  rlc2.init(&tester2, &tester2, &ue, &log2, &mac, 0);
 
   srslte_rlc_config_t cnfg_;
   if (args.mode == "AM") {
@@ -338,13 +332,30 @@ void stress_test(stress_test_args_t args)
     cnfg_.um.rx_window_size = 16;
     cnfg_.um.tx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
     cnfg_.um.tx_mod = 32;
+  } else if (args.mode == "TM") {
+    // use default LCID in TM
+    lcid = 0;
   } else {
     cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
     return;
   }
 
-  rlc1.add_bearer(1, cnfg_);
-  rlc2.add_bearer(1, cnfg_);
+  rlc rlc1;
+  rlc rlc2;
+
+  rlc_tester tester1(&rlc1, "tester1", args.sdu_gen_delay_usec, lcid);
+  rlc_tester tester2(&rlc2, "tester2", args.sdu_gen_delay_usec, lcid);
+  mac_dummy     mac(&rlc1, &rlc2, args.error_rate, args.opp_sdu_ratio, args.pdu_tx_delay_usec, lcid, &pcap);
+  ue_interface  ue;
+
+  rlc1.init(&tester1, &tester1, &ue, &log1, &mac, 0);
+  rlc2.init(&tester2, &tester2, &ue, &log2, &mac, 0);
+
+  // only add AM and UM bearers
+  if (args.mode != "TM") {
+    rlc1.add_bearer(lcid, cnfg_);
+    rlc2.add_bearer(lcid, cnfg_);
+  }
 
   tester1.start(7);
   if (!args.single_tx) {
