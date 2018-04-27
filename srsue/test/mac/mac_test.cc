@@ -406,13 +406,13 @@ public:
         printf("SIB1 received %d bytes, CellID=%d, si_window=%d, sib2_period=%d\n", 
                 nof_bytes, dlsch_msg.sibs[0].sib.sib1.cell_id&0xfff, si_window_len, sib2_period);          
         sib1_decoded = true;         
-        mac.bcch_stop_rx();        
+        mac.clear_rntis();
       } else if (dlsch_msg.sibs[0].sib_type == LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2) {
         
         printf("SIB2 received %d bytes\n", nof_bytes);
         setup_mac_phy_sib2(&dlsch_msg.sibs[0].sib.sib2, &mac, &phy);        
         sib2_decoded = true; 
-        mac.bcch_stop_rx();
+        mac.clear_rntis();
       }
     }
   }

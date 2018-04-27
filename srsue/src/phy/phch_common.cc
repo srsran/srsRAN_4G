@@ -248,7 +248,7 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
     radio_h->tx_single(buffer, nof_samples, tx_time);
     is_first_of_burst = false; 
   } else {
-    if (TX_MODE_CONTINUOUS) {
+    if (radio_h->is_continuous_tx()) {
       if (!is_first_of_burst) {
         radio_h->tx_single(zeros, nof_samples, tx_time);
       }
@@ -342,11 +342,13 @@ void phch_common::reset() {
   cur_radio_power = 0;
   sr_last_tx_tti = -1;
   cur_pusch_power = 0;
+  avg_snr_db_cqi = 0;
+  avg_snr_db_sync = 0;
   avg_rsrp = 0;
+  avg_rsrp_cqi = 0;
   avg_rsrp_dbm = 0;
   avg_rsrq_db = 0;
 
-  pcell_meas_enabled  = false;
   pcell_report_period = 20;
 
   bzero(pending_ack, sizeof(pending_ack_t)*TTIMOD_SZ);

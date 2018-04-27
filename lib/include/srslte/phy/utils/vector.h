@@ -99,6 +99,7 @@ SRSLTE_API void srslte_vec_convert_fi(const float *x, const float scale, int16_t
 SRSLTE_API void srslte_vec_convert_if(const int16_t *x, const float scale, float *z, const uint32_t len);
 
 SRSLTE_API void srslte_vec_lut_sss(const short *x, const unsigned short *lut, short *y, const uint32_t len);
+SRSLTE_API void srslte_vec_lut_sis(const short *x, const unsigned int *lut, short *y, const uint32_t len);
 
 /* vector product (element-wise) */
 SRSLTE_API void srslte_vec_prod_ccc(const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len);

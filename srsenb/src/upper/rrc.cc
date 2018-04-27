@@ -121,7 +121,7 @@ uint32_t rrc::generate_sibs()
   
   // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
   // all SIBs in a SI message msg[i] share the same periodicity
-  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT *msg = (LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT*)calloc(nof_messages, sizeof(LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT));
+  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT *msg = (LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT*)calloc(nof_messages+1, sizeof(LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT));
 
   // Copy SIB1 to first SI message
   msg[0].N_sibs = 1;
@@ -1090,8 +1090,12 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
   LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT res;
+  res.ext=false;
   res.E_RABSetupListBearerSURes.len = 0;
   res.E_RABFailedToSetupListBearerSURes.len = 0;
+
+  res.CriticalityDiagnostics_present = false;
+  res.E_RABFailedToSetupListBearerSURes_present = false;
 
   for(uint32_t i=0; i<e->len; i++) {
     res.E_RABSetupListBearerSURes_present = true;
@@ -1447,6 +1451,8 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   // Get DRB1 configuration 
   if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0], 1)) {
     parent->rrc_log->error("Getting DRB1 configuration\n");
+    printf("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qCI.QCI);
+    return;
   } else {
     conn_reconf->rr_cnfg_ded.drb_to_add_mod_list_size = 1; 
   }
@@ -1524,8 +1530,10 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     uint8_t lcid  = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
 
     // Get DRB configuration
-    if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i], lcid)) {
-      parent->rrc_log->error("Getting DRB configuration\n");
+    if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i], lcid-2)) {
+      parent->rrc_log->error("Getting DRB configuration\n");    
+      printf("ERROR: The QCI %d is invalid or not configured.\n", erabs[lcid+4].qos_params.qCI.QCI);
+      return;
     } else {
       conn_reconf->rr_cnfg_ded.drb_to_add_mod_list_size++;
     }

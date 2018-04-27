@@ -20,7 +20,9 @@
 #                     from antenna to timestamp insertion. 
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
 # burst_preamble_us:  Preamble length to transmit before start of burst. 
-#                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
+#                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us.
+# continuous_tx:      Transmit samples continuously to the radio or on bursts (auto/yes/no).
+#                     Default is auto (yes for UHD, no for rest)
 #####################################################################
 [rf]
 dl_earfcn = 3400
@@ -33,6 +35,7 @@ rx_gain = 40
 #device_args = auto
 #time_adv_nsamples = auto
 #burst_preamble_us = auto
+#continuous_tx     = auto
 
 
 #####################################################################
@@ -150,7 +153,9 @@ enable = false
 #                       sampling frequency offset. Default is enabled. 
 # sss_algorithm:        Selects the SSS estimation algorithm. Can choose between 
 #                       {full, partial, diff}. 
-# estimator_fil_w:      Chooses the coefficients for the 3-tap channel estimator centered filter. 
+# estimator_fil_auto:   The channel estimator smooths the channel estimate with an adaptative filter.
+# estimator_fil_stddev: Sets the channel estimator smooth gaussian filter standard deviation.
+# estimator_fil_order:  Sets the channel estimator smooth gaussian filter order (even values perform better).
 #                       The taps are [w, 1-2w, w]
 # metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
 #
@@ -204,7 +209,9 @@ enable = false
 #time_correct_period = 5
 #sfo_correct_disable = false
 #sss_algorithm       = full
-#estimator_fil_w     = 0.1
+#estimator_fil_auto  = false
+#estimator_fil_stddev  = 1.0
+#estimator_fil_order  = 4
 #average_subframe_enabled = true
 #sic_pss_enabled     = true
 #pregenerate_signals = false

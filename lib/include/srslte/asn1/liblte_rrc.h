@@ -5579,7 +5579,7 @@ static const char liblte_rrc_ul_information_transfer_type_text[LIBLTE_RRC_UL_INF
                                                                                                                        "CDMA2000-HRPD"};
 // Structs
 typedef struct{
-    LIBLTE_SIMPLE_BYTE_MSG_STRUCT                dedicated_info;
+    LIBLTE_BYTE_MSG_STRUCT                dedicated_info;
     LIBLTE_RRC_UL_INFORMATION_TRANSFER_TYPE_ENUM dedicated_info_type;
 }LIBLTE_RRC_UL_INFORMATION_TRANSFER_STRUCT;
 // Functions
@@ -5960,7 +5960,7 @@ typedef struct{
 }LIBLTE_RRC_REGISTERED_MME_STRUCT;
 typedef struct{
     LIBLTE_RRC_REGISTERED_MME_STRUCT registered_mme;
-    LIBLTE_SIMPLE_BYTE_MSG_STRUCT    dedicated_info_nas;
+    LIBLTE_BYTE_MSG_STRUCT    dedicated_info_nas;
     uint8                            rrc_transaction_id;
     uint8                            selected_plmn_id;
     bool                             registered_mme_present;
@@ -6245,7 +6245,7 @@ typedef struct{
 typedef struct{
     LIBLTE_RRC_MEAS_CONFIG_STRUCT           meas_cnfg;
     LIBLTE_RRC_MOBILITY_CONTROL_INFO_STRUCT mob_ctrl_info;
-    LIBLTE_SIMPLE_BYTE_MSG_STRUCT           ded_info_nas_list[LIBLTE_RRC_MAX_DRB];
+    LIBLTE_BYTE_MSG_STRUCT           ded_info_nas_list[LIBLTE_RRC_MAX_DRB];
     LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT   rr_cnfg_ded;
     LIBLTE_RRC_SECURITY_CONFIG_HO_STRUCT    sec_cnfg_ho;
     uint32                                  N_ded_info_nas;
@@ -6626,7 +6626,7 @@ static const char liblte_rrc_dl_information_transfer_type_text[LIBLTE_RRC_DL_INF
                                                                                                                        "CDMA2000-HRPD"};
 // Structs
 typedef struct{
-    LIBLTE_SIMPLE_BYTE_MSG_STRUCT                dedicated_info;
+    LIBLTE_BYTE_MSG_STRUCT                dedicated_info;
     LIBLTE_RRC_DL_INFORMATION_TRANSFER_TYPE_ENUM dedicated_info_type;
     uint8                                        rrc_transaction_id;
 }LIBLTE_RRC_DL_INFORMATION_TRANSFER_STRUCT;

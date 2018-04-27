@@ -27,9 +27,6 @@
 #ifndef SRSUE_PHCH_COMMON_H
 #define SRSUE_PHCH_COMMON_H
 
-#define TX_MODE_CONTINUOUS 1
-
-
 #include <pthread.h>
 #include <string.h>
 #include <vector>
@@ -68,15 +65,17 @@ public:
   float cur_radio_power;
   float cur_pusch_power;
   float avg_rsrp;
+  float avg_rsrp_cqi;
   float avg_rsrp_dbm;
+  float avg_rsrp_sync_dbm;
   float avg_rsrq_db;
   float avg_rssi_dbm;
   float last_radio_rssi;
   float rx_gain_offset;
-  float avg_snr_db;
+  float avg_snr_db_cqi;
+  float avg_snr_db_sync;
   float avg_noise;
 
-  bool     pcell_meas_enabled;
   uint32_t pcell_report_period;
 
   // Save last TBS for mcs>28 cases

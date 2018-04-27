@@ -96,19 +96,16 @@ void phy::set_default_args(phy_args_t *args)
   args->equalizer_mode      = "mmse"; 
   args->cfo_integer_enabled = false; 
   args->cfo_correct_tol_hz  = 50; 
-  args->time_correct_period = 5; 
   args->sss_algorithm       = "full";
-  args->estimator_fil_w     = 0.1; 
+  args->estimator_fil_auto  = false;
+  args->estimator_fil_stddev = 1.0f;
+  args->estimator_fil_order  = 4;
 }
 
 bool phy::check_args(phy_args_t *args) 
 {
   if (args->nof_phy_threads > 3) {
     log_h->console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
-    return false; 
-  }
-  if (args->estimator_fil_w > 1.0) {
-    log_h->console("Error in PHY args: estimator_fil_w must be 0<=w<=1\n");
     return false; 
   }
   if (args->snr_ema_coeff > 1.0) {
@@ -250,20 +247,6 @@ void phy::configure_ul_params(bool pregen_disabled)
   }
 }
 
-void phy::cell_search_start()
-{
-  sf_recv.cell_search_start();
-}
-
-void phy::cell_search_next()
-{
-  sf_recv.cell_search_next();
-}
-
-void phy::sync_reset() {
-  sf_recv.reset_sync();
-}
-
 void phy::meas_reset() {
   sf_recv.meas_reset();
 }
@@ -276,13 +259,16 @@ int phy::meas_stop(uint32_t earfcn, int pci) {
   return sf_recv.meas_stop(earfcn, pci);
 }
 
-void phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
-{
-  sf_recv.cell_select(earfcn, phy_cell);
+bool phy::cell_select(phy_cell_t *cell) {
+  return sf_recv.cell_select(cell);
 }
 
-bool phy::cell_handover(srslte_cell_t cell) {
-  return sf_recv.cell_handover(cell);
+phy_interface_rrc::cell_search_ret_t  phy::cell_search(phy_cell_t *cell) {
+  return sf_recv.cell_search(cell);
+}
+
+bool phy::cell_is_camping() {
+  return sf_recv.cell_is_camping();
 }
 
 float phy::get_phr()
@@ -348,13 +334,14 @@ int phy::prach_tx_tti()
 
 // Handle the case of a radio overflow. Resynchronise inmediatly
 void phy::radio_overflow() {
-  sf_recv.reset_sync();
+  sf_recv.radio_overflow();
 }
 
 void phy::reset()
 {
   Info("Resetting PHY\n");
   n_ta = 0;
+  sf_recv.set_time_adv_sec(0);
   pdcch_dl_search_reset();
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();
@@ -386,11 +373,6 @@ void phy::set_earfcn(vector< uint32_t > earfcns)
 void phy::force_freq(float dl_freq, float ul_freq)
 {
   sf_recv.force_freq(dl_freq, ul_freq);
-}
-
-bool phy::sync_status()
-{
-  return sf_recv.status_is_sync();
 }
 
 void phy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])

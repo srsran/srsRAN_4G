@@ -380,7 +380,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_c_rnti_ie(uint8  **ie_ptr,
 
     Document Reference: 36.331 v10.0.0 Section 6.3.6
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_cdma2000_ie(LIBLTE_SIMPLE_BYTE_MSG_STRUCT  *ded_info_cdma2000,
+LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_cdma2000_ie(LIBLTE_BYTE_MSG_STRUCT  *ded_info_cdma2000,
                                                              uint8                         **ie_ptr)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
@@ -412,7 +412,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_cdma2000_ie(LIBLTE_SIMPLE_BYTE_
     return(err);
 }
 LIBLTE_ERROR_ENUM liblte_rrc_unpack_dedicated_info_cdma2000_ie(uint8                         **ie_ptr,
-                                                               LIBLTE_SIMPLE_BYTE_MSG_STRUCT  *ded_info_cdma2000)
+                                                               LIBLTE_BYTE_MSG_STRUCT  *ded_info_cdma2000)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     uint32            i;
@@ -452,7 +452,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_dedicated_info_cdma2000_ie(uint8            
 
     Document Reference: 36.331 v10.0.0 Section 6.3.6
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_nas_ie(LIBLTE_SIMPLE_BYTE_MSG_STRUCT  *ded_info_nas,
+LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_nas_ie(LIBLTE_BYTE_MSG_STRUCT  *ded_info_nas,
                                                         uint8                         **ie_ptr)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
@@ -484,7 +484,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_nas_ie(LIBLTE_SIMPLE_BYTE_MSG_S
     return(err);
 }
 LIBLTE_ERROR_ENUM liblte_rrc_unpack_dedicated_info_nas_ie(uint8                         **ie_ptr,
-                                                          LIBLTE_SIMPLE_BYTE_MSG_STRUCT  *ded_info_nas)
+                                                          LIBLTE_BYTE_MSG_STRUCT  *ded_info_nas)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     uint32            i;
@@ -2715,8 +2715,10 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_report_config_eutra_ie(LIBLTE_RRC_REPORT_CONFI
         liblte_value_2_bits(rep_cnfg_eutra->trigger_type, ie_ptr, 1);
         if(LIBLTE_RRC_TRIGGER_TYPE_EUTRA_EVENT == rep_cnfg_eutra->trigger_type)
         {
+            // Event ID choice extension indicator
+            liblte_value_2_bits(0, ie_ptr, 1); // Choice with extension - unlikely to be >63 choices
+
             // Event ID
-            // FIXME: Handle extension properly
             liblte_value_2_bits(rep_cnfg_eutra->event.event_id, ie_ptr, 3);
             if(LIBLTE_RRC_EVENT_ID_EUTRA_A1 == rep_cnfg_eutra->event.event_id)
             {

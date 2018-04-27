@@ -64,6 +64,7 @@ typedef struct {
   std::string   device_args;
   std::string   time_adv_nsamples;
   std::string   burst_preamble;
+  std::string   continuous_tx;
 }rf_args_t;
 
 typedef struct {
@@ -112,6 +113,7 @@ typedef struct {
   phy_args_t    phy;
   float         metrics_period_secs;
   bool          pregenerate_signals;
+  bool          print_buffer_state;
   bool          metrics_csv_enable;
   std::string   metrics_csv_filename;
 }expert_args_t;
@@ -155,6 +157,8 @@ public:
 
   virtual bool init(all_args_t *args_) = 0;
   virtual void stop() = 0;
+  virtual bool attach() = 0;
+  virtual bool deattach() = 0;
   virtual bool is_attached() = 0;
   virtual void start_plot() = 0;
 

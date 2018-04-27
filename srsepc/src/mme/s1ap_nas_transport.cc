@@ -1806,7 +1806,7 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
 
   //set apn
-  act_def_eps_bearer_context_req.apn.apn = m_s1ap->m_s1ap_args.mme_apn;
+  strncpy(act_def_eps_bearer_context_req.apn.apn, m_s1ap->m_s1ap_args.mme_apn.c_str(), LIBLTE_STRING_LEN);
   act_def_eps_bearer_context_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id; //FIXME
 
   //Set DNS server
@@ -1933,10 +1933,10 @@ s1ap_nas_transport::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_
 
   LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
   emm_info.full_net_name_present = true;
-  emm_info.full_net_name.name = std::string("Software Radio Systems LTE");
+  strncpy(emm_info.full_net_name.name, "Software Radio Systems LTE", LIBLTE_STRING_LEN);
   emm_info.full_net_name.add_ci = LIBLTE_MME_ADD_CI_DONT_ADD;
   emm_info.short_net_name_present = true;
-  emm_info.short_net_name.name = std::string("srsLTE");
+  strncpy(emm_info.short_net_name.name, "srsLTE", LIBLTE_STRING_LEN);
   emm_info.short_net_name.add_ci = LIBLTE_MME_ADD_CI_DONT_ADD;
 
   emm_info.local_time_zone_present = false;

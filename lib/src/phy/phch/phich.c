@@ -241,7 +241,7 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS],
     /* no need for layer demapping */
     srslte_predecoding_single_multi(q_sf_symbols, q_ce[0], q->d0, NULL, q->nof_rx_antennas, SRSLTE_PHICH_MAX_NSYMB, 1.0f, noise_estimate);
   } else {
-    srslte_predecoding_diversity_multi(q_sf_symbols, q_ce, x, q->nof_rx_antennas, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB, 1.0f);
+    srslte_predecoding_diversity_multi(q_sf_symbols, q_ce, x, NULL, q->nof_rx_antennas, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB, 1.0f);
     srslte_layerdemap_diversity(x, q->d0, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports);
   }
   DEBUG("Recv!!: \n");

@@ -77,6 +77,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"),
      "Transmission time advance")
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
+    ("rf.continuous_tx", bpo::value<string>(&args->rf.continuous_tx)->default_value("auto"), "Transmit samples continuously to the radio or on bursts (auto/yes/no). Default is auto (yes for UHD, no for rest)")
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041c00), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041c00")
@@ -158,6 +159,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.pregenerate_signals",
      bpo::value<bool>(&args->expert.pregenerate_signals)->default_value(false),
      "Pregenerate uplink signals after attach. Improves CPU performance.")
+
+    ("expert.print_buffer_state",
+     bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
+     "Prints on the console the buffer state every 10 seconds")
 
     ("expert.rssi_sensor_enabled",
      bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(false),
@@ -261,17 +266,21 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
      "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
-    ("expert.time_correct_period",
-     bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
-     "Period for sampling time offset correction.")
+    ("expert.estimator_fil_auto",
+     bpo::value<bool>(&args->expert.phy.estimator_fil_auto)->default_value(false),
+     "The channel estimator smooths the channel estimate with an adaptative filter.")
+
+    ("expert.estimator_fil_stddev",
+     bpo::value<float>(&args->expert.phy.estimator_fil_stddev)->default_value(1.0f),
+     "Sets the channel estimator smooth gaussian filter standard deviation.")
+
+    ("expert.estimator_fil_order",
+     bpo::value<uint32_t>(&args->expert.phy.estimator_fil_order)->default_value(4),
+     "Sets the channel estimator smooth gaussian filter order (even values perform better).")
 
     ("expert.sss_algorithm",
      bpo::value<string>(&args->expert.phy.sss_algorithm)->default_value("full"),
      "Selects the SSS estimation algorithm.")
-
-    ("expert.estimator_fil_w",
-     bpo::value<float>(&args->expert.phy.estimator_fil_w)->default_value(0.1),
-     "Chooses the coefficients for the 3-tap channel estimator centered filter.")
 
     ("expert.pdsch_csi_enabled",
      bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(false),
@@ -470,18 +479,25 @@ int main(int argc, char *argv[])
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &args);
 
-  bool plot_started = false;
-  bool signals_pregenerated = false;
-
+  printf("Attaching UE...\n");
+  while (!ue->attach() && running) {
+    sleep(1);
+  }
+  if (running) {
+    if (args.expert.pregenerate_signals) {
+      ue->pregenerate_signals(true);
+    }
+    if (args.gui.enable) {
+      ue->start_plot();
+    }
+  }
+  int cnt=0;
   while (running) {
-    if (ue->is_attached()) {
-      if (!signals_pregenerated && args.expert.pregenerate_signals) {
-        ue->pregenerate_signals(true);
-        signals_pregenerated = true;
-      }
-      if (!plot_started && args.gui.enable) {
-        ue->start_plot();
-        plot_started = true;
+    if (args.expert.print_buffer_state) {
+      cnt++;
+      if (cnt==10) {
+        cnt=0;
+        ue->print_pool();
       }
     }
     sleep(1);

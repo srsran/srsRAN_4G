@@ -1209,7 +1209,7 @@ static const char liblte_mme_add_ci_text[LIBLTE_MME_ADD_CI_N_ITEMS][20] = {"Don'
                                                                            "Add"};
 // Structs
 typedef struct{
-    std::string            name;
+    char                   name[LIBLTE_STRING_LEN];
     LIBLTE_MME_ADD_CI_ENUM add_ci;
 }LIBLTE_MME_NETWORK_NAME_STRUCT;
 // Functions
@@ -1752,7 +1752,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_guti_type_ie(uint8                     **ie_
 // Enums
 // Structs
 typedef struct{
-    std::string apn;
+    char apn[LIBLTE_STRING_LEN];
 }LIBLTE_MME_ACCESS_POINT_NAME_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_access_point_name_ie(LIBLTE_MME_ACCESS_POINT_NAME_STRUCT  *apn,

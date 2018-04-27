@@ -160,7 +160,10 @@ bool ue::init(all_args_t *args_)
   if (args->rf.burst_preamble.compare("auto")) {
     radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
   }
-  
+  if (args->rf.continuous_tx.compare("auto")) {
+    radio.set_continuous_tx(args->rf.continuous_tx.compare("yes")?false:true);
+  }
+
   radio.set_manual_calibration(&args->rf_cal);
 
   // Set PHY options
@@ -226,7 +229,6 @@ bool ue::init(all_args_t *args_)
   }
 
   printf("...\n");
-  nas.attach_request();
 
   started = true;
   return true;
@@ -271,6 +273,14 @@ void ue::stop()
     }
     started = false;
   }
+}
+
+bool ue::attach() {
+  return nas.attach_request();
+}
+
+bool ue::deattach() {
+  return nas.deattach_request();
 }
 
 bool ue::is_attached()

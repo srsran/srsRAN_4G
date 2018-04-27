@@ -82,21 +82,18 @@ public:
 
   /********** RRC INTERFACE ********************/
   void    reset();
-  void    sync_reset();
   void    configure_ul_params(bool pregen_disabled = false);
-  void    cell_search_start();
-  void    cell_search_next();
-  void    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
-  bool    cell_handover(srslte_cell_t cell);
+  cell_search_ret_t cell_search(phy_cell_t *cell);
+  bool    cell_select(phy_cell_t *cell);
 
   void    meas_reset();
   int     meas_start(uint32_t earfcn, int pci);
   int     meas_stop(uint32_t earfcn, int pci);
 
-  /********** MAC INTERFACE ********************/
-  /* Functions to synchronize with a cell */
-  bool    sync_status(); // this is also RRC interface
+  // also MAC interface
+  bool    cell_is_camping();
 
+  /********** MAC INTERFACE ********************/
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   void    set_crnti(uint16_t rnti);
   

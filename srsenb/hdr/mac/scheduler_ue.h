@@ -40,7 +40,8 @@ class sched_ue {
 public: 
   
   // used by sched_metric
-  uint32_t ue_idx;
+  dl_harq_proc* dl_next_alloc;
+  ul_harq_proc* ul_next_alloc;
 
   bool has_pucch;
   

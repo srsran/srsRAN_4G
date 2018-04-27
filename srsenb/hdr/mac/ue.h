@@ -95,7 +95,7 @@ public:
   
   bool     process_pdus(); 
   uint8_t *request_buffer(uint32_t tti, uint32_t len); 
-  void     process_pdu(uint8_t *pdu, uint32_t nof_bytes, uint32_t tstamp);
+  void     process_pdu(uint8_t *pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp);
   void     push_pdu(uint32_t tti, uint32_t len); 
   void     deallocate_pdu(uint32_t tti);
   
