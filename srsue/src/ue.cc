@@ -161,6 +161,7 @@ bool ue::init(all_args_t *args_)
     radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
   }
   if (args->rf.continuous_tx.compare("auto")) {
+    printf("set continuous %s\n", args->rf.continuous_tx.c_str());
     radio.set_continuous_tx(args->rf.continuous_tx.compare("yes")?false:true);
   }
 

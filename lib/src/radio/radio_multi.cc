@@ -19,10 +19,12 @@ bool radio_multi::init_multi(uint32_t nof_rx_antennas, char* args, char* devname
   // Suppress radio stdout
   srslte_rf_suppress_stdout(&rf_device);
 
-  tx_adv_auto = true; 
+  continuous_tx = false;
+  tx_adv_auto = true;
   // Set default preamble length each known device
   // We distinguish by device family, maybe we should calibrate per device
   if (strstr(srslte_rf_name(&rf_device), "uhd")) {
+    continuous_tx = true;
     burst_preamble_sec = uhd_default_burst_preamble_sec;
   } else if (strstr(srslte_rf_name(&rf_device), "bladerf")) {
     burst_preamble_sec = blade_default_burst_preamble_sec;
