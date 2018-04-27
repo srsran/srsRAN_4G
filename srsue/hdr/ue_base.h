@@ -64,6 +64,7 @@ typedef struct {
   std::string   device_args;
   std::string   time_adv_nsamples;
   std::string   burst_preamble;
+  std::string   continuous_tx;
 }rf_args_t;
 
 typedef struct {

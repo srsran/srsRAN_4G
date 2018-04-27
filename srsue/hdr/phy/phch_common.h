@@ -27,9 +27,6 @@
 #ifndef SRSUE_PHCH_COMMON_H
 #define SRSUE_PHCH_COMMON_H
 
-#define TX_MODE_CONTINUOUS 1
-
-
 #include <pthread.h>
 #include <string.h>
 #include <vector>

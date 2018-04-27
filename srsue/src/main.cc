@@ -77,6 +77,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"),
      "Transmission time advance")
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
+    ("rf.continuous_tx", bpo::value<string>(&args->rf.continuous_tx)->default_value("auto"), "Transmit samples continuously to the radio or on bursts (auto/yes/no). Default is auto (yes for UHD, no for rest)")
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041c00), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041c00")
