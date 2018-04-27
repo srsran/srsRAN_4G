@@ -35,6 +35,7 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <assert.h>
+#include <srslte/upper/rlc_interface.h>
 
 #define SDU_SIZE 1500
 
@@ -44,15 +45,16 @@ using namespace srslte;
 namespace bpo = boost::program_options;
 
 typedef struct {
-  uint32_t test_duration_sec;
-  float    error_rate;
-  uint32_t sdu_gen_delay_usec;
-  uint32_t pdu_tx_delay_usec;
-  bool     reestablish;
-  uint32_t log_level;
-  bool     single_tx;
-  bool     write_pcap;
-  float    opp_sdu_ratio;
+  std::string mode;
+  uint32_t    test_duration_sec;
+  float       error_rate;
+  uint32_t    sdu_gen_delay_usec;
+  uint32_t    pdu_tx_delay_usec;
+  bool        reestablish;
+  uint32_t    log_level;
+  bool        single_tx;
+  bool        write_pcap;
+  float       opp_sdu_ratio;
 } stress_test_args_t;
 
 void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
@@ -67,6 +69,7 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   // Command line or config file options
   bpo::options_description common("Configuration options");
   common.add_options()
+  ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
   ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(10), "Duration (sec)")
   ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(10), "SDU generation delay (usec)")
   ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(10), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
@@ -213,13 +216,13 @@ private:
 
 
 
-class rlc_am_tester
+class rlc_tester
     :public pdcp_interface_rlc
     ,public rrc_interface_rlc
     ,public thread
 {
 public:
-  rlc_am_tester(rlc_interface_pdcp *rlc_, std::string name_, uint32_t sdu_gen_delay_usec_){
+  rlc_tester(rlc_interface_pdcp *rlc_, std::string name_, uint32_t sdu_gen_delay_usec_){
     rlc = rlc_;
     run_enable = true;
     running = false;
@@ -248,7 +251,7 @@ public:
     assert(lcid == 1);
     assert(sdu->N_bytes==SDU_SIZE);
     byte_buffer_pool::get_instance()->deallocate(sdu);
-    std::cout << "rlc_am_tester " << name << " received " << rx_pdus++ << " PDUs" << std::endl;
+    std::cout << "rlc_tester " << name << " received " << rx_pdus++ << " PDUs" << std::endl;
   }
   void write_pdu_bcch_bch(byte_buffer_t *sdu) {}
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu) {}
@@ -264,9 +267,9 @@ private:
     uint8_t sn = 0;
     running = true;
     while(run_enable) {
-      byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_am_tester::run_thread");
+      byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_tester::run_thread");
       if (!pdu) {
-        printf("Fatal Error: Could not allocate PDU in rlc_am_tester::run_thread\n");
+        printf("Fatal Error: Could not allocate PDU in rlc_tester::run_thread\n");
         exit(-1);
       }
       for (uint32_t i = 0; i < SDU_SIZE; i++) {
@@ -293,8 +296,8 @@ private:
 
 void stress_test(stress_test_args_t args)
 {
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_1");
+  srslte::log_filter log2("RLC_2");
   log1.set_level((LOG_LEVEL_ENUM)args.log_level);
   log2.set_level((LOG_LEVEL_ENUM)args.log_level);
   log1.set_hex_limit(-1);
@@ -308,24 +311,37 @@ void stress_test(stress_test_args_t args)
   rlc rlc1;
   rlc rlc2;
 
-  rlc_am_tester tester1(&rlc1, "tester1", args.sdu_gen_delay_usec);
-  rlc_am_tester tester2(&rlc2, "tester2", args.sdu_gen_delay_usec);
+  rlc_tester tester1(&rlc1, "tester1", args.sdu_gen_delay_usec);
+  rlc_tester tester2(&rlc2, "tester2", args.sdu_gen_delay_usec);
   mac_dummy     mac(&rlc1, &rlc2, args.error_rate, args.opp_sdu_ratio, args.pdu_tx_delay_usec, &pcap);
   ue_interface  ue;
 
   rlc1.init(&tester1, &tester1, &ue, &log1, &mac, 0);
   rlc2.init(&tester2, &tester2, &ue, &log2, &mac, 0);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
-
-  srslte_rlc_config_t cnfg_(&cnfg);
+  srslte_rlc_config_t cnfg_;
+  if (args.mode == "AM") {
+    // config RLC AM bearer
+    cnfg_.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
+    cnfg_.am.max_retx_thresh = 4;
+    cnfg_.am.poll_byte = 25*1000;
+    cnfg_.am.poll_pdu = 4;
+    cnfg_.am.t_poll_retx = 5;
+    cnfg_.am.t_reordering = 5;
+    cnfg_.am.t_status_prohibit = 5;
+  } else if (args.mode == "UM") {
+    // config UM bearer
+    cnfg_.rlc_mode = LIBLTE_RRC_RLC_MODE_UM_BI;
+    cnfg_.um.t_reordering = 5;
+    cnfg_.um.rx_mod = 32;
+    cnfg_.um.rx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+    cnfg_.um.rx_window_size = 16;
+    cnfg_.um.tx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+    cnfg_.um.tx_mod = 32;
+  } else {
+    cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
+    return;
+  }
 
   rlc1.add_bearer(1, cnfg_);
   rlc2.add_bearer(1, cnfg_);
