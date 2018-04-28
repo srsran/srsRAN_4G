@@ -47,7 +47,20 @@ public:
   bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
 
-  //Initial UE messages
+  bool pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
+
+private:
+  s1ap_nas_transport();
+  virtual ~s1ap_nas_transport();
+
+  srslte::log *m_s1ap_log;
+  srslte::byte_buffer_pool *m_pool;
+
+  s1ap* m_s1ap;
+  hss_interface_s1ap*  m_hss;
+  mme_gtpc* m_mme_gtpc;
+
+    //Initial UE messages
   bool handle_nas_attach_request( uint32_t enb_ue_s1ap_id,
                                   srslte::byte_buffer_t *nas_msg,
                                   srslte::byte_buffer_t *reply_buffer,
@@ -107,7 +120,6 @@ public:
   bool pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx);
   bool pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx);
 
-  bool pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
   bool pack_identity_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
 
   bool pack_emm_information(ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg);
@@ -116,18 +128,6 @@ public:
   void log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req);
   void log_unhandled_pdn_con_request_ies(const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);
   void log_unhandled_initial_ue_message_ies(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue);
-
-
-private:
-  s1ap_nas_transport();
-  virtual ~s1ap_nas_transport();
-
-  srslte::log *m_s1ap_log;
-  srslte::byte_buffer_pool *m_pool;
-
-  s1ap* m_s1ap;
-  hss_interface_s1ap*  m_hss;
-  mme_gtpc* m_mme_gtpc;
 };
 } //namespace srsepc
 #endif // SRSEPC_S1AP_NAS_TRANSPORT_H
