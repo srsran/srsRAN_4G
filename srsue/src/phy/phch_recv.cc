@@ -1216,7 +1216,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
   sf_start = found_best?best_test_sf_start:sf_start;
 #endif
 
-  if (sf_start >= 0 && sf_start < (sf_len*max_sf)) {
+  if (sf_start >= 0 && sf_start < (int) (sf_len*max_sf)) {
 
     uint32_t nof_sf = (sf_len*max_sf - sf_start)/sf_len;
 

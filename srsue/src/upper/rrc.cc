@@ -1582,7 +1582,9 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH DLSCH message received.");
   rrc_log->info("BCCH DLSCH message Stack latency: %ld us\n", pdu->get_latency_us());
-  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg = {0};
+  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
+  ZERO_OBJECT(dlsch_msg);
+
   srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
   bit_buf.N_bits = pdu->N_bytes * 8;
   pool->deallocate(pdu);
@@ -1697,7 +1699,8 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
     rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
     rrc_log->console("PCCH message received %d bytes\n", pdu->N_bytes);
 
-    LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg = {0};
+    LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg;
+    ZERO_OBJECT(pcch_msg);
     srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
     bit_buf.N_bits = pdu->N_bytes * 8;
     pool->deallocate(pdu);

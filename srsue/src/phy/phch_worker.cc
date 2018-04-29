@@ -924,7 +924,9 @@ void phch_worker::set_uci_periodic_cqi()
       compute_ri(NULL, NULL, NULL);
       phy->last_pmi = (uint8_t) ue_dl.pmi[phy->last_ri % SRSLTE_MAX_LAYERS];
 
-      srslte_cqi_value_t cqi_report = {0};
+      srslte_cqi_value_t cqi_report;
+      ZERO_OBJECT(cqi_report);
+
       if (period_cqi.format_is_subband) {
         // TODO: Implement subband periodic reports
         cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND;
@@ -975,7 +977,9 @@ void phch_worker::set_uci_aperiodic_cqi()
             reported RI. For other transmission modes they are reported conditioned on rank 1.
         */
         if (rnti_is_set) {
-          srslte_cqi_value_t cqi_report = {0};
+          srslte_cqi_value_t cqi_report;
+          ZERO_OBJECT(cqi_report);
+
           cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
           cqi_report.subband_hl.wideband_cqi_cw0 = srslte_cqi_from_snr(phy->avg_snr_db_cqi);
 
@@ -1020,7 +1024,9 @@ void phch_worker::set_uci_aperiodic_cqi()
         */
         if (rnti_is_set) {
           /* Fill CQI Report */
-          srslte_cqi_value_t cqi_report = {0};
+          srslte_cqi_value_t cqi_report;
+          ZERO_OBJECT(cqi_report);
+
           cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
 
           cqi_report.subband_hl.wideband_cqi_cw0 = srslte_cqi_from_snr(sinr_db);

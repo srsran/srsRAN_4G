@@ -72,6 +72,8 @@
 #define pool_allocate (pool->allocate())
 #endif
 
+#define ZERO_OBJECT(x) memset(&(x), 0x0, sizeof((x)))
+
 #include "srslte/srslte.h"
 
 /*******************************************************************************
