@@ -1174,27 +1174,27 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
 
   ret_code ret = IDLE;
 
-  offset = offset-sf_len/2;
-  while (offset < 0 && sf_idx < max_sf) {
-    Info("INTRA: offset=%d, sf_idx=%d\n", offset, sf_idx);
-    offset += sf_len;
+  int sf_start = offset-sf_len/2;
+  while (sf_start < 0 && sf_idx < max_sf) {
+    Info("INTRA: sf_start=%d, sf_idx=%d\n", sf_start, sf_idx);
+    sf_start += sf_len;
     sf_idx ++;
   }
 
 #ifdef FINE_TUNE_OFFSET_WITH_RS
   float max_rsrp = -200;
-  int best_test_offset = 0;
-  int test_offset = 0;
+  int best_test_sf_start = 0;
+  int test_sf_start = 0;
   bool found_best = false;
 
-  // Fine-tune offset using RS
+  // Fine-tune sf_start using RS
   for (uint32_t n=0;n<5;n++) {
 
-    test_offset = offset-2+n;
-    if (test_offset >= 0) {
+    test_sf_start = sf_start-2+n;
+    if (test_sf_start >= 0) {
 
       cf_t *buf_m[SRSLTE_MAX_PORTS];
-      buf_m[0] = &input_buffer[test_offset];
+      buf_m[0] = &input_buffer[test_sf_start];
 
       uint32_t cfi;
       if (srslte_ue_dl_decode_fft_estimate_noguru(&ue_dl, buf_m, sf_idx, &cfi)) {
@@ -1205,25 +1205,25 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
       float rsrp = srslte_chest_dl_get_rsrp(&ue_dl.chest);
       if (rsrp > max_rsrp) {
         max_rsrp = rsrp;
-        best_test_offset = test_offset;
+        best_test_sf_start = test_sf_start;
         found_best = true;
       }
     }
   }
 
-  Debug("INTRA: fine-tuning offset: %d, found_best=%d, rem_sf=%d\n", offset, found_best, nof_sf);
+  Debug("INTRA: fine-tuning sf_start: %d, found_best=%d, rem_sf=%d\n", sf_start, found_best, nof_sf);
 
-  offset = found_best?best_test_offset:offset;
+  sf_start = found_best?best_test_sf_start:sf_start;
 #endif
 
-  if (offset >= 0 && offset < (sf_len*max_sf)) {
+  if (sf_start >= 0 && sf_start < (sf_len*max_sf)) {
 
-    uint32_t nof_sf = (sf_len*max_sf - offset)/sf_len;
+    uint32_t nof_sf = (sf_len*max_sf - sf_start)/sf_len;
 
-    final_offset = offset;
+    final_offset = sf_start;
 
     for (uint32_t i=0;i<nof_sf;i++) {
-      memcpy(buffer[0], &input_buffer[offset+i*sf_len], sizeof(cf_t)*sf_len);
+      memcpy(buffer[0], &input_buffer[sf_start+i*sf_len], sizeof(cf_t)*sf_len);
       ret = run_subframe((sf_idx+i)%10);
       if (ret != IDLE) {
         return ret;
@@ -1233,7 +1233,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
       return MEASURE_OK;
     }
   } else {
-    Error("INTRA: not running because offset=%d, sf_len*max_sf=%d*%d\n", offset, sf_len, max_sf);
+    Error("INTRA: not running because sf_start=%d, offset=%d, sf_len*max_sf=%d*%d\n", sf_start, offset, sf_len, max_sf);
     ret = ERROR;
   }
   return ret;
