@@ -103,8 +103,10 @@ void sch_pdu::parse_packet(uint8_t *ptr)
       read_len += subheaders[i].size_plus_header();
     }
 
-    if (pdu_len-read_len-1 >= 0) {
-      subheaders[nof_subheaders-1].set_payload_size(pdu_len-read_len-1);
+    int n_sub = pdu_len-read_len-1;
+
+    if (n_sub >= 0) {
+      subheaders[nof_subheaders-1].set_payload_size(n_sub);
     } else {
       fprintf(stderr,"Reading MAC PDU: negative payload for last subheader\n");
     }
@@ -584,17 +586,22 @@ int sch_subh::set_sdu(uint32_t lcid_, uint32_t requested_bytes, read_pdu_interfa
     
     payload = ((sch_pdu*)parent)->get_current_sdu_ptr();
     // Copy data and get final number of bytes written to the MAC PDU 
-    uint32_t sdu_sz = sdu_itf->read_pdu(lcid, payload, requested_bytes);
+    int sdu_sz = sdu_itf->read_pdu(lcid, payload, requested_bytes);
     
-    if (sdu_sz < 0 || sdu_sz > requested_bytes) {
+    if (sdu_sz < 0) {
       return -1;
     } 
     if (sdu_sz == 0) {
       return 0; 
     }
+    else {
+      // Save final number of written bytes
+      nof_bytes = sdu_sz;
 
-    // Save final number of written bytes
-    nof_bytes = sdu_sz;
+      if(nof_bytes > requested_bytes) {
+         return -1;
+      }
+    }
 
     ((sch_pdu*)parent)->add_sdu(nof_bytes);
     ((sch_pdu*)parent)->update_space_sdu(nof_bytes);

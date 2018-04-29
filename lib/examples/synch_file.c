@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   uint32_t m0, m1;
   float m0_value, m1_value;
   uint32_t N_id_2;
-  uint32_t sss_idx;
+  int sss_idx;
   struct timeval tdata[3];
   int *exec_time;
 
