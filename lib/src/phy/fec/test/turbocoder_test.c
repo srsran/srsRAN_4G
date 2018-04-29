@@ -40,7 +40,7 @@ uint32_t long_cb = 0;
 
 void usage(char *prog) {
   printf("Usage: %s\n", prog);
-  printf("\t-l long_cb [Default check all]\n", long_cb);
+  printf("\t-l long_cb [Default %u]\n", long_cb);
 }
 
 void parse_args(int argc, char **argv) {
