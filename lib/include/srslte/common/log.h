@@ -129,13 +129,13 @@ public:
   virtual void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
 
   // Same with hex dump
-  virtual void error_hex(const uint8_t *hex, int size, const char *, ...)   __attribute__((format (printf, 4, 5)))
+  virtual void error_hex(const uint8_t *, int, const char *, ...)   __attribute__((format (printf, 4, 5)))
     {error("error_hex not implemented.\n");}
-  virtual void warning_hex(const uint8_t *hex, int size, const char *, ...) __attribute__((format (printf, 4, 5)))
+  virtual void warning_hex(const uint8_t *, int, const char *, ...) __attribute__((format (printf, 4, 5)))
     {error("warning_hex not implemented.\n");}
-  virtual void info_hex(const uint8_t *hex, int size, const char *, ...)    __attribute__((format (printf, 4, 5)))
+  virtual void info_hex(const uint8_t *, int, const char *, ...)    __attribute__((format (printf, 4, 5)))
     {error("info_hex not implemented.\n");}
-  virtual void debug_hex(const uint8_t *hex, int size, const char *, ...)   __attribute__((format (printf, 4, 5)))
+  virtual void debug_hex(const uint8_t *, int, const char *, ...)   __attribute__((format (printf, 4, 5)))
     {error("debug_hex not implemented.\n");}
 
 protected:

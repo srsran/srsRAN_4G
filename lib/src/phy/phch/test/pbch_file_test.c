@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
       /* Get channel estimates for each port */
       srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
-      INFO("Decoding PBCH\n", 0);
+      INFO("Decoding PBCH\n");
       
       for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
         ce_slot1[i] = &ce[i][SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)];
