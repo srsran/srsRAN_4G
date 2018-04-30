@@ -1032,6 +1032,7 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
     m_s1ap_log->console("UE Authentication Accepted.\n");
     m_s1ap_log->info("UE Authentication Accepted.\n");
     //Send Security Mode Command
+    emm_ctx->security_ctxt.ul_nas_count = 0; // Reset the NAS uplink counter for the right key k_enb derivation
     pack_security_mode_command(reply_buffer, emm_ctx, ecm_ctx);
     *reply_flag = true;
     m_s1ap_log->console("Downlink NAS: Sending NAS Security Mode Command.\n");
@@ -1121,10 +1122,10 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
     //Attach requested from attach request
     m_mme_gtpc->send_modify_bearer_request(emm_ctx->imsi, &ecm_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
     //Send reply to eNB
-    m_s1ap_log->console("Packing EMM infromationi\n");
+    m_s1ap_log->console("Packing EMM Information\n");
     *reply_flag = pack_emm_information(ue_ctx, reply_msg);
-    m_s1ap_log->console("Sending EMM infromation, bytes %d\n",reply_msg->N_bytes);
-    m_s1ap_log->info("Sending EMM infromation\n");
+    m_s1ap_log->console("Sending EMM Information, bytes %d\n",reply_msg->N_bytes);
+    m_s1ap_log->info("Sending EMM Information\n");
   }
   emm_ctx->state = EMM_STATE_REGISTERED;
   return true;
@@ -1181,8 +1182,8 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
-  m_s1ap_log->info("Id Response -- IMSI: %015lu\n", imsi);
-  m_s1ap_log->console("Id Response -- IMSI: %015lu\n", imsi);
+  m_s1ap_log->info("ID response -- IMSI: %015lu\n", imsi);
+  m_s1ap_log->console("ID Response -- IMSI: %015lu\n", imsi);
 
   //Set UE's context IMSI
   emm_ctx->imsi=imsi;
