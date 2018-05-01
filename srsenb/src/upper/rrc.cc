@@ -958,7 +958,7 @@ void rrc::ue::set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUC
 void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
 {
   memcpy(k_enb, key, length);
-
+  parent->rrc_log->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
   // Select algos (TODO: use security capabilities and config preferences)
   cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
   integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
