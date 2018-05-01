@@ -52,10 +52,7 @@ nas::nas()
   ctxt.tx_count = 0;
   ctxt.cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   ctxt.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
-<<<<<<< HEAD
   plmn_is_selected = false;
-=======
->>>>>>> perform initial attach with ESM info transfer
 }
 
 void nas::init(usim_interface_nas *usim_,
@@ -493,11 +490,7 @@ void nas::cipher_encrypt(byte_buffer_t *pdu)
       memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
       break;
   default:
-<<<<<<< HEAD
       nas_log->error("Ciphering algorithm not known\n");
-=======
-      nas_log->error("Ciphering algorithmus not known\n");
->>>>>>> perform initial attach with ESM info transfer
       break;
   }
 }
