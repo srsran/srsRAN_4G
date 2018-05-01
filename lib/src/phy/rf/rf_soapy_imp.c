@@ -209,6 +209,8 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
       printf("%s=%s, ", soapy_args[i].keys[j], soapy_args[i].vals[j]);
       if(!strcmp(soapy_args[i].keys[j],"name") && !strcmp(soapy_args[i].vals[j], "LimeSDR-USB")){
         devname = DEVNAME_LIME;
+      } else if (!strcmp(soapy_args[i].keys[j],"name") && !strcmp(soapy_args[i].vals[j], "LimeSDR Mini")){
+        devname = DEVNAME_LIME_MINI;
       }
     }
     printf("\n");
