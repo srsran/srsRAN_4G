@@ -1226,7 +1226,9 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
     esm_info_resp.apn_present = false;
   } else {
     esm_info_resp.apn_present = true;
-    esm_info_resp.apn.apn = cfg.apn;
+    int len = std::min((int)cfg.apn.length(), LIBLTE_STRING_LEN);
+    strncpy(esm_info_resp.apn.apn, cfg.apn.c_str(), len);
+    esm_info_resp.apn.apn[len - 1] = '\0';
   }
   esm_info_resp.protocol_cnfg_opts_present = false;
 
