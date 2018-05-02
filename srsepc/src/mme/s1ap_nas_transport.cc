@@ -241,6 +241,18 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
       handle_nas_authentication_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
+    // Authentication failure with the option sync failure can be sent not integrity protected
+    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
+      m_s1ap_log->info("Plain UL NAS: Authentication Failure\n");
+      m_s1ap_log->console("Plain UL NAS: Authentication Failure\n");
+      handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      break;
+    // Detach request can be sent not integrity protected when "power off" option is used
+    case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
+      m_s1ap_log->info("Plain Protected UL NAS: Detach Request\n");
+      m_s1ap_log->console("Plain Protected UL NAS: Detach Request\n");
+      handle_nas_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
+      break;
     default:
       m_s1ap_log->warning("Unhandled Plain NAS message 0x%x\n", msg_type );
       m_s1ap_log->console("Unhandled Plain NAS message 0x%x\n", msg_type );
@@ -662,10 +674,11 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
         
         //Re-generate K_eNB
-        liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
+        srslte::security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
         m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
         m_s1ap_log->console("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
-        
+        m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Key eNodeB (k_enb)\n");
+
         m_s1ap_log->console("Attach request -- IMSI: %015lu\n", ecm_ctx->imsi);
         m_s1ap_log->info("Attach request -- IMSI: %015lu\n", ecm_ctx->imsi);
         m_s1ap_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
@@ -861,8 +874,10 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     m_s1ap_log->console("UE previously assigned IP: %s",inet_ntoa(emm_ctx->ue_ip));
 
     //Re-generate K_eNB
-    liblte_security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
+    srslte::security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
     m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
+    m_s1ap_log->console("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
+    m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Key eNodeB (k_enb)\n");
     m_s1ap_log->console("UE Ctr TEID %d\n", emm_ctx->sgw_ctrl_fteid.teid);
 
     //Save UE ctx to MME UE S1AP id
@@ -924,8 +939,8 @@ bool
 s1ap_nas_transport::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
 
-  m_s1ap_log->console("Detach request -- IMSI %015lu", ue_ctx->emm_ctx.imsi);
-  m_s1ap_log->info("Detach request -- IMSI %015lu", ue_ctx->emm_ctx.imsi);
+  m_s1ap_log->console("Detach request -- IMSI %015lu\n", ue_ctx->emm_ctx.imsi);
+  m_s1ap_log->info("Detach request -- IMSI %015lu\n", ue_ctx->emm_ctx.imsi);
   LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &detach_req);
@@ -1017,6 +1032,7 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
     m_s1ap_log->console("UE Authentication Accepted.\n");
     m_s1ap_log->info("UE Authentication Accepted.\n");
     //Send Security Mode Command
+    emm_ctx->security_ctxt.ul_nas_count = 0; // Reset the NAS uplink counter for the right key k_enb derivation
     pack_security_mode_command(reply_buffer, emm_ctx, ecm_ctx);
     *reply_flag = true;
     m_s1ap_log->console("Downlink NAS: Sending NAS Security Mode Command.\n");
@@ -1106,10 +1122,10 @@ s1ap_nas_transport::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, u
     //Attach requested from attach request
     m_mme_gtpc->send_modify_bearer_request(emm_ctx->imsi, &ecm_ctx->erabs_ctx[act_bearer.eps_bearer_id]);
     //Send reply to eNB
-    m_s1ap_log->console("Packing EMM infromationi\n");
+    m_s1ap_log->console("Packing EMM Information\n");
     *reply_flag = pack_emm_information(ue_ctx, reply_msg);
-    m_s1ap_log->console("Sending EMM infromation, bytes %d\n",reply_msg->N_bytes);
-    m_s1ap_log->info("Sending EMM infromation\n");
+    m_s1ap_log->console("Sending EMM Information, bytes %d\n",reply_msg->N_bytes);
+    m_s1ap_log->info("Sending EMM Information\n");
   }
   emm_ctx->state = EMM_STATE_REGISTERED;
   return true;
@@ -1166,8 +1182,8 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
-  m_s1ap_log->info("Id Response -- IMSI: %015lu\n", imsi);
-  m_s1ap_log->console("Id Response -- IMSI: %015lu\n", imsi);
+  m_s1ap_log->info("ID response -- IMSI: %015lu\n", imsi);
+  m_s1ap_log->console("ID Response -- IMSI: %015lu\n", imsi);
 
   //Set UE's context IMSI
   emm_ctx->imsi=imsi;
@@ -1605,15 +1621,15 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
                            ue_emm_ctx->security_ctxt.k_nas_enc,
                            ue_emm_ctx->security_ctxt.k_nas_int
                          );
-  srslte::security_generate_k_nas( ue_emm_ctx->security_ctxt.k_asme,
-                                   srslte::CIPHERING_ALGORITHM_ID_EEA0,
-                                   srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
-                                   ue_emm_ctx->security_ctxt.k_nas_enc,
-                                   ue_emm_ctx->security_ctxt.k_nas_int
-                                   );
+
+  m_s1ap_log->info_hex(ue_emm_ctx->security_ctxt.k_nas_enc, 32, "Key NAS Encryption (k_nas_enc)\n");
+  m_s1ap_log->info_hex(ue_emm_ctx->security_ctxt.k_nas_int, 32, "Key NAS Integrity (k_nas_int)\n");
+
   uint8_t key_enb[32];
-  liblte_security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, ue_emm_ctx->security_ctxt.k_enb);
-  m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",ue_emm_ctx->security_ctxt.ul_nas_count);
+  srslte::security_generate_k_enb(ue_emm_ctx->security_ctxt.k_asme, ue_emm_ctx->security_ctxt.ul_nas_count, ue_emm_ctx->security_ctxt.k_enb);
+  m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n", ue_emm_ctx->security_ctxt.ul_nas_count);
+  m_s1ap_log->console("Generating KeNB with UL NAS COUNT: %d\n", ue_emm_ctx->security_ctxt.ul_nas_count);
+  m_s1ap_log->info_hex(ue_emm_ctx->security_ctxt.k_enb, 32, "Key eNodeB (k_enb)\n");
   //Generate MAC for integrity protection
   //FIXME Write wrapper to support EIA1, EIA2, etc.
   srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
