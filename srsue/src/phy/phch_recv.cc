@@ -540,6 +540,7 @@ void phch_recv::run_thread()
           if (phy_state.is_camping()) {
             log_h->warning("Detected radio overflow while camping. Resynchronizing cell\n");
             sfn_p.reset();
+            srslte_ue_sync_reset(&ue_sync);
             phy_state.force_sfn_sync();
             radio_overflow_return = true;
           } else {
@@ -1047,29 +1048,33 @@ phch_recv::sfn_sync::ret_code phch_recv::sfn_sync::run_subframe(srslte_cell_t *c
       }
 
       int sfn_offset = 0;
-      Info("SYNC:  Trying to decode MIB... SNR=%.1f dB\n", 10*log10(srslte_chest_dl_get_snr(&ue_mib.chest)));
-
       int n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
-      if (n < 0) {
-        Error("SYNC:  Error decoding MIB while synchronising SFN");
-        return ERROR;
-      } else if (n == SRSLTE_UE_MIB_FOUND) {
-        uint32_t sfn;
-        srslte_pbch_mib_unpack(bch_payload, cell, &sfn);
+      switch(n) {
+        default:
+          Error("SYNC:  Error decoding MIB while synchronising SFN");
+          return ERROR;
+        case SRSLTE_UE_MIB_FOUND:
+          uint32_t sfn;
+          srslte_pbch_mib_unpack(bch_payload, cell, &sfn);
 
-        sfn = (sfn+sfn_offset)%1024;
-        if (tti_cnt) {
-          *tti_cnt = 10*sfn;
-          Info("SYNC:  DONE, TTI=%d, sfn_offset=%d\n", *tti_cnt, sfn_offset);
-        }
+          sfn = (sfn+sfn_offset)%1024;
+          if (tti_cnt) {
+            *tti_cnt = 10*sfn;
+            Info("SYNC:  DONE, SNR=%.1f dB, TTI=%d, sfn_offset=%d\n",
+                 10*log10(srslte_chest_dl_get_snr(&ue_mib.chest)), *tti_cnt, sfn_offset);
+          }
 
-        srslte_ue_sync_decode_sss_on_track(ue_sync, true);
-        reset();
-        return SFN_FOUND;
+          srslte_ue_sync_decode_sss_on_track(ue_sync, true);
+          reset();
+          return SFN_FOUND;
+        case SRSLTE_UE_MIB_NOTFOUND:
+          Info("SYNC:  Found PSS but could not decode MIB. SNR=%.1f dB (%d/%d)\n",
+               10*log10(srslte_chest_dl_get_snr(&ue_mib.chest)), cnt, timeout);
+          break;
       }
     }
   } else {
-    Info("SYNC:  PSS/SSS not found...\n");
+    Info("SYNC:  Waiting for PSS while trying to decode MIB (%d/%d)\n", cnt, timeout);
   }
 
   cnt++;
