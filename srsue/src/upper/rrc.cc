@@ -1721,7 +1721,6 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     rrc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received %d bytes\n", pdu->N_bytes);
     rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
-    rrc_log->console("PCCH message received %d bytes\n", pdu->N_bytes);
 
     LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg;
     ZERO_OBJECT(pcch_msg);
@@ -1744,9 +1743,6 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
       rrc_log->info("Received paging (%d/%d) for UE %x:%x\n", i + 1, pcch_msg.paging_record_list_size,
                     pcch_msg.paging_record_list[i].ue_identity.s_tmsi.mmec,
                     pcch_msg.paging_record_list[i].ue_identity.s_tmsi.m_tmsi);
-      rrc_log->console("Received paging (%d/%d) for UE %x:%x\n", i + 1, pcch_msg.paging_record_list_size,
-                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi.mmec,
-                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi.m_tmsi);
       if (ueIdentity.mmec == s_tmsi_paged->mmec && ueIdentity.m_tmsi == s_tmsi_paged->m_tmsi) {
         if (RRC_STATE_IDLE == state) {
           rrc_log->info("S-TMSI match in paging message\n");
