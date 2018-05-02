@@ -29,6 +29,13 @@
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/snow_3g.h"
 
+#ifdef HAVE_MBEDTLS
+#include "mbedtls/md5.h"
+#endif
+#ifdef HAVE_POLARSSL
+#include "polarssl/md5.h"
+#endif
+
 namespace srslte {
 
 /******************************************************************************
@@ -165,6 +172,19 @@ uint8_t security_128_eia2( uint8_t  *key,
                                   msg_len,
                                   mac);
 }
+
+uint8_t security_md5(const uint8_t *input, size_t len, uint8_t *output)
+{
+  memset(output, 0x00, 16);
+#ifdef HAVE_MBEDTLS
+  mbedtls_md5(input, len, output);
+#endif // HAVE_MBEDTLS
+#ifdef HAVE_POLARSSL
+  md5(input, len, output);
+#endif
+  return SRSLTE_SUCCESS;
+}
+
 
 /******************************************************************************
  * Encryption / Decryption

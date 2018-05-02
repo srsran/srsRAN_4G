@@ -277,6 +277,8 @@ int esm_info_request_test()
   srsue::nas nas;
   srslte_nas_config_t cfg;
   cfg.apn = "srslte";
+  cfg.user = "srsuser";
+  cfg.pass = "srspass";
   nas.init(&usim, &rrc_dummy, &gw, &nas_log, cfg);
 
   // push ESM info request PDU to NAS to generate response

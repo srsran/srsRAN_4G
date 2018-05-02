@@ -127,6 +127,8 @@ private:
   uint32_t ip_addr;
   uint8_t eps_bearer_id;
 
+  uint8_t chap_id;
+
   uint8_t transaction_id;
 
   // Security

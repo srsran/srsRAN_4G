@@ -83,7 +83,9 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
                                                                                            "UECapabilityInformation message. Default 0xe6041c00")
     ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
 
-    ("nas.apn",   bpo::value<string>(&args->apn)->default_value(""),  "Set Access Point Name (APN) for data services")
+    ("nas.apn",   bpo::value<string>(&args->apn_name)->default_value(""),  "Set Access Point Name (APN) for data services")
+    ("nas.user",   bpo::value<string>(&args->apn_user)->default_value(""),  "Username for CHAP authentication")
+    ("nas.pass",   bpo::value<string>(&args->apn_pass)->default_value(""),  "Password for CHAP authentication")
 
     ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")

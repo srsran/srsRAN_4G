@@ -123,6 +123,11 @@ uint8_t security_128_eia2( uint8_t  *key,
                            uint32_t  msg_len,
                            uint8_t  *mac);
 
+uint8_t security_md5(const uint8_t *input,
+                     size_t len,
+                     uint8_t *output);
+
+
 /******************************************************************************
  * Encryption / Decryption
  *****************************************************************************/

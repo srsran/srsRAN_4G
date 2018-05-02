@@ -53,6 +53,7 @@ nas::nas()
   ctxt.cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   ctxt.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
   plmn_is_selected = false;
+  chap_id = 0;
 }
 
 void nas::init(usim_interface_nas *usim_,
@@ -1218,12 +1219,93 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
   if (cfg.apn == "") {
     esm_info_resp.apn_present = false;
   } else {
+    nas_log->debug("Including APN %s in ESM info response\n", cfg.apn.c_str());
     esm_info_resp.apn_present = true;
     int len = std::min((int)cfg.apn.length(), LIBLTE_STRING_LEN);
     strncpy(esm_info_resp.apn.apn, cfg.apn.c_str(), len);
     esm_info_resp.apn.apn[len - 1] = '\0';
   }
-  esm_info_resp.protocol_cnfg_opts_present = false;
+
+
+  if (cfg.user != "" && cfg.user.length() < LIBLTE_STRING_LEN &&
+      cfg.pass != "" && cfg.pass.length() < LIBLTE_STRING_LEN) {
+
+    nas_log->debug("Including CHAP authentication for user %s in ESM info response\n", cfg.user.c_str());
+
+    // Generate CHAP challenge
+    uint16_t len = 1 /* CHAP code */ +
+                   1 /* ID */ +
+                   2 /* complete length */ +
+                   1 /* data value size */ +
+                   16 /* data value */ +
+                   cfg.user.length();
+
+    uint8_t challenge[len];
+    challenge[0] = 0x01; // challenge code
+    challenge[1] = chap_id; // ID
+
+    challenge[2] = (len >> 8) & 0xff;
+    challenge[3] = len & 0xff;
+    challenge[4] = 16;
+
+    uint8_t chal_val[16] = { 0xed, 0x0b, 0x26, 0x26, 0xed, 0x0b, 0x26, 0x26,
+                             0xed, 0x0b, 0x26, 0x26, 0xed, 0x0b, 0x26, 0x26 };
+    for (int i = 0; i < 16; i++) {
+      challenge[5 + i] = chal_val[i];
+    }
+
+    // add user as name field
+    for (size_t i = 0; i < cfg.user.length(); i++) {
+      const char *name = cfg.user.c_str();
+      challenge[21 + i] = name[i];
+    }
+
+    // Generate response
+    uint8_t response[len];
+    response[0] = 0x02; // response code
+    response[1] = chap_id;
+    response[2] = (len >> 8) & 0xff;
+    response[3] = len & 0xff;
+    response[4] = 16;
+
+    // Generate response value
+    uint16_t resp_val_len = 16 /* MD5 len */ +
+                            1 /* ID */ +
+                            cfg.pass.length();
+    uint8_t resp_val[resp_val_len];
+    resp_val[0] = chap_id;
+
+    // add secret
+    for (size_t i = 0; i < cfg.pass.length(); i++) {
+      const char* pass = cfg.pass.c_str();
+      resp_val[1 + i] = pass[i];
+    }
+
+    // copy original challenge behind secret
+    memcpy(&resp_val[1+cfg.pass.length()], chal_val, 16);
+
+    // Compute MD5 of resp_val and add to response
+    security_md5(resp_val, resp_val_len, &response[5]);
+
+    // add user as name field again
+    for (size_t i = 0; i < cfg.user.length(); i++) {
+      const char *name = cfg.user.c_str();
+      response[21 + i] = name[i];
+    }
+
+    // Add challenge and resposne to ESM info response
+    esm_info_resp.protocol_cnfg_opts_present = true;
+    esm_info_resp.protocol_cnfg_opts.opt[0].id = LIBLTE_MME_CONFIGURATION_PROTOCOL_OPTIONS_CHAP;
+    memcpy(esm_info_resp.protocol_cnfg_opts.opt[0].contents, challenge, sizeof(challenge));
+    esm_info_resp.protocol_cnfg_opts.opt[0].len = sizeof(challenge);
+
+    esm_info_resp.protocol_cnfg_opts.opt[1].id = LIBLTE_MME_CONFIGURATION_PROTOCOL_OPTIONS_CHAP;
+    memcpy(esm_info_resp.protocol_cnfg_opts.opt[1].contents, response, sizeof(response));
+    esm_info_resp.protocol_cnfg_opts.opt[1].len = sizeof(response);
+    esm_info_resp.protocol_cnfg_opts.N_opts = 2;
+  } else {
+    esm_info_resp.protocol_cnfg_opts_present = false;
+  }
 
   byte_buffer_t *pdu = pool_allocate;
   if (!pdu) {
@@ -1260,6 +1342,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
   rrc->write_sdu(cfg.lcid, pdu);
 
   ctxt.tx_count++;
+  chap_id++;
 }
 
 
