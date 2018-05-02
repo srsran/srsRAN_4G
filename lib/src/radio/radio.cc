@@ -51,12 +51,11 @@ bool radio::init(char *args, char *devname, uint32_t nof_channels)
   // Suppress radio stdout
   srslte_rf_suppress_stdout(&rf_device);
 
-  continuous_tx = false;
+  continuous_tx = true;
   tx_adv_auto = true;
   // Set default preamble length each known device
   // We distinguish by device family, maybe we should calibrate per device
   if (strstr(srslte_rf_name(&rf_device), "uhd")) {
-    continuous_tx = true;
   } else if (strstr(srslte_rf_name(&rf_device), "bladerf")) {
     burst_preamble_sec = blade_default_burst_preamble_sec;
   } else {
