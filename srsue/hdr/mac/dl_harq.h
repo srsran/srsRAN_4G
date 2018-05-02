@@ -224,10 +224,13 @@ private:
         }
       }
 
-      void reset(void) {
-        pthread_mutex_lock(&mutex);
+      void reset(bool lock = true) {
+        if (lock) {
+          pthread_mutex_lock(&mutex);
+        }
         is_first_tb = true;
         ack = false;
+        n_retx = 0;
         if (payload_buffer_ptr) {
           if (pid != HARQ_BCCH_PID) {
             harq_entity->demux_unit->deallocate(payload_buffer_ptr);
@@ -238,7 +241,9 @@ private:
         if (is_initiated) {
           srslte_softbuffer_rx_reset(&softbuffer);
         }
-        pthread_mutex_unlock(&mutex);
+        if (lock) {
+          pthread_mutex_unlock(&mutex);
+        }
       }
 
       void new_grant_dl(Tgrant grant, Taction *action) {
@@ -263,9 +268,7 @@ private:
             Warning("DL PID %d: Size of grant changed during a retransmission %d!=%d\n", pid,
                     cur_grant.n_bytes[tid], grant.n_bytes[tid]);
           }
-          ack = false;
-          srslte_softbuffer_rx_reset_tbs(&softbuffer, cur_grant.n_bytes[tid] * 8);
-          n_retx = 0;
+          reset(false);
         }
 
         // If data has not yet been successfully decoded
@@ -305,9 +308,7 @@ private:
           Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK (grant_tti=%d, ndi=%d, sz=%d, reset=%s)\n",
                   pid, cur_grant.tti, cur_grant.ndi[tid], cur_grant.n_bytes[tid], interval>RESET_DUPLICATE_TIMEOUT?"yes":"no");
           if (interval > RESET_DUPLICATE_TIMEOUT) {
-            pthread_mutex_unlock(&mutex);
-            reset();
-            pthread_mutex_lock(&mutex);
+            reset(false);
           }
         }
 
