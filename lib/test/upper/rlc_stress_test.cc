@@ -252,9 +252,13 @@ public:
   void write_pdu(uint32_t rx_lcid, byte_buffer_t *sdu)
   {
     assert(rx_lcid == lcid);
-    assert(sdu->N_bytes==SDU_SIZE);
+    if (sdu->N_bytes != SDU_SIZE) {
+      printf("Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, SDU_SIZE);
+      exit(-1);
+    }
+
     byte_buffer_pool::get_instance()->deallocate(sdu);
-    std::cout << "rlc_tester " << name << " received " << rx_pdus++ << " PDUs" << std::endl;
+    rx_pdus++;
   }
   void write_pdu_bcch_bch(byte_buffer_t *sdu) {}
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu) {}
@@ -263,6 +267,8 @@ public:
   // RRC interface
   void max_retx_attempted(){}
   std::string get_rb_name(uint32_t rx_lcid) { return std::string(""); }
+
+  int get_nof_rx_pdus() { return rx_pdus; }
 
 private:
   void run_thread()
@@ -378,6 +384,16 @@ void stress_test(stress_test_args_t args)
   if (args.write_pcap) {
     pcap.close();
   }
+
+  printf("RLC1 received %d SDUs in %ds (%.2f PDU/s)\n",
+         tester1.get_nof_rx_pdus(),
+         args.test_duration_sec,
+         (float)tester1.get_nof_rx_pdus()/args.test_duration_sec);
+
+  printf("RLC2 received %d SDUs in %ds (%.2f PDU/s)\n",
+         tester2.get_nof_rx_pdus(),
+         args.test_duration_sec,
+         (float)tester2.get_nof_rx_pdus()/args.test_duration_sec);
 }
 
 
