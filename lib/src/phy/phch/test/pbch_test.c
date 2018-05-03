@@ -144,6 +144,7 @@ int main(int argc, char **argv) {
   srslte_vec_fprint_hex(stdout, bch_payload_tx, SRSLTE_BCH_PAYLOAD_LEN);
   printf("Rx payload: ");
   srslte_vec_fprint_hex(stdout, bch_payload_rx, SRSLTE_BCH_PAYLOAD_LEN);
+  srslte_dft_exit();
 
   if (nof_rx_ports == cell.nof_ports && !memcmp(bch_payload_rx, bch_payload_tx, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN)) {
     printf("OK\n");

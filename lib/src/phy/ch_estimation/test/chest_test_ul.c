@@ -117,6 +117,7 @@ int main(int argc, char **argv) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
+  bzero(ce, num_re*sizeof(cf_t));
 
   if (cell.id == 1000) {
     cid = 0;

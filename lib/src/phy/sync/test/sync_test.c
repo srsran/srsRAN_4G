@@ -185,6 +185,7 @@ int main(int argc, char **argv) {
 
   srslte_sync_free(&syncobj);
   srslte_ofdm_tx_free(&ifft);
+  srslte_dft_exit();
 
   printf("Ok\n");
   exit(0);

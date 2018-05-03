@@ -286,8 +286,8 @@ int srslte_chest_ul_estimate(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
   if (ce != NULL) {
     if (q->smooth_filter_len > 0) {
       average_pilots(q, q->pilot_estimates, ce, nrefs_sym, n_prb);
-      interpolate_pilots(q, ce, nrefs_sym, n_prb);        
-      
+      interpolate_pilots(q, ce, nrefs_sym, n_prb);
+
       /* If averaging, compute noise from difference between received and averaged estimates */
       q->noise_estimate = estimate_noise_pilots(q, ce, nrefs_sym, n_prb);
     } else {
@@ -301,8 +301,7 @@ int srslte_chest_ul_estimate(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
       q->noise_estimate = 0;              
     }
   }
-  
-  // Estimate received pilot power 
+  // Estimate received pilot power
   q->pilot_power = srslte_vec_avg_power_cf(q->pilot_recv_signal, nrefs_sf); 
   return 0;
 }

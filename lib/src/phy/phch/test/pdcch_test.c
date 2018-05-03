@@ -359,5 +359,6 @@ quit:
   } else {
     printf("Ok\n");
   }
+  srslte_dft_exit();
   exit(ret);
 }
