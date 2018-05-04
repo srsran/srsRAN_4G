@@ -29,6 +29,7 @@
 #include "srslte/upper/rlc_um.h"
 #include <assert.h>
 
+#define MAX_NBUFS 100
 #define NBUFS 5
 
 using namespace srslte;
@@ -60,6 +61,7 @@ public:
   rlc_um_tester(){
     bzero(sdus, sizeof(sdus));
     n_sdus = 0;
+    expected_sdu_len = 0;
   }
 
   ~rlc_um_tester(){
@@ -74,6 +76,10 @@ public:
   void write_pdu(uint32_t lcid, byte_buffer_t *sdu)
   {
     assert(lcid == 3);
+    if (sdu->N_bytes != expected_sdu_len) {
+      printf("Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, expected_sdu_len);
+      exit(-1);
+    }
     sdus[n_sdus++] = sdu;
   }
   void write_pdu_bcch_bch(byte_buffer_t *sdu) {}
@@ -83,9 +89,11 @@ public:
   // RRC interface
   void max_retx_attempted(){}
   std::string get_rb_name(uint32_t lcid) { return std::string(""); }
+  void set_expected_sdu_len(uint32_t len) { expected_sdu_len = len; }
 
-  byte_buffer_t *sdus[5];
+  byte_buffer_t *sdus[MAX_NBUFS];
   int n_sdus;
+  uint32_t expected_sdu_len;
 };
 
 void basic_test()
@@ -118,6 +126,8 @@ void basic_test()
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
+
+  tester.set_expected_sdu_len(1);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -187,6 +197,8 @@ void loss_test()
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
 
+  tester.set_expected_sdu_len(1);
+
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
@@ -222,9 +234,243 @@ void loss_test()
   assert(NBUFS-1 == tester.n_sdus);
 }
 
+
+// This test checks the reassembly routines when a PDU
+// is lost that contains the beginning of SDU segment.
+// The PDU that contains the end of this SDU _also_ contains
+// a segment of another SDU.
+// On reassembly of the SDUs, the missing start segment
+// should be detected and the complete SDU be discarded
+// Therefore, one SDU less should be received than was tx'ed.
+// This test sends PDU in two batches so it's not the reordering
+// timeout that detects the missing PDU but the fact more
+// PDUs than rx_mod are received.
+void reassmble_test()
+{
+  srslte::log_filter log1("RLC_UM_1");
+  srslte::log_filter log2("RLC_UM_2");
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log2.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_hex_limit(-1);
+  log2.set_hex_limit(-1);
+  rlc_um_tester    tester;
+  mac_dummy_timers timers;
+
+  rlc_um rlc1;
+  rlc_um rlc2;
+
+  int len;
+
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log2.set_level(srslte::LOG_LEVEL_DEBUG);
+
+  rlc1.init(&log1, 3, &tester, &tester, &timers);
+  rlc2.init(&log2, 3, &tester, &tester, &timers);
+
+  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
+  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_UM_BI;
+  cnfg.dl_um_bi_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
+  cnfg.dl_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE5;
+  cnfg.ul_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE5;
+
+  rlc1.configure(&cnfg);
+  rlc2.configure(&cnfg);
+
+  // Push SDUs into RLC1
+  const int n_sdus = 25;
+  const int sdu_len = 100;
+
+  tester.set_expected_sdu_len(sdu_len);
+
+  byte_buffer_t sdu_bufs[n_sdus];
+
+  const int n_sdu_first_batch = 17;
+
+  for(int i=0;i<n_sdu_first_batch;i++) {
+    for (int k = 0; k < sdu_len; ++k) {
+      sdu_bufs[i].msg[k] = i;
+    }
+    sdu_bufs[i].N_bytes = sdu_len; // Give each buffer a size of 1 byte
+    rlc1.write_sdu(&sdu_bufs[i]);
+  }
+
+  // Read PDUs from RLC1 (use smaller grant for first PDU and large for the rest)
+  const int max_n_pdus = 100;
+  int n_pdus = 0;
+  byte_buffer_t pdu_bufs[max_n_pdus];
+  for(int i=0;i<max_n_pdus;i++)
+  {
+    len = rlc1.read_pdu(pdu_bufs[i].msg, (i == 0) ? sdu_len*3/4 : sdu_len*1.25);
+    pdu_bufs[i].N_bytes = len;
+    if (len) {
+      n_pdus++;
+    } else {
+      break;
+    }
+  }
+
+  printf("Generated %d PDUs in first batch\n", n_pdus);
+  assert(0 == rlc1.get_buffer_state());
+
+  // push second batch of SDUs
+  for (int i = n_sdu_first_batch; i < n_sdus; ++i) {
+    for (int k = 0; k < sdu_len; ++k) {
+      sdu_bufs[i].msg[k] = i;
+    }
+    sdu_bufs[i].N_bytes = sdu_len; // Give each buffer a size of 1 byte
+    rlc1.write_sdu(&sdu_bufs[i]);
+  }
+
+  // Read second batch of PDUs (use large grants)
+  for(int i=n_pdus;i<max_n_pdus;i++)
+  {
+    len = rlc1.read_pdu(pdu_bufs[i].msg, sdu_len*1.25);
+    pdu_bufs[i].N_bytes = len;
+    if (len) {
+      n_pdus++;
+    } else {
+      // stop reading PDUs after first zero length PDU
+      break;
+    }
+  }
+
+  printf("Generated %d PDUs in total\n", n_pdus);
+
+  // Write all PDUs into RLC2 except first one
+  for(int i=0;i<n_pdus;i++)
+  {
+    if (i!=0) {
+      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
+    }
+  }
+
+  // We should have received one SDU less than we tx'ed
+  assert(tester.n_sdus == n_sdus - 1);
+  for (int i = 0; i < tester.n_sdus; ++i) {
+    assert(tester.sdus[i]->N_bytes == sdu_len);
+  }
+}
+
+// This reassmble test checks the reassembly routines when a PDU
+// is lost that _only_ contains the beginning of SDU segment,
+// while the next PDU contains the middle part of this SDU (and
+// yet another PDU the end part).
+// On reassembly of the SDUs, the missing start segment
+// should be detected and the complete SDU be discarded
+// Therefore, one SDU less should be received than was tx'ed.
+void reassmble_test2()
+{
+  srslte::log_filter log1("RLC_UM_1");
+  srslte::log_filter log2("RLC_UM_2");
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log2.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_hex_limit(-1);
+  log2.set_hex_limit(-1);
+  rlc_um_tester    tester;
+  mac_dummy_timers timers;
+
+  rlc_um rlc1;
+  rlc_um rlc2;
+
+  int len;
+
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log2.set_level(srslte::LOG_LEVEL_DEBUG);
+
+  rlc1.init(&log1, 3, &tester, &tester, &timers);
+  rlc2.init(&log2, 3, &tester, &tester, &timers);
+
+  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
+  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_UM_BI;
+  cnfg.dl_um_bi_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
+  cnfg.dl_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE5;
+  cnfg.ul_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE5;
+
+  rlc1.configure(&cnfg);
+  rlc2.configure(&cnfg);
+
+  // Push SDUs into RLC1
+  const int n_sdus = 25;
+  const int sdu_len = 100;
+
+  tester.set_expected_sdu_len(sdu_len);
+
+  byte_buffer_t sdu_bufs[n_sdus];
+  const int n_sdu_first_batch = 17;
+
+  for(int i=0;i<n_sdu_first_batch;i++) {
+    for (int k = 0; k < sdu_len; ++k) {
+      sdu_bufs[i].msg[k] = i;
+    }
+    sdu_bufs[i].N_bytes = sdu_len;
+    rlc1.write_sdu(&sdu_bufs[i]);
+  }
+
+  const int max_n_pdus = 100;
+  int n_pdus = 0;
+  byte_buffer_t pdu_bufs[max_n_pdus];
+  for(int i=0;i<max_n_pdus;i++)
+  {
+    len = rlc1.read_pdu(pdu_bufs[i].msg, (i == 0) ? sdu_len*.75 : sdu_len*.25);
+    pdu_bufs[i].N_bytes = len;
+    if (len) {
+      n_pdus++;
+    } else {
+      break;
+    }
+  }
+
+  printf("Generated %d PDUs in first batch\n", n_pdus);
+  assert(0 == rlc1.get_buffer_state());
+
+  // push second batch of SDUs
+  for (int i = n_sdu_first_batch; i < n_sdus; ++i) {
+    for (int k = 0; k < sdu_len; ++k) {
+      sdu_bufs[i].msg[k] = i;
+    }
+    sdu_bufs[i].N_bytes = sdu_len; // Give each buffer a size of 1 byte
+    rlc1.write_sdu(&sdu_bufs[i]);
+  }
+
+  // Read second batch of PDUs
+  for(int i=n_pdus;i<max_n_pdus;i++)
+  {
+    len = rlc1.read_pdu(pdu_bufs[i].msg, sdu_len*1.25);
+    pdu_bufs[i].N_bytes = len;
+    if (len) {
+      n_pdus++;
+    } else {
+      break;
+    }
+  }
+
+  printf("Generated %d PDUs in total\n", n_pdus);
+
+  // Write all PDUs into RLC2 except first one
+  for(int i=0;i<n_pdus;i++) {
+    if (i!=0) {
+      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
+    }
+  }
+
+  // We should have received one SDU less than we tx'ed
+  assert(tester.n_sdus == n_sdus - 1);
+  for (int i = 0; i < tester.n_sdus; ++i) {
+    assert(tester.sdus[i]->N_bytes == sdu_len);
+  }
+}
+
+
 int main(int argc, char **argv) {
   basic_test();
   byte_buffer_pool::get_instance()->cleanup();
+
   loss_test();
+  byte_buffer_pool::get_instance()->cleanup();
+
+  reassmble_test();
+  byte_buffer_pool::get_instance()->cleanup();
+
+  reassmble_test2();
   byte_buffer_pool::get_instance()->cleanup();
 }
