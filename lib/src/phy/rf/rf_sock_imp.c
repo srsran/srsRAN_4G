@@ -271,6 +271,7 @@ typedef struct {
    size_t               rx_nof_late;
    size_t               rx_nof_discard;
    size_t               rx_nof_miss;
+   size_t               rx_nof_oos;
    size_t               rx_nof_ok;
    struct sockaddr_un   tx_addr;
    rf_sock_iomsg_t *    rx_msgQ_table[RF_SOCK_MSGQ_SIZE];
@@ -330,6 +331,7 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .rx_nof_late     = 0,
                                         .rx_nof_discard  = 0,
                                         .rx_nof_miss     = 0,
+                                        .rx_nof_oos      = 0,
                                         .rx_nof_ok       = 0,
                                         .tx_addr         = {},
                                         .rx_msgQ_num     = 0,
@@ -608,7 +610,7 @@ static void rf_sock_rxQ_push(void *h, rf_sock_iomsg_t * msg)
    // full
    if(_info->rx_msgQ_num == RF_SOCK_MSGQ_SIZE)
      {
-        RF_SOCK_WARN("rxQ overrun count %d, head %d, tail %d", 
+        RF_SOCK_DBUG("rxQ overrun count %d, head %d, tail %d", 
                       _info->rx_msgQ_num,
                       _info->rx_msgQ_head,
                       _info->rx_msgQ_tail);
@@ -1388,6 +1390,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                 nsamples,
                 _info->rx_msgQ_num);
 
+   // dont hang around if que is empty
    while((_info->rx_msgQ_num > 0) && (nof_sf_pending > 0))
      {   
        // check for ready subframes (tx_tti has come around)
@@ -1420,7 +1423,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                   // discard, Q already locked
                   rf_sock_rxQ_pop(h);
 
-                  RF_SOCK_INFO("RX EXPIRED sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6lf",
+                  RF_SOCK_DBUG("RX EXPIRED sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6lf",
                                nof_sf_pending - nof_sf_ready,
                                _info->rx_msgQ_num,
                                Qidx,
@@ -1524,15 +1527,16 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
    if(nof_sf_pending > 0)
     {
       if(! (++_info->rx_nof_miss % LOG_MODUL))
-
-      RF_SOCK_WARN("RX OUT %d sf, pending sm/by/sf %d/%d/%d, tx_tti %ld:%06ld, total miss %zu",
-                    nof_sf_out,
-                    nof_samples_pending, 
-                    nof_bytes_pending,
-                    nof_sf_pending,
-                    tv_tx_tti.tv_sec % 60,
-                    tv_tx_tti.tv_usec,
-                    _info->rx_nof_miss);
+       {
+         RF_SOCK_WARN("RX OUT %d sf, pending sm/by/sf %d/%d/%d, tx_tti %ld:%06ld, total miss %zu",
+                      nof_sf_out,
+                      nof_samples_pending, 
+                      nof_bytes_pending,
+                      nof_sf_pending,
+                      tv_tx_tti.tv_sec % 60,
+                      tv_tx_tti.tv_usec,
+                      _info->rx_nof_miss);
+       }
     }
 
    rf_sock_tv_to_fs(&tv_tx_tti, full_secs, frac_secs);
@@ -1541,7 +1545,12 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    if(fabs(fs_diff) > fs_tti_window)
      {
-       RF_SOCK_INFO("RX OUT out of sync by %6.6lf", fs_diff);
+        if(! (++_info->rx_nof_oos % 10))
+          {
+            RF_SOCK_INFO("RX OUT out of sync by %6.6lf, total oos %zu", 
+                         fs_diff,
+                         _info->rx_nof_oos);
+          }
      }
 
    return nsamples;
