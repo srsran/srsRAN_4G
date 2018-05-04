@@ -70,9 +70,9 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   bpo::options_description common("Configuration options");
   common.add_options()
   ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
-  ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(10), "Duration (sec)")
-  ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(10), "SDU generation delay (usec)")
-  ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(10), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
+  ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(5), "Duration (sec)")
+  ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(0), "SDU generation delay (usec)")
+  ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(0), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
   ("error_rate",    bpo::value<float>(&args->error_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
   ("opp_sdu_ratio", bpo::value<float>(&args->opp_sdu_ratio)->default_value(0.0), "Ratio between MAC opportunity and SDU size (0==random)")
   ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution")
@@ -343,7 +343,7 @@ void stress_test(stress_test_args_t args)
     lcid = 0;
   } else {
     cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
-    return;
+    exit(-1);
   }
 
   rlc rlc1;
@@ -403,4 +403,6 @@ int main(int argc, char **argv) {
 
   stress_test(args);
   byte_buffer_pool::get_instance()->cleanup();
+
+  exit(0);
 }
