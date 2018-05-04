@@ -84,6 +84,10 @@ void nas::init(usim_interface_nas *usim_,
     have_guti = true;
     have_ctxt = true;
   }
+
+  // set seed for rand (used in CHAP auth)
+  srand(time(NULL));
+
   running = true;
 }
 
@@ -1240,18 +1244,16 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
                    16 /* data value */ +
                    cfg.user.length();
 
-    uint8_t challenge[len];
+    uint8_t challenge[len] = {};
     challenge[0] = 0x01; // challenge code
     challenge[1] = chap_id; // ID
-
     challenge[2] = (len >> 8) & 0xff;
     challenge[3] = len & 0xff;
     challenge[4] = 16;
 
-    uint8_t chal_val[16] = { 0xed, 0x0b, 0x26, 0x26, 0xed, 0x0b, 0x26, 0x26,
-                             0xed, 0x0b, 0x26, 0x26, 0xed, 0x0b, 0x26, 0x26 };
+    // Append random challenge value
     for (int i = 0; i < 16; i++) {
-      challenge[5 + i] = chal_val[i];
+      challenge[5 + i] = rand() & 0xFF;
     }
 
     // add user as name field
@@ -1261,7 +1263,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
     }
 
     // Generate response
-    uint8_t response[len];
+    uint8_t response[len] = {};
     response[0] = 0x02; // response code
     response[1] = chap_id;
     response[2] = (len >> 8) & 0xff;
@@ -1282,6 +1284,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
     }
 
     // copy original challenge behind secret
+    uint8_t *chal_val = &challenge[5];
     memcpy(&resp_val[1+cfg.pass.length()], chal_val, 16);
 
     // Compute MD5 of resp_val and add to response
