@@ -579,8 +579,8 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
       srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
     }
-    Info("PDCCH: DL DCI %s cce_index=%2d, L=%d, n_data_bits=%d, hex=%s\n", srslte_dci_format_string(dci_msg.format), 
-         last_dl_pdcch_ncce, (1<<ue_dl.last_location.L), dci_msg.nof_bits, hexstr);
+    Info("PDCCH: DL DCI %s cce_index=%2d, L=%d, n_data_bits=%d, tpc_pucch=%d, hex=%s\n", srslte_dci_format_string(dci_msg.format),
+         last_dl_pdcch_ncce, (1<<ue_dl.last_location.L), dci_msg.nof_bits, dci_unpacked.tpc_pucch, hexstr);
     
     return true; 
   } else {
@@ -818,8 +818,8 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
         srslte_vec_sprint_hex(hexstr, sizeof(hexstr), dci_msg.data, dci_msg.nof_bits);
       }
       // Change to last_location_ul
-      Info("PDCCH: UL DCI Format0  cce_index=%d, L=%d, n_data_bits=%d, hex=%s\n", 
-           ue_dl.last_location_ul.ncce, (1<<ue_dl.last_location_ul.L), dci_msg.nof_bits, hexstr);
+      Info("PDCCH: UL DCI Format0  cce_index=%d, L=%d, n_data_bits=%d, tpc_pusch=%d, hex=%s\n",
+           ue_dl.last_location_ul.ncce, (1<<ue_dl.last_location_ul.L), dci_msg.nof_bits, dci_unpacked.tpc_pusch, hexstr);
       
       if (grant->phy_grant.ul.mcs.tbs==0) {
         Info("Received PUSCH grant with empty data\n");
