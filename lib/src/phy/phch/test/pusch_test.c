@@ -295,6 +295,7 @@ quit:
   srslte_pusch_free(&pusch_tx);
   srslte_pusch_free(&pusch_rx);
   srslte_softbuffer_tx_free(&softbuffer_tx);
+  srslte_softbuffer_rx_free(&softbuffer_rx);
   
   if (sf_symbols) {
     free(sf_symbols);
@@ -310,5 +311,6 @@ quit:
   } else {
     printf("Ok\n");
   }
+  srslte_dft_exit();
   exit(ret);
 }

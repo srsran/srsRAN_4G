@@ -215,6 +215,7 @@ int main(int argc, char **argv) {
     }
     free(slot_symbols[i]);
   }
+  srslte_dft_exit();
   printf("OK\n");
   exit(0);
 }

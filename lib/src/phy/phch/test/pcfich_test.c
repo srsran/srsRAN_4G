@@ -154,6 +154,7 @@ int main(int argc, char **argv) {
     srslte_regs_free(&regs);
     cid++;
   }
+  srslte_dft_exit();
 
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     free(ce[i]);

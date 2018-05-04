@@ -159,7 +159,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   }
   //Get K eNB
   liblte_unpack(emm_ctx->security_ctxt.k_enb, 32, in_ctxt_req->SecurityKey.buffer);
-  m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB\n");
+  m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB (k_enb)\n");
 
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
   if(emm_ctx->state == EMM_STATE_DEREGISTERED)

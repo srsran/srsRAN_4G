@@ -96,11 +96,6 @@ bool pdu_queue::process_pdus()
     if (callback) {
       callback->process_pdu(pdu->ptr, pdu->len, pdu->channel, pdu->tstamp);
     }
-    if (pdu->channel == DCH) {
-      if (!pool.deallocate(pdu)) {
-        log_h->warning("Error deallocating from buffer pool in process_pdus(): buffer not created in this pool.\n");
-      }
-    }
     cnt++;
     have_data = true;
   }

@@ -540,6 +540,7 @@ void phch_recv::run_thread()
           if (phy_state.is_camping()) {
             log_h->warning("Detected radio overflow while camping. Resynchronizing cell\n");
             sfn_p.reset();
+            srslte_ue_sync_reset(&ue_sync);
             phy_state.force_sfn_sync();
             radio_overflow_return = true;
           } else {
@@ -628,9 +629,7 @@ void phch_recv::set_agc_enable(bool enable)
 void phch_recv::set_time_adv_sec(float time_adv_sec)
 {
   // If transmitting earlier, transmit less samples to align time advance. If transmit later just delay next TX
-  if (time_adv_sec > this->time_adv_sec) {
-    next_offset = floor((this->time_adv_sec-time_adv_sec)*srslte_sampling_freq_hz(cell.nof_prb)+1);
-  }
+  next_offset = floor((this->time_adv_sec-time_adv_sec)*srslte_sampling_freq_hz(cell.nof_prb));
   this->next_time_adv_sec = time_adv_sec;
   Info("Applying time_adv_sec=%.1f us, next_offset=%d\n", time_adv_sec*1e6, next_offset);
 }
@@ -1047,29 +1046,33 @@ phch_recv::sfn_sync::ret_code phch_recv::sfn_sync::run_subframe(srslte_cell_t *c
       }
 
       int sfn_offset = 0;
-      Info("SYNC:  Trying to decode MIB... SNR=%.1f dB\n", 10*log10(srslte_chest_dl_get_snr(&ue_mib.chest)));
-
       int n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
-      if (n < 0) {
-        Error("SYNC:  Error decoding MIB while synchronising SFN");
-        return ERROR;
-      } else if (n == SRSLTE_UE_MIB_FOUND) {
-        uint32_t sfn;
-        srslte_pbch_mib_unpack(bch_payload, cell, &sfn);
+      switch(n) {
+        default:
+          Error("SYNC:  Error decoding MIB while synchronising SFN");
+          return ERROR;
+        case SRSLTE_UE_MIB_FOUND:
+          uint32_t sfn;
+          srslte_pbch_mib_unpack(bch_payload, cell, &sfn);
 
-        sfn = (sfn+sfn_offset)%1024;
-        if (tti_cnt) {
-          *tti_cnt = 10*sfn;
-          Info("SYNC:  DONE, TTI=%d, sfn_offset=%d\n", *tti_cnt, sfn_offset);
-        }
+          sfn = (sfn+sfn_offset)%1024;
+          if (tti_cnt) {
+            *tti_cnt = 10*sfn;
+            Info("SYNC:  DONE, SNR=%.1f dB, TTI=%d, sfn_offset=%d\n",
+                 10*log10(srslte_chest_dl_get_snr(&ue_mib.chest)), *tti_cnt, sfn_offset);
+          }
 
-        srslte_ue_sync_decode_sss_on_track(ue_sync, true);
-        reset();
-        return SFN_FOUND;
+          srslte_ue_sync_decode_sss_on_track(ue_sync, true);
+          reset();
+          return SFN_FOUND;
+        case SRSLTE_UE_MIB_NOTFOUND:
+          Info("SYNC:  Found PSS but could not decode MIB. SNR=%.1f dB (%d/%d)\n",
+               10*log10(srslte_chest_dl_get_snr(&ue_mib.chest)), cnt, timeout);
+          break;
       }
     }
   } else {
-    Info("SYNC:  PSS/SSS not found...\n");
+    Info("SYNC:  Waiting for PSS while trying to decode MIB (%d/%d)\n", cnt, timeout);
   }
 
   cnt++;
@@ -1174,27 +1177,27 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
 
   ret_code ret = IDLE;
 
-  offset = offset-sf_len/2;
-  while (offset < 0 && sf_idx < max_sf) {
-    Info("INTRA: offset=%d, sf_idx=%d\n", offset, sf_idx);
-    offset += sf_len;
+  int sf_start = offset-sf_len/2;
+  while (sf_start < 0 && sf_idx < max_sf) {
+    Info("INTRA: sf_start=%d, sf_idx=%d\n", sf_start, sf_idx);
+    sf_start += sf_len;
     sf_idx ++;
   }
 
 #ifdef FINE_TUNE_OFFSET_WITH_RS
   float max_rsrp = -200;
-  int best_test_offset = 0;
-  int test_offset = 0;
+  int best_test_sf_start = 0;
+  int test_sf_start = 0;
   bool found_best = false;
 
-  // Fine-tune offset using RS
+  // Fine-tune sf_start using RS
   for (uint32_t n=0;n<5;n++) {
 
-    test_offset = offset-2+n;
-    if (test_offset >= 0) {
+    test_sf_start = sf_start-2+n;
+    if (test_sf_start >= 0) {
 
       cf_t *buf_m[SRSLTE_MAX_PORTS];
-      buf_m[0] = &input_buffer[test_offset];
+      buf_m[0] = &input_buffer[test_sf_start];
 
       uint32_t cfi;
       if (srslte_ue_dl_decode_fft_estimate_noguru(&ue_dl, buf_m, sf_idx, &cfi)) {
@@ -1205,25 +1208,25 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
       float rsrp = srslte_chest_dl_get_rsrp(&ue_dl.chest);
       if (rsrp > max_rsrp) {
         max_rsrp = rsrp;
-        best_test_offset = test_offset;
+        best_test_sf_start = test_sf_start;
         found_best = true;
       }
     }
   }
 
-  Debug("INTRA: fine-tuning offset: %d, found_best=%d, rem_sf=%d\n", offset, found_best, nof_sf);
+  Debug("INTRA: fine-tuning sf_start: %d, found_best=%d, rem_sf=%d\n", sf_start, found_best, nof_sf);
 
-  offset = found_best?best_test_offset:offset;
+  sf_start = found_best?best_test_sf_start:sf_start;
 #endif
 
-  if (offset >= 0 && offset < (sf_len*max_sf)) {
+  if (sf_start >= 0 && sf_start < (int) (sf_len*max_sf)) {
 
-    uint32_t nof_sf = (sf_len*max_sf - offset)/sf_len;
+    uint32_t nof_sf = (sf_len*max_sf - sf_start)/sf_len;
 
-    final_offset = offset;
+    final_offset = sf_start;
 
     for (uint32_t i=0;i<nof_sf;i++) {
-      memcpy(buffer[0], &input_buffer[offset+i*sf_len], sizeof(cf_t)*sf_len);
+      memcpy(buffer[0], &input_buffer[sf_start+i*sf_len], sizeof(cf_t)*sf_len);
       ret = run_subframe((sf_idx+i)%10);
       if (ret != IDLE) {
         return ret;
@@ -1233,7 +1236,7 @@ phch_recv::measure::ret_code phch_recv::measure::run_multiple_subframes(cf_t *in
       return MEASURE_OK;
     }
   } else {
-    Error("INTRA: not running because offset=%d, sf_len*max_sf=%d*%d\n", offset, sf_len, max_sf);
+    Error("INTRA: not running because sf_start=%d, offset=%d, sf_len*max_sf=%d*%d\n", sf_start, offset, sf_len, max_sf);
     ret = ERROR;
   }
   return ret;

@@ -430,6 +430,15 @@ int main(int argc, char **argv) {
   ret = SRSLTE_SUCCESS;
 
 quit:
+
+  for (i = 0; i < nof_rx_antennas; i++) {
+    srslte_ofdm_tx_free(&ifft_mbsfn[i]);
+    srslte_ofdm_rx_free(&fft_mbsfn[i]);
+    if (rx_sf_symbols[i]) {
+      free(rx_sf_symbols[i]);
+    }
+  }
+
   srslte_pmch_free(&pmch_tx);
   srslte_pmch_free(&pmch_rx);
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
@@ -453,6 +462,9 @@ quit:
   }
 
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
+    if (tx_sf_symbols[i]) {
+      free(tx_sf_symbols[i]);
+    }
     for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
       if (ce[i][j]) {
         free(ce[i][j]);

@@ -549,10 +549,14 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     return;
   }
 
-  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept = {0};
-  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_complete = {0};
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req = {0};
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept = {0};
+  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
+  ZERO_OBJECT(attach_accept);
+  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_complete;
+  ZERO_OBJECT(attach_complete);
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
+  ZERO_OBJECT(act_def_eps_bearer_context_req);
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept;
+  ZERO_OBJECT(act_def_eps_bearer_context_accept);
 
   nas_log->info("Received Attach Accept\n");
 
@@ -677,7 +681,8 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
-  LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT attach_rej = {0};
+  LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT attach_rej;
+  ZERO_OBJECT(attach_rej);
 
   liblte_mme_unpack_attach_reject_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &attach_rej);
   nas_log->warning("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
@@ -746,8 +751,10 @@ void nas::parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
-  LIBLTE_MME_ID_REQUEST_MSG_STRUCT  id_req = {0};
-  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp = {0};
+  LIBLTE_MME_ID_REQUEST_MSG_STRUCT  id_req;
+  ZERO_OBJECT(id_req);
+  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
+  ZERO_OBJECT(id_resp);
 
   liblte_mme_unpack_identity_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &id_req);
   nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
@@ -1037,7 +1044,8 @@ void nas::gen_service_request(byte_buffer_t *msg) {
 }
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
-  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {0};
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
+  ZERO_OBJECT(pdn_con_req);
 
   nas_log->info("Generating PDN Connectivity Request\n");
 

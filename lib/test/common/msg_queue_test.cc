@@ -49,26 +49,27 @@ void* write_thread(void *a) {
 
 int main(int argc, char **argv) {
   bool                 result;
-  msg_queue            q;
+  msg_queue            *q = new msg_queue;
   byte_buffer_t *b;
   pthread_t            thread;
   args_t               args;
   u_int32_t            r;
 
   result = true;
-  args.q = &q;
+  args.q = q;
 
   pthread_create(&thread, NULL, &write_thread, &args);
 
   for(uint32_t i=0;i<NMSGS;i++)
   {
-    q.read(&b);
+    q->read(&b);
     memcpy(&r, b->msg, 4);
     delete b;
     if(r != i)
       result = false;
   }
 
+  delete q;
   pthread_join(thread, NULL);
 
   if(result) {

@@ -28,7 +28,7 @@
 dl_earfcn = 3400
 freq_offset = 0
 tx_gain = 80
-rx_gain = 40
+#rx_gain = 40
 
 #nof_rx_ant = 1
 #device_name = auto
@@ -190,7 +190,7 @@ enable = false
 #                        RS adjustments are allowed.
 #
 # pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
-#                        compatible with TM1. It is False by default.
+#                        used in TM1. It is True by default.
 #
 #####################################################################
 [expert]
@@ -217,7 +217,7 @@ enable = false
 #pregenerate_signals = false
 #metrics_csv_enable  = false
 #metrics_csv_filename = /tmp/ue_metrics.csv
-#pdsch_csi_enabled  = true     # Caution! Only TM1 supported!
+#pdsch_csi_enabled  = true
 
 # CFO related values
 #cfo_is_doppler      = false

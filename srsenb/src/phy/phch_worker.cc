@@ -242,13 +242,17 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
   pthread_mutex_lock(&mutex);
   if (ue_db.count(rnti)) {
     /* PUSCH UCI and scheduling configuration */
-    srslte_uci_cfg_t uci_cfg = {0};
+    srslte_uci_cfg_t uci_cfg;
+    ZERO_OBJECT(uci_cfg);
+
     if (dedicated->pusch_cnfg_ded_present && dedicated->sched_request_cnfg_present) {
       uci_cfg.I_offset_ack = dedicated->pusch_cnfg_ded.beta_offset_ack_idx;
       uci_cfg.I_offset_cqi = dedicated->pusch_cnfg_ded.beta_offset_cqi_idx;
       uci_cfg.I_offset_ri = dedicated->pusch_cnfg_ded.beta_offset_ri_idx;
 
-      srslte_pucch_sched_t pucch_sched = {false};
+      srslte_pucch_sched_t pucch_sched;
+      ZERO_OBJECT(pucch_sched);
+
       pucch_sched.N_pucch_1 = phy->pucch_cfg.n1_pucch_an;
       pucch_sched.n_pucch_2 = dedicated->cqi_report_cnfg.report_periodic.pucch_resource_idx;
       pucch_sched.n_pucch_sr = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
@@ -452,7 +456,9 @@ unlock:
 
 int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
 {
-  srslte_uci_data_t uci_data = {0};
+  srslte_uci_data_t uci_data;
+  ZERO_OBJECT(uci_data);
+
   uint32_t wideband_cqi_value = 0, wideband_pmi = 0;
   bool wideband_pmi_present = false;
 
@@ -478,7 +484,9 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       }
 
       // Configure PUSCH CQI channel
-      srslte_cqi_value_t cqi_value = {0};
+      srslte_cqi_value_t cqi_value;
+      ZERO_OBJECT(cqi_value);
+
       bool cqi_enabled = false;
 
       if (ue_db[rnti].cqi_en && ue_db[rnti].ri_en && srslte_ri_send(ue_db[rnti].pmi_idx, ue_db[rnti].ri_idx, tti_rx) ) {
@@ -688,7 +696,9 @@ int phch_worker::decode_pucch()
           uci_data.uci_ack_len++;
         }
       }
-      srslte_cqi_value_t cqi_value = {0};
+      srslte_cqi_value_t cqi_value;
+      ZERO_OBJECT(cqi_value);
+
       LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &ue_db[rnti].dedicated;
       LIBLTE_RRC_TRANSMISSION_MODE_ENUM tx_mode = dedicated->antenna_info_explicit_value.tx_mode;
 

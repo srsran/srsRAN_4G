@@ -162,6 +162,7 @@ int main(int argc, char **argv) {
   int nof_frames;
   int ret;
   bool acks[SRSLTE_MAX_TB];
+  bzero(acks, sizeof(bool)*SRSLTE_MAX_TB);
 
   if (argc < 3) {
     usage(argv[0]);
@@ -199,6 +200,7 @@ int main(int argc, char **argv) {
   } while (nof_frames <= max_frames && ret == 0);
 
   base_free();
+  srslte_dft_exit();
   if (data[0])
     free(data[0]);
   if (ret > 0) {

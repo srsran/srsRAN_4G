@@ -288,5 +288,6 @@ int main(int argc, char **argv) {
   } while (frame_cnt <= max_frames);
 
   base_free();
+  srslte_dft_exit();
   exit(ret);
 }
