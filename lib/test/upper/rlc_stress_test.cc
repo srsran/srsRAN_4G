@@ -151,7 +151,7 @@ private:
       uint32_t buf_state = rlc1->get_buffer_state(lcid);
       if (buf_state) {
         int read = rlc1->read_pdu(lcid, pdu->msg, opp_size);
-        usleep(pdu_tx_delay_usec);
+        if (pdu_tx_delay_usec) usleep(pdu_tx_delay_usec);
         if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
           pdu->N_bytes = read;
           rlc2->write_pdu(lcid, pdu->msg, pdu->N_bytes);
@@ -287,7 +287,7 @@ private:
       sn++;
       pdu->N_bytes = SDU_SIZE;
       rlc->write_sdu(lcid, pdu);
-      usleep(sdu_gen_delay_usec);
+      if (sdu_gen_delay_usec) usleep(sdu_gen_delay_usec);
     }
     running = false;
   }
