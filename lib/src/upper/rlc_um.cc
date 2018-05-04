@@ -31,7 +31,7 @@
 
 namespace srslte {
 
-rlc_um::rlc_um() : tx_sdu_queue(16)
+rlc_um::rlc_um() : tx_sdu_queue(32)
 {
   log = NULL;
   pdcp = NULL;
