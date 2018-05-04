@@ -34,7 +34,7 @@ add_executable(rlc_stress_test rlc_stress_test.cc)
 target_link_libraries(rlc_stress_test srslte_upper srslte_phy srslte_common ${Boost_LIBRARIES})
 add_test(rlc_am_stress_test rlc_stress_test --duration 10 --mode="AM")
 add_test(rlc_um_stress_test rlc_stress_test --duration 10 --mode="UM")
-add_test(rlc_um_stress_test rlc_stress_test --duration 10 --mode="TM" -opp_sdu_ratio=1.0)
+add_test(rlc_tm_stress_test rlc_stress_test --duration 10 --mode="TM" --opp_sdu_ratio=1.0)
 
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srslte_upper srslte_phy srslte_common)
