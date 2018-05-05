@@ -29,6 +29,8 @@
 #include <srsue/hdr/upper/pcsc_usim.h>
 #include "srslte/common/bcd_helpers.h"
 
+#define CHECK_SIM_PIN 1
+
 using namespace srslte;
 
 namespace srsue{
@@ -502,6 +504,7 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
     }
   }
 
+#if CHECK_SIM_PIN
   // Verify whether CHV1 (PIN1) is needed to access the card.
   ret = pin_needed(buf, blen);
   if (ret < 0) {
@@ -530,6 +533,9 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
       goto clean_exit;
     }
   }
+#else
+  pin1_needed = false;
+#endif
 
   ret = SCardEndTransaction(scard_handle, SCARD_LEAVE_CARD);
   if (ret != SCARD_S_SUCCESS) {
