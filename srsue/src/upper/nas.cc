@@ -1225,9 +1225,9 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
   } else {
     nas_log->debug("Including APN %s in ESM info response\n", cfg.apn.c_str());
     esm_info_resp.apn_present = true;
-    int len = std::min((int)cfg.apn.length(), LIBLTE_STRING_LEN);
+    int len = std::min((int)cfg.apn.length(), LIBLTE_STRING_LEN-1);
     strncpy(esm_info_resp.apn.apn, cfg.apn.c_str(), len);
-    esm_info_resp.apn.apn[len - 1] = '\0';
+    esm_info_resp.apn.apn[len] = '\0';
   }
 
 
