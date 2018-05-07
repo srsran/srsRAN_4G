@@ -1194,7 +1194,7 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
   srslte_bit_pack_vector(varShortMAC, varShortMAC_packed, (4+2+4)*8);
 
   rrc_log->info("Generated varShortMAC: cellId=0x%x, PCI=%d, rnti=%d\n",
-                serving_cell->get_cell_id(), phy->get_current_pci(), crnti);
+                serving_cell->get_cell_id(), serving_cell->get_pci(), crnti);
 
   // Compute MAC-I
   uint8_t mac_key[4];
@@ -1258,6 +1258,7 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
       }
     } else {
       rrc_log->warning("Could not re-synchronize with cell.\n");
+      go_idle = true;
     }
   } else {
     rrc_log->info("Selected cell no longer suitable for camping (in_sync=%s). Going to IDLE\n", serving_cell->in_sync?"yes":"no");
