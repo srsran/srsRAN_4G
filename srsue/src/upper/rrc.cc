@@ -184,6 +184,7 @@ void rrc::run_thread() {
     }
   }
 }
+uint32_t rest_cnt=0;
 
 
 /*
@@ -238,6 +239,10 @@ void rrc::run_tti(uint32_t tti) {
         }
         break;
       case RRC_STATE_CONNECTED:
+        rest_cnt++;
+        if (rest_cnt == 1000) {
+          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
+        }
         if (ho_start) {
           ho_start = false;
           if (!ho_prepare()) {
@@ -1171,12 +1176,18 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
   bzero(&ul_ccch_msg, sizeof(LIBLTE_RRC_UL_CCCH_MSG_STRUCT));
 
   uint16_t crnti;
+  uint16_t pci;
+  uint32_t cellid;
   if (cause == LIBLTE_RRC_CON_REEST_REQ_CAUSE_HANDOVER_FAILURE) {
-    crnti = ho_src_rnti;
+    crnti  = ho_src_rnti;
+    pci    = ho_src_cell.get_pci();
+    cellid = ho_src_cell.get_cell_id();
   } else {
     mac_interface_rrc::ue_rnti_t uernti;
     mac->get_rntis(&uernti);
-    crnti = uernti.crnti;
+    crnti  = uernti.crnti;
+    pci    = serving_cell->get_pci();
+    cellid = serving_cell->get_cell_id();
   }
 
   // Compute shortMAC-I
@@ -1185,36 +1196,38 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
   bzero(varShortMAC_packed, 16);
   uint8_t *msg_ptr = varShortMAC;
 
-  // ASN.1 encode byte-aligned VarShortMAC-Input
-  liblte_rrc_pack_cell_identity_ie(serving_cell->get_cell_id(), &msg_ptr);
-  msg_ptr = &varShortMAC[4];
-  liblte_rrc_pack_phys_cell_id_ie(phy->get_current_pci(), &msg_ptr);
-  msg_ptr = &varShortMAC[4+2];
+  // ASN.1 encode VarShortMAC-Input
+  liblte_rrc_pack_cell_identity_ie(cellid, &msg_ptr);
+  liblte_rrc_pack_phys_cell_id_ie(pci, &msg_ptr);
   liblte_rrc_pack_c_rnti_ie(crnti, &msg_ptr);
-  srslte_bit_pack_vector(varShortMAC, varShortMAC_packed, (4+2+4)*8);
 
-  rrc_log->info("Generated varShortMAC: cellId=0x%x, PCI=%d, rnti=%d\n",
-                serving_cell->get_cell_id(), serving_cell->get_pci(), crnti);
+  // byte align (already zero-padded)
+  uint32_t N_bits  = (uint32_t) (msg_ptr-varShortMAC);
+  uint32_t N_bytes = ((N_bits-1)/8+1);
+  srslte_bit_pack_vector(varShortMAC, varShortMAC_packed, N_bytes*8);
+
+  rrc_log->info("Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes, %d bits)\n",
+                cellid, pci, crnti, N_bytes, N_bits);
 
   // Compute MAC-I
   uint8_t mac_key[4];
   switch(integ_algo) {
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
       security_128_eia1(&k_rrc_int[16],
-                        1,
-                        1,
-                        1,
+                        0xffffffff,    // 32-bit all to ones
+                        0x1f,          // 5-bit all to ones
+                        1,             // 1-bit to one
                         varShortMAC_packed,
-                        10,
+                        N_bytes,
                         mac_key);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(&k_rrc_int[16],
-                        1,
-                        1,
-                        1,
+                        0xffffffff,    // 32-bit all to ones
+                        0x1f,          // 5-bit all to ones
+                        1,             // 1-bit to one
                         varShortMAC_packed,
-                        10,
+                        N_bytes,
                         mac_key);
       break;
     default:
@@ -1224,8 +1237,8 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
   // Prepare ConnectionRestalishmentRequest packet
   ul_ccch_msg.msg_type = LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REEST_REQ;
   ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti = crnti;
-  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.phys_cell_id = phy->get_current_pci();
-  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.short_mac_i = mac_key[1] << 8 | mac_key[0];
+  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.phys_cell_id = pci;
+  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.short_mac_i = mac_key[2] << 8 | mac_key[3];
   ul_ccch_msg.msg.rrc_con_reest_req.cause = cause;
 
   rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
@@ -1510,7 +1523,7 @@ void rrc::con_reconfig_failed()
 
   if (security_is_activated) {
     // Start the Reestablishment Procedure
-    send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
+    send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_RECONFIG_FAILURE);
   } else {
     go_idle = true;
   }
