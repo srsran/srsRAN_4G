@@ -50,11 +50,14 @@
 // J Giovatto Feb 12 2018
 // run builtin tests with -a (args) ue or enb, default is loop, (loopback)
 
-// suggest running non DEBUG_MODE with n_prb of 6,15 or 25 for starters
+// suggest running non DEBUG_MODE with n_prb of 15 or 25 for starters
 // build 'make clean && cmake -DCMAKE_BUILD_TYPE=Release ../ && make'
 // noted n_prb 6 and 15 are not reliable when DEBUG_MODE is enabled 
 
-// n_prb or 6 thru 50 have worked with the increasing cpu utilization
+// J Giovatto May 06, 2018
+// n_prb of 6 has not been reliable, TBD cqi and mac oppurtunity issue.
+
+// n_prb of 15 thru 50 have worked with the increasing cpu utilization
 // your mileage will vary. Running w/o linux window manager etc
 // is preferred. Running at 1 msec i/o interval really puts a strain
 // on the linux scheduler and eventually it falls apart
@@ -182,52 +185,57 @@ static char rf_sock_node_type[2] = {0};
 
 #define LOG_MODUL 1000
 
-#define IOV_2_LEN(iov)  (iov)[0].iov_len + (iov)[1].iov_len
-#define IOV_NUM 2
+#define MAX_NOF_PORTS  4 // up to N ports
 
-#define RF_SOCK_ABS_CMP(x) (fabs((x) < 1.0e-6))
+#define NOF_IOV        2 // fixed header and N ports of I/Q data                
+
+#define IOV_IDX_HDR    0  // iomsg hdr postion
+#define IOV_IDX_IQD    1  // I/Q data sf's
 
 // The idea here was to 'scale' timeout/timerdelay/offset and usleep() calls
-// by say a factor of 2 to slow down relative time throughout the entire codebase
+// to slow down relative time throughout the entire codebase (threads, timers, sleeps)
 // to get around the linux scheduler latency.
-// Meaning subframes are now 2 msec internally, externally thruput will suffer by 50%
+// Meaning subframes are now X msec larger internally, externally thruput will suffer by X
 // but for network related testing this could be acceptable.
 // This found was to be useful on limited resource (cpu) hardware or tracking logs/gdb.
 // Possibly all sleep/delay calls could be wrapped in a "time service" to allow
 // for homogeneous timing and tti source between all components.
 
-static const struct timeval tv_zero      = {};
-static const struct timeval tv_tti_step  = {0, get_time_scaled(1000)};
-static const double fs_tti_window        = get_time_scaled(1500) / 1.0e6; // 1.5 sf
+static const struct timeval tv_zero     = {};
+static const struct timeval tv_tti_step = {0, get_time_scaled(1000)};
+static const double fs_tti_window       = get_time_scaled(1500) / 1.0e6; // 1.5 sf window
 
 // tx msg header info
 typedef struct {
-  uint64_t       seqnum;
-  uint32_t       nof_bytes;
-  uint32_t       nof_samples;
-  float          srate;
-  float          gain;
-  struct timeval tv_tx_tti;
-  struct timeval tv_tx_time;
+  uint64_t       seqnum;         // seq num
+  uint32_t       nof_bytes_sf;   // nbytes per sf
+  uint32_t       nof_tx_ports;   // nof tx ports
+  float          tx_srate;       // tx sample rate
+  float          gain;           // tx gain
+  struct timeval tv_tx_tti;      // tti time from upper layers
+  struct timeval tv_tx_time;     // actual tx time
+  uint8_t        emu_data[2048]; // xtra data
+  uint16_t       emu_data_len;   // xdata len
 } rf_sock_iohdr_t;
 
 
 typedef struct {
   rf_sock_iohdr_t  hdr;
-  cf_t *           data;
-  uint8_t          xtra[128];
+  uint8_t *        chandata; // concat sf's 
 } rf_sock_iomsg_t;
-#define RF_SOCK_MSGQ_SIZE 24
+
+// tti + 4 and 1 extra
+#define RF_SOCK_MSGQ_SIZE 5
 #define RF_SOCK_BUMP_MSGQ_IDX(x) ((x) = ((x) + 1) % RF_SOCK_MSGQ_SIZE)
 
 
 // tx msg info
 typedef struct {
-  bool            is_sob;       // start of burst
-  bool            is_eob;       // end   of burst
-  struct iovec    iov[IOV_NUM]; // outbound msg iov
-  rf_sock_iomsg_t iomsg;        // outbound hdr and data
-  struct msghdr   mhdr;         // outbound msg info
+  bool            is_sob;           // start of burst
+  bool            is_eob;           // end   of burst
+  struct iovec    iov[NOF_IOV];     // outbound msg iov (hdr and N sf's of i/q data)
+  rf_sock_iomsg_t iomsg;            // outbound hdr and data
+  struct msghdr   mhdr;             // outbound msg info
 } rf_sock_tx_info_t;
 
 
@@ -244,6 +252,8 @@ typedef struct {
 typedef struct {
    char *               dev_name;
    int                  nodetype;
+   uint32_t             nof_tx_ports;
+   uint32_t             nof_rx_ports;
    double               rx_gain;
    double               tx_gain;
    double               rx_srate;
@@ -305,6 +315,8 @@ static void rf_sock_handle_error(srslte_rf_error_t error)
 
 static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .nodetype        = RF_SOCK_NTYPE_LOOP,
+                                        .nof_tx_ports    = 1,
+                                        .nof_rx_ports    = 1,
                                         .rx_gain         = 0.0,
                                         .tx_gain         = 0.0,
                                         .rx_srate        = SRSLTE_CS_SAMP_FREQ, // init here, set_srate comes in a little late
@@ -434,13 +446,31 @@ static void rf_sock_print_hex(const char * note, void * buf, const int buflen)
 }
 #endif
 
+
+static size_t get_txiov_len(void *h)
+{
+  GET_DEV_INFO(h);
+
+  size_t n_bytes = 0;
+
+  for(int i = 0; i < NOF_IOV; ++i)
+    {
+      n_bytes += _info->tx_msg.iov[i].iov_len;
+    }
+
+  return n_bytes;
+}
+
+
 // downsample during initial sync
 static int rf_sock_resample(void * h,
                             double srate_in, 
                             double srate_out, 
-                            void * in, 
-                            void * out, 
-                            int nof_samples_in)
+                            uint8_t * in, 
+                            void * out[MAX_NOF_PORTS],
+                            int nof_rx_ports,
+                            int nof_tx_ports,
+                            int nof_bytes)
 {
   GET_DEV_INFO(h);
 
@@ -458,6 +488,10 @@ static int rf_sock_resample(void * h,
       return 0;
     }
 
+  srslte_resample_arb_t r;
+
+  bool resample = false;
+
   if(srate_in != srate_out)
    {
      const double sratio = srate_out / srate_in;
@@ -471,19 +505,47 @@ static int rf_sock_resample(void * h,
                      sratio);
       }
 
-     srslte_resample_arb_t r;
+      srslte_resample_arb_init(&r, sratio, 0);
 
-     srslte_resample_arb_init(&r, sratio, 0);
+      resample = true;
+    }
 
-     return srslte_resample_arb_compute(&r, (cf_t*)in, (cf_t*)out, nof_samples_in);
-   }
- else
+  int nof_sf = 0;
+
+  for(int i = 0, j = 0; i < nof_rx_ports; ++i)
    {
-     // no changes, samples in == samples out
-     memcpy(out, in, BYTES_PER_SAMPLE(nof_samples_in));
+     // need to re-sample if the first sf or multiple tx ports
+     if(i == 0 || nof_tx_ports > 1)
+       {
+         if(resample)
+           {
+             nof_sf = srslte_resample_arb_compute(&r, 
+                                                  (cf_t*)((uint8_t*)(in + (j*nof_bytes))), 
+                                                  (cf_t*)out[i], 
+                                                  SAMPLES_PER_BYTE(nof_bytes));
+           }
+          else
+           {
+             // no changes, samples out == samples in
+             memcpy(out[i], in + (j*nof_bytes), nof_bytes);
 
-     return nof_samples_in;
+             nof_sf = SAMPLES_PER_BYTE(nof_bytes);
+           }
+
+         // bump to next sf
+         if(nof_tx_ports > 1 && j < nof_tx_ports)
+          {
+            ++j;
+          }
+       }
+      else
+       {
+          // duplicate last sf
+          memcpy(out[i], out[j], nof_bytes);
+       }
    }
+
+   return nof_sf;
 }
 
 
@@ -494,7 +556,7 @@ static int rf_sock_send_msg(void * h)
 
    int nbytes_inq = 0;
 
-   const int n_bytes = IOV_2_LEN(_info->tx_msg.iov);
+   const int n_bytes = get_txiov_len(h);
 
    // check tx socket backlog
    if(ioctl(_info->tx_handle, TIOCOUTQ, &nbytes_inq) < 0)
@@ -644,24 +706,26 @@ static void * rf_sock_rx_worker(void * h)
    // circular buffer to hold sf as they come in
    rf_sock_iomsg_t rxQ[RF_SOCK_MSGQ_SIZE];
 
-   // alocate storage once
+   // alocate storage for each rxQ bin
    for(int i = 0; i < RF_SOCK_MSGQ_SIZE; ++i)
      {
        memset(&rxQ[i], 0x0, sizeof(rxQ[i]));
 
-       if((rxQ[i].data = malloc(RF_SOCK_MAX_SF_LEN_BYTES)) == NULL)
-         {
-           RF_SOCK_WARN("FAILED to allocate memory for rx_msg[%d], exit now", i);
+      if((rxQ[i].chandata = malloc(MAX_NOF_PORTS * RF_SOCK_MAX_SF_LEN_BYTES)) == NULL)
+        {
+          RF_SOCK_WARN("FAILED to allocate memory for rx_msg chandata[%d], exit now", i);
 
-           exit(0);
-         }
+          exit(0);
+        }
      }
 
-   struct iovec iov[IOV_NUM];
+   struct iovec iov[NOF_IOV];
 
-   // hdr and msg max always the same
-   iov[0].iov_len  = sizeof(rf_sock_iohdr_t);
-   iov[1].iov_len  = RF_SOCK_MAX_SF_LEN_BYTES;
+   // set fixed hdr size
+   iov[IOV_IDX_HDR].iov_len = sizeof(rf_sock_iohdr_t);
+  
+   // the variable len stuff goes here ch1, ch2 etc
+   iov[IOV_IDX_IQD].iov_len = MAX_NOF_PORTS * RF_SOCK_MAX_SF_LEN_BYTES;
 
    struct timeval tv_rx_time, tv_diff, tv_rx_delay;
 
@@ -671,12 +735,12 @@ static void * rf_sock_rx_worker(void * h)
      {
        rf_sock_iomsg_t * iomsg = &rxQ[Qidx];
 
-       iov[0].iov_base = &iomsg->hdr;
-       iov[1].iov_base = iomsg->data;
+       iov[IOV_IDX_HDR].iov_base = &iomsg->hdr;
+       iov[IOV_IDX_IQD].iov_base = iomsg->chandata;
 
        // dump each msg into the rxQ as we get them
        // when recv is called pull out msgs as needed w/r to tti
-       const int rc = readv(_info->rx_handle, iov, IOV_NUM);
+       const int rc = readv(_info->rx_handle, iov, NOF_IOV);
 
        // lock msgQ
        pthread_mutex_lock(&_info->rx_lock);
@@ -692,8 +756,8 @@ static void * rf_sock_rx_worker(void * h)
         {
           if(! (errno == EAGAIN || errno == EWOULDBLOCK))
             {
-              RF_SOCK_WARN("RX reqlen %ld, error %s", 
-                            IOV_2_LEN(iov), strerror(errno));
+              RF_SOCK_WARN("RX reqlen %zu, error %s", 
+                            get_txiov_len(h), strerror(errno));
 
               ++_info->rx_nof_errors;
 
@@ -737,8 +801,9 @@ static void * rf_sock_rx_worker(void * h)
 
                    timersub(&iomsg->hdr.tv_tx_tti, &_info->tv_this_tti, &tv_diff);
 
-                   RF_SOCK_INFO(" RX OK, seqnum %lu, rx_delay %ld:%06ld, tx_tti %ld:%06ld, tx_tti_diff %6.6lf, total ok %zu",
+                   RF_SOCK_INFO(" RX OK, seqnum %lu, nof_tx_ports %u, rx_delay %ld:%06ld, tx_tti %ld:%06ld, tx_tti_diff %6.6lf, total ok %zu",
                                 iomsg->hdr.seqnum,
+                                iomsg->hdr.nof_tx_ports,
                                 tv_rx_delay.tv_sec,
                                 tv_rx_delay.tv_usec,
                                 iomsg->hdr.tv_tx_tti.tv_sec % 60,
@@ -1081,28 +1146,38 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
 
    RF_SOCK_INFO("channels %u, args [%s]", nof_channels, args ? args : "none");
 
-   if(args && strncmp(args, "enb", strlen("enb")) == 0)
-    {
-      rf_sock_info.nodetype = RF_SOCK_NTYPE_ENB;
-    }
-   else if(args && strncmp(args, "ue", strlen("ue")) == 0)
-    {
-      rf_sock_info.nodetype = RF_SOCK_NTYPE_UE;
-    }
-   else
-    {
-      RF_SOCK_INFO("default nodetype is loopback");
 
-      rf_sock_info.nodetype = RF_SOCK_NTYPE_LOOP;
-    }
-       
-   if(nof_channels != 1)
+   if(nof_channels > MAX_NOF_PORTS)
     {
-      RF_SOCK_WARN("only supporting 1 channel, not %d", nof_channels);
+      RF_SOCK_WARN("only supporting up to %d channels, not %d", MAX_NOF_PORTS, nof_channels);
 
       return -1;
     }
 
+   if(args && strncmp(args, "enb", strlen("enb")) == 0)
+    {
+       // XXX TODO ue supports 1 tx port, 1 or 2 rx ports
+       _info->nof_rx_ports = nof_channels;
+
+      rf_sock_info.nodetype = RF_SOCK_NTYPE_ENB;
+    }
+   else if(args && strncmp(args, "ue", strlen("ue")) == 0)
+    {
+       // XXX TODO enb supports 1 rx/tx port
+       _info->nof_rx_ports = 1;
+
+      rf_sock_info.nodetype = RF_SOCK_NTYPE_UE;
+    }
+   else if(args && strncmp(args, "loop", strlen("loop")) == 0)
+    {
+       // XXX TODO
+       _info->nof_rx_ports = nof_channels;
+
+       _info->nof_rx_ports = nof_channels;
+
+      rf_sock_info.nodetype = RF_SOCK_NTYPE_LOOP;
+    }
+       
    if(rf_sock_open_ipc(&rf_sock_info) < 0)
     {
       RF_SOCK_WARN("could not create ipc channel");
@@ -1118,24 +1193,26 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
        return -1; 
      }
 
-    memset(&rf_sock_info.tx_msg, 0x0, sizeof(rf_sock_info.tx_msg));
+   memset(&rf_sock_info.tx_msg, 0x0, sizeof(rf_sock_info.tx_msg));
 
-    if((rf_sock_info.tx_msg.iomsg.data = malloc(RF_SOCK_MAX_SF_LEN_BYTES)) == NULL)
-      {
-        RF_SOCK_WARN("FAILED to allocate memory for tx_msg");
-        return -1;
-      }
+   if((rf_sock_info.tx_msg.iomsg.chandata = malloc(MAX_NOF_PORTS * RF_SOCK_MAX_SF_LEN_BYTES)) == NULL)
+     {
+       RF_SOCK_WARN("FAILED to allocate memory for txmsg chandata");
+
+       return -1;
+     }
 
     // preload any tx info
-    rf_sock_info.tx_msg.iov[0].iov_base = &rf_sock_info.tx_msg.iomsg.hdr;
-    rf_sock_info.tx_msg.iov[0].iov_len  = sizeof(rf_sock_info.tx_msg.iomsg.hdr);
-    rf_sock_info.tx_msg.iov[1].iov_base = NULL;
-    rf_sock_info.tx_msg.iov[1].iov_len  = 0; // set per tx msg
+    rf_sock_info.tx_msg.iov[IOV_IDX_HDR].iov_base = &rf_sock_info.tx_msg.iomsg.hdr;
+    rf_sock_info.tx_msg.iov[IOV_IDX_HDR].iov_len  = sizeof(rf_sock_info.tx_msg.iomsg.hdr);
+
+    rf_sock_info.tx_msg.iov[IOV_IDX_IQD].iov_base = rf_sock_info.tx_msg.iomsg.chandata;
+    rf_sock_info.tx_msg.iov[IOV_IDX_IQD].iov_len  = 0; // set on tx
  
     rf_sock_info.tx_msg.mhdr.msg_name       = &rf_sock_info.tx_addr;
     rf_sock_info.tx_msg.mhdr.msg_namelen    = sizeof(rf_sock_info.tx_addr);
     rf_sock_info.tx_msg.mhdr.msg_iov        = rf_sock_info.tx_msg.iov;
-    rf_sock_info.tx_msg.mhdr.msg_iovlen     = IOV_NUM;
+    rf_sock_info.tx_msg.mhdr.msg_iovlen     = NOF_IOV;
     rf_sock_info.tx_msg.mhdr.msg_control    = 0;
     rf_sock_info.tx_msg.mhdr.msg_controllen = 0;
     rf_sock_info.tx_msg.mhdr.msg_flags      = 0;
@@ -1155,10 +1232,10 @@ int rf_sock_open_multi(char *args, void **h, uint32_t nof_channels)
       }
 
      // XXX other threads are FIFO, need to check for priority inversions ect
-     const int policy = SCHED_RR;
+     const int policy = SCHED_FIFO;
 
-     // XXX what prio ???
-     const struct sched_param param = {sched_get_priority_max(policy) / 2};
+     // XXX what prio ??? assume this is the most important thread for now
+     const struct sched_param param = {sched_get_priority_max(policy)};
        
      if(pthread_setschedparam(rf_sock_info.rx_worker.tid, policy, &param) < 0)
        {
@@ -1346,6 +1423,21 @@ void rf_sock_get_time(void *h, time_t *full_secs, double *frac_secs)
 int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples, 
                            bool blocking, time_t *full_secs, double *frac_secs)
  {
+   void *d[4] = {data, NULL, NULL, NULL};
+
+   return rf_sock_recv_with_time_multi(h, 
+                                       d,
+                                       nsamples, 
+                                       blocking,
+                                       full_secs,
+                                       frac_secs);
+ }
+
+
+
+int rf_sock_recv_with_time_multi(void *h, void **data, uint32_t nsamples, 
+                                 bool blocking, time_t *full_secs, double *frac_secs)
+{
    GET_DEV_INFO(h);
 
    struct timeval tv_diff, tv_in, tv_now, tv_tx_tti;
@@ -1363,23 +1455,32 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 
    int nof_samples_pending = nsamples;
 
-   uint8_t * p2data = (uint8_t *)data;
-
    // working in units of subframes
    const int nof_sf_requested = (nsamples / (_info->rx_srate / 1000.0f));
 
    int nof_sf_pending = nof_sf_requested;
+   int nof_sf_out     = 0;
+   int nof_sf_ready   = 0;
+   int nof_rx_ports   = 0;
 
-   int nof_sf_out = 0;
- 
-   int nof_sf_ready = 0;
+   uint8_t * p2data[MAX_NOF_PORTS] = {NULL};
 
-   // clear out requested data block
-   memset(data, 0x0, nof_bytes_pending);
+   // set nof rx ports
+   for(int i = 0; i < _info->nof_rx_ports; ++i)
+     {
+       if(data[i])
+        {
+          p2data[i] = (uint8_t*) data[i];
+
+          memset(p2data[i], 0x0, nof_bytes_pending);
+
+          ++nof_rx_ports;
+        }
+     }
 
    rf_sock_iomsg_t * readyQ[RF_SOCK_MSGQ_SIZE];
 
-   double fs_diff;
+   double fs_diff = 0;
 
    // lock msgQ members
    pthread_mutex_lock(&_info->rx_lock);
@@ -1423,7 +1524,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                   // discard, Q already locked
                   rf_sock_rxQ_pop(h);
 
-                  RF_SOCK_DBUG("RX EXPIRED sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6lf",
+                  RF_SOCK_DBUG("RX EXPIRED %d more sf_needed, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6lf",
                                nof_sf_pending - nof_sf_ready,
                                _info->rx_msgQ_num,
                                Qidx,
@@ -1437,11 +1538,12 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                   // save ready Q element
                   readyQ[nof_sf_ready++] = rf_sock_rxQ_pop(h);
 
-                  RF_SOCK_DBUG("RX READY sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6lf",
+                  RF_SOCK_DBUG("RX READY %d more sf_needed, inQ %d, Qidx %d, seqn %ld, tx_ports %u, tx_tti %ld:%06ld, tti_diff %6.6lf",
                                nof_sf_pending - nof_sf_ready,
                                _info->rx_msgQ_num,
                                Qidx,
                                iomsg->hdr.seqnum,
+                               iomsg->hdr.nof_tx_ports,
                                iomsg->hdr.tv_tx_tti.tv_sec % 60,
                                iomsg->hdr.tv_tx_tti.tv_usec,
                                fs_diff);
@@ -1450,7 +1552,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
           else
             {
               // not yet
-              RF_SOCK_DBUG("RX NOT READY sf_needed %d, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6f",
+              RF_SOCK_DBUG("RX NOT READY %d more sf_needed, inQ %d, Qidx %d, seqn %ld, tx_tti %ld:%06ld, tti_diff %6.6f",
                            nof_sf_pending - nof_sf_ready,
                            _info->rx_msgQ_num,
                            Qidx,
@@ -1473,11 +1575,13 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
 #endif
 
                const int nof_samples = rf_sock_resample(h,
-                                                        iomsg->hdr.srate,
+                                                        iomsg->hdr.tx_srate,
                                                         _info->rx_srate,
-                                                        iomsg->data,
-                                                        p2data, 
-                                                        iomsg->hdr.nof_samples);
+                                                        iomsg->chandata,
+                                                        (void **)p2data,
+                                                        nof_rx_ports,
+                                                        iomsg->hdr.nof_tx_ports,
+                                                        iomsg->hdr.nof_bytes_sf);
 
                const int nof_bytes = BYTES_PER_SAMPLE(nof_samples);
 
@@ -1490,8 +1594,11 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
                  }
                else
                  {
-                   // bump data position
-                   p2data += nof_bytes;
+                   // bump sf
+                   for(int i = 0; i < _info->nof_rx_ports; ++i)
+                    {
+                      p2data[i] += nof_bytes;
+                    }
                  }
 
                nof_bytes_pending   -= nof_bytes;
@@ -1554,19 +1661,7 @@ int rf_sock_recv_with_time(void *h, void *data, uint32_t nsamples,
      }
 
    return nsamples;
- }
 
-
-
-int rf_sock_recv_with_time_multi(void *h, void **data, uint32_t nsamples, 
-                                 bool blocking, time_t *full_secs, double *frac_secs)
-{
-   return rf_sock_recv_with_time(h, 
-                                 data[0],
-                                 nsamples, 
-                                 blocking,
-                                 full_secs,
-                                 frac_secs);
 }
 
 
@@ -1574,6 +1669,18 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
                        time_t full_secs, double frac_secs, bool has_time_spec,
                        bool blocking, bool is_sob, bool is_eob)
 {
+   void *d[4] = {data, NULL, NULL, NULL};
+
+   return rf_sock_send_timed_multi(h, d, nsamples, full_secs, frac_secs, has_time_spec, blocking, is_sob, is_eob);
+}
+
+
+int rf_sock_send_timed_multi(void *h, void *data[4], int nsamples,
+                             time_t full_secs, double frac_secs, bool has_time_spec,
+                             bool blocking, bool is_sob, bool is_eob)
+{
+  // printf("xtra data len %hu, %s\n", *((uint16_t*)data[1]), (const char *)(uint8_t*)(data[1] + 2));
+
    GET_DEV_INFO(h);
 
    if(nsamples <= 0)
@@ -1625,17 +1732,33 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
      {
        const uint32_t nof_bytes = BYTES_PER_SAMPLE(nsamples);
 
-       _info->tx_msg.is_sob                = is_sob;
-       _info->tx_msg.is_eob                = is_eob;
-       _info->tx_msg.iomsg.hdr.srate       = _info->tx_srate;
-       _info->tx_msg.iomsg.hdr.gain        = _info->tx_gain;
-       _info->tx_msg.iomsg.hdr.seqnum      = ++_info->tx_seqnum;
-       _info->tx_msg.iomsg.hdr.nof_bytes   = nof_bytes;
-       _info->tx_msg.iomsg.hdr.nof_samples = nsamples;
-       _info->tx_msg.iov[1].iov_len        = nof_bytes;
-       _info->tx_msg.iov[1].iov_base       = data;
-       _info->tx_msg.iomsg.hdr.tv_tx_tti   = tv_tx_tti;
-       _info->tx_msg.iomsg.hdr.tv_tx_time  = tv_now;
+       uint8_t * p2data = (uint8_t*) _info->tx_msg.iomsg.chandata;
+
+       _info->tx_msg.is_sob                   = is_sob;
+       _info->tx_msg.is_eob                   = is_eob;
+       _info->tx_msg.iomsg.hdr.tx_srate       = _info->tx_srate;
+       _info->tx_msg.iomsg.hdr.gain           = _info->tx_gain;
+       _info->tx_msg.iomsg.hdr.seqnum         = ++_info->tx_seqnum;
+       _info->tx_msg.iomsg.hdr.nof_bytes_sf   = nof_bytes;
+       _info->tx_msg.iomsg.hdr.tv_tx_tti      = tv_tx_tti;
+       _info->tx_msg.iomsg.hdr.tv_tx_time     = tv_now;
+       _info->tx_msg.iov[IOV_IDX_IQD].iov_len = 0;
+       _info->tx_msg.iomsg.hdr.nof_tx_ports   = 0;
+
+       // set nof tx ports
+       for(int i = 0; i < _info->nof_tx_ports; ++i)
+         {
+           if(data[i])
+             { 
+               _info->tx_msg.iov[IOV_IDX_IQD].iov_len += nof_bytes;
+
+               ++_info->tx_msg.iomsg.hdr.nof_tx_ports;
+
+               memcpy(p2data, data[i], nof_bytes);
+
+               p2data += nof_bytes;
+             }
+         }
 
        const int rc = rf_sock_send_msg(h);
 
@@ -1663,22 +1786,6 @@ int rf_sock_send_timed(void *h, void *data, int nsamples,
      }
 
    return nsamples;
-}
-
-
-int rf_sock_send_timed_multi(void *h, void *data[4], int nsamples,
-                             time_t full_secs, double frac_secs, bool has_time_spec,
-                             bool blocking, bool is_sob, bool is_eob)
-{
-  return rf_sock_send_timed(h, 
-                            data[0], 
-                            nsamples,
-                            full_secs,
-                            frac_secs,
-                            has_time_spec,
-                            blocking,
-                            is_sob,
-                            is_eob);
 }
 
 
