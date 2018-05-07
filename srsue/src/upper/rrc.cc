@@ -823,6 +823,15 @@ rrc::cs_ret_t rrc::cell_selection()
     }
   }
   if (serving_cell->in_sync) {
+    if (!phy->cell_is_camping()) {
+      rrc_log->info("Serving cell is in-sync but not camping. Selecting it...\n");
+      if (phy->cell_select(&serving_cell->phy_cell)) {
+        rrc_log->info("Selected serving cell OK.\n");
+      } else {
+        serving_cell->in_sync = false;
+        rrc_log->error("Could not camp on serving cell.\n");
+      }
+    }
     return SAME_CELL;
   }
   // If can not find any suitable cell, search again
@@ -1251,7 +1260,7 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
       rrc_log->warning("Could not re-synchronize with cell.\n");
     }
   } else {
-    rrc_log->info("Selected cell no longer suitable for camping. Going to IDLE\n");
+    rrc_log->info("Selected cell no longer suitable for camping (in_sync=%s). Going to IDLE\n", serving_cell->in_sync?"yes":"no");
     go_idle = true;
   }
 }
