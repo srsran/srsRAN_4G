@@ -850,7 +850,7 @@ rrc::cs_ret_t rrc::cell_selection()
 // Cell selection criteria Section 5.2.3.2 of 36.304
 bool rrc::cell_selection_criteria(float rsrp, float rsrq)
 {
-  if (get_srxlev(rsrp) > 0) {
+  if (get_srxlev(rsrp) > 0 || !serving_cell->has_sib3()) {
     return true;
   } else {
     return false;
@@ -1462,6 +1462,7 @@ void rrc::ho_ra_completed(bool ra_successful) {
 bool rrc::con_reconfig_ho(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig)
 {
   if (reconfig->mob_ctrl_info.target_pci == phy->get_current_pci()) {
+    rrc_log->console("Warning: Received HO command to own cell\n");
     rrc_log->warning("Received HO command to own cell\n");
     return false;
   }
