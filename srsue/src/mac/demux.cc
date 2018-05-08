@@ -148,8 +148,6 @@ void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
 
       process_sch_pdu(&mac_msg);
       //srslte_vec_fprint_byte(stdout, mac_pdu, nof_bytes);
-
-      pdus.deallocate(mac_pdu);
       break;
     case srslte::pdu_queue::BCH:
       rlc->write_pdu_bcch_dlsch(mac_pdu, nof_bytes);
