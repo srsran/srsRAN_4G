@@ -32,6 +32,7 @@
 
 #define DEVNAME_B200 "uhd_b200"
 #define DEVNAME_X300 "uhd_x300"
+#define DEVNAME_N300 "uhd_n300"
 #define DEVNAME_E3X0 "uhd_e3x0"
 
 
