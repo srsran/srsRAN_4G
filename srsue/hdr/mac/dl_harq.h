@@ -280,7 +280,10 @@ private:
           memcpy(&cur_grant, &grant, sizeof(Tgrant));
 
           if (payload_buffer_ptr) {
-            Warning("DL PID %d: Allocating buffer already allocated\n", pid);
+            Warning("DL PID %d: Allocating buffer already allocated. Deallocating.\n", pid);
+            if (pid != HARQ_BCCH_PID) {
+              harq_entity->demux_unit->deallocate(payload_buffer_ptr);
+            }
           }
 
           // Instruct the PHY To combine the received data and attempt to decode it
@@ -296,7 +299,7 @@ private:
             pthread_mutex_unlock(&mutex);
             return;
           }
-          action->decode_enabled[tid]= true;
+          action->decode_enabled[tid] = true;
           action->rv[tid] = cur_grant.rv[tid];
           action->softbuffers[tid] = &softbuffer;
           memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(Tphygrant));
@@ -327,11 +330,13 @@ private:
           }
         }
 
-        pthread_mutex_unlock(&mutex);
+        if (!action->decode_enabled[tid]) {
+          pthread_mutex_unlock(&mutex);
+        }
+
       }
 
       void tb_decoded(bool ack_) {
-        pthread_mutex_lock(&mutex);
         ack = ack_;
         if (ack) {
           if (pid == HARQ_BCCH_PID) {
