@@ -28,6 +28,7 @@
 #include <sstream>
 #include <srsue/hdr/upper/pcsc_usim.h>
 #include "srslte/common/bcd_helpers.h"
+#include "string.h"
 
 #define CHECK_SIM_PIN 1
 
@@ -395,7 +396,8 @@ void pcsc_usim::generate_as_keys_ho(uint32_t pci,
 int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
 {
   int ret_value = SRSLTE_ERROR;
-  int pos = 0; // SC reader
+  uint pos = 0; // SC reader
+  bool reader_found = false;
   //int transaction = 1;
   size_t blen;
   log = log_;
@@ -430,19 +432,72 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
     return ret_value;
   }
 
-  log->info("%s\n", readers);
 
-  // TODO: Implement reader selection
-  // (readers is a list of available readers. The last entry is terminated with double null)
-  pos = 0; // select first reader
+  /* readers: NULL-separated list of reader names, and terminating NULL */
+  pos = 0;
+  while (pos < len-1) {
+      log->info("Available Card Reader: %s\n", &readers[pos]);
+      while (readers[pos] != '\0' && pos < len) {
+        pos++;
+      }
+      pos++; // skip separator
+  }
 
-  // Connect to reader
-  ret = SCardConnect(scard_context, &readers[pos], SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &scard_handle, &scard_protocol);
-  if (ret != SCARD_S_SUCCESS) {
-    if (ret == (long)SCARD_E_NO_SMARTCARD) {
-      log->error("No smart card inserted.\n");
+  reader_found = false;
+  pos = 0;
+
+  // If no reader specified, test all available readers for SIM cards. Otherwise consider specified reader only.
+  if (args->reader.length() == 0) {
+    while (pos < len && !reader_found) {
+      log->info("Trying Card Reader: %s\n", &readers[pos]);
+      // Connect to card
+      ret = SCardConnect(scard_context, &readers[pos], SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &scard_handle, &scard_protocol);
+      if (ret == SCARD_S_SUCCESS) {
+        reader_found = true;
+      } else {
+        if (ret == (long)SCARD_E_NO_SMARTCARD) {
+          log->error("No smart card inserted.\n");
+        } else {
+          log->error("%s\n", pcsc_stringify_error(ret));
+        }
+        log->info("Failed to use Card Reader: %s\n", &readers[pos]);
+
+        // proceed to next reader
+        while (pos < len && readers[pos] != '\0' ) {
+          pos++;
+        }
+        pos++; // skip separator
+      }
+    }
+  } else {
+    // card reader specified in config. search for this reader.
+    while (pos < len && !reader_found) {
+      if (strcmp(&readers[pos], args->reader.c_str()) == 0) {
+        reader_found = true;
+        log->info("Card Reader found: %s\n", args->reader.c_str());
+      } else {
+        // next reader
+        while (pos < len && readers[pos] != '\0' ) {
+          pos++;
+        }
+        pos++; // skip separator
+      }
+    }
+    if (!reader_found) {
+      log->error("Cannot find reader: %s\n", args->reader.c_str());
     } else {
-      log->error("%s\n", pcsc_stringify_error(ret));
+      ret = SCardConnect(scard_context, &readers[pos], SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &scard_handle, &scard_protocol);
+      if (ret == SCARD_S_SUCCESS) {
+        // successfully connected to card
+      } else {
+        if (ret == (long)SCARD_E_NO_SMARTCARD) {
+          log->error("No smart card inserted.\n");
+        } else {
+          log->error("%s\n", pcsc_stringify_error(ret));
+        }
+
+        log->info("Failed to use Card Reader: %s\n", args->reader.c_str());
+      }
     }
   }
 

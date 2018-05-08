@@ -48,6 +48,7 @@ typedef struct{
   std::string imei;
   std::string k;
   std::string pin;
+  std::string reader;
 }usim_args_t;
 
 class usim_base
