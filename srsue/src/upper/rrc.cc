@@ -184,7 +184,6 @@ void rrc::run_thread() {
     }
   }
 }
-uint32_t rest_cnt=0;
 
 
 /*
@@ -239,10 +238,6 @@ void rrc::run_tti(uint32_t tti) {
         }
         break;
       case RRC_STATE_CONNECTED:
-        rest_cnt++;
-        if (rest_cnt == 1000) {
-          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
-        }
         if (ho_start) {
           ho_start = false;
           if (!ho_prepare()) {
