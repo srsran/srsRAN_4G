@@ -731,6 +731,7 @@ rrc::ue::ue()
   cqi_sched_sf_idx = 0;
   cqi_sched_prb_idx = 0;
   state            = RRC_STATE_IDLE;
+  pool             = srslte::byte_buffer_pool::get_instance();
 }
 
 rrc_state_t rrc::ue::get_state()
@@ -1505,7 +1506,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 
 void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  srslte::byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
+  srslte::byte_buffer_t *pdu = pool_allocate;
 
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG;
@@ -1592,7 +1593,7 @@ void rrc::ue::send_ue_cap_enquiry()
 void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg) 
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP 
-  byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
+  byte_buffer_t *pdu = pool_allocate;
   if (pdu) {
     liblte_rrc_pack_dl_ccch_msg(dl_ccch_msg, (LIBLTE_BIT_MSG_STRUCT*) &parent->bit_buf);
     srslte_bit_pack_vector(parent->bit_buf.msg, pdu->msg, parent->bit_buf.N_bits);
@@ -1612,7 +1613,7 @@ void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg)
 void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buffer_t *pdu) 
 {  
   if (!pdu) {
-    pdu = parent->pool->allocate(__FUNCTION__);
+    pdu = pool_allocate;
   }
   if (pdu) {
     liblte_rrc_pack_dl_dcch_msg(dl_dcch_msg, (LIBLTE_BIT_MSG_STRUCT*) &parent->bit_buf);
