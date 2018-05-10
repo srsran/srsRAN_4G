@@ -57,6 +57,8 @@ rrc::rrc()
   neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
   initiated = false;
   running = false;
+  go_idle = false;
+  go_rlf  = false;
 }
 
 rrc::~rrc()
@@ -248,6 +250,11 @@ void rrc::run_tti(uint32_t tti) {
         if (go_idle) {
           go_idle = false;
           leave_connected();
+        }
+        if (go_rlf) {
+          go_rlf = false;
+          // Initiate connection re-establishment procedure after RLF
+          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
         }
         break;
       default:break;
@@ -1066,12 +1073,10 @@ int rrc::find_neighbour_cell(uint32_t earfcn, uint32_t pci) {
  */
 void rrc::radio_link_failure() {
   // TODO: Generate and store failure report
-
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state == RRC_STATE_CONNECTED) {
-    // Initiate connection re-establishment procedure
-    send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
+    go_rlf = true;
   }
 }
 

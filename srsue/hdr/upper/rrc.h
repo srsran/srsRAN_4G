@@ -440,6 +440,7 @@ private:
   bool initiated;
   bool ho_start;
   bool go_idle;
+  bool go_rlf;
 
   // Measurements sub-class
   class rrc_meas {
