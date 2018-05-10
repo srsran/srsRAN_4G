@@ -547,7 +547,7 @@ private:
 
   void process_phy_meas();
   void process_new_phy_meas(phy_meas_t meas);
-  std::queue<phy_meas_t> phy_meas_q;
+  srslte::block_queue<phy_meas_t> phy_meas_q;
 
   // Cell selection/reselection functions/variables
   typedef struct {

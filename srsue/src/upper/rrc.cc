@@ -534,10 +534,10 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
 /* Processes all pending PHY measurements in queue. Must be called from a mutexed function
  */
 void rrc::process_phy_meas() {
-  while(!phy_meas_q.empty()) {
+  phy_meas_t m;
+  while(phy_meas_q.try_pop(&m)) {
     rrc_log->debug("MEAS:  Processing measurement. %lu measurements in queue\n", phy_meas_q.size());
-    process_new_phy_meas(phy_meas_q.front());
-    phy_meas_q.pop();
+    process_new_phy_meas(m);
   }
 }
 

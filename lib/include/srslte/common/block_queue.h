@@ -86,6 +86,10 @@ public:
     while (try_pop(item));
   }
 
+  size_t size() {
+    return q.size();
+  }
+
 private:
   std::queue<myobj> q; 
   pthread_mutex_t mutex;
