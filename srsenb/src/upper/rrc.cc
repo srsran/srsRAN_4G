@@ -128,16 +128,16 @@ uint32_t rrc::generate_sibs()
   memcpy(&msg[0].sibs[0], &cfg.sibs[0], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
 
   // Copy rest of SIBs
-  for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages; sched_info_elem++) {
-    uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
+  // first msg is SIB1, therefore start with second
+  for (uint32_t sched_info_elem = 1; sched_info_elem < nof_messages; sched_info_elem++) {
     uint32_t current_msg_element_offset = 0;
 
-    msg[msg_index].N_sibs = 0;
+    msg[sched_info_elem].N_sibs = 0;
 
     // SIB2 always in second SI message
-    if (msg_index == 1) {
-      msg[msg_index].N_sibs++;
-      memcpy(&msg[msg_index].sibs[0], &cfg.sibs[1], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
+    if (sched_info_elem == 1) {
+      msg[sched_info_elem].N_sibs++;
+      memcpy(&msg[sched_info_elem].sibs[0], &cfg.sibs[1], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
       current_msg_element_offset = 1; // make sure "other SIBs" do not overwrite this SIB2
       // Save SIB2
       memcpy(&sib2, &cfg.sibs[1].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
@@ -147,9 +147,9 @@ uint32_t rrc::generate_sibs()
 
     // Add other SIBs to this message, if any
     for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].N_sib_mapping_info; mapping++) {
-      msg[msg_index].N_sibs++;
+      msg[sched_info_elem].N_sibs++;
       // current_msg_element_offset skips SIB2 if necessary
-      memcpy(&msg[msg_index].sibs[mapping + current_msg_element_offset],
+      memcpy(&msg[sched_info_elem].sibs[mapping + current_msg_element_offset],
               &cfg.sibs[(int) sched_info[sched_info_elem].sib_mapping_info[mapping].sib_type+2],
               sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
     }
