@@ -86,6 +86,8 @@ public:
     *msg = buf[tail];
     tail = (tail+1)%capacity;
     unread--;
+    /* FIXME: When byte_buffer_t is reset() but is in the queue, it gets corrupted
+     * because N_bytes becomes 0 and queue is empty but unread_bytes > 0 */
     unread_bytes -= (*msg)->N_bytes;
 
     pthread_cond_signal(&not_full);
@@ -132,6 +134,14 @@ public:
     uint32_t r = buf[tail]->N_bytes;
     pthread_mutex_unlock(&mutex);
     return r; 
+  }
+
+  // This is a hack to reset N_bytes counter when queue is corrupted (see line 89)
+  void reset() {
+    pthread_mutex_lock(&mutex);
+    unread_bytes = 0;
+    unread       = 0;
+    pthread_mutex_unlock(&mutex);
   }
 
 private:
