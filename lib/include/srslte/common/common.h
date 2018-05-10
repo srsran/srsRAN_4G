@@ -66,7 +66,7 @@
 #define SRSLTE_BUFFER_POOL_LOG_ENABLED
 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-#define pool_allocate (pool->allocate(__FUNCTION__))
+#define pool_allocate (pool->allocate(__PRETTY_FUNCTION__))
 #define SRSLTE_BUFFER_POOL_LOG_NAME_LEN 128
 #else
 #define pool_allocate (pool->allocate())
