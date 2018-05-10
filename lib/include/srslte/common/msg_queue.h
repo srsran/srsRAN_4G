@@ -131,7 +131,10 @@ public:
   uint32_t size_tail_bytes()
   {
     pthread_mutex_lock(&mutex);
-    uint32_t r = buf[tail]->N_bytes;
+    uint32_t r = 0;
+    if (buf[tail]) {
+      r = buf[tail]->N_bytes;
+    }
     pthread_mutex_unlock(&mutex);
     return r; 
   }
