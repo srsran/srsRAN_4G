@@ -175,7 +175,8 @@ int prach::tx_tti() {
 
 cf_t *prach::generate(float cfo, uint32_t *nof_sf, float *target_power) {
 
-  if (cell_initiated && preamble_idx >= 0 && nof_sf) {
+  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx <= 64 &&
+      srslte_cell_isvalid(&cell) && len < MAX_LEN_SF * 30720 && len > 0) {
 
     // Correct CFO before transmission FIXME: UL SISO Only
     srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));
@@ -196,6 +197,8 @@ cf_t *prach::generate(float cfo, uint32_t *nof_sf, float *target_power) {
 
     return signal_buffer;
   } else {
+    Error("PRACH: Invalid parameters: cell_initiated=%d, preamble_idx=%d, cell.nof_prb=%d, len=%d\n",
+          cell_initiated, preamble_idx, cell.nof_prb, len);
     return NULL;
   }
 }
