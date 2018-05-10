@@ -256,6 +256,10 @@ void enb::start_plot() {
   phy.start_plot();
 }
 
+void enb::print_pool() {
+  srslte::byte_buffer_pool::get_instance()->print_all_buffers();
+}
+
 bool enb::get_metrics(enb_metrics_t &m)
 {
   m.rf = rf_metrics;
