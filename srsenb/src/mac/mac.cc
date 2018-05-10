@@ -301,7 +301,7 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
     
     // push the pdu through the queue if received correctly
     if (crc) {
-       ue_db[rnti]->push_pdu(tti, nof_bytes); 
+      ue_db[rnti]->push_pdu(tti, nof_bytes);
       pdu_process_thread.notify();      
       if (nof_bytes > 64) { // do not count RLC status messages only
         rrc_h->set_activity_user(rnti); 
@@ -732,7 +732,7 @@ void mac::timer_thread::tti_clock()
 /********************************************************
  *
  * Class that runs a thread to process DL MAC PDUs from
- * DEMU unit
+ * DEMUX unit
  *
  *******************************************************/
 mac::pdu_process::pdu_process(pdu_process_handler *h) : running(false) {
