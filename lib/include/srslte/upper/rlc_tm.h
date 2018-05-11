@@ -31,7 +31,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/upper/rlc_common.h"
 
 namespace srslte {
@@ -72,7 +72,7 @@ private:
   srsue::rrc_interface_rlc  *rrc;
 
   // Thread-safe queues for MAC messages
-  msg_queue    ul_queue;
+  rlc_tx_queue    ul_queue;
 };
 
 } // namespace srsue

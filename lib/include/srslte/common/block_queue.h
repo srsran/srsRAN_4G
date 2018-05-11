@@ -24,6 +24,15 @@
  *
  */
 
+
+/******************************************************************************
+ *  File:         block_queue.h
+ *  Description:  General-purpose blocking queue. It can behave as a bounded or
+ *                unbounded blocking queue and allows blocking and non-blocking
+ *                operations in both push and pop
+ *****************************************************************************/
+
+
 #ifndef SRSLTE_BLOCK_QUEUE_H
 #define SRSLTE_BLOCK_QUEUE_H
 
@@ -32,21 +41,47 @@
 #include <utility>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdint.h>
+
 namespace srslte {
 
 template<typename myobj>
 class block_queue {
 
 public:
-  block_queue<myobj>() {
+  block_queue<myobj>(int capacity = -1) {
     pthread_mutex_init(&mutex, NULL);
-    pthread_cond_init(&cvar, NULL);
+    pthread_cond_init(&cv_empty, NULL);
+    pthread_cond_init(&cv_full, NULL);
+    this->capacity = capacity;
   }
-  void push(const myobj& value) {
+  void resize(int new_capacity) {
+    capacity = new_capacity;
+  }
+  bool push_(const myobj& value, bool block) {
     pthread_mutex_lock(&mutex);
+    if (capacity > 0) {
+      if (block) {
+        while(q.size() > (uint32_t) capacity) {
+          pthread_cond_wait(&cv_full, &mutex);
+        }
+      } else {
+        pthread_mutex_unlock(&mutex);
+        return false;
+      }
+    }
     q.push(value);
-    pthread_cond_signal(&cvar);    
+    pthread_cond_signal(&cv_empty);
     pthread_mutex_unlock(&mutex);
+    return true;
+  }
+
+  void push(const myobj& value) {
+    push_(value, true);
+  }
+
+  bool try_push(const myobj& value) {
+    return push_(value, false);
   }
 
   bool try_pop(myobj *value) { 
@@ -59,6 +94,7 @@ public:
       *value = q.front(); 
       q.pop();
     }
+    pthread_cond_signal(&cv_full);
     pthread_mutex_unlock(&mutex);
     return true;
   }
@@ -66,15 +102,16 @@ public:
   myobj wait_pop() { // blocking pop
     pthread_mutex_lock(&mutex);
     while(q.empty()) {
-      pthread_cond_wait(&cvar, &mutex);
+      pthread_cond_wait(&cv_empty, &mutex);
     }
     myobj value = q.front();
     q.pop();
+    pthread_cond_signal(&cv_full);
     pthread_mutex_unlock(&mutex);
     return value;
   }
 
-  bool empty() const { // queue is empty?
+  bool empty() { // queue is empty?
     pthread_mutex_lock(&mutex);
     bool ret = q.empty();
     pthread_mutex_unlock(&mutex);
@@ -86,6 +123,10 @@ public:
     while (try_pop(item));
   }
 
+  myobj front() {
+    return q.front();
+  }
+
   size_t size() {
     return q.size();
   }
@@ -93,7 +134,9 @@ public:
 private:
   std::queue<myobj> q; 
   pthread_mutex_t mutex;
-  pthread_cond_t  cvar;
+  pthread_cond_t  cv_empty;
+  pthread_cond_t  cv_full;
+  int capacity;
 };
 
 }
