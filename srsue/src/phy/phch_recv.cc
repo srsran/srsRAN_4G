@@ -432,6 +432,7 @@ void phch_recv::run_thread()
 
               metrics.sfo = srslte_ue_sync_get_sfo(&ue_sync);
               metrics.cfo = srslte_ue_sync_get_cfo(&ue_sync);
+              metrics.ta_us = time_adv_sec*1e6;
               worker_com->set_sync_metrics(metrics);
 
               // Check if we need to TX a PRACH

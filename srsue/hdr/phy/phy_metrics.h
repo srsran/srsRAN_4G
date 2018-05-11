@@ -32,6 +32,7 @@ namespace srsue {
 
 struct sync_metrics_t
 {
+  float ta_us;
   float cfo;
   float sfo;
 };
