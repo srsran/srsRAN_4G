@@ -126,7 +126,7 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
     int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
     if(n > 0 && (pdu->N_bytes != (uint32_t)n))
     {
-      gw_log->warning("DL TUN/TAP write failure\n");
+      gw_log->warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.\n", pdu->N_bytes, n);
     } 
   }
   pool->deallocate(pdu);
