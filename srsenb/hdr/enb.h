@@ -126,6 +126,7 @@ typedef struct {
   mac_args_t mac; 
   uint32_t   rrc_inactivity_timer;
   float      metrics_period_secs;
+  bool       print_buffer_state;
 }expert_args_t;
 
 typedef struct { 
@@ -155,6 +156,8 @@ public:
   void stop();
 
   void start_plot();
+
+  void print_pool();
 
   static void rf_msg(srslte_rf_error_t error);
 

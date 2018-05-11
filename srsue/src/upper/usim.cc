@@ -49,8 +49,8 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
   if(32 == args->op.length()) {
     str_to_hex(args->op, op);
   } else {
-    usim_log->error("Invalid length for OP: %zu should be %d", args->op.length(), 32);
-    usim_log->console("Invalid length for OP: %zu should be %d", args->op.length(), 32);
+    usim_log->error("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
+    usim_log->console("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
   }
 
   if(15 == args->imsi.length()) {
@@ -61,8 +61,8 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
       imsi += imsi_c[i] - '0';
     }
   } else {
-    usim_log->error("Invalid length for ISMI: %zu should be %d", args->imsi.length(), 15);
-    usim_log->console("Invalid length for IMSI: %zu should be %d", args->imsi.length(), 15);
+    usim_log->error("Invalid length for ISMI: %zu should be %d\n", args->imsi.length(), 15);
+    usim_log->console("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
   }
 
   if(15 == args->imei.length()) {
@@ -73,15 +73,15 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
       imei += imei_c[i] - '0';
     }
   } else {
-    usim_log->error("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
-    usim_log->console("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
+    usim_log->error("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+    usim_log->console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
   }
 
   if(32 == args->k.length()) {
     str_to_hex(args->k, k);
   } else {
-    usim_log->error("Invalid length for K: %zu should be %d", args->k.length(), 32);
-    usim_log->console("Invalid length for K: %zu should be %d", args->k.length(), 32);
+    usim_log->error("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
+    usim_log->console("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
   }
 
   auth_algo = auth_algo_milenage;
@@ -115,7 +115,7 @@ bool usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
   }
 
   if(NULL == imsi_ || n < 15) {
-    usim_log->error("Invalid parameters to get_imsi_vec");
+    usim_log->error("Invalid parameters to get_imsi_vec\n");
     return false;
   }
 
@@ -135,7 +135,7 @@ bool usim::get_imei_vec(uint8_t* imei_, uint32_t n)
   }
 
   if(NULL == imei_ || n < 15) {
-    usim_log->error("Invalid parameters to get_imei_vec");
+    usim_log->error("Invalid parameters to get_imei_vec\n");
     return false;
   }
 

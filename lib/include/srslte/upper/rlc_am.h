@@ -31,7 +31,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/common/timeout.h"
 #include "srslte/upper/rlc_common.h"
 #include <map>
@@ -104,7 +104,7 @@ private:
   srsue::rrc_interface_rlc  *rrc;
 
   // TX SDU buffers
-  msg_queue      tx_sdu_queue;
+  rlc_tx_queue      tx_sdu_queue;
   byte_buffer_t *tx_sdu;
 
   // PDU being resegmented

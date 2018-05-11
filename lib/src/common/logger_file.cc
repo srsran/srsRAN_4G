@@ -43,8 +43,8 @@ logger_file::logger_file()
 
 logger_file::~logger_file() {
   not_done = false;
-  log(new std::string("Closing log\n"));
   if(inited) {
+    log(new std::string("Closing log\n"));
     wait_thread_finish();
     flush();
     if (logfile) {

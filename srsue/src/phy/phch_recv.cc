@@ -642,12 +642,12 @@ float phch_recv::get_tx_cfo()
 
   if (worker_com->args->cfo_is_doppler) {
     ret *= -1;
-  }
-
-  if (radio_h->get_freq_offset() != 0.0f) {
-    /* Compensates the radio frequency offset applied equally to DL and UL */
-    const float offset_hz = (float) radio_h->get_freq_offset() * (1.0f - ul_dl_factor);
-    ret = cfo - offset_hz;
+  } else {
+    /* Compensates the radio frequency offset applied equally to DL and UL. Does not work in doppler mode */
+    if (radio_h->get_freq_offset() != 0.0f) {
+      const float offset_hz = (float) radio_h->get_freq_offset() * (1.0f - ul_dl_factor);
+      ret = cfo - offset_hz;
+    }
   }
 
   return ret/15000;

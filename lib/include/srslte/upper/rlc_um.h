@@ -31,7 +31,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/upper/rlc_common.h"
 #include <pthread.h>
 #include <map>
@@ -89,7 +89,7 @@ private:
   mac_interface_timers        *mac_timers; 
 
   // TX SDU buffers
-  msg_queue           tx_sdu_queue;
+  rlc_tx_queue           tx_sdu_queue;
   byte_buffer_t      *tx_sdu;
 
   // Rx window

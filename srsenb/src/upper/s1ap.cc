@@ -87,7 +87,7 @@ void s1ap::get_metrics(s1ap_metrics_t &m)
 
 void s1ap::run_thread()
 {
-  srslte::byte_buffer_t *pdu = pool_allocate;
+  srslte::byte_buffer_t *pdu = pool->allocate("s1ap::run_thread");
   if (!pdu) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
     return;

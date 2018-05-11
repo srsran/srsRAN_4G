@@ -57,6 +57,8 @@ rrc::rrc()
   neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
   initiated = false;
   running = false;
+  go_idle = false;
+  go_rlf  = false;
 }
 
 rrc::~rrc()
@@ -248,6 +250,11 @@ void rrc::run_tti(uint32_t tti) {
         if (go_idle) {
           go_idle = false;
           leave_connected();
+        }
+        if (go_rlf) {
+          go_rlf = false;
+          // Initiate connection re-establishment procedure after RLF
+          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
         }
         break;
       default:break;
@@ -527,10 +534,10 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
 /* Processes all pending PHY measurements in queue. Must be called from a mutexed function
  */
 void rrc::process_phy_meas() {
-  while(!phy_meas_q.empty()) {
+  phy_meas_t m;
+  while(phy_meas_q.try_pop(&m)) {
     rrc_log->debug("MEAS:  Processing measurement. %lu measurements in queue\n", phy_meas_q.size());
-    process_new_phy_meas(phy_meas_q.front());
-    phy_meas_q.pop();
+    process_new_phy_meas(m);
   }
 }
 
@@ -823,6 +830,15 @@ rrc::cs_ret_t rrc::cell_selection()
     }
   }
   if (serving_cell->in_sync) {
+    if (!phy->cell_is_camping()) {
+      rrc_log->info("Serving cell is in-sync but not camping. Selecting it...\n");
+      if (phy->cell_select(&serving_cell->phy_cell)) {
+        rrc_log->info("Selected serving cell OK.\n");
+      } else {
+        serving_cell->in_sync = false;
+        rrc_log->error("Could not camp on serving cell.\n");
+      }
+    }
     return SAME_CELL;
   }
   // If can not find any suitable cell, search again
@@ -836,7 +852,7 @@ rrc::cs_ret_t rrc::cell_selection()
 // Cell selection criteria Section 5.2.3.2 of 36.304
 bool rrc::cell_selection_criteria(float rsrp, float rsrq)
 {
-  if (get_srxlev(rsrp) > 0) {
+  if (get_srxlev(rsrp) > 0 || !serving_cell->has_sib3()) {
     return true;
   } else {
     return false;
@@ -1057,12 +1073,10 @@ int rrc::find_neighbour_cell(uint32_t earfcn, uint32_t pci) {
  */
 void rrc::radio_link_failure() {
   // TODO: Generate and store failure report
-
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state == RRC_STATE_CONNECTED) {
-    // Initiate connection re-establishment procedure
-    send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
+    go_rlf = true;
   }
 }
 
@@ -1162,12 +1176,18 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
   bzero(&ul_ccch_msg, sizeof(LIBLTE_RRC_UL_CCCH_MSG_STRUCT));
 
   uint16_t crnti;
+  uint16_t pci;
+  uint32_t cellid;
   if (cause == LIBLTE_RRC_CON_REEST_REQ_CAUSE_HANDOVER_FAILURE) {
-    crnti = ho_src_rnti;
+    crnti  = ho_src_rnti;
+    pci    = ho_src_cell.get_pci();
+    cellid = ho_src_cell.get_cell_id();
   } else {
     mac_interface_rrc::ue_rnti_t uernti;
     mac->get_rntis(&uernti);
-    crnti = uernti.crnti;
+    crnti  = uernti.crnti;
+    pci    = serving_cell->get_pci();
+    cellid = serving_cell->get_cell_id();
   }
 
   // Compute shortMAC-I
@@ -1176,36 +1196,38 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
   bzero(varShortMAC_packed, 16);
   uint8_t *msg_ptr = varShortMAC;
 
-  // ASN.1 encode byte-aligned VarShortMAC-Input
-  liblte_rrc_pack_cell_identity_ie(serving_cell->get_cell_id(), &msg_ptr);
-  msg_ptr = &varShortMAC[4];
-  liblte_rrc_pack_phys_cell_id_ie(phy->get_current_pci(), &msg_ptr);
-  msg_ptr = &varShortMAC[4+2];
+  // ASN.1 encode VarShortMAC-Input
+  liblte_rrc_pack_cell_identity_ie(cellid, &msg_ptr);
+  liblte_rrc_pack_phys_cell_id_ie(pci, &msg_ptr);
   liblte_rrc_pack_c_rnti_ie(crnti, &msg_ptr);
-  srslte_bit_pack_vector(varShortMAC, varShortMAC_packed, (4+2+4)*8);
 
-  rrc_log->info("Generated varShortMAC: cellId=0x%x, PCI=%d, rnti=%d\n",
-                serving_cell->get_cell_id(), phy->get_current_pci(), crnti);
+  // byte align (already zero-padded)
+  uint32_t N_bits  = (uint32_t) (msg_ptr-varShortMAC);
+  uint32_t N_bytes = ((N_bits-1)/8+1);
+  srslte_bit_pack_vector(varShortMAC, varShortMAC_packed, N_bytes*8);
+
+  rrc_log->info("Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes, %d bits)\n",
+                cellid, pci, crnti, N_bytes, N_bits);
 
   // Compute MAC-I
   uint8_t mac_key[4];
   switch(integ_algo) {
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
       security_128_eia1(&k_rrc_int[16],
-                        1,
-                        1,
-                        1,
+                        0xffffffff,    // 32-bit all to ones
+                        0x1f,          // 5-bit all to ones
+                        1,             // 1-bit to one
                         varShortMAC_packed,
-                        10,
+                        N_bytes,
                         mac_key);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(&k_rrc_int[16],
-                        1,
-                        1,
-                        1,
+                        0xffffffff,    // 32-bit all to ones
+                        0x1f,          // 5-bit all to ones
+                        1,             // 1-bit to one
                         varShortMAC_packed,
-                        10,
+                        N_bytes,
                         mac_key);
       break;
     default:
@@ -1215,8 +1237,8 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
   // Prepare ConnectionRestalishmentRequest packet
   ul_ccch_msg.msg_type = LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REEST_REQ;
   ul_ccch_msg.msg.rrc_con_reest_req.ue_id.c_rnti = crnti;
-  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.phys_cell_id = phy->get_current_pci();
-  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.short_mac_i = mac_key[1] << 8 | mac_key[0];
+  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.phys_cell_id = pci;
+  ul_ccch_msg.msg.rrc_con_reest_req.ue_id.short_mac_i = mac_key[2] << 8 | mac_key[3];
   ul_ccch_msg.msg.rrc_con_reest_req.cause = cause;
 
   rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
@@ -1249,9 +1271,10 @@ void rrc::send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause)
       }
     } else {
       rrc_log->warning("Could not re-synchronize with cell.\n");
+      go_idle = true;
     }
   } else {
-    rrc_log->info("Selected cell no longer suitable for camping. Going to IDLE\n");
+    rrc_log->info("Selected cell no longer suitable for camping (in_sync=%s). Going to IDLE\n", serving_cell->in_sync?"yes":"no");
     go_idle = true;
   }
 }
@@ -1439,6 +1462,7 @@ void rrc::ho_ra_completed(bool ra_successful) {
 bool rrc::con_reconfig_ho(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig)
 {
   if (reconfig->mob_ctrl_info.target_pci == phy->get_current_pci()) {
+    rrc_log->console("Warning: Received HO command to own cell\n");
     rrc_log->warning("Received HO command to own cell\n");
     return false;
   }
@@ -1500,7 +1524,7 @@ void rrc::con_reconfig_failed()
 
   if (security_is_activated) {
     // Start the Reestablishment Procedure
-    send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
+    send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_RECONFIG_FAILURE);
   } else {
     go_idle = true;
   }

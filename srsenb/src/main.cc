@@ -184,6 +184,9 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         bpo::value<uint32_t>(&args->expert.rrc_inactivity_timer)->default_value(10000),
         "Inactivity timer in ms")
 
+    ("expert.print_buffer_state",
+        bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
+       "Prints on the console the buffer state every 10 seconds")
 
     ("rf_calibration.tx_corr_dc_gain",  bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),  "TX DC offset gain correction")
     ("rf_calibration.tx_corr_dc_phase", bpo::value<float>(&args->rf_cal.tx_corr_dc_phase)->default_value(0.0), "TX DC offset phase correction")
@@ -385,10 +388,20 @@ int main(int argc, char *argv[])
 
   bool plot_started         = false; 
   bool signals_pregenerated = false; 
-  while(running) {
+  if(running) {
     if (!plot_started && args.gui.enable) {
       enb->start_plot();
       plot_started = true; 
+    }
+  }
+  int cnt=0;
+  while (running) {
+    if (args.expert.print_buffer_state) {
+      cnt++;
+      if (cnt==10) {
+        cnt=0;
+        enb->print_pool();
+      }
     }
     sleep(1);
   }

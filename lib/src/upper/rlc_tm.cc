@@ -59,10 +59,8 @@ void rlc_tm::empty_queue()
 {
   // Drop all messages in TX queue
   byte_buffer_t *buf;
-  while(ul_queue.size() > 0) {
-    if (ul_queue.try_read(&buf)) {
-      pool->deallocate(buf);
-    }
+  while(ul_queue.try_read(&buf)) {
+    pool->deallocate(buf);
   }
 }
 
@@ -89,8 +87,11 @@ uint32_t rlc_tm::get_bearer()
 // PDCP interface
 void rlc_tm::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU", rrc->get_rb_name(lcid).c_str());
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, before: queue size=%d, bytes=%d",
+                rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
   ul_queue.write(sdu);
+  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, after: queue size=%d, bytes=%d",
+                rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
 }
 
 // MAC interface
@@ -119,10 +120,15 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                rrc->get_rb_name(lcid).c_str(), buf->get_latency_us());
     pool->deallocate(buf);
-    log->info_hex(payload, pdu_size, "TX %s, %s PDU", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[RLC_MODE_TM]);
+    log->info_hex(payload, pdu_size, "TX %s, %s PDU, queue size=%d, bytes=%d",
+                  rrc->get_rb_name(lcid).c_str(), rlc_mode_text[RLC_MODE_TM], ul_queue.size(), ul_queue.size_bytes());
     return pdu_size;
   } else {
     log->warning("Queue empty while trying to read\n");
+    if (ul_queue.size_bytes() > 0) {
+      log->warning("Corrupted queue: empty but size_bytes > 0. Resetting queue\n");
+      ul_queue.reset();
+    }
     return 0;
   }
 }

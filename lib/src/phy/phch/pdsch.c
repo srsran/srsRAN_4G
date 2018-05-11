@@ -620,7 +620,7 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
   uint32_t rv = cfg->rv[tb_idx];
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (softbuffer && data && ack) {
+  if (softbuffer && data && ack && nbits->nof_bits && nbits->nof_re) {
     INFO("Decoding PDSCH SF: %d (CW%d -> TB%d), Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
          cfg->sf_idx, codeword_idx, tb_idx, srslte_mod_string(mcs->mod), mcs->tbs,
          nbits->nof_re, nbits->nof_bits, rv);
@@ -687,7 +687,8 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
       ret = SRSLTE_ERROR;
     }
   } else {
-    ERROR("Detected NULL pointer in TB%d &softbuffer=%p &data=%p &ack=%p", codeword_idx, softbuffer, (void*)data, ack);
+    ERROR("Detected NULL pointer in TB%d &softbuffer=%p &data=%p &ack=%p, nbits=%d, nof_re=%d",
+          codeword_idx, softbuffer, (void*)data, ack, nbits->nof_bits, nbits->nof_re);
   }
 
   return ret;

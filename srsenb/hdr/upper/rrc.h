@@ -243,7 +243,8 @@ public:
     bool connect_notified; 
     
   private:
-    
+    srslte::byte_buffer_pool  *pool;
+
     struct timeval t_last_activity; 
 
     // S-TMSI for this UE

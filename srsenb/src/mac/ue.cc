@@ -152,6 +152,8 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti);
   }
 
+  pdus.deallocate(pdu);
+
   uint32_t lcid_most_data = 0;
   int most_data = -99;
   
