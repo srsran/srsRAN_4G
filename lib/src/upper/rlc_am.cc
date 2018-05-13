@@ -920,6 +920,13 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
 #endif
   }
 
+  // check available space for payload
+  if (nof_bytes > pdu.buf->get_tailroom()) {
+    log->error("%s Discarding SN: %d of size %d B (available space %d B)\n",
+              rrc->get_rb_name(lcid).c_str(), header.sn, nof_bytes, pdu.buf->get_tailroom());
+    pool->deallocate(pdu.buf);
+    return;
+  }
   memcpy(pdu.buf->msg, payload, nof_bytes);
   pdu.buf->N_bytes  = nof_bytes;
   memcpy(&pdu.header, &header, sizeof(rlc_amd_pdu_header_t));
