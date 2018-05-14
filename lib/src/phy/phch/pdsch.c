@@ -350,8 +350,8 @@ int srslte_pdsch_set_cell(srslte_pdsch_t *q, srslte_cell_t cell)
     memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
     q->max_re = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
 
-    INFO("PDSCH: Cell config PCI=%d, %d ports, %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
-         q->cell.id, q->cell.nof_prb, q->max_re);
+    INFO("PDSCH: Cell config PCI=%d, %d ports, %d PRBs, max_symbols: %d\n",
+         q->cell.id, q->cell.nof_ports, q->cell.nof_prb, q->max_re);
 
     ret = SRSLTE_SUCCESS;
   }
