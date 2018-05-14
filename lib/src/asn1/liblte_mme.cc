@@ -1027,7 +1027,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_parameter_rand_ie(uint8 **ie_
     Document Reference: 24.301 v10.2.0 Section 9.9.3.4
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_response_parameter_ie(uint8  *res,
-                                                                       int res_len,
+                                                                       int     res_len,
                                                                        uint8 **ie_ptr)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
@@ -1037,11 +1037,12 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_response_parameter_ie(uint8  *r
        ie_ptr != NULL)
     {
         (*ie_ptr)[0] = res_len;
+        *ie_ptr      += 1;
         for(i=0; i<res_len; i++)
         {
-            (*ie_ptr)[i+1] = res[i];
+            (*ie_ptr)[i] = res[i];
         }
-        *ie_ptr += res_len+1;
+        *ie_ptr += res_len;
 
         err = LIBLTE_SUCCESS;
     }
