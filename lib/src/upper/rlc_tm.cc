@@ -52,7 +52,7 @@ void rlc_tm::init(srslte::log               *log_,
 
 void rlc_tm::configure(srslte_rlc_config_t cnfg)
 {
-  log->error("Attempted to configure TM RLC entity");
+  log->error("Attempted to configure TM RLC entity\n");
 }
 
 void rlc_tm::empty_queue()
