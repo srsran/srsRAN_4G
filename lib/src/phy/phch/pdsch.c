@@ -637,7 +637,7 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
     /* Bit scrambling */
     srslte_scrambling_s_offset(seq, q->e[codeword_idx], 0, nbits->nof_bits);
 
-    uint32_t qm = nbits->nof_bits/nbits->nof_re;
+    uint32_t qm = 0;
     switch(cfg->grant.mcs[tb_idx].mod) {
 
       case SRSLTE_MOD_BPSK:
