@@ -366,7 +366,6 @@ void phch_recv::run_thread()
   bool is_end_of_burst = false;
 
   cf_t *dummy_buffer[SRSLTE_MAX_PORTS];
-
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     dummy_buffer[i] = (cf_t*) malloc(sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
   }
@@ -554,6 +553,12 @@ void phch_recv::run_thread()
 
     // Increase TTI counter
     tti = (tti+1) % 10240;
+  }
+
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    if (dummy_buffer[i]) {
+      free(dummy_buffer[i]);
+    }
   }
 }
 

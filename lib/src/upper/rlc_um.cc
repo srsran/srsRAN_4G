@@ -31,7 +31,7 @@
 
 namespace srslte {
 
-rlc_um::rlc_um() : tx_sdu_queue(16)
+rlc_um::rlc_um() : tx_sdu_queue(32)
 {
   log = NULL;
   pdcp = NULL;
@@ -467,6 +467,17 @@ void rlc_um::reassemble_rx_sdus()
       for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++)
       {
         int len = rx_window[vr_ur].header.li[i];
+
+        // Check if we received a middle or end segment
+        if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
+          log->warning("Dropping PDU %d due to lost start segment\n", vr_ur);
+          // Advance data pointers and continue with next segment
+          rx_window[vr_ur].buf->msg += len;
+          rx_window[vr_ur].buf->N_bytes -= len;
+          rx_sdu->reset();
+          break;
+        }
+
         memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
         rx_sdu->N_bytes += len;
         rx_window[vr_ur].buf->msg += len;
@@ -488,27 +499,30 @@ void rlc_um::reassemble_rx_sdus()
       }
 
       // Handle last segment
-      memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
-      rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
-      log->debug("Writting last segment in SDU buffer. Lower edge vr_ur=%d, Buffer size=%d, segment size=%d\n", 
-               vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
-      vr_ur_in_rx_sdu = vr_ur; 
-      if(rlc_um_end_aligned(rx_window[vr_ur].header.fi))
-      {
-        if(pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-          log->warning("Dropping remainder of lost PDU (lower edge last segments)\n");
-          rx_sdu->reset();          
-        } else {
-          log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", rrc->get_rb_name(lcid).c_str(), vr_ur);
-          rx_sdu->set_timestamp();
-          pdcp->write_pdu(lcid, rx_sdu);
-          rx_sdu = pool_allocate;
-          if (!rx_sdu) {
-            log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
-            return;
+      if (rx_sdu->N_bytes > 0 || rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
+        log->debug("Writing last segment in SDU buffer. Lower edge vr_ur=%d, Buffer size=%d, segment size=%d\n",
+                   vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
+
+        memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
+        rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
+        vr_ur_in_rx_sdu = vr_ur;
+        if(rlc_um_end_aligned(rx_window[vr_ur].header.fi))
+        {
+          if(pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
+            log->warning("Dropping remainder of lost PDU (lower edge last segments)\n");
+            rx_sdu->reset();
+          } else {
+            log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", rrc->get_rb_name(lcid).c_str(), vr_ur);
+            rx_sdu->set_timestamp();
+            pdcp->write_pdu(lcid, rx_sdu);
+            rx_sdu = pool_allocate;
+            if (!rx_sdu) {
+              log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
+              return;
+            }
           }
+          pdu_lost = false;
         }
-        pdu_lost = false;
       }
 
       // Clean up rx_window
@@ -527,10 +541,21 @@ void rlc_um::reassemble_rx_sdus()
     for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++)
     {
       int len = rx_window[vr_ur].header.li[i];
-      memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
+
+      // Check if the first part of the PDU is a middle or end segment
+      if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
+        log->warning("Dropping PDU %d due to lost start segment\n", vr_ur);
+        // Advance data pointers and continue with next segment
+        rx_window[vr_ur].buf->msg += len;
+        rx_window[vr_ur].buf->N_bytes -= len;
+        rx_sdu->reset();
+        break;
+      }
+
       log->debug("Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d\n",
         len, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur_in_rx_sdu, vr_ur, cfg.rx_mod, (vr_ur_in_rx_sdu+1)%cfg.rx_mod);
-      rx_sdu->N_bytes += len;      
+      memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
+      rx_sdu->N_bytes += len;
       rx_window[vr_ur].buf->msg += len;
       rx_window[vr_ur].buf->N_bytes -= len;
       if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%cfg.rx_mod))) {
@@ -548,8 +573,14 @@ void rlc_um::reassemble_rx_sdus()
       }
       pdu_lost = false;
     }
-    
+
     // Handle last segment
+    if (rx_sdu->N_bytes == 0 && rx_window[vr_ur].header.N_li == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
+      log->warning("Dropping PDU %d due to lost start segment\n", vr_ur);
+      rx_sdu->reset();
+      goto clean_up_rx_window;
+    }
+
     if (rx_sdu->N_bytes                                 < SRSLTE_MAX_BUFFER_SIZE_BYTES   &&
         rx_window[vr_ur].buf->N_bytes                   < SRSLTE_MAX_BUFFER_SIZE_BYTES   &&
         rx_window[vr_ur].buf->N_bytes + rx_sdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES)
@@ -557,7 +588,7 @@ void rlc_um::reassemble_rx_sdus()
 
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
       rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
-      log->debug("Writting last segment in SDU buffer. Updating vr_ur=%d, Buffer size=%d, segment size=%d\n",
+      log->debug("Writing last segment in SDU buffer. Updating vr_ur=%d, Buffer size=%d, segment size=%d\n",
                  vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
     } else {
       log->error("Out of bounds while reassembling SDU buffer in UM: sdu_len=%d, window_buffer_len=%d, vr_ur=%d\n",
@@ -581,6 +612,8 @@ void rlc_um::reassemble_rx_sdus()
       }
       pdu_lost = false;
     }
+
+clean_up_rx_window:
 
     // Clean up rx_window
     pool->deallocate(rx_window[vr_ur].buf);

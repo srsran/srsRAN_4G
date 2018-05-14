@@ -83,6 +83,9 @@ public:
   srslte_rlc_am_config_t    am;
   srslte_rlc_um_config_t    um;
 
+  // Default ctor
+  srslte_rlc_config_t(): rlc_mode(LIBLTE_RRC_RLC_MODE_AM), am(), um() {};
+
   // Constructor based on liblte's RLC config
   srslte_rlc_config_t(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) : rlc_mode(cnfg->rlc_mode), am(), um()
   {

@@ -40,6 +40,20 @@ uint32_t PDU2_LEN = 5;
 uint8_t pdu3[] = {0x8C, 0x00, 0xDD, 0xCD, 0xDC, 0x5D, 0xC0};
 uint32_t PDU3_LEN = 7;
 
+// D/C = 1 = Data PDU
+// RF  = 0 = AMD PDU
+// P   = 0 = Status PDU is not requested
+// FI  = 11 = First byte of the Data field does not corresponds to the first byte of a RLC SDU,
+// Last byte of the Data field does not corresponds to the last byte of a RLC SDU
+// E   = 1  = A set of E field and LI field follows from the octet following the fixed part of the header
+// SN = 0000000010 -> SN 2
+// E   = 1
+// LI1 = 1010011 1110 (1342 Dec)
+// E  = 0
+// LI2 = 10111011100 (1500 Dec)
+uint8_t pdu4[] = {0x9C, 0x02, 0xD3, 0xE5, 0xDC };
+uint32_t PDU4_LEN = 5;
+
 using namespace srslte;
 
 int main(int argc, char **argv) {
@@ -104,6 +118,28 @@ int main(int argc, char **argv) {
   assert(0    == h.sn);
   rlc_am_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU3_LEN);
+  for(uint32_t i=0;i<b2.N_bytes;i++)
+    assert(b2.msg[i] == b1.msg[i]);
+
+  b1.reset();
+  b2.reset();
+  memset(&h, 0, sizeof(srslte::rlc_amd_pdu_header_t));
+
+  memcpy(b1.msg, &pdu4[0], PDU4_LEN);
+  b1.N_bytes = PDU4_LEN;
+  rlc_am_read_data_pdu_header(&b1, &h);
+  assert(RLC_DC_FIELD_DATA_PDU == h.dc);
+  assert(0x03 == h.fi);
+  assert(2    == h.N_li);
+  assert(1342 == h.li[0]);
+  assert(1500 == h.li[1]);
+  assert(0    == h.lsf);
+  assert(0    == h.p);
+  assert(0    == h.rf);
+  assert(0    == h.so);
+  assert(2    == h.sn);
+  rlc_am_write_data_pdu_header(&h, &b2);
+  assert(b2.N_bytes == PDU4_LEN);
   for(uint32_t i=0;i<b2.N_bytes;i++)
     assert(b2.msg[i] == b1.msg[i]);
 }
