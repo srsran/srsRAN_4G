@@ -431,6 +431,8 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
   bzero(&uecfg, sizeof(sched_interface::ue_cfg_t));
   uecfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH; 
   if (scheduler.ue_cfg(last_rnti, &uecfg)) {
+    // Release pending RAR
+    bzero(&pending_rars[ra_id], sizeof(pending_rar_t));
     Error("Registering new user rnti=0x%x to SCHED\n", last_rnti);
     return -1;
   }
