@@ -775,10 +775,10 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
 
   /* Schedule Broadcast data */
   sched_result->nof_bc_elems   += dl_sched_bc(sched_result->bc);
- 
+  
   /* Schedule RAR */
   sched_result->nof_rar_elems  += dl_sched_rar(sched_result->rar);
-    
+
   /* Schedule pending RLC data */
   sched_result->nof_data_elems += dl_sched_data(sched_result->data);
   

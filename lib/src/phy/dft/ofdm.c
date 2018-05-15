@@ -561,7 +561,6 @@ void srslte_ofdm_tx_slot(srslte_ofdm_t *q, int slot_in_sf) {
 void srslte_ofdm_tx_slot_mbsfn(srslte_ofdm_t *q, cf_t *input, cf_t *output)
 {
   uint32_t i, cp_len;
-  
   for(i=0;i<q->nof_symbols_mbsfn;i++) {
     cp_len = ( i>(q->non_mbsfn_region-1) )?SRSLTE_CP_LEN_EXT(q->symbol_sz):SRSLTE_CP_LEN_NORM(i, q->symbol_sz);
     memcpy(&q->tmp[q->nof_guards], input, q->nof_re * sizeof(cf_t));

@@ -658,6 +658,7 @@ int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
                                    noise_estimate,
                                    q->current_mbsfn_area_id, data);
     
+    
     if (ret == SRSLTE_ERROR) {
       q->pmch_pkt_errors++;
     } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {

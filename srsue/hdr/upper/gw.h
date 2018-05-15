@@ -74,9 +74,10 @@ private:
   nas_interface_gw   *nas;
 
   srslte::byte_buffer_pool   *pool;
-
   srslte::log                *gw_log;
+
   srslte::srslte_gw_config_t cfg;
+
   bool                running;
   bool                run_enable;
   int32               tun_fd;

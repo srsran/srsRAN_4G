@@ -735,6 +735,7 @@ uint32_t HexToBytes(const std::string& str, uint8_t *char_value, uint32_t buff_l
   return i/2;
 }
 
+
 int enb::parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT *data) 
 {  
   parser::section sib9("sib9");
@@ -880,7 +881,7 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
   if (parse_sib2(args->enb_files.sib_config, sib2)) {
     return -1; 
   }
-  
+ 
   // SRS not yet supported 
   sib2->rr_config_common_sib.srs_ul_cnfg.present = false; 
   if (sib2->ul_bw.present) {

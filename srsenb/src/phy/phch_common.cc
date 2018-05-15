@@ -57,6 +57,8 @@ bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interf
   mac   = mac_; 
   memcpy(&cell, cell_, sizeof(srslte_cell_t));
 
+
+  
   is_first_of_burst = true; 
   is_first_tx = true; 
   for (uint32_t i=0;i<max_mutex;i++) {

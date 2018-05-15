@@ -147,10 +147,11 @@ public:
     }
   }
 
+
 protected:  
   std::vector<SubH> subheaders;
   uint32_t   pdu_len; 
-  uint32_t   rem_len; 
+  uint32_t   rem_len;
   int        cur_idx;
   int        nof_subheaders;
   uint32_t   max_subheaders; 

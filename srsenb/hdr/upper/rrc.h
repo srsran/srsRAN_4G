@@ -78,6 +78,7 @@ typedef struct {
 typedef struct {
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT    sibs[LIBLTE_RRC_MAX_SIB];  
   LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT        mac_cnfg; 
+  
   LIBLTE_RRC_PUSCH_CONFIG_DEDICATED_STRUCT pusch_cfg;   
   LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT antenna_info;
   LIBLTE_RRC_PDSCH_CONFIG_P_A_ENUM         pdsch_cfg;

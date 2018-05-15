@@ -1056,18 +1056,6 @@ void phch_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, uint32_t 
 }
 
 
-  
-
-
-
-
-
-
-
-
-
-
-
 
 void phch_worker::start_plot() {
 #ifdef ENABLE_GUI

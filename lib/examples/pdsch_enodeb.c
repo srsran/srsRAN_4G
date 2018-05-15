@@ -82,7 +82,7 @@ uint32_t multiplex_nof_layers = 1;
 
 int mbsfn_area_id = -1;
 char *rf_args = "";
-float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 2400000000;
+float rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
 
 float output_file_snr = +INFINITY;
 
@@ -302,7 +302,7 @@ void base_init() {
   }
   
   if (net_port > 0) {
-    if (srslte_netsource_init(&net_source, "0.0.0.0", net_port, SRSLTE_NETSOURCE_TCP)) {
+    if (srslte_netsource_init(&net_source, "127.0.0.1", net_port, SRSLTE_NETSOURCE_UDP)) {
       fprintf(stderr, "Error creating input UDP socket at port %d\n", net_port);
       exit(-1);
     }
@@ -869,13 +869,13 @@ int main(int argc, char **argv) {
       }
       
       /* Transmit PDCCH + PDSCH only when there is data to send */
-      if (net_port > 0) {
+      if ((net_port > 0) && (sf_idx == 1 || mbsfn_area_id < 0)) {
         send_data = net_packet_ready; 
         if (net_packet_ready) {
           INFO("Transmitting packet\n");
         }
       } else {
-        INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
+        printf("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
         for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
           if (pdsch_cfg.grant.tb_en[tb]) {
             for (i = 0; i < pdsch_cfg.grant.mcs[tb].tbs / 8; i++) {
@@ -890,9 +890,8 @@ int main(int argc, char **argv) {
           send_data = false;           
         }
       }      
-      
       if (send_data) {
-        if(sf_idx != 1 || mbsfn_area_id < 0) { // PDCCH + PDSCH
+        if(sf_idx != 2 || mbsfn_area_id < 0) { // PDCCH + PDSCH
           srslte_dci_format_t dci_format;
           switch(pdsch_cfg.mimo_type) {
             case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
@@ -1024,10 +1023,13 @@ int main(int argc, char **argv) {
         }
         usleep(1000);
       } else {
-#ifndef DISABLE_RF
+#ifndef DISABLE_RF  
       float norm_factor = (float) cell.nof_prb/15/sqrtf(pdsch_cfg.grant.nof_prb);
+      //norm_factor = 0.066667;
+      //rf_amp = 0.8;
+       printf("power adj is %f\n",rf_amp * norm_factor);
       for (i = 0; i < cell.nof_ports; i++) {
-        srslte_vec_sc_prod_cfc(output_buffer[i], rf_amp * norm_factor, output_buffer[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
+        srslte_vec_sc_prod_cfc(output_buffer[i], 0.01, output_buffer[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
       }
       srslte_rf_send_multi(&rf, (void**) output_buffer, sf_n_samples, true, start_of_burst, false);
       start_of_burst=false;

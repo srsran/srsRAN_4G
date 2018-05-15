@@ -131,6 +131,7 @@ void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::byte_buffer_t *
 
 void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
+  
   rlc->write_sdu(rnti, lcid, sdu);
 }
 

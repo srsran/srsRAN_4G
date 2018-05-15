@@ -364,7 +364,6 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
       data         != NULL && 
       cfg          != NULL)
   {
-    
     INFO("Decoding PMCH SF: %d, MBSFN area ID: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d, C_prb=%d, cfi=%d\n",
         cfg->sf_idx, area_id, srslte_mod_string(cfg->grant.mcs[0].mod), cfg->grant.mcs[0].tbs, cfg->nbits[0].nof_re,
          cfg->nbits[0].nof_bits, 0, cfg->grant.nof_prb, cfg->nbits[0].lstart-1);
@@ -379,6 +378,7 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
       /* extract symbols */
       n = srslte_pmch_get(q, sf_symbols[j], q->symbols[j], cfg->nbits[0].lstart);
       if (n != cfg->nbits[0].nof_re) {
+        
         fprintf(stderr, "PMCH 1 extract symbols error expecting %d symbols but got %d, lstart %d\n", cfg->nbits[0].nof_re, n, cfg->nbits[0].lstart);
         return SRSLTE_ERROR;
       }
@@ -433,7 +433,6 @@ int srslte_pmch_encode(srslte_pmch_t *q,
   /* Set pointers for layermapping & precoding */
   cf_t *x[SRSLTE_MAX_LAYERS];
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-   
   if (q != NULL && cfg != NULL)
   {
     for (i=0;i<q->cell.nof_ports;i++) {

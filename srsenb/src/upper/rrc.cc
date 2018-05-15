@@ -30,6 +30,7 @@
 #include "srslte/srslte.h"
 #include "srslte/asn1/liblte_mme.h"
 
+
 using srslte::byte_buffer_t;
 using srslte::bit_buffer_t;
 
@@ -273,6 +274,7 @@ void rrc::add_user(uint16_t rnti)
 {
   pthread_mutex_lock(&user_mutex);
   if (users.count(rnti) == 0) {
+    
     users[rnti].parent = this; 
     users[rnti].rnti   = rnti; 
     rlc->add_user(rnti);
@@ -1314,7 +1316,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   sched_cfg.pucch_cfg.N_cs               = parent->sib2.rr_config_common_sib.pucch_cnfg.n_cs_an;
   sched_cfg.pucch_cfg.n_rb_2             = parent->sib2.rr_config_common_sib.pucch_cnfg.n_rb_cqi;
   sched_cfg.pucch_cfg.n1_pucch_an        = parent->sib2.rr_config_common_sib.pucch_cnfg.n1_pucch_an;
-
+ 
   // Configure MAC 
   parent->mac->ue_cfg(rnti, &sched_cfg);
     

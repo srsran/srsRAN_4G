@@ -43,6 +43,7 @@ rlc_um::rlc_um() : tx_sdu_queue(32)
   bzero(&cfg, sizeof(srslte_rlc_um_config_t));
 
   tx_sdu = NULL;
+    
   rx_sdu = NULL;
   pool = byte_buffer_pool::get_instance();
 
@@ -480,6 +481,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     {
       log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                 rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
+
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
     }
@@ -509,6 +511,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     {
       log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                 rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
+
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
     }
@@ -717,6 +720,7 @@ void rlc_um::reassemble_rx_sdus()
       }
 
       // Handle last segment
+
       if (rx_sdu->N_bytes > 0 || rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
         log->debug("Writing last segment in SDU buffer. Lower edge vr_ur=%d, Buffer size=%d, segment size=%d\n",
                    vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
@@ -886,7 +890,6 @@ void rlc_um_read_data_pdu_header(uint8_t *payload, uint32_t nof_bytes, rlc_umd_s
 {
   uint8_t  ext;
   uint8_t *ptr = payload;
-
   // Fixed part
   if(RLC_UMD_SN_SIZE_5_BITS == sn_size)
   {
@@ -933,7 +936,6 @@ void rlc_um_write_data_pdu_header(rlc_umd_pdu_header_t *header, byte_buffer_t *p
 {
   uint32_t i;
   uint8_t ext = (header->N_li > 0) ? 1 : 0;
-
   // Make room for the header
   uint32_t len = rlc_um_packed_length(header);
   pdu->msg -= len;

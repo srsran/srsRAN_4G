@@ -494,8 +494,6 @@ public:
 };
 
 
-
-
 /** PHY interface 
  *
  */
@@ -566,12 +564,12 @@ public:
 class phy_interface_mac : public phy_interface_mac_common
 {
 public:
+      
   /* Configure PRACH using parameters written by RRC */
   virtual void configure_prach_params() = 0;
 
   virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;  
-  virtual int  prach_tx_tti() = 0; 
-  
+  virtual int  prach_tx_tti() = 0;   
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send() = 0;  
   virtual int  sr_last_tx_tti() = 0; 

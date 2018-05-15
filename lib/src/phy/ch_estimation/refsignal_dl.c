@@ -120,6 +120,7 @@ inline uint32_t srslte_refsignal_cs_nsymbol(uint32_t l, srslte_cp_t cp, uint32_t
     return 1+l*SRSLTE_CP_NSYMB(cp);
   }
 }
+
 inline uint32_t srslte_refsignal_mbsfn_nsymbol(uint32_t l)
 {
   uint32_t ret = 0;

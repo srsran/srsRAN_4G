@@ -124,7 +124,7 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, uint32_t max_prb)
       perror("malloc");
       goto clean_exit;
     }
-
+    
     q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * pilot_vec_size);
     if (!q->pilot_recv_signal) {
       perror("malloc");
@@ -154,7 +154,7 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, uint32_t max_prb)
     q->noise_alg = SRSLTE_NOISE_ALG_REFS; 
 
     q->rsrp_neighbour = false;
-
+    q->average_subframe = false;
     q->smooth_filter_auto = false;
     q->smooth_filter_len = 3; 
     srslte_chest_dl_set_smooth_filter3_coeff(q, 0.1);
@@ -333,7 +333,7 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
 {
   /* Get PSS from received signal */
   srslte_pss_get_slot(input, q->tmp_pss, q->cell.nof_prb, q->cell.cp);
-    
+
   /* Get channel estimates for PSS position */
   srslte_pss_get_slot(ce, q->tmp_pss_noisy, q->cell.nof_prb, q->cell.cp);
 
@@ -342,7 +342,7 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
 
   /* Substract received signal */
   srslte_vec_sub_ccc(q->tmp_pss_noisy, q->tmp_pss, q->tmp_pss_noisy, SRSLTE_PSS_LEN);
-  
+
   /* Compute average power */
   float power = q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN)/sqrt(2);
   return power; 
@@ -351,14 +351,14 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
 /* Uses the 5 empty transmitted SC before and after the SSS and PSS sequences for noise estimation */
 static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
   int k_sss = (SRSLTE_CP_NSYMB(q->cell.cp) - 2) * q->cell.nof_prb * SRSLTE_NRE + q->cell.nof_prb * SRSLTE_NRE / 2 - 31;
-  float noise_power = 0; 
+  float noise_power = 0;
   noise_power += srslte_vec_avg_power_cf(&input[k_sss-5], 5); // 5 empty SC before SSS
   noise_power += srslte_vec_avg_power_cf(&input[k_sss+62], 5); // 5 empty SC after SSS
   int k_pss = (SRSLTE_CP_NSYMB(q->cell.cp) - 1) * q->cell.nof_prb * SRSLTE_NRE + q->cell.nof_prb * SRSLTE_NRE / 2 - 31;
   noise_power += srslte_vec_avg_power_cf(&input[k_pss-5], 5); // 5 empty SC before PSS
   noise_power += srslte_vec_avg_power_cf(&input[k_pss+62], 5); // 5 empty SC after PSS
-  
-  return noise_power; 
+
+  return noise_power;
 }
 
 #define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,0)]

@@ -449,7 +449,6 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
   // Register new user in RRC 
   rrc_h->add_user(last_rnti);
-  
   // Trigger scheduler RACH 
   scheduler.dl_rach_info(tti, ra_id, last_rnti, 7);    
     
@@ -704,7 +703,7 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32
 }
 
 uint8_t* mac::assemble_si(uint32_t index)
-{  
+{ 
   rlc_h->read_pdu_bcch_dlsch(index, bcch_dlsch_payload);
   return bcch_dlsch_payload;
 }
@@ -774,9 +773,6 @@ void mac::tti_clock()
   timers_thread.tti_clock();
 }
 
-
-
-
 /********************************************************
  *
  * Interface for upper layer timers
@@ -797,7 +793,6 @@ srslte::timers::timer* mac::timer_get(uint32_t timer_id)
 {
   return timers_db.get(timer_id);
 }
-
 
 
 /********************************************************

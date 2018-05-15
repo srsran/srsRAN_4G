@@ -112,7 +112,8 @@ uint8_t* sch_pdu::write_packet(srslte::log *log_h)
     onetwo_padding = rem_len; 
     rem_len = 0;  
   }
-  
+
+
   /* Determine the header size and CE payload size */
   uint32_t header_sz     = 0; 
   uint32_t ce_payload_sz = 0; 
@@ -168,7 +169,6 @@ uint8_t* sch_pdu::write_packet(srslte::log *log_h)
       subheaders[i].write_payload(&ptr);
     }
   }
-
   // Set padding to zeros (if any) 
   if (rem_len > 0) {
     bzero(&pdu_start_ptr[pdu_len-rem_len], rem_len*sizeof(uint8_t));
@@ -384,6 +384,7 @@ uint16_t sch_subh::get_c_rnti()
     return (uint16_t) w_payload_ce[0]<<8 | w_payload_ce[1];
   }
 }
+
 uint64_t sch_subh::get_con_res_id()
 {
   if (payload) {
@@ -395,6 +396,7 @@ uint64_t sch_subh::get_con_res_id()
     return 0; 
   }
 }
+
 float sch_subh::get_phr()
 {
   if (payload) {
@@ -786,12 +788,6 @@ uint8_t sch_subh::phr_report_table(float phr_value)
   return (uint8_t) floor(phr_value+23);
 }
 
-
-
-
-
-
-
 void rar_pdu::fprint(FILE* stream)
 {
   fprintf(stream, "MAC PDU for RAR. ");
@@ -861,38 +857,47 @@ void rar_subh::init()
   ta        = 0; 
   temp_rnti = 0; 
 }
+
 uint32_t rar_subh::get_rapid()
 {
   return preamble; 
 }
+
 void rar_subh::get_sched_grant(uint8_t grant_[RAR_GRANT_LEN])
 {
   memcpy(grant_, grant, sizeof(uint8_t)*RAR_GRANT_LEN);
 }
+
 uint32_t rar_subh::get_ta_cmd()
 {
   return ta; 
 }
+
 uint16_t rar_subh::get_temp_crnti()
 {
   return temp_rnti;
 }
+
 void rar_subh::set_rapid(uint32_t rapid)
 {
   preamble = rapid; 
 }
+
 void rar_subh::set_sched_grant(uint8_t grant_[RAR_GRANT_LEN])
 {
   memcpy(grant, grant_, sizeof(uint8_t)*RAR_GRANT_LEN);
 }
+
 void rar_subh::set_ta_cmd(uint32_t ta_)
 {
   ta = ta_; 
 }
+
 void rar_subh::set_temp_crnti(uint16_t temp_rnti_)
 {
   temp_rnti = temp_rnti_;
 }
+
 // Section 6.2.2
 void rar_subh::write_subheader(uint8_t** ptr, bool is_last)
 {

@@ -120,7 +120,7 @@ public:
   void    pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1);
   void    pdcch_ul_search_reset();
   void    pdcch_dl_search_reset();
-
+  
   /* Get/Set PHY parameters interface from RRC */  
   void get_config(phy_cfg_t *phy_cfg); 
   void set_config(phy_cfg_t *phy_cfg); 

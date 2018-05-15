@@ -329,7 +329,7 @@ void ue::allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t total_sdu_le
     while(sdu_len > 3 && n > 0) {
       if (pdu->new_subh()) { // there is space for a new subheader
         log_h->debug("SDU:   set_sdu(), lcid=%d, sdu_len=%d, sdu_space=%d\n", lcid, sdu_len, sdu_space);
-        n = pdu->get()->set_sdu(lcid, sdu_len, this); 
+          n = pdu->get()->set_sdu(lcid, sdu_len, this);
         if (n > 0) { // new SDU could be added      
           sdu_len -= n; 
           log_h->debug("SDU:   rnti=0x%x, lcid=%d, nbytes=%d, rem_len=%d\n", 

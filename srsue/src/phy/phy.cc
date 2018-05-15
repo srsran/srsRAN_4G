@@ -354,6 +354,7 @@ uint32_t phy::get_current_tti()
   return sf_recv.get_current_tti();
 }
 
+
 void phy::sr_send()
 {
   workers_common.sr_enabled = true;
