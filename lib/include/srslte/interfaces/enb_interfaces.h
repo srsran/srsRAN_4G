@@ -72,6 +72,7 @@ public:
   virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res) = 0; 
   
   virtual int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res) = 0;
+  virtual int get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res) = 0;
   virtual int get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res) = 0;
   
   // Radio-Link status 
@@ -95,6 +96,20 @@ public:
 class phy_interface_rrc
 {
 public:
+    
+   typedef struct {
+    LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT     mbsfn_subfr_cnfg;
+    LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT mbsfn_notification_cnfg;
+    LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT           mbsfn_area_info;
+    LIBLTE_RRC_MCCH_MSG_STRUCT                  mcch;
+  } phy_cfg_mbsfn_t;
+  
+  typedef struct {
+    phy_cfg_mbsfn_t  mbsfn;
+  } phy_rrc_cfg_t; 
+  
+  
+  virtual void configure_mbsfn(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT mcch) = 0;
   virtual void set_conf_dedicated_ack(uint16_t rnti, bool rrc_completed) = 0;
   virtual void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated) = 0;
   
@@ -116,7 +131,7 @@ public:
   virtual int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) = 0; 
   virtual int set_dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) = 0;
   virtual void phy_config_enabled(uint16_t rnti, bool enabled) = 0;
-
+  virtual void write_mcch(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT *mcch) = 0;
 };
 
 class mac_interface_rlc 
@@ -164,6 +179,7 @@ public:
   virtual void rem_user(uint16_t rnti) = 0; 
   virtual void add_bearer(uint16_t rnti, uint32_t lcid) = 0;
   virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
+  virtual void add_bearer_mrb(uint16_t rnti, uint32_t lcid) = 0;
 };
 
 // PDCP interface for GTPU

@@ -101,11 +101,19 @@ public:
   virtual srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str) = 0;
 };
 
+// GW interface for RRC
+class gw_interface_rrc
+{
+public:
+  virtual void add_mch_port(uint32_t lcid, uint32_t port) = 0;
+};
+
 // GW interface for PDCP
 class gw_interface_pdcp
 {
 public:
   virtual void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
+  virtual void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
 };
 
 // NAS interface for RRC
@@ -198,6 +206,7 @@ public:
   virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_pcch(srslte::byte_buffer_t *pdu) = 0;
+  virtual void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
@@ -247,6 +256,7 @@ public:
   virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *sdu) = 0;
   virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *sdu) = 0;
   virtual void write_pdu_pcch(srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
 };
 
 // RLC interface for RRC
@@ -257,6 +267,7 @@ public:
   virtual void reestablish() = 0;
   virtual void add_bearer(uint32_t lcid) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
+  virtual void add_bearer_mrb(uint32_t lcid) = 0;
 };
 
 // RLC interface for PDCP
@@ -291,6 +302,7 @@ public:
   virtual void write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes) = 0;
   virtual void write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes) = 0;
   virtual void write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes) = 0;
+  virtual void write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
 };
 
 
@@ -327,6 +339,11 @@ public:
 class mac_interface_phy
 {
 public:
+  typedef struct {
+      uint32_t nof_mbsfn_services;
+  } mac_phy_cfg_mbsfn_t; 
+    
+    
     
   typedef struct {
     uint32_t    pid;    
@@ -379,20 +396,34 @@ public:
   /* Indicate reception of UL grant + HARQ information throught PHICH in the same TTI. */
   virtual void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action) = 0;
 
+  /* Obtain action for a new MCH subframe. */
+  virtual void new_mch_dl(srslte_ra_dl_grant_t phy_grant, tb_action_dl_t *action) = 0;
+
   /* Indicate reception of HARQ information only through PHICH.   */
   virtual void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action) = 0;
   
   /* Indicate reception of DL grant. */ 
   virtual void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) = 0;
   
-  /* Indicate successfull decoding of PDSCH TB. */
+  /* Indicate successful decoding of PDSCH TB. */
   virtual void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid) = 0;
   
-  /* Indicate successfull decoding of BCH TB through PBCH */
+  /* Indicate successful decoding of BCH TB through PBCH */
   virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;  
   
-  /* Indicate successfull decoding of PCH TB through PDSCH */
+  /* Indicate successful decoding of PCH TB through PDSCH */
   virtual void pch_decoded_ok(uint32_t len) = 0;  
+
+  /* Indicate successful decoding of MCH TB through PMCH */
+  virtual void mch_decoded_ok(uint32_t len) = 0;
+  
+  /* Communicate the number of mbsfn services available  */
+  virtual void set_mbsfn_config(uint32_t nof_mbsfn_services) = 0;
+  
+  /* Function called every start of a subframe (TTI). Warning, this function is called 
+   * from a high priority thread and should terminate asap 
+   */
+
 
 };
 
@@ -438,6 +469,9 @@ public:
 
   /* RRC configures a logical channel */
   virtual void    setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;
+
+  /* Instructs the MAC to start receiving an MCH */
+  virtual void    mch_start_rx(uint32_t lcid) = 0;
 
   virtual uint32_t get_current_tti() = 0;
 
@@ -547,6 +581,9 @@ public:
   virtual void pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
   virtual void pdcch_ul_search_reset() = 0;
   virtual void pdcch_dl_search_reset() = 0;
+  
+  virtual void set_mch_period_stop(uint32_t stop) = 0;
+  
 };
 
 class phy_interface_rrc
@@ -564,10 +601,19 @@ public:
     LIBLTE_RRC_TDD_CONFIG_STRUCT                tdd_cnfg;
     LIBLTE_RRC_ANTENNA_PORTS_COUNT_ENUM         ant_info;      
   } phy_cfg_common_t; 
+
+  typedef struct {
+    LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT     mbsfn_subfr_cnfg;
+    LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT mbsfn_notification_cnfg;
+    LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT           mbsfn_area_info;
+    LIBLTE_RRC_MCCH_MSG_STRUCT                  mcch;
+  } phy_cfg_mbsfn_t;
+
   
   typedef struct {
     LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT dedicated;
     phy_cfg_common_t                            common; 
+    phy_cfg_mbsfn_t                             mbsfn;
     bool                                        enable_64qam; 
   } phy_cfg_t; 
 
@@ -581,6 +627,9 @@ public:
   virtual void set_config_common(phy_cfg_common_t *common) = 0; 
   virtual void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd) = 0; 
   virtual void set_config_64qam_en(bool enable) = 0;
+  virtual void set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) = 0;
+  virtual void set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13) = 0;
+  virtual void set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch) = 0;
 
   /* Measurements interface */
   virtual void meas_reset() = 0;
