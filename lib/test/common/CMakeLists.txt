@@ -19,7 +19,7 @@
 #
 
 #######################################################################
-# LOGGER TEST
+# COMMON TESTS
 #######################################################################
 add_executable(logger_test logger_test.cc)
 target_link_libraries(logger_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
