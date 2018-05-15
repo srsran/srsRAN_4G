@@ -42,7 +42,8 @@ void rlc_tm::init(srslte::log               *log_,
                   uint32_t                   lcid_,
                   srsue::pdcp_interface_rlc *pdcp_,
                   srsue::rrc_interface_rlc  *rrc_, 
-                  mac_interface_timers      *mac_timers)
+                  mac_interface_timers      *mac_timers,
+                  bool                       is_mrb)
 {
   log  = log_;
   lcid = lcid_;

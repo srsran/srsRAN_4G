@@ -41,11 +41,12 @@ class rlc_tm
 {
 public:
   rlc_tm();
-  void init(log          *rlc_entity_log_,
-            uint32_t              lcid_,
-            srsue::pdcp_interface_rlc   *pdcp_,
-            srsue::rrc_interface_rlc    *rrc_,
-            mac_interface_timers *mac_timers);
+  void init(log                       *rlc_entity_log_,
+            uint32_t                   lcid_,
+            srsue::pdcp_interface_rlc *pdcp_,
+            srsue::rrc_interface_rlc  *rrc_,
+            mac_interface_timers      *mac_timers,
+            bool                       is_mrb_=false);
   void configure(srslte_rlc_config_t cnfg);
   void reset();
   void stop();
