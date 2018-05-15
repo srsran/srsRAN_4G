@@ -157,7 +157,11 @@ bool phch_worker::set_cell(srslte_cell_t cell_)
       Error("Initiating UE DL\n");
       goto unlock;
     }
-
+    
+    if(srslte_ue_dl_set_mbsfn_area_id(&ue_dl, 1)){
+      Error("Setting mbsfn id\n");
+    }
+    
     if (srslte_ue_ul_set_cell(&ue_ul, cell)) {
       Error("Initiating UE UL\n");
       goto unlock;
@@ -247,6 +251,10 @@ void phch_worker::work_imp()
   
   reset_uci();
 
+  subframe_cfg_t sf_cfg;
+  phy->get_sf_config(&sf_cfg, tti);
+  Debug("TTI: %d, Subframe type: %s\n", tti, subframe_type_text[sf_cfg.sf_type]);
+
   bool dl_grant_available = false; 
   bool ul_grant_available = false;
   bool dl_ack[SRSLTE_MAX_CODEWORDS] = {false};
@@ -266,47 +274,100 @@ void phch_worker::work_imp()
     phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
   }
 
-  /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
-  bool chest_ok = extract_fft_and_pdcch_llr();
+  bool mch_decoded = false;
+  srslte_ra_dl_grant_t mch_grant;
+
 
   // Call feedback loop for chest
   if (chest_loop && ((1<<(tti%10)) & phy->args->cfo_ref_mask)) {
     chest_loop->set_cfo(srslte_chest_dl_get_cfo(&ue_dl.chest));
   }
+  bool chest_ok = false;
+  bool snr_th_ok = false;
 
-  if (chest_ok) {
+  /***** Downlink Processing *******/
+ 
+  
+  if(SUBFRAME_TYPE_REGULAR == sf_cfg.sf_type) {
+    /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
+    chest_ok = extract_fft_and_pdcch_llr(sf_cfg);
 
-    /***** Downlink Processing *******/
+    snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>1.0;
 
-    /* PDCCH DL + PDSCH */
-    dl_grant_available = decode_pdcch_dl(&dl_mac_grant); 
-    if(dl_grant_available) {
-      /* Send grant to MAC and get action for this TB */
+    if (chest_ok && snr_th_ok) {
+      
+      /***** Downlink Processing *******/
+      
+      /* PDCCH DL + PDSCH */
+       dl_grant_available = decode_pdcch_dl(&dl_mac_grant); 
+       if(dl_grant_available) {
+         /* Send grant to MAC and get action for this TB */
+         phy->mac->new_grant_dl(dl_mac_grant, &dl_action);
+
+         /* Set DL ACKs to default */
+         for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+           dl_ack[tb] = dl_action.default_ack[tb];
+         }
+
+         /* Decode PDSCH if instructed to do so */
+         if (dl_action.decode_enabled[0] || dl_action.decode_enabled[1]) {
+           decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr,
+                         dl_action.softbuffers, dl_action.rv, dl_action.rnti,
+                         dl_mac_grant.pid, dl_ack);
+         }
+         if (dl_action.generate_ack_callback) {
+           for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+             if (dl_action.decode_enabled[tb]) {
+               phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+               dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
+               Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack[tb]);
+             }
+           }
+         }
+         Debug("dl_ack={%d, %d}, generate_ack=%d\n", dl_ack[0], dl_ack[1], dl_action.generate_ack);
+         if (dl_action.generate_ack) {
+           set_uci_ack(dl_ack, dl_mac_grant.tb_en);
+         }
+       }
+     }
+    
+  } else if(SUBFRAME_TYPE_MBSFN == sf_cfg.sf_type) {
+    srslte_ue_dl_set_non_mbsfn_region(&ue_dl, sf_cfg.non_mbsfn_region_length);
+
+    /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
+    if (extract_fft_and_pdcch_llr(sf_cfg)) {
+
+      dl_grant_available = decode_pdcch_dl(&dl_mac_grant); 
       phy->mac->new_grant_dl(dl_mac_grant, &dl_action);
 
       /* Set DL ACKs to default */
       for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
         dl_ack[tb] = dl_action.default_ack[tb];
-      }
-
-      /* Decode PDSCH if instructed to do so */
-      if (dl_action.decode_enabled[0] || dl_action.decode_enabled[1]) {
-        decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr,
-                      dl_action.softbuffers, dl_action.rv, dl_action.rnti,
-                      dl_mac_grant.pid, dl_ack);
-      }
-      if (dl_action.generate_ack_callback) {
-        for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-          if (dl_action.decode_enabled[tb]) {
-            phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
-            dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
-            Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack[tb]);
+      }      
+      if(sf_cfg.mbsfn_decode) {
+      
+        mch_grant.sf_type = SRSLTE_SF_MBSFN;
+        mch_grant.mcs[0].idx = sf_cfg.mbsfn_mcs;
+        mch_grant.tb_en[0] = true;
+        for(uint32_t i=1;i<SRSLTE_MAX_CODEWORDS;i++) {
+          mch_grant.tb_en[i] = false;
+        }
+        mch_grant.nof_prb = ue_dl.pmch.cell.nof_prb;
+        srslte_dl_fill_ra_mcs(&mch_grant.mcs[0], mch_grant.nof_prb);
+        for(int j = 0; j < 2; j++){
+          for(uint32_t f = 0; f < mch_grant.nof_prb; f++){
+            mch_grant.prb_idx[j][f] = true;
           }
         }
-      }
-      Debug("dl_ack={%d, %d}, generate_ack=%d\n", dl_ack[0], dl_ack[1], dl_action.generate_ack);
-      if (dl_action.generate_ack) {
-        set_uci_ack(dl_ack, dl_mac_grant.tb_en);
+        mch_grant.Qm[0] = srslte_mod_bits_x_symbol(mch_grant.mcs[0].mod);
+
+        /* Get MCH action for this TB */
+        phy->mac->new_mch_dl(mch_grant, &dl_action);
+        srslte_softbuffer_rx_reset_tbs(dl_action.softbuffers[0], mch_grant.mcs[0].tbs);
+        Debug("TBS=%d, Softbuffer max_cb=%d\n", mch_grant.mcs[0].tbs, dl_action.softbuffers[0]->max_cb);
+        if(dl_action.decode_enabled[0]) {
+          mch_decoded = decode_pmch(&mch_grant, dl_action.payload_ptr[0], dl_action.softbuffers[0], sf_cfg.mbsfn_area_id);
+        }
       }
     }
   }
@@ -390,21 +451,31 @@ void phch_worker::work_imp()
     phy->worker_end(tx_tti, signal_ready, &signal_ptr[-next_offset], SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
   }
 
-  if (!dl_action.generate_ack_callback) {
-    if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH && dl_action.decode_enabled[0]) {
-      if (dl_ack[0]) {
-        phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
-      }
-    } else if (!rar_delivered) {
-      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-        if (dl_action.decode_enabled[tb]) {
-          phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+  if(SUBFRAME_TYPE_REGULAR == sf_cfg.sf_type) {
+    if (!dl_action.generate_ack_callback) {
+      if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH && dl_action.decode_enabled[0]) {
+        if (dl_ack[0]) {
+          phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
+        }
+      } else if (!rar_delivered) {
+        for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+          if (dl_action.decode_enabled[tb]) {
+            phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+          }
         }
       }
     }
+  } else if (SUBFRAME_TYPE_MBSFN == sf_cfg.sf_type && sf_cfg.mbsfn_decode) {
+    if(mch_decoded) {
+      phy->mac->mch_decoded_ok(mch_grant.mcs[0].tbs/8);
+    } else if(sf_cfg.is_mcch) {
+      //release lock in phch_common
+      phy->set_mch_period_stop(0);
+    }
   }
-
-  update_measurements();
+  if(SUBFRAME_TYPE_REGULAR == sf_cfg.sf_type){
+    update_measurements();
+  }
 
   if (chest_ok) {
     if (phy->avg_rsrp_sync_dbm > -130.0 && phy->avg_snr_db_sync > -10.0) {
@@ -452,7 +523,9 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
   }
 }
 
-bool phch_worker::extract_fft_and_pdcch_llr() {
+
+
+bool phch_worker::extract_fft_and_pdcch_llr(subframe_cfg_t sf_cfg) {
   bool decode_pdcch = true;
 
   // Do always channel estimation to keep track of out-of-sync and send measurements to RRC
@@ -471,18 +544,21 @@ bool phch_worker::extract_fft_and_pdcch_llr() {
     srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_PSS);
   }
 
-  if (srslte_ue_dl_decode_fft_estimate(&ue_dl, tti%10, &cfi) < 0) {
-    Error("Getting PDCCH FFT estimate\n");
-    return false;
-  }
-  chest_done = true;
 
-  if (srslte_ue_dl_decode_fft_estimate(&ue_dl, tti%10, &cfi) < 0) {
-    Error("Getting PDCCH FFT estimate\n");
-    return false;
-  }
+    int decode_fft = 0;
+    if(SUBFRAME_TYPE_MBSFN == sf_cfg.sf_type) {
+      srslte_ue_dl_set_non_mbsfn_region(&ue_dl, sf_cfg.non_mbsfn_region_length);
+      decode_fft = srslte_ue_dl_decode_fft_estimate_mbsfn(&ue_dl, tti%10, &cfi, SRSLTE_SF_MBSFN);
+    }else{
+      decode_fft = srslte_ue_dl_decode_fft_estimate(&ue_dl, tti%10, &cfi);
+    }
+    if (decode_fft < 0) {
+      Error("Getting PDCCH FFT estimate\n");
+      return false;
+    }
 
-  chest_done = true;
+    chest_done = true; 
+
 
   if (chest_done && decode_pdcch) { /* and not in DRX mode */
     
@@ -746,6 +822,73 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
     ret = SRSLTE_ERROR;
   }
   return ret;
+}
+
+bool phch_worker::decode_pmch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
+                              srslte_softbuffer_rx_t* softbuffer, uint16_t mbsfn_area_id)
+{
+  char timestr[64];
+  timestr[0]='\0';
+
+  Debug("DL Buffer TTI %d: Decoding PMCH\n", tti);
+  /* Setup PMCH configuration */
+  srslte_ue_dl_set_mbsfn_area_id(&ue_dl, mbsfn_area_id);
+
+  if (!srslte_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, SRSLTE_PMCH_RV, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA)) {
+    if (ue_dl.pmch_cfg.grant.mcs[0].mod > 0 && ue_dl.pmch_cfg.grant.mcs[0].tbs >= 0) {
+
+    Debug("Decoding PMCH SF: %d, MBSFN area ID: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d, C_prb=%d, cfi=%d\n",
+        ue_dl.pmch_cfg.sf_idx, mbsfn_area_id, srslte_mod_string(ue_dl.pmch_cfg.grant.mcs[0].mod), ue_dl.pmch_cfg.grant.mcs[0].tbs, ue_dl.pmch_cfg.nbits[0].nof_re,
+         ue_dl.pmch_cfg.nbits[0].nof_bits, 0, ue_dl.pmch_cfg.grant.nof_prb, ue_dl.pmch_cfg.nbits[0].lstart-1);
+
+      float noise_estimate = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);
+
+      if (!phy->args->equalizer_mode.compare("zf")) {
+        noise_estimate = 0;
+      }
+
+      /* Set decoder iterations */
+      // TODO: Add separate arg for pmch_max_its
+      if (phy->args->pdsch_max_its > 0) {
+        srslte_sch_set_max_noi(&ue_dl.pmch.dl_sch, phy->args->pdsch_max_its);
+      }
+
+#ifdef LOG_EXECTIME
+      struct timeval t[3];
+      gettimeofday(&t[1], NULL);
+#endif
+
+      bool ack = srslte_pmch_decode_multi(&ue_dl.pmch, &ue_dl.pmch_cfg, softbuffer, ue_dl.sf_symbols_m,
+                                    ue_dl.ce_m, noise_estimate, mbsfn_area_id, payload) == 0;
+  
+#ifdef LOG_EXECTIME
+      gettimeofday(&t[2], NULL);
+      get_time_interval(t);
+      snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
+#endif
+
+      Info("PMCH: l_crb=%2d, tbs=%d, mcs=%d, crc=%s, snr=%.1f dB, n_iter=%d%s\n",
+            grant->nof_prb,
+            grant->mcs[0].tbs/8, grant->mcs[0].idx,
+            ack?"OK":"KO",
+            10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
+            srslte_pmch_last_noi(&ue_dl.pmch),
+            timestr);
+
+      //printf("tti=%d, cfo=%f\n", tti, cfo*15000);
+      //srslte_vec_save_file("pdsch", signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+
+      // Store metrics
+      //dl_metrics.mcs    = grant->mcs.idx;
+
+      return ack;
+    } else {
+      Warning("Received grant for TBS=0\n");
+    }
+  } else {
+    Error("Error configuring DL grant\n");
+  }
+  return true;
 }
 
 bool phch_worker::decode_phich(bool *ack)

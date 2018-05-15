@@ -128,7 +128,13 @@ public:
   void set_config_common(phy_cfg_common_t *common); 
   void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd); 
   void set_config_64qam_en(bool enable);
-
+  void set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
+  void set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
+  void set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch);
+  
+  /*Set MAC->PHY MCH period  stopping point*/
+  void set_mch_period_stop(uint32_t stop);
+  
 
   float   get_phr();
   float   get_pathloss_db();
