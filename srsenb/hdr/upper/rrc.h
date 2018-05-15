@@ -85,6 +85,7 @@ typedef struct {
   rrc_cfg_cqi_t                            cqi_cfg; 
   rrc_cfg_qci_t                            qci_cfg[MAX_NOF_QCI]; 
   srslte_cell_t cell; 
+  bool enable_mbsfn;
   uint32_t inactivity_timeout_ms; 
 }rrc_cfg_t; 
 
@@ -137,6 +138,9 @@ public:
   
   void stop(); 
   void get_metrics(rrc_metrics_t &m);
+  
+  //rrc_interface_phy
+  void configure_mbsfn_sibs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
   
   // rrc_interface_mac
   void rl_failure(uint16_t rnti);  
@@ -351,7 +355,8 @@ private:
     
   sr_sched_t sr_sched; 
   sr_sched_t cqi_sched; 
-  
+  LIBLTE_RRC_MCCH_MSG_STRUCT mcch;
+  bool enable_mbms;
   rrc_cfg_t cfg; 
   uint32_t nof_si_messages;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2; 

@@ -126,6 +126,7 @@ typedef struct {
   mac_args_t mac; 
   uint32_t   rrc_inactivity_timer;
   float      metrics_period_secs;
+  bool       enable_mbsfn;
   bool       print_buffer_state;
 }expert_args_t;
 
@@ -213,6 +214,7 @@ private:
   int parse_sib3(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *data);
   int parse_sib4(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4_STRUCT *data);
   int parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT *data);
+  int parse_sib13(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *data);
   int parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_common); 
   int parse_rr(all_args_t *args, rrc_cfg_t *rrc_cfg);
   int parse_drb(all_args_t *args, rrc_cfg_t *rrc_cfg); 

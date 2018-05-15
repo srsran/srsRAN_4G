@@ -76,7 +76,11 @@ void pdcp::rem_user(uint16_t rnti)
 void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cfg)
 {
   if (users.count(rnti)) {
-    users[rnti].pdcp->add_bearer(lcid, cfg);
+    if(rnti != SRSLTE_MRNTI){
+      users[rnti].pdcp->add_bearer(lcid, cfg);
+    } else {
+      users[rnti].pdcp->add_bearer_mrb(lcid, cfg);
+    }
   }
 }
 
@@ -110,7 +114,11 @@ void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
   if (users.count(rnti)) {
-    users[rnti].pdcp->write_sdu(lcid, sdu);
+    if(rnti != SRSLTE_MRNTI){
+      users[rnti].pdcp->write_sdu(lcid, sdu);
+    }else {
+      users[rnti].pdcp->write_sdu_mch(lcid, sdu);
+    }
   } else {
     pool->deallocate(sdu);
   }

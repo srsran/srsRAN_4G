@@ -157,6 +157,7 @@ nof_ctrl_symbols = 3
 #link_failure_nof_err = 50
 #rrc_inactivity_timer = 10000
 #max_prach_offset_us  = 30
+#enable_mbsfn = false
 
 #####################################################################
 # Manual RF calibration

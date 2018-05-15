@@ -57,6 +57,11 @@ void rrc::init(rrc_cfg_t *cfg_,
   pool    = srslte::byte_buffer_pool::get_instance();
 
   memcpy(&cfg, cfg_, sizeof(rrc_cfg_t));
+
+  if(cfg.sibs[12].sib_type == LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13 && cfg_->enable_mbsfn) {
+    configure_mbsfn_sibs(&cfg.sibs[1].sib.sib2,&cfg.sibs[12].sib.sib13);
+  }
+  
   nof_si_messages = generate_sibs();  
   config_mac();
  
@@ -67,6 +72,53 @@ void rrc::init(rrc_cfg_t *cfg_,
   bzero(&sr_sched, sizeof(sr_sched_t));
   
   start(RRC_THREAD_PRIO);
+}
+
+void rrc::configure_mbsfn_sibs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13)
+{
+   
+  // Temp assignment of MCCH, this will eventually come from a cfg file
+  mcch.pmch_infolist_r9_size = 1;
+  mcch.commonsf_allocpatternlist_r9_size = 1;
+  mcch.commonsf_allocperiod_r9 = LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF64;
+  mcch.commonsf_allocpatternlist_r9[0].radio_fr_alloc_offset = 0;
+  mcch.commonsf_allocpatternlist_r9[0].radio_fr_alloc_period = LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N1;
+  mcch.commonsf_allocpatternlist_r9[0].subfr_alloc = 32+31;
+  mcch.commonsf_allocpatternlist_r9[0].subfr_alloc_num_frames = LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ONE;
+  
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size = 1;
+  
+  
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].logicalchannelid_r9 = 1;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].sessionid_r9 = 0;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].sessionid_r9_present = true;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_explicit = true;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mcc = 0;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mnc = 3;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_index_r9 = 0;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.serviceid_r9 = 0; 
+  
+  if(mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size > 1) {
+    
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].logicalchannelid_r9 = 2;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].sessionid_r9 = 1;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].sessionid_r9_present = true;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.plmn_id_explicit = true;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.plmn_id_r9.mcc = 0;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.plmn_id_r9.mnc = 3;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.plmn_index_r9 = 0;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.serviceid_r9 = 1; 
+  
+  }
+  mcch.pmch_infolist_r9[0].pmch_config_r9.datamcs_r9 = 10;
+  mcch.pmch_infolist_r9[0].pmch_config_r9.mch_schedulingperiod_r9 = LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF64;
+  mcch.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9 = 64*6;
+  
+
+
+  phy->configure_mbsfn(sib2,sib13,mcch);
+  mac->write_mcch(sib2,sib13,&mcch);
+  
 }
 
 rrc::activity_monitor::activity_monitor(rrc* parent_) 
@@ -108,10 +160,13 @@ void rrc::get_metrics(rrc_metrics_t &m)
   m.n_ues = 0;
   for(std::map<uint16_t, ue>::iterator iter=users.begin(); m.n_ues < ENB_METRICS_MAX_USERS &&iter!=users.end(); ++iter) {
     ue *u = (ue*) &iter->second;
-    m.ues[m.n_ues++].state = u->get_state();
+    if(iter->first != SRSLTE_MRNTI){
+      m.ues[m.n_ues++].state = u->get_state();
+    }
   }
   pthread_mutex_unlock(&user_mutex);
 }
+
 
 uint32_t rrc::generate_sibs()
 {
@@ -226,6 +281,22 @@ void rrc::add_user(uint16_t rnti)
   } else {
     rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
   }
+  
+  if(rnti == SRSLTE_MRNTI){  
+     srslte::srslte_pdcp_config_t cfg;
+     cfg.is_control = false;
+     cfg.is_data = true;
+     cfg.direction = SECURITY_DIRECTION_DOWNLINK;
+     uint32_t teid_in = 1;
+     
+     for(uint32_t i = 0; i <mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size; i++) {
+       uint32_t lcid = mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[i].logicalchannelid_r9;
+       rlc->add_bearer_mrb(SRSLTE_MRNTI,lcid);
+       pdcp->add_bearer(SRSLTE_MRNTI,lcid,cfg);
+       gtpu->add_bearer(SRSLTE_MRNTI,lcid, 1, 1, &teid_in);  
+     }
+  }
+  
   pthread_mutex_unlock(&user_mutex);
 }
 
@@ -666,25 +737,28 @@ void rrc::activity_monitor::run_thread()
     pthread_mutex_lock(&parent->user_mutex);
     uint16_t rem_rnti = 0; 
     for(std::map<uint16_t, ue>::iterator iter=parent->users.begin(); rem_rnti == 0 && iter!=parent->users.end(); ++iter) {
-      ue *u = (ue*) &iter->second;
-      uint16_t rnti = (uint16_t) iter->first; 
+      if(iter->first != SRSLTE_MRNTI){
+        ue *u = (ue*) &iter->second;
+        uint16_t rnti = (uint16_t) iter->first; 
 
-      if (parent->cnotifier && u->is_connected() && !u->connect_notified) {
-        parent->cnotifier->user_connected(rnti);
-        u->connect_notified = true; 
-      }
-      
-      if (u->is_timeout()) {
-        parent->rrc_log->info("User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, parent->s1ap->user_exists(rnti)?"yes":"no");
-        rem_rnti = rnti;        
-      }      
-    }    
+        if (parent->cnotifier && u->is_connected() && !u->connect_notified) {
+          parent->cnotifier->user_connected(rnti);
+          u->connect_notified = true; 
+        }
+
+        if (u->is_timeout()) {
+          parent->rrc_log->info("User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, parent->s1ap->user_exists(rnti)?"yes":"no");
+          rem_rnti = rnti;        
+        }      
+      }    
+    }
     pthread_mutex_unlock(&parent->user_mutex);
     if (rem_rnti) {
       if (parent->s1ap->user_exists(rem_rnti)) {
         parent->s1ap->user_inactivity(rem_rnti);
       } else {
-        parent->rem_user(rem_rnti);          
+        if(rem_rnti != SRSLTE_MRNTI)
+          parent->rem_user(rem_rnti);          
       }
     }
   }

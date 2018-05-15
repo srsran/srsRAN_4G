@@ -173,7 +173,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
       if (mac_msg_ul.get()->get_sdu_lcid() == 0) {
         uint8_t *x = mac_msg_ul.get()->get_sdu_ptr();
         uint32_t sum = 0;
-        for (int i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
+        for (uint32_t i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
           sum += x[i];
         }
         if (sum == 0) {
@@ -388,6 +388,29 @@ uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[s
   
   pthread_mutex_unlock(&mutex);
   return ret; 
+}
+
+uint8_t* ue::generate_mch_pdu(sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems , uint32_t grant_size)
+{
+  uint8_t *ret = NULL; 
+  pthread_mutex_lock(&mutex);
+  mch_mac_msg_dl.init_tx(tx_payload_buffer[0],grant_size);
+  
+    for(uint32_t i = 0; i <nof_pdu_elems;i++){
+      if(sched.pdu[i].lcid == srslte::mch_subh::MCH_SCHED_INFO) {
+        mch_mac_msg_dl.new_subh();
+        mch_mac_msg_dl.get()->set_next_mch_sched_info(sched.mtch_sched[i].lcid,sched.mtch_sched[i].stop);
+      } else if (sched.pdu[i].lcid == 0) {
+        mch_mac_msg_dl.new_subh();
+        mch_mac_msg_dl.get()->set_sdu(0, sched.pdu[i].nbytes, sched.mcch_payload);
+      } else if (sched.pdu[i].lcid <= srslte::mch_subh::MTCH_MAX_LCID) {
+        mch_mac_msg_dl.new_subh();
+        mch_mac_msg_dl.get()->set_sdu(sched.pdu[i].lcid,  sched.pdu[i].nbytes,sched.mtch_sched[i].mtch_payload);
+      }
+    }
+  ret = mch_mac_msg_dl.write_packet(log_h);
+  pthread_mutex_unlock(&mutex);
+  return ret;
 }
 
 
