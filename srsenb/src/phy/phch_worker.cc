@@ -140,7 +140,14 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
   for (int i=0;i<10;i++) {
     add_rnti(1+i);
   }
-
+  
+  
+  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->cell.nof_prb)) {
+    fprintf(stderr, "Error initiating soft buffer\n");
+    exit(-1);
+  }
+  
+  srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
   srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
@@ -159,7 +166,7 @@ void phch_worker::stop()
 {
   running = false;
   pthread_mutex_lock(&mutex);
-
+  srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
   srslte_enb_dl_free(&enb_dl);
   srslte_enb_ul_free(&enb_ul);
   for (int p  = 0; p < SRSLTE_MAX_PORTS; p++) {
@@ -351,8 +358,10 @@ void phch_worker::work_imp()
   if (!running) {
     return;
   }
-
+  subframe_cfg_t sf_cfg;
+  phy->get_sf_config(&sf_cfg, tti_tx_dl);// TODO difference between  tti_tx_dl and t_tx_dl
   pthread_mutex_lock(&mutex);
+  
   
   mac_interface_phy::ul_sched_t *ul_grants = phy->ul_grants;
   mac_interface_phy::dl_sched_t *dl_grants = phy->dl_grants;
@@ -377,9 +386,19 @@ void phch_worker::work_imp()
   decode_pucch();
 
   // Get DL scheduling for the TX TTI from MAC
-  if (mac->get_dl_sched(tti_tx_dl, &dl_grants[t_tx_dl]) < 0) {
-    Error("Getting DL scheduling from MAC\n");
-    goto unlock;
+  
+  if(sf_cfg.sf_type == SUBFRAME_TYPE_REGULAR) {
+    if (mac->get_dl_sched(tti_tx_dl, &dl_grants[t_tx_dl]) < 0) {
+      Error("Getting DL scheduling from MAC\n");
+      goto unlock;
+    }
+  } else {
+    dl_grants[t_tx_dl].cfi = sf_cfg.non_mbsfn_region_length;
+    srslte_enb_dl_set_non_mbsfn_region(&enb_dl, sf_cfg.non_mbsfn_region_length);
+    if(mac->get_mch_sched(sf_cfg.is_mcch, &dl_grants[t_tx_dl])){
+      Error("Getting MCH packets from MAC\n");
+      goto unlock;
+    }
   }
 
   if (dl_grants[t_tx_dl].cfi < 1 || dl_grants[t_tx_dl].cfi > 3) {
@@ -396,18 +415,30 @@ void phch_worker::work_imp()
   // Put base signals (references, PBCH, PCFICH and PSS/SSS) into the resource grid
   srslte_enb_dl_clear_sf(&enb_dl);
   srslte_enb_dl_set_cfi(&enb_dl, dl_grants[t_tx_dl].cfi);
-  srslte_enb_dl_put_base(&enb_dl, tti_tx_dl);
-
-  // Put UL/DL grants to resource grid. PDSCH data will be encoded as well.
-  encode_pdcch_dl(dl_grants[t_tx_dl].sched_grants, dl_grants[t_tx_dl].nof_grants);
+  
+  if(sf_cfg.sf_type == SUBFRAME_TYPE_REGULAR) {
+    srslte_enb_dl_put_base(&enb_dl, tti_tx_dl);
+  } else if (sf_cfg.mbsfn_encode){
+    srslte_enb_dl_put_mbsfn_base(&enb_dl, tti_tx_dl);
+  }
+  
+  if(sf_cfg.sf_type == SUBFRAME_TYPE_REGULAR) {
+    // Put UL/DL grants to resource grid. PDSCH data will be encoded as well.
+    encode_pdcch_dl(dl_grants[t_tx_dl].sched_grants, dl_grants[t_tx_dl].nof_grants);
+    encode_pdsch(dl_grants[t_tx_dl].sched_grants, dl_grants[t_tx_dl].nof_grants);
+  }else {
+    srslte_ra_dl_grant_t phy_grant;
+    phy_grant.mcs[0].idx = sf_cfg.mbsfn_mcs;
+    encode_pmch(&dl_grants[t_tx_dl].sched_grants[0], &phy_grant);
+  }
+  
   encode_pdcch_ul(ul_grants[t_tx_ul].sched_grants, ul_grants[t_tx_ul].nof_grants);
-  encode_pdsch(dl_grants[t_tx_dl].sched_grants, dl_grants[t_tx_dl].nof_grants);
-
   // Put pending PHICH HARQ ACK/NACK indications into subframe
   encode_phich(ul_grants[t_tx_ul].phich, ul_grants[t_tx_ul].nof_phich);
 
   // Prepare for receive ACK for DL grants in t_tx_dl+4
   phy->ue_db_clear(TTIMOD(TTI_TX(t_tx_dl)));
+  
   for (uint32_t i=0;i<dl_grants[t_tx_dl].nof_grants;i++) {
     // SI-RNTI and RAR-RNTI do not have ACK
     uint16_t rnti = dl_grants[t_tx_dl].sched_grants[i].rnti;
@@ -424,10 +455,14 @@ void phch_worker::work_imp()
       }
     }
   }
-
+   
   // Generate signal and transmit
-  srslte_enb_dl_gen_signal(&enb_dl);
-  Debug("Sending to radio\n");
+  if(sf_cfg.sf_type == SUBFRAME_TYPE_REGULAR) {
+    srslte_enb_dl_gen_signal(&enb_dl);
+  } else {
+    srslte_enb_dl_gen_signal_mbsfn(&enb_dl);
+  }
+  Debug("Sending to radio\n");      
   phy->worker_end(tx_mutex_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
 
 #ifdef DEBUG_WRITE_FILE
@@ -835,6 +870,25 @@ int phch_worker::encode_pdcch_dl(srslte_enb_dl_pdsch_t *grants, uint32_t nof_gra
     }
   }
   return 0;
+}
+
+
+int phch_worker::encode_pmch(srslte_enb_dl_pdsch_t *grant, srslte_ra_dl_grant_t *phy_grant)
+{
+  
+  phy_grant->tb_en[0] = true;
+  phy_grant->tb_en[1] = false;
+  phy_grant->nof_prb = enb_dl.cell.nof_prb;
+  phy_grant->sf_type = SRSLTE_SF_MBSFN;
+  srslte_dl_fill_ra_mcs(&phy_grant->mcs[0], enb_dl.cell.nof_prb);
+  phy_grant->Qm[0] = srslte_mod_bits_x_symbol(phy_grant->mcs[0].mod);
+  for(int i = 0; i < 2; i++){
+    for(uint32_t j = 0; j < phy_grant->nof_prb; j++){
+      phy_grant->prb_idx[i][j] = true;
+    }
+  }
+  srslte_enb_dl_put_pmch(&enb_dl, phy_grant, &temp_mbsfn_softbuffer, sf_tx, &grant->data[0][0]);
+  return SRSLTE_SUCCESS;
 }
 
 int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants) {
