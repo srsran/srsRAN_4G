@@ -123,7 +123,7 @@ int prbset_orig = 0;
 
 
 #define DATA_BUFF_SZ    1024*1024
-uint8_t *data[2], data2[DATA_BUFF_SZ];
+uint8_t *data_mbms, *data[2], data2[DATA_BUFF_SZ];
 uint8_t data_tmp[DATA_BUFF_SZ];
 
 void usage(char *prog) {
@@ -145,7 +145,7 @@ void usage(char *prog) {
   printf("\t-x Transmission mode[single|diversity|cdd|multiplex] [Default %s]\n", mimo_type_str);
   printf("\t-b Precoding Matrix Index (multiplex mode only)* [Default %d]\n", multiplex_pmi);
   printf("\t-w Number of codewords/layers (multiplex mode only)* [Default %d]\n", multiplex_nof_layers);
-  printf("\t-u listen TCP port for input data (-1 is random) [Default %d]\n", net_port);
+  printf("\t-u listen TCP/UDP port for input data (if mbsfn is active then the stream is over mbsfn only) (-1 is random) [Default %d]\n", net_port);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
   printf("\t-s output file SNR [Default %f]\n", output_file_snr);
   printf("\n");
@@ -256,6 +256,7 @@ void base_init() {
     }
     bzero(data[i], sizeof(uint8_t) * SOFTBUFFER_SIZE);
   }
+  data_mbms = srslte_vec_malloc(sizeof(uint8_t) * SOFTBUFFER_SIZE);
 
   /* init memory */
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
@@ -659,15 +660,21 @@ void *net_thread_fnc(void *arg) {
     n = srslte_netsource_read(&net_source, &data2[rpm], DATA_BUFF_SZ-rpm);
     if (n > 0) {
       // FIXME: I assume that both transport blocks have same size in case of 2 tb are active
-      int nbytes = 1 + (pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs - 1) / 8;
+      
+      int nbytes = 1 + (((mbsfn_area_id > -1)?(pmch_cfg.grant.mcs[0].tbs):(pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs)) - 1) / 8;
       rpm += n; 
       INFO("received %d bytes. rpm=%d/%d\n",n,rpm,nbytes);
       wpm = 0; 
       while (rpm >= nbytes) {
         // wait for packet to be transmitted
         sem_wait(&net_sem);
-        memcpy(data[0], &data2[wpm], nbytes / (size_t) 2);
-        memcpy(data[1], &data2[wpm], nbytes / (size_t) 2);
+        if(mbsfn_area_id > -1){
+          memcpy(data_mbms, &data2[wpm], nbytes);
+        }
+        else{
+          memcpy(data[0], &data2[wpm], nbytes / (size_t) 2);
+          memcpy(data[1], &data2[wpm], nbytes / (size_t) 2);
+        }
         INFO("Sent %d/%d bytes ready\n", nbytes, rpm);
         rpm -= nbytes;          
         wpm += nbytes; 
@@ -739,10 +746,15 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   if(mbsfn_area_id > -1) {
-    if(srslte_refsignal_mbsfn_init(&mbsfn_refs, cell, mbsfn_area_id)) {
+    if(srslte_refsignal_mbsfn_init(&mbsfn_refs, cell.nof_prb)) {
       fprintf(stderr, "Error initializing equalizer\n");
       exit(-1);
     }
+    if (srslte_refsignal_mbsfn_set_cell(&mbsfn_refs, cell, mbsfn_area_id)) {
+      fprintf(stderr, "Error initializing MBSFNR signal\n");
+      exit(-1);
+    }
+    
   }
   
   if(srslte_refsignal_cs_set_cell(&csr_refs, cell)){
@@ -801,7 +813,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
   }
-  
+  pmch_cfg.grant.mcs[0].tbs = 1096;
   /* Initiate valid DCI locations */
   for (i=0;i<SRSLTE_NSUBFRAMES_X_FRAME;i++) {
     srslte_pdcch_ue_locations(&pdcch, locations[i], 30, i, cfi, UE_CRNTI);
@@ -830,13 +842,13 @@ int main(int argc, char **argv) {
         srslte_sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_symbols[0], cell.nof_prb,
             SRSLTE_CP_NORM);
       }
-      
+     
       /* Copy zeros, SSS, PSS into the rest of antenna ports */
       for (i = 1; i < cell.nof_ports; i++) {
         memcpy(sf_symbols[i], sf_symbols[0], sizeof(cf_t) * sf_n_re);
       }
       
-      if(sf_idx == 1 && mbsfn_area_id > -1){
+      if(sf_idx == 2 && mbsfn_area_id > -1){
         srslte_refsignal_mbsfn_put_sf(cell, 0,csr_refs.pilots[0][sf_idx], mbsfn_refs.pilots[0][sf_idx],  sf_symbols[0]);
       } else { 
         for (i = 0; i < cell.nof_ports; i++) {
@@ -932,41 +944,46 @@ int main(int argc, char **argv) {
                 }
               }
             }
-            net_packet_ready = false; 
-            sem_post(&net_sem);
+            if(mbsfn_area_id < 0){
+              net_packet_ready = false; 
+              sem_post(&net_sem);
+            }
           }
         }else{ // We're sending MCH on subframe 1 - PDCCH + PMCH
 
           /* Encode PDCCH */
-          INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
-          srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_msg, cell.nof_prb, cell.nof_ports, false);
-          if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], M_CRNTI, sf_symbols, sf_idx, cfi)) {
-              fprintf(stderr, "Error encoding DCI message\n");
-              exit(-1);
-          }
+          //INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
+          //srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_msg, cell.nof_prb, cell.nof_ports, false);
+          //if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], M_CRNTI, sf_symbols, sf_idx, cfi)) {
+          //    fprintf(stderr, "Error encoding DCI message\n");
+          //    exit(-1);
+         // }
           /* Configure pmch_cfg parameters */
           srslte_ra_dl_grant_t grant;
           grant.tb_en[0] = true;
           grant.tb_en[1] = false;
-          grant.mcs[0].idx = 2;
-          grant.mcs[0].mod = SRSLTE_MOD_QPSK;
+
+          grant.mcs[0].idx = 13;
           grant.nof_prb = cell.nof_prb;
           grant.sf_type = SRSLTE_SF_MBSFN;
-          grant.Qm[0] = srslte_mod_bits_x_symbol(grant.mcs[0].mod);
           srslte_dl_fill_ra_mcs(&grant.mcs[0], cell.nof_prb);
+          grant.Qm[0] = srslte_mod_bits_x_symbol(grant.mcs[0].mod);
           for(int i = 0; i < 2; i++){
             for(int j = 0; j < grant.nof_prb; j++){
               grant.prb_idx[i][j] = true;
             }
           }
+            for(int i = 0; i < grant.mcs[0].tbs/8;i++)
+            {
+              data_mbms[i] = i%255;
+            }
           
-
           if (srslte_pmch_cfg(&pmch_cfg, cell, &grant, cfi, sf_idx)) {
             fprintf(stderr, "Error configuring PMCH\n");
             exit(-1);
-          }
+          } 
           /* Encode PMCH */
-          if (srslte_pmch_encode(&pmch, &pmch_cfg, softbuffers[0], data[0], mbsfn_area_id, sf_symbols)) {
+          if (srslte_pmch_encode(&pmch, &pmch_cfg, softbuffers[0], data_mbms, mbsfn_area_id, sf_symbols)) {
             fprintf(stderr, "Error encoding PDSCH\n");
             exit(-1);
           }
@@ -984,13 +1001,14 @@ int main(int argc, char **argv) {
       }
 
       /* Transform to OFDM symbols */
-      if(sf_idx != 1 || mbsfn_area_id < 0){
+      if(sf_idx != 2 || mbsfn_area_id < 0){
         for (i = 0; i < cell.nof_ports; i++) {
           srslte_ofdm_tx_sf(&ifft[i]);
         }
       }else{
         srslte_ofdm_tx_sf(&ifft_mbsfn);
       }
+  
       
       /* send to file or usrp */
       if (output_file_name) {

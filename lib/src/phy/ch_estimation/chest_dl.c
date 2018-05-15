@@ -212,9 +212,12 @@ int srslte_chest_dl_set_mbsfn_area_id(srslte_chest_dl_t *q, uint16_t mbsfn_area_
   if (mbsfn_area_id < SRSLTE_MAX_MBSFN_AREA_IDS) {
     if(!q->mbsfn_refs[mbsfn_area_id]) {
       q->mbsfn_refs[mbsfn_area_id] = calloc(1, sizeof(srslte_refsignal_t));
+        if(srslte_refsignal_mbsfn_init(q->mbsfn_refs[mbsfn_area_id], q->cell.nof_prb)) {
+          return SRSLTE_ERROR;
+        }
     }
     if(q->mbsfn_refs[mbsfn_area_id]) {
-      if(srslte_refsignal_mbsfn_init(q->mbsfn_refs[mbsfn_area_id], q->cell, mbsfn_area_id)) {
+      if(srslte_refsignal_mbsfn_set_cell(q->mbsfn_refs[mbsfn_area_id], q->cell, mbsfn_area_id)) {
         return SRSLTE_ERROR;
       }
     }
@@ -267,11 +270,11 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id, srslt
   const float weight = 1.0f;
   float sum_power = 0.0f;
   uint32_t count = 0;
-  uint32_t npilots = SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
+  uint32_t npilots = (ch_mode == SRSLTE_SF_MBSFN)?SRSLTE_REFSIGNAL_NUM_SF_MBSFN(q->cell.nof_prb, port_id):SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
   uint32_t nsymbols =
       (ch_mode == SRSLTE_SF_MBSFN) ? srslte_refsignal_mbsfn_nof_symbols() : srslte_refsignal_cs_nof_symbols(port_id);
   uint32_t nref = npilots / nsymbols;
-  uint32_t fidx = srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
+ uint32_t fidx = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_fidx(1):srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
 
   cf_t *input2d[nsymbols + 2];
   cf_t *tmp_noise = q->tmp_noise;
@@ -497,8 +500,10 @@ void srslte_chest_dl_set_smooth_filter_auto(srslte_chest_dl_t *q, bool enable) {
 uint32_t srslte_chest_dl_interleave_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *tmp, cf_t *output, uint32_t port_id, srslte_sf_t ch_mode) {
   uint32_t nsymbols = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_nof_symbols(port_id):srslte_refsignal_cs_nof_symbols(port_id);
   uint32_t nref = (ch_mode == SRSLTE_SF_MBSFN)?6*q->cell.nof_prb:2*q->cell.nof_prb;
-
-  if (srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0) < 3) {
+  uint32_t fidx = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_fidx(1):srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
+  
+  
+  if (fidx < 3) {
     srslte_vec_interleave(input, &input[nref], tmp, nref);
     for (int l = 2; l < nsymbols - 1; l += 2) {
       srslte_vec_interleave_add(&input[l * nref], &input[(l + 1) * nref], tmp, nref);
@@ -519,6 +524,7 @@ uint32_t srslte_chest_dl_interleave_pilots(srslte_chest_dl_t *q, cf_t *input, cf
 static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint32_t port_id, srslte_sf_t ch_mode)  {
   uint32_t nsymbols = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_nof_symbols(port_id):srslte_refsignal_cs_nof_symbols(port_id);
   uint32_t nref = (ch_mode == SRSLTE_SF_MBSFN)?6*q->cell.nof_prb:2*q->cell.nof_prb;
+  uint32_t fidx = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_fidx(1):srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
 
   // Average in the time domain if enabled
   if (q->average_subframe) {
@@ -549,9 +555,16 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
     }
   }
 
+
+  uint32_t skip = (ch_mode == SRSLTE_SF_MBSFN)?2*q->cell.nof_prb:0;
+  
+  if(ch_mode == SRSLTE_SF_MBSFN){
+    memcpy(&output[0],&input[0],skip*sizeof(cf_t));
+  }
+
   // Average in the frequency domain
   for (int l=0;l<nsymbols;l++) {
-    srslte_conv_same_cf(&input[l*nref], q->smooth_filter, &output[l*nref], nref, q->smooth_filter_len);    
+    srslte_conv_same_cf(&input[l*nref + skip], q->smooth_filter, &output[l*nref + skip], nref, q->smooth_filter_len);    
   }
 }
 
@@ -660,11 +673,10 @@ int srslte_chest_dl_estimate_port_mbsfn(srslte_chest_dl_t *q, cf_t *input, cf_t 
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->csr_refs.pilots[port_id/2][sf_idx],
                            q->pilot_estimates, (2*q->cell.nof_prb));
   
-  srslte_vec_prod_conj_ccc(q->pilot_recv_signal+(2*q->cell.nof_prb), q->mbsfn_refs[mbsfn_area_id]->pilots[port_id/2][sf_idx],
-                           q->pilot_estimates+(2*q->cell.nof_prb), SRSLTE_REFSIGNAL_NUM_SF_MBSFN(q->cell.nof_prb, port_id)-(2*q->cell.nof_prb));
+  srslte_vec_prod_conj_ccc(&q->pilot_recv_signal[(2*q->cell.nof_prb)], q->mbsfn_refs[mbsfn_area_id]->pilots[port_id/2][sf_idx],
+                           &q->pilot_estimates[(2*q->cell.nof_prb)], SRSLTE_REFSIGNAL_NUM_SF_MBSFN(q->cell.nof_prb, port_id)-(2*q->cell.nof_prb));
   
 
-  
   chest_interpolate_noise_est(q, input, ce, sf_idx, port_id, rxant_id, SRSLTE_SF_MBSFN);
       
   return 0;

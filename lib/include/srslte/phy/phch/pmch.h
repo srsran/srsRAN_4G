@@ -94,7 +94,7 @@ SRSLTE_API int srslte_pmch_init_multi(srslte_pmch_t *q,
 
 SRSLTE_API void srslte_pmch_free(srslte_pmch_t *q);
 
-
+SRSLTE_API int srslte_pmch_set_cell(srslte_pmch_t *q, srslte_cell_t cell);
 
 SRSLTE_API int srslte_pmch_set_area_id(srslte_pmch_t *q, uint16_t area_id);
 

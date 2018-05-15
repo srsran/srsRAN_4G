@@ -864,6 +864,8 @@ int main(int argc, char **argv) {
           PRINT_LINE_ADVANCE_CURSOR();
           ue_dl.pdsch_pkt_errors = 0;
           ue_dl.pdsch_pkts_total = 0;
+          ue_dl.pmch_pkt_errors = 0;
+          ue_dl.pmch_pkts_total = 0;
           /*
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0;
@@ -944,7 +946,7 @@ int main(int argc, char **argv) {
 
 
 plot_real_t p_sync, pce;
-plot_scatter_t  pscatequal, pscatequal_pdcch;
+plot_scatter_t  pscatequal, pscatequal_pdcch, pscatequal_pmch;
 
 float tmp_plot[110*15*2048];
 float tmp_plot2[110*15*2048];
@@ -963,6 +965,15 @@ void *plot_thread_run(void *arg) {
   plot_scatter_setYAxisScale(&pscatequal, -4, 4);
 
   plot_scatter_addToWindowGrid(&pscatequal, (char*)"pdsch_ue", 0, 0);
+  
+  
+  
+  plot_scatter_init(&pscatequal_pmch);
+  plot_scatter_setTitle(&pscatequal_pmch, "PMCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pscatequal_pmch, -4, 4);
+  plot_scatter_setYAxisScale(&pscatequal_pmch, -4, 4);
+
+  plot_scatter_addToWindowGrid(&pscatequal_pmch, (char*)"pdsch_ue", 0, 1);
 
   if (!prog_args.disable_plots_except_constellation) {
     plot_real_init(&pce);
@@ -979,7 +990,7 @@ void *plot_thread_run(void *arg) {
     plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
     plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
 
-    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue",    0, 1);
+    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue",    0, 2);
     plot_real_addToWindowGrid(&pscatequal_pdcch, (char*)"pdsch_ue", 1, 0);
     plot_real_addToWindowGrid(&p_sync, (char*)"pdsch_ue", 1, 1);
   }
@@ -988,6 +999,7 @@ void *plot_thread_run(void *arg) {
     sem_wait(&plot_sem);
     
     uint32_t nof_symbols = ue_dl.pdsch_cfg.nbits[0].nof_re;
+    uint32_t nof_symbols_pmch = ue_dl.pmch_cfg.nbits[0].nof_re;
     if (!prog_args.disable_plots_except_constellation) {      
       for (i = 0; i < nof_re; i++) {
         tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
@@ -1031,6 +1043,7 @@ void *plot_thread_run(void *arg) {
     
     plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d[0], nof_symbols);
     
+    plot_scatter_setNewData(&pscatequal_pmch, ue_dl.pmch.d, nof_symbols_pmch);
     if (plot_sf_idx == 1) {
       if (prog_args.net_port_signal > 0) {
         srslte_netsink_write(&net_sink_signal, &sf_buffer[srslte_ue_sync_sf_len(&ue_sync)/7], 

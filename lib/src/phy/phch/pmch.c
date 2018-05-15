@@ -264,12 +264,29 @@ void srslte_pmch_free(srslte_pmch_t *q) {
 
 }
 
+int srslte_pmch_set_cell(srslte_pmch_t *q, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL                  &&
+      srslte_cell_isvalid(&cell))
+  {
+    memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+    q->max_re = q->cell.nof_prb * MAX_PMCH_RE;
+
+    INFO("PMCH: Cell config PCI=%d, %d ports, %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
+         q->cell.id, q->cell.nof_prb, q->max_re);
+
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
+}
 
 /* Precalculate the scramble sequences for a given MBSFN area ID. This function takes a while
  * to execute.
  */
 int srslte_pmch_set_area_id(srslte_pmch_t *q, uint16_t area_id) {
-  uint32_t i;  
+  uint32_t i; 
   if (!q->seqs[area_id]) {
     q->seqs[area_id] = calloc(1, sizeof(srslte_pmch_seq_t));
     if (q->seqs[area_id]) {

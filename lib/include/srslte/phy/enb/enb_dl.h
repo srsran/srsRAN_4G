@@ -69,15 +69,20 @@ typedef struct SRSLTE_API {
   cf_t *slot1_symbols[SRSLTE_MAX_PORTS];
   
   srslte_ofdm_t   ifft[SRSLTE_MAX_PORTS];
+ 
+  srslte_ofdm_t ifft_mbsfn;
   srslte_pbch_t   pbch;
   srslte_pcfich_t pcfich;
   srslte_regs_t   regs;
   srslte_pdcch_t  pdcch;
   srslte_pdsch_t  pdsch;
+  srslte_pmch_t   pmch;
   srslte_phich_t  phich; 
   
   srslte_refsignal_t csr_signal;
-  srslte_pdsch_cfg_t pdsch_cfg; 
+  srslte_refsignal_t mbsfnr_signal;
+  srslte_pdsch_cfg_t pdsch_cfg;
+  srslte_pdsch_cfg_t  pmch_cfg;
   srslte_ra_dl_dci_t dl_dci;
   
   srslte_dci_format_t dci_format;
@@ -134,6 +139,8 @@ SRSLTE_API void srslte_enb_dl_prepare_power_allocation(srslte_enb_dl_t *q);
 SRSLTE_API void srslte_enb_dl_set_amp(srslte_enb_dl_t *q, 
                                       float amp); 
 
+SRSLTE_API void srslte_enb_dl_set_non_mbsfn_region(srslte_enb_dl_t *q, uint8_t non_mbsfn_region);
+
 SRSLTE_API void srslte_enb_dl_clear_sf(srslte_enb_dl_t *q);
 
 SRSLTE_API void srslte_enb_dl_put_sync(srslte_enb_dl_t *q, 
@@ -157,7 +164,12 @@ SRSLTE_API void srslte_enb_dl_put_phich(srslte_enb_dl_t *q,
 SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t *q, 
                                        uint32_t tti);
 
+SRSLTE_API void srslte_enb_dl_put_mbsfn_base(srslte_enb_dl_t *q, 
+                                   uint32_t tti);
+
 SRSLTE_API void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q);
+
+SRSLTE_API void srslte_enb_dl_gen_signal_mbsfn(srslte_enb_dl_t *q);
 
 SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, 
                                       uint16_t rnti); 
@@ -173,6 +185,12 @@ SRSLTE_API int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q,
                                        uint32_t sf_idx, 
                                        uint8_t *data[SRSLTE_MAX_CODEWORDS],
                                        srslte_mimo_type_t mimo_type);
+
+SRSLTE_API int srslte_enb_dl_put_pmch(srslte_enb_dl_t *q, 
+                                      srslte_ra_dl_grant_t *grant,  
+                                      srslte_softbuffer_tx_t *softbuffer,
+                                      uint32_t sf_idx,
+                                      uint8_t *data_mbms);
 
 SRSLTE_API int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, 
                                           srslte_ra_dl_dci_t *grant, 

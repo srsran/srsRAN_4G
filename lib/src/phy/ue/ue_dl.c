@@ -199,8 +199,10 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
   if (q               != NULL             &&
       srslte_cell_isvalid(&cell))
   {
-    q->pkt_errors = 0;
-    q->pkts_total = 0;
+    q->pdsch_pkt_errors = 0;
+    q->pdsch_pkts_total = 0;
+    q->pmch_pkt_errors = 0;
+    q->pmch_pkts_total = 0;
     q->pending_ul_dci_rnti = 0;
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
@@ -218,6 +220,12 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
           return SRSLTE_ERROR;
         }
       }
+
+      if (srslte_ofdm_rx_set_prb(&q->fft_mbsfn, SRSLTE_CP_EXT, q->cell.nof_prb)) {
+        fprintf(stderr, "Error resizing MBSFN FFT\n");
+        return SRSLTE_ERROR;
+      }
+
       if (srslte_chest_dl_set_cell(&q->chest, q->cell)) {
         fprintf(stderr, "Error resizing channel estimator\n");
         return SRSLTE_ERROR;
@@ -237,9 +245,15 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
       }
 
       if (srslte_pdsch_set_cell(&q->pdsch, q->cell)) {
-        fprintf(stderr, "Error creating PDSCH object\n");
+        fprintf(stderr, "Error resizing PDSCH object\n");
         return SRSLTE_ERROR;
       }
+
+      if (srslte_pmch_set_cell(&q->pmch, q->cell)) {
+        fprintf(stderr, "Error resizing PMCH object\n");
+        return SRSLTE_ERROR;
+      }
+
       q->current_rnti = 0;
     }
     ret = SRSLTE_SUCCESS;
