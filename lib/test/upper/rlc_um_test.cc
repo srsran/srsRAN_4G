@@ -260,12 +260,13 @@ void basic_mbsfn_test()
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
 
-  bool is_mrb = true;
-  rlc1.init(&log1, 3, &tester, &tester, &timers, is_mrb);
-  rlc2.init(&log2, 3, &tester, &tester, &timers, is_mrb);
+  rlc1.init(&log1, 3, &tester, &tester, &timers);
+  rlc2.init(&log2, 3, &tester, &tester, &timers);
 
-  //rlc1.configure(&cnfg); //MRB RLC is default configured
-  //rlc2.configure(&cnfg); //MRB RLC is default configured
+  rlc1.configure(srslte_rlc_config_t::mch_config());
+  rlc2.configure(srslte_rlc_config_t::mch_config());
+
+  tester.set_expected_sdu_len(1);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS*2];

@@ -155,8 +155,7 @@ public:
                     uint32_t                           lcid_,
                     srsue::pdcp_interface_rlc         *pdcp_,
                     srsue::rrc_interface_rlc          *rrc_,
-                    srslte::mac_interface_timers      *mac_timers_,
-                    bool                               is_mrb_=false) = 0;
+                    srslte::mac_interface_timers      *mac_timers_) = 0;
   virtual void configure(srslte_rlc_config_t cnfg) = 0;
   virtual void reset() = 0;
   virtual void stop() = 0;

@@ -56,8 +56,7 @@ public:
             uint32_t                   lcid_,
             srsue::pdcp_interface_rlc *pdcp_,
             srsue::rrc_interface_rlc  *rrc_,
-            mac_interface_timers      *mac_timers_,
-            bool                       mrb_=false);
+            mac_interface_timers      *mac_timers_);
   void configure(srslte_rlc_config_t cnfg);
   void reset();
   void stop();
@@ -88,8 +87,7 @@ private:
   uint32_t                     lcid;
   srsue::pdcp_interface_rlc   *pdcp;
   srsue::rrc_interface_rlc    *rrc;
-  mac_interface_timers        *mac_timers; 
-  bool                         mrb;
+  mac_interface_timers        *mac_timers;
 
   // TX SDU buffers
   rlc_tx_queue           tx_sdu_queue;
@@ -137,7 +135,6 @@ private:
 
   int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
   void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes);
-  int build_mch_data_pdu(uint8_t *payload, uint32_t nof_bytes);
   void handle_mch_data_pdu(uint8_t *payload, uint32_t nof_bytes);
   void reassemble_rx_sdus();
   bool inside_reordering_window(uint16_t sn);

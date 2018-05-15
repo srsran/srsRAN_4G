@@ -315,7 +315,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
   } else {
     rlc_log->warning("Bearer %s already created.\n", rrc->get_rb_name(lcid).c_str());
   }
-  rlc_array[lcid].configure(cnfg);    
+  rlc_array[lcid].configure(cnfg);
 
 }
 
@@ -326,8 +326,8 @@ void rlc::add_bearer_mrb(uint32_t lcid)
     rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
     return;
   }
-  bool is_mrb = true;
-  rlc_array_mrb[lcid].init(rlc_log, lcid, pdcp, rrc, mac_timers, is_mrb);
+  rlc_array_mrb[lcid].init(rlc_log, lcid, pdcp, rrc, mac_timers);
+  rlc_array_mrb[lcid].configure(srslte_rlc_config_t::mch_config());
 }
 
 void rlc::add_bearer_mrb_enb(uint32_t lcid)
@@ -336,8 +336,8 @@ void rlc::add_bearer_mrb_enb(uint32_t lcid)
     rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
     return;
   }
-  rlc_array_mrb[lcid].init(rlc_log,lcid,pdcp,rrc,mac_timers,true);
-   
+  rlc_array_mrb[lcid].init(rlc_log,lcid,pdcp,rrc,mac_timers);
+  rlc_array_mrb[lcid].configure(srslte_rlc_config_t::mch_config());
 }
 
 /*******************************************************************************

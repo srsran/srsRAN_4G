@@ -27,6 +27,7 @@
 
 #include "srslte/upper/rlc_um.h"
 #include <sstream>
+#include <srslte/upper/rlc_interface.h>
 
 #define RX_MOD_BASE(x) (x-vr_uh-cfg.rx_window_size)%cfg.rx_mod
 
@@ -56,8 +57,7 @@ rlc_um::rlc_um() : tx_sdu_queue(32)
   
   vr_ur_in_rx_sdu = 0; 
   
-  mac_timers = NULL; 
-  mrb        = false;
+  mac_timers = NULL;
 
   pdu_lost = false;
 }
@@ -70,38 +70,19 @@ void rlc_um::init(srslte::log                  *log_,
                   uint32_t                      lcid_,
                   srsue::pdcp_interface_rlc    *pdcp_,
                   srsue::rrc_interface_rlc     *rrc_,
-                  srslte::mac_interface_timers *mac_timers_,
-                  bool                          mrb_)
+                  srslte::mac_interface_timers *mac_timers_)
 {
   log                   = log_;
   lcid                  = lcid_;
   pdcp                  = pdcp_;
   rrc                   = rrc_;
   mac_timers            = mac_timers_;
-  mrb                   = mrb_;
   reordering_timer_id   = mac_timers->timer_get_unique_id();
   reordering_timer      = mac_timers->timer_get(reordering_timer_id);
-
-  if(mrb) {
-    cfg.t_reordering        = 0;
-    cfg.rx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
-    cfg.rx_window_size      = 0;
-    cfg.rx_mod              = 32;
-    cfg.tx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
-    cfg.tx_mod              = 32;
-    log->info("MRB%d configured in %s mode: "
-              "t_reordering=%d ms, rx_sn_field_length=%u bits\n",
-              lcid, liblte_rrc_rlc_mode_text[LIBLTE_RRC_RLC_MODE_UM_UNI_DL],
-              cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
-  }
 }
 
 void rlc_um::configure(srslte_rlc_config_t cnfg_)
-{ 
-  if(mrb) {
-    return; // Default configured in init()
-  }
-
+{
   cfg = cnfg_.um;
 
   switch(cnfg_.rlc_mode)
@@ -140,7 +121,7 @@ void rlc_um::empty_queue() {
 
 bool rlc_um::is_mrb()
 {
-  return mrb;
+  return cfg.is_mrb;
 }
 
 void rlc_um::stop()
@@ -224,7 +205,7 @@ uint32_t rlc_um::get_buffer_state()
 
   // Room needed for fixed header?
   if(n_bytes > 0)
-    n_bytes += (mrb)?2:3;
+    n_bytes += (cfg.is_mrb)?2:3;
 
   return n_bytes;
 }
@@ -239,11 +220,7 @@ int rlc_um::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   int r;
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
   pthread_mutex_lock(&mutex);
-  if(mrb){
-    r = build_mch_data_pdu(payload, nof_bytes);
-  } else{
-    r = build_data_pdu(payload, nof_bytes);
-  }
+  r = build_data_pdu(payload, nof_bytes);
   pthread_mutex_unlock(&mutex);
   return r; 
 }
@@ -251,7 +228,7 @@ int rlc_um::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 void rlc_um::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
-  if(mrb) {
+  if(cfg.is_mrb) {
     handle_mch_data_pdu(payload, nof_bytes);
   } else {
     handle_data_pdu(payload, nof_bytes);
@@ -304,130 +281,6 @@ bool rlc_um::reordering_timeout_running()
 /****************************************************************************
  * Helpers
  ***************************************************************************/
-
-
-int  rlc_um::build_mch_data_pdu(uint8_t *payload, uint32_t nof_bytes)
-{
-  
-   if(!tx_sdu && tx_sdu_queue.size() == 0)
-  {
-    log->info("No data available to be sent\n");
-    return 0;
-  }
-
-  byte_buffer_t *pdu = pool_allocate;
-  if(!pdu || pdu->N_bytes != 0)
-  {
-    log->error("Failed to allocate PDU buffer\n");
-    return 0;
-  }
-  
-  rlc_umd_pdu_header_t header;
-  header.fi   = RLC_FI_FIELD_START_AND_END_ALIGNED;
-  header.sn   = vt_us;
-  header.N_li = 0;
-  header.sn_size = RLC_UMD_SN_SIZE_5_BITS;   //cfg.tx_sn_field_length;
-  
-
-  uint32_t to_move   = 0;
-  uint32_t last_li   = 0;
-  uint8_t *pdu_ptr   = pdu->msg;
-
-  int head_len  = rlc_um_packed_length(&header);
-  int pdu_space = nof_bytes;
-
-  if(pdu_space <= head_len + 1)
-  {
-    pool->deallocate(pdu);
-    log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
-                 rb_name().c_str(), nof_bytes, head_len);
-    return 0;
-  }
-
-  // Check for SDU segment
-  if(tx_sdu)
-  {
-    uint32_t space = pdu_space-head_len;
-    to_move = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
-    log->debug("%s adding remainder of SDU segment - %d bytes of %d remaining\n",
-               rb_name().c_str(), to_move, tx_sdu->N_bytes);
-    memcpy(pdu_ptr, tx_sdu->msg, to_move);
-   
-    last_li          = to_move;
-    pdu_ptr         += to_move;
-    pdu->N_bytes    += to_move;
-    tx_sdu->N_bytes -= to_move;
-    tx_sdu->msg     += to_move;
-    if(tx_sdu->N_bytes == 0)
-    {
-      log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
-                rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
-
-      pool->deallocate(tx_sdu);
-      tx_sdu = NULL;
-    }
-    pdu_space -= to_move;
-    header.fi |= RLC_FI_FIELD_NOT_START_ALIGNED; // First byte does not correspond to first byte of SDU
-  }
-
-  // Pull SDUs from queue
-  while(pdu_space > head_len + 1 && tx_sdu_queue.size() > 0)
-  {
-    log->debug("pdu_space=%d, head_len=%d\n", pdu_space, head_len);
-    if(last_li > 0)
-      header.li[header.N_li++] = last_li;
-    head_len = rlc_um_packed_length(&header);
-    tx_sdu_queue.read(&tx_sdu);
- 
-    uint32_t space = pdu_space-head_len;
-    to_move = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
-    log->debug("%s adding new SDU segment - %d bytes of %d remaining\n",
-               rb_name().c_str(), to_move, tx_sdu->N_bytes);
-    memcpy(pdu_ptr, tx_sdu->msg, to_move);
-    last_li          = to_move;
-    pdu_ptr         += to_move;
-    pdu->N_bytes    += to_move;
-    tx_sdu->N_bytes -= to_move;
-    tx_sdu->msg     += to_move;
-    if(tx_sdu->N_bytes == 0)
-    {
-      log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
-                rrc->get_rb_name(lcid).c_str(), tx_sdu->get_latency_us());
-      pool->deallocate(tx_sdu);
-      tx_sdu = NULL;
-    }
-    pdu_space -= to_move;
-  }
-
-  if(tx_sdu)
-    header.fi |= RLC_FI_FIELD_NOT_END_ALIGNED; // Last byte does not correspond to last byte of SDU
-
-  // Set SN
-  header.sn = vt_us;
-  vt_us = (vt_us + 1)%cfg.tx_mod;
-
-  
-  // Add header and TX
-  log->debug("%s packing PDU with length %d\n", rb_name().c_str(), pdu->N_bytes);
-
-  
-  if(pdu_space > 0 && tx_sdu == NULL){
-    //header.li[header.N_li++] = last_li;
-    header.fi |= RLC_FI_FIELD_NOT_START_ALIGNED;
-  }
-  rlc_um_write_data_pdu_header(&header, pdu);
-  memcpy(payload, pdu->msg, pdu->N_bytes);
-  uint32_t ret = pdu->N_bytes;
-
-  log->debug("%s returning length %d\n", rrc->get_rb_name(lcid).c_str(), pdu->N_bytes);
-
-  pool->deallocate(pdu);
-
-  debug_state();
-  return ret;
-  
-  
-}
 
 int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
@@ -867,7 +720,7 @@ void rlc_um::debug_state()
 }
 
 std::string rlc_um::rb_name() {
-  if(mrb) {
+  if(cfg.is_mrb) {
     std::stringstream ss;
     ss << "MRB" << lcid;
     return ss.str();
