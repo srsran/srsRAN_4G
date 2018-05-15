@@ -408,6 +408,9 @@ static int sigcnt = 0;
 static bool running = true;
 static bool do_metrics = false;
 metrics_stdout metrics_screen;
+static bool show_mbms = false;
+static bool mbms_service_start = false;
+uint32_t serv, port;
 
 void sig_int_handler(int signo) {
   sigcnt++;
@@ -419,14 +422,14 @@ void sig_int_handler(int signo) {
 }
 
 void *input_loop(void *m) {
-  char key;
+  string key;
   while (running) {
-    cin >> key;
+    getline(cin, key);
     if (cin.eof() || cin.bad()) {
       cout << "Closing stdin thread." << endl;
       break;
     } else {
-      if ('t' == key) {
+      if (0 == key.compare("t")) {
         do_metrics = !do_metrics;
         if (do_metrics) {
           cout << "Enter t to stop trace." << endl;
@@ -435,10 +438,31 @@ void *input_loop(void *m) {
         }
         metrics_screen.toggle_print(do_metrics);
       } else
-      if ('q' == key) {
+      if (0 == key.compare("q")) {
         running = false;
+      }  
+    else if (0 == key.compare("mbms")) {
+      show_mbms = true;
+    } else if (key.find("mbms_service_start") != string::npos) {
+
+      char *dup = strdup(key.c_str());
+      strtok(dup, " ");
+      char *s = strtok(NULL, " ");
+      if(NULL == s) {
+        cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
+        continue;
       }
+      serv = atoi(s);
+      char* p = strtok(NULL, " ");
+      if(NULL == p) {
+        cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
+        continue;
+      }
+      port = atoi(p);
+      mbms_service_start = true;
+      free(dup);
     }
+   }
   }
   return NULL;
 }
@@ -493,14 +517,26 @@ int main(int argc, char *argv[])
   }
   int cnt=0;
   while (running) {
+    if(mbms_service_start) {
+      mbms_service_start = false;
+      ue->mbms_service_start(serv, port);
+    }
+    if(show_mbms) {
+      show_mbms = false;
+      ue->print_mbms();
+    }
+    sleep(1);
     if (args.expert.print_buffer_state) {
       cnt++;
       if (cnt==10) {
         cnt=0;
         ue->print_pool();
       }
+    } else {
+      while (!ue->attach() && running) {
+        sleep(1);
+      }
     }
-    sleep(1);
   }
   pthread_cancel(input);
   metricshub.stop();

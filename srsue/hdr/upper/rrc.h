@@ -180,6 +180,9 @@ class cell_t
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *sib3ptr() {
     return &sib3;
   }
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13ptr() {
+    return &sib13;
+  }
 
   uint32_t get_cell_id() {
     return sib1.cell_id;
@@ -231,20 +234,23 @@ class cell_t
   }
 
   phy_interface_rrc::phy_cell_t phy_cell;
-  bool     in_sync;
+  bool     in_sync; 
+  bool     has_mcch;
+   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT  sib2;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT  sib3;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
+  LIBLTE_RRC_MCCH_MSG_STRUCT               mcch;
 
- private:
+private:
   float    rsrp;
+  
   struct timeval last_update;
 
   bool     has_valid_sib1;
   bool     has_valid_sib2;
   bool     has_valid_sib3;
   bool     has_valid_sib13;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT  sib2;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT  sib3;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
 };
 
 class rrc
@@ -266,6 +272,7 @@ public:
             pdcp_interface_rrc *pdcp_,
             nas_interface_rrc *nas_,
             usim_interface_rrc *usim_,
+            gw_interface_rrc   *gw_,
             srslte::mac_interface_timers *mac_timers_,
             srslte::log *rrc_log_);
 
@@ -277,6 +284,9 @@ public:
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);
   void liblte_rrc_log(char *str);
+  
+  void print_mbms();
+  void mbms_service_start(uint32_t serv, uint32_t port);
 
   // NAS interface
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
@@ -309,7 +319,7 @@ public:
   void write_pdu_bcch_bch(byte_buffer_t *pdu);
   void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
   void write_pdu_pcch(byte_buffer_t *pdu);
-
+  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu);
 
 private:
 
@@ -335,7 +345,8 @@ private:
   pdcp_interface_rrc *pdcp;
   nas_interface_rrc *nas;
   usim_interface_rrc *usim;
-
+  gw_interface_rrc    *gw;
+  
   LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
   LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
   LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
@@ -435,7 +446,7 @@ private:
   uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf);
   const static int SIB_SEARCH_TIMEOUT_MS = 1000;
 
-  const static uint32_t NOF_REQUIRED_SIBS = 3; // SIB1, SIB2 and SIB3
+  const static uint32_t NOF_REQUIRED_SIBS = 13; // SIB1, SIB2 and SIB3
 
   bool initiated;
   bool ho_start;
@@ -618,12 +629,14 @@ private:
   void          handle_sib13();
 
   void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
+  void          apply_sib13_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
   void          handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
   void          handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
   void          handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig);
   void          add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);
   void          add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
   void          release_drb(uint8_t lcid);
+   void         add_mrb(uint32_t lcid, uint32_t port);
   bool          apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
   void          apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults); 
   void          apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults); 

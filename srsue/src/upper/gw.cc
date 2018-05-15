@@ -59,6 +59,19 @@ void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_
   gettimeofday(&metrics_time[1], NULL);
   dl_tput_bytes = 0;
   ul_tput_bytes = 0;
+  // MBSFN
+  mbsfn_sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (mbsfn_sock_fd < 0) {
+    gw_log->error("Failed to create MBSFN sink socket\n");
+  }
+  if (fcntl(mbsfn_sock_fd, F_SETFL, O_NONBLOCK)) {
+    gw_log->error("Failed to set non-blocking MBSFN sink socket\n");
+  }
+
+  mbsfn_sock_addr.sin_family      = AF_INET;
+  mbsfn_sock_addr.sin_addr.s_addr =inet_addr("127.0.0.1");
+
+  bzero(mbsfn_ports, SRSLTE_N_MCH_LCIDS*sizeof(uint32_t));
 }
 
 void gw::stop()
@@ -83,14 +96,15 @@ void gw::stop()
 
       current_ip_addr = 0;
     }
-
     // TODO: tear down TUN device?
+  }
+  if (mbsfn_sock_fd) {
+    close(mbsfn_sock_fd);
   }
 }
 
 void gw::get_metrics(gw_metrics_t &m)
 {
-  
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
   double secs = (double) metrics_time[0].tv_sec+metrics_time[0].tv_usec*1e-6;
@@ -105,7 +119,8 @@ void gw::get_metrics(gw_metrics_t &m)
   ul_tput_bytes = 0;
 }
 
-void gw::set_netmask(std::string netmask) {
+void gw::set_netmask(std::string netmask)
+{
   default_netmask = false;
   this->netmask = netmask;
 }
@@ -116,8 +131,7 @@ void gw::set_netmask(std::string netmask) {
 *******************************************************************************/
 void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
-  gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU");
-  gw_log->info("RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
+  gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
   dl_tput_bytes += pdu->N_bytes;
   if(!if_up)
   {
@@ -128,6 +142,48 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
     {
       gw_log->warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.\n", pdu->N_bytes, n);
     } 
+  }
+  pool->deallocate(pdu);
+}
+
+void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
+{
+  if(pdu->N_bytes>2)
+  {
+    gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX MCH PDU. Stack latency: %ld us\n", pdu->get_latency_us());
+    dl_tput_bytes += pdu->N_bytes;
+
+    //Hack to drop initial 2 bytes
+    pdu->msg +=2;
+    pdu->N_bytes-=2;
+    struct in_addr dst_addr;
+    memcpy(&dst_addr.s_addr, &pdu->msg[16],4);
+    gw_log->console("gw\n");
+    gw_log->console("Destination IP: %s\n",inet_ntoa(dst_addr));
+    srslte_vec_fprint_b(stdout,&pdu->msg[0], pdu->N_bytes);
+    if(!if_up)
+    {
+      gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
+    }else{
+      int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
+      if(n > 0 && (pdu->N_bytes != (uint32_t)n))
+      {
+        gw_log->warning("DL TUN/TAP write failure\n");
+      }
+    }
+    /*
+    // Strip IP/UDP header
+    pdu->msg += 28;
+    pdu->N_bytes -= 28;
+
+    if(mbsfn_sock_fd) {
+      if(lcid > 0 && lcid < SRSLTE_N_MCH_LCIDS) {
+        mbsfn_sock_addr.sin_port = htons(mbsfn_ports[lcid]);
+        if(sendto(mbsfn_sock_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&mbsfn_sock_addr, sizeof(struct sockaddr_in))<0) {
+          gw_log->error("Failed to send MCH PDU to port %d\n", mbsfn_ports[lcid]);
+        }
+      }
+    }*/
   }
   pool->deallocate(pdu);
 }
@@ -233,6 +289,19 @@ srslte::error_t gw::init_if(char *err_str)
 
   return(srslte::ERROR_NONE);
 }
+
+
+/*******************************************************************************
+  RRC interface
+*******************************************************************************/
+void gw::add_mch_port(uint32_t lcid, uint32_t port)
+{
+  if(lcid > 0 && lcid < SRSLTE_N_MCH_LCIDS) {
+    mbsfn_ports[lcid] = port;
+  }
+}
+
+
 
 /********************/
 /*    GW Receive    */

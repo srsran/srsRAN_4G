@@ -43,7 +43,8 @@ namespace srsue {
 
 mac::mac() : timers(64),
              mux_unit(MAC_NOF_HARQ_PROC),
-             pdu_process_thread(&demux_unit)
+             pdu_process_thread(&demux_unit),
+             mch_msg(10)
 {
   pcap    = NULL;
   bzero(&metrics, sizeof(mac_metrics_t));
@@ -58,6 +59,7 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
   tti = 0;
 
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
+  srslte_softbuffer_rx_init(&mch_softbuffer, 100);
 
   timer_alignment             = timers.get_unique_id();
   contention_resolution_timer = timers.get_unique_id();
@@ -220,6 +222,32 @@ void mac::pch_decoded_ok(uint32_t len)
   }
 }
 
+void mac::mch_decoded_ok(uint32_t len)
+{
+  // Parse MAC header
+  mch_msg.init_rx(len);
+  
+  mch_msg.parse_packet(mch_payload_buffer);
+  while(mch_msg.next()) {
+    for(uint32_t i = 0; i < phy_mbsfn_cfg.nof_mbsfn_services;i++) {
+      if(srslte::mch_subh::MCH_SCHED_INFO == mch_msg.get()->ce_type()) {
+        uint16_t stop;
+        uint8_t  lcid;
+        if(mch_msg.get()->get_next_mch_sched_info(&lcid, &stop)) {
+          phy_h->set_mch_period_stop(stop);
+          Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n", lcid, stop, phy_h->get_current_tti());
+        }
+      }
+    }
+  }
+  
+  demux_unit.push_pdu_mch(mch_payload_buffer, len, 0);
+  pdu_process_thread.notify();
+  if (pcap) {
+    pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti());
+  }
+}
+
 void mac::tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
 {
   if (rnti_type == SRSLTE_RNTI_RAR) {
@@ -303,6 +331,16 @@ void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_i
   }
 }
 
+void mac::new_mch_dl(srslte_ra_dl_grant_t phy_grant, tb_action_dl_t *action)
+{
+  memcpy(&action->phy_grant, &phy_grant, sizeof(srslte_phy_grant_t));
+  action->generate_ack = false;
+  action->decode_enabled[0] = true;
+  srslte_softbuffer_rx_reset_cb(&mch_softbuffer, 1);
+  action->payload_ptr[0] = mch_payload_buffer;
+  action->softbuffers[0]  = &mch_softbuffer;
+}
+
 void mac::harq_recv(uint32_t tti, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
   int tbs = ul_harq.get_current_tbs(tti);
@@ -378,6 +416,13 @@ void mac::get_config(mac_cfg_t* mac_cfg)
   memcpy(mac_cfg, &config, sizeof(mac_cfg_t));
 }
 
+void mac::set_mbsfn_config(uint32_t nof_mbsfn_services)
+{
+  //cfg->nof_mbsfn_services = config.mbsfn.mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size;
+  phy_mbsfn_cfg.nof_mbsfn_services = nof_mbsfn_services;
+}
+
+
 void mac::set_config(mac_cfg_t* mac_cfg)
 {
   memcpy(&config, mac_cfg, sizeof(mac_cfg_t));
@@ -408,6 +453,11 @@ void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_t
   mux_unit.set_priority(lcid, priority, PBR_x_tti, BSD);
   bsr_procedure.setup_lcg(lcid, lcg);
   bsr_procedure.set_priority(lcid, priority);
+}
+
+void mac::mch_start_rx(uint32_t lcid)
+{
+  demux_unit.mch_start_rx(lcid);
 }
 
 void mac::get_metrics(mac_metrics_t &m)
