@@ -1784,7 +1784,6 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     rrc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received %d bytes\n", pdu->N_bytes);
     rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
-    rrc_log->console("PCCH message received %d bytes\n", pdu->N_bytes);
 
     LIBLTE_RRC_PCCH_MSG_STRUCT pcch_msg;
     ZERO_OBJECT(pcch_msg);
@@ -1807,9 +1806,6 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
       rrc_log->info("Received paging (%d/%d) for UE %x:%x\n", i + 1, pcch_msg.paging_record_list_size,
                     pcch_msg.paging_record_list[i].ue_identity.s_tmsi.mmec,
                     pcch_msg.paging_record_list[i].ue_identity.s_tmsi.m_tmsi);
-      rrc_log->console("Received paging (%d/%d) for UE %x:%x\n", i + 1, pcch_msg.paging_record_list_size,
-                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi.mmec,
-                       pcch_msg.paging_record_list[i].ue_identity.s_tmsi.m_tmsi);
       if (ueIdentity.mmec == s_tmsi_paged->mmec && ueIdentity.m_tmsi == s_tmsi_paged->m_tmsi) {
         if (RRC_STATE_IDLE == state) {
           rrc_log->info("S-TMSI match in paging message\n");
@@ -2026,7 +2022,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       // Generate AS security keys
       uint8_t k_asme[32];
       nas->get_k_asme(k_asme, 32);
-      usim->generate_as_keys(k_asme, nas->get_ul_count()-1, k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+      usim->generate_as_keys(k_asme, nas->get_ul_count(), k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
       rrc_log->debug_hex(k_rrc_enc, 32, "RRC encryption key - k_rrc_enc");
       rrc_log->debug_hex(k_rrc_int, 32, "RRC integrity key  - k_rrc_int");
       rrc_log->debug_hex(k_up_enc, 32,  "UP encryption key  - k_up_enc");

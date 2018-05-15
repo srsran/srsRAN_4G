@@ -30,6 +30,7 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <srslte/asn1/liblte_mme.h>
 #include "srslte/asn1/liblte_rrc.h"
 #include "srsue/hdr/upper/nas.h"
 #include "srslte/common/security.h"
@@ -52,6 +53,7 @@ nas::nas()
   ctxt.cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   ctxt.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
   plmn_is_selected = false;
+  chap_id = 0;
 }
 
 void nas::init(usim_interface_nas *usim_,
@@ -82,6 +84,10 @@ void nas::init(usim_interface_nas *usim_,
     have_guti = true;
     have_ctxt = true;
   }
+
+  // set seed for rand (used in CHAP auth)
+  srand(time(NULL));
+
   running = true;
 }
 
@@ -353,7 +359,13 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 uint32_t nas::get_ul_count() {
-  return ctxt.tx_count;
+  // UL count for RRC key derivation depends on ESM information transfer procedure
+  if (cfg.apn.empty()) {
+    // No ESM info transfer has been sent
+    return ctxt.tx_count - 1;
+  } else {
+    return ctxt.tx_count - 2;
+  }
 }
 
 bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
@@ -517,7 +529,7 @@ void nas::cipher_decrypt(byte_buffer_t *pdu)
       memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
       break;
     default:
-      nas_log->error("Ciphering algorithmus not known");
+      nas_log->error("Ciphering algorithmus not known\n");
       break;
   }
 }
@@ -622,6 +634,24 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       transaction_id = act_def_eps_bearer_context_req.proc_transaction_id;
     }
 
+    // Search for DNS entry in protocol config options
+    if (act_def_eps_bearer_context_req.protocol_cnfg_opts_present) {
+      for (uint32_t i = 0; i < act_def_eps_bearer_context_req.protocol_cnfg_opts.N_opts; i++) {
+        if (act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].id == LIBLTE_MME_ADDITIONAL_PARAMETERS_DL_DNS_SERVER_IPV4_ADDRESS) {
+          uint32_t dns_addr = 0;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[0] << 24;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[1] << 16;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[2] << 8;
+          dns_addr |= act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[3];
+          nas_log->info("DNS: %u.%u.%u.%u\n",
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[0],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[1],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[2],
+                        act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[i].contents[3]);
+        }
+      }
+    }
+
     //FIXME: Handle the following parameters
 //    act_def_eps_bearer_context_req.eps_qos.qci
 //    act_def_eps_bearer_context_req.eps_qos.br_present
@@ -695,14 +725,12 @@ void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
 void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
   bzero(&auth_req, sizeof(LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT));
-  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res;
-  bzero(&auth_res, sizeof(LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT));
 
   nas_log->info("Received Authentication Request\n");
   liblte_mme_unpack_authentication_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &auth_req);
 
-  // Reuse the pdu for the response message
-  pdu->reset();
+  // Deallocate PDU after parsing
+  pool->deallocate(pdu);
 
   // Generate authentication response using RAND, AUTN & KSI-ASME
   uint16 mcc, mnc;
@@ -711,11 +739,12 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
 
   nas_log->info("MCC=%d, MNC=%d\n", mcc, mnc);
 
-  bool net_valid;
   uint8_t res[16];
-  usim->generate_authentication_response(auth_req.rand, auth_req.autn, mcc, mnc,
-                                         &net_valid, res, ctxt.k_asme);
-  nas_log->info("Generated k_asme=%s\n", hex_to_string(ctxt.k_asme, 32).c_str());
+  int res_len = 0;
+  nas_log->debug_hex(auth_req.rand, 16, "Authentication request RAND\n");
+  nas_log->debug_hex(auth_req.autn, 16, "Authentication request AUTN\n");
+  auth_result_t auth_result = usim->generate_authentication_response(auth_req.rand, auth_req.autn, mcc, mnc,
+                                                                     res, &res_len, ctxt.k_asme);
   if(LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE == auth_req.nas_ksi.tsc_flag) {
     ctxt.ksi = auth_req.nas_ksi.nas_ksi;
   } else {
@@ -723,23 +752,17 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
     nas_log->console("Warning: NAS mapped security context not currently supported\n");
   }
 
-  if (net_valid) {
+  if (auth_result == AUTH_OK) {
     nas_log->info("Network authentication successful\n");
-    for (int i = 0; i < 8; i++) {
-      auth_res.res[i] = res[i];
-    }
-    liblte_mme_pack_authentication_response_msg(&auth_res, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-
-    nas_log->info("Sending Authentication Response\n");
-    // Write NAS pcap
-    if (pcap != NULL) {
-      pcap->write_nas(pdu->msg, pdu->N_bytes);
-    }
-    rrc->write_sdu(lcid, pdu);
+    send_authentication_response(res, res_len);
+    nas_log->info("Generated k_asme=%s\n", hex_to_string(ctxt.k_asme, 32).c_str());
+  } else if (auth_result == AUTH_SYNCH_FAILURE) {
+    nas_log->error("Network authentication synchronization failure.\n");
+    send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
   } else {
     nas_log->warning("Network authentication failure\n");
     nas_log->console("Warning: Network authentication failure\n");
-    pool->deallocate(pdu);
+    send_authentication_failure(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE, NULL);
   }
 }
 
@@ -910,8 +933,15 @@ void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu) {
-  nas_log->error("TODO:parse_esm_information_request\n");
+  LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
+  liblte_mme_unpack_esm_information_request_msg((LIBLTE_BYTE_MSG_STRUCT *)pdu, &esm_info_req);
+
+  nas_log->info("ESM information request received for beaser=%d, transaction_id=%d\n", esm_info_req.eps_bearer_id, esm_info_req.proc_transaction_id);
+  ctxt.rx_count++;
   pool->deallocate(pdu);
+
+  // send response
+  send_esm_information_response(esm_info_req.proc_transaction_id);
 }
 
 void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
@@ -946,7 +976,12 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
 
   attach_req.ue_network_cap.uea_present = false;  // UMTS encryption algos
   attach_req.ue_network_cap.uia_present = false;  // UMTS integrity algos
+  attach_req.ue_network_cap.ucs2_present = false;
   attach_req.ms_network_cap_present = false;      // A/Gb mode (2G) or Iu mode (3G)
+  attach_req.ue_network_cap.lpp_present = false;
+  attach_req.ue_network_cap.lcs_present = false;
+  attach_req.ue_network_cap.onexsrvcc_present = false;
+  attach_req.ue_network_cap.nf_present = false;
   attach_req.old_p_tmsi_signature_present = false;
   attach_req.additional_guti_present = false;
   attach_req.last_visited_registered_tai_present = false;
@@ -993,6 +1028,8 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
     }
   } else {
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
+    attach_req.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+    attach_req.nas_ksi.nas_ksi       = 0;
     usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
     nas_log->info("Requesting IMSI attach (IMSI=%s)\n", usim->get_imsi_str().c_str());
     liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT *) msg);
@@ -1054,17 +1091,17 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
   pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
   pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
+  pdn_con_req.apn_present = false;
 
   // Set the optional flags
-  pdn_con_req.esm_info_transfer_flag_present = false; //FIXME: Check if this is needed
   if (cfg.apn == "") {
-    pdn_con_req.apn_present = false;
+    pdn_con_req.esm_info_transfer_flag_present = false;
   } else {
-    pdn_con_req.apn_present = true;
-    LIBLTE_MME_ACCESS_POINT_NAME_STRUCT apn = {0};
-    strncpy(apn.apn, cfg.apn.c_str(), LIBLTE_STRING_LEN);
-    pdn_con_req.apn = apn;
+    // request ESM info transfer is APN is specified
+    pdn_con_req.esm_info_transfer_flag_present = true;
+    pdn_con_req.esm_info_transfer_flag = LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_REQUIRED;
   }
+
   pdn_con_req.protocol_cnfg_opts_present = false;
   pdn_con_req.device_properties_present = false;
 
@@ -1089,9 +1126,227 @@ void nas::send_security_mode_reject(uint8_t cause) {
   rrc->write_sdu(cfg.lcid, msg);
 }
 
+
+void nas::send_authentication_response(const uint8_t* res, const size_t res_len) {
+  byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_authentication_response().\n");
+    return;
+  }
+
+  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res;
+  bzero(&auth_res, sizeof(LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT));
+
+  for (uint32_t i = 0; i < res_len; i++) {
+    auth_res.res[i] = res[i];
+  }
+  auth_res.res_len = res_len;
+  liblte_mme_pack_authentication_response_msg(&auth_res, (LIBLTE_BYTE_MSG_STRUCT *)msg);
+
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+  nas_log->info("Sending Authentication Response\n");
+  rrc->write_sdu(cfg.lcid, msg);
+}
+
+
+void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param) {
+  byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_authentication_failure().\n");
+    return;
+  }
+
+  LIBLTE_MME_AUTHENTICATION_FAILURE_MSG_STRUCT auth_failure;
+  auth_failure.emm_cause = cause;
+  if (auth_fail_param) {
+    memcpy(auth_failure.auth_fail_param, auth_fail_param, 14);
+    nas_log->debug_hex(auth_failure.auth_fail_param, 14, "auth_failure.auth_fail_param\n");
+    auth_failure.auth_fail_param_present = true;
+  } else {
+    auth_failure.auth_fail_param_present = false;
+  }
+
+  liblte_mme_pack_authentication_failure_msg(&auth_failure, (LIBLTE_BYTE_MSG_STRUCT *)msg);
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+  nas_log->info("Sending authentication failure.\n");
+  rrc->write_sdu(cfg.lcid, msg);
+}
+
+
 void nas::send_identity_response() {}
 
-void nas::send_esm_information_response() {}
+void nas::send_service_request() {
+  byte_buffer_t *msg = pool_allocate;
+  if (!msg) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_service_request().\n");
+    return;
+  }
+
+  // Pack the service request message directly
+  msg->msg[0] = (LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+  msg->N_bytes++;
+  msg->msg[1] = (ctxt.ksi & 0x07) << 5;
+  msg->msg[1] |= ctxt.tx_count & 0x1F;
+  msg->N_bytes++;
+
+  uint8_t mac[4];
+  integrity_generate(&k_nas_int[16],
+                     ctxt.tx_count,
+                     SECURITY_DIRECTION_UPLINK,
+                     &msg->msg[0],
+                     2,
+                     &mac[0]);
+  // Set the short MAC
+  msg->msg[2] = mac[2];
+  msg->N_bytes++;
+  msg->msg[3] = mac[3];
+  msg->N_bytes++;
+
+  if(pcap != NULL) {
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+
+  nas_log->info("Sending service request\n");
+  rrc->write_sdu(cfg.lcid, msg);
+  ctxt.tx_count++;
+}
+
+void nas::send_esm_information_response(const uint8 proc_transaction_id) {
+  LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT esm_info_resp;
+  esm_info_resp.proc_transaction_id = proc_transaction_id;
+  esm_info_resp.eps_bearer_id = 0; // respone shall always have no bearer assigned
+
+  if (cfg.apn == "") {
+    esm_info_resp.apn_present = false;
+  } else {
+    nas_log->debug("Including APN %s in ESM info response\n", cfg.apn.c_str());
+    esm_info_resp.apn_present = true;
+    int len = std::min((int)cfg.apn.length(), LIBLTE_STRING_LEN-1);
+    strncpy(esm_info_resp.apn.apn, cfg.apn.c_str(), len);
+    esm_info_resp.apn.apn[len] = '\0';
+  }
+
+
+  if (cfg.user != "" && cfg.user.length() < LIBLTE_STRING_LEN &&
+      cfg.pass != "" && cfg.pass.length() < LIBLTE_STRING_LEN) {
+
+    nas_log->debug("Including CHAP authentication for user %s in ESM info response\n", cfg.user.c_str());
+
+    // Generate CHAP challenge
+    uint16_t len = 1 /* CHAP code */ +
+                   1 /* ID */ +
+                   2 /* complete length */ +
+                   1 /* data value size */ +
+                   16 /* data value */ +
+                   cfg.user.length();
+
+    uint8_t challenge[len] = {};
+    challenge[0] = 0x01; // challenge code
+    challenge[1] = chap_id; // ID
+    challenge[2] = (len >> 8) & 0xff;
+    challenge[3] = len & 0xff;
+    challenge[4] = 16;
+
+    // Append random challenge value
+    for (int i = 0; i < 16; i++) {
+      challenge[5 + i] = rand() & 0xFF;
+    }
+
+    // add user as name field
+    for (size_t i = 0; i < cfg.user.length(); i++) {
+      const char *name = cfg.user.c_str();
+      challenge[21 + i] = name[i];
+    }
+
+    // Generate response
+    uint8_t response[len] = {};
+    response[0] = 0x02; // response code
+    response[1] = chap_id;
+    response[2] = (len >> 8) & 0xff;
+    response[3] = len & 0xff;
+    response[4] = 16;
+
+    // Generate response value
+    uint16_t resp_val_len = 16 /* MD5 len */ +
+                            1 /* ID */ +
+                            cfg.pass.length();
+    uint8_t resp_val[resp_val_len];
+    resp_val[0] = chap_id;
+
+    // add secret
+    for (size_t i = 0; i < cfg.pass.length(); i++) {
+      const char* pass = cfg.pass.c_str();
+      resp_val[1 + i] = pass[i];
+    }
+
+    // copy original challenge behind secret
+    uint8_t *chal_val = &challenge[5];
+    memcpy(&resp_val[1+cfg.pass.length()], chal_val, 16);
+
+    // Compute MD5 of resp_val and add to response
+    security_md5(resp_val, resp_val_len, &response[5]);
+
+    // add user as name field again
+    for (size_t i = 0; i < cfg.user.length(); i++) {
+      const char *name = cfg.user.c_str();
+      response[21 + i] = name[i];
+    }
+
+    // Add challenge and resposne to ESM info response
+    esm_info_resp.protocol_cnfg_opts_present = true;
+    esm_info_resp.protocol_cnfg_opts.opt[0].id = LIBLTE_MME_CONFIGURATION_PROTOCOL_OPTIONS_CHAP;
+    memcpy(esm_info_resp.protocol_cnfg_opts.opt[0].contents, challenge, sizeof(challenge));
+    esm_info_resp.protocol_cnfg_opts.opt[0].len = sizeof(challenge);
+
+    esm_info_resp.protocol_cnfg_opts.opt[1].id = LIBLTE_MME_CONFIGURATION_PROTOCOL_OPTIONS_CHAP;
+    memcpy(esm_info_resp.protocol_cnfg_opts.opt[1].contents, response, sizeof(response));
+    esm_info_resp.protocol_cnfg_opts.opt[1].len = sizeof(response);
+    esm_info_resp.protocol_cnfg_opts.N_opts = 2;
+  } else {
+    esm_info_resp.protocol_cnfg_opts_present = false;
+  }
+
+  byte_buffer_t *pdu = pool_allocate;
+  if (!pdu) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_attach_request().\n");
+    return;
+  }
+
+  if (liblte_mme_pack_esm_information_response_msg(&esm_info_resp,
+                                                   LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                                   ctxt.tx_count,
+                                                   (LIBLTE_BYTE_MSG_STRUCT *)pdu)) {
+    nas_log->error("Error packing ESM information response.\n");
+    return;
+  }
+
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  cipher_encrypt(pdu);
+  if (pdu->N_bytes > 5) {
+    integrity_generate(&k_nas_int[16],
+                       ctxt.tx_count,
+                       SECURITY_DIRECTION_UPLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes - 5,
+                       &pdu->msg[1]);
+  } else {
+    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+    return;
+  }
+
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending ESM information response\n");
+  rrc->write_sdu(cfg.lcid, pdu);
+
+  ctxt.tx_count++;
+  chap_id++;
+}
 
 
 /*******************************************************************************

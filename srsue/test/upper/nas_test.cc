@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <assert.h>
+#include "srsue/hdr/upper/usim_base.h"
 #include "srsue/hdr/upper/usim.h"
 #include "srsue/hdr/upper/nas.h"
 #include "srslte/upper/rlc.h"
@@ -58,6 +59,8 @@ uint8_t attach_accept_pdu[] = { 0x27, 0x0f, 0x4f, 0xb3, 0xef, 0x01, 0x07, 0x42, 
                                 0x72, 0x73, 0x05, 0x01, 0xc0, 0xa8, 0x05, 0x02, 0x27, 0x01,
                                 0x80, 0x50, 0x0b, 0xf6, 0x00, 0xf1, 0x10, 0x80, 0x01, 0x01,
                                 0x35, 0x16, 0x6d, 0xbc, 0x64, 0x01, 0x00 };
+
+uint8_t esm_info_req_pdu[] = { 0x27, 0x1d, 0xbf, 0x7e, 0x05, 0x01, 0x02, 0x5a, 0xd9 };
 
 uint16 mcc = 61441;
 uint16 mnc = 65281;
@@ -197,13 +200,16 @@ int mme_attach_request_test()
 
   nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
+  usim_log.set_hex_limit(100000);
 
   rrc_dummy rrc_dummy;
   gw_dummy gw;
   srsue::usim usim;
   usim_args_t args;
+  args.mode = "soft";
   args.algo = "xor";
   args.imei = "353490069873319";
   args.imsi = "001010123456789";
@@ -212,6 +218,7 @@ int mme_attach_request_test()
   usim.init(&args, &usim_log);
 
   srslte_nas_config_t nas_cfg;
+  nas_cfg.apn = "test123";
   srsue::nas nas;
   nas.init(&usim, &rrc_dummy, &gw, &nas_log, nas_cfg);
 
@@ -236,6 +243,63 @@ int mme_attach_request_test()
 }
 
 
+
+int esm_info_request_test()
+{
+  int ret = SRSLTE_ERROR;
+  srslte::log_filter nas_log("NAS");
+  srslte::log_filter rrc_log("RRC");
+  srslte::log_filter mac_log("MAC");
+  srslte::log_filter usim_log("USIM");
+
+  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  nas_log.set_hex_limit(100000);
+  rrc_log.set_hex_limit(100000);
+
+  rrc_dummy rrc_dummy;
+  gw_dummy gw;
+
+  usim_args_t args;
+  args.algo = "xor";
+  args.imei = "353490069873319";
+  args.imsi = "001010123456789";
+  args.k = "00112233445566778899aabbccddeeff";
+  args.op = "63BFA50EE6523365FF14C1F45F88737D";
+
+  // init USIM
+  srsue::usim usim;
+  bool    net_valid;
+  uint8_t res[16];
+  usim.init(&args, &usim_log);
+
+  srslte::byte_buffer_pool *pool;
+  pool = byte_buffer_pool::get_instance();
+
+  srsue::nas nas;
+  srslte_nas_config_t cfg;
+  cfg.apn = "srslte";
+  cfg.user = "srsuser";
+  cfg.pass = "srspass";
+  nas.init(&usim, &rrc_dummy, &gw, &nas_log, cfg);
+
+  // push ESM info request PDU to NAS to generate response
+  byte_buffer_t* tmp = pool->allocate();
+  memcpy(tmp->msg, esm_info_req_pdu, sizeof(esm_info_req_pdu));
+  tmp->N_bytes = sizeof(esm_info_req_pdu);
+  nas.write_pdu(LCID, tmp);
+
+  // check length of generated NAS SDU
+  if (rrc_dummy.get_last_sdu_len() > 3) {
+    ret = SRSLTE_SUCCESS;
+  }
+
+  pool->cleanup();
+
+  return ret;
+}
+
+
 int main(int argc, char **argv)
 {
   if (security_command_test()) {
@@ -245,6 +309,11 @@ int main(int argc, char **argv)
 
   if (mme_attach_request_test()) {
     printf("Attach request test failed.\n");
+    return -1;
+  }
+
+  if (esm_info_request_test()) {
+    printf("ESM info request test failed.\n");
     return -1;
   }
 

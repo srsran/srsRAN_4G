@@ -83,7 +83,9 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
                                                                                            "UECapabilityInformation message. Default 0xe6041c00")
     ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
 
-    ("nas.apn",   bpo::value<string>(&args->apn)->default_value(""),  "Set Access Point Name (APN) for data services")
+    ("nas.apn",   bpo::value<string>(&args->apn_name)->default_value(""),  "Set Access Point Name (APN) for data services")
+    ("nas.user",   bpo::value<string>(&args->apn_user)->default_value(""),  "Username for CHAP authentication")
+    ("nas.pass",   bpo::value<string>(&args->apn_pass)->default_value(""),  "Password for CHAP authentication")
 
     ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
@@ -124,12 +126,13 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("log.filename", bpo::value<string>(&args->log.filename)->default_value("/tmp/ue.log"), "Log filename")
     ("log.file_max_size", bpo::value<int>(&args->log.file_max_size)->default_value(-1), "Maximum file size (in kilobytes). When passed, multiple files are created. Default -1 (single file)")
 
+    ("usim.mode", bpo::value<string>(&args->usim.mode)->default_value("soft"), "USIM mode (soft or pcsc)")
     ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
     ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator variant")
     ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
-
+    ("usim.pin", bpo::value<string>(&args->usim.pin), "PIN in case real SIM card is used")
 
     /* Expert section */
     ("expert.ip_netmask",

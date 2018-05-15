@@ -131,6 +131,16 @@ else(POLARSSL_FOUND)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
+# Hard-SIM support
+find_package(PCSCLite)
+if (PCSCLITE_FOUND)
+  message(STATUS "Building with PCSC support.")
+  add_definitions(-DHAVE_PCSC)
+  set(HAVE_PCSC TRUE)
+  include_directories(${PCSCLITE_INCLUDE_DIR})
+  #link_directories(${PCSCLITE_LIBRARIES})
+endif (PCSCLITE_FOUND)
+
 # UHD
 find_package(UHD)
 if(UHD_FOUND)

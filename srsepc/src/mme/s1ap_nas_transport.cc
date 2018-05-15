@@ -284,7 +284,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   }
   else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED)
   {
-    //Integrity protected NAS message, possibly chiphered.
+    //Integrity protected NAS message, possibly ciphered.
     emm_ctx->security_ctxt.ul_nas_count++;
     mac_valid = integrity_check(emm_ctx,nas_msg);
     if(!mac_valid){
@@ -1068,7 +1068,7 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   {
     pack_esm_information_request(reply_buffer, emm_ctx, ecm_ctx);
     m_s1ap_log->console("Sending ESM information request\n");
-    m_s1ap_log->info("Sending ESM information request\n");
+    m_s1ap_log->info_hex(reply_buffer->msg, reply_buffer->N_bytes, "Sending ESM information request\n");
     *reply_flag = true;
   }
   else
@@ -1145,8 +1145,8 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
   m_s1ap_log->info("ESM Info: EPS bearer id %d\n",esm_info_resp.eps_bearer_id);
   if(esm_info_resp.apn_present)
   {
-    m_s1ap_log->info("ESM Info: APN %d\n",esm_info_resp.eps_bearer_id);
-    m_s1ap_log->console("ESM Info: APN %d\n",esm_info_resp.eps_bearer_id);
+    m_s1ap_log->info("ESM Info: APN %s\n",esm_info_resp.apn.apn);
+    m_s1ap_log->console("ESM Info: APN %s\n",esm_info_resp.apn.apn);
   }
   if(esm_info_resp.protocol_cnfg_opts_present)
   {
@@ -1683,10 +1683,10 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
   LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
-  esm_info_req.eps_bearer_id=0;
+  esm_info_req.eps_bearer_id = 0;
   esm_info_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id;
 
-  uint8_t  sec_hdr_type=2;
+  uint8_t sec_hdr_type = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
   
   ue_emm_ctx->security_ctxt.dl_nas_count++;
  
@@ -1709,6 +1709,7 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
                              );
 
   memcpy(&nas_buffer->msg[1],mac,4);
+  
   //Copy NAS PDU to Downlink NAS Trasport message buffer
   memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
   dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;

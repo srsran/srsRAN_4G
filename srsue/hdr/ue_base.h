@@ -128,7 +128,9 @@ typedef struct {
   usim_args_t   usim;
   rrc_args_t    rrc;
   std::string   ue_category_str;
-  std::string   apn;
+  std::string   apn_name;
+  std::string   apn_user;
+  std::string   apn_pass;
   expert_args_t expert;
 }all_args_t;
 

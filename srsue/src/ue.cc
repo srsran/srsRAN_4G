@@ -47,11 +47,13 @@ ue::~ue()
   for (uint32_t i = 0; i < phy_log.size(); i++) {
     delete(phy_log[i]);
   }
+  if (usim) {
+    delete usim;
+  }
 }
 
-bool ue::init(all_args_t *args_)
-{
-  args     = args_;
+bool ue::init(all_args_t *args_) {
+  args = args_;
 
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
@@ -131,6 +133,13 @@ bool ue::init(all_args_t *args_)
   
   // Init layers
 
+  // Init USIM first to allow early exit in case reader couldn't be found
+  usim = usim_base::get_instance(&args->usim, &usim_log);
+  if (usim->init(&args->usim, &usim_log)) {
+    usim_log.console("Failed to initialize USIM.\n");
+    return false;
+  }
+
   // PHY inits in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
   phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
@@ -196,14 +205,12 @@ bool ue::init(all_args_t *args_)
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
-  usim.init(&args->usim, &usim_log);
-  srslte_nas_config_t nas_cfg(1, args->apn); /* RB_ID_SRB1 */
-  nas.init(&usim, &rrc, &gw, &nas_log, nas_cfg);
+  srslte_nas_config_t nas_cfg(1, args->apn_name, args->apn_user, args->apn_pass); /* RB_ID_SRB1 */
+  nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
-
   gw.set_netmask(args->expert.ip_netmask);
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
   
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &gw, &mac, &rrc_log);
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
   args->rrc.nof_supported_bands = 1;
@@ -243,7 +250,7 @@ void ue::stop()
 {
   if(started)
   {
-    usim.stop();
+    usim->stop();
     nas.stop();
     rrc.stop();
     
