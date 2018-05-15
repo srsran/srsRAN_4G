@@ -10,19 +10,25 @@ PKG_CHECK_MODULES(PC_PCSCLITE libpcsclite)
 
 IF(NOT PCSCLITE_FOUND)
 
-FIND_PATH(PCSCLITE_INCLUDE_DIR winscard.h
-  HINTS
-  /usr/include/PCSC
-  ${PC_PCSCLITE_INCLUDEDIR}
-  ${PC_PCSCLITE_INCLUDE_DIRS}
-  ${PC_PCSCLITE_INCLUDE_DIRS}/PCSC
-  )
-
+FIND_PATH(PCSCLITE_INCLUDE_DIR
+  NAMES winscard.h
+  HINTS /usr/include/PCSC
+        /usr/local/include/PCSC
+        ${PC_PCSCLITE_INCLUDEDIR}
+        ${PC_PCSCLITE_INCLUDE_DIRS}
+        ${PC_PCSCLITE_INCLUDE_DIRS}/PCSC
+        ${CMAKE_INSTALL_PREFIX}/include
+)
 FIND_LIBRARY(PCSCLITE_LIBRARY NAMES pcsclite libpcsclite PCSC
-  HINTS
-  ${PC_PCSCLITE_LIBDIR}
-  ${PC_PCSCLITE_LIBRARY_DIRS}
-  )
+  HINTS ${PC_PCSCLITE_LIBDIR}
+        ${PC_PCSCLITE_LIBRARY_DIRS}
+        ${CMAKE_INSTALL_PREFIX}/lib
+        ${CMAKE_INSTALL_PREFIX}/lib64
+  PATHS /usr/local/lib
+        /usr/local/lib64
+        /usr/lib
+        /usr/lib64
+)
 
 # handle the QUIETLY and REQUIRED arguments and set PCSCLITE_FOUND to TRUE if 
 # all listed variables are TRUE
