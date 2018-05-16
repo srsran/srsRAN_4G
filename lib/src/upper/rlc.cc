@@ -100,6 +100,16 @@ void rlc::get_metrics(rlc_metrics_t &m)
     }
   }
 
+  // Add multicast metrics
+  for (int i=0;i<SRSLTE_N_MCH_LCIDS;i++) {
+    m.dl_tput_mbps += (dl_tput_bytes_mrb[i]*8/(double)1e6)/secs;
+    if(rlc_array_mrb[i].is_mrb()) {
+      rlc_log->info("MCH_LCID=%d, RX throughput: %4.6f Mbps.\n",
+                    i,
+                    (dl_tput_bytes_mrb[i]*8/(double)1e6)/secs);
+    }
+  }
+
   memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));
   reset_metrics();
 }
