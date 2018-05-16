@@ -72,7 +72,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
 {
   if (file.is_open() && ue != NULL) {
     if(n_reports == 0) {
-      file << "time;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta,ul_mcs;ul_buff;ul_brate;ul_bler;rf_o;rf_u;rf_l;is_attached\n";
+      file << "time;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_bler;rf_o;rf_u;rf_l;is_attached\n";
     }
     file << (metrics_report_period*n_reports) << ";";
     file << float_to_string(metrics.phy.dl.rsrp, 2);
