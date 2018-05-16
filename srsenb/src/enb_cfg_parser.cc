@@ -212,7 +212,6 @@ int enb::parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUC
   );
   
   
-if(false){
   sib2.add_field(
      new parser::field<uint32>
     ("mbsfnSubframeConfigListLength", &data->mbsfn_subfr_cnfg_list_size)
@@ -243,8 +242,7 @@ if(false){
       ("radioframeAllocationPeriod", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_period,
        liblte_rrc_radio_frame_allocation_period_text, LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N_ITEMS)
     );
- }
-  
+ 
   parser::section freqinfo("freqInfo");
   sib2.add_subsection(&freqinfo);
   freqinfo.add_field(
