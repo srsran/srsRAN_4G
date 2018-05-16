@@ -332,7 +332,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
 void rlc::add_bearer_mrb(uint32_t lcid)
 {
   // 36.321 Table 6.2.1-4
-  if(lcid < 0 || lcid >= SRSLTE_N_MCH_LCIDS) {
+  if(lcid >= SRSLTE_N_MCH_LCIDS) {
     rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
     return;
   }
@@ -366,7 +366,7 @@ bool rlc::valid_lcid(uint32_t lcid)
 
 bool rlc::valid_lcid_mrb(uint32_t lcid)
 {
-  if(lcid < 0 || lcid > 31) {
+  if(lcid >= SRSLTE_N_MCH_LCIDS) {
     return false;
   }
   if(!rlc_array_mrb[lcid].is_mrb()) {

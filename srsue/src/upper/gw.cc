@@ -150,7 +150,7 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
   if(pdu->N_bytes>2)
   {
-    gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX MCH PDU. Stack latency: %ld us\n", pdu->get_latency_us());
+    gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX MCH PDU (%d B). Stack latency: %ld us\n", pdu->N_bytes, pdu->get_latency_us());
     dl_tput_bytes += pdu->N_bytes;
 
     //Hack to drop initial 2 bytes
@@ -158,9 +158,7 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
     pdu->N_bytes-=2;
     struct in_addr dst_addr;
     memcpy(&dst_addr.s_addr, &pdu->msg[16],4);
-    gw_log->console("gw\n");
-    gw_log->console("Destination IP: %s\n",inet_ntoa(dst_addr));
-    srslte_vec_fprint_b(stdout,&pdu->msg[0], pdu->N_bytes);
+
     if(!if_up)
     {
       gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
