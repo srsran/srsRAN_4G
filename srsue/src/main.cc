@@ -138,7 +138,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.ip_netmask",
      bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
      "Netmask of the tun_srsue device")
-
+  
+     ("expert.mbms_service",
+     bpo::value<int>(&args->expert.mbms_service)->default_value(-1),
+     "automatically starts an mbms service of the number given")
+  
     ("expert.phy.worker_cpu_mask",
      bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
      "cpu bit mask (eg 255 = 1111 1111)")
@@ -516,6 +520,9 @@ int main(int argc, char *argv[])
     }
     if (args.gui.enable) {
       ue->start_plot();
+    }
+    if(args.expert.mbms_service > -1){
+      ue->mbms_service_start(args.expert.mbms_service, 4321);
     }
   }
   int cnt=0;

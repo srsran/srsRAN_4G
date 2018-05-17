@@ -197,6 +197,7 @@ enable = false
 #####################################################################
 [expert]
 #ip_netmask          = 255.255.255.0
+#mbms_service        = -1
 #rssi_sensor_enabled = false
 #rx_gain_offset      = 72
 #prach_gain          = 30

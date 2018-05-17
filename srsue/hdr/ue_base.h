@@ -116,6 +116,7 @@ typedef struct {
   bool          print_buffer_state;
   bool          metrics_csv_enable;
   std::string   metrics_csv_filename;
+  int           mbms_service;
 }expert_args_t;
 
 typedef struct {
