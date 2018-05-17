@@ -651,7 +651,6 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
     dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, mch.num_mtch_sched + 1, mcs.tbs/8);
     
   } else {
-    
     uint32_t current_lcid = 1;
     uint32_t mtch_index = 0;
     uint32_t mtch_stop = mch.mtch_sched[mch.num_mtch_sched -1].stop;

@@ -615,7 +615,7 @@ int sch_subh::set_sdu(uint32_t lcid_, uint32_t requested_bytes, read_pdu_interfa
       // Save final number of written bytes
       nof_bytes = sdu_sz;
 
-      if(nof_bytes > requested_bytes) {
+      if(nof_bytes > (int32_t)requested_bytes) {
          return -1;
       }
     }

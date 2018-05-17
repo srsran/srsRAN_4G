@@ -215,8 +215,9 @@ void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
     }
     if(mch_msg->get()->is_sdu()) {
       uint32_t lcid = mch_msg->get()->get_sdu_lcid();
-      if(lcid < 0 || lcid >= SRSLTE_N_MCH_LCIDS) {
-        printf("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
+
+      if(lcid >= SRSLTE_N_MCH_LCIDS) {
+        Error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
         return;
       }
       Debug("Wrote MCH LCID=%d to RLC\n", lcid);
@@ -229,7 +230,7 @@ void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
 
 void demux::mch_start_rx(uint32_t lcid)
 {
-  if(lcid>=0 && lcid<32) {
+  if(lcid < 32) {
     Info("MCH Channel Setup: LCID=%d\n", lcid);
     mch_lcids[lcid] = 1;
   } else {
