@@ -246,6 +246,8 @@ void mac::mch_decoded_ok(uint32_t len)
   if (pcap) {
     pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti());
   }
+
+  metrics.rx_brate += len*8;
 }
 
 void mac::tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
