@@ -191,7 +191,6 @@ while(mch_run_enable) {
   }
 
   pdcp->write_sdu(rnti, lcid, pdu);
-  usleep(10000);
   do {
     pdu = pool_allocate;
     if (!pdu) {

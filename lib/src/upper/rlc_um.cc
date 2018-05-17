@@ -44,7 +44,7 @@ rlc_um::rlc_um() : tx_sdu_queue(32)
   bzero(&cfg, sizeof(srslte_rlc_um_config_t));
 
   tx_sdu = NULL;
-    
+
   rx_sdu = NULL;
   pool = byte_buffer_pool::get_instance();
 
@@ -84,7 +84,9 @@ void rlc_um::init(srslte::log                  *log_,
 void rlc_um::configure(srslte_rlc_config_t cnfg_)
 {
   cfg = cnfg_.um;
-
+  if(cnfg_.um.is_mrb){
+    tx_sdu_queue.resize(512);
+  }
   switch(cnfg_.rlc_mode)
   {
   case LIBLTE_RRC_RLC_MODE_UM_BI:
@@ -192,6 +194,7 @@ uint32_t rlc_um::get_buffer_state()
 {
   // Bytes needed for tx SDUs
   uint32_t n_sdus  = tx_sdu_queue.size();
+
   uint32_t n_bytes = tx_sdu_queue.size_bytes();
   if(tx_sdu)
   {

@@ -202,7 +202,6 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
   }      
 }
 void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
- 
     //disgarding headers that have already been processed
   //printf("in process cur idx, %d  subheaders %d\n",mch_msg->cur_idx,mch_msg->nof_subheaders);
   while(mch_msg->next()){
@@ -217,10 +216,10 @@ void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
     if(mch_msg->get()->is_sdu()) {
       uint32_t lcid = mch_msg->get()->get_sdu_lcid();
       if(lcid < 0 || lcid >= SRSLTE_N_MCH_LCIDS) {
-        Error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
+        printf("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
         return;
       }
-      Info("Wrote MCH LCID=%d to RLC\n", lcid);
+      Debug("Wrote MCH LCID=%d to RLC\n", lcid);
       if(1 == mch_lcids[lcid]) {
         rlc->write_pdu_mch(lcid, mch_msg->get()->get_sdu_ptr(), mch_msg->get()->get_payload_size());
       } 

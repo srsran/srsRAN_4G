@@ -50,6 +50,7 @@ public:
   void write(byte_buffer_t *msg)
   {
     queue.push(msg);
+    
     unread_bytes += msg->N_bytes;
   }
 
@@ -78,6 +79,10 @@ public:
     }
   }
 
+  void resize(uint32_t capacity)
+  {
+    queue.resize(capacity);
+  }
   uint32_t size()
   {
     return (uint32_t) queue.size();

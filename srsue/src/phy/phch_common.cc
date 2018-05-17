@@ -446,7 +446,7 @@ bool phch_common::is_mch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti)
     cfg->is_mcch = true;
     return true;
   }
-
+  
   // Not MCCH, check for MCH
   LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT *subfr_cnfg = &config->mbsfn.mbsfn_subfr_cnfg;
   LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT *area_info = &config->mbsfn.mbsfn_area_info;
@@ -461,7 +461,7 @@ bool phch_common::is_mch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti)
         if(mcch_configured) {
           // Iterate through PMCH configs to see which one applies in the current frame
           LIBLTE_RRC_MCCH_MSG_STRUCT *mcch = &config->mbsfn.mcch;
-          uint32_t mbsfn_per_frame = mcch->pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9/mcch->pmch_infolist_r9[0].pmch_config_r9.mch_schedulingperiod_r9;
+          uint32_t mbsfn_per_frame = mcch->pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9/liblte_rrc_mch_scheduling_period_r9_num[mcch->pmch_infolist_r9[0].pmch_config_r9.mch_schedulingperiod_r9];
           uint32_t frame_alloc_idx = sfn%liblte_rrc_mbsfn_common_sf_alloc_period_r9_num[mcch->commonsf_allocperiod_r9];        
           uint32_t sf_alloc_idx = frame_alloc_idx*mbsfn_per_frame + ((sf<4)?sf-1:sf-3); 
           pthread_mutex_lock(&mtch_mutex);
