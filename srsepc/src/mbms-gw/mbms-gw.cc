@@ -338,7 +338,6 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
   //Recompute UDP checksum
   udph->check = in_cksum((uint16_t*) pseudo_dgram, psize);
   free(pseudo_dgram);
-  printf("UDP cksum %x",udph->check);
 
   //Write GTP-U header into packet
   if(!srslte::gtpu_write_header(&header, msg))
@@ -352,7 +351,7 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
     m_mbms_gw_log->console("Error writting to M1-U socket.\n");
   }
   else{
-    m_mbms_gw_log->console("Sent %d Bytes\n", msg->N_bytes);
+    m_mbms_gw_log->debug("Sent %d Bytes\n", msg->N_bytes);
   }
 }
 

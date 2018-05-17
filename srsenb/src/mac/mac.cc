@@ -619,10 +619,6 @@ void mac::build_mch_sched(uint32_t tbs)
       last_mtch_stop = mch.mtch_sched[i].stop; 
     }
   }
-
-  printf("buffer size is %d\n",total_bytes_to_tx);
-  printf("shed size is %d\n",total_space_avail_bytes);
-  printf("stop value is %d\n",mch.mtch_sched[0].stop);
 }
 
 int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
