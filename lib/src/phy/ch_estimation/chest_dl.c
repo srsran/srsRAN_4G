@@ -271,10 +271,9 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id, srslt
   float sum_power = 0.0f;
   uint32_t count = 0;
   uint32_t npilots = (ch_mode == SRSLTE_SF_MBSFN)?SRSLTE_REFSIGNAL_NUM_SF_MBSFN(q->cell.nof_prb, port_id):SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
-  uint32_t nsymbols =
-      (ch_mode == SRSLTE_SF_MBSFN) ? srslte_refsignal_mbsfn_nof_symbols() : srslte_refsignal_cs_nof_symbols(port_id);
+  uint32_t nsymbols = (ch_mode == SRSLTE_SF_MBSFN) ? srslte_refsignal_mbsfn_nof_symbols() : srslte_refsignal_cs_nof_symbols(port_id);
   uint32_t nref = npilots / nsymbols;
- uint32_t fidx = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_fidx(1):srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
+  uint32_t fidx = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_fidx(1):srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
 
   cf_t *input2d[nsymbols + 2];
   cf_t *tmp_noise = q->tmp_noise;
@@ -502,7 +501,6 @@ uint32_t srslte_chest_dl_interleave_pilots(srslte_chest_dl_t *q, cf_t *input, cf
   uint32_t nref = (ch_mode == SRSLTE_SF_MBSFN)?6*q->cell.nof_prb:2*q->cell.nof_prb;
   uint32_t fidx = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_fidx(1):srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
   
-  
   if (fidx < 3) {
     srslte_vec_interleave(input, &input[nref], tmp, nref);
     for (int l = 2; l < nsymbols - 1; l += 2) {
@@ -524,7 +522,6 @@ uint32_t srslte_chest_dl_interleave_pilots(srslte_chest_dl_t *q, cf_t *input, cf
 static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint32_t port_id, srslte_sf_t ch_mode)  {
   uint32_t nsymbols = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_nof_symbols(port_id):srslte_refsignal_cs_nof_symbols(port_id);
   uint32_t nref = (ch_mode == SRSLTE_SF_MBSFN)?6*q->cell.nof_prb:2*q->cell.nof_prb;
-  uint32_t fidx = (ch_mode == SRSLTE_SF_MBSFN)?srslte_refsignal_mbsfn_fidx(1):srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
 
   // Average in the time domain if enabled
   if (q->average_subframe) {

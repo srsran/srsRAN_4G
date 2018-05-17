@@ -200,7 +200,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
       // Save contention resolution if lcid == 0
       if (mac_msg_ul.get()->get_sdu_lcid() == 0 && route_pdu) {
         int nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
-        if (mac_msg_ul.get()->get_payload_size() >= nbytes) {
+        if (mac_msg_ul.get()->get_payload_size() >= (uint32_t)nbytes) {
           uint8_t *ue_cri_ptr = (uint8_t *) &conres_id;
           uint8_t *pkt_ptr = mac_msg_ul.get()->get_sdu_ptr(); // Warning here: we want to include the
           for (int i = 0; i < nbytes; i++) {

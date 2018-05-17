@@ -648,7 +648,6 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
     dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, mch.num_mtch_sched + 1, mcs.tbs/8);
     
   } else {
-    
     uint32_t current_lcid = 1;
     uint32_t mtch_index = 0;
     uint32_t mtch_stop = mch.mtch_sched[mch.num_mtch_sched -1].stop;
@@ -661,7 +660,7 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
       }
     }
     if(mch.current_sf_allocation_num <= mtch_stop) {
-      int requested_bytes = (mcs_data.tbs/8 > mch.mtch_sched[mtch_index].lcid_buffer_size)?mch.mtch_sched[mtch_index].lcid_buffer_size:mcs_data.tbs/8;
+      int requested_bytes = (mcs_data.tbs/8 > (int32_t)mch.mtch_sched[mtch_index].lcid_buffer_size)?mch.mtch_sched[mtch_index].lcid_buffer_size:mcs_data.tbs/8;
       int  bytes_received = ue_db[SRSLTE_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
       mch.pdu[0].lcid = current_lcid;
       mch.pdu[0].nbytes = bytes_received;

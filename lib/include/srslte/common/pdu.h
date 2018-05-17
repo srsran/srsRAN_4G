@@ -209,11 +209,20 @@ private:
 
 class sch_subh : public subh<sch_subh>
 {
-
-public: 
-
-
-  sch_subh(subh_type type_ = SCH_SUBH_TYPE):type(type_){}
+public:
+  sch_subh(subh_type type_ = SCH_SUBH_TYPE) {
+    lcid             = 0;
+    nof_bytes        = 0;
+    payload          = NULL;
+    nof_mch_sched_ce = 0;
+    cur_mch_sched_ce = 0;
+    F_bit            = false;
+    type             = type_;
+    nof_mch_sched_ce = 0;
+    cur_mch_sched_ce = 0;
+    parent           = NULL;
+    bzero(&w_payload_ce, sizeof(w_payload_ce));
+  }
 
   virtual ~sch_subh(){}
   
@@ -246,12 +255,9 @@ public:
   cetype ce_type();
   uint32_t size_plus_header();
   void     set_payload_size(uint32_t size);
- 
-
 
   bool read_subheader(uint8_t** ptr);
   void read_payload(uint8_t **ptr);
-
 
   uint32_t get_sdu_lcid();
   uint32_t get_payload_size();
@@ -267,11 +273,8 @@ public:
   bool     get_next_mch_sched_info(uint8_t *lcid, uint16_t *mtch_stop);
   
   // Writing functions
-
-
   void write_subheader(uint8_t** ptr, bool is_last);
   void write_payload(uint8_t **ptr);
-
 
   int      set_sdu(uint32_t lcid, uint32_t nof_bytes, uint8_t *payload);
   int      set_sdu(uint32_t lcid, uint32_t requested_bytes, read_pdu_interface *sdu_itf);
@@ -291,7 +294,7 @@ public:
   
 protected:
 
-static const int MAX_CE_PAYLOAD_LEN = 8;
+  static const int MAX_CE_PAYLOAD_LEN = 8;
   uint32_t  lcid;
   int       nof_bytes;
   uint8_t*  payload;
@@ -300,9 +303,6 @@ static const int MAX_CE_PAYLOAD_LEN = 8;
   uint8_t   cur_mch_sched_ce;
   bool      F_bit;
   subh_type type;
-
-
-
 
 private: 
   uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
@@ -314,7 +314,6 @@ private:
 class sch_pdu : public pdu<sch_subh>
 {
 public:
-  
   sch_pdu(uint32_t max_subh): pdu(max_subh) {}
   
   void      parse_packet(uint8_t *ptr);
@@ -336,6 +335,13 @@ public:
 class rar_subh : public subh<rar_subh>
 {
 public:
+  rar_subh() {
+    bzero(&grant, sizeof(grant));
+    ta        = 0;
+    temp_rnti = 0;
+    preamble  = 0;
+    parent    = NULL;
+  }
 
   static const uint32_t RAR_GRANT_LEN = 20; 
   
@@ -386,25 +392,19 @@ private:
 
 class mch_subh : public sch_subh
 {
-
 public:
     mch_subh():sch_subh(MCH_SUBH_TYPE){}
- 
-    
 
-
-//  // Size of MAC CEs
-  const static int MAC_CE_CONTRES_LEN = 6;
-      
+    // Size of MAC CEs
+    const static int MAC_CE_CONTRES_LEN = 6;
   };
 
 class mch_pdu : public sch_pdu
 {
 public:
-
   mch_pdu(uint32_t max_subh) : sch_pdu(max_subh) {}
   
-  private:
+private:
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
       
   virtual void init_(uint8_t *buffer_tx_ptr, uint32_t pdu_len_bytes, bool is_ulsch) {
