@@ -602,7 +602,7 @@ void mac::build_mch_sched(uint32_t tbs)
     total_bytes_to_tx += mch.mtch_sched[i].lcid_buffer_size;
     mch.mtch_sched[i].stop = 0;
   }
-  
+ 
   int last_mtch_stop = 0;
   
   if(total_bytes_to_tx >= total_space_avail_bytes){
@@ -626,12 +626,14 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
 {
   
   srslte_ra_mcs_t mcs;
+  srslte_ra_mcs_t mcs_data;
   mcs.idx = this->sib13.mbsfn_area_info_list_r9[0].signalling_mcs_r9;
+  mcs_data.idx = this->mcch.pmch_infolist_r9[0].pmch_config_r9.datamcs_r9;
   srslte_dl_fill_ra_mcs(&mcs, this->cell_config.cell.nof_prb);
-  
+  srslte_dl_fill_ra_mcs(&mcs_data, this->cell_config.cell.nof_prb);
   if(is_mcch){ 
     
-    build_mch_sched(mcs.tbs);
+    build_mch_sched(mcs_data.tbs);
     mch.mcch_payload = mcch_payload_buffer;
     mch.current_sf_allocation_num = 1;
  
@@ -643,7 +645,7 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
     mch.pdu[mch.num_mtch_sched].lcid = 0;
     mch.pdu[mch.num_mtch_sched].nbytes =  current_mcch_length;
     dl_sched_res->sched_grants[0].rnti = SRSLTE_MRNTI;
-    dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, mch.num_mtch_sched + 1, mcs.tbs);
+    dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, mch.num_mtch_sched + 1, mcs.tbs/8);
     
   } else {
     
@@ -659,14 +661,14 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
       }
     }
     if(mch.current_sf_allocation_num <= mtch_stop) {
-      int requested_bytes = (mcs.tbs/8 > mch.mtch_sched[mtch_index].lcid_buffer_size)?mch.mtch_sched[mtch_index].lcid_buffer_size:mcs.tbs/8;
+      int requested_bytes = (mcs_data.tbs/8 > mch.mtch_sched[mtch_index].lcid_buffer_size)?mch.mtch_sched[mtch_index].lcid_buffer_size:mcs_data.tbs/8;
       int  bytes_received = ue_db[SRSLTE_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
       mch.pdu[0].lcid = current_lcid;
       mch.pdu[0].nbytes = bytes_received;
       mch.mtch_sched[0].mtch_payload = mtch_payload_buffer;
       dl_sched_res->sched_grants[0].rnti = SRSLTE_MRNTI;
       if(bytes_received){
-        dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, 1, mcs.tbs);
+        dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, 1, mcs_data.tbs/8);
       }
     } else {
       //TRANSMIT NOTHING
