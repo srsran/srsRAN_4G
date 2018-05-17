@@ -521,8 +521,10 @@ int main(int argc, char *argv[])
     if (args.gui.enable) {
       ue->start_plot();
     }
-    if(args.expert.mbms_service > -1){
-      ue->mbms_service_start(args.expert.mbms_service, 4321);
+    if(args.expert.mbms_service > -1) {
+      serv = args.expert.mbms_service;
+      port = 14321;
+      mbms_service_start = true;
     }
   }
   int cnt=0;

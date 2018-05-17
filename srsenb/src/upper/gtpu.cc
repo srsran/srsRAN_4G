@@ -170,7 +170,6 @@ while(mch_run_enable) {
 
   pdu->N_bytes = (uint32_t) n;
 
-  printf("Bytes=%d\n",n);
 
   gtpu_header_t header;
   gtpu_read_header(pdu, &header);

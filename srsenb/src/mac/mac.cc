@@ -639,6 +639,7 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
       mch.pdu[i].lcid = srslte::sch_subh::MCH_SCHED_INFO;
      // mch.mtch_sched[i].lcid = 1+i;
     }
+    
     mch.pdu[mch.num_mtch_sched].lcid = 0;
     mch.pdu[mch.num_mtch_sched].nbytes =  current_mcch_length;
     dl_sched_res->sched_grants[0].rnti = SRSLTE_MRNTI;

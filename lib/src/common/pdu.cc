@@ -585,7 +585,7 @@ bool sch_subh::set_ta_cmd(uint8_t ta_cmd)
 bool sch_subh::set_next_mch_sched_info(uint8_t lcid_, uint16_t mtch_stop)
 {
   if (((sch_pdu*)parent)->has_space_ce(2, true)) {
-    w_payload_ce[nof_mch_sched_ce*2] = (lcid_&0x1F) << 3 | (uint8_t) (mtch_stop&0x0700)>>8 ;
+    w_payload_ce[nof_mch_sched_ce*2] = (lcid_&0x1F) << 3 | (uint8_t) ((mtch_stop&0x0700)>>8);
     w_payload_ce[nof_mch_sched_ce*2+1] = (uint8_t) (mtch_stop&0xff);
     nof_mch_sched_ce++;
     lcid = MCH_SCHED_INFO;

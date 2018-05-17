@@ -52,7 +52,14 @@ typedef struct {
   std::string m1u_multi_addr;
 } mbms_gw_args_t;
 
-
+struct pseudo_hdr
+{
+  uint32_t  src_addr;
+  uint32_t  dst_addr;
+  uint8_t   placeholder;
+  uint8_t   protocol;
+  uint16_t  udp_len;
+};
 
 class mbms_gw:
   public thread
@@ -73,8 +80,9 @@ private:
 
   srslte::error_t init_sgi_mb_if(mbms_gw_args_t *args);
   srslte::error_t init_m1_u(mbms_gw_args_t *args);
-
   void handle_sgi_md_pdu(srslte::byte_buffer_t *msg);
+  uint16_t in_cksum(uint16_t *iphdr, int count);
+
   /* Members */
   bool m_running;
   srslte::byte_buffer_pool *m_pool;

@@ -32,6 +32,7 @@
 #include <sys/socket.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <netinet/udp.h>
 #include <linux/ip.h>
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
 #include "srslte/upper/gtpu.h"
@@ -195,7 +196,7 @@ mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
   }
 
   ifr.ifr_netmask.sa_family                                 = AF_INET;
-  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.255");
+  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
   if (ioctl(sgi_mb_sock, SIOCSIFNETMASK, &ifr) < 0) {
     m_mbms_gw_log->error("Failed to set TUN interface Netmask. Error: %s\n", strerror(errno));
     close(m_sgi_mb_if);
@@ -285,6 +286,7 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
   uint8_t version;
   srslte::gtpu_header_t header;
   in_addr_t baddr = inet_addr("172.16.0.255");
+  in_addr_t saddr = inet_addr("172.16.0.254");
 
   //Setup GTP-U header
   header.flags        = 0x30;
@@ -298,14 +300,45 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
     m_mbms_gw_log->error("IPv4 min len: %d, drop msg len %d\n", 20, msg->N_bytes);
     return;
   }
-  version = msg->msg[0]>>4;
-  if(version !=4)
+
+  //IP+UDP Headers
+  struct iphdr *iph = (struct iphdr *) msg->msg;
+  struct udphdr *udph = (struct udphdr *) (msg->msg + iph->ihl*4);
+  if(iph->version != 4)
   {
     m_mbms_gw_log->warning("IPv6 not supported yet.\n");
     return;
   }
+
   //Replace Destination IP with broadcast address
-  memcpy(&msg->msg[16],&baddr,4); 
+  iph->daddr = baddr;
+
+  //Replace Source IP with address in same subnet
+  iph->saddr = saddr;
+
+  //Replace IP cheksum
+  iph->check = 0;
+  iph->check = in_cksum((uint16_t*)msg->msg,4*(msg->msg[0] & 0x0F));
+
+  //Set Pseudo Header
+  struct pseudo_hdr phdr;
+  phdr.src_addr    = iph->saddr;
+  phdr.dst_addr    = iph->daddr;
+  phdr.protocol    = IPPROTO_UDP;
+  phdr.placeholder = 0;
+  phdr.udp_len     = udph->len;
+
+  //Set Pseudo Datagram
+  udph->check = 0;
+  int psize = sizeof(struct pseudo_hdr) + ntohs(udph->len);
+  uint8_t * pseudo_dgram = (uint8_t*) malloc(psize);
+  memcpy(pseudo_dgram, &phdr,sizeof(struct pseudo_hdr));
+  memcpy(pseudo_dgram+sizeof(pseudo_hdr),udph,ntohs(udph->len));
+
+  //Recompute UDP checksum
+  udph->check = in_cksum((uint16_t*) pseudo_dgram, psize);
+  free(pseudo_dgram);
+  printf("UDP cksum %x",udph->check);
 
   //Write GTP-U header into packet
   if(!srslte::gtpu_write_header(&header, msg))
@@ -321,6 +354,33 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
   else{
     m_mbms_gw_log->console("Sent %d Bytes\n", msg->N_bytes);
   }
-
 }
+
+uint16_t
+mbms_gw::in_cksum(uint16_t *iphdr, int count)
+{
+
+  //RFC 1071
+  uint32_t sum = 0;
+  uint16_t padd = 0;
+  uint16_t result;
+  while(count > 1)
+  {
+    sum+= *iphdr++;
+    count -= 2;
+  }
+  if( count > 0 )
+  {
+    padd = * (uint8_t *) iphdr;
+    sum += padd;
+  }
+  /*Fold 32-bit sum to 16-bit*/
+  //  while(sum>>16)
+  //  sum = (sum & 0xffff) + (sum >> 16);
+  sum = (sum>>16)+(sum & 0xFFFF);
+  sum = sum + (sum >> 16);
+  result = (uint16_t) ~sum;
+  return result;
+}
+
 } //namespace srsepc
