@@ -67,13 +67,11 @@ public:
   float avg_rsrp;
   float avg_rsrp_cqi;
   float avg_rsrp_dbm;
-  float avg_rsrp_sync_dbm;
   float avg_rsrq_db;
   float avg_rssi_dbm;
   float last_radio_rssi;
   float rx_gain_offset;
   float avg_snr_db_cqi;
-  float avg_snr_db_sync;
   float avg_noise;
 
   uint32_t pcell_report_period;
