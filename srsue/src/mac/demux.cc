@@ -203,7 +203,6 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
 }
 void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
     //disgarding headers that have already been processed
-  //printf("in process cur idx, %d  subheaders %d\n",mch_msg->cur_idx,mch_msg->nof_subheaders);
   while(mch_msg->next()){
     
     if(srslte::mch_subh::MCH_SCHED_INFO == mch_msg->get()->ce_type()){
@@ -234,7 +233,7 @@ void demux::mch_start_rx(uint32_t lcid)
     Info("MCH Channel Setup: LCID=%d\n", lcid);
     mch_lcids[lcid] = 1;
   } else {
-    Warning("MCH Channel Setup: invalid LCID=%d\n", lcid);
+    Error("MCH Channel Setup: invalid LCID=%d\n", lcid);
   }
 }
 

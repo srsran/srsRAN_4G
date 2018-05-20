@@ -184,7 +184,7 @@ private:
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2; 
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
   
-  const static int mtch_payload_len = 1000;
+  const static int mtch_payload_len = 10000;
   uint8_t mtch_payload_buffer[mtch_payload_len];
   
   /* Functions for MAC Timers */

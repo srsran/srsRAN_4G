@@ -286,7 +286,7 @@ public:
   void liblte_rrc_log(char *str);
   
   void print_mbms();
-  void mbms_service_start(uint32_t serv, uint32_t port);
+  bool mbms_service_start(uint32_t serv, uint32_t port);
 
   // NAS interface
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);

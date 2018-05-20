@@ -522,14 +522,18 @@ int main(int argc, char *argv[])
       ue->start_plot();
     }
     if(args.expert.mbms_service > -1){
-      ue->mbms_service_start(args.expert.mbms_service, 4321);
+      //ue->mbms_service_start(args.expert.mbms_service, 4321);
+      serv = args.expert.mbms_service;
+      port = 4321;
+      mbms_service_start = true;
     }
   }
   int cnt=0;
   while (running) {
     if(mbms_service_start) {
-      mbms_service_start = false;
-      ue->mbms_service_start(serv, port);
+      if(ue->mbms_service_start(serv, port)){
+        mbms_service_start = false;
+      }
     }
     if(show_mbms) {
       show_mbms = false;

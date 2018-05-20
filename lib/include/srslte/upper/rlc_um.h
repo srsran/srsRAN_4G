@@ -135,7 +135,6 @@ private:
 
   int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
   void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes);
-  void handle_mch_data_pdu(uint8_t *payload, uint32_t nof_bytes);
   void reassemble_rx_sdus();
   bool inside_reordering_window(uint16_t sn);
   void debug_state();

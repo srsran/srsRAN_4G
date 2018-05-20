@@ -330,9 +330,9 @@ void ue::print_mbms()
   rrc.print_mbms();
 }
 
-void ue::mbms_service_start(uint32_t serv, uint32_t port)
+bool ue::mbms_service_start(uint32_t serv, uint32_t port)
 {
-  rrc.mbms_service_start(serv, port);
+  return rrc.mbms_service_start(serv, port);
 }
 
 void ue::rf_msg(srslte_rf_error_t error)

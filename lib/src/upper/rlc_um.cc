@@ -231,11 +231,7 @@ int rlc_um::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 void rlc_um::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
-  if(cfg.is_mrb) {
-    handle_mch_data_pdu(payload, nof_bytes);
-  } else {
-    handle_data_pdu(payload, nof_bytes);
-  }
+  handle_data_pdu(payload, nof_bytes);
   pthread_mutex_unlock(&mutex);
 }
 
@@ -395,63 +391,6 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   return ret;
 }
 
-void rlc_um::handle_mch_data_pdu(uint8_t *payload, uint32_t nof_bytes)
-{
-  if(!rx_sdu) {
-    rx_sdu = pool_allocate;
-  }
-
-  rlc_umd_pdu_header_t header;
-  rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.rx_sn_field_length, &header);
-
-  log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN: %d",
-                rb_name().c_str(), header.sn);
-
-  //Strip header from PDU
-  int header_len = rlc_um_packed_length(&header);
-  payload += header_len;
-  nof_bytes -= header_len;
-  if(0 == header.sn) {
-    vr_uh = 0;
-  }
-
-  // Handle SDU segments
-  for(uint32_t i=0; i<header.N_li; i++) {
-    int len = header.li[i];
-    if(vr_uh != header.sn) {
-      rx_sdu->reset();
-      vr_uh = header.sn;
-      if(!rlc_um_start_aligned(header.fi)) {
-        payload += len;
-        nof_bytes -= len;
-      }
-    } else {
-      memcpy(&rx_sdu->msg[rx_sdu->N_bytes], payload, len);
-      log->debug("Concatenating %d bytes in to current length %d.\n", len, rx_sdu->N_bytes);
-      rx_sdu->N_bytes += len;
-      payload += len;
-      nof_bytes -= len;
-      log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU i=%d", rb_name().c_str(), i);
-      rx_sdu->set_timestamp();
-      pdcp->write_pdu_mch(lcid, rx_sdu);
-      rx_sdu = pool_allocate;
-    }
-  }
-
-  // Handle last segment
-  memcpy(&rx_sdu->msg[rx_sdu->N_bytes], payload, nof_bytes);
-  rx_sdu->N_bytes += nof_bytes;
-  log->debug("Writing last segment in SDU buffer. Buffer size=%d, segment size=%d\n",
-             rx_sdu->N_bytes, nof_bytes);
-  if(rlc_um_end_aligned(header.fi)) {
-    log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU", rb_name().c_str());
-    rx_sdu->set_timestamp();
-    pdcp->write_pdu_mch(lcid, rx_sdu);
-    rx_sdu = pool_allocate;
-  }
-  vr_uh  = (header.sn + 1);
-}
-
 void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it;
@@ -565,7 +504,11 @@ void rlc_um::reassemble_rx_sdus()
         } else {
           log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d (lower edge middle segments)", rb_name().c_str(), vr_ur, i);
           rx_sdu->set_timestamp();
-          pdcp->write_pdu(lcid, rx_sdu);
+          if(cfg.is_mrb){
+            pdcp->write_pdu_mch(lcid, rx_sdu);
+          } else {
+            pdcp->write_pdu(lcid, rx_sdu);
+          }
           rx_sdu = pool_allocate;
           if (!rx_sdu) {
             log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
@@ -592,7 +535,11 @@ void rlc_um::reassemble_rx_sdus()
           } else {
             log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", rrc->get_rb_name(lcid).c_str(), vr_ur);
             rx_sdu->set_timestamp();
-            pdcp->write_pdu(lcid, rx_sdu);
+            if(cfg.is_mrb){
+              pdcp->write_pdu_mch(lcid, rx_sdu);
+            } else {
+              pdcp->write_pdu(lcid, rx_sdu);
+            }
             rx_sdu = pool_allocate;
             if (!rx_sdu) {
               log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
@@ -642,7 +589,11 @@ void rlc_um::reassemble_rx_sdus()
       } else {
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)", rb_name().c_str(), vr_ur, i);
         rx_sdu->set_timestamp();
-        pdcp->write_pdu(lcid, rx_sdu);
+        if(cfg.is_mrb){
+          pdcp->write_pdu_mch(lcid, rx_sdu);
+        } else {
+          pdcp->write_pdu(lcid, rx_sdu);
+        }
         rx_sdu = pool_allocate;
         if (!rx_sdu) {
           log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
@@ -681,7 +632,11 @@ void rlc_um::reassemble_rx_sdus()
       } else {
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", rb_name().c_str(), vr_ur);
         rx_sdu->set_timestamp();
-        pdcp->write_pdu(lcid, rx_sdu);
+        if(cfg.is_mrb){
+          pdcp->write_pdu_mch(lcid, rx_sdu);
+        } else {
+          pdcp->write_pdu(lcid, rx_sdu);
+        }
         rx_sdu = pool_allocate;
         if (!rx_sdu) {
           log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");

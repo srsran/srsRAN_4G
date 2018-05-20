@@ -545,7 +545,7 @@ int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST])
       } 
       uint32_t n_sf = (current_tti-pending_sibs[i].window_start); 
       if ((i == 0 && (sfn%2) == 0 && sf_idx == 5) ||
-          (i >  0 && n_sf >= (cfg.si_window_ms/nof_tx)*pending_sibs[i].n_tx && sf_idx==0)) 
+          (i >  0 && n_sf >= (cfg.si_window_ms/nof_tx)*pending_sibs[i].n_tx && sf_idx==9)) 
       {
         uint32_t rv = get_rvidx(pending_sibs[i].n_tx);
         

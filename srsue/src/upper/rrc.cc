@@ -119,9 +119,10 @@ void rrc::print_mbms()
   }
 }
 
-void rrc::mbms_service_start(uint32_t serv, uint32_t port)
+bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
 {
-  rrc_log->console("MBMS service start requested. Service id:%d, port: %d\n", serv, port);
+  bool ret = false;
+  
   if(serving_cell->has_mcch) {
     LIBLTE_RRC_MCCH_MSG_STRUCT msg;
     memcpy(&msg, &serving_cell->mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
@@ -130,11 +131,14 @@ void rrc::mbms_service_start(uint32_t serv, uint32_t port)
       for(uint32_t j=0;j<pmch->mbms_sessioninfolist_r9_size; j++) {
         LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT *sess = &pmch->mbms_sessioninfolist_r9[j];
         if(serv == sess->tmgi_r9.serviceid_r9) {
+          rrc_log->console("MBMS service started. Service id:%d, port: %d\n", serv, port);
+          ret = true;
           add_mrb(sess->logicalchannelid_r9, port);
         }
       }
     }
   }
+  return ret;
 }
 
 
