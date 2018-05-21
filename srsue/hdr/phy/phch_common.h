@@ -65,7 +65,6 @@ public:
   float cur_radio_power;
   float cur_pusch_power;
   float avg_rsrp;
-  float avg_rsrp_cqi;
   float avg_rsrp_dbm;
   float avg_rsrq_db;
   float avg_rssi_dbm;

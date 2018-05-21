@@ -683,6 +683,10 @@ void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q, float cfo)
     srslte_sync_set_cfo_cp_enable(&q->sfind, false, 0);
   }
 
+  // Set SFO ema and correct period
+  srslte_ue_sync_set_sfo_correct_period(q, worker_com->args->sfo_correct_period);
+  srslte_ue_sync_set_sfo_ema(q, worker_com->args->sfo_ema);
+
   sss_alg_t sss_alg = SSS_FULL;
   if (!worker_com->args->sss_algorithm.compare("diff")) {
     sss_alg = SSS_DIFF;

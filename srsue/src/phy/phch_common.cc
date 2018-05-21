@@ -344,7 +344,6 @@ void phch_common::reset() {
   cur_pusch_power = 0;
   avg_snr_db_cqi = 0;
   avg_rsrp = 0;
-  avg_rsrp_cqi = 0;
   avg_rsrp_dbm = 0;
   avg_rsrq_db = 0;
 

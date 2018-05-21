@@ -497,6 +497,8 @@ typedef struct {
   float cfo_loop_bw_ref;
   float cfo_loop_ref_min;
   float cfo_loop_pss_tol;
+  float sfo_ema;
+  uint32_t sfo_correct_period;
   uint32_t cfo_loop_pss_conv;
   uint32_t cfo_ref_mask;
   bool average_subframe_enabled;

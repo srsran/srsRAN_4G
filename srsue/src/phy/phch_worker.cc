@@ -407,7 +407,7 @@ void phch_worker::work_imp()
   update_measurements();
 
   if (chest_ok) {
-    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db_cqi > 0.0) {
+    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db_cqi > -6.0) {
       log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
                    phy->avg_snr_db_cqi, phy->avg_rsrp_dbm);
       chest_loop->in_sync();
@@ -1433,7 +1433,7 @@ void phch_worker::update_measurements()
     }
 
     // Average RSRP taken from CRS
-    float rsrp_lin = srslte_chest_dl_get_rsrp_neighbour(&ue_dl.chest);
+    float rsrp_lin = srslte_chest_dl_get_rsrp(&ue_dl.chest);
     if (isnormal(rsrp_lin)) {
       if (!phy->avg_rsrp) {
         phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
@@ -1473,17 +1473,7 @@ void phch_worker::update_measurements()
       }
     }
 
-    // To compute CQI use RSRP measurements from resource elements in RS since is more robust to time offset
-    float rsrp_lin_cqi = srslte_chest_dl_get_rsrp(&ue_dl.chest);
-    if (isnormal(rsrp_lin_cqi)) {
-      if (!phy->avg_rsrp_cqi) {
-        phy->avg_rsrp_cqi = SRSLTE_VEC_EMA(rsrp_lin_cqi, phy->avg_rsrp_cqi, snr_ema_coeff);
-      } else {
-        phy->avg_rsrp_cqi = rsrp_lin_cqi;
-      }
-    }
-
-    phy->avg_snr_db_cqi  = 10*log10(phy->avg_rsrp_cqi/phy->avg_noise); 
+    phy->avg_snr_db_cqi  = 10*log10(phy->avg_rsrp/phy->avg_noise);
 
     // Store metrics
     dl_metrics.n      = phy->avg_noise;
