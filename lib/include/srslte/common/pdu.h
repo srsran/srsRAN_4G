@@ -218,8 +218,6 @@ public:
     cur_mch_sched_ce = 0;
     F_bit            = false;
     type             = type_;
-    nof_mch_sched_ce = 0;
-    cur_mch_sched_ce = 0;
     parent           = NULL;
     bzero(&w_payload_ce, sizeof(w_payload_ce));
   }
@@ -241,11 +239,6 @@ public:
     SDU              = 0
   } cetype;
 
-  typedef struct {
-    uint8_t  lcid;
-    uint16_t stop_mtch;
-  } mch_sched_elem;
-  
   // Size of MAC CEs
   const static int MAC_CE_CONTRES_LEN = 6; 
 
@@ -397,7 +390,7 @@ public:
 
     // Size of MAC CEs
     const static int MAC_CE_CONTRES_LEN = 6;
-  };
+};
 
 class mch_pdu : public sch_pdu
 {
@@ -405,8 +398,8 @@ public:
   mch_pdu(uint32_t max_subh) : sch_pdu(max_subh) {}
   
 private:
+
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
-      
   virtual void init_(uint8_t *buffer_tx_ptr, uint32_t pdu_len_bytes, bool is_ulsch) {
     nof_subheaders = 0; 
     pdu_len        = pdu_len_bytes; 
@@ -424,7 +417,7 @@ private:
       subheaders[i].init();
     }
   }
- };
+};
 
 } // namespace srsue
 
