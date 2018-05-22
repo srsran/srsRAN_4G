@@ -1244,7 +1244,8 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
                    16 /* data value */ +
                    cfg.user.length();
 
-    uint8_t challenge[len] = {};
+    uint8_t challenge[len];
+    bzero(challenge, len*sizeof(uint8_t));
     challenge[0] = 0x01; // challenge code
     challenge[1] = chap_id; // ID
     challenge[2] = (len >> 8) & 0xff;
@@ -1263,7 +1264,8 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
     }
 
     // Generate response
-    uint8_t response[len] = {};
+    uint8_t response[len];
+    bzero(response, len*sizeof(uint8_t));
     response[0] = 0x02; // response code
     response[1] = chap_id;
     response[2] = (len >> 8) & 0xff;

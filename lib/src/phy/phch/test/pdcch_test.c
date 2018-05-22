@@ -147,7 +147,7 @@ typedef struct {
 
 int main(int argc, char **argv) {
   srslte_pdcch_t pdcch_tx, pdcch_rx;
-  testcase_dci_t testcases[10] = {};
+  testcase_dci_t testcases[10];
   srslte_ra_dl_dci_t ra_dl;
   srslte_regs_t regs;
   int i, j, k;

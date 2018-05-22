@@ -251,12 +251,16 @@ void phch_worker::work_imp()
   bool ul_grant_available = false;
   bool dl_ack[SRSLTE_MAX_CODEWORDS] = {false};
 
-  mac_interface_phy::mac_grant_t    dl_mac_grant = {};
-  mac_interface_phy::tb_action_dl_t dl_action = {};
+  mac_interface_phy::mac_grant_t    dl_mac_grant;
+  mac_interface_phy::tb_action_dl_t dl_action;
 
-  mac_interface_phy::mac_grant_t    ul_mac_grant = {};
-  mac_interface_phy::tb_action_ul_t ul_action = {};
+  mac_interface_phy::mac_grant_t    ul_mac_grant;
+  mac_interface_phy::tb_action_ul_t ul_action;
 
+  ZERO_OBJECT(dl_mac_grant);
+  ZERO_OBJECT(dl_action);
+  ZERO_OBJECT(ul_mac_grant);
+  ZERO_OBJECT(ul_action);
 
   /** Calculate RSSI on the input signal before generating the output */
 

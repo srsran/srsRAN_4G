@@ -108,7 +108,8 @@ class cell_t
   }
 
   cell_t() {
-    phy_interface_rrc::phy_cell_t tmp = {};
+    phy_interface_rrc::phy_cell_t tmp;
+    ZERO_OBJECT(tmp);
     cell_t(tmp, 0);
   }
   cell_t(phy_interface_rrc::phy_cell_t phy_cell, float rsrp) {
