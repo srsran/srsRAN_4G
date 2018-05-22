@@ -35,7 +35,7 @@
 #include <signal.h>
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/phch/pdsch_cfg.h>
-
+#include "srslte/common/gen_mch_tables.h"
 #include "srslte/srslte.h"
 
 
@@ -79,7 +79,7 @@ char mimo_type_str[32] = "single";
 uint32_t nof_tb = 1;
 uint32_t multiplex_pmi = 0;
 uint32_t multiplex_nof_layers = 1;
-
+uint8_t  mbsfn_sf_mask = 32;
 int mbsfn_area_id = -1;
 char *rf_args = "";
 float rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
@@ -154,7 +154,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "aglfmoncpvutxbwMs")) != -1) {
+  while ((opt = getopt(argc, argv, "aglfmoncpvutxbwMsB")) != -1) {
 
     switch (opt) {
     case 'a':
@@ -205,6 +205,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 's':
       output_file_snr = atof(argv[optind]);
+      break;
+    case 'B':
+      mbsfn_sf_mask = atoi(argv[optind]);
       break;
     default:
       usage(argv[0]);
@@ -257,6 +260,7 @@ void base_init() {
     bzero(data[i], sizeof(uint8_t) * SOFTBUFFER_SIZE);
   }
   data_mbms = srslte_vec_malloc(sizeof(uint8_t) * SOFTBUFFER_SIZE);
+  
 
   /* init memory */
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
@@ -721,6 +725,11 @@ int main(int argc, char **argv) {
 
   parse_args(argc, argv);
 
+  uint8_t mch_table[10];
+  bzero(&mch_table[0], sizeof(uint8_t)*10);
+  if(mbsfn_area_id < -1) {
+    generate_mcch_table(mch_table, mbsfn_sf_mask);
+  }
   N_id_2 = cell.id % 3;
   sf_n_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
   sf_n_samples = 2 * SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb));
@@ -848,7 +857,7 @@ int main(int argc, char **argv) {
         memcpy(sf_symbols[i], sf_symbols[0], sizeof(cf_t) * sf_n_re);
       }
       
-      if(sf_idx == 2 && mbsfn_area_id > -1){
+      if(mch_table[sf_idx] == 1 && mbsfn_area_id > -1){
         srslte_refsignal_mbsfn_put_sf(cell, 0,csr_refs.pilots[0][sf_idx], mbsfn_refs.pilots[0][sf_idx],  sf_symbols[0]);
       } else { 
         for (i = 0; i < cell.nof_ports; i++) {
@@ -869,13 +878,13 @@ int main(int argc, char **argv) {
       }
       
       /* Transmit PDCCH + PDSCH only when there is data to send */
-      if ((net_port > 0) && (sf_idx == 1 || mbsfn_area_id < 0)) {
+      if ((net_port > 0) && (mch_table[sf_idx] == 1 && mbsfn_area_id > -1)) {
         send_data = net_packet_ready; 
         if (net_packet_ready) {
-          INFO("Transmitting packet\n");
+          INFO("Transmitting packet from port\n");
         }
       } else {
-        printf("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
+        INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
         for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
           if (pdsch_cfg.grant.tb_en[tb]) {
             for (i = 0; i < pdsch_cfg.grant.mcs[tb].tbs / 8; i++) {
@@ -891,7 +900,7 @@ int main(int argc, char **argv) {
         }
       }      
       if (send_data) {
-        if(sf_idx != 2 || mbsfn_area_id < 0) { // PDCCH + PDSCH
+        if(mch_table[sf_idx] == 0 || mbsfn_area_id < 0) { // PDCCH + PDSCH
           srslte_dci_format_t dci_format;
           switch(pdsch_cfg.mimo_type) {
             case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
@@ -962,7 +971,7 @@ int main(int argc, char **argv) {
           grant.tb_en[0] = true;
           grant.tb_en[1] = false;
 
-          grant.mcs[0].idx = 13;
+          grant.mcs[0].idx = 2;
           grant.nof_prb = cell.nof_prb;
           grant.sf_type = SRSLTE_SF_MBSFN;
           srslte_dl_fill_ra_mcs(&grant.mcs[0], cell.nof_prb);
@@ -1000,7 +1009,7 @@ int main(int argc, char **argv) {
       }
 
       /* Transform to OFDM symbols */
-      if(sf_idx != 2 || mbsfn_area_id < 0){
+      if(mch_table[sf_idx] == 0 || mbsfn_area_id < 0){
         for (i = 0; i < cell.nof_ports; i++) {
           srslte_ofdm_tx_sf(&ifft[i]);
         }
@@ -1025,9 +1034,6 @@ int main(int argc, char **argv) {
       } else {
 #ifndef DISABLE_RF  
       float norm_factor = (float) cell.nof_prb/15/sqrtf(pdsch_cfg.grant.nof_prb);
-      //norm_factor = 0.066667;
-      //rf_amp = 0.8;
-       printf("power adj is %f\n",rf_amp * norm_factor);
       for (i = 0; i < cell.nof_ports; i++) {
         srslte_vec_sc_prod_cfc(output_buffer[i], 0.01, output_buffer[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
       }

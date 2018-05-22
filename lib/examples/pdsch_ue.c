@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include "srslte/common/gen_mch_tables.h"
 #include <srslte/phy/common/phy_common.h>
 #include "srslte/phy/io/filesink.h"
 #include "srslte/srslte.h"
@@ -103,6 +104,7 @@ typedef struct {
   int decimate;
   int32_t mbsfn_area_id;
   uint8_t  non_mbsfn_region;
+  uint8_t  mbsfn_sf_mask;
   int verbose;
 }prog_args_t;
 
@@ -138,6 +140,7 @@ void args_default(prog_args_t *args) {
   args->cpu_affinity = -1;
   args->mbsfn_area_id = -1;
   args->non_mbsfn_region = 2;
+  args->mbsfn_sf_mask = 32;
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -185,7 +188,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDFRnvrfuUsSZyWMN")) != -1) {
+  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDFRnvrfuUsSZyWMNB")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -274,6 +277,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'N':
       args->non_mbsfn_region = atoi(argv[optind]);
+      break;
+    case 'B':
+      args->mbsfn_sf_mask = atoi(argv[optind]);
       break;
     default:
       usage(args, argv[0]);
@@ -364,8 +370,11 @@ int main(int argc, char **argv) {
       go_exit = true;
     }
   }
-
-  
+  uint8_t mch_table[10];
+  bzero(&mch_table[0], sizeof(uint8_t)*10);
+  if(prog_args.mbsfn_area_id < -1) {
+    generate_mcch_table(mch_table, prog_args.mbsfn_sf_mask);
+  }
   if(prog_args.cpu_affinity > -1) {
     
     cpu_set_t cpuset;
@@ -668,7 +677,7 @@ int main(int argc, char **argv) {
             decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, search only in appropiate places */
-            if ((sfidx == 5 && (sfn%2)==0) || sfidx == 1) {
+            if ((sfidx == 5 && (sfn%2)==0) ||mch_table[sfidx] == 1) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 
@@ -677,7 +686,7 @@ int main(int argc, char **argv) {
 
           gettimeofday(&t[1], NULL);
           if (decode_pdsch) {
-            if(sfidx != 1 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
+            if(mch_table[sfidx] == 0 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
               if (cell.nof_ports == 1) {
                 /* Transmission mode 1 */
                 n = srslte_ue_dl_decode(&ue_dl, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);

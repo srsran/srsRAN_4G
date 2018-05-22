@@ -27,7 +27,6 @@
 
 #include "srslte/common/gen_mch_tables.h"
 
-namespace srslte {
 
 /******************************************************************************
  * Key Generation
@@ -61,5 +60,3 @@ void generate_mcch_table(uint8_t *table, uint32_t sf_alloc)
   uint8_t alloc = (sf_alloc) & 0x3F;
   generate_frame_table(table, alloc);
 }
-
-} // namespace srsue

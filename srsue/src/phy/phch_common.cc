@@ -381,7 +381,7 @@ void phch_common::build_mch_table()
   bzero(&mch_table[0], sizeof(uint8_t)*40);
 
   // 40 element table represents 4 frames (40 subframes)
-  srslte::generate_mch_table(&mch_table[0], config->mbsfn.mbsfn_subfr_cnfg.subfr_alloc,(LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ONE == config->mbsfn.mbsfn_subfr_cnfg.subfr_alloc_num_frames)?1:4);
+  generate_mch_table(&mch_table[0], config->mbsfn.mbsfn_subfr_cnfg.subfr_alloc,(LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ONE == config->mbsfn.mbsfn_subfr_cnfg.subfr_alloc_num_frames)?1:4);
   // Debug
 
   
@@ -397,7 +397,7 @@ void phch_common::build_mcch_table()
 {
   // First reset tables
   bzero(&mcch_table[0], sizeof(uint8_t)*10);
-  srslte::generate_mcch_table(&mcch_table[0], config->mbsfn.mbsfn_area_info.sf_alloc_info_r9);
+  generate_mcch_table(&mcch_table[0], config->mbsfn.mbsfn_area_info.sf_alloc_info_r9);
   // Debug
   std::stringstream ss;
   ss << "|";
