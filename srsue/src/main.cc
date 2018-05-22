@@ -191,6 +191,14 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<int>(&args->expert.phy.cqi_fixed)->default_value(-1),
      "Fixes the reported CQI to a constant value. Default disabled.")
 
+    ("expert.sfo_correct_period",
+     bpo::value<uint32_t>(&args->expert.phy.sfo_correct_period)->default_value(DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD),
+     "Period in ms to correct sample time")
+
+    ("expert.sfo_emma",
+     bpo::value<float>(&args->expert.phy.sfo_ema)->default_value(DEFAULT_SFO_EMA_COEFF),
+     "EMA coefficient to average sample offsets used to compute SFO")
+
     ("expert.snr_ema_coeff",
      bpo::value<float>(&args->expert.phy.snr_ema_coeff)->default_value(0.1),
      "Sets the SNR exponential moving average coefficient (Default 0.1)")

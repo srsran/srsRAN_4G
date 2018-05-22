@@ -60,7 +60,9 @@ typedef struct {
   float current_master_clock;
 
   bool async_thread_running; 
-  pthread_t async_thread; 
+  pthread_t async_thread;
+
+  pthread_mutex_t tx_mutex;
 } rf_uhd_handler_t;
 
 void suppress_handler(const char *x)
@@ -373,6 +375,8 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       args = "";
     }           
     handler->devname = NULL;
+
+    pthread_mutex_init(&handler->tx_mutex, NULL);
 
     // Initialize handler
     handler->uhd_error_handler = NULL;
@@ -819,9 +823,13 @@ int rf_uhd_send_timed_multi(void *h,
                             bool has_time_spec,
                             bool blocking,
                             bool is_start_of_burst,
-                            bool is_end_of_burst) {
+                            bool is_end_of_burst)
+{
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*) h;
-  
+
+  pthread_mutex_lock(&handler->tx_mutex);
+  int ret = -1;
+
   /* Resets the USRP time FIXME: this might cause problems for burst transmissions */
   if (!has_time_spec && is_start_of_burst && handler->nof_tx_channels > 1) {
     uhd_usrp_set_time_now(handler->usrp, 0, 0, 0);
@@ -866,15 +874,18 @@ int rf_uhd_send_timed_multi(void *h,
                                              tx_samples, &handler->tx_md, 3.0, &txd_samples);
       if (error) {
         fprintf(stderr, "Error sending to UHD: %d\n", error);
-        return -1; 
+        goto unlock;
       }
       // Increase time spec 
       uhd_tx_metadata_add_time_spec(&handler->tx_md, txd_samples/handler->tx_rate);
       n += txd_samples;
       trials++;
     } while (n < nsamples && trials < 100);
-    return nsamples;
+
+    ret = nsamples;
+
   } else {
+
     const void *buffs_ptr[4];
     for (int i = 0; i < 4; i++) {
      buffs_ptr[i] = data[i];
@@ -885,9 +896,14 @@ int rf_uhd_send_timed_multi(void *h,
     uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 3.0, &txd_samples);
     if (error) {
       fprintf(stderr, "Error sending to UHD: %d\n", error);
-      return -1;
+      goto unlock;
     }
-    return txd_samples;
+
+    ret = txd_samples;
+
   }
+unlock:
+  pthread_mutex_unlock(&handler->tx_mutex);
+  return ret;
 }
 

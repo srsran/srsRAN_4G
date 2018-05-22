@@ -479,13 +479,13 @@ void phch_worker::work_imp()
   }
 
   if (chest_ok) {
-    if (phy->avg_rsrp_sync_dbm > -130.0 && phy->avg_snr_db_sync > -10.0) {
+    if (phy->avg_rsrp_dbm > -130.0 && phy->avg_snr_db_cqi > -6.0) {
       log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
-                   phy->avg_snr_db_sync, phy->avg_rsrp_sync_dbm);
+                   phy->avg_snr_db_cqi, phy->avg_rsrp_dbm);
       chest_loop->in_sync();
     } else {
       log_h->warning("SNR=%.1f dB RSRP=%.1f dBm, sync=out-of-sync from channel estimator\n",
-                     phy->avg_snr_db_sync, phy->avg_rsrp_sync_dbm);
+                     phy->avg_snr_db_cqi, phy->avg_rsrp_dbm);
       chest_loop->out_of_sync();
     }
   }
@@ -1577,7 +1577,7 @@ void phch_worker::update_measurements()
     }
 
     // Average RSRP taken from CRS
-    float rsrp_lin = srslte_chest_dl_get_rsrp_neighbour(&ue_dl.chest);
+    float rsrp_lin = srslte_chest_dl_get_rsrp(&ue_dl.chest);
     if (isnormal(rsrp_lin)) {
       if (!phy->avg_rsrp) {
         phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
@@ -1617,28 +1617,7 @@ void phch_worker::update_measurements()
       }
     }
 
-    // To compute CQI use RSRP measurements from resource elements in RS since is more robust to time offset
-    float rsrp_lin_cqi = srslte_chest_dl_get_rsrp(&ue_dl.chest);
-    if (isnormal(rsrp_lin_cqi)) {
-      if (!phy->avg_rsrp_cqi) {
-        phy->avg_rsrp_cqi = SRSLTE_VEC_EMA(rsrp_lin_cqi, phy->avg_rsrp_cqi, snr_ema_coeff);
-      } else {
-        phy->avg_rsrp_cqi = rsrp_lin_cqi;
-      }
-    }
-    float rsrp_sync_dbm = 10*log10(rsrp_lin_cqi) + 30 - phy->rx_gain_offset;
-    if (isnormal(rsrp_sync_dbm)) {
-      if (!phy->avg_rsrp_sync_dbm) {
-        phy->avg_rsrp_sync_dbm = rsrp_sync_dbm;
-      } else {
-        phy->avg_rsrp_sync_dbm = SRSLTE_VEC_EMA(rsrp_sync_dbm, phy->avg_rsrp_sync_dbm, snr_ema_coeff);
-      }
-    }
-
-    // We compute 2 SNR metrics, 1 for deciding in-sync/out-of-sync and another for CQI measurements
-    phy->avg_snr_db_cqi  = 10*log10(phy->avg_rsrp_cqi/phy->avg_noise); // this for CQI
-    phy->avg_snr_db_sync = 10*log10(phy->avg_rsrp/phy->avg_noise);     // this for sync
-
+    phy->avg_snr_db_cqi  = 10*log10(phy->avg_rsrp/phy->avg_noise);
 
     // Store metrics
     dl_metrics.n      = phy->avg_noise;

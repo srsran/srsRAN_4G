@@ -610,7 +610,7 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
   int nof_rar_elems = 0; 
   for (uint32_t i=0;i<SCHED_MAX_PENDING_RAR;i++) 
   {
-    if (pending_rar[i].buf_rar > 0 && avail_rbg >= rar_n_rb) 
+    if (pending_rar[i].buf_rar > 0 && avail_rbg >= (uint32_t)ceil((float)rar_n_rb/P))
     {
       /* Check if we are still within the RAR window, otherwise discard it */
       if (current_tti <= (pending_rar[i].rar_tti + cfg.prach_rar_window + 3)%10240 && current_tti >= pending_rar[i].rar_tti + 3)
@@ -664,8 +664,8 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
           if (generate_format1a(start_rbg*P, rar_n_rb, buf_rar, 0, &rar[nof_rar_elems].dci) >= 0) {
             rar[nof_rar_elems].tbs = buf_rar; 
             nof_rar_elems++;
-            avail_rbg -= rar_n_rb;
-            start_rbg += rar_n_rb;           
+            avail_rbg -= (uint32_t)ceil((float)rar_n_rb/P);
+            start_rbg += (uint32_t)ceil((float)rar_n_rb/P);
           } else {
             Error("SCHED: Allocating Format1A grant\n");
           }

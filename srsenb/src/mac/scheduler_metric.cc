@@ -47,9 +47,9 @@ uint32_t dl_metric_rr::calc_rbg_mask(bool mask[MAX_RBG])
 {
   // Build RBG bitmask  
   uint32_t rbg_bitmask = 0; 
-  for (uint32_t n=0;n<total_rb;n++) {
+  for (uint32_t n=0;n<total_rbg;n++) {
     if (mask[n]) {
-      rbg_bitmask |= (1<<(total_rb-1-n)); 
+      rbg_bitmask |= (1<<(total_rbg-1-n));
     }
   }  
   return rbg_bitmask; 
@@ -73,21 +73,21 @@ uint32_t dl_metric_rr::get_required_rbg(sched_ue *user, uint32_t tti)
     return count_rbg(h->get_rbgmask());
   }
   uint32_t pending_data = user->get_pending_dl_new_data(current_tti); 
-  return user->get_required_prb_dl(pending_data, nof_ctrl_symbols); 
+  return user->prb_to_rbg(user->get_required_prb_dl(pending_data, nof_ctrl_symbols));
 }
 
-void dl_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t start_rb, uint32_t nof_rb, uint32_t nof_ctrl_symbols_, uint32_t tti)
+void dl_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t start_rbg, uint32_t nof_rbg, uint32_t nof_ctrl_symbols_, uint32_t tti)
 {
-  total_rb = start_rb+nof_rb; 
-  for (uint32_t i=0;i<total_rb;i++) {
-    if (i<start_rb) {
-      used_rb[i] = true; 
+  total_rbg = start_rbg+nof_rbg;
+  for (uint32_t i=0;i<total_rbg;i++) {
+    if (i<start_rbg) {
+      used_rbg[i] = true;
     } else {
-      used_rb[i] = false; 
+      used_rbg[i] = false;
     }
   }
-  available_rb = nof_rb; 
-  used_rb_mask = calc_rbg_mask(used_rb);
+  available_rbg = nof_rbg;
+  used_rbg_mask = calc_rbg_mask(used_rbg);
   current_tti = tti;
   nof_ctrl_symbols = nof_ctrl_symbols_;
 
@@ -111,8 +111,8 @@ bool dl_metric_rr::new_allocation(uint32_t nof_rbg, uint32_t *rbgmask) {
   bool mask_bit[MAX_RBG]; 
   bzero(mask_bit, sizeof(bool)*MAX_RBG);
   
-  for (uint32_t i=0;i<total_rb && nof_rbg > 0;i++) {
-    if (used_rb[i]) {
+  for (uint32_t i=0;i<total_rbg && nof_rbg > 0;i++) {
+    if (used_rbg[i]) {
       mask_bit[i] = false; 
     } else {
       mask_bit[i] = true; 
@@ -126,24 +126,24 @@ bool dl_metric_rr::new_allocation(uint32_t nof_rbg, uint32_t *rbgmask) {
 }
 
 void dl_metric_rr::update_allocation(uint32_t new_mask) {
-  used_rb_mask |= new_mask; 
-  for (uint32_t n=0;n<total_rb;n++) {
-    if (used_rb_mask & (1<<(total_rb-1-n))) {
-      used_rb[n] = true; 
+  used_rbg_mask |= new_mask;
+  for (uint32_t n=0;n<total_rbg;n++) {
+    if (used_rbg_mask & (1<<(total_rbg-1-n))) {
+      used_rbg[n] = true;
     } else {
-      used_rb[n] = false; 
+      used_rbg[n] = false;
     }
   }  
 }
 
 bool dl_metric_rr::allocation_is_valid(uint32_t mask) 
 {
-  return (mask & used_rb_mask); 
+  return (mask & used_rbg_mask);
 }
 
 dl_harq_proc* dl_metric_rr::apply_user_allocation(sched_ue *user) {
-  uint32_t pending_data = user->get_pending_dl_new_data(current_tti);
   dl_harq_proc *h = user->get_pending_dl_harq(current_tti);
+  uint32_t req_bytes = user->get_pending_dl_new_data_total(current_tti);
 
   // Schedule retx if we have space
 #if ASYNC_DL_SCHED
@@ -160,7 +160,7 @@ dl_harq_proc* dl_metric_rr::apply_user_allocation(sched_ue *user) {
 
     // If not, try to find another mask in the current tti
     uint32_t nof_rbg = count_rbg(retx_mask);
-    if (nof_rbg < available_rb) {
+    if (nof_rbg < available_rbg) {
       if (new_allocation(nof_rbg, &retx_mask)) {
         update_allocation(retx_mask);
         h->set_rbgmask(retx_mask);
@@ -176,10 +176,10 @@ dl_harq_proc* dl_metric_rr::apply_user_allocation(sched_ue *user) {
     if (h && h->is_empty()) {
 #endif
     // Allocate resources based on pending data
-    if (pending_data) {
-      uint32_t pending_rb = user->get_required_prb_dl(pending_data, nof_ctrl_symbols);
+    if (req_bytes) {
+      uint32_t pending_rbg = user->prb_to_rbg(user->get_required_prb_dl(req_bytes, nof_ctrl_symbols));
       uint32_t newtx_mask = 0;
-      new_allocation(pending_rb, &newtx_mask);
+      new_allocation(pending_rbg, &newtx_mask);
       if (newtx_mask) {
         update_allocation(newtx_mask);
         h->set_rbgmask(newtx_mask);

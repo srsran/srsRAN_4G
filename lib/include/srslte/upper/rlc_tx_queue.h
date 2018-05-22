@@ -41,42 +41,38 @@
 
 namespace srslte {
 
-class rlc_tx_queue
+class rlc_tx_queue : public block_queue<byte_buffer_t*>::call_mutexed_itf
 {
 public:
   rlc_tx_queue(uint32_t capacity = 128) : queue((int) capacity) {
     unread_bytes = 0;
+    queue.set_mutexed_itf(this);
+  }
+  // increase/decrease unread_bytes inside push/pop mutexed operations
+  void pushing(byte_buffer_t *msg) {
+    unread_bytes += msg->N_bytes;
+  }
+  void popping(byte_buffer_t *msg) {
+    if (unread_bytes > msg->N_bytes) {
+      unread_bytes -= msg->N_bytes;
+    } else {
+      unread_bytes = 0;
+    }
   }
   void write(byte_buffer_t *msg)
   {
     queue.push(msg);
-    
-    unread_bytes += msg->N_bytes;
   }
 
   void read(byte_buffer_t **msg)
   {
     byte_buffer_t *m = queue.wait_pop();
     *msg = m;
-    if (unread_bytes > (*msg)->N_bytes) {
-      unread_bytes -= (*msg)->N_bytes;
-    } else {
-      unread_bytes = 0;
-    }
   }
 
   bool try_read(byte_buffer_t **msg)
   {
-    if (queue.try_pop(msg)) {
-      if (unread_bytes > (*msg)->N_bytes) {
-        unread_bytes -= (*msg)->N_bytes;
-      } else {
-        unread_bytes = 0;
-      }
-      return true;
-    } else {
-      return false;
-    }
+    return queue.try_pop(msg);
   }
 
   void resize(uint32_t capacity)
@@ -110,10 +106,10 @@ public:
   }
 
 private:
-  bool     is_empty() { return queue.empty(); }
+  bool                        is_empty() { return queue.empty(); }
 
   block_queue<byte_buffer_t*> queue;
-  uint32_t              unread_bytes;
+  uint32_t                    unread_bytes;
 };
 
 } // namespace srslte

@@ -96,8 +96,8 @@ typedef struct {
     float avg_rssi_dbm;
     float last_radio_rssi;
     float rx_gain_offset;
-   float avg_snr_db_cqi;
-   float avg_snr_db_sync;
+    float avg_snr_db_cqi;
+    float avg_snr_db_sync;
 
     float avg_noise;
     bool  pcell_meas_enabled;
@@ -232,11 +232,7 @@ typedef struct {
 
     bool is_mch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti);
     bool is_mcch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti);
-
-  };
-
-
-  
+  };  
 } // namespace srsue
 
 #endif // SRSUE_PDCH_COMMON_H

@@ -577,9 +577,16 @@ void rlc_um::reassemble_rx_sdus()
         break;
       }
 
+      // Check available space in SDU
+      if ((uint32_t)len > rx_sdu->get_tailroom()) {
+        log->error("Dropping PDU %d due to buffer mis-alignment (current segment len %d B, received %d B)\n", vr_ur, rx_sdu->N_bytes, len);
+        rx_sdu->reset();
+        goto clean_up_rx_window;
+      }
+
       log->debug("Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d\n",
         len, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur_in_rx_sdu, vr_ur, cfg.rx_mod, (vr_ur_in_rx_sdu+1)%cfg.rx_mod);
-      memmove(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
+      memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
       rx_sdu->N_bytes += len;
       rx_window[vr_ur].buf->msg += len;
       rx_window[vr_ur].buf->N_bytes -= len;

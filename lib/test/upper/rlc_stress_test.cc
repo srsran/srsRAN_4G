@@ -279,8 +279,10 @@ private:
     while(run_enable) {
       byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_tester::run_thread");
       if (!pdu) {
-        printf("Fatal Error: Could not allocate PDU in rlc_tester::run_thread\n");
-        exit(-1);
+        printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
+        // backoff for a bit
+        usleep(1000);
+        continue;
       }
       for (uint32_t i = 0; i < SDU_SIZE; i++) {
         pdu->msg[i] = sn;
