@@ -49,11 +49,23 @@ template<typename myobj>
 class block_queue {
 
 public:
+
+  // Callback functions for mutexed operations inside pop/push methods
+  class call_mutexed_itf {
+  public:
+    virtual void popping(myobj obj) = 0;
+    virtual void pushing(myobj obj) = 0;
+  };
+
   block_queue<myobj>(int capacity = -1) {
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cv_empty, NULL);
     pthread_cond_init(&cv_full, NULL);
     this->capacity = capacity;
+    mutexed_callback = NULL;
+  }
+  void set_mutexed_itf(call_mutexed_itf *itf) {
+    mutexed_callback = itf;
   }
   void resize(int new_capacity) {
     capacity = new_capacity;
@@ -71,6 +83,9 @@ public:
       }
     }
     q.push(value);
+    if (mutexed_callback) {
+      mutexed_callback->pushing(value);
+    }
     pthread_cond_signal(&cv_empty);
     pthread_mutex_unlock(&mutex);
     return true;
@@ -94,6 +109,9 @@ public:
       *value = q.front(); 
       q.pop();
     }
+    if (mutexed_callback) {
+      mutexed_callback->popping(*value);
+    }
     pthread_cond_signal(&cv_full);
     pthread_mutex_unlock(&mutex);
     return true;
@@ -106,6 +124,9 @@ public:
     }
     myobj value = q.front();
     q.pop();
+    if (mutexed_callback) {
+      mutexed_callback->popping(value);
+    }
     pthread_cond_signal(&cv_full);
     pthread_mutex_unlock(&mutex);
     return value;
@@ -136,6 +157,7 @@ private:
   pthread_mutex_t mutex;
   pthread_cond_t  cv_empty;
   pthread_cond_t  cv_full;
+  call_mutexed_itf *mutexed_callback;
   int capacity;
 };
 
