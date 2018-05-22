@@ -659,8 +659,7 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
       }
     }
     if(mch.current_sf_allocation_num <= mtch_stop) {
-      int requested_bytes = (mcs_data.tbs/8 > mch.mtch_sched[mtch_index].lcid_buffer_size)?(mch.mtch_sched[mtch_index].lcid_buffer_size):((mcs_data.tbs/8) - 2);
-      
+      int requested_bytes = (mcs_data.tbs/8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)?(mch.mtch_sched[mtch_index].lcid_buffer_size):((mcs_data.tbs/8) - 2);
       int  bytes_received = ue_db[SRSLTE_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
       mch.pdu[0].lcid = current_lcid;
       mch.pdu[0].nbytes = bytes_received;
