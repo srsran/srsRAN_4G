@@ -75,6 +75,10 @@ public:
     return queue.try_pop(msg);
   }
 
+  void resize(uint32_t capacity)
+  {
+    queue.resize(capacity);
+  }
   uint32_t size()
   {
     return (uint32_t) queue.size();
@@ -102,10 +106,10 @@ public:
   }
 
 private:
-  bool     is_empty() { return queue.empty(); }
+  bool                        is_empty() { return queue.empty(); }
 
   block_queue<byte_buffer_t*> queue;
-  uint32_t              unread_bytes;
+  uint32_t                    unread_bytes;
 };
 
 } // namespace srslte

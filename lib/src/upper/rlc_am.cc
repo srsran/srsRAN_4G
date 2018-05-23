@@ -81,11 +81,10 @@ rlc_am::~rlc_am()
     pool->deallocate(tx_sdu);
   }
 }
-
-void rlc_am::init(srslte::log                 *log_,
-                  uint32_t                     lcid_,
-                  srsue::pdcp_interface_rlc   *pdcp_,
-                  srsue::rrc_interface_rlc    *rrc_,
+void rlc_am::init(srslte::log                  *log_,
+                  uint32_t                      lcid_,
+                  srsue::pdcp_interface_rlc    *pdcp_,
+                  srsue::rrc_interface_rlc     *rrc_,
                   srslte::mac_interface_timers *mac_timers)
 {
   log  = log_;

@@ -80,6 +80,67 @@ void rrc::liblte_rrc_log(char *str) {
     printf("[ASN]: %s\n", str);
   }
 }
+void rrc::print_mbms()
+{
+  if(rrc_log) {
+    if(serving_cell->has_mcch) {
+      LIBLTE_RRC_MCCH_MSG_STRUCT msg;
+      memcpy(&msg, &serving_cell->mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+      std::stringstream ss;
+      for(uint32_t i=0;i<msg.pmch_infolist_r9_size; i++){
+        ss << "PMCH: " << i << std::endl;
+        LIBLTE_RRC_PMCH_INFO_R9_STRUCT *pmch = &msg.pmch_infolist_r9[i];
+        for(uint32_t j=0;j<pmch->mbms_sessioninfolist_r9_size; j++) {
+          LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT *sess = &pmch->mbms_sessioninfolist_r9[j];
+          ss << "  Service ID: " << sess->tmgi_r9.serviceid_r9;
+          if(sess->sessionid_r9_present) {
+            ss << ", Session ID: " << (uint32_t)sess->sessionid_r9;
+          }
+          if(sess->tmgi_r9.plmn_id_explicit) {
+            std::string tmp;
+            if(mcc_to_string(sess->tmgi_r9.plmn_id_r9.mcc, &tmp)) {
+              ss << ", MCC: " << tmp;
+            }
+            if(mnc_to_string(sess->tmgi_r9.plmn_id_r9.mnc, &tmp)) {
+              ss << ", MNC: " << tmp;
+            }
+          } else {
+            ss << ", PLMN index: " << (uint32_t)sess->tmgi_r9.plmn_index_r9;
+          }
+          ss << ", LCID: " << (uint32_t)sess->logicalchannelid_r9;
+          ss << std::endl;
+        }
+      }
+      //rrc_log->console(ss.str());
+      std::cout << ss.str();
+    } else {
+      rrc_log->console("MCCH not available for current cell\n");
+    }
+  }
+}
+
+bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
+{
+  bool ret = false;
+  
+  if(serving_cell->has_mcch) {
+    LIBLTE_RRC_MCCH_MSG_STRUCT msg;
+    memcpy(&msg, &serving_cell->mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+    for(uint32_t i=0;i<msg.pmch_infolist_r9_size; i++){
+      LIBLTE_RRC_PMCH_INFO_R9_STRUCT *pmch = &msg.pmch_infolist_r9[i];
+      for(uint32_t j=0;j<pmch->mbms_sessioninfolist_r9_size; j++) {
+        LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT *sess = &pmch->mbms_sessioninfolist_r9[j];
+        if(serv == sess->tmgi_r9.serviceid_r9) {
+          rrc_log->console("MBMS service started. Service id:%d, port: %d\n", serv, port);
+          ret = true;
+          add_mrb(sess->logicalchannelid_r9, port);
+        }
+      }
+    }
+  }
+  return ret;
+}
+
 
 void rrc::init(phy_interface_rrc *phy_,
                mac_interface_rrc *mac_,
@@ -87,6 +148,7 @@ void rrc::init(phy_interface_rrc *phy_,
                pdcp_interface_rrc *pdcp_,
                nas_interface_rrc *nas_,
                usim_interface_rrc *usim_,
+               gw_interface_rrc *gw_,
                mac_interface_timers *mac_timers_,
                srslte::log *rrc_log_) {
   pool = byte_buffer_pool::get_instance();
@@ -96,6 +158,7 @@ void rrc::init(phy_interface_rrc *phy_,
   pdcp = pdcp_;
   nas = nas_;
   usim = usim_;
+  gw = gw_;
   rrc_log = rrc_log_;
 
   // Use MAC timers
@@ -474,6 +537,7 @@ bool rrc::configure_serving_cell() {
     rrc_log->error("Trying to configure Cell while not camping on it\n");
     return false;
   }
+  serving_cell->has_mcch = false;
   // Apply configurations if already retrieved SIB2
   if (serving_cell->has_sib2()) {
     apply_sib2_configs(serving_cell->sib2ptr());
@@ -490,6 +554,9 @@ bool rrc::configure_serving_cell() {
       }
     } else {
       rrc_log->info("Cell has SIB%d\n", i+1);
+      if(i+1 == 13){
+        apply_sib13_configs(serving_cell->sib13ptr());
+      }
     }
   }
   return true;
@@ -1759,7 +1826,23 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
 }
 
 
+void rrc::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
+{
+  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
+    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "MCH message received %d bytes on lcid:%d\n", pdu->N_bytes, lcid);
+    rrc_log->info("MCH message Stack latency: %ld us\n", pdu->get_latency_us());
+    //TODO: handle MCCH notifications and update MCCH
+    if(0 == lcid && !serving_cell->has_mcch) {
+      srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
+      bit_buf.N_bits = pdu->N_bytes * 8;
+      liblte_rrc_unpack_mcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &serving_cell->mcch);
+      serving_cell->has_mcch = true;
+      phy->set_config_mbsfn_mcch(&serving_cell->mcch);
+    }
 
+    pool->deallocate(pdu);
+  }
+}
 
 
 
@@ -2134,6 +2217,9 @@ void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
 //  for(uint8_t i=0;i<sib2->mbsfn_subfr_cnfg_list_size;i++) {
 //    memcpy(&cfg.mbsfn_subfr_cnfg_list[i], &sib2->mbsfn_subfr_cnfg_list[i], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
 //  }
+  
+    // Set MBSFN configs
+  phy->set_config_mbsfn_sib2(sib2);
 
   mac->set_config(&cfg);
 
@@ -2196,6 +2282,12 @@ void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
                 N310, N311, mac_timers->timer_get(t300)->get_timeout(), mac_timers->timer_get(t301)->get_timeout(),
                 mac_timers->timer_get(t310)->get_timeout(), mac_timers->timer_get(t311)->get_timeout());
 
+}
+
+void rrc::apply_sib13_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13)
+{
+  phy->set_config_mbsfn_sib13(&serving_cell->sib13);
+  add_mrb(0, 0); // Add MRB0
 }
 
 // Go through all information elements and apply defaults (9.2.4) if not defined
@@ -2583,6 +2675,14 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
 
 void rrc::release_drb(uint8_t lcid) {
   // TODO
+}
+
+void rrc::add_mrb(uint32_t lcid, uint32_t port)
+{
+  gw->add_mch_port(lcid, port);
+  rlc->add_bearer_mrb(lcid);
+  mac->mch_start_rx(lcid);
+  rrc_log->info("Added MRB bearer for lcid:%d\n", lcid);
 }
 
 // PHY CONFIG DEDICATED Defaults (3GPP 36.331 v10 9.2.4)

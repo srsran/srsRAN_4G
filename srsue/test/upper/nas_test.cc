@@ -77,6 +77,7 @@ public:
       void write_pdu_bcch_bch(byte_buffer_t *pdu) {}
       void write_pdu_bcch_dlsch(byte_buffer_t *pdu) {}
       void write_pdu_pcch(byte_buffer_t *pdu) {}
+      void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
       std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
 };
 
@@ -126,6 +127,7 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
   error_t setup_if_addr(uint32_t ip_addr, char *err_str) { return ERROR_NONE; }
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
 };
 
 }

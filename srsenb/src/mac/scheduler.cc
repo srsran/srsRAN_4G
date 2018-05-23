@@ -545,7 +545,7 @@ int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST])
       } 
       uint32_t n_sf = (current_tti-pending_sibs[i].window_start); 
       if ((i == 0 && (sfn%2) == 0 && sf_idx == 5) ||
-          (i >  0 && n_sf >= (cfg.si_window_ms/nof_tx)*pending_sibs[i].n_tx && sf_idx==1)) 
+          (i >  0 && n_sf >= (cfg.si_window_ms/nof_tx)*pending_sibs[i].n_tx && sf_idx==9)) 
       {
         uint32_t rv = get_rvidx(pending_sibs[i].n_tx);
         
@@ -775,10 +775,10 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
 
   /* Schedule Broadcast data */
   sched_result->nof_bc_elems   += dl_sched_bc(sched_result->bc);
- 
+  
   /* Schedule RAR */
   sched_result->nof_rar_elems  += dl_sched_rar(sched_result->rar);
-    
+
   /* Schedule pending RLC data */
   sched_result->nof_data_elems += dl_sched_data(sched_result->data);
   

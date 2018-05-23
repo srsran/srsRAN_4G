@@ -105,6 +105,13 @@ void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t c
   }
 }
 
+void rlc::add_bearer_mrb(uint16_t rnti, uint32_t lcid)
+{
+  if (users.count(rnti)) {
+    users[rnti].rlc->add_bearer_mrb_enb(lcid);
+  }
+}
+
 void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 {
   rrc->read_pdu_pcch(payload, buffer_size);
@@ -112,16 +119,27 @@ void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 
 int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
-  int ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
-
-  // In the eNodeB, there is no polling for buffer state from the scheduler, thus
-  // communicate buffer state every time a PDU is read
-  uint32_t tx_queue   = users[rnti].rlc->get_total_buffer_state(lcid);
-  uint32_t retx_queue = 0;
-  log_h->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
-  mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
-
-  return ret;
+  int ret;
+  uint32_t tx_queue;
+  if(users.count(rnti)){
+    if(rnti != SRSLTE_MRNTI){
+      ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
+      tx_queue = users[rnti].rlc->get_total_buffer_state(lcid);
+    }else{
+      ret = users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);
+      tx_queue = users[rnti].rlc->get_total_mch_buffer_state(lcid);
+    }
+    // In the eNodeB, there is no polling for buffer state from the scheduler, thus
+    // communicate buffer state every time a PDU is read
+      
+    uint32_t retx_queue = 0;
+    log_h->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+    mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
+    return ret;
+    
+  }else{
+    return SRSLTE_ERROR;
+  }
 }
 
 void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
@@ -146,12 +164,19 @@ void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload)
 
 void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
+  
+  uint32_t tx_queue;
   if (users.count(rnti)) {
-    users[rnti].rlc->write_sdu(lcid, sdu);
-
+    if(rnti != SRSLTE_MRNTI){
+      users[rnti].rlc->write_sdu(lcid, sdu);
+      tx_queue   = users[rnti].rlc->get_total_buffer_state(lcid);
+    }else {
+      users[rnti].rlc->write_sdu_mch(lcid, sdu);
+      tx_queue   = users[rnti].rlc->get_total_mch_buffer_state(lcid);
+    }
     // In the eNodeB, there is no polling for buffer state from the scheduler, thus 
     // communicate buffer state every time a new SDU is written
-    uint32_t tx_queue   = users[rnti].rlc->get_total_buffer_state(lcid);
+    
     uint32_t retx_queue = 0; 
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
     log_h->info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);

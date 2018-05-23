@@ -418,6 +418,7 @@ public:
   }
   
   void write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes) {}
+  void write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) {}
   
 private:
   LIBLTE_BIT_MSG_STRUCT  bit_msg; 

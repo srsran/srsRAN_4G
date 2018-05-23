@@ -354,6 +354,7 @@ uint32_t phy::get_current_tti()
   return sf_recv.get_current_tti();
 }
 
+
 void phy::sr_send()
 {
   workers_common.sr_enabled = true;
@@ -435,6 +436,42 @@ void phy::set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedi
 void phy::set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT* tdd)
 {
   memcpy(&config.common.tdd_cnfg, tdd, sizeof(LIBLTE_RRC_TDD_CONFIG_STRUCT));
+}
+
+void phy::set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2)
+{
+  if(sib2->mbsfn_subfr_cnfg_list_size > 1) {
+    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_subfr_cnfg_list_size);
+  }
+  if(sib2->mbsfn_subfr_cnfg_list_size > 0) {
+    memcpy(&config.mbsfn.mbsfn_subfr_cnfg, &sib2->mbsfn_subfr_cnfg_list[0], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
+    workers_common.build_mch_table();
+  }
+}
+
+void phy::set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13)
+{
+  memcpy(&config.mbsfn.mbsfn_notification_cnfg, &sib13->mbsfn_notification_config, sizeof(LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT));
+  if(sib13->mbsfn_area_info_list_r9_size > 1) {
+    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9_size);
+  }
+  if(sib13->mbsfn_area_info_list_r9_size > 0) {
+    memcpy(&config.mbsfn.mbsfn_area_info, &sib13->mbsfn_area_info_list_r9[0], sizeof(LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT));
+    workers_common.build_mcch_table();
+  }
+}
+
+void phy::set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch)
+{
+  memcpy(&config.mbsfn.mcch, mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+  mac->set_mbsfn_config(config.mbsfn.mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size);
+  workers_common.set_mch_period_stop(config.mbsfn.mcch.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9);
+  workers_common.set_mcch(); 
+}
+
+void phy::set_mch_period_stop(uint32_t stop)
+{
+  workers_common.set_mch_period_stop(stop);
 }
 
 }

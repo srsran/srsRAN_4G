@@ -116,6 +116,7 @@ typedef struct {
   bool          print_buffer_state;
   bool          metrics_csv_enable;
   std::string   metrics_csv_filename;
+  int           mbms_service;
 }expert_args_t;
 
 typedef struct {
@@ -167,6 +168,9 @@ public:
   virtual void print_pool() = 0;
 
   virtual void radio_overflow() = 0;
+
+  virtual void print_mbms() = 0;
+  virtual bool mbms_service_start(uint32_t serv, uint32_t port) = 0;
   
   void handle_rf_msg(srslte_rf_error_t error);
 

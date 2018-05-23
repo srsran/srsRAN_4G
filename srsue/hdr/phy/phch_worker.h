@@ -89,9 +89,10 @@ private:
 
   
   /* Internal methods */
-  bool extract_fft_and_pdcch_llr(); 
-  void compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr);
 
+  void compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr);
+  bool extract_fft_and_pdcch_llr(subframe_cfg_t sf_cfg);
+  
   /* ... for DL */
   bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);
   bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
@@ -104,6 +105,11 @@ private:
                    uint16_t rnti,
                    uint32_t pid,
                    bool acks[SRSLTE_MAX_CODEWORDS]);
+
+  bool decode_pmch(srslte_ra_dl_grant_t *grant,
+                   uint8_t *payload,
+                   srslte_softbuffer_rx_t* softbuffer,
+                   uint16_t mbsfn_area_id);
 
   /* ... for UL */
   void encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, uint32_t current_tx_nb, srslte_softbuffer_tx_t *softbuffer, 

@@ -188,7 +188,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
   
   bsr_proc::bsr_t bsr; 
   bool regular_bsr = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_msg.rem_size(), &bsr);
-  bool bsr_is_inserted = false; 
+  bool bsr_is_inserted = false;
   
   // MAC control element for BSR, with exception of BSR included for padding;
   if (regular_bsr) {

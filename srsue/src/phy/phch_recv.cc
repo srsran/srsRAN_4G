@@ -392,6 +392,7 @@ void phch_recv::run_thread()
         phy_state.state_exit();
         break;
       case sync_state::SFN_SYNC:
+        
         /* SFN synchronization using MIB. run_subframe() receives and processes 1 subframe
          * and returns
          */
@@ -473,6 +474,7 @@ void phch_recv::run_thread()
 
               is_end_of_burst = true;
 
+
               // Start worker
               workers_pool->start_worker(worker);
 
@@ -500,6 +502,7 @@ void phch_recv::run_thread()
         }
         break;
       case sync_state::IDLE:
+        
         if (radio_h->is_init()) {
           uint32_t nsamples = 1920;
           if (current_srate > 0) {

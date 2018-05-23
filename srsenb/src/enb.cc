@@ -206,6 +206,7 @@ bool enb::init(all_args_t *args_)
     return false; 
   }
   rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
+  rrc_cfg.enable_mbsfn =  args->expert.enable_mbsfn;
   
   // Copy cell struct to rrc and phy 
   memcpy(&rrc_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));

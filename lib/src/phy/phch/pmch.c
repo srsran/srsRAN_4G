@@ -264,12 +264,29 @@ void srslte_pmch_free(srslte_pmch_t *q) {
 
 }
 
+int srslte_pmch_set_cell(srslte_pmch_t *q, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL                  &&
+      srslte_cell_isvalid(&cell))
+  {
+    memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+    q->max_re = q->cell.nof_prb * MAX_PMCH_RE;
+
+    INFO("PMCH: Cell config PCI=%d, %d ports, %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
+         q->cell.id, q->cell.nof_prb, q->max_re);
+
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
+}
 
 /* Precalculate the scramble sequences for a given MBSFN area ID. This function takes a while
  * to execute.
  */
 int srslte_pmch_set_area_id(srslte_pmch_t *q, uint16_t area_id) {
-  uint32_t i;  
+  uint32_t i; 
   if (!q->seqs[area_id]) {
     q->seqs[area_id] = calloc(1, sizeof(srslte_pmch_seq_t));
     if (q->seqs[area_id]) {
@@ -347,7 +364,6 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
       data         != NULL && 
       cfg          != NULL)
   {
-    
     INFO("Decoding PMCH SF: %d, MBSFN area ID: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d, C_prb=%d, cfi=%d\n",
         cfg->sf_idx, area_id, srslte_mod_string(cfg->grant.mcs[0].mod), cfg->grant.mcs[0].tbs, cfg->nbits[0].nof_re,
          cfg->nbits[0].nof_bits, 0, cfg->grant.nof_prb, cfg->nbits[0].lstart-1);
@@ -362,6 +378,7 @@ int srslte_pmch_decode_multi(srslte_pmch_t *q,
       /* extract symbols */
       n = srslte_pmch_get(q, sf_symbols[j], q->symbols[j], cfg->nbits[0].lstart);
       if (n != cfg->nbits[0].nof_re) {
+        
         fprintf(stderr, "PMCH 1 extract symbols error expecting %d symbols but got %d, lstart %d\n", cfg->nbits[0].nof_re, n, cfg->nbits[0].lstart);
         return SRSLTE_ERROR;
       }
@@ -416,7 +433,6 @@ int srslte_pmch_encode(srslte_pmch_t *q,
   /* Set pointers for layermapping & precoding */
   cf_t *x[SRSLTE_MAX_LAYERS];
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-   
   if (q != NULL && cfg != NULL)
   {
     for (i=0;i<q->cell.nof_ports;i++) {

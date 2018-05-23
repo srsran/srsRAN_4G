@@ -174,6 +174,7 @@ public:
   void write_pdu_bcch_bch(srslte::byte_buffer_t *sdu) {}
   void write_pdu_bcch_dlsch(srslte::byte_buffer_t *sdu) {}
   void write_pdu_pcch(srslte::byte_buffer_t *sdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu){}
   void max_retx_attempted(){}
   void add_user(uint16_t rnti) {} 
   void release_user(uint16_t rnti) {} 

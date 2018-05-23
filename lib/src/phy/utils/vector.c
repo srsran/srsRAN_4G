@@ -139,7 +139,7 @@ void srslte_vec_fprint_c(FILE *stream, cf_t *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
-    fprintf(stream, "%+2.2f%+2.2fi, ", __real__ x[i], __imag__ x[i]);
+    fprintf(stream, "%+2.5f%+2.5fi, ", __real__ x[i], __imag__ x[i]);
   }
   fprintf(stream, "];\n");
 }

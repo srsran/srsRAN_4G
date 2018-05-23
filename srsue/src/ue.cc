@@ -208,11 +208,9 @@ bool ue::init(all_args_t *args_) {
   srslte_nas_config_t nas_cfg(1, args->apn_name, args->apn_user, args->apn_pass); /* RB_ID_SRB1 */
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
-
   gw.set_netmask(args->expert.ip_netmask);
-
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &mac, &rrc_log);
-
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
+  
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
   args->rrc.nof_supported_bands = 1;
@@ -323,8 +321,18 @@ bool ue::get_metrics(ue_metrics_t &m)
   return false;
 }
 
+
 void ue::radio_overflow() {
   phy.radio_overflow();
+}
+void ue::print_mbms()
+{
+  rrc.print_mbms();
+}
+
+bool ue::mbms_service_start(uint32_t serv, uint32_t port)
+{
+  return rrc.mbms_service_start(serv, port);
 }
 
 void ue::rf_msg(srslte_rf_error_t error)

@@ -73,6 +73,8 @@ public:
   bool deattach();
   bool is_attached();
   void start_plot();
+  void print_mbms();
+  bool mbms_service_start(uint32_t serv, uint32_t port);
 
   void print_pool();
 

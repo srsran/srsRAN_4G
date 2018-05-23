@@ -129,6 +129,22 @@ public:
     uint32_t nbytes;
   } dl_sched_pdu_t; 
   
+  
+  typedef struct {
+      uint32_t lcid;
+      uint32_t lcid_buffer_size;
+      uint32_t stop;
+      uint8_t *mtch_payload;
+  } dl_mtch_sched_t;
+  
+  typedef struct {
+    dl_sched_pdu_t pdu[20];
+    dl_mtch_sched_t mtch_sched[8];
+    uint32_t num_mtch_sched;
+    uint8_t *mcch_payload;
+    uint32_t current_sf_allocation_num;
+  } dl_pdu_mch_t; 
+ 
   typedef struct {
     uint32_t              rnti; 
     srslte_dci_format_t   dci_format;
