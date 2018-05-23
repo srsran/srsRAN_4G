@@ -880,7 +880,7 @@ bool phch_worker::decode_pmch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
       //srslte_vec_save_file("pdsch", signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
 
       // Store metrics
-      //dl_metrics.mcs    = grant->mcs.idx;
+      dl_metrics.mcs = grant->mcs[0].idx;
 
       return ack;
     } else {
