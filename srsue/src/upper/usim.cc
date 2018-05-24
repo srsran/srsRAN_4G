@@ -243,6 +243,9 @@ void usim::generate_as_keys(uint8_t *k_asme,
 
   memcpy(this->k_asme, k_asme, 32);
 
+  // Save initial k_enb
+  memcpy(k_enb_initial, k_enb, 32);
+
   // Generate K_rrc_enc and K_rrc_int
   security_generate_k_rrc( k_enb,
                            cipher_algo,
@@ -282,7 +285,7 @@ void usim::generate_as_keys_ho(uint32_t pci,
     if (current_ncc) {
       sync = nh;
     } else {
-      sync = k_enb;
+      sync = k_enb_initial;
     }
     // Generate NH
     security_generate_nh(k_asme,

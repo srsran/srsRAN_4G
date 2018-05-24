@@ -126,6 +126,7 @@ private:
   uint8_t     autn[16];
   uint8_t     k_asme[32];
   uint8_t     nh[32];
+  uint8_t     k_enb_initial[32];
   uint8_t     k_enb[32];
   uint8_t     k_enb_star[32];
 
