@@ -238,7 +238,7 @@ private:
           payload_buffer_ptr = NULL;
         }
         bzero(&cur_grant, sizeof(Tgrant));
-        if (is_initiated) {
+        if (is_initiated && lock) {
           srslte_softbuffer_rx_reset(&softbuffer);
         }
         if (lock) {
@@ -268,7 +268,9 @@ private:
             Warning("DL PID %d: Size of grant changed during a retransmission %d!=%d\n", pid,
                     cur_grant.n_bytes[tid], grant.n_bytes[tid]);
           }
-          reset(false);
+          ack = false;
+          srslte_softbuffer_rx_reset_tbs(&softbuffer, cur_grant.n_bytes[tid] * 8);
+          n_retx = 0;
         }
 
         // If data has not yet been successfully decoded
