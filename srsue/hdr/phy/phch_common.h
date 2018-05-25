@@ -112,6 +112,7 @@ typedef struct {
     int last_ul_tbs[2*HARQ_DELAY_MS];
     uint32_t last_ul_tti[2*HARQ_DELAY_MS];
     srslte_mod_t last_ul_mod[2*HARQ_DELAY_MS];
+    uint32_t last_ul_idx[2*HARQ_DELAY_MS];
     uint8_t last_ri;
     uint8_t last_pmi;
 

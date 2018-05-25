@@ -983,12 +983,14 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       // Make sure we received a grant in the previous TTI for this PID
       grant->phy_grant.ul.mcs.tbs = phy->last_ul_tbs[UL_PIDOF(TTI_TX(tti))];
       grant->phy_grant.ul.mcs.mod = phy->last_ul_mod[UL_PIDOF(TTI_TX(tti))];
+      grant->phy_grant.ul.mcs.idx = phy->last_ul_idx[UL_PIDOF(TTI_TX(tti))];
       grant->phy_grant.ul.Qm      = srslte_mod_bits_x_symbol(grant->phy_grant.ul.mcs.mod);
     }
   }
   if (ret) {
     phy->last_ul_tbs[UL_PIDOF(TTI_TX(tti))] = grant->phy_grant.ul.mcs.tbs;
     phy->last_ul_mod[UL_PIDOF(TTI_TX(tti))] = grant->phy_grant.ul.mcs.mod;
+    phy->last_ul_idx[UL_PIDOF(TTI_TX(tti))] = grant->phy_grant.ul.mcs.idx;
     phy->last_ul_tti[UL_PIDOF(TTI_TX(tti))] = TTI_RX_ACK(tti);
     /* Limit UL modulation if not supported by the UE or disabled by higher layers */
     if (!phy->config->enable_64qam) {
