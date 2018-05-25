@@ -1327,7 +1327,7 @@ void phch_worker::encode_pucch()
   memcpy(&t[2], &logtime_start[2], sizeof(struct timeval));
   get_time_interval(logtime_start);
   get_time_interval(t);
-  snprintf(timestr, 64, ", tot_time=%d us", (int) logtime_start[0].tv_usec);
+  snprintf(timestr, 64, ", pucch_time=%d us, tot_time=%d us", (int) t[0].tv_usec, (int) logtime_start[0].tv_usec);
 #endif
 
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);

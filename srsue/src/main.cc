@@ -525,7 +525,9 @@ int main(int argc, char *argv[])
   }
   if (running) {
     if (args.expert.pregenerate_signals) {
+      printf("Pre-generating signals...\n");
       ue->pregenerate_signals(true);
+      printf("Done pregenerating signals.\n");
     }
     if (args.gui.enable) {
       ue->start_plot();
