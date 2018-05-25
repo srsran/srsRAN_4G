@@ -35,7 +35,7 @@
 #include "srslte/phy/rf/rf.h"
 #include "uhd_c_api.h"
 
-#define HAVE_ASYNC_THREAD 0
+#define HAVE_ASYNC_THREAD 1
 
 typedef struct {
   char *devname; 
@@ -396,6 +396,13 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       clock_src = DEFAULT;
     }
 
+    bool start_async_thread = true;
+
+    if (strstr(args, "silent")) {
+      REMOVE_SUBSTRING_WITHCOMAS(args, "silent");
+      start_async_thread = false;
+    }
+
     // Set over the wire format
     char *otw_format = "sc16";
     if (strstr(args, "otw_format=sc12")) {
@@ -584,11 +591,13 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_meta_range_free(&gain_range);
 
 #if HAVE_ASYNC_THREAD
-    // Start low priority thread to receive async commands
-    handler->async_thread_running = true;
-    if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
-      perror("pthread_create");
-      return -1; 
+    if (start_async_thread) {
+      // Start low priority thread to receive async commands
+      handler->async_thread_running = true;
+      if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
+        perror("pthread_create");
+        return -1;
+      }
     }
 #endif
 
