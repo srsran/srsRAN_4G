@@ -66,6 +66,11 @@ rrc::~rrc()
   if (serving_cell) {
     delete(serving_cell);
   }
+
+  std::vector<cell_t*>::iterator it;
+  for (it = neighbour_cells.begin(); it != neighbour_cells.end(); ++it) {
+    delete(*it);
+  }
 }
 
 static void liblte_rrc_handler(void *ctx, char *str) {
