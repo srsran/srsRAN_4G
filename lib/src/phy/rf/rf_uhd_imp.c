@@ -546,6 +546,9 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       uhd_usrp_set_tx_rate(handler->usrp, 1.92e6, i);
     }
 
+    if (nof_channels > 1)
+        uhd_usrp_set_time_unknown_pps(handler->usrp, 0, 0.0);
+
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
@@ -640,8 +643,18 @@ bool rf_uhd_is_master_clock_dynamic(void *h) {
 double rf_uhd_set_rx_srate(void *h, double freq)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  for (int i=0;i<handler->nof_rx_channels;i++) {
-    uhd_usrp_set_rx_rate(handler->usrp, freq, i);
+  if (handler->nof_rx_channels > 1) {
+    time_t full;
+    double frac;
+    uhd_usrp_get_time_now(handler->usrp, 0, &full, &frac);
+    frac += 0.100;
+    if (frac >= 1.0) { full++; frac -= 1.0; };
+    uhd_usrp_set_command_time(handler->usrp, full, frac, 0);
+    for (int i=0;i<handler->nof_rx_channels;i++)
+      uhd_usrp_set_rx_rate(handler->usrp, freq, i);
+    usleep(100000);
+  } else {
+    uhd_usrp_set_rx_rate(handler->usrp, freq, 0);
   }
   return freq;
 }
@@ -649,8 +662,18 @@ double rf_uhd_set_rx_srate(void *h, double freq)
 double rf_uhd_set_tx_srate(void *h, double freq)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  for (int i=0;i<handler->nof_tx_channels;i++) {
-    uhd_usrp_set_tx_rate(handler->usrp, freq, i);
+  if (handler->nof_tx_channels > 1) {
+    time_t full;
+    double frac;
+    uhd_usrp_get_time_now(handler->usrp, 0, &full, &frac);
+    frac += 0.100;
+    if (frac >= 1.0) { full++; frac -= 1.0; };
+    uhd_usrp_set_command_time(handler->usrp, full, frac, 0);
+    for (int i=0;i<handler->nof_tx_channels;i++)
+      uhd_usrp_set_tx_rate(handler->usrp, freq, i);
+    usleep(100000);
+  } else {
+    uhd_usrp_set_tx_rate(handler->usrp, freq, 0);
   }
   handler->tx_rate = freq;
   return freq; 
