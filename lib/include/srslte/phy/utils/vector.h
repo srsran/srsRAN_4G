@@ -156,6 +156,9 @@ SRSLTE_API void srslte_vec_interleave(const cf_t *x, const cf_t *y, cf_t *z, con
 
 SRSLTE_API void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z, const int len);
 
+SRSLTE_API void srslte_vec_apply_cfo(const cf_t *x, float cfo, cf_t *z, int len);
+
+
 #ifdef __cplusplus
 }
 #endif

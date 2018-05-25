@@ -789,10 +789,15 @@ static inline simd_cf_t srslte_simd_cf_prod (simd_cf_t a, simd_cf_t b) {
                          _mm512_mul_ps(a.im, b.re));
 #else /* LV_HAVE_AVX512 */
 #ifdef LV_HAVE_AVX2
+#ifdef LV_HAVE_FMA
+  ret.re = _mm256_fmsub_ps(a.re, b.re, _mm256_mul_ps(a.im, b.im));
+  ret.im = _mm256_fmadd_ps(a.re, b.im, _mm256_mul_ps(a.im, b.re));
+#else /* LV_HAVE_FMA */
   ret.re = _mm256_sub_ps(_mm256_mul_ps(a.re, b.re),
                          _mm256_mul_ps(a.im, b.im));
   ret.im = _mm256_add_ps(_mm256_mul_ps(a.re, b.im),
                          _mm256_mul_ps(a.im, b.re));
+#endif /* LV_HAVE_FMA */
 #else
 #ifdef LV_HAVE_SSE
   ret.re = _mm_sub_ps(_mm_mul_ps(a.re, b.re),

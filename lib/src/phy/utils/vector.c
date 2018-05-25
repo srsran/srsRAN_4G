@@ -438,3 +438,7 @@ void srslte_vec_interleave(const cf_t *x, const cf_t *y, cf_t *z, const int len)
 void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z, const int len) {
   srslte_vec_interleave_add_simd(x, y, z, len);
 }
+
+void srslte_vec_apply_cfo(const cf_t *x, float cfo, cf_t *z, int len) {
+  srslte_vec_apply_cfo_simd(x, cfo, z, len);
+}

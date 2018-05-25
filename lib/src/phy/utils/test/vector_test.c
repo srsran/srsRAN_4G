@@ -32,6 +32,7 @@
 #include <sys/time.h>
 #include <memory.h>
 #include <math.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/utils/mat.h"
 #include "srslte/phy/utils/simd.h"
@@ -729,6 +730,80 @@ TEST(srslte_vec_max_abs_ci,
          free(x);
 )
 
+TEST(srslte_vec_apply_cfo,
+     MALLOC(cf_t, x);
+     MALLOC(cf_t, z);
+
+     const float cfo = 0.1f;
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+     }
+
+     TEST_CALL(srslte_vec_apply_cfo(x, cfo, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] * cexpf(_Complex_I * 2.0f * (float) M_PI * i * cfo);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
+         }
+         mse /= block_size;
+
+         free(x);
+         free(z);
+)
+
+TEST(srslte_cfo_correct,
+     srslte_cfo_t srslte_cfo = {0};
+     MALLOC(cf_t, x);
+     MALLOC(cf_t, z);
+
+     const float cfo = 0.1f;
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+     }
+
+     srslte_cfo_init(&srslte_cfo, block_size);
+
+     TEST_CALL(srslte_cfo_correct(&srslte_cfo, x, z, cfo))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] * cexpf(_Complex_I * 2.0f * (float) M_PI * i * cfo);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
+         }
+         mse /= block_size;
+
+         free(x);
+         free(z);
+         srslte_cfo_free(&srslte_cfo);
+)
+
+TEST(srslte_cfo_correct_change,
+     srslte_cfo_t srslte_cfo = {0};
+     MALLOC(cf_t, x);
+     MALLOC(cf_t, z);
+
+     float cfo = 0.1f;
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+     }
+
+     srslte_cfo_init(&srslte_cfo, block_size);
+
+     TEST_CALL(cfo = (i%2)?0.1:-0.1; srslte_cfo_correct(&srslte_cfo, x, z, cfo))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] * cexpf(_Complex_I * 2.0f * (float) M_PI * i * cfo);
+           mse += cabsf(gold - z[i]) / cabsf(gold);
+         }
+         mse /= block_size;
+
+         free(x);
+         free(z);
+         srslte_cfo_free(&srslte_cfo);
+)
+
 int main(int argc, char **argv) {
   char func_names[MAX_FUNCTIONS][32];
   double timmings[MAX_FUNCTIONS][MAX_BLOCKS];
@@ -738,7 +813,7 @@ int main(int argc, char **argv) {
   bool passed[MAX_FUNCTIONS][MAX_BLOCKS];
   bool all_passed = true;
 
-  for (uint32_t block_size = 1; block_size <= 1024*8; block_size *= 2) {
+  for (uint32_t block_size = 1; block_size <= 1024*32; block_size *= 2) {
     func_count = 0;
 
 
@@ -825,6 +900,15 @@ int main(int argc, char **argv) {
     func_count++;
 
     passed[func_count][size_count] = test_srslte_vec_max_abs_ci(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_apply_cfo(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_cfo_correct(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_cfo_correct_change(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     sizes[size_count] = block_size;
