@@ -66,11 +66,17 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
   rx_count      = 0;
   do_integrity  = false;
   do_encryption = false;
+
+  cfg.sn_len    = 0;
+  sn_len_bytes  = 0;
+
   if(cfg.is_control) {
     cfg.sn_len   = 5;
     sn_len_bytes = 1;
-  } else {
-    sn_len_bytes  = (cfg.sn_len+7)/8;
+  }
+  if(cfg.is_data) {
+    cfg.sn_len   = 12;
+    sn_len_bytes = 2;
   }
 
   log->debug("Init %s\n", rrc->get_rb_name(lcid).c_str());
