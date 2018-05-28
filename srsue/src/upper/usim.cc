@@ -293,7 +293,7 @@ void usim::generate_as_keys_ho(uint32_t pci,
                          nh);
 
     current_ncc++;
-    if (current_ncc == 7) {
+    if (current_ncc == 8) {
       current_ncc = 0;
     }
     enb_star_key = nh;
