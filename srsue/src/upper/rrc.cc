@@ -763,6 +763,7 @@ bool rrc::si_acquire(uint32_t sib_index)
                 if ((uint32_t) sib1->sched_info[i].sib_mapping_info[j].sib_type == sib_index - 2) {
                   period      = liblte_rrc_si_periodicity_num[sib1->sched_info[i].si_periodicity];
                   sched_index = i;
+                  found       = true;
                 }
               }
             }

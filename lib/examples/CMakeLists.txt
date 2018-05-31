@@ -40,10 +40,10 @@ else(RF_FOUND)
   add_definitions(-DDISABLE_RF)
 
   add_executable(pdsch_ue pdsch_ue.c)
-  target_link_libraries(pdsch_ue srslte_phy pthread)
+  target_link_libraries(pdsch_ue srslte_common srslte_phy pthread)
 
   add_executable(pdsch_enodeb pdsch_enodeb.c)
-  target_link_libraries(pdsch_enodeb srslte_phy pthread)
+  target_link_libraries(pdsch_enodeb srslte_common srslte_phy pthread)
 endif(RF_FOUND)
 
 find_package(SRSGUI)
