@@ -532,8 +532,8 @@ int main(int argc, char *argv[])
     if (args.gui.enable) {
       ue->start_plot();
     }
+    // Auto-start MBMS service by default
     if(args.expert.mbms_service > -1){
-      //ue->mbms_service_start(args.expert.mbms_service, 4321);
       serv = args.expert.mbms_service;
       port = 4321;
       mbms_service_start = true;
@@ -541,6 +541,7 @@ int main(int argc, char *argv[])
   }
   int cnt=0;
   while (running) {
+    //
     if(mbms_service_start) {
       if(ue->mbms_service_start(serv, port)){
         mbms_service_start = false;
@@ -550,18 +551,14 @@ int main(int argc, char *argv[])
       show_mbms = false;
       ue->print_mbms();
     }
-    sleep(1);
     if (args.expert.print_buffer_state) {
       cnt++;
       if (cnt==10) {
         cnt=0;
         ue->print_pool();
       }
-    } else {
-      while (!ue->attach() && running) {
-        sleep(1);
-      }
     }
+    sleep(1);
   }
   pthread_cancel(input);
   metricshub.stop();
