@@ -452,7 +452,7 @@ void test_set_6()
       direction, msg, len_bits, out);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-  printf("encryption: %d bits, t=%d us, rate=%.1f Mbps/s\n", len_bits, t[0].tv_usec, (float) len_bits/t[0].tv_usec);
+  printf("encryption: %u bits, t=%d us, rate=%.1f Mbps/s\n", len_bits, (int) t[0].tv_usec, (float) len_bits/t[0].tv_usec);
   assert(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
@@ -465,7 +465,7 @@ void test_set_6()
       direction, ct, len_bits, out);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-  printf("decryption: %d bits, t=%d us, rate=%.1f Mbps/s\n", len_bits, t[0].tv_usec, (float) len_bits/t[0].tv_usec);
+  printf("decryption: %u bits, t=%d us, rate=%.1f Mbps/s\n", len_bits, (int) t[0].tv_usec, (float) len_bits/t[0].tv_usec);
   assert(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
@@ -570,12 +570,12 @@ void test_set_1_invalid()
  */
 
 int main(int argc, char * argv[]) {
- // test_set_1();
-  // test_set_2();
-  //test_set_3();
-  //test_set_4();
-  //test_set_5();
+  test_set_1();
+  test_set_2();
+  test_set_3();
+  test_set_4();
+  test_set_5();
   test_set_6();
-  //test_set_1_block_size();
-  //test_set_1_invalid();
+  test_set_1_block_size();
+  test_set_1_invalid();
 }
