@@ -110,11 +110,11 @@ imei = 353490069873319
 #
 # ue_category:   Sets UE category (range 1-5). Default: 4
 # feature_group: Hex value of the featureGroupIndicators field in the
-#                UECapabilityInformation message. Default 0xe6041c00
+#                UECapabilityInformation message. Default 0xe6041000
 #####################################################################
 [rrc]
 #ue_category   = 4
-#feature_group = 0xe6041c00
+#feature_group = 0xe6041000
 
 #####################################################################
 # NAS configuration

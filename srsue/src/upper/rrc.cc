@@ -178,7 +178,7 @@ void rrc::init(phy_interface_rrc *phy_,
   args.ue_category = SRSLTE_UE_CATEGORY;
   args.supported_bands[0] = 7;
   args.nof_supported_bands = 1;
-  args.feature_group = 0xe6041c00;
+  args.feature_group = 0xe6041000;
 
   t300 = mac_timers->timer_get_unique_id();
   t301 = mac_timers->timer_get_unique_id();
