@@ -30,11 +30,13 @@
 #include <signal.h>
 #include <pthread.h>
 
+#include "srslte/common/config_file.h"
+
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <srsenb/hdr/enb.h>
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_stdout.h"
@@ -224,30 +226,30 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
   }
 
   // print version number and exit
-    // print version number and exit
-    if (vm.count("version")) {
-        cout << "Version " <<
-                srslte_get_version_major() << "." <<
-                srslte_get_version_minor() << "." <<
-                srslte_get_version_patch() << endl;
-        exit(0);
-    }
-
-  // no config file given - print usage and exit
-  if (!vm.count("config_file")) {
-      cout << "Error: Configuration file not provided" << endl;
-      cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
-      exit(0);
-  } else {
-      cout << "Reading configuration file " << config_file << "..." << endl;
-      ifstream conf(config_file.c_str(), ios::in);
-      if(conf.fail()) {
-        cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
-        exit(1);
-      }
-      bpo::store(bpo::parse_config_file(conf, common), vm);
-      bpo::notify(vm);
+  if (vm.count("version")) {
+    cout << "Version " <<
+         srslte_get_version_major() << "." <<
+         srslte_get_version_minor() << "." <<
+         srslte_get_version_patch() << endl;
+    exit(0);
   }
+
+  // if no config file given, check users home path
+  if (!vm.count("config_file")) {
+    if (!config_exists(config_file, "enb.conf")) {
+      cout << "Failed to read eNB configuration file " << config_file << " - exiting" << endl;
+      exit(1);
+    }
+  }
+
+  cout << "Reading configuration file " << config_file << "..." << endl;
+  ifstream conf(config_file.c_str(), ios::in);
+  if(conf.fail()) {
+    cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+    exit(1);
+  }
+  bpo::store(bpo::parse_config_file(conf, common), vm);
+  bpo::notify(vm);
 
   // Convert hex strings
   {
@@ -328,6 +330,22 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     if(!vm.count("log.s1ap_hex_limit")) {
       args->log.s1ap_hex_limit = args->log.all_hex_limit;
     }
+  }
+
+  // Check remaining eNB config files
+  if (!config_exists(args->enb_files.sib_config, "sib.conf")) {
+    cout << "Failed to read SIB configuration file " << args->enb_files.sib_config << " - exiting" << endl;
+    exit(1);
+  }
+
+  if (!config_exists(args->enb_files.rr_config, "rr.conf")) {
+    cout << "Failed to read RR configuration file " << args->enb_files.rr_config << " - exiting" << endl;
+    exit(1);
+  }
+
+  if (!config_exists(args->enb_files.drb_config, "drb.conf")) {
+    cout << "Failed to read DRB configuration file " << args->enb_files.drb_config << " - exiting" << endl;
+    exit(1);
   }
 }
 
