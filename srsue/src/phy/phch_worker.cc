@@ -815,6 +815,10 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
 
         // Store metrics
         dl_metrics.mcs    = grant->mcs[0].idx;
+        float niters = srslte_pdsch_last_noi(&ue_dl.pdsch);
+        if (niters) {
+          dl_metrics.turbo_iters = niters;
+        }
       } else {
         Warning("Received grant for TBS=0\n");
       }
@@ -1632,7 +1636,6 @@ void phch_worker::update_measurements()
     dl_metrics.rssi   = phy->avg_rssi_dbm;
     dl_metrics.pathloss = phy->pathloss;
     dl_metrics.sinr   = phy->avg_snr_db_cqi;
-    dl_metrics.turbo_iters = srslte_pdsch_last_noi(&ue_dl.pdsch);
     phy->set_dl_metrics(dl_metrics);
 
   }
