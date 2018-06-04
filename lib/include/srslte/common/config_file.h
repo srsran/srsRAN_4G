@@ -35,16 +35,15 @@ bool config_exists(std::string &filename, std::string default_name)
 {
   std::ifstream conf(filename.c_str(), std::ios::in);
   if(conf.fail()) {
-    const char *homedir = NULL;
+    const char *config_dir = NULL;
     char full_path[256];
     ZERO_OBJECT(full_path);
-    if ((homedir = getenv("HOME")) == NULL) {
-      homedir = getpwuid(getuid())->pw_dir;
+    if ((config_dir = getenv("SRSLTE_CONFIG_DIR")) == NULL) {
+      fprintf(stderr, "No environment variable SRSLTE_CONFIG_DIR defined.\n"
+                      "Please run \"export SRSLTE_CONFIG_DIR=/usr/etc/srs\" to define it.\n\n");
+      return false;
     }
-    if (!homedir) {
-      homedir = ".";
-    }
-    snprintf(full_path, sizeof(full_path), "%s/.srs/%s", homedir, default_name.c_str());
+    snprintf(full_path, sizeof(full_path), "%s/%s", config_dir, default_name.c_str());
     filename = std::string(full_path);
 
     // try to open again
