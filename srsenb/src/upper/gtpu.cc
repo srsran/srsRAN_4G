@@ -207,8 +207,9 @@ void gtpu::stop()
 {
   if (run_enable) {
     run_enable = false;
-    if(mch_run_enable)
-        mch_run_enable = false;
+    if(mch_run_enable) {
+      mch_run_enable = false;
+    }
 
     // Wait thread to exit gracefully otherwise might leave a mutex locked
     int cnt=0;
@@ -218,8 +219,9 @@ void gtpu::stop()
     }
     if (running) {
       thread_cancel();
-      if(mch_running)
+      if(mch_running) {
         pthread_cancel(mch_thread);
+      }
     }
     wait_thread_finish();
     pthread_join(mch_thread, NULL);
@@ -255,11 +257,11 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   }
 
   pool->deallocate(pdu);
-  }
+}
 
-  // gtpu_interface_rrc
-  void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in)
-  {
+// gtpu_interface_rrc
+void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in)
+{
   // Allocate a TEID for the incoming tunnel
   rntilcid_to_teidin(rnti, lcid, teid_in);
   //gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x\n", rnti, lcid, addr, teid_out, *teid_in);

@@ -143,7 +143,7 @@ public:
       used_timers[i] = false;
       nof_used_timers--;
     } else {
-      fprintf(stderr, "Error releasing timer: nof_used_timers=%d, nof_timers=%d\n", nof_used_timers, nof_timers);
+      fprintf(stderr, "Error releasing timer id=%d: nof_used_timers=%d, nof_timers=%d\n", i, nof_used_timers, nof_timers);
     }
   }
   uint32_t get_unique_id() {
