@@ -37,6 +37,7 @@
 #include <boost/program_options/parsers.hpp>
 
 #include "srsue/hdr/ue.h"
+#include "srslte/common/config_file.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/metrics_csv.h"
@@ -343,21 +344,23 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     exit(0);
   }
 
-  // no config file given - print usage and exit
+  // if no config file given, check users home path
   if (!vm.count("config_file")) {
-    cout << "Error: Configuration file not provided" << endl;
-    cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
-    exit(0);
-  } else {
-    cout << "Reading configuration file " << config_file << "..." << endl;
-    ifstream conf(config_file.c_str(), ios::in);
-    if (conf.fail()) {
-      cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+
+    if (!config_exists(config_file, "ue.conf")) {
+      cout << "Failed to read UE configuration file " << config_file << " - exiting" << endl;
       exit(1);
     }
-    bpo::store(bpo::parse_config_file(conf, common), vm);
-    bpo::notify(vm);
   }
+
+  cout << "Reading configuration file " << config_file << "..." << endl;
+  ifstream conf(config_file.c_str(), ios::in);
+  if (conf.fail()) {
+    cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+    exit(1);
+  }
+  bpo::store(bpo::parse_config_file(conf, common), vm);
+  bpo::notify(vm);
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {

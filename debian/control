@@ -1,0 +1,14 @@
+Source: srslte
+Section: misc
+Priority: optional
+Maintainer: Andre Puschmann <andre@softwareradiosystems.com>
+Build-Depends: debhelper (>= 9), dh-exec, cmake, build-essential, libfftw3-dev, libmbedtls-dev, libboost-program-options-dev, libconfig++-dev, libsctp-dev, libuhd-dev, uhd-host
+Standards-Version: 4.1.1
+Homepage: https://github.com/srsLTE/srsLTE/
+
+Package: srslte
+Architecture: any
+Depends: libfftw3-3 (>= 3.3.3-1), libboost-program-options1.62.0 (>= 1.62.0), libmbedcrypto1 (>= 2.8.0-1), libconfig++9v5 (>= 1.5-0.2), libsctp1 (>= 1.0.16+dfsg-3), uhd-host (>= 3.9.2-1), libuhd003.010.003 (>= 3.10.3.0-2)
+Description: This is srsLTE, a free and open-source LTE software suite.
+ This software allows you to run a full end-to-end, open-source LTE system.
+ It contains a UE, eNB and EPC implementation.
