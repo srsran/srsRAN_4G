@@ -354,7 +354,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
     return false;
   }
   gen_rand(rand);
-  
+
   security_milenage_f2345( k,
                            op,
                            rand,
@@ -498,7 +498,7 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
                             mcc,
                             mnc,
                             k_asme);
-  
+
   m_hss_log->debug("User MCC : %x  MNC : %x \n", mcc, mnc);
   m_hss_log->debug_hex(k_asme, 32, "User k_asme : ");
 
@@ -545,7 +545,7 @@ hss::get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint
   return true;
 }
 
-void 
+void
 hss::increment_sqn(uint64_t imsi)
 {
   hss_ue_ctx_t *ue_ctx = NULL;
@@ -562,9 +562,9 @@ hss::increment_sqn(uint64_t imsi)
   for(int i = 0; i < 6; i++) {
     p[5-i] = (uint8_t) ((ue_ctx->sqn[i]));
   }
-  
+
   sqn++;
-  
+
   m_hss_log->debug("Incremented SQN (IMSI: %" PRIu64 ") SQN: %" PRIu64 "\n", imsi, sqn);
 
   for(int i = 0; i < 6; i++){
@@ -627,7 +627,7 @@ bool hss::get_ue_ctx(uint64_t imsi, hss_ue_ctx_t **ue_ctx)
     m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
     return false;
   }
-  
+
   *ue_ctx = ue_ctx_it->second;
   return true;
 }
@@ -660,7 +660,6 @@ hss::get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint le
   return;
 }
 
-
 std::string 
 hss::hex_string(uint8_t *hex, int size)
 {
@@ -672,15 +671,4 @@ hss::hex_string(uint8_t *hex, int size)
   }
   return ss.str();
 }
-  /*
-uint64_t
-string_to_imsi()
-{
-  uint64_t imsi = 0;
-  for(int i=0;i<=14;i++){
-    imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
-  }
-  return imsi;
-}
-  */
 } //namespace srsepc
