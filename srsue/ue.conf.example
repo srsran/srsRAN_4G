@@ -88,7 +88,7 @@ file_max_size = -1
 #
 # mode: USIM mode (soft/pcsc)
 # algo: Authentication algorithm (xor/milenage)
-# op:   128-bit Operator Variant Algorithm Configuration Field (hex)
+# opc:  128-bit Operator Ciphered Variant Algorithm Configuration Field (hex)
 # k:    128-bit subscriber key (hex)
 # imsi: 15 digit International Mobile Subscriber Identity
 # imei: 15 digit International Mobile Station Equipment Identity
@@ -98,7 +98,7 @@ file_max_size = -1
 [usim]
 mode = soft
 algo = xor
-op   = 63BFA50EE6523365FF14C1F45F88737D
+opc  = 63BFA50EE6523365FF14C1F45F88737D
 k    = 00112233445566778899aabbccddeeff
 imsi = 001010123456789
 imei = 353490069873319
