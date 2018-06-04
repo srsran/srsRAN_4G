@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
+#include "srslte/common/config_file.h"
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
 
 using namespace std;
@@ -131,21 +132,23 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
       exit(0);
   }
 
-  //Parsing Config File
+  // if no config file given, check users home path
   if (!vm.count("config_file")) {
-      cout << "Error: Configuration file not provided" << endl;
-      cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
-      exit(0);
-  } else {
-      cout << "Reading configuration file " << config_file << "..." << endl;
-      ifstream conf(config_file.c_str(), ios::in);
-      if(conf.fail()) {
-        cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
-        exit(1);
-      }
-      bpo::store(bpo::parse_config_file(conf, common), vm);
-      bpo::notify(vm);
+    if (!config_exists(config_file, "mbms.conf")) {
+      cout << "Failed to read MBMS-GW configuration file " << config_file << " - exiting" << endl;
+      exit(1);
+    }
   }
+
+  //Parsing Config File
+  cout << "Reading configuration file " << config_file << "..." << endl;
+  ifstream conf(config_file.c_str(), ios::in);
+  if(conf.fail()) {
+    cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+    exit(1);
+  }
+  bpo::store(bpo::parse_config_file(conf, common), vm);
+  bpo::notify(vm);
 
   args->mbms_gw_args.name = mbms_gw_name;
   args->mbms_gw_args.sgi_mb_if_addr = mbms_gw_sgi_mb_if_addr;

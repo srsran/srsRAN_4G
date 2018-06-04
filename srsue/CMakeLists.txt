@@ -44,3 +44,8 @@ link_directories(
 ########################################################################
 add_subdirectory(src)
 add_subdirectory(test)
+
+########################################################################
+# Default configuration files
+########################################################################
+install(FILES ue.conf.example RENAME ue.conf DESTINATION etc/srs)
