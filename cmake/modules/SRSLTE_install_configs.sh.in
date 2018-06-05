@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Auto-updated by CMake with actual install path
+SRSLTE_INSTALL_DIR="${CMAKE_INSTALL_PREFIX}/${DATA_DIR}"
+
+install_file(){
+  source_path="$SRSLTE_INSTALL_DIR/$1"
+  dest_path="$HOME/.srs/${1%.example}" # Strip .example from it
+  
+  # Check if config file already exists in location
+  if [ -f  $dest_path ]; then
+    echo "$dest_path already exists. Skipping it."
+    return
+  fi
+  
+  # Check if config file exists in source location
+  if [ -f $source_path ]; then
+    echo "Installing $1 in $dest_path"
+    cp $source_path $dest_path
+  else
+    echo "$source_path doesn't exist. Skipping it."
+  fi
+
+  return
+}
+
+# Install all srsLTE config files
+echo "Installing srsLTE configuration files .."
+
+install_file "ue.conf.example"
+install_file "enb.conf.example"
+install_file "sib.conf.example"
+install_file "rr.conf.example"
+install_file "drb.conf.example"
+install_file "epc.conf.example"
+install_file "mbms.conf.example"
+install_file "user_db.csv.example"
+
+echo "Done."

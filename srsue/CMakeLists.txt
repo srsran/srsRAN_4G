@@ -48,4 +48,4 @@ add_subdirectory(test)
 ########################################################################
 # Default configuration files
 ########################################################################
-install(FILES ue.conf.example RENAME ue.conf DESTINATION etc/srs)
+install(FILES ue.conf.example DESTINATION ${DATA_DIR})

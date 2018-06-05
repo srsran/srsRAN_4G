@@ -51,7 +51,7 @@ add_subdirectory(src)
 ########################################################################
 # Default configuration files
 ########################################################################
-install(FILES epc.conf.example RENAME epc.conf DESTINATION etc/srs)
-install(FILES mbms.conf.example RENAME mbms.conf DESTINATION etc/srs)
-install(FILES user_db.csv.example RENAME user_db.csv DESTINATION etc/srs)
-install(FILES srsepc_if_masq.sh DESTINATION ${RUNTIME_DIR})
+install(FILES epc.conf.example DESTINATION ${DATA_DIR})
+install(FILES mbms.conf.example DESTINATION ${DATA_DIR})
+install(FILES user_db.csv.example DESTINATION ${DATA_DIR})
+install(PROGRAMS srsepc_if_masq.sh DESTINATION ${RUNTIME_DIR})

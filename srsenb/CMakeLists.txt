@@ -52,7 +52,7 @@ add_subdirectory(test)
 ########################################################################
 # Default configuration files
 ########################################################################
-install(FILES enb.conf.example RENAME enb.conf DESTINATION etc/srs)
-install(FILES drb.conf.example RENAME drb.conf DESTINATION etc/srs)
-install(FILES rr.conf.example RENAME rr.conf DESTINATION etc/srs)
-install(FILES sib.conf.example RENAME sib.conf DESTINATION etc/srs)
+install(FILES enb.conf.example DESTINATION ${DATA_DIR})
+install(FILES drb.conf.example DESTINATION ${DATA_DIR})
+install(FILES rr.conf.example DESTINATION ${DATA_DIR})
+install(FILES sib.conf.example DESTINATION ${DATA_DIR})
