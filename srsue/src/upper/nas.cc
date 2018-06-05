@@ -732,6 +732,8 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
   // Deallocate PDU after parsing
   pool->deallocate(pdu);
 
+  ctxt.rx_count++;
+
   // Generate authentication response using RAND, AUTN & KSI-ASME
   uint16 mcc, mnc;
   mcc = rrc->get_mcc();
