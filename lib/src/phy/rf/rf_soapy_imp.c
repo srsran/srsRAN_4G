@@ -109,7 +109,7 @@ bool rf_soapy_rx_wait_lo_locked(void *h)
 
 void rf_soapy_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
-  printf("TODO: implement rf_soapy_rx_wait_lo_locked()\n");
+  printf("TODO: implement rf_soapy_set_tx_cal()\n");
   // not supported
 }
 
@@ -268,6 +268,9 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   handler->info.min_rx_gain = rx_range.minimum;
   handler->info.max_rx_gain = rx_range.maximum;
 
+  // init Rx rate to lowest LTE rate
+  rf_soapy_set_rx_srate(handler, 1.92e6);
+
   return SRSLTE_SUCCESS;
 }
 
@@ -314,20 +317,44 @@ bool rf_soapy_is_master_clock_dynamic(void *h)
 double rf_soapy_set_rx_srate(void *h, double rate)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+
+  // Restart streaming, as the Lime seems to have problems reconfiguring the sample rate during streaming
+  bool rx_stream_active = handler->rx_stream_active;
+  if (rx_stream_active) {
+    rf_soapy_stop_rx_stream(handler);
+  }
+
   if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_RX, 0, rate) != 0) {
     printf("setSampleRate Rx fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
+
+  if (rx_stream_active) {
+    rf_soapy_start_rx_stream(handler, true);
+  }
+
   return SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_RX,0);
 }
 
 double rf_soapy_set_tx_srate(void *h, double rate)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+
+  // stop/start streaming during rate reconfiguration
+  bool rx_stream_active = handler->rx_stream_active;
+  if (handler->rx_stream_active) {
+    rf_soapy_stop_rx_stream(handler);
+  }
+
   if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_TX, 0, rate) != 0) {
     printf("setSampleRate Tx fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
+
+  if (rx_stream_active) {
+    rf_soapy_start_rx_stream(handler, true);
+  }
+
   return SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_TX,0);
 }
 
@@ -389,14 +416,18 @@ double rf_soapy_set_rx_freq(void *h, double freq)
     printf("setFrequency fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
+  printf("Tuning receiver to %.2f MHz\n", SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0)/1e6);
 
   // Todo: expose antenna setting
-  if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_RX, 0, "LNAH") != 0) {
+  if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_RX, 0, "LNAL") != 0) {
     fprintf(stderr, "Failed to set Rx antenna.\n");
   }
 
   char *ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_RX, 0);
   printf("Rx antenna set to %s\n", ant);
+
+  // wait until LO is locked
+  rf_soapy_rx_wait_lo_locked(handler);
 
   return SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0);
 }
@@ -411,7 +442,7 @@ double rf_soapy_set_tx_freq(void *h, double freq)
   }
 
   // Todo: expose antenna name in arguments
-  if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_TX, 0, "BAND1") != 0) {
+  if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_TX, 0, "BAND2") != 0) {
     fprintf(stderr, "Failed to set Tx antenna.\n");
   }
 
@@ -439,7 +470,7 @@ int  rf_soapy_recv_with_time_multi(void *h,
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   int flags; //flags set by receive operation
   int num_channels = 1; // temp
-  const long timeoutUs = 1000000; // arbitrarily chosen
+  const long timeoutUs = 4000000; // arbitrarily chosen
   
   int trials = 0;
   int ret = 0;
@@ -458,12 +489,17 @@ int  rf_soapy_recv_with_time_multi(void *h,
     }
     ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, timeoutUs);
     if(ret < 0) {
-      // continue when getting overflows
+      // continue when getting overflows and timeouts
       if (ret == SOAPY_SDR_OVERFLOW) {
         fprintf(stderr, "O");
         fflush(stderr);
         continue;
+      } else if (SOAPY_SDR_TIMEOUT) {
+        fprintf(stderr, "T");
+        fflush(stderr);
+        continue;
       } else {
+        printf("rx error in soapy, ret=%d, flags=%d, timeNs=%lld\n", ret, flags, timeNs);
         return SRSLTE_ERROR;
       }
     }
