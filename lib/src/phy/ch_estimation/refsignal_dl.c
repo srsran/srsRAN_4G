@@ -56,17 +56,17 @@ uint32_t srslte_refsignal_cs_v(uint32_t port_id, uint32_t ref_symbol_idx)
       }
       break;
     case 2:
-      if (ref_symbol_idx < 2) {
+      if (ref_symbol_idx == 0) {
         v = 0;
       } else {
         v = 3;
       }
       break;
     case 3:
-      if (ref_symbol_idx < 2) {
+      if (ref_symbol_idx == 0) {
         v = 3;
       } else {
-        v = 6;
+        v = 0;
       }
       break;
   }
@@ -414,7 +414,7 @@ int srslte_refsignal_cs_get_sf(srslte_cell_t cell, uint32_t port_id, cf_t *sf_sy
     for (l=0;l<srslte_refsignal_cs_nof_symbols(port_id);l++) {
       uint32_t nsymbol = srslte_refsignal_cs_nsymbol(l, cell.cp, port_id);
       /* Compute offset frequency index */
-      fidx = ((srslte_refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6); 
+      fidx = srslte_refsignal_cs_fidx(cell, l, port_id, 0);
       for (i = 0; i < 2*cell.nof_prb; i++) {
         pilots[SRSLTE_REFSIGNAL_PILOT_IDX(i,l,cell)] = sf_symbols[SRSLTE_RE_IDX(cell.nof_prb, nsymbol, fidx)];
         fidx += SRSLTE_NRE/2;       // 2 references per PRB

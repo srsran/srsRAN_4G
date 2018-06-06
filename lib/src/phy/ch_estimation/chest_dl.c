@@ -390,11 +390,12 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
       }
     } else {
       if (q->average_subframe) {
-        fidx_offset = SRSLTE_MIN(srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0),
-                                 srslte_refsignal_cs_fidx(q->cell, 1, port_id, 0));
-        srslte_interp_linear_offset(&q->srslte_interp_lin_3, &pilot_estimates[q->cell.nof_prb * l],
-                                    &ce[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb
-                                        * SRSLTE_NRE], fidx_offset, SRSLTE_NRE / 4 - fidx_offset);
+        fidx_offset = q->cell.id % 3;
+        srslte_interp_linear_offset(&q->srslte_interp_lin_3,
+                                    pilot_estimates,
+                                    ce,
+                                    fidx_offset,
+                                    SRSLTE_NRE / 4 - fidx_offset);
       } else {
         fidx_offset = srslte_refsignal_cs_fidx(q->cell, l, port_id, 0);
         srslte_interp_linear_offset(&q->srslte_interp_lin, &pilot_estimates[2 * q->cell.nof_prb * l],
@@ -407,7 +408,7 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
   /* Now interpolate in the time domain between symbols */
   if (q->average_subframe) {
     // If we average per subframe, just copy the estimates in the time domain
-    for (l=0;l<2*SRSLTE_CP_NSYMB(q->cell.cp);l++) {
+    for (l=1;l<2*SRSLTE_CP_NSYMB(q->cell.cp);l++) {
       memcpy(&ce[l*SRSLTE_NRE*q->cell.nof_prb], ce, sizeof(cf_t)*SRSLTE_NRE*q->cell.nof_prb);
     }
   } else {
