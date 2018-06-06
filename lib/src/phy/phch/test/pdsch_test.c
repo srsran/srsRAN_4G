@@ -60,6 +60,7 @@ int rv_idx[SRSLTE_MAX_CODEWORDS] = {0, 1};
 uint16_t rnti = 1234;
 uint32_t nof_rx_antennas = 1;
 bool tb_cw_swap = false;
+bool enable_coworker = false;
 uint32_t pmi = 0;
 char *input_file = NULL; 
 
@@ -79,12 +80,13 @@ void usage(char *prog) {
   printf("\t-a nof_rx_antennas [Default %d]\n", nof_rx_antennas);
   printf("\t-p pmi (multiplex only)  [Default %d]\n", pmi);
   printf("\t-w Swap Transport Blocks\n");
+  printf("\t-j Enable PDSCH decoder coworker\n");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "fmMcsrtRFpnawvx")) != -1) {
+  while ((opt = getopt(argc, argv, "fmMcsrtRFpnawvxj")) != -1) {
     switch(opt) {
     case 'f':
       input_file = argv[optind];
@@ -128,6 +130,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'w':
       tb_cw_swap = true;
+      break;
+    case 'j':
+      enable_coworker = true;
       break;
     case 'v':
       srslte_verbose++;
@@ -469,6 +474,10 @@ int main(int argc, char **argv) {
   }
   int r=0;
   srslte_pdsch_set_max_noi(&pdsch_rx, 10);
+
+  if (enable_coworker) {
+    srslte_pdsch_enable_coworker(&pdsch_rx);
+  }
 
   gettimeofday(&t[1], NULL);
   for (k = 0; k < M; k++) {

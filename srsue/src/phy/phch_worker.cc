@@ -103,6 +103,10 @@ void phch_worker::reset()
   rssi_read_cnt = 0;
 }
 
+void phch_worker::enable_pdsch_coworker() {
+  srslte_pdsch_enable_coworker(&ue_dl.pdsch);
+}
+
 void phch_worker::set_common(phch_common* phy_)
 {
   phy = phy_;   
