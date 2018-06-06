@@ -1,0 +1,9 @@
+#!/usr/bin/dh-exec
+srsue/ue.conf.example => usr/share/srslte/config/ue.conf
+srsenb/enb.conf.example => usr/share/srslte/config/enb.conf
+srsenb/rr.conf.example => usr/share/srslte/config/rr.conf
+srsenb/drb.conf.example => usr/share/srslte/config/drb.conf
+srsenb/sib.conf.example => usr/share/srslte/config/sib.conf
+srsepc/epc.conf.example => usr/share/srslte/config/epc.conf
+srsepc/mbms.conf.example => usr/share/srslte/config/mbms.conf
+srsepc/user_db.csv.example => usr/share/srslte/config/user_db.csv

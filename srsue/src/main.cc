@@ -37,6 +37,7 @@
 #include <boost/program_options/parsers.hpp>
 
 #include "srsue/hdr/ue.h"
+#include "srslte/common/config_file.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/metrics_csv.h"
@@ -79,8 +80,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
     ("rf.continuous_tx", bpo::value<string>(&args->rf.continuous_tx)->default_value("auto"), "Transmit samples continuously to the radio or on bursts (auto/yes/no). Default is auto (yes for UHD, no for rest)")
 
-    ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041c00), "Hex value of the featureGroupIndicators field in the"
-                                                                                           "UECapabilityInformation message. Default 0xe6041c00")
+    ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
+                                                                                           "UECapabilityInformation message. Default 0xe6041000")
     ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
 
     ("nas.apn",   bpo::value<string>(&args->apn_name)->default_value(""),  "Set Access Point Name (APN) for data services")
@@ -128,7 +129,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("usim.mode", bpo::value<string>(&args->usim.mode)->default_value("soft"), "USIM mode (soft or pcsc)")
     ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
-    ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator variant")
+    ("usim.opc", bpo::value<string>(&args->usim.op), "USIM operator ciphered variant")
     ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
@@ -343,21 +344,23 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     exit(0);
   }
 
-  // no config file given - print usage and exit
+  // if no config file given, check users home path
   if (!vm.count("config_file")) {
-    cout << "Error: Configuration file not provided" << endl;
-    cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
-    exit(0);
-  } else {
-    cout << "Reading configuration file " << config_file << "..." << endl;
-    ifstream conf(config_file.c_str(), ios::in);
-    if (conf.fail()) {
-      cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+
+    if (!config_exists(config_file, "ue.conf")) {
+      cout << "Failed to read UE configuration file " << config_file << " - exiting" << endl;
       exit(1);
     }
-    bpo::store(bpo::parse_config_file(conf, common), vm);
-    bpo::notify(vm);
   }
+
+  cout << "Reading configuration file " << config_file << "..." << endl;
+  ifstream conf(config_file.c_str(), ios::in);
+  if (conf.fail()) {
+    cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+    exit(1);
+  }
+  bpo::store(bpo::parse_config_file(conf, common), vm);
+  bpo::notify(vm);
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
@@ -532,8 +535,8 @@ int main(int argc, char *argv[])
     if (args.gui.enable) {
       ue->start_plot();
     }
+    // Auto-start MBMS service by default
     if(args.expert.mbms_service > -1){
-      //ue->mbms_service_start(args.expert.mbms_service, 4321);
       serv = args.expert.mbms_service;
       port = 4321;
       mbms_service_start = true;
@@ -541,6 +544,7 @@ int main(int argc, char *argv[])
   }
   int cnt=0;
   while (running) {
+    //
     if(mbms_service_start) {
       if(ue->mbms_service_start(serv, port)){
         mbms_service_start = false;
@@ -550,18 +554,14 @@ int main(int argc, char *argv[])
       show_mbms = false;
       ue->print_mbms();
     }
-    sleep(1);
     if (args.expert.print_buffer_state) {
       cnt++;
       if (cnt==10) {
         cnt=0;
         ue->print_pool();
       }
-    } else {
-      while (!ue->attach() && running) {
-        sleep(1);
-      }
     }
+    sleep(1);
   }
   pthread_cancel(input);
   metricshub.stop();

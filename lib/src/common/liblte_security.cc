@@ -37,7 +37,7 @@
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/liblte_ssl.h"
 #include "math.h"
-
+#include <stdio.h>
 /*******************************************************************************
                               DEFINES
 *******************************************************************************/
@@ -1124,7 +1124,12 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
         rijndael_key_schedule(k, &round_keys);
 
         // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
+        for(i=0;i<16;i++)
+        {
+            op_c[i] = op[i];
+        }
+
+        //compute_OPc(&round_keys, op, op_c);
 
         // Compute temp
         for(i=0; i<16; i++)
@@ -1207,8 +1212,13 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
         // Initialize the round keys
         rijndael_key_schedule(k, &round_keys);
 
+        for(i=0;i<16;i++)
+        {
+          op_c[i] = op[i];
+        }
+
         // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
+        //compute_OPc(&round_keys, op, op_c);
 
         // Compute temp
         for(i=0; i<16; i++)
@@ -1293,8 +1303,11 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
         rijndael_key_schedule(k, &round_keys);
 
         // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
-
+        //compute_OPc(&round_keys, op, op_c);
+        for(i=0;i<16;i++)
+        {
+          op_c[i] = op[i];
+        }
         // Compute temp
         for(i=0; i<16; i++)
         {
@@ -1398,7 +1411,11 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
         rijndael_key_schedule(k, &round_keys);
 
         // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
+        //compute_OPc(&round_keys, op, op_c);
+        for(i=0;i<16;i++)
+        {
+            op_c[i] = op[i];
+        }
 
         // Compute temp
         for(i=0; i<16; i++)

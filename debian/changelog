@@ -1,0 +1,11 @@
+srslte (18.05~SNAPSHOT-0ubuntu2) bionic; urgency=medium
+
+  * Update pkg deps
+
+ -- Andre Puschmann <andre@softwareradiosystems.com>  Tue, 01 June 2018 15:10:00 +0200
+
+srslte (18.05~SNAPSHOT-0ubuntu1) bionic; urgency=medium
+
+  * Initial release of deb's
+
+ -- Andre Puschmann <andre@softwareradiosystems.com>  Tue, 01 June 2018 14:10:00 +0200

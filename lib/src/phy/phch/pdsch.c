@@ -1046,7 +1046,19 @@ void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, uint32_t max_iter) {
 }
 
 float srslte_pdsch_last_noi(srslte_pdsch_t *q) {
-  return srslte_pdsch_last_noi_cw(q, 0);
+  float niters = 0;
+  int   active_cw = 0;
+  for (int i=0;i<SRSLTE_MAX_CODEWORDS;i++) {
+    if (q->last_nof_iterations[i]) {
+      niters += q->last_nof_iterations[i];
+      active_cw++;
+    }
+  }
+  if (active_cw) {
+    return niters/active_cw;
+  } else {
+    return 0;
+  }
 }
 
 int srslte_pdsch_enable_coworker(srslte_pdsch_t *q) {

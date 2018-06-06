@@ -178,7 +178,7 @@ void rrc::init(phy_interface_rrc *phy_,
   args.ue_category = SRSLTE_UE_CATEGORY;
   args.supported_bands[0] = 7;
   args.nof_supported_bands = 1;
-  args.feature_group = 0xe6041c00;
+  args.feature_group = 0xe6041000;
 
   t300 = mac_timers->timer_get_unique_id();
   t301 = mac_timers->timer_get_unique_id();
@@ -763,6 +763,7 @@ bool rrc::si_acquire(uint32_t sib_index)
                 if ((uint32_t) sib1->sched_info[i].sib_mapping_info[j].sib_type == sib_index - 2) {
                   period      = liblte_rrc_si_periodicity_num[sib1->sched_info[i].si_periodicity];
                   sched_index = i;
+                  found       = true;
                 }
               }
             }
