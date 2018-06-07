@@ -192,6 +192,12 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
       // Indicate scheduler to update BSR counters 
       sched->ul_recv_len(rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
 
+      // Indicate RRC about successful activity if valid RLC message is received
+      if (mac_msg_ul.get()->get_payload_size() > 64) { // do not count RLC status messages only
+        rrc->set_activity_user(rnti);
+        log_h->info("UL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
+      }
+
       if ((int) mac_msg_ul.get()->get_payload_size() > most_data) {
         most_data = (int) mac_msg_ul.get()->get_payload_size();
         lcid_most_data = mac_msg_ul.get()->get_sdu_lcid();

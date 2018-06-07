@@ -294,7 +294,7 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
   if (ack) {
     if (nof_bytes > 64) { // do not count RLC status messages only
       rrc_h->set_activity_user(rnti); 
-      log_h->debug("DL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
+      log_h->info("DL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
     }
   }
   return 0; 
@@ -313,10 +313,6 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
     if (crc) {
       ue_db[rnti]->push_pdu(tti, nof_bytes);
       pdu_process_thread.notify();      
-      if (nof_bytes > 64) { // do not count RLC status messages only
-        rrc_h->set_activity_user(rnti); 
-        log_h->debug("UL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
-      }
     } else {
       ue_db[rnti]->deallocate_pdu(tti);
     }
