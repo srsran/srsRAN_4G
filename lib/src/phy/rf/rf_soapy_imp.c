@@ -32,7 +32,7 @@
 
 #include "srslte/srslte.h"
 #include "rf_soapy_imp.h"
-#include "srslte/phy/rf/rf.h"
+#include "rf_helper.h"
 
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
@@ -270,6 +270,44 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   handler->info.min_rx_gain = rx_range.minimum;
   handler->info.max_rx_gain = rx_range.maximum;
 
+  // Check device arguments
+  if (args) {
+    // rx antenna
+    const char rx_ant_arg[] = "rxant=";
+    char rx_ant_str[64] = {0};
+    char *rx_ant_ptr = strstr(args, rx_ant_arg);
+    if (rx_ant_ptr) {
+      copy_subdev_string(rx_ant_str, rx_ant_ptr + strlen(rx_ant_arg));
+      printf("Setting Rx antenna to %s\n", rx_ant_str);
+      if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_RX, 0, rx_ant_str) != 0) {
+        fprintf(stderr, "Failed to set Rx antenna.\n");
+      }
+      remove_substring(args, rx_ant_arg);
+      remove_substring(args, rx_ant_str);
+    }
+
+    // tx antenna
+    const char tx_ant_arg[] = "txant=";
+    char tx_ant_str[64] = {0};
+    char *tx_ant_ptr = strstr(args, tx_ant_arg);
+    if (tx_ant_ptr) {
+      copy_subdev_string(tx_ant_str, tx_ant_ptr + strlen(tx_ant_arg));
+      printf("Setting Tx antenna to %s\n", tx_ant_str);
+      if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_TX, 0, tx_ant_str) != 0) {
+        fprintf(stderr, "Failed to set Tx antenna.\n");
+      }
+      remove_substring(args, tx_ant_arg);
+      remove_substring(args, tx_ant_str);
+    }
+  }
+
+  // print actual antenna configuration
+  char *ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_RX, 0);
+  printf("Rx antenna set to %s\n", ant);
+
+  ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_TX, 0);
+  printf("Tx antenna set to %s\n", ant);
+
   // init Rx rate to lowest LTE rate
   rf_soapy_set_rx_srate(handler, 1.92e6);
 
@@ -420,14 +458,6 @@ double rf_soapy_set_rx_freq(void *h, double freq)
   }
   printf("Tuning receiver to %.2f MHz\n", SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0)/1e6);
 
-  // Todo: expose antenna setting
-  if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_RX, 0, "LNAL") != 0) {
-    fprintf(stderr, "Failed to set Rx antenna.\n");
-  }
-
-  char *ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_RX, 0);
-  printf("Rx antenna set to %s\n", ant);
-
   // wait until LO is locked
   rf_soapy_rx_wait_lo_locked(handler);
 
@@ -442,14 +472,6 @@ double rf_soapy_set_tx_freq(void *h, double freq)
     printf("setFrequency fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
-
-  // Todo: expose antenna name in arguments
-  if (SoapySDRDevice_setAntenna(handler->device, SOAPY_SDR_TX, 0, "BAND2") != 0) {
-    fprintf(stderr, "Failed to set Tx antenna.\n");
-  }
-
-  char *ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_TX, 0);
-  printf("Tx antenna set to %s\n", ant);
 
   return SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_TX, 0);
 }
