@@ -308,16 +308,22 @@ void rrc::rem_user(uint16_t rnti)
   if (users.count(rnti) == 1) {
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
     rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
-    /* **Caution** order of removal here is important: from bottom to top */
-    mac->ue_rem(rnti);  // MAC handles PHY
 
+    /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
+     */
+    mac->ue_rem(rnti);  // MAC handles PHY
+    gtpu->rem_user(rnti);
+
+    // Wait enough time
     pthread_mutex_unlock(&user_mutex);
     usleep(50000);
     pthread_mutex_lock(&user_mutex);
 
+    // Now remove RLC and PDCP
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
-    gtpu->rem_user(rnti);
+
+    // And deallocate resources from RRC
     users[rnti].sr_free();
     users[rnti].cqi_free();
     users.erase(rnti);
