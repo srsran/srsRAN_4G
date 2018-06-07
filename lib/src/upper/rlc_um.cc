@@ -129,8 +129,9 @@ bool rlc_um::is_mrb()
 void rlc_um::stop()
 {
   reset();
-  if (mac_timers) {
+  if (mac_timers && reordering_timer) {
     mac_timers->timer_release_id(reordering_timer_id);
+    reordering_timer = NULL;
   }
 }
 
@@ -155,7 +156,7 @@ void rlc_um::reset()
     tx_sdu = NULL;
   }
 
-  if(mac_timers) {
+  if(reordering_timer) {
     reordering_timer->stop();
   }
   
