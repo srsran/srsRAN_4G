@@ -645,8 +645,8 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       }
       */
       log_h->info_hex(grants[i].data, phy_grant.mcs.tbs / 8,
-                      "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, idx=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s%s%s\n",
-                      rnti, phy_grant.n_prb[0], phy_grant.n_prb[0], phy_grant.L_prb,
+                      "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s%s%s\n",
+                      rnti, phy_grant.n_prb[0], phy_grant.n_prb[0]+phy_grant.L_prb,
                       phy_grant.mcs.tbs / 8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
                       snr_db,
                       srslte_pusch_last_noi(&enb_ul.pusch),
