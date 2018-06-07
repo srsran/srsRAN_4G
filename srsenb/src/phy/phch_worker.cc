@@ -148,7 +148,7 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
   }
   
   srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
-  srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
+  srslte_pucch_set_threshold(&enb_ul.pucch, 0.5);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
   
