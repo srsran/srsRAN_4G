@@ -311,6 +311,10 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   // init Rx rate to lowest LTE rate
   rf_soapy_set_rx_srate(handler, 1.92e6);
 
+  // set default tx gain and leave some time to calibrate tx
+  rf_soapy_set_tx_gain(handler, 35);
+  usleep(10000);
+
   return SRSLTE_SUCCESS;
 }
 
@@ -342,8 +346,12 @@ int rf_soapy_close(void *h)
 
 void rf_soapy_set_master_clock_rate(void *h, double rate)
 {
-  // Allow the soapy to automatically set the appropriate clock rate
+  rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+  if (SoapySDRDevice_setMasterClockRate(handler->device, rate) != 0) {
+    printf("rf_soapy_set_master_clock_rate Rx fail: %s\n", SoapySDRDevice_lastError());
+  }
 
+  printf("Set master clock rate to %.2f MHz\n", SoapySDRDevice_getMasterClockRate(handler->device)/1e6);
 }
 
 
@@ -426,14 +434,14 @@ double rf_soapy_set_tx_gain(void *h, double gain)
 double rf_soapy_get_rx_gain(void *h)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-  return SoapySDRDevice_getGain(handler->device,SOAPY_SDR_RX,0);
+  return SoapySDRDevice_getGain(handler->device,SOAPY_SDR_RX, 0);
 }
 
 
 double rf_soapy_get_tx_gain(void *h)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-  return SoapySDRDevice_getGain(handler->device,SOAPY_SDR_TX,0);
+  return SoapySDRDevice_getGain(handler->device,SOAPY_SDR_TX, 0);
 }
 
 
@@ -456,7 +464,7 @@ double rf_soapy_set_rx_freq(void *h, double freq)
     printf("setFrequency fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
-  printf("Tuning receiver to %.2f MHz\n", SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0)/1e6);
+  printf("Tuned Rx to %.2f MHz\n", SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0)/1e6);
 
   // wait until LO is locked
   rf_soapy_rx_wait_lo_locked(handler);
@@ -472,6 +480,8 @@ double rf_soapy_set_tx_freq(void *h, double freq)
     printf("setFrequency fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
+
+  printf("Tuned Tx to %.2f MHz\n", SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_TX, 0)/1e6);
 
   return SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_TX, 0);
 }
@@ -582,7 +592,7 @@ int rf_soapy_send_timed_multi(void *h,
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t *) h;
   int flags = 0;
-  const long timeoutUs = 2000; // arbitrarily chosen
+  const long timeoutUs = 5000; // arbitrarily chosen
   long long timeNs = 0;
   int trials = 0;
   int ret = 0;
