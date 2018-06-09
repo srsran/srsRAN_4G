@@ -313,6 +313,10 @@ int srslte_ra_dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_
     memcpy(&grant->prb_idx[1], &grant->prb_idx[0], SRSLTE_MAX_PRB*sizeof(bool));
     break;
   case SRSLTE_RA_ALLOC_TYPE1:
+    // Make sure the rbg_subset is valid
+    if (dci->type1_alloc.rbg_subset >= P) {
+      return SRSLTE_ERROR;
+    }
     n_rb_type1 = srslte_ra_type1_N_rb(nof_prb);
     uint32_t temp = ((nof_prb - 1) / P) % P;
     if (dci->type1_alloc.rbg_subset < temp) {
