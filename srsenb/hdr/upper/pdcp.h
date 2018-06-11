@@ -41,6 +41,7 @@ class pdcp :  public pdcp_interface_rlc,
 public:
  
   void init(rlc_interface_pdcp *rlc_, rrc_interface_pdcp *rrc_, gtpu_interface_pdcp *gtpu_, srslte::log *pdcp_log_);
+  ~pdcp();
   void stop(); 
   
   // pdcp_interface_rlc
@@ -103,7 +104,10 @@ private:
     user_interface_gtpu gtpu_itf;
     user_interface_rrc  rrc_itf; 
     srslte::pdcp        *pdcp; 
-  }; 
+  };
+
+  // Mutex to protect access to users std::map
+  pthread_mutex_t mutex;
   
   std::map<uint32_t,user_interface> users; 
   

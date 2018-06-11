@@ -40,6 +40,11 @@ void rlc::init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface
 
   pool       = srslte::byte_buffer_pool::get_instance();
 
+  pthread_mutex_init(&mutex, NULL);
+}
+
+rlc::~rlc() {
+  pthread_mutex_destroy(&mutex);
 }
 
 void rlc::stop()
@@ -47,12 +52,15 @@ void rlc::stop()
   for(std::map<uint32_t, user_interface>::iterator iter=users.begin(); iter!=users.end(); ++iter) {
     rem_user((uint32_t) iter->first);
   }
+  pthread_mutex_lock(&mutex);
   users.clear();
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::add_user(uint16_t rnti)
 {
-  if (users.count(rnti) == 0) {    
+  pthread_mutex_lock(&mutex);
+  if (users.count(rnti) == 0) {
     srslte::rlc *obj = new srslte::rlc;     
     obj->init(&users[rnti], &users[rnti], &users[rnti], log_h, mac_timers, RB_ID_SRB0);
     users[rnti].rnti   = rnti; 
@@ -61,27 +69,33 @@ void rlc::add_user(uint16_t rnti)
     users[rnti].rlc    = obj;
     users[rnti].parent = this; 
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::rem_user(uint16_t rnti)
 {
+  pthread_mutex_lock(&mutex);
   if (users.count(rnti)) {
     users[rnti].rlc->stop();
     delete users[rnti].rlc; 
     users[rnti].rlc = NULL;
     users.erase(rnti);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::reset(uint16_t rnti)
 {
+  pthread_mutex_lock(&mutex);
   if (users.count(rnti)) {
     users[rnti].rlc->reset();
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::clear_buffer(uint16_t rnti)
 {
+  pthread_mutex_lock(&mutex);
   if (users.count(rnti)) {
     users[rnti].rlc->empty_queue();
     for (int i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
@@ -89,27 +103,34 @@ void rlc::clear_buffer(uint16_t rnti)
     }
     log_h->info("Cleared buffer rnti=0x%x\n", rnti);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::add_bearer(uint16_t rnti, uint32_t lcid)
 {
+  pthread_mutex_lock(&mutex);
   if (users.count(rnti)) {
     users[rnti].rlc->add_bearer(lcid);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg)
 {
+  pthread_mutex_lock(&mutex);
   if (users.count(rnti)) {
     users[rnti].rlc->add_bearer(lcid, cnfg);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::add_bearer_mrb(uint16_t rnti, uint32_t lcid)
 {
+  pthread_mutex_lock(&mutex);
   if (users.count(rnti)) {
     users[rnti].rlc->add_bearer_mrb_enb(lcid);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
@@ -119,13 +140,14 @@ void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 
 int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
+  pthread_mutex_lock(&mutex);
   int ret;
   uint32_t tx_queue;
-  if(users.count(rnti)){
-    if(rnti != SRSLTE_MRNTI){
+  if (users.count(rnti)) {
+    if (rnti != SRSLTE_MRNTI) {
       ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
       tx_queue = users[rnti].rlc->get_total_buffer_state(lcid);
-    }else{
+    } else {
       ret = users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);
       tx_queue = users[rnti].rlc->get_total_mch_buffer_state(lcid);
     }
@@ -135,15 +157,14 @@ int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_b
     uint32_t retx_queue = 0;
     log_h->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
-    return ret;
-    
-  }else{
-    return SRSLTE_ERROR;
   }
+  pthread_mutex_unlock(&mutex);
+  return ret;
 }
 
 void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
+  pthread_mutex_lock(&mutex);
   if (users.count(rnti)) {
     users[rnti].rlc->write_pdu(lcid, payload, nof_bytes);
     
@@ -154,6 +175,7 @@ void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof
     log_h->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload)
@@ -164,7 +186,8 @@ void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload)
 
 void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
-  
+
+  pthread_mutex_lock(&mutex);
   uint32_t tx_queue;
   if (users.count(rnti)) {
     if(rnti != SRSLTE_MRNTI){
@@ -183,6 +206,7 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
   } else {
     pool->deallocate(sdu);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 bool rlc::rb_is_um(uint16_t rnti, uint32_t lcid) {

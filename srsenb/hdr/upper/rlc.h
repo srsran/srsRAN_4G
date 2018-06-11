@@ -49,6 +49,7 @@ public:
  
   void init(pdcp_interface_rlc *pdcp_, rrc_interface_rlc *rrc_, mac_interface_rlc *mac_, 
             srslte::mac_interface_timers *mac_timers_, srslte::log *log_h);
+  ~rlc();
   void stop(); 
   
   // rlc_interface_rrc
@@ -91,11 +92,13 @@ private:
     srsenb::rrc_interface_rlc  *rrc;
     srslte::rlc                *rlc; 
     srsenb::rlc                *parent; 
-  }; 
-  
+  };
+
+  // Mutex to protect access to users std::map
+  pthread_mutex_t mutex;
+
   std::map<uint32_t,user_interface> users; 
-  std::vector<mch_service_t> mch_services;
-  
+
   mac_interface_rlc             *mac; 
   pdcp_interface_rlc            *pdcp;
   rrc_interface_rlc             *rrc;
