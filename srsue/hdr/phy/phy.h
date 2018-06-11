@@ -153,8 +153,9 @@ private:
 
   bool     initiated;
   uint32_t nof_workers; 
-  
-  const static int MAX_WORKERS         = 4;
+  uint32_t nof_coworkers;
+
+  const static int MAX_WORKERS         = 3;
   const static int DEFAULT_WORKERS     = 2;
   
   const static int SF_RECV_THREAD_PRIO = 1;

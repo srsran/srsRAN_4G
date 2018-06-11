@@ -55,6 +55,11 @@ ue::~ue()
 bool ue::init(all_args_t *args_) {
   args = args_;
 
+  int nof_phy_threads = args->expert.phy.nof_phy_threads;
+  if (nof_phy_threads > 3) {
+    nof_phy_threads = 3;
+  }
+
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
   } else {
@@ -66,7 +71,7 @@ bool ue::init(all_args_t *args_) {
 
   rf_log.init("RF  ", logger);
   // Create array of pointers to phy_logs
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+  for (int i=0;i<nof_phy_threads;i++) {
     srslte::log_filter *mylog = new srslte::log_filter;
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
@@ -85,7 +90,7 @@ bool ue::init(all_args_t *args_) {
   // Init logs
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
   rf_log.info("Starting UE\n");
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+  for (int i=0;i<nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
   
@@ -95,7 +100,7 @@ bool ue::init(all_args_t *args_) {
   sprintf(tmp, "PHY_LIB");
   lib_log->init(tmp, logger, true);
   phy_log.push_back(lib_log);
-  ((srslte::log_filter*) phy_log[args->expert.phy.nof_phy_threads])->set_level(level(args->log.phy_lib_level));
+  ((srslte::log_filter*) phy_log[nof_phy_threads])->set_level(level(args->log.phy_lib_level));
  
   
   mac_log.set_level(level(args->log.mac_level));
@@ -106,7 +111,7 @@ bool ue::init(all_args_t *args_) {
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  for (int i=0;i<args->expert.phy.nof_phy_threads + 1;i++) {
+  for (int i=0;i<nof_phy_threads + 1;i++) {
     ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
   }
   mac_log.set_hex_limit(args->log.mac_hex_limit);

@@ -115,6 +115,7 @@ class radio {
 
   float get_tx_gain();
   float get_rx_gain();
+  srslte_rf_info_t *get_info();
 
   float get_max_tx_power();
   float set_tx_power(float power);

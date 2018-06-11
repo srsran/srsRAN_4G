@@ -600,7 +600,12 @@ int main(int argc, char **argv) {
 
 #ifndef DISABLE_RF
   if (prog_args.rf_gain < 0) {
-    srslte_ue_sync_start_agc(&ue_sync, srslte_rf_set_rx_gain_th_wrapper_, cell_detect_config.init_agc);
+    srslte_rf_info_t *rf_info = srslte_rf_get_info(&rf);
+    srslte_ue_sync_start_agc(&ue_sync,
+                             srslte_rf_set_rx_gain_th_wrapper_,
+                             rf_info->min_rx_gain,
+                             rf_info->max_rx_gain,
+                             cell_detect_config.init_agc);
   }
 #endif
 #ifdef PRINT_CHANGE_SCHEDULIGN

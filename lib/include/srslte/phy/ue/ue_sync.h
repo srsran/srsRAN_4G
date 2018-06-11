@@ -199,7 +199,9 @@ SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
 
 SRSLTE_API int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, 
                                         double (set_gain_callback)(void*, double), 
-                                        float init_gain_value); 
+                                        double min_gain,
+                                        double max_gain,
+                                        double init_gain_value);
 
 SRSLTE_API uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q); 
 
