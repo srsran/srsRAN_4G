@@ -45,6 +45,7 @@ public:
   ~phch_worker();
   void  reset(); 
   void  set_common(phch_common *phy);
+  void  enable_pdsch_coworker();
   bool  init(uint32_t max_prb, srslte::log *log, srslte::log *log_phy_lib_h, chest_feedback_itf *chest_loop);
 
   bool  set_cell(srslte_cell_t cell);

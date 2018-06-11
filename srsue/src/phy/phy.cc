@@ -104,7 +104,7 @@ void phy::set_default_args(phy_args_t *args)
 
 bool phy::check_args(phy_args_t *args) 
 {
-  if (args->nof_phy_threads > 3) {
+  if (args->nof_phy_threads > MAX_WORKERS * 2) {
     log_h->console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
     return false; 
   }
@@ -139,6 +139,10 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
   }
 
   nof_workers = args->nof_phy_threads;
+  if (nof_workers > MAX_WORKERS) {
+    nof_coworkers = SRSLTE_MIN(nof_workers - MAX_WORKERS, MAX_WORKERS);
+    nof_workers = MAX_WORKERS;
+  }
   this->log_phy_lib_h = (srslte::log*) log_vec[nof_workers];
   srslte_phy_log_register_handler(this, srslte_phy_handler);
   
@@ -158,6 +162,10 @@ void phy::run_thread() {
     workers[i].set_common(&workers_common);
     workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i], (srslte::log*) log_vec[nof_workers], &sf_recv);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);
+  }
+
+  for (uint32_t i=0;i<nof_coworkers;i++) {
+    workers[i].enable_pdsch_coworker();
   }
 
   // Warning this must be initialized after all workers have been added to the pool

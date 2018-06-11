@@ -46,7 +46,7 @@ typedef struct {
   uhd_rx_metadata_handle rx_md, rx_md_first; 
   uhd_tx_metadata_handle tx_md; 
   
-  uhd_meta_range_handle rx_gain_range;
+  srslte_rf_info_t info;
   size_t rx_nof_samples;
   size_t tx_nof_samples;
   double tx_rate;
@@ -572,9 +572,20 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     
     uhd_rx_streamer_max_num_samps(handler->rx_stream, &handler->rx_nof_samples);
     uhd_tx_streamer_max_num_samps(handler->tx_stream, &handler->tx_nof_samples);
-    
-    uhd_meta_range_make(&handler->rx_gain_range); 
-    uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, handler->rx_gain_range);
+
+    uhd_meta_range_handle rx_gain_range = NULL;
+    uhd_meta_range_make(&rx_gain_range);
+    uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, rx_gain_range);
+    uhd_meta_range_start(rx_gain_range, &handler->info.min_rx_gain);
+    uhd_meta_range_stop(rx_gain_range, &handler->info.max_rx_gain);
+    uhd_meta_range_free(&rx_gain_range);
+
+    uhd_meta_range_handle tx_gain_range = NULL;
+    uhd_meta_range_make(&tx_gain_range);
+    uhd_usrp_get_tx_gain_range(handler->usrp, "", 0, tx_gain_range);
+    uhd_meta_range_start(tx_gain_range, &handler->info.min_tx_gain);
+    uhd_meta_range_stop(tx_gain_range, &handler->info.max_tx_gain);
+    uhd_meta_range_free(&tx_gain_range);
 
     // Make metadata objects for RX/TX
     uhd_rx_metadata_make(&handler->rx_md);
@@ -582,13 +593,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
 
     // Set starting gain to half maximum in case of using AGC
-    uhd_meta_range_handle gain_range;
-    uhd_meta_range_make(&gain_range);
-    uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, gain_range);
-    double max_gain;
-    uhd_meta_range_stop(gain_range, &max_gain);
-    rf_uhd_set_rx_gain(handler, max_gain*0.7);
-    uhd_meta_range_free(&gain_range);
+    rf_uhd_set_rx_gain(handler, handler->info.max_tx_gain*0.7);
 
 #if HAVE_ASYNC_THREAD
     if (start_async_thread) {
@@ -620,7 +625,6 @@ int rf_uhd_close(void *h)
   uhd_tx_metadata_free(&handler->tx_md);
   uhd_rx_metadata_free(&handler->rx_md_first);
   uhd_rx_metadata_free(&handler->rx_md);
-  uhd_meta_range_free(&handler->rx_gain_range);
   handler->async_thread_running = false;
   pthread_join(handler->async_thread, NULL);
 
@@ -720,6 +724,16 @@ double rf_uhd_get_tx_gain(void *h)
   double gain; 
   uhd_usrp_get_tx_gain(handler->usrp, 0, "", &gain);
   return gain;
+}
+
+srslte_rf_info_t *rf_uhd_get_info(void *h)
+{
+  srslte_rf_info_t *info = NULL;
+  if (h) {
+    rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+    info = &handler->info;
+  }
+  return info;
 }
 
 double rf_uhd_set_rx_freq(void *h, double freq)

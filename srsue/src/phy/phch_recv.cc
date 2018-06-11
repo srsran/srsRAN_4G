@@ -625,7 +625,12 @@ void phch_recv::set_agc_enable(bool enable)
   do_agc = enable;
   if (do_agc) {
     if (running && radio_h) {
-      srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, radio_h->get_rx_gain());
+      srslte_rf_info_t *rf_info = radio_h->get_info();
+      srslte_ue_sync_start_agc(&ue_sync,
+                               callback_set_rx_gain,
+                               rf_info->min_rx_gain,
+                               rf_info->max_rx_gain,
+                               radio_h->get_rx_gain());
       search_p.set_agc_enable(true);
     } else {
       fprintf(stderr, "Error setting AGC: PHY not initiatec\n");
@@ -893,7 +898,12 @@ float phch_recv::search::get_last_cfo()
 
 void phch_recv::search::set_agc_enable(bool enable) {
   if (enable) {
-    srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync, callback_set_rx_gain, p->radio_h->get_rx_gain());
+    srslte_rf_info_t *rf_info = p->radio_h->get_info();
+    srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync,
+                             callback_set_rx_gain,
+                             rf_info->min_rx_gain,
+                             rf_info->max_rx_gain,
+                             p->radio_h->get_rx_gain());
   } else {
     fprintf(stderr, "Error stop AGC not implemented\n");
   }

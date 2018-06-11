@@ -282,7 +282,7 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id, srslt
     input2d[i + 1] = &q->pilot_estimates[i * nref];
   }
 
-  input2d[0] = &q->tmp_noise[0];
+  input2d[0] = &q->tmp_noise[nref];
   if (nsymbols > 3) {
     srslte_vec_sc_prod_cfc(input2d[2], 2.0f, input2d[0], nref);
     srslte_vec_sub_ccc(input2d[0], input2d[4], input2d[0], nref);
@@ -290,7 +290,7 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id, srslt
     srslte_vec_sc_prod_cfc(input2d[2], 1.0f, input2d[0], nref);
   }
 
-  input2d[nsymbols + 1] = &q->tmp_noise[nref];
+  input2d[nsymbols + 1] = &q->tmp_noise[nref * 2];
   if (nsymbols > 3) {
     srslte_vec_sc_prod_cfc(input2d[nsymbols - 1], 2.0f, input2d[nsymbols + 1], nref);
     srslte_vec_sub_ccc(input2d[nsymbols + 1], input2d[nsymbols - 3], input2d[nsymbols + 1], nref);

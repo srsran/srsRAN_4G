@@ -199,7 +199,12 @@ int main(int argc, char **argv) {
     srslte_ue_cellsearch_set_nof_valid_frames(&cs, cell_detect_config.nof_valid_pss_frames);
   }
   if (cell_detect_config.init_agc) {
-    srslte_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);
+    srslte_rf_info_t *rf_info = srslte_rf_get_info(&rf);
+    srslte_ue_sync_start_agc(&cs.ue_sync,
+                             srslte_rf_set_rx_gain_wrapper,
+                             rf_info->min_rx_gain,
+                             rf_info->max_rx_gain,
+                             cell_detect_config.init_agc);
   }
 
   for (freq=0;freq<nof_freqs && !go_exit;freq++) {

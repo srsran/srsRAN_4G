@@ -140,11 +140,15 @@ void srslte_ue_sync_reset(srslte_ue_sync_t *q) {
   q->frame_find_cnt = 0;
 }
 
-
-int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(void*, double), float init_gain_value) {
+int srslte_ue_sync_start_agc(srslte_ue_sync_t *q,
+                             double (set_gain_callback)(void *, double),
+                             double min_gain,
+                             double max_gain,
+                             double init_gain_value) {
   int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, 0, set_gain_callback, q->stream);
   q->do_agc = n==0?true:false;
   if (q->do_agc) {
+    srslte_agc_set_gain_range(&q->agc, min_gain, max_gain);
     srslte_agc_set_gain(&q->agc, init_gain_value);
     srslte_ue_sync_set_agc_period(q, 4);
   }

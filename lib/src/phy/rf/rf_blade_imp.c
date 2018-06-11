@@ -45,6 +45,7 @@ typedef struct {
   int16_t tx_buffer[CONVERT_BUFFER_SIZE]; 
   bool rx_stream_enabled; 
   bool tx_stream_enabled; 
+  srslte_rf_info_t info;
 } rf_blade_handler_t;
 
 srslte_rf_error_handler_t blade_error_handler = NULL; 
@@ -220,7 +221,14 @@ int rf_blade_open(char *args, void **h)
     return status;
   }
   handler->rx_stream_enabled = false; 
-  handler->tx_stream_enabled = false; 
+  handler->tx_stream_enabled = false;
+
+  /* Set info structure */
+  handler->info.min_tx_gain = BLADERF_TXVGA2_GAIN_MIN;
+  handler->info.max_tx_gain = BLADERF_TXVGA2_GAIN_MAX;
+  handler->info.min_rx_gain = BLADERF_RXVGA2_GAIN_MIN;
+  handler->info.max_rx_gain = BLADERF_RXVGA2_GAIN_MAX;
+
   return 0;
 }
 
@@ -334,6 +342,19 @@ double rf_blade_get_tx_gain(void *h)
     return -1;
   }
   return gain; // Add txvga1
+}
+
+srslte_rf_info_t *rf_blade_get_info(void *h)
+{
+
+  srslte_rf_info_t *info = NULL;
+
+  if (h) {
+    rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
+
+    info = &handler->info;
+  }
+  return info;
 }
 
 double rf_blade_set_rx_freq(void *h, double freq)

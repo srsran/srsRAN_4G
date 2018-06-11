@@ -75,6 +75,8 @@ SRSLTE_API double rf_soapy_set_tx_gain(void *h,
 
 SRSLTE_API double rf_soapy_get_tx_gain(void *h);
 
+SRSLTE_API srslte_rf_info_t *rf_soapy_get_info(void *h);
+
 SRSLTE_API void rf_soapy_suppress_stdout(void *h);
 
 SRSLTE_API void rf_soapy_register_error_handler(void *h, srslte_rf_error_handler_t error_handler);
