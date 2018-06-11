@@ -227,6 +227,15 @@ double srslte_rf_get_tx_gain(srslte_rf_t *rf)
   return ((rf_dev_t*) rf->dev)->srslte_rf_get_tx_gain(rf->handler);  
 }
 
+srslte_rf_info_t *srslte_rf_get_info(srslte_rf_t *rf) {
+  srslte_rf_info_t *ret = NULL;
+  if (((rf_dev_t*) rf->dev)->srslte_rf_get_info) {
+     ret = ((rf_dev_t*) rf->dev)->srslte_rf_get_info(rf->handler);
+  }
+  return ret;
+}
+
+
 double srslte_rf_set_rx_freq(srslte_rf_t *rf, double freq)
 {
   return ((rf_dev_t*) rf->dev)->srslte_rf_set_rx_freq(rf->handler, freq);  

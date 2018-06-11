@@ -47,6 +47,7 @@ typedef struct {
   double (*srslte_rf_set_tx_gain)(void *h, double gain);
   double (*srslte_rf_get_rx_gain)(void *h);
   double (*srslte_rf_get_tx_gain)(void *h);
+  srslte_rf_info_t *(*srslte_rf_get_info)(void *h);
   double (*srslte_rf_set_rx_freq)(void *h, double freq);  
   double (*srslte_rf_set_tx_srate)(void *h, double freq);
   double (*srslte_rf_set_tx_freq)(void *h, double freq);
@@ -93,6 +94,7 @@ static rf_dev_t dev_uhd = {
   rf_uhd_set_tx_gain,
   rf_uhd_get_rx_gain,
   rf_uhd_get_tx_gain,
+  rf_uhd_get_info,
   rf_uhd_set_rx_freq, 
   rf_uhd_set_tx_srate,
   rf_uhd_set_tx_freq,
@@ -132,6 +134,7 @@ static rf_dev_t dev_blade = {
   rf_blade_set_tx_gain,
   rf_blade_get_rx_gain,
   rf_blade_get_tx_gain,
+  rf_blade_get_info,
   rf_blade_set_rx_freq, 
   rf_blade_set_tx_srate,
   rf_blade_set_tx_freq,
@@ -170,6 +173,7 @@ static rf_dev_t dev_soapy = {
   rf_soapy_set_tx_gain,
   rf_soapy_get_rx_gain,
   rf_soapy_get_tx_gain,
+  rf_soapy_get_info,
   rf_soapy_set_rx_freq,
   rf_soapy_set_tx_srate,
   rf_soapy_set_tx_freq,

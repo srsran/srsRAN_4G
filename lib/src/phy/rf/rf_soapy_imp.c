@@ -46,6 +46,7 @@ typedef struct {
     SoapySDRStream *txStream;
     bool tx_stream_active;
     bool rx_stream_active;
+    srslte_rf_info_t info;
 } rf_soapy_handler_t;
 
 
@@ -259,6 +260,14 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     printf(" - %s\n", sensors[i]);
   }
 
+  /* Set static radio info */
+  SoapySDRRange tx_range = SoapySDRDevice_getGainRange(handler->device, SOAPY_SDR_TX, 0);
+  SoapySDRRange rx_range = SoapySDRDevice_getGainRange(handler->device, SOAPY_SDR_RX, 0);
+  handler->info.min_tx_gain = tx_range.minimum;
+  handler->info.max_tx_gain = tx_range.maximum;
+  handler->info.min_rx_gain = rx_range.minimum;
+  handler->info.max_rx_gain = rx_range.maximum;
+
   return SRSLTE_SUCCESS;
 }
 
@@ -358,6 +367,17 @@ double rf_soapy_get_tx_gain(void *h)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   return SoapySDRDevice_getGain(handler->device,SOAPY_SDR_TX,0);
+}
+
+
+srslte_rf_info_t * rf_soapy_get_info(void *h)
+{
+  srslte_rf_info_t *info = NULL;
+  if (h) {
+    rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+    info = &handler->info;
+  }
+  return info;
 }
 
 

@@ -81,6 +81,8 @@ SRSLTE_API double rf_uhd_get_rx_gain(void *h);
 
 SRSLTE_API double rf_uhd_get_tx_gain(void *h);
 
+SRSLTE_API srslte_rf_info_t *rf_uhd_get_info(void *h);
+
 SRSLTE_API void rf_uhd_suppress_stdout(void *h);
 
 SRSLTE_API void rf_uhd_register_error_handler(void *h, srslte_rf_error_handler_t error_handler);
