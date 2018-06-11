@@ -81,7 +81,8 @@ typedef struct {
   sem_t start;
   sem_t finish;
 
-  /* Thread kill flag */
+  /* Thread flags */
+  bool started;
   bool quit;
 } srslte_pdsch_coworker_t;
 
@@ -771,6 +772,7 @@ static void *srslte_pdsch_decode_thread(void *arg) {
     /* Wait for next loop */
     sem_wait(&q->start);
   }
+  sem_post(&q->finish);
 
   pthread_exit(NULL);
   return q;
@@ -871,7 +873,7 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
             h->tb_idx = tb_idx;
             h->ack = &acks[tb_idx];
             h->dl_sch.max_iterations = q->dl_sch.max_iterations;
-
+            h->started = true;
             sem_post(&h->start);
 
           } else {
@@ -888,7 +890,7 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
 
           /* Check if there has been any execution error */
           if (ret) {
-            return ret;
+            /* Do Nothing */
           }
         }
 
@@ -896,11 +898,18 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
       }
     }
 
-    if (SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant) > 1 && q->coworker_ptr) {
+    if (q->coworker_ptr) {
       srslte_pdsch_coworker_t *h = (srslte_pdsch_coworker_t *) q->coworker_ptr;
-      sem_wait(&h->finish);
-      if (h->ret_status) {
-        ERROR("PDSCH Coworker Decoder: Error decoding");
+      if (h->started) {
+        int err = sem_wait(&h->finish);
+        if (err) {
+          printf("SCH coworker: %s (nof_tb=%d)\n", strerror(errno), SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant));
+        }
+        if (h->ret_status) {
+          ERROR("PDSCH Coworker Decoder: Error decoding");
+        }
+
+        h->started = false;
       }
     }
 
