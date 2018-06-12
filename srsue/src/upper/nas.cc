@@ -529,7 +529,7 @@ void nas::cipher_decrypt(byte_buffer_t *pdu)
       memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
       break;
     default:
-      nas_log->error("Ciphering algorithmus not known\n");
+      nas_log->error("Ciphering algorithms not known\n");
       break;
   }
 }

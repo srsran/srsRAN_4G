@@ -420,12 +420,12 @@ int main(int argc, char *argv[])
   while (running) {
     if (args.expert.print_buffer_state) {
       cnt++;
-      if (cnt==10) {
+      if (cnt==1000) {
         cnt=0;
         enb->print_pool();
       }
     }
-    sleep(1);
+    usleep(10000);
   }
   pthread_cancel(input);
   metrics.stop();
