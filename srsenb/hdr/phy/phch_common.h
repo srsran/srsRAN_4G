@@ -154,6 +154,8 @@ private:
   uint32_t        nof_workers;
   uint32_t        nof_mutex;
   uint32_t        max_mutex;
+
+  pthread_mutex_t user_mutex;
   
   phy_interface_rrc::phy_cfg_mbsfn_t  mbsfn;
   bool sib13_configured;
