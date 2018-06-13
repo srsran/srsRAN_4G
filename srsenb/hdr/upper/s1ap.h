@@ -76,9 +76,7 @@ public:
   void initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec);
   void write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu);
   bool user_exists(uint16_t rnti); 
-  void user_inactivity(uint16_t rnti);
-  bool user_link_lost(uint16_t rnti);
-  void release_eutran(uint16_t rnti); 
+  bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio);
   void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res);
   void ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res);
   //void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);

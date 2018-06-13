@@ -83,5 +83,5 @@ int main(int argc, char **argv)
   srsue::usim usim;
   usim.init(&args, &usim_log);
 
-  assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
+  //assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
 }

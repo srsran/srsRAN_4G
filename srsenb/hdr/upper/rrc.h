@@ -140,9 +140,6 @@ public:
   void stop(); 
   void get_metrics(rrc_metrics_t &m);
   
-  //rrc_interface_phy
-  void configure_mbsfn_sibs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
-  
   // rrc_interface_mac
   void rl_failure(uint16_t rnti);  
   void add_user(uint16_t rnti); 
@@ -195,7 +192,9 @@ public:
     bool is_idle(); 
     bool is_timeout();
     void set_activity();
-    
+
+    uint32_t rl_failure();
+
     rrc_state_t get_state();
     
     void send_connection_setup(bool is_setup = true);
@@ -257,6 +256,7 @@ public:
     uint32_t  m_tmsi;
     uint8_t   mmec;
 
+    uint32_t    rlf_cnt;
     uint8_t     transaction_id;
     rrc_state_t state;
     
@@ -311,9 +311,13 @@ private:
   // user connect notifier 
   connect_notifier *cnotifier; 
 
+  void process_release_complete(uint16_t rnti);
+  void process_rl_failure(uint16_t rnti);
   void rem_user(uint16_t rnti); 
   uint32_t generate_sibs();
-  void config_mac(); 
+  void configure_mbsfn_sibs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
+
+  void config_mac();
   void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
   void parse_ul_ccch(uint16_t rnti, srslte::byte_buffer_t *pdu);
   void configure_security(uint16_t rnti,
@@ -344,7 +348,10 @@ private:
     srslte::byte_buffer_t*  pdu;
   }rrc_pdu;
 
-  const static uint32_t LCID_REM_USER = 0xffff0001; 
+  const static uint32_t LCID_REM_USER = 0xffff0001;
+  const static uint32_t LCID_REL_USER = 0xffff0002;
+  const static uint32_t LCID_RLF_USER = 0xffff0003;
+  const static uint32_t LCID_ACT_USER = 0xffff0004;
   
   bool                  running;
   static const int      RRC_THREAD_PRIO = 65;

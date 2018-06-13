@@ -355,13 +355,16 @@ void phch_worker::rem_rnti(uint16_t rnti)
 
 void phch_worker::work_imp()
 {
+  bool is_mutexed;
+
   if (!running) {
     return;
   }
+
   subframe_cfg_t sf_cfg;
   phy->get_sf_config(&sf_cfg, tti_tx_dl);// TODO difference between  tti_tx_dl and t_tx_dl
   pthread_mutex_lock(&mutex);
-  
+  is_mutexed = true;
   
   mac_interface_phy::ul_sched_t *ul_grants = phy->ul_grants;
   mac_interface_phy::dl_sched_t *dl_grants = phy->dl_grants;
@@ -455,7 +458,10 @@ void phch_worker::work_imp()
       }
     }
   }
-   
+
+  is_mutexed = false;
+  pthread_mutex_unlock(&mutex);
+
   // Generate signal and transmit
   if(sf_cfg.sf_type == SUBFRAME_TYPE_REGULAR) {
     srslte_enb_dl_gen_signal(&enb_dl);
@@ -484,7 +490,9 @@ void phch_worker::work_imp()
 #endif
 
 unlock:
-  pthread_mutex_unlock(&mutex);
+  if (is_mutexed) {
+    pthread_mutex_unlock(&mutex);
+  }
 
 }
 

@@ -160,8 +160,8 @@ void test_set_2()
 */
 
 int main(int argc, char * argv[]) {
-  test_set_2();
   /*
+  test_set_2();
   test_set_3();
   test_set_4();
   test_set_5();

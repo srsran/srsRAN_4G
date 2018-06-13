@@ -161,7 +161,7 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
       return 0;
     }
   } else {
-    Error("User rnti=0x%x not found- this\n", rnti);
+    Error("User rnti=0x%x not found\n", rnti);
     return -1;
   }
 }

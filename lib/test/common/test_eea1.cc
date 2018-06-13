@@ -545,17 +545,17 @@ void test_set_1_invalid()
       sizeof(uint8_t));
 
   // encryption
-  //err_lte = liblte_security_encryption_eea1(key, count, bearer,
-   //   direction, msg, len_bits, out);
+  err_lte = liblte_security_encryption_eea1(key, count, bearer,
+                                            direction, msg, len_bits, out);
   assert(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
-  //err_cmp = arrcmp(ct, out, len_bytes);
+  err_cmp = arrcmp(ct, out, len_bytes);
   assert(err_cmp != 0);
 
   // decryption
   err_lte = liblte_security_decryption_eea1(key, count, bearer,
-      direction, ct, len_bits, out);
+                                            direction, ct, len_bits, out);
   assert(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
