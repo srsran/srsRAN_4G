@@ -166,19 +166,30 @@ void phch_worker::stop()
 {
   running = false;
   pthread_mutex_lock(&mutex);
-  srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
-  srslte_enb_dl_free(&enb_dl);
-  srslte_enb_ul_free(&enb_ul);
-  for (int p  = 0; p < SRSLTE_MAX_PORTS; p++) {
-    if (signal_buffer_rx[p]) {
-      free(signal_buffer_rx[p]);
-    }
-    if (signal_buffer_tx[p]) {
-      free(signal_buffer_tx[p]);
-    }
+
+  int cnt = 0;
+  while(is_worker_running && cnt<100) {
+    usleep(1000);
+    cnt++;
   }
-  pthread_mutex_unlock(&mutex);
-  pthread_mutex_destroy(&mutex);
+
+  if (!is_worker_running) {
+    srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
+    srslte_enb_dl_free(&enb_dl);
+    srslte_enb_ul_free(&enb_ul);
+    for (int p  = 0; p < SRSLTE_MAX_PORTS; p++) {
+      if (signal_buffer_rx[p]) {
+        free(signal_buffer_rx[p]);
+      }
+      if (signal_buffer_tx[p]) {
+        free(signal_buffer_tx[p]);
+      }
+    }
+    pthread_mutex_unlock(&mutex);
+    pthread_mutex_destroy(&mutex);
+  } else {
+    printf("Warning could not stop properly PHY\n");
+  }
 }
 void phch_worker::reset() 
 {
@@ -355,8 +366,6 @@ void phch_worker::rem_rnti(uint16_t rnti)
 
 void phch_worker::work_imp()
 {
-  bool is_mutexed;
-
   if (!running) {
     return;
   }
@@ -364,7 +373,7 @@ void phch_worker::work_imp()
   subframe_cfg_t sf_cfg;
   phy->get_sf_config(&sf_cfg, tti_tx_dl);// TODO difference between  tti_tx_dl and t_tx_dl
   pthread_mutex_lock(&mutex);
-  is_mutexed = true;
+  is_worker_running = true;
   
   mac_interface_phy::ul_sched_t *ul_grants = phy->ul_grants;
   mac_interface_phy::dl_sched_t *dl_grants = phy->dl_grants;
@@ -459,17 +468,19 @@ void phch_worker::work_imp()
     }
   }
 
-  is_mutexed = false;
-  pthread_mutex_unlock(&mutex);
-
   // Generate signal and transmit
   if(sf_cfg.sf_type == SUBFRAME_TYPE_REGULAR) {
     srslte_enb_dl_gen_signal(&enb_dl);
   } else {
     srslte_enb_dl_gen_signal_mbsfn(&enb_dl);
   }
-  Debug("Sending to radio\n");      
+
+  pthread_mutex_unlock(&mutex);
+
+  Debug("Sending to radio\n");
   phy->worker_end(tx_mutex_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
+
+  is_worker_running = false;
 
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb)*sizeof(cf_t), 1, f);
@@ -490,7 +501,8 @@ void phch_worker::work_imp()
 #endif
 
 unlock:
-  if (is_mutexed) {
+  if (is_worker_running) {
+    is_worker_running = false;
     pthread_mutex_unlock(&mutex);
   }
 

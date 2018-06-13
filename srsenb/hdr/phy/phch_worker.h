@@ -133,7 +133,8 @@ private:
   std::map<uint16_t,ue> ue_db;   
   
   // mutex to protect worker_imp() from configuration interface 
-  pthread_mutex_t mutex; 
+  pthread_mutex_t mutex;
+  bool is_worker_running;
 };
 
 } // namespace srsenb
