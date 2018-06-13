@@ -166,7 +166,8 @@ private:
   uint8_t mch_sf_idx_lut[10];
   bool is_mch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti);
   bool is_mcch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti);
-  
+
+  void add_rnti(uint16_t rnti);
   
 };
 

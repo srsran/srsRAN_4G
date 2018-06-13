@@ -108,12 +108,18 @@ void phch_common::ue_db_clear(uint32_t sf_idx)
 void phch_common::ue_db_add_rnti(uint16_t rnti)
 {
   pthread_mutex_lock(&user_mutex);
+  add_rnti(rnti);
+  pthread_mutex_unlock(&user_mutex);
+}
+
+// Private function not mutexed
+void phch_common::add_rnti(uint16_t rnti)
+{
   for (int sf_idx=0;sf_idx<TTIMOD_SZ;sf_idx++) {
     for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
       common_ue_db[rnti].pending_ack.is_pending[sf_idx][tb_idx] = false;
     }
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
 void phch_common::ue_db_rem_rnti(uint16_t rnti)
@@ -172,7 +178,7 @@ void phch_common::ue_db_set_last_ul_mod(uint16_t rnti, uint32_t tti, srslte_mod_
 {
   pthread_mutex_lock(&user_mutex);
   if (!common_ue_db.count(rnti)) {
-    ue_db_add_rnti(rnti);
+    add_rnti(rnti);
   }
   common_ue_db[rnti].last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = mcs;
   pthread_mutex_unlock(&user_mutex);
@@ -185,15 +191,15 @@ srslte_mod_t phch_common::ue_db_get_last_ul_mod(uint16_t rnti, uint32_t tti)
   if (common_ue_db.count(rnti)) {
     ret = common_ue_db[rnti].last_ul_mod[TTI_RX(tti)%(2*HARQ_DELAY_MS)];
   }
-  return ret;
   pthread_mutex_unlock(&user_mutex);
+  return ret;
 }
 
 void phch_common::ue_db_set_last_ul_tbs(uint16_t rnti, uint32_t tti, int tbs)
 {
   pthread_mutex_lock(&user_mutex);
   if (!common_ue_db.count(rnti)) {
-    ue_db_add_rnti(rnti);
+    add_rnti(rnti);
   }
   common_ue_db[rnti].last_ul_tbs[TTI_RX(tti)%(2*HARQ_DELAY_MS)] = tbs;
   pthread_mutex_unlock(&user_mutex);
