@@ -27,7 +27,6 @@
 #include <iostream>
 #include "srsue/hdr/upper/usim.h"
 #include "srslte/common/log_filter.h"
-#include <assert.h>
 
 using namespace srsue;
 
@@ -68,6 +67,8 @@ uint16 mnc = 93;
 int main(int argc, char **argv)
 {
   srslte::log_filter usim_log("USIM");
+  usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  usim_log.set_hex_limit(100000);
   bool    net_valid;
   uint8_t res[16];
   int res_len;
@@ -78,10 +79,17 @@ int main(int argc, char **argv)
   args.imei = "356092040793011";
   args.imsi = "208930000000001";
   args.k = "8BAF473F2F8FD09487CCCBD7097C6862";
-  args.op = "11111111111111111111111111111111";
+  args.op = "8e27b6af0e692e750f32667a3b14605d"; // OPc
 
   srsue::usim usim;
   usim.init(&args, &usim_log);
 
-  //assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
+  if (usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) != AUTH_OK) {
+    printf("USIM test failed.\n");
+    return -1;
+  };
+
+  printf("USIM test ok.\n");
+
+  return 0;
 }
