@@ -71,7 +71,7 @@ class gtpu
 {
 public: 
   
-  bool init(std::string gtp_bind_addr_, std::string mme_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
+  bool init(std::string gtp_bind_addr_, std::string mme_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
   void stop();
   
   // gtpu_interface_rrc
@@ -90,9 +90,9 @@ private:
   bool                         running;
   bool                         run_enable;
   
-    bool                       mch_running;
+  bool                         mch_running;
   bool                         mch_run_enable;
-
+  bool                         _enable_mbsfn;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
   srsenb::pdcp_interface_gtpu *pdcp;
