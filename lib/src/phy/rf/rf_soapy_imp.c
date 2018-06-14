@@ -230,6 +230,11 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   handler->tx_stream_active = false;
   handler->rx_stream_active = false;
   handler->devname = devname;
+
+  // init rx/tx rate to lowest LTE rate
+  rf_soapy_set_rx_srate(handler, 1.92e6);
+  rf_soapy_set_tx_srate(handler, 1.92e6);
+
   if(SoapySDRDevice_getNumChannels(handler->device,SOAPY_SDR_RX) > 0){     
     printf("Setting up RX stream\n");
     if(SoapySDRDevice_setupStream(handler->device, &(handler->rxStream), SOAPY_SDR_RX, SOAPY_SDR_CF32, NULL, 0, NULL) != 0) {
@@ -307,9 +312,6 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
 
   ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_TX, 0);
   printf("Tx antenna set to %s\n", ant);
-
-  // init Rx rate to lowest LTE rate
-  rf_soapy_set_rx_srate(handler, 1.92e6);
 
   // set default tx gain and leave some time to calibrate tx
   rf_soapy_set_tx_gain(handler, 35);
