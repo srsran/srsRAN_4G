@@ -49,7 +49,7 @@ public:
 
   gtpu();
 
-  bool init(std::string gtp_bind_addr_, std::string mme_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
+  bool init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
   void stop();
 
   // gtpu_interface_rrc
@@ -70,6 +70,8 @@ private:
   bool                         enable_mbsfn;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
+  std::string                  m1u_multiaddr;
+  std::string                  m1u_if_addr;
   srsenb::pdcp_interface_gtpu *pdcp;
   srslte::log                 *gtpu_log;
 

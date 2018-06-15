@@ -128,6 +128,8 @@ typedef struct {
   float      metrics_period_secs;
   bool       enable_mbsfn;
   bool       print_buffer_state;
+  std::string m1u_multiaddr;
+  std::string m1u_if_addr;
 }expert_args_t;
 
 typedef struct { 

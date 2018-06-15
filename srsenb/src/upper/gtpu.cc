@@ -43,12 +43,14 @@ gtpu::gtpu():mchthread()
 
 }
 
-bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
+bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m1u_multiaddr_, std::string m1u_if_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
 {
   pdcp          = pdcp_;
   gtpu_log      = gtpu_log_;
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
+  m1u_multiaddr = m1u_multiaddr_;
+  m1u_if_addr   = m1u_if_addr_;
 
   pool          = byte_buffer_pool::get_instance();
 
@@ -93,8 +95,7 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
 
 void gtpu::stop()
 {
-
- if(enable_mbsfn){
+  if(enable_mbsfn){
     mchthread.stop();
   }
 
@@ -327,8 +328,12 @@ bool gtpu::mch_thread::init(pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
   this->pdcp     = pdcp;
   this->gtpu_log = gtpu_log;
 
+
+gtpu_log->info("M1-U initialized\n");
+return true;
+}
   struct sockaddr_in bindaddr;
-  
+
   // Set up sink socket
   m1u_sd = socket(AF_INET, SOCK_DGRAM, 0);
   if (m1u_sd < 0) {
@@ -350,11 +355,12 @@ bool gtpu::mch_thread::init(pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
 
   /* Send an ADD MEMBERSHIP message via setsockopt */
   struct ip_mreq mreq;
-  mreq.imr_multiaddr.s_addr = inet_addr("239.255.0.1"); //Multicast address of the service
-  mreq.imr_interface.s_addr = inet_addr("127.0.1.200"); //Address of the IF the socket will listen to.
+  mreq.imr_multiaddr.s_addr = inet_addr(m1u_multiaddr.c_str()); //Multicast address of the service
+  mreq.imr_interface.s_addr = inet_addr(m1u_if_addr.c_str());           //Address of the IF the socket will listen to.
   if (setsockopt(m1u_sd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                  &mreq, sizeof(mreq)) < 0) {
     gtpu_log->error("Register musticast group for M1-U\n");
+    gtpu_log->error("M1-U infterface IP: %s, M1-U Multicast Address %s\n", m1u_if_addr.c_str(),m1u_multiaddr.c_str());
     return false;
   }
   gtpu_log->info("M1-U initialized\n");
