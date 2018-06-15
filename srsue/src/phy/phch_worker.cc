@@ -1110,6 +1110,8 @@ void phch_worker::set_uci_periodic_cqi()
         Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db_cqi);
       }
       uci_data.uci_cqi_len = (uint32_t) srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+      uci_data.uci_ri = phy->last_ri;
+      uci_data.uci_ri_len = 0;
       rar_cqi_request = false;       
     }
   }
