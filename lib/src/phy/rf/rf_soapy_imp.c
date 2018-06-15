@@ -36,17 +36,27 @@
 
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
+#include <SoapySDR/Time.h>
+
+#define USE_TX_MTU 0
+
+#define PRINT_RX_STATS 0
+#define PRINT_TX_STATS 0
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
 
 typedef struct {
-    char *devname;
-    SoapySDRKwargs args;
-    SoapySDRDevice *device;
-    SoapySDRRange *ranges;
-    SoapySDRStream *rxStream;
-    SoapySDRStream *txStream;
-    bool tx_stream_active;
-    bool rx_stream_active;
-    srslte_rf_info_t info;
+  char *devname;
+  SoapySDRKwargs args;
+  SoapySDRDevice *device;
+  SoapySDRRange *ranges;
+  SoapySDRStream *rxStream;
+  SoapySDRStream *txStream;
+  bool tx_stream_active;
+  bool rx_stream_active;
+  srslte_rf_info_t info;
+  double tx_rate;
+  size_t rx_mtu, tx_mtu;
 } rf_soapy_handler_t;
 
 
@@ -61,31 +71,31 @@ int soapy_error(void *h)
 
 void rf_soapy_get_freq_range(void *h)
 {
-
+  // not supported
 }
 
 
 void rf_soapy_suppress_handler(const char *x)
 {
-    // not supported
+  // not supported
 }
 
 
 void rf_soapy_msg_handler(const char *msg)
 {
-    // not supported
+  // not supported
 }
 
 
 void rf_soapy_suppress_stdout(void *h)
 {
-    // not supported
+  // not supported
 }
 
 
 void rf_soapy_register_error_handler(void *notused, srslte_rf_error_handler_t new_handler)
 {
-    // not supported
+  // not supported
 }
 
 
@@ -109,14 +119,13 @@ bool rf_soapy_rx_wait_lo_locked(void *h)
 
 void rf_soapy_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
-  printf("TODO: implement rf_soapy_set_tx_cal()\n");
   // not supported
 }
 
 
 void rf_soapy_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 {
-  printf("TODO: implement rf_soapy_set_rx_cal()\n");
+  // not supported
 }
 
 
@@ -202,7 +211,7 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     printf("No Soapy devices found.\n");
     return SRSLTE_ERROR;
   }
-  char* devname = NULL;
+  char* devname = DEVNAME_NONE;
   for (size_t i = 0; i < length; i++) {
     printf("Soapy has found device #%d: ", (int)i);
     for (size_t j = 0; j < soapy_args[i].size; j++) {
@@ -235,20 +244,22 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   rf_soapy_set_rx_srate(handler, 1.92e6);
   rf_soapy_set_tx_srate(handler, 1.92e6);
 
-  if(SoapySDRDevice_getNumChannels(handler->device,SOAPY_SDR_RX) > 0){     
+  if(SoapySDRDevice_getNumChannels(handler->device, SOAPY_SDR_RX) > 0){
     printf("Setting up RX stream\n");
     if(SoapySDRDevice_setupStream(handler->device, &(handler->rxStream), SOAPY_SDR_RX, SOAPY_SDR_CF32, NULL, 0, NULL) != 0) {
       printf("Rx setupStream fail: %s\n", SoapySDRDevice_lastError());
       return SRSLTE_ERROR;
-    } 
+    }
+    handler->rx_mtu = SoapySDRDevice_getStreamMTU(handler->device, handler->rxStream);
   }
 
-  if(SoapySDRDevice_getNumChannels(handler->device,SOAPY_SDR_TX) > 0){
+  if(SoapySDRDevice_getNumChannels(handler->device, SOAPY_SDR_TX) > 0){
     printf("Setting up TX stream\n");
     if (SoapySDRDevice_setupStream(handler->device, &(handler->txStream), SOAPY_SDR_TX, SOAPY_SDR_CF32, NULL, 0, NULL) != 0) {
       printf("Tx setupStream fail: %s\n", SoapySDRDevice_lastError());
       return SRSLTE_ERROR;
-    }     
+    }
+    handler->tx_mtu = SoapySDRDevice_getStreamMTU(handler->device, handler->txStream);
   }
 
   // list device sensors
@@ -405,7 +416,8 @@ double rf_soapy_set_tx_srate(void *h, double rate)
     rf_soapy_start_rx_stream(handler, true);
   }
 
-  return SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_TX,0);
+  handler->tx_rate = SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_TX, 0);
+  return handler->tx_rate;
 }
 
 
@@ -506,23 +518,29 @@ int  rf_soapy_recv_with_time_multi(void *h,
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   int flags; //flags set by receive operation
   int num_channels = 1; // temp
-  const long timeoutUs = 4000000; // arbitrarily chosen
+  const long timeoutUs = 400000; // arbitrarily chosen
   
   int trials = 0;
   int ret = 0;
   long long timeNs; //timestamp for receive buffer
   int n = 0;
+
+#if PRINT_RX_STATS
+  printf("rx: nsamples=%d rx_mtu=%zd\n", nsamples, handler->rx_mtu);
+#endif
+
   do {
-    size_t rx_samples = nsamples;
-    
-    if (rx_samples > nsamples - n){
-      rx_samples = nsamples - n;
-    }
+    size_t rx_samples = MIN(nsamples - n, handler->rx_mtu);
+#if PRINT_RX_STATS
+    printf(" - rx_samples=%zd\n", rx_samples);
+#endif
+
     void *buffs_ptr[4];
     for (int i=0; i<num_channels; i++){
       cf_t *data_c = (cf_t*) data[i];
       buffs_ptr[i] = &data_c[n];
     }
+
     ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, timeoutUs);
     if(ret < 0) {
       // continue when getting overflows and timeouts
@@ -540,12 +558,16 @@ int  rf_soapy_recv_with_time_multi(void *h,
       }
     }
 
-    // update rx time
-    if (secs != NULL && frac_secs != NULL) {
+    // update rx time only for first segment
+    if (secs != NULL && frac_secs != NULL && n == 0) {
       *secs = timeNs / 1e9;
       *frac_secs = (timeNs % 1000000000)/1e9;
-      //printf("rx_time: secs=%d, frac_secs=%lf timeNs=%lld\n", *secs, *frac_secs, timeNs);
+      //printf("rx_time: secs=%lld, frac_secs=%lf timeNs=%llu\n", *secs, *frac_secs, timeNs);
     }
+
+#if PRINT_RX_STATS
+    printf(" - rx: %d/%zd\n", ret, rx_samples);
+#endif
 
     n += ret;
     trials++;
@@ -594,58 +616,93 @@ int rf_soapy_send_timed_multi(void *h,
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t *) h;
   int flags = 0;
-  const long timeoutUs = 5000; // arbitrarily chosen
+  const long timeoutUs = 100000; // arbitrarily chosen
   long long timeNs = 0;
   int trials = 0;
   int ret = 0;
   int n = 0;
 
+#if PRINT_TX_STATS
+  printf("tx: namples=%d, mtu=%zd\n", nsamples, handler->tx_mtu);
+#endif
 
   if (!handler->tx_stream_active) {
     rf_soapy_start_tx_stream(h);
   }
 
-  if (is_start_of_burst && is_end_of_burst) {
-    flags |= SOAPY_SDR_ONE_PACKET;
-  }
-
-  if (is_end_of_burst) {
-    flags |= SOAPY_SDR_END_BURST;
-  }
-
+  // Convert initial tx time
   if (has_time_spec) {
-    flags |= SOAPY_SDR_HAS_TIME;
     timeNs = secs * 1000000000;
     timeNs = timeNs + (frac_secs * 1000000000);
-    //printf("time_spec: secs=%d, frac_secs=%lf timeNs=%lld\n", secs, frac_secs, timeNs);
   }
 
   do {
+#if USE_TX_MTU
+    size_t tx_samples = MIN(nsamples - n, handler->tx_mtu);
+#else
     size_t tx_samples = nsamples;
     if (tx_samples > nsamples - n) {
       tx_samples = nsamples - n;
     }
+#endif
+
+    // (re-)set stream flags
+    flags = 0;
+    if (is_start_of_burst && is_end_of_burst) {
+      flags |= SOAPY_SDR_ONE_PACKET;
+    }
+
+    if (is_end_of_burst) {
+      flags |= SOAPY_SDR_END_BURST;
+    }
+
+    // only set time flag for first tx
+    if(has_time_spec && n == 0) {
+      flags |= SOAPY_SDR_HAS_TIME;
+    }
+
+#if PRINT_TX_STATS
+    printf(" - tx_samples=%zd at timeNs=%llu flags=%d\n", tx_samples, timeNs, flags);
+#endif
 
     ret = SoapySDRDevice_writeStream(handler->device, handler->txStream, (const void *)data, tx_samples, &flags, timeNs, timeoutUs);
-    if (ret == SOAPY_SDR_TIMEOUT) {
-      printf("L");
-      continue;
-    }
-    if (ret == SOAPY_SDR_OVERFLOW) {
-      printf("O");
-      continue;
-    }
-    if (ret == SOAPY_SDR_UNDERFLOW) {
-      printf("U");
-      continue;
-    }
+    if (ret >= 0) {
+      // Tx was ok
+#if PRINT_TX_STATS
+      printf(" - tx: %d/%zd\n", ret, tx_samples);
+#endif
+      // Advance tx time
+      if (has_time_spec && ret < nsamples) {
+        long long adv = SoapySDR_ticksToTimeNs(ret, handler->tx_rate);
+#if PRINT_TX_STATS
+        printf(" - tx: timeNs_old=%llu, adv=%llu, timeNs_new=%llu, tx_rate=%f\n", timeNs, adv, timeNs+adv, handler->tx_rate);
+#endif
+        timeNs += adv;
+      }
+      n += ret;
+    } else
     if (ret < 0) {
-      fprintf(stderr, "Error during writeStream\n");
-      exit(-1);
-      return SRSLTE_ERROR;
+      // An error has occured
+      switch (ret) {
+        case SOAPY_SDR_TIMEOUT:
+          printf("L");
+          break;
+        case SOAPY_SDR_STREAM_ERROR:
+          printf("E");
+          break;
+        case SOAPY_SDR_TIME_ERROR:
+          printf("T");
+          break;
+        case SOAPY_SDR_UNDERFLOW:
+          printf("U");
+          break;
+        default:
+          fprintf(stderr, "Error during writeStream\n");
+          exit(-1);
+          return SRSLTE_ERROR;
+      }
     }
 
-    n += ret;
     trials++;
   } while (n < nsamples && trials < 100);
 
