@@ -1376,7 +1376,6 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     ROUND_KEY_STRUCT  round_keys;
     uint32            i;
-    uint8             op_c[16];
     uint8             temp[16];
     uint8             out[16];
     uint8             rijndael_input[16];
@@ -1432,7 +1431,7 @@ void compute_OPc(uint8            *k,
   uint32 i;
   ROUND_KEY_STRUCT round_keys;
   rijndael_key_schedule(k, &round_keys);
-  rijndael_encrypt(op, round_keys, op_c);
+  rijndael_encrypt(op, &round_keys, op_c);
   for(i=0; i<16; i++)
   {
     op_c[i] ^= op[i];
