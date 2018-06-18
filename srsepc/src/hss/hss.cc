@@ -246,11 +246,12 @@ bool hss::write_db_file(std::string db_filename)
       m_db_file << ",";
       if(it->second->op_configured){
         m_db_file << "op,";
+        m_db_file << hex_string(it->second->op, 16);
       }
       else{
         m_db_file << "opc,";
+        m_db_file << hex_string(it->second->opc, 16);
       }
-      m_db_file << hex_string(it->second->op, 16);
       m_db_file << ",";
       m_db_file << hex_string(it->second->amf, 2);
       m_db_file << ",";
