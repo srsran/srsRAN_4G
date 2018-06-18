@@ -129,13 +129,14 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("usim.mode", bpo::value<string>(&args->usim.mode)->default_value("soft"), "USIM mode (soft or pcsc)")
     ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
-    ("usim.opc", bpo::value<string>(&args->usim.op), "USIM operator ciphered variant")
+    ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator code")
+    ("usim.opc", bpo::value<string>(&args->usim.op), "USIM operator code (ciphered variant)")
     ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
     ("usim.pin", bpo::value<string>(&args->usim.pin), "PIN in case real SIM card is used")
     ("usim.reader", bpo::value<string>(&args->usim.reader)->default_value(""), "Force specifiy PCSC reader. Default: Try all available readers.")
-
+    
     /* Expert section */
     ("expert.ip_netmask",
      bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
@@ -359,9 +360,28 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
     exit(1);
   }
+
   bpo::store(bpo::parse_config_file(conf, common), vm);
   bpo::notify(vm);
 
+  //Check conflicting OP/OPc options and which is being used
+  if (vm.count("usim.op") && !vm["usim.op"].defaulted() &&
+      vm.count("usim.opc") && !vm["usim.opc"].defaulted())
+  {
+    cout << "Conflicting options OP and OPc. Please configure either one or the other." << endl;
+    exit(1);
+  }
+  else
+  {
+    if(vm["usim.op"].defaulted()){
+      args->usim.using_op = true;
+    }
+    else{
+      args->usim.using_op = false;
+    }
+  }
+
+  cout << vm.count("usim.op") <<endl;
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
     if (!vm.count("log.phy_level")) {

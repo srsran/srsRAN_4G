@@ -43,7 +43,9 @@ typedef enum{
 typedef struct{
   std::string mode;
   std::string algo;
+  bool using_op;
   std::string op;
+  std::string opc;
   std::string imsi;
   std::string imei;
   std::string k;
