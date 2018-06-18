@@ -122,13 +122,6 @@ typedef enum{
 static const char liblte_security_integrity_algorithm_id_text[LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"EIA0",
                                                                                                                      "128-EIA1",
                                                                                                                      "128-EIA2"};
-
-typedef enum
-{
-  AUTH_OP,
-  AUTH_OPC
-}AUTH_OPERATOR_CODE_TYPE;
-
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_security_generate_k_nas(uint8                                       *k_asme,
@@ -285,7 +278,6 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(uint8  *key,
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
-                                              AUTH_OPERATOR_CODE_TYPE opc_t,
                                               uint8 *op,
                                               uint8 *rand,
                                               uint8 *sqn,
@@ -307,7 +299,6 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
-                                                   AUTH_OPERATOR_CODE_TYPE opc_t,
                                                    uint8 *op,
                                                    uint8 *rand,
                                                    uint8 *sqn,
@@ -329,7 +320,6 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
-                                                 AUTH_OPERATOR_CODE_TYPE opc_t,
                                                  uint8 *op,
                                                  uint8 *rand,
                                                  uint8 *res,
@@ -351,7 +341,6 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
-                                                   AUTH_OPERATOR_CODE_TYPE opc_t,
                                                    uint8 *op,
                                                    uint8 *rand,
                                                    uint8 *ak);

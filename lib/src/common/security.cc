@@ -26,6 +26,7 @@
 
 
 #include "srslte/common/security.h"
+#include "srslte/common/liblte_security.h"
 #include "srslte/common/snow_3g.h"
 
 #ifdef HAVE_MBEDTLS
@@ -230,7 +231,6 @@ uint8_t security_128_eea2(uint8_t  *key,
  *****************************************************************************/
 
 uint8_t security_milenage_f1( uint8_t *k,
-                              AUTH_OPERATOR_CODE_TYPE opc_t,
                               uint8_t *op,
                               uint8_t *rand,
                               uint8_t *sqn,
@@ -238,7 +238,6 @@ uint8_t security_milenage_f1( uint8_t *k,
                               uint8_t *mac_a)
 {
   return liblte_security_milenage_f1(k,
-                                     opc_t,
                                      op,
                                      rand,
                                      sqn,
@@ -247,7 +246,6 @@ uint8_t security_milenage_f1( uint8_t *k,
 }
 
 uint8_t security_milenage_f1_star( uint8_t *k,
-                                   AUTH_OPERATOR_CODE_TYPE opc_t,
                                    uint8_t *op,
                                    uint8_t *rand,
                                    uint8_t *sqn,
@@ -255,7 +253,6 @@ uint8_t security_milenage_f1_star( uint8_t *k,
                                    uint8_t *mac_s)
 {
   return liblte_security_milenage_f1_star(k,
-                                          opc_t,
                                           op,
                                           rand,
                                           sqn,
@@ -264,7 +261,6 @@ uint8_t security_milenage_f1_star( uint8_t *k,
 }
 
 uint8_t security_milenage_f2345( uint8_t *k,
-                                 AUTH_OPERATOR_CODE_TYPE opc_t,
                                  uint8_t *op,
                                  uint8_t *rand,
                                  uint8_t *res,
@@ -273,7 +269,6 @@ uint8_t security_milenage_f2345( uint8_t *k,
                                  uint8_t *ak)
 {
   return liblte_security_milenage_f2345(k,
-                                        opc_t,
                                         op,
                                         rand,
                                         res,
@@ -283,13 +278,11 @@ uint8_t security_milenage_f2345( uint8_t *k,
 }
 
 uint8_t security_milenage_f5_star( uint8_t *k,
-                                   AUTH_OPERATOR_CODE_TYPE opc_t,
                                    uint8_t *op,
                                    uint8_t *rand,
                                    uint8_t *ak)
 {
   return liblte_security_milenage_f5_star(k,
-                                          opc_t,
                                           op,
                                           rand,
                                           ak);
