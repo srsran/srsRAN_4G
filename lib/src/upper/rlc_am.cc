@@ -277,7 +277,7 @@ uint32_t rlc_am::get_buffer_state()
   // check if pollRetx timer expired (Section 5.2.2.3 in TS 36.322)
   if (poll_retx()) {
     // if both tx and retx buffer are empty, retransmit next PDU to be ack'ed
-    log->info("Poll reTx timer expired (lcid=%d)\n", lcid);
+    log->debug("Poll reTx timer expired (lcid=%d)\n", lcid);
     if ((tx_window.size() > 0 && retx_queue.size() == 0 && tx_sdu_queue.size() == 0)) {
       std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.find(vt_s - 1);
       if (it != tx_window.end()) {
