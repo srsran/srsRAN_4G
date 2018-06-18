@@ -180,7 +180,6 @@ hss::read_db_file(std::string db_filename)
         m_hss_log->error("Neither OP nor OPc configured.\n");
         return false;
       }
-      get_uint_vec_from_hex_str(split[4],ue_ctx->op,16);
       get_uint_vec_from_hex_str(split[5],ue_ctx->amf,2);
       get_uint_vec_from_hex_str(split[6],ue_ctx->sqn,6);
 
@@ -321,10 +320,10 @@ hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
 
   uint8_t k[16];
   uint8_t amf[2];
-  uint8_t op[16];
+  uint8_t opc[16];
   uint8_t sqn[6];
 
-  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
+  if(!get_k_amf_opc_sqn(imsi, k, amf, opc, sqn))
   {
     return false;
   }
@@ -340,13 +339,13 @@ hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
   }
 
   m_hss_log->debug_hex(k, 16, "User Key : ");
-  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(opc, 16, "User OPc : ");
   m_hss_log->debug_hex(last_rand, 16, "User Last Rand : ");
   m_hss_log->debug_hex(auts, 16, "AUTS : ");
   m_hss_log->debug_hex(sqn_ms_xor_ak, 6, "SQN xor AK : ");
   m_hss_log->debug_hex(mac_s, 8, "MAC : ");
 
-  security_milenage_f5_star(k, op, last_rand, ak);
+  security_milenage_f5_star(k, opc, last_rand, ak);
   m_hss_log->debug_hex(ak, 6, "Resynch AK : ");
 
   uint8_t sqn_ms[6];
@@ -359,17 +358,10 @@ hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
 
   uint8_t mac_s_tmp[8];
 
-  security_milenage_f1_star(k, op, last_rand, sqn_ms, amf, mac_s_tmp);
+  security_milenage_f1_star(k, opc, last_rand, sqn_ms, amf, mac_s_tmp);
 
   m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
-  /*
-  for(int i=0; i<8; i++){
-    if(!(mac_s_tmp[i] == mac_s[i])){
-      m_hss_log->error("Calculated MAC does not match sent MAC\n");
-      return false;
-    }
-  }
-  */
+
   set_sqn(imsi, sqn_ms);
 
   return true;
@@ -380,7 +372,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
 {
   uint8_t k[16];
   uint8_t amf[2];
-  uint8_t op[16];
+  uint8_t opc[16];
   uint8_t sqn[6];
 
   uint8_t     ck[16];
@@ -389,14 +381,14 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   uint8_t     mac[8];
 
 
-  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
+  if(!get_k_amf_opc_sqn(imsi, k, amf, opc, sqn))
   {
     return false;
   }
   gen_rand(rand);
 
   security_milenage_f2345( k,
-                           op,
+                           opc,
                            rand,
                            xres,
                            ck,
@@ -404,7 +396,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
                            ak);
 
   m_hss_log->debug_hex(k, 16, "User Key : ");
-  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(opc, 16, "User OPc : ");
   m_hss_log->debug_hex(rand, 16, "User Rand : ");
   m_hss_log->debug_hex(xres, 8, "User XRES: ");
   m_hss_log->debug_hex(ck, 16, "User CK: ");
@@ -412,7 +404,7 @@ hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn
   m_hss_log->debug_hex(ak, 6, "User AK: ");
 
   security_milenage_f1( k,
-                        op,
+                        opc,
                         rand,
                         sqn,
                         amf,
@@ -459,7 +451,7 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
 {
   uint8_t k[16];
   uint8_t amf[2];
-  uint8_t op[16];
+  uint8_t opc[16];
   uint8_t sqn[6];
 
   uint8_t  xdout[16];
@@ -472,7 +464,7 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
 
   int i = 0;
 
-  if(!get_k_amf_op_sqn(imsi, k, amf, op, sqn))
+  if(!get_k_amf_opc_sqn(imsi, k, amf, opc, sqn))
   {
     return false;
   }
@@ -493,7 +485,7 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
   }
 
   m_hss_log->debug_hex(k, 16, "User Key : ");
-  m_hss_log->debug_hex(op, 16, "User OP : ");
+  m_hss_log->debug_hex(opc, 16, "User OPc : ");
   m_hss_log->debug_hex(rand, 16, "User Rand : ");
   m_hss_log->debug_hex(xres, 8, "User XRES: ");
   m_hss_log->debug_hex(ck, 16, "User CK: ");
@@ -565,7 +557,7 @@ hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uin
 
 
 bool
-hss::get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint8_t *sqn)
+hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *opc, uint8_t *sqn)
 {
 
   std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
@@ -579,7 +571,7 @@ hss::get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint
   m_hss_log->info("Found User %015lu\n",imsi);
   memcpy(k, ue_ctx->key, 16);
   memcpy(amf, ue_ctx->amf, 2);
-  memcpy(op, ue_ctx->op, 16);
+  memcpy(opc, ue_ctx->opc, 16);
   memcpy(sqn, ue_ctx->sqn, 6);
 
   return true;

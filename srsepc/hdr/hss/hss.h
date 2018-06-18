@@ -91,7 +91,7 @@ private:
 
 
   void gen_rand(uint8_t rand_[16]);
-  bool get_k_amf_op_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint8_t *sqn);
+  bool get_k_amf_opc_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *op, uint8_t *sqn);
 
   bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
   bool gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);

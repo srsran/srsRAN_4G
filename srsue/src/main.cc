@@ -381,7 +381,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     }
   }
 
-  cout << vm.count("usim.op") <<endl;
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
     if (!vm.count("log.phy_level")) {
