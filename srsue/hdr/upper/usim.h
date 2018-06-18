@@ -109,6 +109,7 @@ private:
   // User data
   auth_algo_t auth_algo;
   uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
+  AUTH_OPERATOR_CODE_TYPE opc_t;
   uint8_t     op[16];
   uint64_t    imsi;
   uint64_t    imei;

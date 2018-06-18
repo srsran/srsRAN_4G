@@ -341,6 +341,7 @@ auth_result_t usim::gen_auth_res_milenage(uint8_t  *rand,
 
   // Use RAND and K to compute RES, CK, IK and AK
   security_milenage_f2345( k,
+                           opc_t,
                            op,
                            rand,
                            res,
@@ -363,6 +364,7 @@ auth_result_t usim::gen_auth_res_milenage(uint8_t  *rand,
 
   // Generate MAC
   security_milenage_f1( k,
+                        opc_t,
                         op,
                         rand,
                         sqn,

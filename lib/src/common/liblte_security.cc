@@ -1099,6 +1099,7 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(uint8 *key,
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
+                                              AUTH_OPERATOR_CODE_TYPE opc_t,
                                               uint8 *op,
                                               uint8 *rand,
                                               uint8 *sqn,
@@ -1188,6 +1189,7 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
+                                                   AUTH_OPERATOR_CODE_TYPE opc_t,
                                                    uint8 *op,
                                                    uint8 *rand,
                                                    uint8 *sqn,
@@ -1277,6 +1279,7 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
+                                                 AUTH_OPERATOR_CODE_TYPE opc_t,
                                                  uint8 *op,
                                                  uint8 *rand,
                                                  uint8 *res,
@@ -1391,6 +1394,7 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
+                                                   AUTH_OPERATOR_CODE_TYPE opc_t,
                                                    uint8 *op,
                                                    uint8 *rand,
                                                    uint8 *ak)

@@ -33,7 +33,7 @@
 
 
 #include "srslte/common/common.h"
-
+#include "srslte/common/liblte_security.h"
 
 #define SECURITY_DIRECTION_UPLINK   0
 #define SECURITY_DIRECTION_DOWNLINK 1
@@ -58,12 +58,6 @@ typedef enum{
 static const char integrity_algorithm_id_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"EIA0",
                                                                                      "128-EIA1",
                                                                                      "128-EIA2"};
-typedef enum
-{
-  AUTH_OP,
-  AUTH_OPC
-} AUTH_OPERATOR_CODE_TYPE;
-
 /******************************************************************************
  * Key Generation
  *****************************************************************************/
