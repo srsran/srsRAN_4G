@@ -37,6 +37,7 @@
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>
 #include <SoapySDR/Time.h>
+#include <SoapySDR/Logger.h>
 #include <Types.h>
 
 #define USE_TX_MTU 0
@@ -337,6 +338,8 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   // set default tx gain and leave some time to calibrate tx
   rf_soapy_set_tx_gain(handler, 35);
   usleep(10000);
+
+  SoapySDR_setLogLevel(SOAPY_SDR_ERROR);
 
   return SRSLTE_SUCCESS;
 }
