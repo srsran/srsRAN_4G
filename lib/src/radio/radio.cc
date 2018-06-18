@@ -81,7 +81,9 @@ bool radio::is_init() {
 
 void radio::stop() 
 {
-  srslte_rf_close(&rf_device);
+  if (is_initialized) {
+    srslte_rf_close(&rf_device);
+  }
 }
 
 void radio::reset()
