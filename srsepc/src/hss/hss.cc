@@ -166,10 +166,12 @@ hss::read_db_file(std::string db_filename)
       get_uint_vec_from_hex_str(split[2],ue_ctx->key,16);
       if(split[3] == std::string("op"))
       {
+        ue_ctx->op_configured = true;
         get_uint_vec_from_hex_str(split[4],ue_ctx->op,16);
       }
       else if (split[3] == std::string("opc"))
       {
+        ue_ctx->op_configured =false;
         get_uint_vec_from_hex_str(split[4],ue_ctx->op,16);
       }
       else
@@ -239,6 +241,12 @@ bool hss::write_db_file(std::string db_filename)
       m_db_file << ",";
       m_db_file << hex_string(it->second->key, 16);
       m_db_file << ",";
+      if(it->second->op_configured){
+        m_db_file << "op,";
+      }
+      else{
+        m_db_file << "opc,";
+      }
       m_db_file << hex_string(it->second->op, 16);
       m_db_file << ",";
       m_db_file << hex_string(it->second->amf, 2);

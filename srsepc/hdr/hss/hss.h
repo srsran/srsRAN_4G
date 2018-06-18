@@ -54,11 +54,13 @@ typedef struct{
 typedef struct{
     std::string name;
     uint64_t imsi;
-    uint8_t key[16];
-    uint8_t op[16];
-    uint8_t amf[2];
-    uint8_t sqn[6];
-    uint8_t last_rand[16];
+    uint8_t  key[16];
+    bool     op_configured;
+    uint8_t  op[16];
+    uint8_t  opc[16];
+    uint8_t  amf[2];
+    uint8_t  sqn[6];
+    uint8_t  last_rand[16];
 }hss_ue_ctx_t;
 
 enum hss_auth_algo {
