@@ -154,18 +154,32 @@ hss::read_db_file(std::string db_filename)
     if(line[0] != '#')
     {
       std::vector<std::string> split = split_string(line,','); 
-      if(split.size()!=6)
+      if(split.size()!=7)
       {
-        m_hss_log->error("Error parsing UE database\n");
+        m_hss_log->error("Error parsing UE database. Wrong number of columns in .csv\n");
+        m_hss_log->error("Columns: %d\n",split.size());
         return false;
       }
       hss_ue_ctx_t *ue_ctx = new hss_ue_ctx_t;
       ue_ctx->name = split[0];
       ue_ctx->imsi = atoll(split[1].c_str());
       get_uint_vec_from_hex_str(split[2],ue_ctx->key,16);
-      get_uint_vec_from_hex_str(split[3],ue_ctx->op,16);
-      get_uint_vec_from_hex_str(split[4],ue_ctx->amf,2);
-      get_uint_vec_from_hex_str(split[5],ue_ctx->sqn,6);
+      if(split[3] == std::string("op"))
+      {
+        get_uint_vec_from_hex_str(split[4],ue_ctx->op,16);
+      }
+      else if (split[3] == std::string("opc"))
+      {
+        get_uint_vec_from_hex_str(split[4],ue_ctx->op,16);
+      }
+      else
+      {
+        m_hss_log->error("Neither OP nor OPc configured.\n");
+        return false;
+      }
+      get_uint_vec_from_hex_str(split[4],ue_ctx->op,16);
+      get_uint_vec_from_hex_str(split[5],ue_ctx->amf,2);
+      get_uint_vec_from_hex_str(split[6],ue_ctx->sqn,6);
 
       m_hss_log->debug("Added user from DB, IMSI: %015lu\n", ue_ctx->imsi);
       m_hss_log->debug_hex(ue_ctx->key, 16, "User Key : ");
@@ -201,6 +215,20 @@ bool hss::write_db_file(std::string db_filename)
     return false;
   }
   m_hss_log->info("Opened DB file: %s\n", db_filename.c_str() );
+
+  //Write comment info
+  m_db_file << "#"                                                                           << std::endl
+            << "# .csv to store UE's information in HSS"                                     << std::endl
+            << "# Kept in the following format: \"Name,IMSI,Key,OP,AMF\""                    << std::endl
+            << "#"                                                                           << std::endl
+            << "# Name: Human readable name to help distinguish UE's. Ignored by the HSS"    << std::endl
+            << "# IMSI: UE's IMSI value"                                                     << std::endl
+            << "# Key:  UE's key, where other keys are derived from. Stored in hexadecimal"  << std::endl
+            << "# OP:   Operator's code, sotred in hexadecimal"                              << std::endl
+            << "# AMF:  Authentication management field, stored in hexadecimal"              << std::endl
+            << "# SQN:  UE's Sequence number for freshness of the authentication"            << std::endl
+            << "#"                                                                           << std::endl
+            << "# Note: Lines starting by '#' are ignored"                                   << std::endl;
 
   std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
   while(it!=m_imsi_to_ue_ctx.end())
