@@ -1418,24 +1418,35 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
 }
 
 /*********************************************************************
-    Name: compute_OPc
+    Name: liblte_compute_opc
 
     Description: Computes OPc from OP and K.
 
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
-void compute_OPc(uint8            *k,
-                 uint8            *op,
-                 uint8            *op_c)
+
+LIBLTE_ERROR_ENUM liblte_compute_opc(uint8            *k,
+                                     uint8            *op,
+                                     uint8            *op_c)
 {
   uint32 i;
   ROUND_KEY_STRUCT round_keys;
-  rijndael_key_schedule(k, &round_keys);
-  rijndael_encrypt(op, &round_keys, op_c);
-  for(i=0; i<16; i++)
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+  if(k    != NULL &&
+     op   != NULL &&
+     op_c  != NULL)
   {
-    op_c[i] ^= op[i];
+
+    rijndael_key_schedule(k, &round_keys);
+    rijndael_encrypt(op, &round_keys, op_c);
+    for(i=0; i<16; i++)
+    {
+      op_c[i] ^= op[i];
+    }
+    err = LIBLTE_SUCCESS;
   }
+  return err;
 }
 
 /*******************************************************************************

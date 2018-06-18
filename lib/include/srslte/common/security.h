@@ -151,6 +151,9 @@ uint8_t security_128_eea2(uint8_t  *key,
 /******************************************************************************
  * Authentication
  *****************************************************************************/
+uint8_t compute_opc( uint8_t *k,
+                       uint8_t *op,
+                       uint8_t *opc);
 
 uint8_t security_milenage_f1( uint8_t *k,
                               uint8_t *op,
