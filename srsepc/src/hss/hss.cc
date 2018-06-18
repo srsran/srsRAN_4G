@@ -168,11 +168,12 @@ hss::read_db_file(std::string db_filename)
       {
         ue_ctx->op_configured = true;
         get_uint_vec_from_hex_str(split[4],ue_ctx->op,16);
+        compute_opc(ue_ctx->key,ue_ctx->op,ue_ctx->opc);
       }
       else if (split[3] == std::string("opc"))
       {
         ue_ctx->op_configured =false;
-        get_uint_vec_from_hex_str(split[4],ue_ctx->op,16);
+        get_uint_vec_from_hex_str(split[4],ue_ctx->opc,16);
       }
       else
       {
@@ -185,7 +186,10 @@ hss::read_db_file(std::string db_filename)
 
       m_hss_log->debug("Added user from DB, IMSI: %015lu\n", ue_ctx->imsi);
       m_hss_log->debug_hex(ue_ctx->key, 16, "User Key : ");
-      m_hss_log->debug_hex(ue_ctx->op, 16, "User OP : ");
+      if(ue_ctx->op_configured){
+        m_hss_log->debug_hex(ue_ctx->op, 16, "User OP : ");
+      }
+      m_hss_log->debug_hex(ue_ctx->opc, 16, "User OPc : ");
       m_hss_log->debug_hex(ue_ctx->amf, 2, "AMF : ");
       m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN : ");
 
@@ -210,7 +214,7 @@ bool hss::write_db_file(std::string db_filename)
   uint8_t sqn[6];
 
   std::ofstream m_db_file;
-  
+
   m_db_file.open(db_filename.c_str(), std::ofstream::out);
   if(!m_db_file.is_open())
   {
