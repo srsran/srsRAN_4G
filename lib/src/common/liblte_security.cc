@@ -1124,11 +1124,14 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
         rijndael_key_schedule(k, &round_keys);
 
         // Compute OPc
+        printf("OPc 0x: ");
         for(i=0;i<16;i++)
-        {
+          {
             op_c[i] = op[i];
-        }
-
+            printf("%02x", op_c[i]);
+          }
+        printf("\n");
+ 
         //compute_OPc(&round_keys, op, op_c);
 
         // Compute temp
@@ -1212,11 +1215,14 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
         // Initialize the round keys
         rijndael_key_schedule(k, &round_keys);
 
+        printf("OPc 0x: ");
         for(i=0;i<16;i++)
         {
           op_c[i] = op[i];
+          printf("%02x", op_c[i]);
         }
-
+        printf("\n");
+ 
         // Compute OPc
         //compute_OPc(&round_keys, op, op_c);
 
@@ -1304,10 +1310,13 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
 
         // Compute OPc
         //compute_OPc(&round_keys, op, op_c);
+        printf("OPc 0x: ");
         for(i=0;i<16;i++)
         {
           op_c[i] = op[i];
+          printf("%02x", op_c[i]);
         }
+        printf("\n");
         // Compute temp
         for(i=0; i<16; i++)
         {
@@ -1412,11 +1421,14 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
 
         // Compute OPc
         //compute_OPc(&round_keys, op, op_c);
+        printf("OPc 0x: ");
         for(i=0;i<16;i++)
-        {
+          {
             op_c[i] = op[i];
-        }
-
+            printf("%02x", op_c[i]);
+          }
+        printf("\n");
+ 
         // Compute temp
         for(i=0; i<16; i++)
         {
