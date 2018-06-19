@@ -1364,6 +1364,11 @@ bool nas::read_ctxt_file(nas_sec_ctxt *ctxt)
     return false;
   }
 
+  if (cfg.force_imsi_attach) {
+    nas_log->info("Skip reading context from file.\n");
+    return false;
+  }
+
   file.open(".ctxt", std::ios::in);
   if(file.is_open()) {
     if(!readvar(file, "m_tmsi=",        &ctxt->guti.m_tmsi))        {return false;}

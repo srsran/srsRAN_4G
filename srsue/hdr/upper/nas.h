@@ -39,6 +39,13 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
+typedef struct {
+  std::string apn_name;
+  std::string apn_user;
+  std::string apn_pass;
+  bool        force_imsi_attach;
+} nas_args_t;
+
 // EMM states (3GPP 24.302 v10.0.0)
 typedef enum {
   EMM_STATE_NULL = 0,
