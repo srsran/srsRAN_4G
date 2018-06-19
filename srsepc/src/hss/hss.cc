@@ -140,7 +140,7 @@ bool
 hss::read_db_file(std::string db_filename)
 {
   std::ifstream m_db_file;
-  
+
   m_db_file.open(db_filename.c_str(), std::ifstream::in);
   if(!m_db_file.is_open())
   {
@@ -153,11 +153,12 @@ hss::read_db_file(std::string db_filename)
   {
     if(line[0] != '#')
     {
-      std::vector<std::string> split = split_string(line,','); 
-      if(split.size()!=7)
+      uint column_size = 7;
+      std::vector<std::string> split = split_string(line,',');
+      if(split.size() != column_size)
       {
         m_hss_log->error("Error parsing UE database. Wrong number of columns in .csv\n");
-        m_hss_log->error("Columns: %d\n",split.size());
+        m_hss_log->error("Columns: %lu, Expected %d.\n",split.size(),column_size);
         return false;
       }
       hss_ue_ctx_t *ue_ctx = new hss_ue_ctx_t;
@@ -280,7 +281,7 @@ hss::gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t
     ret = gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, xres);
     break;
   }
-  increment_sqn(imsi);
+  increment_ue_sqn(imsi);
   return ret;
 
 }
@@ -298,7 +299,7 @@ hss::resync_sqn(uint64_t imsi, uint8_t *auts)
     ret = resync_sqn_milenage(imsi, auts);
     break;
   }
-  increment_sqn(imsi);
+  increment_ue_sqn(imsi);
   return ret;
 }
 
@@ -354,6 +355,7 @@ hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
     sqn_ms[i] = sqn_ms_xor_ak[i] ^ ak[i];
   }
   m_hss_log->debug_hex(sqn_ms, 6, "SQN MS : ");
+  m_hss_log->debug_hex(sqn   , 6, "SQN HE : ");
 
   m_hss_log->debug_hex(amf, 2, "AMF : ");
 
@@ -579,7 +581,7 @@ hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *opc, ui
 }
 
 void
-hss::increment_sqn(uint64_t imsi)
+hss::increment_ue_sqn(uint64_t imsi)
 {
   hss_ue_ctx_t *ue_ctx = NULL;
   bool ret = get_ue_ctx(imsi, &ue_ctx);
@@ -589,22 +591,39 @@ hss::increment_sqn(uint64_t imsi)
   }
 
   // Awkward 48 bit sqn and doing arithmetic 
-  uint64_t sqn = 0;
-  uint8_t *p = (uint8_t *)&sqn;
+  //uint64_t sqn = 0;
+  //uint8_t *p = (uint8_t *)&sqn;
 
-  for(int i = 0; i < 6; i++) {
-    p[5-i] = (uint8_t) ((ue_ctx->sqn[i]));
-  }
+  //for(int i = 0; i < 6; i++) {
+  //  p[5-i] = (uint8_t) ((ue_ctx->sqn[i]));
+  //}
 
-  sqn++;
-
-  m_hss_log->debug("Incremented SQN (IMSI: %" PRIu64 ") SQN: %" PRIu64 "\n", imsi, sqn);
-
-  for(int i = 0; i < 6; i++){
-    ue_ctx->sqn[i] = p[5-i];
-  }
+  //sqn++;
+  //for(int i = 0; i < 6; i++){
+  //  ue_ctx->sqn[i] = p[5-i];
+  //}
+  increment_sqn(ue_ctx->sqn,ue_ctx->sqn);
+  m_hss_log->debug("Incremented SQN (IMSI: %" PRIu64 ")" PRIu64 "\n", imsi);
+  m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN: ");
 }
 
+void
+hss::increment_sqn(uint8_t *sqn, uint8_t *next_sqn)
+{
+  // Awkward 48 bit sqn and doing arithmetic 
+  uint64_t tmp_sqn = 0;
+  uint8_t *p = (uint8_t *)&tmp_sqn;
+
+  for(int i = 0; i < 6; i++) {
+    p[5-i] = sqn[i];
+  }
+
+  tmp_sqn++;
+  for(int i = 0; i < 6; i++){
+    next_sqn[i] = p[5-i];
+  }
+  return;
+}
 void
 hss::set_sqn(uint64_t imsi, uint8_t *sqn)
 {
