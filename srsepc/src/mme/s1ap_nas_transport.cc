@@ -1382,8 +1382,8 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
     m_s1ap_log->info("Non-EPS authentication unacceptable\n");
     break;
     case 21:
-    m_s1ap_log->console("Sequence number synch failure\n");
-    m_s1ap_log->info("Sequence number synch failure\n");
+    m_s1ap_log->console("Authentication Failure -- Synchronization Failure\n");
+    m_s1ap_log->info("Authentication Failure -- Synchronization Failure\n");
     if(auth_fail.auth_fail_param_present == false){
       m_s1ap_log->error("Missing fail parameter\n");
       return false;

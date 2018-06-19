@@ -52,7 +52,7 @@ hss::~hss()
 
 hss*
 hss::get_instance(void)
-{ 
+{
   pthread_mutex_lock(&hss_instance_mutex);
   if(NULL == m_instance) {
     m_instance = new hss();
@@ -93,7 +93,7 @@ hss::init(hss_args_t *hss_args, srslte::log_filter *hss_log)
 
   mcc = hss_args->mcc;
   mnc = hss_args->mnc;
-  
+
   db_file = hss_args->db_file;
 
   m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s, MCC: %d, MNC: %d\n", hss_args->db_file.c_str(),hss_args->auth_algo.c_str(), mcc, mnc);
