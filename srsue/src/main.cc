@@ -131,7 +131,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("usim.mode", bpo::value<string>(&args->usim.mode)->default_value("soft"), "USIM mode (soft or pcsc)")
     ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
-    ("usim.opc", bpo::value<string>(&args->usim.op), "USIM operator ciphered variant")
+    ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator variant")
     ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
