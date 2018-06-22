@@ -49,7 +49,7 @@ namespace srsenb {
  * 
  *******************************************************/
 
-sched_ue::sched_ue() : ue_idx(0), has_pucch(false), power_headroom(0), rnti(0), max_mcs_dl(0), max_mcs_ul(0),
+sched_ue::sched_ue() : dl_next_alloc(NULL), ul_next_alloc(NULL), has_pucch(false), power_headroom(0), rnti(0), max_mcs_dl(0), max_mcs_ul(0),
                        fixed_mcs_ul(0), fixed_mcs_dl(0), phy_config_dedicated_enabled(false)
 {
   log_h = NULL;
@@ -71,6 +71,7 @@ void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_in
   rnti  = rnti_; 
   log_h = log_h_; 
   memcpy(&cell, &cell_cfg->cell, sizeof(srslte_cell_t));
+  P = srslte_ra_type0_P(cell.nof_prb);
 
   max_mcs_dl = 28; 
   max_mcs_ul = 28; 
@@ -710,6 +711,22 @@ uint32_t sched_ue::get_pending_dl_new_data(uint32_t tti)
   return pending_data; 
 }
 
+/// Use this function in the dl-metric to get the bytes to be scheduled. It accounts for the UE data,
+/// the RAR resources, and headers
+/// \param tti
+/// \return number of bytes to be allocated
+uint32_t sched_ue::get_pending_dl_new_data_total(uint32_t tti)
+{
+  uint32_t req_bytes = get_pending_dl_new_data(tti);
+  if(req_bytes>0) {
+    req_bytes += (req_bytes < 128) ? 2 : 3; // consider the header
+    if(is_first_dl_tx()) {
+      req_bytes += 6; // count for RAR
+    }
+  }
+  return req_bytes;
+}
+
 uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
 {
   uint32_t pending_data = 0; 
@@ -746,32 +763,39 @@ uint32_t sched_ue::get_pending_ul_old_data()
   return pending_data;
 }
 
-
-uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols) 
+uint32_t sched_ue::prb_to_rbg(uint32_t nof_prb)
 {
-  int mcs = 0; 
-  uint32_t nbytes = 0; 
-  uint32_t n = 0; 
-  if (req_bytes == 0) {
-    return 0; 
-  }
-  
-  uint32_t nof_re = 0; 
-  int tbs = 0; 
-  for (n=1;n<=cell.nof_prb && nbytes < req_bytes;n++) {
-    nof_re = srslte_ra_dl_approx_nof_re(cell, n, nof_ctrl_symbols);
-    if (fixed_mcs_dl < 0) {
-      tbs = alloc_tbs_dl(n, nof_re, 0, &mcs);
+  return (uint32_t) ceil((float) nof_prb / P);
+}
+
+uint32_t sched_ue::rgb_to_prb(uint32_t nof_rbg)
+{
+  return P*nof_rbg;
+}
+
+uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
+{
+  int mcs = 0;
+  uint32_t nof_re = 0;
+  int tbs = 0;
+
+  uint32_t nbytes = 0;
+  uint32_t n;
+  for (n=0; n < cell.nof_prb && nbytes < req_bytes; ++n) {
+    nof_re = srslte_ra_dl_approx_nof_re(cell, n+1, nof_ctrl_symbols);
+    if(fixed_mcs_dl < 0) {
+      tbs = alloc_tbs_dl(n+1, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), n)/8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), n+1)/8;
     }
     if (tbs > 0) {
-      nbytes = tbs; 
+      nbytes = tbs;
     } else if (tbs < 0) {
-      return 0; 
+      return 0;
     }
   }
-  return n; 
+
+  return n;
 }
 
 uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes) 

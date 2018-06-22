@@ -149,8 +149,17 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
  *******************************************************/
 int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  if (ue_db.count(rnti)) {   
-    return scheduler.dl_rlc_buffer_state(rnti, lc_id, tx_queue, retx_queue);
+  if (ue_db.count(rnti)) {
+    if(rnti != SRSLTE_MRNTI){
+      return scheduler.dl_rlc_buffer_state(rnti, lc_id, tx_queue, retx_queue);
+    } else {
+      for(uint32_t i = 0; i < mch.num_mtch_sched; i++){
+        if(lc_id == mch.mtch_sched[i].lcid){
+          mch.mtch_sched[i].lcid_buffer_size = tx_queue;
+        }
+      }
+      return 0;
+    }
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     return -1;
@@ -230,6 +239,7 @@ int mac::ue_rem(uint16_t rnti)
 
 int mac::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
 {
+  memcpy(&this->cell_config, cell_cfg, sizeof(sched_interface::cell_cfg_t));
   return scheduler.cell_cfg(cell_cfg);  
 }
 
@@ -238,12 +248,12 @@ void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
   int cnt=0;
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     ue *u = iter->second;
-    u->metrics_read(&metrics[cnt]);
-    cnt++;
+    if(iter->first != SRSLTE_MRNTI) {
+      u->metrics_read(&metrics[cnt]);
+      cnt++;
+    }
   } 
 }
-
-
 
 
 /********************************************************
@@ -284,7 +294,7 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
   if (ack) {
     if (nof_bytes > 64) { // do not count RLC status messages only
       rrc_h->set_activity_user(rnti); 
-      log_h->debug("DL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
+      log_h->info("DL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
     }
   }
   return 0; 
@@ -301,12 +311,8 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
     
     // push the pdu through the queue if received correctly
     if (crc) {
-       ue_db[rnti]->push_pdu(tti, nof_bytes); 
+      ue_db[rnti]->push_pdu(tti, nof_bytes);
       pdu_process_thread.notify();      
-      if (nof_bytes > 64) { // do not count RLC status messages only
-        rrc_h->set_activity_user(rnti); 
-        log_h->debug("UL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
-      }
     } else {
       ue_db[rnti]->deallocate_pdu(tti);
     }
@@ -431,13 +437,14 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
   bzero(&uecfg, sizeof(sched_interface::ue_cfg_t));
   uecfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH; 
   if (scheduler.ue_cfg(last_rnti, &uecfg)) {
+    // Release pending RAR
+    bzero(&pending_rars[ra_id], sizeof(pending_rar_t));
     Error("Registering new user rnti=0x%x to SCHED\n", last_rnti);
     return -1;
   }
 
   // Register new user in RRC 
   rrc_h->add_user(last_rnti);
-  
   // Trigger scheduler RACH 
   scheduler.dl_rach_info(tti, ra_id, last_rnti, 7);    
     
@@ -576,6 +583,96 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
   return SRSLTE_SUCCESS;
 }
 
+void mac::build_mch_sched(uint32_t tbs)
+{
+  int sfs_per_sched_period = mcch.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9;
+  int bytes_per_sf = tbs/8 - 6;// leave 6 bytes for header
+  
+  int total_space_avail_bytes =  sfs_per_sched_period*bytes_per_sf;
+  
+  int total_bytes_to_tx = 0; 
+  
+  
+  // calculate total bytes to be scheduled
+  for (uint32_t i = 0; i < mch.num_mtch_sched; i++) {
+    total_bytes_to_tx += mch.mtch_sched[i].lcid_buffer_size;
+    mch.mtch_sched[i].stop = 0;
+  }
+
+  int last_mtch_stop = 0;
+  
+  if(total_bytes_to_tx >= total_space_avail_bytes){
+    for(uint32_t i = 0; i < mch.num_mtch_sched;i++){
+       double ratio =  mch.mtch_sched[i].lcid_buffer_size/total_bytes_to_tx;
+       float assigned_sfs = floor(sfs_per_sched_period*ratio);
+       mch.mtch_sched[i].stop = last_mtch_stop + (uint32_t)assigned_sfs;
+       last_mtch_stop = mch.mtch_sched[i].stop;
+    } 
+  }else {
+    for(uint32_t i = 0; i < mch.num_mtch_sched;i++){
+      float assigned_sfs =  ceil(((float)mch.mtch_sched[i].lcid_buffer_size)/((float)bytes_per_sf));
+      mch.mtch_sched[i].stop = last_mtch_stop + (uint32_t)assigned_sfs;
+      last_mtch_stop = mch.mtch_sched[i].stop; 
+    }
+  }
+}
+
+int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
+{
+  
+  srslte_ra_mcs_t mcs;
+  srslte_ra_mcs_t mcs_data;
+  mcs.idx = this->sib13.mbsfn_area_info_list_r9[0].signalling_mcs_r9;
+  mcs_data.idx = this->mcch.pmch_infolist_r9[0].pmch_config_r9.datamcs_r9;
+  srslte_dl_fill_ra_mcs(&mcs, this->cell_config.cell.nof_prb);
+  srslte_dl_fill_ra_mcs(&mcs_data, this->cell_config.cell.nof_prb);
+  if(is_mcch){ 
+    
+    build_mch_sched(mcs_data.tbs);
+    mch.mcch_payload = mcch_payload_buffer;
+    mch.current_sf_allocation_num = 1;
+    Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n", mch.mtch_sched[0].lcid, mch.mtch_sched[0].stop, tti);
+    for(uint32_t i = 0; i < mch.num_mtch_sched; i++) {
+      mch.pdu[i].lcid = srslte::sch_subh::MCH_SCHED_INFO;
+     // mch.mtch_sched[i].lcid = 1+i;
+    }
+    
+    mch.pdu[mch.num_mtch_sched].lcid = 0;
+    mch.pdu[mch.num_mtch_sched].nbytes =  current_mcch_length;
+    dl_sched_res->sched_grants[0].rnti = SRSLTE_MRNTI;
+    dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, mch.num_mtch_sched + 1, mcs.tbs/8);
+    
+  } else {
+    uint32_t current_lcid = 1;
+    uint32_t mtch_index = 0;
+    uint32_t mtch_stop = mch.mtch_sched[mch.num_mtch_sched -1].stop;
+    
+    for(uint32_t i = 0;i < mch.num_mtch_sched;i++) {
+      if(mch.current_sf_allocation_num <= mch.mtch_sched[i].stop){
+        current_lcid = mch.mtch_sched[i].lcid;
+        mtch_index = i;
+        break;
+      }
+    }
+    if(mch.current_sf_allocation_num <= mtch_stop) {
+      int requested_bytes = (mcs_data.tbs/8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)?(mch.mtch_sched[mtch_index].lcid_buffer_size):((mcs_data.tbs/8) - 2);
+      int  bytes_received = ue_db[SRSLTE_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid = current_lcid;
+      mch.pdu[0].nbytes = bytes_received;
+      mch.mtch_sched[0].mtch_payload = mtch_payload_buffer;
+      dl_sched_res->sched_grants[0].rnti = SRSLTE_MRNTI;
+      if(bytes_received){
+        dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, 1, mcs_data.tbs/8);
+      }
+    } else {
+      //TRANSMIT NOTHING
+    }
+    mch.current_sf_allocation_num++;
+  }
+     
+ return SRSLTE_SUCCESS;
+}  
+
 uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32_t nof_grants, int rar_idx, uint32_t pdu_len)
 {
   uint8_t grant_buffer[64];
@@ -603,7 +700,7 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32
 }
 
 uint8_t* mac::assemble_si(uint32_t index)
-{  
+{ 
   rlc_h->read_pdu_bcch_dlsch(index, bcch_dlsch_payload);
   return bcch_dlsch_payload;
 }
@@ -673,9 +770,6 @@ void mac::tti_clock()
   timers_thread.tti_clock();
 }
 
-
-
-
 /********************************************************
  *
  * Interface for upper layer timers
@@ -696,7 +790,6 @@ srslte::timers::timer* mac::timer_get(uint32_t timer_id)
 {
   return timers_db.get(timer_id);
 }
-
 
 
 /********************************************************
@@ -732,7 +825,7 @@ void mac::timer_thread::tti_clock()
 /********************************************************
  *
  * Class that runs a thread to process DL MAC PDUs from
- * DEMU unit
+ * DEMUX unit
  *
  *******************************************************/
 mac::pdu_process::pdu_process(pdu_process_handler *h) : running(false) {
@@ -788,8 +881,33 @@ bool mac::process_pdus()
 }
 
 
+void mac::write_mcch(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT *mcch)
+{
+  bzero(&mcch_payload_buffer[0],sizeof(uint8_t)*3000);
+  
+  
+  LIBLTE_BIT_MSG_STRUCT bitbuffer;
+  liblte_rrc_pack_mcch_msg(mcch, &bitbuffer);
+  memcpy(&this->mcch ,mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+  mch.num_mtch_sched =  this->mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size;
+  for(uint32_t i = 0; i < mch.num_mtch_sched; i++){
+    mch.mtch_sched[i].lcid = this->mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[i].logicalchannelid_r9;
+  }
 
+  memcpy(&this->sib2,sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
+  memcpy(&this->sib2,sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT)); // TODO: consolidate relevant parts into 1 struct
+  current_mcch_length = floor(bitbuffer.N_bits/8);
+  if(bitbuffer.N_bits%8 != 0) {
+    current_mcch_length++;
+  }
+  int rlc_header_len = 1;
+  current_mcch_length =  current_mcch_length + rlc_header_len;
+  srslte_bit_pack_vector(&bitbuffer.msg[0], &mcch_payload_buffer[rlc_header_len], bitbuffer.N_bits);
+  ue_db[SRSLTE_MRNTI] = new ue;
+  ue_db[SRSLTE_MRNTI]->config(SRSLTE_MRNTI, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
 
+  rrc_h->add_user(SRSLTE_MRNTI);
+}
 
 }
 

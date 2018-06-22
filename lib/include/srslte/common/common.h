@@ -44,6 +44,8 @@
 #define SRSLTE_N_DRB           8
 #define SRSLTE_N_RADIO_BEARERS 11
 
+#define SRSLTE_N_MCH_LCIDS     32
+
 #define HARQ_DELAY_MS   4
 #define MSG3_DELAY_MS   2 // Delay added to HARQ_DELAY_MS
 #define TTI_RX(tti)     (tti>HARQ_DELAY_MS?((tti-HARQ_DELAY_MS)%10240):(10240+tti-HARQ_DELAY_MS))
@@ -61,16 +63,18 @@
 // 3GPP 36.306 Table 4.1.1
 #define SRSLTE_MAX_BUFFER_SIZE_BITS  102048
 #define SRSLTE_MAX_BUFFER_SIZE_BYTES 12756
-#define SRSLTE_BUFFER_HEADER_OFFSET  1024
+#define SRSLTE_BUFFER_HEADER_OFFSET  1020
 
 #define SRSLTE_BUFFER_POOL_LOG_ENABLED
 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-#define pool_allocate (pool->allocate(__FUNCTION__))
+#define pool_allocate (pool->allocate(__PRETTY_FUNCTION__))
 #define SRSLTE_BUFFER_POOL_LOG_NAME_LEN 128
 #else
 #define pool_allocate (pool->allocate())
 #endif
+
+#define ZERO_OBJECT(x) memset(&(x), 0x0, sizeof((x)))
 
 #include "srslte/srslte.h"
 
@@ -116,15 +120,17 @@ public:
 
     byte_buffer_t():N_bytes(0)
     {
-      timestamp_is_set = false; 
+      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+      timestamp_is_set = false;
       msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       next = NULL; 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-      debug_name[0] = 0;
+      bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
 #endif
     }
     byte_buffer_t(const byte_buffer_t& buf)
     {
+      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
     }
@@ -133,6 +139,7 @@ public:
       // avoid self assignment
       if (&buf == this)
         return *this;
+      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
       return *this;

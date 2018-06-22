@@ -39,6 +39,7 @@
 #include "phy/phy.h"
 #include "upper/usim.h"
 #include "upper/rrc.h"
+#include "upper/nas.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 #include "srslte/common/logger.h"
@@ -64,6 +65,7 @@ typedef struct {
   std::string   device_args;
   std::string   time_adv_nsamples;
   std::string   burst_preamble;
+  std::string   continuous_tx;
 }rf_args_t;
 
 typedef struct {
@@ -112,8 +114,10 @@ typedef struct {
   phy_args_t    phy;
   float         metrics_period_secs;
   bool          pregenerate_signals;
+  bool          print_buffer_state;
   bool          metrics_csv_enable;
   std::string   metrics_csv_filename;
+  int           mbms_service;
 }expert_args_t;
 
 typedef struct {
@@ -126,7 +130,7 @@ typedef struct {
   usim_args_t   usim;
   rrc_args_t    rrc;
   std::string   ue_category_str;
-  std::string   apn;
+  nas_args_t    nas;
   expert_args_t expert;
 }all_args_t;
 
@@ -155,12 +159,17 @@ public:
 
   virtual bool init(all_args_t *args_) = 0;
   virtual void stop() = 0;
+  virtual bool attach() = 0;
+  virtual bool deattach() = 0;
   virtual bool is_attached() = 0;
   virtual void start_plot() = 0;
 
   virtual void print_pool() = 0;
 
   virtual void radio_overflow() = 0;
+
+  virtual void print_mbms() = 0;
+  virtual bool mbms_service_start(uint32_t serv, uint32_t port) = 0;
   
   void handle_rf_msg(srslte_rf_error_t error);
 

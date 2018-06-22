@@ -49,6 +49,7 @@ typedef struct {
   LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT      srs_ul_cnfg;    
 } phy_cfg_t; 
 
+  
 class phy : public phy_interface_mac,
             public phy_interface_rrc
 {
@@ -62,6 +63,9 @@ public:
   /* MAC->PHY interface */
   int  add_rnti(uint16_t rnti);
   void rem_rnti(uint16_t rnti);
+  
+  /*RRC-PHY interface*/
+  void configure_mbsfn(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT mcch);
 
   static uint32_t tti_to_SFN(uint32_t tti);
   static uint32_t tti_to_subf(uint32_t tti);
@@ -73,7 +77,7 @@ public:
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   
 private:
-    
+  phy_rrc_cfg_t phy_rrc_config;
   uint32_t nof_workers; 
   
   const static int MAX_WORKERS         = 4;
@@ -84,7 +88,7 @@ private:
   const static int WORKERS_THREAD_PRIO = 0; 
   
   srslte::radio         *radio_handler;
-
+  srslte::log              *log_h;
   srslte::thread_pool      workers_pool;
   std::vector<phch_worker> workers;
   phch_common              workers_common; 

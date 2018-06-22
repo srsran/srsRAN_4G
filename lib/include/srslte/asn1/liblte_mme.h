@@ -1209,7 +1209,7 @@ static const char liblte_mme_add_ci_text[LIBLTE_MME_ADD_CI_N_ITEMS][20] = {"Don'
                                                                            "Add"};
 // Structs
 typedef struct{
-    std::string            name;
+    char                   name[LIBLTE_STRING_LEN];
     LIBLTE_MME_ADD_CI_ENUM add_ci;
 }LIBLTE_MME_NETWORK_NAME_STRUCT;
 // Functions
@@ -1752,7 +1752,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_guti_type_ie(uint8                     **ie_
 // Enums
 // Structs
 typedef struct{
-    std::string apn;
+    char apn[LIBLTE_STRING_LEN];
 }LIBLTE_MME_ACCESS_POINT_NAME_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_access_point_name_ie(LIBLTE_MME_ACCESS_POINT_NAME_STRUCT  *apn,
@@ -2810,6 +2810,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_request_msg(LIBLTE_BYTE_MSG_S
 // Structs
 typedef struct{
     uint8 res[16];
+    int res_len;
 }LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_authentication_response_msg(LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT *auth_resp,
@@ -3791,6 +3792,8 @@ typedef struct{
 }LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_esm_information_response_msg(LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT *esm_info_resp,
+                                                               uint8                                           sec_hdr_type,
+                                                               uint32                                          count,
                                                                LIBLTE_BYTE_MSG_STRUCT                         *msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_information_response_msg(LIBLTE_BYTE_MSG_STRUCT                         *msg,
                                                                  LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT *esm_info_resp);

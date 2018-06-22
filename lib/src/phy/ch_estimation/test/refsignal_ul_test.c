@@ -36,7 +36,9 @@ srslte_cell_t cell = {
   100,            // nof_prb
   SRSLTE_MAX_PORTS,    // nof_ports
   1,         // cell_id
-  SRSLTE_CP_NORM        // cyclic prefix
+  SRSLTE_CP_NORM,        // cyclic prefix
+  SRSLTE_PHICH_NORM,
+  SRSLTE_PHICH_R_1_6
 };
 
 void usage(char *prog) {

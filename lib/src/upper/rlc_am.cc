@@ -81,11 +81,10 @@ rlc_am::~rlc_am()
     pool->deallocate(tx_sdu);
   }
 }
-
-void rlc_am::init(srslte::log                 *log_,
-                  uint32_t                     lcid_,
-                  srsue::pdcp_interface_rlc   *pdcp_,
-                  srsue::rrc_interface_rlc    *rrc_,
+void rlc_am::init(srslte::log                  *log_,
+                  uint32_t                      lcid_,
+                  srsue::pdcp_interface_rlc    *pdcp_,
+                  srsue::rrc_interface_rlc     *rrc_,
                   srslte::mac_interface_timers *mac_timers)
 {
   log  = log_;
@@ -127,10 +126,12 @@ void rlc_am::reset()
   pthread_mutex_lock(&mutex);
   reordering_timeout.reset();
   if(tx_sdu) {
-    tx_sdu->reset();
+    pool->deallocate(tx_sdu);
+    tx_sdu = NULL;
   }
   if(rx_sdu) {
-    rx_sdu->reset();
+    pool->deallocate(rx_sdu);
+    rx_sdu = NULL;
   }
 
   vt_a    = 0;
@@ -276,7 +277,7 @@ uint32_t rlc_am::get_buffer_state()
   // check if pollRetx timer expired (Section 5.2.2.3 in TS 36.322)
   if (poll_retx()) {
     // if both tx and retx buffer are empty, retransmit next PDU to be ack'ed
-    log->info("Poll reTx timer expired (lcid=%d)\n", lcid);
+    log->debug("Poll reTx timer expired (lcid=%d)\n", lcid);
     if ((tx_window.size() > 0 && retx_queue.size() == 0 && tx_sdu_queue.size() == 0)) {
       std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.find(vt_s - 1);
       if (it != tx_window.end()) {
@@ -668,6 +669,13 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
     lower += old_header.li[i];
   }
 
+  // Make sure LI is not deleted in case the SDU boundary is crossed
+  // FIXME: fix if N_li > 1
+  if (new_header.N_li == 1 && retx.so_start + new_header.li[0] < retx.so_end && retx.so_end <= retx.so_start + pdu_space) {
+    // This segment crosses a SDU boundary
+    new_header.N_li++;
+  }
+
   // Update retx_queue
   if(tx_window[retx.sn].buf->N_bytes == retx.so_end) {
     retx_queue.pop_front();
@@ -911,6 +919,13 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
 #endif
   }
 
+  // check available space for payload
+  if (nof_bytes > pdu.buf->get_tailroom()) {
+    log->error("%s Discarding SN: %d of size %d B (available space %d B)\n",
+              rrc->get_rb_name(lcid).c_str(), header.sn, nof_bytes, pdu.buf->get_tailroom());
+    pool->deallocate(pdu.buf);
+    return;
+  }
   memcpy(pdu.buf->msg, payload, nof_bytes);
   pdu.buf->N_bytes  = nof_bytes;
   memcpy(&pdu.header, &header, sizeof(rlc_amd_pdu_header_t));
@@ -1171,6 +1186,11 @@ void rlc_am::reassemble_rx_sdus()
     for(uint32_t i=0; i<rx_window[vr_r].header.N_li; i++)
     {
       uint32_t len = rx_window[vr_r].header.li[i];
+      // sanity check to avoid zero-size SDUs
+      if (len == 0) {
+        break;
+      }
+
       if (rx_sdu->get_tailroom() >= len) {
         memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
         rx_sdu->N_bytes += len;
@@ -1343,7 +1363,13 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
         count += it->header.li[i];
       }
     }
-    carryover = it->buf->N_bytes - count;
+
+    // accumulate segment sizes until end aligned PDU is received
+    if (rlc_am_not_start_aligned(it->header.fi)) {
+      carryover += it->buf->N_bytes - count;
+    } else {
+      carryover = it->buf->N_bytes - count;
+    }
     tmpit = it;
     if(rlc_am_end_aligned(it->header.fi) && ++tmpit != pdu->segments.end()) {
       header.li[header.N_li++] = carryover;
@@ -1739,14 +1765,24 @@ std::string rlc_am_to_string(rlc_status_pdu_t *status)
   return ss.str();
 }
 
-bool rlc_am_start_aligned(uint8_t fi)
+bool rlc_am_start_aligned(const uint8_t fi)
 {
   return (fi == RLC_FI_FIELD_START_AND_END_ALIGNED || fi == RLC_FI_FIELD_NOT_END_ALIGNED);
 }
 
-bool rlc_am_end_aligned(uint8_t fi)
+bool rlc_am_end_aligned(const uint8_t fi)
 {
   return (fi == RLC_FI_FIELD_START_AND_END_ALIGNED || fi == RLC_FI_FIELD_NOT_START_ALIGNED);
+}
+
+bool rlc_am_is_unaligned(const uint8_t fi)
+{
+  return (fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
+}
+
+bool rlc_am_not_start_aligned(const uint8_t fi)
+{
+  return (fi == RLC_FI_FIELD_NOT_START_ALIGNED || fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
 }
 
 } // namespace srsue

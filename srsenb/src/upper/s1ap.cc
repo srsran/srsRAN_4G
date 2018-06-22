@@ -87,7 +87,7 @@ void s1ap::get_metrics(s1ap_metrics_t &m)
 
 void s1ap::run_thread()
 {
-  srslte::byte_buffer_t *pdu = pool_allocate;
+  srslte::byte_buffer_t *pdu = pool->allocate("s1ap::run_thread");
   if (!pdu) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
     return;
@@ -204,82 +204,35 @@ void s1ap::write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu)
   send_ulnastransport(rnti, pdu);
 }
 
-void s1ap::user_inactivity(uint16_t rnti)
+bool s1ap::user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio)
 {
   s1ap_log->info("User inactivity - RNTI:0x%x\n", rnti);
 
   if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
     s1ap_log->warning("User RNTI:0x%x context not found\n", rnti);
-    return;
+    return false;
   }
 
   if(ue_ctxt_map[rnti].release_requested) {
     s1ap_log->warning("UE context for RNTI:0x%x is in zombie state. Releasing...\n", rnti);
     ue_ctxt_map.erase(rnti);
     rrc->release_complete(rnti);
-    return;
+    return false;
   }
 
   LIBLTE_S1AP_CAUSE_STRUCT cause;
   cause.ext                     = false;
   cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
   cause.choice.radioNetwork.ext = false;
-  cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY;
+  cause.choice.radioNetwork.e   = cause_radio;
 
   ue_ctxt_map[rnti].release_requested = true;
-  send_uectxtreleaserequest(rnti, &cause);
-}
-
-
-void s1ap::release_eutran(uint16_t rnti)
-{
-  s1ap_log->info("Release by EUTRAN - RNTI:0x%x\n", rnti);
-
-  if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
-    s1ap_log->warning("User RNTI:0x%x context not found\n", rnti);
-    return;
-  }
-
-  if(ue_ctxt_map[rnti].release_requested) {
-    return;
-  }
-
-  LIBLTE_S1AP_CAUSE_STRUCT cause;
-  cause.ext                     = false;
-  cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-  cause.choice.radioNetwork.ext = false;
-  cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_RELEASE_DUE_TO_EUTRAN_GENERATED_REASON;
-
-  ue_ctxt_map[rnti].release_requested = true;
-  send_uectxtreleaserequest(rnti, &cause);
+  return send_uectxtreleaserequest(rnti, &cause);
 }
 
 bool s1ap::user_exists(uint16_t rnti)
 {
   return ue_ctxt_map.end() != ue_ctxt_map.find(rnti); 
-}
-
-bool s1ap::user_link_lost(uint16_t rnti)
-{
-  s1ap_log->info("User link lost - RNTI:0x%x\n", rnti);
-
-  if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
-    s1ap_log->warning("User RNTI:0x%x context not found\n", rnti);
-    return false;
-  }
-
-  if(ue_ctxt_map[rnti].release_requested) {
-    return false;
-  }
-
-  LIBLTE_S1AP_CAUSE_STRUCT cause;
-  cause.ext                     = false;
-  cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-  cause.choice.radioNetwork.ext = false;
-  cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_RADIO_CONNECTION_WITH_UE_LOST;
-
-  ue_ctxt_map[rnti].release_requested = true;
-  return send_uectxtreleaserequest(rnti, &cause);
 }
 
 void s1ap::ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res)

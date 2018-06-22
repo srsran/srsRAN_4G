@@ -93,6 +93,10 @@ public:
 #endif
   }
 
+  uint32_t nof_available_pdus() {
+    return available.size();
+  }
+
   bool is_almost_empty() {
     return available.size() < capacity/20;
   }

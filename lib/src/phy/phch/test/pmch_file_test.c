@@ -202,6 +202,7 @@ int main(int argc, char **argv) {
   if (data != NULL) {
     free(data);
   }
+  srslte_dft_exit();
   if (ret > 0) {
     exit(0);
   } else {

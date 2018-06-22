@@ -159,7 +159,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   }
   //Get K eNB
   liblte_unpack(emm_ctx->security_ctxt.k_enb, 32, in_ctxt_req->SecurityKey.buffer);
-  m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB\n");
+  m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB (k_enb)\n");
 
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
   if(emm_ctx->state == EMM_STATE_DEREGISTERED)
@@ -283,8 +283,8 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   if (ecm_ctx->state == ECM_STATE_CONNECTED)
   {
     //There are active E-RABs, send release access mearers request
-    m_s1ap_log->console("There are active E-RABs, send release access mearers request");
-    m_s1ap_log->info("There are active E-RABs, send release access mearers request");
+    m_s1ap_log->console("There are active E-RABs, send release access mearers request\n");
+    m_s1ap_log->info("There are active E-RABs, send release access mearers request\n");
 
     //The handle_release_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
     //It will release the UEs downstream S1-u and keep the upstream S1-U connection active.

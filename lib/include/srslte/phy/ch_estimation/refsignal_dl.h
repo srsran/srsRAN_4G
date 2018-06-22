@@ -93,8 +93,10 @@ SRSLTE_API uint32_t srslte_refsignal_cs_v(uint32_t port_id,
 
 SRSLTE_API uint32_t srslte_refsignal_cs_nof_symbols(uint32_t port_id);
 
-SRSLTE_API int srslte_refsignal_mbsfn_init(srslte_refsignal_t *q, srslte_cell_t cell,
-                                           uint16_t mbsfn_area_id);
+SRSLTE_API int srslte_refsignal_mbsfn_init(srslte_refsignal_t *q, uint32_t max_prb);
+
+SRSLTE_API int srslte_refsignal_mbsfn_set_cell(srslte_refsignal_t * q,
+                                           srslte_cell_t cell, uint16_t mbsfn_area_id);
 
 SRSLTE_API int srslte_refsignal_mbsfn_get_sf(srslte_cell_t cell,
                                              uint32_t port_id,

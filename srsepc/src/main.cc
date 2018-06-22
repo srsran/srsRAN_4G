@@ -28,6 +28,7 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include "srslte/common/bcd_helpers.h"
+#include "srslte/common/config_file.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/hss/hss.h"
 #include "srsepc/hdr/spgw/spgw.h"
@@ -154,23 +155,23 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
       exit(0);
   }
 
-  //Parsing Config File
+  // if no config file given, check users home path
   if (!vm.count("config_file")) {
-      cout << "Error: Configuration file not provided" << endl;
-      cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
-      exit(0);
-  } else {
-      cout << "Reading configuration file " << config_file << "..." << endl;
-      ifstream conf(config_file.c_str(), ios::in);
-      if(conf.fail()) {
-        cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
-        exit(1);
-      }
-      bpo::store(bpo::parse_config_file(conf, common), vm);
-      bpo::notify(vm);
+    if (!config_exists(config_file, "epc.conf")) {
+      cout << "Failed to read ePC configuration file " << config_file << " - exiting" << endl;
+      exit(1);
+    }
   }
 
-
+  //Parsing Config File
+  cout << "Reading configuration file " << config_file << "..." << endl;
+  ifstream conf(config_file.c_str(), ios::in);
+  if(conf.fail()) {
+    cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+    exit(1);
+  }
+  bpo::store(bpo::parse_config_file(conf, common), vm);
+  bpo::notify(vm);
 
   //Concert hex strings
   {
@@ -246,6 +247,13 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
       args->log_args.hss_hex_limit = args->log_args.all_hex_limit;
     }
   }
+
+  // Check user database
+  if (!config_exists(args->hss_args.db_file, "user_db.csv")) {
+    cout << "Failed to read HSS user database file " << args->hss_args.db_file << " - exiting" << endl;
+    exit(1);
+  }
+
   return;
 }
 

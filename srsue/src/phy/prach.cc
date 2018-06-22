@@ -75,7 +75,7 @@ void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, 
     return;
   }
   srslte_cfo_set_tol(&cfo_h, 0);
-  signal_buffer = (cf_t *) srslte_vec_malloc(SRSLTE_PRACH_MAX_LEN * sizeof(cf_t));
+  signal_buffer = (cf_t *) srslte_vec_malloc(MAX_LEN_SF * 30720 * sizeof(cf_t));
   if (!signal_buffer) {
     perror("malloc");
     return;
@@ -159,10 +159,10 @@ bool prach::is_pending() {
 bool prach::is_ready_to_send(uint32_t current_tti_) {
   if (is_pending()) {
     // consider the number of subframes the transmission must be anticipated 
-    uint32_t current_tti = (current_tti_ + tx_advance_sf)%10240;
-    if (srslte_prach_tti_opportunity(&prach_obj, current_tti, allowed_subframe)) {
-      Debug("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", current_tti, current_tti_);
-      transmitted_tti = current_tti; 
+    uint32_t tti_tx = TTI_TX(current_tti_);
+    if (srslte_prach_tti_opportunity(&prach_obj, tti_tx, allowed_subframe)) {
+      Debug("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", tti_tx, current_tti_);
+      transmitted_tti = tti_tx;
       return true; 
     }
   }
@@ -173,55 +173,34 @@ int prach::tx_tti() {
   return transmitted_tti; 
 }
 
-float prach::get_p0_preamble()
-{
-  return target_power_dbm; 
-}
+cf_t *prach::generate(float cfo, uint32_t *nof_sf, float *target_power) {
 
+  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx <= 64 &&
+      srslte_cell_isvalid(&cell) && len < MAX_LEN_SF * 30720 && len > 0) {
 
-void prach::send(srslte::radio *radio_handler, float cfo, float pathloss, srslte_timestamp_t tx_time)
-{
-  
-  // Get current TX gain 
-  float old_gain = radio_handler->get_tx_gain(); 
-  
-  // Correct CFO before transmission FIXME: UL SISO Only
-  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));
+    // Correct CFO before transmission FIXME: UL SISO Only
+    srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));
 
-  // If power control is enabled, choose amplitude and power 
-  if (args->ul_pwr_ctrl_en) {
-    // Get PRACH transmission power 
-    float tx_power = SRSLTE_MIN(SRSLTE_PC_MAX, pathloss + target_power_dbm);
-    
-    // Get output power for amplitude 1
-    radio_handler->set_tx_power(tx_power);
-        
-    // Scale signal
-    float digital_power = srslte_vec_avg_power_cf(signal_buffer, len);
-    float scale = sqrtf(pow(10,tx_power/10)/digital_power);
-    
-    srslte_vec_sc_prod_cfc(signal_buffer, scale, signal_buffer, len);
-    log_h->console("PRACH: Pathloss=%.2f dB, Target power %.2f dBm, TX_power %.2f dBm, TX_gain %.1f dB, scale %.2f\n",
-          pathloss, target_power_dbm, tx_power, radio_handler->get_tx_gain(), scale);
-    
-  } else {
-    float prach_gain = args->prach_gain; 
-    if (prach_gain > 0) {
-      radio_handler->set_tx_gain(prach_gain);
+    // pad guard symbols with zeros
+    uint32_t nsf = (len-1)/SRSLTE_SF_LEN_PRB(cell.nof_prb)+1;
+    bzero(&signal_buffer[len], (nsf*SRSLTE_SF_LEN_PRB(cell.nof_prb)-len)*sizeof(cf_t));
+
+    *nof_sf = nsf;
+
+    if (target_power) {
+      *target_power = target_power_dbm;
     }
-    Debug("TX PRACH: Power control for PRACH is disabled, setting gain to %.0f dB\n", prach_gain);
+
+    Info("PRACH: Transmitted preamble=%d, CFO=%.2f KHz, nof_sf=%d, target_power=%.1f dBm\n",
+         preamble_idx, cfo*15, nsf, target_power_dbm);
+    preamble_idx = -1;
+
+    return signal_buffer;
+  } else {
+    Error("PRACH: Invalid parameters: cell_initiated=%d, preamble_idx=%d, cell.nof_prb=%d, len=%d\n",
+          cell_initiated, preamble_idx, cell.nof_prb, len);
+    return NULL;
   }
-
-  void *tmp_buffer[SRSLTE_MAX_PORTS] = {signal_buffer, NULL, NULL, NULL};
-  radio_handler->tx(tmp_buffer, len, tx_time);
-  radio_handler->tx_end();
-  
-  Info("PRACH: Transmitted preamble=%d, CFO=%.2f KHz, tx_time=%f\n", 
-       preamble_idx, cfo*15, tx_time.frac_secs);
-  preamble_idx = -1;
-
-  radio_handler->set_tx_gain(old_gain);
-  Debug("Restoring TX gain to %.0f dB\n", old_gain);  
 }
   
 } // namespace srsue

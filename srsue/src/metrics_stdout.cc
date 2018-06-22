@@ -79,7 +79,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
     n_reports = 0;
     cout << endl;
     cout << "--Signal--------------DL------------------------------UL----------------------" << endl;
-    cout << "  rsrp    pl    cfo   mcs   snr turbo  brate   bler   mcs   buff  brate   bler" << endl;
+    cout << "  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
   }
   cout << float_to_string(metrics.phy.dl.rsrp, 2);
   cout << float_to_string(metrics.phy.dl.pathloss, 2);
@@ -93,6 +93,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
   } else {
     cout << float_to_string(0, 1) << "%";
   }
+  cout << float_to_string(metrics.phy.sync.ta_us, 2);
   cout << float_to_string(metrics.phy.ul.mcs, 2);
   cout << float_to_eng_string((float) metrics.mac.ul_buffer, 2);
   cout << float_to_eng_string((float) metrics.mac.tx_brate/period_usec*1e6, 2);

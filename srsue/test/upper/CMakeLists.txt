@@ -22,6 +22,11 @@ add_executable(usim_test usim_test.cc)
 target_link_libraries(usim_test srsue_upper srslte_upper srslte_phy)
 add_test(usim_test usim_test)
 
+if(HAVE_PCSC)
+  add_executable(pcsc_usim_test pcsc_usim_test.cc)
+  target_link_libraries(pcsc_usim_test srsue_upper srslte_upper srslte_phy)
+endif(HAVE_PCSC)
+
 add_executable(rrc_reconfig_test rrc_reconfig_test.cc)
 target_link_libraries(rrc_reconfig_test srsue_upper srslte_upper srslte_phy)
 add_test(rrc_reconfig_test rrc_reconfig_test)

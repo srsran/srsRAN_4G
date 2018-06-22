@@ -100,6 +100,12 @@ void pdcp::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
   }
 }
 
+void pdcp::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
+{
+  if(valid_mch_lcid(lcid)){
+    pdcp_array_mrb[lcid].write_sdu(sdu);
+  }
+}
 void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
 {
   if(lcid >= SRSLTE_N_RADIO_BEARERS) {
@@ -108,6 +114,21 @@ void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
   }
   if (!pdcp_array[lcid].is_active()) {
     pdcp_array[lcid].init(rlc, rrc, gw, pdcp_log, lcid, cfg);
+    pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
+  } else {
+    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
+  }
+}
+
+
+void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
+{
+  if(lcid >= SRSLTE_N_RADIO_BEARERS) {
+    pdcp_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
+    return;
+  }
+  if (!pdcp_array_mrb[lcid].is_active()) {
+    pdcp_array_mrb[lcid].init(rlc, rrc, gw, pdcp_log, lcid, cfg);
     pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
     pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
@@ -175,6 +196,15 @@ void pdcp::write_pdu_pcch(byte_buffer_t *sdu)
   rrc->write_pdu_pcch(sdu);
 }
 
+void pdcp::write_pdu_mch(uint32_t lcid, byte_buffer_t *sdu)
+{
+  if(0 == lcid) {
+    rrc->write_pdu_mch(lcid, sdu);
+  } else {
+    gw->write_pdu_mch(lcid, sdu);
+  }
+}
+
 /*******************************************************************************
   Helpers
 *******************************************************************************/
@@ -185,6 +215,19 @@ bool pdcp::valid_lcid(uint32_t lcid)
     return false;
   }
   if(!pdcp_array[lcid].is_active()) {
+    pdcp_log->error("PDCP entity for logical channel %d has not been activated\n", lcid);
+    return false;
+  }
+  return true;
+}
+
+bool pdcp::valid_mch_lcid(uint32_t lcid)
+{
+  if(lcid >= SRSLTE_N_MCH_LCIDS) {
+    pdcp_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+    return false;
+  }
+  if(!pdcp_array_mrb[lcid].is_active()) {
     pdcp_log->error("PDCP entity for logical channel %d has not been activated\n", lcid);
     return false;
   }

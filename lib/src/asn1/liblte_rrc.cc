@@ -327,13 +327,218 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_mbsfn_subframe_config_ie(uint8              
 }
 
 /*********************************************************************
-    IE Name: PMCH Info List
+    IE Name: TMGI
 
-    Description: Specifies configuration of all PMCHs of an MBSFN area
+    Description: Temporary Mobile Group Identity (PLMN + MBMS service ID)
 
     Document Reference: 36.331 v10.0.0 Section 6.3.7
 *********************************************************************/
-// FIXME
+LIBLTE_ERROR_ENUM liblte_rrc_pack_tmgi_r9_ie(LIBLTE_RRC_TMGI_R9_STRUCT *tmgi,
+                                             uint8                    **ie_ptr)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+  if(tmgi   != NULL &&
+     ie_ptr != NULL)
+  {
+      liblte_value_2_bits(tmgi->plmn_id_explicit?1:0,  ie_ptr, 1);
+      if(tmgi->plmn_id_explicit){
+          liblte_rrc_pack_plmn_identity_ie(&tmgi->plmn_id_r9, ie_ptr);
+      }else{
+          liblte_value_2_bits(tmgi->plmn_index_r9-1,  ie_ptr, 3);
+      }
+      liblte_value_2_bits(tmgi->serviceid_r9,  ie_ptr, 24);
+
+      err = LIBLTE_SUCCESS;
+  }
+
+  return(err);
+}
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_tmgi_r9_ie(uint8                    **ie_ptr,
+                                               LIBLTE_RRC_TMGI_R9_STRUCT *tmgi)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+    if(ie_ptr != NULL &&
+       tmgi   != NULL)
+    {
+        tmgi->plmn_id_explicit = liblte_bits_2_value(ie_ptr, 1);
+        if(tmgi->plmn_id_explicit){
+            liblte_rrc_unpack_plmn_identity_ie(ie_ptr, &tmgi->plmn_id_r9);
+        }else{
+            tmgi->plmn_index_r9 = liblte_bits_2_value(ie_ptr, 3) + 1;
+        }
+        tmgi->serviceid_r9 = liblte_bits_2_value(ie_ptr, 24);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+
+/*********************************************************************
+    IE Name: MBMS Session Info
+
+    Description: Information about an individual MBMS session
+
+    Document Reference: 36.331 v10.0.0 Section 6.3.7
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_rrc_pack_mbms_session_info_r9_ie(LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT  *mbms_session_info,
+                                                          uint8                                  **ie_ptr)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+    if(mbms_session_info != NULL &&
+       ie_ptr            != NULL)
+    {
+        // ext
+        liblte_value_2_bits(0, ie_ptr, 1);
+
+        liblte_value_2_bits(mbms_session_info->sessionid_r9_present?1:0, ie_ptr, 1);
+        liblte_rrc_pack_tmgi_r9_ie(&mbms_session_info->tmgi_r9, ie_ptr);
+        if(mbms_session_info->sessionid_r9_present){
+            liblte_value_2_bits(mbms_session_info->sessionid_r9, ie_ptr, 8);
+        }
+        liblte_value_2_bits(mbms_session_info->logicalchannelid_r9, ie_ptr, 5);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_mbms_session_info_r9_ie(uint8                                  **ie_ptr,
+                                                            LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT  *mbms_session_info)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+    if(ie_ptr            != NULL &&
+       mbms_session_info != NULL)
+    {
+        // ext
+        bool ext = liblte_bits_2_value(ie_ptr, 1);
+
+        mbms_session_info->sessionid_r9_present = liblte_bits_2_value(ie_ptr, 1);
+        liblte_rrc_unpack_tmgi_r9_ie(ie_ptr, &mbms_session_info->tmgi_r9);
+        if(mbms_session_info->sessionid_r9_present){
+            mbms_session_info->sessionid_r9 = liblte_bits_2_value(ie_ptr, 8);
+        }
+        mbms_session_info->logicalchannelid_r9 = liblte_bits_2_value(ie_ptr, 5);
+
+        liblte_rrc_consume_noncrit_extension(ext, __func__, ie_ptr);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+
+/*********************************************************************
+    IE Name: PMCH Config
+
+    Description: Contains configuration parameters of the sessions
+                 carried by a PMCH
+
+    Document Reference: 36.331 v10.0.0 Section 6.3.7
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_rrc_pack_pmch_config_r9_ie(LIBLTE_RRC_PMCH_CONFIG_R9_STRUCT *pmch_cnfg,
+                                                    uint8                           **ie_ptr)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+    if(pmch_cnfg != NULL &&
+       ie_ptr    != NULL)
+    {
+        // ext
+        liblte_value_2_bits(0, ie_ptr, 1);
+
+        liblte_value_2_bits(pmch_cnfg->sf_alloc_end_r9, ie_ptr, 11);
+        liblte_value_2_bits(pmch_cnfg->datamcs_r9, ie_ptr, 5);
+        liblte_value_2_bits(pmch_cnfg->mch_schedulingperiod_r9, ie_ptr, 3);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_pmch_config_r9_ie(uint8                           **ie_ptr,
+                                                      LIBLTE_RRC_PMCH_CONFIG_R9_STRUCT *pmch_cnfg)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+    if(ie_ptr    != NULL &&
+       pmch_cnfg != NULL)
+    {
+        // ext
+        bool ext = liblte_bits_2_value(ie_ptr, 1);
+
+        pmch_cnfg->sf_alloc_end_r9          = liblte_bits_2_value(ie_ptr, 11);
+        pmch_cnfg->datamcs_r9               = liblte_bits_2_value(ie_ptr, 5);
+        pmch_cnfg->mch_schedulingperiod_r9  = (LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_ENUM)liblte_bits_2_value(ie_ptr, 3);
+
+        liblte_rrc_consume_noncrit_extension(ext, __func__, ie_ptr);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+
+
+/*********************************************************************
+    IE Name: PMCH Info
+
+    Description: Specifies configuration of PMCH of an MBSFN area
+
+    Document Reference: 36.331 v10.0.0 Section 6.3.7
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_rrc_pack_pmch_info_r9_ie(LIBLTE_RRC_PMCH_INFO_R9_STRUCT  *pmch_info,
+                                                  uint8                          **ie_ptr)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    uint32 i;
+
+    if(pmch_info != NULL &&
+       ie_ptr    != NULL)
+    {
+        // ext
+        liblte_value_2_bits(0, ie_ptr, 1);
+
+        liblte_rrc_pack_pmch_config_r9_ie(&pmch_info->pmch_config_r9, ie_ptr);
+        liblte_value_2_bits(pmch_info->mbms_sessioninfolist_r9_size, ie_ptr, 5);
+        for(i=0; i<pmch_info->mbms_sessioninfolist_r9_size; i++){
+          liblte_rrc_pack_mbms_session_info_r9_ie(&pmch_info->mbms_sessioninfolist_r9[i], ie_ptr);
+        }
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_pmch_info_r9_ie(uint8                          **ie_ptr,
+                                                    LIBLTE_RRC_PMCH_INFO_R9_STRUCT  *pmch_info)
+{
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    uint32 i;
+
+    if(ie_ptr    != NULL &&
+       pmch_info != NULL)
+    {
+        // ext
+        bool ext = liblte_bits_2_value(ie_ptr, 1);
+
+        liblte_rrc_unpack_pmch_config_r9_ie(ie_ptr, &pmch_info->pmch_config_r9);
+        pmch_info->mbms_sessioninfolist_r9_size = liblte_bits_2_value(ie_ptr, 5);
+        for(i=0; i<pmch_info->mbms_sessioninfolist_r9_size; i++){
+          liblte_rrc_unpack_mbms_session_info_r9_ie(ie_ptr, &pmch_info->mbms_sessioninfolist_r9[i]);
+        }
+
+        liblte_rrc_consume_noncrit_extension(ext, __func__, ie_ptr);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
 
 /*********************************************************************
     IE Name: C-RNTI
@@ -380,7 +585,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_c_rnti_ie(uint8  **ie_ptr,
 
     Document Reference: 36.331 v10.0.0 Section 6.3.6
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_cdma2000_ie(LIBLTE_SIMPLE_BYTE_MSG_STRUCT  *ded_info_cdma2000,
+LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_cdma2000_ie(LIBLTE_BYTE_MSG_STRUCT  *ded_info_cdma2000,
                                                              uint8                         **ie_ptr)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
@@ -412,7 +617,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_cdma2000_ie(LIBLTE_SIMPLE_BYTE_
     return(err);
 }
 LIBLTE_ERROR_ENUM liblte_rrc_unpack_dedicated_info_cdma2000_ie(uint8                         **ie_ptr,
-                                                               LIBLTE_SIMPLE_BYTE_MSG_STRUCT  *ded_info_cdma2000)
+                                                               LIBLTE_BYTE_MSG_STRUCT  *ded_info_cdma2000)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     uint32            i;
@@ -452,7 +657,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_dedicated_info_cdma2000_ie(uint8            
 
     Document Reference: 36.331 v10.0.0 Section 6.3.6
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_nas_ie(LIBLTE_SIMPLE_BYTE_MSG_STRUCT  *ded_info_nas,
+LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_nas_ie(LIBLTE_BYTE_MSG_STRUCT  *ded_info_nas,
                                                         uint8                         **ie_ptr)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
@@ -484,7 +689,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_dedicated_info_nas_ie(LIBLTE_SIMPLE_BYTE_MSG_S
     return(err);
 }
 LIBLTE_ERROR_ENUM liblte_rrc_unpack_dedicated_info_nas_ie(uint8                         **ie_ptr,
-                                                          LIBLTE_SIMPLE_BYTE_MSG_STRUCT  *ded_info_nas)
+                                                          LIBLTE_BYTE_MSG_STRUCT  *ded_info_nas)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     uint32            i;
@@ -2715,8 +2920,10 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_report_config_eutra_ie(LIBLTE_RRC_REPORT_CONFI
         liblte_value_2_bits(rep_cnfg_eutra->trigger_type, ie_ptr, 1);
         if(LIBLTE_RRC_TRIGGER_TYPE_EUTRA_EVENT == rep_cnfg_eutra->trigger_type)
         {
+            // Event ID choice extension indicator
+            liblte_value_2_bits(0, ie_ptr, 1); // Choice with extension - unlikely to be >63 choices
+
             // Event ID
-            // FIXME: Handle extension properly
             liblte_value_2_bits(rep_cnfg_eutra->event.event_id, ie_ptr, 3);
             if(LIBLTE_RRC_EVENT_ID_EUTRA_A1 == rep_cnfg_eutra->event.event_id)
             {
@@ -8894,7 +9101,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_sys_info_block_type_2_ie(LIBLTE_RRC_SYS_INFO_B
             liblte_value_2_bits(sib2->mbsfn_subfr_cnfg_list_size - 1, ie_ptr, 3);
             for(i=0; i<sib2->mbsfn_subfr_cnfg_list_size; i++)
             {
-                liblte_rrc_pack_mbsfn_subframe_config_ie(&sib2->mbsfn_subfr_cnfg[i], ie_ptr);
+                liblte_rrc_pack_mbsfn_subframe_config_ie(&sib2->mbsfn_subfr_cnfg_list[i], ie_ptr);
             }
         }
 
@@ -8992,7 +9199,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_sys_info_block_type_2_ie(uint8              
             sib2->mbsfn_subfr_cnfg_list_size = liblte_bits_2_value(ie_ptr, 3) + 1;
             for(i=0; i<sib2->mbsfn_subfr_cnfg_list_size; i++)
             {
-                liblte_rrc_unpack_mbsfn_subframe_config_ie(ie_ptr, &sib2->mbsfn_subfr_cnfg[i]);
+                liblte_rrc_unpack_mbsfn_subframe_config_ie(ie_ptr, &sib2->mbsfn_subfr_cnfg_list[i]);
             }
         }else{
             sib2->mbsfn_subfr_cnfg_list_size = 0;
@@ -10286,7 +10493,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_sys_info_block_type_13_ie(LIBLTE_RRC_SYS_INFO_
         {
             liblte_rrc_pack_mbsfn_area_info_ie(&sib13->mbsfn_area_info_list_r9[i], ie_ptr);
         }
-        liblte_rrc_pack_mbsfn_notification_config_ie(&sib13->mbms_notification_config, ie_ptr);
+        liblte_rrc_pack_mbsfn_notification_config_ie(&sib13->mbsfn_notification_config, ie_ptr);
 
         err = LIBLTE_SUCCESS;
     }
@@ -10315,7 +10522,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_sys_info_block_type_13_ie(uint8             
         {
             liblte_rrc_unpack_mbsfn_area_info_ie(ie_ptr, &sib13->mbsfn_area_info_list_r9[i]);
         }
-        liblte_rrc_unpack_mbsfn_notification_config_ie(ie_ptr, &sib13->mbms_notification_config);
+        liblte_rrc_unpack_mbsfn_notification_config_ie(ie_ptr, &sib13->mbsfn_notification_config);
 
         liblte_rrc_consume_noncrit_extension(ext_ind, __func__, ie_ptr);
         
@@ -12999,9 +13206,82 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_measurement_report_msg(LIBLTE_BIT_MSG_STRUCT
     Description: Contains the MBMS control information applicable for
                  an MBSFN area
 
-    Document Reference: 36.331 v10.0.0 Section 6.2.2 
+    Document Reference: 36.331 v10.0.0 Section 6.2.2
 *********************************************************************/
-// FIXME
+LIBLTE_ERROR_ENUM liblte_rrc_pack_mbsfn_area_configuration_r9_msg(LIBLTE_RRC_MBSFN_AREA_CONFIGURATION_R9_STRUCT *mbsfn_area_cnfg,
+                                                                  LIBLTE_BIT_MSG_STRUCT                         *msg)
+{
+    LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8             *msg_ptr = msg->msg;
+    uint32             i;
+
+    if(mbsfn_area_cnfg != NULL &&
+       msg             != NULL)
+    {
+        // Non-critical extension
+        liblte_value_2_bits(0, &msg_ptr, 1);
+
+        // commonsf_allocpatternlist_r9
+        liblte_value_2_bits(mbsfn_area_cnfg->commonsf_allocpatternlist_r9_size-1, &msg_ptr, 3);
+        for(i=0; i<mbsfn_area_cnfg->commonsf_allocpatternlist_r9_size; i++){
+            liblte_rrc_pack_mbsfn_subframe_config_ie(&mbsfn_area_cnfg->commonsf_allocpatternlist_r9[i], &msg_ptr);
+        }
+
+        // commonsf_allocperiod_r9
+        liblte_value_2_bits(mbsfn_area_cnfg->commonsf_allocperiod_r9, &msg_ptr, 3);
+
+        // pmch_infolist_r9
+        liblte_value_2_bits(mbsfn_area_cnfg->pmch_infolist_r9_size, &msg_ptr, 4);
+        for(i=0; i<mbsfn_area_cnfg->pmch_infolist_r9_size; i++){
+            liblte_rrc_pack_pmch_info_r9_ie(&mbsfn_area_cnfg->pmch_infolist_r9[i], &msg_ptr);
+        }
+
+        // Fill in the number of bits used
+        msg->N_bits = msg_ptr - msg->msg;
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_mbsfn_area_configuration_r9_msg(LIBLTE_BIT_MSG_STRUCT                         *msg,
+                                                                    LIBLTE_RRC_MBSFN_AREA_CONFIGURATION_R9_STRUCT *mbsfn_area_cnfg)
+{
+    LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8             *msg_ptr = msg->msg;
+    uint32             i;
+    bool               ext;
+
+    if(msg             != NULL &&
+       mbsfn_area_cnfg != NULL)
+    {
+        // Non-critical extension
+        ext = liblte_bits_2_value(&msg_ptr, 1);
+        liblte_rrc_warning_not_handled(ext, __func__);
+
+        // commonsf_allocpatternlist_r9
+        mbsfn_area_cnfg->commonsf_allocpatternlist_r9_size = liblte_bits_2_value(&msg_ptr, 3) + 1;
+        for(i=0; i<mbsfn_area_cnfg->commonsf_allocpatternlist_r9_size; i++){
+            liblte_rrc_unpack_mbsfn_subframe_config_ie(&msg_ptr, &mbsfn_area_cnfg->commonsf_allocpatternlist_r9[i]);
+        }
+
+        // commonsf_allocperiod_r9
+        mbsfn_area_cnfg->commonsf_allocperiod_r9 = (LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_ENUM)liblte_bits_2_value(&msg_ptr, 3);
+
+        // pmch_infolist_r9
+        mbsfn_area_cnfg->pmch_infolist_r9_size = liblte_bits_2_value(&msg_ptr, 4);
+        for(i=0; i<mbsfn_area_cnfg->pmch_infolist_r9_size; i++){
+            liblte_rrc_unpack_pmch_info_r9_ie(&msg_ptr, &mbsfn_area_cnfg->pmch_infolist_r9[i]);
+        }
+
+        liblte_rrc_consume_noncrit_extension(ext, __func__, &msg_ptr);
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+
 
 /*********************************************************************
     Message Name: Master Information Block
@@ -13102,7 +13382,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_dl_information_transfer_msg(LIBLTE_BIT_MSG_S
         liblte_bits_2_value(&msg_ptr, 2);
 
         // Optional indicator
-        liblte_rrc_warning_not_handled(liblte_bits_2_value(&msg_ptr, 1), __func__);;
+        liblte_rrc_warning_not_handled(liblte_bits_2_value(&msg_ptr, 1), __func__);
 
         // Dedicated info type choice
         dl_info_transfer->dedicated_info_type = (LIBLTE_RRC_DL_INFORMATION_TRANSFER_TYPE_ENUM)liblte_bits_2_value(&msg_ptr, 2);
@@ -13366,6 +13646,66 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_bcch_dlsch_msg(LIBLTE_BIT_MSG_STRUCT        
         }
         
         liblte_rrc_consume_noncrit_extension(ext, __func__, &msg_ptr);
+    }
+
+    return(err);
+}
+
+/*********************************************************************
+    Message Name: MCCH Message
+
+    Description: Contains the set of RRC messages that may be sent
+                 from the E-UTRAN to the UE on the MCCH logical
+                 channel
+
+    Document Reference: 36.331 v10.0.0 Section 6.2.1
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_rrc_pack_mcch_msg(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch_msg,
+                                           LIBLTE_BIT_MSG_STRUCT      *msg)
+{
+    LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8             *msg_ptr = msg->msg;
+    uint8              ext     = false;
+
+    if(mcch_msg != NULL &&
+       msg      != NULL)
+    {
+        // MCCH choice
+        liblte_value_2_bits(0, &msg_ptr, 1);
+
+        err = liblte_rrc_pack_mbsfn_area_configuration_r9_msg(mcch_msg,
+                                                              &global_msg);
+        if(global_msg.N_bits <= (LIBLTE_MAX_MSG_SIZE_BITS - 1))
+        {
+            memcpy(msg_ptr, global_msg.msg, global_msg.N_bits);
+            msg->N_bits = global_msg.N_bits + 1;
+        }else{
+            msg->N_bits = 0;
+            err         = LIBLTE_ERROR_INVALID_INPUTS;
+        }
+    }
+
+    return(err);
+}
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_mcch_msg(LIBLTE_BIT_MSG_STRUCT      *msg,
+                                             LIBLTE_RRC_MCCH_MSG_STRUCT *mcch_msg)
+{
+    LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8             *msg_ptr = msg->msg;
+    uint32             N_bits_used;
+
+    if(msg      != NULL &&
+       mcch_msg != NULL)
+    {
+        // MCCH choice
+        liblte_rrc_warning_not_handled(liblte_bits_2_value(&msg_ptr, 1), __func__);;
+
+        if((msg->N_bits-(msg_ptr-msg->msg)) <= (LIBLTE_MAX_MSG_SIZE_BITS - 1))
+        {
+            memcpy(global_msg.msg, msg_ptr, msg->N_bits-(msg_ptr-msg->msg));
+            err = liblte_rrc_unpack_mbsfn_area_configuration_r9_msg(&global_msg,
+                                                                    mcch_msg);
+        }
     }
 
     return(err);

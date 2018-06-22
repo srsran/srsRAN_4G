@@ -71,7 +71,7 @@ class gtpu
 {
 public: 
   
-  bool init(std::string gtp_bind_addr_, std::string mme_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
+  bool init(std::string gtp_bind_addr_, std::string mme_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
   void stop();
   
   // gtpu_interface_rrc
@@ -89,11 +89,15 @@ private:
   srslte::byte_buffer_pool     *pool;
   bool                         running;
   bool                         run_enable;
-
+  
+  bool                         mch_running;
+  bool                         mch_run_enable;
+  bool                         _enable_mbsfn;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
   srsenb::pdcp_interface_gtpu *pdcp;
   srslte::log                 *gtpu_log;
+  pthread_t mch_thread;
 
   typedef struct{
     uint32_t teids_in[SRSENB_N_RADIO_BEARERS];
@@ -105,9 +109,22 @@ private:
   // Socket file descriptors
   int snk_fd;
   int src_fd;
+  int m1u_sd;
 
+  //Init functions
+  bool init_m1u(srslte::log *gtpu_log_);
+
+  //Threading
   void run_thread();
-  
+  void run_mch_thread();
+
+  int mch_lcid_counter;
+
+  static void *mch_thread_routine(void *_this)
+  {
+      ((srsenb::gtpu*)_this)->run_mch_thread();
+      return _this;
+  }
   pthread_mutex_t mutex; 
 
   /****************************************************************************

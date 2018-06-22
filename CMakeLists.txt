@@ -131,6 +131,16 @@ else(POLARSSL_FOUND)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
+# Hard-SIM support
+find_package(PCSCLite)
+if (PCSCLITE_FOUND)
+  message(STATUS "Building with PCSC support.")
+  add_definitions(-DHAVE_PCSC)
+  set(HAVE_PCSC TRUE)
+  include_directories(${PCSCLITE_INCLUDE_DIR})
+  #link_directories(${PCSCLITE_LIBRARIES})
+endif (PCSCLITE_FOUND)
+
 # UHD
 find_package(UHD)
 if(UHD_FOUND)
@@ -214,6 +224,13 @@ set(INCLUDE_DIR include)
 set(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
 set(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
+# Auto-generate config install helper and mark for installation
+configure_file(
+        ${CMAKE_SOURCE_DIR}/cmake/modules/SRSLTE_install_configs.sh.in
+        ${CMAKE_BINARY_DIR}/srslte_install_configs.sh
+)
+install(PROGRAMS ${CMAKE_BINARY_DIR}/srslte_install_configs.sh DESTINATION ${RUNTIME_DIR})
+
 ########################################################################
 # Compiler specific setup
 ########################################################################
@@ -226,7 +243,7 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -std=c++03")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++03")
 
   find_package(SSE)
   if (HAVE_AVX2)
@@ -243,7 +260,7 @@ endif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clan
 ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-Werror=incompatible-pointer-types" HAVE_ERROR_INCOMPATIBLE)
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-write-strings -Winline -Wno-unused-result -Wformat -Wmissing-field-initializers -Wtype-limits -std=c99 -D_GNU_SOURCE")
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -O0 -DDEBUG_MODE -DBUILD_TYPE_DEBUG")
@@ -273,6 +290,10 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
     endif(HAVE_AVX)
   endif (HAVE_AVX2)
+
+  if (HAVE_FMA)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfma -DLV_HAVE_FMA")
+  endif (HAVE_FMA)
 
   if (HAVE_AVX512)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")

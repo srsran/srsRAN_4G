@@ -73,6 +73,7 @@ typedef struct {
   uint32_t          rx_window_size;
   uint32_t          rx_mod;             // Rx counter modulus
   uint32_t          tx_mod;             // Tx counter modulus
+  bool              is_mrb;             // Whether this is a multicast bearer
 } srslte_rlc_um_config_t;
 
 
@@ -82,6 +83,9 @@ public:
   LIBLTE_RRC_RLC_MODE_ENUM  rlc_mode;
   srslte_rlc_am_config_t    am;
   srslte_rlc_um_config_t    um;
+
+  // Default ctor
+  srslte_rlc_config_t(): rlc_mode(LIBLTE_RRC_RLC_MODE_AM), am(), um() {};
 
   // Constructor based on liblte's RLC config
   srslte_rlc_config_t(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) : rlc_mode(cnfg->rlc_mode), am(), um()
@@ -118,6 +122,21 @@ public:
         // Handle default case
         break;
     }
+  }
+
+  // Factory for MCH
+  static srslte_rlc_config_t mch_config()
+  {
+    srslte_rlc_config_t cfg;
+    cfg.rlc_mode               = LIBLTE_RRC_RLC_MODE_UM_UNI_DL;
+    cfg.um.t_reordering        = 0;
+    cfg.um.rx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
+    cfg.um.rx_window_size      = 0;
+    cfg.um.rx_mod              = 1;
+    cfg.um.tx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
+    cfg.um.tx_mod              = 1;
+    cfg.um.is_mrb              = true;
+    return cfg;
   }
 };
 

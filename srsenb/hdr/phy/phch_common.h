@@ -30,12 +30,12 @@
 #include <map>
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
-
+#include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/log.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/radio/radio.h"
-
+#include <string.h>
 namespace srsenb {
 
 typedef struct {
@@ -47,6 +47,26 @@ typedef struct {
   float estimator_fil_w;   
   bool       pregenerate_signals;
 } phy_args_t; 
+
+typedef enum{
+  SUBFRAME_TYPE_REGULAR = 0,
+  SUBFRAME_TYPE_MBSFN,
+  SUBFRAME_TYPE_N_ITEMS,
+} subframe_type_t;
+static const char subframe_type_text[SUBFRAME_TYPE_N_ITEMS][20] = {"Regular", "MBSFN"};
+
+/* Subframe config */
+
+typedef struct {
+  subframe_type_t sf_type;
+  uint8_t         mbsfn_area_id;
+  uint8_t         non_mbsfn_region_length;
+  uint8_t         mbsfn_mcs;
+  bool            mbsfn_encode;
+  bool            is_mcch;
+} subframe_cfg_t;
+
+
 
 class phch_common
 {
@@ -119,6 +139,12 @@ public:
   srslte_mod_t ue_db_get_last_ul_mod(uint16_t rnti, uint32_t tti);
   void ue_db_set_last_ul_tbs(uint16_t rnti, uint32_t tti, int tbs);
   int ue_db_get_last_ul_tbs(uint16_t rnti, uint32_t tti);
+  
+  void configure_mbsfn(phy_interface_rrc::phy_cfg_mbsfn_t *cfg);
+  void build_mch_table();
+  void build_mcch_table();
+  void get_sf_config(subframe_cfg_t *cfg, uint32_t phy_tti);
+  
 
 private:
   std::vector<pthread_mutex_t>    tx_mutex; 
@@ -128,6 +154,20 @@ private:
   uint32_t        nof_workers;
   uint32_t        nof_mutex;
   uint32_t        max_mutex;
+
+  pthread_mutex_t user_mutex;
+  
+  phy_interface_rrc::phy_cfg_mbsfn_t  mbsfn;
+  bool sib13_configured;
+  bool mcch_configured;
+  uint8_t mch_table[40];
+  uint8_t mcch_table[10];
+  
+  uint8_t mch_sf_idx_lut[10];
+  bool is_mch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti);
+  bool is_mcch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti);
+
+  void add_rnti(uint16_t rnti);
   
 };
 

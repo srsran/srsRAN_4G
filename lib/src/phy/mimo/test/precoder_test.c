@@ -333,5 +333,11 @@ int main(int argc, char **argv) {
     }
   }
 
+  for (i = 0; i < nof_tx_ports; i++) {
+    if (y[i]) {
+      free(y[i]);
+    }
+  }
+
   exit(ret);
 }

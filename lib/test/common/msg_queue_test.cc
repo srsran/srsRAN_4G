@@ -27,12 +27,12 @@
 #define NMSGS    1000000
 
 #include <stdio.h>
-#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_tx_queue.h"
 
 using namespace srslte;
 
 typedef struct {
-  msg_queue   *q;
+  rlc_tx_queue   *q;
 }args_t;
 
 void* write_thread(void *a) {
@@ -49,8 +49,8 @@ void* write_thread(void *a) {
 
 int main(int argc, char **argv) {
   bool                 result;
-  msg_queue            q;
-  byte_buffer_t *b;
+  rlc_tx_queue         q;
+  byte_buffer_t       *b;
   pthread_t            thread;
   args_t               args;
   u_int32_t            r;
@@ -70,6 +70,10 @@ int main(int argc, char **argv) {
   }
 
   pthread_join(thread, NULL);
+
+  if (q.size() != 0 || q.size_bytes() != 0) {
+    result = false;
+  }
 
   if(result) {
     printf("Passed\n");

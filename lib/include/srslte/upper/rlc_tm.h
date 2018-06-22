@@ -31,7 +31,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/upper/rlc_common.h"
 
 namespace srslte {
@@ -41,11 +41,11 @@ class rlc_tm
 {
 public:
   rlc_tm();
-  void init(log          *rlc_entity_log_,
-            uint32_t              lcid_,
-            srsue::pdcp_interface_rlc   *pdcp_,
-            srsue::rrc_interface_rlc    *rrc_,
-            mac_interface_timers *mac_timers);
+  void init(log                       *rlc_entity_log_,
+            uint32_t                   lcid_,
+            srsue::pdcp_interface_rlc *pdcp_,
+            srsue::rrc_interface_rlc  *rrc_,
+            mac_interface_timers      *mac_timers);
   void configure(srslte_rlc_config_t cnfg);
   void reset();
   void stop();
@@ -72,7 +72,7 @@ private:
   srsue::rrc_interface_rlc  *rrc;
 
   // Thread-safe queues for MAC messages
-  msg_queue    ul_queue;
+  rlc_tx_queue    ul_queue;
 };
 
 } // namespace srsue

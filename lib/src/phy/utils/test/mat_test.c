@@ -32,8 +32,8 @@
 #include <sys/time.h>
 
 #include "srslte/phy/utils/mat.h"
-#include "srslte/phy/utils/simd.h"
 #include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/vector_simd.h"
 
 
 bool zf_solver = false;
@@ -378,6 +378,98 @@ bool test_mmse_solver_avx(void) {
 
 #endif /* LV_HAVE_AVX */
 
+#if SRSLTE_SIMD_CF_SIZE != 0
+
+bool test_zf_solver_simd(void) {
+  cf_t cf_error0, cf_error1;
+  float error = 0.0f;
+
+  cf_t x0_gold_1 = RANDOM_CF();
+  cf_t x1_gold_1 = RANDOM_CF();
+  cf_t h00_1 = RANDOM_CF();
+  cf_t h01_1 = RANDOM_CF();
+  cf_t h10_1 = RANDOM_CF();
+  cf_t h11_1 = (1 - h01_1 * h10_1) / h00_1;
+  cf_t y0_1 = x0_gold_1 * h00_1 + x1_gold_1 * h01_1;
+  cf_t y1_1 = x0_gold_1 * h10_1 + x1_gold_1 * h11_1;
+
+  simd_cf_t _y0 = srslte_simd_cf_set1(y0_1);
+  simd_cf_t _y1 = srslte_simd_cf_set1(y1_1);
+
+  simd_cf_t _h00 = srslte_simd_cf_set1(h00_1);
+  simd_cf_t _h01 = srslte_simd_cf_set1(h01_1);
+  simd_cf_t _h10 = srslte_simd_cf_set1(h10_1);
+  simd_cf_t _h11 = srslte_simd_cf_set1(h11_1);
+
+  simd_cf_t _x0, _x1;
+
+  srslte_mat_2x2_zf_simd(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 1.0f);
+
+  __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN))) cf_t x0[SRSLTE_SIMD_CF_SIZE];
+  __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN))) cf_t x1[SRSLTE_SIMD_CF_SIZE];
+
+  srslte_simd_cfi_store(x0, _x0);
+  srslte_simd_cfi_store(x1, _x1);
+
+  cf_error0 = x0[1] - x0_gold_1;
+  cf_error1 = x1[1] - x1_gold_1;
+  error += crealf(cf_error0) * crealf(cf_error0) + cimagf(cf_error0) * cimagf(cf_error0) +
+      crealf(cf_error1) * crealf(cf_error1) + cimagf(cf_error1) * cimagf(cf_error1);
+
+  return (error < 1e-3);
+}
+
+bool test_mmse_solver_simd(void) {
+  cf_t cf_error0, cf_error1;
+  float error = 0.0f;
+
+  cf_t x0_gold[SRSLTE_SIMD_CF_SIZE];
+  cf_t x1_gold[SRSLTE_SIMD_CF_SIZE];
+  cf_t h00[SRSLTE_SIMD_CF_SIZE];
+  cf_t h01[SRSLTE_SIMD_CF_SIZE];
+  cf_t h10[SRSLTE_SIMD_CF_SIZE];
+  cf_t h11[SRSLTE_SIMD_CF_SIZE];
+  cf_t y0[SRSLTE_SIMD_CF_SIZE];
+  cf_t y1[SRSLTE_SIMD_CF_SIZE];
+  for (int i = 0; i < SRSLTE_SIMD_CF_SIZE; i++) {
+    x0_gold[i] = RANDOM_CF();
+    x1_gold[i] = RANDOM_CF();
+    h00[i] = RANDOM_CF();
+    h01[i] = RANDOM_CF();
+    h10[i] = RANDOM_CF();
+    h11[i] = (1 - h01[i] * h10[i]) / h00[i];
+    y0[i] = x0_gold[i] * h00[i]+ x1_gold[i] * h01[i];
+    y1[i] = x0_gold[i] * h10[i] + x1_gold[i] * h11[i];
+  }
+
+  simd_cf_t _y0 = srslte_simd_cfi_loadu(y0);
+  simd_cf_t _y1 = srslte_simd_cfi_loadu(y1);
+
+  simd_cf_t _h00 = srslte_simd_cfi_loadu(h00);
+  simd_cf_t _h01 = srslte_simd_cfi_loadu(h01);
+  simd_cf_t _h10 = srslte_simd_cfi_loadu(h10);
+  simd_cf_t _h11 = srslte_simd_cfi_loadu(h11);
+
+  simd_cf_t _x0, _x1;
+
+  srslte_mat_2x2_mmse_simd(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 0.0f, 1.0f);
+
+  __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN))) cf_t x0[SRSLTE_SIMD_CF_SIZE];
+  __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN))) cf_t x1[SRSLTE_SIMD_CF_SIZE];
+
+  srslte_simd_cfi_store(x0, _x0);
+  srslte_simd_cfi_store(x1, _x1);
+
+  cf_error0 = x0[1] - x0_gold[1];
+  cf_error1 = x1[1] - x1_gold[1];
+  error += crealf(cf_error0) * crealf(cf_error0) + cimagf(cf_error0) * cimagf(cf_error0) +
+      crealf(cf_error1) * crealf(cf_error1) + cimagf(cf_error1) * cimagf(cf_error1);
+
+  return (error < 1e-3);
+}
+
+#endif /* SRSLTE_SIMD_CF_SIZE != 0 */
+
 bool test_vec_dot_prod_ccc(void) {
   __attribute__((aligned(256))) cf_t a[14];
   __attribute__((aligned(256))) cf_t b[14];
@@ -413,6 +505,10 @@ int main(int argc, char **argv) {
 #ifdef LV_HAVE_AVX
     RUN_TEST(test_zf_solver_avx);
 #endif /* LV_HAVE_AVX */
+
+#if SRSLTE_SIMD_CF_SIZE != 0
+    RUN_TEST(test_zf_solver_simd);
+#endif /* SRSLTE_SIMD_CF_SIZE != 0*/
   }
 
   if (mmse_solver) {
@@ -426,6 +522,10 @@ int main(int argc, char **argv) {
 #ifdef LV_HAVE_AVX
     RUN_TEST(test_mmse_solver_avx);
 #endif /* LV_HAVE_AVX */
+
+#if SRSLTE_SIMD_CF_SIZE != 0
+    RUN_TEST(test_mmse_solver_simd);
+#endif /* SRSLTE_SIMD_CF_SIZE != 0*/
   }
 
   RUN_TEST(test_vec_dot_prod_ccc);

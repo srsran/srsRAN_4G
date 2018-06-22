@@ -309,9 +309,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     
     uint32_t sf_idx = tti%10; 
     ret = SRSLTE_ERROR; 
-    bzero(q->sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
-    
-    
+
     uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS];
     uint8_t pucch2_bits[2];
     bzero(pucch_bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));

@@ -92,7 +92,7 @@ SRSLTE_API int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q,
                                          srslte_cp_t cp_type,
                                          cf_t *in_buffer,
                                          cf_t *out_buffer,
-                                         uint32_t nof_prb);
+                                         uint32_t max_prb);
 
 SRSLTE_API int srslte_ofdm_rx_init(srslte_ofdm_t *q, 
                                srslte_cp_t cp_type, 

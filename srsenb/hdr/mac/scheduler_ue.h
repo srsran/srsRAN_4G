@@ -40,7 +40,8 @@ class sched_ue {
 public: 
   
   // used by sched_metric
-  uint32_t ue_idx;
+  dl_harq_proc* dl_next_alloc;
+  ul_harq_proc* ul_next_alloc;
 
   bool has_pucch;
   
@@ -92,11 +93,15 @@ public:
  * Functions used by scheduler metric objects
  *******************************************************/
 
-  uint32_t   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols); 
-  uint32_t   get_required_prb_ul(uint32_t req_bytes); 
+  uint32_t   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
+  uint32_t   get_required_prb_ul(uint32_t req_bytes);
+  uint32_t   prb_to_rbg(uint32_t nof_prb);
+  uint32_t   rgb_to_prb(uint32_t nof_rbg);
+
 
   uint32_t   get_pending_dl_new_data(uint32_t tti);
   uint32_t   get_pending_ul_new_data(uint32_t tti);
+  uint32_t   get_pending_dl_new_data_total(uint32_t tti);
 
   dl_harq_proc *get_pending_dl_harq(uint32_t tti);
   dl_harq_proc *get_empty_dl_harq();   
@@ -146,11 +151,10 @@ private:
   
   static bool bearer_is_ul(ue_bearer_t *lch);
   static bool bearer_is_dl(ue_bearer_t *lch);
-  
+
   bool is_first_dl_tx();
-      
-  
-  sched_interface::ue_cfg_t cfg; 
+
+  sched_interface::ue_cfg_t cfg;
   srslte_cell_t cell; 
   srslte::log* log_h;
   
@@ -174,7 +178,8 @@ private:
   uint32_t max_mcs_dl; 
   uint32_t max_mcs_ul; 
   int      fixed_mcs_ul; 
-  int      fixed_mcs_dl; 
+  int      fixed_mcs_dl;
+  uint32_t P;
 
   int next_tpc_pusch;
   int next_tpc_pucch; 

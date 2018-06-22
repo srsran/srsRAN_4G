@@ -19,7 +19,7 @@
 #
 
 #######################################################################
-# LOGGER TEST
+# COMMON TESTS
 #######################################################################
 add_executable(logger_test logger_test.cc)
 target_link_libraries(logger_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
@@ -30,11 +30,11 @@ target_link_libraries(msg_queue_test srslte_phy srslte_common ${CMAKE_THREAD_LIB
 add_test(msg_queue_test msg_queue_test)
 
 add_executable(test_eea1 test_eea1.cc)
-target_link_libraries(test_eea1 srslte_common ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_eea1 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea1 test_eea1)
 
 add_executable(test_eea2 test_eea2.cc)
-target_link_libraries(test_eea2 srslte_common ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(test_eea2 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea2 test_eea2)
 
 add_executable(test_f12345 test_f12345.cc)

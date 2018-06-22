@@ -545,7 +545,7 @@ int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST])
       } 
       uint32_t n_sf = (current_tti-pending_sibs[i].window_start); 
       if ((i == 0 && (sfn%2) == 0 && sf_idx == 5) ||
-          (i >  0 && n_sf >= (cfg.si_window_ms/nof_tx)*pending_sibs[i].n_tx && sf_idx==1)) 
+          (i >  0 && n_sf >= (cfg.si_window_ms/nof_tx)*pending_sibs[i].n_tx && sf_idx==9)) 
       {
         uint32_t rv = get_rvidx(pending_sibs[i].n_tx);
         
@@ -610,7 +610,7 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
   int nof_rar_elems = 0; 
   for (uint32_t i=0;i<SCHED_MAX_PENDING_RAR;i++) 
   {
-    if (pending_rar[i].buf_rar > 0 && avail_rbg >= rar_n_rb) 
+    if (pending_rar[i].buf_rar > 0 && avail_rbg >= (uint32_t)ceil((float)rar_n_rb/P))
     {
       /* Check if we are still within the RAR window, otherwise discard it */
       if (current_tti <= (pending_rar[i].rar_tti + cfg.prach_rar_window + 3)%10240 && current_tti >= pending_rar[i].rar_tti + 3)
@@ -664,8 +664,8 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
           if (generate_format1a(start_rbg*P, rar_n_rb, buf_rar, 0, &rar[nof_rar_elems].dci) >= 0) {
             rar[nof_rar_elems].tbs = buf_rar; 
             nof_rar_elems++;
-            avail_rbg -= rar_n_rb;
-            start_rbg += rar_n_rb;           
+            avail_rbg -= (uint32_t)ceil((float)rar_n_rb/P);
+            start_rbg += (uint32_t)ceil((float)rar_n_rb/P);
           } else {
             Error("SCHED: Allocating Format1A grant\n");
           }
@@ -775,10 +775,10 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
 
   /* Schedule Broadcast data */
   sched_result->nof_bc_elems   += dl_sched_bc(sched_result->bc);
- 
+  
   /* Schedule RAR */
   sched_result->nof_rar_elems  += dl_sched_rar(sched_result->rar);
-    
+
   /* Schedule pending RLC data */
   sched_result->nof_data_elems += dl_sched_data(sched_result->data);
   

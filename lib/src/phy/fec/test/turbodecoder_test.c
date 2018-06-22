@@ -244,6 +244,7 @@ int main(int argc, char **argv) {
       for (j=0;j<coded_length;j++) {
         llr_s[j] = (int16_t) (100*llr[j]);
       }
+
       /* decoder */
       srslte_tdec_reset(&tdec, frame_length);
 
@@ -259,11 +260,12 @@ int main(int argc, char **argv) {
       
       for (int n=0;n<SRSLTE_TDEC_MAX_NPAR;n++) {
         if (n < nof_cb) {
-          input[n] = llr_s;         
+          input[n] = llr_s;
+          output[n] = data_rx_bytes[n];
         } else {
-          input[n] = NULL; 
+          input[n] = NULL;
+          output[n] = NULL;
         }
-        output[n] = data_rx_bytes[n];           
       }
 
       gettimeofday(&tdata[1], NULL); 
@@ -297,13 +299,18 @@ int main(int argc, char **argv) {
     if (errors) {
       printf("%d Errors\n", errors/nof_cb);
     }
-  }    
+  }
 
-
+  for (int cb=0;cb<SRSLTE_TDEC_MAX_NPAR;cb++) {
+    if (data_rx_bytes[cb]) {
+      free(data_rx_bytes[cb]);
+    }
+  }
   free(data_tx);
   free(symbols);
   free(llr);
   free(llr_c);
+  free(llr_s);
   free(data_rx);
 
   srslte_tdec_free(&tdec);

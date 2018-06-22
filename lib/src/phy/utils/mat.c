@@ -60,8 +60,8 @@ inline void srslte_mat_2x2_zf_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf_t h10
 }
 
 /* Generic implementation for Minimum Mean Squared Error (MMSE) solver */
-inline void srslte_mat_2x2_mmse_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf_t h10, cf_t h11,
-                                        cf_t *x0, cf_t *x1, float noise_estimate, float norm) {
+inline void srslte_mat_2x2_mmse_csi_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf_t h10, cf_t h11,
+                                        cf_t *x0, cf_t *x1, float *csi0, float *csi1, float noise_estimate, float norm) {
   /* Create conjugated matrix */
   cf_t _h00 = conjf(h00);
   cf_t _h01 = conjf(h01);
@@ -73,14 +73,14 @@ inline void srslte_mat_2x2_mmse_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf_t h
   cf_t a01 = _h00 * h01 + _h10 * h11;
   cf_t a10 = _h01 * h00 + _h11 * h10;
   cf_t a11 = _h01 * h01 + _h11 * h11 + noise_estimate;
+  cf_t a_det_rcp = srslte_mat_cf_recip_gen(srslte_mat_2x2_det_gen(a00, a01, a10, a11));
 
   /* 2. B = inv(H' x H + No) = inv(A) */
-  cf_t b00 = a11;
-  cf_t b01 = -a01;
-  cf_t b10 = -a10;
-  cf_t b11 = a00;
-  cf_t _norm = norm * srslte_mat_cf_recip_gen(srslte_mat_2x2_det_gen(a00, a01, a10, a11));
-
+  cf_t _norm = norm * a_det_rcp;
+  cf_t b00 = a11 * _norm;
+  cf_t b01 = -a01 * _norm;
+  cf_t b10 = -a10 * _norm;
+  cf_t b11 = a00 * _norm;
 
   /* 3. W = inv(H' x H + No) x H' = B x H' */
   cf_t w00 = b00 * _h00 + b01 * _h01;
@@ -89,8 +89,19 @@ inline void srslte_mat_2x2_mmse_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf_t h
   cf_t w11 = b10 * _h10 + b11 * _h11;
 
   /* 4. X = W x Y */
-  *x0 = (y0 * w00 + y1 * w01) * _norm;
-  *x1 = (y0 * w10 + y1 * w11) * _norm;
+  *x0 = (y0 * w00 + y1 * w01);
+  *x1 = (y0 * w10 + y1 * w11);
+
+  /* 5. Set CSI */
+  *csi0 = 1.0f / crealf(b00);
+  *csi1 = 1.0f / crealf(b11);
+}
+
+/* Generic implementation for Minimum Mean Squared Error (MMSE) solver */
+void srslte_mat_2x2_mmse_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf_t h10, cf_t h11,
+                                        cf_t *x0, cf_t *x1, float noise_estimate, float norm) {
+  float csi0, csi1;
+  srslte_mat_2x2_mmse_csi_gen(y0, y1, h00, h01, h10, h11, x0, x1, &csi0, &csi1, noise_estimate, norm);
 }
 
 inline float srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11) {

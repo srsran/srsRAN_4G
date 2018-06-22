@@ -32,10 +32,10 @@
 
 #include "srslte/srslte.h"
 #include "rf_uhd_imp.h"
-#include "srslte/phy/rf/rf.h"
+#include "rf_helper.h"
 #include "uhd_c_api.h"
 
-#define HAVE_ASYNC_THREAD 0
+#define HAVE_ASYNC_THREAD 1
 
 typedef struct {
   char *devname; 
@@ -46,7 +46,7 @@ typedef struct {
   uhd_rx_metadata_handle rx_md, rx_md_first; 
   uhd_tx_metadata_handle tx_md; 
   
-  uhd_meta_range_handle rx_gain_range;
+  srslte_rf_info_t info;
   size_t rx_nof_samples;
   size_t tx_nof_samples;
   double tx_rate;
@@ -60,7 +60,9 @@ typedef struct {
   float current_master_clock;
 
   bool async_thread_running; 
-  pthread_t async_thread; 
+  pthread_t async_thread;
+
+  pthread_mutex_t tx_mutex;
 } rf_uhd_handler_t;
 
 void suppress_handler(const char *x)
@@ -318,31 +320,6 @@ int rf_uhd_open(char *args, void **h)
   return rf_uhd_open_multi(args, h, 1);
 }
 
-#define REMOVE_SUBSTRING_WITHCOMAS(S, TOREMOVE) \
-  remove_substring(S, TOREMOVE ",");\
-  remove_substring(S, TOREMOVE ", ");\
-  remove_substring(S, "," TOREMOVE);\
-  remove_substring(S, ", " TOREMOVE);\
-  remove_substring(S, TOREMOVE)
-
-static void remove_substring(char *s,const char *toremove)
-{
-  while((s=strstr(s,toremove))) {
-    memmove(s,s+strlen(toremove),1+strlen(s+strlen(toremove)));
-  }
-}
-
-static void copy_subdev_string(char *dst, char *src) {
-  int n = 0;
-  size_t len = strlen(src);
-  /* Copy until end of string or comma */
-  while (n < len && src[n] != '\0' && src[n] != ',') {
-    dst[n] = src[n];
-    n++;
-  }
-  dst[n] = '\0';
-}
-
 int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
 {
   if (h) {
@@ -374,6 +351,8 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     }           
     handler->devname = NULL;
 
+    pthread_mutex_init(&handler->tx_mutex, NULL);
+
     // Initialize handler
     handler->uhd_error_handler = NULL;
     
@@ -390,6 +369,13 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       clock_src = GPSDO;
     } else {
       clock_src = DEFAULT;
+    }
+
+    bool start_async_thread = true;
+
+    if (strstr(args, "silent")) {
+      REMOVE_SUBSTRING_WITHCOMAS(args, "silent");
+      start_async_thread = false;
     }
 
     // Set over the wire format
@@ -542,6 +528,9 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       uhd_usrp_set_tx_rate(handler->usrp, 1.92e6, i);
     }
 
+    if (nof_channels > 1)
+        uhd_usrp_set_time_unknown_pps(handler->usrp, 0, 0.0);
+
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
@@ -558,9 +547,20 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     
     uhd_rx_streamer_max_num_samps(handler->rx_stream, &handler->rx_nof_samples);
     uhd_tx_streamer_max_num_samps(handler->tx_stream, &handler->tx_nof_samples);
-    
-    uhd_meta_range_make(&handler->rx_gain_range); 
-    uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, handler->rx_gain_range);
+
+    uhd_meta_range_handle rx_gain_range = NULL;
+    uhd_meta_range_make(&rx_gain_range);
+    uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, rx_gain_range);
+    uhd_meta_range_start(rx_gain_range, &handler->info.min_rx_gain);
+    uhd_meta_range_stop(rx_gain_range, &handler->info.max_rx_gain);
+    uhd_meta_range_free(&rx_gain_range);
+
+    uhd_meta_range_handle tx_gain_range = NULL;
+    uhd_meta_range_make(&tx_gain_range);
+    uhd_usrp_get_tx_gain_range(handler->usrp, "", 0, tx_gain_range);
+    uhd_meta_range_start(tx_gain_range, &handler->info.min_tx_gain);
+    uhd_meta_range_stop(tx_gain_range, &handler->info.max_tx_gain);
+    uhd_meta_range_free(&tx_gain_range);
 
     // Make metadata objects for RX/TX
     uhd_rx_metadata_make(&handler->rx_md);
@@ -568,20 +568,16 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
 
     // Set starting gain to half maximum in case of using AGC
-    uhd_meta_range_handle gain_range;
-    uhd_meta_range_make(&gain_range);
-    uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, gain_range);
-    double max_gain;
-    uhd_meta_range_stop(gain_range, &max_gain);
-    rf_uhd_set_rx_gain(handler, max_gain*0.7);
-    uhd_meta_range_free(&gain_range);
+    rf_uhd_set_rx_gain(handler, handler->info.max_tx_gain*0.7);
 
 #if HAVE_ASYNC_THREAD
-    // Start low priority thread to receive async commands
-    handler->async_thread_running = true;
-    if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
-      perror("pthread_create");
-      return -1; 
+    if (start_async_thread) {
+      // Start low priority thread to receive async commands
+      handler->async_thread_running = true;
+      if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
+        perror("pthread_create");
+        return -1;
+      }
     }
 #endif
 
@@ -604,7 +600,6 @@ int rf_uhd_close(void *h)
   uhd_tx_metadata_free(&handler->tx_md);
   uhd_rx_metadata_free(&handler->rx_md_first);
   uhd_rx_metadata_free(&handler->rx_md);
-  uhd_meta_range_free(&handler->rx_gain_range);
   handler->async_thread_running = false;
   pthread_join(handler->async_thread, NULL);
 
@@ -636,8 +631,18 @@ bool rf_uhd_is_master_clock_dynamic(void *h) {
 double rf_uhd_set_rx_srate(void *h, double freq)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  for (int i=0;i<handler->nof_rx_channels;i++) {
-    uhd_usrp_set_rx_rate(handler->usrp, freq, i);
+  if (handler->nof_rx_channels > 1) {
+    time_t full;
+    double frac;
+    uhd_usrp_get_time_now(handler->usrp, 0, &full, &frac);
+    frac += 0.100;
+    if (frac >= 1.0) { full++; frac -= 1.0; };
+    uhd_usrp_set_command_time(handler->usrp, full, frac, 0);
+    for (int i=0;i<handler->nof_rx_channels;i++)
+      uhd_usrp_set_rx_rate(handler->usrp, freq, i);
+    usleep(100000);
+  } else {
+    uhd_usrp_set_rx_rate(handler->usrp, freq, 0);
   }
   return freq;
 }
@@ -645,8 +650,18 @@ double rf_uhd_set_rx_srate(void *h, double freq)
 double rf_uhd_set_tx_srate(void *h, double freq)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  for (int i=0;i<handler->nof_tx_channels;i++) {
-    uhd_usrp_set_tx_rate(handler->usrp, freq, i);
+  if (handler->nof_tx_channels > 1) {
+    time_t full;
+    double frac;
+    uhd_usrp_get_time_now(handler->usrp, 0, &full, &frac);
+    frac += 0.100;
+    if (frac >= 1.0) { full++; frac -= 1.0; };
+    uhd_usrp_set_command_time(handler->usrp, full, frac, 0);
+    for (int i=0;i<handler->nof_tx_channels;i++)
+      uhd_usrp_set_tx_rate(handler->usrp, freq, i);
+    usleep(100000);
+  } else {
+    uhd_usrp_set_tx_rate(handler->usrp, freq, 0);
   }
   handler->tx_rate = freq;
   return freq; 
@@ -684,6 +699,16 @@ double rf_uhd_get_tx_gain(void *h)
   double gain; 
   uhd_usrp_get_tx_gain(handler->usrp, 0, "", &gain);
   return gain;
+}
+
+srslte_rf_info_t *rf_uhd_get_info(void *h)
+{
+  srslte_rf_info_t *info = NULL;
+  if (h) {
+    rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+    info = &handler->info;
+  }
+  return info;
 }
 
 double rf_uhd_set_rx_freq(void *h, double freq)
@@ -819,9 +844,13 @@ int rf_uhd_send_timed_multi(void *h,
                             bool has_time_spec,
                             bool blocking,
                             bool is_start_of_burst,
-                            bool is_end_of_burst) {
+                            bool is_end_of_burst)
+{
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*) h;
-  
+
+  pthread_mutex_lock(&handler->tx_mutex);
+  int ret = -1;
+
   /* Resets the USRP time FIXME: this might cause problems for burst transmissions */
   if (!has_time_spec && is_start_of_burst && handler->nof_tx_channels > 1) {
     uhd_usrp_set_time_now(handler->usrp, 0, 0, 0);
@@ -866,15 +895,18 @@ int rf_uhd_send_timed_multi(void *h,
                                              tx_samples, &handler->tx_md, 3.0, &txd_samples);
       if (error) {
         fprintf(stderr, "Error sending to UHD: %d\n", error);
-        return -1; 
+        goto unlock;
       }
       // Increase time spec 
       uhd_tx_metadata_add_time_spec(&handler->tx_md, txd_samples/handler->tx_rate);
       n += txd_samples;
       trials++;
     } while (n < nsamples && trials < 100);
-    return nsamples;
+
+    ret = nsamples;
+
   } else {
+
     const void *buffs_ptr[4];
     for (int i = 0; i < 4; i++) {
      buffs_ptr[i] = data[i];
@@ -885,9 +917,14 @@ int rf_uhd_send_timed_multi(void *h,
     uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 3.0, &txd_samples);
     if (error) {
       fprintf(stderr, "Error sending to UHD: %d\n", error);
-      return -1;
+      goto unlock;
     }
-    return txd_samples;
+
+    ret = txd_samples;
+
   }
+unlock:
+  pthread_mutex_unlock(&handler->tx_mutex);
+  return ret;
 }
 
