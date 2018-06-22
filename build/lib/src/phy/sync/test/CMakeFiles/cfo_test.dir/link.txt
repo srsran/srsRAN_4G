@@ -1,0 +1,1 @@
+/usr/bin/cc   -march=native -Wall -Wno-comment -Wno-write-strings -Winline -Wno-unused-result -Wformat -Wtype-limits -std=c99 -D_GNU_SOURCE -O3 -DBUILD_TYPE_RELEASE -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE -Ofast -funroll-loops -O3 -DNDEBUG   CMakeFiles/cfo_test.dir/cfo_test.c.o  -o cfo_test -rdynamic ../../libsrslte_phy.a -lfftw3f -lpthread -lm 
