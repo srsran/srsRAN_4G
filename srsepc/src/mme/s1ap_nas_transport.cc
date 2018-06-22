@@ -1450,7 +1450,9 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   memcpy(auth_req.autn , autn, 16);
   memcpy(auth_req.rand, rand, 16);
   auth_req.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  auth_req.nas_ksi.nas_ksi=0;
+  static uint8_t nas_ksi_tmp =  0;
+  auth_req.nas_ksi.nas_ksi = nas_ksi_tmp++;
+  //auth_req.nas_ksi.nas_ksi = 0;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
