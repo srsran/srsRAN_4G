@@ -158,9 +158,9 @@ cp srsepc/epc.conf.example srsepc/epc.conf
 cp srsepc/user_db.csv.example srsepc/user_db.csv
 ```
 
-Now, run srsEPC with the default configuration as follows:
+Now, go to srsepc directory and run srsEPC with the default configuration as follows:
 ```
-sudo srsepc srsepc/epc.conf
+sudo srsepc ./epc.conf
 ```
 
 ### srsENB
