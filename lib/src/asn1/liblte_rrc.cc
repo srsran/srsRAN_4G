@@ -11595,7 +11595,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_security_mode_command_msg(LIBLTE_BIT_MSG_STR
     LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
     uint8             *msg_ptr;
 
-    if(msg_ptr           != NULL &&
+    if(msg               != NULL &&
        security_mode_cmd != NULL)
     {
         msg_ptr = msg->msg;
