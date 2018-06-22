@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../lib/include/srslte/common/logger.h
+stdio.h
+-
+string
+-
+
+../lib/include/srslte/common/logger_file.h
+stdio.h
+-
+deque
+-
+string
+-
+srslte/common/logger.h
+../lib/include/srslte/common/srslte/common/logger.h
+srslte/common/threads.h
+../lib/include/srslte/common/srslte/common/threads.h
+
+../lib/include/srslte/common/threads.h
+pthread.h
+-
+stdint.h
+-
+sys/timerfd.h
+-
+unistd.h
+-
+stdio.h
+-
+
+/home/ubuntu/vEPC/srsLTE/lib/test/common/logger_test.cc
+stdlib.h
+-
+stdio.h
+-
+srslte/common/logger_file.h
+/home/ubuntu/vEPC/srsLTE/lib/test/common/srslte/common/logger_file.h
+

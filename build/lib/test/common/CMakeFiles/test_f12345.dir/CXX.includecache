@@ -1,0 +1,32 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../lib/include/srslte/asn1/liblte_common.h
+stdint.h
+-
+stddef.h
+-
+stdlib.h
+-
+string.h
+-
+
+../lib/include/srslte/common/liblte_security.h
+srslte/asn1/liblte_common.h
+../lib/include/srslte/common/srslte/asn1/liblte_common.h
+
+/home/ubuntu/vEPC/srsLTE/lib/test/common/test_f12345.cc
+stdlib.h
+-
+stdio.h
+-
+assert.h
+-
+srslte/common/liblte_security.h
+/home/ubuntu/vEPC/srsLTE/lib/test/common/srslte/common/liblte_security.h
+

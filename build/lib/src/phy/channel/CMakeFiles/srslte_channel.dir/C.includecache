@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../lib/include/srslte/config.h
+
+../lib/include/srslte/phy/channel/ch_awgn.h
+complex.h
+-
+stdint.h
+-
+srslte/config.h
+../lib/include/srslte/phy/channel/srslte/config.h
+
+/home/ubuntu/vEPC/srsLTE/lib/src/phy/channel/ch_awgn.c
+complex.h
+-
+stdlib.h
+-
+strings.h
+-
+math.h
+-
+gauss.h
+/home/ubuntu/vEPC/srsLTE/lib/src/phy/channel/gauss.h
+srslte/phy/channel/ch_awgn.h
+/home/ubuntu/vEPC/srsLTE/lib/src/phy/channel/srslte/phy/channel/ch_awgn.h
+
+/home/ubuntu/vEPC/srsLTE/lib/src/phy/channel/gauss.c
+string.h
+-
+stdlib.h
+-
+math.h
+-
+
+/home/ubuntu/vEPC/srsLTE/lib/src/phy/channel/gauss.h
+

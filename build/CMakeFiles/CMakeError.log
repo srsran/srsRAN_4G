@@ -1,0 +1,174 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_fc17d/fast"
+/usr/bin/make -f CMakeFiles/cmTC_fc17d.dir/build.make CMakeFiles/cmTC_fc17d.dir/build
+make[1]: Entering directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_fc17d.dir/CheckSymbolExists.c.o
+/usr/bin/cc     -o CMakeFiles/cmTC_fc17d.dir/CheckSymbolExists.c.o   -c /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_fc17d
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fc17d.dir/link.txt --verbose=1
+/usr/bin/cc       CMakeFiles/cmTC_fc17d.dir/CheckSymbolExists.c.o  -o cmTC_fc17d -rdynamic 
+CMakeFiles/cmTC_fc17d.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x16): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_fc17d.dir/build.make:97: recipe for target 'cmTC_fc17d' failed
+make[1]: *** [cmTC_fc17d] Error 1
+make[1]: Leaving directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_fc17d/fast' failed
+make: *** [cmTC_fc17d/fast] Error 2
+
+File /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_a1a08/fast"
+/usr/bin/make -f CMakeFiles/cmTC_a1a08.dir/build.make CMakeFiles/cmTC_a1a08.dir/build
+make[1]: Entering directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_a1a08.dir/CheckFunctionExists.c.o
+/usr/bin/cc    -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_a1a08.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.5/Modules/CheckFunctionExists.c
+Linking C executable cmTC_a1a08
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a1a08.dir/link.txt --verbose=1
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_a1a08.dir/CheckFunctionExists.c.o  -o cmTC_a1a08 -rdynamic -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_a1a08.dir/build.make:97: recipe for target 'cmTC_a1a08' failed
+make[1]: *** [cmTC_a1a08] Error 1
+make[1]: Leaving directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+Makefile:126: recipe for target 'cmTC_a1a08/fast' failed
+make: *** [cmTC_a1a08/fast] Error 2
+
+
+Performing C SOURCE FILE Test HAVE_AVX2 failed with the following output:
+Change Dir: /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_13634/fast"
+/usr/bin/make -f CMakeFiles/cmTC_13634.dir/build.make CMakeFiles/cmTC_13634.dir/build
+make[1]: Entering directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_13634.dir/src.c.o
+/usr/bin/cc    -DHAVE_AVX2 -mavx2   -o CMakeFiles/cmTC_13634.dir/src.c.o   -c /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_13634
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_13634.dir/link.txt --verbose=1
+/usr/bin/cc   -DHAVE_AVX2 -mavx2    CMakeFiles/cmTC_13634.dir/src.c.o  -o cmTC_13634 -rdynamic 
+make[1]: Leaving directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+
+Return value: FAILED_TO_RUN
+Source file was:
+
+          #include <immintrin.h>
+          int main()
+          {
+            __m256i a, b, c;
+            const int src[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+            int dst[8];
+            a =  _mm256_loadu_si256( (__m256i*)src );
+            b =  _mm256_loadu_si256( (__m256i*)src );
+            c = _mm256_add_epi32( a, b );
+            _mm256_storeu_si256( (__m256i*)dst, c );
+            int i = 0;
+            for( i = 0; i < 8; i++ ){
+              if( ( src[i] + src[i] ) != dst[i] ){
+                return -1;
+              }
+            }
+            return 0;
+          }
+Performing C SOURCE FILE Test HAVE_FMA failed with the following output:
+Change Dir: /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_aebc7/fast"
+/usr/bin/make -f CMakeFiles/cmTC_aebc7.dir/build.make CMakeFiles/cmTC_aebc7.dir/build
+make[1]: Entering directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_aebc7.dir/src.c.o
+/usr/bin/cc    -DHAVE_FMA -mfma   -o CMakeFiles/cmTC_aebc7.dir/src.c.o   -c /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_aebc7
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_aebc7.dir/link.txt --verbose=1
+/usr/bin/cc   -DHAVE_FMA -mfma    CMakeFiles/cmTC_aebc7.dir/src.c.o  -o cmTC_aebc7 -rdynamic 
+make[1]: Leaving directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+
+Return value: FAILED_TO_RUN
+Source file was:
+
+            #include <immintrin.h>
+            int main()
+            {
+              __m256 a, b, c, r;
+              const float src[8] = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f };
+              float dst[8];
+              a = _mm256_loadu_ps( src );
+              b = _mm256_loadu_ps( src );
+              c = _mm256_loadu_ps( src );
+              r = _mm256_fmadd_ps( a, b, c );
+              _mm256_storeu_ps( dst, r );
+              int i = 0;
+              for( i = 0; i < 8; i++ ){
+                if( ( src[i] * src[i] + src[i] ) != dst[i] ){
+                  return -1;
+                }
+              }
+              return 0;
+            }
+Performing C SOURCE FILE Test HAVE_AVX512 failed with the following output:
+Change Dir: /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_8adb6/fast"
+/usr/bin/make -f CMakeFiles/cmTC_8adb6.dir/build.make CMakeFiles/cmTC_8adb6.dir/build
+make[1]: Entering directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_8adb6.dir/src.c.o
+/usr/bin/cc    -DHAVE_AVX512 -mavx512f   -o CMakeFiles/cmTC_8adb6.dir/src.c.o   -c /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_8adb6
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8adb6.dir/link.txt --verbose=1
+/usr/bin/cc   -DHAVE_AVX512 -mavx512f    CMakeFiles/cmTC_8adb6.dir/src.c.o  -o cmTC_8adb6 -rdynamic 
+make[1]: Leaving directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+
+Return value: FAILED_TO_RUN
+Source file was:
+
+          #include <immintrin.h>
+          int main()
+          {
+            __m512i a, b, c;
+            const int src[16] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8 , 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF};
+            int dst[16];
+            a =  _mm512_loadu_si512( (__m512i*)src );
+            b =  _mm512_loadu_si512( (__m512i*)src );
+            c = _mm512_add_epi32( a, b );
+            _mm512_storeu_si512( (__m512i*)dst, c );
+            int i = 0;
+            for( i = 0; i < 16; i++ ){
+              if( ( src[i] + src[i] ) != dst[i] ){
+                return -1;
+              }
+            }
+            return 0;
+          }
+Performing C++ SOURCE FILE Test HAVE_VISIBILITY_HIDDEN failed with the following output:
+Change Dir: /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_3c2a8/fast"
+/usr/bin/make -f CMakeFiles/cmTC_3c2a8.dir/build.make CMakeFiles/cmTC_3c2a8.dir/build
+make[1]: Entering directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_3c2a8.dir/src.cxx.o
+/usr/bin/c++     -march=native -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wtype-limits -std=c++03 -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE -O3 -DBUILD_TYPE_RELEASE -DHAVE_VISIBILITY_HIDDEN  -march=native -Wall -Wno-comment -Wno-write-strings -Winline -Wno-unused-result -Wformat -Wtype-limits -std=c99 -D_GNU_SOURCE -O3 -DBUILD_TYPE_RELEASE -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE -Ofast -funroll-loops   -fvisibility=hidden -o CMakeFiles/cmTC_3c2a8.dir/src.cxx.o -c /home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp/src.cxx
+cc1plus: warning: command line option '-std=c99' is valid for C/ObjC but not for C++
+Linking CXX executable cmTC_3c2a8
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3c2a8.dir/link.txt --verbose=1
+/usr/bin/c++    -march=native -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wtype-limits -std=c++03 -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE -O3 -DBUILD_TYPE_RELEASE -DHAVE_VISIBILITY_HIDDEN  -march=native -Wall -Wno-comment -Wno-write-strings -Winline -Wno-unused-result -Wformat -Wtype-limits -std=c99 -D_GNU_SOURCE -O3 -DBUILD_TYPE_RELEASE -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE -Ofast -funroll-loops    CMakeFiles/cmTC_3c2a8.dir/src.cxx.o  -o cmTC_3c2a8 -rdynamic 
+make[1]: Leaving directory '/home/ubuntu/vEPC/srsLTE/build/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main() { return 0; }

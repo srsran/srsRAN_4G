@@ -1,0 +1,1 @@
+/usr/bin/c++    -march=native -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wtype-limits -std=c++03 -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE -O3 -DBUILD_TYPE_RELEASE -O3 -DNDEBUG   CMakeFiles/test_eea2.dir/test_eea2.cc.o  -o test_eea2 -rdynamic ../../src/common/libsrslte_common.a -lpthread -lmbedcrypto 

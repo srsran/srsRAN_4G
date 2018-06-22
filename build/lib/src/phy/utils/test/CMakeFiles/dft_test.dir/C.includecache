@@ -1,0 +1,34 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../lib/include/srslte/config.h
+
+../lib/include/srslte/phy/dft/dft.h
+stdbool.h
+-
+srslte/config.h
+../lib/include/srslte/phy/dft/srslte/config.h
+
+/home/ubuntu/vEPC/srsLTE/lib/src/phy/utils/test/dft_test.c
+stdio.h
+-
+stdlib.h
+-
+strings.h
+-
+unistd.h
+-
+math.h
+-
+time.h
+-
+complex.h
+-
+srslte/phy/dft/dft.h
+/home/ubuntu/vEPC/srsLTE/lib/src/phy/utils/test/srslte/phy/dft/dft.h
+
