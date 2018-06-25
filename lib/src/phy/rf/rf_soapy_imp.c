@@ -130,7 +130,13 @@ bool rf_soapy_rx_wait_lo_locked(void *h)
 
 void rf_soapy_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
-  // not supported
+  rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+  double actual_bw = SoapySDRDevice_getBandwidth(handler->device, SOAPY_SDR_TX, 0);
+  char str_buf[25];
+  snprintf(str_buf, sizeof(str_buf), "%f", actual_bw);
+  if (SoapySDRDevice_writeSetting(handler->device, "CALIBRATE_TX", str_buf)) {
+    printf("Error calibrating Rx\n");
+  }
 }
 
 
@@ -274,22 +280,22 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   }
 
   // list device sensors
-  size_t sensor_length;
-  char** sensors;
-  sensors = SoapySDRDevice_listSensors(handler->device, &sensor_length);
+  size_t list_length;
+  char** list;
+  list = SoapySDRDevice_listSensors(handler->device, &list_length);
   printf("Available device sensors: \n");
-  for(int i = 0; i < sensor_length; i++) {
-    printf(" - %s\n", sensors[i]);
+  for(int i = 0; i < list_length; i++) {
+    printf(" - %s\n", list[i]);
   }
 
   // list channel sensors
-  sensors = SoapySDRDevice_listChannelSensors(handler->device, SOAPY_SDR_RX, 0, &sensor_length);
+  list = SoapySDRDevice_listChannelSensors(handler->device, SOAPY_SDR_RX, 0, &list_length);
   printf("Available sensors for RX channel 0: \n");
-  for(int i = 0; i < sensor_length; i++) {
-    printf(" - %s\n", sensors[i]);
+  for(int i = 0; i < list_length; i++) {
+    printf(" - %s\n", list[i]);
   }
 
-  /* Set static radio info */
+  // Set static radio info
   SoapySDRRange tx_range = SoapySDRDevice_getGainRange(handler->device, SOAPY_SDR_TX, 0);
   SoapySDRRange rx_range = SoapySDRDevice_getGainRange(handler->device, SOAPY_SDR_RX, 0);
   handler->info.min_tx_gain = tx_range.minimum;
@@ -299,6 +305,18 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
 
   // Check device arguments
   if (args) {
+    // config file
+    const char config_arg[] = "config=";
+    char config_str[64] = {0};
+    char *config_ptr = strstr(args, config_arg);
+    if (config_ptr) {
+      copy_subdev_string(config_str, config_ptr + strlen(config_arg));
+      printf("Loading config file %s\n", config_str);
+      SoapySDRDevice_writeSetting(handler->device, "LOAD_CONFIG", config_str);
+      remove_substring(args, config_arg);
+      remove_substring(args, config_str);
+    }
+
     // rx antenna
     const char rx_ant_arg[] = "rxant=";
     char rx_ant_str[64] = {0};
@@ -328,18 +346,43 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     }
   }
 
+  // receive one subframe to allow for transceiver calibration
+  if (strstr(devname, "lime")) {
+    // set default tx gain and leave some time to calibrate tx
+    rf_soapy_set_tx_gain(handler, 45);
+    rf_soapy_set_rx_gain(handler, 35);
+
+    cf_t dummy_buffer[1920];
+    cf_t *dummy_buffer_array[SRSLTE_MAX_PORTS];
+    dummy_buffer_array[0] = dummy_buffer;
+    rf_soapy_start_rx_stream(handler, true);
+    rf_soapy_recv_with_time_multi(handler, (void**)dummy_buffer_array, 1920, false, NULL, NULL);
+    rf_soapy_stop_rx_stream(handler);
+
+    usleep(10000);
+    //SoapySDR_setLogLevel(SOAPY_SDR_ERROR);
+  }
+
+  // list gains and AGC mode
+  bool has_agc = SoapySDRDevice_hasGainMode(handler->device, SOAPY_SDR_RX, 0);
+  list = SoapySDRDevice_listGains(handler->device, SOAPY_SDR_RX, 0, &list_length);
+  printf("State of gain elements for Rx channel 0 (AGC %s):\n", has_agc ? "supported":"not supported");
+  for(int i = 0; i < list_length; i++) {
+    printf(" - %s: %.2f dB\n", list[i], SoapySDRDevice_getGainElement(handler->device, SOAPY_SDR_RX, 0, list[i]));
+  }
+
+  has_agc = SoapySDRDevice_hasGainMode(handler->device, SOAPY_SDR_TX, 0);
+  printf("State of gain elements for Tx channel 0 (AGC %s):\n", has_agc ? "supported":"not supported");
+  for(int i = 0; i < list_length; i++) {
+    printf(" - %s: %.2f dB\n", list[i], SoapySDRDevice_getGainElement(handler->device, SOAPY_SDR_TX, 0, list[i]));
+  }
+
   // print actual antenna configuration
   char *ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_RX, 0);
   printf("Rx antenna set to %s\n", ant);
 
   ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_TX, 0);
   printf("Tx antenna set to %s\n", ant);
-
-  // set default tx gain and leave some time to calibrate tx
-  rf_soapy_set_tx_gain(handler, 35);
-  usleep(10000);
-
-  SoapySDR_setLogLevel(SOAPY_SDR_ERROR);
 
   return SRSLTE_SUCCESS;
 }
@@ -497,14 +540,14 @@ double rf_soapy_set_tx_gain(void *h, double gain)
 double rf_soapy_get_rx_gain(void *h)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-  return SoapySDRDevice_getGain(handler->device,SOAPY_SDR_RX, 0);
+  return SoapySDRDevice_getGain(handler->device, SOAPY_SDR_RX, 0);
 }
 
 
 double rf_soapy_get_tx_gain(void *h)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-  return SoapySDRDevice_getGain(handler->device,SOAPY_SDR_TX, 0);
+  return SoapySDRDevice_getGain(handler->device, SOAPY_SDR_TX, 0);
 }
 
 
