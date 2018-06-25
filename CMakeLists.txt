@@ -69,6 +69,7 @@ option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
+option(ENABLE_SOAPYSDR "Enable SoapySDR"                          ON)
 
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
@@ -148,11 +149,13 @@ if(ENABLE_BLADERF)
 endif(ENABLE_BLADERF)
 
 # Soapy
-find_package(SoapySDR)
-if(SOAPYSDR_FOUND)
-  include_directories(${SOAPYSDR_INCLUDE_DIRS})
-  link_directories(${SOAPYSDR_LIBRARY_DIRS})
-endif(SOAPYSDR_FOUND)
+if(ENABLE_SOAPYSDR)
+  find_package(SoapySDR)
+  if(SOAPYSDR_FOUND)
+    include_directories(${SOAPYSDR_INCLUDE_DIRS})
+    link_directories(${SOAPYSDR_LIBRARY_DIRS})
+  endif(SOAPYSDR_FOUND)
+endif(ENABLE_SOAPYSDR)
 
 if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
