@@ -110,6 +110,7 @@ typedef struct{
 } enb_ctx_t;
 
 typedef struct{
+  uint8_t  eksi;
   uint8_t  k_asme[32]; 
   uint8_t  xres[16]; //minimum 6, maximum 16
   uint32_t dl_nas_count;

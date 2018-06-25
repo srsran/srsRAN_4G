@@ -504,6 +504,9 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
     m_s1ap_log->info("User not found. IMSI %015lu\n",emm_ctx->imsi);
     return false;
   }
+  //Allocate eKSI for this authentication vector
+  //Here we assume a new security context thus a new eKSI
+  emm_ctx->security_ctxt.eksi=0;
 
   //Save the UE context
   ue_ctx_t *new_ctx = new ue_ctx_t;
@@ -512,7 +515,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(new_ctx);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
+  pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, emm_ctx->security_ctxt.eksi, autn, rand);
 
   //Send reply to eNB
   *reply_flag = true;
@@ -592,7 +595,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
     //Save whether ESM information transfer is necessary
     ecm_ctx->eit = pdn_con_req.esm_info_transfer_flag_present;
-    //m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
+
     //Add eNB info to UE ctxt
     memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
     //Initialize E-RABs
@@ -617,7 +620,6 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
     m_s1ap_log->console("Could not find M-TMSI=0x%x. Sending ID request\n",m_tmsi);
     m_s1ap_log->info("Could not find M-TMSI=0x%x. Sending Id Request\n", m_tmsi);
-    //m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
 
     //Store temporary ue context
     ue_ctx_t *new_ctx = new ue_ctx_t;
@@ -646,7 +648,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       if(msg_valid == true && emm_ctx->state == EMM_STATE_DEREGISTERED)
       {
         m_s1ap_log->console("GUTI Attach Integrity valid. UL count %d, DL count %d\n",emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.dl_nas_count);
-        
+
         //Create new MME UE S1AP Identity
         emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
         ecm_ctx->mme_ue_s1ap_id = emm_ctx->mme_ue_s1ap_id;
@@ -672,7 +674,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
         //Store context based on MME UE S1AP id
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
-        
+
         //Re-generate K_eNB
         srslte::security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
         m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
@@ -760,12 +762,12 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         }
         //Store context based on MME UE S1AP id
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
- 
+
         //NAS integrity failed. Re-start authentication process.
         m_s1ap_log->console("GUTI Attach request NAS integrity failed.\n");
         m_s1ap_log->console("RE-starting authentication procedure.\n");
-        uint8_t     autn[16]; 
-        uint8_t     rand[16]; 
+        uint8_t     autn[16];
+        uint8_t     rand[16];
         //Get Authentication Vectors from HSS
         if(!m_hss->gen_auth_info_answer(emm_ctx->imsi, emm_ctx->security_ctxt.k_asme, autn, rand, emm_ctx->security_ctxt.xres))
         {
@@ -773,7 +775,9 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
             m_s1ap_log->info("User not found. IMSI %015lu\n",emm_ctx->imsi);
             return false;
         }
-        pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
+        //Restarting security context. Reseting eKSI to 0.
+        emm_ctx->security_ctxt.eksi=0;
+        pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, emm_ctx->security_ctxt.eksi, autn, rand);
 
         //Send reply to eNB
         *reply_flag = true;
@@ -1196,12 +1200,14 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
     return false;
   }
+  //Identity reponse from unknown GUTI atach. Assigning new eKSI.
+  emm_ctx->security_ctxt.eksi=0;
 
   //Store UE context im IMSI map
   m_s1ap->add_ue_ctx_to_imsi_map(ue_ctx);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
+  pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, emm_ctx->security_ctxt.eksi, autn, rand);
 
   //Send reply to eNB
   *reply_flag = true;
@@ -1401,8 +1407,11 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
       m_s1ap_log->info("User not found. IMSI %015lu\n", emm_ctx->imsi);
       return false;
     }
+    //Making sure eKSI is different from previous eKSI.
+    emm_ctx->security_ctxt.eksi = (emm_ctx->security_ctxt.eksi+1)%6;
+
     //Pack NAS Authentication Request in Downlink NAS Transport msg
-    pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
+    pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, emm_ctx->security_ctxt.eksi, autn, rand);
 
     //Send reply to eNB
     *reply_flag = true;
@@ -1414,15 +1423,10 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
   }
   return true;
 }
-  /*
-bool
-s1ap_nas_transport::handle_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag)
-{
-  return true;
-  }*/
+
 /*Packing/Unpacking helper functions*/
 bool
-s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t *autn, uint8_t *rand)
+s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t eksi, uint8_t *autn, uint8_t *rand)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -1450,9 +1454,7 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   memcpy(auth_req.autn , autn, 16);
   memcpy(auth_req.rand, rand, 16);
   auth_req.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  static uint8_t nas_ksi_tmp =  0;
-  auth_req.nas_ksi.nas_ksi = nas_ksi_tmp++;
-  //auth_req.nas_ksi.nas_ksi = 0;
+  auth_req.nas_ksi.nas_ksi = eksi;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
@@ -1892,7 +1894,7 @@ s1ap_nas_transport::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;//FIXME Change name
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;
   dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
@@ -1918,7 +1920,7 @@ s1ap_nas_transport::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint
     m_s1ap_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
     m_s1ap_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
     return false;
-  } 
+  }
 
   m_pool->deallocate(nas_buffer);
   return true;
