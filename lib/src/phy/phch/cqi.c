@@ -234,6 +234,87 @@ int srslte_cqi_value_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_value_
   return -1; 
 }
 
+/*******************************************************
+ *                TO STRING FUNCTIONS                  *
+ *******************************************************/
+
+static int srslte_cqi_format2_wideband_tostring(srslte_cqi_format2_wideband_t *msg, char *buff, uint32_t buff_len) {
+  int n = 0;
+
+  n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->wideband_cqi);
+
+  if (msg->pmi_present) {
+    if (msg->rank_is_not_one) {
+      n += snprintf(buff + n, buff_len - n, ", diff_cqi=%d", msg->spatial_diff_cqi);
+    }
+    n += snprintf(buff + n, buff_len - n, ", pmi=%d", msg->pmi);
+  }
+
+  return n;
+}
+
+static int srslte_cqi_format2_subband_tostring(srslte_cqi_format2_subband_t *msg, char *buff, uint32_t buff_len) {
+  int n = 0;
+
+  n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->subband_cqi);
+  n += snprintf(buff + n, buff_len - n, ", label=%d", msg->subband_label);
+
+  return n;
+}
+
+static int srslte_cqi_ue_subband_tostring(srslte_cqi_ue_subband_t *msg, char *buff, uint32_t buff_len) {
+  int n = 0;
+
+  n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->wideband_cqi);
+  n += snprintf(buff + n, buff_len - n, ", diff_cqi=%d", msg->subband_diff_cqi);
+  n += snprintf(buff + n, buff_len - n, ", L=%d", msg->L);
+
+  return n;
+}
+
+static int srslte_cqi_hl_subband_tostring(srslte_cqi_hl_subband_t *msg, char *buff, uint32_t buff_len) {
+  int n = 0;
+
+  n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->wideband_cqi_cw0);
+  n += snprintf(buff + n, buff_len - n, ", diff=%d", msg->subband_diff_cqi_cw0);
+
+  if (msg->rank_is_not_one) {
+    n += snprintf(buff + n, buff_len - n, ", cqi1=%d", msg->wideband_cqi_cw1);
+    n += snprintf(buff + n, buff_len - n, ", diff1=%d", msg->subband_diff_cqi_cw1);
+  }
+
+  if (msg->pmi_present) {
+    n += snprintf(buff + n, buff_len - n, ", pmi=%d", msg->pmi);
+  }
+
+  n += snprintf(buff + n, buff_len - n, ", N=%d", msg->N);
+
+  return n;
+}
+
+int srslte_cqi_value_tostring(srslte_cqi_value_t *value, char *buff, uint32_t buff_len) {
+  int ret = -1;
+
+  switch (value->type) {
+    case SRSLTE_CQI_TYPE_WIDEBAND:
+      ret = srslte_cqi_format2_wideband_tostring(&value->wideband, buff, buff_len);
+      break;
+    case SRSLTE_CQI_TYPE_SUBBAND:
+      ret = srslte_cqi_format2_subband_tostring(&value->subband, buff, buff_len);
+      break;
+    case SRSLTE_CQI_TYPE_SUBBAND_UE:
+      ret = srslte_cqi_ue_subband_tostring(&value->subband_ue, buff, buff_len);
+      break;
+    case SRSLTE_CQI_TYPE_SUBBAND_HL:
+      ret = srslte_cqi_hl_subband_tostring(&value->subband_hl, buff, buff_len);
+      break;
+    default:
+      /* Do nothing */;
+  }
+
+  return ret;
+}
+
 int srslte_cqi_size(srslte_cqi_value_t *value) {
   int size = 0;
 
