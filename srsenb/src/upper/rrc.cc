@@ -1043,6 +1043,7 @@ void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
     m_tmsi    = msg->ue_id.s_tmsi.m_tmsi;
     has_tmsi = true;
   }
+  establishment_cause = msg->cause;
   send_connection_setup();
   state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
 }
@@ -1069,9 +1070,9 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
   parent->mac->phy_config_enabled(rnti, true);
 
   if(has_tmsi) {
-    parent->s1ap->initial_ue(rnti, pdu, m_tmsi, mmec);
+    parent->s1ap->initial_ue(rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause, pdu, m_tmsi, mmec);
   } else {
-    parent->s1ap->initial_ue(rnti, pdu);
+    parent->s1ap->initial_ue(rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause, pdu);
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }

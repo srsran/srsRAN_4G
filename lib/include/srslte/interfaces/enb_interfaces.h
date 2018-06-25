@@ -274,8 +274,8 @@ public:
 class s1ap_interface_rrc
 {
 public:
-  virtual void initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu) = 0;
-  virtual void initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec) = 0;
+  virtual void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu) = 0;
+  virtual void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec) = 0;
   virtual void write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu) = 0;
   virtual bool user_exists(uint16_t rnti) = 0; 
   virtual bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio) = 0;

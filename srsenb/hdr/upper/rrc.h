@@ -251,6 +251,8 @@ public:
 
     struct timeval t_last_activity; 
 
+    LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM establishment_cause;
+
     // S-TMSI for this UE
     bool      has_tmsi;
     uint32_t  m_tmsi;
