@@ -223,18 +223,19 @@ bool hss::write_db_file(std::string db_filename)
   m_hss_log->info("Opened DB file: %s\n", db_filename.c_str() );
 
   //Write comment info
-  m_db_file << "#"                                                                           << std::endl
-            << "# .csv to store UE's information in HSS"                                     << std::endl
-            << "# Kept in the following format: \"Name,IMSI,Key,OP,AMF\""                    << std::endl
-            << "#"                                                                           << std::endl
-            << "# Name: Human readable name to help distinguish UE's. Ignored by the HSS"    << std::endl
-            << "# IMSI: UE's IMSI value"                                                     << std::endl
-            << "# Key:  UE's key, where other keys are derived from. Stored in hexadecimal"  << std::endl
-            << "# OP:   Operator's code, sotred in hexadecimal"                              << std::endl
-            << "# AMF:  Authentication management field, stored in hexadecimal"              << std::endl
-            << "# SQN:  UE's Sequence number for freshness of the authentication"            << std::endl
-            << "#"                                                                           << std::endl
-            << "# Note: Lines starting by '#' are ignored"                                   << std::endl;
+  m_db_file << "#                                                                            " << std::endl
+            << "# .csv to store UE's information in HSS                                      " << std::endl
+            << "# Kept in the following format: \"Name,IMSI,Key,OP_Type,OP,AMF,SQN\"         " << std::endl
+            << "#                                                                            " << std::endl
+            << "# Name:    Human readable name to help distinguish UE's. Ignored by the HSS  " << std::endl
+            << "# IMSI:    UE's IMSI value                                                   " << std::endl
+            << "# Key:     UE's key, where other keys are derived from. Stored in hexadecimal" << std::endl
+            << "# OP_Type: Operator's code type, either OP or OPc                            " << std::endl
+            << "# OP/OPc:  Operator Code/Cyphered Operator Code, stored in hexadecimal       " << std::endl
+            << "# AMF:     Authentication management field, stored in hexadecimal            " << std::endl
+            << "# SQN:     UE's Sequence number for freshness of the authentication          " << std::endl
+            << "#                                                                            " << std::endl
+            << "# Note: Lines starting by '#' are ignored and will be overwritten            " << std::endl;
 
   std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
   while(it!=m_imsi_to_ue_ctx.end())
@@ -590,18 +591,6 @@ hss::increment_ue_sqn(uint64_t imsi)
     return;
   }
 
-  // Awkward 48 bit sqn and doing arithmetic 
-  //uint64_t sqn = 0;
-  //uint8_t *p = (uint8_t *)&sqn;
-
-  //for(int i = 0; i < 6; i++) {
-  //  p[5-i] = (uint8_t) ((ue_ctx->sqn[i]));
-  //}
-
-  //sqn++;
-  //for(int i = 0; i < 6; i++){
-  //  ue_ctx->sqn[i] = p[5-i];
-  //}
   increment_sqn(ue_ctx->sqn,ue_ctx->sqn);
   m_hss_log->debug("Incremented SQN (IMSI: %" PRIu64 ")" PRIu64 "\n", imsi);
   m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN: ");
