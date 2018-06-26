@@ -139,7 +139,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->info("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
     m_s1ap_log->console("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
     m_s1ap_log->info("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
-    m_s1ap_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
+    m_s1ap_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
 
     handle_nas_detach_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     return true;
