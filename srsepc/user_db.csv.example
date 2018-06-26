@@ -1,6 +1,6 @@
 #
 # .csv to store UE's information in HSS
-# Kept in the following format: "Name,IMSI,Key,OP_Type,OP,AMF,SQN"
+# Kept in the following format: "Name,IMSI,Key,OP_Type,OP,AMF,SQN,QCI"
 #
 # Name:    Human readable name to help distinguish UE's. Ignored by the HSS
 # IMSI:    UE's IMSI value

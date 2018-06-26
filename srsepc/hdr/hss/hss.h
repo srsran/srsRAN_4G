@@ -60,6 +60,7 @@ typedef struct{
     uint8_t  opc[16];
     uint8_t  amf[2];
     uint8_t  sqn[6];
+    uint16_t qci;
     uint8_t  last_rand[16];
 }hss_ue_ctx_t;
 

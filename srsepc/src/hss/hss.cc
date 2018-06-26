@@ -153,7 +153,7 @@ hss::read_db_file(std::string db_filename)
   {
     if(line[0] != '#')
     {
-      uint column_size = 7;
+      uint column_size = 8;
       std::vector<std::string> split = split_string(line,',');
       if(split.size() != column_size)
       {
@@ -192,7 +192,8 @@ hss::read_db_file(std::string db_filename)
       m_hss_log->debug_hex(ue_ctx->opc, 16, "User OPc : ");
       m_hss_log->debug_hex(ue_ctx->amf, 2, "AMF : ");
       m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN : ");
-
+      ue_ctx->qci = atoi(split[7].c_str());
+      m_hss_log->debug("Default Bearer QCI: %d\n",ue_ctx->qci);
       m_imsi_to_ue_ctx.insert(std::pair<uint64_t,hss_ue_ctx_t*>(ue_ctx->imsi,ue_ctx));
     }
   }
@@ -258,10 +259,11 @@ bool hss::write_db_file(std::string db_filename)
       m_db_file << hex_string(it->second->amf, 2);
       m_db_file << ",";
       m_db_file << hex_string(it->second->sqn, 6);
+      m_db_file << ",";
+      m_db_file << it->second->qci;
       m_db_file << std::endl;
       it++;
   }
-  
   if(m_db_file.is_open())
   {
     m_db_file.close();
