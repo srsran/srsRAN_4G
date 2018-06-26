@@ -39,10 +39,10 @@
 using namespace std; 
 
 // Enable this to log SI
-//#define LOG_THIS(a) 1
+#define LOG_THIS(a) 1
 
 // Enable this one to skip SI-RNTI
-#define LOG_THIS(rnti) (rnti != 0xFFFF)
+//#define LOG_THIS(rnti) (rnti != 0xFFFF)
 
 
 /* Define GUI-related things */
