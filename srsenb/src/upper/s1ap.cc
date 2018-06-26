@@ -849,6 +849,9 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_I
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
+
+  pool->deallocate(buf);
+
   if(n_sent == -1) {
     s1ap_log->error("Failed to send InitialContextSetupResponse for RNTI:0x%x\n", rnti);
     return false;
@@ -900,6 +903,9 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETU
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
+
+  pool->deallocate(buf);
+
   if(n_sent == -1) {
     s1ap_log->error("Failed to send E_RABSetupResponse for RNTI:0x%x\n", rnti);
     return false;
@@ -945,6 +951,9 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
+
+  pool->deallocate(buf);
+
   if(n_sent == -1) {
     s1ap_log->error("Failed to send UplinkNASTransport for RNTI:0x%x\n", rnti);
     return false;
