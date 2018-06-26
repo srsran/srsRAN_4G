@@ -34,7 +34,7 @@ using namespace srslte;
 
 namespace srsenb {
   
-bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_)
+bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
 {
   pdcp          = pdcp_;
   gtpu_log      = gtpu_log_;
@@ -95,11 +95,13 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   //Setup M1-u
   init_m1u(gtpu_log_);
 
-  mch_lcid_counter = 1;
+  _enable_mbsfn = enable_mbsfn;
   // Setup a thread to receive packets from the src socket
   start(THREAD_PRIO);
-  pthread_create(&mch_thread ,NULL ,mch_thread_routine , this);
-
+  if(_enable_mbsfn){
+    mch_lcid_counter = 1;
+    pthread_create(&mch_thread ,NULL ,mch_thread_routine , this);
+  }
   return true;
 }
 
@@ -224,8 +226,9 @@ void gtpu::stop()
       }
     }
     wait_thread_finish();
-    pthread_join(mch_thread, NULL);
-
+    if(_enable_mbsfn) {
+      pthread_join(mch_thread, NULL);
+    }
   }
 
   if (snk_fd) {

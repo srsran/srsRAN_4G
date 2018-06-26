@@ -1032,7 +1032,8 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
 
 void phch_worker::reset_uci()
 {
-  bzero(&uci_data, sizeof(srslte_uci_data_t));
+  ZERO_OBJECT(uci_data);
+  ZERO_OBJECT(cqi_report);
 }
 
 void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS])
@@ -1082,7 +1083,6 @@ void phch_worker::set_uci_periodic_cqi()
       compute_ri(NULL, NULL, NULL);
       phy->last_pmi = (uint8_t) ue_dl.pmi[phy->last_ri % SRSLTE_MAX_LAYERS];
 
-      srslte_cqi_value_t cqi_report;
       ZERO_OBJECT(cqi_report);
 
       if (period_cqi.format_is_subband) {
@@ -1110,6 +1110,8 @@ void phch_worker::set_uci_periodic_cqi()
         Debug("PUCCH: Periodic CQI=%d, SNR=%.1f dB\n", cqi_report.wideband.wideband_cqi, phy->avg_snr_db_cqi);
       }
       uci_data.uci_cqi_len = (uint32_t) srslte_cqi_value_pack(&cqi_report, uci_data.uci_cqi);
+      uci_data.uci_ri = phy->last_ri;
+      uci_data.uci_ri_len = 0;
       rar_cqi_request = false;       
     }
   }
@@ -1135,7 +1137,6 @@ void phch_worker::set_uci_aperiodic_cqi()
             reported RI. For other transmission modes they are reported conditioned on rank 1.
         */
         if (rnti_is_set) {
-          srslte_cqi_value_t cqi_report;
           ZERO_OBJECT(cqi_report);
 
           cqi_report.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
@@ -1289,11 +1290,13 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 #endif
 
   char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = "";
-  srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
+  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    srslte_cqi_value_tostring(&cqi_report, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
+  }
 
   uint8_t dummy[2] = {0,0};
   log_h->info_hex(payload, grant->mcs.tbs/8,
-              "PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s%s\n",
+              "PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s\n",
               (tti + HARQ_DELAY_MS) % 10240,
               grant->n_prb[0], grant->n_prb[0] + grant->L_prb,
               grant->mcs.tbs / 8, grant->mcs.idx, rv,
@@ -1301,7 +1304,6 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
               uci_data.uci_ack_len > 1 ? (uci_data.uci_ack_2 ? "1" : "0") : "",
               uci_data.uci_ri_len > 0 ? (uci_data.uci_ri ? ", ri=1" : ", ri=0") : "",
               cfo * 15, timestr,
-              uci_data.uci_cqi_len > 0 ? ", cqi=" : "",
               uci_data.uci_cqi_len > 0 ? cqi_str : "");
 
   // Store metrics
@@ -1343,17 +1345,18 @@ void phch_worker::encode_pucch()
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
 
-    char str_cqi[SRSLTE_CQI_STR_MAX_CHAR] = "";
-    srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, str_cqi, SRSLTE_CQI_STR_MAX_CHAR);
+    char cqi_str[SRSLTE_CQI_STR_MAX_CHAR] = "";
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      srslte_cqi_value_tostring(&cqi_report, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
+    }
 
-    Info("PUCCH: tti_tx=%d, n_pucch=%d, n_prb=%d, ack=%s%s%s%s%s, sr=%s, cfo=%.1f KHz%s\n",
+    Info("PUCCH: tti_tx=%d, n_pucch=%d, n_prb=%d, ack=%s%s%s%s, sr=%s, cfo=%.1f KHz%s\n",
          (tti + 4) % 10240,
          ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb,
          uci_data.uci_ack_len > 0 ? (uci_data.uci_ack ? "1" : "0") : "no",
          uci_data.uci_ack_len > 1 ? (uci_data.uci_ack_2 ? "1" : "0") : "",
          uci_data.uci_ri_len > 0 ? (uci_data.uci_ri ? ", ri=1" : ", ri=0") : "",
-         uci_data.uci_cqi_len > 0 ? ", cqi=" : "",
-         uci_data.uci_cqi_len > 0 ? str_cqi : "",
+         uci_data.uci_cqi_len > 0 ? cqi_str : "",
          uci_data.scheduling_request ? "yes" : "no",
          cfo * 15, timestr);
   }

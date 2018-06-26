@@ -43,7 +43,7 @@
 #define SRSLTE_CQI_MAX_BITS 64
 #define SRSLTE_DIF_CQI_MAX_BITS 3
 #define SRSLTE_PMI_MAX_BITS 4
-#define SRSLTE_CQI_STR_MAX_CHAR 32
+#define SRSLTE_CQI_STR_MAX_CHAR 64
 
 typedef struct {
   bool     configured; 
@@ -149,6 +149,9 @@ SRSLTE_API int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg
 
 SRSLTE_API int srslte_cqi_value_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
                                        srslte_cqi_value_t *value);
+
+SRSLTE_API int srslte_cqi_value_tostring(srslte_cqi_value_t *value, char *buff, uint32_t buff_len);
+
 
 SRSLTE_API int srslte_cqi_hl_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
                                             srslte_cqi_hl_subband_t *msg);

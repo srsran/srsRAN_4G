@@ -81,7 +81,6 @@ thread_pool::thread_pool(uint32_t max_workers_)  :
                                   status(max_workers_),
                                   cvar(max_workers_),
                                   mutex(max_workers_)
-                                  
 {
   max_workers = max_workers_;
   for (uint32_t i=0;i<max_workers;i++) {

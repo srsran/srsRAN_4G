@@ -162,6 +162,7 @@ private:
   srslte_ue_ul_t     ue_ul; 
   srslte_timestamp_t tx_time; 
   srslte_uci_data_t  uci_data; 
+  srslte_cqi_value_t cqi_report;
   uint16_t           ul_rnti;
   
   // UL configuration parameters 

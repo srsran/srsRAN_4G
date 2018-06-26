@@ -59,7 +59,7 @@ bool radio::init(char *args, char *devname, uint32_t nof_channels)
   } else if (strstr(srslte_rf_name(&rf_device), "bladerf")) {
     burst_preamble_sec = blade_default_burst_preamble_sec;
   } else {
-     burst_preamble_sec = 0;
+    burst_preamble_sec = 0;
     printf("\nWarning burst preamble is not calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));
   }
 
@@ -81,7 +81,9 @@ bool radio::is_init() {
 
 void radio::stop() 
 {
-  srslte_rf_close(&rf_device);
+  if (is_initialized) {
+    srslte_rf_close(&rf_device);
+  }
 }
 
 void radio::reset()

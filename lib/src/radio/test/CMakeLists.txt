@@ -19,9 +19,8 @@
 #
 
 if(RF_FOUND)
-  add_library(srslte_radio STATIC radio.cc radio_multi.cc)
-  target_link_libraries(srslte_radio srslte_rf)
-  install(TARGETS srslte_radio DESTINATION ${LIBRARY_DIR})
+  add_executable(benchmark_radio benchmark_radio.cc)
+  target_link_libraries(benchmark_radio srslte_radio)
 endif(RF_FOUND)
 
-add_subdirectory(test)
+

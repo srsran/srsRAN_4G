@@ -388,7 +388,7 @@ void srslte_enb_dl_put_mbsfn_base(srslte_enb_dl_t *q, uint32_t tti)
 void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q)
 {
   // TODO: PAPR control
-  float norm_factor = (float) sqrt(q->cell.nof_prb)/15/sqrt(q->ifft[0].symbol_sz);
+  float norm_factor = 0.05f / sqrt(q->cell.nof_prb);
   for (int i = 0; i < q->cell.nof_ports; i++) {
     srslte_ofdm_tx_sf(&q->ifft[i]);    
     srslte_vec_sc_prod_cfc(q->ifft[i].out_buffer, norm_factor, q->ifft[i].out_buffer, (uint32_t) SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
@@ -397,7 +397,7 @@ void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q)
 
 void srslte_enb_dl_gen_signal_mbsfn(srslte_enb_dl_t *q)
 {
-  float norm_factor = (float) sqrt(q->cell.nof_prb)/15/sqrt(q->ifft_mbsfn.symbol_sz);
+  float norm_factor = 0.05f / sqrt(q->cell.nof_prb);
   srslte_ofdm_tx_sf(&q->ifft_mbsfn);
   srslte_vec_sc_prod_cfc(q->ifft_mbsfn.out_buffer, norm_factor, q->ifft_mbsfn.out_buffer, (uint32_t) SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
 }
@@ -416,7 +416,7 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant,
                                srslte_dci_format_t format, srslte_dci_location_t location,
                                uint16_t rnti, uint32_t sf_idx) 
 {
-  srslte_dci_msg_t dci_msg;
+  srslte_dci_msg_t dci_msg = {};
   
   bool rnti_is_user = true; 
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || (rnti >= SRSLTE_RARNTI_START && rnti <= SRSLTE_RARNTI_END)) {
@@ -436,7 +436,7 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
                                srslte_dci_location_t location,
                                uint16_t rnti, uint32_t sf_idx) 
 {
-  srslte_dci_msg_t dci_msg;
+  srslte_dci_msg_t dci_msg = {};
 
   srslte_dci_msg_pack_pusch(grant, &dci_msg, q->cell.nof_prb);
   if (srslte_pdcch_encode(&q->pdcch, &dci_msg, location, rnti, q->sf_symbols, sf_idx, q->cfi)) {

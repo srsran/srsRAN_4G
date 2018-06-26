@@ -174,22 +174,22 @@ void s1ap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
+void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
-  send_initialuemessage(rnti, pdu, false);
+  send_initialuemessage(rnti, cause, pdu, false);
 }
 
-void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec)
+void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
-  send_initialuemessage(rnti, pdu, true, m_tmsi, mmec);
+  send_initialuemessage(rnti, cause, pdu, true, m_tmsi, mmec);
 }
 
 void s1ap::write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu)
@@ -609,7 +609,7 @@ bool s1ap::handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT *msg)
 /* S1AP message senders
 ********************************************************************************/
 
-bool s1ap::send_initialuemessage(uint16_t rnti, srslte::byte_buffer_t *pdu, bool has_tmsi, uint32_t m_tmsi, uint8_t mmec)
+bool s1ap::send_initialuemessage(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, bool has_tmsi, uint32_t m_tmsi, uint8_t mmec)
 {
   if(!mme_connected) {
     return false;
@@ -662,7 +662,7 @@ bool s1ap::send_initialuemessage(uint16_t rnti, srslte::byte_buffer_t *pdu, bool
 
   // RRC Establishment Cause
   initue->RRC_Establishment_Cause.ext = false;
-  initue->RRC_Establishment_Cause.e   = LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_MO_SIGNALLING;
+  initue->RRC_Establishment_Cause.e   = cause;
 
   liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
   s1ap_log->info_hex(msg.msg, msg.N_bytes, "Sending InitialUEMessage for RNTI:0x%x", rnti);
@@ -939,7 +939,7 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   fail->Cause.choice.radioNetwork.ext = false;
   fail->Cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_UNSPECIFIED;
 
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&buf);
+  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf);
   s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending InitialContextSetupFailure for RNTI:0x%x", rnti);
 
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,

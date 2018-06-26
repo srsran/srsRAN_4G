@@ -39,6 +39,7 @@
 #include "phy/phy.h"
 #include "upper/usim.h"
 #include "upper/rrc.h"
+#include "upper/nas.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 #include "srslte/common/logger.h"
@@ -129,9 +130,7 @@ typedef struct {
   usim_args_t   usim;
   rrc_args_t    rrc;
   std::string   ue_category_str;
-  std::string   apn_name;
-  std::string   apn_user;
-  std::string   apn_pass;
+  nas_args_t    nas;
   expert_args_t expert;
 }all_args_t;
 
