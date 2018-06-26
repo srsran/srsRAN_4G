@@ -79,7 +79,8 @@ int main(int argc, char **argv)
   args.imei = "356092040793011";
   args.imsi = "208930000000001";
   args.k = "8BAF473F2F8FD09487CCCBD7097C6862";
-  args.op = "8e27b6af0e692e750f32667a3b14605d"; // OPc
+  args.using_op = false;
+  args.opc = "8e27b6af0e692e750f32667a3b14605d"; // OPc
 
   srsue::usim usim;
   usim.init(&args, &usim_log);
