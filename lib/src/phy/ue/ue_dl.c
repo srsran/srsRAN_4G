@@ -491,6 +491,9 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
   int found_dci = srslte_ue_dl_find_dl_dci(q, tm, cfi, sf_idx, rnti, &dci_msg);
   if (found_dci == 1) {
     
+    INFO("PDCCH: DL DCI %s rnti=0x%x, cce_index=%d, L=%d, tti=%d\n", srslte_dci_format_string(dci_msg.format),
+         q->current_rnti, q->last_location.ncce, (1<<q->last_location.L), tti);
+
     if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, q->cell.nof_ports, &dci_unpacked, &grant)) {
       fprintf(stderr, "Error unpacking DCI\n");
       return SRSLTE_ERROR;   

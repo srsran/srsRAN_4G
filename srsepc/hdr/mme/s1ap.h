@@ -78,30 +78,18 @@ public:
   uint32_t get_next_mme_ue_s1ap_id();
   enb_ctx_t* find_enb_ctx(uint16_t enb_id);
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
+  void get_enb_ctx(uint16_t sctp_stream);
 
   bool add_ue_ctx_to_imsi_map(ue_ctx_t *ue_ctx);
   bool add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx);
+  bool add_ue_to_enb_set(int32_t enb_assoc, uint32_t mme_ue_s1ap_id);
 
   ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
   ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
 
   bool release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
-  void release_ues_ecm_ctx_in_enb(uint16_t enb_id);
+  void release_ues_ecm_ctx_in_enb(int32_t enb_assoc);
   bool delete_ue_ctx(uint64_t imsi);
-
-  //ue_ctx_t* find_ue_ctx(uint32_t mme_ue_s1ap_id);
-  //void add_new_ue_ctx(const ue_ctx_t &ue_ctx);
-
-  //void add_new_ue_emm_ctx(const ue_emm_ctx_t &ue_emm_ctx);
-  //void add_new_ue_ecm_ctx(const ue_ecm_ctx_t &ue_ecm_ctx);
-  //ue_emm_ctx_t* find_ue_emm_ctx_from_imsi(uint64_t imsi);
-  //ue_ecm_ctx_t* find_ue_ecm_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
-  //bool delete_ue_emm_ctx(uint64_t imsi);
-  //bool delete_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
-  //void delete_ues_ecm_ctx_in_enb(uint16_t enb_id);
-
-  //void store_tmp_ue_emm_ctx(const ue_emm_ctx_t &ue_ecm_ctx);
-  //bool get_tmp_ue_emm_ctx(uint32_t mme_ue_s1ap_id, ue_emm_ctx_t* ue_emm_ptr);
 
   uint32_t allocate_m_tmsi(uint64_t imsi);
 
@@ -127,15 +115,10 @@ private:
   int m_s1mme;
   std::map<uint16_t, enb_ctx_t*>                    m_active_enbs;
   std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
-  std::map<uint16_t,std::set<uint32_t> >            m_enb_id_to_ue_ids;
-
+  std::map<int32_t,std::set<uint32_t> >             m_enb_assoc_to_ue_ids;
 
   std::map<uint64_t, ue_ctx_t*>                     m_imsi_to_ue_ctx;
   std::map<uint32_t, ue_ctx_t*>                     m_mme_ue_s1ap_id_to_ue_ctx;
-
-  //std::map<uint64_t, ue_emm_ctx_t*>                 m_imsi_to_ue_emm_ctx;
-  //std::map<uint32_t, ue_ecm_ctx_t*>                 m_mme_ue_s1ap_id_to_ue_ecm_ctx;
-  //std::map<int32_t,ue_emm_ctx_t*>                   m_mme_ue_s1ap_id_to_tmp_ue_emm_ctx;
 
   uint32_t                                          m_next_mme_ue_s1ap_id;
   uint32_t                                          m_next_m_tmsi;

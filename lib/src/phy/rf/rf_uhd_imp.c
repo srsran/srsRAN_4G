@@ -32,7 +32,7 @@
 
 #include "srslte/srslte.h"
 #include "rf_uhd_imp.h"
-#include "srslte/phy/rf/rf.h"
+#include "rf_helper.h"
 #include "uhd_c_api.h"
 
 #define HAVE_ASYNC_THREAD 1
@@ -318,31 +318,6 @@ float rf_uhd_get_rssi(void *h) {
 int rf_uhd_open(char *args, void **h)
 {
   return rf_uhd_open_multi(args, h, 1);
-}
-
-#define REMOVE_SUBSTRING_WITHCOMAS(S, TOREMOVE) \
-  remove_substring(S, TOREMOVE ",");\
-  remove_substring(S, TOREMOVE ", ");\
-  remove_substring(S, "," TOREMOVE);\
-  remove_substring(S, ", " TOREMOVE);\
-  remove_substring(S, TOREMOVE)
-
-static void remove_substring(char *s,const char *toremove)
-{
-  while((s=strstr(s,toremove))) {
-    memmove(s,s+strlen(toremove),1+strlen(s+strlen(toremove)));
-  }
-}
-
-static void copy_subdev_string(char *dst, char *src) {
-  int n = 0;
-  size_t len = strlen(src);
-  /* Copy until end of string or comma */
-  while (n < len && src[n] != '\0' && src[n] != ',') {
-    dst[n] = src[n];
-    n++;
-  }
-  dst[n] = '\0';
 }
 
 int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)

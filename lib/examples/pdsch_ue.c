@@ -599,7 +599,7 @@ int main(int argc, char **argv) {
   }
 
 #ifndef DISABLE_RF
-  if (prog_args.rf_gain < 0) {
+  if (prog_args.rf_gain < 0 && !prog_args.input_file_name) {
     srslte_rf_info_t *rf_info = srslte_rf_get_info(&rf);
     srslte_ue_sync_start_agc(&ue_sync,
                              srslte_rf_set_rx_gain_th_wrapper_,

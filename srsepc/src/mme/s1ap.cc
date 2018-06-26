@@ -299,7 +299,7 @@ s1ap::add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo *en
   memcpy(enb_ptr,&enb_ctx,sizeof(enb_ctx_t));
   m_active_enbs.insert(std::pair<uint16_t,enb_ctx_t*>(enb_ptr->enb_id,enb_ptr));
   m_sctp_to_enb_id.insert(std::pair<int32_t,uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
-  m_enb_id_to_ue_ids.insert(std::pair<uint16_t,std::set<uint32_t> >(enb_ptr->enb_id,ue_set));
+  m_enb_assoc_to_ue_ids.insert(std::pair<int32_t,std::set<uint32_t> >(enb_sri->sinfo_assoc_id,ue_set));
 
   return;
 }
@@ -335,7 +335,7 @@ s1ap::delete_enb_ctx(int32_t assoc_id)
   m_s1ap_log->console("Deleting eNB context. eNB Id: 0x%x\n", enb_id);
 
   //Delete connected UEs ctx
-  release_ues_ecm_ctx_in_enb(enb_id);
+  release_ues_ecm_ctx_in_enb(assoc_id);
 
   //Delete eNB
   delete it_ctx->second;
@@ -397,6 +397,27 @@ s1ap::add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx)
   return true;
 }
 
+bool
+s1ap::add_ue_to_enb_set(int32_t enb_assoc, uint32_t mme_ue_s1ap_id)
+{
+
+  std::map<int32_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_assoc_to_ue_ids.find(enb_assoc);
+  if(ues_in_enb == m_enb_assoc_to_ue_ids.end())
+  {
+    m_s1ap_log->error("Could not find eNB from eNB SCTP association %d",enb_assoc);
+    return false;
+  }
+  std::set<uint32_t>::iterator ue_id = ues_in_enb->second.find(mme_ue_s1ap_id);
+  if(ue_id != ues_in_enb->second.end())
+  {
+    m_s1ap_log->error("UE with MME UE S1AP Id already exists %d",mme_ue_s1ap_id);
+    return false;
+  }
+  ues_in_enb->second.insert(mme_ue_s1ap_id);
+  m_s1ap_log->debug("Added UE with MME-UE S1AP Id %d to eNB with association %d\n", mme_ue_s1ap_id, enb_assoc);
+  return true;
+}
+
 ue_ctx_t*
 s1ap::find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id)
 {
@@ -426,21 +447,34 @@ s1ap::find_ue_ctx_from_imsi(uint64_t imsi)
 }
 
 void
-s1ap::release_ues_ecm_ctx_in_enb(uint16_t enb_id)
+s1ap::release_ues_ecm_ctx_in_enb(int32_t enb_assoc)
 {
+  m_s1ap_log->console("Releasing UEs context\n");
   //delete UEs ctx
-  std::map<uint16_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_id_to_ue_ids.find(enb_id);
+  std::map<int32_t,std::set<uint32_t> >::iterator ues_in_enb = m_enb_assoc_to_ue_ids.find(enb_assoc);
   std::set<uint32_t>::iterator ue_id = ues_in_enb->second.begin();
-  while(ue_id != ues_in_enb->second.end() )
+  if(ue_id == ues_in_enb->second.end())
   {
-    std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_mme_ue_s1ap_id_to_ue_ctx.find(*ue_id);
-    ue_ecm_ctx_t *ecm_ctx = &ue_ctx->second->ecm_ctx;
-    m_s1ap_log->info("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
-    m_s1ap_log->console("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
-    ues_in_enb->second.erase(ecm_ctx->mme_ue_s1ap_id);
-    ecm_ctx->state = ECM_STATE_IDLE;
-    ecm_ctx->mme_ue_s1ap_id = 0;
-    ecm_ctx->enb_ue_s1ap_id = 0;
+    m_s1ap_log->console("No UEs to be released\n");
+  } else {
+    while(ue_id != ues_in_enb->second.end() )
+    {
+      std::map<uint32_t, ue_ctx_t*>::iterator ue_ctx = m_mme_ue_s1ap_id_to_ue_ctx.find(*ue_id);
+      ue_emm_ctx_t *emm_ctx = &ue_ctx->second->emm_ctx;
+      ue_ecm_ctx_t *ecm_ctx = &ue_ctx->second->ecm_ctx;
+
+      m_s1ap_log->info("Releasing UE context. IMSI: %015lu, UE-MME S1AP Id: %d\n", emm_ctx->imsi, ecm_ctx->mme_ue_s1ap_id);
+      if(emm_ctx->state == EMM_STATE_REGISTERED)
+      {
+        m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
+        emm_ctx->state = EMM_STATE_DEREGISTERED;
+      }
+      m_s1ap_log->console("Releasing UE ECM context. UE-MME S1AP Id: %d\n", ecm_ctx->mme_ue_s1ap_id);
+      ecm_ctx->state = ECM_STATE_IDLE;
+      ecm_ctx->mme_ue_s1ap_id = 0;
+      ecm_ctx->enb_ue_s1ap_id = 0;
+      ues_in_enb->second.erase(ue_id++);
+    }
   }
 }
 
@@ -463,8 +497,8 @@ s1ap::release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
     return false;
   }
   uint16_t enb_id = it->second; 
-  std::map<uint16_t,std::set<uint32_t> >::iterator ue_set = m_enb_id_to_ue_ids.find(enb_id);
-  if(ue_set == m_enb_id_to_ue_ids.end())
+  std::map<int32_t,std::set<uint32_t> >::iterator ue_set = m_enb_assoc_to_ue_ids.find(ecm_ctx->enb_sri.sinfo_assoc_id);
+  if(ue_set == m_enb_assoc_to_ue_ids.end())
   {
     m_s1ap_log->error("Could not find the eNB's UEs.\n");
     return false;
