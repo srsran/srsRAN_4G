@@ -161,7 +161,6 @@ typedef struct{
   ue_emm_ctx_t emm_ctx;
   eps_sec_ctx_t sec_ctx;
   ue_ecm_ctx_t ecm_ctx;
-  erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
 } ue_ctx_t;
 }//namespace
 

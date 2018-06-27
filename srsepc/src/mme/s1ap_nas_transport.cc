@@ -709,6 +709,11 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         }
         else
         {
+          //Get subscriber info from HSS
+          uint8_t default_bearer=5;
+          m_hss->gen_update_loc_answer(emm_ctx->imsi,&ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+          m_s1ap_log->debug("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+          m_s1ap_log->console("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
           m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
           *reply_flag = false; //No reply needed
         }
@@ -1082,12 +1087,13 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   else
   {
     //Get subscriber info from HSS
-    uint8_t qci;
-    m_hss->gen_update_loc_answer(emm_ctx->imsi,&qci);
-    m_s1ap_log->console("QCI %d\n", qci);
+    uint8_t default_bearer=5;
+    m_hss->gen_update_loc_answer(emm_ctx->imsi,&ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+    m_s1ap_log->debug("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+    m_s1ap_log->console("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
     //FIXME The packging of GTP-C messages is not ready.
     //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-    m_mme_gtpc->send_create_session_request(emm_ctx->imsi,qci);
+    m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
     *reply_flag = false; //No reply needed
   }
   return true;
@@ -1165,6 +1171,12 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
     m_s1ap_log->info("ESM Info: %d Protocol Configuration Options\n",esm_info_resp.protocol_cnfg_opts.N_opts);
     m_s1ap_log->console("ESM Info: %d Protocol Configuration Options\n",esm_info_resp.protocol_cnfg_opts.N_opts);
   }
+
+  //Get subscriber info from HSS
+  uint8_t default_bearer=5;
+  m_hss->gen_update_loc_answer(ue_ctx->emm_ctx.imsi,&ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+  m_s1ap_log->debug("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+  m_s1ap_log->console("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
 
   //FIXME The packging of GTP-C messages is not ready.
   //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
