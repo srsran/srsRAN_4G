@@ -435,6 +435,12 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
         args = "type=e3x0,master_clock_rate=30.72e6";
         handler->dynamic_rate = false;
         handler->devname = DEVNAME_E3X0;
+      } else if (find_string(devices_str, "type=n3xx")) {
+        args = "type=n3xx,master_clock_rate=122.88e6";
+        handler->current_master_clock = 122880000;
+        handler->dynamic_rate = false;
+        handler->devname = DEVNAME_N300;
+        srslte_use_standard_symbol_size(true);
       }
     } else {
       // If args is set and x300 type is specified, make sure master_clock_rate is defined
@@ -444,7 +450,14 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
         handler->current_master_clock = 184320000;
         handler->dynamic_rate = false;
         handler->devname = DEVNAME_X300;
-      } else if (strstr(args, "type=e3x0")) {
+      } else if (strstr(args, "type=n3xx")) {
+        sprintf(args2, "%s,master_clock_rate=122.88e6", args);
+        args = args2;
+        handler->current_master_clock = 122880000;
+        handler->dynamic_rate = false;
+        handler->devname = DEVNAME_N300;
+        srslte_use_standard_symbol_size(true);
+     } else if (strstr(args, "type=e3x0")) {
         snprintf(args2, sizeof(args2), "%s,master_clock_rate=30.72e6", args);
         args = args2;
         handler->devname = DEVNAME_E3X0;
@@ -495,6 +508,8 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
         handler->devname = DEVNAME_B200;
       } else if (strstr(dev_str, "X3") || strstr(dev_str, "X3")) {
         handler->devname = DEVNAME_X300;        
+      } else if (strstr(dev_str, "n3xx")) {
+        handler->devname = DEVNAME_N300;
       }
     }
     if (!handler->devname) {

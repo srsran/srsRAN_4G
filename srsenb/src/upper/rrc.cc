@@ -95,6 +95,7 @@ void rrc::stop()
   pthread_mutex_destroy(&paging_mutex);
 }
 
+
 /*******************************************************************************
   Public functions
 
