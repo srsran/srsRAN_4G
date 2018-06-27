@@ -92,7 +92,7 @@ mme_gtpc::get_new_ctrl_teid()
   return m_next_ctrl_teid++; //FIXME Use a Id pool?
 }
 void
-mme_gtpc::send_create_session_request(uint64_t imsi)
+mme_gtpc::send_create_session_request(uint64_t imsi, uint8_t qci)
 {
   m_mme_gtpc_log->info("Sending Create Session Request.\n");
   m_mme_gtpc_log->console("Sending Create Session Request.\n");
@@ -124,8 +124,13 @@ mme_gtpc::send_create_session_request(uint64_t imsi)
   // APN
   strncpy(cs_req->apn, m_s1ap->m_s1ap_args.mme_apn.c_str(), sizeof(cs_req->apn)-1);
   cs_req->apn[sizeof(cs_req->apn)-1] = 0;
+
   // RAT Type
   //cs_req->rat_type = srslte::GTPC_RAT_TYPE::EUTRAN;
+
+  //Bearer QoS
+  cs_req->eps_bearer_context_created.ebi = 5;
+  cs_req->eps_bearer_context_created.bearer_qos.qci=qci;
 
   //Check whether this UE is already registed
   std::map<uint64_t, struct gtpc_ctx>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);

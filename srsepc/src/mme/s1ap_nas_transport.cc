@@ -227,9 +227,8 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       (msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
   {
     //Only identity response and authentication response are valid as plain NAS.
-    //Sometimes authentication response and identity are sent as integrity protected,
+    //Sometimes authentication response/failure and identity response are sent as integrity protected,
     //but these messages are sent when the securty context is not setup yet, so we cannot integrity check it.
-    //FIXME Double-check
     switch(msg_type)
     {
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
@@ -1082,9 +1081,13 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   }
   else
   {
+    //Get subscriber info from HSS
+    uint8_t qci;
+    m_hss->gen_update_loc_answer(emm_ctx->imsi,&qci);
+    m_s1ap_log->console("QCI %d\n", qci);
     //FIXME The packging of GTP-C messages is not ready.
     //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
-    m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
+    m_mme_gtpc->send_create_session_request(emm_ctx->imsi,qci);
     *reply_flag = false; //No reply needed
   }
   return true;
