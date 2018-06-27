@@ -369,7 +369,7 @@ uint32_t srslte_vec_max_fi(const float *x, const uint32_t len) {
 }
 
 uint32_t srslte_vec_max_abs_fi(const float *x, const uint32_t len) {
-  return srslte_vec_max_fi_simd(x, len);
+  return srslte_vec_max_abs_fi_simd(x, len);
 }
 
 // CP autocorr

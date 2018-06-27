@@ -136,6 +136,8 @@ SRSLTE_API void srslte_vec_apply_cfo_simd(const cf_t *x, float cfo, cf_t *z, int
 /* SIMD Find Max functions */
 SRSLTE_API uint32_t srslte_vec_max_fi_simd(const float *x, const int len);
 
+SRSLTE_API uint32_t srslte_vec_max_abs_fi_simd(const float *x, const int len);
+
 SRSLTE_API uint32_t srslte_vec_max_ci_simd(const cf_t *x, const int len);
 
 #ifdef __cplusplus

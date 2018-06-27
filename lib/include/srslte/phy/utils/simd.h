@@ -203,7 +203,7 @@ static inline simd_f_t srslte_simd_f_loadu(const float *ptr) {
 #ifdef LV_HAVE_SSE
   return _mm_loadu_ps(ptr);
 #else /* LV_HAVE_SSE */
-  #ifdef HAVE_NEON
+#ifdef HAVE_NEON
   return vld1q_f32(ptr);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
@@ -396,7 +396,7 @@ static inline simd_f_t srslte_simd_f_swap(simd_f_t a) {
 #ifdef LV_HAVE_AVX2
   return _mm256_permute_ps(a, 0b10110001);
 #else /* LV_HAVE_AVX2 */
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return _mm_shuffle_ps(a, a, 0b10110001);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
@@ -428,7 +428,7 @@ static inline simd_f_t srslte_simd_f_hadd(simd_f_t a, simd_f_t b) {
   simd_f_t b1 = _mm256_permute2f128_ps(a, b, 0b00110001);
   return _mm256_hadd_ps(a1, b1);
 #else /* LV_HAVE_AVX2 */
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return _mm_hadd_ps(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
@@ -446,7 +446,7 @@ static inline simd_f_t srslte_simd_f_sqrt(simd_f_t a) {
 #ifdef LV_HAVE_AVX2
   return _mm256_sqrt_ps(a);
 #else /* LV_HAVE_AVX2 */
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return _mm_sqrt_ps(a);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
@@ -471,7 +471,7 @@ static inline simd_f_t srslte_simd_f_neg(simd_f_t a) {
 #ifdef LV_HAVE_AVX2
   return _mm256_xor_ps(_mm256_set1_ps(-0.0f), a);
 #else /* LV_HAVE_AVX2 */
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return _mm_xor_ps(_mm_set1_ps(-0.0f), a);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
@@ -489,7 +489,7 @@ static inline simd_f_t srslte_simd_f_neg_mask(simd_f_t a, simd_f_t mask) {
 #ifdef LV_HAVE_AVX2
   return _mm256_xor_ps(mask, a);
 #else /* LV_HAVE_AVX2 */
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return _mm_xor_ps(mask, a);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
@@ -499,6 +499,25 @@ static inline simd_f_t srslte_simd_f_neg_mask(simd_f_t a, simd_f_t mask) {
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
 }
+
+static inline simd_f_t srslte_simd_f_abs(simd_f_t a) {
+#ifdef LV_HAVE_AVX512
+  return _mm512_andnot_ps(_mm512_set1_ps(-0.0f), a);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return _mm256_andnot_ps(_mm256_set1_ps(-0.0f), a);
+#else /* LV_HAVE_AVX2 */
+#ifdef LV_HAVE_SSE
+  return _mm_andnot_ps(_mm_set1_ps(-0.0f), a);
+#else /* LV_HAVE_SSE */
+#ifdef HAVE_NEON
+  return vqabsq_s32(a);
+#endif /* HAVE_NEON */
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
 
 #endif /* SRSLTE_SIMD_F_SIZE */
 
@@ -836,7 +855,7 @@ static inline simd_cf_t srslte_simd_cf_conjprod (simd_cf_t a, simd_cf_t b) {
                       _mm_mul_ps(a.im, b.im));
   ret.im = _mm_sub_ps(_mm_mul_ps(a.im, b.re),
                       _mm_mul_ps(a.re, b.im));
-  #else
+#else
 #ifdef HAVE_NEON
   ret.val[0] = vaddq_f32(vmulq_f32(a.val[0],b.val[0]),
                          vmulq_f32(a.val[1],b.val[1]));
@@ -883,7 +902,7 @@ static inline simd_cf_t srslte_simd_cf_sub (simd_cf_t a, simd_cf_t b) {
   ret.re = _mm256_sub_ps(a.re, b.re);
   ret.im = _mm256_sub_ps(a.im, b.im);
 #else /* LV_HAVE_AVX2 */
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   ret.re = _mm_sub_ps(a.re, b.re);
   ret.im = _mm_sub_ps(a.im, b.im);
 #else /* LV_HAVE_SSE */
@@ -942,7 +961,7 @@ static inline simd_cf_t srslte_simd_cf_rcp (simd_cf_t a) {
   ret.re = _mm256_mul_ps(a.re, rcp);
   ret.im = _mm256_mul_ps(neg_a_im, rcp);
 #else /* LV_HAVE_AVX2 */
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   simd_f_t a2re = _mm_mul_ps(a.re, a.re);
   simd_f_t a2im = _mm_mul_ps(a.im, a.im);
   simd_f_t mod2 = _mm_add_ps(a2re, a2im);
@@ -951,7 +970,7 @@ static inline simd_cf_t srslte_simd_cf_rcp (simd_cf_t a) {
   ret.re = _mm_mul_ps(a.re, rcp);
   ret.im = _mm_mul_ps(neg_a_im, rcp);
  #else /* LV_HAVE_SSE */
-  #ifdef HAVE_NEON
+#ifdef HAVE_NEON
   simd_f_t a2re = vmulq_f32(a.val[0], a.val[0]);
   simd_f_t a2im = vmulq_f32(a.val[1], a.val[1]);
   simd_f_t mod2 = vaddq_f32(a2re, a2im);
@@ -1074,10 +1093,10 @@ static inline simd_i_t srslte_simd_i_load(int *x) {
 #ifdef LV_HAVE_AVX2
   return _mm256_load_si256((__m256i*)x);
 #else
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return _mm_load_si128((__m128i*)x);
 #else
-  #ifdef HAVE_NEON
+#ifdef HAVE_NEON
   return vld1q_s32((int*)x);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
@@ -1110,10 +1129,10 @@ static inline simd_i_t srslte_simd_i_set1(int x) {
 #ifdef LV_HAVE_AVX2
   return _mm256_set1_epi32(x);
 #else
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return _mm_set1_epi32(x);
 #else
-  #ifdef HAVE_NEON
+#ifdef HAVE_NEON
   return vdupq_n_s32(x);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
@@ -1146,7 +1165,7 @@ static inline simd_sel_t srslte_simd_f_max(simd_f_t a, simd_f_t b) {
 #ifdef LV_HAVE_AVX2
   return _mm256_cmp_ps(a, b, _CMP_GT_OS);
 #else /* LV_HAVE_AVX2 */
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return  (simd_sel_t) _mm_cmpgt_ps(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
@@ -1164,7 +1183,7 @@ static inline simd_i_t srslte_simd_i_select(simd_i_t a, simd_i_t b, simd_sel_t s
 #ifdef LV_HAVE_AVX2
   return (__m256i) _mm256_blendv_ps((__m256) a,(__m256) b, selector);
 #else
-  #ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
   return (__m128i) _mm_blendv_ps((__m128)a, (__m128)b, selector);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON // CURRENTLY USES GENERIC IMPLEMENTATION FOR NEON

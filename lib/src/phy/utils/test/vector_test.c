@@ -48,8 +48,7 @@ bool verbose = false;
 #define MAX_FUNCTIONS (64)
 #define MAX_BLOCKS (16)
 
-
-#define RANDOM_F() ((float)rand())/((float)RAND_MAX)
+#define RANDOM_F() (((float) rand()) / ((float) RAND_MAX) * 2.0f - 1.0f)
 #define RANDOM_S() ((int16_t)(rand() & 0x800F))
 #define RANDOM_B() ((int8_t)(rand() & 0x8008))
 #define RANDOM_CF() (RANDOM_F() + _Complex_I*RANDOM_F())
@@ -705,6 +704,29 @@ TEST(srslte_vec_max_fi,
          free(x);
 )
 
+TEST(srslte_vec_max_abs_fi,
+     MALLOC(float, x);
+
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_F();
+         }
+
+         uint32_t max_index = 0;
+         TEST_CALL(max_index = srslte_vec_max_abs_fi(x, block_size);)
+
+         float gold_value = -INFINITY;
+         uint32_t gold_index = 0;
+         for (int i = 0; i < block_size; i++) {
+           if (gold_value < fabsf(x[i])) {
+             gold_value = fabsf(x[i]);
+             gold_index = i;
+           }
+         }
+         mse = (gold_index != max_index) ? 1:0;
+
+         free(x);
+)
+
 TEST(srslte_vec_max_abs_ci,
      MALLOC(cf_t, x);
 
@@ -897,6 +919,9 @@ int main(int argc, char **argv) {
     func_count++;
 
     passed[func_count][size_count] = test_srslte_vec_max_fi(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_max_abs_fi(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     passed[func_count][size_count] = test_srslte_vec_max_abs_ci(func_names[func_count], &timmings[func_count][size_count], block_size);
