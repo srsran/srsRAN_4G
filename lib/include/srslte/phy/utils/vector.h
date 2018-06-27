@@ -138,6 +138,7 @@ SRSLTE_API float srslte_vec_corr_ccc(const cf_t *x, cf_t *y, const uint32_t len)
 
 /* return the index of the maximum value in the vector */
 SRSLTE_API uint32_t srslte_vec_max_fi(const float *x, const uint32_t len);
+SRSLTE_API uint32_t srslte_vec_max_abs_fi(const float *x, const uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_abs_ci(const cf_t *x, const uint32_t len);
 
 /* quantify vector of floats or int16 and convert to uint8_t */

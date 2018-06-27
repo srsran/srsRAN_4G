@@ -1296,8 +1296,8 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 
   uint8_t dummy[2] = {0,0};
   log_h->info_hex(payload, grant->mcs.tbs/8,
-              "PUSCH: tti_tx=%d, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s\n",
-              (tti + HARQ_DELAY_MS) % 10240,
+              "PUSCH: tti_tx=%d, amp=%.2f, alloc=(%d,%d), tbs=%d, mcs=%d, rv=%d%s%s%s, cfo=%.1f KHz%s%s\n",
+              (tti + HARQ_DELAY_MS) % 10240, srslte_ue_ul_get_last_amplitude(&ue_ul),
               grant->n_prb[0], grant->n_prb[0] + grant->L_prb,
               grant->mcs.tbs / 8, grant->mcs.idx, rv,
               uci_data.uci_ack_len > 0 ? (uci_data.uci_ack ? ", ack=1" : ", ack=0") : "",
@@ -1350,8 +1350,8 @@ void phch_worker::encode_pucch()
       srslte_cqi_value_tostring(&cqi_report, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
     }
 
-    Info("PUCCH: tti_tx=%d, n_pucch=%d, n_prb=%d, ack=%s%s%s%s, sr=%s, cfo=%.1f KHz%s\n",
-         (tti + 4) % 10240,
+    Info("PUCCH: tti_tx=%d, amp=%.2f, n_pucch=%d, n_prb=%d, ack=%s%s%s%s, sr=%s, cfo=%.1f KHz%s\n",
+         (tti + 4) % 10240, srslte_ue_ul_get_last_amplitude(&ue_ul),
          ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb,
          uci_data.uci_ack_len > 0 ? (uci_data.uci_ack ? "1" : "0") : "no",
          uci_data.uci_ack_len > 1 ? (uci_data.uci_ack_2 ? "1" : "0") : "",
@@ -1384,7 +1384,8 @@ void phch_worker::encode_srs()
   
   float tx_power = srslte_ue_ul_srs_power(&ue_ul, phy->pathloss);  
   float gain = set_power(tx_power);
-  Info("SRS:   power=%.2f dBm, tti_tx=%d%s\n", tx_power, TTI_TX(tti), timestr);
+
+  Info("SRS:   power=%.2f dBm, amp=%.2f, tti_tx=%d%s\n", tx_power, srslte_ue_ul_get_last_amplitude(&ue_ul), TTI_TX(tti), timestr);
 }
 
 void phch_worker::enable_pregen_signals(bool enabled)

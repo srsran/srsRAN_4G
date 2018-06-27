@@ -98,8 +98,10 @@ typedef struct SRSLTE_API {
   
   cf_t *refsignal; 
   cf_t *srs_signal; 
-  cf_t *sf_symbols; 
-  
+  cf_t *sf_symbols;
+
+  float last_amplitude;
+
   uint16_t current_rnti;  
   bool signals_pregenerated;
 }srslte_ue_ul_t;
@@ -126,7 +128,9 @@ SRSLTE_API void srslte_ue_ul_set_cfo_enable(srslte_ue_ul_t *q,
                                             bool enabled); 
 
 SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, 
-                                               bool enabled); 
+                                               bool enabled);
+
+SRSLTE_API float srslte_ue_ul_get_last_amplitude(srslte_ue_ul_t *q);
 
 SRSLTE_API void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
                                      srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
