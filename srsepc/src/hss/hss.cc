@@ -226,7 +226,7 @@ bool hss::write_db_file(std::string db_filename)
   //Write comment info
   m_db_file << "#                                                                            " << std::endl
             << "# .csv to store UE's information in HSS                                      " << std::endl
-            << "# Kept in the following format: \"Name,IMSI,Key,OP_Type,OP,AMF,SQN\"         " << std::endl
+            << "# Kept in the following format: \"Name,IMSI,Key,OP_Type,OP,AMF,SQN,QCI\"     " << std::endl
             << "#                                                                            " << std::endl
             << "# Name:    Human readable name to help distinguish UE's. Ignored by the HSS  " << std::endl
             << "# IMSI:    UE's IMSI value                                                   " << std::endl
@@ -235,6 +235,7 @@ bool hss::write_db_file(std::string db_filename)
             << "# OP/OPc:  Operator Code/Cyphered Operator Code, stored in hexadecimal       " << std::endl
             << "# AMF:     Authentication management field, stored in hexadecimal            " << std::endl
             << "# SQN:     UE's Sequence number for freshness of the authentication          " << std::endl
+            << "# QCI:     QoS Class Identifier for the UE's default bearer.                 " << std::endl
             << "#                                                                            " << std::endl
             << "# Note: Lines starting by '#' are ignored and will be overwritten            " << std::endl;
 
