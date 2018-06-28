@@ -192,7 +192,9 @@ void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
   tti    = tti_; 
   tx_tti = tx_tti_;
   log_h->step(tti);
-  log_phy_lib_h->step(tti);
+  if (log_phy_lib_h) {
+    log_phy_lib_h->step(tti);
+  }
 }
 
 void phch_worker::set_prach(cf_t *prach_ptr, float prach_power) {

@@ -379,7 +379,9 @@ void phch_recv::run_thread()
   {
     Debug("SYNC:  state=%s\n", phy_state.to_string());
 
-    log_phy_lib_h->step(tti);
+    if (log_phy_lib_h) {
+      log_phy_lib_h->step(tti);
+    }
 
     sf_idx = tti%10;
 

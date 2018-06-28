@@ -143,9 +143,13 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
     nof_coworkers = SRSLTE_MIN(nof_workers - MAX_WORKERS, MAX_WORKERS);
     nof_workers = MAX_WORKERS;
   }
-  this->log_phy_lib_h = (srslte::log*) log_vec[nof_workers];
-  srslte_phy_log_register_handler(this, srslte_phy_handler);
-  
+  if (log_vec[nof_workers]) {
+    this->log_phy_lib_h = (srslte::log*) log_vec[nof_workers];
+    srslte_phy_log_register_handler(this, srslte_phy_handler);
+  } else {
+    this->log_phy_lib_h = NULL;
+  }
+
   initiated = false;
   start();
   return true;

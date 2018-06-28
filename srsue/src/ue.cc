@@ -45,7 +45,9 @@ ue::ue()
 ue::~ue()
 {
   for (uint32_t i = 0; i < phy_log.size(); i++) {
-    delete(phy_log[i]);
+    if (phy_log[i]) {
+      delete(phy_log[i]);
+    }
   }
   if (usim) {
     delete usim;
@@ -95,13 +97,17 @@ bool ue::init(all_args_t *args_) {
   }
   
   /* here we add a log layer to handle logging from the phy library*/
-  srslte::log_filter *lib_log = new srslte::log_filter;
-  char tmp[16];
-  sprintf(tmp, "PHY_LIB");
-  lib_log->init(tmp, logger, true);
-  phy_log.push_back(lib_log);
-  ((srslte::log_filter*) phy_log[nof_phy_threads])->set_level(level(args->log.phy_lib_level));
- 
+  if (level(args->log.phy_lib_level) != LOG_LEVEL_NONE) {
+    srslte::log_filter *lib_log = new srslte::log_filter;
+    char tmp[16];
+    sprintf(tmp, "PHY_LIB");
+    lib_log->init(tmp, logger, true);
+    phy_log.push_back(lib_log);
+    ((srslte::log_filter*) phy_log[nof_phy_threads])->set_level(level(args->log.phy_lib_level));
+  } else {
+    phy_log.push_back(NULL);
+  }
+
   
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
@@ -112,7 +118,9 @@ bool ue::init(all_args_t *args_) {
   usim_log.set_level(level(args->log.usim_level));
 
   for (int i=0;i<nof_phy_threads + 1;i++) {
-    ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+    if (phy_log[i]) {
+      ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+    }
   }
   mac_log.set_hex_limit(args->log.mac_hex_limit);
   rlc_log.set_hex_limit(args->log.rlc_hex_limit);
