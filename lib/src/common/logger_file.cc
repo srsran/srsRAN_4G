@@ -45,11 +45,15 @@ logger_file::~logger_file() {
   not_done = false;
   if(inited) {
     log(new std::string("Closing log\n"));
+    pthread_mutex_lock(&mutex);
+    pthread_cond_signal(&not_empty);  // wakeup thread and let it terminate
+    pthread_mutex_unlock(&mutex);
     wait_thread_finish();
     flush();
     if (logfile) {
       fclose(logfile);
     }
+    pthread_mutex_destroy(&mutex);
   }
 }
 
@@ -84,6 +88,10 @@ void logger_file::run_thread() {
     pthread_mutex_lock(&mutex);
     while(buffer.empty()) {
       pthread_cond_wait(&not_empty, &mutex);
+      if(not_done == false) // Thread done. Messages in buffer will be handled in flush.
+      {
+        return;
+      }
     }
     str_ptr s = buffer.front();
     pthread_cond_signal(&not_full);
