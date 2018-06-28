@@ -54,6 +54,8 @@ logger_file::~logger_file() {
       fclose(logfile);
     }
     pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&not_empty);
+    pthread_cond_destroy(&not_full);
   }
 }
 
