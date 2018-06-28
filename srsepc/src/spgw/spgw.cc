@@ -329,10 +329,8 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   bool ip_found = false;
   srslte::gtpc_f_teid_ie enb_fteid;
 
-  struct timeval t_now, t_delta;
- 
   version = msg->msg[0]>>4;
-  ((uint8_t*)&dest_ip)[0] = msg->msg[16]; 
+  ((uint8_t*)&dest_ip)[0] = msg->msg[16];
   ((uint8_t*)&dest_ip)[1] = msg->msg[17];
   ((uint8_t*)&dest_ip)[2] = msg->msg[18];
   ((uint8_t*)&dest_ip)[3] = msg->msg[19];
