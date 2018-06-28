@@ -78,10 +78,11 @@ int main(int argc, char **argv)
   args.imei = "356092040793011";
   args.imsi = "208930000000001";
   args.k = "8BAF473F2F8FD09487CCCBD7097C6862";
+  args.using_op = true;
   args.op = "11111111111111111111111111111111";
 
   srsue::usim usim;
   usim.init(&args, &usim_log);
 
-  //assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
+  assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
 }
