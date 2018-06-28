@@ -335,9 +335,11 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
     m_spgw_log->warning("IPv6 not supported yet.\n");
     return;
   }
-
-  //m_spgw_log->console("IP version: %d\n", version);
-  //m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(iph->daddr));
+  if(iph->tot_len < 20)
+  {
+    m_spgw_log->warning("Invalid IP header length.\n");
+    return;
+  }
 
   pthread_mutex_lock(&m_mutex);
   gtp_fteid_it = m_ip_to_teid.find(iph->daddr);
