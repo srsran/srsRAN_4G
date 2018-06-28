@@ -330,8 +330,30 @@ struct gtpc_pdn_address_allocation_ie
   struct in6_addr ipv6;
 };
 
+/****************************************************************************
+ *
+ * GTP-C Bearer Quality of Service IE
+ * Ref: 3GPP TS 29.274 v10.14.0 Figure 8.15-1
+ *
+ ***************************************************************************/
+struct gtpc_bearer_qos_ie
+{
+  struct {
+    uint8_t pvi : 1;
+    uint8_t spare : 1;
+    uint8_t pl : 4;
+    uint8_t pci : 1;
+    uint8_t spare2 : 1;
+  } arp;
+  uint8_t qci;
+  uint8_t mbr_ul;
+  uint8_t mbr_dl;
+  uint8_t gbr_ul;
+  uint8_t gbr_dl;
+};
+
 //TODO
-//TODO IEs between 8.15 and 8.17 missing
+//TODO IEs between 8.16 and 8.17 missing
 //TODO
 
 /****************************************************************************
