@@ -329,19 +329,18 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   bool ip_found = false;
   srslte::gtpc_f_teid_ie enb_fteid;
 
-  version = msg->msg[0]>>4;
-  ((uint8_t*)&dest_ip)[0] = msg->msg[16];
-  ((uint8_t*)&dest_ip)[1] = msg->msg[17];
-  ((uint8_t*)&dest_ip)[2] = msg->msg[18];
-  ((uint8_t*)&dest_ip)[3] = msg->msg[19];
-
-  dest_addr.s_addr = dest_ip;
+  struct iphdr *iph = (struct iphdr *) msg->msg;
+  if(iph->version != 4)
+  {
+    m_spgw_log->warning("IPv6 not supported yet.\n");
+    return;
+  }
 
   //m_spgw_log->console("IP version: %d\n", version);
-  //m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(dest_addr));
+  //m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(iph->daddr));
 
   pthread_mutex_lock(&m_mutex);
-  gtp_fteid_it = m_ip_to_teid.find(dest_ip);
+  gtp_fteid_it = m_ip_to_teid.find(iph->daddr);
   if(gtp_fteid_it != m_ip_to_teid.end())
   {
     ip_found = true;
