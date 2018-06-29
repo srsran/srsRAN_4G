@@ -53,7 +53,7 @@ sib2 =
         pdsch_cnfg = 
         {
             p_b = 0; 
-            rs_power = 20;
+            rs_power = -10;
         };
         pusch_cnfg = 
         {
