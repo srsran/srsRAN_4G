@@ -53,8 +53,7 @@ int usim::init(usim_args_t *args, srslte::log *usim_log_)
     usim_log->console("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
   }
 
-  if(args->using_op)
-  {
+  if(args->using_op) {
     if(32 == args->op.length()) {
       str_to_hex(args->op, op);
       compute_opc(k,op,opc);
@@ -63,7 +62,7 @@ int usim::init(usim_args_t *args, srslte::log *usim_log_)
       usim_log->console("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
     }
   }
-  else{
+  else {
     if(32 == args->opc.length()) {
       str_to_hex(args->opc, opc);
     } else {
