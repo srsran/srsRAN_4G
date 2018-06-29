@@ -51,10 +51,6 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
     gtpu_log->error("Failed to create sink socket\n");
     return false;
   }
-  if (fcntl(snk_fd, F_SETFL, O_NONBLOCK)) {
-    gtpu_log->error("Failed to set non-blocking sink socket\n");
-    return false;
-  }
   int enable = 1;
 #if defined (SO_REUSEADDR)
   if (setsockopt(snk_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
