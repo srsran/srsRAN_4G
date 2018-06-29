@@ -80,7 +80,10 @@ public:
     uint32_t maxharq_msg3tx;
     uint32_t n1pucch_an;
     uint32_t delta_pucch_shift; 
-    
+
+    // If non-negative, statically allocate N prbs at the edges of the uplink for PUCCH
+    int      nrb_pucch;
+
     uint32_t nrb_cqi; 
     uint32_t ncs_an;
     

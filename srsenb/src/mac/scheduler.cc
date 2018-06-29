@@ -792,6 +792,7 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
 // Uplink sched 
 int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched_result)
 {
+  typedef std::map<uint16_t, sched_ue>::iterator it_t;
   if (!configured) {
     return 0; 
   }
@@ -816,66 +817,103 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     
   // current_cfi is set in dl_sched() 
   bzero(sched_result, sizeof(sched_interface::ul_sched_res_t));
+  ul_metric->reset_allocation(cfg.cell.nof_prb);
 
   // Get HARQ process for this TTI 
-  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+  for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user = (sched_ue*) &iter->second;
     uint16_t rnti  = (uint16_t) iter->first; 
 
     user->has_pucch = false;
 
     ul_harq_proc *h = user->get_ul_harq(current_tti);
-  
+
     /* Indicate PHICH acknowledgment if needed */
     if (h->has_pending_ack()) {
       sched_result->phich[nof_phich_elems].phich = h->get_ack(0)?ul_sched_phich_t::ACK:ul_sched_phich_t::NACK;
       sched_result->phich[nof_phich_elems].rnti = rnti;
       nof_phich_elems++;
     }
-  }    
-
-  ul_metric->new_tti(ue_db, cfg.cell.nof_prb, current_tti); 
-  
-  // Update available allocation if there's a pending RAR
-  if (pending_msg3[tti%10].enabled) {
-    ul_harq_proc::ul_alloc_t msg3 = {pending_msg3[tti%10].n_prb, pending_msg3[tti%10].L}; 
-    ul_metric->update_allocation(msg3);
   }
 
-  // Allocate PUCCH resources 
-  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
-    sched_ue *user = (sched_ue*) &iter->second;
-    uint16_t rnti  = (uint16_t) iter->first; 
-    uint32_t prb_idx[2] = {0, 0}; 
-    if (user->get_pucch_sched(current_tti, prb_idx)) {
-      user->has_pucch = true;
-      // allocate PUCCH
-      for (int i=0;i<2;i++) {
-        ul_harq_proc::ul_alloc_t pucch = {prb_idx[i], 1};
-        ul_metric->update_allocation(pucch);
+  // Update available allocation if there's a pending RAR
+  if (pending_msg3[tti%10].enabled) {
+    ul_harq_proc::ul_alloc_t msg3 = {pending_msg3[tti%10].n_prb, pending_msg3[tti%10].L};
+    if(ul_metric->update_allocation(msg3)) {
+      log_h->debug("SCHED: Allocated msg3 RBs within (%d,%d)\n", msg3.RB_start, msg3.RB_start + msg3.L);
+    }
+    else {
+      log_h->warning("SCHED: Could not allocate msg3 within (%d,%d)\n", msg3.RB_start, msg3.RB_start + msg3.L);
+    }
+  }
+
+  // Allocate PUCCH resources
+  if (cfg.nrb_pucch >= 0) {
+    ul_harq_proc::ul_alloc_t pucch = {0, (uint32_t) cfg.nrb_pucch};
+    if(!ul_metric->update_allocation(pucch)) {
+      log_h->warning("SCHED: Failed to allocate PUCCH\n");
+    }
+    pucch.RB_start = cfg.cell.nof_prb-cfg.nrb_pucch;
+    pucch.L        = (uint32_t) cfg.nrb_pucch;
+    if(!ul_metric->update_allocation(pucch)) {
+      log_h->warning("SCHED: Failed to allocate PUCCH\n");
+    }
+    for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+      sched_ue *user = (sched_ue *) &iter->second;
+      uint16_t rnti = (uint16_t) iter->first;
+      uint32_t prb_idx[2] = {0, 0};
+      if(user->get_pucch_sched(current_tti, prb_idx)) {
+        user->has_pucch = true;
+      }
+    }
+  } else {
+    for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+      sched_ue *user = (sched_ue*) &iter->second;
+      uint16_t rnti  = (uint16_t) iter->first;
+      uint32_t prb_idx[2] = {0, 0};
+      if (user->get_pucch_sched(current_tti, prb_idx)) {
+        user->has_pucch = true;
+        // allocate PUCCH
+        for (int i=0;i<2;i++) {
+          ul_harq_proc::ul_alloc_t pucch = {prb_idx[i], 1};
+          ul_metric->update_allocation(pucch);
+        }
       }
     }
   }
-  
+
+  // reserve PRBs for PRACH
+  if(srslte_prach_tti_opportunity_config(cfg.prach_config, tti, -1)) {
+    ul_harq_proc::ul_alloc_t prach = {cfg.prach_freq_offset, 6};
+    if(!ul_metric->update_allocation(prach)) {
+      log_h->warning("SCHED: Failed to allocate PRACH RBs within (%d,%d)\n", prach.RB_start, prach.RB_start + prach.L);
+    }
+    else {
+      log_h->debug("SCHED: Allocated PRACH RBs within (%d,%d)\n", prach.RB_start, prach.RB_start + prach.L);
+    }
+  }
+
+  ul_metric->new_tti(ue_db, cfg.cell.nof_prb, current_tti);
+
   // Now allocate PUSCH 
-  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+  for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user = (sched_ue*) &iter->second;
     uint16_t rnti  = (uint16_t) iter->first; 
 
-    ul_harq_proc *h = NULL; 
-    
+    ul_harq_proc *h = NULL;
+
     // Check if there are pending Msg3 transmissions 
     bool is_rar = false; 
     if (pending_msg3[tti%10].enabled && pending_msg3[tti%10].rnti == rnti) {
-      h = user->get_ul_harq(tti);  
+      h = user->get_ul_harq(tti);
       if (h) {
-        ul_harq_proc::ul_alloc_t alloc; 
-        alloc.L        = pending_msg3[tti%10].L; 
-        alloc.RB_start = pending_msg3[tti%10].n_prb; 
+        ul_harq_proc::ul_alloc_t alloc;
+        alloc.L        = pending_msg3[tti%10].L;
+        alloc.RB_start = pending_msg3[tti%10].n_prb;
         h->set_alloc(alloc);
-        h->set_rar_mcs(pending_msg3[tti%10].mcs);        
+        h->set_rar_mcs(pending_msg3[tti%10].mcs);
         is_rar = true; 
-        pending_msg3[tti%10].enabled = false; 
+        pending_msg3[tti%10].enabled = false;
       } else {
         Warning("No HARQ pid available for transmission of Msg3\n");
       }
@@ -950,7 +988,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   }
 
   // Update pending data counters after this TTI
-  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+  for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user = (sched_ue *) &iter->second;
     uint16_t rnti = (uint16_t) iter->first;
 

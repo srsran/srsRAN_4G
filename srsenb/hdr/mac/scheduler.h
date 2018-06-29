@@ -66,9 +66,10 @@ public:
   public: 
 
     /* Virtual methods for user metric calculation */
+    virtual void           reset_allocation(uint32_t nof_rb_) = 0;
     virtual void           new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb, uint32_t tti) = 0;
     virtual ul_harq_proc*  get_user_allocation(sched_ue *user) = 0; 
-    virtual void           update_allocation(ul_harq_proc::ul_alloc_t alloc) = 0;
+    virtual bool           update_allocation(ul_harq_proc::ul_alloc_t alloc) = 0;
   };
 
   
@@ -119,7 +120,6 @@ public:
     
   int dl_sched(uint32_t tti, dl_sched_res_t *sched_result);  
   int ul_sched(uint32_t tti, ul_sched_res_t *sched_result); 
-
 
   /* Custom TPC functions 
    */

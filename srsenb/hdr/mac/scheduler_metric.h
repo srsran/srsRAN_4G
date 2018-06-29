@@ -64,20 +64,22 @@ class ul_metric_rr : public sched::metric_ul
 public:
   void           new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb, uint32_t tti);
   ul_harq_proc*  get_user_allocation(sched_ue *user); 
-  void           update_allocation(ul_harq_proc::ul_alloc_t alloc);
+  bool           update_allocation(ul_harq_proc::ul_alloc_t alloc);
+  void           reset_allocation(uint32_t nof_rb_);
 private:
   
   const static int MAX_PRB = 100; 
   
   bool new_allocation(uint32_t L, ul_harq_proc::ul_alloc_t *alloc);
   bool allocation_is_valid(ul_harq_proc::ul_alloc_t alloc); 
-  ul_harq_proc* apply_user_allocation(sched_ue *user);
+  ul_harq_proc* apply_user_allocation(sched_ue *user, bool retx_only);
+  ul_harq_proc* allocate_user_newtx_prbs(sched_ue* user);
+  ul_harq_proc* allocate_user_retx_prbs(sched_ue *user);
 
 
   bool used_rb[MAX_PRB]; 
   uint32_t current_tti; 
   uint32_t nof_rb; 
-  uint32_t available_rb;
 };
 
   
