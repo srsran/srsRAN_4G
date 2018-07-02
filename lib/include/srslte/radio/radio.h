@@ -53,6 +53,7 @@ class radio {
   radio() : tr_local_time(1024 * 10), tr_usrp_time(1024 * 10), tr_tx_time(1024 * 10), tr_is_eob(1024 * 10) {
     bzero(&rf_device, sizeof(srslte_rf_t));
     bzero(&end_of_burst_time, sizeof(srslte_timestamp_t));
+    zeros  = (cf_t *) srslte_vec_malloc(burst_preamble_max_samples * sizeof (cf_t));
     bzero(zeros, burst_preamble_max_samples * sizeof(cf_t));
 
     burst_preamble_sec = 0;
@@ -145,7 +146,7 @@ class radio {
   bool is_start_of_burst;
   uint32_t burst_preamble_samples;
   double burst_preamble_time_rounded; // preamble time rounded to sample time
-  cf_t zeros[burst_preamble_max_samples];
+  cf_t *zeros;
   double cur_tx_srate;
 
   double tx_adv_sec; // Transmission time advance to compensate for antenna->timestamp delay

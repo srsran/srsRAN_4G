@@ -603,12 +603,12 @@ float chest_estimate_cfo(srslte_chest_dl_t *q)
 }
 
 void chest_interpolate_noise_est(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id, srslte_sf_t ch_mode){
-  if (q->cfo_estimate_enable && ((1<<sf_idx) & q->cfo_estimate_sf_mask)) {
+  if (q->cfo_estimate_enable && ((1<<sf_idx) & q->cfo_estimate_sf_mask) && ch_mode != SRSLTE_SF_MBSFN ) {
     q->cfo = chest_estimate_cfo(q);
   }
 
   /* Estimate noise */
-  if (q->noise_alg == SRSLTE_NOISE_ALG_REFS) {
+  if (q->noise_alg == SRSLTE_NOISE_ALG_REFS && ch_mode != SRSLTE_SF_MBSFN ) {
     q->noise_estimate[rxant_id][port_id] = estimate_noise_pilots(q, port_id, ch_mode);
   }
 

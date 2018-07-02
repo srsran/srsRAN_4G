@@ -67,6 +67,7 @@ pthread_t plot_thread;
 sem_t plot_sem; 
 uint32_t plot_sf_idx=0;
 bool plot_track = true; 
+bool enable_mbsfn_plot = false;
 #endif
 char *output_file_name;
 #define PRINT_CHANGE_SCHEDULIGN
@@ -362,6 +363,12 @@ int main(int argc, char **argv) {
   srslte_debug_handle_crash(argc, argv);
 
   parse_args(&prog_args, argc, argv);
+  
+#ifndef DISABLE_GRAPHICS
+  if(prog_args.mbsfn_area_id > -1) {
+    enable_mbsfn_plot = true;
+  }
+#endif
   
   for (int i = 0; i< SRSLTE_MAX_CODEWORDS; i++) {
     data[i] = srslte_vec_malloc(sizeof(uint8_t)*1500*8);
@@ -981,14 +988,14 @@ void *plot_thread_run(void *arg) {
   plot_scatter_addToWindowGrid(&pscatequal, (char*)"pdsch_ue", 0, 0);
   
   
+  if(enable_mbsfn_plot) {
+    plot_scatter_init(&pscatequal_pmch);
+    plot_scatter_setTitle(&pscatequal_pmch, "PMCH - Equalized Symbols");
+    plot_scatter_setXAxisScale(&pscatequal_pmch, -4, 4);
+    plot_scatter_setYAxisScale(&pscatequal_pmch, -4, 4);
+    plot_scatter_addToWindowGrid(&pscatequal_pmch, (char*)"pdsch_ue", 0, 1);
+  }
   
-  plot_scatter_init(&pscatequal_pmch);
-  plot_scatter_setTitle(&pscatequal_pmch, "PMCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&pscatequal_pmch, -4, 4);
-  plot_scatter_setYAxisScale(&pscatequal_pmch, -4, 4);
-
-  plot_scatter_addToWindowGrid(&pscatequal_pmch, (char*)"pdsch_ue", 0, 1);
-
   if (!prog_args.disable_plots_except_constellation) {
     plot_real_init(&pce);
     plot_real_setTitle(&pce, "Channel Response - Magnitude");
@@ -1004,7 +1011,7 @@ void *plot_thread_run(void *arg) {
     plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
     plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
 
-    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue",    0, 2);
+    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue",    0, (enable_mbsfn_plot)?2:1);
     plot_real_addToWindowGrid(&pscatequal_pdcch, (char*)"pdsch_ue", 1, 0);
     plot_real_addToWindowGrid(&p_sync, (char*)"pdsch_ue", 1, 1);
   }
@@ -1057,7 +1064,10 @@ void *plot_thread_run(void *arg) {
     
     plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d[0], nof_symbols);
     
-    plot_scatter_setNewData(&pscatequal_pmch, ue_dl.pmch.d, nof_symbols_pmch);
+    if(enable_mbsfn_plot) {
+      plot_scatter_setNewData(&pscatequal_pmch, ue_dl.pmch.d, nof_symbols_pmch);
+    }
+
     if (plot_sf_idx == 1) {
       if (prog_args.net_port_signal > 0) {
         srslte_netsink_write(&net_sink_signal, &sf_buffer[srslte_ue_sync_sf_len(&ue_sync)/7], 
