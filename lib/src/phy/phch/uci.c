@@ -331,7 +331,7 @@ int decode_cqi_short(srslte_uci_cqi_pusch_t *q, int16_t *q_bits, uint32_t Q, uin
     for (uint32_t w=0;w<(1<<nof_bits);w++) {
           
       // Calculate correlation with pregenerated word and select maximum
-      int32_t corr = srslte_vec_dot_prod_sss(&q->cqi_table_s[nof_bits-1][w*32], q_bits, 32);
+      int32_t corr = srslte_vec_dot_prod_sss(&q->cqi_table_s[nof_bits-1][w*32], q_bits, SRSLTE_MIN(32, Q));
       if (corr > max_corr) {
         max_corr = corr; 
         max_w = w; 
