@@ -67,7 +67,6 @@ private:
   bool                  is_running;
   std::string           filename;
   pthread_cond_t        not_empty;
-  pthread_cond_t        not_full;
   pthread_mutex_t       mutex;
   pthread_t             thread;
   std::deque<str_ptr> buffer;

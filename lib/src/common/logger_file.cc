@@ -54,14 +54,12 @@ logger_file::~logger_file() {
     }
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&not_empty);
-    pthread_cond_destroy(&not_full);
   }
 }
 
 void logger_file::init(std::string file, int max_length_) {
   pthread_mutex_init(&mutex, NULL); 
   pthread_cond_init(&not_empty, NULL);
-  pthread_cond_init(&not_full, NULL);
   max_length = (int64_t)max_length_*1024;
   name_idx = 0;
   filename = file;
@@ -92,7 +90,6 @@ void logger_file::run_thread() {
       if(!is_running) return; // Thread done. Messages in buffer will be handled in flush.
     }
     str_ptr s = buffer.front();
-    pthread_cond_signal(&not_full);
     int n = 0;
     if(logfile)
       n = fprintf(logfile, "%s", s->c_str());
