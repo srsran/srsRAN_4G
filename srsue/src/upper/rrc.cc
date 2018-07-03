@@ -783,7 +783,7 @@ bool rrc::si_acquire(uint32_t sib_index)
         si_win_len = liblte_rrc_si_window_length_num[sib1->si_window_length];
 
         if (last_win_start == 0 ||
-            (srslte_tti_interval(tti, last_win_start) > period*10 && srslte_tti_interval(tti, last_win_start) < 1000))
+            (srslte_tti_interval(tti, last_win_start) > period*5 && srslte_tti_interval(tti, last_win_start) < 1000))
         {
           last_win_start = si_win_start;
           instruct_phy = true;

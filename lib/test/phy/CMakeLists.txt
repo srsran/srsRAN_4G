@@ -18,7 +18,10 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(phy)
-add_subdirectory(upper)
+#######################################################################
+# PHY TESTS
+#######################################################################
+add_executable(phy_dl_test phy_dl_test.c)
+target_link_libraries(phy_dl_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+add_test(phy_dl_test phy_dl_test)
+

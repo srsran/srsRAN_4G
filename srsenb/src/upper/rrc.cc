@@ -637,7 +637,11 @@ void rrc::config_mac()
   }
   sched_cfg.si_window_ms = liblte_rrc_si_window_length_num[cfg.sibs[0].sib.sib1.si_window_length];
   sched_cfg.prach_rar_window = liblte_rrc_ra_response_window_size_num[cfg.sibs[1].sib.sib2.rr_config_common_sib.rach_cnfg.ra_resp_win_size];
+  sched_cfg.prach_freq_offset = cfg.sibs[1].sib.sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset;
   sched_cfg.maxharq_msg3tx = cfg.sibs[1].sib.sib2.rr_config_common_sib.rach_cnfg.max_harq_msg3_tx;
+
+  sched_cfg.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+  rrc_log->info("Allocating %d PRBs for PUCCH\n", sched_cfg.nrb_pucch);
 
   // Copy Cell configuration
   memcpy(&sched_cfg.cell, &cfg.cell, sizeof(srslte_cell_t));
@@ -804,8 +808,7 @@ void rrc::run_thread()
           break;
       }
     } else {
-      printf("Discarting rnti=0x%xn", p.rnti);
-      rrc_log->warning("Discarting PDU for removed rnti=0x%x\n", p.rnti);
+      rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
     }
     pthread_mutex_unlock(&user_mutex);
   }

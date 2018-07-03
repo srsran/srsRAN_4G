@@ -252,9 +252,12 @@ void srslte_rm_turbo_gentables() {
 }
 
 void srslte_rm_turbo_free_tables () {
-  for (int i = 0; i < SRSLTE_NOF_TC_CB_SIZES; i++) {
-    srslte_bit_interleaver_free(&bit_interleavers_systematic_bits[i]);
-    srslte_bit_interleaver_free(&bit_interleavers_parity_bits[i]);
+  if (rm_turbo_tables_generated) {
+    for (int i = 0; i < SRSLTE_NOF_TC_CB_SIZES; i++) {
+      srslte_bit_interleaver_free(&bit_interleavers_systematic_bits[i]);
+      srslte_bit_interleaver_free(&bit_interleavers_parity_bits[i]);
+    }
+    rm_turbo_tables_generated = false;
   }
 }
 

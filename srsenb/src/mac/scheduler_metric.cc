@@ -208,28 +208,50 @@ dl_harq_proc* dl_metric_rr::get_user_allocation(sched_ue *user)
  *
  * Uplink Metric 
  *
- *****************************************************************/  
+ *****************************************************************/
+
+void ul_metric_rr::reset_allocation(uint32_t nof_rb_)
+{
+  nof_rb       = nof_rb_;
+  bzero(used_rb, nof_rb*sizeof(bool));
+}
 
 void ul_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb_, uint32_t tti)
 {
+  typedef std::map<uint16_t, sched_ue>::iterator it_t;
   current_tti  = tti; 
-  nof_rb       = nof_rb_; 
-  available_rb = nof_rb_; 
-  bzero(used_rb, nof_rb*sizeof(bool));
-  
+
   if(ue_db.size()==0)
       return;
 
+  for(it_t it = ue_db.begin(); it != ue_db.end(); ++it) {
+    it->second.ul_next_alloc = NULL;
+  }
+
   // give priority in a time-domain RR basis
-  uint32_t priority_idx = (current_tti+ue_db.size()/2) % ue_db.size(); // make DL and UL interleaved
-  std::map<uint16_t, sched_ue>::iterator iter = ue_db.begin();
+  uint32_t priority_idx = (current_tti+(uint32_t)ue_db.size()/2) % (uint32_t)ue_db.size(); // make DL and UL interleaved
+
+  // allocate reTxs first
+  it_t iter = ue_db.begin();
+  for(uint32_t ue_count = 0 ; ue_count < ue_db.size() ; ++iter, ++ue_count) {
+    if(iter==ue_db.end()) {
+      iter = ue_db.begin(); // wrap around
+    }
+    sched_ue *user = (sched_ue *) &iter->second;
+    user->ul_next_alloc = allocate_user_retx_prbs(user);
+  }
+
+  // give priority in a time-domain RR basis
+  iter = ue_db.begin();
   std::advance(iter,priority_idx);
   for(uint32_t ue_count = 0 ; ue_count < ue_db.size() ; ++iter, ++ue_count) {
     if(iter==ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
     sched_ue *user = (sched_ue*) &iter->second;
-    user->ul_next_alloc = apply_user_allocation(user);
+    if (!user->ul_next_alloc) {
+      user->ul_next_alloc = allocate_user_newtx_prbs(user);
+    }
   }
 }
 
@@ -266,8 +288,8 @@ bool ul_metric_rr::new_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
       }
     }
   }
-  if (!alloc->L) {
-    return 0; 
+  if (alloc->L==0) {
+    return false;
   }
   
   // Make sure L is allowed by SC-FDMA modulation 
@@ -277,21 +299,64 @@ bool ul_metric_rr::new_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
   return alloc->L == L; 
 }
 
-void ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
+bool ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
 {
-  if (alloc.L > available_rb) {
-    return; 
+  if(allocation_is_valid(alloc)) {
+    for (uint32_t n=alloc.RB_start;n<alloc.RB_start+alloc.L;n++) {
+      used_rb[n] = true;
+    }
+    return true;
   }
-  if (alloc.RB_start + alloc.L > nof_rb) {
-    return; 
-  }
-  for (uint32_t n=alloc.RB_start;n<alloc.RB_start+alloc.L;n++) {
-    used_rb[n] = true;
-  }
-  available_rb -= alloc.L; 
+  return false;
 }
 
-ul_harq_proc* ul_metric_rr::apply_user_allocation(sched_ue *user) {
+ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue *user)
+{
+  ul_harq_proc *h = user->get_ul_harq(current_tti);
+
+  // if there are procedures and we have space
+  if(!h->is_empty(0)) {
+    ul_harq_proc::ul_alloc_t alloc = h->get_alloc();
+
+    // If can schedule the same mask, do it
+    if (update_allocation(alloc)) {
+      return h;
+    }
+
+    // If not, try to find another mask in the current tti
+    if (new_allocation(alloc.L, &alloc)) {
+      if(not update_allocation(alloc)) {
+        printf("SCHED: Computed UL allocation is not valid!\n");
+      }
+      h->set_alloc(alloc);
+      return h;
+    }
+  }
+  return NULL;
+}
+
+ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
+{
+  uint32_t pending_data = user->get_pending_ul_new_data(current_tti);
+  ul_harq_proc *h = user->get_ul_harq(current_tti);
+
+  // find an empty PID
+  if (h->is_empty(0) and pending_data) {
+    uint32_t pending_rb = user->get_required_prb_ul(pending_data);
+    ul_harq_proc::ul_alloc_t alloc;
+    new_allocation(pending_rb, &alloc);
+    if (alloc.L) {
+      if(!update_allocation(alloc)) {
+        printf("SCHED: Computed UL allocation is not valid!\n");
+      }
+      h->set_alloc(alloc);
+      return h;
+    }
+  }
+  return NULL;
+}
+
+ul_harq_proc* ul_metric_rr::apply_user_allocation(sched_ue *user, bool retx_only) {
   // Time-domain RR scheduling
   uint32_t pending_data = user->get_pending_ul_new_data(current_tti);
   ul_harq_proc *h = user->get_ul_harq(current_tti);
@@ -312,6 +377,10 @@ ul_harq_proc* ul_metric_rr::apply_user_allocation(sched_ue *user) {
       h->set_alloc(alloc);
       return h;
     }
+  }
+
+  if (retx_only) {
+    return NULL;
   }
 
   // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID

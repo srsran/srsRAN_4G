@@ -9,7 +9,7 @@ sib1 =
     (
         {
             si_periodicity = 16;
-	    si_mapping_info = []; // comma-separated array of SIB-indexes (from 3 to 13). 
+	    si_mapping_info = [13]; // comma-separated array of SIB-indexes (from 3 to 13). 
 				   // Leave empty or commented to just scheduler sib2
         }
     );
@@ -23,9 +23,9 @@ sib2 =
         rach_cnfg = 
         {
             num_ra_preambles = 52;
-            preamble_init_rx_target_pwr = -104;
+            preamble_init_rx_target_pwr = -108;
             pwr_ramping_step = 6;  // in dB
-            preamble_trans_max = 10;
+            preamble_trans_max = 7;
             ra_resp_win_size = 10;  // in ms
             mac_con_res_timer = 64; // in ms
             max_harq_msg3_tx = 4;
@@ -46,21 +46,21 @@ sib2 =
             {
                 high_speed_flag = false;
                 prach_config_index = 3;
-                prach_freq_offset = 2;
+                prach_freq_offset = 0;
                 zero_correlation_zone_config = 11;
             };
         };
         pdsch_cnfg = 
         {
             p_b = 0; 
-            rs_power = -10;
+            rs_power = -4;
         };
         pusch_cnfg = 
         {
             n_sb = 1;
             hopping_mode = "inter-subframe";
             pusch_hopping_offset = 2;
-            enable_64_qam = false; // 64QAM PUSCH is not currently enabled
+            enable_64_qam = false;
             ul_rs = 
             {
                 cyclic_shift = 0; 
@@ -71,25 +71,25 @@ sib2 =
         };
         pucch_cnfg =
         {
-            delta_pucch_shift = 2;
-            n_rb_cqi = 2;
+            delta_pucch_shift = 1;
+            n_rb_cqi = 1;
             n_cs_an = 0;
-            n1_pucch_an = 12;
+            n1_pucch_an = 2;
         };
         ul_pwr_ctrl =
         {
-            p0_nominal_pusch = -85;
-            alpha = 0.7;
-            p0_nominal_pucch = -107;
+            p0_nominal_pusch = -108; 
+            alpha = 1.0; 
+            p0_nominal_pucch = -88; 
             delta_flist_pucch =
             {
-                format_1  = 0;
+                format_1  = 2; 
                 format_1b = 3; 
-                format_2  = 1;
-                format_2a = 2;
-                format_2b = 2;
+                format_2  = 0; 
+                format_2a = 0; 
+                format_2b = 0; 
             };
-            delta_preamble_msg3 = 8;
+            delta_preamble_msg3 = 4;
         };
         ul_cp_length = "Normal";
     };
@@ -111,6 +111,8 @@ sib2 =
         additional_spectrum_emission = 1; 
     };
 
+  
+    
     mbsfnSubframeConfigList = 
     {
         radioframeAllocationPeriod = "1";
@@ -120,8 +122,32 @@ sib2 =
       
     };
 
-    mbsfnSubframeConfigListLength = 0;
-
+    mbsfnSubframeConfigListLength = 1;
+    
     time_alignment_timer = "INFINITY"; // use "sf500", "sf750", etc.
+};
+
+sib13 = 
+{
+    mbsfn_notification_config = 
+    {
+        mbsfn_notification_repetition_coeff = "2";
+        mbsfn_notification_offset = 0;
+        mbsfn_notification_sf_index = 1;
+    };
+    mbsfn_area_info_list_size = 1;
+    mbsfn_area_info_list = 
+    {
+        non_mbsfn_region_length = "2";
+        mcch_repetition_period = "64";
+        mcch_modification_period = "512";
+        signalling_mcs = "2";
+        mbsfn_area_id = 1;
+        notification_indicator = 0;
+        mcch_offset = 0;
+        sf_alloc_info = 32;
+    };
+
+    
 };
 

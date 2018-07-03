@@ -127,7 +127,11 @@ SRSLTE_API srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx);
 
 SRSLTE_API bool srslte_prach_tti_opportunity(srslte_prach_t *p, 
                                              uint32_t current_tti, 
-                                             int allowed_subframe); 
+                                             int allowed_subframe);
+
+SRSLTE_API bool srslte_prach_tti_opportunity_config(uint32_t config_idx,
+                                                    uint32_t current_tti,
+                                                    int allowed_subframe);
 
 SRSLTE_API void srslte_prach_sf_config(uint32_t config_idx, 
                                        srslte_prach_sf_config_t *sf_config);

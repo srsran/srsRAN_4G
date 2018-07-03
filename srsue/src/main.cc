@@ -363,8 +363,14 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     exit(1);
   }
 
-  bpo::store(bpo::parse_config_file(conf, common), vm);
-  bpo::notify(vm);
+  // parse config file and handle errors gracefully
+  try {
+    bpo::store(bpo::parse_config_file(conf, common), vm);
+    bpo::notify(vm);
+  } catch (const boost::program_options::error& e) {
+    cerr << e.what() << endl;
+    exit(1);
+  }
 
   //Check conflicting OP/OPc options and which is being used
   if (vm.count("usim.op") && !vm["usim.op"].defaulted() &&
@@ -373,14 +379,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     cout << "Conflicting options OP and OPc. Please configure either one or the other." << endl;
     exit(1);
   }
-  else
-  {
-    if(vm["usim.op"].defaulted()){
-      args->usim.using_op = true;
-    }
-    else{
-      args->usim.using_op = false;
-    }
+  else {
+    args->usim.using_op = vm.count("usim.op");
   }
 
   // Apply all_level to any unset layers
