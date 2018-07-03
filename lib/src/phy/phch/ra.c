@@ -528,6 +528,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
     }
     grant->mcs[0].mod = SRSLTE_MOD_QPSK;
     grant->mcs[0].tbs = (uint32_t) tbs;
+    grant->mcs[0].idx = dci->mcs_idx;
   } else {
     n_prb = grant->nof_prb;
     if (dci->tb_en[0]) {

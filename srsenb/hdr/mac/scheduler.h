@@ -208,7 +208,7 @@ private:
   uint32_t P; 
   uint32_t start_rbg;
   uint32_t si_n_rbg;
-  uint32_t rar_n_rb; 
+  uint32_t rar_n_rbg;
   uint32_t nof_rbg; 
   uint32_t sf_idx;
   uint32_t sfn;

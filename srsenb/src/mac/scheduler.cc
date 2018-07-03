@@ -43,7 +43,7 @@ namespace srsenb {
  * Initialization and sched configuration functions 
  * 
  *******************************************************/
-sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_rbg(0), si_n_rbg(0), rar_n_rb(0),
+sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_rbg(0), si_n_rbg(0), rar_n_rbg(0),
                  nof_rbg(0), sf_idx(0), sfn(0), current_cfi(0) {
   current_tti = 0;
   log_h = NULL;
@@ -129,8 +129,8 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
   }
 
   P = srslte_ra_type0_P(cfg.cell.nof_prb);
-  si_n_rbg = 4/P; 
-  rar_n_rb = 3; 
+  si_n_rbg  = ceilf((float) 4/P);
+  rar_n_rbg = ceilf((float) 3/P);
   nof_rbg = (uint32_t) ceil((float) cfg.cell.nof_prb/P);
       
   // Compute Common locations for DCI for each CFI
@@ -550,14 +550,15 @@ int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST])
         uint32_t rv = get_rvidx(pending_sibs[i].n_tx);
         
         // Try to allocate DCI first 
-        if (generate_dci(&bc[nof_bc_elems].dci_location, &common_locations[current_cfi-1], bc_aggr_level)) {          
-          if (generate_format1a(start_rbg*P, si_n_rbg*P, cfg.sibs[i].len, rv, &bc[nof_bc_elems].dci) >= 0) {
+        if (generate_dci(&bc[nof_bc_elems].dci_location, &common_locations[current_cfi-1], bc_aggr_level)) {
+          int tbs = generate_format1a(start_rbg*P, si_n_rbg*P, cfg.sibs[i].len, rv, &bc[nof_bc_elems].dci);
+          if (tbs >= (int) cfg.sibs[i].len) {
             bc[nof_bc_elems].index = i; 
             bc[nof_bc_elems].type  = sched_interface::dl_sched_bc_t::BCCH;
-            bc[nof_bc_elems].tbs   = cfg.sibs[i].len; 
+            bc[nof_bc_elems].tbs   = tbs;
             
-            Debug("SCHED: SIB%d, start_rb=%d, n_rb=%d, rv=%d, len=%d, period=%d\n", 
-                  i+1, start_rbg*P, si_n_rbg*P, rv, cfg.sibs[i].len, cfg.sibs[i].period_rf);
+            Debug("SCHED: SIB%d, start_rb=%d, n_rb=%d, rv=%d, len=%d, period=%d, mcs=%d\n",
+                  i+1, start_rbg*P, si_n_rbg*P, rv, cfg.sibs[i].len, cfg.sibs[i].period_rf, bc[nof_bc_elems].dci.mcs_idx);
             
             pending_sibs[i].n_tx++;
             
@@ -588,7 +589,7 @@ int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST])
             bc[nof_bc_elems].tbs  = tbs;
             nof_bc_elems++;
             
-            Info("SCHED: PCH start_rb=%d, tbs=%d\n", start_rbg, tbs);
+            Info("SCHED: PCH start_rb=%d, tbs=%d, mcs=%d\n", start_rbg, tbs, bc[nof_bc_elems].dci.mcs_idx);
 
             avail_rbg -= si_n_rbg;
             start_rbg += si_n_rbg;                   
@@ -610,7 +611,7 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
   int nof_rar_elems = 0; 
   for (uint32_t i=0;i<SCHED_MAX_PENDING_RAR;i++) 
   {
-    if (pending_rar[i].buf_rar > 0 && avail_rbg >= (uint32_t)ceil((float)rar_n_rb/P))
+    if (pending_rar[i].buf_rar > 0 && avail_rbg >= rar_n_rbg)
     {
       /* Check if we are still within the RAR window, otherwise discard it */
       if (current_tti <= (pending_rar[i].rar_tti + cfg.prach_rar_window + 3)%10240 && current_tti >= pending_rar[i].rar_tti + 3)
@@ -647,8 +648,8 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
                 pending_msg3[pending_tti].n_prb   = n_prb; 
                 pending_msg3[pending_tti].mcs     = rar[nof_rar_elems].grants[nof_grants].grant.trunc_mcs; 
             
-                log_h->info("SCHED: RAR, ra_id=%d, rnti=0x%x, rarnti_idx=%d, start_rb=%d, n_rb=%d, rar_grant_rba=%d, rar_grant_mcs=%d\n", 
-                  pending_rar[j].ra_id, pending_rar[j].rnti, rar_sfidx, start_rbg*P, rar_n_rb, 
+                log_h->info("SCHED: RAR, ra_id=%d, rnti=0x%x, rarnti_idx=%d, start_rb=%d, n_rb=%d, rar_grant_rba=%d, rar_grant_mcs=%d\n",
+                  pending_rar[j].ra_id, pending_rar[j].rnti, rar_sfidx, start_rbg*P, rar_n_rbg*P,
                   rar[nof_rar_elems].grants[nof_grants].grant.rba, 
                   rar[nof_rar_elems].grants[nof_grants].grant.trunc_mcs);
               } else {
@@ -661,11 +662,11 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
           rar[nof_rar_elems].nof_grants = nof_grants; 
           rar[nof_rar_elems].rarnti     = rar_sfidx; 
                   
-          if (generate_format1a(start_rbg*P, rar_n_rb, buf_rar, 0, &rar[nof_rar_elems].dci) >= 0) {
+          if (generate_format1a(start_rbg*P, rar_n_rbg*P, buf_rar, 0, &rar[nof_rar_elems].dci) >= 0) {
             rar[nof_rar_elems].tbs = buf_rar; 
             nof_rar_elems++;
-            avail_rbg -= (uint32_t)ceil((float)rar_n_rb/P);
-            start_rbg += (uint32_t)ceil((float)rar_n_rb/P);
+            avail_rbg -= rar_n_rbg;
+            start_rbg += rar_n_rbg;
           } else {
             Error("SCHED: Allocating Format1A grant\n");
           }
@@ -1102,6 +1103,9 @@ int sched::generate_format1a(uint32_t rb_start, uint32_t l_crb, uint32_t tbs_byt
     Error("Can't allocate Format 1A for TBS=%d\n", tbs);
     return -1; 
   }
+
+  Debug("ra_tbs=%d/%d, tbs_bytes=%d, tbs=%d, mcs=%d\n",
+        srslte_ra_tbs_from_idx(mcs, 2),srslte_ra_tbs_from_idx(mcs, 3),tbs_bytes,tbs,mcs);
   
   dci->alloc_type = SRSLTE_RA_ALLOC_TYPE2; 
   dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
