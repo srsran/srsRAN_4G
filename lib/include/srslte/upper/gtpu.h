@@ -29,6 +29,7 @@
 
 #include <stdint.h>
 #include "srslte/common/common.h"
+#include "srslte/common/log.h"
 
 namespace srslte {
 
@@ -58,8 +59,8 @@ typedef struct{
 }gtpu_header_t;
 
 
-bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header);
-bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu);
+bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte::log *gtpu_log);
+bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte::log *gtpu_log);
 
 inline void uint8_to_uint32(uint8_t *buf, uint32_t *i)
 {

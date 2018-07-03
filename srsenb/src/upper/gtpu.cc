@@ -23,7 +23,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-
+#include "srslte/upper/gtpu.h"
 #include "srsenb/hdr/upper/gtpu.h"
 #include <unistd.h>
 #include <sys/socket.h>
@@ -31,13 +31,12 @@
 #include <errno.h>
 
 using namespace srslte;
-
 namespace srsenb {
-  
-  gtpu::gtpu():mchthread()
-  {
-  }
-  
+
+gtpu::gtpu():mchthread()
+{
+}
+
 bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
 {
   pdcp          = pdcp_;
@@ -45,8 +44,8 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
 
-  pthread_mutex_init(&mutex, NULL); 
-  
+  pthread_mutex_init(&mutex, NULL);
+
   pool          = byte_buffer_pool::get_instance();
 
   // Set up sink socket
@@ -106,11 +105,11 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
 
 void gtpu::stop()
 {
-  
+
  if(enable_mbsfn){
     mchthread.stop();
   }
-  
+
   if (run_enable) {
     run_enable = false;
     // Wait thread to exit gracefully otherwise might leave a mutex locked
@@ -124,7 +123,7 @@ void gtpu::stop()
     }
     wait_thread_finish();
   }
-  
+
   if (snk_fd) {
     close(snk_fd);
   }
@@ -148,7 +147,7 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   servaddr.sin_addr.s_addr = htonl(rnti_bearers[rnti].spgw_addrs[lcid]);
   servaddr.sin_port        = htons(GTPU_PORT);
 
-  gtpu_write_header(&header, pdu);
+  gtpu_write_header(&header, pdu, gtpu_log);
   if (sendto(snk_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
     perror("sendto");
   }
@@ -230,7 +229,7 @@ void gtpu::run_thread()
     pdu->N_bytes = (uint32_t) n;
 
     gtpu_header_t header;
-    gtpu_read_header(pdu, &header);
+    gtpu_read_header(pdu, &header,gtpu_log);
 
     uint16_t rnti = 0;
     uint16_t lcid = 0;
@@ -263,69 +262,6 @@ void gtpu::run_thread()
     } while(!pdu);
   }
   running = false;
-}
-
-/****************************************************************************
-* Header pack/unpack helper functions
-* Ref: 3GPP TS 29.281 v10.1.0 Section 5
-***************************************************************************/
-
-bool gtpu::gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu)
-{
-  if(header->flags != 0x30) {
-    gtpu_log->error("gtpu_write_header - Unhandled header flags: 0x%x\n", header->flags);
-    return false;
-  }
-  if(header->message_type != 0xFF) {
-    gtpu_log->error("gtpu_write_header - Unhandled message type: 0x%x\n", header->message_type);
-    return false;
-  }
-  if(pdu->get_headroom() < GTPU_HEADER_LEN) {
-    gtpu_log->error("gtpu_write_header - No room in PDU for header\n");
-    return false;
-  }
-
-  pdu->msg      -= GTPU_HEADER_LEN;
-  pdu->N_bytes  += GTPU_HEADER_LEN;
-
-  uint8_t *ptr = pdu->msg;
-
-  *ptr = header->flags;
-  ptr++;
-  *ptr = header->message_type;
-  ptr++;
-  uint16_to_uint8(header->length, ptr);
-  ptr += 2;
-  uint32_to_uint8(header->teid, ptr);
-
-  return true;
-}
-
-bool gtpu::gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header)
-{
-  uint8_t *ptr  = pdu->msg;
-
-  pdu->msg      += GTPU_HEADER_LEN;
-  pdu->N_bytes  -= GTPU_HEADER_LEN;
-
-  header->flags         = *ptr;
-  ptr++;
-  header->message_type  = *ptr;
-  ptr++;
-  uint8_to_uint16(ptr, &header->length);
-  ptr += 2;
-  uint8_to_uint32(ptr, &header->teid);
-
-  if(header->flags != 0x30) {
-    gtpu_log->error("gtpu_read_header - Unhandled header flags: 0x%x\n", header->flags);
-    return false;
-  }
-  if(header->message_type != 0xFF) {
-    gtpu_log->error("gtpu_read_header - Unhandled message type: 0x%x\n", header->message_type);
-    return false;
-  }
-
-  return true;
 }
 
 /****************************************************************************
@@ -429,7 +365,7 @@ void gtpu::mch_thread::run_thread()
     pdu->N_bytes = (uint32_t) n;
     
     gtpu_header_t header;
-    gtpu_read_header(pdu, &header);
+    gtpu_read_header(pdu, &header, gtpu_log);
 
     pdcp->write_sdu(SRSLTE_MRNTI, lcid, pdu);
     do {

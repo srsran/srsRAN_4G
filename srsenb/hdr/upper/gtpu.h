@@ -58,33 +58,25 @@ namespace srsenb {
 
 #define GTPU_HEADER_LEN 8
 
-typedef struct{
-  uint8_t   flags;          // Only support 0x30 - v1, PT1 (GTP), no other flags
-  uint8_t   message_type;   // Only support 0xFF - T-PDU type
-  uint16_t  length;
-  uint32_t  teid;
-}gtpu_header_t;
-
-
 class gtpu
     :public gtpu_interface_rrc
     ,public gtpu_interface_pdcp
     ,public thread
 {
-public: 
-  
+public:
+
   gtpu();
-  
+
   bool init(std::string gtp_bind_addr_, std::string mme_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
   void stop();
-  
+
   // gtpu_interface_rrc
   void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in);
   void rem_bearer(uint16_t rnti, uint32_t lcid);
   void rem_user(uint16_t rnti);
-  
+
   // gtpu_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu); 
+  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
 
 private:
   static const int THREAD_PRIO = 65;
@@ -92,8 +84,6 @@ private:
   srslte::byte_buffer_pool     *pool;
   bool                         running;
   bool                         run_enable;
-  
- 
 
   bool                         enable_mbsfn;
   std::string                  gtp_bind_addr;
@@ -141,14 +131,7 @@ private:
   //Threading
   void run_thread();
 
-  pthread_mutex_t mutex; 
-
-  /****************************************************************************
-   * Header pack/unpack helper functions
-   * Ref: 3GPP TS 29.281 v10.1.0 Section 5
-   ***************************************************************************/
-  bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu);
-  bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header);
+  pthread_mutex_t mutex;
 
   /****************************************************************************
    * TEID to RNIT/LCID helper functions
