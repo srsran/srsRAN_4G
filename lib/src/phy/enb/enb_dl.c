@@ -69,13 +69,11 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], u
         goto clean_exit;
       }
     }
-    
 
     if (srslte_ofdm_tx_init_mbsfn(&q->ifft_mbsfn, SRSLTE_CP_EXT, q->sf_symbols[0], out_buffer[0], max_prb)) {
       fprintf(stderr, "Error initiating FFT \n");
       goto clean_exit;
     }
-    
 
     if (srslte_pbch_init(&q->pbch)) {
       fprintf(stderr, "Error creating PBCH object\n");
@@ -174,6 +172,9 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
         return SRSLTE_ERROR;
       }
       for (int i = 0; i < q->cell.nof_ports; i++) {
+
+        q->slot1_symbols[i] = &q->sf_symbols[i][SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, SRSLTE_CP_NORM)];
+
         if (srslte_ofdm_tx_set_prb(&q->ifft[i], q->cell.cp, q->cell.nof_prb)) {
           fprintf(stderr, "Error re-planning iFFT (%d)\n", i);
           return SRSLTE_ERROR;
@@ -375,7 +376,7 @@ void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti)
   srslte_enb_dl_put_refs(q, sf_idx);
   srslte_enb_dl_put_mib(q, tti);
   srslte_enb_dl_put_pcfich(q, sf_idx);
-  
+
 }
 
 void srslte_enb_dl_put_mbsfn_base(srslte_enb_dl_t *q, uint32_t tti) 
