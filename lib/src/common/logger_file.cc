@@ -34,18 +34,17 @@ using namespace std;
 namespace srslte{
 
 logger_file::logger_file()
-  :inited(false)
-  ,logfile(NULL)
-  ,not_done(true)
+  :logfile(NULL)
+  ,is_running(false)
   ,cur_length(0)
   ,max_length(0)
 {}
 
 logger_file::~logger_file() {
-  not_done = false;
-  if(inited) {
+  if(is_running) {
     log(new std::string("Closing log\n"));
     pthread_mutex_lock(&mutex);
+    is_running = false;
     pthread_cond_signal(&not_empty);  // wakeup thread and let it terminate
     pthread_mutex_unlock(&mutex);
     wait_thread_finish();
@@ -67,11 +66,11 @@ void logger_file::init(std::string file, int max_length_) {
   name_idx = 0;
   filename = file;
   logfile = fopen(filename.c_str(), "w");
-  if(logfile==NULL) {
+  if(logfile == NULL) {
     printf("Error: could not create log file, no messages will be logged!\n");
   }
+  is_running = true;
   start(-2);
-  inited = true;
 }
 
 void logger_file::log(const char *msg) {
@@ -86,14 +85,11 @@ void logger_file::log(str_ptr msg) {
 }
 
 void logger_file::run_thread() {
-  while(not_done) {
+  while(is_running) {
     pthread_mutex_lock(&mutex);
     while(buffer.empty()) {
       pthread_cond_wait(&not_empty, &mutex);
-      if(not_done == false) // Thread done. Messages in buffer will be handled in flush.
-      {
-        return;
-      }
+      if(!is_running) return; // Thread done. Messages in buffer will be handled in flush.
     }
     str_ptr s = buffer.front();
     pthread_cond_signal(&not_full);

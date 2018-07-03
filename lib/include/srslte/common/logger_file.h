@@ -64,8 +64,7 @@ private:
   int64_t               max_length;
   int64_t               cur_length;
   FILE*                 logfile;
-  bool                  inited;
-  bool                  not_done;
+  bool                  is_running;
   std::string           filename;
   pthread_cond_t        not_empty;
   pthread_cond_t        not_full;
