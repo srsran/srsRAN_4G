@@ -72,6 +72,7 @@ int freq_hop = -1;
 int riv = -1;
 uint32_t mcs_idx = 0;
 srslte_cqi_value_t cqi_value;
+bool enable_64_qam = false;
 
 void usage(char *prog) {
   printf("Usage: %s [csrnfvmtLNF] \n", prog);
@@ -96,10 +97,11 @@ void usage(char *prog) {
   printf("\n\tCQI/RI/ACK Reporting contents:\n");
   printf("\t\t-p uci_cqi (none, wideband) [Default none]\n");
   printf("\t\t-p uci_ri (0-1) (zeros, ones, random) [Default none]\n");
-  printf("\t\t-p uci_ack (0-1) [Default none]\n");
-  printf("\t\t-p uci_ack_2 (0-1) [Default none]\n");
+  printf("\t\t-p uci_ack [Default none]\n");
+  printf("\t\t-p uci_ack_2 [Default none]\n");
 
   printf("\n\tOther parameters:\n");
+  printf("\t\t-p enable_64qam [Default %s]\n", enable_64_qam ? "enabled":"disabled");
   printf("\t\t-s number of subframes [Default %d]\n", subframe);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
@@ -139,14 +141,9 @@ void parse_extensive_param(char *param, char *arg) {
       uci_data_tx.uci_ri_len = 1;
     }
   } else if (!strcmp(param, "uci_ack")) {
-    uci_data_tx.uci_ack = (uint8_t) strtol(arg, NULL, 10);
-    if (uci_data_tx.uci_ack > 1) {
-      ext_code = SRSLTE_ERROR;
-    } else {
-      uci_data_tx.uci_ack_len++;
-      if (uci_data_tx.uci_ack_len > 2) {
-        uci_data_tx.uci_ack_len = 2;
-      }
+    uci_data_tx.uci_ack_len++;
+    if (uci_data_tx.uci_ack_len > 2) {
+      uci_data_tx.uci_ack_len = 2;
     }
   } else if (!strcmp(param, "uci_ack_2")) {
     uci_data_tx.uci_ack_2 = (uint8_t) strtol(arg, NULL, 10);
@@ -158,6 +155,8 @@ void parse_extensive_param(char *param, char *arg) {
         uci_data_tx.uci_ack_len = 2;
       }
     }
+  } else if (!strcmp(param, "enable_64qam")) {
+    enable_64_qam ^= true;
   } else {
     ext_code = SRSLTE_ERROR;
   }
@@ -318,6 +317,11 @@ int main(int argc, char **argv) {
     ce[j] = 1;
   }
 
+  if (!enable_64_qam && grant.mcs.mod == SRSLTE_MOD_64QAM) {
+    grant.mcs.mod = SRSLTE_MOD_16QAM;
+    grant.Qm = 4;
+  }
+
   for (int n = 0; n < subframe; n++) {
     ret = SRSLTE_SUCCESS;
 
@@ -377,12 +381,12 @@ int main(int argc, char **argv) {
     gettimeofday(&t[2], NULL);
     if (r) {
       printf("Error returned while decoding\n");
-      goto quit;
+      ret = SRSLTE_ERROR;
     }
 
     if (memcmp(data_rx, data, (size_t) cfg.grant.mcs.tbs / 8) != 0) {
       printf("Unmatched data detected\n");
-      goto quit;
+      ret = SRSLTE_ERROR;
     } else {
       INFO("Rx Data is Ok\n");
     }

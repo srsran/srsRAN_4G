@@ -683,9 +683,9 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     Q_prime_ack = (uint32_t) ret; 
 
     // Set zeros to HARQ bits
-    for (uint32_t i=0;i<Q_prime_ack;i++) {
-      q_bits[q->ack_ri_bits[i].position] = 0;  
-    }    
+    for (uint32_t i = 0; i < Q_prime_ack * Qm; i++) {
+      q_bits[q->ack_ri_bits[i].position] = 0;
+    }
   }
         
   // Deinterleave and decode RI bits

@@ -646,8 +646,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
                  cqi_value.subband_hl.wideband_cqi_cw0, cqi_value.subband_hl.N);
           }
         }
-        srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
-        //snprintf(cqi_str, 64, ", cqi=%s", wideband_cqi_value);
+        srslte_cqi_value_tostring(&cqi_value, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
       }
 
       float snr_db  = 10*log10(srslte_chest_ul_get_snr(&enb_ul.chest));
@@ -665,7 +664,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       }
       */
       log_h->info_hex(grants[i].data, phy_grant.mcs.tbs / 8,
-                      "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s%s%s\n",
+                      "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s%s%s%s\n",
                       rnti, phy_grant.n_prb[0], phy_grant.n_prb[0]+phy_grant.L_prb,
                       phy_grant.mcs.tbs / 8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
                       snr_db,
@@ -674,7 +673,6 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
                       (acks_pending[0] || acks_pending[1]) ? ", ack=" : "",
                       (acks_pending[0]) ? (uci_data.uci_ack ? "1" : "0") : "",
                       (acks_pending[1]) ? (uci_data.uci_ack_2 ? "1" : "0") : "",
-                      uci_data.uci_cqi_len > 0 ? ", cqi=" : "",
                       uci_data.uci_cqi_len > 0 ? cqi_str : "",
                       uci_data.uci_ri_len > 0 ? ((uci_data.uci_ri == 0) ? ", ri=0" : ", ri=1") : "",
                       timestr);
