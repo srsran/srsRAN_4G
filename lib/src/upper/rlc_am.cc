@@ -1111,7 +1111,7 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
               // sanity check
               if (status.nacks[j].so_start >= it->second.buf->N_bytes) {
                 // print error but try to send original PDU again
-                log->error("SO_start is larger than original PDU (%d >= %d)\n",
+                log->info("SO_start is larger than original PDU (%d >= %d)\n",
                            status.nacks[j].so_start,
                            it->second.buf->N_bytes);
                 status.nacks[j].so_start = 0;
