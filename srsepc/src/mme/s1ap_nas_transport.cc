@@ -770,6 +770,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         }
         //Store context based on MME UE S1AP id
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
+        m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
 
         //NAS integrity failed. Re-start authentication process.
         m_s1ap_log->console("GUTI Attach request NAS integrity failed.\n");
