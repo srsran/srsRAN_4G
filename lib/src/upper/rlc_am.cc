@@ -1213,7 +1213,7 @@ void rlc_am::reassemble_rx_sdus()
 #endif
           }
         } else {
-          log->error("Cannot read %d bytes from rx_window. vr_r=%d, tailroom=%d bytes\n", len, rx_window[vr_r].buf->get_tailroom());
+          log->error("Cannot read %d bytes from rx_window. vr_r=%d, tailroom=%d bytes\n", len, vr_r, rx_window[vr_r].buf->get_tailroom());
           pool->deallocate(rx_sdu);
           goto exit;
         }
@@ -1289,7 +1289,6 @@ void rlc_am::debug_state()
              "vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d\n",
              rrc->get_rb_name(lcid).c_str(), vt_a, vt_ms, vt_s, poll_sn,
              vr_r, vr_mr, vr_x, vr_ms, vr_h);
-
 }
 
 void rlc_am::print_rx_segments()
