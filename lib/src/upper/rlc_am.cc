@@ -1166,6 +1166,7 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 void rlc_am::reassemble_rx_sdus()
 {
+  uint32_t len = 0;
   if(!rx_sdu) {
     rx_sdu = pool_allocate;
     if (!rx_sdu) {
@@ -1185,41 +1186,46 @@ void rlc_am::reassemble_rx_sdus()
     // Handle any SDU segments
     for(uint32_t i=0; i<rx_window[vr_r].header.N_li; i++)
     {
-      uint32_t len = rx_window[vr_r].header.li[i];
+      len = rx_window[vr_r].header.li[i];
       // sanity check to avoid zero-size SDUs
       if (len == 0) {
         break;
       }
 
       if (rx_sdu->get_tailroom() >= len) {
-        memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
-        rx_sdu->N_bytes += len;
-        rx_window[vr_r].buf->msg += len;
-        rx_window[vr_r].buf->N_bytes -= len;
-        log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", rrc->get_rb_name(lcid).c_str(), rx_sdu->N_bytes);
-        rx_sdu->set_timestamp();
-        pdcp->write_pdu(lcid, rx_sdu);
+        if (rx_window[vr_r].buf->get_tailroom() >= len) {
+          memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
+          rx_sdu->N_bytes += len;
+          rx_window[vr_r].buf->msg += len;
+          rx_window[vr_r].buf->N_bytes -= len;
+          log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", rrc->get_rb_name(lcid).c_str(), rx_sdu->N_bytes);
+          rx_sdu->set_timestamp();
+          pdcp->write_pdu(lcid, rx_sdu);
 
-        rx_sdu = pool_allocate;
-        if (!rx_sdu) {
+          rx_sdu = pool_allocate;
+          if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
-          log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+            log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
           exit(-1);
 #else
-          log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
-          return;
+            log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+            return;
 #endif
+          }
+        } else {
+          log->error("Cannot read %d bytes from rx_window. vr_r=%d, tailroom=%d bytes\n", len, rx_window[vr_r].buf->get_tailroom());
+          pool->deallocate(rx_sdu);
+          goto exit;
         }
       } else {
         log->error("Cannot fit RLC PDU in SDU buffer, dropping both.\n");
         pool->deallocate(rx_sdu);
-        pool->deallocate(rx_window[vr_r].buf);
-        rx_window.erase(vr_r);
+        goto exit;
       }
     }
 
     // Handle last segment
-    uint32_t len = rx_window[vr_r].buf->N_bytes;
+    len = rx_window[vr_r].buf->N_bytes;
     if (rx_sdu->get_tailroom() >= len) {
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
       rx_sdu->N_bytes += rx_window[vr_r].buf->N_bytes;
@@ -1246,6 +1252,7 @@ void rlc_am::reassemble_rx_sdus()
       }
     }
 
+exit:
     // Move the rx_window
     pool->deallocate(rx_window[vr_r].buf);
     rx_window.erase(vr_r);
