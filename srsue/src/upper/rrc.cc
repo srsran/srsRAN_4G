@@ -2136,8 +2136,6 @@ void rrc::send_rrc_ue_cap_info() {
   cap->inter_rat_params.cdma2000_hrpd_present = false;
   cap->inter_rat_params.cdma2000_1xrtt_present = false;
 
-  liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
-
   send_ul_dcch_msg();
 }
 
