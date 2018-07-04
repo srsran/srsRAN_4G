@@ -52,7 +52,7 @@ namespace srsue {
 
 phy::phy() : workers_pool(MAX_WORKERS), 
              workers(MAX_WORKERS), 
-             workers_common(phch_recv::MUTEX_X_WORKER*MAX_WORKERS)
+             workers_common(phch_recv::MUTEX_X_WORKER*MAX_WORKERS),nof_coworkers(0)
 {
 }
 
@@ -169,6 +169,7 @@ void phy::run_thread() {
   }
 
   for (uint32_t i=0;i<nof_coworkers;i++) {
+    printf("setting coworker for %d/%d\n", i, nof_coworkers);
     workers[i].enable_pdsch_coworker();
   }
 
