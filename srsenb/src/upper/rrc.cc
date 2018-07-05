@@ -557,7 +557,7 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
 
 void rrc::process_rl_failure(uint16_t rnti)
 {
-  if (users.count(rnti) == 0) {
+  if (users.count(rnti) == 1) {
     uint32_t n_rfl = users[rnti].rl_failure();
     if (n_rfl == 1) {
       rrc_log->info("Radio-Link failure detected rnti=0x%x\n", rnti);
@@ -573,6 +573,8 @@ void rrc::process_rl_failure(uint16_t rnti)
     } else {
       rrc_log->info("%d Radio-Link failure detected rnti=0x%x\n", n_rfl, rnti);
     }
+  } else {
+    rrc_log->error("Radio-Link failure detected for uknown rnti=0x%x\n", rnti);
   }
 }
 
