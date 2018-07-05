@@ -679,8 +679,14 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
         }
         Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d, cfi=%d\n", rnti, h->get_id(), current_cfi);
       }      
-    }    
-  } 
+    }
+
+    // Reset blocked PIDs
+    user->reset_timeout_dl_harq(current_tti);
+
+  }
+
+
   
   return nof_data_elems; 
 } 

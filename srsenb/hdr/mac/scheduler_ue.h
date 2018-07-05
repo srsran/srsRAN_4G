@@ -111,6 +111,7 @@ public:
   uint32_t   get_pending_ul_old_data();
   uint32_t   get_pending_dl_new_data_total(uint32_t tti);
 
+  void          reset_timeout_dl_harq(uint32_t tti);
   dl_harq_proc *get_pending_dl_harq(uint32_t tti);
   dl_harq_proc *get_empty_dl_harq();   
   ul_harq_proc *get_ul_harq(uint32_t tti);   

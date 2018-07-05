@@ -332,7 +332,7 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
   if (ack) {
     if (nof_bytes > 64) { // do not count RLC status messages only
       rrc_h->set_activity_user(rnti);
-      log_h->info("DL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
+      log_h->debug("DL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
     }
   }
   pthread_rwlock_unlock(&rwlock);

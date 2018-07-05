@@ -383,7 +383,7 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
       if (lch[lcid].bsr > (int) len) {
         lch[lcid].bsr -= len;
       } else {
-        lch[lcid].bsr = 0; 
+        lch[lcid].bsr = 0;
       }
     }
   }
@@ -985,6 +985,19 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
 bool sched_ue::is_sr_triggered()
 {
   return sr; 
+}
+
+void sched_ue::reset_timeout_dl_harq(uint32_t tti) {
+  for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
+    if (!(dl_harq[i].is_empty(0) && dl_harq[i].is_empty(1))) {
+      log_h->info("SCHED: pid=%d is empty\n", i);
+      if (srslte_tti_interval(tti, dl_harq[i].get_tti()) > 50) {
+        log_h->info("SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n", i, dl_harq[i].get_tti(), tti);
+        dl_harq[i].reset(0);
+        dl_harq[i].reset(1);
+      }
+    }
+  }
 }
 
 /* Gets HARQ process with oldest pending retx */
