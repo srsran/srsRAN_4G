@@ -25,6 +25,7 @@
  */
 
 #include <unistd.h>
+#include <signal.h>
 #include "srslte/srslte.h"
 #include "srslte/radio/radio_multi.h"
 
@@ -85,18 +86,31 @@ void parse_args(int argc, char **argv) {
   }
 }
 
+bool go_exit = false;
+void sig_int_handler(int signo)
+{
+  printf("SIGINT received. Exiting...\n");
+  if (signo == SIGINT) {
+    go_exit = true;
+  } else if (signo == SIGSEGV) {
+    exit(1);
+  }
+}
+
 int main(int argc, char **argv)
 {
   int ret = SRSLTE_ERROR;
   srslte::radio_multi *radio_h = NULL;
   srslte_timestamp_t ts_rx = {}, ts_tx = {};
 
+  signal(SIGINT, sig_int_handler);
+
   /* Parse args */
   parse_args(argc, argv);
 
   uint32_t nof_samples = (uint32_t) (duration * srate);
   uint32_t frame_size = (uint32_t) (srate / 1000.0); /* 1 ms at srate */
-  uint32_t nof_frames = (uint32_t) ceil(nof_samples / frame_size);
+  uint32_t nof_frames = duration * 1e3;
 
   radio_h = new radio_multi();
   if (!radio_h) {
@@ -155,6 +169,8 @@ int main(int argc, char **argv)
     }
 
     nof_samples -= frame_size;
+
+    if (go_exit) break;
   }
 
   printf("Finished streaming ...\n");
