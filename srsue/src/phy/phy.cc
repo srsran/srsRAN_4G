@@ -169,7 +169,6 @@ void phy::run_thread() {
   }
 
   for (uint32_t i=0;i<nof_coworkers;i++) {
-    printf("setting coworker for %d/%d\n", i, nof_coworkers);
     workers[i].enable_pdsch_coworker();
   }
 

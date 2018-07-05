@@ -1193,7 +1193,7 @@ void rlc_am::reassemble_rx_sdus()
       }
 
       if (rx_sdu->get_tailroom() >= len) {
-        if (rx_window[vr_r].buf->get_tailroom() >= len) {
+        if ((rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer) + len < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
           memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
           rx_sdu->N_bytes += len;
           rx_window[vr_r].buf->msg += len;
@@ -1213,7 +1213,7 @@ void rlc_am::reassemble_rx_sdus()
 #endif
           }
         } else {
-          log->error("Cannot read %d bytes from rx_window. vr_r=%d, tailroom=%d bytes\n", len, vr_r, rx_window[vr_r].buf->get_tailroom());
+          log->error("Cannot read %d bytes from rx_window. vr_r=%d, msg-buffer=%d bytes\n", len, vr_r, (rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer));
           pool->deallocate(rx_sdu);
           goto exit;
         }
