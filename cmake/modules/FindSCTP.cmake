@@ -2,8 +2,8 @@
 #
 # Once done this will define
 #  SCTP_FOUND        - System has mbedtls
-#  SCTP_INCLUDE_DIRS - The mbedtls include directories
-#  SCTP_LIBRARIES    - The mbedtls library
+#  SCTP_INCLUDE_DIRS - The libsctp include directories
+#  SCTP_LIBRARIES    - The libsctp library
 
 INCLUDE(FindPkgConfig)
 PKG_CHECK_MODULES(PC_SCTP sctp)
