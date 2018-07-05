@@ -29,13 +29,18 @@
 
 namespace srslte {
 
-rlc_tm::rlc_tm() : ul_queue(16)
+rlc_tm::rlc_tm(uint32_t queue_len) : ul_queue(queue_len)
 {
   log = NULL;
   pdcp = NULL;
   rrc = NULL;
   lcid = 0;
   pool = byte_buffer_pool::get_instance();
+}
+
+// Warning: must call stop() to properly deallocate all buffers
+rlc_tm::~rlc_tm() {
+  pool = NULL;
 }
 
 void rlc_tm::init(srslte::log               *log_,
@@ -48,6 +53,7 @@ void rlc_tm::init(srslte::log               *log_,
   lcid = lcid_;
   pdcp = pdcp_;
   rrc  = rrc_;
+  tx_enabled = true;
 }
 
 void rlc_tm::configure(srslte_rlc_config_t cnfg)
@@ -64,14 +70,10 @@ void rlc_tm::empty_queue()
   }
 }
 
-void rlc_tm::reset()
-{
-  empty_queue(); 
-}
-
 void rlc_tm::stop()
 {
-  reset();
+  tx_enabled = false;
+  empty_queue();
 }
 
 rlc_mode_t rlc_tm::get_mode()
@@ -87,11 +89,37 @@ uint32_t rlc_tm::get_bearer()
 // PDCP interface
 void rlc_tm::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, before: queue size=%d, bytes=%d",
-                rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
-  ul_queue.write(sdu);
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, after: queue size=%d, bytes=%d",
-                rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
+  if (!tx_enabled) {
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+    return;
+  }
+  if (sdu) {
+    ul_queue.write(sdu);
+    log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, queue size=%d, bytes=%d",
+                  rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
+  } else {
+    log->warning("NULL SDU pointer in write_sdu()\n");
+  }
+}
+
+void rlc_tm::write_sdu_nb(byte_buffer_t *sdu)
+{
+  if (!tx_enabled) {
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+    return;
+  }
+  if (sdu) {
+    if (ul_queue.try_write(sdu)) {
+      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, queue size=%d, bytes=%d",
+                    rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
+    } else {
+      log->warning_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
+                       rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
+      pool->deallocate(sdu);
+    }
+  } else {
+    log->warning("NULL SDU pointer in write_sdu()\n");
+  }
 }
 
 // MAC interface

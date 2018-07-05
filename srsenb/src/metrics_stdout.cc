@@ -41,6 +41,8 @@ using namespace std;
 
 namespace srsenb{
 
+#define MAX(a,b) (a>b?a:b)
+
 char const * const prefixes[2][9] =
 {
   {   "",   "m",   "u",   "n",    "p",    "f",    "a",    "z",    "y", },
@@ -125,25 +127,41 @@ void metrics_stdout::print_metrics()
       }
     
       cout << std::hex << metrics.mac[i].rnti << " ";
-      cout << float_to_string(metrics.mac[i].dl_cqi, 2);
+      cout << float_to_string(MAX(0.1,metrics.mac[i].dl_cqi), 2);
       cout << float_to_string(metrics.mac[i].dl_ri, 1);
-      cout << float_to_string(metrics.phy[i].dl.mcs, 2);
-      cout << float_to_eng_string((float) metrics.mac[i].tx_brate/metrics_report_period, 2);
+      if(not isnan(metrics.phy[i].dl.mcs)) {
+        cout << float_to_string(MAX(0.1,metrics.phy[i].dl.mcs), 2);
+      } else {
+        cout << float_to_string(0,2);
+      }
+      if (metrics.mac[i].tx_brate > 0 && metrics_report_period) {
+        cout << float_to_eng_string(MAX(0.1,(float) metrics.mac[i].tx_brate/metrics_report_period), 2);
+      } else {
+        cout << float_to_string(0, 2) << "";
+      }
       if (metrics.mac[i].tx_pkts > 0 && metrics.mac[i].tx_errors) {
-        cout << float_to_string((float) 100*metrics.mac[i].tx_errors/metrics.mac[i].tx_pkts, 1) << "%";
+        cout << float_to_string(MAX(0.1,(float) 100*metrics.mac[i].tx_errors/metrics.mac[i].tx_pkts), 1) << "%";
       } else {
         cout << float_to_string(0, 1) << "%";
       }
-      cout << float_to_string(metrics.phy[i].ul.sinr, 2);
+      if(not isnan(metrics.phy[i].ul.sinr)) {
+        cout << float_to_string(MAX(0.1,metrics.phy[i].ul.sinr), 2);
+      } else {
+        cout << float_to_string(0,2);
+      }
       cout << float_to_string(metrics.mac[i].phr, 2);
-      cout << float_to_string(metrics.phy[i].ul.mcs, 2);
+      if(not isnan(metrics.phy[i].ul.mcs)) {
+        cout << float_to_string(MAX(0.1,metrics.phy[i].ul.mcs), 2);
+      } else {
+        cout << float_to_string(0,2);
+      }
       if (metrics.mac[i].rx_brate > 0 && metrics_report_period) {
-        cout << float_to_eng_string((float) metrics.mac[i].rx_brate/metrics_report_period, 2);
+        cout << float_to_eng_string(MAX(0.1,(float) metrics.mac[i].rx_brate/metrics_report_period), 2);
       } else {        
-        cout << " " << float_to_string(0, 2);
+        cout << float_to_string(0, 2) << "";
       }
       if (metrics.mac[i].rx_pkts > 0 && metrics.mac[i].rx_errors > 0) {
-        cout << float_to_string((float) 100*metrics.mac[i].rx_errors/metrics.mac[i].rx_pkts, 1) << "%";
+        cout << float_to_string(MAX(0.1,(float) 100*metrics.mac[i].rx_errors/metrics.mac[i].rx_pkts), 1) << "%";
       } else {
         cout << float_to_string(0, 1) << "%";
       }

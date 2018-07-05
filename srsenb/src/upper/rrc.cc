@@ -84,7 +84,8 @@ void rrc::stop()
 {
   if(running) {
     running = false;
-    thread_cancel();
+    rrc_pdu p = {0, LCID_EXIT, NULL};
+    rx_pdu_queue.push(p);
     wait_thread_finish();
   }
   act_monitor.stop();
@@ -585,8 +586,7 @@ void rrc::process_release_complete(uint16_t rnti)
       // There is no RRCReleaseComplete message from UE thus wait ~50 subframes for tx
       usleep(50000);
     }
-    // Save to call rem_user() directly without thread, because calling from private function
-    rem_user(rnti);
+    rem_user_thread(rnti);
   } else {
     rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
   }
@@ -594,6 +594,7 @@ void rrc::process_release_complete(uint16_t rnti)
 
 void rrc::rem_user(uint16_t rnti)
 {
+  pthread_mutex_lock(&user_mutex);
   if (users.count(rnti) == 1) {
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
     rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
@@ -603,11 +604,6 @@ void rrc::rem_user(uint16_t rnti)
     mac->ue_rem(rnti);  // MAC handles PHY
     gtpu->rem_user(rnti);
 
-    // Wait enough time
-    pthread_mutex_unlock(&user_mutex);
-    usleep(50000);
-    pthread_mutex_lock(&user_mutex);
-
     // Now remove RLC and PDCP
     rlc->rem_user(rnti);
     pdcp->rem_user(rnti);
@@ -615,11 +611,13 @@ void rrc::rem_user(uint16_t rnti)
     // And deallocate resources from RRC
     users[rnti].sr_free();
     users[rnti].cqi_free();
+
     users.erase(rnti);
     rrc_log->info("Removed user rnti=0x%x\n", rnti);
   } else {
     rrc_log->error("Removing user rnti=0x%x (does not exist)\n", rnti);
   }
+  pthread_mutex_unlock(&user_mutex);
 }
 
 void rrc::config_mac()
@@ -778,7 +776,6 @@ void rrc::run_thread()
     }
 
     // Mutex these calls even though it's a private function
-    pthread_mutex_lock(&user_mutex);
     if (users.count(p.rnti) == 1) {
       switch(p.lcid)
       {
@@ -803,6 +800,9 @@ void rrc::run_thread()
             users[p.rnti].set_activity();
           }
           break;
+        case LCID_EXIT:
+          rrc_log->info("Exiting thread\n");
+          break;
         default:
           rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
           break;
@@ -810,7 +810,6 @@ void rrc::run_thread()
     } else {
       rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
     }
-    pthread_mutex_unlock(&user_mutex);
   }
 }
 
@@ -863,7 +862,7 @@ void rrc::activity_monitor::run_thread()
         parent->s1ap->user_release(rem_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
       } else {
         if(rem_rnti != SRSLTE_MRNTI)
-          parent->rem_user(rem_rnti);
+          parent->rem_user_thread(rem_rnti);
       }
     }
     pthread_mutex_unlock(&parent->user_mutex);

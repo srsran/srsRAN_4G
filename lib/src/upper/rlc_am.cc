@@ -36,7 +36,7 @@
 
 namespace srslte {
 
-rlc_am::rlc_am() : tx_sdu_queue(16)
+rlc_am::rlc_am(uint32_t queue_len) : tx_sdu_queue(queue_len)
 {
   log = NULL;
   pdcp = NULL;
@@ -68,19 +68,13 @@ rlc_am::rlc_am() : tx_sdu_queue(16)
   do_status     = false;
 }
 
+// Warning: must call stop() to properly deallocate all buffers
 rlc_am::~rlc_am()
 {
-  // reset RLC and dealloc SDUs
-  stop();
-
-  if(rx_sdu) {
-    pool->deallocate(rx_sdu);
-  }
-
-  if(tx_sdu) {
-    pool->deallocate(tx_sdu);
-  }
+  pthread_mutex_destroy(&mutex);
+  pool = NULL;
 }
+
 void rlc_am::init(srslte::log                  *log_,
                   uint32_t                      lcid_,
                   srsue::pdcp_interface_rlc    *pdcp_,
@@ -91,6 +85,7 @@ void rlc_am::init(srslte::log                  *log_,
   lcid = lcid_;
   pdcp = pdcp_;
   rrc  = rrc_;
+  tx_enabled = true;
 }
 
 void rlc_am::configure(srslte_rlc_config_t cfg_)
@@ -106,21 +101,16 @@ void rlc_am::configure(srslte_rlc_config_t cfg_)
 void rlc_am::empty_queue() {
   // Drop all messages in TX SDU queue
   byte_buffer_t *buf;
-  while(tx_sdu_queue.size() > 0) {
-    tx_sdu_queue.read(&buf);
+  while(tx_sdu_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
 }
 
 void rlc_am::stop()
 {
-  reset();
-  pthread_mutex_destroy(&mutex);
-}
-
-void rlc_am::reset()
-{
-  // Empty tx_sdu_queue before locking the mutex 
+  // Empty tx_sdu_queue before locking the mutex
+  tx_enabled = false;
+  usleep(100);
   empty_queue();
 
   pthread_mutex_lock(&mutex);
@@ -198,8 +188,34 @@ uint32_t rlc_am::get_bearer()
 
 void rlc_am::write_sdu(byte_buffer_t *sdu)
 {
-  tx_sdu_queue.write(sdu);
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+  if (!tx_enabled) {
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+    return;
+  }
+  if (sdu) {
+    tx_sdu_queue.write(sdu);
+    log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+  } else {
+    log->warning("NULL SDU pointer in write_sdu()\n");
+  }
+}
+
+void rlc_am::write_sdu_nb(byte_buffer_t *sdu)
+{
+  if (!tx_enabled) {
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+    return;
+  }
+  if (sdu) {
+    if (tx_sdu_queue.try_write(sdu)) {
+      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+    } else {
+      log->warning_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+      pool->deallocate(sdu);
+    }
+  } else {
+    log->warning("NULL SDU pointer in write_sdu()\n");
+  }
 }
 
 /****************************************************************************

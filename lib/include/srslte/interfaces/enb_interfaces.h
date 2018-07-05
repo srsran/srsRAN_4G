@@ -173,8 +173,7 @@ public:
 class rlc_interface_rrc
 {
 public:
-  virtual void reset(uint16_t rnti) = 0;
-  virtual void clear_buffer(uint16_t rnti) = 0; 
+  virtual void clear_buffer(uint16_t rnti) = 0;
   virtual void add_user(uint16_t rnti) = 0; 
   virtual void rem_user(uint16_t rnti) = 0; 
   virtual void add_bearer(uint16_t rnti, uint32_t lcid) = 0;

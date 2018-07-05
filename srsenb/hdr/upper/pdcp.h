@@ -103,9 +103,13 @@ private:
     user_interface_gtpu gtpu_itf;
     user_interface_rrc  rrc_itf; 
     srslte::pdcp        *pdcp; 
-  }; 
+  };
+
+  void clear_user(user_interface *ue);
   
-  std::map<uint32_t,user_interface> users; 
+  std::map<uint32_t,user_interface> users;
+
+  pthread_rwlock_t rwlock;
   
   rlc_interface_pdcp  *rlc;
   rrc_interface_pdcp  *rrc;

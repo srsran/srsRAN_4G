@@ -52,7 +52,6 @@ public:
   void stop(); 
   
   // rlc_interface_rrc
-  void reset(uint16_t rnti);
   void clear_buffer(uint16_t rnti);
   void add_user(uint16_t rnti); 
   void rem_user(uint16_t rnti);
@@ -91,8 +90,14 @@ private:
     srsenb::rrc_interface_rlc  *rrc;
     srslte::rlc                *rlc; 
     srsenb::rlc                *parent; 
-  }; 
-  
+  };
+
+  void clear_user(user_interface *ue);
+
+  const static int RLC_TX_QUEUE_LEN = 512;
+
+  pthread_rwlock_t rwlock;
+
   std::map<uint32_t,user_interface> users; 
   std::vector<mch_service_t> mch_services;
   

@@ -40,14 +40,14 @@ class rlc_tm
     :public rlc_common
 {
 public:
-  rlc_tm();
+  rlc_tm(uint32_t queue_len = 16);
+  ~rlc_tm();
   void init(log                       *rlc_entity_log_,
             uint32_t                   lcid_,
             srsue::pdcp_interface_rlc *pdcp_,
             srsue::rrc_interface_rlc  *rrc_,
             mac_interface_timers      *mac_timers);
   void configure(srslte_rlc_config_t cnfg);
-  void reset();
   void stop();
   void empty_queue(); 
 
@@ -56,6 +56,7 @@ public:
 
   // PDCP interface
   void write_sdu(byte_buffer_t *sdu);
+  void write_sdu_nb(byte_buffer_t *sdu);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -70,6 +71,8 @@ private:
   uint32_t                   lcid;
   srsue::pdcp_interface_rlc *pdcp;
   srsue::rrc_interface_rlc  *rrc;
+
+  bool tx_enabled;
 
   // Thread-safe queues for MAC messages
   rlc_tx_queue    ul_queue;

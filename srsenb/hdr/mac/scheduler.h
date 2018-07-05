@@ -36,8 +36,15 @@
 #include <pthread.h>
 
 namespace srsenb {
-  
- 
+
+
+/* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
+ * Rest of operations are thread-safe
+ *
+ * The subclass sched_ue is thread-safe so that access to shared variables like buffer states
+ * from scheduler thread and other threads is protected for each individual user.
+ */
+
 class sched : public sched_interface
 {  
   
@@ -89,7 +96,7 @@ public:
   void set_sched_cfg(sched_args_t *sched_cfg);
   int reset();
 
-  int ue_cfg(uint16_t rnti, ue_cfg_t *ue_cfg); 
+  int ue_cfg(uint16_t rnti, ue_cfg_t *ue_cfg);
   int ue_rem(uint16_t rnti);
   bool ue_exists(uint16_t rnti); 
   
@@ -216,10 +223,7 @@ private:
   uint32_t current_cfi;
   
   bool configured;
-  
-  pthread_mutex_t mutex, mutex2;
-  
-  
+
 };
 
 

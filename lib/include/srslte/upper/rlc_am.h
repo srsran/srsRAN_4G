@@ -70,7 +70,7 @@ class rlc_am
     :public rlc_common
 {
 public:
-  rlc_am();
+  rlc_am(uint32_t queue_len = 16);
   ~rlc_am();
   void init(log          *rlc_entity_log_,
             uint32_t              lcid_,
@@ -78,9 +78,9 @@ public:
             srsue::rrc_interface_rlc    *rrc_,
             mac_interface_timers *mac_timers);
   void configure(srslte_rlc_config_t cnfg);
-  void reset();
   void reestablish();
   void stop();
+
   void empty_queue(); 
   
   rlc_mode_t    get_mode();
@@ -88,6 +88,7 @@ public:
 
   // PDCP interface
   void write_sdu(byte_buffer_t *sdu);
+  void write_sdu_nb(byte_buffer_t *sdu);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -122,6 +123,7 @@ private:
   // Mutexes
   pthread_mutex_t     mutex;
 
+  bool                tx_enabled;
   bool                poll_received;
   bool                do_status;
   rlc_status_pdu_t    status;

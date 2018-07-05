@@ -56,13 +56,15 @@ public:
             srsue::ue_interface       *ue_,
             log                       *rlc_log_,
             mac_interface_timers      *mac_timers_,
-            uint32_t                   lcid_);
+            uint32_t                   lcid_,
+            int                        buffer_size = -1); // -1 to use default buffer sizes
   void stop();
 
   void get_metrics(rlc_metrics_t &m);
 
   // PDCP interface
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  void write_sdu_nb(uint32_t lcid, byte_buffer_t *sdu);
   void write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu);
   bool rb_is_um(uint32_t lcid);
 
@@ -99,6 +101,7 @@ private:
   srslte::rlc_entity           rlc_array[SRSLTE_N_RADIO_BEARERS];
   srslte::rlc_um               rlc_array_mrb[SRSLTE_N_MCH_LCIDS];
   uint32_t                     default_lcid;
+  int                          buffer_size;
 
   long                ul_tput_bytes[SRSLTE_N_RADIO_BEARERS];
   long                dl_tput_bytes[SRSLTE_N_RADIO_BEARERS];

@@ -115,8 +115,7 @@ srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 {
   uint8_t *ret = NULL; 
-  pthread_mutex_lock(&mutex);
-  if (len > 0) {   
+  if (len > 0) {
     if (!pending_buffers[tti%NOF_HARQ_PROCESSES]) {
       ret = pdus.request(len);   
       pending_buffers[tti%NOF_HARQ_PROCESSES] = ret; 
@@ -127,8 +126,7 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
   } else {
     log_h->warning("Requesting buffer for zero bytes\n");
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  return ret;
 }
 
 bool ue::process_pdus()
