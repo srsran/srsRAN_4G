@@ -83,6 +83,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
 
   string mbms_gw_name;
   string mbms_gw_sgi_mb_if_addr;
+  string mbms_gw_sgi_mb_if_mask;
   string mbms_gw_m1u_multi_addr;
 
   string log_filename;
