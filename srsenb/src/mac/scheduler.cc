@@ -975,6 +975,10 @@ void sched::generate_cce_location(srslte_regs_t *regs_, sched_ue::sched_dci_cce_
 
 bool sched::generate_dci(srslte_dci_location_t *sched_location, sched_ue::sched_dci_cce_t *locations, uint32_t aggr_level, sched_ue *user) 
 {
+  if (!locations->nof_loc[aggr_level]) {
+    Error("In generate_dci(): No locations for aggr_level=%d\n", aggr_level);
+    return false;
+  }
   uint32_t nof_cand  = 0;
   uint32_t test_cand = rand()%locations->nof_loc[aggr_level];
   bool allocated=false;

@@ -464,10 +464,6 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 {
   log_h->step(tti);
 
-  int ret = -1;
-
-  pthread_rwlock_rdlock(&rwlock);
-
   // Find empty slot for pending rars
   uint32_t ra_id=0;
   while(pending_rars[ra_id].temp_crnti && ra_id<MAX_PENDING_RARS-1) {
@@ -475,8 +471,10 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
   }
   if (ra_id == MAX_PENDING_RARS) {
     Error("Maximum number of pending RARs exceeded (%d)\n", MAX_PENDING_RARS);
-    goto unlock;
+    return -1;
   }
+
+  pthread_rwlock_rdlock(&rwlock);
 
   // Create new UE
   ue_db[last_rnti] = new ue;
@@ -486,6 +484,9 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
   if (pcap) {
     ue_db[last_rnti]->start_pcap(pcap);
   }
+
+  pthread_rwlock_unlock(&rwlock);
+
   // Save RA info
   pending_rars[ra_id].preamble_idx = preamble_idx;
   pending_rars[ra_id].ta_cmd       = 2*time_adv;
@@ -499,7 +500,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
     // Release pending RAR
     bzero(&pending_rars[ra_id], sizeof(pending_rar_t));
     Error("Registering new user rnti=0x%x to SCHED\n", last_rnti);
-    goto unlock;
+    return -1;
   }
 
   // Register new user in RRC
@@ -517,11 +518,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
   if (last_rnti >= 60000) {
     last_rnti = 70;
   }
-  ret = 0;
-
-unlock:
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
+  return 0;
 }
 
 int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)

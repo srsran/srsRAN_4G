@@ -990,7 +990,6 @@ bool sched_ue::is_sr_triggered()
 void sched_ue::reset_timeout_dl_harq(uint32_t tti) {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     if (!(dl_harq[i].is_empty(0) && dl_harq[i].is_empty(1))) {
-      log_h->info("SCHED: pid=%d is empty\n", i);
       if (srslte_tti_interval(tti, dl_harq[i].get_tti()) > 50) {
         log_h->info("SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n", i, dl_harq[i].get_tti(), tti);
         dl_harq[i].reset(0);
