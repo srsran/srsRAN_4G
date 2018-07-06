@@ -369,7 +369,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   header.teid         = enb_fteid.teid;
 
   //Write header into packet
-  if(!srslte::gtpu_write_header(&header, msg))
+  if(!srslte::gtpu_write_header(&header, msg, m_spgw_log))
   {
     m_spgw_log->console("Error writing GTP-U header on PDU\n");
   }
@@ -395,7 +395,7 @@ spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
 {
   //m_spgw_log->console("Received PDU from S1-U. Bytes=%d\n",msg->N_bytes);
   srslte::gtpu_header_t header;
-  srslte::gtpu_read_header(msg, &header);
+  srslte::gtpu_read_header(msg, &header, m_spgw_log);
  
   //m_spgw_log->console("TEID 0x%x. Bytes=%d\n", header.teid, msg->N_bytes);
   int n = write(m_sgi_if, msg->msg, msg->N_bytes);
