@@ -55,7 +55,7 @@ void enb::cleanup(void)
 
 enb::enb() : started(false) {
   srslte_dft_load();
-  pool = srslte::byte_buffer_pool::get_instance();
+  pool = srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE);
 
   logger = NULL;
   args = NULL;

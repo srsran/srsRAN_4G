@@ -173,6 +173,8 @@ public:
 private:
   static enb *instance;
 
+  const static int ENB_POOL_SIZE = 1024*10;
+
   enb();
 
   virtual ~enb();
