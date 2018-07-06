@@ -40,6 +40,11 @@ double duration = 0.01; /* in seconds, 10 ms by default */
 cf_t *buffers[SRSLTE_MAX_PORTS];
 bool tx_enable = false;
 
+uint32_t num_lates = 0;
+uint32_t num_overflows = 0;
+uint32_t num_underflows = 0;
+uint32_t num_other_error = 0;
+
 
 void usage(char *prog) {
   printf("Usage: %s [rpstvh]\n", prog);
@@ -97,6 +102,29 @@ void sig_int_handler(int signo)
   }
 }
 
+void rf_msg(srslte_rf_error_t error)
+{
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
+    num_overflows++;
+  } else
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_UNDERFLOW) {
+    num_underflows++;
+  } else
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_LATE) {
+    num_lates++;
+  } else {
+    num_other_error++;
+  }
+}
+
+void print_rf_summary(void)
+{
+  printf("#lates=%d\n", num_lates);
+  printf("#overflows=%d\n", num_overflows);
+  printf("#underflows=%d\n", num_underflows);
+  printf("#num_other_error=%d\n", num_other_error);
+}
+
 int main(int argc, char **argv)
 {
   int ret = SRSLTE_ERROR;
@@ -136,6 +164,8 @@ int main(int argc, char **argv)
     fprintf(stderr, "Error: Calling radio_multi constructor\n");
     goto clean_exit;
   }
+
+  radio_h->register_error_handler(rf_msg);
 
   radio_h->set_rx_freq(freq);
 
@@ -193,6 +223,8 @@ clean_exit:
   } else {
     printf("Ok!\n");
   }
+
+  print_rf_summary();
 
   return ret;
 }
