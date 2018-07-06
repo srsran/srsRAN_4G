@@ -55,12 +55,12 @@ srsENB Features
  * Standard S1AP and GTP-U interfaces to the Core Network
  * 150 Mbps DL in 20 MHz MIMO TM3/TM4 with commercial UEs
  * 75 Mbps DL in SISO configuration with commercial UEs
+ * 50 Mbps UL in 20 MHz with commercial UEs
 
 srsENB has been tested and validated with the following handsets:
- * LG Nexus 5
- * LG Nexus 4
- * Motorola Moto G4 plus
- * Huawei P9/P9lite
+ * LG Nexus 5 and 4
+ * Motorola Moto G4 plus and G5
+ * Huawei P9/P9lite, P10/P10lite, P20/P20lite
  * Huawei dongles: E3276 and E398
 
 srsEPC Features
@@ -78,6 +78,7 @@ The library currently supports the Ettus Universal Hardware Driver (UHD) and the
 
 We have tested the following hardware: 
  * USRP B210
+ * USRP B205mini
  * USRP X300
  * limeSDR
  * bladeRF
