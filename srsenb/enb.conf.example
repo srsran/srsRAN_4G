@@ -156,7 +156,7 @@ nof_ctrl_symbols = 3
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #link_failure_nof_err = 50
-#rrc_inactivity_timer = 10000
+#rrc_inactivity_timer = 60000
 #max_prach_offset_us  = 30
 #enable_mbsfn = false
 
