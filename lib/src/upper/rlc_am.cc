@@ -1229,7 +1229,7 @@ void rlc_am::reassemble_rx_sdus()
 #endif
           }
         } else {
-          log->error("Cannot read %d bytes from rx_window. vr_r=%d, msg-buffer=%d bytes\n", len, vr_r, (rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer));
+          log->error("Cannot read %d bytes from rx_window. vr_r=%d, msg-buffer=%ld bytes\n", len, vr_r, (rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer));
           pool->deallocate(rx_sdu);
           goto exit;
         }
