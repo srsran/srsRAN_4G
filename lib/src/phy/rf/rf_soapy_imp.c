@@ -62,6 +62,8 @@ typedef struct {
   double tx_rate;
   size_t rx_mtu, tx_mtu;
 
+  srslte_rf_error_handler_t soapy_error_handler;
+
   uint32_t num_time_errors;
   uint32_t num_lates;
   uint32_t num_overflows;
@@ -72,6 +74,41 @@ typedef struct {
 
 
 cf_t zero_mem[64*1024];
+
+
+static void log_overflow(rf_soapy_handler_t *h) {
+  if (h->soapy_error_handler) {
+    srslte_rf_error_t error;
+    bzero(&error, sizeof(srslte_rf_error_t));
+    error.type = SRSLTE_RF_ERROR_OVERFLOW;
+    h->soapy_error_handler(error);
+  } else {
+    h->num_overflows++;
+  }
+}
+
+static void log_late(rf_soapy_handler_t *h, bool is_rx) {
+  if (h->soapy_error_handler) {
+    srslte_rf_error_t error;
+    bzero(&error, sizeof(srslte_rf_error_t));
+    error.opt = is_rx?1:0;
+    error.type = SRSLTE_RF_ERROR_LATE;
+    h->soapy_error_handler(error);
+  } else {
+    h->num_lates++;
+  }
+}
+
+static void log_underflow(rf_soapy_handler_t *h) {
+  if (h->soapy_error_handler) {
+    srslte_rf_error_t error;
+    bzero(&error, sizeof(srslte_rf_error_t));
+    error.type = SRSLTE_RF_ERROR_UNDERFLOW;
+    h->soapy_error_handler(error);
+  } else {
+    h->num_underflows++;
+  }
+}
 
 
 int soapy_error(void *h)
@@ -104,9 +141,10 @@ void rf_soapy_suppress_stdout(void *h)
 }
 
 
-void rf_soapy_register_error_handler(void *notused, srslte_rf_error_handler_t new_handler)
+void rf_soapy_register_error_handler(void *h, srslte_rf_error_handler_t new_handler)
 {
-  // not supported
+  rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+  handler->soapy_error_handler = new_handler;
 }
 
 
@@ -647,15 +685,11 @@ int  rf_soapy_recv_with_time_multi(void *h,
 
     ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, timeoutUs);
     if (ret == SOAPY_SDR_OVERFLOW || (ret > 0 && (flags & SOAPY_SDR_END_ABRUPT) != 0)) {
-      handler->num_overflows++;
-      fprintf(stderr, "O");
-      fflush(stderr);
+      log_overflow(handler);
       continue;
     } else
     if (ret == SOAPY_SDR_TIMEOUT) {
-      handler->num_time_errors++;
-      fprintf(stderr, "T");
-      fflush(stderr);
+      log_late(handler, true);
       continue;
     } else
     if (ret < 0) {
@@ -792,7 +826,7 @@ int rf_soapy_send_timed_multi(void *h,
       // An error has occured
       switch (ret) {
         case SOAPY_SDR_TIMEOUT:
-          handler->num_lates++;
+          log_late(handler, false);
           printf("L");
           break;
         case SOAPY_SDR_STREAM_ERROR:
@@ -804,7 +838,7 @@ int rf_soapy_send_timed_multi(void *h,
           printf("T");
           break;
         case SOAPY_SDR_UNDERFLOW:
-          handler->num_underflows++;
+          log_underflow(handler);
           printf("U");
           break;
         default:
