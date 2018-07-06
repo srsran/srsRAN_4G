@@ -43,7 +43,7 @@ void rlc_entity::init(rlc_mode_t                   mode_,
 {
 
   if (buffer_size <= 0) {
-    buffer_size = 64;
+    buffer_size = rlc_common::RLC_BUFFER_NOF_PDU;
   }
   // Create the RLC instance the first time init() is called.
   // If called to reestablished, the entity is stopped but not destroyed

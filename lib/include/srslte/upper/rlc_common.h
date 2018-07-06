@@ -151,6 +151,10 @@ struct rlc_status_pdu_t{
 class rlc_common
 {
 public:
+
+  // Size of the Uplink buffer in number of PDUs
+  const static int RLC_BUFFER_NOF_PDU = 128;
+
   virtual ~rlc_common() {}
   virtual void init(srslte::log                       *rlc_entity_log_,
                     uint32_t                           lcid_,
