@@ -196,7 +196,7 @@ mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
   }
 
   ifr.ifr_netmask.sa_family                                 = AF_INET;
-  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(args->sgi_mb_if_mask.c_str());
   if (ioctl(sgi_mb_sock, SIOCSIFNETMASK, &ifr) < 0) {
     m_mbms_gw_log->error("Failed to set TUN interface Netmask. Error: %s\n", strerror(errno));
     close(m_sgi_mb_if);
