@@ -318,6 +318,7 @@ void ue::print_pool() {
 
 bool ue::get_metrics(ue_metrics_t &m)
 {
+  bzero(&m, sizeof(ue_metrics_t));
   m.rf = rf_metrics;
   bzero(&rf_metrics, sizeof(rf_metrics_t));
   rf_metrics.rf_error = false; // Reset error flag
