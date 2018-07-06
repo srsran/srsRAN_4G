@@ -35,6 +35,12 @@
 
 namespace srsenb {
 
+
+/** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
+ * higher layers and mac threads.
+ *
+ * 1 mutex is created for every user and only access to same user variables are mutexed
+ */
 class sched_ue {
   
 public: 
@@ -56,6 +62,7 @@ public:
    * 
    ************************************************************/
   sched_ue();
+  ~sched_ue();
   void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
   void set_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg, sched_interface::cell_cfg_t *cell_cfg, 
@@ -101,8 +108,10 @@ public:
 
   uint32_t   get_pending_dl_new_data(uint32_t tti);
   uint32_t   get_pending_ul_new_data(uint32_t tti);
+  uint32_t   get_pending_ul_old_data();
   uint32_t   get_pending_dl_new_data_total(uint32_t tti);
 
+  void          reset_timeout_dl_harq(uint32_t tti);
   dl_harq_proc *get_pending_dl_harq(uint32_t tti);
   dl_harq_proc *get_empty_dl_harq();   
   ul_harq_proc *get_ul_harq(uint32_t tti);   
@@ -129,8 +138,6 @@ public:
   bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2]);
   bool       pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
 
-  uint32_t   get_pending_ul_old_data();
-
 private: 
   
   typedef struct {
@@ -152,11 +159,21 @@ private:
   static bool bearer_is_ul(ue_bearer_t *lch);
   static bool bearer_is_dl(ue_bearer_t *lch);
 
+  uint32_t   get_pending_dl_new_data_unlocked(uint32_t tti);
+  uint32_t   get_pending_ul_old_data_unlocked();
+  uint32_t   get_pending_ul_new_data_unlocked(uint32_t tti);
+
+  bool       needs_cqi_unlocked(uint32_t tti, bool will_send = false);
+
+  int        generate_format2a_unlocked(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+
   bool is_first_dl_tx();
 
   sched_interface::ue_cfg_t cfg;
   srslte_cell_t cell; 
   srslte::log* log_h;
+
+  pthread_mutex_t mutex;
   
   /* Buffer states */
   bool sr; 

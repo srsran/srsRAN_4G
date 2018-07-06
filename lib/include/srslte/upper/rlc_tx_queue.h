@@ -44,7 +44,7 @@ namespace srslte {
 class rlc_tx_queue : public block_queue<byte_buffer_t*>::call_mutexed_itf
 {
 public:
-  rlc_tx_queue(uint32_t capacity = 128) : queue((int) capacity) {
+  rlc_tx_queue(int capacity = 128) : queue(capacity) {
     unread_bytes = 0;
     queue.set_mutexed_itf(this);
   }
@@ -62,6 +62,11 @@ public:
   void write(byte_buffer_t *msg)
   {
     queue.push(msg);
+  }
+
+  bool try_write(byte_buffer_t *msg)
+  {
+    return queue.try_push(msg);
   }
 
   void read(byte_buffer_t **msg)

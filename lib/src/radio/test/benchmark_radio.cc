@@ -25,6 +25,7 @@
  */
 
 #include <unistd.h>
+#include <signal.h>
 #include "srslte/srslte.h"
 #include "srslte/radio/radio_multi.h"
 
@@ -38,6 +39,11 @@ double srate = 1.92e6; /* Hz */
 double duration = 0.01; /* in seconds, 10 ms by default */
 cf_t *buffers[SRSLTE_MAX_PORTS];
 bool tx_enable = false;
+
+uint32_t num_lates = 0;
+uint32_t num_overflows = 0;
+uint32_t num_underflows = 0;
+uint32_t num_other_error = 0;
 
 
 void usage(char *prog) {
@@ -85,18 +91,54 @@ void parse_args(int argc, char **argv) {
   }
 }
 
+bool go_exit = false;
+void sig_int_handler(int signo)
+{
+  printf("SIGINT received. Exiting...\n");
+  if (signo == SIGINT) {
+    go_exit = true;
+  } else if (signo == SIGSEGV) {
+    exit(1);
+  }
+}
+
+void rf_msg(srslte_rf_error_t error)
+{
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
+    num_overflows++;
+  } else
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_UNDERFLOW) {
+    num_underflows++;
+  } else
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_LATE) {
+    num_lates++;
+  } else {
+    num_other_error++;
+  }
+}
+
+void print_rf_summary(void)
+{
+  printf("#lates=%d\n", num_lates);
+  printf("#overflows=%d\n", num_overflows);
+  printf("#underflows=%d\n", num_underflows);
+  printf("#num_other_error=%d\n", num_other_error);
+}
+
 int main(int argc, char **argv)
 {
   int ret = SRSLTE_ERROR;
   srslte::radio_multi *radio_h = NULL;
   srslte_timestamp_t ts_rx = {}, ts_tx = {};
 
+  signal(SIGINT, sig_int_handler);
+
   /* Parse args */
   parse_args(argc, argv);
 
   uint32_t nof_samples = (uint32_t) (duration * srate);
   uint32_t frame_size = (uint32_t) (srate / 1000.0); /* 1 ms at srate */
-  uint32_t nof_frames = (uint32_t) ceil(nof_samples / frame_size);
+  uint32_t nof_frames = duration * 1e3;
 
   radio_h = new radio_multi();
   if (!radio_h) {
@@ -122,6 +164,8 @@ int main(int argc, char **argv)
     fprintf(stderr, "Error: Calling radio_multi constructor\n");
     goto clean_exit;
   }
+
+  radio_h->register_error_handler(rf_msg);
 
   radio_h->set_rx_freq(freq);
 
@@ -155,6 +199,8 @@ int main(int argc, char **argv)
     }
 
     nof_samples -= frame_size;
+
+    if (go_exit) break;
   }
 
   printf("Finished streaming ...\n");
@@ -177,6 +223,8 @@ clean_exit:
   } else {
     printf("Ok!\n");
   }
+
+  print_rf_summary();
 
   return ret;
 }

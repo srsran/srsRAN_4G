@@ -1408,7 +1408,7 @@ void reset_test()
   pdu_bufs.N_bytes = len;
 
   // reset RLC1
-  rlc1.reset();
+  rlc1.stop();
 
   // read another PDU segment from RLC1
   len = rlc1.read_pdu(pdu_bufs.msg, 4);

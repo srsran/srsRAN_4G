@@ -40,6 +40,8 @@
 #include <SoapySDR/Logger.h>
 #include <Types.h>
 
+#define HAVE_ASYNC_THREAD 1
+
 #define USE_TX_MTU 0
 #define SET_RF_BW 1
 
@@ -62,6 +64,11 @@ typedef struct {
   double tx_rate;
   size_t rx_mtu, tx_mtu;
 
+  srslte_rf_error_handler_t soapy_error_handler;
+
+  bool async_thread_running;
+  pthread_t async_thread;
+
   uint32_t num_time_errors;
   uint32_t num_lates;
   uint32_t num_overflows;
@@ -72,6 +79,76 @@ typedef struct {
 
 
 cf_t zero_mem[64*1024];
+
+
+static void log_overflow(rf_soapy_handler_t *h) {
+  if (h->soapy_error_handler) {
+    srslte_rf_error_t error;
+    bzero(&error, sizeof(srslte_rf_error_t));
+    error.type = SRSLTE_RF_ERROR_OVERFLOW;
+    h->soapy_error_handler(error);
+  } else {
+    h->num_overflows++;
+  }
+}
+
+static void log_late(rf_soapy_handler_t *h, bool is_rx) {
+  if (h->soapy_error_handler) {
+    srslte_rf_error_t error;
+    bzero(&error, sizeof(srslte_rf_error_t));
+    error.opt = is_rx?1:0;
+    error.type = SRSLTE_RF_ERROR_LATE;
+    h->soapy_error_handler(error);
+  } else {
+    h->num_lates++;
+  }
+}
+
+static void log_underflow(rf_soapy_handler_t *h) {
+  if (h->soapy_error_handler) {
+    srslte_rf_error_t error;
+    bzero(&error, sizeof(srslte_rf_error_t));
+    error.type = SRSLTE_RF_ERROR_UNDERFLOW;
+    h->soapy_error_handler(error);
+  } else {
+    h->num_underflows++;
+  }
+}
+
+
+#if HAVE_ASYNC_THREAD
+static void* async_thread(void *h) {
+  rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+
+  while(handler->async_thread_running) {
+    int ret = 0;
+    size_t chanMask = 0;
+    int flags = 0;
+    const long timeoutUs = 400000; // arbitrarily chosen
+    long long timeNs;
+
+    ret = SoapySDRDevice_readStreamStatus(handler->device, handler->txStream, &chanMask, &flags, &timeNs, timeoutUs);
+    if (ret == SOAPY_SDR_TIME_ERROR) {
+      // this is a late
+      log_late(handler, false);
+    } else if (ret == SOAPY_SDR_UNDERFLOW) {
+      log_underflow(handler);
+    } else if (ret == SOAPY_SDR_OVERFLOW) {
+      log_overflow(handler);
+    } else if (ret == SOAPY_SDR_TIMEOUT) {
+      // this is a timeout of the readStreamStatus call, ignoring it ..
+    } else if (ret == SOAPY_SDR_NOT_SUPPORTED) {
+      // stopping async thread
+      fprintf(stderr, "Receiving async metadata not supported by device. Exiting thread.\n");
+      handler->async_thread_running = false;
+    } else {
+      fprintf(stderr, "Error while receiving aync metadata: %s (%d), flags=%d, channel=%zu, timeNs=%lld\n", SoapySDR_errToStr(ret), ret, flags, chanMask, timeNs);
+      handler->async_thread_running = false;
+    }
+  }
+  return NULL;
+}
+#endif
 
 
 int soapy_error(void *h)
@@ -104,9 +181,10 @@ void rf_soapy_suppress_stdout(void *h)
 }
 
 
-void rf_soapy_register_error_handler(void *notused, srslte_rf_error_handler_t new_handler)
+void rf_soapy_register_error_handler(void *h, srslte_rf_error_handler_t new_handler)
 {
-  // not supported
+  rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+  handler->soapy_error_handler = new_handler;
 }
 
 
@@ -359,6 +437,14 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     }
   }
 
+#if HAVE_ASYNC_THREAD
+  bool start_async_thread = true;
+  if (strstr(args, "silent")) {
+    REMOVE_SUBSTRING_WITHCOMAS(args, "silent");
+    start_async_thread = false;
+  }
+#endif
+
   // receive one subframe to allow for transceiver calibration
   if (strstr(devname, "lime")) {
     // set default tx gain and leave some time to calibrate tx
@@ -396,6 +482,17 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   ant = SoapySDRDevice_getAntenna(handler->device, SOAPY_SDR_TX, 0);
   printf("Tx antenna set to %s\n", ant);
 
+#if HAVE_ASYNC_THREAD
+  if (start_async_thread) {
+    // Start low priority thread to receive async commands
+    handler->async_thread_running = true;
+    if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
+      perror("pthread_create");
+      return -1;
+    }
+  }
+#endif
+
   return SRSLTE_SUCCESS;
 }
 
@@ -409,6 +506,14 @@ int rf_soapy_open(char *args, void **h)
 int rf_soapy_close(void *h)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+
+#if HAVE_ASYNC_THREAD
+  if (handler->async_thread_running) {
+    handler->async_thread_running = false;
+    pthread_join(handler->async_thread, NULL);
+  }
+#endif
+
   if (handler->tx_stream_active) {
     rf_soapy_stop_tx_stream(handler);
     SoapySDRDevice_closeStream(handler->device, handler->txStream);
@@ -418,7 +523,7 @@ int rf_soapy_close(void *h)
     rf_soapy_stop_rx_stream(handler);
     SoapySDRDevice_closeStream(handler->device, handler->rxStream);
   }
-  
+
   SoapySDRDevice_unmake(handler->device);
   free(handler);
 
@@ -647,15 +752,11 @@ int  rf_soapy_recv_with_time_multi(void *h,
 
     ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr, rx_samples, &flags, &timeNs, timeoutUs);
     if (ret == SOAPY_SDR_OVERFLOW || (ret > 0 && (flags & SOAPY_SDR_END_ABRUPT) != 0)) {
-      handler->num_overflows++;
-      fprintf(stderr, "O");
-      fflush(stderr);
+      log_overflow(handler);
       continue;
     } else
     if (ret == SOAPY_SDR_TIMEOUT) {
-      handler->num_time_errors++;
-      fprintf(stderr, "T");
-      fflush(stderr);
+      log_late(handler, true);
       continue;
     } else
     if (ret < 0) {
@@ -792,7 +893,7 @@ int rf_soapy_send_timed_multi(void *h,
       // An error has occured
       switch (ret) {
         case SOAPY_SDR_TIMEOUT:
-          handler->num_lates++;
+          log_late(handler, false);
           printf("L");
           break;
         case SOAPY_SDR_STREAM_ERROR:
@@ -804,7 +905,7 @@ int rf_soapy_send_timed_multi(void *h,
           printf("T");
           break;
         case SOAPY_SDR_UNDERFLOW:
-          handler->num_underflows++;
+          log_underflow(handler);
           printf("U");
           break;
         default:

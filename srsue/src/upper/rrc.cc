@@ -41,6 +41,8 @@ using namespace srslte;
 
 namespace srsue {
 
+const static uint32_t NOF_REQUIRED_SIBS = 4;
+const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SIB2, SIB3 and SIB13 (eMBMS)
 
 /*******************************************************************************
   Base functions 
@@ -543,24 +545,25 @@ bool rrc::configure_serving_cell() {
     return false;
   }
   serving_cell->has_mcch = false;
-  // Apply configurations if already retrieved SIB2
-  if (serving_cell->has_sib2()) {
-    apply_sib2_configs(serving_cell->sib2ptr());
-  }
-  // Obtain the rest of required SIBs (configuration is applied when received)
+  // Obtain the SIBs if not available or apply the configuration if available
   for (uint32_t i = 0; i < NOF_REQUIRED_SIBS; i++) {
-    if (!serving_cell->has_sib(i)) {
-      rrc_log->info("Cell has no SIB%d. Obtaining SIB%d\n", i+1, i+1);
-      if (!si_acquire(i)) {
-        rrc_log->info("Timeout while acquiring SIB%d\n", i+1);
-        if (i < 2) {
+    if (!serving_cell->has_sib(required_sibs[i])) {
+      rrc_log->info("Cell has no SIB%d. Obtaining SIB%d\n", required_sibs[i]+1, required_sibs[i]+1);
+      if (!si_acquire(required_sibs[i])) {
+        rrc_log->info("Timeout while acquiring SIB%d\n", required_sibs[i]+1);
+        if (required_sibs[i] < 2) {
           return false;
         }
       }
     } else {
-      rrc_log->info("Cell has SIB%d\n", i+1);
-      if(i+1 == 13){
-        apply_sib13_configs(serving_cell->sib13ptr());
+      rrc_log->info("Cell has SIB%d\n", required_sibs[i]+1);
+      switch(required_sibs[i]) {
+        case 1:
+          apply_sib2_configs(serving_cell->sib2ptr());
+          break;
+        case 12:
+          apply_sib13_configs(serving_cell->sib13ptr());
+          break;
       }
     }
   }
@@ -768,7 +771,7 @@ bool rrc::si_acquire(uint32_t sib_index)
               }
             }
             if (!found) {
-              rrc_log->error("Could not find SIB%d scheduling in SIB1\n", sib_index+1);
+              rrc_log->info("Could not find SIB%d scheduling in SIB1\n", sib_index+1);
               return false;
             }
           }

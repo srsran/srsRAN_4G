@@ -71,7 +71,7 @@ public:
 private: 
   
   const static float PUSCH_RL_SNR_DB_TH = 1.0; 
-  const static float PUCCH_RL_CORR_TH = 0.1; 
+  const static float PUCCH_RL_CORR_TH = 0.15;
   
   void work_imp();
   

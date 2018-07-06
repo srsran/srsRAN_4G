@@ -39,10 +39,10 @@
 using namespace std; 
 
 // Enable this to log SI
-#define LOG_THIS(a) 1
+//#define LOG_THIS(a) 1
 
 // Enable this one to skip SI-RNTI
-//#define LOG_THIS(rnti) (rnti != 0xFFFF)
+#define LOG_THIS(rnti) (rnti != 0xFFFF)
 
 
 /* Define GUI-related things */
@@ -185,11 +185,11 @@ void phch_worker::stop()
         free(signal_buffer_tx[p]);
       }
     }
-    pthread_mutex_unlock(&mutex);
-    pthread_mutex_destroy(&mutex);
   } else {
     printf("Warning could not stop properly PHY\n");
   }
+  pthread_mutex_unlock(&mutex);
+  pthread_mutex_destroy(&mutex);
 }
 void phch_worker::reset() 
 {
@@ -372,9 +372,10 @@ void phch_worker::work_imp()
 
   subframe_cfg_t sf_cfg;
   phy->get_sf_config(&sf_cfg, tti_tx_dl);// TODO difference between  tti_tx_dl and t_tx_dl
+
   pthread_mutex_lock(&mutex);
   is_worker_running = true;
-  
+
   mac_interface_phy::ul_sched_t *ul_grants = phy->ul_grants;
   mac_interface_phy::dl_sched_t *dl_grants = phy->dl_grants;
   mac_interface_phy *mac = phy->mac;
@@ -398,7 +399,7 @@ void phch_worker::work_imp()
   decode_pucch();
 
   // Get DL scheduling for the TX TTI from MAC
-  
+
   if(sf_cfg.sf_type == SUBFRAME_TYPE_REGULAR) {
     if (mac->get_dl_sched(tti_tx_dl, &dl_grants[t_tx_dl]) < 0) {
       Error("Getting DL scheduling from MAC\n");

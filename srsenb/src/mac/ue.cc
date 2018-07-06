@@ -115,8 +115,7 @@ srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 {
   uint8_t *ret = NULL; 
-  pthread_mutex_lock(&mutex);
-  if (len > 0) {   
+  if (len > 0) {
     if (!pending_buffers[tti%NOF_HARQ_PROCESSES]) {
       ret = pdus.request(len);   
       pending_buffers[tti%NOF_HARQ_PROCESSES] = ret; 
@@ -127,8 +126,7 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
   } else {
     log_h->warning("Requesting buffer for zero bytes\n");
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  return ret;
 }
 
 bool ue::process_pdus()
@@ -190,12 +188,12 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
       }
 
       // Indicate scheduler to update BSR counters 
-      sched->ul_recv_len(rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
+      //sched->ul_recv_len(rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
 
       // Indicate RRC about successful activity if valid RLC message is received
       if (mac_msg_ul.get()->get_payload_size() > 64) { // do not count RLC status messages only
         rrc->set_activity_user(rnti);
-        log_h->info("UL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
+        log_h->debug("UL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
       }
 
       if ((int) mac_msg_ul.get()->get_payload_size() > most_data) {

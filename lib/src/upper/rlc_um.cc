@@ -33,7 +33,7 @@
 
 namespace srslte {
 
-rlc_um::rlc_um() : tx_sdu_queue(32)
+rlc_um::rlc_um(uint32_t queue_len) : tx_sdu_queue(queue_len)
 {
   log = NULL;
   pdcp = NULL;
@@ -62,10 +62,13 @@ rlc_um::rlc_um() : tx_sdu_queue(32)
   pdu_lost = false;
 }
 
+// Warning: must call stop() to properly deallocate all buffers
 rlc_um::~rlc_um()
 {
-  stop();
+  pthread_mutex_destroy(&mutex);
+  pool = NULL;
 }
+
 void rlc_um::init(srslte::log                  *log_,
                   uint32_t                      lcid_,
                   srsue::pdcp_interface_rlc    *pdcp_,
@@ -79,6 +82,7 @@ void rlc_um::init(srslte::log                  *log_,
   mac_timers            = mac_timers_;
   reordering_timer_id   = mac_timers->timer_get_unique_id();
   reordering_timer      = mac_timers->timer_get(reordering_timer_id);
+  tx_enabled = true;
 }
 
 void rlc_um::configure(srslte_rlc_config_t cnfg_)
@@ -115,8 +119,7 @@ void rlc_um::configure(srslte_rlc_config_t cnfg_)
 void rlc_um::empty_queue() {
   // Drop all messages in TX SDU queue
   byte_buffer_t *buf;
-  while(tx_sdu_queue.size() > 0) {
-    tx_sdu_queue.read(&buf);
+  while(tx_sdu_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
 }
@@ -128,16 +131,8 @@ bool rlc_um::is_mrb()
 
 void rlc_um::stop()
 {
-  reset();
-  if (mac_timers && reordering_timer) {
-    mac_timers->timer_release_id(reordering_timer_id);
-    reordering_timer = NULL;
-  }
-}
-
-void rlc_um::reset()
-{
-  // Empty tx_sdu_queue before locking the mutex 
+  // Empty tx_sdu_queue before locking the mutex
+  tx_enabled = false;
   empty_queue();
 
   pthread_mutex_lock(&mutex);
@@ -159,7 +154,7 @@ void rlc_um::reset()
   if(reordering_timer) {
     reordering_timer->stop();
   }
-  
+
   // Drop all messages in RX window
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it;
   for(it = rx_window.begin(); it != rx_window.end(); it++) {
@@ -167,6 +162,11 @@ void rlc_um::reset()
   }
   rx_window.clear();
   pthread_mutex_unlock(&mutex);
+
+  if (mac_timers && reordering_timer) {
+    mac_timers->timer_release_id(reordering_timer_id);
+    reordering_timer = NULL;
+  }
 }
 
 rlc_mode_t rlc_um::get_mode()
@@ -182,11 +182,36 @@ uint32_t rlc_um::get_bearer()
 /****************************************************************************
  * PDCP interface
  ***************************************************************************/
-
 void rlc_um::write_sdu(byte_buffer_t *sdu)
 {
-  tx_sdu_queue.write(sdu);
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+  if (!tx_enabled) {
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+    return;
+  }
+  if (sdu) {
+    tx_sdu_queue.write(sdu);
+    log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+  } else {
+    log->warning("NULL SDU pointer in write_sdu()\n");
+  }
+}
+
+void rlc_um::write_sdu_nb(byte_buffer_t *sdu)
+{
+  if (!tx_enabled) {
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+    return;
+  }
+  if (sdu) {
+    if (tx_sdu_queue.try_write(sdu)) {
+      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+    } else {
+      log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+      pool->deallocate(sdu);
+    }
+  } else {
+    log->warning("NULL SDU pointer in write_sdu()\n");
+  }
 }
 
 /****************************************************************************

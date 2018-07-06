@@ -51,7 +51,8 @@ void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
                srsue::ue_interface       *ue_,
                log                       *rlc_log_, 
                mac_interface_timers      *mac_timers_,
-               uint32_t                  lcid_)
+               uint32_t                  lcid_,
+               int                       buffer_size_)
 {
   pdcp    = pdcp_;
   rrc     = rrc_;
@@ -59,11 +60,12 @@ void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
   rlc_log = rlc_log_;
   mac_timers = mac_timers_;
   default_lcid = lcid_;
+  buffer_size  = buffer_size_;
 
   gettimeofday(&metrics_time[1], NULL);
   reset_metrics(); 
 
-  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers); // SRB0
+  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers, buffer_size); // SRB0
 }
 
 void rlc::reset_metrics() 
@@ -75,8 +77,9 @@ void rlc::reset_metrics()
 void rlc::stop()
 {
   for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
-    if(rlc_array[i].active())
+    if(rlc_array[i].active()) {
       rlc_array[i].stop();
+    }
   }
 }
 
@@ -114,6 +117,7 @@ void rlc::get_metrics(rlc_metrics_t &m)
   reset_metrics();
 }
 
+// A call to reestablish stops all lcids but does not delete the instances. The mapping lcid to rlc mode can not change
 void rlc::reestablish() {
   for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
     if(rlc_array[i].active()) {
@@ -122,14 +126,16 @@ void rlc::reestablish() {
   }
 }
 
+// Resetting the RLC layer returns the object to the state after the call to init(): All lcids are stopped and
+// defaul lcid=0 is created
 void rlc::reset()
 {
   for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
     if(rlc_array[i].active())
-      rlc_array[i].reset();
+      rlc_array[i].stop();
   }
 
-  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers); // SRB0
+  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers, buffer_size); // SRB0
 }
 
 void rlc::empty_queue()
@@ -147,6 +153,12 @@ void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 {
   if(valid_lcid(lcid)) {
     rlc_array[lcid].write_sdu(sdu);
+  }
+}
+void rlc::write_sdu_nb(uint32_t lcid, byte_buffer_t *sdu)
+{
+  if(valid_lcid(lcid)) {
+    rlc_array[lcid].write_sdu_nb(sdu);
   }
 }
 void rlc::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
@@ -307,16 +319,16 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
     switch(cnfg.rlc_mode)
     {
     case LIBLTE_RRC_RLC_MODE_AM:
-      rlc_array[lcid].init(RLC_MODE_AM, rlc_log, lcid, pdcp, rrc, mac_timers);
+      rlc_array[lcid].init(RLC_MODE_AM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_BI:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_UNI_DL:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_UNI_UL:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
       break;
     default:
       rlc_log->error("Cannot add RLC entity - invalid mode\n");

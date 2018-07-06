@@ -124,7 +124,8 @@ private:
   
   static const int MAC_PDU_THREAD_PRIO  = 60;
 
-  
+  // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since access for different TTIs
+  pthread_rwlock_t rwlock;
   
   // Interaction with PHY 
   phy_interface_mac    *phy_h; 

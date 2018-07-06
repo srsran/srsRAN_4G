@@ -167,7 +167,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         "Number of PHY threads")
 
     ("expert.link_failure_nof_err",
-        bpo::value<int>(&args->expert.mac.link_failure_nof_err)->default_value(50),
+        bpo::value<int>(&args->expert.mac.link_failure_nof_err)->default_value(100),
         "Number of PUSCH failures after which a radio-link failure is triggered")
 
     ("expert.max_prach_offset_us",

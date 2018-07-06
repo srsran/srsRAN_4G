@@ -49,8 +49,7 @@ class rlc_um
     ,public rlc_common
 {
 public:
-  rlc_um();
-
+  rlc_um(uint32_t queue_len = 32);
   ~rlc_um();
   void init(log                       *rlc_entity_log_,
             uint32_t                   lcid_,
@@ -58,7 +57,6 @@ public:
             srsue::rrc_interface_rlc  *rrc_,
             mac_interface_timers      *mac_timers_);
   void configure(srslte_rlc_config_t cnfg);
-  void reset();
   void stop();
   void empty_queue(); 
   bool is_mrb();
@@ -68,6 +66,7 @@ public:
 
   // PDCP interface
   void write_sdu(byte_buffer_t *sdu);
+  void write_sdu_nb(byte_buffer_t *sdu);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -131,6 +130,7 @@ private:
   srslte::timers::timer *reordering_timer;
   uint32_t               reordering_timer_id;
 
+  bool     tx_enabled;
   bool     pdu_lost;
 
   int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);

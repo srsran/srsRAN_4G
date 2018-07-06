@@ -123,7 +123,6 @@ public:
     bzero(&cqi_sched, sizeof(cqi_sched));
     bzero(&cfg, sizeof(cfg));
     bzero(&sib2, sizeof(sib2));
-    bzero(&user_mutex, sizeof(user_mutex));
     bzero(&paging_mutex, sizeof(paging_mutex));
 
   }
@@ -350,6 +349,7 @@ private:
     srslte::byte_buffer_t*  pdu;
   }rrc_pdu;
 
+  const static uint32_t LCID_EXIT     = 0xffff0000;
   const static uint32_t LCID_REM_USER = 0xffff0001;
   const static uint32_t LCID_REL_USER = 0xffff0002;
   const static uint32_t LCID_RLF_USER = 0xffff0003;

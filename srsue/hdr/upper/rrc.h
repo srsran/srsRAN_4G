@@ -447,8 +447,6 @@ private:
   uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf);
   const static int SIB_SEARCH_TIMEOUT_MS = 1000;
 
-  const static uint32_t NOF_REQUIRED_SIBS = 13; // SIB1, SIB2 and SIB3
-
   bool initiated;
   bool ho_start;
   bool go_idle;
