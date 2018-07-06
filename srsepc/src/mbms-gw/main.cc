@@ -101,7 +101,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
 
     ("mbms_gw.name",      bpo::value<string>(&mbms_gw_name)->default_value("srsmbmsgw01"), "MBMS-GW Name")
     ("mbms_gw.sgi_mb_if_addr",      bpo::value<string>(&mbms_gw_sgi_mb_if_addr)->default_value("172.16.1.1"), "SGi-mb TUN interface Address.")
-    ("mbms_gw.m1u_multi_addr",      bpo::value<string>(&mbms_gw_sgi_mb_if_mask)->default_value("255.255.255.255"), "SGi-mb TUN interface mask.")
+    ("mbms_gw.sgi_mb_if_mask",      bpo::value<string>(&mbms_gw_sgi_mb_if_mask)->default_value("255.255.255.255"), "SGi-mb TUN interface mask.")
     ("mbms_gw.m1u_multi_addr",      bpo::value<string>(&mbms_gw_m1u_multi_addr)->default_value("239.255.0.1"), "M1-u GTPu destination multicast address.")
 
     ("log.all_level",     bpo::value<string>(&args->log_args.all_level)->default_value("info"),   "ALL log level")
