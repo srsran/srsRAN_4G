@@ -59,7 +59,7 @@ public:
   buffer_pool(int capacity_ = -1)
   {
     uint32_t nof_buffers = POOL_SIZE;
-    if (capacity > 0) {
+    if (capacity_ > 0) {
       nof_buffers = (uint32_t) capacity_;
     }
     pthread_mutex_init(&mutex, NULL);
