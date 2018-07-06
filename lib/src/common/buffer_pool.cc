@@ -39,7 +39,6 @@ byte_buffer_pool* byte_buffer_pool::get_instance(int capacity)
 {
   pthread_mutex_lock(&instance_mutex);
   if(NULL == instance) {
-    printf("Creating buffer pool capacity=%d\n", capacity);
     instance = new byte_buffer_pool(capacity);
   }
   pthread_mutex_unlock(&instance_mutex);
