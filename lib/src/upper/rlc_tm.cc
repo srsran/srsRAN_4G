@@ -113,7 +113,7 @@ void rlc_tm::write_sdu_nb(byte_buffer_t *sdu)
       log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, queue size=%d, bytes=%d",
                     rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
     } else {
-      log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
+      log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
                        rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
       pool->deallocate(sdu);
     }
@@ -139,7 +139,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   if(pdu_size > nof_bytes)
   {
     log->error("TX %s PDU size larger than MAC opportunity\n", rrc->get_rb_name(lcid).c_str());
-    return 0;
+    return -1;
   }
   byte_buffer_t *buf;
   if (ul_queue.try_read(&buf)) {

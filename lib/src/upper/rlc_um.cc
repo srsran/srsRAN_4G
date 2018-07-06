@@ -204,9 +204,9 @@ void rlc_um::write_sdu_nb(byte_buffer_t *sdu)
   }
   if (sdu) {
     if (tx_sdu_queue.try_write(sdu)) {
-      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B,tx_sdu_queue_len=%d, pool=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
     } else {
-      log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B ,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+      log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
       pool->deallocate(sdu);
     }
   } else {
@@ -321,7 +321,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   if(!pdu || pdu->N_bytes != 0)
   {
     log->error("Failed to allocate PDU buffer\n");
-    return 0;
+    return -1;
   }
   rlc_umd_pdu_header_t header;
   header.fi   = RLC_FI_FIELD_START_AND_END_ALIGNED;
