@@ -1853,11 +1853,7 @@ int rrc::ue::sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr)
     return -1; 
   }  
   if (parent->cfg.sr_cfg.sf_mapping[j_min] < period) {
-    if (period > 5) {
-      *I_sr = period - 5 + parent->cfg.sr_cfg.sf_mapping[j_min]; 
-    } else {
-      *I_sr = period + parent->cfg.sr_cfg.sf_mapping[j_min]; 
-    }
+    *I_sr = period - 5 + parent->cfg.sr_cfg.sf_mapping[j_min];
   } else {
     parent->rrc_log->error("Allocating SR: invalid sf_idx=%d for period=%d\n", parent->cfg.sr_cfg.sf_mapping[j_min], period);
     return -1; 
