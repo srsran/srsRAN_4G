@@ -757,7 +757,7 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
   if (auth_result == AUTH_OK) {
     nas_log->info("Network authentication successful\n");
     send_authentication_response(res, res_len);
-    nas_log->info("Generated k_asme=%s\n", hex_to_string(ctxt.k_asme, 32).c_str());
+    nas_log->info_hex(ctxt.k_asme, 32, "Generated k_asme:\n");
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     nas_log->error("Network authentication synchronization failure.\n");
     send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
@@ -878,8 +878,8 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   // Generate NAS keys
   usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int,
                           ctxt.cipher_algo, ctxt.integ_algo);
-  nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
-  nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
+  nas_log->info_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
+  nas_log->info_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
 
   nas_log->debug("Generating integrity check. integ_algo:%d, count_dl:%d, lcid:%d\n",
                  ctxt.integ_algo, ctxt.rx_count, lcid);
