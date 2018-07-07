@@ -205,6 +205,20 @@ bool enb::init(all_args_t *args_)
     fprintf(stderr, "Error parsing DRB configuration\n");
     return false; 
   }
+
+  uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib.sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset;
+
+  if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
+    fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", prach_freq_offset);
+    return false;
+  }
+
+  if (prach_freq_offset < rrc_cfg.cqi_cfg.nof_prb || prach_freq_offset < rrc_cfg.sr_cfg.nof_prb ) {
+    fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d lower than CQI offset: %d or SR offset: %d\n",
+            prach_freq_offset, rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb);
+    return false;
+  }
+
   rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
   rrc_cfg.enable_mbsfn =  args->expert.enable_mbsfn;
   
