@@ -151,8 +151,10 @@ private:
   metric_ul *ul_metric; 
   srslte::log *log_h; 
   rrc_interface_mac *rrc;
-  
-  cell_cfg_t cfg; 
+
+  pthread_rwlock_t rwlock;
+
+  cell_cfg_t cfg;
   sched_args_t sched_cfg; 
 
   const static int MAX_PRB = 100; 
