@@ -583,7 +583,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
 
     // Set starting gain to half maximum in case of using AGC
-    rf_uhd_set_rx_gain(handler, handler->info.max_tx_gain*0.7);
+    rf_uhd_set_rx_gain(handler, handler->info.max_rx_gain*0.7);
 
 #if HAVE_ASYNC_THREAD
     if (start_async_thread) {
