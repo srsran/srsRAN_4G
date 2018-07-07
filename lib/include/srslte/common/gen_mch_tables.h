@@ -24,34 +24,29 @@
  *
  */
 
-#ifndef SRSLTE_CONFIG_H
-#define SRSLTE_CONFIG_H
+#ifndef GEN_MCH_TALBES_H
+#define GEN_MCH_TALBES_H
 
-// Generic helper definitions for shared library support
-#if defined _WIN32 || defined __CYGWIN__
-  #define SRSAPPS_IMPORT __declspec(dllimport)
-  #define SRSAPPS_EXPORT __declspec(dllexport)
-  #define SRSAPPS_LOCAL
-#else
-  #if __GNUC__ >= 4
-    #define SRSAPPS_IMPORT __attribute__ ((visibility ("default")))
-    #define SRSAPPS_EXPORT __attribute__ ((visibility ("default")))
-  #else
-    #define SRSAPPS_IMPORT
-    #define SRSAPPS_EXPORT
-    #define SRSAPPS_LOCAL
-  #endif
-#endif
+/******************************************************************************
+ * Common mch table generation - used in phch_common of UE and ENB for MBMS
+ *****************************************************************************/
+#include <pthread.h>
+#include <string.h>
+#include <stdint.h>
 
-// Define SRSAPPS_API
-// is used for the public API symbols.
-#ifdef SRSAPPS_DLL_EXPORTS // defined if we are building the SRSAPPS DLL (instead of using it)
-  #define SRSAPPS_EXPORT
-#else
-  #define SRSAPPS_IMPORT
-#endif
 
-// cf_t definition
-typedef _Complex float cf_t;
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
-#endif // SRSLTE_CONFIG_H
+
+void generate_frame_mch_table(uint8_t *table, uint8_t alloc);
+void generate_mch_table(uint8_t *table, uint32_t sf_alloc, uint8_t num_frames);
+void generate_mcch_table(uint8_t *table, uint32_t sf_alloc);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+
+#endif // SECURITY_H

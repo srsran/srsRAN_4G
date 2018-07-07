@@ -48,7 +48,7 @@ uint8_t* pdu_queue::request(uint32_t len)
     fprintf(stderr, "Error request buffer of invalid size %d. Max bytes %d\n", len, MAX_PDU_LEN);
     return NULL; 
   }
-  pdu_t *pdu = pool.allocate();  
+  pdu_t *pdu = pool.allocate("pdu_queue::request");
   if (!pdu) {
     if (log_h) {
       log_h->error("Not enough buffers for MAC PDU\n");      
@@ -74,12 +74,13 @@ void pdu_queue::deallocate(uint8_t* pdu)
  * This function enqueues the packet and returns quicly because ACK 
  * deadline is important here. 
  */ 
-void pdu_queue::push(uint8_t *ptr, uint32_t len, uint32_t tstamp)
+void pdu_queue::push(uint8_t *ptr, uint32_t len, channel_t channel, uint32_t tstamp)
 {
   if (ptr) {
     pdu_t *pdu  = (pdu_t*) ptr;
     pdu->len    = len;
     pdu->tstamp = tstamp;
+    pdu->channel = channel;
     pdu_q.push(pdu);
   } else {
     log_h->warning("Error pushing pdu: ptr is empty\n");
@@ -88,15 +89,12 @@ void pdu_queue::push(uint8_t *ptr, uint32_t len, uint32_t tstamp)
 
 bool pdu_queue::process_pdus()
 {
-  bool have_data = false; 
-  uint32_t cnt  = 0; 
-  pdu_t *pdu; 
+  bool have_data = false;
+  uint32_t cnt  = 0;
+  pdu_t *pdu;
   while(pdu_q.try_pop(&pdu)) {
     if (callback) {
-      callback->process_pdu(pdu->ptr, pdu->len, pdu->tstamp);
-    }
-    if (!pool.deallocate(pdu)) {
-      log_h->warning("Error deallocating from buffer pool in process_pdus(): buffer not created in this pool.\n");
+      callback->process_pdu(pdu->ptr, pdu->len, pdu->channel, pdu->tstamp);
     }
     cnt++;
     have_data = true;

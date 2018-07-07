@@ -209,7 +209,11 @@ bool bsr_proc::generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes) {
     if (nof_lcg > 1) {
       bsr->format = LONG_BSR;
     }  
-  }     
+  }
+  Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n",
+       bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format),
+       bsr->buff_size[0], bsr->buff_size[1], bsr->buff_size[2], bsr->buff_size[3]);
+
   return ret; 
 }
 
@@ -337,10 +341,7 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr)
     }
     generate_bsr(bsr, nof_padding_bytes);
     ret = true; 
-    Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n", 
-         bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format), 
-         bsr->buff_size[0], bsr->buff_size[1], bsr->buff_size[2], bsr->buff_size[3]);
-    
+
     if (timers_db->get(timer_periodic_id)->get_timeout() && bsr->format != TRUNC_BSR) {
       timers_db->get(timer_periodic_id)->reset();
       timers_db->get(timer_periodic_id)->run();

@@ -55,6 +55,14 @@ typedef struct {
   float iq_q; 
 } srslte_rf_cal_t; 
 
+
+typedef struct {
+  double min_tx_gain;
+  double max_tx_gain;
+  double min_rx_gain;
+  double max_rx_gain;
+} srslte_rf_info_t;
+
 typedef struct {
   enum { 
     SRSLTE_RF_ERROR_LATE,
@@ -124,6 +132,8 @@ SRSLTE_API double srslte_rf_set_rx_gain_th(srslte_rf_t *h,
 SRSLTE_API double srslte_rf_get_rx_gain(srslte_rf_t *h);
 
 SRSLTE_API double srslte_rf_get_tx_gain(srslte_rf_t *h);
+
+SRSLTE_API srslte_rf_info_t *srslte_rf_get_info(srslte_rf_t *h);
 
 SRSLTE_API void srslte_rf_suppress_stdout(srslte_rf_t *h);
 

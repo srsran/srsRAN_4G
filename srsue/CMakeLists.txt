@@ -44,3 +44,8 @@ link_directories(
 ########################################################################
 add_subdirectory(src)
 add_subdirectory(test)
+
+########################################################################
+# Default configuration files
+########################################################################
+install(FILES ue.conf.example DESTINATION ${DATA_DIR})

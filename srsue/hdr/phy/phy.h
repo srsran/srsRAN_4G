@@ -82,21 +82,18 @@ public:
 
   /********** RRC INTERFACE ********************/
   void    reset();
-  void    sync_reset();
   void    configure_ul_params(bool pregen_disabled = false);
-  void    cell_search_start();
-  void    cell_search_next();
-  void    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
-  bool    cell_handover(srslte_cell_t cell);
+  cell_search_ret_t cell_search(phy_cell_t *cell);
+  bool    cell_select(phy_cell_t *cell);
 
   void    meas_reset();
   int     meas_start(uint32_t earfcn, int pci);
   int     meas_stop(uint32_t earfcn, int pci);
 
-  /********** MAC INTERFACE ********************/
-  /* Functions to synchronize with a cell */
-  bool    sync_status(); // this is also RRC interface
+  // also MAC interface
+  bool    cell_is_camping();
 
+  /********** MAC INTERFACE ********************/
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   void    set_crnti(uint16_t rnti);
   
@@ -123,7 +120,7 @@ public:
   void    pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1);
   void    pdcch_ul_search_reset();
   void    pdcch_dl_search_reset();
-
+  
   /* Get/Set PHY parameters interface from RRC */  
   void get_config(phy_cfg_t *phy_cfg); 
   void set_config(phy_cfg_t *phy_cfg); 
@@ -131,7 +128,13 @@ public:
   void set_config_common(phy_cfg_common_t *common); 
   void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd); 
   void set_config_64qam_en(bool enable);
-
+  void set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
+  void set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
+  void set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch);
+  
+  /*Set MAC->PHY MCH period  stopping point*/
+  void set_mch_period_stop(uint32_t stop);
+  
 
   float   get_phr();
   float   get_pathloss_db();
@@ -150,8 +153,9 @@ private:
 
   bool     initiated;
   uint32_t nof_workers; 
-  
-  const static int MAX_WORKERS         = 4;
+  uint32_t nof_coworkers;
+
+  const static int MAX_WORKERS         = 3;
   const static int DEFAULT_WORKERS     = 2;
   
   const static int SF_RECV_THREAD_PRIO = 1;

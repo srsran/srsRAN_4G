@@ -60,12 +60,15 @@ int srslte_tcod_init(srslte_tcod_t *h, uint32_t max_long_cb) {
 }
 
 void srslte_tcod_free(srslte_tcod_t *h) {
-  h->max_long_cb = 0;
-  if (h->temp) {
-    free(h->temp);
-  }
-  for (int i = 0; i < 188; i++) {
-    srslte_bit_interleaver_free(&tcod_interleavers[i]);
+  if (table_initiated) {
+    h->max_long_cb = 0;
+    if (h->temp) {
+      free(h->temp);
+    }
+    for (int i = 0; i < 188; i++) {
+      srslte_bit_interleaver_free(&tcod_interleavers[i]);
+    }
+    table_initiated = false;
   }
 }
 

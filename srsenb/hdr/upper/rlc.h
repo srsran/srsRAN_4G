@@ -32,6 +32,13 @@
 #ifndef SRSENB_RLC_H
 #define SRSENB_RLC_H
 
+typedef struct {
+    uint32_t lcid;
+    uint32_t plmn;
+    uint16_t mtch_stop;
+    uint8_t *payload;
+}mch_service_t;
+
 namespace srsenb {
   
 class rlc :  public rlc_interface_mac, 
@@ -45,12 +52,12 @@ public:
   void stop(); 
   
   // rlc_interface_rrc
-  void reset(uint16_t rnti);
   void clear_buffer(uint16_t rnti);
   void add_user(uint16_t rnti); 
   void rem_user(uint16_t rnti);
   void add_bearer(uint16_t rnti, uint32_t lcid);
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg);
+  void add_bearer_mrb(uint16_t rnti, uint32_t lcid);
 
   // rlc_interface_pdcp
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);
@@ -73,7 +80,8 @@ private:
     void write_pdu(uint32_t lcid, srslte::byte_buffer_t *sdu);
     void write_pdu_bcch_bch(srslte::byte_buffer_t *sdu);
     void write_pdu_bcch_dlsch(srslte::byte_buffer_t *sdu);
-    void write_pdu_pcch(srslte::byte_buffer_t *sdu);  
+    void write_pdu_pcch(srslte::byte_buffer_t *sdu);
+    void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu){}
     void max_retx_attempted(); 
     std::string get_rb_name(uint32_t lcid);
     uint16_t rnti; 
@@ -82,10 +90,17 @@ private:
     srsenb::rrc_interface_rlc  *rrc;
     srslte::rlc                *rlc; 
     srsenb::rlc                *parent; 
-  }; 
-  
-  std::map<uint32_t,user_interface> users; 
+  };
 
+  void clear_user(user_interface *ue);
+
+  const static int RLC_TX_QUEUE_LEN = 512;
+
+  pthread_rwlock_t rwlock;
+
+  std::map<uint32_t,user_interface> users; 
+  std::vector<mch_service_t> mch_services;
+  
   mac_interface_rlc             *mac; 
   pdcp_interface_rlc            *pdcp;
   rrc_interface_rlc             *rrc;

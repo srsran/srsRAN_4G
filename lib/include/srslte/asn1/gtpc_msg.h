@@ -202,6 +202,7 @@ struct gtpc_create_session_request
     struct gtpc_f_teid_ie s12_rnc_f_teid;
     bool s2b_u_epdg_f_teid_present;
     struct gtpc_f_teid_ie s2b_u_epdg_f_teid;
+    struct gtpc_bearer_qos_ie bearer_qos;          // M
   } eps_bearer_context_created;		// M
   //bool bearer_context_deleted_present;
   //struct bearer_context_ bearer_context_deleted;		// C
@@ -268,8 +269,8 @@ struct gtpc_create_session_response
     struct gtpc_f_teid_ie s12_sgw_f_teid;
     bool s2b_u_pgw_f_teid_present;
     struct gtpc_f_teid_ie s2b_u_pgw_f_teid;
-    //bearer_level_qos_present
-    //bearer_level_qos
+    bool bearer_level_qos_present;
+    struct gtpc_bearer_qos_ie bearer_level_qos;
     //charging_id_present
     //charging_id
     //bearer_flags_present

@@ -38,13 +38,19 @@ namespace srslte {
 class srslte_nas_config_t
 {
 public:
-  srslte_nas_config_t(uint32_t lcid_ = 0, std::string apn_ = "")
+  srslte_nas_config_t(uint32_t lcid_ = 0, std::string apn_ = "", std::string user_ = "", std::string pass_ = "", bool force_imsi_attach_ = false)
     :lcid(lcid_),
-     apn(apn_)
+     apn(apn_),
+     user(user_),
+     pass(pass_),
+     force_imsi_attach(force_imsi_attach_)
     {}
 
   uint32_t    lcid;
   std::string apn;
+  std::string user;
+  std::string pass;
+  bool        force_imsi_attach;
 };
 
 

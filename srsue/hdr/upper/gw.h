@@ -30,7 +30,6 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/msg_queue.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/threads.h"
@@ -43,6 +42,7 @@ namespace srsue {
 class gw
     :public gw_interface_pdcp
     ,public gw_interface_nas
+    ,public gw_interface_rrc
     ,public thread
 {
 public:
@@ -51,14 +51,17 @@ public:
   void stop();
 
   void get_metrics(gw_metrics_t &m);
+  void set_netmask(std::string netmask);
 
   // PDCP interface
   void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu);
+  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu);
 
   // NAS interface
   srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str);
 
-  void set_netmask(std::string netmask);
+  // RRC interface
+  void add_mch_port(uint32_t lcid, uint32_t port);
 
 private:
 
@@ -71,9 +74,10 @@ private:
   nas_interface_gw   *nas;
 
   srslte::byte_buffer_pool   *pool;
-
   srslte::log                *gw_log;
+
   srslte::srslte_gw_config_t cfg;
+
   bool                running;
   bool                run_enable;
   int32               tun_fd;
@@ -89,6 +93,12 @@ private:
 
   void                run_thread();
   srslte::error_t     init_if(char *err_str);
+
+  // MBSFN
+  int      mbsfn_sock_fd;                   // Sink UDP socket file descriptor
+  struct   sockaddr_in mbsfn_sock_addr;     // Target address
+  uint32_t mbsfn_ports[SRSLTE_N_MCH_LCIDS]; // Target ports for MBSFN data
+
 };
 
 } // namespace srsue

@@ -66,11 +66,17 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
   rx_count      = 0;
   do_integrity  = false;
   do_encryption = false;
+
+  cfg.sn_len    = 0;
+  sn_len_bytes  = 0;
+
   if(cfg.is_control) {
     cfg.sn_len   = 5;
     sn_len_bytes = 1;
-  } else {
-    sn_len_bytes  = (cfg.sn_len+7)/8;
+  }
+  if(cfg.is_data) {
+    cfg.sn_len   = 12;
+    sn_len_bytes = 2;
   }
 
   log->debug("Init %s\n", rrc->get_rb_name(lcid).c_str());
@@ -167,6 +173,12 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
 {
   log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU, do_integrity = %s, do_encryption = %s",
                 rrc->get_rb_name(lcid).c_str(), (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
+
+  // Sanity check
+  if(pdu->N_bytes <= sn_len_bytes) {
+    pool->deallocate(pdu);
+    return;
+  }
 
   // Handle DRB messages
   if (cfg.is_data) {

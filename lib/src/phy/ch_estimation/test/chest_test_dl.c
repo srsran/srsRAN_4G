@@ -37,7 +37,9 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,    // nof_ports
   1000,         // cell_id
-  SRSLTE_CP_NORM        // cyclic prefix
+  SRSLTE_CP_NORM,        // cyclic prefix
+  SRSLTE_PHICH_NORM,
+  SRSLTE_PHICH_R_1_6
 };
 
 char *output_matlab = NULL;

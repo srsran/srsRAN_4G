@@ -114,13 +114,13 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
   erab_ctx_req->e_RAB_ID.E_RAB_ID = erab_ctx->erab_id;
   //Setup E-RAB QoS parameters
-  erab_ctx_req->e_RABlevelQoSParameters.qCI.QCI = 9;
+  erab_ctx_req->e_RABlevelQoSParameters.qCI.QCI = erab_ctx->qci;
   erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.priorityLevel.PriorityLevel = 15 ;//Lowest
   erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionCapability = LIBLTE_S1AP_PRE_EMPTIONCAPABILITY_SHALL_NOT_TRIGGER_PRE_EMPTION;
   erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionVulnerability = LIBLTE_S1AP_PRE_EMPTIONVULNERABILITY_PRE_EMPTABLE;
-
   erab_ctx_req->e_RABlevelQoSParameters.gbrQosInformation_present=false;
-  
+
+
   //Set E-RAB S-GW F-TEID
   //if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
   //  m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
@@ -188,8 +188,6 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
 
   //Change E-RAB state to Context Setup Requested and save S-GW control F-TEID
   ecm_ctx->erabs_ctx[erab_ctx_req->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
-  //ecm_ctx->erabs_ctx[erab_ctx_req->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.teid = sgw_ctrl_fteid.teid;
-  //ecm_ctx->erabs_ctx[erab_ctx_req->e_RAB_ID.E_RAB_ID].sgw_ctrl_fteid.ipv4 = sgw_ctrl_fteid.ipv4;
 
   struct in_addr addr;
   addr.s_addr = htonl(sgw_s1u_ip);
@@ -199,6 +197,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   m_s1ap_log->console("Initial Context Setup Request -- E-RAB id %d\n",erab_ctx_req->e_RAB_ID.E_RAB_ID);
   m_s1ap_log->console("Initial Context Setup Request -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
   m_s1ap_log->console("Initial Context Setup Request -- S1-U TEID 0x%x. IP %s \n", sgw_s1u_teid,inet_ntoa(addr));
+  m_s1ap_log->console("Initial Context Setup Request -- QCI %d \n", erab_ctx_req->e_RABlevelQoSParameters.qCI.QCI);
 
   m_pool->deallocate(reply_buffer);
   m_pool->deallocate(nas_buffer);
@@ -283,8 +282,8 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
   if (ecm_ctx->state == ECM_STATE_CONNECTED)
   {
     //There are active E-RABs, send release access mearers request
-    m_s1ap_log->console("There are active E-RABs, send release access mearers request");
-    m_s1ap_log->info("There are active E-RABs, send release access mearers request");
+    m_s1ap_log->console("There are active E-RABs, send release access mearers request\n");
+    m_s1ap_log->info("There are active E-RABs, send release access mearers request\n");
 
     //The handle_release_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
     //It will release the UEs downstream S1-u and keep the upstream S1-U connection active.

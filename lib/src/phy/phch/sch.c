@@ -130,7 +130,7 @@ int srslte_sch_init(srslte_sch_t *q) {
       goto clean; 
     }
     bzero(q->temp_g_bits, SRSLTE_MAX_PRB*12*12*12);
-    q->ul_interleaver = srslte_vec_malloc(sizeof(uint16_t)*SRSLTE_MAX_PRB*12*12*12);
+    q->ul_interleaver = srslte_vec_malloc(sizeof(uint32_t)*SRSLTE_MAX_PRB*12*12*12);
     if (!q->ul_interleaver) {
       goto clean; 
     }
@@ -577,7 +577,7 @@ int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbu
  * Profiling show that the computation of this matrix is neglegible. 
  */
 static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs, uint32_t Qm,
-                                 uint8_t *ri_present, uint16_t *interleaver_lut)
+                                 uint8_t *ri_present, uint32_t *interleaver_lut)
 {
   uint32_t rows = H_prime_total/N_pusch_symbs;
   uint32_t cols = N_pusch_symbs;
@@ -599,7 +599,7 @@ static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs,
 /* UL-SCH channel interleaver according to 5.2.2.8 of 36.212 */
 void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
                       uint32_t N_pusch_symbs, uint8_t *q_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
-                      uint8_t *ri_present, uint16_t *inteleaver_lut) 
+                      uint8_t *ri_present, uint32_t *inteleaver_lut)
 {
   
   // Prepare ri_bits for fast search using temp_buffer
@@ -611,7 +611,7 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total,
   
   // Genearate interleaver table and interleave bits
   ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut); 
-  srslte_bit_interleave(g_bits, q_bits, inteleaver_lut, H_prime_total*Qm);    
+  srslte_bit_interleave_i(g_bits, q_bits, inteleaver_lut, H_prime_total*Qm);
   
   // Reset temp_buffer because will be reused next time
   if (nof_ri_bits > 0) {
@@ -624,7 +624,7 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total,
 /* UL-SCH channel deinterleaver according to 5.2.2.8 of 36.212 */
 void ulsch_deinterleave(int16_t *q_bits, uint32_t Qm, uint32_t H_prime_total, 
                         uint32_t N_pusch_symbs, int16_t *g_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
-                        uint8_t *ri_present, uint16_t *inteleaver_lut) 
+                        uint8_t *ri_present, uint32_t *inteleaver_lut)
 {     
   // Prepare ri_bits for fast search using temp_buffer
   if (nof_ri_bits > 0) {
@@ -634,8 +634,8 @@ void ulsch_deinterleave(int16_t *q_bits, uint32_t Qm, uint32_t H_prime_total,
   }
 
   // Generate interleaver table and interleave samples 
-  ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut); 
-  srslte_vec_lut_sss(q_bits, inteleaver_lut, g_bits, H_prime_total*Qm);
+  ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut);
+  srslte_vec_lut_sis(q_bits, inteleaver_lut, g_bits, H_prime_total*Qm);
 
   // Reset temp_buffer because will be reused next time
   if (nof_ri_bits > 0) {
@@ -683,9 +683,9 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     Q_prime_ack = (uint32_t) ret; 
 
     // Set zeros to HARQ bits
-    for (uint32_t i=0;i<Q_prime_ack;i++) {
-      q_bits[q->ack_ri_bits[i].position] = 0;  
-    }    
+    for (uint32_t i = 0; i < Q_prime_ack * Qm; i++) {
+      q_bits[q->ack_ri_bits[i].position] = 0;
+    }
   }
         
   // Deinterleave and decode RI bits

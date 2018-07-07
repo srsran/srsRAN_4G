@@ -91,7 +91,7 @@ public:
     period_us = get_time_scaled(period_us_); 
     start(priority);
   }
-  void stop() {
+  void stop_thread() {
     run_enable = false;
     wait_thread_finish();
   }

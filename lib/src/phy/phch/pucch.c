@@ -632,10 +632,7 @@ static int uci_mod_bits(srslte_pucch_t *q, srslte_pucch_format_t format, uint8_t
 void srslte_refsignal_r_uv_arg_1prb(float *arg, uint32_t u);
 
 
-float tmp_alpha;
-uint32_t tmp_noc, tmp_nprime, tmp_woc;
-
-static int pucch_encode_(srslte_pucch_t* q, srslte_pucch_format_t format, 
+static int pucch_encode_(srslte_pucch_t* q, srslte_pucch_format_t format,
                           uint32_t n_pucch, uint32_t sf_idx, uint16_t rnti,
                           uint8_t bits[SRSLTE_PUCCH_MAX_BITS], cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS], bool signal_only) 
 {
@@ -680,11 +677,6 @@ static int pucch_encode_(srslte_pucch_t* q, srslte_pucch_format_t format,
         }
         DEBUG("PUCCH d_0: %.1f+%.1fi, alpha: %.1f, n_oc: %d, n_prime_ns: %d, n_rb_2=%d\n",
               __real__ q->d[0], __imag__ q->d[0], alpha, n_oc, n_prime_ns, q->pucch_cfg.n_rb_2);
-
-        tmp_alpha = alpha;
-        tmp_noc   = n_oc;
-        tmp_nprime = n_prime_ns;
-        tmp_woc   = w_n_oc[N_sf_widx][n_oc%3][m];
 
         for (uint32_t n=0;n<SRSLTE_PUCCH_N_SEQ;n++) {
           z[(ns%2)*N_sf_0*SRSLTE_PUCCH_N_SEQ+m*SRSLTE_PUCCH_N_SEQ+n] = 

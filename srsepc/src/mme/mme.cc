@@ -115,7 +115,7 @@ mme::stop()
 void
 mme::run_thread()
 {
-  srslte::byte_buffer_t *pdu = m_pool->allocate();
+  srslte::byte_buffer_t *pdu = m_pool->allocate("mme::run_thread");
   uint32_t sz = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
 
   struct sockaddr_in enb_addr;

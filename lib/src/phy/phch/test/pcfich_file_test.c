@@ -239,6 +239,7 @@ int main(int argc, char **argv) {
   printf("cfi: %d, distance: %f\n", cfi, cfi_corr);
 
   base_free();
+  srslte_dft_exit();
 
   if (n < 0) {
     fprintf(stderr, "Error decoding PCFICH\n");

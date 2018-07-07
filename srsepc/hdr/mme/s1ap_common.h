@@ -110,7 +110,8 @@ typedef struct{
 } enb_ctx_t;
 
 typedef struct{
-  uint8_t  k_asme[32]; 
+  uint8_t  eksi;
+  uint8_t  k_asme[32];
   uint8_t  xres[16]; //minimum 6, maximum 16
   uint32_t dl_nas_count;
   uint32_t ul_nas_count;
@@ -127,6 +128,7 @@ typedef struct{
 typedef struct{
     enum erab_state state;
     uint8_t erab_id;
+    uint8_t qci;
     srslte::gtpc_f_teid_ie enb_fteid;
     srslte::gtpc_f_teid_ie sgw_s1u_fteid;
     srslte::gtpc_pdn_address_allocation_ie pdn_addr_alloc;
@@ -159,7 +161,6 @@ typedef struct{
   ue_emm_ctx_t emm_ctx;
   eps_sec_ctx_t sec_ctx;
   ue_ecm_ctx_t ecm_ctx;
-  erab_ctx_t erabs_ctx[MAX_ERABS_PER_UE];
 } ue_ctx_t;
 }//namespace
 

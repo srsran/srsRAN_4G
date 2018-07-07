@@ -106,6 +106,7 @@ int main(int argc, char **argv) {
   srslte_cfo_free(&cfocorr);
   free(input);
   free(output);
+  srslte_dft_exit();
 
   printf("MSE: %f\n", mse);
   if (mse > MAX_MSE) {

@@ -213,17 +213,111 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_mbsfn_subframe_config_ie(uint8              
                                                              LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT  *mbsfn_subfr_cnfg);
 
 /*********************************************************************
-    IE Name: PMCH Info List
+    IE Name: TMGI
 
-    Description: Specifies configuration of all PMCHs of an MBSFN area
+    Description: Temporary Mobile Group Identity (PLMN + MBMS service ID)
 
     Document Reference: 36.331 v10.0.0 Section 6.3.7
 *********************************************************************/
 // Defines
 // Enums
 // Structs
+typedef struct{
+    uint16 mcc;
+    uint16 mnc;
+}LIBLTE_RRC_PLMN_IDENTITY_STRUCT;
+typedef struct{
+    LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id_r9;
+    uint8                           plmn_index_r9;
+    bool                            plmn_id_explicit;
+    uint32                          serviceid_r9;
+}LIBLTE_RRC_TMGI_R9_STRUCT;
 // Functions
-// FIXME
+LIBLTE_ERROR_ENUM liblte_rrc_pack_tmgi_r9_ie(LIBLTE_RRC_TMGI_R9_STRUCT *tmgi,
+                                             uint8                    **ie_ptr);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_tmgi_r9_ie(uint8                    **ie_ptr,
+                                               LIBLTE_RRC_TMGI_R9_STRUCT *tmgi);
+
+/*********************************************************************
+    IE Name: MBMS Session Info
+
+    Description: Information about an individual MBMS session
+
+    Document Reference: 36.331 v10.0.0 Section 6.3.7
+*********************************************************************/
+// Defines
+// Enums
+// Structs
+typedef struct{
+    LIBLTE_RRC_TMGI_R9_STRUCT tmgi_r9;
+    uint8                     sessionid_r9;
+    bool                      sessionid_r9_present;
+    uint8                     logicalchannelid_r9;
+}LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT;
+// Functions
+LIBLTE_ERROR_ENUM liblte_rrc_pack_mbms_session_info_r9_ie(LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT  *mbms_session_info,
+                                                          uint8                                  **ie_ptr);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_mbms_session_info_r9_ie(uint8                                  **ie_ptr,
+                                                            LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT  *mbms_session_info);
+
+/*********************************************************************
+    IE Name: PMCH Config
+
+    Description: Contains configuration parameters of the sessions
+                 carried by a PMCH
+
+    Document Reference: 36.331 v10.0.0 Section 6.3.7
+*********************************************************************/
+// Defines
+
+// Enums
+typedef enum{
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF8 = 0,
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF16,
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF32,
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF64,
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF128,
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF256,
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF512,
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF1024,
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_N_ITEMS,
+}LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_ENUM;
+static const char liblte_rrc_mch_scheduling_period_r9_text[LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_N_ITEMS][20] = {"8", "16", "32", "64", "128", "256", "512", "1024"};
+static const uint16 liblte_rrc_mch_scheduling_period_r9_num[LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_N_ITEMS] = {8, 16, 32, 64, 128, 256, 512, 1024};
+
+// Structs
+typedef struct{
+    uint16                                    sf_alloc_end_r9;
+    uint8                                     datamcs_r9;
+    LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_ENUM  mch_schedulingperiod_r9;
+}LIBLTE_RRC_PMCH_CONFIG_R9_STRUCT;
+// Functions
+LIBLTE_ERROR_ENUM liblte_rrc_pack_pmch_config_r9_ie(LIBLTE_RRC_PMCH_CONFIG_R9_STRUCT *pmch_cnfg,
+                                                    uint8                           **ie_ptr);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_pmch_config_r9_ie(uint8                           **ie_ptr,
+                                                      LIBLTE_RRC_PMCH_CONFIG_R9_STRUCT *pmch_cnfg);
+
+/*********************************************************************
+    IE Name: PMCH Info
+
+    Description: Specifies configuration of PMCH of an MBSFN area
+
+    Document Reference: 36.331 v10.0.0 Section 6.3.7
+*********************************************************************/
+// Defines
+#define LIBLTE_RRC_MAX_SESSION_PER_PMCH 29
+// Enums
+// Structs
+typedef struct{
+    LIBLTE_RRC_PMCH_CONFIG_R9_STRUCT       pmch_config_r9;
+    LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT mbms_sessioninfolist_r9[LIBLTE_RRC_MAX_SESSION_PER_PMCH];
+    uint8                                  mbms_sessioninfolist_r9_size;
+}LIBLTE_RRC_PMCH_INFO_R9_STRUCT;
+// Functions
+LIBLTE_ERROR_ENUM liblte_rrc_pack_pmch_info_r9_ie(LIBLTE_RRC_PMCH_INFO_R9_STRUCT  *pmch_info,
+                                                  uint8                          **ie_ptr);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_pmch_info_r9_ie(uint8                          **ie_ptr,
+                                                    LIBLTE_RRC_PMCH_INFO_R9_STRUCT  *pmch_info);
 
 /*********************************************************************
     IE Name: C-RNTI
@@ -2227,10 +2321,6 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_csfb_registration_param_1xrtt_v920_ie(uint8 
 // Defines
 // Enums
 // Structs
-typedef struct{
-    uint16 mcc;
-    uint16 mnc;
-}LIBLTE_RRC_PLMN_IDENTITY_STRUCT;
 typedef struct{
     LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id;
     uint32                          cell_id;
@@ -5135,7 +5225,7 @@ typedef struct{
     LIBLTE_RRC_UE_TIMERS_AND_CONSTANTS_STRUCT ue_timers_and_constants;
     LIBLTE_RRC_ARFCN_VALUE_EUTRA_STRUCT       arfcn_value_eutra;
     LIBLTE_RRC_UL_BW_STRUCT                   ul_bw;
-    LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT   mbsfn_subfr_cnfg[LIBLTE_RRC_MAX_MBSFN_ALLOCATIONS];
+    LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT   mbsfn_subfr_cnfg_list[LIBLTE_RRC_MAX_MBSFN_ALLOCATIONS];
     LIBLTE_RRC_TIME_ALIGNMENT_TIMER_ENUM      time_alignment_timer;
     uint32                                    mbsfn_subfr_cnfg_list_size;
     uint8                                     additional_spectrum_emission;
@@ -5545,7 +5635,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_sys_info_block_type_9_ie(uint8              
 // Structs
 typedef struct{
     LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT           mbsfn_area_info_list_r9[LIBLTE_RRC_MAX_MBSFN_AREAS];
-    LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT mbms_notification_config;
+    LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT mbsfn_notification_config;
     uint8                                       mbsfn_area_info_list_r9_size;
 }LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT;
 // Functions
@@ -5579,7 +5669,7 @@ static const char liblte_rrc_ul_information_transfer_type_text[LIBLTE_RRC_UL_INF
                                                                                                                        "CDMA2000-HRPD"};
 // Structs
 typedef struct{
-    LIBLTE_SIMPLE_BYTE_MSG_STRUCT                dedicated_info;
+    LIBLTE_BYTE_MSG_STRUCT                dedicated_info;
     LIBLTE_RRC_UL_INFORMATION_TRANSFER_TYPE_ENUM dedicated_info_type;
 }LIBLTE_RRC_UL_INFORMATION_TRANSFER_STRUCT;
 // Functions
@@ -5771,18 +5861,18 @@ typedef enum{
     LIBLTE_RRC_SIB_TYPE_11,
     LIBLTE_RRC_SIB_TYPE_12_v920,
     LIBLTE_RRC_SIB_TYPE_13_v920,
-    LIBLTE_RRC_SIB_TYPE_SPARE_5,
-    LIBLTE_RRC_SIB_TYPE_SPARE_4,
-    LIBLTE_RRC_SIB_TYPE_SPARE_3,
-    LIBLTE_RRC_SIB_TYPE_SPARE_2,
-    LIBLTE_RRC_SIB_TYPE_SPARE_1,
+    LIBLTE_RRC_SIB_TYPE_14_v1130,
+    LIBLTE_RRC_SIB_TYPE_15_v1130,
+    LIBLTE_RRC_SIB_TYPE_16_v1130,
+    LIBLTE_RRC_SIB_TYPE_17_v1250,
+    LIBLTE_RRC_SIB_TYPE_18_v1250,
     LIBLTE_RRC_SIB_TYPE_N_ITEMS,
 }LIBLTE_RRC_SIB_TYPE_ENUM;
-static const char liblte_rrc_sib_type_text[LIBLTE_RRC_SIB_TYPE_N_ITEMS][20] = {    "3",     "4",     "5",     "6",
-                                                                                   "7",     "8",     "9",    "10",
-                                                                                  "11",    "12",    "13", "SPARE",
-                                                                               "SPARE", "SPARE", "SPARE", "SPARE"};
-static const uint8 liblte_rrc_sib_type_num[LIBLTE_RRC_SIB_TYPE_N_ITEMS] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 0, 0, 0, 0};
+static const char liblte_rrc_sib_type_text[LIBLTE_RRC_SIB_TYPE_N_ITEMS][20] = {    "3",         "4",        "5",        "6",
+                                                                                   "7",         "8",        "9",        "10",
+                                                                                   "11",        "12_v920",  "13_v920",  "14_v1130",
+                                                                                   "15_v1130",  "16_v1130", "17_v1250", "18_v1250"};
+static const uint8 liblte_rrc_sib_type_num[LIBLTE_RRC_SIB_TYPE_N_ITEMS] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
 // Structs
 typedef struct{
     LIBLTE_RRC_PLMN_IDENTITY_STRUCT id;
@@ -5846,14 +5936,20 @@ typedef enum{
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_11,
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_12,
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13,
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_14,
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_15,
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_16,
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_17,
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_18,
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1, // Intentionally not first
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_N_ITEMS,
 }LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_ENUM;
 static const char liblte_rrc_sys_info_block_type_text[LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_N_ITEMS][20] = { "2",  "3",  "4",  "5",
                                                                                                       "6",  "7",  "8",  "9",
-                                                                                                     "10", "11", "12", "13",
-                                                                                                      "1"};
-static const uint8 liblte_rrc_sys_info_block_type_num[LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_N_ITEMS] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1};
+                                                                                                      "10", "11", "12", "13",
+                                                                                                      "14", "15", "16", "17",
+                                                                                                      "18", "1"};
+static const uint8 liblte_rrc_sys_info_block_type_num[LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_N_ITEMS] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1};
 // Structs
 typedef union{
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
@@ -5960,7 +6056,7 @@ typedef struct{
 }LIBLTE_RRC_REGISTERED_MME_STRUCT;
 typedef struct{
     LIBLTE_RRC_REGISTERED_MME_STRUCT registered_mme;
-    LIBLTE_SIMPLE_BYTE_MSG_STRUCT    dedicated_info_nas;
+    LIBLTE_BYTE_MSG_STRUCT    dedicated_info_nas;
     uint8                            rrc_transaction_id;
     uint8                            selected_plmn_id;
     bool                             registered_mme_present;
@@ -6245,7 +6341,7 @@ typedef struct{
 typedef struct{
     LIBLTE_RRC_MEAS_CONFIG_STRUCT           meas_cnfg;
     LIBLTE_RRC_MOBILITY_CONTROL_INFO_STRUCT mob_ctrl_info;
-    LIBLTE_SIMPLE_BYTE_MSG_STRUCT           ded_info_nas_list[LIBLTE_RRC_MAX_DRB];
+    LIBLTE_BYTE_MSG_STRUCT           ded_info_nas_list[LIBLTE_RRC_MAX_DRB];
     LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT   rr_cnfg_ded;
     LIBLTE_RRC_SECURITY_CONFIG_HO_STRUCT    sec_cnfg_ho;
     uint32                                  N_ded_info_nas;
@@ -6551,10 +6647,37 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_measurement_report_msg(LIBLTE_BIT_MSG_STRUCT
     Document Reference: 36.331 v10.0.0 Section 6.2.2 
 *********************************************************************/
 // Defines
+#define LIBLTE_RRC_MAX_PMCH_PER_MBSFN   15
+
 // Enums
+typedef enum{
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF4 = 0,
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF8,
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF16,
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF32,
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF64,
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF128,
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF256,
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_N_ITEMS,
+}LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_ENUM;
+static const char liblte_rrc_mbsfn_common_sf_alloc_period_r9_text[LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_N_ITEMS][20] = {"4", "8", "16", "32",
+                                                                                                                             "64", "128", "256"};
+static const uint32 liblte_rrc_mbsfn_common_sf_alloc_period_r9_num[LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_N_ITEMS] = {4, 8, 16, 32,
+                                                                                                                         64, 128, 256};
 // Structs
+typedef struct{
+    LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT             commonsf_allocpatternlist_r9[LIBLTE_RRC_MAX_MBSFN_ALLOCATIONS];
+    uint8                                               commonsf_allocpatternlist_r9_size;
+    LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_ENUM     commonsf_allocperiod_r9;
+    LIBLTE_RRC_PMCH_INFO_R9_STRUCT                      pmch_infolist_r9[LIBLTE_RRC_MAX_PMCH_PER_MBSFN];
+    uint8                                               pmch_infolist_r9_size;
+}LIBLTE_RRC_MBSFN_AREA_CONFIGURATION_R9_STRUCT;
+
 // Functions
-// FIXME
+LIBLTE_ERROR_ENUM liblte_rrc_pack_mbsfn_area_configuration_r9_msg(LIBLTE_RRC_MBSFN_AREA_CONFIGURATION_R9_STRUCT *mbsfn_area_cnfg,
+                                                                  LIBLTE_BIT_MSG_STRUCT                         *msg);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_mbsfn_area_configuration_r9_msg(LIBLTE_RRC_MBSFN_AREA_CONFIGURATION_R9_STRUCT *msg,
+                                                                    LIBLTE_RRC_PAGING_STRUCT                      *mbsfn_area_cnfg);
 
 /*********************************************************************
     Message Name: Master Information Block
@@ -6626,7 +6749,7 @@ static const char liblte_rrc_dl_information_transfer_type_text[LIBLTE_RRC_DL_INF
                                                                                                                        "CDMA2000-HRPD"};
 // Structs
 typedef struct{
-    LIBLTE_SIMPLE_BYTE_MSG_STRUCT                dedicated_info;
+    LIBLTE_BYTE_MSG_STRUCT                dedicated_info;
     LIBLTE_RRC_DL_INFORMATION_TRANSFER_TYPE_ENUM dedicated_info_type;
     uint8                                        rrc_transaction_id;
 }LIBLTE_RRC_DL_INFORMATION_TRANSFER_STRUCT;
@@ -6783,8 +6906,12 @@ LIBLTE_ERROR_ENUM liblte_rrc_unpack_bcch_dlsch_msg(LIBLTE_BIT_MSG_STRUCT        
 // Defines
 // Enums
 // Structs
+typedef LIBLTE_RRC_MBSFN_AREA_CONFIGURATION_R9_STRUCT LIBLTE_RRC_MCCH_MSG_STRUCT;
 // Functions
-// FIXME
+LIBLTE_ERROR_ENUM liblte_rrc_pack_mcch_msg(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch_msg,
+                                           LIBLTE_BIT_MSG_STRUCT      *msg);
+LIBLTE_ERROR_ENUM liblte_rrc_unpack_mcch_msg(LIBLTE_BIT_MSG_STRUCT      *msg,
+                                             LIBLTE_RRC_MCCH_MSG_STRUCT *mcch_msg);
 
 /*********************************************************************
     Message Name: PCCH Message

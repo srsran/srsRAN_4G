@@ -32,7 +32,6 @@
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
-#include "srslte/common/msg_queue.h"
 #include "srslte/common/threads.h"
 
 

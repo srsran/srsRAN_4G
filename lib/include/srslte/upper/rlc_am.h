@@ -31,7 +31,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/common/timeout.h"
 #include "srslte/upper/rlc_common.h"
 #include <map>
@@ -70,7 +70,7 @@ class rlc_am
     :public rlc_common
 {
 public:
-  rlc_am();
+  rlc_am(uint32_t queue_len = 16);
   ~rlc_am();
   void init(log          *rlc_entity_log_,
             uint32_t              lcid_,
@@ -78,9 +78,9 @@ public:
             srsue::rrc_interface_rlc    *rrc_,
             mac_interface_timers *mac_timers);
   void configure(srslte_rlc_config_t cnfg);
-  void reset();
   void reestablish();
   void stop();
+
   void empty_queue(); 
   
   rlc_mode_t    get_mode();
@@ -88,6 +88,7 @@ public:
 
   // PDCP interface
   void write_sdu(byte_buffer_t *sdu);
+  void write_sdu_nb(byte_buffer_t *sdu);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -104,7 +105,7 @@ private:
   srsue::rrc_interface_rlc  *rrc;
 
   // TX SDU buffers
-  msg_queue      tx_sdu_queue;
+  rlc_tx_queue      tx_sdu_queue;
   byte_buffer_t *tx_sdu;
 
   // PDU being resegmented
@@ -122,6 +123,7 @@ private:
   // Mutexes
   pthread_mutex_t     mutex;
 
+  bool                tx_enabled;
   bool                poll_received;
   bool                do_status;
   rlc_status_pdu_t    status;
@@ -217,8 +219,10 @@ bool        rlc_am_is_control_pdu(byte_buffer_t *pdu);
 bool        rlc_am_is_control_pdu(uint8_t *payload);
 bool        rlc_am_is_pdu_segment(uint8_t *payload);
 std::string rlc_am_to_string(rlc_status_pdu_t *status);
-bool        rlc_am_start_aligned(uint8_t fi);
-bool        rlc_am_end_aligned(uint8_t fi);
+bool        rlc_am_start_aligned(const uint8_t fi);
+bool        rlc_am_end_aligned(const uint8_t fi);
+bool        rlc_am_is_unaligned(const uint8_t fi);
+bool        rlc_am_not_start_aligned(const uint8_t fi);
 
 } // namespace srslte
 

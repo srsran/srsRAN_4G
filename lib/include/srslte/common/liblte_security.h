@@ -53,6 +53,17 @@
 *******************************************************************************/
 
 /*********************************************************************
+    Name: compute_OPc
+
+    Description: Computes OPc from OP and K.
+
+    Document Reference: 35.206 v10.0.0 Annex 3
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_compute_opc(uint8            *k,
+                                     uint8            *op,
+                                     uint8            *op_c);
+
+/*********************************************************************
     Name: liblte_security_generate_k_asme
 
     Description: Generate the security key Kasme.

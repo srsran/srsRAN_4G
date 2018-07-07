@@ -35,11 +35,12 @@ namespace srslte{
 byte_buffer_pool *byte_buffer_pool::instance = NULL;
 pthread_mutex_t instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-byte_buffer_pool* byte_buffer_pool::get_instance(void)
+byte_buffer_pool* byte_buffer_pool::get_instance(int capacity)
 {
   pthread_mutex_lock(&instance_mutex);
-  if(NULL == instance)
-    instance = new byte_buffer_pool();
+  if(NULL == instance) {
+    instance = new byte_buffer_pool(capacity);
+  }
   pthread_mutex_unlock(&instance_mutex);
   return instance;
 }

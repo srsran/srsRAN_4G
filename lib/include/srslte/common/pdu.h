@@ -34,10 +34,10 @@
 #include <stdio.h>
 
 /* MAC PDU Packing/Unpacking functions. Section 6 of 36.321 */   
-
+class subh;
 
 namespace srslte {  
-  
+    
 template<class SubH>
 class pdu
 {
@@ -147,10 +147,11 @@ public:
     }
   }
 
+
 protected:  
   std::vector<SubH> subheaders;
   uint32_t   pdu_len; 
-  uint32_t   rem_len; 
+  uint32_t   rem_len;
   int        cur_idx;
   int        nof_subheaders;
   uint32_t   max_subheaders; 
@@ -159,11 +160,10 @@ protected:
   uint32_t   total_sdu_len; 
   uint32_t   sdu_offset_start; 
   int        last_sdu_idx;
-  
-private: 
+   
   
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
-  void init_(uint8_t *buffer_tx_ptr, uint32_t pdu_len_bytes, bool is_ulsch) {
+  virtual void init_(uint8_t *buffer_tx_ptr, uint32_t pdu_len_bytes, bool is_ulsch) {
     nof_subheaders = 0; 
     pdu_len        = pdu_len_bytes; 
     rem_len        = pdu_len; 
@@ -180,55 +180,80 @@ private:
   }
 };
 
+
+
+typedef enum {
+  SCH_SUBH_TYPE = 0,
+  MCH_SUBH_TYPE = 1,
+  RAR_SUBH_TYPE = 2
+} subh_type;
+
 template<class SubH>
 class subh
 {
-public: 
-      
+public:
+  subh(){}
+  virtual ~subh(){}
+  
   virtual bool read_subheader(uint8_t** ptr)                        = 0;
   virtual void read_payload(uint8_t **ptr)                          = 0;    
   virtual void write_subheader(uint8_t** ptr, bool is_last)         = 0;
   virtual void write_payload(uint8_t **ptr)                         = 0;
   virtual void fprint(FILE *stream)                                 = 0;
-
+ 
   pdu<SubH>* parent; 
-private: 
+private:
   virtual void init() = 0;
 };
 
 
-
 class sch_subh : public subh<sch_subh>
 {
+public:
+  sch_subh(subh_type type_ = SCH_SUBH_TYPE) {
+    lcid             = 0;
+    nof_bytes        = 0;
+    payload          = NULL;
+    nof_mch_sched_ce = 0;
+    cur_mch_sched_ce = 0;
+    F_bit            = false;
+    type             = type_;
+    parent           = NULL;
+    bzero(&w_payload_ce, sizeof(w_payload_ce));
+  }
 
-public: 
+  virtual ~sch_subh(){}
   
   typedef enum {
-    PHR_REPORT = 26,
-    CRNTI      = 27,
-    CON_RES_ID = 28,
-    TRUNC_BSR  = 28,
-    TA_CMD     = 29,
-    SHORT_BSR  = 29,
-    DRX_CMD    = 30,
-    LONG_BSR   = 30,
-    PADDING    = 31,
-    SDU        = 0
-  } cetype; 
-  
+    PHR_REPORT       = 26,
+    CRNTI            = 27,
+    CON_RES_ID       = 28,
+    MTCH_MAX_LCID    = 28,
+    TRUNC_BSR        = 28,
+    TA_CMD           = 29,
+    SHORT_BSR        = 29,
+    DRX_CMD          = 30,
+    LONG_BSR         = 30,
+    MCH_SCHED_INFO   = 30,
+    PADDING          = 31,
+    SDU              = 0
+  } cetype;
+
   // Size of MAC CEs
   const static int MAC_CE_CONTRES_LEN = 6; 
 
   // Reading functions
   bool     is_sdu();
-  cetype   ce_type();
+  bool     is_var_len_ce();
+  cetype ce_type();
   uint32_t size_plus_header();
   void     set_payload_size(uint32_t size);
-  
-  bool     read_subheader(uint8_t** ptr);
-  void     read_payload(uint8_t **ptr);
+
+  bool read_subheader(uint8_t** ptr);
+  void read_payload(uint8_t **ptr);
+
   uint32_t get_sdu_lcid();
-  int get_payload_size();
+  uint32_t get_payload_size();
   uint32_t get_header_size(bool is_last);
   uint8_t* get_sdu_ptr();
   
@@ -237,10 +262,13 @@ public:
   uint8_t  get_ta_cmd();
   float    get_phr();
   int      get_bsr(uint32_t buff_size[4]);
+
+  bool     get_next_mch_sched_info(uint8_t *lcid, uint16_t *mtch_stop);
   
   // Writing functions
-  void     write_subheader(uint8_t** ptr, bool is_last);
-  void     write_payload(uint8_t **ptr);
+  void write_subheader(uint8_t** ptr, bool is_last);
+  void write_payload(uint8_t **ptr);
+
   int      set_sdu(uint32_t lcid, uint32_t nof_bytes, uint8_t *payload);
   int      set_sdu(uint32_t lcid, uint32_t requested_bytes, read_pdu_interface *sdu_itf);
   bool     set_c_rnti(uint16_t crnti);
@@ -251,46 +279,62 @@ public:
   void     set_padding();
   void     set_padding(uint32_t padding_len);
 
-  void     init();
-  void     fprint(FILE *stream);
+  void init();
+  void fprint(FILE *stream);
   
+  bool     set_next_mch_sched_info(uint8_t lcid, uint16_t mtch_stop);
+  
+  
+protected:
+
+  static const int MAX_CE_PAYLOAD_LEN = 8;
+  uint32_t  lcid;
+  int       nof_bytes;
+  uint8_t*  payload;
+  uint8_t   w_payload_ce[64];
+  uint8_t   nof_mch_sched_ce;
+  uint8_t   cur_mch_sched_ce;
+  bool      F_bit;
+  subh_type type;
 
 private: 
-  static const int MAX_CE_PAYLOAD_LEN = 8; 
-  uint32_t lcid;
-  uint32_t nof_bytes; 
-  uint8_t* payload; 
-  uint8_t  w_payload_ce[8];
-  bool     F_bit;    
   uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
   static uint8_t buff_size_table(uint32_t buffer_size);
   static uint8_t phr_report_table(float phr_value);
 };
 
+
 class sch_pdu : public pdu<sch_subh>
 {
 public:
+  sch_pdu(uint32_t max_subh): pdu(max_subh) {}
   
-  sch_pdu(uint32_t max_subh) : pdu(max_subh) {}
-
   void      parse_packet(uint8_t *ptr);
   uint8_t*  write_packet();
   uint8_t*  write_packet(srslte::log *log_h);
-  bool      has_space_ce(uint32_t nbytes);  
+  bool      has_space_ce(uint32_t nbytes, bool var_len=false);
   bool      has_space_sdu(uint32_t nbytes);  
   int       get_pdu_len();
   int       rem_size(); 
   int       get_sdu_space();
   
   static uint32_t size_header_sdu(uint32_t nbytes);
-  bool      update_space_ce(uint32_t nbytes);  
-  bool      update_space_sdu(uint32_t nbytes);  
+  bool      update_space_ce(uint32_t nbytes, bool var_len=false);
+  bool      update_space_sdu(uint32_t nbytes);
   void      fprint(FILE *stream);
+
 };
 
 class rar_subh : public subh<rar_subh>
 {
 public:
+  rar_subh() {
+    bzero(&grant, sizeof(grant));
+    ta        = 0;
+    temp_rnti = 0;
+    preamble  = 0;
+    parent    = NULL;
+  }
 
   static const uint32_t RAR_GRANT_LEN = 20; 
   
@@ -333,11 +377,50 @@ public:
   bool     write_packet(uint8_t* ptr);
   void     fprint(FILE *stream);
 
-private: 
+private:
   bool       has_backoff_indicator;
   uint8_t    backoff_indicator; 
+
 };
 
-} // namespace srslte
+class mch_subh : public sch_subh
+{
+public:
+    mch_subh():sch_subh(MCH_SUBH_TYPE){}
 
-#endif // SRSLTE_PDU_H
+    // Size of MAC CEs
+    const static int MAC_CE_CONTRES_LEN = 6;
+};
+
+class mch_pdu : public sch_pdu
+{
+public:
+  mch_pdu(uint32_t max_subh) : sch_pdu(max_subh) {}
+  
+private:
+
+  /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
+  virtual void init_(uint8_t *buffer_tx_ptr, uint32_t pdu_len_bytes, bool is_ulsch) {
+    nof_subheaders = 0; 
+    pdu_len        = pdu_len_bytes; 
+    rem_len        = pdu_len; 
+    pdu_is_ul      = is_ulsch; 
+    buffer_tx      = buffer_tx_ptr; 
+    sdu_offset_start = max_subheaders*2 + 13; // Assuming worst-case 2 bytes per sdu subheader + all possible CE
+    total_sdu_len  = 0; 
+    last_sdu_idx   = -1;
+    reset();
+    for (uint32_t i=0;i<max_subheaders;i++) {
+      mch_subh mch_subh1;
+      subheaders[i] = mch_subh1;
+      subheaders[i].parent = this;
+      subheaders[i].init();
+    }
+  }
+};
+
+} // namespace srsue
+
+
+#endif // MACPDU_H
+

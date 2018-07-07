@@ -44,7 +44,8 @@ public:
   void stop(); 
   
   // pdcp_interface_rlc
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu); 
+  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);
+  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu){}
   
   // pdcp_interface_rrc
   void reset(uint16_t rnti);
@@ -77,7 +78,8 @@ private:
     uint16_t rnti; 
     srsenb::gtpu_interface_pdcp  *gtpu;
     // gw_interface_pdcp
-    void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu); 
+    void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu);
+    void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu){}
   }; 
   
   class user_interface_rrc : public srsue::rrc_interface_pdcp
@@ -90,6 +92,7 @@ private:
     void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu);
     void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu);
     void write_pdu_pcch(srslte::byte_buffer_t *pdu);
+    void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu){}
     std::string get_rb_name(uint32_t lcid);
   };
   
@@ -100,9 +103,13 @@ private:
     user_interface_gtpu gtpu_itf;
     user_interface_rrc  rrc_itf; 
     srslte::pdcp        *pdcp; 
-  }; 
+  };
+
+  void clear_user(user_interface *ue);
   
-  std::map<uint32_t,user_interface> users; 
+  std::map<uint32_t,user_interface> users;
+
+  pthread_rwlock_t rwlock;
   
   rlc_interface_pdcp  *rlc;
   rrc_interface_pdcp  *rrc;

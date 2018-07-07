@@ -139,7 +139,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->info("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
     m_s1ap_log->console("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
     m_s1ap_log->info("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
-    m_s1ap_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
+    m_s1ap_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
 
     handle_nas_detach_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     return true;
@@ -223,12 +223,12 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
 
   if( sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS ||
       (msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) ||
-      (msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
+      (msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) ||
+      (msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
   {
     //Only identity response and authentication response are valid as plain NAS.
-    //Sometimes authentication response and identity are sent as integrity protected,
+    //Sometimes authentication response/failure and identity response are sent as integrity protected,
     //but these messages are sent when the securty context is not setup yet, so we cannot integrity check it.
-    //FIXME Double-check
     switch(msg_type)
     {
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
@@ -284,7 +284,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   }
   else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED)
   {
-    //Integrity protected NAS message, possibly chiphered.
+    //Integrity protected NAS message, possibly ciphered.
     emm_ctx->security_ctxt.ul_nas_count++;
     mac_valid = integrity_check(emm_ctx,nas_msg);
     if(!mac_valid){
@@ -371,7 +371,7 @@ s1ap_nas_transport::handle_nas_attach_request(uint32_t enb_ue_s1ap_id,
 
   //Get attach type from attach request
   if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
-  { 
+  {
     m_s1ap_log->console("Attach Request -- IMSI-style attach request\n");
     m_s1ap_log->info("Attach Request -- IMSI-style attach request\n");
     handle_nas_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
@@ -504,15 +504,19 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
     m_s1ap_log->info("User not found. IMSI %015lu\n",emm_ctx->imsi);
     return false;
   }
+  //Allocate eKSI for this authentication vector
+  //Here we assume a new security context thus a new eKSI
+  emm_ctx->security_ctxt.eksi=0;
 
   //Save the UE context
   ue_ctx_t *new_ctx = new ue_ctx_t;
   memcpy(new_ctx,&ue_ctx,sizeof(ue_ctx_t));
   m_s1ap->add_ue_ctx_to_imsi_map(new_ctx);
   m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(new_ctx);
+  m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
+  pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, emm_ctx->security_ctxt.eksi, autn, rand);
 
   //Send reply to eNB
   *reply_flag = true;
@@ -592,7 +596,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
     //Save whether ESM information transfer is necessary
     ecm_ctx->eit = pdn_con_req.esm_info_transfer_flag_present;
-    //m_s1ap_log->console("EPS Bearer id: %d\n", eps_bearer_id);
+
     //Add eNB info to UE ctxt
     memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
     //Initialize E-RABs
@@ -617,12 +621,12 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
     m_s1ap_log->console("Could not find M-TMSI=0x%x. Sending ID request\n",m_tmsi);
     m_s1ap_log->info("Could not find M-TMSI=0x%x. Sending Id Request\n", m_tmsi);
-    //m_s1ap->add_new_ue_ecm_ctx(ue_ecm_ctx);
 
     //Store temporary ue context
     ue_ctx_t *new_ctx = new ue_ctx_t;
     memcpy(new_ctx,&ue_ctx,sizeof(ue_ctx_t));
     m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(new_ctx);
+    m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
 
     pack_identity_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
     *reply_flag = true;
@@ -646,7 +650,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       if(msg_valid == true && emm_ctx->state == EMM_STATE_DEREGISTERED)
       {
         m_s1ap_log->console("GUTI Attach Integrity valid. UL count %d, DL count %d\n",emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.dl_nas_count);
-        
+
         //Create new MME UE S1AP Identity
         emm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
         ecm_ctx->mme_ue_s1ap_id = emm_ctx->mme_ue_s1ap_id;
@@ -672,7 +676,8 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
         //Store context based on MME UE S1AP id
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
-        
+        m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
+
         //Re-generate K_eNB
         srslte::security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
         m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n",emm_ctx->security_ctxt.ul_nas_count);
@@ -704,6 +709,11 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         }
         else
         {
+          //Get subscriber info from HSS
+          uint8_t default_bearer=5;
+          m_hss->gen_update_loc_answer(emm_ctx->imsi,&ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+          m_s1ap_log->debug("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+          m_s1ap_log->console("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
           m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
           *reply_flag = false; //No reply needed
         }
@@ -760,12 +770,13 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         }
         //Store context based on MME UE S1AP id
         m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
- 
+        m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
+
         //NAS integrity failed. Re-start authentication process.
         m_s1ap_log->console("GUTI Attach request NAS integrity failed.\n");
         m_s1ap_log->console("RE-starting authentication procedure.\n");
-        uint8_t     autn[16]; 
-        uint8_t     rand[16]; 
+        uint8_t     autn[16];
+        uint8_t     rand[16];
         //Get Authentication Vectors from HSS
         if(!m_hss->gen_auth_info_answer(emm_ctx->imsi, emm_ctx->security_ctxt.k_asme, autn, rand, emm_ctx->security_ctxt.xres))
         {
@@ -773,7 +784,9 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
             m_s1ap_log->info("User not found. IMSI %015lu\n",emm_ctx->imsi);
             return false;
         }
-        pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
+        //Restarting security context. Reseting eKSI to 0.
+        emm_ctx->security_ctxt.eksi=0;
+        pack_authentication_request(reply_buffer, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, emm_ctx->security_ctxt.eksi, autn, rand);
 
         //Send reply to eNB
         *reply_flag = true;
@@ -1031,6 +1044,7 @@ s1ap_nas_transport::handle_nas_authentication_response(srslte::byte_buffer_t *na
   {
     m_s1ap_log->console("UE Authentication Accepted.\n");
     m_s1ap_log->info("UE Authentication Accepted.\n");
+
     //Send Security Mode Command
     emm_ctx->security_ctxt.ul_nas_count = 0; // Reset the NAS uplink counter for the right key k_enb derivation
     pack_security_mode_command(reply_buffer, emm_ctx, ecm_ctx);
@@ -1068,11 +1082,16 @@ s1ap_nas_transport::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas
   {
     pack_esm_information_request(reply_buffer, emm_ctx, ecm_ctx);
     m_s1ap_log->console("Sending ESM information request\n");
-    m_s1ap_log->info("Sending ESM information request\n");
+    m_s1ap_log->info_hex(reply_buffer->msg, reply_buffer->N_bytes, "Sending ESM information request\n");
     *reply_flag = true;
   }
   else
   {
+    //Get subscriber info from HSS
+    uint8_t default_bearer=5;
+    m_hss->gen_update_loc_answer(emm_ctx->imsi,&ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+    m_s1ap_log->debug("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+    m_s1ap_log->console("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
     //FIXME The packging of GTP-C messages is not ready.
     //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
     m_mme_gtpc->send_create_session_request(emm_ctx->imsi);
@@ -1145,14 +1164,20 @@ s1ap_nas_transport::handle_esm_information_response(srslte::byte_buffer_t *nas_m
   m_s1ap_log->info("ESM Info: EPS bearer id %d\n",esm_info_resp.eps_bearer_id);
   if(esm_info_resp.apn_present)
   {
-    m_s1ap_log->info("ESM Info: APN %d\n",esm_info_resp.eps_bearer_id);
-    m_s1ap_log->console("ESM Info: APN %d\n",esm_info_resp.eps_bearer_id);
+    m_s1ap_log->info("ESM Info: APN %s\n",esm_info_resp.apn.apn);
+    m_s1ap_log->console("ESM Info: APN %s\n",esm_info_resp.apn.apn);
   }
   if(esm_info_resp.protocol_cnfg_opts_present)
   {
     m_s1ap_log->info("ESM Info: %d Protocol Configuration Options\n",esm_info_resp.protocol_cnfg_opts.N_opts);
     m_s1ap_log->console("ESM Info: %d Protocol Configuration Options\n",esm_info_resp.protocol_cnfg_opts.N_opts);
   }
+
+  //Get subscriber info from HSS
+  uint8_t default_bearer=5;
+  m_hss->gen_update_loc_answer(ue_ctx->emm_ctx.imsi,&ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+  m_s1ap_log->debug("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
+  m_s1ap_log->console("Getting subscription information -- QCI %d\n", ue_ctx->ecm_ctx.erabs_ctx[default_bearer].qci);
 
   //FIXME The packging of GTP-C messages is not ready.
   //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
@@ -1196,12 +1221,14 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
     m_s1ap_log->info("User not found. IMSI %015lu\n",imsi);
     return false;
   }
+  //Identity reponse from unknown GUTI atach. Assigning new eKSI.
+  emm_ctx->security_ctxt.eksi=0;
 
   //Store UE context im IMSI map
   m_s1ap->add_ue_ctx_to_imsi_map(ue_ctx);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
+  pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, emm_ctx->security_ctxt.eksi, autn, rand);
 
   //Send reply to eNB
   *reply_flag = true;
@@ -1382,8 +1409,8 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
     m_s1ap_log->info("Non-EPS authentication unacceptable\n");
     break;
     case 21:
-    m_s1ap_log->console("Sequence number synch failure\n");
-    m_s1ap_log->info("Sequence number synch failure\n");
+    m_s1ap_log->console("Authentication Failure -- Synchronization Failure\n");
+    m_s1ap_log->info("Authentication Failure -- Synchronization Failure\n");
     if(auth_fail.auth_fail_param_present == false){
       m_s1ap_log->error("Missing fail parameter\n");
       return false;
@@ -1401,8 +1428,11 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
       m_s1ap_log->info("User not found. IMSI %015lu\n", emm_ctx->imsi);
       return false;
     }
+    //Making sure eKSI is different from previous eKSI.
+    emm_ctx->security_ctxt.eksi = (emm_ctx->security_ctxt.eksi+1)%6;
+
     //Pack NAS Authentication Request in Downlink NAS Transport msg
-    pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, autn, rand);
+    pack_authentication_request(reply_msg, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, emm_ctx->security_ctxt.eksi, autn, rand);
 
     //Send reply to eNB
     *reply_flag = true;
@@ -1414,15 +1444,10 @@ s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg
   }
   return true;
 }
-  /*
-bool
-s1ap_nas_transport::handle_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag)
-{
-  return true;
-  }*/
+
 /*Packing/Unpacking helper functions*/
 bool
-s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t *autn, uint8_t *rand)
+s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t eksi, uint8_t *autn, uint8_t *rand)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -1450,7 +1475,7 @@ s1ap_nas_transport::pack_authentication_request(srslte::byte_buffer_t *reply_msg
   memcpy(auth_req.autn , autn, 16);
   memcpy(auth_req.rand, rand, 16);
   auth_req.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  auth_req.nas_ksi.nas_ksi=0;
+  auth_req.nas_ksi.nas_ksi = eksi;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_request_msg(&auth_req, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
@@ -1587,7 +1612,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_128_EIA1;
 
   sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  sm_cmd.nas_ksi.nas_ksi=0; 
+  sm_cmd.nas_ksi.nas_ksi=ue_emm_ctx->security_ctxt.eksi; 
 
   //Replay UE security cap
   memcpy(sm_cmd.ue_security_cap.eea,ue_emm_ctx->security_ctxt.ue_network_cap.eea,8*sizeof(bool));
@@ -1604,8 +1629,6 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   sm_cmd.nonce_mme_present=false;
 
   uint8_t  sec_hdr_type=3;
-  
-  // ue_emm_ctx->security_ctxt.dl_nas_count = 0;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
@@ -1683,13 +1706,12 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
   LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
-  esm_info_req.eps_bearer_id=0;
+  esm_info_req.eps_bearer_id = 0;
   esm_info_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id;
 
-  uint8_t  sec_hdr_type=2;
-  
+  uint8_t sec_hdr_type = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
+
   ue_emm_ctx->security_ctxt.dl_nas_count++;
- 
   LIBLTE_ERROR_ENUM err = srslte_mme_pack_esm_information_request_msg(&esm_info_req, sec_hdr_type,ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
@@ -1709,6 +1731,7 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
                              );
 
   memcpy(&nas_buffer->msg[1],mac,4);
+  
   //Copy NAS PDU to Downlink NAS Trasport message buffer
   memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
   dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
@@ -1822,7 +1845,7 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
 
   //set apn
-  act_def_eps_bearer_context_req.apn.apn = m_s1ap->m_s1ap_args.mme_apn;
+  strncpy(act_def_eps_bearer_context_req.apn.apn, m_s1ap->m_s1ap_args.mme_apn.c_str(), LIBLTE_STRING_LEN);
   act_def_eps_bearer_context_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id; //FIXME
 
   //Set DNS server
@@ -1889,7 +1912,7 @@ s1ap_nas_transport::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;//FIXME Change name
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;
   dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
@@ -1915,7 +1938,7 @@ s1ap_nas_transport::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint
     m_s1ap_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
     m_s1ap_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
     return false;
-  } 
+  }
 
   m_pool->deallocate(nas_buffer);
   return true;
@@ -1949,10 +1972,10 @@ s1ap_nas_transport::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_
 
   LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
   emm_info.full_net_name_present = true;
-  emm_info.full_net_name.name = std::string("Software Radio Systems LTE");
+  strncpy(emm_info.full_net_name.name, "Software Radio Systems LTE", LIBLTE_STRING_LEN);
   emm_info.full_net_name.add_ci = LIBLTE_MME_ADD_CI_DONT_ADD;
   emm_info.short_net_name_present = true;
-  emm_info.short_net_name.name = std::string("srsLTE");
+  strncpy(emm_info.short_net_name.name, "srsLTE", LIBLTE_STRING_LEN);
   emm_info.short_net_name.add_ci = LIBLTE_MME_ADD_CI_DONT_ADD;
 
   emm_info.local_time_zone_present = false;

@@ -37,6 +37,7 @@
 #include <boost/program_options/parsers.hpp>
 
 #include "srsue/hdr/ue.h"
+#include "srslte/common/config_file.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/metrics_csv.h"
@@ -77,12 +78,17 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"),
      "Transmission time advance")
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
+    ("rf.continuous_tx", bpo::value<string>(&args->rf.continuous_tx)->default_value("auto"), "Transmit samples continuously to the radio or on bursts (auto/yes/no). Default is auto (yes for UHD, no for rest)")
 
-    ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041c00), "Hex value of the featureGroupIndicators field in the"
-                                                                                           "UECapabilityInformation message. Default 0xe6041c00")
+    ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
+                                                                                           "UECapabilityInformation message. Default 0xe6041000")
     ("rrc.ue_category",   bpo::value<string>(&args->ue_category_str)->default_value("4"),  "UE Category (1 to 5)")
 
-    ("nas.apn",   bpo::value<string>(&args->apn)->default_value(""),  "Set Access Point Name (APN) for data services")
+    ("nas.apn",               bpo::value<string>(&args->nas.apn_name)->default_value(""),  "Set Access Point Name (APN) for data services")
+    ("nas.user",              bpo::value<string>(&args->nas.apn_user)->default_value(""),  "Username for CHAP authentication")
+    ("nas.pass",              bpo::value<string>(&args->nas.apn_pass)->default_value(""),  "Password for CHAP authentication")
+    ("nas.force_imsi_attach", bpo::value<bool>(&args->nas.force_imsi_attach)->default_value(false),  "Whether to always perform an IMSI attach")
+
 
     ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
@@ -123,17 +129,24 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("log.filename", bpo::value<string>(&args->log.filename)->default_value("/tmp/ue.log"), "Log filename")
     ("log.file_max_size", bpo::value<int>(&args->log.file_max_size)->default_value(-1), "Maximum file size (in kilobytes). When passed, multiple files are created. Default -1 (single file)")
 
+    ("usim.mode", bpo::value<string>(&args->usim.mode)->default_value("soft"), "USIM mode (soft or pcsc)")
     ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
-    ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator variant")
+    ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator code")
+    ("usim.opc", bpo::value<string>(&args->usim.opc), "USIM operator code (ciphered variant)")
     ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
-
+    ("usim.pin", bpo::value<string>(&args->usim.pin), "PIN in case real SIM card is used")
+    ("usim.reader", bpo::value<string>(&args->usim.reader)->default_value(""), "Force specifiy PCSC reader. Default: Try all available readers.")
 
     /* Expert section */
     ("expert.ip_netmask",
      bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
      "Netmask of the tun_srsue device")
+
+     ("expert.mbms_service",
+     bpo::value<int>(&args->expert.mbms_service)->default_value(-1),
+     "automatically starts an mbms service of the number given")
 
     ("expert.phy.worker_cpu_mask",
      bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
@@ -159,6 +172,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<bool>(&args->expert.pregenerate_signals)->default_value(false),
      "Pregenerate uplink signals after attach. Improves CPU performance.")
 
+    ("expert.print_buffer_state",
+     bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
+     "Prints on the console the buffer state every 10 seconds")
+
     ("expert.rssi_sensor_enabled",
      bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(false),
      "Enable or disable RF frontend RSSI sensor. In some USRP devices can cause segmentation fault")
@@ -178,6 +195,14 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("expert.cqi_fixed",
      bpo::value<int>(&args->expert.phy.cqi_fixed)->default_value(-1),
      "Fixes the reported CQI to a constant value. Default disabled.")
+
+    ("expert.sfo_correct_period",
+     bpo::value<uint32_t>(&args->expert.phy.sfo_correct_period)->default_value(DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD),
+     "Period in ms to correct sample time")
+
+    ("expert.sfo_emma",
+     bpo::value<float>(&args->expert.phy.sfo_ema)->default_value(DEFAULT_SFO_EMA_COEFF),
+     "EMA coefficient to average sample offsets used to compute SFO")
 
     ("expert.snr_ema_coeff",
      bpo::value<float>(&args->expert.phy.snr_ema_coeff)->default_value(0.1),
@@ -261,21 +286,25 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<bool>(&args->expert.phy.average_subframe_enabled)->default_value(true),
      "Averages in the time domain the channel estimates within 1 subframe. Needs accurate CFO correction.")
 
-    ("expert.time_correct_period",
-     bpo::value<int>(&args->expert.phy.time_correct_period)->default_value(5),
-     "Period for sampling time offset correction.")
+    ("expert.estimator_fil_auto",
+     bpo::value<bool>(&args->expert.phy.estimator_fil_auto)->default_value(false),
+     "The channel estimator smooths the channel estimate with an adaptative filter.")
+
+    ("expert.estimator_fil_stddev",
+     bpo::value<float>(&args->expert.phy.estimator_fil_stddev)->default_value(1.0f),
+     "Sets the channel estimator smooth gaussian filter standard deviation.")
+
+    ("expert.estimator_fil_order",
+     bpo::value<uint32_t>(&args->expert.phy.estimator_fil_order)->default_value(4),
+     "Sets the channel estimator smooth gaussian filter order (even values perform better).")
 
     ("expert.sss_algorithm",
      bpo::value<string>(&args->expert.phy.sss_algorithm)->default_value("full"),
      "Selects the SSS estimation algorithm.")
 
-    ("expert.estimator_fil_w",
-     bpo::value<float>(&args->expert.phy.estimator_fil_w)->default_value(0.1),
-     "Chooses the coefficients for the 3-tap channel estimator centered filter.")
-
     ("expert.pdsch_csi_enabled",
-     bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(false),
-     "Stores the Channel State Information and uses it for weightening the softbits. It is only compatible with TM1.")
+     bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(true),
+     "Stores the Channel State Information and uses it for weightening the softbits. It is only used in TM1.")
 
     ("rf_calibration.tx_corr_dc_gain", bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),
      "TX DC offset gain correction")
@@ -318,20 +347,40 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     exit(0);
   }
 
-  // no config file given - print usage and exit
+  // if no config file given, check users home path
   if (!vm.count("config_file")) {
-    cout << "Error: Configuration file not provided" << endl;
-    cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
-    exit(0);
-  } else {
-    cout << "Reading configuration file " << config_file << "..." << endl;
-    ifstream conf(config_file.c_str(), ios::in);
-    if (conf.fail()) {
-      cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+
+    if (!config_exists(config_file, "ue.conf")) {
+      cout << "Failed to read UE configuration file " << config_file << " - exiting" << endl;
       exit(1);
     }
+  }
+
+  cout << "Reading configuration file " << config_file << "..." << endl;
+  ifstream conf(config_file.c_str(), ios::in);
+  if (conf.fail()) {
+    cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+    exit(1);
+  }
+
+  // parse config file and handle errors gracefully
+  try {
     bpo::store(bpo::parse_config_file(conf, common), vm);
     bpo::notify(vm);
+  } catch (const boost::program_options::error& e) {
+    cerr << e.what() << endl;
+    exit(1);
+  }
+
+  //Check conflicting OP/OPc options and which is being used
+  if (vm.count("usim.op") && !vm["usim.op"].defaulted() &&
+      vm.count("usim.opc") && !vm["usim.opc"].defaulted())
+  {
+    cout << "Conflicting options OP and OPc. Please configure either one or the other." << endl;
+    exit(1);
+  }
+  else {
+    args->usim.using_op = vm.count("usim.op");
   }
 
   // Apply all_level to any unset layers
@@ -399,6 +448,9 @@ static int sigcnt = 0;
 static bool running = true;
 static bool do_metrics = false;
 metrics_stdout metrics_screen;
+static bool show_mbms = false;
+static bool mbms_service_start = false;
+uint32_t serv, port;
 
 void sig_int_handler(int signo) {
   sigcnt++;
@@ -410,14 +462,14 @@ void sig_int_handler(int signo) {
 }
 
 void *input_loop(void *m) {
-  char key;
+  string key;
   while (running) {
-    cin >> key;
+    getline(cin, key);
     if (cin.eof() || cin.bad()) {
       cout << "Closing stdin thread." << endl;
       break;
     } else {
-      if ('t' == key) {
+      if (0 == key.compare("t")) {
         do_metrics = !do_metrics;
         if (do_metrics) {
           cout << "Enter t to stop trace." << endl;
@@ -426,10 +478,31 @@ void *input_loop(void *m) {
         }
         metrics_screen.toggle_print(do_metrics);
       } else
-      if ('q' == key) {
+      if (0 == key.compare("q")) {
         running = false;
+      }  
+    else if (0 == key.compare("mbms")) {
+      show_mbms = true;
+    } else if (key.find("mbms_service_start") != string::npos) {
+
+      char *dup = strdup(key.c_str());
+      strtok(dup, " ");
+      char *s = strtok(NULL, " ");
+      if(NULL == s) {
+        cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
+        continue;
       }
+      serv = atoi(s);
+      char* p = strtok(NULL, " ");
+      if(NULL == p) {
+        cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
+        continue;
+      }
+      port = atoi(p);
+      mbms_service_start = true;
+      free(dup);
     }
+   }
   }
   return NULL;
 }
@@ -470,18 +543,43 @@ int main(int argc, char *argv[])
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &args);
 
-  bool plot_started = false;
-  bool signals_pregenerated = false;
-
+  printf("Attaching UE...\n");
+  while (!ue->attach() && running) {
+    sleep(1);
+  }
+  if (running) {
+    if (args.expert.pregenerate_signals) {
+      printf("Pre-generating signals...\n");
+      ue->pregenerate_signals(true);
+      printf("Done pregenerating signals.\n");
+    }
+    if (args.gui.enable) {
+      ue->start_plot();
+    }
+    // Auto-start MBMS service by default
+    if(args.expert.mbms_service > -1){
+      serv = args.expert.mbms_service;
+      port = 4321;
+      mbms_service_start = true;
+    }
+  }
+  int cnt=0;
   while (running) {
-    if (ue->is_attached()) {
-      if (!signals_pregenerated && args.expert.pregenerate_signals) {
-        ue->pregenerate_signals(true);
-        signals_pregenerated = true;
+    //
+    if(mbms_service_start) {
+      if(ue->mbms_service_start(serv, port)){
+        mbms_service_start = false;
       }
-      if (!plot_started && args.gui.enable) {
-        ue->start_plot();
-        plot_started = true;
+    }
+    if(show_mbms) {
+      show_mbms = false;
+      ue->print_mbms();
+    }
+    if (args.expert.print_buffer_state) {
+      cnt++;
+      if (cnt==10) {
+        cnt=0;
+        ue->print_pool();
       }
     }
     sleep(1);

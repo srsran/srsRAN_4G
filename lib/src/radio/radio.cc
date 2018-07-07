@@ -50,16 +50,16 @@ bool radio::init(char *args, char *devname, uint32_t nof_channels)
   
   // Suppress radio stdout
   srslte_rf_suppress_stdout(&rf_device);
-  
-  tx_adv_auto = true; 
+
+  continuous_tx = true;
+  tx_adv_auto = true;
   // Set default preamble length each known device
   // We distinguish by device family, maybe we should calibrate per device
   if (strstr(srslte_rf_name(&rf_device), "uhd")) {
-    burst_preamble_sec = uhd_default_burst_preamble_sec;
   } else if (strstr(srslte_rf_name(&rf_device), "bladerf")) {
     burst_preamble_sec = blade_default_burst_preamble_sec;
   } else {
-     burst_preamble_sec = 0;
+    burst_preamble_sec = 0;
     printf("\nWarning burst preamble is not calibrated for device %s. Set a value manually\n\n", srslte_rf_name(&rf_device));
   }
 
@@ -81,7 +81,12 @@ bool radio::is_init() {
 
 void radio::stop() 
 {
-  srslte_rf_close(&rf_device);
+  if (zeros) {
+    free(zeros);
+  }
+  if (is_initialized) {
+    srslte_rf_close(&rf_device);
+  }
 }
 
 void radio::reset()
@@ -89,6 +94,7 @@ void radio::reset()
   printf("Resetting Radio...\n");
   srslte_rf_stop_rx_stream(&rf_device);
   radio_is_streaming = false;
+  usleep(100000);
 }
 
 void radio::set_manual_calibration(rf_cal_t* calibration)
@@ -108,6 +114,14 @@ void radio::set_tx_rx_gain_offset(float offset) {
 void radio::set_burst_preamble(double preamble_us)
 {
   burst_preamble_sec = (double) preamble_us/1e6; 
+}
+
+void radio::set_continuous_tx(bool enable) {
+  continuous_tx = enable;
+}
+
+bool radio::is_continuous_tx() {
+  return continuous_tx;
 }
 
 void radio::set_tx_adv(int nsamples)
@@ -450,6 +464,10 @@ void radio::set_tx_srate(double srate)
   
   // Calculate TX advance in seconds from samples and sampling rate 
   tx_adv_sec = nsamples/cur_tx_srate;
+  if (tx_adv_sec<0) {
+    tx_adv_sec *= -1;
+    tx_adv_negative = true; 
+  }
 }
 
 void radio::register_error_handler(srslte_rf_error_handler_t h)
@@ -457,6 +475,9 @@ void radio::register_error_handler(srslte_rf_error_handler_t h)
   srslte_rf_register_error_handler(&rf_device, h);
 }
 
+srslte_rf_info_t *radio::get_info() {
+    return srslte_rf_get_info(&rf_device);
+}
   
 }
 
