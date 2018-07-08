@@ -350,16 +350,8 @@ void gw::run_thread()
                 gw_log->warning("Could not re-establish the connection\n");
               }
             }
-<<<<<<< HEAD
-            usleep_scaled(1000);
-          }
-
-          if (attach_attempts == ATTACH_MAX_ATTEMPTS) {
-            gw_log->warning("LCID=%d was not active after %d attempts\n", cfg.lcid, ATTACH_MAX_ATTEMPTS);
-=======
             usleep(100000);
             attach_wait++;
->>>>>>> 50742195b5b42967b8f5d398cf4f740c86cbe404
           }
 
           attach_wait = 0;

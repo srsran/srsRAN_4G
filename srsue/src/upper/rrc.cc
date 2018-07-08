@@ -405,66 +405,6 @@ int rrc::plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])
   // Process all pending measurements before returning
   process_phy_meas();
 
-<<<<<<< HEAD
-        /* The cell is selected when the SIBs are received and applied.
-         * If we were in RRC_CONNECTED and arrive here it means a RLF occurred and we are in Reestablishment procedure.
-         * If T311 is running means there is a reestablishment in progress, send ConnectionReestablishmentRequest.
-         * If not, do a ConnectionRequest if NAS is established or go to IDLE an camp on cell otherwise.
-         */
-        if (mac_timers->timer_get(t311)->is_running()) {
-          //
-          rrc_log->info("RRC Cell Selected: Sending connection reestablishment...\n");
-          con_restablish_cell_reselected();
-          state = RRC_STATE_CONNECTING;
-          connecting_timeout = 0;
-        } else if (nas->is_attaching() || connection_requested) {
-          rrc_log->info("RRC Cell Selected: Sending connection request...\n");
-          connection_requested = false;
-          send_con_request();
-          state = RRC_STATE_CONNECTING;
-          connecting_timeout = 0;
-        } else {
-          rrc_log->info("RRC Cell Selected: Starting paging and going to IDLE...\n");
-          mac->pcch_start_rx();
-          state = RRC_STATE_LEAVE_CONNECTED;
-        }
-        break;
-      case RRC_STATE_CONNECTING:
-        connecting_timeout++;
-        if (connecting_timeout >= RRC_CONNECTING_TIMEOUT) {
-          // Select another cell
-          rrc_log->info("RRC Connecting: timeout expired. Selecting next cell\n");
-          si_acquire_state = SI_ACQUIRE_IDLE;
-          last_win_start = 0;
-          state = RRC_STATE_CELL_SELECTING;
-        }
-        break;
-      case RRC_STATE_CONNECTED:
-        /*
-        failure_test++;
-        if (failure_test >= 100) {
-          mac_interface_rrc::ue_rnti_t ue_rnti;
-          mac->get_rntis(&ue_rnti);
-          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE, ue_rnti.crnti);
-        }*/
-        // Take measurements, cell reselection, etc
-        break;
-      case RRC_STATE_HO_PREPARE:
-        if (ho_prepare()) {
-          state = RRC_STATE_HO_PROCESS;
-        } else {
-          state = RRC_STATE_CONNECTED;
-        }
-        break;
-      case RRC_STATE_HO_PROCESS:
-        // wait for HO to finish
-        break;
-      case RRC_STATE_LEAVE_CONNECTED:
-        usleep_scaled(60000);
-        leave_connected();
-        // Move to RRC_IDLE
-        state = RRC_STATE_IDLE;
-=======
   pthread_mutex_unlock(&mutex);
 
   if (ret.found == phy_interface_rrc::cell_search_ret_t::ERROR) {
@@ -580,7 +520,6 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
       case CHANGED_CELL:
         rrc_log->warning("Selected a new cell but could not camp on. Setting out-of-sync.\n");
         serving_cell->in_sync = false;
->>>>>>> 50742195b5b42967b8f5d398cf4f740c86cbe404
         break;
       default:
         rrc_log->warning("Could not find any suitable cell to connect\n");
@@ -627,10 +566,6 @@ bool rrc::configure_serving_cell() {
           break;
       }
     }
-<<<<<<< HEAD
-    usleep_scaled(1000);
-=======
->>>>>>> 50742195b5b42967b8f5d398cf4f740c86cbe404
   }
   return true;
 }
@@ -1795,34 +1730,8 @@ void rrc::handle_sib1()
   }
 
   // Set TDD Config
-<<<<<<< HEAD
-  if(serving_cell->sib1ptr()->tdd) {
-    phy->set_config_tdd(&serving_cell->sib1ptr()->tdd_cnfg);
-  }
-
-  // Send PLMN and TAC to NAS
-  std::stringstream ss;
-  for (uint32_t i = 0; i < serving_cell->sib1ptr()->N_plmn_ids; i++) {
-    nas->plmn_found(serving_cell->sib1ptr()->plmn_id[i].id, serving_cell->sib1ptr()->tracking_area_code);
-  }
-
-  // Jump to next state
-  switch(state) {
-    case RRC_STATE_CELL_SELECTING:
-      si_acquire_state = SI_ACQUIRE_SIB2;
-      break;
-    case RRC_STATE_PLMN_SELECTION:
-      si_acquire_state = SI_ACQUIRE_IDLE;
-      rrc_log->info("SI Acquisition done. Searching next cell...\n");
-      usleep_scaled(5000);
-      phy->cell_search_next();
-      break;
-    default:
-      si_acquire_state = SI_ACQUIRE_IDLE;
-=======
   if(sib1->tdd) {
     phy->set_config_tdd(&sib1->tdd_cnfg);
->>>>>>> 50742195b5b42967b8f5d398cf4f740c86cbe404
   }
 }
 

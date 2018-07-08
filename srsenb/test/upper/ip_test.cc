@@ -260,7 +260,7 @@ public:
         dedicated.sched_request_cnfg_present = true; 
         phy->set_config_dedicated(rnti, &dedicated);
         
-        usleep_scaled(500);
+        usleep(500);
       break;
       default:
         log_h->error("Received message for lcid=%d\n", lcid);
