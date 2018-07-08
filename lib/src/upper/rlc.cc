@@ -130,11 +130,7 @@ void rlc::reestablish() {
 // defaul lcid=0 is created
 void rlc::reset()
 {
-  for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
-    if(rlc_array[i].active())
-      rlc_array[i].stop();
-  }
-
+  stop();
   rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers, buffer_size); // SRB0
 }
 

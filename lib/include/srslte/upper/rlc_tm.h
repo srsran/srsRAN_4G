@@ -49,6 +49,7 @@ public:
             mac_interface_timers      *mac_timers);
   void configure(srslte_rlc_config_t cnfg);
   void stop();
+  void reestablish();
   void empty_queue(); 
 
   rlc_mode_t    get_mode();

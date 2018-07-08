@@ -87,7 +87,7 @@ void rlc_entity::configure(srslte_rlc_config_t cnfg)
 
 // Reestablishment stops the entity but does not destroy it. Mode will not change
 void rlc_entity::reestablish() {
-  rlc->stop();
+  rlc->reestablish();
 }
 
 // A call to stop() stops the entity and clears deletes the instance. Next time this entity can be used for other mode.
