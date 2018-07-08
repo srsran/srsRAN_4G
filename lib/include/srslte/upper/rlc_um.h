@@ -57,6 +57,7 @@ public:
             srsue::rrc_interface_rlc  *rrc_,
             mac_interface_timers      *mac_timers_);
   void configure(srslte_rlc_config_t cnfg);
+  void reestablish();
   void stop();
   void empty_queue(); 
   bool is_mrb();

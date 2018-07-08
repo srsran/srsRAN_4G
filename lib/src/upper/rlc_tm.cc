@@ -68,6 +68,12 @@ void rlc_tm::empty_queue()
   while(ul_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
+  ul_queue.reset();
+}
+
+void rlc_tm::reestablish() {
+  stop();
+  tx_enabled = true;
 }
 
 void rlc_tm::stop()

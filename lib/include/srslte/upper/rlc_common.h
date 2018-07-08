@@ -163,6 +163,7 @@ public:
                     srslte::mac_interface_timers      *mac_timers_) = 0;
   virtual void configure(srslte_rlc_config_t cnfg) = 0;
   virtual void stop() = 0;
+  virtual void reestablish() = 0;
   virtual void empty_queue() = 0; 
 
   virtual rlc_mode_t    get_mode() = 0;

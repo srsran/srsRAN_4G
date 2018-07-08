@@ -122,11 +122,17 @@ void rlc_um::empty_queue() {
   while(tx_sdu_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
+  tx_sdu_queue.reset();
 }
 
 bool rlc_um::is_mrb()
 {
   return cfg.is_mrb;
+}
+
+void rlc_um::reestablish() {
+  stop();
+  tx_enabled = true;
 }
 
 void rlc_um::stop()
