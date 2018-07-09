@@ -63,10 +63,10 @@ endif(SRSGUI_FOUND)
 if(RF_FOUND)
 
   add_executable(cell_search cell_search.c)
-  target_link_libraries(cell_search srslte_phy srslte_rf)
+  target_link_libraries(cell_search srslte_phy srslte_common srslte_rf)
 
   add_executable(cell_measurement cell_measurement.c)
-  target_link_libraries(cell_measurement srslte_phy srslte_rf)
+  target_link_libraries(cell_measurement srslte_phy srslte_common srslte_rf)
 
   add_executable(usrp_capture usrp_capture.c)
   target_link_libraries(usrp_capture srslte_phy srslte_rf)

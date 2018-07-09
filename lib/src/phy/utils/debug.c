@@ -24,14 +24,8 @@
  *
  */
 
-#include <pthread.h>
-#include <stdio.h>
-#include <execinfo.h>
-#include <signal.h>
 #include <stdlib.h>
-
 #include "srslte/phy/utils/debug.h"
-#include "srslte/version.h"
 
 int srslte_verbose = 0;
 int handler_registered = 0;

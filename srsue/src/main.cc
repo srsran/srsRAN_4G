@@ -38,6 +38,7 @@
 
 #include "srsue/hdr/ue.h"
 #include "srslte/common/config_file.h"
+#include "srslte/common/debug.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/metrics_csv.h"

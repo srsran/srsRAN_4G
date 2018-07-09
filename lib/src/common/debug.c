@@ -41,6 +41,7 @@ static void crash_handler(int sig) {
   void *array[128];
   int size;
 
+
   /* Get all stack traces */
   size = backtrace(array, 128);
 

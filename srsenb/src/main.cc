@@ -31,6 +31,7 @@
 #include <pthread.h>
 
 #include "srslte/common/config_file.h"
+#include "srslte/common/debug.h"
 
 #include <iostream>
 #include <string>
