@@ -278,7 +278,7 @@ level(std::string l)
 
 int
 main (int argc,char * argv[] )
-{  
+{
   cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
@@ -286,12 +286,11 @@ main (int argc,char * argv[] )
 
   all_args_t args;
   parse_args(&args, argc, argv); 
- 
+
   srslte::logger_stdout logger_stdout;
   srslte::logger_file   logger_file;
   srslte::logger        *logger;
 
- 
   /*Init logger*/
   if (!args.log_args.filename.compare("stdout")) {
     logger = &logger_stdout;
