@@ -801,7 +801,7 @@ static void * rf_sock_rx_worker(void * h)
 
                    timersub(&iomsg->hdr.tv_tx_tti, &_info->tv_this_tti, &tv_diff);
 
-                   RF_SOCK_INFO(" RX OK, seqnum %lu, nof_tx_ports %u, rx_delay %ld:%06ld, tx_tti %ld:%06ld, tx_tti_diff %6.6lf, total ok %zu",
+                   RF_SOCK_DBUG(" RX OK, seqnum %lu, nof_tx_ports %u, rx_delay %ld:%06ld, tx_tti %ld:%06ld, tx_tti_diff %6.6lf, total ok %zu",
                                 iomsg->hdr.seqnum,
                                 iomsg->hdr.nof_tx_ports,
                                 tv_rx_delay.tv_sec,
@@ -1312,7 +1312,11 @@ srslte_rf_info_t * rf_sock_get_rf_info(void *h)
   {
      GET_DEV_INFO(h);
 
-     RF_SOCK_INFO("");
+     RF_SOCK_INFO("tx_gain min/max %3.2lf/%3.2lf, rx_gain min/max %3.2lf/%3.2lf",
+                  _info->rf_info.min_tx_gain,
+                  _info->rf_info.max_tx_gain,
+                  _info->rf_info.min_rx_gain,
+                  _info->rf_info.max_rx_gain);
 
      return &_info->rf_info;
   }
@@ -1644,7 +1648,7 @@ int rf_sock_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
     {
       if(! (++_info->rx_nof_miss % LOG_MODUL))
        {
-         RF_SOCK_WARN("RX OUT %d sf, pending sm/by/sf %d/%d/%d, tx_tti %ld:%06ld, total miss %zu",
+         RF_SOCK_DBUG("RX OUT %d sf, pending sm/by/sf %d/%d/%d, tx_tti %ld:%06ld, total miss %zu",
                       nof_sf_out,
                       nof_samples_pending, 
                       nof_bytes_pending,
@@ -1692,7 +1696,7 @@ int rf_sock_send_timed_multi(void *h, void *data[4], int nsamples,
 
    if(nsamples <= 0)
      {
-       RF_SOCK_INFO("msg len %d, sob %d, eob %d", nsamples, is_sob, is_eob);
+       RF_SOCK_DBUG("msg len %d, sob %d, eob %d", nsamples, is_sob, is_eob);
 
        return 0;
      }
@@ -1779,7 +1783,7 @@ int rf_sock_send_timed_multi(void *h, void *data[4], int nsamples,
 
                timersub(&tv_tx_tti, &_info->tv_this_tti, &tv_diff);
 
-               RF_SOCK_INFO("TX OK, seqnum %lu, tx_tti %ld:%06ld, tx_tti_diff %6.6lf, total ok %zu",
+               RF_SOCK_DBUG("TX OK, seqnum %lu, tx_tti %ld:%06ld, tx_tti_diff %6.6lf, total ok %zu",
                             _info->tx_msg.iomsg.hdr.seqnum,
                             tv_tx_tti.tv_sec % 60,
                             tv_tx_tti.tv_usec,

@@ -280,7 +280,11 @@ srslte_rf_info_t * rf_dummy_get_rf_info(void *h)
   {
      GET_DEV_INFO(h);
 
-     LOG_INFO("");
+     LOG_INFO("tx_gain min/max %3.2lf/%3.2lf, rx_gain min/max %3.2lf/%3.2lf",
+                  _info->rf_info.min_tx_gain,
+                  _info->rf_info.max_tx_gain,
+                  _info->rf_info.min_rx_gain,
+                  _info->rf_info.max_rx_gain);
 
      return &_info->rf_info;
   }
