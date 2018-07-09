@@ -250,7 +250,7 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t  *rand,
                             mcc,
                             mnc,
                             k_asme);
-  log->debug_hex(k_asme, KEY_LEN, "K_ASME:\n");
+  log->info_hex(k_asme, KEY_LEN, "K_ASME:\n");
 
   ret = AUTH_OK;
 
