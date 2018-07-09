@@ -66,7 +66,7 @@ int srslte_timestamp_sub(srslte_timestamp_t *t, time_t full_secs, double frac_se
     t->frac_secs -= frac_secs;
     t->full_secs -= full_secs;
     if(t->frac_secs < 0){
-      t->frac_secs = 1-t->frac_secs;
+      t->frac_secs = t->frac_secs + 1;
       t->full_secs--;
     }
     if(t->full_secs < 0)

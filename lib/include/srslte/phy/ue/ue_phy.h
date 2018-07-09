@@ -35,8 +35,8 @@
 #include "srslte/srslte.h"
 #include "srslte/phy/utils/queue.h"
 
-#ifndef UEPHY_H
-#define UEPHY_H
+#ifndef SRSLTE_UE_PHY_H
+#define SRSLTE_UE_PHY_H
 
 #define SYNC_MODE_CV       0
 #define SYNC_MODE_CALLBACK 1
@@ -165,4 +165,4 @@ private:
 };
 
 }
-#endif
+#endif // SRSLTE_UE_PHY_H

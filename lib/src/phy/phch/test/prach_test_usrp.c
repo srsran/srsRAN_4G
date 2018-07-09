@@ -176,8 +176,8 @@ int main(int argc, char **argv) {
   srslte_rf_set_rx_freq(&rf, uhd_freq);
   srslte_rf_set_tx_freq(&rf, uhd_freq);
   
-  if (srate > 1e6) {
-    if (30720%((int) srate/1000) == 0) {
+  if (srate > 1e6 && (srate/1000) > 0) {
+    if (30720%(srate/1000) == 0) {
       srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
     } else {
       srslte_rf_set_master_clock_rate(&rf, 23.04e6);        
@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
   
   srslte_timestamp_t tstamp; 
   
-  srslte_rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf, false);
   uint32_t nframe=0;
   
   while(nframe<nof_frames) {
@@ -235,6 +235,7 @@ int main(int argc, char **argv) {
   srslte_rf_close(&rf);
   srslte_prach_free(p);
   free(p);
+  srslte_dft_exit();
 
   printf("Done\n");
   exit(0);

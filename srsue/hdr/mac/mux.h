@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef MUX_H
-#define MUX_H
+#ifndef SRSUE_MUX_H
+#define SRSUE_MUX_H
 
 #include <pthread.h>
 
@@ -34,8 +34,8 @@
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/pdu.h"
-#include "mac/proc_bsr.h"
-#include "mac/proc_phr.h"
+#include "proc_bsr.h"
+#include "proc_phr.h"
 
 /* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */   
 
@@ -67,6 +67,9 @@ public:
   
   void     msg3_flush();
   bool     msg3_is_transmitted();
+
+  void     msg3_prepare();
+  bool     msg3_is_pending();
   
   void     append_crnti_ce_next_tx(uint16_t crnti); 
   
@@ -82,8 +85,7 @@ private:
   
   const static int MIN_RLC_SDU_LEN = 0; 
   const static int MAX_NOF_SUBHEADERS = 20; 
-  const static int MAX_HARQ_PROC = 8; 
-  
+
   std::vector<lchid_t> lch; 
   
   // Keep track of the PIDs that transmitted BSR reports 
@@ -102,13 +104,15 @@ private:
   /* Msg3 Buffer */
   static const uint32_t MSG3_BUFF_SZ = 1024;
   uint8_t               msg3_buff[MSG3_BUFF_SZ];
-  
+  uint8_t              *msg3_buff_start_pdu;
+
   /* PDU Buffer */
   srslte::sch_pdu    pdu_msg; 
   bool msg3_has_been_transmitted;
+  bool msg3_pending;
 };
 
 } // namespace srsue
 
-#endif // MUX_H
+#endif // SRSUE_MUX_H
 

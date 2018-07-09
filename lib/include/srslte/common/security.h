@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef SECURITY_H
-#define SECURITY_H
+#ifndef SRSLTE_SECURITY_H
+#define SRSLTE_SECURITY_H
 
 /******************************************************************************
  * Common security header - wraps ciphering/integrity check algorithms.
@@ -76,6 +76,15 @@ uint8_t security_generate_k_enb( uint8_t  *k_asme,
                                  uint32_t  nas_count,
                                  uint8_t  *k_enb);
 
+uint8_t security_generate_k_enb_star( uint8_t  *k_enb,
+                                      uint32_t  pci,
+                                      uint32_t earfcn,
+                                      uint8_t  *k_enb_star);
+
+uint8_t security_generate_nh( uint8_t *k_asme,
+                              uint8_t *sync,
+                              uint8_t *nh);
+
 uint8_t security_generate_k_nas( uint8_t                       *k_asme,
                                  CIPHERING_ALGORITHM_ID_ENUM    enc_alg_id,
                                  INTEGRITY_ALGORITHM_ID_ENUM    int_alg_id,
@@ -100,7 +109,7 @@ uint8_t security_generate_k_up( uint8_t                       *k_enb,
 
 uint8_t security_128_eia1( uint8_t  *key,
                            uint32_t  count,
-                           uint8_t   bearer,
+                           uint32_t   bearer,
                            uint8_t   direction,
                            uint8_t  *msg,
                            uint32_t  msg_len,
@@ -108,15 +117,43 @@ uint8_t security_128_eia1( uint8_t  *key,
 
 uint8_t security_128_eia2( uint8_t  *key,
                            uint32_t  count,
-                           uint8_t   bearer,
+                           uint32_t   bearer,
                            uint8_t   direction,
                            uint8_t  *msg,
                            uint32_t  msg_len,
                            uint8_t  *mac);
 
+uint8_t security_md5(const uint8_t *input,
+                     size_t         len,
+                     uint8_t       *output);
+
+
+/******************************************************************************
+ * Encryption / Decryption
+ *****************************************************************************/
+
+uint8_t security_128_eea1( uint8_t  *key,
+                           uint32_t  count,
+                           uint8_t   bearer,
+                           uint8_t   direction,
+                           uint8_t  *msg,
+                           uint32_t  msg_len,
+                           uint8_t  *msg_out);
+
+uint8_t security_128_eea2(uint8_t  *key,
+                           uint32_t  count,
+                           uint8_t   bearer,
+                           uint8_t   direction,
+                           uint8_t  *msg,
+                           uint32_t  msg_len,
+                           uint8_t  *msg_out);
+
 /******************************************************************************
  * Authentication
  *****************************************************************************/
+uint8_t compute_opc( uint8_t *k,
+                       uint8_t *op,
+                       uint8_t *opc);
 
 uint8_t security_milenage_f1( uint8_t *k,
                               uint8_t *op,
@@ -146,6 +183,6 @@ uint8_t security_milenage_f5_star( uint8_t *k,
                                    uint8_t *ak);
 
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // SECURITY_H
+#endif // SRSLTE_SECURITY_H

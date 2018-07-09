@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.4
  *****************************************************************************/
 
-#ifndef PUCCH_
-#define PUCCH_
+#ifndef SRSLTE_PUCCH_H
+#define SRSLTE_PUCCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -157,7 +157,8 @@ SRSLTE_API int srslte_pucch_decode(srslte_pucch_t *q,
                                    cf_t *sf_symbols,
                                    cf_t *ce, 
                                    float noise_estimate,
-                                   uint8_t bits[SRSLTE_PUCCH_MAX_BITS]); 
+                                   uint8_t bits[SRSLTE_PUCCH_MAX_BITS],
+                                   uint32_t nof_bits);
 
 SRSLTE_API float srslte_pucch_alpha_format1(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB], 
                                             srslte_pucch_cfg_t *cfg, 
@@ -210,4 +211,4 @@ SRSLTE_API bool srslte_n_pucch_isvalid(srslte_pucch_t *q,
 
 SRSLTE_API void srslte_pucch_cfg_default(srslte_pucch_cfg_t *cfg); 
 
-#endif
+#endif // SRSLTE_PUCCH_H

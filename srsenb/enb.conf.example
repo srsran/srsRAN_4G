@@ -13,6 +13,8 @@
 # mme_addr:       IP address of MME for S1 connnection
 # gtp_bind_addr:  Local IP address to bind for GTP connection
 # n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
+# tm:             Transmission mode 1-4 (TM1 default)
+# nof_ports:      Number of Tx ports (1 port default, set to 2 for TM2/3/4)
 #
 #####################################################################
 [enb]
@@ -25,12 +27,15 @@ mnc = 01
 mme_addr = 127.0.1.100
 gtp_bind_addr = 127.0.1.1
 s1c_bind_addr = 127.0.1.1
-n_prb = 25
+n_prb = 50
+#tm = 4
+#nof_ports = 2
 
 #####################################################################
 # eNB configuration files 
 #
-# sib_config:  SIB1, SIB2 and SIB3 configuration file
+# sib_config:  SIB1, SIB2 and SIB3 configuration file 
+# note: when enabling mbms, use the sib.conf.mbsfn configuration file which includes SIB13
 # rr_config:   Radio Resources configuration file 
 # drb_config:  DRB configuration file 
 #####################################################################
@@ -46,7 +51,9 @@ drb_config = drb.conf
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
-# Optional parameters: 
+# Optional parameters:
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn (must be set if dl_freq is set)
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
@@ -59,7 +66,7 @@ drb_config = drb.conf
 #####################################################################
 [rf]
 dl_earfcn = 3400
-tx_gain = 70
+tx_gain = 80
 rx_gain = 40
 
 #device_name = auto
@@ -101,11 +108,14 @@ filename = /tmp/enb.pcap
 #
 # filename: File path to use for log output. Can be set to stdout
 #           to print logs to standard output
+# file_max_size: Maximum file size (in kilobytes). When passed, multiple files are created.
+#                If set to negative, a single log file will be created.
 #####################################################################
 [log]
 all_level = info
 all_hex_limit = 32
 filename = /tmp/enb.log
+file_max_size = -1
 
 [gui]
 enable = false
@@ -146,8 +156,9 @@ nof_ctrl_symbols = 3
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #link_failure_nof_err = 50
-#rrc_inactivity_timer = 10000
+#rrc_inactivity_timer = 60000
 #max_prach_offset_us  = 30
+#enable_mbsfn = false
 
 #####################################################################
 # Manual RF calibration

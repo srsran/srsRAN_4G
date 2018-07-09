@@ -18,5 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+add_subdirectory(asn1)
 add_subdirectory(common)
+add_subdirectory(phy)
 add_subdirectory(upper)

@@ -37,7 +37,9 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,    // nof_ports
   1000,         // cell_id
-  SRSLTE_CP_NORM        // cyclic prefix
+  SRSLTE_CP_NORM,        // cyclic prefix
+  SRSLTE_PHICH_NORM,
+  SRSLTE_PHICH_R_1_6
 };
 
 char *output_matlab = NULL;
@@ -173,7 +175,7 @@ int main(int argc, char **argv) {
         
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          srslte_predecoding_single(input, ce, output, num_re, 0);
+          srslte_predecoding_single(input, ce, output, NULL, num_re, 1.0f, 0);
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
@@ -188,7 +190,7 @@ int main(int argc, char **argv) {
 
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          srslte_predecoding_single(input, ce, output, num_re, srslte_chest_dl_get_noise_estimate(&est));
+          srslte_predecoding_single(input, ce, output, NULL, num_re, 1.0f, srslte_chest_dl_get_noise_estimate(&est));
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);

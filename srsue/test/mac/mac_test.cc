@@ -30,10 +30,10 @@
 
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/radio/radio_multi.h"
-#include "phy/phy.h"
+#include "srsue/hdr/phy/phy.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log_filter.h"
-#include "mac/mac.h"
+#include "srsue/hdr/mac/mac.h"
 #include "srslte/common/mac_pcap.h"
 
 
@@ -132,7 +132,7 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srsue::ma
   memcpy(&common.pusch_cnfg,  &sib2->rr_config_common_sib.pusch_cnfg,  sizeof(LIBLTE_RRC_PUSCH_CONFIG_COMMON_STRUCT));
   memcpy(&common.pucch_cnfg,  &sib2->rr_config_common_sib.pucch_cnfg,  sizeof(LIBLTE_RRC_PUCCH_CONFIG_COMMON_STRUCT));
   memcpy(&common.ul_pwr_ctrl, &sib2->rr_config_common_sib.ul_pwr_ctrl, sizeof(LIBLTE_RRC_UL_POWER_CONTROL_COMMON_STRUCT));
-  memcpy(&common.prach_cnfg,  &sib2->rr_config_common_sib.prach_cnfg,  sizeof(LIBLTE_RRC_PRACH_CONFIG_STRUCT));
+  memcpy(&common.prach_cnfg,  &sib2->rr_config_common_sib.prach_cnfg,  sizeof(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT));
   if (sib2->rr_config_common_sib.srs_ul_cnfg.present) {
     memcpy(&common.srs_ul_cnfg,  &sib2->rr_config_common_sib.srs_ul_cnfg, sizeof(LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT));
   } else {
@@ -406,18 +406,19 @@ public:
         printf("SIB1 received %d bytes, CellID=%d, si_window=%d, sib2_period=%d\n", 
                 nof_bytes, dlsch_msg.sibs[0].sib.sib1.cell_id&0xfff, si_window_len, sib2_period);          
         sib1_decoded = true;         
-        mac.bcch_stop_rx();        
+        mac.clear_rntis();
       } else if (dlsch_msg.sibs[0].sib_type == LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2) {
         
         printf("SIB2 received %d bytes\n", nof_bytes);
         setup_mac_phy_sib2(&dlsch_msg.sibs[0].sib.sib2, &mac, &phy);        
         sib2_decoded = true; 
-        mac.bcch_stop_rx();
+        mac.clear_rntis();
       }
     }
   }
   
   void write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes) {}
+  void write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) {}
   
 private:
   LIBLTE_BIT_MSG_STRUCT  bit_msg; 
@@ -451,12 +452,12 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  std::vector<void*> phy_log;
+  std::vector<srslte::log_filter*> phy_log;
 
   srslte::log_filter *mylog = new srslte::log_filter("PHY");
   char tmp[16];
   sprintf(tmp, "PHY%d",0);
-  phy_log.push_back((void*) mylog);
+  phy_log.push_back(mylog);
 
   switch (prog_args.verbose) {
     case 1:

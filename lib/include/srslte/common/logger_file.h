@@ -32,8 +32,8 @@
  *              increase queue size. If empty, consumer blocks.
  *****************************************************************************/
 
-#ifndef LOGGER_FILE_H
-#define LOGGER_FILE_H
+#ifndef SRSLTE_LOGGER_FILE_H
+#define SRSLTE_LOGGER_FILE_H
 
 #include <stdio.h>
 #include <deque>
@@ -51,7 +51,7 @@ public:
   logger_file();
   logger_file(std::string file);
   ~logger_file();
-  void init(std::string file);
+  void init(std::string file, int max_length = -1);
   // Implementation of log_out
   void log(str_ptr msg);
   void log(const char *msg);
@@ -60,17 +60,18 @@ private:
   void run_thread(); 
   void flush();
 
+  uint32_t              name_idx;
+  int64_t               max_length;
+  int64_t               cur_length;
   FILE*                 logfile;
-  bool                  inited;
-  bool                  not_done;
+  bool                  is_running;
   std::string           filename;
   pthread_cond_t        not_empty;
-  pthread_cond_t        not_full;
   pthread_mutex_t       mutex;
   pthread_t             thread;
   std::deque<str_ptr> buffer;
 };
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // LOGGER_H
+#endif // SRSLTE_LOGGER_FILE_H

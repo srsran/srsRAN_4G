@@ -26,7 +26,7 @@
 
 
 #include <sstream>
-#include "upper/usim.h"
+#include "srsue/hdr/upper/usim.h"
 #include "srslte/common/bcd_helpers.h"
 
 using namespace srslte;
@@ -36,26 +36,39 @@ namespace srsue{
 usim::usim() : initiated(false)
 {}
 
-void usim::init(usim_args_t *args, srslte::log *usim_log_)
+int usim::init(usim_args_t *args, srslte::log *usim_log_)
 {
   usim_log = usim_log_;
+  imsi_str = args->imsi;
+  imei_str = args->imei;
 
-  const char *imsi_str = args->imsi.c_str();
-  const char *imei_str = args->imei.c_str();
+  const char *imsi_c = args->imsi.c_str();
+  const char *imei_c = args->imei.c_str();
   uint32_t    i;
 
-  if(32 == args->op.length()) {
-    str_to_hex(args->op, op);
+  if(32 == args->k.length()) {
+    str_to_hex(args->k, k);
   } else {
-    usim_log->error("Invalid length for OP: %d should be %d", args->op.length(), 32);
-    usim_log->console("Invalid length for OP: %d should be %d", args->op.length(), 32);
+    usim_log->error("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
+    usim_log->console("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
   }
 
-  if(4 == args->amf.length()) {
-    str_to_hex(args->amf, amf);
-  } else {
-    usim_log->error("Invalid length for AMF: %d should be %d", args->amf.length(), 4);
-    usim_log->console("Invalid length for AMF: %d should be %d", args->amf.length(), 4);
+  if(args->using_op) {
+    if(32 == args->op.length()) {
+      str_to_hex(args->op, op);
+      compute_opc(k,op,opc);
+    } else {
+      usim_log->error("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
+      usim_log->console("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
+    }
+  }
+  else {
+    if(32 == args->opc.length()) {
+      str_to_hex(args->opc, opc);
+    } else {
+      usim_log->error("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
+      usim_log->console("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
+    }
   }
 
   if(15 == args->imsi.length()) {
@@ -63,11 +76,11 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
     for(i=0; i<15; i++)
     {
       imsi *= 10;
-      imsi += imsi_str[i] - '0';
+      imsi += imsi_c[i] - '0';
     }
   } else {
-    usim_log->error("Invalid length for ISMI: %d should be %d", args->imsi.length(), 15);
-    usim_log->console("Invalid length for IMSI: %d should be %d", args->imsi.length(), 15);
+    usim_log->error("Invalid length for ISMI: %zu should be %d\n", args->imsi.length(), 15);
+    usim_log->console("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
   }
 
   if(15 == args->imei.length()) {
@@ -75,18 +88,11 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
     for(i=0; i<15; i++)
     {
       imei *= 10;
-      imei += imei_str[i] - '0';
+      imei += imei_c[i] - '0';
     }
   } else {
-    usim_log->error("Invalid length for IMEI: %d should be %d", args->imei.length(), 15);
-    usim_log->console("Invalid length for IMEI: %d should be %d", args->imei.length(), 15);
-  }
-
-  if(32 == args->k.length()) {
-    str_to_hex(args->k, k);
-  } else {
-    usim_log->error("Invalid length for K: %d should be %d", args->k.length(), 32);
-    usim_log->console("Invalid length for K: %d should be %d", args->k.length(), 32);
+    usim_log->error("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+    usim_log->console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
   }
 
   auth_algo = auth_algo_milenage;
@@ -94,6 +100,8 @@ void usim::init(usim_args_t *args, srslte::log *usim_log_)
     auth_algo = auth_algo_xor;
   }
   initiated = true;
+
+  return SRSLTE_SUCCESS;
 }
 
 void usim::stop()
@@ -103,38 +111,45 @@ void usim::stop()
   NAS interface
 *******************************************************************************/
 
-void usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
+std::string usim::get_imsi_str()
 {
-  if (!initiated)
-  {
-    usim_log->error("Getting IMSI: USIM not initiated\n");
-    return;
+  return imsi_str;
+}
+std::string usim::get_imei_str()
+{
+  return imei_str;
+}
+
+bool usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
+{
+  if (!initiated) {
+    fprintf(stderr, "USIM not initiated!\n");
+    return false;
   }
-  if(NULL == imsi_ || n < 15)
-  {
-    usim_log->error("Invalid parameters to get_imsi_vec");
-    return;
+
+  if(NULL == imsi_ || n < 15) {
+    usim_log->error("Invalid parameters to get_imsi_vec\n");
+    return false;
   }
 
   uint64_t temp = imsi;
-  for(int i=14;i>=0;i--)
-  {
+  for(int i=14;i>=0;i--) {
     imsi_[i] = temp % 10;
     temp /= 10;
   }
+  return true;
 }
 
-void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
+bool usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 {
-  if (!initiated)
-  {
-    usim_log->error("Getting IMEI: USIM not initiated\n");
-    return;
+  if (!initiated) {
+    fprintf(stderr, "USIM not initiated!\n");
+    return false;
   }
-  if(NULL == imei_ || n < 15)
-  {
-    usim_log->error("Invalid parameters to get_imei_vec");
-    return;
+
+  if(NULL == imei_ || n < 15) {
+    usim_log->error("Invalid parameters to get_imei_vec\n");
+    return false;
   }
 
   uint64 temp = imei;
@@ -143,14 +158,14 @@ void usim::get_imei_vec(uint8_t* imei_, uint32_t n)
     imei_[i] = temp % 10;
     temp /= 10;
   }
+  return true;
 }
 
-int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
+bool usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
 {
-  if (!initiated)
-  {
-    usim_log->error("Getting Home PLMN Id: USIM not initiated\n");
-    return -1;
+  if (!initiated) {
+    fprintf(stderr, "USIM not initiated!\n");
+    return false;
   }
 
   int mcc_len = 3;
@@ -184,24 +199,26 @@ int usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
   usim_log->info("Read Home PLMN Id=%s\n",
                  plmn_id_to_string(*home_plmn_id).c_str());
 
-  return 0;
+  return true;
 }
 
-void usim::generate_authentication_response(uint8_t  *rand,
-                                            uint8_t  *autn_enb,
-                                            uint16_t  mcc,
-                                            uint16_t  mnc,
-                                            bool     *net_valid,
-                                            uint8_t  *res)
+auth_result_t usim::generate_authentication_response(uint8_t  *rand,
+                                                     uint8_t  *autn_enb,
+                                                     uint16_t  mcc,
+                                                     uint16_t  mnc,
+                                                     uint8_t  *res,
+                                                     int      *res_len,
+                                                     uint8_t  *k_asme)
 {
   if(auth_algo_xor == auth_algo) {
-    gen_auth_res_xor(rand, autn_enb, mcc, mnc, net_valid, res);
+    return gen_auth_res_xor(rand, autn_enb, mcc, mnc, res, res_len, k_asme);
   } else {
-    gen_auth_res_milenage(rand, autn_enb, mcc, mnc, net_valid, res);
+    return gen_auth_res_milenage(rand, autn_enb, mcc, mnc, res, res_len, k_asme);
   }
 }
 
-void usim::generate_nas_keys(uint8_t *k_nas_enc,
+void usim::generate_nas_keys(uint8_t *k_asme,
+                             uint8_t *k_nas_enc,
                              uint8_t *k_nas_int,
                              CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                              INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
@@ -212,13 +229,16 @@ void usim::generate_nas_keys(uint8_t *k_nas_enc,
                            integ_algo,
                            k_nas_enc,
                            k_nas_int);
+
+
 }
 
 /*******************************************************************************
   RRC interface
 *******************************************************************************/
 
-void usim::generate_as_keys(uint32_t count_ul,
+void usim::generate_as_keys(uint8_t *k_asme,
+                            uint32_t count_ul,
                             uint8_t *k_rrc_enc,
                             uint8_t *k_rrc_int,
                             uint8_t *k_up_enc,
@@ -226,10 +246,78 @@ void usim::generate_as_keys(uint32_t count_ul,
                             CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                             INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
+
   // Generate K_enb
-  security_generate_k_enb( k_asme,
-                           count_ul,
-                           k_enb);
+   security_generate_k_enb( k_asme,
+                            count_ul,
+                            k_enb);
+
+  memcpy(this->k_asme, k_asme, 32);
+
+  // Save initial k_enb
+  memcpy(k_enb_initial, k_enb, 32);
+
+  // Generate K_rrc_enc and K_rrc_int
+  security_generate_k_rrc( k_enb,
+                           cipher_algo,
+                           integ_algo,
+                           k_rrc_enc,
+                           k_rrc_int);
+
+  // Generate K_up_enc and K_up_int
+  security_generate_k_up( k_enb,
+                          cipher_algo,
+                          integ_algo,
+                          k_up_enc,
+                          k_up_int);
+
+  current_ncc = 0;
+}
+
+void usim::generate_as_keys_ho(uint32_t pci,
+                               uint32_t earfcn,
+                               int ncc,
+                               uint8_t *k_rrc_enc,
+                               uint8_t *k_rrc_int,
+                               uint8_t *k_up_enc,
+                               uint8_t *k_up_int,
+                               CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                               INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+{
+  uint8_t *enb_star_key = k_enb;
+
+  if (ncc < 0) {
+    ncc = current_ncc;
+  }
+
+  // Generate successive NH
+  while(current_ncc != (uint32_t) ncc) {
+    uint8_t *sync = NULL;
+    if (current_ncc) {
+      sync = nh;
+    } else {
+      sync = k_enb_initial;
+    }
+    // Generate NH
+    security_generate_nh(k_asme,
+                         sync,
+                         nh);
+
+    current_ncc++;
+    if (current_ncc == 8) {
+      current_ncc = 0;
+    }
+    enb_star_key = nh;
+  }
+
+  // Generate K_enb
+  security_generate_k_enb_star( enb_star_key,
+                                pci,
+                                earfcn,
+                                k_enb_star);
+
+  // K_enb becomes K_enb*
+  memcpy(k_enb, k_enb_star, 32);
 
   // Generate K_rrc_enc and K_rrc_int
   security_generate_k_rrc( k_enb,
@@ -250,36 +338,43 @@ void usim::generate_as_keys(uint32_t count_ul,
   Helpers
 *******************************************************************************/
 
-void usim::gen_auth_res_milenage( uint8_t  *rand,
-                                  uint8_t  *autn_enb,
-                                  uint16_t  mcc,
-                                  uint16_t  mnc,
-                                  bool     *net_valid,
-                                  uint8_t  *res)
+auth_result_t usim::gen_auth_res_milenage(uint8_t  *rand,
+                                          uint8_t  *autn_enb,
+                                          uint16_t  mcc,
+                                          uint16_t  mnc,
+                                          uint8_t  *res,
+                                          int      *res_len,
+                                          uint8_t  *k_asme)
 {
+  auth_result_t result =  AUTH_OK;
   uint32_t i;
   uint8_t  sqn[6];
 
-  *net_valid = true;
-
   // Use RAND and K to compute RES, CK, IK and AK
   security_milenage_f2345( k,
-                           op,
+                           opc,
                            rand,
                            res,
                            ck,
                            ik,
                            ak);
 
+  *res_len = 8;
+
   // Extract sqn from autn
   for(i=0;i<6;i++)
   {
     sqn[i] = autn_enb[i] ^ ak[i];
   }
+  // Extract AMF from autn
+  for(int i=0;i<2;i++)
+  {
+    amf[i]=autn_enb[6+i];
+  }
 
   // Generate MAC
   security_milenage_f1( k,
-                        op,
+                        opc,
                         rand,
                         sqn,
                         amf,
@@ -304,7 +399,7 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
   {
     if(autn[i] != autn_enb[i])
     {
-      *net_valid = false;
+      result = AUTH_FAILED;
     }
   }
 
@@ -316,22 +411,24 @@ void usim::gen_auth_res_milenage( uint8_t  *rand,
                             mcc,
                             mnc,
                             k_asme);
+
+  return result;
 }
 
 // 3GPP TS 34.108 version 10.0.0 Section 8
-void usim::gen_auth_res_xor(uint8_t  *rand,
-                            uint8_t  *autn_enb,
-                            uint16_t  mcc,
-                            uint16_t  mnc,
-                            bool     *net_valid,
-                            uint8_t  *res)
+auth_result_t usim::gen_auth_res_xor(uint8_t  *rand,
+                                     uint8_t  *autn_enb,
+                                     uint16_t  mcc,
+                                     uint16_t  mnc,
+                                     uint8_t  *res,
+                                     int      *res_len,
+                                     uint8_t  *k_asme)
 {
+  auth_result_t result = AUTH_OK;
   uint32_t i;
   uint8_t  sqn[6];
   uint8_t  xdout[16];
   uint8_t  cdout[8];
-
-  *net_valid = true;
 
   // Use RAND and K to compute RES, CK, IK and AK
   for(i=0; i<16; i++) {
@@ -346,9 +443,15 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
     ak[i] = xdout[i+3];
   }
 
+  *res_len = 8;
+
   // Extract sqn from autn
   for(i=0;i<6;i++) {
     sqn[i] = autn_enb[i] ^ ak[i];
+  }
+  // Extract AMF from autn
+  for(int i=0;i<2;i++){
+      amf[i]=autn_enb[6+i];
   }
 
   // Generate cdout
@@ -383,7 +486,7 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
   {
     if(autn[i] != autn_enb[i])
     {
-      *net_valid = false;
+      result = AUTH_FAILED;
     }
   }
 
@@ -395,6 +498,8 @@ void usim::gen_auth_res_xor(uint8_t  *rand,
                             mcc,
                             mnc,
                             k_asme);
+
+  return result;
 }
 
 void usim::str_to_hex(std::string str, uint8_t *hex)

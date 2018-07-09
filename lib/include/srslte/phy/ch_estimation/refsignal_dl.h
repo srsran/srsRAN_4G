@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.10
  *********************************************************************************************/
 
-#ifndef SRSLTE_REFSIGNAL_DL_
-#define SRSLTE_REFSIGNAL_DL_
+#ifndef SRSLTE_REFSIGNAL_DL_H
+#define SRSLTE_REFSIGNAL_DL_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -93,8 +93,10 @@ SRSLTE_API uint32_t srslte_refsignal_cs_v(uint32_t port_id,
 
 SRSLTE_API uint32_t srslte_refsignal_cs_nof_symbols(uint32_t port_id);
 
-SRSLTE_API int srslte_refsignal_mbsfn_init(srslte_refsignal_t *q, srslte_cell_t cell,
-                                           uint16_t mbsfn_area_id);
+SRSLTE_API int srslte_refsignal_mbsfn_init(srslte_refsignal_t *q, uint32_t max_prb);
+
+SRSLTE_API int srslte_refsignal_mbsfn_set_cell(srslte_refsignal_t * q,
+                                           srslte_cell_t cell, uint16_t mbsfn_area_id);
 
 SRSLTE_API int srslte_refsignal_mbsfn_get_sf(srslte_cell_t cell,
                                              uint32_t port_id,
@@ -118,4 +120,4 @@ SRSLTE_API  int srslte_refsignal_mbsfn_gen_seq(srslte_refsignal_t * q,
                                                uint32_t N_mbsfn_id);
 
 
-#endif
+#endif // SRSLTE_REFSIGNAL_DL_H

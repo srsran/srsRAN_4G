@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
   srslte_rf_rx_wait_lo_locked(&rf);
-  srslte_rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf, false);
 
   cell.cp = SRSLTE_CP_NORM; 
   cell.id = N_id_2;
@@ -213,6 +213,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  printf("Ok - wrote %d subframes\n", subframe_count);
+  printf("\nOk - wrote %d subframes\n", subframe_count);
   exit(0);
 }

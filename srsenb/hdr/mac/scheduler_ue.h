@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef SCHED_UE_H
-#define SCHED_UE_H
+#ifndef SRSENB_SCHEDULER_UE_H
+#define SRSENB_SCHEDULER_UE_H
 
 #include <map>
 #include "srslte/common/log.h"
@@ -35,12 +35,19 @@
 
 namespace srsenb {
 
+
+/** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
+ * higher layers and mac threads.
+ *
+ * 1 mutex is created for every user and only access to same user variables are mutexed
+ */
 class sched_ue {
   
 public: 
   
   // used by sched_metric
-  uint32_t ue_idx;
+  dl_harq_proc* dl_next_alloc;
+  ul_harq_proc* ul_next_alloc;
 
   bool has_pucch;
   
@@ -55,6 +62,7 @@ public:
    * 
    ************************************************************/
   sched_ue();
+  ~sched_ue();
   void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
   void set_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg, sched_interface::cell_cfg_t *cell_cfg, 
@@ -68,9 +76,12 @@ public:
   void ul_phr(int phr); 
   void mac_buffer_state(uint32_t ce_code);
   void ul_recv_len(uint32_t lcid, uint32_t len);
+  void set_dl_ant_info(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dedicated);
   void set_ul_cqi(uint32_t tti, uint32_t cqi, uint32_t ul_ch_code);
+  void set_dl_ri(uint32_t tti, uint32_t ri);
+  void set_dl_pmi(uint32_t tti, uint32_t ri);
   void set_dl_cqi(uint32_t tti, uint32_t cqi);
-  int  set_ack_info(uint32_t tti, bool ack);
+  int  set_ack_info(uint32_t tti, uint32_t tb_idx, bool ack);
   void set_ul_crc(uint32_t tti, bool crc_res);
 
 /*******************************************************
@@ -89,12 +100,18 @@ public:
  * Functions used by scheduler metric objects
  *******************************************************/
 
-  uint32_t   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols); 
-  uint32_t   get_required_prb_ul(uint32_t req_bytes); 
+  uint32_t   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
+  uint32_t   get_required_prb_ul(uint32_t req_bytes);
+  uint32_t   prb_to_rbg(uint32_t nof_prb);
+  uint32_t   rgb_to_prb(uint32_t nof_rbg);
+
 
   uint32_t   get_pending_dl_new_data(uint32_t tti);
   uint32_t   get_pending_ul_new_data(uint32_t tti);
+  uint32_t   get_pending_ul_old_data();
+  uint32_t   get_pending_dl_new_data_total(uint32_t tti);
 
+  void          reset_timeout_dl_harq(uint32_t tti);
   dl_harq_proc *get_pending_dl_harq(uint32_t tti);
   dl_harq_proc *get_empty_dl_harq();   
   ul_harq_proc *get_ul_harq(uint32_t tti);   
@@ -106,9 +123,12 @@ public:
   void       set_sr();
   void       unset_sr();
 
-  int        generate_format1(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);     
-  int        generate_format0(ul_harq_proc *h, sched_interface::ul_sched_data_t *data, uint32_t tti, bool cqi_request);     
-  
+  int        generate_format1(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+  int        generate_format2a(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+  int        generate_format2(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+  int        generate_format0(ul_harq_proc *h, sched_interface::ul_sched_data_t *data, uint32_t tti, bool cqi_request);
+
+  srslte_dci_format_t get_dci_format();
   uint32_t         get_aggr_level(uint32_t nof_bits);
   sched_dci_cce_t *get_locations(uint32_t current_cfi, uint32_t sf_idx);
   
@@ -117,8 +137,6 @@ public:
   
   bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2]);
   bool       pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
-
-  uint32_t   get_pending_ul_old_data();
 
 private: 
   
@@ -140,13 +158,22 @@ private:
   
   static bool bearer_is_ul(ue_bearer_t *lch);
   static bool bearer_is_dl(ue_bearer_t *lch);
-  
+
+  uint32_t   get_pending_dl_new_data_unlocked(uint32_t tti);
+  uint32_t   get_pending_ul_old_data_unlocked();
+  uint32_t   get_pending_ul_new_data_unlocked(uint32_t tti);
+
+  bool       needs_cqi_unlocked(uint32_t tti, bool will_send = false);
+
+  int        generate_format2a_unlocked(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+
   bool is_first_dl_tx();
-      
-  
-  sched_interface::ue_cfg_t cfg; 
+
+  sched_interface::ue_cfg_t cfg;
   srslte_cell_t cell; 
   srslte::log* log_h;
+
+  pthread_mutex_t mutex;
   
   /* Buffer states */
   bool sr; 
@@ -155,6 +182,10 @@ private:
   ue_bearer_t lch[sched_interface::MAX_LC];
   
   int      power_headroom; 
+  uint32_t dl_ri;
+  uint32_t dl_ri_tti;
+  uint32_t dl_pmi;
+  uint32_t dl_pmi_tti;
   uint32_t dl_cqi;
   uint32_t dl_cqi_tti; 
   uint32_t cqi_request_tti; 
@@ -164,7 +195,8 @@ private:
   uint32_t max_mcs_dl; 
   uint32_t max_mcs_ul; 
   int      fixed_mcs_ul; 
-  int      fixed_mcs_dl; 
+  int      fixed_mcs_dl;
+  uint32_t P;
 
   int next_tpc_pusch;
   int next_tpc_pucch; 
@@ -172,15 +204,16 @@ private:
   // Allowed DCI locations per CFI and per subframe    
   sched_dci_cce_t dci_locations[3][10];   
 
-  const static int SCHED_MAX_HARQ_PROC = 8; 
+  const static int SCHED_MAX_HARQ_PROC = 2*HARQ_DELAY_MS;
   dl_harq_proc dl_harq[SCHED_MAX_HARQ_PROC]; 
   ul_harq_proc ul_harq[SCHED_MAX_HARQ_PROC]; 
   
   bool phy_config_dedicated_enabled;
-    
+  LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT dl_ant_info;
+  
 }; 
   
 }
  
 
-#endif 
+#endif // SRSENB_SCHEDULER_UE_H

@@ -37,7 +37,8 @@ srslte_cell_t cell = {
   1,    // nof_ports
   0, 
   1000,         // cell_id
-  SRSLTE_CP_NORM        // cyclic prefix
+  SRSLTE_CP_NORM,        // cyclic prefix
+  SRSLTE_PHICH_NORM
 };
 
 char *output_matlab = NULL;
@@ -116,6 +117,7 @@ int main(int argc, char **argv) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
+  bzero(ce, num_re*sizeof(cf_t));
 
   if (cell.id == 1000) {
     cid = 0;

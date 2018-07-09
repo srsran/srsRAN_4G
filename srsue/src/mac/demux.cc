@@ -25,18 +25,18 @@
  */
 
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
-#include "mac/mac.h"
-#include "mac/demux.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/mac/demux.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
     
-demux::demux(uint8_t nof_harq_proc_) : mac_msg(20), pending_mac_msg(20), nof_harq_proc(nof_harq_proc_)
+demux::demux() : mac_msg(20), mch_mac_msg(20), pending_mac_msg(20), rlc(NULL)
 {
 }
 
@@ -47,6 +47,7 @@ void demux::init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc_, srsl
   rlc       = rlc_;
   time_alignment_timer = time_alignment_timer_;
   pdus.init(this, log_h);
+   bzero(&mch_lcids, SRSLTE_N_MCH_LCIDS);
 }
 
 void demux::set_uecrid_callback(bool (*callback)(void*,uint64_t), void *arg) {
@@ -64,18 +65,18 @@ void demux::deallocate(uint8_t* payload_buffer_ptr)
     pdus.deallocate(payload_buffer_ptr);
   }
 }
-
-uint8_t* demux::request_buffer(uint32_t pid, uint32_t len)
-{  
-  uint8_t *buff = NULL; 
-  if (pid < nof_harq_proc) {
-    return pdus.request(len);
-  } else if (pid == nof_harq_proc) {
-    buff = bcch_buffer;
+uint8_t* demux::request_buffer_bcch(uint32_t len)
+{
+  if (len < MAX_BCCH_PDU_LEN) {
+    return bcch_buffer;
   } else {
-    Error("Requested buffer for invalid PID=%d\n", pid);
+    return NULL;
   }
-  return buff; 
+}
+
+uint8_t* demux::request_buffer(uint32_t len)
+{  
+  return pdus.request(len);
 }
 
 /* Demultiplexing of MAC PDU associated with a Temporal C-RNTI. The PDU will 
@@ -107,31 +108,32 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
     
     Debug("Saved MAC PDU with Temporal C-RNTI in buffer\n");
     
-    pdus.push(buff, nof_bytes);
+    pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH);
   } else {
     Warning("Trying to push PDU with payload size zero\n");
   }
 }
 
-/* Demultiplexing of logical channels and dissassemble of MAC CE 
- * This function enqueues the packet and returns quicly because ACK 
- * deadline is important here. 
- */ 
-void demux::push_pdu(uint32_t pid, uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp)
-{
-  if (pid < nof_harq_proc) {
-    return pdus.push(buff, nof_bytes, tstamp);
-  } else if (pid == nof_harq_proc) {
-    /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through 
-    * the MAC in transparent mode. 
-    * Warning: In this case function sends the message to RLC now, since SI blocks do not 
-    * require ACK feedback to be transmitted quickly. 
-    */
-    Debug("Pushed BCCH MAC PDU in transparent mode\n");
-    rlc->write_pdu_bcch_dlsch(buff, nof_bytes);
-  } else {
-    Error("Pushed buffer for invalid PID=%d\n", pid);
-  }  
+/* Demultiplexing of logical channels and dissassemble of MAC CE
+ * This function enqueues the packet and returns quickly because ACK
+ * deadline is important here.
+ */
+void demux::push_pdu(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
+  return pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH, tstamp);
+}
+
+/* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through
+* the MAC in transparent mode.
+*/
+void demux::push_pdu_bcch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
+  pdus.push(buff, nof_bytes, srslte::pdu_queue::BCH, tstamp);
+}
+
+void demux::push_pdu_mch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
+  uint8_t *mch_buffer_ptr = request_buffer(nof_bytes);
+  memcpy(mch_buffer_ptr, buff, nof_bytes);
+  pdus.push(mch_buffer_ptr, nof_bytes, srslte::pdu_queue::MCH, tstamp);
+  mch_buffer_ptr = NULL;
 }
 
 bool demux::process_pdus()
@@ -139,15 +141,28 @@ bool demux::process_pdus()
   return pdus.process_pdus();
 }
 
-void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, uint32_t tstamp)
+void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp)
 {
-  // Unpack DLSCH MAC PDU 
-  mac_msg.init_rx(nof_bytes);
-  mac_msg.parse_packet(mac_pdu);
-
-  process_sch_pdu(&mac_msg);
-  //srslte_vec_fprint_byte(stdout, mac_pdu, nof_bytes);
-  Debug("MAC PDU processed\n");
+  Debug("Processing MAC PDU channel %d\n", channel);
+  switch(channel) {
+    case srslte::pdu_queue::DCH:
+      // Unpack DLSCH MAC PDU
+      mac_msg.init_rx(nof_bytes);
+      mac_msg.parse_packet(mac_pdu);
+      process_sch_pdu(&mac_msg);
+      pdus.deallocate(mac_pdu);
+      break;
+    case srslte::pdu_queue::BCH:
+      rlc->write_pdu_bcch_dlsch(mac_pdu, nof_bytes);
+      break;
+    case srslte::pdu_queue::MCH:
+      mch_mac_msg.init_rx(nof_bytes);
+      mch_mac_msg.parse_packet(mac_pdu);
+      deallocate(mac_pdu);
+      process_mch_pdu(&mch_mac_msg);
+      // Process downlink MCH
+      break;
+  }
 }
 
 void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
@@ -169,7 +184,14 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
       // Route logical channel 
       if (route_pdu) {
         Info("Delivering PDU for lcid=%d, %d bytes\n", pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_payload_size());
-        rlc->write_pdu(pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());      
+        if (pdu_msg->get()->get_payload_size() < MAX_PDU_LEN) {
+          rlc->write_pdu(pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());
+        } else {
+          char tmp[1024];
+          srslte_vec_sprint_hex(tmp, sizeof(tmp), pdu_msg->get()->get_sdu_ptr(), 32);
+          Error("PDU size %d exceeds maximum PDU buffer size, lcid=%d, hex=[%s]\n",
+                pdu_msg->get()->get_payload_size(), pdu_msg->get()->get_sdu_lcid(), tmp);
+        }
       }
     } else {
       // Process MAC Control Element
@@ -178,6 +200,41 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
       }
     }
   }      
+}
+void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
+    //disgarding headers that have already been processed
+  while(mch_msg->next()){
+    
+    if(srslte::mch_subh::MCH_SCHED_INFO == mch_msg->get()->ce_type()){
+       uint16_t stop;
+       uint8_t  lcid;
+       if(mch_msg->get()->get_next_mch_sched_info(&lcid, &stop)) {
+         Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n", lcid, stop, phy_h->get_current_tti());
+       }
+    }
+    if(mch_msg->get()->is_sdu()) {
+      uint32_t lcid = mch_msg->get()->get_sdu_lcid();
+
+      if(lcid >= SRSLTE_N_MCH_LCIDS) {
+        Error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
+        return;
+      }
+      Debug("Wrote MCH LCID=%d to RLC\n", lcid);
+      if(1 == mch_lcids[lcid]) {
+        rlc->write_pdu_mch(lcid, mch_msg->get()->get_sdu_ptr(), mch_msg->get()->get_payload_size());
+      } 
+    }
+  }
+}
+
+void demux::mch_start_rx(uint32_t lcid)
+{
+  if(lcid < 32) {
+    Info("MCH Channel Setup: LCID=%d\n", lcid);
+    mch_lcids[lcid] = 1;
+  } else {
+    Error("MCH Channel Setup: invalid LCID=%d\n", lcid);
+  }
 }
 
 bool demux::process_ce(srslte::sch_subh *subh) {

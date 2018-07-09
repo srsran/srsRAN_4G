@@ -39,10 +39,10 @@ add_test(chest_test_dl_cellid2 chest_test_dl -c 2 -r 50)
 ########################################################################
 
 add_executable(chest_test_ul chest_test_ul.c)
-target_link_libraries(chest_test_ul srslte_phy)
+target_link_libraries(chest_test_ul srslte_phy srslte_common)
 
 add_executable(refsignal_ul_test_all refsignal_ul_test.c)
-target_link_libraries(refsignal_ul_test_all srslte_phy)
+target_link_libraries(refsignal_ul_test_all srslte_phy srslte_common)
 
 add_test(chest_test_ul_cellid0 chest_test_ul -c 0 -r 50) 
 add_test(chest_test_ul_cellid1 chest_test_ul -c 1 -r 50) 

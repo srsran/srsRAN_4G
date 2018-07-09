@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.4.1
  *********************************************************************************************/
 
-#ifndef RM_TURBO_
-#define RM_TURBO_
+#ifndef SRSLTE_RM_TURBO_H
+#define SRSLTE_RM_TURBO_H
 
 #include "srslte/config.h"
 
@@ -57,6 +57,8 @@ SRSLTE_API int srslte_rm_turbo_tx(uint8_t *w_buff,
                                   uint32_t rv_idx);
 
 SRSLTE_API void srslte_rm_turbo_gentables(); 
+
+SRSLTE_API void srslte_rm_turbo_free_tables();
 
 SRSLTE_API int srslte_rm_turbo_tx_lut(uint8_t *w_buff, 
                                       uint8_t *systematic, 
@@ -83,4 +85,4 @@ SRSLTE_API int srslte_rm_turbo_rx_lut(int16_t *input,
                                       uint32_t rv_idx); 
 
 
-#endif
+#endif // SRSLTE_RM_TURBO_H

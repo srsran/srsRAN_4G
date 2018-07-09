@@ -24,18 +24,17 @@
  *
  */
 
-#ifndef S1AP_H
-#define S1AP_H
+#ifndef SRSENB_S1AP_H
+#define SRSENB_S1AP_H
 
 #include <map>
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/msg_queue.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "upper/common_enb.h"
+#include "common_enb.h"
 
 #include "srslte/asn1/liblte_s1ap.h"
 #include "s1ap_metrics.h"
@@ -74,19 +73,17 @@ public:
   void run_thread();
 
   // RRC interface
-  void initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu);
-  void initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec);
+  void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu);
+  void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec);
   void write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu);
   bool user_exists(uint16_t rnti); 
-  void user_inactivity(uint16_t rnti);
-  bool user_link_lost(uint16_t rnti);
-  void release_eutran(uint16_t rnti); 
+  bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio);
   void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res);
   void ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res);
   //void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
 
 private:
-  static const int S1AP_THREAD_PRIO = 7;
+  static const int S1AP_THREAD_PRIO = 65;
   static const int MME_PORT         = 36412;
   static const int ADDR_FAMILY      = AF_INET;
   static const int SOCK_TYPE        = SOCK_STREAM;
@@ -132,7 +129,7 @@ private:
   bool handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT *msg);
   bool handle_erabsetuprequest(LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg);
 
-  bool send_initialuemessage(uint16_t rnti, srslte::byte_buffer_t *pdu, bool has_tmsi, uint32_t m_tmsi=0, uint8_t mmec=0);
+  bool send_initialuemessage(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, bool has_tmsi, uint32_t m_tmsi=0, uint8_t mmec=0);
   bool send_ulnastransport(uint16_t rnti, srslte::byte_buffer_t *pdu);
   bool send_uectxtreleaserequest(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT *cause);
   bool send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_t enb_ue_id);
@@ -149,4 +146,4 @@ private:
 } // namespace srsenb
 
 
-#endif // S1AP_H
+#endif // SRSENB_S1AP_H

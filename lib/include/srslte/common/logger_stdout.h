@@ -29,8 +29,8 @@
  * Description: Interface for logging output
  *****************************************************************************/
 
-#ifndef LOGGER_STDOUT_H
-#define LOGGER_STDOUT_H
+#ifndef SRSLTE_LOGGER_STDOUT_H
+#define SRSLTE_LOGGER_STDOUT_H
 
 #include <stdio.h>
 #include <string>
@@ -42,10 +42,13 @@ namespace srslte {
   {
   public:
     void log(std::string *msg) {
-      fprintf(stdout, "%s", msg->c_str());
+      if (msg) {
+        fprintf(stdout, "%s", msg->c_str());
+        delete msg;
+      }
     }
   };
 
 } // namespace srslte
 
-#endif // LOGGER_H
+#endif // SRSLTE_LOGGER_STDOUT_H

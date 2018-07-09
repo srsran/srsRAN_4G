@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef CEXPTAB_
-#define CEXPTAB_
+#ifndef SRSLTE_CEXPTAB_H
+#define SRSLTE_CEXPTAB_H
 
 #include <complex.h>
 #include <stdint.h>
@@ -58,4 +58,4 @@ SRSLTE_API void srslte_cexptab_gen_direct(cf_t *x,
                                           float freq, 
                                           uint32_t len);
 
-#endif // CEXPTAB_
+#endif // SRSLTE_CEXPTAB_H

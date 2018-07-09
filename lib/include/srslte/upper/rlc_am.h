@@ -24,14 +24,14 @@
  *
  */
 
-#ifndef RLC_AM_H
-#define RLC_AM_H
+#ifndef SRSLTE_RLC_AM_H
+#define SRSLTE_RLC_AM_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/common/timeout.h"
 #include "srslte/upper/rlc_common.h"
 #include <map>
@@ -40,7 +40,7 @@
 
 namespace srslte {
 
-
+#undef RLC_AM_BUFFER_DEBUG
 
 struct rlc_amd_rx_pdu_t{
   rlc_amd_pdu_header_t  header;
@@ -70,15 +70,17 @@ class rlc_am
     :public rlc_common
 {
 public:
-  rlc_am();
+  rlc_am(uint32_t queue_len = 16);
+  ~rlc_am();
   void init(log          *rlc_entity_log_,
             uint32_t              lcid_,
             srsue::pdcp_interface_rlc   *pdcp_,
             srsue::rrc_interface_rlc    *rrc_,
             mac_interface_timers *mac_timers);
   void configure(srslte_rlc_config_t cnfg);
-  void reset();
+  void reestablish();
   void stop();
+
   void empty_queue(); 
   
   rlc_mode_t    get_mode();
@@ -86,6 +88,7 @@ public:
 
   // PDCP interface
   void write_sdu(byte_buffer_t *sdu);
+  void write_sdu_nb(byte_buffer_t *sdu);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -102,7 +105,7 @@ private:
   srsue::rrc_interface_rlc  *rrc;
 
   // TX SDU buffers
-  msg_queue      tx_sdu_queue;
+  rlc_tx_queue      tx_sdu_queue;
   byte_buffer_t *tx_sdu;
 
   // PDU being resegmented
@@ -120,6 +123,7 @@ private:
   // Mutexes
   pthread_mutex_t     mutex;
 
+  bool                tx_enabled;
   bool                poll_received;
   bool                do_status;
   rlc_status_pdu_t    status;
@@ -163,6 +167,8 @@ private:
 
   static const int reordering_timeout_id = 1;
 
+  static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
+
   // Timer checks
   bool status_prohibited();
   bool poll_retx();
@@ -177,8 +183,8 @@ private:
   int  build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
   int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
 
-  void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t header);
-  void handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t header);
+  void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header);
+  void handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header);
   void handle_control_pdu(uint8_t *payload, uint32_t nof_bytes);
 
   void reassemble_rx_sdus();
@@ -186,6 +192,7 @@ private:
   bool inside_tx_window(uint16_t sn);
   bool inside_rx_window(uint16_t sn);
   void debug_state();
+  void print_rx_segments();
 
   bool add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment);
   int  required_buffer_size(rlc_amd_retx_t retx);
@@ -212,10 +219,12 @@ bool        rlc_am_is_control_pdu(byte_buffer_t *pdu);
 bool        rlc_am_is_control_pdu(uint8_t *payload);
 bool        rlc_am_is_pdu_segment(uint8_t *payload);
 std::string rlc_am_to_string(rlc_status_pdu_t *status);
-bool        rlc_am_start_aligned(uint8_t fi);
-bool        rlc_am_end_aligned(uint8_t fi);
+bool        rlc_am_start_aligned(const uint8_t fi);
+bool        rlc_am_end_aligned(const uint8_t fi);
+bool        rlc_am_is_unaligned(const uint8_t fi);
+bool        rlc_am_not_start_aligned(const uint8_t fi);
 
-} // namespace srsue
+} // namespace srslte
 
 
-#endif // RLC_AM_H
+#endif // SRSLTE_RLC_AM_H

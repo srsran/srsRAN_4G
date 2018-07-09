@@ -35,7 +35,7 @@
 #include <signal.h>
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/phch/pdsch_cfg.h>
-
+#include "srslte/common/gen_mch_tables.h"
 #include "srslte/srslte.h"
 
 
@@ -79,14 +79,16 @@ char mimo_type_str[32] = "single";
 uint32_t nof_tb = 1;
 uint32_t multiplex_pmi = 0;
 uint32_t multiplex_nof_layers = 1;
-
+uint8_t  mbsfn_sf_mask = 32;
 int mbsfn_area_id = -1;
 char *rf_args = "";
-float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 2400000000;
+float rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
+
+float output_file_snr = +INFINITY;
 
 bool null_file_sink=false; 
 srslte_filesink_t fsink;
-srslte_ofdm_t ifft;
+srslte_ofdm_t ifft[SRSLTE_MAX_PORTS];
 srslte_ofdm_t ifft_mbsfn;
 srslte_pbch_t pbch;
 srslte_pcfich_t pcfich;
@@ -121,7 +123,7 @@ int prbset_orig = 0;
 
 
 #define DATA_BUFF_SZ    1024*1024
-uint8_t *data[2], data2[DATA_BUFF_SZ];
+uint8_t *data_mbms, *data[2], data2[DATA_BUFF_SZ];
 uint8_t data_tmp[DATA_BUFF_SZ];
 
 void usage(char *prog) {
@@ -143,15 +145,16 @@ void usage(char *prog) {
   printf("\t-x Transmission mode[single|diversity|cdd|multiplex] [Default %s]\n", mimo_type_str);
   printf("\t-b Precoding Matrix Index (multiplex mode only)* [Default %d]\n", multiplex_pmi);
   printf("\t-w Number of codewords/layers (multiplex mode only)* [Default %d]\n", multiplex_nof_layers);
-  printf("\t-u listen TCP port for input data (-1 is random) [Default %d]\n", net_port);
+  printf("\t-u listen TCP/UDP port for input data (if mbsfn is active then the stream is over mbsfn only) (-1 is random) [Default %d]\n", net_port);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-s output file SNR [Default %f]\n", output_file_snr);
   printf("\n");
   printf("\t*: See 3GPP 36.212 Table  5.3.3.1.5-4 for more information\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "aglfmoncpvutxbwM")) != -1) {
+  while ((opt = getopt(argc, argv, "aglfmoncpvutxbwMsB")) != -1) {
 
     switch (opt) {
     case 'a':
@@ -185,7 +188,8 @@ void parse_args(int argc, char **argv) {
       cell.id = atoi(argv[optind]);
       break;
     case 'x':
-      strncpy(mimo_type_str, argv[optind], 32);
+      strncpy(mimo_type_str, argv[optind], 31);
+      mimo_type_str[31] = 0;
       break;
     case 'b':
       multiplex_pmi = (uint32_t) atoi(argv[optind]);
@@ -198,6 +202,12 @@ void parse_args(int argc, char **argv) {
       break;
     case 'v':
       srslte_verbose++;
+      break;
+    case 's':
+      output_file_snr = atof(argv[optind]);
+      break;
+    case 'B':
+      mbsfn_sf_mask = atoi(argv[optind]);
       break;
     default:
       usage(argv[0]);
@@ -249,6 +259,8 @@ void base_init() {
     }
     bzero(data[i], sizeof(uint8_t) * SOFTBUFFER_SIZE);
   }
+  data_mbms = srslte_vec_malloc(sizeof(uint8_t) * SOFTBUFFER_SIZE);
+  
 
   /* init memory */
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
@@ -294,7 +306,7 @@ void base_init() {
   }
   
   if (net_port > 0) {
-    if (srslte_netsource_init(&net_source, "0.0.0.0", net_port, SRSLTE_NETSOURCE_TCP)) {
+    if (srslte_netsource_init(&net_source, "127.0.0.1", net_port, SRSLTE_NETSOURCE_UDP)) {
       fprintf(stderr, "Error creating input UDP socket at port %d\n", net_port);
       exit(-1);
     }
@@ -311,18 +323,21 @@ void base_init() {
   }
 
   /* create ifft object */
-  if (srslte_ofdm_tx_init(&ifft, SRSLTE_CP_NORM, cell.nof_prb)) {
-    fprintf(stderr, "Error creating iFFT object\n");
-    exit(-1);
+  for (i = 0; i < cell.nof_ports; i++) {
+    if (srslte_ofdm_tx_init(&ifft[i], SRSLTE_CP_NORM, sf_buffer[i], output_buffer[i], cell.nof_prb)) {
+      fprintf(stderr, "Error creating iFFT object\n");
+      exit(-1);
+    }
+
+    srslte_ofdm_set_normalize(&ifft[i], true);
   }
-  if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn, SRSLTE_CP_EXT, cell.nof_prb)) {
+
+  if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn, SRSLTE_CP_EXT, sf_buffer[0], output_buffer[0], cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
   srslte_ofdm_set_non_mbsfn_region(&ifft_mbsfn, 2);
   srslte_ofdm_set_normalize(&ifft_mbsfn, true);
-  srslte_ofdm_set_normalize(&ifft, true);
-  
   
   if (srslte_pbch_init(&pbch)) {
     fprintf(stderr, "Error creating PBCH object\n");
@@ -346,11 +361,6 @@ void base_init() {
   }
   if (srslte_pcfich_set_cell(&pcfich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
-    exit(-1);
-  }
-
-  if (srslte_regs_set_cfi(&regs, cfi)) {
-    fprintf(stderr, "Error setting CFI\n");
     exit(-1);
   }
 
@@ -413,8 +423,9 @@ void base_free() {
     srslte_pmch_free(&pmch); 
   }
   srslte_ofdm_tx_free(&ifft_mbsfn);
-  srslte_ofdm_tx_free(&ifft);
-  
+  for (i = 0; i < cell.nof_ports; i++) {
+    srslte_ofdm_tx_free(&ifft[i]);
+  }
 
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     if (data[i]) {
@@ -524,9 +535,9 @@ int update_radl() {
 
   srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   srslte_ra_dl_grant_t dummy_grant; 
-  srslte_ra_nbits_t dummy_nbits;
+  srslte_ra_nbits_t dummy_nbits[SRSLTE_MAX_CODEWORDS];
   srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &dummy_grant);
-  srslte_ra_dl_grant_to_nbits(&dummy_grant, cfi, cell, 0, &dummy_nbits);
+  srslte_ra_dl_grant_to_nbits(&dummy_grant, cfi, cell, 0, dummy_nbits);
   srslte_ra_dl_grant_fprint(stdout, &dummy_grant);
   dummy_grant.sf_type = SRSLTE_SF_NORM;
   if (pdsch_cfg.mimo_type != SRSLTE_MIMO_TYPE_SINGLE_ANTENNA) {
@@ -653,15 +664,21 @@ void *net_thread_fnc(void *arg) {
     n = srslte_netsource_read(&net_source, &data2[rpm], DATA_BUFF_SZ-rpm);
     if (n > 0) {
       // FIXME: I assume that both transport blocks have same size in case of 2 tb are active
-      int nbytes = 1 + (pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs - 1) / 8;
+      
+      int nbytes = 1 + (((mbsfn_area_id > -1)?(pmch_cfg.grant.mcs[0].tbs):(pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs)) - 1) / 8;
       rpm += n; 
       INFO("received %d bytes. rpm=%d/%d\n",n,rpm,nbytes);
       wpm = 0; 
       while (rpm >= nbytes) {
         // wait for packet to be transmitted
         sem_wait(&net_sem);
-        memcpy(data[0], &data2[wpm], nbytes / (size_t) 2);
-        memcpy(data[1], &data2[wpm], nbytes / (size_t) 2);
+        if(mbsfn_area_id > -1){
+          memcpy(data_mbms, &data2[wpm], nbytes);
+        }
+        else{
+          memcpy(data[0], &data2[wpm], nbytes / (size_t) 2);
+          memcpy(data[1], &data2[wpm], nbytes / (size_t) 2);
+        }
         INFO("Sent %d/%d bytes ready\n", nbytes, rpm);
         rpm -= nbytes;          
         wpm += nbytes; 
@@ -696,7 +713,9 @@ int main(int argc, char **argv) {
   uint32_t sfn; 
   srslte_refsignal_t csr_refs;
   srslte_refsignal_t mbsfn_refs;
-  
+
+  srslte_debug_handle_crash(argc, argv);
+
 #ifdef DISABLE_RF
   if (argc < 3) {
     usage(argv[0]);
@@ -706,6 +725,11 @@ int main(int argc, char **argv) {
 
   parse_args(argc, argv);
 
+  uint8_t mch_table[10];
+  bzero(&mch_table[0], sizeof(uint8_t)*10);
+  if(mbsfn_area_id < -1) {
+    generate_mcch_table(mch_table, mbsfn_sf_mask);
+  }
   N_id_2 = cell.id % 3;
   sf_n_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
   sf_n_samples = 2 * SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb));
@@ -731,10 +755,15 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   if(mbsfn_area_id > -1) {
-    if(srslte_refsignal_mbsfn_init(&mbsfn_refs, cell, mbsfn_area_id)) {
+    if(srslte_refsignal_mbsfn_init(&mbsfn_refs, cell.nof_prb)) {
       fprintf(stderr, "Error initializing equalizer\n");
       exit(-1);
     }
+    if (srslte_refsignal_mbsfn_set_cell(&mbsfn_refs, cell, mbsfn_area_id)) {
+      fprintf(stderr, "Error initializing MBSFNR signal\n");
+      exit(-1);
+    }
+    
   }
   
   if(srslte_refsignal_cs_set_cell(&csr_refs, cell)){
@@ -793,7 +822,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
   }
-  
+  pmch_cfg.grant.mcs[0].tbs = 1096;
   /* Initiate valid DCI locations */
   for (i=0;i<SRSLTE_NSUBFRAMES_X_FRAME;i++) {
     srslte_pdcch_ue_locations(&pdcch, locations[i], 30, i, cfi, UE_CRNTI);
@@ -822,13 +851,13 @@ int main(int argc, char **argv) {
         srslte_sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_symbols[0], cell.nof_prb,
             SRSLTE_CP_NORM);
       }
-      
+     
       /* Copy zeros, SSS, PSS into the rest of antenna ports */
       for (i = 1; i < cell.nof_ports; i++) {
         memcpy(sf_symbols[i], sf_symbols[0], sizeof(cf_t) * sf_n_re);
       }
       
-      if(sf_idx == 1 && mbsfn_area_id > -1){
+      if(mch_table[sf_idx] == 1 && mbsfn_area_id > -1){
         srslte_refsignal_mbsfn_put_sf(cell, 0,csr_refs.pilots[0][sf_idx], mbsfn_refs.pilots[0][sf_idx],  sf_symbols[0]);
       } else { 
         for (i = 0; i < cell.nof_ports; i++) {
@@ -849,10 +878,10 @@ int main(int argc, char **argv) {
       }
       
       /* Transmit PDCCH + PDSCH only when there is data to send */
-      if (net_port > 0) {
+      if ((net_port > 0) && (mch_table[sf_idx] == 1 && mbsfn_area_id > -1)) {
         send_data = net_packet_ready; 
         if (net_packet_ready) {
-          INFO("Transmitting packet\n",0);
+          INFO("Transmitting packet from port\n");
         }
       } else {
         INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
@@ -870,9 +899,8 @@ int main(int argc, char **argv) {
           send_data = false;           
         }
       }      
-      
       if (send_data) {
-        if(sf_idx != 1 || mbsfn_area_id < 0) { // PDCCH + PDSCH
+        if(mch_table[sf_idx] == 0 || mbsfn_area_id < 0) { // PDCCH + PDSCH
           srslte_dci_format_t dci_format;
           switch(pdsch_cfg.mimo_type) {
             case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
@@ -924,40 +952,46 @@ int main(int argc, char **argv) {
                 }
               }
             }
-            net_packet_ready = false; 
-            sem_post(&net_sem);
+            if(mbsfn_area_id < 0){
+              net_packet_ready = false; 
+              sem_post(&net_sem);
+            }
           }
         }else{ // We're sending MCH on subframe 1 - PDCCH + PMCH
 
           /* Encode PDCCH */
-          INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
-          srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_msg, cell.nof_prb, cell.nof_ports, false);
-          if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], M_CRNTI, sf_symbols, sf_idx, cfi)) {
-              fprintf(stderr, "Error encoding DCI message\n");
-              exit(-1);
-          }
+          //INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
+          //srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_msg, cell.nof_prb, cell.nof_ports, false);
+          //if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], M_CRNTI, sf_symbols, sf_idx, cfi)) {
+          //    fprintf(stderr, "Error encoding DCI message\n");
+          //    exit(-1);
+         // }
           /* Configure pmch_cfg parameters */
           srslte_ra_dl_grant_t grant;
-          grant.nof_tb = 1;
+          grant.tb_en[0] = true;
+          grant.tb_en[1] = false;
+
           grant.mcs[0].idx = 2;
-          grant.mcs[0].mod = SRSLTE_MOD_QPSK;
           grant.nof_prb = cell.nof_prb;
           grant.sf_type = SRSLTE_SF_MBSFN;
-          grant.Qm[0] = srslte_mod_bits_x_symbol(grant.mcs[0].mod);
           srslte_dl_fill_ra_mcs(&grant.mcs[0], cell.nof_prb);
+          grant.Qm[0] = srslte_mod_bits_x_symbol(grant.mcs[0].mod);
           for(int i = 0; i < 2; i++){
             for(int j = 0; j < grant.nof_prb; j++){
               grant.prb_idx[i][j] = true;
             }
           }
+            for(int i = 0; i < grant.mcs[0].tbs/8;i++)
+            {
+              data_mbms[i] = i%255;
+            }
           
-
           if (srslte_pmch_cfg(&pmch_cfg, cell, &grant, cfi, sf_idx)) {
             fprintf(stderr, "Error configuring PMCH\n");
             exit(-1);
-          }
+          } 
           /* Encode PMCH */
-          if (srslte_pmch_encode(&pmch, &pmch_cfg, softbuffers[0], data[0], mbsfn_area_id, sf_symbols)) {
+          if (srslte_pmch_encode(&pmch, &pmch_cfg, softbuffers[0], data_mbms, mbsfn_area_id, sf_symbols)) {
             fprintf(stderr, "Error encoding PDSCH\n");
             exit(-1);
           }
@@ -975,22 +1009,30 @@ int main(int argc, char **argv) {
       }
 
       /* Transform to OFDM symbols */
-      if(sf_idx != 1 || mbsfn_area_id < 0){
+      if(mch_table[sf_idx] == 0 || mbsfn_area_id < 0){
         for (i = 0; i < cell.nof_ports; i++) {
-          srslte_ofdm_tx_sf(&ifft, sf_buffer[i], output_buffer[i]);
+          srslte_ofdm_tx_sf(&ifft[i]);
         }
       }else{
-        srslte_ofdm_tx_sf(&ifft_mbsfn, sf_buffer[0], output_buffer[0]);
+        srslte_ofdm_tx_sf(&ifft_mbsfn);
       }
+  
       
       /* send to file or usrp */
       if (output_file_name) {
         if (!null_file_sink) {
-           srslte_filesink_write_multi(&fsink, (void**) output_buffer, sf_n_samples, cell.nof_ports);       
+          /* Apply AWGN */
+          if (output_file_snr != +INFINITY) {
+            float var = powf(10.0f, -(output_file_snr + 3.0f) / 20.0f);
+            for (int k = 0; k < cell.nof_ports; k++) {
+              srslte_ch_awgn_c(output_buffer[k], output_buffer[k], var, sf_n_samples);
+            }
+          }
+          srslte_filesink_write_multi(&fsink, (void**) output_buffer, sf_n_samples, cell.nof_ports);
         }
         usleep(1000);
       } else {
-#ifndef DISABLE_RF
+#ifndef DISABLE_RF  
       float norm_factor = (float) cell.nof_prb/15/sqrtf(pdsch_cfg.grant.nof_prb);
       for (i = 0; i < cell.nof_ports; i++) {
         srslte_vec_sc_prod_cfc(output_buffer[i], rf_amp * norm_factor, output_buffer[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));

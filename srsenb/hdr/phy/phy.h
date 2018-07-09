@@ -24,13 +24,14 @@
  *
  */
 
-#ifndef ENBPHY_H
-#define ENBPHY_H
+#ifndef SRSENB_PHY_H
+#define SRSENB_PHY_H
 
 #include "srslte/common/log.h"
-#include "phy/txrx.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_common.h"
+#include "srslte/common/log_filter.h"
+#include "txrx.h"
+#include "phch_worker.h"
+#include "phch_common.h"
 #include "srslte/radio/radio.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/task_dispatcher.h"
@@ -48,30 +49,35 @@ typedef struct {
   LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT      srs_ul_cnfg;    
 } phy_cfg_t; 
 
+  
 class phy : public phy_interface_mac,
             public phy_interface_rrc
 {
 public:
 
   phy();
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log* log_h);
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, std::vector<void*> log_vec);
+  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log_filter* log_h);
+  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, std::vector<srslte::log_filter *> log_vec);
   void stop();
   
   /* MAC->PHY interface */
   int  add_rnti(uint16_t rnti);
   void rem_rnti(uint16_t rnti);
+  
+  /*RRC-PHY interface*/
+  void configure_mbsfn(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT mcch);
 
   static uint32_t tti_to_SFN(uint32_t tti);
   static uint32_t tti_to_subf(uint32_t tti);
   
   void start_plot();
+  void set_conf_dedicated_ack(uint16_t rnti, bool dedicated_ack);
   void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated);
   
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   
 private:
-    
+  phy_rrc_cfg_t phy_rrc_config;
   uint32_t nof_workers; 
   
   const static int MAX_WORKERS         = 4;
@@ -82,7 +88,7 @@ private:
   const static int WORKERS_THREAD_PRIO = 0; 
   
   srslte::radio         *radio_handler;
-
+  srslte::log              *log_h;
   srslte::thread_pool      workers_pool;
   std::vector<phch_worker> workers;
   phch_common              workers_common; 
@@ -97,4 +103,4 @@ private:
 
 } // namespace srsenb
 
-#endif // UEPHY_H
+#endif // SRSENB_PHY_H

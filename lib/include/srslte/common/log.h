@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef LOG_H
-#define LOG_H
+#ifndef SRSLTE_LOG_H
+#define SRSLTE_LOG_H
 
 #include <stdint.h>
 #include <string>
@@ -54,6 +54,12 @@ static const char log_level_text[LOG_LEVEL_N_ITEMS][16] = {"None   ",
                                                            "Info   ",
                                                            "Debug  "};
 
+static const char log_level_text_short[LOG_LEVEL_N_ITEMS][16] = {"[-]",
+                                                                 "[E]",
+                                                                 "[W]",
+                                                                 "[I]",
+                                                                 "[D]"};
+
 class log
 {
 public:
@@ -63,6 +69,9 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
+    show_layer_en = true;
+    add_string_en = false;
+    level_text_short = true;
   }
 
   log(std::string service_name_) {
@@ -70,12 +79,24 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
+    show_layer_en = true;
+    add_string_en = false;
+    level_text_short = true;
   }
+
+  virtual ~log() {};
 
   // This function shall be called at the start of every tti for printing tti
   void step(uint32_t tti_) {
     tti = tti_;
+    add_string_en  = false;
   }
+
+  void prepend_string(std::string s) {
+    add_string_en  = true;
+    add_string_val = s;
+  }
+
   uint32_t get_tti() {
     return tti;
   }
@@ -93,25 +114,29 @@ public:
   int get_hex_limit() {
     return hex_limit;
   }
+  void set_log_level_short(bool enable) {
+    level_text_short = enable;
+  }
+  void show_layer(bool enable) {
+    show_layer_en = enable;
+  }
 
   // Pure virtual methods for logging
-  virtual void console(std::string message, ...) = 0;
-  virtual void error(std::string message, ...)   = 0;
-  virtual void warning(std::string message, ...) = 0;
-  virtual void info(std::string message, ...)    = 0;
-  virtual void debug(std::string message, ...)   = 0;
+  virtual void console(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void error(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
 
   // Same with hex dump
-  virtual void error_hex(uint8_t *hex, int size, std::string message, ...){error("error_hex not implemented.\n");}
-  virtual void warning_hex(uint8_t *hex, int size, std::string message, ...){error("warning_hex not implemented.\n");}
-  virtual void info_hex(uint8_t *hex, int size, std::string message, ...){error("info_hex not implemented.\n");}
-  virtual void debug_hex(uint8_t *hex, int size, std::string message, ...){error("debug_hex not implemented.\n");}
-
-  // Same with line and file info
-  virtual void error_line(std::string file, int line, std::string message, ...){error("error_line not implemented.\n");}
-  virtual void warning_line(std::string file, int line, std::string message, ...){error("warning_line not implemented.\n");}
-  virtual void info_line(std::string file, int line, std::string message, ...){error("info_line not implemented.\n");}
-  virtual void debug_line(std::string file, int line, std::string message, ...){error("debug_line not implemented.\n");}
+  virtual void error_hex(const uint8_t *, int, const char *, ...)   __attribute__((format (printf, 4, 5)))
+    {error("error_hex not implemented.\n");}
+  virtual void warning_hex(const uint8_t *, int, const char *, ...) __attribute__((format (printf, 4, 5)))
+    {error("warning_hex not implemented.\n");}
+  virtual void info_hex(const uint8_t *, int, const char *, ...)    __attribute__((format (printf, 4, 5)))
+    {error("info_hex not implemented.\n");}
+  virtual void debug_hex(const uint8_t *, int, const char *, ...)   __attribute__((format (printf, 4, 5)))
+    {error("debug_hex not implemented.\n");}
 
 protected:
   std::string get_service_name() { return service_name; }
@@ -119,9 +144,14 @@ protected:
   LOG_LEVEL_ENUM  level;
   int             hex_limit;
   std::string     service_name;
+
+  bool        show_layer_en;
+  bool        level_text_short;
+  bool        add_string_en;
+  std::string add_string_val;
 };
 
 } // namespace srslte
 
-#endif // LOG_H
+#endif // SRSLTE_LOG_H
 

@@ -29,8 +29,8 @@
  * Description: Metrics class printing to stdout.
  *****************************************************************************/
 
-#ifndef METRICS_STDOUT_H
-#define METRICS_STDOUT_H
+#ifndef SRSUE_METRICS_STDOUT_H
+#define SRSUE_METRICS_STDOUT_H
 
 #include <pthread.h>
 #include <stdint.h>
@@ -46,9 +46,11 @@ class metrics_stdout : public srslte::metrics_listener<ue_metrics_t>
 public:
   metrics_stdout();
 
+  void set_periodicity(float metrics_report_period_sec);
   void toggle_print(bool b);
-  void set_metrics(ue_metrics_t &m, float report_period_secs);
+  void set_metrics(ue_metrics_t &m, const uint32_t period_usec);
   void set_ue_handle(ue_metrics_interface *ue_);
+  void stop() {};
 
 private:
   std::string float_to_string(float f, int digits);
@@ -62,4 +64,4 @@ private:
 
 } // namespace srsue
 
-#endif // METRICS_STDOUT_H
+#endif // SRSUE_METRICS_STDOUT_H

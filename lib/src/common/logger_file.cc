@@ -34,31 +34,41 @@ using namespace std;
 namespace srslte{
 
 logger_file::logger_file()
-  :inited(false)
-  ,not_done(true)
+  :logfile(NULL)
+  ,is_running(false)
+  ,cur_length(0)
+  ,max_length(0)
 {}
 
 logger_file::~logger_file() {
-  not_done = false;
-  log(new std::string("Closing log"));
-  if(inited) {
+  if(is_running) {
+    log(new std::string("Closing log\n"));
+    pthread_mutex_lock(&mutex);
+    is_running = false;
+    pthread_cond_signal(&not_empty);  // wakeup thread and let it terminate
+    pthread_mutex_unlock(&mutex);
     wait_thread_finish();
     flush();
-    fclose(logfile);
+    if (logfile) {
+      fclose(logfile);
+    }
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&not_empty);
   }
 }
 
-void logger_file::init(std::string file) {
+void logger_file::init(std::string file, int max_length_) {
   pthread_mutex_init(&mutex, NULL); 
   pthread_cond_init(&not_empty, NULL);
-  pthread_cond_init(&not_full, NULL);
+  max_length = (int64_t)max_length_*1024;
+  name_idx = 0;
   filename = file;
   logfile = fopen(filename.c_str(), "w");
-  if(logfile==NULL) {
-    printf("Error: could not create log file, no messages will be logged");
+  if(logfile == NULL) {
+    printf("Error: could not create log file, no messages will be logged!\n");
   }
-  start();
-  inited = true;
+  is_running = true;
+  start(-2);
 }
 
 void logger_file::log(const char *msg) {
@@ -73,18 +83,34 @@ void logger_file::log(str_ptr msg) {
 }
 
 void logger_file::run_thread() {
-  while(not_done) {
-  pthread_mutex_lock(&mutex);
+  while(is_running) {
+    pthread_mutex_lock(&mutex);
     while(buffer.empty()) {
       pthread_cond_wait(&not_empty, &mutex);
+      if(!is_running) return; // Thread done. Messages in buffer will be handled in flush.
     }
     str_ptr s = buffer.front();
-    pthread_cond_signal(&not_full);
+    int n = 0;
     if(logfile)
-      fprintf(logfile, "%s", s->c_str());
+      n = fprintf(logfile, "%s", s->c_str());
     delete s; 
     buffer.pop_front();
     pthread_mutex_unlock(&mutex);
+    if (n > 0) {
+      cur_length += (int64_t) n;
+      if (cur_length >= max_length && max_length > 0) {
+        fclose(logfile);
+        name_idx++;
+        char numstr[21]; // enough to hold all numbers up to 64-bits
+        sprintf(numstr, ".%d", name_idx);
+        string newfilename = filename + numstr ;
+        logfile = fopen(newfilename.c_str(), "w");
+        if(logfile==NULL) {
+          printf("Error: could not create log file, no messages will be logged!\n");
+        }
+        cur_length = 0;
+      }
+    }
   }
 }
 

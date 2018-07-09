@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef ENB_MAC_METRICS_H
-#define ENB_MAC_METRICS_H
+#ifndef SRSENB_MAC_METRICS_H
+#define SRSENB_MAC_METRICS_H
 
 
 namespace srsenb {
@@ -44,9 +44,11 @@ struct mac_metrics_t
   int ul_buffer;
   int dl_buffer;
   float dl_cqi;
+  float dl_ri;
+  float dl_pmi;
   float phr; 
 };
 
 } // namespace srsenb
 
-#endif // ENB_MAC_METRICS_H
+#endif // SRSENB_MAC_METRICS_H

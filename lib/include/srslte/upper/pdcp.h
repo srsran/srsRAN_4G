@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PDCP_H
-#define PDCP_H
+#ifndef SRSLTE_PDCP_H
+#define SRSLTE_PDCP_H
 
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -54,20 +54,31 @@ public:
   bool is_drb_enabled(uint32_t lcid);
 
   // RRC interface
+  void reestablish();
   void reset();
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  void write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu);
   void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
+  void add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
   void config_security(uint32_t lcid,
-                       uint8_t *k_rrc_enc,
-                       uint8_t *k_rrc_int,
+                       uint8_t *k_enc,
+                       uint8_t *k_int,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  void config_security_all(uint8_t *k_enc,
+                           uint8_t *k_int,
+                           CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                           INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  void enable_integrity(uint32_t lcid);
+  void enable_encryption(uint32_t lcid);
 
   // RLC interface
   void write_pdu(uint32_t lcid, byte_buffer_t *sdu);
+  void write_pdu_mch(uint32_t lcid, byte_buffer_t *sdu);
   void write_pdu_bcch_bch(byte_buffer_t *sdu);
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu);
   void write_pdu_pcch(byte_buffer_t *sdu);
+  
 
 private:
   srsue::rlc_interface_pdcp *rlc;
@@ -76,13 +87,15 @@ private:
 
   log                       *pdcp_log;
   pdcp_entity                pdcp_array[SRSLTE_N_RADIO_BEARERS];
+  pdcp_entity                pdcp_array_mrb[SRSLTE_N_MCH_LCIDS];
   uint32_t                   lcid; // default LCID that is maintained active by PDCP instance
   uint8_t                    direction;
 
   bool valid_lcid(uint32_t lcid);
+  bool valid_mch_lcid(uint32_t lcid);
 };
 
-} // namespace srsue
+} // namespace srslte
 
 
-#endif // PDCP_H
+#endif // SRSLTE_PDCP_H

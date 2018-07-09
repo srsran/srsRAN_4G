@@ -133,7 +133,7 @@ void map_simd_dec(map_gen_t * h, int16_t * input[SRSLTE_TDEC_MAX_NPAR], int16_t 
 {
   
   uint32_t nof_cb = 1;
-  int16_t *outptr[SRSLTE_TDEC_MAX_NPAR];
+  int16_t *outptr[SRSLTE_TDEC_MAX_NPAR] = { NULL, NULL };
   
   // Compute branch metrics
   switch(cb_mask) {
@@ -513,7 +513,9 @@ void srslte_tdec_simd_decision_byte_cb(srslte_tdec_simd_t * h, uint8_t *output, 
 void srslte_tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_MAX_NPAR], uint32_t long_cb)
 {
   for (int i=0;i<h->max_par_cb;i++) {
-    srslte_tdec_simd_decision_byte_cb(h, output[i], i, long_cb);
+    if (output[i]) {
+      srslte_tdec_simd_decision_byte_cb(h, output[i], i, long_cb);
+    }
   }
 }
 

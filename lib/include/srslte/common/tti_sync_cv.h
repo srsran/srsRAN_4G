@@ -30,8 +30,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef TTISYNC_CV_H
-#define TTISYNC_CV_H
+#ifndef SRSLTE_TTI_SYNC_CV_H
+#define SRSLTE_TTI_SYNC_CV_H
 
 #include <pthread.h>
 #include "srslte/common/tti_sync.h"
@@ -44,7 +44,8 @@ class tti_sync_cv : public tti_sync
              tti_sync_cv(uint32_t modulus = 10240);
             ~tti_sync_cv();
     void     increase();
-    uint32_t wait();      
+    void     increase(uint32_t cnt);
+    uint32_t wait();
     void     resync();
     void     set_producer_cntr(uint32_t producer_cntr);
     
@@ -53,6 +54,6 @@ class tti_sync_cv : public tti_sync
     pthread_mutex_t mutex; 
 }; 
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // TTISYNC_CV_H
+#endif // SRSLTE_TTI_SYNC_CV_H

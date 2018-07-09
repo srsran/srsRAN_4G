@@ -33,8 +33,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.3.4
  *****************************************************************************/
 
-#ifndef PRECODING_H_
-#define PRECODING_H_
+#ifndef SRSLTE_PRECODING_H
+#define SRSLTE_PRECODING_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -49,18 +49,21 @@
  */
 SRSLTE_API int srslte_precoding_single(cf_t *x, 
                                        cf_t *y, 
-                                       int nof_symbols);
+                                       int nof_symbols,
+                                       float scaling);
 
 SRSLTE_API int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], 
                                           cf_t *y[SRSLTE_MAX_PORTS], 
                                           int nof_ports, 
-                                          int nof_symbols);
+                                          int nof_symbols,
+                                          float scaling);
 
 SRSLTE_API int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], 
                                     cf_t *y[SRSLTE_MAX_PORTS], 
                                     int nof_layers, 
                                     int nof_ports, 
-                                    int nof_symbols);
+                                    int nof_symbols,
+                                    float scaling);
 
 SRSLTE_API int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], 
                                      cf_t *y[SRSLTE_MAX_PORTS], 
@@ -68,6 +71,7 @@ SRSLTE_API int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS],
                                      int nof_ports,
                                      int codebook_idx,
                                      int nof_symbols,
+                                     float scaling,
                                      srslte_mimo_type_t type);
 
 /* Estimates the vector "x" based on the received signal "y" and the channel estimates "h"
@@ -75,50 +79,50 @@ SRSLTE_API int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS],
 SRSLTE_API int srslte_predecoding_single(cf_t *y, 
                                          cf_t *h, 
                                          cf_t *x, 
+                                         float *csi,
                                          int nof_symbols, 
+                                         float scaling,
                                          float noise_estimate);
 
 SRSLTE_API int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_PORTS], 
                                                cf_t *h[SRSLTE_MAX_PORTS], 
                                                cf_t *x, 
+                                               float *csi[SRSLTE_MAX_CODEWORDS],
                                                int nof_rxant,
                                                int nof_symbols, 
+                                               float scaling,
                                                float noise_estimate);
 
 SRSLTE_API int srslte_predecoding_diversity(cf_t *y, 
                                             cf_t *h[SRSLTE_MAX_PORTS], 
                                             cf_t *x[SRSLTE_MAX_LAYERS],    
                                             int nof_ports, 
-                                            int nof_symbols);
+                                            int nof_symbols,
+                                            float scaling);
 
 SRSLTE_API int srslte_predecoding_diversity_multi(cf_t *y[SRSLTE_MAX_PORTS], 
                                                   cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
-                                                  cf_t *x[SRSLTE_MAX_LAYERS],    
+                                                  cf_t *x[SRSLTE_MAX_LAYERS],
+                                                  float *csi[SRSLTE_MAX_LAYERS],
                                                   int nof_rxant,
                                                   int nof_ports, 
-                                                  int nof_symbols);
-
-SRSLTE_API int srslte_predecoding_type(cf_t *y, 
-                                       cf_t *h[SRSLTE_MAX_PORTS], 
-                                       cf_t *x[SRSLTE_MAX_LAYERS],
-                                       int nof_ports, 
-                                       int nof_layers, 
-                                       int nof_symbols, 
-                                       srslte_mimo_type_t type, 
-                                       float noise_estimate);
+                                                  int nof_symbols,
+                                                  float scaling);
 
 SRSLTE_API void srslte_predecoding_set_mimo_decoder (srslte_mimo_decoder_t _mimo_decoder);
 
-SRSLTE_API int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], 
-                                             cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
-                                             cf_t *x[SRSLTE_MAX_LAYERS],
-                                             int nof_rxant,
-                                             int nof_ports, 
-                                             int nof_layers, 
-                                             int codebook_idx,
-                                             int nof_symbols, 
-                                             srslte_mimo_type_t type, 
-                                             float noise_estimate);
+SRSLTE_API int srslte_predecoding_type(cf_t *y[SRSLTE_MAX_PORTS],
+                                       cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                       cf_t *x[SRSLTE_MAX_LAYERS],
+                                       float *csi[SRSLTE_MAX_CODEWORDS],
+                                       int nof_rxant,
+                                       int nof_ports,
+                                       int nof_layers,
+                                       int codebook_idx,
+                                       int nof_symbols,
+                                       srslte_mimo_type_t type,
+                                       float scaling,
+                                       float noise_estimate);
 
 SRSLTE_API int srslte_precoding_pmi_select(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                            uint32_t nof_symbols,
@@ -134,4 +138,4 @@ SRSLTE_API int srslte_precoding_cn(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                    float *cn);
 
 
-#endif /* PRECODING_H_ */
+#endif // SRSLTE_PRECODING_H

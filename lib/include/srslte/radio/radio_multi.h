@@ -34,8 +34,8 @@ extern "C" {
 
 #include "srslte/radio/radio.h"
 
-#ifndef RADIO_MULTI_H
-#define RADIO_MULTI_H
+#ifndef SRSLTE_RADIO_MULTI_H
+#define SRSLTE_RADIO_MULTI_H
 
 
 namespace srslte {
@@ -45,10 +45,11 @@ namespace srslte {
   class radio_multi : public radio
   {
     public: 
-      
+      radio_multi() {}
+      ~radio_multi() {}
       bool init_multi(uint32_t nof_rx_antennas, char *args = NULL, char *devname = NULL);
       bool rx_now(cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t *rxd_time);
   }; 
 }
 
-#endif
+#endif // SRSLTE_RADIO_MULTI_H

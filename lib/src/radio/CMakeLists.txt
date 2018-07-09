@@ -23,3 +23,5 @@ if(RF_FOUND)
   target_link_libraries(srslte_radio srslte_rf)
   install(TARGETS srslte_radio DESTINATION ${LIBRARY_DIR})
 endif(RF_FOUND)
+
+add_subdirectory(test)

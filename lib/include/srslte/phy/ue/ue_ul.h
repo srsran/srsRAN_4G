@@ -35,8 +35,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef UEUL_H
-#define UEUL_H
+#ifndef SRSLTE_UE_UL_H
+#define SRSLTE_UE_UL_H
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/ch_estimation/chest_dl.h"
@@ -98,8 +98,10 @@ typedef struct SRSLTE_API {
   
   cf_t *refsignal; 
   cf_t *srs_signal; 
-  cf_t *sf_symbols; 
-  
+  cf_t *sf_symbols;
+
+  float last_amplitude;
+
   uint16_t current_rnti;  
   bool signals_pregenerated;
 }srslte_ue_ul_t;
@@ -108,6 +110,7 @@ typedef struct SRSLTE_API {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_ue_ul_init(srslte_ue_ul_t *q,
+                                 cf_t *out_buffer,
                                  uint32_t max_prb);
 
 SRSLTE_API void srslte_ue_ul_free(srslte_ue_ul_t *q);
@@ -125,7 +128,9 @@ SRSLTE_API void srslte_ue_ul_set_cfo_enable(srslte_ue_ul_t *q,
                                             bool enabled); 
 
 SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, 
-                                               bool enabled); 
+                                               bool enabled);
+
+SRSLTE_API float srslte_ue_ul_get_last_amplitude(srslte_ue_ul_t *q);
 
 SRSLTE_API void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
                                      srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
@@ -209,4 +214,4 @@ SRSLTE_API bool srslte_ue_ul_srs_tx_enabled(srslte_refsignal_srs_cfg_t *srs_cfg,
                                             uint32_t tti); 
 
 
-#endif
+#endif // SRSLTE_UE_UL_H

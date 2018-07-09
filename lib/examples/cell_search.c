@@ -153,6 +153,8 @@ int main(int argc, char **argv) {
   uint32_t freq;
   uint32_t n_found_cells=0;
   
+  srslte_debug_handle_crash(argc, argv);
+
   parse_args(argc, argv);
     
   printf("Opening RF device...\n");
@@ -197,7 +199,12 @@ int main(int argc, char **argv) {
     srslte_ue_cellsearch_set_nof_valid_frames(&cs, cell_detect_config.nof_valid_pss_frames);
   }
   if (cell_detect_config.init_agc) {
-    srslte_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);
+    srslte_rf_info_t *rf_info = srslte_rf_get_info(&rf);
+    srslte_ue_sync_start_agc(&cs.ue_sync,
+                             srslte_rf_set_rx_gain_wrapper,
+                             rf_info->min_rx_gain,
+                             rf_info->max_rx_gain,
+                             cell_detect_config.init_agc);
   }
 
   for (freq=0;freq<nof_freqs && !go_exit;freq++) {
@@ -218,8 +225,8 @@ int main(int argc, char **argv) {
 
     INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
     srslte_rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
-    INFO("Starting receiver...\n", 0);
-    srslte_rf_start_rx_stream(&rf);
+    INFO("Starting receiver...\n");
+    srslte_rf_start_rx_stream(&rf, false);
     
     n = srslte_ue_cellsearch_scan(&cs, found_cells, NULL); 
     if (n < 0) {

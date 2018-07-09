@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.5
  *********************************************************************************************/
 
-#ifndef SRSLTE_REFSIGNAL_UL_
-#define SRSLTE_REFSIGNAL_UL_
+#ifndef SRSLTE_REFSIGNAL_UL_H
+#define SRSLTE_REFSIGNAL_UL_H
 
 #include "srslte/config.h"
 #include "srslte/phy/phch/pucch.h"
@@ -209,4 +209,4 @@ SRSLTE_API uint32_t srslte_refsignal_srs_rb_L_cs(uint32_t bw_cfg,
 
 SRSLTE_API uint32_t srslte_refsignal_srs_M_sc(srslte_refsignal_ul_t *q); 
 
-#endif
+#endif // SRSLTE_REFSIGNAL_UL_H

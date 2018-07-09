@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef TIMERS_H
-#define TIMERS_H
+#ifndef SRSLTE_TIMERS_H
+#define SRSLTE_TIMERS_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -64,13 +64,16 @@ public:
       return (counter < timeout) && running; 
     }
     bool is_expired() {
-      return callback && (counter >= timeout || !running); 
+      return (timeout > 0) && (counter >= timeout);
     }
     uint32_t get_timeout() {
       return timeout; 
     }
     void reset() {
       counter = 0; 
+    }
+    uint32_t value() {
+      return counter;
     }
     void step() {
       if (running) {
@@ -140,7 +143,7 @@ public:
       used_timers[i] = false;
       nof_used_timers--;
     } else {
-      fprintf(stderr, "Error releasing timer: nof_used_timers=%d, nof_timers=%d\n", nof_used_timers, nof_timers);
+      fprintf(stderr, "Error releasing timer id=%d: nof_used_timers=%d, nof_timers=%d\n", i, nof_used_timers, nof_timers);
     }
   }
   uint32_t get_unique_id() {
@@ -148,15 +151,16 @@ public:
       fprintf(stderr, "Error getting unique timer id: no more timers available\n");
       return 0;
     } else {
-      while(used_timers[next_timer]) {
-        next_timer++;
-        if (next_timer >= nof_timers) {
-          next_timer=0;
+      for (uint32_t i=0;i<nof_timers;i++) {
+        if (!used_timers[i]) {
+          used_timers[i] = true;
+          nof_used_timers++;
+          return i;
         }
       }
-      used_timers[next_timer] = true;
-      nof_used_timers++;
-      return next_timer;
+      fprintf(stderr, "Error getting unique timer id: no more timers available but nof_used_timers=%d, nof_timers=%d\n",
+              nof_used_timers, nof_timers);
+      return 0;
     }
   }
 private:
@@ -169,4 +173,4 @@ private:
 
 } // namespace srslte
   
-#endif // TIMERS_H
+#endif // SRSLTE_TIMERS_H

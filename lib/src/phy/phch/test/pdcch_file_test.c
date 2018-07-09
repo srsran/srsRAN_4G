@@ -126,7 +126,7 @@ int base_init() {
     exit(-1);
   }
 
-  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb)));
+  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz_power2(cell.nof_prb)));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -157,7 +157,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft, cell.cp, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
+  if (srslte_ofdm_init_(&fft, cell.cp, input_buffer, fft_buffer, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -167,10 +167,6 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_regs_set_cfi(&regs, cfi)) {
-    fprintf(stderr, "Error setting CFI %d\n", cfi);
-    return -1;
-  }
   if (srslte_pdcch_init_ue(&pdcch, cell.nof_prb, 1)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
@@ -180,7 +176,7 @@ int base_init() {
     exit(-1);
   }
 
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 
@@ -231,7 +227,7 @@ int main(int argc, char **argv) {
 
     INFO("Reading %d samples sub-frame %d\n", flen, frame_cnt);
 
-    srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
+    srslte_ofdm_rx_sf(&fft);
 
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);
@@ -244,7 +240,7 @@ int main(int argc, char **argv) {
       return -1;
     }
     if (rnti == SRSLTE_SIRNTI) {
-      INFO("Initializing common search space for SI-RNTI\n",0);
+      INFO("Initializing common search space for SI-RNTI\n");
       nof_locations = srslte_pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
     } else {
       INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
@@ -252,7 +248,7 @@ int main(int argc, char **argv) {
     }
 
     for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
+      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, cfi, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return -1;
       }
@@ -292,5 +288,6 @@ int main(int argc, char **argv) {
   } while (frame_cnt <= max_frames);
 
   base_free();
+  srslte_dft_exit();
   exit(ret);
 }

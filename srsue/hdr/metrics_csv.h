@@ -29,8 +29,8 @@
  * Description: Metrics class writing to CSV file.
  *****************************************************************************/
 
-#ifndef METRICS_CSV_H
-#define METRICS_CSV_H
+#ifndef SRSUE_METRICS_CSV_H
+#define SRSUE_METRICS_CSV_H
 
 #include <pthread.h>
 #include <stdint.h>
@@ -47,13 +47,16 @@ class metrics_csv : public srslte::metrics_listener<ue_metrics_t>
 {
 public:
   metrics_csv(std::string filename);
+  ~metrics_csv();
 
-  void set_metrics(ue_metrics_t &m, float report_period_secs);
+  void set_metrics(ue_metrics_t &m, const uint32_t period_usec);
   void set_ue_handle(ue_metrics_interface *ue_);
+  void stop();
 
 private:
   std::string float_to_string(float f, int digits, bool add_semicolon = true);
 
+  float                 metrics_report_period;
   std::ofstream         file;
   ue_metrics_interface* ue;
   uint32_t              n_reports;
@@ -61,4 +64,4 @@ private:
 
 } // namespace srsue
 
-#endif // METRICS_CSV_H
+#endif // SRSUE_METRICS_CSV_H

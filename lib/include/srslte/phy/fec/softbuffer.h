@@ -33,8 +33,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef SOFTBUFFER_
-#define SOFTBUFFER_
+#ifndef SRSLTE_SOFTBUFFER_H
+#define SRSLTE_SOFTBUFFER_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -42,6 +42,9 @@
 typedef struct SRSLTE_API {
   uint32_t max_cb;
   int16_t **buffer_f;  
+  uint8_t **data;
+  bool *cb_crc;
+  bool tb_crc;
 } srslte_softbuffer_rx_t;
 
 typedef struct SRSLTE_API {
@@ -79,4 +82,4 @@ SRSLTE_API void srslte_softbuffer_tx_free(srslte_softbuffer_tx_t *p);
 
 
 
-#endif
+#endif // SRSLTE_SOFTBUFFER_H

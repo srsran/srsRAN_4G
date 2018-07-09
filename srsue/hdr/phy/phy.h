@@ -24,24 +24,24 @@
  *
  */
 
-#ifndef UEPHY_H
-#define UEPHY_H
+#ifndef SRSUE_PHY_H
+#define SRSUE_PHY_H
 
 #include "srslte/srslte.h"
-#include "srslte/common/log.h"
-#include "phy/phy_metrics.h"
-#include "phy/phch_recv.h"
-#include "phy/prach.h"
-#include "phy/phch_worker.h"
-#include "phy/phch_common.h"
+#include "srslte/common/log_filter.h"
+#include "phy_metrics.h"
+#include "phch_recv.h"
+#include "prach.h"
+#include "phch_worker.h"
+#include "phch_common.h"
 #include "srslte/radio/radio.h"
 #include "srslte/common/task_dispatcher.h"
 #include "srslte/common/trace.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
-    
-typedef _Complex float cf_t; 
+
+typedef _Complex float cf_t;
 
 class phy
     : public phy_interface_mac
@@ -53,7 +53,7 @@ public:
   bool init(srslte::radio_multi *radio_handler, 
             mac_interface_phy *mac, 
             rrc_interface_phy *rrc,
-            std::vector<void*> log_vec,
+            std::vector<srslte::log_filter*> log_vec,
             phy_args_t *args = NULL);
   
   void stop();
@@ -64,7 +64,7 @@ public:
   void set_agc_enable(bool enabled);
 
   void get_metrics(phy_metrics_t &m);
-  
+  void srslte_phy_logger(phy_logger_level_t log_level, char *str);
   
   
   static uint32_t tti_to_SFN(uint32_t tti);
@@ -76,20 +76,24 @@ public:
   void write_trace(std::string filename);
 
   void set_earfcn(std::vector<uint32_t> earfcns);
+  void force_freq(float dl_freq, float ul_freq);
+
+  void radio_overflow();
 
   /********** RRC INTERFACE ********************/
   void    reset();
-  void    sync_reset();
   void    configure_ul_params(bool pregen_disabled = false);
-  void    cell_search_start();
-  void    cell_search_stop();
-  void    cell_search_next();
-  bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
+  cell_search_ret_t cell_search(phy_cell_t *cell);
+  bool    cell_select(phy_cell_t *cell);
+
+  void    meas_reset();
+  int     meas_start(uint32_t earfcn, int pci);
+  int     meas_stop(uint32_t earfcn, int pci);
+
+  // also MAC interface
+  bool    cell_is_camping();
 
   /********** MAC INTERFACE ********************/
-  /* Functions to synchronize with a cell */
-  bool    sync_status(); // this is also RRC interface
-
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   void    set_crnti(uint16_t rnti);
   
@@ -116,7 +120,7 @@ public:
   void    pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1);
   void    pdcch_ul_search_reset();
   void    pdcch_dl_search_reset();
-
+  
   /* Get/Set PHY parameters interface from RRC */  
   void get_config(phy_cfg_t *phy_cfg); 
   void set_config(phy_cfg_t *phy_cfg); 
@@ -124,13 +128,22 @@ public:
   void set_config_common(phy_cfg_common_t *common); 
   void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd); 
   void set_config_64qam_en(bool enable);
-
+  void set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
+  void set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
+  void set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch);
+  
+  /*Set MAC->PHY MCH period  stopping point*/
+  void set_mch_period_stop(uint32_t stop);
+  
 
   float   get_phr();
   float   get_pathloss_db();
     
   uint32_t get_current_tti();
-  void     get_current_cell(srslte_cell_t *cell);
+
+  void     get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL);
+  uint32_t get_current_earfcn();
+  uint32_t get_current_pci();
   
   void    start_plot();
     
@@ -140,16 +153,18 @@ private:
 
   bool     initiated;
   uint32_t nof_workers; 
-  
-  const static int MAX_WORKERS         = 4;
+  uint32_t nof_coworkers;
+
+  const static int MAX_WORKERS         = 3;
   const static int DEFAULT_WORKERS     = 2;
   
   const static int SF_RECV_THREAD_PRIO = 1;
   const static int WORKERS_THREAD_PRIO = 0; 
   
   srslte::radio_multi      *radio_handler;
-  std::vector<void*>        log_vec;
+  std::vector<srslte::log_filter*>        log_vec;
   srslte::log              *log_h;
+  srslte::log              *log_phy_lib_h;
   srsue::mac_interface_phy *mac;
   srsue::rrc_interface_phy *rrc;
 
@@ -167,7 +182,7 @@ private:
   
   /* Current time advance */
   uint32_t     n_ta;
-    
+
   bool init_(srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log *log_h, bool do_agc, uint32_t nof_workers);
   void set_default_args(phy_args_t *args);
   bool check_args(phy_args_t *args); 
@@ -176,4 +191,4 @@ private:
 
 } // namespace srsue
 
-#endif // UEPHY_H
+#endif // SRSUE_PHY_H

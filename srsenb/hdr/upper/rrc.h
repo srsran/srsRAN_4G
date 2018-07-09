@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RRC_H
-#define RRC_H
+#ifndef SRSENB_RRC_H
+#define SRSENB_RRC_H
 
 #include <map>
 #include <queue>
@@ -36,7 +36,7 @@
 #include "srslte/common/timeout.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "upper/common_enb.h"
+#include "common_enb.h"
 #include "rrc_metrics.h"
 
 namespace srsenb {
@@ -78,11 +78,15 @@ typedef struct {
 typedef struct {
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT    sibs[LIBLTE_RRC_MAX_SIB];  
   LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT        mac_cnfg; 
+  
   LIBLTE_RRC_PUSCH_CONFIG_DEDICATED_STRUCT pusch_cfg;   
+  LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT antenna_info;
+  LIBLTE_RRC_PDSCH_CONFIG_P_A_ENUM         pdsch_cfg;
   rrc_cfg_sr_t                             sr_cfg; 
   rrc_cfg_cqi_t                            cqi_cfg; 
   rrc_cfg_qci_t                            qci_cfg[MAX_NOF_QCI]; 
   srslte_cell_t cell; 
+  bool enable_mbsfn;
   uint32_t inactivity_timeout_ms; 
 }rrc_cfg_t; 
 
@@ -101,8 +105,27 @@ class rrc : public rrc_interface_pdcp,
             public thread
 {
 public:
-  
-  rrc() : act_monitor(this), cnotifier(NULL) {}
+
+  rrc() : act_monitor(this), cnotifier(NULL), running(false), nof_si_messages(0) {
+    users.clear();
+    pending_paging.clear();
+
+    pool = NULL;
+    phy = NULL;
+    mac = NULL;
+    rlc = NULL;
+    pdcp = NULL;
+    gtpu = NULL;
+    s1ap = NULL;
+    rrc_log = NULL;
+
+    bzero(&sr_sched, sizeof(sr_sched));
+    bzero(&cqi_sched, sizeof(cqi_sched));
+    bzero(&cfg, sizeof(cfg));
+    bzero(&sib2, sizeof(sib2));
+    bzero(&paging_mutex, sizeof(paging_mutex));
+
+  }
   
   void init(rrc_cfg_t *cfg,
             phy_interface_rrc *phy, 
@@ -168,7 +191,9 @@ public:
     bool is_idle(); 
     bool is_timeout();
     void set_activity();
-    
+
+    uint32_t rl_failure();
+
     rrc_state_t get_state();
     
     void send_connection_setup(bool is_setup = true);
@@ -185,6 +210,7 @@ public:
     void handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg);
     void handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQUEST_STRUCT *msg); 
     void handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu);
+    void handle_rrc_reconf_complete(LIBLTE_RRC_CONNECTION_RECONFIGURATION_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu);
     void handle_security_mode_complete(LIBLTE_RRC_SECURITY_MODE_COMPLETE_STRUCT *msg);
     void handle_security_mode_failure(LIBLTE_RRC_SECURITY_MODE_FAILURE_STRUCT *msg);
     void handle_ue_cap_info(LIBLTE_RRC_UE_CAPABILITY_INFORMATION_STRUCT *msg);
@@ -220,14 +246,18 @@ public:
     bool connect_notified; 
     
   private:
-    
+    srslte::byte_buffer_pool  *pool;
+
     struct timeval t_last_activity; 
+
+    LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM establishment_cause;
 
     // S-TMSI for this UE
     bool      has_tmsi;
     uint32_t  m_tmsi;
     uint8_t   mmec;
 
+    uint32_t    rlf_cnt;
     uint8_t     transaction_id;
     rrc_state_t state;
     
@@ -264,7 +294,7 @@ public:
     uint32_t cqi_idx; 
     bool cqi_allocated; 
     int cqi_sched_sf_idx; 
-    bool cqi_sched_prb_idx; 
+    int cqi_sched_prb_idx;
     int get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drbid);
   }; 
   
@@ -282,9 +312,13 @@ private:
   // user connect notifier 
   connect_notifier *cnotifier; 
 
+  void process_release_complete(uint16_t rnti);
+  void process_rl_failure(uint16_t rnti);
   void rem_user(uint16_t rnti); 
   uint32_t generate_sibs();
-  void config_mac(); 
+  void configure_mbsfn_sibs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
+
+  void config_mac();
   void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
   void parse_ul_ccch(uint16_t rnti, srslte::byte_buffer_t *pdu);
   void configure_security(uint16_t rnti,
@@ -315,10 +349,14 @@ private:
     srslte::byte_buffer_t*  pdu;
   }rrc_pdu;
 
-  const static uint32_t LCID_REM_USER = 0xffff0001; 
+  const static uint32_t LCID_EXIT     = 0xffff0000;
+  const static uint32_t LCID_REM_USER = 0xffff0001;
+  const static uint32_t LCID_REL_USER = 0xffff0002;
+  const static uint32_t LCID_RLF_USER = 0xffff0003;
+  const static uint32_t LCID_ACT_USER = 0xffff0004;
   
   bool                  running;
-  static const int      RRC_THREAD_PRIO = 7;
+  static const int      RRC_THREAD_PRIO = 65;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
   typedef struct {
@@ -327,7 +365,8 @@ private:
     
   sr_sched_t sr_sched; 
   sr_sched_t cqi_sched; 
-  
+  LIBLTE_RRC_MCCH_MSG_STRUCT mcch;
+  bool enable_mbms;
   rrc_cfg_t cfg; 
   uint32_t nof_si_messages;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2; 
@@ -341,4 +380,4 @@ private:
 
 } // namespace srsenb
 
-#endif // RRC_H
+#endif // SRSENB_RRC_H

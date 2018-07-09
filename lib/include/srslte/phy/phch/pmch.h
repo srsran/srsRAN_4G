@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.5
  *****************************************************************************/
 
-#ifndef PMCH_
-#define PMCH_
+#ifndef SRSLTE_PMCH_H
+#define SRSLTE_PMCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -94,7 +94,7 @@ SRSLTE_API int srslte_pmch_init_multi(srslte_pmch_t *q,
 
 SRSLTE_API void srslte_pmch_free(srslte_pmch_t *q);
 
-
+SRSLTE_API int srslte_pmch_set_cell(srslte_pmch_t *q, srslte_cell_t cell);
 
 SRSLTE_API int srslte_pmch_set_area_id(srslte_pmch_t *q, uint16_t area_id);
 
@@ -149,4 +149,4 @@ SRSLTE_API float srslte_pmch_average_noi(srslte_pmch_t *q);
 
 SRSLTE_API uint32_t srslte_pmch_last_noi(srslte_pmch_t *q);
 
-#endif
+#endif // SRSLTE_PMCH_H

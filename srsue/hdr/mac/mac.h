@@ -24,20 +24,20 @@
  *
  */
 
-#ifndef MAC_H
-#define MAC_H
+#ifndef SRSUE_MAC_H
+#define SRSUE_MAC_H
 
 #include "srslte/common/log.h"
-#include "mac/dl_harq.h"
-#include "mac/ul_harq.h"
+#include "dl_harq.h"
+#include "ul_harq.h"
 #include "srslte/common/timers.h"
-#include "mac/mac_metrics.h"
-#include "mac/proc_ra.h"
-#include "mac/proc_sr.h"
-#include "mac/proc_bsr.h"
-#include "mac/proc_phr.h"
-#include "mac/mux.h"
-#include "mac/demux.h"
+#include "mac_metrics.h"
+#include "proc_ra.h"
+#include "proc_sr.h"
+#include "proc_bsr.h"
+#include "proc_phr.h"
+#include "mux.h"
+#include "demux.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/tti_sync_cv.h"
@@ -50,7 +50,7 @@ class mac
     ,public mac_interface_rrc
     ,public srslte::timer_callback
     ,public srslte::mac_interface_timers
-    ,public thread
+    ,public periodic_thread
 {
 public:
   mac();
@@ -65,21 +65,26 @@ public:
   void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action);
   void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action);
   void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action);
+  void new_mch_dl(srslte_ra_dl_grant_t phy_grant, tb_action_dl_t *action);
   void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid);
   void bch_decoded_ok(uint8_t *payload, uint32_t len);
-  void pch_decoded_ok(uint32_t len);    
-  void tti_clock(uint32_t tti);
 
+  void pch_decoded_ok(uint32_t len);
+  void mch_decoded_ok(uint32_t len);
+  void process_mch_pdu(uint32_t len);
+
+  void set_mbsfn_config(uint32_t nof_mbsfn_services);
   
-  /******** Interface from RLC (RLC -> MAC) ****************/ 
+  /******** Interface from RRC (RRC -> MAC) ****************/
   void bcch_start_rx(); 
-  void bcch_stop_rx(); 
   void bcch_start_rx(int si_window_start, int si_window_length);
   void pcch_start_rx(); 
-  void pcch_stop_rx(); 
+  void clear_rntis();
   void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
+  void mch_start_rx(uint32_t lcid);
   void reconfiguration(); 
-  void reset(); 
+  void reset();
+  void wait_uplink();
 
   /******** set/get MAC configuration  ****************/ 
   void set_config(mac_cfg_t *mac_cfg);
@@ -88,8 +93,12 @@ public:
   void set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT *rach_cfg, uint32_t prach_config_index);
   void set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT *sr_cfg);
   void set_contention_id(uint64_t uecri);
-  
+
+  void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask);
+  void start_cont_ho();
+
   void get_rntis(ue_rnti_t *rntis);
+  void set_ho_rnti(uint16_t crnti, uint16_t target_pci);
 
   void start_pcap(srslte::mac_pcap* pcap);
 
@@ -105,18 +114,18 @@ public:
 
 
 private:  
-  void run_thread(); 
+  void run_period();
   
-  static const int MAC_MAIN_THREAD_PRIO = 5; 
-  static const int MAC_PDU_THREAD_PRIO  = 6;
-  static const int MAC_NOF_HARQ_PROC    = 8;
+  static const int MAC_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  static const int MAC_PDU_THREAD_PRIO  = DEFAULT_PRIORITY-5;
+  static const int MAC_NOF_HARQ_PROC    = 2*HARQ_DELAY_MS;
 
   // Interaction with PHY 
-  srslte::tti_sync_cv   ttisync; 
-  phy_interface_mac    *phy_h; 
+  phy_interface_mac    *phy_h;
   rlc_interface_mac    *rlc_h; 
   rrc_interface_mac    *rrc_h; 
   srslte::log          *log_h;
+  mac_interface_phy::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg;
   
   // MAC configuration 
   mac_cfg_t     config; 
@@ -125,11 +134,7 @@ private:
   ue_rnti_t     uernti; 
   
   uint32_t      tti; 
-  bool          started; 
-  bool          is_synchronized; 
-  uint16_t      last_temporal_crnti;
-  uint16_t      phy_rnti;
-  
+
   /* Multiplexing/Demultiplexing Units */
   mux           mux_unit; 
   demux         demux_unit; 
@@ -149,6 +154,13 @@ private:
   srslte_softbuffer_rx_t pch_softbuffer;
   uint8_t                pch_payload_buffer[pch_payload_buffer_sz];
 
+  /* Buffers for MCH reception (not included in DL HARQ) */
+  const static uint32_t  mch_payload_buffer_sz = SRSLTE_MAX_BUFFER_SIZE_BYTES;
+  srslte_softbuffer_rx_t mch_softbuffer;
+  uint8_t                mch_payload_buffer[mch_payload_buffer_sz];
+  srslte::mch_pdu        mch_msg;
+ 
+
 
   /* Functions for MAC Timers */
   uint32_t        timer_alignment;
@@ -157,13 +169,11 @@ private:
   void            timer_alignment_expire();
   srslte::timers  timers;
 
-
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap;
   bool is_first_ul_grant;
 
-
-  mac_metrics_t metrics; 
+  mac_metrics_t metrics;
 
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {
@@ -184,4 +194,4 @@ private:
 
 } // namespace srsue
 
-#endif // MAC_H
+#endif // SRSUE_MAC_H

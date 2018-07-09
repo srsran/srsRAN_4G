@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef RRC_COMMON_H
-#define RRC_COMMON_H
+#ifndef SRSUE_RRC_COMMON_H
+#define SRSUE_RRC_COMMON_H
 
 namespace srsue {
 
@@ -33,23 +33,13 @@ namespace srsue {
 // RRC states (3GPP 36.331 v10.0.0)
 typedef enum {
   RRC_STATE_IDLE = 0,
-  RRC_STATE_PLMN_SELECTION,
-  RRC_STATE_CELL_SELECTING,
-  RRC_STATE_CELL_SELECTED,
-  RRC_STATE_CONNECTING,
   RRC_STATE_CONNECTED,
-  RRC_STATE_LEAVE_CONNECTED,
   RRC_STATE_N_ITEMS,
 } rrc_state_t;
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "PLMN SELECTION",
-                                                            "CELL SELECTING",
-                                                            "CELL SELECTED",
-                                                            "CONNECTING",
-                                                            "CONNECTED",
-                                                            "LEAVE CONNECTED"};
+                                                            "CONNECTED"};
 
 } // namespace srsue
 
 
-#endif // RRC_COMMON_H
+#endif // SRSUE_RRC_COMMON_H

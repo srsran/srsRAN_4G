@@ -46,14 +46,14 @@ sib2 =
             {
                 high_speed_flag = false;
                 prach_config_index = 3;
-                prach_freq_offset = 0;
-                zero_correlation_zone_config = 11;
+                prach_freq_offset = 2;
+                zero_correlation_zone_config = 5;
             };
         };
         pdsch_cnfg = 
         {
             p_b = 0; 
-            rs_power = 20;
+            rs_power = 0;
         };
         pusch_cnfg = 
         {
@@ -110,6 +110,17 @@ sib2 =
         ul_bw_present = true; 
         additional_spectrum_emission = 1; 
     };
+
+    mbsfnSubframeConfigList = 
+    {
+        radioframeAllocationPeriod = "1";
+        subframeAllocationNumFrames = "1";
+        radioframeAllocationOffset = 0;
+        subframeAllocation = 63; 
+      
+    };
+
+    mbsfnSubframeConfigListLength = 0;
 
     time_alignment_timer = "INFINITY"; // use "sf500", "sf750", etc.
 };

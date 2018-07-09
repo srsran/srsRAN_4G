@@ -24,14 +24,15 @@
  *
  */
 
-#ifndef UE_PHY_METRICS_H
-#define UE_PHY_METRICS_H
+#ifndef SRSUE_PHY_METRICS_H
+#define SRSUE_PHY_METRICS_H
 
 
 namespace srsue {
 
 struct sync_metrics_t
 {
+  float ta_us;
   float cfo;
   float sfo;
 };
@@ -65,4 +66,4 @@ struct phy_metrics_t
 
 } // namespace srsue
 
-#endif // UE_PHY_METRICS_H
+#endif // SRSUE_PHY_METRICS_H

@@ -8,7 +8,7 @@
  */
 
 #include <assert.h>
-#include "upper/common_enb.h"
+#include "srsenb/hdr/upper/common_enb.h"
 #include "srslte/asn1/liblte_rrc.h"
 
 void rrc_plmn_test()

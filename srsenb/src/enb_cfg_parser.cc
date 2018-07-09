@@ -26,10 +26,10 @@
 
 #include "srslte/asn1/liblte_common.h"
 #include "srslte/asn1/liblte_rrc.h"
-#include "cfg_parser.h"
+#include "srsenb/hdr/cfg_parser.h"
 #include "srslte/srslte.h"
 
-#include "parser.h"
+#include "srsenb/hdr/parser.h"
 #include "enb_cfg_parser.h"
 
 namespace srsenb {
@@ -37,7 +37,7 @@ namespace srsenb {
 int enb::parse_cell_cfg(all_args_t *args, srslte_cell_t *cell) {
   cell->id        = args->enb.pci;
   cell->cp        = SRSLTE_CP_NORM; 
-  cell->nof_ports = 1; 
+  cell->nof_ports = args->enb.nof_ports;
   cell->nof_prb   = args->enb.n_prb;  
   
   LIBLTE_RRC_PHICH_CONFIG_STRUCT phichcfg; 
@@ -55,8 +55,8 @@ int enb::parse_cell_cfg(all_args_t *args, srslte_cell_t *cell) {
   );
   parser::parse_section(args->enb_files.rr_config, &phy_cnfg);
 
-  cell->phich_length    = (srslte_phich_length_t)    phichcfg.dur;
-  cell->phich_resources = (srslte_phich_resources_t) phichcfg.res; 
+  cell->phich_length    = (srslte_phich_length_t)    (int) phichcfg.dur;
+  cell->phich_resources = (srslte_phich_resources_t) (int) phichcfg.res;
   
   if (!srslte_cell_isvalid(cell)) {
     fprintf(stderr, "Invalid cell parameters: nof_prb=%d, cell_id=%d\n", args->enb.n_prb, args->enb.s1ap.cell_id);
@@ -210,7 +210,39 @@ int enb::parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUC
     ("time_alignment_timer", &data->time_alignment_timer, 
      liblte_rrc_time_alignment_timer_text, LIBLTE_RRC_TIME_ALIGNMENT_TIMER_N_ITEMS)
   );
+  
+  
+  sib2.add_field(
+     new parser::field<uint32>
+    ("mbsfnSubframeConfigListLength", &data->mbsfn_subfr_cnfg_list_size)
+  );
+  
+  
+    parser::section mbsfnSubframeConfigList("mbsfnSubframeConfigList");
+      sib2.add_subsection(&mbsfnSubframeConfigList);
+      
+    mbsfnSubframeConfigList.add_field( 
+       new parser::field<uint32>
+      ("subframeAllocation", &data->mbsfn_subfr_cnfg_list[0].subfr_alloc)
+    );
 
+    mbsfnSubframeConfigList.add_field( 
+       new parser::field<uint8>
+      ("radioframeAllocationOffset", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_offset)
+    );
+
+    mbsfnSubframeConfigList.add_field( 
+       new parser::field_enum_str<LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ENUM>
+      ("subframeAllocationNumFrames", &data->mbsfn_subfr_cnfg_list[0].subfr_alloc_num_frames,
+       liblte_rrc_subframe_allocation_num_frames_text,LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_N_ITEMS)
+    );
+
+    mbsfnSubframeConfigList.add_field( 
+       new parser::field_enum_str<LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_ENUM>
+      ("radioframeAllocationPeriod", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_period,
+       liblte_rrc_radio_frame_allocation_period_text, LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N_ITEMS)
+    );
+ 
   parser::section freqinfo("freqInfo");
   sib2.add_subsection(&freqinfo);
   freqinfo.add_field(
@@ -701,6 +733,7 @@ uint32_t HexToBytes(const std::string& str, uint8_t *char_value, uint32_t buff_l
   return i/2;
 }
 
+
 int enb::parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT *data) 
 {  
   parser::section sib9("sib9");
@@ -715,7 +748,8 @@ int enb::parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUC
   if (!parser::parse_section(filename, &sib9)) {
     data->hnb_name_present = true; 
     if (name_enabled) {
-      strncpy((char*) data->hnb_name, hnb_name.c_str(), 48);
+      strncpy((char*) data->hnb_name, hnb_name.c_str(), 47);
+      data->hnb_name[47] = 0;
       data->hnb_name_size = strnlen(hnb_name.c_str(), 48);         
     } else if (hex_enabled) {
       data->hnb_name_size = HexToBytes(hex_value, data->hnb_name, 48);         
@@ -726,6 +760,86 @@ int enb::parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUC
   } else {
     return -1;
   }
+}
+
+int enb::parse_sib13(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *data)
+{
+  parser::section sib13("sib13");
+  
+  sib13.add_field(
+     new parser::field<uint8>
+    ("mbsfn_area_info_list_size", &data->mbsfn_area_info_list_r9_size)
+  );
+  
+  parser::section mbsfn_notification_config("mbsfn_notification_config");
+  sib13.add_subsection(&mbsfn_notification_config);
+  
+  
+  mbsfn_notification_config.add_field( 
+     new parser::field_enum_str<LIBLTE_RRC_NOTIFICATION_REPETITION_COEFF_R9_ENUM>
+    ("mbsfn_notification_repetition_coeff", &data->mbsfn_notification_config.repetition_coeff, liblte_rrc_notification_repetition_coeff_r9_text,LIBLTE_RRC_NOTIFICATION_REPETITION_COEFF_R9_N_ITEMS)
+  );
+  
+  mbsfn_notification_config.add_field( 
+     new parser::field<uint8>
+    ("mbsfn_notification_offset", &data->mbsfn_notification_config.offset)
+  );
+  
+  mbsfn_notification_config.add_field( 
+     new parser::field<uint8>
+    ("mbsfn_notification_sf_index", &data->mbsfn_notification_config.sf_index)
+  );
+  
+  
+  parser::section mbsfn_area_info_list("mbsfn_area_info_list");
+  sib13.add_subsection(&mbsfn_area_info_list);
+  
+  mbsfn_area_info_list.add_field(
+   new parser::field_enum_str<LIBLTE_RRC_NON_MBSFN_REGION_LENGTH_ENUM>
+    ("non_mbsfn_region_length", &data->mbsfn_area_info_list_r9[0].non_mbsfn_region_length,
+          liblte_rrc_non_mbsfn_region_length_text,LIBLTE_RRC_NON_MBSFN_REGION_LENGTH_N_ITEMS)
+  );
+  
+  mbsfn_area_info_list.add_field(
+   new parser::field_enum_str<LIBLTE_RRC_MCCH_REPETITION_PERIOD_ENUM>
+    ("mcch_repetition_period", &data->mbsfn_area_info_list_r9[0].mcch_repetition_period_r9,
+          liblte_rrc_mcch_repetition_period_r9_text,LIBLTE_RRC_MCCH_REPETITION_PERIOD_N_ITEMS)
+  );
+  
+  
+  mbsfn_area_info_list.add_field(
+   new parser::field_enum_str<LIBLTE_RRC_MCCH_MODIFICATION_PERIOD_ENUM>
+    ("mcch_modification_period", &data->mbsfn_area_info_list_r9[0].mcch_modification_period_r9,
+          liblte_rrc_mcch_modification_period_r9_text,LIBLTE_RRC_MCCH_MODIFICATION_PERIOD_N_ITEMS)
+  );
+  
+  mbsfn_area_info_list.add_field(
+   new parser::field_enum_str<LIBLTE_RRC_MCCH_SIGNALLING_MCS_ENUM>
+    ("signalling_mcs", &data->mbsfn_area_info_list_r9[0].signalling_mcs_r9,
+          liblte_rrc_mcch_signalling_mcs_r9_text,LIBLTE_RRC_MCCH_SIGNALLING_MCS_N_ITEMS)
+  );
+  
+  
+  mbsfn_area_info_list.add_field( 
+     new parser::field<uint8>
+    ("mbsfn_area_id", &data->mbsfn_area_info_list_r9[0].mbsfn_area_id_r9)
+  );
+
+  mbsfn_area_info_list.add_field( 
+     new parser::field<uint8>
+    ("notification_indicator", &data->mbsfn_area_info_list_r9[0].notification_indicator_r9)
+  );
+  
+  mbsfn_area_info_list.add_field( 
+     new parser::field<uint8>
+    ("mcch_offset", &data->mbsfn_area_info_list_r9[0].mcch_offset_r9)
+  );
+  
+  mbsfn_area_info_list.add_field( 
+     new parser::field<uint8>
+    ("sf_alloc_info", &data->mbsfn_area_info_list_r9[0].sf_alloc_info_r9)
+  );
+  return parser::parse_section(filename, &sib13);
 }
 
 int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_common)
@@ -740,7 +854,8 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
   rrc_cfg->sibs[3].sib_type = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT *sib9 = &rrc_cfg->sibs[8].sib.sib9;
   rrc_cfg->sibs[8].sib_type = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9;
-
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13 = &rrc_cfg->sibs[12].sib.sib13;
+  rrc_cfg->sibs[12].sib_type = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13;
   
   // Read SIB1 configuration from file 
   bzero(sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
@@ -764,7 +879,7 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
   if (parse_sib2(args->enb_files.sib_config, sib2)) {
     return -1; 
   }
-  
+ 
   // SRS not yet supported 
   sib2->rr_config_common_sib.srs_ul_cnfg.present = false; 
   if (sib2->ul_bw.present) {
@@ -816,7 +931,13 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
       return -1; 
     }    
   }
-
+  
+  if (sib_is_present(sib1->sched_info, sib1->N_sched_info, LIBLTE_RRC_SIB_TYPE_13_v920)) {
+    bzero(sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT));
+    if (parse_sib13(args->enb_files.sib_config, sib13)) {
+      return -1; 
+    }    
+  }
   // Copy PHY common configuration 
   bzero(phy_config_common, sizeof(phy_cfg_t));  
   memcpy(&phy_config_common->prach_cnfg, &sib2->rr_config_common_sib.prach_cnfg, sizeof(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT));
@@ -842,6 +963,52 @@ bool enb::sib_is_present(LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info, uint32_t
 
 int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
 {
+
+  /* Transmission mode config section */
+  if (args->enb.transmission_mode < 1 || args->enb.transmission_mode > 4) {
+    ERROR("Invalid transmission mode (%d). Only indexes 1-4 are implemented.\n", args->enb.transmission_mode);
+    return SRSLTE_ERROR;
+  } else if (args->enb.transmission_mode == 1 && args->enb.nof_ports > 1) {
+    ERROR("Invalid number of ports (%d) for transmission mode (%d). Only one antenna port is allowed.\n",
+          args->enb.nof_ports, args->enb.transmission_mode);
+    return SRSLTE_ERROR;
+  } else if (args->enb.transmission_mode > 1 && args->enb.nof_ports != 2) {
+    ERROR("The selected number of ports (%d) are insufficient for the selected transmission mode (%d).\n",
+          args->enb.nof_ports, args->enb.transmission_mode);
+    return SRSLTE_ERROR;
+  }
+
+  bzero(&rrc_cfg->antenna_info, sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+  rrc_cfg->antenna_info.tx_mode = (LIBLTE_RRC_TRANSMISSION_MODE_ENUM) (args->enb.transmission_mode - 1);
+
+  if (rrc_cfg->antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup = LIBLTE_RRC_UE_TX_ANTENNA_SELECTION_OPEN_LOOP;
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup_present = false;
+
+    rrc_cfg->antenna_info.codebook_subset_restriction_choice = LIBLTE_RRC_CODEBOOK_SUBSET_RESTRICTION_N2_TM3;
+    rrc_cfg->antenna_info.codebook_subset_restriction = 0b11;
+    rrc_cfg->antenna_info.codebook_subset_restriction_present = true;
+  } else if (rrc_cfg->antenna_info.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup = LIBLTE_RRC_UE_TX_ANTENNA_SELECTION_CLOSED_LOOP;
+    rrc_cfg->antenna_info.ue_tx_antenna_selection_setup_present = true;
+
+    rrc_cfg->antenna_info.codebook_subset_restriction_choice = LIBLTE_RRC_CODEBOOK_SUBSET_RESTRICTION_N2_TM4;
+    rrc_cfg->antenna_info.codebook_subset_restriction = 0b111111;
+    rrc_cfg->antenna_info.codebook_subset_restriction_present = true;
+  }
+
+  /* Parse power allocation */
+  rrc_cfg->pdsch_cfg = LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS;
+  for (int i = 0; i < LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS; i++) {
+    if (args->enb.p_a == liblte_rrc_pdsch_config_p_a_num[i]) {
+      rrc_cfg->pdsch_cfg = (LIBLTE_RRC_PDSCH_CONFIG_P_A_ENUM) i;
+    }
+  }
+  if (rrc_cfg->pdsch_cfg == LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
+    ERROR("Invalid p_a value (%f) only -6, -4.77, -3, -1.77, 0, 1, 2, 3 values allowed.", args->enb.p_a);
+    return SRSLTE_ERROR;
+  }
+
   /* MAC config section */
   parser::section mac_cnfg("mac_cnfg");
 
@@ -1025,7 +1192,9 @@ int field_qci::parse(libconfig::Setting &root)
       parser::field_enum_num<LIBLTE_RRC_SN_FIELD_LENGTH_ENUM,uint8> sn_field_len
         ("sn_field_length", &rlc_cfg->sn_field_len, 
         liblte_rrc_sn_field_length_num, LIBLTE_RRC_SN_FIELD_LENGTH_N_ITEMS);      
-      sn_field_len.parse(q["rlc_config"]["ul_um"]);
+      if (sn_field_len.parse(q["rlc_config"]["ul_um"])) {
+        fprintf(stderr, "Error can't find sn_field_length in section ul_um\n");
+      }
     }
     
     if (q["rlc_config"].exists("dl_um")) {
@@ -1038,12 +1207,16 @@ int field_qci::parse(libconfig::Setting &root)
       parser::field_enum_num<LIBLTE_RRC_SN_FIELD_LENGTH_ENUM,uint8> sn_field_len
         ("sn_field_length", &rlc_cfg->sn_field_len, 
         liblte_rrc_sn_field_length_num, LIBLTE_RRC_SN_FIELD_LENGTH_N_ITEMS);      
-      sn_field_len.parse(q["rlc_config"]["dl_um"]);
+      if (sn_field_len.parse(q["rlc_config"]["dl_um"])) {
+        fprintf(stderr, "Error can't find sn_field_length in section dl_um\n");
+      }
       
       parser::field_enum_num<LIBLTE_RRC_T_REORDERING_ENUM,int32> t_reordering
         ("t_reordering", &rlc_cfg->t_reordering, 
         liblte_rrc_t_reordering_num, LIBLTE_RRC_T_REORDERING_N_ITEMS);      
-      t_reordering.parse(q["rlc_config"]["dl_um"]);
+      if (t_reordering.parse(q["rlc_config"]["dl_um"])) {
+        fprintf(stderr, "Error can't find t_reordering in section dl_um\n");
+      }
     }    
       
     // Parse RLC-AM section 
@@ -1053,22 +1226,30 @@ int field_qci::parse(libconfig::Setting &root)
       parser::field_enum_num<LIBLTE_RRC_T_POLL_RETRANSMIT_ENUM,int32> t_poll_retx
         ("t_poll_retx", &rlc_cfg->t_poll_retx, 
         liblte_rrc_t_poll_retransmit_num, LIBLTE_RRC_T_POLL_RETRANSMIT_N_ITEMS);      
-      t_poll_retx.parse(q["rlc_config"]["ul_am"]);
+      if (t_poll_retx.parse(q["rlc_config"]["ul_am"])) {
+        fprintf(stderr, "Error can't find t_poll_retx in section ul_am\n");
+      }
       
       parser::field_enum_num<LIBLTE_RRC_POLL_PDU_ENUM,int32> poll_pdu
         ("poll_pdu", &rlc_cfg->poll_pdu, 
         liblte_rrc_poll_pdu_num, LIBLTE_RRC_POLL_PDU_N_ITEMS);      
-      poll_pdu.parse(q["rlc_config"]["ul_am"]);
+      if (poll_pdu.parse(q["rlc_config"]["ul_am"])) {
+        fprintf(stderr, "Error can't find poll_pdu in section ul_am\n");
+      }
 
       parser::field_enum_num<LIBLTE_RRC_POLL_BYTE_ENUM,int32> poll_byte
         ("poll_byte", &rlc_cfg->poll_byte, 
         liblte_rrc_poll_byte_num, LIBLTE_RRC_POLL_BYTE_N_ITEMS);      
-      poll_byte.parse(q["rlc_config"]["ul_am"]);
+      if (poll_byte.parse(q["rlc_config"]["ul_am"])) {
+        fprintf(stderr, "Error can't find poll_byte in section ul_am\n");
+      }
 
       parser::field_enum_num<LIBLTE_RRC_MAX_RETX_THRESHOLD_ENUM,uint32_t> max_retx_thresh
         ("max_retx_thresh", &rlc_cfg->max_retx_thresh, 
         liblte_rrc_max_retx_threshold_num, LIBLTE_RRC_MAX_RETX_THRESHOLD_N_ITEMS);      
-      max_retx_thresh.parse(q["rlc_config"]["ul_am"]);      
+      if (max_retx_thresh.parse(q["rlc_config"]["ul_am"])) {
+        fprintf(stderr, "Error can't find max_retx_thresh in section ul_am\n");
+      }
     }
     
     if (q["rlc_config"].exists("dl_am")) {      
@@ -1077,12 +1258,16 @@ int field_qci::parse(libconfig::Setting &root)
       parser::field_enum_num<LIBLTE_RRC_T_REORDERING_ENUM,int32> t_reordering
         ("t_reordering", &rlc_cfg->t_reordering, 
         liblte_rrc_t_reordering_num, LIBLTE_RRC_T_REORDERING_N_ITEMS);      
-      t_reordering.parse(q["rlc_config"]["dl_am"]);
+      if (t_reordering.parse(q["rlc_config"]["dl_am"])) {
+        fprintf(stderr, "Error can't find t_reordering in section dl_am\n");
+      }
       
       parser::field_enum_num<LIBLTE_RRC_T_STATUS_PROHIBIT_ENUM,int32> t_status_prohibit
         ("t_status_prohibit", &rlc_cfg->t_status_prohibit, 
         liblte_rrc_t_status_prohibit_num, LIBLTE_RRC_T_STATUS_PROHIBIT_N_ITEMS);      
-      t_status_prohibit.parse(q["rlc_config"]["dl_am"]);
+      if (t_status_prohibit.parse(q["rlc_config"]["dl_am"])) {
+        fprintf(stderr, "Error can't find t_status_prohibit in section dl_am\n");
+      }
     }    
     
 
@@ -1094,17 +1279,23 @@ int field_qci::parse(libconfig::Setting &root)
     LIBLTE_RRC_UL_SPECIFIC_PARAMETERS_STRUCT *lc_cfg = &cfg[qci].lc_cfg; 
 
     parser::field<uint8> priority ("priority", &lc_cfg->priority);      
-    priority.parse(q["logical_channel_config"]);
+    if (priority.parse(q["logical_channel_config"])) {
+      fprintf(stderr, "Error can't find logical_channel_config in section priority\n");
+    }
     
     parser::field_enum_num<LIBLTE_RRC_PRIORITIZED_BIT_RATE_ENUM,int32> prioritized_bit_rate
         ("prioritized_bit_rate", &lc_cfg->prioritized_bit_rate, 
         liblte_rrc_prioritized_bit_rate_num, LIBLTE_RRC_PRIORITIZED_BIT_RATE_N_ITEMS);      
-    prioritized_bit_rate.parse(q["logical_channel_config"]);
+    if (prioritized_bit_rate.parse(q["logical_channel_config"])) {
+      fprintf(stderr, "Error can't find prioritized_bit_rate in section logical_channel_config\n");
+    }
 
     parser::field_enum_num<LIBLTE_RRC_BUCKET_SIZE_DURATION_ENUM,int16> bucket_size_duration
         ("bucket_size_duration", &lc_cfg->bucket_size_duration, 
         liblte_rrc_bucket_size_duration_num, LIBLTE_RRC_BUCKET_SIZE_DURATION_N_ITEMS);      
-    bucket_size_duration.parse(q["logical_channel_config"]);
+    if (bucket_size_duration.parse(q["logical_channel_config"])) {
+      fprintf(stderr, "Error can't find bucket_size_duration in section logical_channel_config\n");
+    }
 
     parser::field<uint8> log_chan_group ("log_chan_group", &lc_cfg->log_chan_group);      
     if (log_chan_group.parse(q["logical_channel_config"])) {

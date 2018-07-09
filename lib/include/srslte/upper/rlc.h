@@ -24,14 +24,13 @@
  *
  */
 
-#ifndef RLC_H
-#define RLC_H
+#ifndef SRSLTE_RLC_H
+#define SRSLTE_RLC_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/msg_queue.h"
 #include "srslte/upper/rlc_entity.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "srslte/upper/rlc_common.h"
@@ -55,32 +54,41 @@ public:
   void init(srsue::pdcp_interface_rlc *pdcp_,
             srsue::rrc_interface_rlc  *rrc_,
             srsue::ue_interface       *ue_,
-            log        *rlc_log_, 
-            mac_interface_timers *mac_timers_,
-            uint32_t                  lcid_);
+            log                       *rlc_log_,
+            mac_interface_timers      *mac_timers_,
+            uint32_t                   lcid_,
+            int                        buffer_size = -1); // -1 to use default buffer sizes
   void stop();
 
   void get_metrics(rlc_metrics_t &m);
 
   // PDCP interface
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
-  std::string get_rb_name(uint32_t lcid);
+  void write_sdu_nb(uint32_t lcid, byte_buffer_t *sdu);
+  void write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu);
+  bool rb_is_um(uint32_t lcid);
 
   // MAC interface
   uint32_t get_buffer_state(uint32_t lcid);
   uint32_t get_total_buffer_state(uint32_t lcid);
+  uint32_t get_total_mch_buffer_state(uint32_t lcid);
   int      read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
+  int      read_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
+  int      get_increment_sequence_num();
   void     write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes);
+  void     write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
 
   // RRC interface
+  void reestablish();
   void reset();
   void empty_queue();
   void add_bearer(uint32_t lcid);
   void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
-
+  void add_bearer_mrb(uint32_t lcid);
+  void add_bearer_mrb_enb(uint32_t lcid);
 private:
   void reset_metrics(); 
   
@@ -91,16 +99,20 @@ private:
   srslte::mac_interface_timers *mac_timers; 
   srsue::ue_interface         *ue;
   srslte::rlc_entity           rlc_array[SRSLTE_N_RADIO_BEARERS];
+  srslte::rlc_um               rlc_array_mrb[SRSLTE_N_MCH_LCIDS];
   uint32_t                     default_lcid;
+  int                          buffer_size;
 
   long                ul_tput_bytes[SRSLTE_N_RADIO_BEARERS];
   long                dl_tput_bytes[SRSLTE_N_RADIO_BEARERS];
+  long                dl_tput_bytes_mrb[SRSLTE_N_MCH_LCIDS];
   struct timeval      metrics_time[3];
 
   bool valid_lcid(uint32_t lcid);
+  bool valid_lcid_mrb(uint32_t lcid);
 };
 
 } // namespace srsue
 
 
-#endif // RLC_H
+#endif // SRSLTE_RLC_H

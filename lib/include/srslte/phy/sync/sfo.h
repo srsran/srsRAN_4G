@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef SFO_
-#define SFO_
+#ifndef SRSLTE_SFO_H
+#define SRSLTE_SFO_H
 
 #include "srslte/config.h"
 
@@ -46,4 +46,4 @@ SRSLTE_API float srslte_sfo_estimate_period(int *t0,
                                             int len, 
                                             float period);
 
-#endif // SFO_
+#endif // SRSLTE_SFO_H

@@ -89,7 +89,8 @@ uint32_t srslte_sch_find_Ioffset_cqi(float beta) {
                              
 int srslte_sch_init(srslte_sch_t *q) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (q) {    
+  if (q) {
+    ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_sch_t));
     
     if (srslte_crc_init(&q->crc_tb, SRSLTE_LTE_CRC24A, 24)) {
@@ -129,7 +130,7 @@ int srslte_sch_init(srslte_sch_t *q) {
       goto clean; 
     }
     bzero(q->temp_g_bits, SRSLTE_MAX_PRB*12*12*12);
-    q->ul_interleaver = srslte_vec_malloc(sizeof(uint16_t)*SRSLTE_MAX_PRB*12*12*12);
+    q->ul_interleaver = srslte_vec_malloc(sizeof(uint32_t)*SRSLTE_MAX_PRB*12*12*12);
     if (!q->ul_interleaver) {
       goto clean; 
     }
@@ -147,6 +148,8 @@ clean:
 }
 
 void srslte_sch_free(srslte_sch_t *q) {
+  srslte_rm_turbo_free_tables();
+
   if (q->cb_in) {
     free(q->cb_in);
   }
@@ -333,14 +336,17 @@ bool decode_tb_cb(srslte_sch_t *q,
     decoder_input[i] = NULL;
   }
   
+  uint32_t remaining_cb = 0;
   for (int i=0;i<nof_cb;i++) {
-    cb_map[i] = false; 
+    /* Do not process blocks with CRC Ok */
+    cb_map[i] = softbuffer->cb_crc[i];
+    if (softbuffer->cb_crc[i] == false) {
+      remaining_cb ++;
+    }
   }
     
   srslte_tdec_reset(&q->decoder, cb_len);
   
-  uint32_t remaining_cb = nof_cb;
-
   q->nof_iterations = 0;
 
   while(remaining_cb>0) {
@@ -398,7 +404,8 @@ bool decode_tb_cb(srslte_sch_t *q,
         // CRC is OK
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
 
-          memcpy(&data[(cb_idx[i]*rlen)/8], q->cb_in, rlen/8 * sizeof(uint8_t));
+          memcpy(softbuffer->data[cb_idx[i]], q->cb_in, rlen/8 * sizeof(uint8_t));
+          softbuffer->cb_crc[cb_idx[i]] = true;
 
           q->nof_iterations += srslte_tdec_get_nof_iterations_cb(&q->decoder, i);
 
@@ -415,15 +422,28 @@ bool decode_tb_cb(srslte_sch_t *q,
                 cb_idx[i], remaining_cb, i, first_cb, nof_cb);
 
           q->nof_iterations += q->max_iterations;
-          q->nof_iterations /= (nof_cb-remaining_cb+1);
-          return false;
+          srslte_tdec_reset_cb(&q->decoder, i);
+          remaining_cb--;
+          decoder_input[i] = NULL;
+          cb_idx[i] = 0;
         }
       }
     }    
   }
 
+  softbuffer->tb_crc = true;
+  for (int i = 0; i < nof_cb && softbuffer->tb_crc; i++) {
+    /* If one CB failed return false */
+    softbuffer->tb_crc = softbuffer->cb_crc[i];
+  }
+  if (softbuffer->tb_crc) {
+    for (int i = 0; i < nof_cb; i++) {
+      memcpy(&data[i * rlen / 8], softbuffer->data[i], rlen/8 * sizeof(uint8_t));
+    }
+  }
+
   q->nof_iterations /= nof_cb;
-  return true;  
+  return softbuffer->tb_crc;
 }
 
 /**
@@ -458,12 +478,12 @@ static int decode_tb(srslte_sch_t *q,
     
     if (cb_segm->F) {
       fprintf(stderr, "Error filler bits are not supported. Use standard TBS\n");
-      return SRSLTE_ERROR;       
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
       fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
-      return SRSLTE_ERROR;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
         
     bool crc_ok = true; 
@@ -491,12 +511,8 @@ static int decode_tb(srslte_sch_t *q,
                ((uint32_t) data[cb_segm->tbs/8+1])<<8   | 
                ((uint32_t) data[cb_segm->tbs/8+2]);
 
-      if (!par_rx) {
-        INFO("Warning: Received all-zero transport block\n\n",0);      
-      }
-
-      if (par_rx == par_tx) {
-        INFO("TB decoded OK\n",0);
+      if (par_rx == par_tx && par_rx) {
+        INFO("TB decoded OK\n");
         return SRSLTE_SUCCESS;
       } else {
         INFO("Error in TB parity: par_tx=0x%x, par_rx=0x%x\n", par_tx, par_rx);
@@ -517,15 +533,15 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 
 
 int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                         int16_t *e_bits, uint8_t *data, int codeword_idx) {
+                         int16_t *e_bits, uint8_t *data, int tb_idx) {
   uint32_t Nl = 1;
 
   if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
-  return decode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx],
-                   cfg->grant.Qm[codeword_idx] * Nl, cfg->rv[codeword_idx], cfg->nbits[codeword_idx].nof_bits,
+  return decode_tb(q, softbuffer, &cfg->cb_segm[tb_idx],
+                   cfg->grant.Qm[tb_idx] * Nl, cfg->rv[tb_idx], cfg->nbits[tb_idx].nof_bits,
                    e_bits, data);
 }
 
@@ -546,22 +562,22 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 }
 
 int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
-                              uint8_t *data, uint8_t *e_bits, int codeword_idx) {
+                              uint8_t *data, uint8_t *e_bits, int tb_idx) {
   uint32_t Nl = 1;
 
   if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
-  return encode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx], cfg->grant.Qm[codeword_idx]*Nl, cfg->rv[codeword_idx],
-                   cfg->nbits[codeword_idx].nof_bits, data, e_bits);
+  return encode_tb(q, softbuffer, &cfg->cb_segm[tb_idx], cfg->grant.Qm[tb_idx]*Nl, cfg->rv[tb_idx],
+                   cfg->nbits[tb_idx].nof_bits, data, e_bits);
 }
 
 /* Compute the interleaving function on-the-fly, because it depends on number of RI bits
  * Profiling show that the computation of this matrix is neglegible. 
  */
 static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs, uint32_t Qm,
-                                 uint8_t *ri_present, uint16_t *interleaver_lut)
+                                 uint8_t *ri_present, uint32_t *interleaver_lut)
 {
   uint32_t rows = H_prime_total/N_pusch_symbs;
   uint32_t cols = N_pusch_symbs;
@@ -583,7 +599,7 @@ static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs,
 /* UL-SCH channel interleaver according to 5.2.2.8 of 36.212 */
 void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
                       uint32_t N_pusch_symbs, uint8_t *q_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
-                      uint8_t *ri_present, uint16_t *inteleaver_lut) 
+                      uint8_t *ri_present, uint32_t *inteleaver_lut)
 {
   
   // Prepare ri_bits for fast search using temp_buffer
@@ -595,7 +611,7 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total,
   
   // Genearate interleaver table and interleave bits
   ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut); 
-  srslte_bit_interleave(g_bits, q_bits, inteleaver_lut, H_prime_total*Qm);    
+  srslte_bit_interleave_i(g_bits, q_bits, inteleaver_lut, H_prime_total*Qm);
   
   // Reset temp_buffer because will be reused next time
   if (nof_ri_bits > 0) {
@@ -608,7 +624,7 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total,
 /* UL-SCH channel deinterleaver according to 5.2.2.8 of 36.212 */
 void ulsch_deinterleave(int16_t *q_bits, uint32_t Qm, uint32_t H_prime_total, 
                         uint32_t N_pusch_symbs, int16_t *g_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
-                        uint8_t *ri_present, uint16_t *inteleaver_lut) 
+                        uint8_t *ri_present, uint32_t *inteleaver_lut)
 {     
   // Prepare ri_bits for fast search using temp_buffer
   if (nof_ri_bits > 0) {
@@ -618,8 +634,8 @@ void ulsch_deinterleave(int16_t *q_bits, uint32_t Qm, uint32_t H_prime_total,
   }
 
   // Generate interleaver table and interleave samples 
-  ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut); 
-  srslte_vec_lut_sss(q_bits, inteleaver_lut, g_bits, H_prime_total*Qm);
+  ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut);
+  srslte_vec_lut_sis(q_bits, inteleaver_lut, g_bits, H_prime_total*Qm);
 
   // Reset temp_buffer because will be reused next time
   if (nof_ri_bits > 0) {
@@ -658,7 +674,7 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, acks, uci_data->uci_ack_len);
+    ret = srslte_uci_decode_ack_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, acks, uci_data->uci_ack_len, false);
     if (ret < 0) {
       return ret; 
     }
@@ -667,9 +683,9 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     Q_prime_ack = (uint32_t) ret; 
 
     // Set zeros to HARQ bits
-    for (uint32_t i=0;i<Q_prime_ack;i++) {
-      q_bits[q->ack_ri_bits[i].position] = 0;  
-    }    
+    for (uint32_t i = 0; i < Q_prime_ack * Qm; i++) {
+      q_bits[q->ack_ri_bits[i].position] = 0;
+    }
   }
         
   // Deinterleave and decode RI bits
@@ -678,7 +694,7 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_decode_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ri);
+    ret = srslte_uci_decode_ack_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ri, uci_data->uci_ri_len, true);
     if (ret < 0) {
       return ret; 
     }
@@ -755,14 +771,18 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
 
   uint32_t nb_q = cfg->nbits.nof_bits; 
   uint32_t Qm = cfg->grant.Qm; 
-  
-  // Encode RI
+
+  if (Qm == 0) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
   if (uci_data.uci_ri_len > 0) {
     float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
     if (cfg->cb_segm.tbs == 0) {
-        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
+      beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ri(cfg, uci_data.uci_ri, uci_data.uci_cqi_len, beta, nb_q/Qm, q->ack_ri_bits);
+    uint8_t ri[2] = {uci_data.uci_ri, 0};
+    ret = srslte_uci_encode_ack_ri(cfg, ri, uci_data.uci_ri_len, uci_data.uci_cqi_len, beta, nb_q/Qm, q->ack_ri_bits, true);
     if (ret < 0) {
       return ret; 
     }
@@ -809,8 +829,8 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ack(cfg, acks, uci_data.uci_ack_len, uci_data.uci_cqi_len,
-                                beta, nb_q / Qm, &q->ack_ri_bits[Q_prime_ri * Qm]);
+    ret = srslte_uci_encode_ack_ri(cfg, acks, uci_data.uci_ack_len, uci_data.uci_cqi_len,
+                                beta, nb_q / Qm, &q->ack_ri_bits[Q_prime_ri * Qm], false);
     if (ret < 0) {
       return ret; 
     }

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef CP_
-#define CP_
+#ifndef SRSLTE_CP_H
+#define SRSLTE_CP_H
 
 #include <stdint.h>
 #include <complex.h>
@@ -47,7 +47,7 @@ SRSLTE_API int srslte_cp_synch_resize(srslte_cp_synch_t *q,
                                       uint32_t symbol_sz);
 
 SRSLTE_API uint32_t srslte_cp_synch(srslte_cp_synch_t *q, 
-                                    cf_t *input, 
+                                    const cf_t *input,
                                     uint32_t max_offset, 
                                     uint32_t nof_symbols, 
                                     uint32_t cp_len);
@@ -55,4 +55,4 @@ SRSLTE_API uint32_t srslte_cp_synch(srslte_cp_synch_t *q,
 SRSLTE_API cf_t srslte_cp_synch_corr_output(srslte_cp_synch_t *q, 
                                             uint32_t offset);
 
-#endif // CP_
+#endif // SRSLTE_CP_H

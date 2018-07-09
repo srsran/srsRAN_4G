@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef PROCSR_H
-#define PROCSR_H
+#ifndef SRSUE_PROC_SR_H
+#define SRSUE_PROC_SR_H
 
 #include <stdint.h>
 #include "srslte/interfaces/ue_interfaces.h"
@@ -64,4 +64,4 @@ private:
 
 } // namespace srsue
 
-#endif // PROCSR_H
+#endif // SRSUE_PROC_SR_H

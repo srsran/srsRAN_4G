@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
 
   printf("Correctly RX rate: %.2f MHz\n", srate*1e-6);
   srslte_rf_rx_wait_lo_locked(&rf);
-  srslte_rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf, false);
   
   
   while((sample_count < nof_samples || nof_samples == -1)

@@ -25,7 +25,7 @@
  */
 
 
-#include "../../hdr/upper/gw.h"
+#include "srsue/hdr/upper/gw.h"
 
 #include <errno.h>
 #include <unistd.h>
@@ -44,20 +44,34 @@ gw::gw()
   :if_up(false)
 {
   current_ip_addr = 0;
+  default_netmask = true;
 }
 
-void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, uint32_t lcid_)
+void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t cfg_)
 {
   pool    = srslte::byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
   nas     = nas_;
   gw_log  = gw_log_;
-  lcid    = lcid_;
+  cfg     = cfg_;
   run_enable = true;
 
   gettimeofday(&metrics_time[1], NULL);
   dl_tput_bytes = 0;
   ul_tput_bytes = 0;
+  // MBSFN
+  mbsfn_sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (mbsfn_sock_fd < 0) {
+    gw_log->error("Failed to create MBSFN sink socket\n");
+  }
+  if (fcntl(mbsfn_sock_fd, F_SETFL, O_NONBLOCK)) {
+    gw_log->error("Failed to set non-blocking MBSFN sink socket\n");
+  }
+
+  mbsfn_sock_addr.sin_family      = AF_INET;
+  mbsfn_sock_addr.sin_addr.s_addr =inet_addr("127.0.0.1");
+
+  bzero(mbsfn_ports, SRSLTE_N_MCH_LCIDS*sizeof(uint32_t));
 }
 
 void gw::stop()
@@ -82,14 +96,15 @@ void gw::stop()
 
       current_ip_addr = 0;
     }
-
     // TODO: tear down TUN device?
+  }
+  if (mbsfn_sock_fd) {
+    close(mbsfn_sock_fd);
   }
 }
 
 void gw::get_metrics(gw_metrics_t &m)
 {
-  
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
   double secs = (double) metrics_time[0].tv_sec+metrics_time[0].tv_usec*1e-6;
@@ -104,13 +119,19 @@ void gw::get_metrics(gw_metrics_t &m)
   ul_tput_bytes = 0;
 }
 
+void gw::set_netmask(std::string netmask)
+{
+  default_netmask = false;
+  this->netmask = netmask;
+}
+
+
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
 void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
-  gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU");
-  gw_log->info("RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
+  gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
   dl_tput_bytes += pdu->N_bytes;
   if(!if_up)
   {
@@ -119,8 +140,48 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
     int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
     if(n > 0 && (pdu->N_bytes != (uint32_t)n))
     {
-      gw_log->warning("DL TUN/TAP write failure\n");
+      gw_log->warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.\n", pdu->N_bytes, n);
     } 
+  }
+  pool->deallocate(pdu);
+}
+
+void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
+{
+  if(pdu->N_bytes>2)
+  {
+    gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX MCH PDU (%d B). Stack latency: %ld us\n", pdu->N_bytes, pdu->get_latency_us());
+    dl_tput_bytes += pdu->N_bytes;
+
+    //Hack to drop initial 2 bytes
+    pdu->msg +=2;
+    pdu->N_bytes-=2;
+    struct in_addr dst_addr;
+    memcpy(&dst_addr.s_addr, &pdu->msg[16],4);
+
+    if(!if_up)
+    {
+      gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
+    }else{
+      int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
+      if(n > 0 && (pdu->N_bytes != (uint32_t)n))
+      {
+        gw_log->warning("DL TUN/TAP write failure\n");
+      }
+    }
+    /*
+    // Strip IP/UDP header
+    pdu->msg += 28;
+    pdu->N_bytes -= 28;
+
+    if(mbsfn_sock_fd) {
+      if(lcid > 0 && lcid < SRSLTE_N_MCH_LCIDS) {
+        mbsfn_sock_addr.sin_port = htons(mbsfn_ports[lcid]);
+        if(sendto(mbsfn_sock_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&mbsfn_sock_addr, sizeof(struct sockaddr_in))<0) {
+          gw_log->error("Failed to send MCH PDU to port %d\n", mbsfn_ports[lcid]);
+        }
+      }
+    }*/
   }
   pool->deallocate(pdu);
 }
@@ -152,7 +213,11 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
       return(srslte::ERROR_CANT_START);
     }
     ifr.ifr_netmask.sa_family                                 = AF_INET;
-    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+    const char *mask = "255.255.255.0";
+    if (!default_netmask) {
+      mask = netmask.c_str();
+    }
+    ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(mask);
     if(0 > ioctl(sock, SIOCSIFNETMASK, &ifr))
     {
       err_str = strerror(errno);
@@ -190,7 +255,8 @@ srslte::error_t gw::init_if(char *err_str)
   }
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ);
+  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ-1);
+  ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1] = 0;
   if(0 > ioctl(tun_fd, TUNSETIFF, &ifr))
   {
       err_str = strerror(errno);
@@ -222,6 +288,19 @@ srslte::error_t gw::init_if(char *err_str)
   return(srslte::ERROR_NONE);
 }
 
+
+/*******************************************************************************
+  RRC interface
+*******************************************************************************/
+void gw::add_mch_port(uint32_t lcid, uint32_t port)
+{
+  if(lcid > 0 && lcid < SRSLTE_N_MCH_LCIDS) {
+    mbsfn_ports[lcid] = port;
+  }
+}
+
+
+
 /********************/
 /*    GW Receive    */
 /********************/
@@ -230,12 +309,14 @@ void gw::run_thread()
   struct iphdr   *ip_pkt;
   uint32          idx = 0;
   int32           N_bytes;
-  srslte::byte_buffer_t  *pdu = pool_allocate;
+  srslte::byte_buffer_t *pdu = pool_allocate;
+  if (!pdu) {
+    gw_log->error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
+    return;
+  }
 
-  const static uint32_t ATTACH_TIMEOUT_MS   = 10000;
-  const static uint32_t ATTACH_MAX_ATTEMPTS = 3;
-  uint32_t attach_cnt = 0;
-  uint32_t attach_attempts = 0;
+  const static uint32_t ATTACH_WAIT_TOUT = 40; // 4 sec
+  uint32_t attach_wait = 0;
 
   gw_log->info("GW IP packet receiver thread run_enable\n");
 
@@ -262,40 +343,33 @@ void gw::run_thread()
         {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-          while(run_enable && !pdcp->is_drb_enabled(lcid) && attach_attempts < ATTACH_MAX_ATTEMPTS) {
-            if (attach_cnt == 0) {
-              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", lcid, attach_attempts, ATTACH_MAX_ATTEMPTS);
-              nas->attach_request();
-              attach_attempts++;
+          while(run_enable && !pdcp->is_drb_enabled(cfg.lcid) && attach_wait < ATTACH_WAIT_TOUT) {
+            if (!attach_wait) {
+              gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_wait, ATTACH_WAIT_TOUT);
+              if (!nas->attach_request()) {
+                gw_log->warning("Could not re-establish the connection\n");
+              }
             }
-            attach_cnt++;
-            if (attach_cnt == ATTACH_TIMEOUT_MS) {
-              attach_cnt = 0;
-            }
-            usleep(1000);
+            usleep(100000);
+            attach_wait++;
           }
 
-          if (attach_attempts == ATTACH_MAX_ATTEMPTS) {
-            gw_log->warning("LCID=%d was not active after %d attempts\n", lcid, ATTACH_MAX_ATTEMPTS);
-          }
-
-          attach_attempts = 0;
-          attach_cnt = 0;
+          attach_wait = 0;
 
           if (!run_enable) {
             break;
           }
 
           // Send PDU directly to PDCP
-          if (pdcp->is_drb_enabled(lcid)) {
+          if (pdcp->is_drb_enabled(cfg.lcid)) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
-            pdcp->write_sdu(lcid, pdu);
+            pdcp->write_sdu(cfg.lcid, pdu);
 
             do {
               pdu = pool_allocate;
               if (!pdu) {
-                printf("Not enough buffers in pool\n");
+                gw_log->error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
                 usleep(100000);
               }
             } while(!pdu);

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef MACPCAP_H
-#define MACPCAP_H
+#ifndef SRSLTE_MAC_PCAP_H
+#define SRSLTE_MAC_PCAP_H
 
 #include <stdint.h>
 #include "srslte/common/pcap.h"
@@ -35,10 +35,13 @@ namespace srslte {
 class mac_pcap
 {
 public: 
-  mac_pcap() {enable_write=false; ue_id=0; pcap_file = NULL; }; 
+  mac_pcap() {enable_write=false; ue_id=0; pcap_file = NULL; };
   void enable(bool en);
   void open(const char *filename, uint32_t ue_id = 0);
-  void close(); 
+  void close();
+
+  void set_ue_id(uint16_t ue_id);
+
   void write_ul_crnti(uint8_t *pdu, uint32_t pdu_len_bytes, uint16_t crnti, uint32_t reTX, uint32_t tti);
   void write_dl_crnti(uint8_t *pdu, uint32_t pdu_len_bytes, uint16_t crnti, bool crc_ok, uint32_t tti);
   void write_dl_ranti(uint8_t *pdu, uint32_t pdu_len_bytes, uint16_t ranti, bool crc_ok, uint32_t tti);
@@ -47,15 +50,16 @@ public:
   void write_dl_sirnti(uint8_t *pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti);
   void write_dl_bch(uint8_t *pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti);
   void write_dl_pch(uint8_t *pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti);
+  void write_dl_mch(uint8_t *pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti);
   
 private:
   bool enable_write; 
   FILE *pcap_file; 
-  uint32_t ue_id; 
-  void pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti, 
+  uint32_t ue_id;
+  void pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti,
                               uint16_t crnti_, uint8_t direction, uint8_t rnti_type);
 };
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // MACPCAP_H
+#endif // SRSLTE_MAC_PCAP_H

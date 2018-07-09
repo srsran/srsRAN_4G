@@ -24,8 +24,8 @@
  *
  */
   
-#ifndef RF_H 
-#define RF_H
+#ifndef SRSLTE_RF_H 
+#define SRSLTE_RF_H
 
 #include <sys/time.h>
 #include <stdbool.h>
@@ -55,11 +55,20 @@ typedef struct {
   float iq_q; 
 } srslte_rf_cal_t; 
 
+
+typedef struct {
+  double min_tx_gain;
+  double max_tx_gain;
+  double min_rx_gain;
+  double max_rx_gain;
+} srslte_rf_info_t;
+
 typedef struct {
   enum { 
     SRSLTE_RF_ERROR_LATE,
     SRSLTE_RF_ERROR_UNDERFLOW,
     SRSLTE_RF_ERROR_OVERFLOW,
+    SRSLTE_RF_ERROR_RX,
     SRSLTE_RF_ERROR_OTHER
   } type;
   int opt;
@@ -73,16 +82,12 @@ SRSLTE_API int srslte_rf_open(srslte_rf_t *h,
 
 SRSLTE_API int srslte_rf_open_multi(srslte_rf_t *h, 
                                     char *args, 
-                                    uint32_t nof_rx_antennas);
+                                    uint32_t nof_channels);
 
 SRSLTE_API int srslte_rf_open_devname(srslte_rf_t *h,
                                       char *devname, 
-                                      char *args);
-
-SRSLTE_API int srslte_rf_open_devname_multi(srslte_rf_t *h, 
-                                            char *devname, 
-                                            char *args, 
-                                            uint32_t nof_rx_antennas);
+                                      char *args,
+                                      uint32_t nof_channels);
 
 SRSLTE_API const char *srslte_rf_name(srslte_rf_t *h); 
 
@@ -95,7 +100,7 @@ SRSLTE_API void srslte_rf_set_tx_cal(srslte_rf_t *h, srslte_rf_cal_t *cal);
 
 SRSLTE_API void srslte_rf_set_rx_cal(srslte_rf_t *h, srslte_rf_cal_t *cal);
 
-SRSLTE_API int srslte_rf_start_rx_stream(srslte_rf_t *h);
+SRSLTE_API int srslte_rf_start_rx_stream(srslte_rf_t *h, bool now);
 
 SRSLTE_API int srslte_rf_stop_rx_stream(srslte_rf_t *h);
 
@@ -127,6 +132,8 @@ SRSLTE_API double srslte_rf_set_rx_gain_th(srslte_rf_t *h,
 SRSLTE_API double srslte_rf_get_rx_gain(srslte_rf_t *h);
 
 SRSLTE_API double srslte_rf_get_tx_gain(srslte_rf_t *h);
+
+SRSLTE_API srslte_rf_info_t *srslte_rf_get_info(srslte_rf_t *h);
 
 SRSLTE_API void srslte_rf_suppress_stdout(srslte_rf_t *h);
 
@@ -216,5 +223,5 @@ SRSLTE_API int srslte_rf_send_multi(srslte_rf_t *rf,
                                     bool is_start_of_burst,
                                     bool is_end_of_burst);
 
-#endif
+#endif // SRSLTE_RF_H
 

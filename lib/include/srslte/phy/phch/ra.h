@@ -33,8 +33,8 @@
  *  Reference:    3GPP TS 36.213 version 10.0.1 Release 10
  *****************************************************************************/
 
-#ifndef RB_ALLOC_H_
-#define RB_ALLOC_H_
+#ifndef SRSLTE_RA_H
+#define SRSLTE_RA_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -103,13 +103,11 @@ typedef struct SRSLTE_API {
   bool prb_idx[2][SRSLTE_MAX_PRB];
   uint32_t nof_prb;  
   uint32_t Qm[SRSLTE_MAX_CODEWORDS];
-  uint32_t Qm2[SRSLTE_MAX_CODEWORDS];
   srslte_ra_mcs_t mcs[SRSLTE_MAX_CODEWORDS];
-  srslte_ra_mcs_t mcs2[SRSLTE_MAX_CODEWORDS];
-  uint32_t nof_tb;
   srslte_sf_t sf_type;
   bool tb_en[SRSLTE_MAX_CODEWORDS];
   uint32_t pinfo;
+  bool tb_cw_swap;
 } srslte_ra_dl_grant_t;
 
 #define SRSLTE_RA_DL_GRANT_NOF_TB(G) ((((G)->tb_en[0])?1:0)+(((G)->tb_en[1])?1:0))
@@ -141,7 +139,11 @@ typedef struct SRSLTE_API {
   uint8_t tpc_pucch;
 
   bool     tb_en[2]; 
-  
+
+  bool     is_ra_order;
+  uint32_t ra_preamble;
+  uint32_t ra_mask_idx;
+
   bool     dci_is_1a;
   bool     dci_is_1c; 
 } srslte_ra_dl_dci_t;
@@ -226,8 +228,7 @@ SRSLTE_API uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant,
 SRSLTE_API int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, 
                                          uint32_t nof_prb,
                                          uint32_t n_rb_ho, 
-                                         srslte_ra_ul_grant_t *grant, 
-                                         uint32_t harq_pid);
+                                         srslte_ra_ul_grant_t *grant);
 
 SRSLTE_API void srslte_ra_ul_grant_to_nbits(srslte_ra_ul_grant_t *grant, 
                                             srslte_cp_t cp,
@@ -299,4 +300,4 @@ SRSLTE_API int srslte_dl_fill_ra_mcs_pmch(srslte_ra_mcs_t *mcs, uint32_t nprb);
 SRSLTE_API int srslte_dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb);
 
 
-#endif /* RB_ALLOC_H_ */
+#endif // SRSLTE_RA_H

@@ -56,17 +56,17 @@ uint32_t srslte_refsignal_cs_v(uint32_t port_id, uint32_t ref_symbol_idx)
       }
       break;
     case 2:
-      if (ref_symbol_idx < 2) {
+      if (ref_symbol_idx == 0) {
         v = 0;
       } else {
         v = 3;
       }
       break;
     case 3:
-      if (ref_symbol_idx < 2) {
+      if (ref_symbol_idx == 0) {
         v = 3;
       } else {
-        v = 6;
+        v = 0;
       }
       break;
   }
@@ -120,6 +120,7 @@ inline uint32_t srslte_refsignal_cs_nsymbol(uint32_t l, srslte_cp_t cp, uint32_t
     return 1+l*SRSLTE_CP_NSYMB(cp);
   }
 }
+
 inline uint32_t srslte_refsignal_mbsfn_nsymbol(uint32_t l)
 {
   uint32_t ret = 0;
@@ -176,22 +177,21 @@ free_and_exit:
 }
 
 
-int srslte_refsignal_mbsfn_init(srslte_refsignal_t * q, srslte_cell_t cell, uint16_t mbsfn_area_id)
+int srslte_refsignal_mbsfn_init(srslte_refsignal_t * q, uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i, p;
-  if (q != NULL &&
-      srslte_cell_isvalid(&cell))
+  if (q != NULL)
   {
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_refsignal_t));
-    q->cell = cell;
+   
     q->type = SRSLTE_SF_MBSFN;
-    q->mbsfn_area_id = mbsfn_area_id;
+   
 
     for (p=0;p<2;p++) {
       for (i=0;i<SRSLTE_NSUBFRAMES_X_FRAME;i++) {
-        q->pilots[p][i] = srslte_vec_malloc(sizeof(cf_t) * q->cell.nof_prb * 18);
+        q->pilots[p][i] = srslte_vec_malloc(sizeof(cf_t) * max_prb * 18);
         if (!q->pilots[p][i]) {
           perror("malloc");
           goto free_and_exit;
@@ -199,9 +199,7 @@ int srslte_refsignal_mbsfn_init(srslte_refsignal_t * q, srslte_cell_t cell, uint
       }
     }
 
-    if(srslte_refsignal_mbsfn_gen_seq(q, q->cell, q->mbsfn_area_id)) {
-      goto free_and_exit;
-    }
+
     ret = SRSLTE_SUCCESS;
   }
 
@@ -212,7 +210,24 @@ free_and_exit:
   return ret;
 }
 
+int srslte_refsignal_mbsfn_set_cell(srslte_refsignal_t * q, srslte_cell_t cell, uint16_t mbsfn_area_id){
+  
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  q->cell = cell;
 
+  q->mbsfn_area_id = mbsfn_area_id;
+  if(srslte_refsignal_mbsfn_gen_seq(q, q->cell, q->mbsfn_area_id)) {
+    goto free_and_exit;
+  }
+    
+  ret = SRSLTE_SUCCESS;
+  
+  free_and_exit:
+  if (ret == SRSLTE_ERROR) {
+    srslte_refsignal_free(q);
+  }
+  return ret;
+}
 
 
 /** Allocates memory for the 20 slots in a subframe
@@ -399,7 +414,7 @@ int srslte_refsignal_cs_get_sf(srslte_cell_t cell, uint32_t port_id, cf_t *sf_sy
     for (l=0;l<srslte_refsignal_cs_nof_symbols(port_id);l++) {
       uint32_t nsymbol = srslte_refsignal_cs_nsymbol(l, cell.cp, port_id);
       /* Compute offset frequency index */
-      fidx = ((srslte_refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6); 
+      fidx = srslte_refsignal_cs_fidx(cell, l, port_id, 0);
       for (i = 0; i < 2*cell.nof_prb; i++) {
         pilots[SRSLTE_REFSIGNAL_PILOT_IDX(i,l,cell)] = sf_symbols[SRSLTE_RE_IDX(cell.nof_prb, nsymbol, fidx)];
         fidx += SRSLTE_NRE/2;       // 2 references per PRB

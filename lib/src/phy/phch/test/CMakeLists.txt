@@ -119,6 +119,14 @@ add_test(pdsch_test_multiplex1cw_p0_50  pdsch_test -x multiplex -a 2 -p 0 -n 50)
 add_test(pdsch_test_multiplex1cw_p0_75  pdsch_test -x multiplex -a 2 -p 0 -n 75)
 add_test(pdsch_test_multiplex1cw_p0_100 pdsch_test -x multiplex -a 2 -p 0 -n 100)
 
+# PDSCH test for Spatial Multiplex transmision mode with PMI = 0 (1 codeword, swapped)
+add_test(pdsch_test_multiplex1cw_p0_6_swap   pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 6 -F 1)
+add_test(pdsch_test_multiplex1cw_p0_15_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 15)
+add_test(pdsch_test_multiplex1cw_p0_25_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 25)
+add_test(pdsch_test_multiplex1cw_p0_50_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 50)
+add_test(pdsch_test_multiplex1cw_p0_75_swap  pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 75)
+add_test(pdsch_test_multiplex1cw_p0_100_swap pdsch_test -x multiplex -a 2 -p 0 -m 0 -r 1 -M 28 -t 0 -n 100)
+
 # PDSCH test for Spatial Multiplex transmision mode with PMI = 1 (1 codeword)
 add_test(pdsch_test_multiplex1cw_p1_6   pdsch_test -x multiplex -a 2 -p 1 -n 6)
 add_test(pdsch_test_multiplex1cw_p1_12  pdsch_test -x multiplex -a 2 -p 1 -n 12)
@@ -150,6 +158,14 @@ add_test(pdsch_test_multiplex2cw_p0_25  pdsch_test -x multiplex -a 2 -t 0 -p 0 -
 add_test(pdsch_test_multiplex2cw_p0_50  pdsch_test -x multiplex -a 2 -t 0 -p 0 -n 50)
 add_test(pdsch_test_multiplex2cw_p0_75  pdsch_test -x multiplex -a 2 -t 0 -p 0 -n 75)
 add_test(pdsch_test_multiplex2cw_p0_100 pdsch_test -x multiplex -a 2 -t 0 -p 0 -n 100)
+
+# PDSCH test for Spatial Multiplex transmision mode with PMI = 0 (2 codeword, swapped)
+add_test(pdsch_test_multiplex2cw_p0_6_swap   pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 6 -w -F 1)
+add_test(pdsch_test_multiplex2cw_p0_12_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 12 -w)
+add_test(pdsch_test_multiplex2cw_p0_25_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 25 -w)
+add_test(pdsch_test_multiplex2cw_p0_50_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 50 -w)
+add_test(pdsch_test_multiplex2cw_p0_75_swap  pdsch_test -x multiplex -a 2 -t 0 -p 0 -M 28 -n 75 -w)
+add_test(pdsch_test_multiplex2cw_p0_100_swap pdsch_test -x multiplex -a 2 -t 0 -p 0 -m 28 -n 100 -w)
 
 # PDSCH test for Spatial Multiplex transmision mode with PMI = 1 (2 codeword)
 add_test(pdsch_test_multiplex2cw_p1_6   pdsch_test -x multiplex -a 2 -t 0 -p 1 -n 6)
@@ -208,7 +224,76 @@ add_test(pmch_file_test pmch_file_test  -i ${CMAKE_CURRENT_SOURCE_DIR}/pmch_100p
 add_executable(pusch_test pusch_test.c)
 target_link_libraries(pusch_test srslte_phy)
 
-add_test(pusch_test pusch_test)
+if (NOT DEFINED TEST_EXTENSION)
+  set(TEST_EXTENSION Normal)
+endif(NOT DEFINED TEST_EXTENSION)
+
+if (TEST_EXTENSION STREQUAL Paranoid)
+  # All valid number of PRBs for PUSCH
+  set(cell_n_prb_valid 1 2 3 4 5 6 8 9 10 12 15 16 18 20 24 25 27 30 32 36 40 45 48 50 54 60 64 72 75 80 81 90 96 100)
+
+  set(pusch_min_mcs 0)
+  set(pusch_max_mcs 28)
+  set(pusch_step_mcs 1)
+
+  set(pusch_acks -1 0 1)
+
+  set(pusch_cqi none wideband)
+
+else (TEST_EXTENSION STREQUAL Paranoid)
+  set(cell_n_prb_valid 6 15 25 50 100)
+
+  set(pusch_min_mcs 0)
+  set(pusch_max_mcs 28)
+  set(pusch_step_mcs 10)
+
+  set(pusch_acks -1 0)
+
+  set(pusch_cqi none wideband)
+
+endif (TEST_EXTENSION STREQUAL Paranoid)
+
+foreach (cell_n_prb 6 15 25 50 75 100)
+  set(pusch_cell_n_prb)
+  foreach (n_prb ${cell_n_prb_valid})
+    if (NOT (${n_prb} GREATER ${cell_n_prb}))
+      set(pusch_cell_n_prb ${pusch_cell_n_prb} ${n_prb})
+    endif (NOT (${n_prb} GREATER ${cell_n_prb}))
+  endforeach (n_prb)
+
+  foreach (n_prb ${pusch_cell_n_prb})
+    foreach (mcs RANGE ${pusch_min_mcs} ${pusch_max_mcs} ${pusch_step_mcs})
+      foreach (ack ${pusch_acks})
+        foreach (cqi ${pusch_cqi})
+          set(pusch_test_args "")
+
+          set(pusch_test_args ${pusch_test_args} -n ${cell_n_prb})
+          set(pusch_test_args ${pusch_test_args} -L ${n_prb})
+
+          if (NOT (${ack} EQUAL -1))
+            set(pusch_test_args ${pusch_test_args} -p uci_ack ${ack})
+            if (mcs EQUAL 28)
+              set(mcs 27)
+            endif (mcs EQUAL 28)
+          endif (NOT (${ack} EQUAL -1))
+
+          if (NOT (${cqi} STREQUAL none))
+            set(pusch_test_args ${pusch_test_args} -p uci_cqi ${cqi})
+            #if (mcs EQUAL 28)
+            #  set(mcs 27)
+            #endif (mcs EQUAL 28)
+          endif (NOT (${cqi} STREQUAL none))
+
+          set(pusch_test_args ${pusch_test_args} -m ${mcs})
+
+          string(REGEX REPLACE "\ " "" test_name_args ${pusch_test_args})
+
+          add_test(pusch_test${test_name_args} pusch_test ${pusch_test_args})
+        endforeach (cqi)
+      endforeach (ack)
+    endforeach (mcs)
+  endforeach (n_prb)
+endforeach (cell_n_prb)
 
 ########################################################################
 # PUCCH TEST  
@@ -218,6 +303,7 @@ add_executable(pucch_test pucch_test.c)
 target_link_libraries(pucch_test srslte_phy)
 
 add_test(pucch_test pucch_test)
+add_test(pucch_test_uci_cqi_decoder pucch_test -q)
 
 ########################################################################
 # PRACH TEST  

@@ -25,14 +25,13 @@
  */
 
 
-#include "ue.h"
+#include "srsue/hdr/ue.h"
 #include "srslte/srslte.h"
 #include <pthread.h>
 #include <iostream>
 #include <string>
 #include <algorithm>
 #include <iterator>
-#include <ue_base.h>
 
 using namespace srslte;
 
@@ -41,34 +40,45 @@ namespace srsue{
 ue::ue()
     :started(false)
 {
-  pool = byte_buffer_pool::get_instance();
 }
 
 ue::~ue()
 {
-  byte_buffer_pool::cleanup();
+  for (uint32_t i = 0; i < phy_log.size(); i++) {
+    if (phy_log[i]) {
+      delete(phy_log[i]);
+    }
+  }
+  if (usim) {
+    delete usim;
+  }
 }
 
-bool ue::init(all_args_t *args_)
-{
-  args     = args_;
+bool ue::init(all_args_t *args_) {
+  args = args_;
+
+  int nof_phy_threads = args->expert.phy.nof_phy_threads;
+  if (nof_phy_threads > 3) {
+    nof_phy_threads = 3;
+  }
 
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
   } else {
-    logger_file.init(args->log.filename);
+    logger_file.init(args->log.filename, args->log.file_max_size);
     logger_file.log("\n\n");
+    logger_file.log(get_build_string().c_str());
     logger = &logger_file;
   }
 
   rf_log.init("RF  ", logger);
   // Create array of pointers to phy_logs
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+  for (int i=0;i<nof_phy_threads;i++) {
     srslte::log_filter *mylog = new srslte::log_filter;
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
     mylog->init(tmp, logger, true);
-    phy_log.push_back((void*) mylog);
+    phy_log.push_back(mylog);
   }
 
   mac_log.init("MAC ", logger, true);
@@ -81,9 +91,24 @@ bool ue::init(all_args_t *args_)
 
   // Init logs
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+  rf_log.info("Starting UE\n");
+  for (int i=0;i<nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
+  
+  /* here we add a log layer to handle logging from the phy library*/
+  if (level(args->log.phy_lib_level) != LOG_LEVEL_NONE) {
+    srslte::log_filter *lib_log = new srslte::log_filter;
+    char tmp[16];
+    sprintf(tmp, "PHY_LIB");
+    lib_log->init(tmp, logger, true);
+    phy_log.push_back(lib_log);
+    ((srslte::log_filter*) phy_log[nof_phy_threads])->set_level(level(args->log.phy_lib_level));
+  } else {
+    phy_log.push_back(NULL);
+  }
+
+  
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
@@ -92,8 +117,10 @@ bool ue::init(all_args_t *args_)
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
-    ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+  for (int i=0;i<nof_phy_threads + 1;i++) {
+    if (phy_log[i]) {
+      ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+    }
   }
   mac_log.set_hex_limit(args->log.mac_hex_limit);
   rlc_log.set_hex_limit(args->log.rlc_hex_limit);
@@ -104,20 +131,29 @@ bool ue::init(all_args_t *args_)
   usim_log.set_hex_limit(args->log.usim_hex_limit);
 
   // Set up pcap and trace
-  if(args->pcap.enable)
-  {
+  if(args->pcap.enable) {
     mac_pcap.open(args->pcap.filename.c_str());
     mac.start_pcap(&mac_pcap);
   }
-  if(args->trace.enable)
-  {
+  if(args->pcap.nas_enable) {
+    nas_pcap.open(args->pcap.nas_filename.c_str());
+    nas.start_pcap(&nas_pcap);
+  }
+  if(args->trace.enable) {
     phy.start_trace();
     radio.start_trace();
   }
   
   // Init layers
 
-  // PHY initis in background, start before radio
+  // Init USIM first to allow early exit in case reader couldn't be found
+  usim = usim_base::get_instance(&args->usim, &usim_log);
+  if (usim->init(&args->usim, &usim_log)) {
+    usim_log.console("Failed to initialize USIM.\n");
+    return false;
+  }
+
+  // PHY inits in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
   phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
 
@@ -133,8 +169,7 @@ bool ue::init(all_args_t *args_)
   }
   
   printf("Opening RF device with %d RX antennas...\n", args->rf.nof_rx_ant);
-  if(!radio.init_multi(args->rf.nof_rx_ant, dev_args, dev_name))
-  {
+  if(!radio.init_multi(args->rf.nof_rx_ant, dev_args, dev_name)) {
     printf("Failed to find device %s with args %s\n",
            args->rf.device_name.c_str(), args->rf.device_args.c_str());
     return false;
@@ -147,7 +182,11 @@ bool ue::init(all_args_t *args_)
   if (args->rf.burst_preamble.compare("auto")) {
     radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
   }
-  
+  if (args->rf.continuous_tx.compare("auto")) {
+    printf("set continuous %s\n", args->rf.continuous_tx.c_str());
+    radio.set_continuous_tx(args->rf.continuous_tx.compare("yes")?false:true);
+  }
+
   radio.set_manual_calibration(&args->rf_cal);
 
   // Set PHY options
@@ -160,8 +199,6 @@ bool ue::init(all_args_t *args_)
 
   if (args->rf.rx_gain < 0) {
     radio.start_agc(false);    
-    radio.set_tx_rx_gain_offset(10);
-    phy.set_agc_enable(true);
   } else {
     radio.set_rx_gain(args->rf.rx_gain);
   }
@@ -181,24 +218,37 @@ bool ue::init(all_args_t *args_)
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
-  usim.init(&args->usim, &usim_log);
-  nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
+  srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
+  nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
-
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
-  rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
+  gw.set_netmask(args->expert.ip_netmask);
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
+  
+  // Get current band from provided EARFCN
+  args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
+  args->rrc.nof_supported_bands = 1;
+  args->rrc.ue_category = atoi(args->ue_category_str.c_str());
+  rrc.set_args(&args->rrc);
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;
   earfcn_list.push_back(args->rf.dl_earfcn);
   phy.set_earfcn(earfcn_list);
 
+  if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {
+    phy.force_freq(args->rf.dl_freq, args->rf.ul_freq);
+  }
+
   printf("Waiting PHY to initialize...\n");
   phy.wait_initialize();
   phy.configure_ul_params();
 
+  // Enable AGC once PHY is initialized
+  if (args->rf.rx_gain < 0) {
+    phy.set_agc_enable(true);
+  }
+
   printf("...\n");
-  nas.attach_request();
 
   started = true;
   return true;
@@ -213,7 +263,7 @@ void ue::stop()
 {
   if(started)
   {
-    usim.stop();
+    usim->stop();
     nas.stop();
     rrc.stop();
     
@@ -231,12 +281,13 @@ void ue::stop()
     radio.stop();
     
     usleep(1e5);
-    if(args->pcap.enable)
-    {
+    if(args->pcap.enable) {
        mac_pcap.close();
     }
-    if(args->trace.enable)
-    {
+    if(args->pcap.nas_enable) {
+       nas_pcap.close();
+    }
+    if(args->trace.enable) {
       phy.write_trace(args->trace.phy_filename);
       radio.write_trace(args->trace.radio_filename);
     }
@@ -244,17 +295,30 @@ void ue::stop()
   }
 }
 
+bool ue::attach() {
+  return nas.attach_request();
+}
+
+bool ue::deattach() {
+  return nas.deattach_request();
+}
+
 bool ue::is_attached()
 {
-  return (RRC_STATE_CONNECTED == rrc.get_state());
+  return rrc.is_connected();
 }
 
 void ue::start_plot() {
   phy.start_plot();
 }
 
+void ue::print_pool() {
+  byte_buffer_pool::get_instance()->print_all_buffers();
+}
+
 bool ue::get_metrics(ue_metrics_t &m)
 {
+  bzero(&m, sizeof(ue_metrics_t));
   m.rf = rf_metrics;
   bzero(&rf_metrics, sizeof(rf_metrics_t));
   rf_metrics.rf_error = false; // Reset error flag
@@ -271,10 +335,32 @@ bool ue::get_metrics(ue_metrics_t &m)
   return false;
 }
 
+
+void ue::radio_overflow() {
+  phy.radio_overflow();
+}
+void ue::print_mbms()
+{
+  rrc.print_mbms();
+}
+
+bool ue::mbms_service_start(uint32_t serv, uint32_t port)
+{
+  return rrc.mbms_service_start(serv, port);
+}
+
 void ue::rf_msg(srslte_rf_error_t error)
 {
   ue_base *ue = ue_base::get_instance(LTE);
   ue->handle_rf_msg(error);
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
+    ue->radio_overflow();
+  } else
+  if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_RX) {
+    ue->stop();
+    ue->cleanup();
+    exit(-1);
+  }
 }
 
 } // namespace srsue

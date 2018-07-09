@@ -30,8 +30,8 @@
  *              layers and helpers.
  *****************************************************************************/
 
-#ifndef ENB_H
-#define ENB_H
+#ifndef SRSENB_ENB_H
+#define SRSENB_ENB_H
 
 #include <stdarg.h>
 #include <string>
@@ -66,6 +66,9 @@ typedef struct {
   s1ap_args_t s1ap; 
   uint32_t    n_prb; 
   uint32_t    pci; 
+  uint32_t    nof_ports;
+  uint32_t    transmission_mode;
+  float       p_a;
 }enb_args_t;
 
 typedef struct {
@@ -94,6 +97,7 @@ typedef struct {
 
 typedef struct {
   std::string   phy_level;
+  std::string   phy_lib_level;
   std::string   mac_level;
   std::string   rlc_level;
   std::string   pdcp_level;
@@ -109,6 +113,7 @@ typedef struct {
   int           gtpu_hex_limit;
   int           s1ap_hex_limit;
   int           all_hex_limit;
+  int           file_max_size;
   std::string   filename;
 }log_args_t;
 
@@ -121,6 +126,8 @@ typedef struct {
   mac_args_t mac; 
   uint32_t   rrc_inactivity_timer;
   float      metrics_period_secs;
+  bool       enable_mbsfn;
+  bool       print_buffer_state;
 }expert_args_t;
 
 typedef struct { 
@@ -151,6 +158,8 @@ public:
 
   void start_plot();
 
+  void print_pool();
+
   static void rf_msg(srslte_rf_error_t error);
 
   void handle_rf_msg(srslte_rf_error_t error);
@@ -163,6 +172,8 @@ public:
 
 private:
   static enb *instance;
+
+  const static int ENB_POOL_SIZE = 1024*10;
 
   enb();
 
@@ -183,7 +194,7 @@ private:
   srslte::logger        *logger;
 
   srslte::log_filter  rf_log;
-  std::vector<void*>  phy_log;
+  std::vector<srslte::log_filter*>  phy_log;
   srslte::log_filter  mac_log;
   srslte::log_filter  rlc_log;
   srslte::log_filter  pdcp_log;
@@ -205,6 +216,7 @@ private:
   int parse_sib3(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *data);
   int parse_sib4(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4_STRUCT *data);
   int parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT *data);
+  int parse_sib13(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *data);
   int parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_common); 
   int parse_rr(all_args_t *args, rrc_cfg_t *rrc_cfg);
   int parse_drb(all_args_t *args, rrc_cfg_t *rrc_cfg); 
@@ -214,5 +226,5 @@ private:
 
 } // namespace srsenb
 
-#endif // UE_H
+#endif // SRSENB_ENB_H
   

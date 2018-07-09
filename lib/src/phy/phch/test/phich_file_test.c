@@ -144,7 +144,7 @@ int base_init() {
     fmatlab = NULL;
   }
 
-  flen = SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb));
+  flen = SRSLTE_SF_LEN(srslte_symbol_sz_power2(cell.nof_prb));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -175,7 +175,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft, cell.cp, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
+  if (srslte_ofdm_init_(&fft, cell.cp, input_buffer, fft_buffer, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -194,7 +194,7 @@ int base_init() {
     return -1;
   }
 
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
 
   n = srslte_filesource_read(&fsrc, input_buffer, flen);
 
-  srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
+  srslte_ofdm_rx_sf(&fft);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
   /* Get channel estimates for each port */
   srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
-  INFO("Decoding PHICH\n", 0);
+  INFO("Decoding PHICH\n");
 
   /* Receive all PHICH groups and sequence numbers */
   for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
@@ -278,6 +278,7 @@ int main(int argc, char **argv) {
   }
 
   base_free();
+  srslte_dft_exit();
 
   if (n < 0) {
     fprintf(stderr, "Error decoding phich\n");

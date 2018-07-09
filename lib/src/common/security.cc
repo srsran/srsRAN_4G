@@ -29,6 +29,13 @@
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/snow_3g.h"
 
+#ifdef HAVE_MBEDTLS
+#include "mbedtls/md5.h"
+#endif
+#ifdef HAVE_POLARSSL
+#include "polarssl/md5.h"
+#endif
+
 namespace srslte {
 
 /******************************************************************************
@@ -59,6 +66,26 @@ uint8_t security_generate_k_enb( uint8_t  *k_asme,
   return liblte_security_generate_k_enb(k_asme,
                                         nas_count,
                                         k_enb);
+}
+
+uint8_t security_generate_k_enb_star( uint8_t  *k_enb,
+                                      uint32_t  pci,
+                                      uint32_t earfcn,
+                                      uint8_t  *k_enb_star)
+{
+  return liblte_security_generate_k_enb_star(k_enb,
+                                             pci,
+                                             earfcn,
+                                             k_enb_star);
+}
+
+uint8_t security_generate_nh( uint8_t *k_asme,
+                              uint8_t *sync,
+                              uint8_t *nh)
+{
+  return liblte_security_generate_nh( k_asme,
+                                      sync,
+                                      nh);
 }
 
 uint8_t security_generate_k_nas( uint8_t                       *k_asme,
@@ -106,7 +133,7 @@ uint8_t security_generate_k_up( uint8_t                       *k_enb,
 
 uint8_t security_128_eia1( uint8_t  *key,
                            uint32_t  count,
-                           uint8_t   bearer,
+                           uint32_t   bearer,
                            uint8_t   direction,
                            uint8_t  *msg,
                            uint32_t  msg_len,
@@ -131,7 +158,7 @@ uint8_t security_128_eia1( uint8_t  *key,
 
 uint8_t security_128_eia2( uint8_t  *key,
                            uint32_t  count,
-                           uint8_t   bearer,
+                           uint32_t   bearer,
                            uint8_t   direction,
                            uint8_t  *msg,
                            uint32_t  msg_len,
@@ -146,9 +173,70 @@ uint8_t security_128_eia2( uint8_t  *key,
                                   mac);
 }
 
+uint8_t security_md5(const uint8_t *input, size_t len, uint8_t *output)
+{
+  memset(output, 0x00, 16);
+#ifdef HAVE_MBEDTLS
+  mbedtls_md5(input, len, output);
+#endif // HAVE_MBEDTLS
+#ifdef HAVE_POLARSSL
+  md5(input, len, output);
+#endif
+  return SRSLTE_SUCCESS;
+}
+
+
+/******************************************************************************
+ * Encryption / Decryption
+ *****************************************************************************/
+
+uint8_t security_128_eea1(uint8_t  *key,
+                           uint32_t count,
+                           uint8_t  bearer,
+                           uint8_t direction,
+                           uint8_t *msg,
+                           uint32_t msg_len,
+                           uint8_t *msg_out){
+
+    return liblte_security_encryption_eea1(key,
+                                           count,
+                                           bearer,
+                                           direction,
+                                           msg,
+                                           msg_len * 8,
+                                           msg_out);
+
+}
+
+
+uint8_t security_128_eea2(uint8_t  *key,
+                           uint32_t count,
+                           uint8_t  bearer,
+                           uint8_t direction,
+                           uint8_t *msg,
+                           uint32_t msg_len,
+                           uint8_t *msg_out){
+
+    return liblte_security_encryption_eea2(key,
+                                           count,
+                                           bearer,
+                                           direction,
+                                           msg,
+                                           msg_len * 8,
+                                           msg_out);
+}
+
 /******************************************************************************
  * Authentication
  *****************************************************************************/
+uint8_t compute_opc( uint8_t *k,
+                     uint8_t *op,
+                     uint8_t *opc)
+{
+  return liblte_compute_opc(k,
+                            op,
+                            opc);
+}
 
 uint8_t security_milenage_f1( uint8_t *k,
                               uint8_t *op,

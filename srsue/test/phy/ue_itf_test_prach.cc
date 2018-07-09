@@ -27,7 +27,7 @@
 #include <unistd.h>
 
 #include "srslte/phy/utils/debug.h"
-#include "phy/phy.h"
+#include "srsue/hdr/phy/phy.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/radio/radio_multi.h"
@@ -380,7 +380,7 @@ int main(int argc, char *argv[])
   radio.set_tx_freq(prog_args.rf_tx_freq);
   
   // Instruct the PHY to configure PRACH parameters and sync to current cell 
-  while(!my_phy.sync_status()) {
+  while(!my_phy.cell_is_camping()) {
     usleep(20000);
   }
 

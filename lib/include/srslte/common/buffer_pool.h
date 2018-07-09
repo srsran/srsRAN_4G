@@ -24,12 +24,14 @@
  *
  */
 
-#ifndef BUFFER_POOL_H
-#define BUFFER_POOL_H
+#ifndef SRSLTE_BUFFER_POOL_H
+#define SRSLTE_BUFFER_POOL_H
 
 #include <pthread.h>
 #include <vector>
 #include <stack>
+#include <map>
+#include <string>
 #include <algorithm>
 
 /*******************************************************************************
@@ -54,8 +56,12 @@ class buffer_pool{
 public:
   
   // non-static methods
-  buffer_pool(uint32_t nof_buffers = POOL_SIZE)
+  buffer_pool(int capacity_ = -1)
   {
+    uint32_t nof_buffers = POOL_SIZE;
+    if (capacity_ > 0) {
+      nof_buffers = (uint32_t) capacity_;
+    }
     pthread_mutex_init(&mutex, NULL);
     for(uint32_t i=0;i<nof_buffers;i++) {
       buffer_t *b = new buffer_t;
@@ -70,16 +76,34 @@ public:
       delete available.top();
       available.pop();
     }
+
+    for (uint32_t i = 0; i < used.size(); i++) {
+      delete used[i];
+    }
   }
   
   void print_all_buffers()
   {
     printf("%d buffers in queue\n", (int) used.size());
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    std::map<std::string, uint32_t> buffer_cnt;
     for (uint32_t i=0;i<used.size();i++) {
-      printf("%s\n", strlen(used[i]->debug_name)?used[i]->debug_name:"Undefined");
+      buffer_cnt[strlen(used[i]->debug_name)?used[i]->debug_name:"Undefined"]++;
     }
+    std::map<std::string, uint32_t>::iterator it;
+    for (it = buffer_cnt.begin(); it != buffer_cnt.end(); it++) {
+      printf(" - %dx %s\n", it->second, it->first.c_str());
+    }
+#endif
   }
-  
+
+  uint32_t nof_available_pdus() {
+    return available.size();
+  }
+
+  bool is_almost_empty() {
+    return available.size() < capacity/20;
+  }
 
   buffer_t* allocate(const char *debug_name = NULL)
   {
@@ -92,8 +116,8 @@ public:
       used.push_back(b);
       available.pop();
       
-      if (available.size() < capacity/20) {
-        printf("Warning buffer pool capacity is %f %%\n", (float) available.size()/capacity);
+      if (is_almost_empty()) {
+        printf("Warning buffer pool capacity is %f %%\n", (float) 100*available.size()/capacity);
       }
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     if (debug_name) {
@@ -123,8 +147,6 @@ public:
       used.erase(elem); 
       available.push(b);
       ret = true; 
-    } else {
-      printf("Error deallocating from buffer pool: buffer not created in this pool.\n");
     }
     pthread_mutex_unlock(&mutex);
     return ret; 
@@ -144,10 +166,10 @@ class byte_buffer_pool {
 public: 
   // Singleton static methods
   static byte_buffer_pool   *instance;  
-  static byte_buffer_pool*   get_instance(void);
+  static byte_buffer_pool*   get_instance(int capacity = -1);
   static void                cleanup(void); 
-  byte_buffer_pool() {
-    pool = new buffer_pool<byte_buffer_t>;
+  byte_buffer_pool(int capacity = -1) {
+    pool = new buffer_pool<byte_buffer_t>(capacity);
   }
   ~byte_buffer_pool() {
     delete pool; 
@@ -160,7 +182,13 @@ public:
       return;
     }
     b->reset();
-    pool->deallocate(b);
+    if (!pool->deallocate(b)) {
+      fprintf(stderr, "Error deallocating PDU: Addr=0x%lx not found in pool\n", (uint64_t) b);
+    }
+    b = NULL;
+  }
+  void print_all_buffers() {
+    pool->print_all_buffers();
   }
 private:
   buffer_pool<byte_buffer_t> *pool; 
@@ -169,4 +197,4 @@ private:
 
 } // namespace srsue
 
-#endif // BUFFER_POOL_H
+#endif // SRSLTE_BUFFER_POOL_H

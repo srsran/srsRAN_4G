@@ -24,18 +24,18 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
 #include <stdlib.h>
 #include <stdint.h>
 #include <signal.h>
 
-#include "mac/proc_ra.h"
-#include "mac/mac.h"
-#include "mac/mux.h"
+#include "srsue/hdr/mac/proc_ra.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/mac/mux.h"
 
 /* Random access procedure as specified in Section 5.1 of 36.321 */
 
@@ -96,9 +96,15 @@ void ra_proc::read_params() {
   
   // Read initialization parameters   
   configIndex               = mac_cfg->prach_config_index;
-  preambleIndex             = 0; // pass when called from higher layers for non-contention based RA
-  maskIndex                 = 0; // same 
-  nof_preambles             = liblte_rrc_number_of_ra_preambles_num[mac_cfg->rach.num_ra_preambles]; 
+  if (noncontention_enabled) {
+    preambleIndex             = next_preamble_idx;
+    maskIndex                 = next_prach_mask;
+    noncontention_enabled     = false;
+  } else {
+    preambleIndex             = 0; // pass when called from higher layers for non-contention based RA
+    maskIndex                 = 0; // same
+  }
+  nof_preambles             = liblte_rrc_number_of_ra_preambles_num[mac_cfg->rach.num_ra_preambles];
   if (mac_cfg->rach.preambles_group_a_cnfg.present) {
     nof_groupA_preambles    = liblte_rrc_size_of_ra_preambles_group_a_num[mac_cfg->rach.preambles_group_a_cnfg.size_of_ra];
   } else {
@@ -216,7 +222,7 @@ void ra_proc::step_resource_selection() {
   if (preambleIndex > 0) {
     // Preamble is chosen by Higher layers (ie Network)
     sel_maskIndex = maskIndex;
-    sel_preamble = (uint32_t) preambleIndex%nof_preambles;
+    sel_preamble = (uint32_t) preambleIndex;
   } else {
     // Preamble is chosen by MAC UE
     if (!msg3_transmitted) {
@@ -265,8 +271,9 @@ void ra_proc::step_preamble_transmission() {
 }
 
 void ra_proc::step_pdcch_setup() {
+  
   int ra_tti = phy_h->prach_tx_tti();
-  if (ra_tti > 0) {    
+  if (ra_tti > 0) { 
     ra_rnti = 1+ra_tti%10;
     rInfo("seq=%d, ra-rnti=0x%x, ra-tti=%d\n", sel_preamble, ra_rnti, ra_tti);
     log_h->console("Random Access Transmission: seq=%d, ra-rnti=0x%x\n", sel_preamble, ra_rnti);
@@ -343,7 +350,8 @@ void ra_proc::tb_decoded_ok() {
         // Preamble selected by Network
         state = COMPLETION; 
       } else {
-        // Preamble selected by UE MAC 
+        // Preamble selected by UE MAC
+        mux_unit->msg3_prepare();
         rntis->temp_rnti = rar_pdu_msg.get()->get_temp_crnti();
         phy_h->pdcch_dl_search(SRSLTE_RNTI_TEMP, rar_pdu_msg.get()->get_temp_crnti());
         
@@ -355,7 +363,7 @@ void ra_proc::tb_decoded_ok() {
           
           // If we have a C-RNTI, tell Mux unit to append C-RNTI CE if no CCCH SDU transmission
           if (transmitted_crnti) {
-            rDebug("Appending C-RNTI MAC CE in next transmission\n");
+            rInfo("Appending C-RNTI MAC CE 0x%x in next transmission\n", transmitted_crnti);
             mux_unit->append_crnti_ce_next_tx(transmitted_crnti);
             phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, transmitted_crnti);
             phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, transmitted_crnti);
@@ -369,7 +377,7 @@ void ra_proc::tb_decoded_ok() {
         contention_resolution_timer->run();
       }  
     } else {
-      rDebug("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
+      rInfo("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
     }
   }
 }
@@ -380,19 +388,22 @@ void ra_proc::step_response_reception() {
   if (ra_tti >= 0 && !rar_received) {
     uint32_t interval = srslte_tti_interval(phy_h->get_current_tti(), ra_tti+3+responseWindowSize); 
     if (interval > 1 && interval < 100) {
-      rDebug("RA response not received within the response window\n");
+      Error("RA response not received within the response window\n");
       state = RESPONSE_ERROR;
     }
   }
 }
 
-void ra_proc::step_response_error() {
-  
+void ra_proc::step_response_error()
+{
   preambleTransmissionCounter++;
   if (preambleTransmissionCounter >= preambleTransMax + 1) {
     rError("Maximum number of transmissions reached (%d)\n", preambleTransMax);
     rrc->ra_problem();
     state = RA_PROBLEM;
+    if (ra_is_ho) {
+      rrc->ho_ra_completed(false);
+    }
   } else {
     backoff_interval_start = phy_h->get_current_tti(); 
     if (backoff_param_ms) {
@@ -495,8 +506,11 @@ void ra_proc::step_completition() {
 
   phy_h->set_crnti(rntis->crnti);
 
-  msg3_transmitted = false;  
+  msg3_transmitted = false;
   state = COMPLETION_DONE;
+  if (ra_is_ho) {
+    rrc->ho_ra_completed(true);
+  }
 }
 
 void ra_proc::step(uint32_t tti_)
@@ -536,9 +550,17 @@ void ra_proc::step(uint32_t tti_)
   }
 }
 
-void ra_proc::start_mac_order(uint32_t msg_len_bits)
+void ra_proc::start_noncont(uint32_t preamble_index, uint32_t prach_mask) {
+  next_preamble_idx = preamble_index;
+  next_prach_mask   = prach_mask;
+  noncontention_enabled = true;
+  start_mac_order(56, true);
+}
+
+void ra_proc::start_mac_order(uint32_t msg_len_bits, bool is_ho)
 {
   if (state == IDLE || state == COMPLETION_DONE || state == RA_PROBLEM) {
+    ra_is_ho = is_ho;
     started_by_pdcch = false;
     new_ra_msg_len = msg_len_bits; 
     state = INITIALIZATION;    

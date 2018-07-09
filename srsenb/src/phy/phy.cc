@@ -34,12 +34,12 @@
 
 #include "srslte/common/threads.h"
 #include "srslte/common/log.h"
-#include "phy/phy.h"
+#include "srsenb/hdr/phy/phy.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
 using namespace std; 
 
@@ -48,8 +48,11 @@ namespace srsenb {
 
 phy::phy() : workers_pool(MAX_WORKERS), 
              workers(MAX_WORKERS), 
-             workers_common(txrx::MUTEX_X_WORKER*MAX_WORKERS)
+             workers_common(txrx::MUTEX_X_WORKER*MAX_WORKERS),
+             nof_workers(0)
 {
+  radio_handler = NULL;
+  bzero(&prach_cfg, sizeof(prach_cfg));
 }
 
 void phy::parse_config(phy_cfg_t* cfg)
@@ -80,18 +83,23 @@ void phy::parse_config(phy_cfg_t* cfg)
   workers_common.pucch_cfg.N_cs               = cfg->pucch_cnfg.n_cs_an;
   workers_common.pucch_cfg.n_rb_2             = cfg->pucch_cnfg.n_rb_cqi;
   workers_common.pucch_cfg.srs_configured     = false;
-  workers_common.pucch_cfg.n1_pucch_an        = cfg->pucch_cnfg.n1_pucch_an;; 
+  workers_common.pucch_cfg.n1_pucch_an        = cfg->pucch_cnfg.n1_pucch_an;
+
+  // PDSCH configuration
+  workers_common.pdsch_p_b                    = cfg->pdsch_cnfg.p_b;
 }
 
 bool phy::init(phy_args_t *args, 
                phy_cfg_t *cfg, 
                srslte::radio* radio_handler_, 
-               mac_interface_phy *mac, 
-               srslte::log* log_h)
+               mac_interface_phy *mac,
+               srslte::log_filter* log_h)
 {
-  std::vector<void*> log_vec;
+
+  std::vector<srslte::log_filter*> log_vec;
+  this->log_h = log_h;
   for (int i=0;i<args->nof_phy_threads;i++) {
-    log_vec[i] = (void*) log_h;
+    log_vec.push_back(log_h);
   }
   init(args, cfg, radio_handler_, mac, log_vec);
   return true; 
@@ -101,14 +109,14 @@ bool phy::init(phy_args_t *args,
                phy_cfg_t *cfg, 
                srslte::radio* radio_handler_, 
                mac_interface_phy *mac, 
-               std::vector<void*> log_vec)
+               std::vector<srslte::log_filter*> log_vec)
 {
 
   mlockall(MCL_CURRENT | MCL_FUTURE);
   
   radio_handler = radio_handler_;
   nof_workers = args->nof_phy_threads; 
-  
+  this->log_h = (srslte::log*)log_vec[0];
   workers_common.params = *args; 
 
   workers_common.init(&cfg->cell, radio_handler, mac);
@@ -153,7 +161,7 @@ uint32_t phy::tti_to_subf(uint32_t tti) {
 int phy::add_rnti(uint16_t rnti)
 {
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
-    workers_common.ack_add_rnti(rnti);
+    workers_common.ue_db_add_rnti(rnti);
   }
   for (uint32_t i=0;i<nof_workers;i++) {
     if (workers[i].add_rnti(rnti)) {
@@ -166,7 +174,7 @@ int phy::add_rnti(uint16_t rnti)
 void phy::rem_rnti(uint16_t rnti)
 {
   if (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END) {
-    workers_common.ack_rem_rnti(rnti);
+    workers_common.ue_db_rem_rnti(rnti);
   }
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].rem_rnti(rnti);
@@ -207,30 +215,40 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 /***** RRC->PHY interface **********/
 
+void phy::set_conf_dedicated_ack(uint16_t rnti, bool ack)
+{
+  for (uint32_t i = 0; i < nof_workers; i++) {
+    workers[i].set_conf_dedicated_ack(rnti, ack);
+  }
+}
+
 void phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
 {
-  // Parse RRC config 
-  srslte_uci_cfg_t uci_cfg;
-  srslte_pucch_sched_t pucch_sched;
-  
-  /* PUSCH UCI configuration */
-  bzero(&uci_cfg, sizeof(srslte_uci_cfg_t));
-  uci_cfg.I_offset_ack         = dedicated->pusch_cnfg_ded.beta_offset_ack_idx;
-  uci_cfg.I_offset_cqi         = dedicated->pusch_cnfg_ded.beta_offset_cqi_idx;
-  uci_cfg.I_offset_ri          = dedicated->pusch_cnfg_ded.beta_offset_ri_idx;
-  
-  /* PUCCH Scheduling configuration */
-  bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
-  pucch_sched.n_pucch_2        = dedicated->cqi_report_cnfg.report_periodic.pucch_resource_idx;
-  pucch_sched.n_pucch_sr       = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
-  
   for (uint32_t i=0;i<nof_workers;i++) {
-    workers[i].set_config_dedicated(rnti, &uci_cfg, &pucch_sched, NULL, 
-                                    dedicated->sched_request_cnfg.sr_cnfg_idx, 
-                                    dedicated->cqi_report_cnfg.report_periodic_setup_present,
-                                    dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx, 
-                                    dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi);
+    workers[i].set_config_dedicated(rnti, NULL, dedicated);
   }
+}
+
+void phy::configure_mbsfn(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT mcch)
+{
+  if(sib2->mbsfn_subfr_cnfg_list_size > 1) {
+    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_subfr_cnfg_list_size);
+  }
+  if(sib2->mbsfn_subfr_cnfg_list_size > 0) {
+    memcpy(&phy_rrc_config.mbsfn.mbsfn_subfr_cnfg, &sib2->mbsfn_subfr_cnfg_list[0], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
+  }
+    
+  memcpy(&phy_rrc_config.mbsfn.mbsfn_notification_cnfg, &sib13->mbsfn_notification_config, sizeof(LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT));
+  if(sib13->mbsfn_area_info_list_r9_size > 1) {
+    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9_size);
+  }
+   if(sib13->mbsfn_area_info_list_r9_size > 0) {
+    memcpy(&phy_rrc_config.mbsfn.mbsfn_area_info, &sib13->mbsfn_area_info_list_r9[0], sizeof(LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT));
+  }
+  
+  memcpy(&phy_rrc_config.mbsfn.mcch, &mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+  
+  workers_common.configure_mbsfn(&phy_rrc_config.mbsfn);
 }
 
 // Start GUI 

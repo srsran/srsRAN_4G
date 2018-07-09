@@ -31,8 +31,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef TIMEOUT_H
-#define TIMEOUT_H
+#ifndef SRSLTE_TIMEOUT_H
+#define SRSLTE_TIMEOUT_H
 
 #include <stdint.h>
 #include <pthread.h>
@@ -84,7 +84,6 @@ public:
   }
   void thread_func()
   {
-   
     // substract time elapsed until now from timer duration
     gettimeofday(&start_time[2], NULL); 
     get_time_interval(start_time);
@@ -105,6 +104,14 @@ public:
       return false;
     }
   }
+  int32_t get_msec_to_expire() {
+    if (running) {
+      gettimeofday(&start_time[2], NULL);
+      get_time_interval(start_time);
+      return (duration_msec*1000 - start_time[0].tv_usec)/1000;
+    }
+    return 0;
+  }
   bool is_running()
   {
     return running;
@@ -119,6 +126,6 @@ private:
   int duration_msec;
 };
 
-} // namespace srsue
+} // namespace srslte
   
-#endif // TIMEOUT_H
+#endif // SRSLTE_TIMEOUT_H

@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef SCHED_H
-#define SCHED_H
+#ifndef SRSENB_SCHEDULER_H
+#define SRSENB_SCHEDULER_H
 
 #include <map>
 #include "srslte/common/log.h"
@@ -36,8 +36,15 @@
 #include <pthread.h>
 
 namespace srsenb {
-  
- 
+
+
+/* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
+ * Rest of operations are thread-safe
+ *
+ * The subclass sched_ue is thread-safe so that access to shared variables like buffer states
+ * from scheduler thread and other threads is protected for each individual user.
+ */
+
 class sched : public sched_interface
 {  
   
@@ -66,9 +73,10 @@ public:
   public: 
 
     /* Virtual methods for user metric calculation */
+    virtual void           reset_allocation(uint32_t nof_rb_) = 0;
     virtual void           new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb, uint32_t tti) = 0;
     virtual ul_harq_proc*  get_user_allocation(sched_ue *user) = 0; 
-    virtual void           update_allocation(ul_harq_proc::ul_alloc_t alloc) = 0;
+    virtual bool           update_allocation(ul_harq_proc::ul_alloc_t alloc) = 0;
   };
 
   
@@ -88,7 +96,7 @@ public:
   void set_sched_cfg(sched_args_t *sched_cfg);
   int reset();
 
-  int ue_cfg(uint16_t rnti, ue_cfg_t *ue_cfg); 
+  int ue_cfg(uint16_t rnti, ue_cfg_t *ue_cfg);
   int ue_rem(uint16_t rnti);
   bool ue_exists(uint16_t rnti); 
   
@@ -100,11 +108,14 @@ public:
   uint32_t get_ul_buffer(uint16_t rnti); 
   uint32_t get_dl_buffer(uint16_t rnti); 
 
-  int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue); 
-  int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code); 
+  int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
+  int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code);
     
-  int dl_ack_info(uint32_t tti, uint16_t rnti, bool ack);
+  int dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dedicated);
+  int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
   int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size); 
+  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
+  int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
   int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
   
   int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc);
@@ -116,7 +127,6 @@ public:
     
   int dl_sched(uint32_t tti, dl_sched_res_t *sched_result);  
   int ul_sched(uint32_t tti, ul_sched_res_t *sched_result); 
-
 
   /* Custom TPC functions 
    */
@@ -205,7 +215,7 @@ private:
   uint32_t P; 
   uint32_t start_rbg;
   uint32_t si_n_rbg;
-  uint32_t rar_n_rb; 
+  uint32_t rar_n_rbg;
   uint32_t nof_rbg; 
   uint32_t sf_idx;
   uint32_t sfn;
@@ -213,10 +223,7 @@ private:
   uint32_t current_cfi;
   
   bool configured;
-  
-  pthread_mutex_t mutex; 
-  
-  
+
 };
 
 
@@ -225,4 +232,4 @@ private:
 
 }
 
-#endif 
+#endif // SRSENB_SCHEDULER_H

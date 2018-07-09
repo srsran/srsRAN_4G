@@ -24,7 +24,7 @@
  *
  */
 
-#include "parser.h"
+#include "srsenb/hdr/parser.h"
 #include <iostream>
 
 namespace srsenb {

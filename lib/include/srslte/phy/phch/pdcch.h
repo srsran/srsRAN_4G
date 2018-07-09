@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.8
  *****************************************************************************/
 
-#ifndef PDCCH_
-#define PDCCH_
+#ifndef SRSLTE_PDCCH_H
+#define SRSLTE_PDCCH_H
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -60,8 +60,8 @@ typedef enum SRSLTE_API {
 /* PDCCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
-  uint32_t nof_regs;
-  uint32_t nof_cce;
+  uint32_t nof_regs[3];
+  uint32_t nof_cce[3];
   uint32_t max_bits;
   uint32_t nof_rx_antennas;
   bool     is_ue;
@@ -99,10 +99,7 @@ SRSLTE_API int srslte_pdcch_set_cell(srslte_pdcch_t *q,
 SRSLTE_API void srslte_pdcch_free(srslte_pdcch_t *q);
 
 
-SRSLTE_API void srslte_pdcch_set_cfi(srslte_pdcch_t *q, 
-                                     uint32_t cfi); 
-
-SRSLTE_API float srslte_pdcch_coderate(uint32_t nof_bits, 
+SRSLTE_API float srslte_pdcch_coderate(uint32_t nof_bits,
                                        uint32_t l); 
 
 /* Encoding function */
@@ -134,6 +131,7 @@ SRSLTE_API int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
                                        srslte_dci_msg_t *msg, 
                                        srslte_dci_location_t *location,
                                        srslte_dci_format_t format,
+                                       uint32_t cfi,
                                        uint16_t *crc_rem);
 
 SRSLTE_API int srslte_pdcch_dci_decode(srslte_pdcch_t *q, 
@@ -167,7 +165,15 @@ SRSLTE_API uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q,
 SRSLTE_API uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, 
                                                    srslte_dci_location_t *c, 
                                                    uint32_t max_candidates, 
-                                                   uint32_t nsubframe, uint16_t rnti); 
+                                                   uint32_t nsubframe,
+                                                   uint16_t rnti);
+
+SRSLTE_API uint32_t srslte_pdcch_ue_locations_ncce_L(uint32_t nof_cce,
+                                                     srslte_dci_location_t *c,
+                                                     uint32_t max_candidates,
+                                                     uint32_t nsubframe,
+                                                     uint16_t rnti,
+                                                     int L);
 
 /* Function for generation of common search space DCI locations */
 SRSLTE_API uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, 
@@ -180,4 +186,4 @@ SRSLTE_API uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce,
                                                        uint32_t max_candidates); 
 
 
-#endif
+#endif // SRSLTE_PDCCH_H

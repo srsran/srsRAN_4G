@@ -30,8 +30,8 @@
  * Description: Metrics class printing to stdout.
  *****************************************************************************/
 
-#ifndef METRICS_STDOUT_H
-#define METRICS_STDOUT_H
+#ifndef SRSENB_METRICS_STDOUT_H
+#define SRSENB_METRICS_STDOUT_H
 
 #include <pthread.h>
 #include <stdint.h>
@@ -71,4 +71,4 @@ private:
 
 } // namespace srsenb
 
-#endif // METRICS_STDOUT_H
+#endif // SRSENB_METRICS_STDOUT_H

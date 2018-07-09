@@ -24,11 +24,15 @@
  *
  */
 
+
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
 #include <stdio.h>
+
+// Default priority for all threads below UHD threads
+#define DEFAULT_PRIORITY 60
 
 #ifdef __cplusplus
     extern "C" {
@@ -43,12 +47,15 @@
 #ifdef __cplusplus
 }
   
-#ifndef THREADS_
-#define THREADS_   
+#ifndef SRSLTE_THREADS_H
+#define SRSLTE_THREADS_H  
   
 class thread
 {
-public: 
+public:
+  thread() {
+    _thread = 0;
+  }
   bool start(int prio = -1) {
     return threads_new_rt_prio(&_thread, thread_function_entry, this, prio);    
   }
@@ -78,22 +85,30 @@ class periodic_thread : public thread
 {
 public:
   void start_periodic(int period_us_, int priority = -1) {
+    run_enable = true;
     period_us = period_us_; 
     start(priority);
+  }
+  void stop_thread() {
+    run_enable = false;
+    wait_thread_finish();
   }
 protected:   
   virtual void run_period() = 0; 
 private:
   int wakeups_missed; 
   int timer_fd; 
-  int period_us; 
+  int period_us;
+  bool run_enable;
   void run_thread() {
     if (make_periodic()) {
       return;
     }
-    while(1) {
+    while(run_enable) {
       run_period();
-      wait_period();
+      if (run_enable) {
+        wait_period();
+      }
     }
   }
   int make_periodic() {
@@ -145,7 +160,7 @@ private:
 
 
 
-#endif // THREADS_
+#endif // SRSLTE_THREADS_H
 
 #endif // __cplusplus
 

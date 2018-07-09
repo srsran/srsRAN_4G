@@ -24,14 +24,14 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
-#include "mac/proc_bsr.h"
-#include "mac/mac.h"
-#include "mac/mux.h"
+#include "srsue/hdr/mac/proc_bsr.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/mac/mux.h"
 
 
   namespace srsue {
@@ -209,7 +209,11 @@ bool bsr_proc::generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes) {
     if (nof_lcg > 1) {
       bsr->format = LONG_BSR;
     }  
-  }     
+  }
+  Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n",
+       bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format),
+       bsr->buff_size[0], bsr->buff_size[1], bsr->buff_size[2], bsr->buff_size[3]);
+
   return ret; 
 }
 
@@ -337,10 +341,7 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr)
     }
     generate_bsr(bsr, nof_padding_bytes);
     ret = true; 
-    Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n", 
-         bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format), 
-         bsr->buff_size[0], bsr->buff_size[1], bsr->buff_size[2], bsr->buff_size[3]);
-    
+
     if (timers_db->get(timer_periodic_id)->get_timeout() && bsr->format != TRUNC_BSR) {
       timers_db->get(timer_periodic_id)->reset();
       timers_db->get(timer_periodic_id)->run();
@@ -368,7 +369,7 @@ bool bsr_proc::need_to_reset_sr() {
 
 bool bsr_proc::need_to_send_sr(uint32_t tti) {
   if (!sr_is_sent && triggered_bsr_type == REGULAR) {
-    if (srslte_tti_interval(tti,next_tx_tti)>0 && srslte_tti_interval(tti,next_tx_tti) < 10240-4) {
+    if (srslte_tti_interval(tti,next_tx_tti)>0 && srslte_tti_interval(tti,next_tx_tti) < 10240-HARQ_DELAY_MS) {
       reset_sr = false; 
       sr_is_sent = true; 
       Debug("BSR:   Need to send sr: sr_is_sent=true, reset_sr=false, tti=%d, next_tx_tti=%d\n", tti, next_tx_tti);

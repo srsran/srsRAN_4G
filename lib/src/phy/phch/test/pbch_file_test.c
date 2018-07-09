@@ -140,7 +140,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft, cell.cp, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
+  if (srslte_ofdm_init_(&fft, cell.cp, input_buffer, fft_buffer, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -154,7 +154,7 @@ int base_init() {
     return -1;
   }
 
-  DEBUG("Memory init OK\n",0);
+  DEBUG("Memory init OK\n");
   return 0;
 }
 
@@ -203,12 +203,12 @@ int main(int argc, char **argv) {
 
     if (nread > 0) {
       // process 1st subframe only
-      srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
+      srslte_ofdm_rx_sf(&fft);
 
       /* Get channel estimates for each port */
       srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
-      INFO("Decoding PBCH\n", 0);
+      INFO("Decoding PBCH\n");
       
       for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
         ce_slot1[i] = &ce[i][SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)];
@@ -232,6 +232,8 @@ int main(int argc, char **argv) {
   } while(nread > 0 && frame_cnt < nof_frames);
 
   base_free();
+  srslte_dft_exit();
+
   if (frame_cnt == 1) {
     if (n == 0) {
       printf("Could not decode PBCH\n");

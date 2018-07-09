@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef UEPRACH_H
-#define UEPRACH_H
+#ifndef SRSUE_PRACH_H
+#define SRSUE_PRACH_H
 
 #include <string.h>
 
@@ -45,25 +45,24 @@ namespace srsue {
       
       args              = NULL; 
       config            = NULL; 
-      signal_buffer     = NULL;
       transmitted_tti   = 0; 
       target_power_dbm  = 0;
       mem_initiated     = false;
       cell_initiated    = false;
+      signal_buffer     = NULL;   
     }
     ~prach();
     void           init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config, uint32_t max_prb, phy_args_t *args, srslte::log *log_h);
     bool           set_cell(srslte_cell_t cell);
     bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
     bool           is_ready_to_send(uint32_t current_tti);
+    bool           is_pending();
     int            tx_tti();
-    
-    void           send(srslte::radio* radio_handler, float cfo, float pathloss, srslte_timestamp_t rx_time);
-    float          get_p0_preamble();
-    
-    static const uint32_t tx_advance_sf = 4; // Number of subframes to advance transmission
-    
-  private: 
+    cf_t*          generate(float cfo, uint32_t *nof_sf, float *target_power = NULL);
+
+  private:
+
+    const static int MAX_LEN_SF = 3;
     
     LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config;
     phy_args_t                         *args; 
@@ -80,10 +79,10 @@ namespace srsue {
     srslte_cell_t  cell;
     cf_t          *signal_buffer;
     srslte_cfo_t   cfo_h; 
-    float target_power_dbm;
+    float          target_power_dbm;
     
   };
 
 } // namespace srsue
 
-#endif // UEPRACH_H
+#endif // SRSUE_PRACH_H

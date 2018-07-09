@@ -45,16 +45,8 @@
 #define PDCCH_FORMAT_NOF_REGS(i)        ((1<<i)*9)
 #define PDCCH_FORMAT_NOF_BITS(i)        ((1<<i)*72)
 
-static void set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
-  if (cfi > 0 && cfi < 4) {
-    q->nof_regs = (srslte_regs_pdcch_nregs(q->regs, cfi) / 9) * 9;
-    q->nof_cce = q->nof_regs / 9;
-  } 
-}
-
-void srslte_pdcch_set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
-  set_cfi(q, cfi);
-}
+#define NOF_CCE(cfi)  ((cfi>0&&cfi<4)?q->nof_cce[cfi-1]:0)
+#define NOF_REGS(cfi) ((cfi>0&&cfi<4)?q->nof_regs[cfi-1]:0)
 
 float srslte_pdcch_coderate(uint32_t nof_bits, uint32_t l) {
   return (float) (nof_bits+16)/(4*PDCCH_FORMAT_NOF_REGS(l));
@@ -73,7 +65,7 @@ static int pdcch_init(srslte_pdcch_t *q, uint32_t max_prb, uint32_t nof_rx_anten
     q->is_ue           = is_ue;
     /* Allocate memory for the maximum number of PDCCH bits (CFI=3) */
     q->max_bits = max_prb*3*12*2;
-
+    
     INFO("Init PDCCH: Max bits: %d\n", q->max_bits);
 
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
@@ -188,8 +180,13 @@ int srslte_pdcch_set_cell(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t 
   {
     q->regs = regs;
 
+    for (int cfi=0;cfi<3;cfi++) {
+      q->nof_regs[cfi] = (srslte_regs_pdcch_nregs(q->regs, cfi+1) / 9) * 9;
+      q->nof_cce[cfi]  = q->nof_regs[cfi]/ 9;
+    }
+
     /* Allocate memory for the maximum number of PDCCH bits (CFI=3) */
-    q->max_bits = (srslte_regs_pdcch_nregs(q->regs, 3) / 9) * 72;
+    q->max_bits = (NOF_REGS(3)/ 9) * 72;
 
     INFO("PDCCH: Cell config PCI=%d, %d ports.\n",
          q->cell.id, q->cell.nof_ports);
@@ -214,8 +211,14 @@ int srslte_pdcch_set_cell(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t 
 uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, uint32_t max_candidates,
                         uint32_t nsubframe, uint32_t cfi, uint16_t rnti) 
 {
-  set_cfi(q, cfi);
-  return srslte_pdcch_ue_locations_ncce(q->nof_cce, c, max_candidates, nsubframe, rnti);
+  return srslte_pdcch_ue_locations_ncce(NOF_CCE(cfi), c, max_candidates, nsubframe, rnti);
+}
+
+
+uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates,
+                                        uint32_t nsubframe, uint16_t rnti)
+{
+  return srslte_pdcch_ue_locations_ncce_L(nof_cce, c, max_candidates, nsubframe, rnti, -1);
 }
 
 /** 36.213 v9.1.1 
@@ -223,8 +226,8 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
  * in the structure pointed by c.
  * Returns the number of candidates saved in the array c.   
  */
-uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates,
-                        uint32_t nsubframe, uint16_t rnti) {
+uint32_t srslte_pdcch_ue_locations_ncce_L(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates,
+                        uint32_t nsubframe, uint16_t rnti, int Ls) {
   
   int l; // this must be int because of the for(;;--) loop
   uint32_t i, k, L, m; 
@@ -241,24 +244,26 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
   // All aggregation levels from 8 to 1
   for (l = 3; l >= 0; l--) {
     L = (1 << l);
-    // For all candidates as given in table 9.1.1-1
-    for (i = 0; i < nof_candidates[l]; i++) {
-      if (nof_cce >= L) {
-        ncce = L * ((Yk + i) % (nof_cce / L));
-        // Check if candidate fits in c vector and in CCE region
-        if (k < max_candidates  && ncce + L <= nof_cce) 
-        {            
-          c[k].L = l;
-          c[k].ncce = ncce;
-          
-          DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
-              k, c[k].ncce, c[k].L);            
+    if (Ls<0 || Ls==L) {
+      // For all candidates as given in table 9.1.1-1
+      for (i = 0; i < nof_candidates[l]; i++) {
+        if (nof_cce >= L) {
+          ncce = L * ((Yk + i) % (nof_cce / L));
+          // Check if candidate fits in c vector and in CCE region
+          if (k < max_candidates  && ncce + L <= nof_cce)
+          {
+            c[k].L = l;
+            c[k].ncce = ncce;
 
-          k++;          
-        } 
+            DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
+                  k, c[k].ncce, c[k].L);
+
+            k++;
+          }
+        }
       }
     }
-  }    
+  }
 
   DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x, nsubframe=%d, nof_cce=%d\n", 
          k, rnti, nsubframe, nof_cce);
@@ -277,8 +282,7 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
 uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, uint32_t max_candidates, 
                                 uint32_t cfi) 
 {
-  set_cfi(q, cfi);
-  return srslte_pdcch_common_locations_ncce(q->nof_cce, c, max_candidates); 
+  return srslte_pdcch_common_locations_ncce(NOF_CCE(cfi), c, max_candidates); 
 }
 
 uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates) 
@@ -289,9 +293,10 @@ uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_locatio
   for (l = 3; l > 1; l--) {
     L = (1 << l);
     for (i = 0; i < SRSLTE_MIN(nof_cce, 16) / (L); i++) {
-      if (k < max_candidates) {
-        c[k].L = l;
-        c[k].ncce = (L) * (i % (nof_cce / (L)));
+      uint32_t ncce = (L) * (i % (nof_cce / (L)));
+      if (k < max_candidates && ncce + L <= nof_cce) {
+        c[k].L    = l;
+        c[k].ncce = ncce;
         DEBUG("Common SS Candidate %d: nCCE: %d, L: %d\n",
             k, c[k].ncce, c[k].L);
         k++;
@@ -361,7 +366,8 @@ int srslte_pdcch_dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t
 int srslte_pdcch_decode_msg(srslte_pdcch_t *q, 
                             srslte_dci_msg_t *msg, 
                             srslte_dci_location_t *location, 
-                            srslte_dci_format_t format, 
+                            srslte_dci_format_t format,
+                            uint32_t cfi,
                             uint16_t *crc_rem) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -370,9 +376,9 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
       srslte_dci_location_isvalid(location))
   {
     if (location->ncce * 72 + PDCCH_FORMAT_NOF_BITS(location->L) > 
-      q->nof_cce*72) {
+      NOF_CCE(cfi)*72) {
       fprintf(stderr, "Invalid location: nCCE: %d, L: %d, NofCCE: %d\n", 
-        location->ncce, location->L, q->nof_cce);
+        location->ncce, location->L, NOF_CCE(cfi));
     } else {
       ret = SRSLTE_SUCCESS;
       
@@ -448,9 +454,8 @@ int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MA
       cfi               >  0    &&
       cfi               <  4)
   {
-    set_cfi(q, cfi);
     
-    uint32_t e_bits = 72*q->nof_cce;
+    uint32_t e_bits = 72*NOF_CCE(cfi);
     nof_symbols = e_bits/2;
     ret = SRSLTE_ERROR;
     bzero(q->llr, sizeof(float) * q->max_bits);
@@ -466,7 +471,7 @@ int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MA
           
     /* extract symbols */
     for (int j=0;j<q->nof_rx_antennas;j++) {
-      int n = srslte_regs_pdcch_get(q->regs, sf_symbols[j], q->symbols[j]);
+      int n = srslte_regs_pdcch_get(q->regs, cfi, sf_symbols[j], q->symbols[j]);
       if (nof_symbols != n) {
         fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
         return ret;
@@ -474,7 +479,7 @@ int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MA
 
       /* extract channel estimates */
       for (i = 0; i < q->cell.nof_ports; i++) {
-        n = srslte_regs_pdcch_get(q->regs, ce[i][j], q->ce[i][j]);
+        n = srslte_regs_pdcch_get(q->regs, cfi, ce[i][j], q->ce[i][j]);
         if (nof_symbols != n) {
           fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
           return ret;
@@ -485,9 +490,9 @@ int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MA
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, nof_symbols, noise_estimate/2);
+      srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, NULL, q->nof_rx_antennas, nof_symbols, 1.0f, noise_estimate/2);
     } else {
-      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, nof_symbols);
+      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, NULL, q->nof_rx_antennas, q->cell.nof_ports, nof_symbols, 1.0f);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
     }
 
@@ -548,7 +553,7 @@ int srslte_pdcch_dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32
 
     srslte_pdcch_dci_encode_conv(q, data, nof_bits, tmp, rnti); 
 
-    DEBUG("CConv output: ", 0);
+    DEBUG("CConv output: ");
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       srslte_vec_fprint_b(stdout, tmp, 3 * (nof_bits + 16));
     }
@@ -586,13 +591,11 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
       srslte_dci_location_isvalid(&location))
   {
 
-    set_cfi(q, cfi);
-
     uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(location.L);
     nof_symbols = e_bits/2;
     ret = SRSLTE_ERROR;
     
-    if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce && 
+    if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= NOF_CCE(cfi) && 
         msg->nof_bits < SRSLTE_DCI_MAX_BITS - 16) 
     {      
       DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
@@ -608,7 +611,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
 
       srslte_scrambling_b_offset(&q->seq[nsubframe], q->e, 72 * location.ncce, e_bits);
       
-      DEBUG("Scrambling output: ", 0);
+      DEBUG("Scrambling output: ");
       if (SRSLTE_VERBOSE_ISDEBUG()) {        
         srslte_vec_fprint_b(stdout, q->e, e_bits);
       }
@@ -618,21 +621,21 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
       /* layer mapping & precoding */
       if (q->cell.nof_ports > 1) {
         srslte_layermap_diversity(q->d, x, q->cell.nof_ports, nof_symbols);
-        srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
+        srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports, 1.0f);
       } else {
         memcpy(q->symbols[0], q->d, nof_symbols * sizeof(cf_t));
       }
       
       /* mapping to resource elements */
       for (i = 0; i < q->cell.nof_ports; i++) {
-        srslte_regs_pdcch_put_offset(q->regs, q->symbols[i], sf_symbols[i], 
-                              location.ncce * 9, PDCCH_FORMAT_NOF_REGS(location.L));
+        srslte_regs_pdcch_put_offset(q->regs, cfi, q->symbols[i], sf_symbols[i],
+                                     location.ncce * 9, PDCCH_FORMAT_NOF_REGS(location.L));
       }
       
       ret = SRSLTE_SUCCESS;
       
     } else {
-        fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d, nof_bits=%d\n", location.ncce, location.L, q->nof_cce, msg->nof_bits);
+        fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d, nof_bits=%d\n", location.ncce, location.L, NOF_CCE(cfi), msg->nof_bits);
     }
   } else {
     fprintf(stderr, "Invalid parameters: cfi=%d, L=%d, nCCE=%d\n", cfi, location.L, location.ncce);

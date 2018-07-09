@@ -32,8 +32,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.2.2.6, 5.2.3.3
  *****************************************************************************/
 
-#ifndef CQI_
-#define CQI_
+#ifndef SRSLTE_CQI_H
+#define SRSLTE_CQI_H
 
 #include <stdint.h>
 
@@ -43,6 +43,7 @@
 #define SRSLTE_CQI_MAX_BITS 64
 #define SRSLTE_DIF_CQI_MAX_BITS 3
 #define SRSLTE_PMI_MAX_BITS 4
+#define SRSLTE_CQI_STR_MAX_CHAR 64
 
 typedef struct {
   bool     configured; 
@@ -55,13 +56,23 @@ typedef struct {
 } srslte_cqi_periodic_cfg_t; 
   
 /* Table 5.2.2.6.2-1: Fields for channel quality information feedback for higher layer configured subband
-CQI reports
-(transmission mode 1, transmission mode 2, transmission mode 3, transmission mode 7 and
-transmission mode 8 configured without PMI/RI reporting). */
+   CQI reports  (transmission mode 1, transmission mode 2, transmission mode 3, transmission mode 7 and
+   transmission mode 8 configured without PMI/RI reporting). */
+
+/* Table 5.2.2.6.2-2: Fields for channel quality information (CQI) feedback for higher layer configured subband CQI
+   reports (transmission mode 4, transmission mode 5 and transmission mode 6). */
+
 typedef struct SRSLTE_API {
-  uint8_t  wideband_cqi; // 4-bit width
-  uint32_t subband_diff_cqi; // 2N-bit width
-  uint32_t N; 
+  uint8_t  wideband_cqi_cw0;      // 4-bit width
+  uint32_t subband_diff_cqi_cw0;  // 2N-bit width
+  uint8_t  wideband_cqi_cw1;      // if RI > 1 then 4-bit width otherwise 0-bit width
+  uint32_t subband_diff_cqi_cw1;  // if RI > 1 then 2N-bit width otherwise 0-bit width
+  uint32_t pmi;                   // if RI > 1 then 2-bit width otherwise 1-bit width
+  uint32_t N;
+  bool ri_present;
+  bool pmi_present;
+  bool four_antenna_ports;        // If cell has 4 antenna ports then true otherwise false
+  bool rank_is_not_one;           // If rank > 1 then true otherwise false
 } srslte_cqi_hl_subband_t;
 
 /* Table 5.2.2.6.3-1: Fields for channel quality information feedback for UE selected subband CQI
@@ -80,8 +91,19 @@ typedef struct SRSLTE_API {
 transmission mode 8 configured without PMI/RI reporting). 
 This is for PUCCH Format 2 reports
 */
+
+/* Table 5.2.3.3.1-2: UCI fields for channel quality and precoding information (CQI/PMI) feedback for
+wideband reports (transmission mode 4, transmission mode 5 and transmission mode 6)
+This is for PUCCH Format 2 reports
+*/
+
 typedef struct SRSLTE_API {
   uint8_t  wideband_cqi; // 4-bit width
+  uint8_t  spatial_diff_cqi; // If Rank==1 then it is 0-bit width otherwise it is 3-bit width
+  uint8_t  pmi;
+  bool pmi_present;
+  bool four_antenna_ports;        // If cell has 4 antenna ports then true otherwise false
+  bool rank_is_not_one;           // If rank > 1 then true otherwise false
 } srslte_cqi_format2_wideband_t;
 
 typedef struct SRSLTE_API {
@@ -128,6 +150,9 @@ SRSLTE_API int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg
 SRSLTE_API int srslte_cqi_value_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
                                        srslte_cqi_value_t *value);
 
+SRSLTE_API int srslte_cqi_value_tostring(srslte_cqi_value_t *value, char *buff, uint32_t buff_len);
+
+
 SRSLTE_API int srslte_cqi_hl_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
                                             srslte_cqi_hl_subband_t *msg);
 
@@ -155,4 +180,6 @@ SRSLTE_API int srslte_cqi_hl_get_subband_size(int num_prbs);
 
 SRSLTE_API int srslte_cqi_hl_get_no_subbands(int num_prbs);
 
-#endif // CQI_
+SRSLTE_API void srslte_cqi_to_str(const uint8_t *cqi_value, int cqi_len, char *str, int str_len);
+
+#endif // SRSLTE_CQI_H

@@ -26,8 +26,8 @@
 
 #include "srslte/srslte.h"
 
-#ifndef SCHED_INTERFACE_H
-#define SCHED_INTERFACE_H
+#ifndef SRSLTE_SCHED_INTERFACE_H
+#define SRSLTE_SCHED_INTERFACE_H
 
 namespace srsenb {
 
@@ -80,7 +80,10 @@ public:
     uint32_t maxharq_msg3tx;
     uint32_t n1pucch_an;
     uint32_t delta_pucch_shift; 
-    
+
+    // If non-negative, statically allocate N prbs at the edges of the uplink for PUCCH
+    int      nrb_pucch;
+
     uint32_t nrb_cqi; 
     uint32_t ncs_an;
     
@@ -129,15 +132,32 @@ public:
     uint32_t nbytes;
   } dl_sched_pdu_t; 
   
+  
+  typedef struct {
+      uint32_t lcid;
+      uint32_t lcid_buffer_size;
+      uint32_t stop;
+      uint8_t *mtch_payload;
+  } dl_mtch_sched_t;
+  
+  typedef struct {
+    dl_sched_pdu_t pdu[20];
+    dl_mtch_sched_t mtch_sched[8];
+    uint32_t num_mtch_sched;
+    uint8_t *mcch_payload;
+    uint32_t current_sf_allocation_num;
+  } dl_pdu_mch_t; 
+ 
   typedef struct {
     uint32_t              rnti; 
+    srslte_dci_format_t   dci_format;
     srslte_ra_dl_dci_t    dci;     
     srslte_dci_location_t dci_location;
-    uint32_t              tbs; 
+    uint32_t              tbs[SRSLTE_MAX_TB];
     bool mac_ce_ta;
     bool mac_ce_rnti;
-    uint32_t nof_pdu_elems; 
-    dl_sched_pdu_t pdu[MAX_RLC_PDU_LIST];
+    uint32_t nof_pdu_elems[SRSLTE_MAX_TB];
+    dl_sched_pdu_t pdu[SRSLTE_MAX_TB][MAX_RLC_PDU_LIST];
   } dl_sched_data_t;
   
   typedef struct {
@@ -225,8 +245,10 @@ public:
   virtual int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code) = 0; 
     
   /* DL information */
-  virtual int dl_ack_info(uint32_t tti, uint16_t rnti, bool ack) = 0; 
+  virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) = 0;
   virtual int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size) = 0; 
+  virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) = 0; 
+  virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) = 0;
   virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 
   
   /* UL information */
@@ -245,4 +267,4 @@ public:
 
 }
 
-#endif
+#endif // SRSLTE_SCHED_INTERFACE_H

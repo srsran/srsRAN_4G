@@ -33,8 +33,8 @@
  *  Reference:
  *********************************************************************************************/
 
-#ifndef AGC_
-#define AGC_
+#ifndef SRSLTE_AGC_H
+#define SRSLTE_AGC_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -42,8 +42,8 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_AGC_DEFAULT_TARGET 0.7
-#define SRSLTE_AGC_DEFAULT_BW     (5e-1)
+#define SRSLTE_AGC_DEFAULT_TARGET 0.3
+#define SRSLTE_AGC_DEFAULT_BW     0.7
 
 typedef enum SRSLTE_API {
   SRSLTE_AGC_MODE_ENERGY = 0, 
@@ -53,6 +53,8 @@ typedef enum SRSLTE_API {
 typedef struct SRSLTE_API{
   float bandwidth;
   double gain; 
+  double min_gain;
+  double max_gain;
   float y_out;
   bool lock;
   bool isfirst; 
@@ -79,6 +81,8 @@ SRSLTE_API void srslte_agc_free(srslte_agc_t *q);
 
 SRSLTE_API void srslte_agc_reset(srslte_agc_t *q);
 
+SRSLTE_API void srslte_agc_set_gain_range(srslte_agc_t *q, double min_gain, double max_gain);
+
 SRSLTE_API void srslte_agc_set_bandwidth(srslte_agc_t *q, 
                                          float bandwidth);
 
@@ -101,4 +105,4 @@ SRSLTE_API void srslte_agc_process(srslte_agc_t *q,
                                    cf_t *signal,
                                    uint32_t len);
 
-#endif // AGC_
+#endif // SRSLTE_AGC_H
