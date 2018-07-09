@@ -31,6 +31,7 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
+#include "srslte/common/s1ap_pcap.h"
 
 #include <strings.h>
 #include <arpa/inet.h>
@@ -125,6 +126,9 @@ private:
 
   //FIXME the GTP-C should be moved to the MME class, when the packaging of GTP-C messages is done.
   mme_gtpc *m_mme_gtpc;
+
+  //PCAP
+  srslte::s1ap_pcap m_pcap;
 };
 
 inline uint32_t

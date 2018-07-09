@@ -99,6 +99,8 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
   //Initialize S1-MME
   m_s1mme = enb_listen();
 
+  //Init PCAP
+  m_pcap.open("/tmp/epc.pcap");
   m_s1ap_log->info("S1AP Initialized\n");
   return 0;
 }
@@ -130,6 +132,9 @@ s1ap::stop()
   s1ap_mngmt_proc::cleanup();
   s1ap_nas_transport::cleanup();
   s1ap_ctx_mngmt_proc::cleanup();
+
+  //PCAP
+  m_pcap.close();
   return;
 }
 
@@ -207,6 +212,8 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb
     m_s1ap_log->error("Failed to unpack received PDU\n");
     return false;
   }
+
+  m_pcap.write_s1ap(pdu->msg,pdu->N_bytes);
 
   switch(rx_pdu.choice_type) {
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
