@@ -278,11 +278,13 @@ level(std::string l)
 
 int
 main (int argc,char * argv[] )
-{  
-  cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
+{
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   signal(SIGKILL, sig_int_handler);
+
+  cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
+  srslte_debug_handle_crash(argc, argv);
 
   all_args_t args;
   parse_args(&args, argc, argv); 
