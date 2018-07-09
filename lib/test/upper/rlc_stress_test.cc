@@ -125,7 +125,7 @@ public:
     run_enable = false;
     int cnt=0;
     while(running && cnt<100) {
-      usleep_scaled(10000);
+      usleep(10000);
       cnt++;
     }
     if(running) {
@@ -239,7 +239,7 @@ public:
     run_enable = false;
     int cnt=0;
     while(running && cnt<100) {
-      usleep_scaled(10000);
+      usleep(10000);
       cnt++;
     }
     if(running) {
@@ -378,7 +378,7 @@ void stress_test(stress_test_args_t args)
       rlc1.reestablish();
       rlc2.reestablish();
     }
-    usleep_scaled(1e6);
+    usleep(1e6);
   }
 
   tester1.stop();

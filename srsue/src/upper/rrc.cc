@@ -489,7 +489,7 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
 
       // Wait until t300 stops due to RRCConnectionSetup/Reject or expiry
       while (mac_timers->timer_get(t300)->is_running()) {
-        usleep(1000);
+        usleep_scaled(1000);
       }
 
       if (state == RRC_STATE_CONNECTED) {
@@ -802,7 +802,7 @@ bool rrc::si_acquire(uint32_t sib_index)
       rrc_log->info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",
                     sib_index+1, si_win_start, si_win_len, period, sched_index);
     }
-    usleep(1000);
+    usleep_scaled(1000);
     timeout++;
   }
   return serving_cell->has_sib(sib_index);

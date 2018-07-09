@@ -50,6 +50,7 @@ logger_file::~logger_file() {
     wait_thread_finish();
     flush();
     if (logfile) {
+      fprintf(logfile, "Closing log\n");
       fclose(logfile);
     }
     pthread_mutex_destroy(&mutex);

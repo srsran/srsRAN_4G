@@ -214,8 +214,6 @@ typedef struct {
   float          gain;           // tx gain
   struct timeval tv_tx_tti;      // tti time from upper layers
   struct timeval tv_tx_time;     // actual tx time
-  uint8_t        emu_data[2048]; // xtra data
-  uint16_t       emu_data_len;   // xdata len
 } rf_sock_iohdr_t;
 
 
@@ -1679,8 +1677,6 @@ int rf_sock_send_timed_multi(void *h, void *data[4], int nsamples,
                              time_t full_secs, double frac_secs, bool has_time_spec,
                              bool blocking, bool is_sob, bool is_eob)
 {
-  // printf("xtra data len %hu, %s\n", *((uint16_t*)data[1]), (const char *)(uint8_t*)(data[1] + 2));
-
    GET_DEV_INFO(h);
 
    if(nsamples <= 0)

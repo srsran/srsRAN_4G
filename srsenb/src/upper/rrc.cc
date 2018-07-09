@@ -586,7 +586,7 @@ void rrc::process_release_complete(uint16_t rnti)
       rlc->clear_buffer(rnti);
       users[rnti].send_connection_release();
       // There is no RRCReleaseComplete message from UE thus wait ~50 subframes for tx
-      usleep(50000);
+      usleep_scaled(50000);
     }
     rem_user_thread(rnti);
   } else {

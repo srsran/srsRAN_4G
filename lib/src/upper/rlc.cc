@@ -314,8 +314,6 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
   }
 
   if (!rlc_array[lcid].active()) {
-    rlc_log->warning("Adding radio bearer %s with mode %s\n",
-                  rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg.rlc_mode]);
     switch(cnfg.rlc_mode)
     {
     case LIBLTE_RRC_RLC_MODE_AM:
@@ -334,6 +332,8 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
       rlc_log->error("Cannot add RLC entity - invalid mode\n");
       return;
     }
+   rlc_log->warning("Adding radio bearer %s with mode %s\n",
+                  rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg.rlc_mode]);
   } else {
     rlc_log->warning("Bearer %s already created.\n", rrc->get_rb_name(lcid).c_str());
   }

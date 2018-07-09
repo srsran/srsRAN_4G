@@ -119,6 +119,7 @@ public:
         um.rx_mod              = (RLC_UMD_SN_SIZE_5_BITS == um.rx_sn_field_length) ? 32 : 1024;
         break;
       default:
+         fprintf(stderr, "%s RLC_MODE_NOT_VALID\n",  __func__);
         // Handle default case
         break;
     }

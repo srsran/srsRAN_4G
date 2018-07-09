@@ -381,7 +381,7 @@ int main(int argc, char *argv[])
   
   // Instruct the PHY to configure PRACH parameters and sync to current cell 
   while(!my_phy.cell_is_camping()) {
-    usleep_scaled(20000);
+    usleep(20000);
   }
 
   // Setup PHY parameters

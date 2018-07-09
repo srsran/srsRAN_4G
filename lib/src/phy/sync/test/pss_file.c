@@ -306,7 +306,7 @@ int main(int argc, char **argv) {
       printf("\n");
     }
 
-    usleep_scaled(10000);
+    usleep(10000);
   
 #ifndef DISABLE_GRAPHICS
     if (!disable_plots)

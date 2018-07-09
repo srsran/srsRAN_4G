@@ -426,7 +426,7 @@ int main(int argc, char *argv[])
         enb->print_pool();
       }
     }
-    usleep(10000);
+    usleep_scaled(10000);
   }
   pthread_cancel(input);
   metrics.stop();

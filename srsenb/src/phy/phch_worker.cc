@@ -169,7 +169,7 @@ void phch_worker::stop()
 
   int cnt = 0;
   while(is_worker_running && cnt<100) {
-    usleep(1000);
+    usleep_scaled(1000);
     cnt++;
   }
 

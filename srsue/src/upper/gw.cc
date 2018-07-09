@@ -86,7 +86,7 @@ void gw::stop()
       // Wait thread to exit gracefully otherwise might leave a mutex locked
       int cnt=0;
       while(running && cnt<100) {
-        usleep(10000);
+        usleep_scaled(10000);
         cnt++;
       }
       if (running) {
@@ -350,7 +350,7 @@ void gw::run_thread()
                 gw_log->warning("Could not re-establish the connection\n");
               }
             }
-            usleep(100000);
+            usleep_scaled(100000);
             attach_wait++;
           }
 

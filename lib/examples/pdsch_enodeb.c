@@ -1030,7 +1030,7 @@ int main(int argc, char **argv) {
           }
           srslte_filesink_write_multi(&fsink, (void**) output_buffer, sf_n_samples, cell.nof_ports);
         }
-        usleep_scaled(1000);
+        usleep(1000);
       } else {
 #ifndef DISABLE_RF  
       float norm_factor = (float) cell.nof_prb/15/sqrtf(pdsch_cfg.grant.nof_prb);

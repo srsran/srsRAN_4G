@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
       
       total_pkts++;       
     }
-    usleep_scaled(30000);    
+    usleep(30000);    
     if (bch_decoded && my_phy.cell_is_camping() && total_pkts > 0) {
       if (srslte_verbose == SRSLTE_VERBOSE_NONE && srsapps_verbose == 0) {
         float gain = prog_args.rf_gain; 

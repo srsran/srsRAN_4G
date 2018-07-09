@@ -234,7 +234,7 @@ bool nas::rrc_connect() {
     // Wait until attachment. If doing a service request is already attached
     uint32_t tout = 0;
     while (tout < 5000 && state != EMM_STATE_REGISTERED && running && rrc->is_connected()) {
-      usleep(1000);
+      usleep_scaled(1000);
       tout++;
     }
     if (state == EMM_STATE_REGISTERED) {

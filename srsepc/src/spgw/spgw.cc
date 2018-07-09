@@ -352,7 +352,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
 
   if(ip_found == false)
   {
-    //m_spgw_log->console("IP Packet is not for any UE\n");
+    m_spgw_log->info("IP Packet is not for any UE\n");
     return;
   }
   struct sockaddr_in enb_addr;

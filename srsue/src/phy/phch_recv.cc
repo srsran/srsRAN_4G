@@ -273,7 +273,7 @@ bool phch_recv::cell_select(phy_interface_rrc::phy_cell_t *new_cell) {
 
   // Wait for any pending PHICH
   while(worker_com->is_any_pending_ack() && cnt < 10) {
-    usleep(1000);
+    usleep_scaled(1000);
     cnt++;
     Info("Cell Select: waiting pending PHICH (cnt=%d)\n", cnt);
   }
@@ -519,7 +519,7 @@ void phch_recv::run_thread()
             is_end_of_burst = true;
           }
         } else {
-          usleep(1000);
+          usleep_scaled(1000);
         }
         break;
     }
