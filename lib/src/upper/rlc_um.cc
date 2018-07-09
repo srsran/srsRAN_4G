@@ -204,7 +204,7 @@ void rlc_um::write_sdu_nb(byte_buffer_t *sdu)
   }
   if (sdu) {
     if (tx_sdu_queue.try_write(sdu)) {
-      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes);
+      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
     } else {
       log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B,tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
       pool->deallocate(sdu);

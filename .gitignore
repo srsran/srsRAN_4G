@@ -1,0 +1,6 @@
+# build directory
+build
+
+# code reading
+.cproject
+cscope.out

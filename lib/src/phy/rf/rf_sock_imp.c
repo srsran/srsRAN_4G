@@ -288,6 +288,7 @@ typedef struct {
    int                  rx_msgQ_tail;
    pthread_cond_t       rx_msgQ_cond;
    rf_sock_tx_info_t    tx_msg;
+   srslte_rf_info_t     rf_info;
 } rf_sock_info_t;
 
 
@@ -348,7 +349,8 @@ static  rf_sock_info_t rf_sock_info = { .dev_name        = "sockrf",
                                         .rx_msgQ_head    = 0,
                                         .rx_msgQ_tail    = 0,
                                         .rx_msgQ_cond    = PTHREAD_COND_INITIALIZER,
-                                        .tx_msg          = {}
+                                        .tx_msg          = {},
+                                        .rf_info         = {}
                                       };
 
 #define GET_DEV_INFO(h)  assert(h); rf_sock_info_t *_info = (rf_sock_info_t *)(h)
@@ -1305,6 +1307,15 @@ double rf_sock_set_tx_gain(void *h, double gain)
 
    return _info->tx_gain;
  }
+
+srslte_rf_info_t * rf_sock_get_rf_info(void *h)
+  {
+     GET_DEV_INFO(h);
+
+     RF_SOCK_INFO("");
+
+     return &_info->rf_info;
+  }
 
 
 double rf_sock_get_rx_gain(void *h)

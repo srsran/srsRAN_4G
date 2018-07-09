@@ -72,6 +72,8 @@ SRSLTE_API   double rf_sock_get_rx_gain(void *h);
 
 SRSLTE_API   double rf_sock_get_tx_gain(void *h);
 
+SRSLTE_API   srslte_rf_info_t * rf_sock_get_rf_info(void *h);
+
 SRSLTE_API   double rf_sock_set_rx_freq(void *h, double freq);  
 
 SRSLTE_API   double rf_sock_set_tx_srate(void *h, double freq);

@@ -68,6 +68,8 @@ SRSLTE_API   double rf_dummy_set_rx_gain(void *h, double gain);
 
 SRSLTE_API   double rf_dummy_set_tx_gain(void *h, double gain);
 
+SRSLTE_API   srslte_rf_info_t * rf_dummy_get_rf_info(void *h);
+
 SRSLTE_API   double rf_dummy_get_rx_gain(void *h);
 
 SRSLTE_API   double rf_dummy_get_tx_gain(void *h);

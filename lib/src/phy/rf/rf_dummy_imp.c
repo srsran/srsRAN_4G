@@ -69,6 +69,7 @@ typedef struct {
    double               clock_rate;
    void (*error_handler)(srslte_rf_error_t error);
    bool                 rx_stream;
+   srslte_rf_info_t     rf_info;
 } rf_dummy_info_t;
 
 
@@ -98,6 +99,7 @@ static  rf_dummy_info_t rf_dummy_info = { .dev_name        = "dummyrf",
                                           .clock_rate      = 0.0,
                                           .error_handler   = rf_dummy_handle_error,
                                           .rx_stream       = false,
+                                          .rf_info         = {}
                                         };
 
 #define GET_DEV_INFO(h)  assert(h); rf_dummy_info_t *_info = (rf_dummy_info_t *)(h)
@@ -274,6 +276,14 @@ double rf_dummy_get_tx_gain(void *h)
    return _info->tx_gain;
  }
 
+srslte_rf_info_t * rf_dummy_get_rf_info(void *h)
+  {
+     GET_DEV_INFO(h);
+
+     LOG_INFO("");
+
+     return &_info->rf_info;
+  }
 
 double rf_dummy_set_rx_srate(void *h, double rate)
  {
