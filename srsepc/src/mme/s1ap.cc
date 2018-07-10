@@ -186,7 +186,7 @@ s1ap::enb_listen()
 
   //S1-MME bind
   bzero(&s1mme_addr, sizeof(s1mme_addr));
-  s1mme_addr.sin_family = AF_INET; 
+  s1mme_addr.sin_family = AF_INET;
   inet_pton(AF_INET, m_s1ap_args.mme_bind_addr.c_str(), &(s1mme_addr.sin_addr) );
   s1mme_addr.sin_port = htons(S1MME_PORT);
   err = bind(sock_fd, (struct sockaddr*) &s1mme_addr, sizeof (s1mme_addr));
@@ -209,6 +209,22 @@ s1ap::enb_listen()
   return sock_fd;
 }
 
+bool
+s1ap::s1ap_tx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri)
+{
+  ssize_t n_sent = sctp_send(m_s1mme, pdu->msg, pdu->N_bytes, enb_sri, 0);
+  if(n_sent == -1)
+  {
+    m_s1ap_log->console("Failed to send S1AP PDU.\n");
+    m_s1ap_log->error("Failed to send S1AP PDU. \n");
+    return false;
+  }
+  if(m_pcap_enable)
+  {
+    m_pcap.write_s1ap(pdu->msg,pdu->N_bytes);
+  }
+  return true;
+}
 
 bool
 s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri) 
@@ -251,6 +267,7 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
 {
   bool reply_flag = false;
   srslte::byte_buffer_t * reply_buffer = m_pool->allocate();
+  bool ret = false;
 
   switch(msg->choice_type) {
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST:
@@ -276,20 +293,13 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
   //Send Reply to eNB
   if(reply_flag == true)
   {
-    ssize_t n_sent = sctp_send(m_s1mme,reply_buffer->msg, reply_buffer->N_bytes, enb_sri, 0);
-    if(n_sent == -1)
-    {
-      m_s1ap_log->console("Failed to send S1AP Initiating Reply.\n");
-      m_s1ap_log->error("Failed to send S1AP Initiating Reply. \n");
-      m_pool->deallocate(reply_buffer);
-      return false;
-    }
+    ret = s1ap_tx_pdu(reply_buffer, enb_sri);
   }
   m_pool->deallocate(reply_buffer);
-  return true;
+  return ret;
 }
 
-bool 
+bool
 s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg)
 {
   switch(msg->choice_type) {

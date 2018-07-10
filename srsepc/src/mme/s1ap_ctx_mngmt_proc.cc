@@ -96,7 +96,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALCONTEXTSETUPREQUEST;
 
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *in_ctxt_req = &init->choice.InitialContextSetupRequest;
-  
+
   LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx_req = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
 
@@ -178,12 +178,10 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
     return false;
   }
 
-  //Send Reply to eNB
-  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ecm_ctx->enb_sri, 0); 
-  if(n_sent == -1)
+  if(!m_s1ap->s1ap_tx_pdu(reply_buffer,&ecm_ctx->enb_sri))
   {
-      m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
-      return false;
+    m_s1ap_log->error("Error sending Initial Context Setup Request.\n");
+    return false;
   }
 
   //Change E-RAB state to Context Setup Requested and save S-GW control F-TEID
@@ -345,13 +343,11 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srsl
     return false;
   }
   //Send Reply to eNB 
-  int n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ecm_ctx->enb_sri, 0);
-  if(n_sent == -1)
+  if(!m_s1ap->s1ap_tx_pdu(reply_buffer,&ecm_ctx->enb_sri))
   {
-    m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
+    m_s1ap_log->error("Error sending UE Context Release command.\n");
     return false;
   }
-
 
   return true;
 }
