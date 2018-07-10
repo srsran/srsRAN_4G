@@ -51,7 +51,10 @@ sgi_if_addr    = 172.16.0.1
 ####################################################################
 # PCAP configuration
 #
-# Enable PCAP tracing of S1AP packets
+# Packets are captured to file in the compact format decoded by 
+# the Wireshark s1ap dissector and with DLT 150. 
+# To use the dissector, edit the preferences for DLT_USER to 
+# add an entry with DLT=150, Payload Protocol=s1ap.
 #
 # enable:   Enable or disable the PCAP.
 # filename: File name where to save the PCAP.

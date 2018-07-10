@@ -104,8 +104,8 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
   if(m_pcap_enable)
   {
     m_pcap.open(s1ap_args.pcap_filename.c_str());
-    m_s1ap_log->info("S1AP Initialized\n");
   }
+  m_s1ap_log->info("S1AP Initialized\n");
   return 0;
 }
 
