@@ -13,7 +13,6 @@
 #include "parity.h"
 
 //#define DEBUG
-//#define HAVE_NEON
 #ifdef HAVE_NEON
 
 #include <arm_neon.h>
@@ -22,8 +21,6 @@ typedef union {
   unsigned char c[64]; 
   uint8x16_t    v[4];   
 } metric_t;
-
-
 typedef union { 
   unsigned long  w[2]; 
   unsigned char  c[8]; 
@@ -31,18 +28,16 @@ typedef union {
   uint8x8_t v[1];  
 } decision_t;
 
-
 union branchtab27{
-   unsigned char c[32];
+  unsigned char c[32];
   uint8x16_t v[2];
 } Branchtab37_neon[3];
 
-	  int8_t __attribute__((aligned(16))) xr[8];
-	  uint8x8_t mask_and;
-	  int8x8_t mask_shift;
+int8_t __attribute__((aligned(16))) xr[8];
+uint8x8_t mask_and;
+int8x8_t mask_shift;
 
 
-int firstGo;
 /* State info for instance of Viterbi decoder */
 struct v37 {
   metric_t metrics1; /* path metric buffer 1 */
@@ -77,7 +72,6 @@ void clear_v37_neon(struct v37 *vp) {
 int init_viterbi37_neon(void *p, int starting_state) {
   struct v37 *vp = p;
   uint32_t i;
-  firstGo = 1;
   for(i=0;i<64;i++)
     vp->metrics1.c[i] = 63;
     
@@ -87,7 +81,6 @@ int init_viterbi37_neon(void *p, int starting_state) {
   
   mask_and = vdup_n_u8(0x80); 
   mask_shift = vld1_s8(xr);
-
 
   vp->old_metrics = &vp->metrics1;
   vp->new_metrics = &vp->metrics2;
@@ -176,32 +169,31 @@ void print_uint8x16_t(char *s, uint8x16_t val) {
   printf("\n");
 }
 
-static inline int movemask_neon(uint8x16_t movemask_low_in)
-{
-    uint8x8_t lo = vget_low_u8(movemask_low_in);
-    uint8x8_t hi = vget_high_u8(movemask_low_in);
-    lo = vand_u8(lo, mask_and);
-    lo = vshl_u8(lo, mask_shift);
-    hi = vand_u8(hi, mask_and);
-    hi = vshl_u8(hi, mask_shift);
+static inline int movemask_neon(uint8x16_t movemask_low_in) {
+  uint8x8_t lo = vget_low_u8(movemask_low_in);
+  uint8x8_t hi = vget_high_u8(movemask_low_in);
+  lo = vand_u8(lo, mask_and);
+  lo = vshl_u8(lo, mask_shift);
+  hi = vand_u8(hi, mask_and);
+  hi = vshl_u8(hi, mask_shift);
 
-    lo = vpadd_u8(lo, lo);
-    lo = vpadd_u8(lo, lo);
-    lo = vpadd_u8(lo, lo);
+  lo = vpadd_u8(lo, lo);
+  lo = vpadd_u8(lo, lo);
+  lo = vpadd_u8(lo, lo);
 
-    hi = vpadd_u8(hi, hi);
-    hi = vpadd_u8(hi, hi);
-    hi = vpadd_u8(hi, hi);
+  hi = vpadd_u8(hi, hi);
+  hi = vpadd_u8(hi, hi);
+  hi = vpadd_u8(hi, hi);
 
-    return ((hi[0] << 8) | (lo[0] & 0xFF));
+  return ((hi[0] << 8) | (lo[0] & 0xFF));
 }
 
 void update_viterbi37_blk_neon(void *p,unsigned char *syms,int nbits, uint32_t *best_state) {
   struct v37 *vp = p;
   decision_t *d;
 
-	uint8_t thirtyone;
-	thirtyone = 31;
+  uint8_t thirtyone;
+  thirtyone = 31;
   if(p == NULL)
     return;
   
@@ -217,19 +209,18 @@ void update_viterbi37_blk_neon(void *p,unsigned char *syms,int nbits, uint32_t *
   
   while(nbits--) {
     uint8x16_t sym0v,sym1v,sym2v;
-    
     void *tmp;
     int i;
 
    // printf("nbits=%d, syms=%d,%d,%d\n", nbits, syms[0], syms[1], syms[2]);fflush(stdout);
     
     /* Splat the 0th symbol across sym0v, the 1st symbol across sym1v, etc */
-    sym0v = vld1q_dup_u8(syms);  // passing a char as opposed to a pointer to a char
+    sym0v = vld1q_dup_u8(syms); 
     sym1v = vld1q_dup_u8(syms+1); 
     sym2v = vld1q_dup_u8(syms+2);
     syms += 3;
     
-    for(i=0;i<2;i++){
+    for(i=0;i<2;i++) {
       uint8x16_t decision0, decision1, metric, m_metric, m0, m1, m2, m3, survivor0, survivor1;
 
       /* Form branch metrics */
@@ -246,48 +237,35 @@ void update_viterbi37_blk_neon(void *p,unsigned char *syms,int nbits, uint32_t *
       m2 = vaddq_u8(vp->old_metrics->v[i],m_metric);
       
       /* Compare and select, using modulo arithmetic */
-
-      
       decision0 = (uint8x16_t)vcgtq_s8(vsubq_s8((int8x16_t)m0,(int8x16_t)m1),vdupq_n_s8(0));
       decision1 = (uint8x16_t)vcgtq_s8(vsubq_s8((int8x16_t)m2,(int8x16_t)m3),vdupq_n_s8(0));
       survivor0 = vorrq_u8(vandq_u8(decision0,m1),vandq_u8(vmvnq_u8(decision0),m0));    
       survivor1 = vorrq_u8 (vandq_u8(decision1,m3),vandq_u8(vmvnq_u8(decision1),m2) );
 
-      ////// equal to _mm_unpacklo_epi8  //////////
-          uint8x8_t a1 = vget_low_u8(decision0);
-	  uint8x8_t b1 = vget_low_u8(decision1);
-	  uint8x8x2_t result = vzip_u8(a1, b1);
-	  uint8x16_t movemask_low_in =  vcombine_u8(result.val[0], result.val[1]);
-      ///////////////////////////////////////// 
-	  
-      
-      ////////equal to _mm_movemask_epi8 ////////
-            d->s[2*i] = movemask_neon(movemask_low_in);
+      /* Pack each set of decisions into 16 bits */
+      uint8x8_t a1 = vget_low_u8(decision0);
+      uint8x8_t b1 = vget_low_u8(decision1);
+      uint8x8x2_t result = vzip_u8(a1, b1);
+      uint8x16_t movemask_low_in =  vcombine_u8(result.val[0], result.val[1]);
+
+      d->s[2*i] = movemask_neon(movemask_low_in);
 	
-      ///////equal to _mm_unpackhi_epi8////////////
-	   a1 = vget_high_u8(decision0);
-	   b1 = vget_high_u8(decision1);
-	   result = vzip_u8(a1, b1);
-	   uint8x16_t movemask_hi_in = vcombine_u8(result.val[0], result.val[1]);
-    
- 		
+      a1 = vget_high_u8(decision0);
+      b1 = vget_high_u8(decision1);
+      result = vzip_u8(a1, b1);
+      uint8x16_t movemask_hi_in = vcombine_u8(result.val[0], result.val[1]);
 
-	  ////////equal to _mm_movemask//////////////
-	  d->s[2*i+1] = movemask_neon(movemask_hi_in);
+      d->s[2*i+1] = movemask_neon(movemask_hi_in);
 
+      a1 = vget_low_u8(survivor0);
+      b1 = vget_low_u8(survivor1);
+      result = vzip_u8(a1, b1);
+      vp->new_metrics->v[2*i] =  vcombine_u8(result.val[0], result.val[1]);
 
-          a1 = vget_low_u8(survivor0);
-	  b1 = vget_low_u8(survivor1);
-	  result = vzip_u8(a1, b1);
-	  vp->new_metrics->v[2*i] =  vcombine_u8(result.val[0], result.val[1]);
-	  
-
-	  a1 = vget_high_u8(survivor0);
-	  b1 = vget_high_u8(survivor1);
-	  result = vzip_u8(a1, b1);
-	  vp->new_metrics->v[2*i+1] = vcombine_u8(result.val[0], result.val[1]);
-      
- 
+      a1 = vget_high_u8(survivor0);
+      b1 = vget_high_u8(survivor1);
+      result = vzip_u8(a1, b1);
+      vp->new_metrics->v[2*i+1] = vcombine_u8(result.val[0], result.val[1]);
       
      }
 
@@ -315,18 +293,16 @@ void update_viterbi37_blk_neon(void *p,unsigned char *syms,int nbits, uint32_t *
       /* We cannot use a saturated subtract, because we often have to adjust by more than SHRT_MAX
        * This is okay since it can't overflow anyway
        */
-      for(i=0;i<4;i++)
-      {
+      for(i=0;i<4;i++) {
         vp->new_metrics->v[i] = vsubq_u8(vp->new_metrics->v[i],adjustv);
       }
-      
+   
     }
     d++;
     /* Swap pointers to old and new metrics */
     tmp = vp->old_metrics;
     vp->old_metrics = vp->new_metrics;
     vp->new_metrics = tmp;
-    //firstGo = 0;
   }
   
   if (best_state) {
