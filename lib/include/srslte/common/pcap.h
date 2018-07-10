@@ -35,7 +35,7 @@
 #define MAC_LTE_DLT  147
 #define NAS_LTE_DLT  148
 #define RLC_LTE_DLT  149 // UDP needs to be selected as protocol
-#define S1AP_LTE_DLT  150 // UDP needs to be selected as protocol
+#define S1AP_LTE_DLT  150 
 
 /* This structure gets written to the start of the file */
 typedef struct pcap_hdr_s {
