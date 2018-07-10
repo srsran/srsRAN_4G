@@ -128,6 +128,7 @@ private:
   mme_gtpc *m_mme_gtpc;
 
   //PCAP
+  bool              m_pcap_enable;
   srslte::s1ap_pcap m_pcap;
 };
 

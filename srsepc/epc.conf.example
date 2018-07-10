@@ -45,8 +45,21 @@ db_file = user_db.csv
 #####################################################################
 
 [spgw]
-gtpu_bind_addr=127.0.1.100
-sgi_if_addr=172.16.0.1
+gtpu_bind_addr = 127.0.1.100
+sgi_if_addr    = 172.16.0.1
+
+####################################################################
+# PCAP configuration
+#
+# Enable PCAP tracing of S1AP packets
+#
+# enable:   Enable or disable the PCAP.
+# filename: File name where to save the PCAP.
+#
+####################################################################
+[pcap]
+enable   = false
+filename = /tmp/epc.pcap
 
 ####################################################################
 # Log configuration

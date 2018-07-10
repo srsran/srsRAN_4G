@@ -100,8 +100,12 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
   m_s1mme = enb_listen();
 
   //Init PCAP
-  m_pcap.open("/tmp/epc.pcap");
-  m_s1ap_log->info("S1AP Initialized\n");
+  m_pcap_enable = s1ap_args.pcap_enable;
+  if(m_pcap_enable)
+  {
+    m_pcap.open(s1ap_args.pcap_filename.c_str());
+    m_s1ap_log->info("S1AP Initialized\n");
+  }
   return 0;
 }
 
@@ -134,7 +138,10 @@ s1ap::stop()
   s1ap_ctx_mngmt_proc::cleanup();
 
   //PCAP
-  m_pcap.close();
+  if(m_pcap_enable)
+  {
+    m_pcap.close();
+  }
   return;
 }
 
@@ -213,7 +220,9 @@ s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb
     return false;
   }
 
-  m_pcap.write_s1ap(pdu->msg,pdu->N_bytes);
+  if(m_pcap_enable){
+    m_pcap.write_s1ap(pdu->msg,pdu->N_bytes);
+  }
 
   switch(rx_pdu.choice_type) {
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
@@ -503,7 +512,7 @@ s1ap::release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id)
     m_s1ap_log->error("Could not find eNB for UE release request.\n");
     return false;
   }
-  uint16_t enb_id = it->second; 
+  uint16_t enb_id = it->second;
   std::map<int32_t,std::set<uint32_t> >::iterator ue_set = m_enb_assoc_to_ue_ids.find(ecm_ctx->enb_sri.sinfo_assoc_id);
   if(ue_set == m_enb_assoc_to_ue_ids.end())
   {

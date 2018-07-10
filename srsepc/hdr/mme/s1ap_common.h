@@ -93,6 +93,8 @@ typedef struct{
   std::string   mme_name;
   std::string   dns_addr;
   std::string   mme_apn;
+  bool          pcap_enable;
+  std::string   pcap_filename;
 } s1ap_args_t;
 
 typedef struct{
