@@ -179,41 +179,12 @@ endif(ENABLE_SOAPYSDR)
 
 if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
-  set(ENABLE_SOCKRF TRUE CACHE INTERNAL "Using Emulated RF module sockrf")
-else(ENABLE_EMURF)
-  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DSRSLTE_TIME_SCALE=1")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSRSLTE_TIME_SCALE=1")
-
-# UHD
-  find_package(UHD)
-  if(UHD_FOUND)
-    include_directories(${UHD_INCLUDE_DIRS})
-    link_directories(${UHD_LIBRARY_DIRS})
-  endif(UHD_FOUND)
-
-  # BladeRF
-  if(ENABLE_BLADERF)
-    find_package(bladeRF)
-    if(BLADERF_FOUND)
-      include_directories(${BLADERF_INCLUDE_DIRS})
-      link_directories(${BLADERF_LIBRARY_DIRS})
-    endif(BLADERF_FOUND)
-  endif(ENABLE_BLADERF)
-
-  # Soapy
-  find_package(SoapySDR)
-  if(SOAPYSDR_FOUND)
-    include_directories(${SOAPYSDR_INCLUDE_DIRS})
-    link_directories(${SOAPYSDR_LIBRARY_DIRS})
-  endif(SOAPYSDR_FOUND)
-
-  if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
-    set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
-  else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
-    set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
-    add_definitions(-DDISABLE_RF)
-  endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+if(! ENABLE_EMURF)
+  set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
+  add_definitions(-DDISABLE_RF)
 endif(ENABLE_EMURF)
+endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 
 # Boost
 if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
