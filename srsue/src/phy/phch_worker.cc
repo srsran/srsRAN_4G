@@ -1655,6 +1655,15 @@ void phch_worker::update_measurements()
     phy->set_dl_metrics(dl_metrics);
 
   }
+
+   Info("measurements chest %s, noise %5.3lf, rsrp_dbm %5.3lf rsrq_db %5.3lf, rssi_dbm %5.3lf, pataloss %5.3lf snr_db_cqi %5.3lf\n",
+        chest_done ? "yes" : "no",
+        phy->avg_noise,
+        phy->avg_rsrp_dbm,
+        phy->avg_rsrq_db,
+        phy->avg_rssi_dbm,
+        phy->pathloss,
+        phy->avg_snr_db_cqi);
 }
 
 
