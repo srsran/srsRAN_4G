@@ -56,6 +56,9 @@ typedef struct{
   uint8_t   message_type;   // Only support 0xFF - T-PDU type
   uint16_t  length;
   uint32_t  teid;
+  uint16_t  seqnum;
+  uint8_t   npdu_num;
+  uint8_t   nxt_head_type;
 }gtpu_header_t;
 
 

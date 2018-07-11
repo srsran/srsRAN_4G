@@ -25,6 +25,7 @@
  */
 
 
+#include <srslte/upper/gtpu.h>
 #include "srslte/upper/gtpu.h"
 
 
@@ -37,14 +38,20 @@ namespace srslte {
 
 bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte::log *gtpu_log)
 {
+
+
   if(header->flags != 0x30) {
     gtpu_log->error("gtpu_write_header - Unhandled header flags: 0x%x\n", header->flags);
     return false;
   }
+
+
+
   if(header->message_type != 0xFF) {
     gtpu_log->error("gtpu_write_header - Unhandled message type: 0x%x\n", header->message_type);
     return false;
   }
+
   if(pdu->get_headroom() < GTPU_HEADER_LEN) {
     gtpu_log->error("gtpu_write_header - No room in PDU for header\n");
     return false;
@@ -68,23 +75,35 @@ bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte
 
 bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte::log *gtpu_log)
 {
+
+    uint8_t opt_gtpu_headlen = GTPU_HEADER_LEN;
+
   uint8_t *ptr  = pdu->msg;
 
-  pdu->msg      += GTPU_HEADER_LEN;
-  pdu->N_bytes  -= GTPU_HEADER_LEN;
+    header->flags         = *ptr;
+    ptr++;
 
-  header->flags         = *ptr;
-  ptr++;
+    if(header->flags != 0x30 && header->flags != 0x32) {
+        gtpu_log->error("gtpu_read_header - Unhandled header flags: 0x%x\n", header->flags);
+        return false;
+    }
+
   header->message_type  = *ptr;
   ptr++;
   uint8_to_uint16(ptr, &header->length);
   ptr += 2;
   uint8_to_uint32(ptr, &header->teid);
 
-  if(header->flags != 0x30) {
-    gtpu_log->error("gtpu_read_header - Unhandled header flags: 0x%x\n", header->flags);
-    return false;
+  if(header->flags == 0x32) {
+    // seq num field is present
+    opt_gtpu_headlen += 4; // for some reason there are two bytes after seq num
+    ptr += 4;
+    uint8_to_uint16(ptr, &header->seqnum);
   }
+
+  pdu->msg      += opt_gtpu_headlen;
+  pdu->N_bytes  -= opt_gtpu_headlen;
+
   if(header->message_type != 0xFF) {
     gtpu_log->error("gtpu_read_header - Unhandled message type: 0x%x\n", header->message_type);
     return false;
