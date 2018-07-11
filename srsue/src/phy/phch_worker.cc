@@ -1656,13 +1656,16 @@ void phch_worker::update_measurements()
 
   }
 
-   Info("measurements chest %s, noise %5.3lf, rsrp_dbm %5.3lf rsrq_db %5.3lf, rssi_dbm %5.3lf, pataloss %5.3lf snr_db_cqi %5.3lf\n",
+   Info("measurements: chest %s, noise %5.3lf, rsrp %5.3lf, rsrp_dbm %5.3lf, rsrq_db %5.3lf, rssi_dbm %5.3lf, pataloss %5.3lf, ri %d, pmi %d, snr_db_cqi %5.3lf\n",
         chest_done ? "yes" : "no",
         phy->avg_noise,
+        phy->avg_rsrp,
         phy->avg_rsrp_dbm,
         phy->avg_rsrq_db,
         phy->avg_rssi_dbm,
         phy->pathloss,
+        phy->last_ri,
+        phy->last_pmi,
         phy->avg_snr_db_cqi);
 }
 
