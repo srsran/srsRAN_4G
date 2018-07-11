@@ -2042,9 +2042,9 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
       uint8_t k_asme[32];
       nas->get_k_asme(k_asme, 32);
       usim->generate_as_keys(k_asme, nas->get_ul_count(), k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
-      rrc_log->debug_hex(k_rrc_enc, 32, "RRC encryption key - k_rrc_enc");
-      rrc_log->debug_hex(k_rrc_int, 32, "RRC integrity key  - k_rrc_int");
-      rrc_log->debug_hex(k_up_enc, 32,  "UP encryption key  - k_up_enc");
+      rrc_log->info_hex(k_rrc_enc, 32, "RRC encryption key - k_rrc_enc");
+      rrc_log->info_hex(k_rrc_int, 32, "RRC integrity key  - k_rrc_int");
+      rrc_log->info_hex(k_up_enc, 32,  "UP encryption key  - k_up_enc");
 
       security_is_activated = true;
 

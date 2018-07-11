@@ -274,8 +274,8 @@ bool s1ap::connect_mme()
   memset(&local_addr, 0, sizeof(struct sockaddr_in));
   local_addr.sin_family = ADDR_FAMILY;
   local_addr.sin_port = 0;  // Any local port will do
-  if(inet_pton(AF_INET, args.gtp_bind_addr.c_str(), &(local_addr.sin_addr)) != 1) {
-    s1ap_log->error("Error converting IP address (%s) to sockaddr_in structure\n", args.gtp_bind_addr.c_str());
+  if(inet_pton(AF_INET, args.s1c_bind_addr.c_str(), &(local_addr.sin_addr)) != 1) {
+    s1ap_log->error("Error converting IP address (%s) to sockaddr_in structure\n", args.s1c_bind_addr.c_str());
     return false;
   }
   bind(socket_fd, (struct sockaddr *)&local_addr, sizeof(local_addr));
