@@ -526,6 +526,12 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
     }
   }
 
+  if (!ret) {
+    rrc_log->warning("Could not estblish connection. Deallocating dedicatedInfoNAS PDU\n");
+    pool->deallocate(this->dedicatedInfoNAS);
+    this->dedicatedInfoNAS = NULL;
+  }
+
   pthread_mutex_unlock(&mutex);
   return ret;
 }

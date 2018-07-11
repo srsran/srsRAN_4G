@@ -104,6 +104,12 @@ void rlc_am::empty_queue() {
   while(tx_sdu_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
+  tx_sdu_queue.reset();
+}
+
+void rlc_am::reestablish() {
+  stop();
+  tx_enabled = true;
 }
 
 void rlc_am::stop()
