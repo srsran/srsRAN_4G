@@ -183,7 +183,7 @@ public:
     }
     b->reset();
     if (!pool->deallocate(b)) {
-      fprintf(stderr, "Error deallocating PDU: Addr=0x%lx not found in pool\n", (uint64_t) b);
+      printf("Error deallocating PDU: Addr=0x%lx not found in pool\n", (uint64_t) b);
     }
     b = NULL;
   }
