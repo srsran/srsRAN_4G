@@ -782,17 +782,17 @@ int rf_uhd_recv_with_time_multi(void *h,
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   uhd_rx_metadata_handle *md = &handler->rx_md_first; 
   size_t rxd_samples = 0;
+  size_t rxd_samples_total = 0;
   int trials = 0; 
   if (blocking) {
-    int n = 0;
-    while (n < nsamples && trials < 100) {
+    while (rxd_samples_total < nsamples && trials < 100) {
       void *buffs_ptr[4]; 
       for (int i=0;i<handler->nof_rx_channels;i++) {
         cf_t *data_c = (cf_t*) data[i];
-        buffs_ptr[i] = &data_c[n];
+        buffs_ptr[i] = &data_c[rxd_samples_total];
       }
 
-      size_t num_samps_left = nsamples - n;
+      size_t num_samps_left = nsamples - rxd_samples_total;
       size_t num_rx_samples = (num_samps_left > handler->rx_nof_samples) ? handler->rx_nof_samples : num_samps_left;
 
       rxd_samples = 0;
@@ -808,7 +808,7 @@ int rf_uhd_recv_with_time_multi(void *h,
       uhd_rx_metadata_error_code(*md, &error_code);
 
       md = &handler->rx_md;
-      n += rxd_samples;
+      rxd_samples_total += rxd_samples;
       trials++;
 
       if (error_code == UHD_RX_METADATA_ERROR_CODE_OVERFLOW) {
@@ -824,6 +824,7 @@ int rf_uhd_recv_with_time_multi(void *h,
     }
   } else {
     uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, data, nsamples, md, 0.0, false, &rxd_samples);
+    rxd_samples_total = rxd_samples;
     if (error) {
       fprintf(stderr, "Error receiving from UHD: %d\n", error);
       log_rx_error(handler);
@@ -833,7 +834,7 @@ int rf_uhd_recv_with_time_multi(void *h,
   if (secs && frac_secs) {
     uhd_rx_metadata_time_spec(handler->rx_md_first, secs, frac_secs);
   }
-  return nsamples;
+  return rxd_samples_total;
 }
                    
 int rf_uhd_send_timed(void *h,
