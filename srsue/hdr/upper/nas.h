@@ -166,7 +166,7 @@ private:
   // Parsers
   void parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu);
   void parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu);
-  void parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu, const uint8_t sec_hdr_type);
   void parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu);
   void parse_identity_request(uint32_t lcid, byte_buffer_t *pdu);
   void parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu);
@@ -182,7 +182,7 @@ private:
   void send_identity_response();
   void send_service_request();
   void send_esm_information_response(const uint8 proc_transaction_id);
-  void send_authentication_response(const uint8_t* res, const size_t res_len);
+  void send_authentication_response(const uint8_t* res, const size_t res_len, const uint8_t sec_hdr_type);
   void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
   void send_security_mode_reject(uint8_t cause);
