@@ -37,8 +37,6 @@ gtpu::gtpu():mchthread()
 {
   pdcp          = NULL;
   gtpu_log      = NULL;
-  gtp_bind_addr = NULL;
-  mme_addr      = NULL;
   pool          = NULL;
 
   pthread_mutex_init(&mutex, NULL);
