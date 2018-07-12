@@ -228,7 +228,9 @@ static rf_dev_t dev_dummy = {
 };                        
 #endif
 
-#ifdef ENABLE_SOCKRF
+#define ENABLE_SOCKRF
+
+#ifdef  ENABLE_SOCKRF
 
 #include "rf_sock_imp.h"
 

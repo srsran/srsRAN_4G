@@ -26,7 +26,7 @@ if(RF_FOUND)
 
   # Include common RF files
   set(SOURCES_RF "")
-  list(APPEND SOURCES_RF rf_imp.c rf_dummy_imp.c)
+  list(APPEND SOURCES_RF rf_imp.c rf_dummy_imp.c rf_sock_imp.c)
 
   if (UHD_FOUND)
     add_definitions(-DENABLE_UHD)
@@ -42,11 +42,6 @@ if(RF_FOUND)
     add_definitions(-DENABLE_SOAPYSDR)
     list(APPEND SOURCES_RF rf_soapy_imp.c)
   endif (SOAPYSDR_FOUND)
-
-  if (ENABLE_SOCKRF)
-    add_definitions(-DENABLE_SOCKRF)
-    list(APPEND SOURCES_RF rf_sock_imp.c)
-  endif (ENABLE_SOCKRF)
 
   add_library(srslte_rf SHARED ${SOURCES_RF})
   target_link_libraries(srslte_rf srslte_rf_utils srslte_phy)

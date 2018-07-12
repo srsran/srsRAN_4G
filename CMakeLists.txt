@@ -77,7 +77,6 @@ option(ENABLE_ASAN     "Enable gcc address sanitizer"             OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
-option(ENABLE_EMURF    "Enable emulated RF"                       OFF)
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
 
@@ -133,14 +132,15 @@ else(POLARSSL_FOUND)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
-if(ENABLE_EMURF)
-  message(STATUS "Building for emulated RF only, running at 1/10 speed")
-  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DSRSLTE_TIME_SCALE=10")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSRSLTE_TIME_SCALE=10")
-else(ENABLE_EMURF)
+
+if(TIMESCALE)
+  message(STATUS "TIMESCALE SET")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DSRSLTE_TIME_SCALE=${TIMESCALE}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSRSLTE_TIME_SCALE=${TIMESCALE}")
+else(TIMESCALE)
   set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DSRSLTE_TIME_SCALE=1")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSRSLTE_TIME_SCALE=1")
-endif (ENABLE_EMURF)
+endif(TIMESCALE)
 
 # Hard-SIM support
 find_package(PCSCLite)
@@ -180,10 +180,8 @@ endif(ENABLE_SOAPYSDR)
 if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
 else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
-if(! ENABLE_EMURF)
   set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
   add_definitions(-DDISABLE_RF)
-endif(ENABLE_EMURF)
 endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 
 # Boost

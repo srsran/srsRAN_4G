@@ -200,6 +200,7 @@ static char rf_sock_node_type[2] = {0};
 // This found was to be useful on limited resource (cpu) hardware or tracking logs/gdb.
 // Possibly all sleep/delay calls could be wrapped in a "time service" to allow
 // for homogeneous timing and tti source between all components.
+// set at build time: "cmake -DTIMESCALE=<value> ../ && make"
 
 static const struct timeval tv_zero     = {};
 static const struct timeval tv_tti_step = {0, get_time_scaled(1000)};
