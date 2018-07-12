@@ -86,6 +86,7 @@ phch_worker::~phch_worker()
 
 void phch_worker::reset()
 {
+  pthread_mutex_lock(&mutex);
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   bzero(&ul_metrics, sizeof(ul_metrics_t));
   bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
@@ -101,6 +102,7 @@ void phch_worker::reset()
   I_sr = 0;
   cfi  = 0;
   rssi_read_cnt = 0;
+  pthread_mutex_unlock(&mutex);
 }
 
 void phch_worker::enable_pdsch_coworker() {
@@ -1402,6 +1404,7 @@ void phch_worker::enable_pregen_signals(bool enabled)
 
 void phch_worker::set_ul_params(bool pregen_disabled)
 {
+  pthread_mutex_lock(&mutex);
 
   phy_interface_rrc::phy_cfg_common_t         *common    = &phy->config->common;
   LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &phy->config->dedicated;
@@ -1504,7 +1507,9 @@ void phch_worker::set_ul_params(bool pregen_disabled)
   /* SR configuration */
   I_sr                         = dedicated->sched_request_cnfg.sr_cnfg_idx;
   sr_configured                = true;
-  
+
+  pthread_mutex_unlock(&mutex);
+
   if (pregen_enabled && !pregen_disabled) { 
     Info("Pre-generating UL signals worker=%d\n", get_id());
     srslte_ue_ul_pregen_signals(&ue_ul);
