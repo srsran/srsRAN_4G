@@ -38,6 +38,7 @@
                               INCLUDES
 *******************************************************************************/
 
+#include "srslte/common/log.h"
 #include "srslte/common/common.h"
 
 namespace srslte {
@@ -184,6 +185,7 @@ public:
   static byte_buffer_pool*   get_instance(int capacity = -1);
   static void                cleanup(void); 
   byte_buffer_pool(int capacity = -1) {
+    log = NULL;
     pool = new buffer_pool<byte_buffer_t>(capacity);
   }
   ~byte_buffer_pool() {
@@ -192,13 +194,20 @@ public:
   byte_buffer_t* allocate(const char *debug_name = NULL, bool blocking = false) {
     return pool->allocate(debug_name, blocking);
   }
+  void set_log(srslte::log *log) {
+    this->log = log;
+  }
   void deallocate(byte_buffer_t *b) {
     if(!b) {
       return;
     }
     b->reset();
     if (!pool->deallocate(b)) {
-      printf("Error deallocating PDU: Addr=0x%lx not found in pool\n", (uint64_t) b);
+      if (log) {
+        log->error("Deallocating PDU: Addr=0x%lx, name=%s not found in pool\n", (uint64_t) b, b->debug_name);
+      } else {
+        printf("Error deallocating PDU: Addr=0x%lx, name=%s not found in pool\n", (uint64_t) b, b->debug_name);
+      }
     }
     b = NULL;
   }
@@ -206,6 +215,7 @@ public:
     pool->print_all_buffers();
   }
 private:
+  srslte::log *log;
   buffer_pool<byte_buffer_t> *pool; 
 };
 
