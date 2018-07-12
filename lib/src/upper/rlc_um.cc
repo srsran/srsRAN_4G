@@ -67,6 +67,10 @@ rlc_um::~rlc_um()
 {
   pthread_mutex_destroy(&mutex);
   pool = NULL;
+  if (mac_timers && reordering_timer) {
+    mac_timers->timer_release_id(reordering_timer_id);
+    reordering_timer = NULL;
+  }
 }
 
 void rlc_um::init(srslte::log                  *log_,
@@ -122,11 +126,17 @@ void rlc_um::empty_queue() {
   while(tx_sdu_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
+  tx_sdu_queue.reset();
 }
 
 bool rlc_um::is_mrb()
 {
   return cfg.is_mrb;
+}
+
+void rlc_um::reestablish() {
+  stop();
+  tx_enabled = true;
 }
 
 void rlc_um::stop()
@@ -163,10 +173,6 @@ void rlc_um::stop()
   rx_window.clear();
   pthread_mutex_unlock(&mutex);
 
-  if (mac_timers && reordering_timer) {
-    mac_timers->timer_release_id(reordering_timer_id);
-    reordering_timer = NULL;
-  }
 }
 
 rlc_mode_t rlc_um::get_mode()

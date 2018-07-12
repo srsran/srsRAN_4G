@@ -35,6 +35,12 @@ namespace srsenb {
 
 gtpu::gtpu():mchthread()
 {
+  pdcp          = NULL;
+  gtpu_log      = NULL;
+  pool          = NULL;
+
+  pthread_mutex_init(&mutex, NULL);
+
 }
 
 bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
@@ -43,8 +49,6 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   gtpu_log      = gtpu_log_;
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
-
-  pthread_mutex_init(&mutex, NULL);
 
   pool          = byte_buffer_pool::get_instance();
 
@@ -155,12 +159,17 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   pool->deallocate(pdu);
 }
 
-// gtpu_interface_rrc
+/* Warning: This function is called before calling gtpu::init() during MCCH initialization.
+ * If access to any element created in init (such as gtpu_log) is required, it must be considered
+ * the case of it being NULL.
+ */
 void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in)
 {
   // Allocate a TEID for the incoming tunnel
   rntilcid_to_teidin(rnti, lcid, teid_in);
-  //gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x\n", rnti, lcid, addr, teid_out, *teid_in);
+  if (gtpu_log) {
+    gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x\n", rnti, lcid, addr, teid_out, *teid_in);
+  }
 
   // Initialize maps if it's a new RNTI
   if(rnti_bearers.count(rnti) == 0) {
@@ -178,6 +187,7 @@ void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid
 
 void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
 {
+  pthread_mutex_lock(&mutex);
   gtpu_log->info("Removing bearer for rnti: 0x%x, lcid: %d\n", rnti, lcid);
 
   rnti_bearers[rnti].teids_in[lcid]  = 0;
@@ -193,6 +203,7 @@ void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
   if(rem) {
     rnti_bearers.erase(rnti);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void gtpu::rem_user(uint16_t rnti)

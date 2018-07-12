@@ -227,7 +227,7 @@ private:
         if (grant->has_cqi_request && grant->phy_grant.ul.mcs.tbs == 0) {
           /* Only CQI reporting (without SCH) */
           memcpy(&action->phy_grant.ul, &grant->phy_grant.ul, sizeof(srslte_ra_ul_grant_t));
-          memcpy(&cur_grant, grant, sizeof(Tgrant));
+          //memcpy(&cur_grant, grant, sizeof(Tgrant));
           action->tx_enabled = true;
           action->rnti = grant->rnti;
         } else if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi() && harq_feedback) ||
