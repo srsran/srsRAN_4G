@@ -89,6 +89,10 @@ bool ue::init(all_args_t *args_) {
   gw_log.init("GW  ", logger);
   usim_log.init("USIM", logger);
 
+  pool_log.init("POOL", logger);
+  pool_log.set_level(srslte::LOG_LEVEL_ERROR);
+  byte_buffer_pool::get_instance()->set_log(&pool_log);
+
   // Init logs
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
   rf_log.info("Starting UE\n");

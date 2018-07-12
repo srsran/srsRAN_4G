@@ -201,6 +201,7 @@ private:
   srslte::log_filter  rrc_log;
   srslte::log_filter  gtpu_log;
   srslte::log_filter  s1ap_log;
+  srslte::log_filter  pool_log;
 
   srslte::byte_buffer_pool *pool;
 
