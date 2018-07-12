@@ -197,6 +197,9 @@ public:
   void set_log(srslte::log *log) {
     this->log = log;
   }
+  void set_log(srslte::log *log) {
+    this->log = log;
+  }
   void deallocate(byte_buffer_t *b) {
     if(!b) {
       return;
