@@ -209,7 +209,12 @@ bool nas::rrc_connect() {
   }
 
   // Generate service request or attach request message
-  byte_buffer_t *dedicatedInfoNAS = pool_allocate;
+  byte_buffer_t *dedicatedInfoNAS = pool_allocate_blocking;
+  if (!dedicatedInfoNAS) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in rrc_connect().\n");
+    return false;
+  }
+
   if (state == EMM_STATE_REGISTERED) {
     gen_service_request(dedicatedInfoNAS);
   } else {
@@ -1111,7 +1116,7 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 }
 
 void nas::send_security_mode_reject(uint8_t cause) {
-  byte_buffer_t *msg = pool_allocate;
+  byte_buffer_t *msg = pool_allocate_blocking;
   if (!msg) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in send_security_mode_reject().\n");
     return;
@@ -1129,7 +1134,7 @@ void nas::send_security_mode_reject(uint8_t cause) {
 
 
 void nas::send_authentication_response(const uint8_t* res, const size_t res_len, const uint8_t sec_hdr_type) {
-  byte_buffer_t *pdu = pool_allocate;
+  byte_buffer_t *pdu = pool_allocate_blocking;
   if (!pdu) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in send_authentication_response().\n");
     return;
@@ -1164,7 +1169,7 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len,
 
 
 void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param) {
-  byte_buffer_t *msg = pool_allocate;
+  byte_buffer_t *msg = pool_allocate_blocking;
   if (!msg) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in send_authentication_failure().\n");
     return;
@@ -1192,7 +1197,7 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
 void nas::send_identity_response() {}
 
 void nas::send_service_request() {
-  byte_buffer_t *msg = pool_allocate;
+  byte_buffer_t *msg = pool_allocate_blocking;
   if (!msg) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in send_service_request().\n");
     return;

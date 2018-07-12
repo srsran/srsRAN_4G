@@ -63,6 +63,7 @@ public:
       nof_buffers = (uint32_t) capacity_;
     }
     pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&cv_not_empty, NULL);
     for(uint32_t i=0;i<nof_buffers;i++) {
       buffer_t *b = new buffer_t;
       available.push(b);
@@ -80,6 +81,8 @@ public:
     for (uint32_t i = 0; i < used.size(); i++) {
       delete used[i];
     }
+    pthread_cond_destroy(&cv_not_empty);
+    pthread_mutex_destroy(&mutex);
   }
   
   void print_all_buffers()
@@ -105,28 +108,38 @@ public:
     return available.size() < capacity/20;
   }
 
-  buffer_t* allocate(const char *debug_name = NULL)
-  {
+  buffer_t* allocate(const char *debug_name = NULL, bool blocking = false) {
     pthread_mutex_lock(&mutex);
-    buffer_t* b = NULL;
+    buffer_t *b = NULL;
 
-    if(available.size() > 0)
-    {
+    if (available.size() > 0) {
       b = available.top();
       used.push_back(b);
       available.pop();
-      
+
       if (is_almost_empty()) {
-        printf("Warning buffer pool capacity is %f %%\n", (float) 100*available.size()/capacity);
+        printf("Warning buffer pool capacity is %f %%\n", (float) 100 * available.size() / capacity);
       }
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-    if (debug_name) {
-      strncpy(b->debug_name, debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
-      b->debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN-1] = 0;
-    }
+      if (debug_name) {
+        strncpy(b->debug_name, debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
+        b->debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN - 1] = 0;
+      }
 #endif
-      
-    } else {
+    } else if (blocking) {
+      // blocking allocation
+      while(available.size() == 0) {
+        pthread_cond_wait(&cv_not_empty, &mutex);
+      }
+
+      // retrieve the new buffer
+      b = available.top();
+      used.push_back(b);
+      available.pop();
+
+      // do not print any warning
+    }
+    else {
       printf("Error - buffer pool is empty\n");
       
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
@@ -148,6 +161,7 @@ public:
       available.push(b);
       ret = true; 
     }
+    pthread_cond_signal(&cv_not_empty);
     pthread_mutex_unlock(&mutex);
     return ret; 
   }
@@ -157,7 +171,8 @@ private:
   static const int       POOL_SIZE = 2048;
   std::stack<buffer_t*>  available;
   std::vector<buffer_t*> used; 
-  pthread_mutex_t        mutex;  
+  pthread_mutex_t        mutex;
+  pthread_cond_t         cv_not_empty;
   uint32_t capacity;
 };
 
@@ -174,8 +189,8 @@ public:
   ~byte_buffer_pool() {
     delete pool; 
   }
-  byte_buffer_t* allocate(const char *debug_name = NULL) {
-    return pool->allocate(debug_name);
+  byte_buffer_t* allocate(const char *debug_name = NULL, bool blocking = false) {
+    return pool->allocate(debug_name, blocking);
   }
   void deallocate(byte_buffer_t *b) {
     if(!b) {

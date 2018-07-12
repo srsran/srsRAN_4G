@@ -45,8 +45,7 @@ struct rlc_umd_pdu_t{
 };
 
 class rlc_um
-    :public timer_callback
-    ,public rlc_common
+    :public rlc_common
 {
 public:
   rlc_um(uint32_t queue_len = 32);
@@ -59,7 +58,7 @@ public:
   void configure(srslte_rlc_config_t cnfg);
   void reestablish();
   void stop();
-  void empty_queue(); 
+  void empty_queue();
   bool is_mrb();
 
   rlc_mode_t    get_mode();
@@ -75,72 +74,133 @@ public:
   int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
   int get_increment_sequence_num();
-  // Timeout callback interface
-  void timer_expired(uint32_t timeout_id);
-
-  bool reordering_timeout_running();
 
 private:
 
-  byte_buffer_pool            *pool;
-  srslte::log                 *log;
-  uint32_t                     lcid;
-  srsue::pdcp_interface_rlc   *pdcp;
-  srsue::rrc_interface_rlc    *rrc;
-  mac_interface_timers        *mac_timers;
+  // Transmitter sub-class
+  class rlc_um_tx
+  {
+  public:
+    rlc_um_tx(uint32_t queue_len);
+    ~rlc_um_tx();
+    void init(srslte::log *log_);
+    void configure(srslte_rlc_config_t cfg, std::string rb_name);
+    int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
+    void stop();
+    void reestablish();
+    void empty_queue();
+    void write_sdu(byte_buffer_t *sdu);
+    void try_write_sdu(byte_buffer_t *sdu);
+    uint32_t get_buffer_size_bytes();
 
-  // TX SDU buffers
-  rlc_tx_queue           tx_sdu_queue;
-  byte_buffer_t      *tx_sdu;
-  byte_buffer_t      tx_sdu_temp;
+  private:
+    byte_buffer_pool        *pool;
+    srslte::log             *log;
+    std::string             rb_name;
 
-  // Rx window
-  std::map<uint32_t, rlc_umd_pdu_t>  rx_window;
+    /****************************************************************************
+     * Configurable parameters
+     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+     ***************************************************************************/
+    srslte_rlc_um_config_t  cfg;
 
-  // RX SDU buffers
-  byte_buffer_t      *rx_sdu;
-  uint32_t            vr_ur_in_rx_sdu;
+    // TX SDU buffers
+    rlc_tx_queue            tx_sdu_queue;
+    byte_buffer_t           *tx_sdu;
 
-  // Mutexes
-  pthread_mutex_t        mutex;
+    /****************************************************************************
+     * State variables and counters
+     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+     ***************************************************************************/
+    uint32_t                vt_us;    // Send state. SN to be assigned for next PDU.
 
-  /****************************************************************************
-   * Configurable parameters
-   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-   ***************************************************************************/
+    // Mutexes
+    pthread_mutex_t         mutex;
 
-  srslte_rlc_um_config_t cfg;
+    bool                    tx_enabled;
 
-  /****************************************************************************
-   * State variables and counters
-   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-   ***************************************************************************/
+    // helper functions
+    void debug_state();
+    const char* get_rb_name();
+  };
 
-  // Tx state variables
-  uint32_t vt_us;    // Send state. SN to be assigned for next PDU.
+  // Receiver sub-class
+  class rlc_um_rx : public timer_callback {
+  public:
+    rlc_um_rx();
+    ~rlc_um_rx();
+    void init(srslte::log *log_,
+              uint32_t lcid_,
+              srsue::pdcp_interface_rlc *pdcp_,
+              srsue::rrc_interface_rlc *rrc_,
+              srslte::mac_interface_timers *mac_timers_);
+    void stop();
+    void reestablish();
+    void configure(srslte_rlc_config_t cfg, std::string rb_name);
+    void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes);
+    void reassemble_rx_sdus();
+    bool inside_reordering_window(uint16_t sn);
 
-  // Rx state variables
-  uint32_t vr_ur;  // Receive state. SN of earliest PDU still considered for reordering.
-  uint32_t vr_ux;  // t_reordering state. SN following PDU which triggered t_reordering.
-  uint32_t vr_uh;  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
+    // Timeout callback interface
+    void timer_expired(uint32_t timeout_id);
 
-  /****************************************************************************
-   * Timers
-   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-   ***************************************************************************/
-  srslte::timers::timer *reordering_timer;
-  uint32_t               reordering_timer_id;
+  private:
+    byte_buffer_pool                    *pool;
+    srslte::log                         *log;
+    mac_interface_timers                *mac_timers;
+    std::string                         rb_name;
 
-  bool     tx_enabled;
-  bool     pdu_lost;
+    /****************************************************************************
+     * Configurable parameters
+     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+     ***************************************************************************/
+    srslte_rlc_um_config_t              cfg;
 
-  int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
-  void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes);
-  void reassemble_rx_sdus();
-  bool inside_reordering_window(uint16_t sn);
-  void debug_state();
+    // Rx window
+    std::map<uint32_t, rlc_umd_pdu_t>   rx_window;
 
-  std::string rb_name();
+    // RX SDU buffers
+    byte_buffer_t                       *rx_sdu;
+    uint32_t                            vr_ur_in_rx_sdu;
+
+    // Rx state variables
+    uint32_t                            vr_ur;  // Receive state. SN of earliest PDU still considered for reordering.
+    uint32_t                            vr_ux;  // t_reordering state. SN following PDU which triggered t_reordering.
+    uint32_t                            vr_uh;  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
+    bool                                pdu_lost;
+
+    // Upper layer handles and variables
+    srsue::pdcp_interface_rlc           *pdcp;
+    srsue::rrc_interface_rlc            *rrc;
+    uint32_t                            lcid;
+
+    // Mutexes
+    pthread_mutex_t                     mutex;
+
+    /****************************************************************************
+     * Timers
+     * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+     ***************************************************************************/
+    srslte::timers::timer *reordering_timer;
+    uint32_t               reordering_timer_id;
+
+    // helper functions
+    void debug_state();
+    bool reordering_timeout_running();
+    const char* get_rb_name();
+  };
+
+  // Rx and Tx objects
+  rlc_um_tx           tx;
+  rlc_um_rx           rx;
+
+  // Common variables needed by parent class
+  srsue::rrc_interface_rlc  *rrc;
+  uint32_t                  lcid;
+  srslte_rlc_um_config_t    cfg;
+  std::string               rb_name;
+
+  std::string               get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bool is_mrb);
 };
 
 /****************************************************************************
