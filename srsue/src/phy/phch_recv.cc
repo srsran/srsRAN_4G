@@ -26,8 +26,6 @@
 
 #include <unistd.h>
 #include <algorithm>
-#include <srsue/hdr/phy/phch_recv.h>
-#include <srslte/srslte.h>
 #include "srslte/srslte.h"
 #include "srslte/common/log.h"
 #include "srsue/hdr/phy/phch_worker.h"

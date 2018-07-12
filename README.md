@@ -106,6 +106,11 @@ For example, on Ubuntu 17.04, one can install the required libraries with:
 ```
 sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
 ```
+or on Fedora:
+```
+dnf install cmake fftw3-devel polarssl-devel lksctp-tools-devel libconfig-devel boost-devel
+```
+
 Note that depending on your flavor and version of Linux, the actual package names may be different.
 
 * Optional requirements: 

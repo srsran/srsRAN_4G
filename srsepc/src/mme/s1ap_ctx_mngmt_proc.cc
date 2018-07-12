@@ -96,7 +96,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALCONTEXTSETUPREQUEST;
 
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *in_ctxt_req = &init->choice.InitialContextSetupRequest;
-  
+
   LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx_req = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
 
@@ -136,34 +136,28 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   memcpy(erab_ctx_req->gTP_TEID.buffer, &sgw_s1u_teid, sizeof(uint32_t));
 
   //Set UE security capabilities and k_enb
-  bzero(in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer,sizeof(uint8_t)*16); 
-  bzero(in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer,sizeof(uint8_t)*16); 
-  for(int i = 0; i<3; i++)
-  {
-    if(emm_ctx->security_ctxt.ue_network_cap.eea[i+1] == true)
-    {
+  bzero(in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer,sizeof(uint8_t)*16);
+  bzero(in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer,sizeof(uint8_t)*16);
+
+  for (int i = 0; i<3; i++) {
+    if(emm_ctx->security_ctxt.ue_network_cap.eea[i+1] == true){
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 1;          //EEA supported
-    }
-    else
-    {
+    } else {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 0;          //EEA not supported
     }
-    if(emm_ctx->security_ctxt.ue_network_cap.eia[i+1] == true)
-    {
+    if(emm_ctx->security_ctxt.ue_network_cap.eia[i+1] == true){
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 1;          //EEA supported
-    }
-    else
-    {
+    } else {
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 0;          //EEA not supported
     }
   }
+
   //Get K eNB
   liblte_unpack(emm_ctx->security_ctxt.k_enb, 32, in_ctxt_req->SecurityKey.buffer);
   m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB (k_enb)\n");
 
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-  if(emm_ctx->state == EMM_STATE_DEREGISTERED)
-  {
+  if (emm_ctx->state == EMM_STATE_DEREGISTERED) {
     //Attach procedure initiated from an attach request
     m_s1ap_log->console("Adding attach accept to Initial Context Setup Request\n");
     m_s1ap_log->info("Adding attach accept to Initial Context Setup Request\n");
@@ -172,18 +166,14 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
 
 
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
-  if(err != LIBLTE_SUCCESS)
-  {
+  if (err != LIBLTE_SUCCESS) {
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
     return false;
   }
 
-  //Send Reply to eNB
-  ssize_t n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ecm_ctx->enb_sri, 0); 
-  if(n_sent == -1)
-  {
-      m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
-      return false;
+  if (!m_s1ap->s1ap_tx_pdu(reply_buffer,&ecm_ctx->enb_sri)) {
+    m_s1ap_log->error("Error sending Initial Context Setup Request.\n");
+    return false;
   }
 
   //Change E-RAB state to Context Setup Requested and save S-GW control F-TEID
@@ -345,13 +335,11 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srsl
     return false;
   }
   //Send Reply to eNB 
-  int n_sent = sctp_send(s1mme,reply_buffer->msg, reply_buffer->N_bytes, &ecm_ctx->enb_sri, 0);
-  if(n_sent == -1)
+  if(!m_s1ap->s1ap_tx_pdu(reply_buffer,&ecm_ctx->enb_sri))
   {
-    m_s1ap_log->error("Failed to send Initial Context Setup Request\n");
+    m_s1ap_log->error("Error sending UE Context Release command.\n");
     return false;
   }
-
 
   return true;
 }
@@ -359,17 +347,6 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srsl
 bool
 s1ap_ctx_mngmt_proc::handle_ue_context_release_complete(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMPLETE_STRUCT *rel_comp)
 {
-  /*
-    typedef struct{
-    bool                                                         ext;
-    LIBLTE_S1AP_MME_UE_S1AP_ID_STRUCT                            MME_UE_S1AP_ID;
-    LIBLTE_S1AP_ENB_UE_S1AP_ID_STRUCT                            eNB_UE_S1AP_ID;
-    LIBLTE_S1AP_CRITICALITYDIAGNOSTICS_STRUCT                    CriticalityDiagnostics;
-    bool                                                         CriticalityDiagnostics_present;
-    LIBLTE_S1AP_USERLOCATIONINFORMATION_STRUCT                   UserLocationInformation;
-    bool                                                         UserLocationInformation_present;
-    }LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMPLETE_STRUCT;
-   */
 
   uint32_t mme_ue_s1ap_id = rel_comp->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
   m_s1ap_log->info("Received UE Context Release Complete. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
@@ -385,23 +362,19 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_complete(LIBLTE_S1AP_MESSAGE_UECO
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx; 
 
   //Delete user plane context at the SPGW (but keep GTP-C connection).
-  if (ecm_ctx->state == ECM_STATE_CONNECTED)
-  {
+  if (ecm_ctx->state == ECM_STATE_CONNECTED) {
     //There are active E-RABs, send release access mearers request
     m_s1ap_log->console("There are active E-RABs, send release access mearers request");
     m_s1ap_log->info("There are active E-RABs, send release access mearers request");
     m_mme_gtpc->send_release_access_bearers_request(ecm_ctx->imsi);
     //The handle_releease_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
     //It will release the UEs downstream S1-u and keep the upstream S1-U connection active.
-  }
-  else
-  {
+  } else {
     //No ECM Context to release
     m_s1ap_log->info("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
     m_s1ap_log->console("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
-    //Make sure E-RABS are merked as DEACTIVATED.
-    for(int i=0;i<MAX_ERABS_PER_UE;i++)
-    {
+    //Make sure E-RABS are marked as DEACTIVATED.
+    for (int i=0;i<MAX_ERABS_PER_UE;i++) {
       ecm_ctx->erabs_ctx[i].state = ERAB_DEACTIVATED;
     }
   }

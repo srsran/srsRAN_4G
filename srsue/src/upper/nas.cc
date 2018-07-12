@@ -250,7 +250,6 @@ bool nas::rrc_connect() {
     }
   } else {
     nas_log->error("Could not establish RRC connection\n");
-    pool->deallocate(dedicatedInfoNAS);
   }
   return false;
 }
@@ -331,7 +330,7 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
       parse_attach_reject(lcid, pdu);
       break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REQUEST:
-      parse_authentication_request(lcid, pdu);
+      parse_authentication_request(lcid, pdu, sec_hdr_type);
       break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REJECT:
       parse_authentication_reject(lcid, pdu);
@@ -722,7 +721,7 @@ void nas::parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu) {
   // FIXME: Command RRC to release?
 }
 
-void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
+void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu, const uint8_t sec_hdr_type) {
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
   bzero(&auth_req, sizeof(LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT));
 
@@ -756,8 +755,8 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu) {
 
   if (auth_result == AUTH_OK) {
     nas_log->info("Network authentication successful\n");
-    send_authentication_response(res, res_len);
-    nas_log->info("Generated k_asme=%s\n", hex_to_string(ctxt.k_asme, 32).c_str());
+    send_authentication_response(res, res_len, sec_hdr_type);
+    nas_log->info_hex(ctxt.k_asme, 32, "Generated k_asme:\n");
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     nas_log->error("Network authentication synchronization failure.\n");
     send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
@@ -878,8 +877,8 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   // Generate NAS keys
   usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int,
                           ctxt.cipher_algo, ctxt.integ_algo);
-  nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
-  nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
+  nas_log->info_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
+  nas_log->info_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
 
   nas_log->debug("Generating integrity check. integ_algo:%d, count_dl:%d, lcid:%d\n",
                  ctxt.integ_algo, ctxt.rx_count, lcid);
@@ -1129,9 +1128,9 @@ void nas::send_security_mode_reject(uint8_t cause) {
 }
 
 
-void nas::send_authentication_response(const uint8_t* res, const size_t res_len) {
-  byte_buffer_t *msg = pool_allocate;
-  if (!msg) {
+void nas::send_authentication_response(const uint8_t* res, const size_t res_len, const uint8_t sec_hdr_type) {
+  byte_buffer_t *pdu = pool_allocate;
+  if (!pdu) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in send_authentication_response().\n");
     return;
   }
@@ -1143,13 +1142,24 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len)
     auth_res.res[i] = res[i];
   }
   auth_res.res_len = res_len;
-  liblte_mme_pack_authentication_response_msg(&auth_res, (LIBLTE_BYTE_MSG_STRUCT *)msg);
+  liblte_mme_pack_authentication_response_msg(&auth_res, sec_hdr_type, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT *)pdu);
 
   if(pcap != NULL) {
-    pcap->write_nas(msg->msg, msg->N_bytes);
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
+
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && pdu->N_bytes > 5) {
+    cipher_encrypt(pdu);
+    integrity_generate(&k_nas_int[16],
+                       ctxt.tx_count,
+                       SECURITY_DIRECTION_UPLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes - 5,
+                       &pdu->msg[1]);
+  }
+
   nas_log->info("Sending Authentication Response\n");
-  rrc->write_sdu(cfg.lcid, msg);
+  rrc->write_sdu(cfg.lcid, pdu);
 }
 
 

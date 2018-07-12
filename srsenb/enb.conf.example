@@ -25,11 +25,11 @@ tac = 0x0007
 mcc = 001
 mnc = 01
 mme_addr = 127.0.1.100
-gtp_bind_addr = 127.0.0.1
+gtp_bind_addr = 127.0.1.1
+s1c_bind_addr = 127.0.1.1
 n_prb = 50
 #tm = 4
 #nof_ports = 2
-
 
 #####################################################################
 # eNB configuration files 
