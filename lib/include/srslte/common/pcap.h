@@ -35,7 +35,7 @@
 #define MAC_LTE_DLT  147
 #define NAS_LTE_DLT  148
 #define RLC_LTE_DLT  149 // UDP needs to be selected as protocol
-
+#define S1AP_LTE_DLT  150 
 
 /* This structure gets written to the start of the file */
 typedef struct pcap_hdr_s {
@@ -165,6 +165,10 @@ typedef struct {
 #define RLC_LTE_PAYLOAD_TAG      0x01
 
 
+/* Context information for every S1AP PDU that will be logged */
+typedef struct S1AP_Context_Info_s {
+  // No Context yet
+} S1AP_Context_Info_t;
 
 /**************************************************************************
  * API functions for opening/closing LTE PCAP files                       *
@@ -393,6 +397,39 @@ inline int LTE_PCAP_RLC_WritePDU(FILE *fd, RLC_Context_Info_t *context,
     // Write everything to file
     fwrite(&packet_header, sizeof(pcaprec_hdr_t), 1, fd);
     fwrite(context_header, 1, offset, fd);
+    fwrite(PDU, 1, length, fd);
+
+    return 1;
+}
+
+/**************************************************************************
+ * API functions for writing S1AP PCAP files                           *
+ **************************************************************************/
+
+/* Write an individual PDU (PCAP packet header + s1ap-context + s1ap-pdu) */
+inline int LTE_PCAP_S1AP_WritePDU(FILE *fd, S1AP_Context_Info_t *context,
+                                 const unsigned char *PDU, unsigned int length)
+{
+    pcaprec_hdr_t packet_header;
+
+    /* Can't write if file wasn't successfully opened */
+    if (fd == NULL) {
+        printf("Error: Can't write to empty file handle\n");
+        return 0;
+    }
+
+    /****************************************************************/
+    /* PCAP Header                                                  */
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    packet_header.ts_sec = t.tv_sec;
+    packet_header.ts_usec = t.tv_usec;
+    packet_header.incl_len = length;
+    packet_header.orig_len = length;
+
+    /***************************************************************/
+    /* Now write everything to the file                            */
+    fwrite(&packet_header, sizeof(pcaprec_hdr_t), 1, fd);
     fwrite(PDU, 1, length, fd);
 
     return 1;
