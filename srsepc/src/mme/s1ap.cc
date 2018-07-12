@@ -101,8 +101,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
 
   //Init PCAP
   m_pcap_enable = s1ap_args.pcap_enable;
-  if(m_pcap_enable)
-  {
+  if(m_pcap_enable){
     m_pcap.open(s1ap_args.pcap_filename.c_str());
   }
   m_s1ap_log->info("S1AP Initialized\n");
@@ -138,10 +137,10 @@ s1ap::stop()
   s1ap_ctx_mngmt_proc::cleanup();
 
   //PCAP
-  if(m_pcap_enable)
-  {
+  if(m_pcap_enable){
     m_pcap.close();
   }
+
   return;
 }
 
@@ -213,14 +212,12 @@ bool
 s1ap::s1ap_tx_pdu(srslte::byte_buffer_t *pdu, struct sctp_sndrcvinfo *enb_sri)
 {
   ssize_t n_sent = sctp_send(m_s1mme, pdu->msg, pdu->N_bytes, enb_sri, 0);
-  if(n_sent == -1)
-  {
+  if(n_sent == -1){
     m_s1ap_log->console("Failed to send S1AP PDU.\n");
     m_s1ap_log->error("Failed to send S1AP PDU. \n");
     return false;
   }
-  if(m_pcap_enable)
-  {
+  if(m_pcap_enable){
     m_pcap.write_s1ap(pdu->msg,pdu->N_bytes);
   }
   return true;
@@ -290,11 +287,12 @@ s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg,  stru
     m_s1ap_log->error("Unhandled S1AP intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
     m_s1ap_log->console("Unhandled S1APintiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
+
   //Send Reply to eNB
-  if(reply_flag == true)
-  {
+  if(reply_flag == true){
     ret = s1ap_tx_pdu(reply_buffer, enb_sri);
   }
+
   m_pool->deallocate(reply_buffer);
   return ret;
 }
