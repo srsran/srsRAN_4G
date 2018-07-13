@@ -44,16 +44,7 @@ rlc_um::rlc_um(uint32_t queue_len)
 // Warning: must call stop() to properly deallocate all buffers
 rlc_um::~rlc_um()
 {
-<<<<<<< HEAD
-  pthread_mutex_destroy(&mutex);
-  pool = NULL;
-  if (mac_timers && reordering_timer) {
-    mac_timers->timer_release_id(reordering_timer_id);
-    reordering_timer = NULL;
-  }
-=======
   stop();
->>>>>>> 1f7e9187906c824b2092c71374291042e571d631
 }
 
 void rlc_um::init(srslte::log                  *log_,
