@@ -79,13 +79,11 @@ s1ap_ctx_mngmt_proc::init(void)
 }
 
 bool
-s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
-                                                        ue_ecm_ctx_t *ecm_ctx,
-                                                        erab_ctx_t *erab_ctx)
+s1ap_ctx_mngmt_proc::send_initial_context_setup_request(emm_ctx_t *emm_ctx,
+                                                        ecm_ctx_t *ecm_ctx,
+                                                        esm_ctx_t *esm_ctx,
+                                                        sec_ctx_t *sec_ctx)
 {
-
-  int s1mme = m_s1ap->get_s1_mme();
-
   //Prepare reply PDU
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
   bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
@@ -96,10 +94,6 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALCONTEXTSETUPREQUEST;
 
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *in_ctxt_req = &init->choice.InitialContextSetupRequest;
-
-  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx_req = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0]; //FIXME support more than one erab
-  srslte::byte_buffer_t *reply_buffer = m_pool->allocate(); 
-
   m_s1ap_log->info("Preparing to send Initial Context Setup request\n");
 
   //Add MME and eNB S1AP Ids
@@ -108,44 +102,42 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
 
   //Set UE-AMBR
   in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateDL.BitRate=1000000000;
-  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=1000000000;//FIXME Get UE-AMBR from HSS
+  in_ctxt_req->uEaggregateMaximumBitrate.uEaggregateMaximumBitRateUL.BitRate=1000000000;
+
+  //Number of E-RABs to be setup
+  in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
 
   //Setup eRAB context
-  in_ctxt_req->E_RABToBeSetupListCtxtSUReq.len = 1;
-  erab_ctx_req->e_RAB_ID.E_RAB_ID = erab_ctx->erab_id;
+  LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx_req = &in_ctxt_req->E_RABToBeSetupListCtxtSUReq.buffer[0];
+  erab_ctx_req->e_RAB_ID.E_RAB_ID = esm_ctx->erab_id;
+
   //Setup E-RAB QoS parameters
-  erab_ctx_req->e_RABlevelQoSParameters.qCI.QCI = erab_ctx->qci;
+  erab_ctx_req->e_RABlevelQoSParameters.qCI.QCI = esm_ctx->qci;
   erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.priorityLevel.PriorityLevel = 15 ;//Lowest
   erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionCapability = LIBLTE_S1AP_PRE_EMPTIONCAPABILITY_SHALL_NOT_TRIGGER_PRE_EMPTION;
   erab_ctx_req->e_RABlevelQoSParameters.allocationRetentionPriority.pre_emptionVulnerability = LIBLTE_S1AP_PRE_EMPTIONVULNERABILITY_PRE_EMPTABLE;
   erab_ctx_req->e_RABlevelQoSParameters.gbrQosInformation_present=false;
 
-
   //Set E-RAB S-GW F-TEID
-  //if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
-  //  m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
-  //  return false;
-  //} 
   erab_ctx_req->transportLayerAddress.n_bits = 32; //IPv4
   uint32_t sgw_s1u_ip = htonl(erab_ctx->sgw_s1u_fteid.ipv4);
   //uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
   uint8_t *tmp_ptr =  erab_ctx_req->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
 
-  uint32_t sgw_s1u_teid = erab_ctx->sgw_s1u_fteid.teid; 
+  uint32_t sgw_s1u_teid = esm_ctx->sgw_s1u_fteid.teid;
   memcpy(erab_ctx_req->gTP_TEID.buffer, &sgw_s1u_teid, sizeof(uint32_t));
 
   //Set UE security capabilities and k_enb
   bzero(in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer,sizeof(uint8_t)*16);
   bzero(in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer,sizeof(uint8_t)*16);
-
   for (int i = 0; i<3; i++) {
-    if(emm_ctx->security_ctxt.ue_network_cap.eea[i+1] == true){
+    if(sec_ctx->ue_network_cap.eea[i+1] == true){
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 1;          //EEA supported
     } else {
       in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer[i] = 0;          //EEA not supported
     }
-    if(emm_ctx->security_ctxt.ue_network_cap.eia[i+1] == true){
+    if(sec_ctx->ue_network_cap.eia[i+1] == true){
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 1;          //EEA supported
     } else {
       in_ctxt_req->UESecurityCapabilities.integrityProtectionAlgorithms.buffer[i] = 0;          //EEA not supported
@@ -153,8 +145,8 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
   }
 
   //Get K eNB
-  liblte_unpack(emm_ctx->security_ctxt.k_enb, 32, in_ctxt_req->SecurityKey.buffer);
-  m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Initial Context Setup Request -- Key eNB (k_enb)\n");
+  liblte_unpack(sec_ctx->k_enb, 32, in_ctxt_req->SecurityKey.buffer);
+  m_s1ap_log->info_hex(sec_ctx->k_enb, 32, "Initial Context Setup Request -- Key eNB (k_enb)\n");
 
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
   if (emm_ctx->state == EMM_STATE_DEREGISTERED) {
@@ -164,13 +156,12 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
     m_s1ap_nas_transport->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &erab_ctx->pdn_addr_alloc, nas_buffer); 
   }
 
-
+  srslte::byte_buffer_t *reply_buffer = m_pool->allocate();
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if (err != LIBLTE_SUCCESS) {
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
     return false;
   }
-
   if (!m_s1ap->s1ap_tx_pdu(reply_buffer,&ecm_ctx->enb_sri)) {
     m_s1ap_log->error("Error sending Initial Context Setup Request.\n");
     return false;
@@ -306,9 +297,6 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
 bool
 s1ap_ctx_mngmt_proc::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_buffer)
 {
-
-  int s1mme = m_s1ap->get_s1_mme();
-
   //Prepare reply PDU
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
   bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
@@ -319,7 +307,6 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srsl
   init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASECOMMAND;
 
   LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMAND_STRUCT *ctx_rel_cmd = &init->choice.UEContextReleaseCommand;
-
   ctx_rel_cmd->UE_S1AP_IDs.choice_type = LIBLTE_S1AP_UE_S1AP_IDS_CHOICE_UE_S1AP_ID_PAIR;
   ctx_rel_cmd->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.mME_UE_S1AP_ID.MME_UE_S1AP_ID = ecm_ctx->mme_ue_s1ap_id;
   ctx_rel_cmd->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ecm_ctx->enb_ue_s1ap_id;
@@ -329,18 +316,16 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srsl
   ctx_rel_cmd->Cause.choice.nas.e =  LIBLTE_S1AP_CAUSENAS_NORMAL_RELEASE;
 
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
-  if(err != LIBLTE_SUCCESS)
-  {
+  if(err != LIBLTE_SUCCESS){
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
     return false;
   }
-  //Send Reply to eNB 
-  if(!m_s1ap->s1ap_tx_pdu(reply_buffer,&ecm_ctx->enb_sri))
-  {
+
+  //Send Reply to eNB
+  if(!m_s1ap->s1ap_tx_pdu(reply_buffer,&ecm_ctx->enb_sri)){
     m_s1ap_log->error("Error sending UE Context Release command.\n");
     return false;
   }
-
   return true;
 }
 
