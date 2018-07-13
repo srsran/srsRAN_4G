@@ -47,4 +47,4 @@ void srslte_debug_handle_crash(int argc, char **argv);
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-#endif // SRSLTE_COMMON_DEBUG
+#endif // SRSLTE_CRASH_HANDLER_H
