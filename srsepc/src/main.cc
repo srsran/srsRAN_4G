@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
+#include "srslte/common/crash_handler.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/config_file.h"
 #include "srsepc/hdr/mme/mme.h"
@@ -39,7 +40,7 @@ namespace bpo = boost::program_options;
 
 bool running = true;
 
-void 
+void
 sig_int_handler(int signo){
   running = false;
 }

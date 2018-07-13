@@ -31,7 +31,7 @@
 #include <stdlib.h>
 
 #include "srslte/version.h"
-#include "srslte/common/debug.h"
+#include "srslte/common/crash_handler.h"
 
 const static char crash_file_name[] = "./srsLTE.backtrace.crash";
 static int bt_argc;

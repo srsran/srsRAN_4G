@@ -38,6 +38,7 @@
 #include "srslte/srslte.h"
 
 #include "srslte/phy/rf/rf_utils.h"
+#include "srslte/common/crash_handler.h"
 
 
 #ifndef DISABLE_RF

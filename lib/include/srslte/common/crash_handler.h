@@ -32,12 +32,19 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef SRSLTE_COMMON_DEBUG_H
-#define SRSLTE_COMMON_DEBUG_H
+#ifndef SRSLTE_CRASH_HANDLER_H
+#define SRSLTE_CRASH_HANDLER_H
 
 #include <stdio.h>
 #include "srslte/config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 void srslte_debug_handle_crash(int argc, char **argv);
 
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // SRSLTE_COMMON_DEBUG
