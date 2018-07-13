@@ -37,6 +37,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include "srslte/common/gen_mch_tables.h"
+#include "srslte/common/debug.h"
 #include <srslte/phy/common/phy_common.h>
 #include "srslte/phy/io/filesink.h"
 #include "srslte/srslte.h"

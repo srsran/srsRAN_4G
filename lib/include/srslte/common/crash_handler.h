@@ -24,18 +24,27 @@
  *
  */
 
-#include <stdlib.h>
-#include "srslte/phy/utils/debug.h"
+/******************************************************************************
+ *  File:         debug.h
+ *
+ *  Description:  Debug output utilities.
+ *
+ *  Reference:
+ *****************************************************************************/
 
-int srslte_verbose = 0;
-int handler_registered = 0;
+#ifndef SRSLTE_CRASH_HANDLER_H
+#define SRSLTE_CRASH_HANDLER_H
 
-void get_time_interval(struct timeval * tdata) {
+#include <stdio.h>
+#include "srslte/config.h"
 
-  tdata[0].tv_sec = tdata[2].tv_sec - tdata[1].tv_sec;
-  tdata[0].tv_usec = tdata[2].tv_usec - tdata[1].tv_usec;
-  if (tdata[0].tv_usec < 0) {
-    tdata[0].tv_sec--;
-    tdata[0].tv_usec += 1000000;
-  }
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+void srslte_debug_handle_crash(int argc, char **argv);
+
+#ifdef __cplusplus
 }
+#endif // __cplusplus
+#endif // SRSLTE_CRASH_HANDLER_H

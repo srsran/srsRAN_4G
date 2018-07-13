@@ -78,6 +78,4 @@ SRSLTE_API extern int handler_registered;
         else{srslte_phy_log_print(LOG_LEVEL_ERROR, _fmt, ##__VA_ARGS__);} // 
 #endif /* CMAKE_BUILD_TYPE==Debug */
 
-void srslte_debug_handle_crash(int argc, char **argv);
-
 #endif // SRSLTE_DEBUG_H
