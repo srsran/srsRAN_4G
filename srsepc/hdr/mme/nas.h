@@ -18,8 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#ifndef SRSEPC_S1AP_COMMON_H
-#define SRSEPC_S1AP_COMMON_H
+#ifndef SRSEPC_NAS_H
+#define SRSEPC_NAS_H
 
 #include "srslte/common/security.h"
 #include "srslte/asn1/gtpc_ies.h"
@@ -76,34 +76,30 @@ static const char esm_state_text[ESM_STATE_N_ITEMS][100] = {"CONTEXT INACTIVE",
  * EMM, ECM, ESM and EPS Security context definition
  */
 typedef struct{
-    uint64_t imsi;
-    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
-    eps_sec_ctx_t security_ctxt;
-    uint8_t procedure_transaction_id;
+    uint64_t    imsi;
     emm_state_t state;
-    uint32_t mme_ue_s1ap_id;
-    uint8_t attach_type;
+    uint8_t     procedure_transaction_id;
+    uint8_t     attach_type;
     struct in_addr ue_ip;
     srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
 } emm_ctx_t;
 
 typedef struct{
-  uint64_t imsi;
+  ecm_state_t state;
   uint32_t enb_ue_s1ap_id;
   uint32_t mme_ue_s1ap_id;
   struct   sctp_sndrcvinfo enb_sri;
-  ecm_state_t state;
   bool eit;
 } ecm_ctx_t;
 
 typedef struct{
-  enum erab_state state;
   uint8_t erab_id;
+  esm_state_t state;
   uint8_t qci;
   srslte::gtpc_f_teid_ie enb_fteid;
   srslte::gtpc_f_teid_ie sgw_s1u_fteid;
   srslte::gtpc_pdn_address_allocation_ie pdn_addr_alloc;
-} erab_ctx_t;
+} esm_ctx_t;
 
 typedef struct{
   uint8_t  eksi;
@@ -119,6 +115,7 @@ typedef struct{
   LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
   bool ms_network_cap_present;
   LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
+  LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
 } sec_ctx_t;
 
 class nas
@@ -168,28 +165,28 @@ public:
                                                 struct sctp_sndrcvinfo *enb_sri);
 
   /* Uplink NAS messages handling */
-  bool handle_nas_authentication_response(  srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool* reply_flag);
-  bool handle_nas_security_mode_complete(   srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_nas_attach_complete(          srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_esm_information_response(     srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_identity_response(            srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_tracking_area_update_request( srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_authentication_failure(       srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_nas_detach_request(           srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_nas_authentication_response(  srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool* reply_flag);
+  bool handle_nas_security_mode_complete(   srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_nas_attach_complete(          srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_esm_information_response(     srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_identity_response(            srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_tracking_area_update_request( srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_authentication_failure(       srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_nas_detach_request(           srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
 
   /* Downlink NAS messages packing*/
   bool pack_authentication_request(  srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t eksi, uint8_t *autn, uint8_t *rand);
   bool pack_authentication_reject(   srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
-  bool pack_security_mode_command(   srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx);
-  bool pack_esm_information_request( srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx);
+  bool pack_security_mode_command(   srslte::byte_buffer_t *reply_msg, emm_ctx_t *ue_emm_ctx, ecm_ctx_t *ue_ecm_ctx);
+  bool pack_esm_information_request( srslte::byte_buffer_t *reply_msg, emm_ctx_t *ue_emm_ctx, ecm_ctx_t *ue_ecm_ctx);
   bool pack_identity_request(        srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
-  bool pack_emm_information(         ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg);
+  bool pack_emm_information(         srslte::byte_buffer_t *reply_msg);
   bool pack_service_reject(          srslte::byte_buffer_t *reply_msg, uint8_t emm_cause, uint32_t enb_ue_s1ap_id);
-  bool pack_attach_accept(           ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
+  bool pack_attach_accept(           emm_ctx_t *ue_emm_ctx, ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
 
   /* Security functions */
-  bool integrity_check(       ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
-  bool short_integrity_check( ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
+  bool integrity_check(       emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
+  bool short_integrity_check( emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
 
 private:
   emm_ctx_t m_emm_ctx;

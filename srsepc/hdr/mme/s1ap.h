@@ -41,7 +41,7 @@
 #include <unistd.h>
 #include <map>
 #include <set>
-#include "s1ap_common.h"
+#include "nas.h"
 #include "s1ap_mngmt_proc.h"
 #include "s1ap_nas_transport.h"
 #include "s1ap_ctx_mngmt_proc.h"
@@ -82,12 +82,12 @@ public:
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
   void get_enb_ctx(uint16_t sctp_stream);
 
-  bool add_ue_ctx_to_imsi_map(ue_ctx_t *ue_ctx);
-  bool add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx);
+  bool add_nas_ctx_to_imsi_map(nas *nas_ctx);
+  bool add_nas_ctx_to_mme_ue_s1ap_id_map(nas *nas_ctx);
   bool add_ue_to_enb_set(int32_t enb_assoc, uint32_t mme_ue_s1ap_id);
 
-  ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
-  ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
+  nas* find_nas_ctx_from_imsi(uint64_t imsi);
+  nas* find_nas_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
 
   bool release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
   void release_ues_ecm_ctx_in_enb(int32_t enb_assoc);
@@ -102,7 +102,7 @@ public:
   s1ap_nas_transport*            m_s1ap_nas_transport;
   s1ap_ctx_mngmt_proc*           m_s1ap_ctx_mngmt_proc;
 
-  std::map<uint32_t, uint64_t>                      m_tmsi_to_imsi;
+  std::map<uint32_t, uint64_t>   m_tmsi_to_imsi;
 
 private:
   s1ap();
@@ -119,8 +119,8 @@ private:
   std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
   std::map<int32_t,std::set<uint32_t> >             m_enb_assoc_to_ue_ids;
 
-  std::map<uint64_t, ue_ctx_t*>                     m_imsi_to_ue_ctx;
-  std::map<uint32_t, ue_ctx_t*>                     m_mme_ue_s1ap_id_to_ue_ctx;
+  std::map<uint64_t, nas*>                          m_imsi_to_nas_ctx;
+  std::map<uint32_t, nas*>                          m_mme_ue_s1ap_id_to_nas_ctx;
 
   uint32_t                                          m_next_mme_ue_s1ap_id;
   uint32_t                                          m_next_m_tmsi;

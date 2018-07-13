@@ -30,7 +30,8 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/asn1/gtpc.h"
-#include "s1ap_common.h"
+#include "nas.h"
+
 namespace srsepc
 {
 
@@ -53,7 +54,7 @@ public:
   uint32_t get_new_ctrl_teid();
   void send_create_session_request(uint64_t imsi);
   void handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
-  void send_modify_bearer_request(uint64_t imsi, erab_ctx_t *bearer_ctx);
+  void send_modify_bearer_request(uint64_t imsi, esm_ctx_t *bearer_ctx);
   void handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu);
   void send_release_access_bearers_request(uint64_t imsi);
   void send_delete_session_request(uint64_t imsi);
