@@ -32,8 +32,8 @@
  *  Reference:
  *****************************************************************************/
 
-#ifndef SRSLTE_PHY_DEBUG_H
-#define SRSLTE_PHY_DEBUG_H
+#ifndef SRSLTE_DEBUG_H
+#define SRSLTE_DEBUG_H
 
 #include <stdio.h>
 #include "srslte/config.h"
