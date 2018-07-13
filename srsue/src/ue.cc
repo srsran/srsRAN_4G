@@ -232,7 +232,10 @@ bool ue::init(all_args_t *args_) {
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
   args->rrc.nof_supported_bands = 1;
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
-  rrc.set_args(&args->rrc);
+
+  // set args and initialize RRC
+  rrc.set_args(args->rrc);
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;

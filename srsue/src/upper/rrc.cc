@@ -237,8 +237,8 @@ bool rrc::have_drb() {
   return drb_up;
 }
 
-void rrc::set_args(rrc_args_t *args) {
-  memcpy(&this->args, args, sizeof(rrc_args_t));
+void rrc::set_args(rrc_args_t args_) {
+  args = args_;
 }
 
 /*

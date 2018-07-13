@@ -280,7 +280,7 @@ public:
   void stop();
 
   rrc_state_t get_state();
-  void set_args(rrc_args_t *args);
+  void set_args(rrc_args_t args);
 
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);
