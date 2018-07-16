@@ -79,10 +79,7 @@ s1ap_ctx_mngmt_proc::init(void)
 }
 
 bool
-s1ap_ctx_mngmt_proc::send_initial_context_setup_request(emm_ctx_t *emm_ctx,
-                                                        ecm_ctx_t *ecm_ctx,
-                                                        esm_ctx_t *esm_ctx,
-                                                        sec_ctx_t *sec_ctx)
+s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx)
 {
   //Prepare reply PDU
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
@@ -151,7 +148,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(emm_ctx_t *emm_ctx,
     //Attach procedure initiated from an attach request
     m_s1ap_log->console("Adding attach accept to Initial Context Setup Request\n");
     m_s1ap_log->info("Adding attach accept to Initial Context Setup Request\n");
-    m_s1ap_nas_transport->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &erab_ctx->pdn_addr_alloc, nas_buffer); 
+    nas_ctx->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &erab_ctx->pdn_addr_alloc, nas_buffer); 
   }
 
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate();

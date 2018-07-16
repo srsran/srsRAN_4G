@@ -32,6 +32,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/s1ap_pcap.h"
+#include "srslte/interfaces/epc_interfaces.h"
 
 #include <strings.h>
 #include <arpa/inet.h>
@@ -52,7 +53,8 @@ namespace srsepc{
 
 const uint16_t S1MME_PORT = 36412;
 
-class s1ap
+class s1ap:
+    public s1ap_interface_nas
 {
 public:
 

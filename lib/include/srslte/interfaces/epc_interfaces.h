@@ -2,11 +2,28 @@
 #define SRSLTE_EPC_INTERFACES_H
 
 #include "srslte/srslte.h"
-
 #include "srslte/common/common.h"
 
 namespace srsepc {
 
+/*
+ * S1AP Interfaces
+ */
+//GTP-C -> S1AP
+class s1ap_interface_gtpc
+{
+public:
+  virtual bool send_initial_context_setup_request(uint64_t imsi) = 0;
+};
+
+//NAS -> S1AP
+class s1ap_interface_nas
+{
+public:
+  virtual bool send_initial_context_setup_request(uint64_t imsi) = 0;
+};
+
+//S1AP -> HSS
 class hss_interface_s1ap
 {
 public:

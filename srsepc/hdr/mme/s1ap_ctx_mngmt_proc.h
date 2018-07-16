@@ -47,7 +47,7 @@ public:
 
   void init(void);
 
-  bool send_initial_context_setup_request(emm_ctx_t *emm_ctx, ecm_ctx_t *ecm_ctx, esm_ctx_t *esm_ctx, sec_ctx_t *sec_ctx);
+  bool send_initial_context_setup_request(nas *nas_ctx);
   bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp);
   bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool send_ue_context_release_command(ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_buffer);

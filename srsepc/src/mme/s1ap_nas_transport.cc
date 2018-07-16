@@ -81,15 +81,12 @@ s1ap_nas_transport::init(hss_interface_s1ap * hss_)
 }
 
 
-bool 
+bool
 s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
 
   //Get info from initial UE message
   uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
-
-  //Log unhandled Initial UE message IEs
-  log_unhandled_initial_ue_message_ies(init_ue);
 
   /*Check whether NAS Attach Request or Service Request*/
   bool mac_valid = false;
@@ -331,7 +328,6 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     m_pool->deallocate(nas_msg);
     return false;
   }
-
 
   if(*reply_flag == true)
   {
