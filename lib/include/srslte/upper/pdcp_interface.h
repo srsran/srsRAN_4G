@@ -43,6 +43,7 @@ namespace srslte {
 class pdcp_entity_interface
 {
 public:
+  virtual ~pdcp_entity_interface() {};
   virtual void init(srsue::rlc_interface_pdcp     *rlc_,
                     srsue::rrc_interface_pdcp     *rrc_,
                     srsue::gw_interface_pdcp      *gw_,

@@ -41,7 +41,7 @@ class pdcp
 {
 public:
   pdcp();
-  virtual ~pdcp(){}
+  ~pdcp();
   void init(srsue::rlc_interface_pdcp *rlc_,
             srsue::rrc_interface_pdcp *rrc_,
             srsue::gw_interface_pdcp *gw_,
@@ -79,17 +79,20 @@ public:
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu);
   void write_pdu_pcch(byte_buffer_t *sdu);
   
-
 private:
   srsue::rlc_interface_pdcp *rlc;
   srsue::rrc_interface_pdcp *rrc;
   srsue::gw_interface_pdcp  *gw;
 
-  log                       *pdcp_log;
-  pdcp_entity                pdcp_array[SRSLTE_N_RADIO_BEARERS];
-  pdcp_entity                pdcp_array_mrb[SRSLTE_N_MCH_LCIDS];
-  uint32_t                   lcid; // default LCID that is maintained active by PDCP instance
-  uint8_t                    direction;
+  typedef std::map<uint16_t, pdcp_entity_interface*> pdcp_map_t;
+  typedef std::pair<uint16_t, pdcp_entity_interface*> pdcp_map_pair_t;
+
+  log         *pdcp_log;
+  pdcp_map_t  pdcp_array, pdcp_array_mrb;
+
+  // default PDCP entity that is maintained active by PDCP instance
+  srslte_pdcp_config_t default_cnfg;
+  uint32_t             default_lcid;
 
   bool valid_lcid(uint32_t lcid);
   bool valid_mch_lcid(uint32_t lcid);
