@@ -188,11 +188,11 @@ public:
   bool integrity_check(       emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
   bool short_integrity_check( emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
 
-private:
+  /* UE Context*/
   emm_ctx_t m_emm_ctx;
   ecm_ctx_t m_ecm_ctx;
   esm_ctx_t m_esm_ctx[MAX_ERABS_PER_UE];
-  sec_ctx_t sec_ctx;
+  sec_ctx_t m_sec_ctx;
 };
 
 }//namespace

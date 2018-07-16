@@ -100,7 +100,7 @@ nas::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
                                     struct sctp_sndrcvinfo *enb_sri)
 {
   uint8_t     k_asme[32];
-  uint8_t     autn[16]; 
+  uint8_t     autn[16];
   uint8_t     rand[16];
   uint8_t     xres[8];
 
@@ -114,7 +114,7 @@ nas::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
     imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
   }
 
-  //Check if UE is 
+  //Check if UE is already atached
   ue_ctx_t *old_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
   if(old_ctx!=NULL)
   {
@@ -227,13 +227,13 @@ nas::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
 }
 
 bool
-s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
-                                                     const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                                     const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                                     srslte::byte_buffer_t *nas_msg,
-                                                     srslte::byte_buffer_t *reply_buffer,
-                                                     bool* reply_flag,
-                                                     struct sctp_sndrcvinfo *enb_sri)
+nas::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
+                                      const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
+                                      const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
+                                      srslte::byte_buffer_t *nas_msg,
+                                      srslte::byte_buffer_t *reply_buffer,
+                                      bool* reply_flag,
+                                      struct sctp_sndrcvinfo *enb_sri)
 {
   //Parse the message security header
   uint8 pd = 0;
@@ -1301,14 +1301,14 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
-  //Pack NAS PDU 
+  //Pack NAS PDU
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
- 
+
   sm_cmd.selected_nas_sec_algs.type_of_eea = LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0;
   sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_128_EIA1;
 
   sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-  sm_cmd.nas_ksi.nas_ksi=ue_emm_ctx->security_ctxt.eksi; 
+  sm_cmd.nas_ksi.nas_ksi=ue_emm_ctx->security_ctxt.eksi;
 
   //Replay UE security cap
   memcpy(sm_cmd.ue_security_cap.eea,ue_emm_ctx->security_ctxt.ue_network_cap.eea,8*sizeof(bool));
@@ -1358,7 +1358,7 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *
                      &nas_buffer->msg[5],
                      nas_buffer->N_bytes - 5,
                      mac
-  ); 
+  );
 
   memcpy(&nas_buffer->msg[1],mac,4);
   //Copy NAS PDU to Downlink NAS Trasport message buffer
@@ -1378,7 +1378,7 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *
 }
 
 bool
-s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx)
+nas::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -1409,8 +1409,7 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
 
   ue_emm_ctx->security_ctxt.dl_nas_count++;
   LIBLTE_ERROR_ENUM err = srslte_mme_pack_esm_information_request_msg(&esm_info_req, sec_hdr_type,ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
-  if(err != LIBLTE_SUCCESS)
-  {
+  if (err != LIBLTE_SUCCESS) {
     m_s1ap_log->error("Error packing ESM information request\n");
     m_s1ap_log->console("Error packing ESM information request\n");
     return false;
@@ -1427,7 +1426,7 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
                              );
 
   memcpy(&nas_buffer->msg[1],mac,4);
-  
+
   //Copy NAS PDU to Downlink NAS Trasport message buffer
   memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
   dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
@@ -1446,12 +1445,11 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
 }
 
 bool
-s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer) {
+nas::pack_attach_accept(LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer)
+{
+  m_nas_log->info("Packing Attach Accept\n");
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
-  //bzero(&act_def_eps_bearer_context_req,sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
-
-  m_s1ap_log->info("Packing Attach Accept\n");
 
   //Get decimal MCC and MNC
   uint32_t mcc = 0;

@@ -79,7 +79,7 @@ s1ap_ctx_mngmt_proc::init(void)
 }
 
 bool
-s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx)
+s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx, uint16_t erab_to_setup)
 {
   //Prepare reply PDU
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
@@ -92,6 +92,12 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx)
 
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *in_ctxt_req = &init->choice.InitialContextSetupRequest;
   m_s1ap_log->info("Preparing to send Initial Context Setup request\n");
+
+  //Get UE Context/E-RAB Context to setup
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+  esm_ctx_t *esm_ctx = &nas_ctx->m_esm_ctx[erab_to_setup];
+  sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
 
   //Add MME and eNB S1AP Ids
   in_ctxt_req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ecm_ctx->mme_ue_s1ap_id;
@@ -148,7 +154,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx)
     //Attach procedure initiated from an attach request
     m_s1ap_log->console("Adding attach accept to Initial Context Setup Request\n");
     m_s1ap_log->info("Adding attach accept to Initial Context Setup Request\n");
-    nas_ctx->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &erab_ctx->pdn_addr_alloc, nas_buffer); 
+    nas_ctx->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &esm_ctx->pdn_addr_alloc, nas_buffer); 
   }
 
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate();
@@ -163,7 +169,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx)
   }
 
   //Change E-RAB state to Context Setup Requested and save S-GW control F-TEID
-  ecm_ctx->erabs_ctx[erab_ctx_req->e_RAB_ID.E_RAB_ID].state = ERAB_CTX_REQUESTED;
+  esm_ctx->state = ERAB_CTX_REQUESTED;
 
   struct in_addr addr;
   addr.s_addr = htonl(sgw_s1u_ip);
