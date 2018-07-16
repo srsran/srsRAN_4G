@@ -52,7 +52,7 @@ typedef enum {
 } ecm_state_t;
 static const char ecm_state_text[ECM_STATE_N_ITEMS][100] = {"IDLE",
                                                             "CONNECTED"};
-
+/*
 // MME ESM states (3GPP 23.401 v10.0.0, section 4.6.3)
 typedef enum {
   ESM_BEARER_CONTEXT_INACTIVE = 0,
@@ -71,6 +71,14 @@ static const char esm_state_text[ESM_STATE_N_ITEMS][100] = {"CONTEXT INACTIVE",
                                                             "CONTEXT_MODIFY_PENDING",
                                                             "PROCEDURE_TRANSACTION_INACTIVE"
                                                             "PROCEDURE_TRANSACTION_PENDING"};
+*/
+typedef enum
+{
+  ERAB_DEACTIVATED,
+  ERAB_CTX_REQUESTED,
+  ERAB_CTX_SETUP,
+  ERAB_ACTIVE
+} esm_state_t;
 
 /*
  * EMM, ECM, ESM and EPS Security context definition

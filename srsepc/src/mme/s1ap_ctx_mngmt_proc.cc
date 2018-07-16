@@ -317,7 +317,7 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srsl
   ctx_rel_cmd->Cause.choice.nas.e =  LIBLTE_S1AP_CAUSENAS_NORMAL_RELEASE;
 
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
-  if(err != LIBLTE_SUCCESS){
+  if (err != LIBLTE_SUCCESS) {
     m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
     return false;
   }
