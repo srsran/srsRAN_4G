@@ -190,53 +190,50 @@ bool
 s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp)
 {
   uint32_t mme_ue_s1ap_id = in_ctxt_resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
-  if (ue_ctx == NULL)
-  {
+  nas *nas_ctx = m_s1ap->find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if (nas_ctx == NULL){
     m_s1ap_log->error("Could not find UE's context in active UE's map\n");
     return false;
   }
-  ue_emm_ctx_t * emm_ctx = &ue_ctx->emm_ctx;
-  ue_ecm_ctx_t * ecm_ctx = &ue_ctx->ecm_ctx;
+
+  emm_ctx_t * emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t * ecm_ctx = &nas_ctx->m_ecm_ctx;
 
   m_s1ap_log->console("Received Initial Context Setup Response\n");
   //Setup E-RABs
-  for(uint32_t i=0; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++)
-  {
+  for (uint32_t i=0; i<in_ctxt_resp->E_RABSetupListCtxtSURes.len;i++) {
     uint8_t erab_id = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].e_RAB_ID.E_RAB_ID;
-    erab_ctx_t *erab_ctx = &ecm_ctx->erabs_ctx[erab_id];
-    if (erab_ctx->state != ERAB_CTX_REQUESTED)
-    {
+    esm_ctx_t *esm_ctx = &nas_ctx->m_esm_ctx[erab_id];
+    if (esm_ctx->state != ERAB_CTX_REQUESTED) {
       m_s1ap_log->error("E-RAB requested was not previously requested %d\n",erab_id);
       return false;
     }
     //Mark E-RAB with context setup
-    erab_ctx->state = ERAB_CTX_SETUP;
+    esm_ctx->state = ERAB_CTX_SETUP;
 
     //Set the GTP information
     uint8_t *bit_ptr = in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].transportLayerAddress.buffer;
-    erab_ctx->enb_fteid.ipv4 = htonl(liblte_bits_2_value(&bit_ptr,32));
-    memcpy(&erab_ctx->enb_fteid.teid, in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].gTP_TEID.buffer, 4);
-    erab_ctx->enb_fteid.teid = ntohl(erab_ctx->enb_fteid.teid);
+    esm_ctx->enb_fteid.ipv4 = htonl(liblte_bits_2_value(&bit_ptr,32));
+    memcpy(&esm_ctx->enb_fteid.teid, in_ctxt_resp->E_RABSetupListCtxtSURes.buffer[i].gTP_TEID.buffer, 4);
+    esm_ctx->enb_fteid.teid = ntohl(esm_ctx->enb_fteid.teid);
 
     char enb_addr_str[INET_ADDRSTRLEN+1];
-    const char *err = inet_ntop(AF_INET, &erab_ctx->enb_fteid.ipv4,enb_addr_str,sizeof(enb_addr_str));
-    if(err == NULL)
-    {
+    const char *err = inet_ntop(AF_INET, &esm_ctx->enb_fteid.ipv4,enb_addr_str,sizeof(enb_addr_str));
+    if (err == NULL) {
       m_s1ap_log->error("Error converting IP to string\n");
     }
 
-    m_s1ap_log->info("E-RAB Context Setup. E-RAB id %d\n",erab_ctx->erab_id);
-    m_s1ap_log->info("E-RAB Context -- eNB TEID 0x%x, eNB Address %s\n", erab_ctx->enb_fteid.teid, enb_addr_str);
-    m_s1ap_log->console("E-RAB Context Setup. E-RAB id %d\n",erab_ctx->erab_id);
-    m_s1ap_log->console("E-RAB Context -- eNB TEID 0x%x; eNB GTP-U Address %s\n", erab_ctx->enb_fteid.teid, enb_addr_str);
+    m_s1ap_log->info("E-RAB Context Setup. E-RAB id %d\n",esm_ctx->erab_id);
+    m_s1ap_log->info("E-RAB Context -- eNB TEID 0x%x, eNB Address %s\n", esm_ctx->enb_fteid.teid, enb_addr_str);
+    m_s1ap_log->console("E-RAB Context Setup. E-RAB id %d\n",esm_ctx->erab_id);
+    m_s1ap_log->console("E-RAB Context -- eNB TEID 0x%x; eNB GTP-U Address %s\n", esm_ctx->enb_fteid.teid, enb_addr_str);
 
   }
-  if(emm_ctx->state == EMM_STATE_REGISTERED)
-  {
+
+  if (emm_ctx->state == EMM_STATE_REGISTERED) {
     m_s1ap_log->console("Initial Context Setup Response triggered from Service Request.\n");
     m_s1ap_log->console("Sending Modify Bearer Request.\n");
-    m_mme_gtpc->send_modify_bearer_request(emm_ctx->imsi, &ecm_ctx->erabs_ctx[5]);
+    m_mme_gtpc->send_modify_bearer_request(emm_ctx->imsi, &nas_ctx->m_esm_ctx[5]);
   }
   return true;
 }
