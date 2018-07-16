@@ -99,6 +99,10 @@ bool enb::init(all_args_t *args_)
   gtpu_log.init("GTPU", logger);
   s1ap_log.init("S1AP", logger);
 
+  pool_log.init("POOL", logger);
+  pool_log.set_level(srslte::LOG_LEVEL_ERROR);
+  pool->set_log(&pool_log);
+
   // Init logs
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {

@@ -115,6 +115,7 @@ private:
   srslte::log_filter  nas_log;
   srslte::log_filter  gw_log;
   srslte::log_filter  usim_log;
+  srslte::log_filter  pool_log;
 
   all_args_t       *args;
   bool              started;
