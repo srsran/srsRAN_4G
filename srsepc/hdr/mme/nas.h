@@ -193,8 +193,8 @@ public:
   bool pack_attach_accept(           emm_ctx_t *ue_emm_ctx, ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
 
   /* Security functions */
-  bool integrity_check(       emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
-  bool short_integrity_check( emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
+  bool integrity_check       (srslte::byte_buffer_t *pdu);
+  bool short_integrity_check (srslte::byte_buffer_t *pdu);
 
   /* UE Context*/
   emm_ctx_t m_emm_ctx;

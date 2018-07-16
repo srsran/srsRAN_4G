@@ -265,9 +265,9 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
       m_s1ap_log->info("Uplink NAS: Received Security Mode Complete\n");
       m_s1ap_log->console("Uplink NAS: Received Security Mode Complete\n");
-      emm_ctx->security_ctxt.ul_nas_count = 0;
-      emm_ctx->security_ctxt.dl_nas_count = 0;
-      mac_valid = nas->integrity_check(nas_msg);
+      sec_ctx->ul_nas_count = 0;
+      sec_ctx->dl_nas_count = 0;
+      mac_valid = nas_ctx->integrity_check(nas_msg);
       if(mac_valid){
         nas_ctx->handle_nas_security_mode_complete(nas_msg, reply_buffer, reply_flag);
       } else {
@@ -282,8 +282,8 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED)
   {
     //Integrity protected NAS message, possibly ciphered.
-    emm_ctx->security_ctxt.ul_nas_count++;
-    mac_valid = nas->integrity_check(nas_msg);
+    sec_ctx->ul_nas_count++;
+    mac_valid = nas_ctx->integrity_check(nas_msg);
     if(!mac_valid){
       m_s1ap_log->warning("Invalid MAC in NAS message type 0x%x.\n", msg_type);
       m_pool->deallocate(nas_msg);
@@ -331,8 +331,8 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
 
   if(*reply_flag == true)
   {
-    m_s1ap_log->console("DL NAS: Sent Downlink NAS Message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count,emm_ctx->security_ctxt.ul_nas_count );
-    m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d, UL NAS count=%d\n",emm_ctx->security_ctxt.dl_nas_count, emm_ctx->security_ctxt.ul_nas_count);
+    m_s1ap_log->console("DL NAS: Sent Downlink NAS Message. DL NAS Count=%d, UL NAS count=%d\n", sec_ctx->dl_nas_count, sec_ctx->ul_nas_count);
+    m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d, UL NAS count=%d\n", sec_ctx->dl_nas_count, sec_ctx->ul_nas_count);
     m_s1ap_log->info("DL NAS: MME UE S1AP id %d\n",ecm_ctx->mme_ue_s1ap_id);
     m_s1ap_log->console("DL NAS: MME UE S1AP id %d\n",ecm_ctx->mme_ue_s1ap_id);
   }
@@ -366,20 +366,15 @@ s1ap_nas_transport::handle_nas_attach_request(uint32_t enb_ue_s1ap_id,
   }
 
   //Get attach type from attach request
-  if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI)
-  {
+  if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
     m_s1ap_log->console("Attach Request -- IMSI-style attach request\n");
     m_s1ap_log->info("Attach Request -- IMSI-style attach request\n");
     handle_nas_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
-  }
-  else if(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI)
-  {
+  } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
     m_s1ap_log->console("Attach Request -- GUTI-style attach request\n");
     m_s1ap_log->info("Attach Request -- GUTI-style attach request\n");
     handle_nas_guti_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, nas_msg, reply_buffer, reply_flag, enb_sri);
-  }
-  else
-  {
+  } else {
     m_s1ap_log->error("Unhandled Mobile Id type in attach request\n");
     return false;
   }

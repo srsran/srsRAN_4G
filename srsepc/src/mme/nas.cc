@@ -385,73 +385,6 @@ nas::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, ue_ctx_
   return true;
 }
 
-/************************
- *
- * Security Functions
- *
- ************************/
-
-bool
-nas::short_integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu)
-{
-  uint8_t exp_mac[4];
-  uint8_t *mac = &pdu->msg[2];
-  int i;
-
-  srslte::security_128_eia1(&emm_ctx->security_ctxt.k_nas_int[16],
-                     emm_ctx->security_ctxt.ul_nas_count,
-                     0,
-                     SECURITY_DIRECTION_UPLINK,
-                     &pdu->msg[0],
-                     2,
-                     &exp_mac[0]);
-
-  // Check if expected mac equals the sent mac
-  for(i=0; i<2; i++){
-    if(exp_mac[i+2] != mac[i]){
-      m_s1ap_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
-                       "Received: count=%d, [%02x %02x]\n",
-                          emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
-                          pdu->msg[1] & 0x1F, mac[0], mac[1]);
-      return false;
-    }
-  }
-  m_s1ap_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                emm_ctx->security_ctxt.ul_nas_count, pdu->msg[1] & 0x1F);
-  return true;
-}
-
-
-bool
-nas::integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu)
-{
-  uint8_t exp_mac[4];
-  uint8_t *mac = &pdu->msg[1];
-  int i;
-
-  srslte::security_128_eia1(&emm_ctx->security_ctxt.k_nas_int[16],
-                     emm_ctx->security_ctxt.ul_nas_count,
-                     0,
-                     SECURITY_DIRECTION_UPLINK,
-                     &pdu->msg[5],
-                     pdu->N_bytes-5,
-                     &exp_mac[0]);
-
-  // Check if expected mac equals the sent mac
-  for(i=0; i<4; i++){
-    if(exp_mac[i] != mac[i]){
-      m_s1ap_log->warning("Integrity check failure. UL Local: count=%d, [%02x %02x %02x %02x], "
-                       "Received: UL count=%d, [%02x %02x %02x %02x]\n",
-                       emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
-                       pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
-      return false;
-    }
-  }
-  m_s1ap_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                emm_ctx->security_ctxt.ul_nas_count, pdu->msg[5]);
-    return true;
-}
-
 
 bool
 nas::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
@@ -1079,7 +1012,7 @@ nas::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg)
 }
 
 bool
-s1ap_nas_transport::pack_service_reject(srslte::byte_buffer_t *reply_msg, uint8_t emm_cause, uint32_t enb_ue_s1ap_id)
+nas::pack_service_reject(srslte::byte_buffer_t *reply_msg, uint8_t emm_cause, uint32_t enb_ue_s1ap_id)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -1128,6 +1061,73 @@ s1ap_nas_transport::pack_service_reject(srslte::byte_buffer_t *reply_msg, uint8_
     return false;
   }
   return true;
+}
+
+/************************
+ *
+ * Security Functions
+ *
+ ************************/
+
+bool
+nas::short_integrity_check(srslte::byte_buffer_t *pdu)
+{
+  uint8_t exp_mac[4];
+  uint8_t *mac = &pdu->msg[2];
+  int i;
+
+  srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
+                     m_sec_ctx.ul_nas_count,
+                     0,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[0],
+                     2,
+                     &exp_mac[0]);
+
+  // Check if expected mac equals the sent mac
+  for(i=0; i<2; i++){
+    if(exp_mac[i+2] != mac[i]){
+      m_s1ap_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
+                          "Received: count=%d, [%02x %02x]\n",
+                          m_sec_ctx->ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                          pdu->msg[1] & 0x1F, mac[0], mac[1]);
+      return false;
+    }
+  }
+  m_nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
+                  m_sec_ctx.ul_nas_count, pdu->msg[1] & 0x1F);
+  return true;
+}
+
+
+bool
+nas::integrity_check(srslte::byte_buffer_t *pdu)
+{
+  uint8_t exp_mac[4];
+  uint8_t *mac = &pdu->msg[1];
+  int i;
+
+  srslte::security_128_eia1(&emm_ctx->security_ctxt.k_nas_int[16],
+                     emm_ctx->security_ctxt.ul_nas_count,
+                     0,
+                     SECURITY_DIRECTION_UPLINK,
+                     &pdu->msg[5],
+                     pdu->N_bytes-5,
+                     &exp_mac[0]);
+
+  // Check if expected mac equals the sent mac
+  for(i=0; i<4; i++){
+    if(exp_mac[i] != mac[i]){
+      m_s1ap_log->warning("Integrity check failure. UL Local: count=%d, [%02x %02x %02x %02x], "
+                       "Received: UL count=%d, [%02x %02x %02x %02x]\n",
+                       emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                       pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
+      return false;
+    }
+  }
+  m_s1ap_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
+                emm_ctx->security_ctxt.ul_nas_count, pdu->msg[5]);
+    return true;
 }
 
 } //namespace srsepc
