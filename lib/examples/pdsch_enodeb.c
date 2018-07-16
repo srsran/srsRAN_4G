@@ -33,6 +33,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
+#include "srslte/common/crash_handler.h"
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/phch/pdsch_cfg.h>
 #include "srslte/common/gen_mch_tables.h"

@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
+#include "srslte/common/crash_handler.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/config_file.h"
 #include "srsepc/hdr/mme/mme.h"
@@ -39,7 +40,7 @@ namespace bpo = boost::program_options;
 
 bool running = true;
 
-void 
+void
 sig_int_handler(int signo){
   running = false;
 }
@@ -282,10 +283,12 @@ level(std::string l)
 int
 main (int argc,char * argv[] )
 {
-  cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   signal(SIGKILL, sig_int_handler);
+
+  cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
+  srslte_debug_handle_crash(argc, argv);
 
   all_args_t args;
   parse_args(&args, argc, argv); 
@@ -340,16 +343,16 @@ main (int argc,char * argv[] )
   if (spgw->init(&args.spgw_args,&spgw_log)) {
     cout << "Error initializing SP-GW" << endl;
     exit(1);
-  } 
+  }
 
-  mme->start(); 
+  mme->start();
   spgw->start();
   while(running) {
     sleep(1);
   }
 
   mme->stop();
-  mme->cleanup();   
+  mme->cleanup();
   spgw->stop();
   spgw->cleanup();
   hss->stop();
