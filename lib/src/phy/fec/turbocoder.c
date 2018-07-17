@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <srslte/phy/fec/crc.h>
 
 #include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/turbocoder.h"
@@ -40,9 +41,13 @@
 #define RATE 3
 #define TOTALTAIL 12
 
-uint8_t tcod_lut_next_state[188][8][256];
-uint8_t tcod_lut_output[188][8][256];
-uint16_t tcod_per_fw[188][6144];
+typedef struct {
+  uint8_t next_state;
+  uint8_t output;
+} tcod_lut_t;
+
+static tcod_lut_t tcod_lut[188][8][256];
+static uint16_t tcod_per_fw[188][6144];
 static srslte_bit_interleaver_t tcod_interleavers[188];
 
 static bool table_initiated = false; 
@@ -187,23 +192,59 @@ int srslte_tcod_encode(srslte_tcod_t *h, uint8_t *input, uint8_t *output, uint32
 }
 
 /* Expects bytes and produces bytes. The systematic and parity bits are interlaced in the output */
-int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *parity, uint32_t cblen_idx) 
+int srslte_tcod_encode_lut(srslte_tcod_t *h, srslte_crc_t *crc, uint8_t *input, uint8_t *parity, uint32_t cblen_idx)
 {
   if (cblen_idx < 188) {
-    uint32_t long_cb = srslte_cbsegm_cbsize(cblen_idx);
+    uint32_t long_cb = (uint32_t) srslte_cbsegm_cbsize(cblen_idx);
     
     if (long_cb % 8) {
       fprintf(stderr, "Turbo coder LUT implementation long_cb must be multiple of 8\n");
       return -1; 
     }
-    
-    /* Parity bits for the 1st constituent encoders */
-    uint8_t state0 = 0;   
-    for (uint32_t i=0;i<long_cb/8;i++) {
-      parity[i] = tcod_lut_output[cblen_idx][state0][input[i]];    
-      state0 = tcod_lut_next_state[cblen_idx][state0][input[i]] % 8;
+
+    /* Reset CRC */
+    if (crc) {
+      srslte_crc_set_init(crc, 0);
     }
-    parity[long_cb/8] = 0;  // will put tail here later
+
+    /* Parity bits for the 1st constituent encoders */
+    uint8_t state0 = 0;
+    if (crc) {
+
+      /* if CRC pointer is given */
+      for (int i = 0; i < (long_cb - crc->order) / 8; i++) {
+        uint8_t in = input[i];
+
+        /* Put byte in CRC and save latest checksum */
+        srslte_crc_checksum_put_byte(crc, in);
+
+        /* Run actual encoder */
+        tcod_lut_t l = tcod_lut[cblen_idx][state0][in];
+        parity[i] = l.output;
+        state0 = l.next_state;
+      }
+
+      uint32_t checksum = (uint32_t) srslte_crc_checksum_get(crc);
+      for (int i = 0; i < crc->order / 8; i++) {
+        int mask_shift = 8 * (crc->order / 8 - i - 1);
+        int idx = (long_cb - crc->order) / 8 + i;
+        uint8_t in = (uint8_t) ((checksum >> mask_shift) & 0xff);
+
+        input[idx] = in;
+        tcod_lut_t l = tcod_lut[cblen_idx][state0][in];
+        parity[idx] = l.output;
+        state0 = l.next_state;
+      }
+
+    } else {
+      /* No CRC given */
+      for (uint32_t i = 0; i < long_cb / 8; i++) {
+        tcod_lut_t l = tcod_lut[cblen_idx][state0][input[i]];
+        parity[i] = l.output;
+        state0 = l.next_state;
+      }
+    }
+    parity[long_cb / 8] = 0;  // will put tail here later
     
     /* Interleave input */
     srslte_bit_interleaver_run(&tcod_interleavers[cblen_idx], input, h->temp, 0);
@@ -212,10 +253,11 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *parity, ui
     /* Parity bits for the 2nd constituent encoders */
     uint8_t state1 = 0;
     for (uint32_t i=0;i<long_cb/8;i++) {
-      uint8_t out = tcod_lut_output[cblen_idx][state1][h->temp[i]];    
+      tcod_lut_t l = tcod_lut[cblen_idx][state1][h->temp[i]];
+      uint8_t out = l.output;
       parity[long_cb/8+i] |= (out&0xf0)>>4;
-      parity[long_cb/8+i+1] = (out&0xf)<<4; 
-      state1 = tcod_lut_next_state[cblen_idx][state1][h->temp[i]] % 8;
+      parity[long_cb/8+i+1] = (out&0xf)<<4;
+      state1 = l.next_state;
     }
 
     /* Tail bits */
@@ -318,7 +360,7 @@ void srslte_tcod_gentable() {
         reg_1 = (state&2)>>1;
         reg_2 = state&1;
         
-        tcod_lut_output[len][state][data] = 0;
+        tcod_lut[len][state][data].output = 0;
         uint8_t bit, in, out; 
         for (uint32_t i = 0; i < 8; i++) {
           bit = (data&(1<<(7-i)))?1:0;
@@ -330,10 +372,10 @@ void srslte_tcod_gentable() {
           reg_1 = reg_0;
           reg_0 = in;
 
-          tcod_lut_output[len][state][data] |= out<<(7-i);
+          tcod_lut[len][state][data].output |= out<<(7-i);
 
         }
-        tcod_lut_next_state[len][state][data] = reg_0<<2 | reg_1<<1 | reg_2;        
+        tcod_lut[len][state][data].next_state = (uint8_t) ((reg_0 << 2 | reg_1 << 1 | reg_2) % 8);
       }
     }  
   }
