@@ -33,6 +33,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
+#include "pdcp_interface.h"
 
 
 namespace srslte {
@@ -59,7 +60,7 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU",
  * PDCP Entity interface
  * Common interface for all PDCP entities
  ***************************************************************************/
-class pdcp_entity
+class pdcp_entity : public pdcp_entity_interface
 {
 public:
   pdcp_entity();
