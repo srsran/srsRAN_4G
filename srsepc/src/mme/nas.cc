@@ -451,7 +451,7 @@ nas::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_
 
 /*Packing/Unpacking helper functions*/
 bool
-nas::pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t eksi, uint8_t *autn, uint8_t *rand)
+nas::pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint8_t *autn, uint8_t *rand)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -531,8 +531,7 @@ nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg, uint32_t enb_u
 
   LIBLTE_MME_AUTHENTICATION_REJECT_MSG_STRUCT auth_rej;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_reject_msg(&auth_rej, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
-  if(err != LIBLTE_SUCCESS)
-  {
+  if (err != LIBLTE_SUCCESS) {
     m_s1ap_log->error("Error packing Authentication Reject\n");
     m_s1ap_log->console("Error packing Authentication Reject\n");
     return false;
@@ -544,12 +543,11 @@ nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg, uint32_t enb_u
 
   //Pack Downlink NAS Transport Message
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if(err != LIBLTE_SUCCESS)
-  {
+  if (err != LIBLTE_SUCCESS) {
     m_s1ap_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
     m_s1ap_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
     return false;
-  } 
+  }
 
   m_pool->deallocate(nas_buffer);
   return true;
@@ -889,7 +887,7 @@ nas::pack_attach_accept(LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx
 }
 
 bool
-nas::pack_identity_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id)
+nas::pack_identity_request(srslte::byte_buffer_t *reply_msg)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
