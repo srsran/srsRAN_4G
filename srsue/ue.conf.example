@@ -77,7 +77,7 @@ nas_filename = /tmp/nas.pcap
 #                If set to negative, a single log file will be created.
 #####################################################################
 [log]
-all_level = info
+all_level = warning
 phy_lib_level = none
 all_hex_limit = 32
 filename = /tmp/ue.log

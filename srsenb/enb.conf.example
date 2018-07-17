@@ -113,7 +113,7 @@ filename = /tmp/enb.pcap
 #                If set to negative, a single log file will be created.
 #####################################################################
 [log]
-all_level = info
+all_level = warning
 all_hex_limit = 32
 filename = /tmp/enb.log
 file_max_size = -1
