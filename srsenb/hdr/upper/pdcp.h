@@ -39,7 +39,7 @@ class pdcp :  public pdcp_interface_rlc,
               public pdcp_interface_rrc
 {
 public:
- 
+  virtual ~pdcp() {};
   void init(rlc_interface_pdcp *rlc_, rrc_interface_pdcp *rrc_, gtpu_interface_pdcp *gtpu_, srslte::log *pdcp_log_);
   void stop(); 
   

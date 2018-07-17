@@ -41,7 +41,7 @@ class pdcp
 {
 public:
   pdcp();
-  ~pdcp();
+  virtual ~pdcp();
   void init(srsue::rlc_interface_pdcp *rlc_,
             srsue::rrc_interface_pdcp *rrc_,
             srsue::gw_interface_pdcp *gw_,
@@ -78,7 +78,7 @@ public:
   void write_pdu_bcch_bch(byte_buffer_t *sdu);
   void write_pdu_bcch_dlsch(byte_buffer_t *sdu);
   void write_pdu_pcch(byte_buffer_t *sdu);
-  
+
 private:
   srsue::rlc_interface_pdcp *rlc;
   srsue::rrc_interface_pdcp *rrc;
@@ -89,6 +89,7 @@ private:
 
   log         *pdcp_log;
   pdcp_map_t  pdcp_array, pdcp_array_mrb;
+  pthread_rwlock_t rwlock;
 
   // default PDCP entity that is maintained active by PDCP instance
   srslte_pdcp_config_t default_cnfg;
