@@ -63,7 +63,7 @@ public:
   virtual void enable_encryption() = 0;
 
   // RLC interface
-  void write_pdu(byte_buffer_t *pdu);
+  virtual void write_pdu(byte_buffer_t *pdu) = 0;
 };
 
 } // namespace srslte
