@@ -139,7 +139,9 @@ std::string ue_base::get_build_info()
 std::string ue_base::get_build_string()
 {
   std::stringstream ss;
-  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  if (get_build_mode() != "" && get_build_info() != "") {
+    ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  }
   return ss.str();
 }
 
