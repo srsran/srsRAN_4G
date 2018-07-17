@@ -12,6 +12,7 @@
 # mnc:            Mobile Network Code
 # mme_addr:       IP address of MME for S1 connnection
 # gtp_bind_addr:  Local IP address to bind for GTP connection
+# s1c_bind_addr:  Local IP address to bind for S1AP connection
 # n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
 # tm:             Transmission mode 1-4 (TM1 default)
 # nof_ports:      Number of Tx ports (1 port default, set to 2 for TM2/3/4)
@@ -112,7 +113,7 @@ filename = /tmp/enb.pcap
 #                If set to negative, a single log file will be created.
 #####################################################################
 [log]
-all_level = info
+all_level = warning
 all_hex_limit = 32
 filename = /tmp/enb.log
 file_max_size = -1
