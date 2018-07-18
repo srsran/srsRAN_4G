@@ -1,0 +1,13 @@
+#!/bin/sh
+ 
+# Exit on error
+set -e
+ 
+# Source debconf library.
+. /usr/share/debconf/confmodule
+ 
+# Ask questions
+db_input low srslte/install_configs_question || true
+ 
+# Show interface
+db_go || true
