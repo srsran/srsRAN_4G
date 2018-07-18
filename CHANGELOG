@@ -1,6 +1,12 @@
 Change Log for Releases
 ==============================
 
+## 18.06.1
+  * Fixed RLC reestablish
+  * Fixed aperiodic QCI retx
+  * Fixed eNB instability
+  * Fixed Debian packaging
+
 ## 18.06
   * Added eMBMS support in srsUE/srsENB/srsEPC
   * Added support for hard SIM cards
