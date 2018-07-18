@@ -611,7 +611,7 @@ s1ap::print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx)
 /*
  * Interfaces
  */
-// NAS -> S1AP interfaces
+// GTP-C || NAS -> S1AP interface
 bool
 s1ap::send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup)
 {

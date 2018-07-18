@@ -21,11 +21,13 @@
 #ifndef SRSEPC_NAS_H
 #define SRSEPC_NAS_H
 
+#include <netinet/sctp.h>
+
 #include "srslte/common/security.h"
 #include "srslte/asn1/gtpc_ies.h"
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/asn1/liblte_mme.h"
-#include <netinet/sctp.h>
+#include "srslte/interfaces/epc_interfaces.h"
 
 namespace srsepc{
 
@@ -185,7 +187,7 @@ public:
   /* Downlink NAS messages packing*/
   bool pack_authentication_request  (srslte::byte_buffer_t *reply_msg);
   bool pack_authentication_reject   (srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
-  bool pack_security_mode_command   (srslte::byte_buffer_t *reply_msg, emm_ctx_t *ue_emm_ctx, ecm_ctx_t *ue_ecm_ctx);
+  bool pack_security_mode_command   (srslte::byte_buffer_t *reply_msg);
   bool pack_esm_information_request (srslte::byte_buffer_t *reply_msg, emm_ctx_t *ue_emm_ctx, ecm_ctx_t *ue_ecm_ctx);
   bool pack_identity_request        (srslte::byte_buffer_t *reply_msg);
   bool pack_emm_information         (srslte::byte_buffer_t *reply_msg);
@@ -201,7 +203,12 @@ public:
   ecm_ctx_t m_ecm_ctx;
   esm_ctx_t m_esm_ctx[MAX_ERABS_PER_UE];
   sec_ctx_t m_sec_ctx;
+
+private:
+  srslte::log        *m_nas_log;
+  gtpc_interface_nas *m_gtpc;
+  s1ap_interface_nas *m_s1ap;
 };
 
 }//namespace
-#endif // SRSEPC_S1AP_COMMON_H
+#endif // SRSEPC_NAS_H
