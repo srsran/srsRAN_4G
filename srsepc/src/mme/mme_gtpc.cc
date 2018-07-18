@@ -210,33 +210,30 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   m_mme_gtpc_log->info("Create Session Response -- SPGW S1-U Address: %s\n", inet_ntoa(s1u_addr));
 
   //Check UE Ipv4 address was allocated
-  if(cs_resp->paa_present != true)
-  {
+  if (cs_resp->paa_present != true) {
     m_mme_gtpc_log->error("PDN Adress Allocation not present\n");
     return;
   }
-  if(cs_resp->paa.pdn_type != srslte::GTPC_PDN_TYPE_IPV4)
-  {
+  if (cs_resp->paa.pdn_type != srslte::GTPC_PDN_TYPE_IPV4) {
     m_mme_gtpc_log->error("IPv6 not supported yet\n");
     return;
   }
 
   //Save create session response info to E-RAB context
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
-  if(ue_ctx == NULL){
+  nas *nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
+  if(nas_ctx == NULL){
     m_mme_gtpc_log->error("Could not find UE context. IMSI %015lu\n", imsi);
     return;
   }
-  ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
-  ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
 
   //Save UE IP to nas ctxt
   emm_ctx->ue_ip.s_addr = cs_resp->paa.ipv4;
   m_mme_gtpc_log->console("SPGW Allocated IP %s to ISMI %015lu\n",inet_ntoa(emm_ctx->ue_ip),emm_ctx->imsi);
   //Save SGW ctrl F-TEID in GTP-C context
   std::map<uint64_t,struct gtpc_ctx>::iterator it_g = m_imsi_to_gtpc_ctx.find(imsi);
-  if(it_g == m_imsi_to_gtpc_ctx.end())
-  {
+  if(it_g == m_imsi_to_gtpc_ctx.end()) {
     //Could not find GTP-C Context
     m_mme_gtpc_log->error("Could not find GTP-C context\n");
     return;
@@ -247,24 +244,23 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   //Set EPS bearer context
   //FIXME default EPS bearer is hard-coded
   int default_bearer=5;
-  erab_ctx_t *erab_ctx = &ecm_ctx->erabs_ctx[default_bearer];
-  erab_ctx->pdn_addr_alloc= cs_resp->paa;
-  erab_ctx->sgw_s1u_fteid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid;
-  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, erab_ctx);
+  esm_ctx_t *esm_ctx = &nas_ctx->m_esm_ctx[default_bearer];
+  esm_ctx->pdn_addr_alloc= cs_resp->paa;
+  esm_ctx->sgw_s1u_fteid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid;
+  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(nas_ctx, default_bearer);
   return;
 }
 
 
 void
-mme_gtpc::send_modify_bearer_request(uint64_t imsi, erab_ctx_t *erab_ctx)
+mme_gtpc::send_modify_bearer_request(uint64_t imsi, esm_ctx_t *esm_ctx)
 {
   m_mme_gtpc_log->info("Sending GTP-C Modify bearer request\n");
   srslte::gtpc_pdu mb_req_pdu;
-  srslte::gtp_fteid_t *enb_fteid = &erab_ctx->enb_fteid;
+  srslte::gtp_fteid_t *enb_fteid = &esm_ctx->enb_fteid;
 
   std::map<uint64_t,gtpc_ctx_t>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
-  if(it == m_imsi_to_gtpc_ctx.end())
-  {
+  if (it == m_imsi_to_gtpc_ctx.end()) {
     m_mme_gtpc_log->error("Modify bearer request for UE without GTP-C connection\n");
     return;
   }
@@ -276,7 +272,7 @@ mme_gtpc::send_modify_bearer_request(uint64_t imsi, erab_ctx_t *erab_ctx)
   header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_REQUEST;
 
   srslte::gtpc_modify_bearer_request *mb_req = &mb_req_pdu.choice.modify_bearer_request;
-  mb_req->eps_bearer_context_to_modify.ebi = erab_ctx->erab_id;
+  mb_req->eps_bearer_context_to_modify.ebi = esm_ctx->erab_id;
   mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.ipv4 = enb_fteid->ipv4;
   mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.teid = enb_fteid->teid;
 
