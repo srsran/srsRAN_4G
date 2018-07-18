@@ -63,18 +63,16 @@ nas::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx,
   LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &detach_req);
-  if(err !=LIBLTE_SUCCESS)
-    {
+  if(err !=LIBLTE_SUCCESS) {
       m_s1ap_log->error("Could not unpack detach request\n");
       return false;
-    }
+  }
 
   m_mme_gtpc->send_delete_session_request(ue_ctx->emm_ctx.imsi);
   ue_ctx->emm_ctx.state = EMM_STATE_DEREGISTERED;
-  if(ue_ctx->ecm_ctx.mme_ue_s1ap_id!=0)
-    {
+  if(ue_ctx->ecm_ctx.mme_ue_s1ap_id!=0) {
       m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(&ue_ctx->ecm_ctx, reply_msg);
-    }
+  }
   return true;
 }
 
@@ -737,8 +735,7 @@ nas::pack_esm_information_request(srslte::byte_buffer_t *reply_msg, ue_emm_ctx_t
 
   //Pack Downlink NAS Transport Message
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if(err != LIBLTE_SUCCESS)
-  {
+  if(err != LIBLTE_SUCCESS) {
     m_s1ap_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
     m_s1ap_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
     return false;
@@ -762,14 +759,11 @@ nas::pack_attach_accept(LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx
   mcc += 100*( (0x0F00 & m_s1ap->m_s1ap_args.mcc) >> 8);
 
   uint32_t mnc = 0;
-  if( 0xFF00 == (m_s1ap->m_s1ap_args.mnc & 0xFF00 ))
-  {
+  if( 0xFF00 == (m_s1ap->m_s1ap_args.mnc & 0xFF00 )) {
     //Two digit MNC
     mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
     mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
-  }
-  else
-  {
+  } else {
     //Three digit MNC
     mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
     mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);

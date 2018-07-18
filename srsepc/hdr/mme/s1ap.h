@@ -54,7 +54,8 @@ namespace srsepc{
 const uint16_t S1MME_PORT = 36412;
 
 class s1ap:
-    public s1ap_interface_nas
+    public s1ap_interface_nas,
+    public s1ap_interface_gtpc
 {
 public:
 
@@ -105,6 +106,9 @@ public:
   s1ap_ctx_mngmt_proc*           m_s1ap_ctx_mngmt_proc;
 
   std::map<uint32_t, uint64_t>   m_tmsi_to_imsi;
+
+  //Interfaces
+  virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup);
 
 private:
   s1ap();

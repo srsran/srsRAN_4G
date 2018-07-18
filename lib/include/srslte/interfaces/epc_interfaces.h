@@ -13,14 +13,14 @@ namespace srsepc {
 class s1ap_interface_gtpc
 {
 public:
-  virtual bool send_initial_context_setup_request(uint64_t imsi) = 0;
+  virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup) = 0;
 };
 
 //NAS -> S1AP
 class s1ap_interface_nas
 {
 public:
-  virtual bool send_initial_context_setup_request(uint64_t imsi) = 0;
+  virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup) = 0;
 };
 
 //S1AP -> HSS

@@ -608,5 +608,21 @@ s1ap::print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx)
   return;
 }
 
+/*
+ * Interfaces
+ */
+// NAS -> S1AP interfaces
+bool
+s1ap::send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup)
+{
+  nas* nas_ctx = find_nas_ctx_from_imsi(imsi);
+  if (nas_ctx==NULL) {
+    m_s1ap_log->error("Error finding NAS context when sending initial context Setup Request\n");
+    return false;
+  }
+  m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(nas_ctx, erab_to_setup);
+  return true;
+}
+
 } //namespace srsepc
 
