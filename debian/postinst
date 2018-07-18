@@ -1,0 +1,14 @@
+#!/bin/bash
+ 
+# Source debconf library.
+. /usr/share/debconf/confmodule
+ 
+# Fetching configuration from debconf
+db_get srslte/install_configs_question
+ANSWER1=$RET
+
+if [ $ANSWER1 == "true" ]; then
+  srslte_install_configs.sh
+fi
+
+#DEBHELPER#

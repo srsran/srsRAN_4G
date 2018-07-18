@@ -133,15 +133,16 @@ std::string ue_base::get_build_mode()
 
 std::string ue_base::get_build_info()
 {
+  if (std::string(srslte_get_build_info()) == "") {
+    return std::string(srslte_get_version());
+  }
   return std::string(srslte_get_build_info());
 }
 
 std::string ue_base::get_build_string()
 {
   std::stringstream ss;
-  if (get_build_mode() != "" && get_build_info() != "") {
-    ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
-  }
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
   return ss.str();
 }
 
