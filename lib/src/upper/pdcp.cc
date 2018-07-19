@@ -83,10 +83,8 @@ void pdcp::stop()
 
 void pdcp::reestablish() {
   pthread_rwlock_rdlock(&rwlock);
-  for (uint32_t i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
-    if (valid_lcid(i)) {
-      pdcp_array.at(i)->reestablish();
-    }
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    it->second->reestablish();
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -94,12 +92,9 @@ void pdcp::reestablish() {
 void pdcp::reset()
 {
   pthread_rwlock_rdlock(&rwlock);
-  for (uint32_t i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
-    if (valid_lcid(i)) {
-      pdcp_array.at(i)->reset();
-    }
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    it->second->reset();
   }
-
   if (valid_lcid(0)) {
     pdcp_array.at(0)->init(rlc, rrc, gw, pdcp_log, default_lcid, default_cnfg);
   }
@@ -113,17 +108,9 @@ bool pdcp::is_drb_enabled(uint32_t lcid)
 {
   pthread_rwlock_rdlock(&rwlock);
   bool ret = false;
-
-  if (lcid >= SRSLTE_N_RADIO_BEARERS) {
-    pdcp_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
-    goto unlock_and_exit;
+  if (valid_lcid(lcid)) {
+    ret = pdcp_array.at(lcid)->is_active();
   }
-  if (pdcp_array.find(lcid) == pdcp_array.end()) {
-    goto unlock_and_exit;
-  }
-  ret = pdcp_array.at(lcid)->is_active();
-
-unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
   return ret;
 }
@@ -200,10 +187,8 @@ void pdcp::config_security_all(uint8_t *k_enc,
                                INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   pthread_rwlock_rdlock(&rwlock);
-  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
-    if (pdcp_array.at(i)->is_active()) {
-      pdcp_array.at(i)->config_security(k_enc, k_int, cipher_algo, integ_algo);
-    }
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    it->second->config_security(k_enc, k_int, cipher_algo, integ_algo);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -276,7 +261,6 @@ bool pdcp::valid_lcid(uint32_t lcid)
   }
 
   if (pdcp_array.find(lcid) == pdcp_array.end()) {
-    pdcp_log->error("PDCP entity for logical channel %d has not been activated\n", lcid);
     return false;
   }
 
@@ -291,7 +275,6 @@ bool pdcp::valid_mch_lcid(uint32_t lcid)
   }
 
   if (pdcp_array_mrb.find(lcid) == pdcp_array_mrb.end()) {
-    pdcp_log->error("PDCP entity for logical channel %d has not been activated\n", lcid);
     return false;
   }
 
