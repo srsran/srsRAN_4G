@@ -169,13 +169,12 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu->choice.create_session_response;
   m_mme_gtpc_log->info("Received Create Session Response\n");
   m_mme_gtpc_log->console("Received Create Session Response\n");
-  if (cs_resp_pdu->header.type != srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE)
-  {
+  if (cs_resp_pdu->header.type != srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE) {
      m_mme_gtpc_log->warning("Could not create GTPC session. Not a create session response\n");
      //TODO Handle error
      return;
   }
-  if (cs_resp->cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED){
+  if (cs_resp->cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED) {
     m_mme_gtpc_log->warning("Could not create GTPC session. Create Session Request not accepted\n");
     //TODO Handle error
     return;
@@ -183,8 +182,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
 
   //Get IMSI from the control TEID
   std::map<uint32_t,uint64_t>::iterator id_it = m_mme_ctr_teid_to_imsi.find(cs_resp_pdu->header.teid);
-  if(id_it == m_mme_ctr_teid_to_imsi.end())
-  {
+  if(id_it == m_mme_ctr_teid_to_imsi.end()) {
     m_mme_gtpc_log->warning("Could not find IMSI from Ctrl TEID.\n");
     return;
   }
