@@ -268,7 +268,7 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
     m_mme_gtpc->send_release_access_bearers_request(emm_ctx->imsi);
 
     //Send release context command to enb, so that it can release it's bearers
-    send_ue_context_release_command(ecm_ctx,reply_buffer);
+    send_ue_context_release_command(nas_ctx);
   } else {
     //No ECM Context to release
     m_s1ap_log->info("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
@@ -289,9 +289,10 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
 }
 
 bool
-s1ap_ctx_mngmt_proc::send_ue_context_release_command(ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_buffer)
+s1ap_ctx_mngmt_proc::send_ue_context_release_command(nas *nas_ctx)
 {
   //Prepare reply PDU
+  srslte::byte_buffer_t *reply_buffer;
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
   bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
   pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
@@ -302,8 +303,8 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(ecm_ctx_t *ecm_ctx, srslte:
 
   LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMAND_STRUCT *ctx_rel_cmd = &init->choice.UEContextReleaseCommand;
   ctx_rel_cmd->UE_S1AP_IDs.choice_type = LIBLTE_S1AP_UE_S1AP_IDS_CHOICE_UE_S1AP_ID_PAIR;
-  ctx_rel_cmd->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.mME_UE_S1AP_ID.MME_UE_S1AP_ID = ecm_ctx->mme_ue_s1ap_id;
-  ctx_rel_cmd->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ecm_ctx->enb_ue_s1ap_id;
+  ctx_rel_cmd->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.mME_UE_S1AP_ID.MME_UE_S1AP_ID = nas_ctx->m_ecm_ctx.mme_ue_s1ap_id;
+  ctx_rel_cmd->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = nas_ctx->m_ecm_ctx.enb_ue_s1ap_id;
 
   ctx_rel_cmd->Cause.choice_type = LIBLTE_S1AP_CAUSE_CHOICE_NAS;
   ctx_rel_cmd->Cause.choice.nas.ext = false;
@@ -316,7 +317,7 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(ecm_ctx_t *ecm_ctx, srslte:
   }
 
   //Send Reply to eNB
-  if(!m_s1ap->s1ap_tx_pdu(reply_buffer,&ecm_ctx->enb_sri)){
+  if(!m_s1ap->s1ap_tx_pdu(reply_buffer,&nas_ctx->m_ecm_ctx.enb_sri)){
     m_s1ap_log->error("Error sending UE Context Release command.\n");
     return false;
   }

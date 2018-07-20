@@ -412,7 +412,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
     //Detaching previoulsy attached UE.
     m_mme_gtpc->send_delete_session_request(imsi);
     if (old_ctx->m_ecm_ctx.mme_ue_s1ap_id!=0) {
-        m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(&old_ctx->m_ecm_ctx, reply_buffer);
+        m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(old_ctx);
     }
     m_s1ap->delete_ue_ctx(imsi);
   }
@@ -687,7 +687,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
           //Detaching previoulsy attached UE.
           m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
           if (ecm_ctx->mme_ue_s1ap_id!=0) {
-            m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx, reply_buffer);
+            m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(nas_ctx);
           }
         }
         sec_ctx->ul_nas_count = 0;
@@ -808,7 +808,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
 
       //Release previous context
       m_s1ap_log->info("Service Request -- Releasing previouse ECM context. eNB S1AP Id %d, MME UE S1AP Id %d\n", ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
+      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(nas_ctx);
       m_s1ap->release_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id);
     }
 
@@ -890,7 +890,7 @@ s1ap_nas_transport::handle_nas_detach_request(uint32_t m_tmsi,
   //eNB created new ECM context to send the detach request; this needs to be cleared.
   ecm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
   ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
-  m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx, reply_buffer); 
+  m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(nas_ctx);
   return true;
 }
 

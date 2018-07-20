@@ -109,6 +109,7 @@ public:
 
   //Interfaces
   virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup);
+  virtual bool send_ue_context_release_command(uint32_t mme_ue_s1ap_id);
 
 private:
   s1ap();

@@ -50,7 +50,7 @@ public:
   bool send_initial_context_setup_request(nas *nas_ctx, uint16_t erab_to_setup);
   bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp);
   bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool send_ue_context_release_command(ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_buffer);
+  bool send_ue_context_release_command(nas *nas_ctx);
   bool handle_ue_context_release_complete(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMPLETE_STRUCT *rel_comp);
 
 private:

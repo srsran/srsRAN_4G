@@ -52,7 +52,6 @@ s1ap::~s1ap()
 s1ap*
 s1ap::get_instance(void)
 {
-
   pthread_mutex_lock(&s1ap_instance_mutex);
   if(m_instance == NULL) {
     m_instance = new s1ap();
@@ -611,12 +610,12 @@ s1ap::print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx)
 /*
  * Interfaces
  */
-// GTP-C || NAS -> S1AP interface
+/*GTP-C||NAS -> S1AP interface*/
 bool
 s1ap::send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup)
 {
   nas* nas_ctx = find_nas_ctx_from_imsi(imsi);
-  if (nas_ctx==NULL) {
+  if (nas_ctx == NULL) {
     m_s1ap_log->error("Error finding NAS context when sending initial context Setup Request\n");
     return false;
   }
@@ -624,5 +623,17 @@ s1ap::send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup)
   return true;
 }
 
-} //namespace srsepc
+/*NAS -> S1AP interface*/
+bool
+s1ap::send_ue_context_release_command(uint32_t mme_ue_s1ap_id)
+{
+  nas* nas_ctx = find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  if (nas_ctx == NULL) {
+    m_s1ap_log->error("Error finding NAS context when sending UE Context Setup Release\n");
+    return false;
+  }
+  m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(nas_ctx);
+  return true;
+}
 
+} //namespace srsepc

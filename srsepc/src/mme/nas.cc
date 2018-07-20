@@ -127,7 +127,7 @@ nas::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte::
 }
 
 bool
-nas::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
+nas::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
 {
 
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
