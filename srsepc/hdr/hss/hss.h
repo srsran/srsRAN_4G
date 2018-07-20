@@ -69,7 +69,7 @@ enum hss_auth_algo {
   HSS_ALGO_MILENAGE
 };
 
-class hss : public hss_interface_s1ap
+class hss : public hss_interface_nas
 {
 public:
   static hss* get_instance(void);

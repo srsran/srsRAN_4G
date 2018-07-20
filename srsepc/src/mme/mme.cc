@@ -71,7 +71,7 @@ mme::cleanup(void)
 }
 
 int
-mme::init(mme_args_t* args, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log, hss_interface_s1ap * hss_)
+mme::init(mme_args_t* args, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log, hss_interface_nas * hss)
 {
 
   /*Init logger*/
@@ -79,7 +79,7 @@ mme::init(mme_args_t* args, srslte::log_filter *s1ap_log, srslte::log_filter *mm
   m_mme_gtpc_log = mme_gtpc_log;
   /*Init S1AP*/
   m_s1ap = s1ap::get_instance();
-  if(m_s1ap->init(args->s1ap_args, s1ap_log, hss_)){
+  if(m_s1ap->init(args->s1ap_args, s1ap_log, hss)){
     m_s1ap_log->error("Error initializing MME S1APP\n");
     exit(-1);
   }

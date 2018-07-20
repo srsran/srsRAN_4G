@@ -70,7 +70,7 @@ s1ap_nas_transport::cleanup(void)
 }
 
 void
-s1ap_nas_transport::init(hss_interface_s1ap * hss_)
+s1ap_nas_transport::init(hss_interface_nas * hss_)
 {
   m_s1ap = s1ap::get_instance();
   m_s1ap_log = m_s1ap->m_s1ap_log;
@@ -96,18 +96,14 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   nas_msg->N_bytes = init_ue->NAS_PDU.n_octets;
 
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
-  if(msg_type == LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST)
-  {
+  if (msg_type == LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST) {
     m_s1ap_log->info("Received Attach Request \n");
     m_s1ap_log->console("Received Attach Request \n");
     handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-  }
-  else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST)
-  {
+  } else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST) {
     m_s1ap_log->info("Received Service Request \n");
     m_s1ap_log->console("Received Service Request \n");
-    if(!init_ue->S_TMSI_present)
-    {
+    if (!init_ue->S_TMSI_present) {
       m_s1ap_log->error("Service request -- S-TMSI  not present\n");
       m_s1ap_log->console("Service request -- S-TMSI not present\n" );
       return false;
@@ -120,13 +116,10 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
     handle_nas_service_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     return true;
-  }
-  else if(msg_type == LIBLTE_MME_MSG_TYPE_DETACH_REQUEST)
-  {
+  } else if(msg_type == LIBLTE_MME_MSG_TYPE_DETACH_REQUEST) {
     m_s1ap_log->console("Received Initial UE message -- Detach Request\n");
     m_s1ap_log->info("Received Initial UE message -- Detach Request\n");
-    if(!init_ue->S_TMSI_present)
-    {
+    if (!init_ue->S_TMSI_present) {
       m_s1ap_log->error("Detach request -- S-TMSI  not present\n");
       m_s1ap_log->console("Detach request -- S-TMSI not present\n" );
       return false;
@@ -666,7 +659,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         if (ecm_ctx->eit) {
           m_s1ap_log->console("Secure ESM information transfer requested.\n");
           m_s1ap_log->info("Secure ESM information transfer requested.\n");
-          nas_ctx->pack_esm_information_request(reply_buffer, emm_ctx, ecm_ctx);
+          nas_ctx->pack_esm_information_request(reply_buffer);
           *reply_flag = true;
         } else {
           //Get subscriber info from HSS

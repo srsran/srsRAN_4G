@@ -27,6 +27,7 @@
 #include "srslte/asn1/gtpc_ies.h"
 #include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/asn1/liblte_mme.h"
+#include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/epc_interfaces.h"
 
 namespace srsepc{
@@ -114,6 +115,8 @@ typedef struct{
 typedef struct{
   uint8_t  eksi;
   uint8_t  k_asme[32];
+  uint8_t  autn[16];
+  uint8_t  rand[16];
   uint8_t  xres[16]; //minimum 6, maximum 16
   uint32_t dl_nas_count;
   uint32_t ul_nas_count;
@@ -188,7 +191,7 @@ public:
   bool pack_authentication_request  (srslte::byte_buffer_t *reply_msg);
   bool pack_authentication_reject   (srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
   bool pack_security_mode_command   (srslte::byte_buffer_t *reply_msg);
-  bool pack_esm_information_request (srslte::byte_buffer_t *reply_msg, emm_ctx_t *ue_emm_ctx, ecm_ctx_t *ue_ecm_ctx);
+  bool pack_esm_information_request (srslte::byte_buffer_t *reply_msg);
   bool pack_identity_request        (srslte::byte_buffer_t *reply_msg);
   bool pack_emm_information         (srslte::byte_buffer_t *reply_msg);
   bool pack_service_reject          (srslte::byte_buffer_t *reply_msg);
@@ -205,9 +208,11 @@ public:
   sec_ctx_t m_sec_ctx;
 
 private:
-  srslte::log        *m_nas_log;
-  gtpc_interface_nas *m_gtpc;
-  s1ap_interface_nas *m_s1ap;
+  srslte::byte_buffer_pool   *m_pool;
+  srslte::log                *m_nas_log;
+  gtpc_interface_nas         *m_gtpc;
+  s1ap_interface_nas         *m_s1ap;
+  hss_interface_nas          *m_hss;
 };
 
 }//namespace

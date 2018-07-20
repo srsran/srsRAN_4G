@@ -23,10 +23,11 @@
 
 namespace srsepc {
 
-//GTP-C -> NAS
+//NAS -> GTP-C
 class gtpc_interface_nas
 {
 public:
+  virtual bool send_create_session_request(uint64_t imsi) = 0;
   virtual bool send_delete_session_request(uint64_t imsi) = 0;
 };
 
@@ -45,8 +46,8 @@ public:
   virtual bool send_ue_context_release_command(uint32_t mme_ue_s1ap_id) = 0;
 };
 
-//S1AP -> HSS
-class hss_interface_s1ap
+//NAS -> HSS
+class hss_interface_nas
 {
 public:
   virtual bool gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres) = 0;
