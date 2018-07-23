@@ -495,10 +495,10 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
     m_s1ap_log->console("Attach Request -- Could not find M-TMSI 0x%x\n", m_tmsi);
     m_s1ap_log->info("Attach Request -- Could not find M-TMSI 0x%x\n", m_tmsi);
 
-    nas nas_ctx;
-    emm_ctx_t *emm_ctx = &nas_ctx.m_emm_ctx;
-    ecm_ctx_t *ecm_ctx = &nas_ctx.m_ecm_ctx;
-    sec_ctx_t *sec_ctx = &nas_ctx.m_sec_ctx;
+    nas *nas_ctx = new nas;
+    emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+    ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+    sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
 
     //We do not know the IMSI of the UE yet
     //The IMSI will be set when the identity response is received
@@ -533,8 +533,8 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
     memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
     //Initialize E-RABs
     for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
-      nas_ctx.m_esm_ctx[i].state = ERAB_DEACTIVATED;
-      nas_ctx.m_esm_ctx[i].erab_id = i;
+      nas_ctx->m_esm_ctx[i].state = ERAB_DEACTIVATED;
+      nas_ctx->m_esm_ctx[i].erab_id = i;
     }
 
     m_s1ap_log->console("Attach request -- IMSI: %015lu\n", emm_ctx->imsi);
@@ -555,12 +555,10 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
     m_s1ap_log->info("Could not find M-TMSI=0x%x. Sending Id Request\n", m_tmsi);
 
     //Store temporary ue context
-    nas *new_ctx = new nas;
-    memcpy(new_ctx,&nas_ctx,sizeof(nas));
-    m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(new_ctx);
+    m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
     m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
 
-    new_ctx->pack_identity_request(reply_buffer);
+    nas_ctx->pack_identity_request(reply_buffer);
     *reply_flag = true;
     return true;
   } else {
