@@ -154,7 +154,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx, uint16_t e
     //Attach procedure initiated from an attach request
     m_s1ap_log->console("Adding attach accept to Initial Context Setup Request\n");
     m_s1ap_log->info("Adding attach accept to Initial Context Setup Request\n");
-    nas_ctx->pack_attach_accept(emm_ctx, ecm_ctx, erab_ctx_req, &esm_ctx->pdn_addr_alloc, nas_buffer); 
+    nas_ctx->pack_attach_accept(nas_buffer); 
   }
 
   srslte::byte_buffer_t *reply_buffer = m_pool->allocate();

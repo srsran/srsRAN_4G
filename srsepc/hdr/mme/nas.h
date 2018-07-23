@@ -189,13 +189,13 @@ public:
 
   /* Downlink NAS messages packing*/
   bool pack_authentication_request  (srslte::byte_buffer_t *reply_msg);
-  bool pack_authentication_reject   (srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
+  bool pack_authentication_reject   (srslte::byte_buffer_t *reply_msg);
   bool pack_security_mode_command   (srslte::byte_buffer_t *reply_msg);
   bool pack_esm_information_request (srslte::byte_buffer_t *reply_msg);
   bool pack_identity_request        (srslte::byte_buffer_t *reply_msg);
   bool pack_emm_information         (srslte::byte_buffer_t *reply_msg);
   bool pack_service_reject          (srslte::byte_buffer_t *reply_msg);
-  bool pack_attach_accept           (emm_ctx_t *ue_emm_ctx, ecm_ctx_t *ue_ecm_ctx, LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer);
+  bool pack_attach_accept           (srslte::byte_buffer_t *nas_buffer);
 
   /* Security functions */
   bool integrity_check       (srslte::byte_buffer_t *pdu);
@@ -213,6 +213,7 @@ private:
   gtpc_interface_nas         *m_gtpc;
   s1ap_interface_nas         *m_s1ap;
   hss_interface_nas          *m_hss;
+  std::string                 m_apn;
 };
 
 }//namespace

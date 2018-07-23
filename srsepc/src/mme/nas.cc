@@ -683,32 +683,18 @@ nas::pack_esm_information_request(srslte::byte_buffer_t *reply_msg)
 }
 
 bool
-nas::pack_attach_accept(LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctxt, struct srslte::gtpc_pdn_address_allocation_ie *paa, srslte::byte_buffer_t *nas_buffer)
+nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
 {
   m_nas_log->info("Packing Attach Accept\n");
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
 
   //Get decimal MCC and MNC
-  uint32_t mcc = 0;
-  mcc += 0x000F & m_s1ap->m_s1ap_args.mcc;
-  mcc += 10*( (0x00F0 & m_s1ap->m_s1ap_args.mcc) >> 4);
-  mcc += 100*( (0x0F00 & m_s1ap->m_s1ap_args.mcc) >> 8);
-
-  uint32_t mnc = 0;
-  if( 0xFF00 == (m_s1ap->m_s1ap_args.mnc & 0xFF00 )) {
-    //Two digit MNC
-    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
-    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
-  } else {
-    //Three digit MNC
-    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
-    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
-    mnc += 100*((0x0F00 & m_s1ap->m_s1ap_args.mnc) >> 8);
-  }
+  uint32_t mcc = m_s1ap->get_mcc();
+  uint32_t mnc = m_s1ap->get_mnc();
 
   //Attach accept
-  attach_accept.eps_attach_result = ue_emm_ctx->attach_type;
+  attach_accept.eps_attach_result = m_emm_ctx.attach_type;
 
   //FIXME: Set t3412 from config
   attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
@@ -726,7 +712,7 @@ nas::pack_attach_accept(LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx
   attach_accept.guti.guti.mnc = mnc;
   attach_accept.guti.guti.mme_group_id = m_s1ap->m_s1ap_args.mme_group;
   attach_accept.guti.guti.mme_code = m_s1ap->m_s1ap_args.mme_code;
-  attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(ue_emm_ctx->imsi);
+  attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(m_emm_ctx.imsi);
   m_nas_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
                     attach_accept.guti.guti.mcc,
                     attach_accept.guti.guti.mnc,
@@ -763,14 +749,10 @@ nas::pack_attach_accept(LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx
   act_def_eps_bearer_context_req.transaction_id_present = false;
   //set eps_qos
   act_def_eps_bearer_context_req.eps_qos.qci =  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI;
-  act_def_eps_bearer_context_req.eps_qos.mbr_ul = 254; //FIXME
-  act_def_eps_bearer_context_req.eps_qos.mbr_dl = 254; //FIXME
-  act_def_eps_bearer_context_req.eps_qos.mbr_ul_ext = 250; //FIXME
-  act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
 
   //set apn
-  strncpy(act_def_eps_bearer_context_req.apn.apn, m_s1ap->m_s1ap_args.mme_apn.c_str(), LIBLTE_STRING_LEN);
-  act_def_eps_bearer_context_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id; //FIXME
+  strncpy(act_def_eps_bearer_context_req.apn.apn, m_apn.c_str(), LIBLTE_STRING_LEN);
+  act_def_eps_bearer_context_req.proc_transaction_id = m_emm_ctx.procedure_transaction_id; //FIXME
 
   //Set DNS server
   act_def_eps_bearer_context_req.protocol_cnfg_opts_present = true;
@@ -792,13 +774,13 @@ nas::pack_attach_accept(LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab_ctx
   act_def_eps_bearer_context_req.connectivity_type_present = false;
 
   uint8_t sec_hdr_type = 2;
-  ue_emm_ctx->security_ctxt.dl_nas_count++;
+  m_sec_ctx.dl_nas_count++;
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
-  liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, m_sec_ctx.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   //Integrity protect NAS message
   uint8_t mac[4];
-  srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
-                             ue_emm_ctx->security_ctxt.dl_nas_count,
+  srslte::security_128_eia1 (&m_sec_ctx.k_nas_int[16],
+                             m_sec_ctx.dl_nas_count,
                              0,
                              SECURITY_DIRECTION_DOWNLINK,
                              &nas_buffer->msg[5],
@@ -836,8 +818,8 @@ nas::pack_identity_request(srslte::byte_buffer_t *reply_msg)
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
@@ -867,12 +849,10 @@ nas::pack_identity_request(srslte::byte_buffer_t *reply_msg)
 }
 
 bool
-nas::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg)
+nas::pack_emm_information(srslte::byte_buffer_t *reply_msg)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
-  ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
-  ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
   //Setup initiating message
   LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
   bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
@@ -887,8 +867,8 @@ nas::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg)
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ecm_ctx->mme_ue_s1ap_id;//FIXME Change name
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ecm_ctx->enb_ue_s1ap_id;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
@@ -905,8 +885,8 @@ nas::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg)
   emm_info.net_dst_present = false;
 
   uint8_t sec_hdr_type =2;
-  emm_ctx->security_ctxt.dl_nas_count++;
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  m_sec_ctx.dl_nas_count++;
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, m_sec_ctx.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if (err != LIBLTE_SUCCESS) {
     m_nas_log->error("Error packing EMM Information\n");
     m_nas_log->console("Error packing EMM Information\n");
@@ -914,8 +894,8 @@ nas::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg)
   }
 
   uint8_t mac[4];
-  srslte::security_128_eia1 (&emm_ctx->security_ctxt.k_nas_int[16],
-                             emm_ctx->security_ctxt.dl_nas_count,
+  srslte::security_128_eia1 (&m_sec_ctx.k_nas_int[16],
+                             m_sec_ctx.dl_nas_count,
                              0,
                              SECURITY_DIRECTION_DOWNLINK,
                              &nas_buffer->msg[5],
@@ -941,8 +921,9 @@ nas::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_t *reply_msg)
 }
 
 bool
-nas::pack_service_reject(srslte::byte_buffer_t *reply_msg, uint8_t emm_cause, uint32_t enb_ue_s1ap_id)
+nas::pack_service_reject(srslte::byte_buffer_t *reply_msg)
 {
+  uint8_t emm_cause = LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED;
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
   //Setup initiating message
@@ -960,7 +941,7 @@ nas::pack_service_reject(srslte::byte_buffer_t *reply_msg, uint8_t emm_cause, ui
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
   dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_s1ap->get_next_mme_ue_s1ap_id();
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
   LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT service_rej;
@@ -1018,7 +999,7 @@ nas::short_integrity_check(srslte::byte_buffer_t *pdu)
     if(exp_mac[i+2] != mac[i]){
       m_nas_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
                           "Received: count=%d, [%02x %02x]\n",
-                          m_sec_ctx->ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                          m_sec_ctx.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
                           pdu->msg[1] & 0x1F, mac[0], mac[1]);
       return false;
     }
@@ -1036,8 +1017,8 @@ nas::integrity_check(srslte::byte_buffer_t *pdu)
   uint8_t *mac = &pdu->msg[1];
   int i;
 
-  srslte::security_128_eia1(&emm_ctx->security_ctxt.k_nas_int[16],
-                     emm_ctx->security_ctxt.ul_nas_count,
+  srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
+                     m_sec_ctx.ul_nas_count,
                      0,
                      SECURITY_DIRECTION_UPLINK,
                      &pdu->msg[5],
@@ -1049,13 +1030,13 @@ nas::integrity_check(srslte::byte_buffer_t *pdu)
     if(exp_mac[i] != mac[i]){
       m_nas_log->warning("Integrity check failure. UL Local: count=%d, [%02x %02x %02x %02x], "
                        "Received: UL count=%d, [%02x %02x %02x %02x]\n",
-                       emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                       m_sec_ctx.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
                        pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
       return false;
     }
   }
   m_nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                emm_ctx->security_ctxt.ul_nas_count, pdu->msg[5]);
+                m_sec_ctx.ul_nas_count, pdu->msg[5]);
     return true;
 }
 
