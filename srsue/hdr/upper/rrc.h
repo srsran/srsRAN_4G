@@ -326,10 +326,12 @@ private:
 
   typedef struct {
     enum {
+      PDU,
       PCCH,
       STOP
     } command;
     byte_buffer_t *pdu;
+    uint16_t lcid;
   } cmd_msg_t;
 
   bool running;
@@ -606,6 +608,7 @@ private:
   void          send_rrc_ue_cap_info();
 
   // Parsers
+  void          process_pdu(uint32_t lcid, byte_buffer_t *pdu);
   void          parse_dl_ccch(byte_buffer_t *pdu);
   void          parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu);
   void          parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
