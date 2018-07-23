@@ -37,6 +37,7 @@ rlc_um::rlc_um(uint32_t queue_len)
     :lcid(0)
     ,tx(queue_len)
     ,rrc(NULL)
+    ,log(NULL)
 {
   bzero(&cfg, sizeof(srslte_rlc_um_config_t));
 }
@@ -57,48 +58,48 @@ void rlc_um::init(srslte::log                  *log_,
   rx.init(log_, lcid_, pdcp_, rrc_, mac_timers_);
   lcid = lcid_;
   rrc = rrc_; // needed to determine bearer name during configuration
+  log = log_;
 }
 
 
-void rlc_um::configure(srslte_rlc_config_t cnfg_)
+bool rlc_um::configure(srslte_rlc_config_t cnfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = get_rb_name(rrc, lcid, cnfg_.um.is_mrb);
 
-  rx.configure(cnfg_, rb_name);
-  tx.configure(cnfg_, rb_name);
+  if (not rx.configure(cnfg_, rb_name)) {
+    return false;
+  }
+
+  if (not tx.configure(cnfg_, rb_name)) {
+    return false;
+  }
+
+  log->warning("%s configured in %s mode: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
+               rb_name.c_str(), srslte_rlc_mode_text[cnfg_.rlc_mode],
+               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
 
   // store config
   cfg = cnfg_.um;
+
+  return true;
 }
 
 
-void rlc_um::rlc_um_rx::configure(srslte_rlc_config_t cnfg_, std::string rb_name_)
+bool rlc_um::rlc_um_rx::configure(srslte_rlc_config_t cnfg_, std::string rb_name_)
 {
   cfg = cnfg_.um;
-  rb_name = rb_name_;
-  switch(cnfg_.rlc_mode) {
-    case LIBLTE_RRC_RLC_MODE_UM_BI:
-      log->warning("%s configured in %s mode: "
-                       "t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-                   get_rb_name(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
-                   cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
-      break;
-    case LIBLTE_RRC_RLC_MODE_UM_UNI_UL:
-      log->warning("%s configured in %s mode: tx_sn_field_length=%u bits\n",
-                   get_rb_name(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
 
-                   rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
-      break;
-    case LIBLTE_RRC_RLC_MODE_UM_UNI_DL:
-      log->warning("%s configured in %s mode: "
-                       "t_reordering=%d ms, rx_sn_field_length=%u bits\n",
-                   get_rb_name(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
-                   cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
-      break;
-    default:
-      log->error("RLC configuration mode not recognized\n");
+  if (cfg.rx_mod == 0) {
+    log->error("Error configuring %s RLC UM: rx_mod==0\n", get_rb_name());
+    return false;
   }
+
+  rb_name = rb_name_;
+
+  rx_enabled = true;
+
+  return true;
 }
 
 
@@ -175,6 +176,22 @@ void rlc_um::write_pdu(uint8_t *payload, uint32_t nof_bytes)
   rx.handle_data_pdu(payload, nof_bytes);
 }
 
+uint32_t rlc_um::get_num_tx_bytes()
+{
+  return tx.get_num_tx_bytes();
+}
+
+uint32_t rlc_um::get_num_rx_bytes()
+{
+  return rx.get_num_rx_bytes();
+}
+
+void rlc_um::reset_metrics()
+{
+  tx.reset_metrics();
+  rx.reset_metrics();
+}
+
 
 /****************************************************************************
  * Helper functions
@@ -203,6 +220,7 @@ rlc_um::rlc_um_tx::rlc_um_tx(uint32_t queue_len)
     ,tx_sdu(NULL)
     ,vt_us(0)
     ,tx_enabled(false)
+    ,num_tx_bytes(0)
 {
   pthread_mutex_init(&mutex, NULL);
 }
@@ -217,17 +235,26 @@ rlc_um::rlc_um_tx::~rlc_um_tx()
 void rlc_um::rlc_um_tx::init(srslte::log *log_)
 {
   log = log_;
-  tx_enabled = true;
 }
 
 
-void rlc_um::rlc_um_tx::configure(srslte_rlc_config_t cnfg_, std::string rb_name_)
+bool rlc_um::rlc_um_tx::configure(srslte_rlc_config_t cnfg_, std::string rb_name_)
 {
   cfg = cnfg_.um;
+
+  if (cfg.tx_mod == 0) {
+    log->error("Error configuring %s RLC UM: tx_mod==0\n", get_rb_name());
+    return false;
+  }
+
   if(cfg.is_mrb){
     tx_sdu_queue.resize(512);
   }
+
   rb_name = rb_name_;
+  tx_enabled = true;
+
+  return true;
 }
 
 
@@ -262,6 +289,20 @@ void rlc_um::rlc_um_tx::empty_queue()
     tx_sdu = NULL;
   }
 
+  pthread_mutex_unlock(&mutex);
+}
+
+
+uint32_t rlc_um::rlc_um_tx::get_num_tx_bytes()
+{
+  return num_tx_bytes;
+}
+
+
+void rlc_um::rlc_um_tx::reset_metrics()
+{
+  pthread_mutex_lock(&mutex);
+  num_tx_bytes = 0;
   pthread_mutex_unlock(&mutex);
 }
 
@@ -434,6 +475,8 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   debug_state();
 
+  num_tx_bytes += ret;
+
   pthread_mutex_unlock(&mutex);
   return ret;
 }
@@ -469,6 +512,8 @@ rlc_um::rlc_um_rx::rlc_um_rx()
     ,pdu_lost(false)
     ,mac_timers(NULL)
     ,lcid(0)
+    ,num_rx_bytes(0)
+    ,rx_enabled(false)
 {
   pthread_mutex_init(&mutex, NULL);
 }
@@ -508,6 +553,8 @@ void rlc_um::rlc_um_rx::stop()
   vr_ux    = 0;
   vr_uh    = 0;
   pdu_lost = false;
+  rx_enabled = false;
+
   if(rx_sdu) {
     pool->deallocate(rx_sdu);
     rx_sdu = NULL;
@@ -531,10 +578,18 @@ void rlc_um::rlc_um_rx::stop()
 void rlc_um::rlc_um_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
+
   rlc_umd_pdu_t pdu;
   int header_len = 0;
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it;
   rlc_umd_pdu_header_t header;
+
+  if (!rx_enabled) {
+    goto unlock_and_exit;
+  }
+
+  num_rx_bytes += nof_bytes;
+
   rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.rx_sn_field_length, &header);
 
   log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN: %d", get_rb_name(), header.sn);
@@ -596,7 +651,7 @@ void rlc_um::rlc_um_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   debug_state();
 
-  unlock_and_exit:
+unlock_and_exit:
   pthread_mutex_unlock(&mutex);
 }
 
@@ -811,6 +866,20 @@ bool rlc_um::rlc_um_rx::inside_reordering_window(uint16_t sn)
   }else{
     return false;
   }
+}
+
+
+uint32_t rlc_um::rlc_um_rx::get_num_rx_bytes()
+{
+  return num_rx_bytes;
+}
+
+
+void rlc_um::rlc_um_rx::reset_metrics()
+{
+  pthread_mutex_lock(&mutex);
+  num_rx_bytes = 0;
+  pthread_mutex_unlock(&mutex);
 }
 
 

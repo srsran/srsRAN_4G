@@ -161,13 +161,17 @@ public:
                     srsue::pdcp_interface_rlc         *pdcp_,
                     srsue::rrc_interface_rlc          *rrc_,
                     srslte::mac_interface_timers      *mac_timers_) = 0;
-  virtual void configure(srslte_rlc_config_t cnfg) = 0;
+  virtual bool configure(srslte_rlc_config_t cnfg) = 0;
   virtual void stop() = 0;
   virtual void reestablish() = 0;
   virtual void empty_queue() = 0; 
 
   virtual rlc_mode_t    get_mode() = 0;
   virtual uint32_t      get_bearer() = 0;
+
+  virtual uint32_t get_num_tx_bytes() = 0;
+  virtual uint32_t get_num_rx_bytes() = 0;
+  virtual void reset_metrics() = 0;
 
   // PDCP interface
   virtual void write_sdu(byte_buffer_t *sdu) = 0;

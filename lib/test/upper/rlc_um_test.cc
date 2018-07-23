@@ -130,8 +130,8 @@ void basic_test()
   cnfg.dl_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE10;
   cnfg.ul_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE10;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   tester.set_expected_sdu_len(1);
 

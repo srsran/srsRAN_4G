@@ -169,6 +169,10 @@ void basic_test()
     assert(tester.sdus[i]->N_bytes == 1);
     assert(*(tester.sdus[i]->msg)  == i);
   }
+
+  // Check statistics
+  assert(rlc1.get_num_tx_bytes() == rlc2.get_num_rx_bytes());
+  assert(rlc2.get_num_tx_bytes() == rlc1.get_num_rx_bytes());
 }
 
 void concat_test()
@@ -234,6 +238,10 @@ void concat_test()
     assert(tester.sdus[i]->N_bytes == 1);
     assert(*(tester.sdus[i]->msg)  == i);
   }
+
+  // check statistics
+  assert(rlc1.get_num_tx_bytes() == rlc2.get_num_rx_bytes());
+  assert(rlc2.get_num_tx_bytes() == rlc1.get_num_rx_bytes());
 }
 
 void segment_test()
@@ -317,6 +325,9 @@ void segment_test()
     for(int j=0;j<10;j++)
       assert(tester.sdus[i]->msg[j]  == j);
   }
+
+  assert(rlc1.get_num_tx_bytes() == rlc2.get_num_rx_bytes());
+  assert(rlc2.get_num_tx_bytes() == rlc1.get_num_rx_bytes());
 }
 
 void retx_test()

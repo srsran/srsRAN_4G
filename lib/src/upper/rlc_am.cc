@@ -61,6 +61,9 @@ rlc_am::rlc_am(uint32_t queue_len) : tx_sdu_queue(queue_len)
   vr_ms   = 0;
   vr_h    = 0;
 
+  num_tx_bytes = 0;
+  num_rx_bytes = 0;
+
   pdu_without_poll  = 0;
   byte_without_poll = 0;
 
@@ -88,13 +91,15 @@ void rlc_am::init(srslte::log                  *log_,
   tx_enabled = true;
 }
 
-void rlc_am::configure(srslte_rlc_config_t cfg_)
+bool rlc_am::configure(srslte_rlc_config_t cfg_)
 {
   cfg = cfg_.am;
   log->warning("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
             "t_reordering=%d, t_status_prohibit=%d\n",
             rrc->get_rb_name(lcid).c_str(), cfg.t_poll_retx, cfg.poll_pdu, cfg.poll_byte, cfg.max_retx_thresh,
             cfg.t_reordering, cfg.t_status_prohibit);
+
+  return true;
 }
 
 
@@ -363,6 +368,7 @@ unlock_and_return:
 int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
+  int pdu_size = 0;
 
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
   log->debug("tx_window size - %zu PDUs\n", tx_window.size());
@@ -370,7 +376,8 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Tx STATUS if requested
   if(do_status && !status_prohibited()) {
     pthread_mutex_unlock(&mutex);
-    return build_status_pdu(payload, nof_bytes);
+    pdu_size = build_status_pdu(payload, nof_bytes);
+    goto unlock_and_exit;
   }
 
   // if tx_window is full and retx_queue empty, retransmit next PDU to be ack'ed
@@ -390,25 +397,27 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   // RETX if required
   if(retx_queue.size() > 0) {
-    int ret = build_retx_pdu(payload, nof_bytes);
-    if (ret > 0) {
-      pthread_mutex_unlock(&mutex);
-      return ret;
+    pdu_size = build_retx_pdu(payload, nof_bytes);
+    if (pdu_size > 0) {
+      goto unlock_and_exit;
     }
   }
 
   // Build a PDU from SDUs
-  int ret = build_data_pdu(payload, nof_bytes);
+  pdu_size = build_data_pdu(payload, nof_bytes);
 
+unlock_and_exit:
+  num_tx_bytes += pdu_size;
   pthread_mutex_unlock(&mutex);
-  return ret;
+  return pdu_size;
 }
 
 void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
-  if(nof_bytes < 1)
-    return;
+  if (nof_bytes < 1) return;
+
   pthread_mutex_lock(&mutex);
+  num_rx_bytes += nof_bytes;
 
   if(rlc_am_is_control_pdu(payload)) {
     handle_control_pdu(payload, nof_bytes);
@@ -423,6 +432,25 @@ void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
   pthread_mutex_unlock(&mutex);
 }
+
+uint32_t rlc_am::get_num_tx_bytes()
+{
+  return num_tx_bytes;
+}
+
+uint32_t rlc_am::get_num_rx_bytes()
+{
+  return num_rx_bytes;
+}
+
+void rlc_am::reset_metrics()
+{
+  pthread_mutex_lock(&mutex);
+  num_rx_bytes = 0;
+  num_tx_bytes = 0;
+  pthread_mutex_unlock(&mutex);
+}
+
 
 /****************************************************************************
  * Timer checks
