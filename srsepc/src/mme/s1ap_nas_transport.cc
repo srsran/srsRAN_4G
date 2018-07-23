@@ -90,14 +90,21 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   memcpy(nas_msg->msg, &init_ue->NAS_PDU.buffer, init_ue->NAS_PDU.n_octets);
   nas_msg->N_bytes = init_ue->NAS_PDU.n_octets;
 
-  //Get info from initial UE message
   uint32_t m_tmsi;
   uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
-  if (!init_ue->S_TMSI_present) {
+  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
+
+  //Make sure M-TMSI is present, if mandatory
+  if (msg_type != LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST && !init_ue->S_TMSI_present){
+    m_s1ap_log->error("Initial UE Message 0x%x -- S-TMSI not present\n", msg_type);
+    m_s1ap_log->console("Initial UE message 0x%x -- S-TMSI not present\n", msg_type);
+    m_pool->deallocate(nas_msg);
+    return false;
+  }
+  if (init_ue->S_TMSI_present) {
     m_tmsi = ntohl(*((uint32_t*)&init_ue->S_TMSI.m_TMSI.buffer));
   }
 
-  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
   switch (msg_type)
   {
   case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
@@ -108,35 +115,17 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Service Request\n");
     m_s1ap_log->info("Received Initial UE message -- Service Request\n");
-    if (init_ue->S_TMSI_present) {
-      err = handle_nas_service_request(m_tmsi, enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-    } else {
-      m_s1ap_log->error("Service request -- S-TMSI  not present\n");
-      m_s1ap_log->console("Service request -- S-TMSI not present\n" );
-      err = false;
-    }
+    err = handle_nas_service_request(m_tmsi, enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     break;
   case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Detach Request\n");
     m_s1ap_log->info("Received Initial UE message -- Detach Request\n");
-    if (init_ue->S_TMSI_present) {
-      err = handle_nas_detach_request(m_tmsi, enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-    } else {
-      m_s1ap_log->error("Detach request -- S-TMSI  not present\n");
-      m_s1ap_log->console("Detach request -- S-TMSI not present\n" );
-      err = false;
-    }
+    err = handle_nas_detach_request(m_tmsi, enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     break;
   case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Tracking Area Update Request\n");
     m_s1ap_log->info("Received Initial UE message -- Tracking Area Update Request\n");
-    if (init_ue->S_TMSI_present) {
-      handle_nas_tracking_area_update_request(m_tmsi, enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-    } else {
-      m_s1ap_log->error("Tracking Area Update Request -- S-TMSI  not present\n");
-      m_s1ap_log->console("Tracking Area Update Request -- S-TMSI not present\n" );
-      return false;
-    }
+    err = handle_nas_tracking_area_update_request(m_tmsi, enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     break;
   default:
     m_s1ap_log->info("Unhandled Initial UE Message 0x%x \n", msg_type);
