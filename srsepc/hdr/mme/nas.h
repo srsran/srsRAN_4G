@@ -134,6 +134,8 @@ typedef struct{
 class nas
 {
 public:
+  nas();
+
   /*Initial UE messages*/
   bool handle_nas_attach_request(      uint32_t enb_ue_s1ap_id,
                                        srslte::byte_buffer_t *nas_msg,
@@ -213,7 +215,14 @@ private:
   gtpc_interface_nas         *m_gtpc;
   s1ap_interface_nas         *m_s1ap;
   hss_interface_nas          *m_hss;
+
+  uint16_t                    m_mcc;
+  uint16_t                    m_mnc;
+  uint16_t                    m_mme_group;
+  uint16_t                    m_mme_code;
+  uint16_t                    m_tac;
   std::string                 m_apn;
+  std::string                 m_dns;
 };
 
 }//namespace

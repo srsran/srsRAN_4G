@@ -233,7 +233,7 @@ s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_I
   if (emm_ctx->state == EMM_STATE_REGISTERED) {
     m_s1ap_log->console("Initial Context Setup Response triggered from Service Request.\n");
     m_s1ap_log->console("Sending Modify Bearer Request.\n");
-    m_mme_gtpc->send_modify_bearer_request(emm_ctx->imsi, &nas_ctx->m_esm_ctx[5]);
+    m_mme_gtpc->send_modify_bearer_request(emm_ctx->imsi, 5, &nas_ctx->m_esm_ctx[5].enb_fteid);
   }
   return true;
 }

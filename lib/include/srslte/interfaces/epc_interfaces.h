@@ -20,14 +20,18 @@
  */
 #ifndef SRSLTE_EPC_INTERFACES_H
 #define SRSLTE_EPC_INTERFACES_H
+#include "srslte/asn1/gtpc_ies.h"
 
 namespace srsepc {
+
+class nas;
 
 //NAS -> GTP-C
 class gtpc_interface_nas
 {
 public:
   virtual bool send_create_session_request(uint64_t imsi) = 0;
+  virtual bool send_modify_bearer_request(uint64_t imsi, uint16_t erab_to_modify, struct srslte::gtpc_f_teid_ie *enb_fteid) = 0;
   virtual bool send_delete_session_request(uint64_t imsi) = 0;
 };
 
@@ -42,8 +46,11 @@ public:
 class s1ap_interface_nas
 {
 public:
-  virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup) = 0;
-  virtual bool send_ue_context_release_command(uint32_t mme_ue_s1ap_id) = 0;
+  virtual uint32_t allocate_m_tmsi(uint64_t imsi) = 0;
+  virtual uint32_t get_next_mme_ue_s1ap_id() = 0;
+  virtual bool     add_nas_ctx_to_imsi_map(nas *nas_ctx) = 0;
+  virtual bool     send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup) = 0;
+  virtual bool     send_ue_context_release_command(uint32_t mme_ue_s1ap_id) = 0;
 };
 
 //NAS -> HSS

@@ -37,8 +37,6 @@ namespace srsepc{
 
 nas::nas() {}
 
-nas::~nas() {}
-
 /*******************************
  *
  * Handle UE Initiating Messages
@@ -52,8 +50,6 @@ nas::~nas() {}
  * Handle Uplink NAS Transport message
  *
  */
-
-//FIXME re-factor to reduce code duplication for messages that can be both initiating messages and uplink NAS messages
 bool
 nas::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
@@ -109,7 +105,7 @@ nas::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte::
     m_nas_log->warning("UE Authentication Rejected.\n");
 
     //Send back Athentication Reject
-    pack_authentication_reject(reply_buffer, m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id);
+    pack_authentication_reject(reply_buffer);
     *reply_flag = true;
     m_nas_log->console("Downlink NAS: Sending Authentication Reject.\n");
     return false;
@@ -192,7 +188,7 @@ nas::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buf
   }
   if (m_emm_ctx.state == EMM_STATE_DEREGISTERED) {
     //Attach requested from attach request
-    m_gtpc->send_modify_bearer_request(m_emm_ctx.imsi, &m_esm_ctx[act_bearer.eps_bearer_id]);
+    m_gtpc->send_modify_bearer_request(m_emm_ctx.imsi, act_bearer.eps_bearer_id, &m_esm_ctx[act_bearer.eps_bearer_id].enb_fteid);
     //Send reply to eNB
     m_nas_log->console("Packing EMM Information\n");
     *reply_flag = pack_emm_information(reply_msg);
@@ -314,10 +310,6 @@ nas::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, srslte:
   //m_nas_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
   LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT tau_acc;
 
-  //Get decimal MCC and MNC
-  uint32_t mcc = m_s1ap->get_mcc();
-  uint32_t mnc = m_s1ap->get_mnc();
-
   //T3412 Timer
   tau_acc.t3412_present = true;
   tau_acc.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
@@ -326,10 +318,10 @@ nas::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, srslte:
   //GUTI
   tau_acc.guti_present=true;
   tau_acc.guti.type_of_id = 6; //110 -> GUTI
-  tau_acc.guti.guti.mcc = mcc;
-  tau_acc.guti.guti.mnc = mnc;
-  tau_acc.guti.guti.mme_group_id = m_s1ap->get_mme_group();
-  tau_acc.guti.guti.mme_code = m_s1ap->get_mme_code();
+  tau_acc.guti.guti.mcc = m_mcc;
+  tau_acc.guti.guti.mnc = m_mnc;
+  tau_acc.guti.guti.mme_group_id = m_mme_group;
+  tau_acc.guti.guti.mme_code = m_mme_code;
   tau_acc.guti.guti.m_tmsi = 0xF000;
   m_nas_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
                     tau_acc.guti.guti.mcc,
@@ -467,7 +459,7 @@ nas::pack_authentication_request(srslte::byte_buffer_t *reply_msg)
 }
 
 bool
-nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id)
+nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
@@ -485,8 +477,8 @@ nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg, uint32_t enb_u
   //Setup Dw NAS structure
   LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
   dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;//FIXME Change name
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
   dw_nas->HandoverRestrictionList_present=false;
   dw_nas->SubscriberProfileIDforRFP_present=false;
 
@@ -689,29 +681,26 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
 
-  //Get decimal MCC and MNC
-  uint32_t mcc = m_s1ap->get_mcc();
-  uint32_t mnc = m_s1ap->get_mnc();
-
   //Attach accept
   attach_accept.eps_attach_result = m_emm_ctx.attach_type;
 
   //FIXME: Set t3412 from config
   attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
   attach_accept.t3412.value = 30;                                    // 30 minute periodic timer
+
   //FIXME: Set tai_list from config
   attach_accept.tai_list.N_tais = 1;
-  attach_accept.tai_list.tai[0].mcc = mcc;
-  attach_accept.tai_list.tai[0].mnc = mnc;
-  attach_accept.tai_list.tai[0].tac = m_s1ap->m_s1ap_args.tac;
+  attach_accept.tai_list.tai[0].mcc = m_mcc;
+  attach_accept.tai_list.tai[0].mnc = m_mnc;
+  attach_accept.tai_list.tai[0].tac = m_tac;
 
   //Allocate a GUTI ot the UE
   attach_accept.guti_present=true;
   attach_accept.guti.type_of_id = 6; //110 -> GUTI
-  attach_accept.guti.guti.mcc = mcc;
-  attach_accept.guti.guti.mnc = mnc;
-  attach_accept.guti.guti.mme_group_id = m_s1ap->m_s1ap_args.mme_group;
-  attach_accept.guti.guti.mme_code = m_s1ap->m_s1ap_args.mme_code;
+  attach_accept.guti.guti.mcc = m_mcc;
+  attach_accept.guti.guti.mnc = m_mnc;
+  attach_accept.guti.guti.mme_group_id = m_mme_group;
+  attach_accept.guti.guti.mme_code = m_mme_code;
   attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(m_emm_ctx.imsi);
   m_nas_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
                     attach_accept.guti.guti.mcc,
@@ -722,8 +711,8 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
 
   //Set up LAI for combined EPS/IMSI attach
   attach_accept.lai_present=true;
-  attach_accept.lai.mcc = mcc;
-  attach_accept.lai.mnc = mnc;
+  attach_accept.lai.mcc = m_mcc;
+  attach_accept.lai.mnc = m_mnc;
   attach_accept.lai.lac = 001;
 
   attach_accept.ms_id_present=true;
@@ -743,12 +732,12 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   //Set activate default eps bearer (esm_ms)
   //Set pdn_addr
   act_def_eps_bearer_context_req.pdn_addr.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
-  memcpy(act_def_eps_bearer_context_req.pdn_addr.addr, &paa->ipv4, 4);
+  memcpy(act_def_eps_bearer_context_req.pdn_addr.addr, &m_emm_ctx.ue_ip.s_addr, 4);
   //Set eps bearer id
-  act_def_eps_bearer_context_req.eps_bearer_id = erab_ctxt->e_RAB_ID.E_RAB_ID;
+  act_def_eps_bearer_context_req.eps_bearer_id = 5;
   act_def_eps_bearer_context_req.transaction_id_present = false;
   //set eps_qos
-  act_def_eps_bearer_context_req.eps_qos.qci =  erab_ctxt->e_RABlevelQoSParameters.qCI.QCI;
+  act_def_eps_bearer_context_req.eps_qos.qci =  m_esm_ctx[5].qci;
 
   //set apn
   strncpy(act_def_eps_bearer_context_req.apn.apn, m_apn.c_str(), LIBLTE_STRING_LEN);
@@ -761,7 +750,7 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].len = 4;
 
   struct sockaddr_in dns_addr;
-  inet_pton(AF_INET, m_s1ap->m_s1ap_args.dns_addr.c_str(), &(dns_addr.sin_addr));
+  inet_pton(AF_INET, m_dns.c_str(), &(dns_addr.sin_addr));
   memcpy(act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents,&dns_addr.sin_addr.s_addr, 4);
 
   //Make sure all unused options are set to false
@@ -792,10 +781,9 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   m_nas_log->info("Packed Attach Complete\n");
 
   //Add nas message to context setup request
-  erab_ctxt->nAS_PDU_present = true;
-  memcpy(erab_ctxt->nAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  erab_ctxt->nAS_PDU.n_octets = nas_buffer->N_bytes;
-
+  //erab_ctxt->nAS_PDU_present = true;
+  //memcpy(erab_ctxt->nAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
+  //erab_ctxt->nAS_PDU.n_octets = nas_buffer->N_bytes;
   return true;
 }
 
