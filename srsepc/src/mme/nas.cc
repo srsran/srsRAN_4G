@@ -35,7 +35,9 @@
 namespace srsepc{
 
 
-nas::nas() {}
+nas::nas() {
+  m_pool = srslte::byte_buffer_pool::get_instance();
+}
 
 /*******************************
  *
