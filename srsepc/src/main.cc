@@ -45,6 +45,8 @@ sig_int_handler(int signo){
 }
 
 typedef struct {
+  std::string   nas_level;
+  int           nas_hex_limit;
   std::string   s1ap_level;
   int           s1ap_hex_limit;
   std::string   gtpc_level;
@@ -117,6 +119,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("pcap.enable",         bpo::value<bool>(&args->mme_args.s1ap_args.pcap_enable)->default_value(false),         "Enable S1AP PCAP")
     ("pcap.filename",       bpo::value<string>(&args->mme_args.s1ap_args.pcap_filename)->default_value("/tmp/epc.pcap"), "PCAP filename")
 
+    ("log.nas_level",       bpo::value<string>(&args->log_args.nas_level),    "MME NAS  log level")
+    ("log.nas_hex_limit",   bpo::value<int>(&args->log_args.nas_hex_limit),   "MME NAS log hex dump limit")
     ("log.s1ap_level",      bpo::value<string>(&args->log_args.s1ap_level),   "MME S1AP log level")
     ("log.s1ap_hex_limit",  bpo::value<int>(&args->log_args.s1ap_hex_limit),  "MME S1AP log hex dump limit")
     ("log.gtpc_level",      bpo::value<string>(&args->log_args.gtpc_level),   "MME GTPC log level")
@@ -201,7 +205,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   if(!srslte::string_to_mnc(mnc, &args->mme_args.s1ap_args.mnc)) {
     cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
- 
+
   // Convert MCC/MNC strings
   if(!srslte::string_to_mcc(mcc, &args->hss_args.mcc)) {
     cout << "Error parsing mme.mcc:" << mcc << " - must be a 3-digit string." << endl;
@@ -221,6 +225,9 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
+    if(!vm.count("log.nas_level")) {
+      args->log_args.nas_level = args->log_args.all_level;
+    }
     if(!vm.count("log.s1ap_level")) {
       args->log_args.s1ap_level = args->log_args.all_level;
     }
@@ -303,6 +310,11 @@ main (int argc,char * argv[] )
     logger = &logger_file;
   }
 
+  srslte::log_filter nas_log;
+  nas_log.init("NAS ",logger);
+  nas_log.set_level(level(args.log_args.nas_level));
+  nas_log.set_hex_limit(args.log_args.nas_hex_limit);
+
   srslte::log_filter s1ap_log;
   s1ap_log.init("S1AP",logger);
   s1ap_log.set_level(level(args.log_args.s1ap_level));
@@ -331,7 +343,7 @@ main (int argc,char * argv[] )
   }
 
   mme *mme = mme::get_instance();
-  if (mme->init(&args.mme_args, &s1ap_log, &mme_gtpc_log, hss)) {
+  if (mme->init(&args.mme_args, &nas_log, &s1ap_log, &mme_gtpc_log, hss)) {
     cout << "Error initializing MME" << endl;
     exit(1);
   }

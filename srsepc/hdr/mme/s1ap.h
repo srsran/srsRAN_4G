@@ -63,7 +63,7 @@ public:
   static void cleanup();
 
   int enb_listen();
-  int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_nas * hss_);
+  int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, srslte::log_filter *nas_log, hss_interface_nas * hss_);
   void stop();
 
   int get_s1_mme();
@@ -100,6 +100,7 @@ public:
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
+  srslte::log_filter            *m_nas_log;
 
   s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
   s1ap_nas_transport*            m_s1ap_nas_transport;

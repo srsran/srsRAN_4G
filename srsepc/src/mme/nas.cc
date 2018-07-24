@@ -39,6 +39,17 @@ nas::nas() {
   m_pool = srslte::byte_buffer_pool::get_instance();
 }
 
+void
+nas::init(s1ap_interface_nas *s1ap,
+          gtpc_interface_nas *gtpc,
+          hss_interface_nas  *hss,
+          srslte::log        *nas_log)
+{
+  m_s1ap = s1ap;
+  m_gtpc = gtpc;
+  m_hss  = hss;
+  m_nas_log = nas_log;
+}
 /*******************************
  *
  * Handle UE Initiating Messages
@@ -261,7 +272,7 @@ nas::handle_identity_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffe
   m_emm_ctx.imsi=imsi;
 
   //Get Authentication Vectors from HSS
-  if (!m_hss->gen_auth_info_answer(imsi, m_sec_ctx.k_asme, autn, rand, m_sec_ctx.xres)) {
+  if (!m_hss->gen_auth_info_answer(imsi, m_sec_ctx.k_asme, m_sec_ctx.autn, m_sec_ctx.rand, m_sec_ctx.xres)) {
     m_nas_log->console("User not found. IMSI %015lu\n",imsi);
     m_nas_log->info("User not found. IMSI %015lu\n",imsi);
     return false;

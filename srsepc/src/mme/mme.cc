@@ -71,23 +71,24 @@ mme::cleanup(void)
 }
 
 int
-mme::init(mme_args_t* args, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log, hss_interface_nas * hss)
+mme::init(mme_args_t* args, srslte::log_filter *nas_log, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log, hss_interface_nas * hss)
 {
 
   /*Init logger*/
+  m_nas_log  =  nas_log;
   m_s1ap_log = s1ap_log;
   m_mme_gtpc_log = mme_gtpc_log;
+
   /*Init S1AP*/
   m_s1ap = s1ap::get_instance();
-  if(m_s1ap->init(args->s1ap_args, s1ap_log, hss)){
+  if (m_s1ap->init(args->s1ap_args, nas_log, s1ap_log, hss)) {
     m_s1ap_log->error("Error initializing MME S1APP\n");
     exit(-1);
   }
 
   /*Init GTP-C*/
   m_mme_gtpc = mme_gtpc::get_instance();
-  if(!m_mme_gtpc->init(m_mme_gtpc_log))
-  {
+  if (!m_mme_gtpc->init(m_mme_gtpc_log)) {
     m_s1ap_log->console("Error initializing GTP-C\n");
     exit(-1);
   }
@@ -101,8 +102,7 @@ mme::init(mme_args_t* args, srslte::log_filter *s1ap_log, srslte::log_filter *mm
 void
 mme::stop()
 {
-  if(m_running)
-  {
+  if (m_running) {
     m_s1ap->stop();
     m_s1ap->cleanup();
     m_running = false;
@@ -140,22 +140,17 @@ mme::run_thread()
     }
     else if (rd_sz == -1 && errno == EAGAIN){
       m_s1ap_log->debug("Socket timeout reached");
-    }
-    else{
-      if(msg_flags & MSG_NOTIFICATION)
-      {
+    } else {
+      if (msg_flags & MSG_NOTIFICATION) {
         //Received notification
         union sctp_notification *notification = (union sctp_notification*)pdu->msg;
         m_s1ap_log->debug("SCTP Notification %d\n", notification->sn_header.sn_type);
-        if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT)
-        {
+        if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
           m_s1ap_log->info("SCTP Association Shutdown. Association: %d\n",sri.sinfo_assoc_id);
           m_s1ap_log->console("SCTP Association Shutdown. Association: %d\n",sri.sinfo_assoc_id);
           m_s1ap->delete_enb_ctx(sri.sinfo_assoc_id);
         }
-      }
-      else
-      { 
+      } else {
         //Received data
         pdu->N_bytes = rd_sz;
         m_s1ap_log->info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
@@ -165,5 +160,4 @@ mme::run_thread()
   }
   return;
 }
-
 } //namespace srsepc

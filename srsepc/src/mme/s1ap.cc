@@ -72,7 +72,7 @@ s1ap::cleanup(void)
 }
 
 int
-s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_nas * hss)
+s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *nas_log, srslte::log_filter *s1ap_log, hss_interface_nas * hss)
 {
   m_pool = srslte::byte_buffer_pool::get_instance();
 
@@ -80,6 +80,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_na
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &m_plmn);
   m_next_m_tmsi = rand();
   //Init log
+  m_nas_log = nas_log;
   m_s1ap_log = s1ap_log;
 
   //Get pointer to the HSS
