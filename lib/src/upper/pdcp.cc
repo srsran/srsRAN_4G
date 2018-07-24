@@ -137,7 +137,7 @@ void pdcp::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
 }
 void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
 {
-  pthread_rwlock_rdlock(&rwlock);
+  pthread_rwlock_wrlock(&rwlock);
   if (not valid_lcid(lcid)) {
     if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity())).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
@@ -154,7 +154,7 @@ void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
 
 void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
 {
-  pthread_rwlock_rdlock(&rwlock);
+  pthread_rwlock_wrlock(&rwlock);
   if (not valid_mch_lcid(lcid)) {
     if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity())).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
