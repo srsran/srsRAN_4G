@@ -105,11 +105,13 @@ bool rlc_am::configure(srslte_rlc_config_t cfg_)
 
 void rlc_am::empty_queue() {
   // Drop all messages in TX SDU queue
+  pthread_mutex_lock(&mutex);
   byte_buffer_t *buf;
   while(tx_sdu_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
   tx_sdu_queue.reset();
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc_am::reestablish() {

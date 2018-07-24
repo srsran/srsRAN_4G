@@ -165,12 +165,15 @@ void rlc::reestablish()
 void rlc::reset()
 {
   pthread_rwlock_wrlock(&rwlock);
+
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
+    it->second->stop();
     delete(it->second);
   }
   rlc_array.clear();
 
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
+    it->second->stop();
     delete(it->second);
   }
   rlc_array_mrb.clear();
@@ -195,31 +198,21 @@ void rlc::empty_queue()
   PDCP interface
 *******************************************************************************/
 
-void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
+void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    rlc_array.at(lcid)->write_sdu(sdu);
+    if (blocking) {
+      rlc_array.at(lcid)->write_sdu(sdu);
+    } else {
+      rlc_array.at(lcid)->write_sdu_nb(sdu);
+    }
   } else {
     rlc_log->warning("Writing SDU: lcid=%d. Deallocating sdu\n", lcid);
     byte_buffer_pool::get_instance()->deallocate(sdu);
   }
   pthread_rwlock_unlock(&rwlock);
 }
-
-
-void rlc::write_sdu_nb(uint32_t lcid, byte_buffer_t *sdu)
-{
-  pthread_rwlock_rdlock(&rwlock);
-  if (valid_lcid(lcid)) {
-    rlc_array.at(lcid)->write_sdu_nb(sdu);
-  } else {
-    rlc_log->warning("Writing SDU: lcid=%d. Deallocating sdu\n", lcid);
-    byte_buffer_pool::get_instance()->deallocate(sdu);
-  }
-  pthread_rwlock_unlock(&rwlock);
-}
-
 
 void rlc::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
 {
@@ -429,7 +422,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
         break;
       default:
         rlc_log->error("Cannot add RLC entity - invalid mode\n");
-        return;
+        goto unlock_and_exit;
     }
 
     if (rlc_entity) {

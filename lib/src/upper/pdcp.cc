@@ -115,11 +115,11 @@ bool pdcp::is_drb_enabled(uint32_t lcid)
   return ret;
 }
 
-void pdcp::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
+void pdcp::write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    pdcp_array.at(lcid)->write_sdu(sdu);
+    pdcp_array.at(lcid)->write_sdu(sdu, blocking);
   } else {
     pdcp_log->warning("Writing sdu: lcid=%d. Deallocating sdu\n", lcid);
     byte_buffer_pool::get_instance()->deallocate(sdu);
@@ -131,7 +131,7 @@ void pdcp::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_mch_lcid(lcid)){
-    pdcp_array_mrb.at(lcid)->write_sdu(sdu);
+    pdcp_array_mrb.at(lcid)->write_sdu(sdu, true);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -141,13 +141,14 @@ void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
   if (not valid_lcid(lcid)) {
     if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity())).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
-      return;
+      goto unlock_and_exit;
     }
     pdcp_array.at(lcid)->init(rlc, rrc, gw, pdcp_log, lcid, cfg);
     pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
     pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }
+unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
@@ -158,13 +159,14 @@ void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
   if (not valid_mch_lcid(lcid)) {
     if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity())).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
-      return;
+      goto unlock_and_exit;
     }
     pdcp_array_mrb.at(lcid)->init(rlc, rrc, gw, pdcp_log, lcid, cfg);
     pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
     pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }
+unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
 }
 

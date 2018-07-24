@@ -108,8 +108,8 @@ bool pdcp_entity::is_active()
   return active;
 }
 
-// RRC interface
-void pdcp_entity::write_sdu(byte_buffer_t *sdu)
+// GW/RRC interface
+void pdcp_entity::write_sdu(byte_buffer_t *sdu, bool blocking)
 {
   log->info_hex(sdu->msg, sdu->N_bytes,
         "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
@@ -141,7 +141,7 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu)
   }
   tx_count++;
 
-  rlc->write_sdu(lcid, sdu);
+  rlc->write_sdu(lcid, sdu, blocking);
 }
 
 void pdcp_entity::config_security(uint8_t *k_enc_,

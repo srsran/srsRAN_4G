@@ -56,7 +56,7 @@ public:
   // RRC interface
   void reestablish();
   void reset();
-  void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  void write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking = true);
   void write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu);
   void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
   void add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
