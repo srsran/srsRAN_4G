@@ -31,7 +31,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/rlc_entity.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "srslte/upper/rlc_common.h"
 
