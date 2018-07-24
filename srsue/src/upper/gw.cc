@@ -364,8 +364,7 @@ void gw::run_thread()
           if (pdcp->is_drb_enabled(cfg.lcid)) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
-            pdcp->write_sdu(cfg.lcid, pdu);
-
+            pdcp->write_sdu(cfg.lcid, pdu, false);
             do {
               pdu = pool_allocate;
               if (!pdu) {
