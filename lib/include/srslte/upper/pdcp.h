@@ -51,7 +51,7 @@ public:
   void stop();
 
   // GW interface
-  bool is_drb_enabled(uint32_t lcid);
+  bool is_lcid_enabled(uint32_t lcid);
 
   // RRC interface
   void reestablish();

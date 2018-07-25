@@ -106,7 +106,7 @@ void pdcp::reset()
 /*******************************************************************************
   RRC/GW interface
 *******************************************************************************/
-bool pdcp::is_drb_enabled(uint32_t lcid)
+bool pdcp::is_lcid_enabled(uint32_t lcid)
 {
   pthread_rwlock_rdlock(&rwlock);
   bool ret = false;

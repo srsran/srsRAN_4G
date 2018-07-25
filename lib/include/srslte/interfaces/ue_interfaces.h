@@ -229,7 +229,7 @@ class pdcp_interface_gw
 {
 public:
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking) = 0;
-  virtual bool is_drb_enabled(uint32_t lcid) = 0;
+  virtual bool is_lcid_enabled(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RRC

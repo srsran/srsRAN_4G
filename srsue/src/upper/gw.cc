@@ -343,7 +343,7 @@ void gw::run_thread()
         {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-          while(run_enable && !pdcp->is_drb_enabled(cfg.lcid) && attach_wait < ATTACH_WAIT_TOUT) {
+          while(run_enable && !pdcp->is_lcid_enabled(cfg.lcid) && attach_wait < ATTACH_WAIT_TOUT) {
             if (!attach_wait) {
               gw_log->info("LCID=%d not active, requesting NAS attach (%d/%d)\n", cfg.lcid, attach_wait, ATTACH_WAIT_TOUT);
               if (!nas->attach_request()) {
@@ -361,7 +361,7 @@ void gw::run_thread()
           }
 
           // Send PDU directly to PDCP
-          if (pdcp->is_drb_enabled(cfg.lcid)) {
+          if (pdcp->is_lcid_enabled(cfg.lcid)) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
             pdcp->write_sdu(cfg.lcid, pdu, false);
