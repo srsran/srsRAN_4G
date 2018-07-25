@@ -325,7 +325,7 @@ void stress_test(stress_test_args_t args)
   srslte_rlc_config_t cnfg_;
   if (args.mode == "AM") {
     // config RLC AM bearer
-    cnfg_.rlc_mode = SRSLTE_RLC_MODE_AM;
+    cnfg_.rlc_mode = RLC_MODE_AM;
     cnfg_.am.max_retx_thresh = 4;
     cnfg_.am.poll_byte = 25*1000;
     cnfg_.am.poll_pdu = 4;
@@ -334,7 +334,7 @@ void stress_test(stress_test_args_t args)
     cnfg_.am.t_status_prohibit = 5;
   } else if (args.mode == "UM") {
     // config UM bearer
-    cnfg_.rlc_mode = SRSLTE_RLC_MODE_UM;
+    cnfg_.rlc_mode = RLC_MODE_UM;
     cnfg_.um.t_reordering = 5;
     cnfg_.um.rx_mod = 32;
     cnfg_.um.rx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;

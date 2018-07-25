@@ -76,7 +76,7 @@ bool rlc_um::configure(srslte_rlc_config_t cnfg_)
   }
 
   log->warning("%s configured in %s mode: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-               rb_name.c_str(), srslte_rlc_mode_text[cnfg_.rlc_mode],
+               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode],
                cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
 
   // store config

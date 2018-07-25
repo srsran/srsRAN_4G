@@ -411,13 +411,13 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
   if (not valid_lcid(lcid)) {
     switch(cnfg.rlc_mode)
     {
-      case SRSLTE_RLC_MODE_TM:
+      case RLC_MODE_TM:
         rlc_entity = new rlc_tm();
         break;
-      case SRSLTE_RLC_MODE_AM:
+      case RLC_MODE_AM:
         rlc_entity = new rlc_am();
         break;
-      case SRSLTE_RLC_MODE_UM:
+      case RLC_MODE_UM:
         rlc_entity = new rlc_um();
         break;
       default:
@@ -429,7 +429,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
       // configure and add to array
       rlc_entity->init(rlc_log, lcid, pdcp, rrc, mac_timers);
 
-      if (cnfg.rlc_mode != SRSLTE_RLC_MODE_TM) {
+      if (cnfg.rlc_mode != RLC_MODE_TM) {
         if (rlc_entity->configure(cnfg) == false) {
           rlc_log->error("Error configuring RLC entity\n.");
           goto delete_and_exit;

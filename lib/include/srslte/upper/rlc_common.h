@@ -38,15 +38,7 @@ namespace srslte {
 
 #define RLC_AM_WINDOW_SIZE  512
 
-typedef enum{
-  RLC_MODE_TM = 0,
-  RLC_MODE_UM,
-  RLC_MODE_AM,
-  RLC_MODE_N_ITEMS,
-}rlc_mode_t;
-static const char rlc_mode_text[RLC_MODE_N_ITEMS][20] = {"Transparent Mode",
-                                                         "Unacknowledged Mode",
-                                                         "Acknowledged Mode"};
+
 
 typedef enum{
   RLC_FI_FIELD_START_AND_END_ALIGNED = 0,

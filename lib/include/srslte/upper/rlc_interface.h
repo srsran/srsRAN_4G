@@ -32,14 +32,15 @@
 
 namespace srslte {
 
-
 typedef enum{
-  SRSLTE_RLC_MODE_TM = 0,
-  SRSLTE_RLC_MODE_UM,
-  SRSLTE_RLC_MODE_AM,
-  SRSLTE_RLC_MODE_N_ITEMS
-} srslte_rlc_mode_t;
-static const char srslte_rlc_mode_text[SRSLTE_RLC_MODE_N_ITEMS][20] = { "TM", "UM", "AM"};
+  RLC_MODE_TM = 0,
+  RLC_MODE_UM,
+  RLC_MODE_AM,
+  RLC_MODE_N_ITEMS,
+}rlc_mode_t;
+static const char rlc_mode_text[RLC_MODE_N_ITEMS][20] = {"Transparent Mode",
+                                                         "Unacknowledged Mode",
+                                                         "Acknowledged Mode"};
 
 typedef enum{
   RLC_UMD_SN_SIZE_5_BITS = 0,
@@ -88,22 +89,22 @@ typedef struct {
 class srslte_rlc_config_t
 {
 public:
-  srslte_rlc_mode_t         rlc_mode;
+  rlc_mode_t               rlc_mode;
   srslte_rlc_am_config_t    am;
   srslte_rlc_um_config_t    um;
 
   // Default ctor
-  srslte_rlc_config_t(): rlc_mode(SRSLTE_RLC_MODE_TM), am(), um() {};
+  srslte_rlc_config_t(): rlc_mode(RLC_MODE_TM), am(), um() {};
 
   // Constructor based on liblte's RLC config
-  srslte_rlc_config_t(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) : rlc_mode(SRSLTE_RLC_MODE_AM), am(), um()
+  srslte_rlc_config_t(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) : rlc_mode(RLC_MODE_AM), am(), um()
   {
     // update RLC mode to internal mode struct
-    rlc_mode = (cnfg->rlc_mode == LIBLTE_RRC_RLC_MODE_AM) ? SRSLTE_RLC_MODE_AM : SRSLTE_RLC_MODE_UM;
+    rlc_mode = (cnfg->rlc_mode == LIBLTE_RRC_RLC_MODE_AM) ? RLC_MODE_AM : RLC_MODE_UM;
 
     switch(rlc_mode)
     {
-      case SRSLTE_RLC_MODE_AM:
+      case RLC_MODE_AM:
         am.t_poll_retx       = liblte_rrc_t_poll_retransmit_num[cnfg->ul_am_rlc.t_poll_retx];
         am.poll_pdu          = liblte_rrc_poll_pdu_num[cnfg->ul_am_rlc.poll_pdu];
         am.poll_byte         = liblte_rrc_poll_byte_num[cnfg->ul_am_rlc.poll_byte]*1000; // KB
@@ -111,7 +112,7 @@ public:
         am.t_reordering      = liblte_rrc_t_reordering_num[cnfg->dl_am_rlc.t_reordering];
         am.t_status_prohibit = liblte_rrc_t_status_prohibit_num[cnfg->dl_am_rlc.t_status_prohibit];
         break;
-      case SRSLTE_RLC_MODE_UM:
+      case RLC_MODE_UM:
         um.t_reordering        = liblte_rrc_t_reordering_num[cnfg->dl_um_bi_rlc.t_reordering];
         um.rx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->dl_um_bi_rlc.sn_field_len;
         um.rx_window_size      = (RLC_UMD_SN_SIZE_5_BITS == um.rx_sn_field_length) ? 16 : 512;
@@ -129,7 +130,7 @@ public:
   static srslte_rlc_config_t mch_config()
   {
     srslte_rlc_config_t cfg;
-    cfg.rlc_mode               = SRSLTE_RLC_MODE_UM;
+    cfg.rlc_mode               = RLC_MODE_UM;
     cfg.um.t_reordering        = 0;
     cfg.um.rx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
     cfg.um.rx_window_size      = 0;
