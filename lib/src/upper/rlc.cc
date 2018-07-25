@@ -178,10 +178,10 @@ void rlc::reset()
   }
   rlc_array_mrb.clear();
 
+  pthread_rwlock_unlock(&rwlock);
+
   // Add SRB0 again
   add_bearer(default_lcid, srslte_rlc_config_t());
-
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::empty_queue()
