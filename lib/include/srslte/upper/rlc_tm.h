@@ -59,8 +59,7 @@ public:
   void reset_metrics();
 
   // PDCP interface
-  void write_sdu(byte_buffer_t *sdu);
-  void write_sdu_nb(byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu, bool blocking);
 
   // MAC interface
   uint32_t get_buffer_state();

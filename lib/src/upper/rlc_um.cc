@@ -142,14 +142,14 @@ uint32_t rlc_um::get_bearer()
 /****************************************************************************
  * PDCP interface
  ***************************************************************************/
-void rlc_um::write_sdu(byte_buffer_t *sdu)
+void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
 {
-  tx.write_sdu(sdu);
-}
+  if (blocking) {
+    tx.write_sdu(sdu);
+  } else {
+    tx.try_write_sdu(sdu);
+  }
 
-void rlc_um::write_sdu_nb(byte_buffer_t *sdu)
-{
-  tx.try_write_sdu(sdu);
 }
 
 /****************************************************************************

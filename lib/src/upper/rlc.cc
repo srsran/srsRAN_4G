@@ -202,11 +202,7 @@ void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    if (blocking) {
-      rlc_array.at(lcid)->write_sdu(sdu);
-    } else {
-      rlc_array.at(lcid)->write_sdu_nb(sdu);
-    }
+    rlc_array.at(lcid)->write_sdu(sdu, blocking);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
     byte_buffer_pool::get_instance()->deallocate(sdu);
@@ -218,7 +214,7 @@ void rlc::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
-    rlc_array_mrb.at(lcid)->write_sdu_nb(sdu);
+    rlc_array_mrb.at(lcid)->write_sdu(sdu, false); // write in non-blocking mode by default
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
     byte_buffer_pool::get_instance()->deallocate(sdu);

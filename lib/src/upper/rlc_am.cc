@@ -199,32 +199,25 @@ uint32_t rlc_am::get_bearer()
  * PDCP interface
  ***************************************************************************/
 
-void rlc_am::write_sdu(byte_buffer_t *sdu)
+void rlc_am::write_sdu(byte_buffer_t *sdu, bool blocking)
 {
   if (!tx_enabled) {
     byte_buffer_pool::get_instance()->deallocate(sdu);
     return;
   }
   if (sdu) {
-    tx_sdu_queue.write(sdu);
-    log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
-  } else {
-    log->warning("NULL SDU pointer in write_sdu()\n");
-  }
-}
-
-void rlc_am::write_sdu_nb(byte_buffer_t *sdu)
-{
-  if (!tx_enabled) {
-    byte_buffer_pool::get_instance()->deallocate(sdu);
-    return;
-  }
-  if (sdu) {
-    if (tx_sdu_queue.try_write(sdu)) {
+    if (blocking) {
+      // block on write to queue
+      tx_sdu_queue.write(sdu);
       log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
     } else {
-      log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
-      pool->deallocate(sdu);
+      // non-blocking write
+      if (tx_sdu_queue.try_write(sdu)) {
+        log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+      } else {
+        log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+        pool->deallocate(sdu);
+      }
     }
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");
