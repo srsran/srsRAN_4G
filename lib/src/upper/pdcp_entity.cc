@@ -70,11 +70,11 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
   cfg.sn_len    = 0;
   sn_len_bytes  = 0;
 
-  if(cfg.is_control) {
+  if (cfg.is_control) {
     cfg.sn_len   = 5;
     sn_len_bytes = 1;
   }
-  if(cfg.is_data) {
+  if (cfg.is_data) {
     cfg.sn_len   = 12;
     sn_len_bytes = 2;
   }
@@ -89,6 +89,7 @@ void pdcp_entity::reestablish() {
     tx_count = 0;
     rx_count = 0;
   } else {
+    // Only reset counter in RLC-UM
     if (rlc->rb_is_um(lcid)) {
       tx_count = 0;
       rx_count = 0;
@@ -96,11 +97,13 @@ void pdcp_entity::reestablish() {
   }
 }
 
+// Used to stop/pause the entity (called on RRC conn release)
 void pdcp_entity::reset()
 {
-  active      = false;
-  if(log)
+  active = false;
+  if (log) {
     log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
+  }
 }
 
 bool pdcp_entity::is_active()
