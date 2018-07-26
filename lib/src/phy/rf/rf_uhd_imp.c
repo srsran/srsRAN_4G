@@ -618,8 +618,10 @@ int rf_uhd_close(void *h)
   uhd_rx_metadata_free(&handler->rx_md);
 
 #if HAVE_ASYNC_THREAD
-  handler->async_thread_running = false;
-  pthread_join(handler->async_thread, NULL);
+  if (handler->async_thread_running) {
+    handler->async_thread_running = false;
+    pthread_join(handler->async_thread, NULL);
+  }
 #endif
 
   uhd_tx_streamer_free(&handler->tx_stream);
