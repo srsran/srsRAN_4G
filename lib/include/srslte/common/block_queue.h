@@ -122,7 +122,7 @@ public:
   }
 
   void clear() { // remove all items
-    myobj item;
+    myobj *item = NULL;
     while (try_pop(item));
   }
 
