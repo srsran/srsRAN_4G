@@ -149,7 +149,6 @@ void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
   } else {
     tx.try_write_sdu(sdu);
   }
-
 }
 
 /****************************************************************************
@@ -199,7 +198,7 @@ void rlc_um::reset_metrics()
 
 std::string rlc_um::get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bool is_mrb)
 {
-  if(is_mrb) {
+  if (is_mrb) {
     std::stringstream ss;
     ss << "MRB" << lcid;
     return ss.str();
