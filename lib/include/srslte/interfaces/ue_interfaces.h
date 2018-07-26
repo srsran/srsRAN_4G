@@ -228,8 +228,8 @@ public:
 class pdcp_interface_gw
 {
 public:
-  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
-  virtual bool is_drb_enabled(uint32_t lcid) = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking) = 0;
+  virtual bool is_lcid_enabled(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RRC
@@ -238,7 +238,7 @@ class pdcp_interface_rrc
 public:
   virtual void reestablish() = 0;
   virtual void reset() = 0;
-  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking = true) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
   virtual void config_security(uint32_t lcid,
                                uint8_t *k_enc_,
@@ -282,7 +282,7 @@ class rlc_interface_pdcp
 public:
   /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
    * RLC PDUs according to TB size. */
-  virtual void write_sdu(uint32_t lcid,  srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_sdu(uint32_t lcid,  srslte::byte_buffer_t *sdu, bool blocking = true) = 0;
   virtual bool rb_is_um(uint32_t lcid) = 0;
 };
 

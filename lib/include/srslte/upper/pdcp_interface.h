@@ -55,7 +55,7 @@ public:
   virtual bool is_active() = 0;
 
   // RRC interface
-  virtual void write_sdu(byte_buffer_t *sdu) = 0;
+  virtual void write_sdu(byte_buffer_t *sdu, bool blocking) = 0;
   virtual void config_security(uint8_t *k_enc_,
                        uint8_t *k_int_,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,

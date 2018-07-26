@@ -76,7 +76,7 @@ public:
   bool is_active();
 
   // RRC interface
-  void write_sdu(byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu, bool blocking);
   void config_security(uint8_t *k_enc_,
                        uint8_t *k_int_,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,

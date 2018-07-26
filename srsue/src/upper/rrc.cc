@@ -32,7 +32,7 @@
 #include <time.h>
 #include <inttypes.h> // for printing uint64_t
 #include <srslte/asn1/liblte_rrc.h>
-#include "srsue/hdr/upper/rrc.h"
+#include <srsue/hdr/upper/rrc.h>
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
@@ -248,11 +248,14 @@ void rrc::run_thread() {
   while(running) {
     cmd_msg_t msg = cmd_q.wait_pop();
     switch(msg.command) {
-      case cmd_msg_t::STOP:
-        return;
+      case cmd_msg_t::PDU:
+        process_pdu(msg.lcid, msg.pdu);
+        break;
       case cmd_msg_t::PCCH:
         process_pcch(msg.pdu);
         break;
+      case cmd_msg_t::STOP:
+        return;
     }
   }
 }
@@ -1939,6 +1942,16 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid).c_str());
 
+  // add PDU to command queue
+  cmd_msg_t msg;
+  msg.pdu = pdu;
+  msg.command = cmd_msg_t::PDU;
+  msg.lcid = lcid;
+  cmd_q.push(msg);
+}
+
+void rrc::process_pdu(uint32_t lcid, byte_buffer_t *pdu)
+{
   switch (lcid) {
     case RB_ID_SRB0:
       parse_dl_ccch(pdu);

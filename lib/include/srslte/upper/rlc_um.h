@@ -55,7 +55,7 @@ public:
             srsue::pdcp_interface_rlc *pdcp_,
             srsue::rrc_interface_rlc  *rrc_,
             mac_interface_timers      *mac_timers_);
-  void configure(srslte_rlc_config_t cnfg);
+  bool configure(srslte_rlc_config_t cnfg);
   void reestablish();
   void stop();
   void empty_queue();
@@ -65,8 +65,7 @@ public:
   uint32_t      get_bearer();
 
   // PDCP interface
-  void write_sdu(byte_buffer_t *sdu);
-  void write_sdu_nb(byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu, bool blocking = true);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -74,6 +73,10 @@ public:
   int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
   int get_increment_sequence_num();
+
+  uint32_t get_num_tx_bytes();
+  uint32_t get_num_rx_bytes();
+  void reset_metrics();
 
 private:
 
@@ -84,13 +87,15 @@ private:
     rlc_um_tx(uint32_t queue_len);
     ~rlc_um_tx();
     void init(srslte::log *log_);
-    void configure(srslte_rlc_config_t cfg, std::string rb_name);
+    bool configure(srslte_rlc_config_t cfg, std::string rb_name);
     int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
     void stop();
     void reestablish();
     void empty_queue();
     void write_sdu(byte_buffer_t *sdu);
     void try_write_sdu(byte_buffer_t *sdu);
+    uint32_t get_num_tx_bytes();
+    void reset_metrics();
     uint32_t get_buffer_size_bytes();
 
   private:
@@ -119,6 +124,8 @@ private:
 
     bool                    tx_enabled;
 
+    uint32_t                num_tx_bytes;
+
     // helper functions
     void debug_state();
     const char* get_rb_name();
@@ -136,10 +143,12 @@ private:
               srslte::mac_interface_timers *mac_timers_);
     void stop();
     void reestablish();
-    void configure(srslte_rlc_config_t cfg, std::string rb_name);
+    bool configure(srslte_rlc_config_t cfg, std::string rb_name);
     void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes);
     void reassemble_rx_sdus();
     bool inside_reordering_window(uint16_t sn);
+    uint32_t get_num_rx_bytes();
+    void reset_metrics();
 
     // Timeout callback interface
     void timer_expired(uint32_t timeout_id);
@@ -163,11 +172,13 @@ private:
     byte_buffer_t                       *rx_sdu;
     uint32_t                            vr_ur_in_rx_sdu;
 
-    // Rx state variables
+    // Rx state variables and counter
     uint32_t                            vr_ur;  // Receive state. SN of earliest PDU still considered for reordering.
     uint32_t                            vr_ux;  // t_reordering state. SN following PDU which triggered t_reordering.
     uint32_t                            vr_uh;  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
     bool                                pdu_lost;
+
+    uint32_t                            num_rx_bytes;
 
     // Upper layer handles and variables
     srsue::pdcp_interface_rlc           *pdcp;
@@ -176,6 +187,8 @@ private:
 
     // Mutexes
     pthread_mutex_t                     mutex;
+
+    bool                                rx_enabled;
 
     /****************************************************************************
      * Timers
@@ -196,6 +209,7 @@ private:
 
   // Common variables needed by parent class
   srsue::rrc_interface_rlc  *rrc;
+  srslte::log               *log;
   uint32_t                  lcid;
   srslte_rlc_um_config_t    cfg;
   std::string               rb_name;

@@ -123,7 +123,7 @@ void rlc::add_bearer_mrb(uint16_t rnti, uint32_t lcid)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    users[rnti].rlc->add_bearer_mrb_enb(lcid);
+    users[rnti].rlc->add_bearer_mrb(lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -190,7 +190,7 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     if(rnti != SRSLTE_MRNTI){
-      users[rnti].rlc->write_sdu_nb(lcid, sdu);
+      users[rnti].rlc->write_sdu(lcid, sdu, false);
       tx_queue   = users[rnti].rlc->get_total_buffer_state(lcid);
     }else {
       users[rnti].rlc->write_sdu_mch(lcid, sdu);

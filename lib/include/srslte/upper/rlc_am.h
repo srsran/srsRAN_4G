@@ -66,8 +66,7 @@ struct rlc_amd_retx_t{
 };
 
 
-class rlc_am
-    :public rlc_common
+class rlc_am : public rlc_common
 {
 public:
   rlc_am(uint32_t queue_len = 16);
@@ -77,7 +76,7 @@ public:
             srsue::pdcp_interface_rlc   *pdcp_,
             srsue::rrc_interface_rlc    *rrc_,
             mac_interface_timers *mac_timers);
-  void configure(srslte_rlc_config_t cnfg);
+  bool configure(srslte_rlc_config_t cnfg);
   void reestablish();
   void stop();
 
@@ -87,14 +86,17 @@ public:
   uint32_t      get_bearer();
 
   // PDCP interface
-  void write_sdu(byte_buffer_t *sdu);
-  void write_sdu_nb(byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu, bool blocking = true);
 
   // MAC interface
   uint32_t get_buffer_state();
   uint32_t get_total_buffer_state(); 
   int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
+
+  uint32_t get_num_tx_bytes();
+  uint32_t get_num_rx_bytes();
+  void reset_metrics();
 
 private:
 
@@ -127,6 +129,10 @@ private:
   bool                poll_received;
   bool                do_status;
   rlc_status_pdu_t    status;
+
+  // Metrics
+  uint32_t            num_tx_bytes;
+  uint32_t            num_rx_bytes;
 
   /****************************************************************************
    * Configurable parameters
