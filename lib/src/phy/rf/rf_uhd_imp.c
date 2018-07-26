@@ -371,12 +371,13 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       clock_src = DEFAULT;
     }
 
+#if HAVE_ASYNC_THREAD
     bool start_async_thread = true;
-
     if (strstr(args, "silent")) {
       REMOVE_SUBSTRING_WITHCOMAS(args, "silent");
       start_async_thread = false;
     }
+#endif
 
     // Set over the wire format
     char *otw_format = "sc16";
