@@ -913,7 +913,7 @@ int rf_uhd_send_timed_multi(void *h,
         buffs_ptr[i] = buff;
       }
       uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, 
-                                             tx_samples, &handler->tx_md, 0.5, &txd_samples);
+                                             tx_samples, &handler->tx_md, 1.0, &txd_samples);
       if (error) {
         fprintf(stderr, "Error sending to UHD: %d\n", error);
         goto unlock;
