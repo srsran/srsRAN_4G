@@ -112,7 +112,7 @@ void rlc_tm::write_sdu(byte_buffer_t *sdu, bool blocking)
         log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, queue size=%d, bytes=%d",
                       rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
       } else {
-        log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
+        log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
                        rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
         pool->deallocate(sdu);
       }

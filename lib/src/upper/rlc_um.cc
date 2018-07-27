@@ -339,7 +339,7 @@ void rlc_um::rlc_um_tx::write_sdu(byte_buffer_t *sdu)
 
   if (sdu) {
     tx_sdu_queue.write(sdu);
-    log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B ,tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
+    log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");
   }
@@ -355,9 +355,9 @@ void rlc_um::rlc_um_tx::try_write_sdu(byte_buffer_t *sdu)
 
   if (sdu) {
     if (tx_sdu_queue.try_write(sdu)) {
-      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B ,tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
+      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
     } else {
-      log->warning_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B ,tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
+      log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
       pool->deallocate(sdu);
     }
   } else {
