@@ -803,7 +803,7 @@ int rf_uhd_recv_with_time_multi(void *h,
 
       rxd_samples = 0;
       uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
-                                             num_rx_samples, md, 0.5, false, &rxd_samples);
+                                             num_rx_samples, md, 1.0, false, &rxd_samples);
       if (error) {
         fprintf(stderr, "Error receiving from UHD: %d\n", error);
         log_rx_error(handler);
