@@ -271,7 +271,8 @@ void usim::generate_as_keys(uint8_t *k_asme,
                           k_up_enc,
                           k_up_int);
 
-  current_ncc = 0;
+  current_ncc  = 0;
+  is_first_ncc = true;
 }
 
 void usim::generate_as_keys_ho(uint32_t pci,
@@ -293,10 +294,11 @@ void usim::generate_as_keys_ho(uint32_t pci,
   // Generate successive NH
   while(current_ncc != (uint32_t) ncc) {
     uint8_t *sync = NULL;
-    if (current_ncc) {
-      sync = nh;
-    } else {
+    if (is_first_ncc) {
       sync = k_enb_initial;
+      is_first_ncc = false;
+    } else {
+      sync = nh;
     }
     // Generate NH
     security_generate_nh(k_asme,
