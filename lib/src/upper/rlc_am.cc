@@ -776,7 +776,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
-  byte_buffer_t *pdu = pool_allocate;
+  byte_buffer_t *pdu = pool_allocate_blocking;
   if (!pdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
@@ -957,7 +957,7 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
 
   // Write to rx window
   rlc_amd_rx_pdu_t pdu;
-  pdu.buf = pool_allocate;
+  pdu.buf = pool_allocate_blocking;
   if (!pdu.buf) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
@@ -1050,7 +1050,7 @@ void rlc_am::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
   }
 
   rlc_amd_rx_pdu_t segment;
-  segment.buf = pool_allocate;
+  segment.buf = pool_allocate_blocking;
   if (!segment.buf) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
@@ -1217,7 +1217,7 @@ void rlc_am::reassemble_rx_sdus()
 {
   uint32_t len = 0;
   if(!rx_sdu) {
-    rx_sdu = pool_allocate;
+    rx_sdu = pool_allocate_blocking;
     if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
       log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
@@ -1251,7 +1251,7 @@ void rlc_am::reassemble_rx_sdus()
           rx_sdu->set_timestamp();
           pdcp->write_pdu(lcid, rx_sdu);
 
-          rx_sdu = pool_allocate;
+          rx_sdu = pool_allocate_blocking;
           if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
             log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
@@ -1289,7 +1289,7 @@ void rlc_am::reassemble_rx_sdus()
       log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", rrc->get_rb_name(lcid).c_str(), rx_sdu->N_bytes);
       rx_sdu->set_timestamp();
       pdcp->write_pdu(lcid, rx_sdu);
-      rx_sdu = pool_allocate;
+      rx_sdu = pool_allocate_blocking;
       if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
         log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
@@ -1434,7 +1434,7 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
   }
 
   // Copy data
-  byte_buffer_t *full_pdu = pool_allocate;
+  byte_buffer_t *full_pdu = pool_allocate_blocking;
   if (!full_pdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");
