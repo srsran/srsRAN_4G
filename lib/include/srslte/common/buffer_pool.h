@@ -169,7 +169,7 @@ public:
 
   
 private:  
-  static const int       POOL_SIZE = 2048;
+  static const int       POOL_SIZE = 4096;
   std::stack<buffer_t*>  available;
   std::vector<buffer_t*> used; 
   pthread_mutex_t        mutex;
