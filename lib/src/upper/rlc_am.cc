@@ -370,7 +370,6 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   // Tx STATUS if requested
   if(do_status && !status_prohibited()) {
-    pthread_mutex_unlock(&mutex);
     pdu_size = build_status_pdu(payload, nof_bytes);
     goto unlock_and_exit;
   }
