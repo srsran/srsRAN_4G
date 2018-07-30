@@ -765,14 +765,14 @@ void resegment_test_3()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 14); // 4 byte header + 10 data
+  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 16); // 6 byte header + 10 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 14); // 4 byte header + 10 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 16); // 6 byte header + 10 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -1242,7 +1242,7 @@ void resegment_test_7()
   byte_buffer_t retx2[4];
   for (uint32_t i = 0; i < 4; i++) {
     assert(rlc1.get_buffer_state() != 0);
-    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 7);
+    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 9);
     assert(retx2[i].N_bytes != 0);
 
     rlc2.write_pdu(retx2[i].msg, retx2[i].N_bytes);
@@ -1392,9 +1392,9 @@ void resegment_test_8()
 
   // second round of retx, reduce grant size to force different segment sizes
   byte_buffer_t retx2[20];
-  for (uint32_t i = 0; i < 9; i++) {
+  for (uint32_t i = 0; i < 7; i++) {
     assert(rlc1.get_buffer_state() != 0);
-    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 7);
+    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 9);
     assert(retx2[i].N_bytes != 0);
     rlc2.write_pdu(retx2[i].msg, retx2[i].N_bytes);
 #if HAVE_PCAP
