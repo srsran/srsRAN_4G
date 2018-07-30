@@ -663,6 +663,11 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
   uint32_t pdu_space = 0;
 
   head_len = rlc_am_packed_length(&new_header);
+  if (old_header.N_li > 0) {
+    // Make sure we can fit at least one N_li element if old header contained at least one
+    head_len += 2;
+  }
+
   if(nof_bytes <= head_len)
   {
     log->warning("%s Cannot build a PDU segment - %d bytes available, %d bytes required for header\n",
