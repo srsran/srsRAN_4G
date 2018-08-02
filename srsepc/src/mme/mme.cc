@@ -135,11 +135,6 @@ mme::run_thread()
     m_s1ap_log->debug("Waiting for SCTP Msg\n");
     pdu->reset();
     rd_sz = sctp_recvmsg(s1mme, pdu->msg, sz,(struct sockaddr*) &enb_addr, &fromlen, &sri, &msg_flags);
-
-    if (errno == EPIPE){
-      m_s1ap_log->warning("PIPE broken on SCTP socket, read result %d\n", rd_sz);
-    }
-
     if (rd_sz == -1 && errno != EAGAIN){
       m_s1ap_log->error("Error reading from SCTP socket: %s", strerror(errno));
     }
