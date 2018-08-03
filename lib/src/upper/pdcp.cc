@@ -137,6 +137,7 @@ void pdcp::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
   }
   pthread_rwlock_unlock(&rwlock);
 }
+
 void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
@@ -154,7 +155,6 @@ unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
-
 void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
@@ -171,6 +171,21 @@ void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
 unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
 }
+
+void pdcp::del_bearer(uint32_t lcid)
+{
+  pthread_rwlock_wrlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    pdcp_map_t::iterator it = pdcp_array.find(lcid);
+    delete(it->second);
+    pdcp_array.erase(it);
+    pdcp_log->warning("Deleted PDCP bearer %s\n", rrc->get_rb_name(lcid).c_str());
+  } else {
+    pdcp_log->warning("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
 
 void pdcp::config_security(uint32_t lcid,
                            uint8_t *k_enc,

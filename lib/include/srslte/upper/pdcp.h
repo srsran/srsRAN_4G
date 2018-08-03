@@ -60,6 +60,7 @@ public:
   void write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu);
   void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
   void add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
+  void del_bearer(uint32_t lcid);
   void config_security(uint32_t lcid,
                        uint8_t *k_enc,
                        uint8_t *k_int,

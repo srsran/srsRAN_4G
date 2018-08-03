@@ -274,6 +274,7 @@ public:
   virtual void add_bearer(uint32_t lcid) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
   virtual void add_bearer_mrb(uint32_t lcid) = 0;
+  virtual void del_bearer(uint32_t lcid) = 0;
 };
 
 // RLC interface for PDCP
