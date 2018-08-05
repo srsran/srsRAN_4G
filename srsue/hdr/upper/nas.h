@@ -90,7 +90,7 @@ public:
 
   // UE interface
   bool attach_request();
-  bool deattach_request();
+  bool detach_request();
 
   // PCAP
   void start_pcap(srslte::nas_pcap *pcap_);
@@ -186,6 +186,7 @@ private:
   void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
   void send_security_mode_reject(uint8_t cause);
+  void send_detach_request(bool switch_off);
 
   // security context persistence file
   bool read_ctxt_file(nas_sec_ctxt *ctxt);
