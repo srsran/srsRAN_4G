@@ -94,6 +94,7 @@ void pdcp::reset()
   // destroy all bearers
   pthread_rwlock_wrlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    it->second->reset();
     delete(it->second);
     pdcp_array.erase(it);
   }
