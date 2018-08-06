@@ -172,9 +172,25 @@ bool nas::attach_request() {
   return false;
 }
 
-bool nas::deattach_request() {
-  state = EMM_STATE_DEREGISTERED_INITIATED;
-  nas_log->info("Dettach request not supported\n");
+bool nas::detach_request() {
+  // attempt detach for 5s
+  nas_log->info("Detach Request\n");
+
+  switch (state) {
+    case EMM_STATE_DEREGISTERED:
+      // do nothing ..
+      break;
+    case EMM_STATE_REGISTERED:
+      // send detach request
+      send_detach_request(true);
+      state = EMM_STATE_DEREGISTERED_INITIATED;
+      break;
+    case EMM_STATE_DEREGISTERED_INITIATED:
+      // do nothing ..
+      break;
+    default:
+      break;
+  }
   return false;
 }
 
@@ -1130,6 +1146,63 @@ void nas::send_security_mode_reject(uint8_t cause) {
   }
   nas_log->info("Sending security mode reject\n");
   rrc->write_sdu(cfg.lcid, msg);
+}
+
+void nas::send_detach_request(bool switch_off)
+{
+  byte_buffer_t *pdu = pool_allocate_blocking;
+  if (!pdu) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in %s().\n", __FUNCTION__);
+    return;
+  }
+
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_request = {};
+  if (switch_off) {
+    detach_request.detach_type.switch_off = 1;
+    detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_SWITCH_OFF;
+  } else {
+    detach_request.detach_type.switch_off = 0;
+    detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_NORMAL_DETACH;
+  }
+
+  // GUTI or IMSI detach
+  if (have_guti && have_ctxt) {
+    detach_request.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI;
+    memcpy(&detach_request.eps_mobile_id.guti, &ctxt.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
+    detach_request.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+    detach_request.nas_ksi.nas_ksi       = ctxt.ksi;
+    nas_log->info("Requesting Detach with GUTI\n");
+    liblte_mme_pack_detach_request_msg(&detach_request,
+                                       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
+                                       ctxt.tx_count,
+                                       (LIBLTE_BYTE_MSG_STRUCT *) pdu);
+
+    // Add MAC
+    if (pdu->N_bytes > 5) {
+      integrity_generate(&k_nas_int[16],
+                         ctxt.tx_count,
+                         SECURITY_DIRECTION_UPLINK,
+                         &pdu->msg[5],
+                         pdu->N_bytes - 5,
+                         &pdu->msg[1]);
+    } else {
+      nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+    }
+  } else {
+    detach_request.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
+    detach_request.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+    detach_request.nas_ksi.nas_ksi       = 0;
+    usim->get_imsi_vec(detach_request.eps_mobile_id.imsi, 15);
+    nas_log->info("Requesting IMSI detach (IMSI=%s)\n", usim->get_imsi_str().c_str());
+    liblte_mme_pack_detach_request_msg(&detach_request, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
+  }
+
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  nas_log->info("Sending detach request\n");
+  rrc->write_sdu(cfg.lcid, pdu);
 }
 
 

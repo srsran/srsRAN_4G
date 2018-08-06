@@ -545,7 +545,7 @@ int main(int argc, char *argv[])
   pthread_create(&input, NULL, &input_loop, &args);
 
   printf("Attaching UE...\n");
-  while (!ue->attach() && running) {
+  while (!ue->switch_on() && running) {
     sleep(1);
   }
   if (running) {
@@ -585,6 +585,7 @@ int main(int argc, char *argv[])
     }
     sleep(1);
   }
+  ue->switch_off();
   pthread_cancel(input);
   metricshub.stop();
   ue->stop();

@@ -69,8 +69,8 @@ public:
 
   bool init(all_args_t *args_);
   void stop();
-  bool attach();
-  bool deattach();
+  bool switch_on();
+  bool switch_off();
   bool is_attached();
   void start_plot();
   void print_mbms();

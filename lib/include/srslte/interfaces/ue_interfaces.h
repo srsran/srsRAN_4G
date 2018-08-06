@@ -146,7 +146,7 @@ class nas_interface_ue
 {
 public:
   virtual bool attach_request() = 0;
-  virtual bool deattach_request() = 0;
+  virtual bool detach_request() = 0;
 };
 
 // NAS interface for UE
