@@ -2699,8 +2699,13 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
   rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid).c_str());
 }
 
-void rrc::release_drb(uint8_t lcid) {
-  // TODO
+void rrc::release_drb(uint32_t drb_id)
+{
+  uint32_t lcid = RB_ID_SRB2 + drb_id;
+  rrc_log->info("Releasing radio bearer %s\n", get_rb_name(lcid).c_str());
+  drbs.erase(lcid);
+
+  // FIXME: add body
 }
 
 void rrc::add_mrb(uint32_t lcid, uint32_t port)
