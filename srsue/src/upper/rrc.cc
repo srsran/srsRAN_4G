@@ -2702,10 +2702,13 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
 void rrc::release_drb(uint32_t drb_id)
 {
   uint32_t lcid = RB_ID_SRB2 + drb_id;
-  rrc_log->info("Releasing radio bearer %s\n", get_rb_name(lcid).c_str());
-  drbs.erase(lcid);
 
-  // FIXME: add body
+  if (drbs.find(lcid) != drbs.end()) {
+    rrc_log->info("Releasing radio bearer %s\n", get_rb_name(lcid).c_str());
+    drbs.erase(lcid);
+  } else {
+    rrc_log->error("Couldn't release radio bearer %s. Doesn't exist.\n", get_rb_name(lcid).c_str());
+  }
 }
 
 void rrc::add_mrb(uint32_t lcid, uint32_t port)
