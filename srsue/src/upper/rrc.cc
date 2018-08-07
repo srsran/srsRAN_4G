@@ -2021,6 +2021,7 @@ void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
 void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
   srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
   bit_buf.N_bits = pdu->N_bytes * 8;
+  bzero(&dl_dcch_msg, sizeof(dl_dcch_msg));
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
