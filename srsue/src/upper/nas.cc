@@ -371,6 +371,9 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
     case LIBLTE_MME_MSG_TYPE_EMM_INFORMATION:
       parse_emm_information(lcid, pdu);
       break;
+    case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
+      parse_detach_request(lcid, pdu);
+      break;
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
       pool->deallocate(pdu);
@@ -975,6 +978,23 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu) {
   pool->deallocate(pdu);
 }
 
+void nas::parse_detach_request(uint32_t lcid, byte_buffer_t *pdu)
+{
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_request;
+  liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &detach_request);
+  ctxt.rx_count++;
+  pool->deallocate(pdu);
+
+  if (state == EMM_STATE_REGISTERED) {
+    nas_log->info("Received Detach request (type=%d)\n", detach_request.detach_type.type_of_detach);
+    state = EMM_STATE_DEREGISTERED;
+    // send accept
+    send_detach_accept();
+  } else {
+    nas_log->warning("Received detach request in invalid state (state=%d)\n", state);
+  }
+}
+
 /*******************************************************************************
  * Senders
  ******************************************************************************/
@@ -1202,6 +1222,41 @@ void nas::send_detach_request(bool switch_off)
   }
 
   nas_log->info("Sending detach request\n");
+  rrc->write_sdu(cfg.lcid, pdu);
+}
+
+void nas::send_detach_accept()
+{
+  byte_buffer_t *pdu = pool_allocate_blocking;
+  if (!pdu) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in %s().\n", __FUNCTION__);
+    return;
+  }
+
+  LIBLTE_MME_DETACH_ACCEPT_MSG_STRUCT detach_accept;
+  bzero(&detach_accept, sizeof(detach_accept));
+  liblte_mme_pack_detach_accept_msg(&detach_accept,
+                                    LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
+                                    ctxt.tx_count,
+                                    (LIBLTE_BYTE_MSG_STRUCT *) pdu);
+
+  // Add MAC
+  if (pdu->N_bytes > 5) {
+    integrity_generate(&k_nas_int[16],
+                       ctxt.tx_count,
+                       SECURITY_DIRECTION_UPLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes - 5,
+                       &pdu->msg[1]);
+  } else {
+    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+  }
+
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  nas_log->info("Sending detach accept\n");
   rrc->write_sdu(cfg.lcid, pdu);
 }
 
