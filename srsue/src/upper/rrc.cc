@@ -2703,7 +2703,7 @@ void rrc::release_drb(uint32_t drb_id)
 {
   uint32_t lcid = RB_ID_SRB2 + drb_id;
 
-  if (drbs.find(lcid) != drbs.end()) {
+  if (drbs.find(drb_id) != drbs.end()) {
     rrc_log->info("Releasing radio bearer %s\n", get_rb_name(lcid).c_str());
     drbs.erase(lcid);
   } else {
