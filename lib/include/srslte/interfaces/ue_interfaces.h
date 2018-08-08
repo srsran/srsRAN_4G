@@ -251,6 +251,8 @@ public:
                                    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
   virtual void enable_integrity(uint32_t lcid) = 0;
   virtual void enable_encryption(uint32_t lcid) = 0;
+  virtual uint32_t get_dl_count(uint32_t lcid) = 0;
+  virtual uint32_t get_ul_count(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RLC

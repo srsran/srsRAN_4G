@@ -231,6 +231,29 @@ void pdcp::enable_encryption(uint32_t lcid)
   pthread_rwlock_unlock(&rwlock);
 }
 
+uint32_t pdcp::get_dl_count(uint32_t lcid)
+{
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    ret = pdcp_array.at(lcid)->get_dl_count();
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
+}
+
+uint32_t pdcp::get_ul_count(uint32_t lcid)
+{
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    ret = pdcp_array.at(lcid)->get_ul_count();
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
+}
+
+
 /*******************************************************************************
   RLC interface
 *******************************************************************************/

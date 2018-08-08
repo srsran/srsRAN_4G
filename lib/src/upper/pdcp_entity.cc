@@ -408,6 +408,17 @@ uint8_t pdcp_entity::get_bearer_id(uint8_t lcid)
 }
 
 
+uint32_t pdcp_entity::get_dl_count()
+{
+  return rx_count;
+}
+
+
+uint32_t pdcp_entity::get_ul_count()
+{
+  return tx_count;
+}
+
 /****************************************************************************
  * Pack/Unpack helper functions
  * Ref: 3GPP TS 36.323 v10.1.0
