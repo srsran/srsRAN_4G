@@ -43,17 +43,18 @@
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/resampling/resample_arb.h"
 
+// J Giovatto Aug 08, 2018
 // suggest running non DEBUG_MODE with n_prb of 15 or 25 anything higher has not 
-// been able to achieve sync.
+// been able to achieve sync, yet ...
 //
 // changes to ue and enb conf resp:
 // device_name = shmemrf
 // device_args = ue or enb
 
-// stop routine may not be called so check ipcs for orphaned shared mem segments
+// the device stop routine may not be called so check ipcs for orphaned shared mem segments
 // cleaup using key_id:
-//   sudo ipcrm -M 0x552a58cf
-//   sudo ipcrm -M 0x442a58cf
+//  sudo ipcrm -M 0x552a58cf
+//  sudo ipcrm -M 0x442a58cf
 
 // running as sudo/root will allow real time priorities to take effect
 // 1) sudo ./srsepc ./epc.conf
@@ -61,9 +62,9 @@
 // 3) sudo ./srsenb ./enb.conf
 
 // define to allow debug
-// #define DEBUG_MODE
+// #define RF_SHMEM_DEBUG_MODE
 
-#ifdef DEBUG_MODE
+#ifdef RF_SHMEM_DEBUG_MODE
 static bool rf_shmem_log_dbug  = true;
 static bool rf_shmem_log_info  = true;
 static bool rf_shmem_log_warn  = true;
@@ -135,51 +136,53 @@ static char rf_shmem_node_type[2] = {0};
 
 
 #define RF_SHMEM_LOG_FUNC_TODO fprintf(stderr, "XXX_TODO file:%s func:%s line:%d XXX_TODO\n", \
-                                      __FILE__,                                              \
-                                      __func__,                                              \
-                                      __LINE__);
+                                       __FILE__,                                              \
+                                       __func__,                                              \
+                                       __LINE__);
 
 // bytes per sample
-#define BYTES_PER_SAMPLE(x) ((x)*sizeof(cf_t))
+#define RF_SHMEM_BYTES_X_SAMPLE(x) ((x)*sizeof(cf_t))
 
 // samples per byte
-#define SAMPLES_PER_BYTE(x) ((x)/sizeof(cf_t))
+#define RF_SHMEM_SAMPLES_X_BYTE(x) ((x)/sizeof(cf_t))
 
 #define RF_SHMEM_NTYPE_NONE  (0)  
 #define RF_SHMEM_NTYPE_UE    (1)  
 #define RF_SHMEM_NTYPE_ENB   (2)
 
-#define MAX_NOF_PORTS  1 // up to 4 ports
+#define RF_SHMEM_MAX_NOF_PORTS  1 // up to 4 ports someday ....
 
 static const struct timeval tv_zero  = {};
 static const struct timeval tv_step  = {0, 1000};
 static const struct timeval tv_4step = {0, 4000};
 
 // sf len at nprb=100 is 184320
-// subtract the other fields of the struct to align mem size to 256k
-#define MAX_SF_LEN_BYTES (256000 - 12 - 2 * sizeof(int) - 2 * sizeof(struct timeval) - sizeof(float))
+// subtract the other fields of the struct to align mem size to 256k per bin
+#define RF_SHMEM_MAX_CF_LEN RF_SHMEM_SAMPLES_X_BYTE((256000 - 12 - 2 * sizeof(int) - 2 * sizeof(struct timeval) - sizeof(float)))
 
 // tx msg header info type (not for stack allocation)
 typedef struct {
-  uint64_t       seqnum;                 // seq num
-  uint32_t       nof_bytes;              // nbytes
-  float          tx_srate;               // tx sample rate
-  struct timeval tv_tx_tti;              // tti time from upper layers
-  struct timeval tv_tx_time;             // actual tx time
-  int            is_sob;                 // start of burst
-  int            is_eob;                 // end of burst
-  uint8_t        data[MAX_SF_LEN_BYTES]; // data
+  uint64_t       seqnum;                    // seq num
+  uint32_t       nof_bytes;                 // nbytes
+  float          tx_srate;                  // tx sample rate
+  struct timeval tv_tx_tti;                 // tti time from upper layers
+  struct timeval tv_tx_time;                // actual tx time
+  int            is_sob;                    // start of burst
+  int            is_eob;                    // end of burst
+  cf_t           data[RF_SHMEM_MAX_CF_LEN]; // data
 } rf_shmem_element_t;
 
-#define NUM_SF_PER_FRAME 10
+#define RF_SHMEM_NUM_SF_X_FRAME 10
 
 typedef struct {
-  rf_shmem_element_t elements[NUM_SF_PER_FRAME];
+  rf_shmem_element_t elements[RF_SHMEM_NUM_SF_X_FRAME];
 } rf_shmem_segment_t;
 
+#define RF_SHMEM_MAX_CE_SYMBOLS 23040
 
-#define DATA_ELEMENT_SIZE sizeof(rf_shmem_element_t)
-#define DATA_SEGMENT_SIZE sizeof(rf_shmem_segment_t)
+cf_t *cf_tmp = NULL;
+
+#define RF_SHMEM__DATA_SEGMENT_SIZE sizeof(rf_shmem_segment_t)
 
 const char * printMsg(const rf_shmem_element_t * p, char * buff, int buff_len)
  {
@@ -234,7 +237,7 @@ typedef struct {
 
 void rf_shmem_suppress_stdout(void *h)
  {
-#ifndef DEBUG_MODE
+#ifndef RF_SHMEM_DEBUG_MODE
     rf_shmem_log_dbug = false;
 #endif
  }
@@ -246,7 +249,7 @@ static time_t tv_to_usec(const struct timeval * tv)
 
 static uint32_t get_bin(const struct timeval * tv)
  {
-   return (tv_to_usec(tv) / tv_to_usec(&tv_step)) % NUM_SF_PER_FRAME;
+   return (tv_to_usec(tv) / tv_to_usec(&tv_step)) % RF_SHMEM_NUM_SF_X_FRAME;
  }
 
 
@@ -268,7 +271,7 @@ static  rf_shmem_info_t rf_shmem_info = { .dev_name        = "shmemrf",
                                           .nof_rx_ports    = 1,
                                           .rx_gain         = 0.0,
                                           .tx_gain         = 0.0,
-                                          .rx_srate        = SRSLTE_CS_SAMP_FREQ, // init here, set_srate comes in a little late
+                                          .rx_srate        = SRSLTE_CS_SAMP_FREQ,
                                           .tx_srate        = SRSLTE_CS_SAMP_FREQ,
                                           .rx_freq         = 0.0,
                                           .tx_freq         = 0.0,
@@ -289,16 +292,14 @@ static  rf_shmem_info_t rf_shmem_info = { .dev_name        = "shmemrf",
                                           .shm_ul_key      = 0,
                                           .shm_dl_id       = 0,
                                           .shm_ul_id       = 0,
-                                          .shm_dl          = 0,
-                                          .shm_ul          = 0,
-                                          .rxp             = 0,
-                                          .txp             = 0,
+                                          .shm_dl          = NULL,
+                                          .shm_ul          = NULL,
+                                          .rxp             = NULL,
+                                          .txp             = NULL,
                                           .sem             = 0
                                         };
 
-#define GET_DEV_INFO(h)  assert(h); rf_shmem_info_t *_info = (rf_shmem_info_t *)(h)
-
-
+#define RF_SHMEM_GET_DEV_INFO(h)  assert(h); rf_shmem_info_t *_info = (rf_shmem_info_t *)(h)
 
 static bool rf_shmem_is_enb(rf_shmem_info_t * _info)
 {
@@ -322,66 +323,24 @@ static double rf_shmem_get_fs(const struct timeval *tv)
 }
 
 
-#ifdef HEX_DEBUG_MODE
-static void rf_shmem_print_hex(const char * note, void * buf, const int buflen)
-{
-  unsigned char *p = (unsigned char *) buf;
-
-  int i;
-  int cnt = 0;
-  const int strl = 17;
-  char str[strl];
-  memset(str, 0, sizeof (str));
-
-  printf("  %s", note);
-
-  for(i = 0; i < buflen; ++i)
-    {
-      if(cnt % (strl - 1) == 0)
-        {
-          printf("  %s\n%04X: ", str, cnt);
-          memset(str, 0, strl);
-        }
-
-      if(p[cnt] < ' ' || p[cnt] >= 127)
-        {
-          str[cnt % (strl - 1)] = '.';
-        }
-      else
-        {
-          str[cnt % (strl - 1)] = p[cnt];
-        }
-      printf("%02X ", p[cnt++]);
-    }
-
-  if (i % 16)
-    {
-      printf("  %*s\n\n",
-              (strl - 1) + ((strl - 1) - buflen % (strl - 1)) * 2, str);
-    }
-  else
-    {
-      printf("  %s\n", str);
-    }
-}
-#endif
-
-
-
 // downsample during initial sync
 static int rf_shmem_resample(double srate_in, 
                              double srate_out, 
-                             uint8_t * in, 
-                             uint8_t * out,
+                             cf_t * data_in, 
+                             cf_t * data_out,
                              int nof_bytes)
 {
-  // XXX add frame combining
+  int result = nof_bytes;
+
+  const int nof_samples = RF_SHMEM_SAMPLES_X_BYTE(nof_bytes);
+
+  memset(cf_tmp, 0x0, sizeof(cf_t) * RF_SHMEM_MAX_CE_SYMBOLS);
 
   if(srate_in && srate_out && (srate_in != srate_out))
    {
      const double sratio = srate_out / srate_in;
 
-     // have noticed that when 'upsample' unable to sync
+     // 'upsample' unable to sync
      if(sratio > 1.0)
       { 
         RF_SHMEM_WARN("srate %4.2lf/%4.2lf MHz, sratio %3.3lf, upsample may not decode",
@@ -398,21 +357,27 @@ static int rf_shmem_resample(double srate_in,
       }
 
      srslte_resample_arb_t r;
+     srslte_resample_arb_init(&r, sratio, 0);
 
-     srslte_resample_arb_init(&r, sratio, 1);
+     result = RF_SHMEM_BYTES_X_SAMPLE(srslte_resample_arb_compute(&r, 
+                                                                  data_in, 
+                                                                  cf_tmp, 
+                                                                  nof_samples));
 
-     return BYTES_PER_SAMPLE(srslte_resample_arb_compute(&r, 
-                                                         (cf_t*)in, 
-                                                         (cf_t*)out, 
-                                                         SAMPLES_PER_BYTE(nof_bytes)));
+     // XXX TODO is this correct ???
+     for(int i = 0; i < nof_samples; ++i) {
+       data_out[i] += cf_tmp[i];
+     }
    }
   else
    {
-     // no changes, samples out == samples in
-     memcpy(out, in, nof_bytes);
-
-     return nof_bytes;
+     // XXX TODO is this correct ???
+     for(int i = 0; i < nof_samples; ++i) {
+       data_out[i] += data_in[i];
+     }
    }
+
+  return result;
 }
 
 
@@ -426,18 +391,19 @@ static int rf_shmem_open_ipc(rf_shmem_info_t * _info)
 
   if(rf_shmem_is_enb(_info))
     {
-      strncpy(rf_shmem_node_type, "E", 1);
+      rf_shmem_node_type[0] = 'E';
 
       dl_shm_flags = IPC_CREAT | 0666;
       ul_shm_flags = IPC_CREAT | 0666;
     }
   else
     {
-      strncpy(rf_shmem_node_type, "U", 1);
+      rf_shmem_node_type[0] = 'U';
 
       dl_shm_flags = 0666;
       ul_shm_flags = 0666;
 
+      // let enb create all resources
       wait_for_create = true;
     }
 
@@ -463,13 +429,13 @@ static int rf_shmem_open_ipc(rf_shmem_info_t * _info)
     }
   else
     {
-      RF_SHMEM_WARN("got shm_ul_key 0x%x", _info->shm_ul_key);
+      RF_SHMEM_WARN("got shm_ul_key 0x%x, use ipcs -m to find me later", _info->shm_ul_key);
     }
 
 
   do {
     // dl shm id
-    if((_info->shm_dl_id = shmget(_info->shm_dl_key, DATA_SEGMENT_SIZE, dl_shm_flags)) < 0)
+    if((_info->shm_dl_id = shmget(_info->shm_dl_key, RF_SHMEM__DATA_SEGMENT_SIZE, dl_shm_flags)) < 0)
       {
         if(wait_for_create == false)
          {
@@ -489,7 +455,7 @@ static int rf_shmem_open_ipc(rf_shmem_info_t * _info)
 
   do {
     // ul shm id
-    if((_info->shm_ul_id = shmget(_info->shm_ul_key, DATA_SEGMENT_SIZE, ul_shm_flags)) < 0)
+    if((_info->shm_ul_id = shmget(_info->shm_ul_key, RF_SHMEM__DATA_SEGMENT_SIZE, ul_shm_flags)) < 0)
       {
         if(wait_for_create == false)
          {
@@ -556,8 +522,14 @@ static int rf_shmem_open_ipc(rf_shmem_info_t * _info)
       }
     }
 
-  memset(_info->shm_ul, 0x0, DATA_SEGMENT_SIZE);
-  memset(_info->shm_dl, 0x0, DATA_SEGMENT_SIZE);
+  memset(_info->shm_ul, 0x0, RF_SHMEM__DATA_SEGMENT_SIZE);
+  memset(_info->shm_dl, 0x0, RF_SHMEM__DATA_SEGMENT_SIZE);
+
+  cf_tmp = srslte_vec_malloc(sizeof(cf_t) * RF_SHMEM_MAX_CE_SYMBOLS);
+  if (!cf_tmp) {
+     RF_SHMEM_WARN("cf_tmp vec_malloc error %s", strerror(errno));
+     return -1;
+  }
 
   return 0;
 }
@@ -567,7 +539,7 @@ static int rf_shmem_open_ipc(rf_shmem_info_t * _info)
 
 static void rf_shmem_wait_next_tti(void *h, struct timeval * tv_ref)
 {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    struct timeval tv_diff;
 
@@ -597,7 +569,7 @@ static void rf_shmem_wait_next_tti(void *h, struct timeval * tv_ref)
 
 char* rf_shmem_devname(void *h)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    return _info->dev_name;
  }
@@ -613,7 +585,7 @@ bool rf_shmem_rx_wait_lo_locked(void *h)
 
 int rf_shmem_start_rx_stream(void *h, bool now)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
    
    pthread_mutex_lock(&_info->rx_lock);
 
@@ -648,7 +620,7 @@ int rf_shmem_start_rx_stream(void *h, bool now)
 
 int rf_shmem_stop_rx_stream(void *h)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    pthread_mutex_lock(&_info->rx_lock);
 
@@ -671,13 +643,13 @@ void rf_shmem_flush_buffer(void *h)
 
 bool rf_shmem_has_rssi(void *h)
  {
-   return true;
+   return false;
  }
 
 
 float rf_shmem_get_rssi(void *h)
  {
-   const float rssi = -33.0;  // XXX TODO what value ???
+   const float rssi = 0.0;  // XXX TODO what value ???
 
    RF_SHMEM_INFO("rssi %4.3f", rssi);
 
@@ -687,7 +659,7 @@ float rf_shmem_get_rssi(void *h)
 
 void rf_shmem_register_error_handler(void *h, srslte_rf_error_handler_t error_handler)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    _info->error_handler = error_handler;
  }
@@ -705,9 +677,9 @@ int rf_shmem_open_multi(char *args, void **h, uint32_t nof_channels)
 
    RF_SHMEM_INFO("channels %u, args [%s]", nof_channels, args ? args : "none");
 
-   if(nof_channels > MAX_NOF_PORTS)
+   if(nof_channels > RF_SHMEM_MAX_NOF_PORTS)
     {
-      RF_SHMEM_WARN("only supporting up to %d channels, not %d", MAX_NOF_PORTS, nof_channels);
+      RF_SHMEM_WARN("only supporting up to %d channels, not %d", RF_SHMEM_MAX_NOF_PORTS, nof_channels);
 
       return -1;
     }
@@ -753,12 +725,12 @@ int rf_shmem_open_multi(char *args, void **h, uint32_t nof_channels)
 
 int rf_shmem_close(void *h)
  {
-   // XXX this does not seem to get called on shutdown
+   // XXX this does not seem to get called on shutdown as othen as I'd expect
 
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    if(rf_shmem_is_enb(_info))
-     {
+    {
       if(_info->shm_dl)
         {
           shmdt(_info->shm_dl);
@@ -783,7 +755,12 @@ int rf_shmem_close(void *h)
 
           _info->sem = NULL;
         }
-     }
+    }
+
+   if(cf_tmp) 
+    {
+      free(cf_tmp);
+    }
 
    return 0;
  }
@@ -791,7 +768,7 @@ int rf_shmem_close(void *h)
 
 void rf_shmem_set_master_clock_rate(void *h, double rate)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    RF_SHMEM_INFO("rate %4.2lf MHz to %4.2lf MHz", 
                  _info->clock_rate / 1e6, rate / 1e6);
@@ -810,7 +787,7 @@ bool rf_shmem_is_master_clock_dynamic(void *h)
 
 double rf_shmem_set_rx_gain(void *h, double gain)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    RF_SHMEM_INFO("gain %3.2lf to %3.2lf", _info->rx_gain, gain);
 
@@ -822,7 +799,7 @@ double rf_shmem_set_rx_gain(void *h, double gain)
 
 double rf_shmem_set_tx_gain(void *h, double gain)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    RF_SHMEM_INFO("gain %3.2lf to %3.2lf", _info->tx_gain, gain);
 
@@ -831,11 +808,12 @@ double rf_shmem_set_tx_gain(void *h, double gain)
    return _info->tx_gain;
  }
 
+
 srslte_rf_info_t * rf_shmem_get_rf_info(void *h)
   {
-     GET_DEV_INFO(h);
+     RF_SHMEM_GET_DEV_INFO(h);
 
-     RF_SHMEM_INFO("tx_gain min/max %3.2lf/%3.2lf, rx_gain min/max %3.2lf/%3.2lf",
+     RF_SHMEM_DBUG("tx_gain min/max %3.2lf/%3.2lf, rx_gain min/max %3.2lf/%3.2lf",
                   _info->rf_info.min_tx_gain,
                   _info->rf_info.max_tx_gain,
                   _info->rf_info.min_rx_gain,
@@ -847,9 +825,9 @@ srslte_rf_info_t * rf_shmem_get_rf_info(void *h)
 
 double rf_shmem_get_rx_gain(void *h)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
-   RF_SHMEM_INFO("gain %3.2lf", _info->rx_gain);
+   RF_SHMEM_DBUG("gain %3.2lf", _info->rx_gain);
 
    return _info->rx_gain;
  }
@@ -857,9 +835,9 @@ double rf_shmem_get_rx_gain(void *h)
 
 double rf_shmem_get_tx_gain(void *h)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
-   RF_SHMEM_INFO("gain %3.2lf", _info->tx_gain);
+   RF_SHMEM_DBUG("gain %3.2lf", _info->tx_gain);
 
    return _info->tx_gain;
  }
@@ -867,7 +845,7 @@ double rf_shmem_get_tx_gain(void *h)
 
 double rf_shmem_set_rx_srate(void *h, double rate)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    RF_SHMEM_INFO("srate %4.2lf MHz to %4.2lf MHz", 
                  _info->rx_srate / 1e6, rate / 1e6);
@@ -880,7 +858,7 @@ double rf_shmem_set_rx_srate(void *h, double rate)
 
 double rf_shmem_set_tx_srate(void *h, double rate)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    RF_SHMEM_INFO("srate %4.2lf MHz to %4.2lf MHz", 
                  _info->tx_srate / 1e6, rate / 1e6);
@@ -893,7 +871,7 @@ double rf_shmem_set_tx_srate(void *h, double rate)
 
 double rf_shmem_set_rx_freq(void *h, double freq)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    RF_SHMEM_INFO("freq %4.2lf MHz to %4.2lf MHz", 
                  _info->rx_freq / 1e6, freq / 1e6);
@@ -906,7 +884,7 @@ double rf_shmem_set_rx_freq(void *h, double freq)
 
 double rf_shmem_set_tx_freq(void *h, double freq)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    RF_SHMEM_INFO("freq %4.2lf MHz to %4.2lf MHz", 
                  _info->tx_freq / 1e6, freq / 1e6);
@@ -919,7 +897,7 @@ double rf_shmem_set_tx_freq(void *h, double freq)
 
 void rf_shmem_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    memcpy(&(_info->tx_cal), cal, sizeof(srslte_rf_cal_t));
 
@@ -933,7 +911,7 @@ void rf_shmem_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 
 void rf_shmem_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    memcpy(&(_info->rx_cal), cal, sizeof(srslte_rf_cal_t));
 
@@ -947,7 +925,7 @@ void rf_shmem_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 
 void rf_shmem_get_time(void *h, time_t *full_secs, double *frac_secs)
  {
-   GET_DEV_INFO(h);
+   RF_SHMEM_GET_DEV_INFO(h);
 
    RF_SHMEM_INFO("XXX");
 
@@ -973,12 +951,12 @@ int rf_shmem_recv_with_time(void *h, void *data, uint32_t nsamples,
 
 int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples, 
                                   bool blocking, time_t *full_secs, double *frac_secs)
-{
-   GET_DEV_INFO(h);
+ {
+   RF_SHMEM_GET_DEV_INFO(h);
 
    struct timeval tv_now, tv_diff;
 
-   const uint32_t nof_bytes = BYTES_PER_SAMPLE(nsamples);
+   const uint32_t nof_bytes = RF_SHMEM_BYTES_X_SAMPLE(nsamples);
 
    memset(data[0], 0x0, nof_bytes);
 
@@ -990,7 +968,6 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
                  nof_bytes,
                  nof_sf);
 
-   char logbuff[256];
 
    uint32_t nof_bytes_in = 0;
 
@@ -1012,13 +989,16 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
            const int new_len = rf_shmem_resample(p->tx_srate,
                                                  _info->rx_srate,
                                                  p->data,
-                                                 ((uint8_t*)data[0]) + nof_bytes_in,
+                                                 (cf_t*)(((uint8_t*)data[0]) + nof_bytes_in),
                                                  p->nof_bytes);
 
            nof_bytes_in += new_len;
 
+#ifdef RF_SHMEM_DEBUG_MODE
+           char logbuff[256] = {0};
            RF_SHMEM_DBUG("RX, bin %u, new_len %u, total %u, %s", 
                          bin, new_len, nof_bytes_in, printMsg(p, logbuff, sizeof(logbuff)));
+#endif
          }
        else
          {
@@ -1027,10 +1007,13 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
            {
              timersub(&p->tv_tx_tti, &tv_now, &tv_diff);
 
+#ifdef RF_SHMEM_DEBUG_MODE
+             char logbuff[256] = {0};
              RF_SHMEM_DBUG("RX, bin %u, orphan, overrun %6.6lf, %s", 
                            bin, 
                            -rf_shmem_get_fs(&tv_diff),
                            printMsg(p, logbuff, sizeof(logbuff)));
+#endif
 
              // cleanup
              memset(p, 0x0, sizeof(rf_shmem_element_t));
@@ -1045,24 +1028,24 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
    rf_shmem_tv_to_fs(&_info->tv_this_tti, full_secs, frac_secs);
 
    return nsamples;
-}
+ }
 
 
 int rf_shmem_send_timed(void *h, void *data, int nsamples,
                        time_t full_secs, double frac_secs, bool has_time_spec,
                        bool blocking, bool is_sob, bool is_eob)
-{
+ {
    void *d[4] = {data, NULL, NULL, NULL};
 
    return rf_shmem_send_timed_multi(h, d, nsamples, full_secs, frac_secs, has_time_spec, blocking, is_sob, is_eob);
-}
+ }
 
 
 int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
                              time_t full_secs, double frac_secs, bool has_time_spec,
                              bool blocking, bool is_sob, bool is_eob)
-{
-   GET_DEV_INFO(h);
+ {
+   RF_SHMEM_GET_DEV_INFO(h);
 
    if(nsamples <= 0)
      {
@@ -1074,13 +1057,12 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
    struct timeval tv_now, tv_tx_tti;
 
    // assume all tx are 4 tti in the future
-   // code base may tweek to timespec which can mess up our bins
+   // code base may advance timespec slightly which can mess up our bins
    timeradd(&_info->tv_this_tti, &tv_4step, &tv_tx_tti);
 
    gettimeofday(&tv_now, NULL);
 
-   // this msg tx tti time has passed
-   // should be well into the future
+   // this msg tx tti time has passed it should be well into the future
    if(timercmp(&tv_tx_tti, &tv_now, <))
      {
        struct timeval tv_diff;
@@ -1098,12 +1080,11 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
      }
    else
      {
-       const uint32_t nof_bytes = BYTES_PER_SAMPLE(nsamples);
+       const uint32_t nof_bytes = RF_SHMEM_BYTES_X_SAMPLE(nsamples);
 
        const uint32_t bin = get_bin(&tv_tx_tti);
 
        // XXX TODO semaphore
-      
        rf_shmem_element_t * p = &_info->txp->elements[bin];
        
        p->is_sob       = is_sob;
@@ -1118,13 +1099,11 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
 
        ++_info->tx_nof_ok;
 
-       char logbuff[256];
-
+#ifdef RF_SHMEM_DEBUG_MODE
+       char logbuff[256] = {0};
        RF_SHMEM_DBUG("TX, bin %u, %s", bin, printMsg(p, logbuff, sizeof(logbuff)));
+#endif
      }
 
    return nsamples;
-}
-
-
-
+ }
