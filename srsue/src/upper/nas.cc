@@ -1193,12 +1193,17 @@ void nas::send_detach_request(bool switch_off)
     detach_request.nas_ksi.nas_ksi       = ctxt.ksi;
     nas_log->info("Requesting Detach with GUTI\n");
     liblte_mme_pack_detach_request_msg(&detach_request,
-                                       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
+                                       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
                                        ctxt.tx_count,
                                        (LIBLTE_BYTE_MSG_STRUCT *) pdu);
 
+    if(pcap != NULL) {
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
+
     // Add MAC
     if (pdu->N_bytes > 5) {
+      cipher_encrypt(pdu);
       integrity_generate(&k_nas_int[16],
                          ctxt.tx_count,
                          SECURITY_DIRECTION_UPLINK,
@@ -1215,10 +1220,10 @@ void nas::send_detach_request(bool switch_off)
     usim->get_imsi_vec(detach_request.eps_mobile_id.imsi, 15);
     nas_log->info("Requesting IMSI detach (IMSI=%s)\n", usim->get_imsi_str().c_str());
     liblte_mme_pack_detach_request_msg(&detach_request, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-  }
 
-  if(pcap != NULL) {
-    pcap->write_nas(pdu->msg, pdu->N_bytes);
+    if(pcap != NULL) {
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
   }
 
   nas_log->info("Sending detach request\n");
@@ -1236,12 +1241,17 @@ void nas::send_detach_accept()
   LIBLTE_MME_DETACH_ACCEPT_MSG_STRUCT detach_accept;
   bzero(&detach_accept, sizeof(detach_accept));
   liblte_mme_pack_detach_accept_msg(&detach_accept,
-                                    LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
+                                    LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
                                     ctxt.tx_count,
                                     (LIBLTE_BYTE_MSG_STRUCT *) pdu);
 
-  // Add MAC
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  // Encrypt and add MAC
   if (pdu->N_bytes > 5) {
+    cipher_encrypt(pdu);
     integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,
                        SECURITY_DIRECTION_UPLINK,
@@ -1250,10 +1260,6 @@ void nas::send_detach_accept()
                        &pdu->msg[1]);
   } else {
     nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
-  }
-
-  if(pcap != NULL) {
-    pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
   nas_log->info("Sending detach accept\n");
