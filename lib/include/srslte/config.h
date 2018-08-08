@@ -64,9 +64,4 @@ typedef _Complex float cf_t;
 typedef _Complex short int c16_t;
 #endif /* ENABLE_C16 */
 
-// adjust system timing by this factor
-// set via cmake -DTIMESCALE=value at build time
-#define get_time_scaled(x) ((x) * SRSLTE_TIME_SCALE)
-#define usleep_scaled(x)   usleep(get_time_scaled((x)))
-
 #endif // SRSLTE_CONFIG_H

@@ -586,7 +586,7 @@ void rrc::process_release_complete(uint16_t rnti)
       rlc->clear_buffer(rnti);
       users[rnti].send_connection_release();
       // There is no RRCReleaseComplete message from UE thus wait ~50 subframes for tx
-      usleep_scaled(50000);
+      usleep(50000);
     }
     rem_user_thread(rnti);
   } else {
@@ -840,7 +840,7 @@ void rrc::activity_monitor::run_thread()
 {
   while(running)
   {
-    usleep_scaled(10000);
+    usleep(10000);
     pthread_mutex_lock(&parent->user_mutex);
     uint16_t rem_rnti = 0;
     for(std::map<uint16_t, ue>::iterator iter=parent->users.begin(); rem_rnti == 0 && iter!=parent->users.end(); ++iter) {
@@ -948,23 +948,23 @@ bool rrc::ue::is_timeout()
 
   switch(state) {
     case RRC_STATE_IDLE:  
-      deadline_s   = get_time_scaled(0);
-      deadline_us  = get_time_scaled((parent->sib2.rr_config_common_sib.rach_cnfg.max_harq_msg3_tx + 1)* 8 * 1000);
+      deadline_s   = 0;
+      deadline_us  = (parent->sib2.rr_config_common_sib.rach_cnfg.max_harq_msg3_tx + 1)* 8 * 1000;
       deadline_str = "RRCConnectionSetup";
       break;
     case RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE:
-      deadline_s   = get_time_scaled(1);
-      deadline_us  = get_time_scaled(0);
+      deadline_s   = 1;
+      deadline_us  = 0;
       deadline_str = "RRCConnectionSetupComplete";
       break;
     case RRC_STATE_RELEASE_REQUEST:
-      deadline_s   = get_time_scaled(4);
-      deadline_us  = get_time_scaled(0);
+      deadline_s   = 4;
+      deadline_us  = 0;
       deadline_str = "RRCReleaseRequest";
       break;
     default:
-      deadline_s   = get_time_scaled(parent->cfg.inactivity_timeout_ms/1000);
-      deadline_us  = get_time_scaled((parent->cfg.inactivity_timeout_ms%1000)*1000);
+      deadline_s   = parent->cfg.inactivity_timeout_ms/1000;
+      deadline_us  = (parent->cfg.inactivity_timeout_ms%1000)*1000;
       deadline_str = "Activity";
       break;    
   }

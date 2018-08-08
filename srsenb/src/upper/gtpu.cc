@@ -119,7 +119,7 @@ void gtpu::stop()
     // Wait thread to exit gracefully otherwise might leave a mutex locked
     int cnt=0;
     while(running && cnt<100) {
-      usleep_scaled(10000);
+      usleep(10000);
       cnt++;
     }
     if (running) {
@@ -268,7 +268,7 @@ void gtpu::run_thread()
       pdu = pool_allocate;
       if (!pdu) {
         gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
-        usleep_scaled(10000);
+        usleep(10000);
       }
     } while(!pdu);
   }
@@ -378,14 +378,12 @@ void gtpu::mch_thread::run_thread()
     gtpu_header_t header;
     gtpu_read_header(pdu, &header, gtpu_log);
 
-    gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU MCPDU mrnti=0x%x, lcid=%d, n_bytes=%d", SRSLTE_MRNTI, lcid, pdu->N_bytes);
-
     pdcp->write_sdu(SRSLTE_MRNTI, lcid, pdu);
     do {
       pdu = pool_allocate;
       if (!pdu) {
         gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
-        usleep_scaled(10000);
+        usleep(10000);
       }
     } while(!pdu);
   }
@@ -399,7 +397,7 @@ void gtpu::mch_thread::stop()
     // Wait thread to exit gracefully otherwise might leave a mutex locked
     int cnt = 0;
     while(running && cnt < 100) {
-      usleep_scaled(10000);
+      usleep(10000);
       cnt++;
     }
     if (running) {

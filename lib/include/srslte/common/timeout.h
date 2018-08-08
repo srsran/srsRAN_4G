@@ -63,7 +63,7 @@ public:
       return;
     reset();
     gettimeofday(&start_time[1], NULL);
-    duration_msec = get_time_scaled(duration_msec_);
+    duration_msec = duration_msec_;
     running       = true;
     timeout_id    = timeout_id_;
     callback      = callback_;

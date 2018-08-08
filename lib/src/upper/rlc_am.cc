@@ -116,7 +116,7 @@ void rlc_am::stop()
 {
   // Empty tx_sdu_queue before locking the mutex
   tx_enabled = false;
-  usleep_scaled(100);
+  usleep(100);
   empty_queue();
 
   pthread_mutex_lock(&mutex);

@@ -401,7 +401,7 @@ int rf_dummy_recv_with_time(void *h, void *data, uint32_t nsamples,
 int rf_dummy_recv_with_time_multi(void *h, void **data, uint32_t nsamples, 
                                   bool blocking, time_t *full_secs, double *frac_secs)
 {
-   usleep_scaled(1000);
+   usleep(1000);
 
    rf_dummy_get_time(h, full_secs, frac_secs);
 

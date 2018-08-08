@@ -107,7 +107,7 @@ void mac::wait_uplink() {
   int cnt=0;
   Info("Waiting to uplink...\n");
   while(mux_unit.is_pending_any_sdu() && cnt<20) {
-    usleep_scaled(1000);
+    usleep(1000);
     cnt++;
   }
 }

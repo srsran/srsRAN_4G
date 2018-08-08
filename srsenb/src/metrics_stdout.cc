@@ -25,7 +25,6 @@
  */
 
 #include "srsenb/hdr/metrics_stdout.h"
-#include "srslte/config.h"
 
 #include <unistd.h>
 #include <sstream>
@@ -60,7 +59,7 @@ metrics_stdout::metrics_stdout() : started(false) ,do_print(false), metrics_repo
 bool metrics_stdout::init(enb_metrics_interface *u, float report_period_secs)
 {
   enb_ = u;
-  metrics_report_period = get_time_scaled(report_period_secs);
+  metrics_report_period = report_period_secs;
 
   started = true;
   pthread_create(&metrics_thread, NULL, &metrics_thread_start, this);

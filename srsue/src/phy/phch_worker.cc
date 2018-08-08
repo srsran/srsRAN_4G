@@ -285,8 +285,6 @@ void phch_worker::work_imp()
     phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
   }
 
-  Info("rssi %f dbm, avg_rssi_dbm %f\n", rssi_dbm, phy->avg_rssi_dbm);
-
   bool mch_decoded = false;
   srslte_ra_dl_grant_t mch_grant;
 
@@ -306,10 +304,6 @@ void phch_worker::work_imp()
     chest_ok = extract_fft_and_pdcch_llr(sf_cfg);
 
     snr_th_ok = 10*log10(srslte_chest_dl_get_snr(&ue_dl.chest))>1.0;
-
-    Info("SF_TYPE regular, chestOk %s, snrOK %s\n", 
-         chest_ok  ? "yes" : "no",
-         snr_th_ok ? "yes" : "no");
 
     if (chest_ok && snr_th_ok) {
       
@@ -1655,18 +1649,6 @@ void phch_worker::update_measurements()
     phy->set_dl_metrics(dl_metrics);
 
   }
-
-   Info("measurements: chest %s, noise %5.3lf, rsrp %5.3lf, rsrp_dbm %5.3lf, rsrq_db %5.3lf, rssi_dbm %5.3lf, pataloss %5.3lf, ri %d, pmi %d, snr_db_cqi %5.3lf\n",
-        chest_done ? "yes" : "no",
-        phy->avg_noise,
-        phy->avg_rsrp,
-        phy->avg_rsrp_dbm,
-        phy->avg_rsrq_db,
-        phy->avg_rssi_dbm,
-        phy->pathloss,
-        phy->last_ri,
-        phy->last_pmi,
-        phy->avg_snr_db_cqi);
 }
 
 

@@ -256,13 +256,13 @@ void enb::stop()
     gtpu.stop();
     phy.stop();
     mac.stop();
-    usleep_scaled(50000);
+    usleep(50000);
 
     rlc.stop();
     pdcp.stop();
     rrc.stop();
 
-    usleep_scaled(10000);
+    usleep(10000);
     if(args->pcap.enable)
     {
        mac_pcap.close();

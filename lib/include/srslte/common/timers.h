@@ -40,8 +40,6 @@
 #include <vector>
 #include <time.h>
 
-#include "srslte/config.h"
-
 namespace srslte {
   
 class timer_callback 
@@ -59,7 +57,7 @@ public:
     timer(uint32_t id_=0) {id = id_; counter = 0; timeout = 0; running = false; callback = NULL; }
     void set(timer_callback *callback_, uint32_t timeout_) {
       callback = callback_; 
-      timeout = get_time_scaled(timeout_); 
+      timeout = timeout_; 
       reset();
     }
     bool is_running() {
@@ -69,7 +67,7 @@ public:
       return (timeout > 0) && (counter >= timeout);
     }
     uint32_t get_timeout() {
-      return timeout / get_time_scaled(1);
+      return timeout; 
     }
     void reset() {
       counter = 0; 
