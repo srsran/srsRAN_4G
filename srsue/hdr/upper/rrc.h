@@ -479,7 +479,8 @@ private:
     typedef struct {
       uint32_t                        earfcn;
       float                           q_offset;
-      std::map<uint32_t, meas_cell_t> cells;
+      std::map<uint32_t, meas_cell_t> meas_cells;
+      std::map<uint32_t, meas_cell_t> found_cells;
     } meas_obj_t;
 
     typedef struct {

@@ -32,7 +32,7 @@
 #include <time.h>
 #include <inttypes.h> // for printing uint64_t
 #include <srslte/asn1/liblte_rrc.h>
-#include <srsue/hdr/upper/rrc.h>
+#include "srsue/hdr/upper/rrc.h"
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
@@ -2846,9 +2846,9 @@ void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, floa
         if (objects[m->object_id].earfcn == earfcn) {
           // If it's a newly discovered cell, add it to objects
           if (!m->cell_values.count(pci)) {
-            uint32_t cell_idx = objects[m->object_id].cells.size();
-            objects[m->object_id].cells[cell_idx].pci      = pci;
-            objects[m->object_id].cells[cell_idx].q_offset = 0;
+            uint32_t cell_idx = objects[m->object_id].found_cells.size();
+            objects[m->object_id].found_cells[cell_idx].pci      = pci;
+            objects[m->object_id].found_cells[cell_idx].q_offset = 0;
           }
           // Update or add cell
           L3_filter(&m->cell_values[pci], values);
@@ -2886,7 +2886,7 @@ bool rrc::rrc_meas::find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t *
       if (object) {
         *object = &obj->second;
       }
-      for (std::map<uint32_t, meas_cell_t>::iterator c = obj->second.cells.begin(); c != obj->second.cells.end(); ++c) {
+      for (std::map<uint32_t, meas_cell_t>::iterator c = obj->second.found_cells.begin(); c != obj->second.found_cells.end(); ++c) {
         if (c->second.pci == pci) {
           if (cell_idx) {
             *cell_idx = c->first;
@@ -3012,7 +3012,7 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
     if (find_earfcn_cell(phy->get_current_earfcn(), phy->get_current_pci(), &serving_object, &serving_cell_idx)) {
       Ofp = serving_object->q_offset;
       if (serving_cell_idx >= 0) {
-        Ocp = serving_object->cells[serving_cell_idx].q_offset;
+        Ocp = serving_object->found_cells[serving_cell_idx].q_offset;
       }
     } else {
       log_h->warning("Can't find current eafcn=%d, pci=%d in objects list. Using Ofp=0, Ocp=0\n",
@@ -3057,7 +3057,7 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
       // Rest are evaluated for every cell in frequency
       } else {
         meas_obj_t *obj = &objects[m->second.object_id];
-        for (std::map<uint32_t, meas_cell_t>::iterator cell = obj->cells.begin(); cell != obj->cells.end(); ++cell) {
+        for (std::map<uint32_t, meas_cell_t>::iterator cell = obj->found_cells.begin(); cell != obj->found_cells.end(); ++cell) {
           if (m->second.cell_values.count(cell->second.pci)) {
             float Ofn = obj->q_offset;
             float Ocn = cell->second.q_offset;
@@ -3214,18 +3214,18 @@ bool rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 
         if (src_obj->black_cells_to_remove_list_present) {
           for (uint32_t j=0;j<src_obj->black_cells_to_remove_list.N_cell_idx;j++) {
-            dst_obj->cells.erase(src_obj->black_cells_to_remove_list.cell_idx[j]);
+            dst_obj->meas_cells.erase(src_obj->black_cells_to_remove_list.cell_idx[j]);
           }
         }
 
         for (uint32_t j=0;j<src_obj->N_cells_to_add_mod;j++) {
-          dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset = liblte_rrc_q_offset_range_num[src_obj->cells_to_add_mod_list[j].cell_offset];
-          dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci      = src_obj->cells_to_add_mod_list[j].pci;
+          dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset = liblte_rrc_q_offset_range_num[src_obj->cells_to_add_mod_list[j].cell_offset];
+          dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci      = src_obj->cells_to_add_mod_list[j].pci;
 
           log_h->info("MEAS: Added measObjectId=%d, earfcn=%d, q_offset=%f, pci=%d, offset_cell=%f\n",
                       cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_id, dst_obj->earfcn, dst_obj->q_offset,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset);
+                      dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci,
+                      dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset);
 
         }
 
@@ -3353,7 +3353,7 @@ void rrc::rrc_meas::update_phy()
     meas_obj_t o = objects[m.object_id];
     // Instruct PHY to look for neighbour cells on this frequency
     phy->meas_start(o.earfcn);
-    for(std::map<uint32_t, meas_cell_t>::iterator iter=o.cells.begin(); iter!=o.cells.end(); ++iter) {
+    for(std::map<uint32_t, meas_cell_t>::iterator iter=o.meas_cells.begin(); iter!=o.meas_cells.end(); ++iter) {
       // Instruct PHY to look for cells IDs on this frequency
       phy->meas_start(o.earfcn, iter->second.pci);
     }
