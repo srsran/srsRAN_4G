@@ -1498,6 +1498,9 @@ int phch_recv::scell_recv::find_cells(cf_t *input_buffer, float rx_gain_offset, 
  */
 
 void phch_recv::meas_reset() {
+  if (enable_raa_searcher) {
+    raa_searcher->stop(-1);
+  }
   // Stop all measurements
   intra_freq_meas.clear_cells();
 }

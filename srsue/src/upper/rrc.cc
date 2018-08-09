@@ -32,6 +32,7 @@
 #include <time.h>
 #include <inttypes.h> // for printing uint64_t
 #include <srslte/asn1/liblte_rrc.h>
+#include <srsue/hdr/upper/rrc.h>
 #include "srsue/hdr/upper/rrc.h"
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
