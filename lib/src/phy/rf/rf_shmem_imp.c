@@ -74,9 +74,9 @@ static bool rf_shmem_log_info  = true;
 static bool rf_shmem_log_warn  = true;
 #endif
 
-static char rf_shmem_node_type[2] = {0};
+static char rf_shmem_node_type = ' ';
 
-#define RF_SHMEM_LOG_FMT "%02d:%02d:%02d.%06ld [SRF.%s] [%c] %s,  "
+#define RF_SHMEM_LOG_FMT "%02d:%02d:%02d.%06ld [SRF.%c] [%c] %s,  "
 
 
 #define RF_SHMEM_WARN(_fmt, ...) do {                                                   \
@@ -152,12 +152,14 @@ static char rf_shmem_node_type[2] = {0};
 
 #define RF_SHMEM_MAX_NOF_PORTS  1 // up to 4 ports someday ....
 
+#define RF_SHMEM_NUM_SF_X_FRAME 10
+
 static const struct timeval tv_zero  = {0,0};
 static const struct timeval tv_step  = {0, 1000}; // 1 sf
 static const struct timeval tv_4step = {0, 4000}; // 4 sf
 
 // sf len at nprb=100 is 184320 bytes or 23040 samples
-#define RF_SHMEM_MAX_CE_SYMBOLS 23040
+#define RF_SHMEM_MAX_SAMPLES 23040
 
 // subtract the other fields of the struct to align mem size to 256k per bin
 #define RF_SHMEM_MAX_CF_LEN RF_SHMEM_SAMPLES_X_BYTE((256000                     - \
@@ -166,27 +168,24 @@ static const struct timeval tv_4step = {0, 4000}; // 4 sf
                                                      2 * sizeof(struct timeval) - \
                                                      2 * sizeof(int) 
 
-// tx msg header info type (not for stack allocation)
+// msg element (not for stack allocation)
 typedef struct {
-  uint64_t       seqnum;                    // seq num
-  uint32_t       nof_bytes;                 // nbytes
-  float          tx_srate;                  // tx sample rate
-  struct timeval tv_tx_tti;                 // tti time from upper layers
-  struct timeval tv_tx_time;                // actual tx time
-  int            is_sob;                    // start of burst
-  int            is_eob;                    // end of burst
-  cf_t           data[RF_SHMEM_MAX_CF_LEN]; // data
+  uint64_t       seqnum;                      // seq num
+  uint32_t       nof_bytes;                   // nbytes
+  float          tx_srate;                    // tx sample rate
+  struct timeval tv_tx_tti;                   // tti time (tti + 4)
+  struct timeval tv_tx_time;                  // actual tx time
+  int            is_sob;                      // is start of burst
+  int            is_eob;                      // is end of burst
+  cf_t           iqdata[RF_SHMEM_MAX_CF_LEN]; // data
 } rf_shmem_element_t;
-
-
-#define RF_SHMEM_NUM_SF_X_FRAME 10
 
 sem_t * sem[RF_SHMEM_NUM_SF_X_FRAME] = {0};  // element locks
 
+// msg element bins 1 for each sf (tti)
 typedef struct {
   rf_shmem_element_t elements[RF_SHMEM_NUM_SF_X_FRAME];
 } rf_shmem_segment_t;
-
 
 #define RF_SHMEM_DATA_SEGMENT_SIZE sizeof(rf_shmem_segment_t)
 
@@ -249,12 +248,12 @@ void rf_shmem_suppress_stdout(void *h)
 #endif
  }
 
-static time_t tv_to_usec(const struct timeval * tv)
+static inline time_t tv_to_usec(const struct timeval * tv)
  {
    return (tv->tv_sec * 1000000) + tv->tv_usec;
  }
 
-static uint32_t get_bin(const struct timeval * tv)
+static inline uint32_t get_bin(const struct timeval * tv)
  {
    return (tv_to_usec(tv) / tv_to_usec(&tv_step)) % RF_SHMEM_NUM_SF_X_FRAME;
  }
@@ -305,15 +304,15 @@ static  rf_shmem_state_t rf_shmem_state = { .dev_name        = "shmemrf",
                                           .tx_segment      = NULL,
                                         };
 
-#define RF_SHMEM_GET_DEV_INFO(h)  assert(h); rf_shmem_state_t *_state = (rf_shmem_state_t *)(h)
+#define RF_SHMEM_GET_STATE(h)  assert(h); rf_shmem_state_t *_state = (rf_shmem_state_t *)(h)
 
-static bool rf_shmem_is_enb(rf_shmem_state_t * _state)
+static inline bool rf_shmem_is_enb(rf_shmem_state_t * _state)
 {
   return (_state->nodetype == RF_SHMEM_NTYPE_ENB);
 }
 
 // timeval to full and frac seconds
-static void rf_shmem_tv_to_fs(const struct timeval *tv, time_t *full_secs, double *frac_secs)
+static inline void rf_shmem_tv_to_fs(const struct timeval *tv, time_t *full_secs, double *frac_secs)
 {
   if(full_secs && frac_secs)
     {
@@ -323,7 +322,7 @@ static void rf_shmem_tv_to_fs(const struct timeval *tv, time_t *full_secs, doubl
 }
 
 // get fractional seconds from a timeval
-static double rf_shmem_get_fs(const struct timeval *tv)
+static inline double rf_shmem_get_fs(const struct timeval *tv)
 {
   return tv->tv_sec + tv->tv_usec / 1.0e6;
 }
@@ -336,8 +335,6 @@ static int rf_shmem_resample(double srate_in,
                              cf_t * data_out,
                              int nof_bytes)
 {
-  const int nof_samples = RF_SHMEM_SAMPLES_X_BYTE(nof_bytes);
-
   if(srate_in && srate_out && (srate_in != srate_out))
    {
      const double sratio = srate_out / srate_in;
@@ -364,7 +361,7 @@ static int rf_shmem_resample(double srate_in,
      return RF_SHMEM_BYTES_X_SAMPLE(srslte_resample_arb_compute(&r, 
                                                                 data_in, 
                                                                 data_out, 
-                                                                nof_samples));
+                                                                RF_SHMEM_SAMPLES_X_BYTE(nof_bytes)));
    }
   else
    {
@@ -382,18 +379,19 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
   int dl_shm_flags = 0;
   int ul_shm_flags = 0;
 
+  // assume 1 enb which is resposible for creating all shared resources
   bool wait_for_create = false;
 
   if(rf_shmem_is_enb(_state))
     {
-      rf_shmem_node_type[0] = 'E';
+      rf_shmem_node_type = 'E';
 
       dl_shm_flags = IPC_CREAT | 0600;
       ul_shm_flags = IPC_CREAT | 0600;
     }
   else
     {
-      rf_shmem_node_type[0] = 'U';
+      rf_shmem_node_type = 'U';
 
       dl_shm_flags = 0600;
       ul_shm_flags = 0600;
@@ -500,6 +498,7 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
     }
 
 
+  // shared sems, 1 for each bin
   for(int i = 0; i < RF_SHMEM_NUM_SF_X_FRAME; ++i)
     {
       char name[32] = {0};
@@ -508,6 +507,9 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
 
       if(rf_shmem_is_enb(_state))
         {
+          // cleanup any orphans
+          sem_unlink(name);
+ 
           // initial value 1
           if((sem[i] = sem_open(name, O_CREAT, 0600, 1)) == NULL)
            {
@@ -539,7 +541,7 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
         }
     }
 
-  // clear data
+  // clear data segments
   memset(_state->shm_ul, 0x0, RF_SHMEM_DATA_SEGMENT_SIZE);
   memset(_state->shm_dl, 0x0, RF_SHMEM_DATA_SEGMENT_SIZE);
 
@@ -551,7 +553,7 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
 
 static void rf_shmem_wait_next_tti(void *h, struct timeval * tv_ref)
 {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    struct timeval tv_diff;
 
@@ -581,7 +583,7 @@ static void rf_shmem_wait_next_tti(void *h, struct timeval * tv_ref)
 
 char* rf_shmem_devname(void *h)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    return _state->dev_name;
  }
@@ -597,7 +599,7 @@ bool rf_shmem_rx_wait_lo_locked(void *h)
 
 int rf_shmem_start_rx_stream(void *h, bool now)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
    
    pthread_mutex_lock(&_state->state_lock);
 
@@ -632,7 +634,7 @@ int rf_shmem_start_rx_stream(void *h, bool now)
 
 int rf_shmem_stop_rx_stream(void *h)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    pthread_mutex_lock(&_state->state_lock);
 
@@ -671,7 +673,7 @@ float rf_shmem_get_rssi(void *h)
 
 void rf_shmem_register_error_handler(void *h, srslte_rf_error_handler_t error_handler)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    _state->error_handler = error_handler;
  }
@@ -739,8 +741,9 @@ int rf_shmem_close(void *h)
  {
    // XXX this does not seem to get called on shutdown as othen as I'd expect
 
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
+   // enb cleans up all shared resources
    if(rf_shmem_is_enb(_state))
     {
       if(_state->shm_dl)
@@ -762,13 +765,23 @@ int rf_shmem_close(void *h)
         }
     }
 
+  for(int i = 0; i < RF_SHMEM_NUM_SF_X_FRAME; ++i)
+    {
+      if(sem[i])
+       {
+         sem_close(sem[i]);
+
+         sem[i] = NULL;
+       }
+    }
+ 
    return 0;
  }
 
 
 void rf_shmem_set_master_clock_rate(void *h, double rate)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_INFO("rate %4.2lf MHz to %4.2lf MHz", 
                  _state->clock_rate / 1e6, rate / 1e6);
@@ -787,7 +800,7 @@ bool rf_shmem_is_master_clock_dynamic(void *h)
 
 double rf_shmem_set_rx_gain(void *h, double gain)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_INFO("gain %3.2lf to %3.2lf", _state->rx_gain, gain);
 
@@ -799,7 +812,7 @@ double rf_shmem_set_rx_gain(void *h, double gain)
 
 double rf_shmem_set_tx_gain(void *h, double gain)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_INFO("gain %3.2lf to %3.2lf", _state->tx_gain, gain);
 
@@ -811,7 +824,7 @@ double rf_shmem_set_tx_gain(void *h, double gain)
 
 srslte_rf_info_t * rf_shmem_get_rf_info(void *h)
   {
-     RF_SHMEM_GET_DEV_INFO(h);
+     RF_SHMEM_GET_STATE(h);
 
      RF_SHMEM_DBUG("tx_gain min/max %3.2lf/%3.2lf, rx_gain min/max %3.2lf/%3.2lf",
                   _state->rf_info.min_tx_gain,
@@ -825,7 +838,7 @@ srslte_rf_info_t * rf_shmem_get_rf_info(void *h)
 
 double rf_shmem_get_rx_gain(void *h)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_DBUG("gain %3.2lf", _state->rx_gain);
 
@@ -835,7 +848,7 @@ double rf_shmem_get_rx_gain(void *h)
 
 double rf_shmem_get_tx_gain(void *h)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_DBUG("gain %3.2lf", _state->tx_gain);
 
@@ -845,7 +858,7 @@ double rf_shmem_get_tx_gain(void *h)
 
 double rf_shmem_set_rx_srate(void *h, double rate)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_INFO("srate %4.2lf MHz to %4.2lf MHz", 
                  _state->rx_srate / 1e6, rate / 1e6);
@@ -858,7 +871,7 @@ double rf_shmem_set_rx_srate(void *h, double rate)
 
 double rf_shmem_set_tx_srate(void *h, double rate)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_INFO("srate %4.2lf MHz to %4.2lf MHz", 
                  _state->tx_srate / 1e6, rate / 1e6);
@@ -871,7 +884,7 @@ double rf_shmem_set_tx_srate(void *h, double rate)
 
 double rf_shmem_set_rx_freq(void *h, double freq)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_INFO("freq %4.2lf MHz to %4.2lf MHz", 
                  _state->rx_freq / 1e6, freq / 1e6);
@@ -884,7 +897,7 @@ double rf_shmem_set_rx_freq(void *h, double freq)
 
 double rf_shmem_set_tx_freq(void *h, double freq)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    RF_SHMEM_INFO("freq %4.2lf MHz to %4.2lf MHz", 
                  _state->tx_freq / 1e6, freq / 1e6);
@@ -897,9 +910,9 @@ double rf_shmem_set_tx_freq(void *h, double freq)
 
 void rf_shmem_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
-   memcpy(&(_state->tx_cal), cal, sizeof(srslte_rf_cal_t));
+   memcpy(&(_state->tx_cal), cal, sizeof(*cal));
 
    RF_SHMEM_INFO("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
                  cal->dc_gain, 
@@ -911,9 +924,9 @@ void rf_shmem_set_tx_cal(void *h, srslte_rf_cal_t *cal)
 
 void rf_shmem_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
-   memcpy(&(_state->rx_cal), cal, sizeof(srslte_rf_cal_t));
+   memcpy(&(_state->rx_cal), cal, sizeof(*cal));
 
    RF_SHMEM_INFO("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
                  cal->dc_gain,
@@ -925,9 +938,7 @@ void rf_shmem_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 
 void rf_shmem_get_time(void *h, time_t *full_secs, double *frac_secs)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
-
-   RF_SHMEM_INFO("XXX");
+   RF_SHMEM_GET_STATE(h);
 
    rf_shmem_tv_to_fs(&_state->tv_this_tti, full_secs, frac_secs);
  }
@@ -952,9 +963,9 @@ int rf_shmem_recv_with_time(void *h, void *data, uint32_t nsamples,
 int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples, 
                                   bool blocking, time_t *full_secs, double *frac_secs)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
-   struct timeval tv_now, tv_diff;
+   struct timeval tv_now;
 
    // nof bytes requested
    const uint32_t nof_bytes = RF_SHMEM_BYTES_X_SAMPLE(nsamples);
@@ -967,9 +978,12 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
                  nof_bytes,
                  nof_sf);
 
-
    uint32_t nof_bytes_in = 0;
 
+   // enb purge data after read, vs multiple ue's that read
+   bool purge = rf_shmem_is_enb(_state);
+
+   // for each requested subframe
    for(int i = 0; i < nof_sf; ++i)
      { 
         gettimeofday(&tv_now, NULL);
@@ -993,7 +1007,7 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
          {
            const int new_len = rf_shmem_resample(element->tx_srate,
                                                  _state->rx_srate,
-                                                 element->data,
+                                                 element->iqdata,
                                                  (cf_t*)(((uint8_t*)data[0]) + nof_bytes_in),
                                                  element->nof_bytes);
 
@@ -1010,24 +1024,31 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
           // stale entry
           if(timercmp(&element->tv_tx_tti, &tv_zero, !=))
            {
+#ifdef RF_SHMEM_DEBUG_MODE
+             struct timeval tv_diff;
              timersub(&element->tv_tx_tti, &tv_now, &tv_diff);
 
-#ifdef RF_SHMEM_DEBUG_MODE
              char logbuff[256] = {0};
              RF_SHMEM_DBUG("RX, bin %u, orphan, overrun %6.6lf, %s", 
                            bin, 
                            -rf_shmem_get_fs(&tv_diff),
                            printMsg(element, logbuff, sizeof(logbuff)));
 #endif
-
-             // cleanup
-             memset(element, 0x0, sizeof(rf_shmem_element_t));
+             // purge stale data
+             purge = true;
            }
         }
+
+       if(purge)
+        {
+          memset(element, 0x0, sizeof(*element));
+        }
+
        // unlock
        sem_post(sem[bin]);
      }
 
+   // set rx timestamp to this tti
    rf_shmem_tv_to_fs(&_state->tv_this_tti, full_secs, frac_secs);
 
    return nsamples;
@@ -1048,7 +1069,7 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
                              time_t full_secs, double frac_secs, bool has_time_spec,
                              bool blocking, bool is_sob, bool is_eob)
  {
-   RF_SHMEM_GET_DEV_INFO(h);
+   RF_SHMEM_GET_STATE(h);
 
    if(nsamples <= 0)
      {
@@ -1095,11 +1116,12 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
 
        rf_shmem_element_t * element = &_state->tx_segment->elements[bin];
 
-#ifdef COMBINE_SIGNALS
+#undef  COMBINE_SIGNALS
+#ifdef  COMBINE_SIGNALS
        // is this a combined sf it the current tx_tti == bin tti
        const bool is_new_bin = timercmp(&element->tv_tx_tti, &tv_tx_tti, !=);
 
-       // load data into bin
+       // load data into bin new bin just set data, existing data needs to be summed
        for(int i = 0; i < nsamples; ++i)
         {
          // on tx we need to combine signals in the bin data
@@ -1108,15 +1130,15 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
 
           if(is_new_bin)
            {
-             element->data[i] = q[i];
+             element->iqdata[i] = q[i];
            }
           else
            {
-             element->data[i] += q[i];
+             element->iqdata[i] += (q[i] * (1.0f * 0.0 * I));
            }
         }
 #else
-       memcpy(element->data, data[0], nof_bytes);
+       memcpy(element->iqdata, data[0], nof_bytes);
 #endif
      
        element->is_sob       = is_sob;
@@ -1134,6 +1156,7 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
        RF_SHMEM_DBUG("TX, bin %u, %s", bin, printMsg(element, logbuff, sizeof(logbuff)));
 #endif
 
+       // unlock
        sem_post(sem[bin]);
      }
 
