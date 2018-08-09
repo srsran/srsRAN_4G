@@ -70,18 +70,19 @@ int main(int argc, char **argv)
   srslte::log_filter usim_log("USIM");
   bool    net_valid;
   uint8_t res[16];
+  int res_len;
   uint8_t k_asme[32];
 
   usim_args_t args;
   args.algo = "milenage";
-  args.imei = "35609204079301";
+  args.imei = "356092040793011";
   args.imsi = "208930000000001";
   args.k = "8BAF473F2F8FD09487CCCBD7097C6862";
+  args.using_op = true;
   args.op = "11111111111111111111111111111111";
 
   srsue::usim usim;
   usim.init(&args, &usim_log);
-  usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, &net_valid, res, k_asme);
 
-  assert(net_valid == true);
+  assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
 }

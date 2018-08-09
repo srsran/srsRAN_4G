@@ -69,8 +69,12 @@ public:
 
   bool init(all_args_t *args_);
   void stop();
+  bool attach();
+  bool deattach();
   bool is_attached();
   void start_plot();
+  void print_mbms();
+  bool mbms_service_start(uint32_t serv, uint32_t port);
 
   void print_pool();
 
@@ -96,7 +100,7 @@ private:
   srsue::rrc         rrc;
   srsue::nas         nas;
   srsue::gw          gw;
-  srsue::usim        usim;
+  srsue::usim_base*  usim;
 
   srslte::logger_stdout logger_stdout;
   srslte::logger_file   logger_file;
@@ -111,6 +115,7 @@ private:
   srslte::log_filter  nas_log;
   srslte::log_filter  gw_log;
   srslte::log_filter  usim_log;
+  srslte::log_filter  pool_log;
 
   all_args_t       *args;
   bool              started;

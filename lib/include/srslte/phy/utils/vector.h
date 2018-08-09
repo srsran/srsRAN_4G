@@ -99,6 +99,7 @@ SRSLTE_API void srslte_vec_convert_fi(const float *x, const float scale, int16_t
 SRSLTE_API void srslte_vec_convert_if(const int16_t *x, const float scale, float *z, const uint32_t len);
 
 SRSLTE_API void srslte_vec_lut_sss(const short *x, const unsigned short *lut, short *y, const uint32_t len);
+SRSLTE_API void srslte_vec_lut_sis(const short *x, const unsigned int *lut, short *y, const uint32_t len);
 
 /* vector product (element-wise) */
 SRSLTE_API void srslte_vec_prod_ccc(const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len);
@@ -137,6 +138,7 @@ SRSLTE_API float srslte_vec_corr_ccc(const cf_t *x, cf_t *y, const uint32_t len)
 
 /* return the index of the maximum value in the vector */
 SRSLTE_API uint32_t srslte_vec_max_fi(const float *x, const uint32_t len);
+SRSLTE_API uint32_t srslte_vec_max_abs_fi(const float *x, const uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_abs_ci(const cf_t *x, const uint32_t len);
 
 /* quantify vector of floats or int16 and convert to uint8_t */
@@ -154,6 +156,9 @@ SRSLTE_API void srs_vec_cf_cpy(const cf_t *src, cf_t *dst, const int len);
 SRSLTE_API void srslte_vec_interleave(const cf_t *x, const cf_t *y, cf_t *z, const int len);
 
 SRSLTE_API void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z, const int len);
+
+SRSLTE_API void srslte_vec_apply_cfo(const cf_t *x, float cfo, cf_t *z, int len);
+
 
 #ifdef __cplusplus
 }

@@ -73,7 +73,9 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
     } 
 
     if (!dl_dci->is_ra_order) {
-      srslte_ra_dl_dci_to_grant(dl_dci, nof_prb, msg_rnti, grant);
+      if (srslte_ra_dl_dci_to_grant(dl_dci, nof_prb, msg_rnti, grant)) {
+        return ret;
+      }
 
       if (SRSLTE_VERBOSE_ISINFO()) {
         srslte_ra_pdsch_fprint(stdout, dl_dci, nof_prb);
@@ -379,7 +381,7 @@ uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dc
                     dci_msg->type2_alloc.riv,
                     dci_msg->type2_alloc.RB_start, dci_msg->type2_alloc.RB_start+dci_msg->type2_alloc.L_crb-1,
                     dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC?"local":"dist");
-      if (dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC) {
+      if (dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_DIST) {
         n += snprintf(&info_str[n], len-n, ", ngap=%s, nprb1a=%d",
                       dci_msg->type2_alloc.n_gap==SRSLTE_RA_TYPE2_NG1?"ng1":"ng2",
                       dci_msg->type2_alloc.n_prb1a==SRSLTE_RA_TYPE2_NPRB1A_2?2:3);

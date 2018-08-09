@@ -149,6 +149,7 @@ int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof
 
   q->symbol_sz = (uint32_t) symbol_sz;
   q->nof_symbols = SRSLTE_CP_NSYMB(cp);
+  q->nof_symbols_mbsfn = SRSLTE_CP_NSYMB(SRSLTE_CP_EXT);
   q->cp = cp;
   q->nof_re = (uint32_t) nof_prb * SRSLTE_NRE;
   q->nof_guards = ((symbol_sz - q->nof_re) / 2);
@@ -246,14 +247,15 @@ int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t 
   return srslte_ofdm_init_(q, cp, in_buffer, out_buffer, symbol_sz, max_prb, SRSLTE_DFT_FORWARD);
 }
 
-int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t *out_buffer, uint32_t nof_prb)
+int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t *out_buffer, uint32_t max_prb)
 {
-  int symbol_sz = srslte_symbol_sz(nof_prb);
+  int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+    fprintf(stderr, "Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
-  return srslte_ofdm_init_mbsfn_(q, cp, in_buffer, out_buffer, symbol_sz, nof_prb, SRSLTE_DFT_FORWARD, SRSLTE_SF_MBSFN);
+  q->max_prb = max_prb;
+  return srslte_ofdm_init_mbsfn_(q, cp, in_buffer, out_buffer, symbol_sz, max_prb, SRSLTE_DFT_FORWARD, SRSLTE_SF_MBSFN);
 }
 
 
@@ -292,7 +294,7 @@ int srslte_ofdm_tx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer,
     fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
     return -1;
   }
-
+  q->max_prb = nof_prb;
   ret = srslte_ofdm_init_mbsfn_(q, cp, in_buffer, out_buffer, symbol_sz, nof_prb, SRSLTE_DFT_BACKWARD, SRSLTE_SF_MBSFN);
   
   if (ret == SRSLTE_SUCCESS) {
@@ -559,7 +561,6 @@ void srslte_ofdm_tx_slot(srslte_ofdm_t *q, int slot_in_sf) {
 void srslte_ofdm_tx_slot_mbsfn(srslte_ofdm_t *q, cf_t *input, cf_t *output)
 {
   uint32_t i, cp_len;
-  
   for(i=0;i<q->nof_symbols_mbsfn;i++) {
     cp_len = ( i>(q->non_mbsfn_region-1) )?SRSLTE_CP_LEN_EXT(q->symbol_sz):SRSLTE_CP_LEN_NORM(i, q->symbol_sz);
     memcpy(&q->tmp[q->nof_guards], input, q->nof_re * sizeof(cf_t));

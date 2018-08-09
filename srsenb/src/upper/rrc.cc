@@ -30,6 +30,7 @@
 #include "srslte/srslte.h"
 #include "srslte/asn1/liblte_mme.h"
 
+
 using srslte::byte_buffer_t;
 using srslte::bit_buffer_t;
 
@@ -57,6 +58,11 @@ void rrc::init(rrc_cfg_t *cfg_,
   pool    = srslte::byte_buffer_pool::get_instance();
 
   memcpy(&cfg, cfg_, sizeof(rrc_cfg_t));
+
+  if(cfg.sibs[12].sib_type == LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13 && cfg_->enable_mbsfn) {
+    configure_mbsfn_sibs(&cfg.sibs[1].sib.sib2,&cfg.sibs[12].sib.sib13);
+  }
+  
   nof_si_messages = generate_sibs();  
   config_mac();
  
@@ -69,22 +75,7 @@ void rrc::init(rrc_cfg_t *cfg_,
   start(RRC_THREAD_PRIO);
 }
 
-rrc::activity_monitor::activity_monitor(rrc* parent_) 
-{
-  running = true;
-  parent = parent_;
-}
-
-void rrc::activity_monitor::stop()
-{
-  if (running) {
-    running = false; 
-    thread_cancel();
-    wait_thread_finish();
-  }
-}
-
-void rrc::set_connect_notifer(connect_notifier *cnotifier) 
+void rrc::set_connect_notifer(connect_notifier *cnotifier)
 {
   this->cnotifier = cnotifier; 
 }
@@ -93,105 +84,46 @@ void rrc::stop()
 {
   if(running) {
     running = false;
-    thread_cancel();
+    rrc_pdu p = {0, LCID_EXIT, NULL};
+    rx_pdu_queue.push(p);
     wait_thread_finish();
   }
   act_monitor.stop();
+  pthread_mutex_lock(&user_mutex);
   users.clear();
+  pthread_mutex_unlock(&user_mutex);
   pthread_mutex_destroy(&user_mutex);
   pthread_mutex_destroy(&paging_mutex);
 }
 
+
+/*******************************************************************************
+  Public functions
+
+  All public functions must be mutexed. 
+*******************************************************************************/
+
 void rrc::get_metrics(rrc_metrics_t &m)
 {
-  pthread_mutex_lock(&user_mutex);
-  m.n_ues = 0;
-  for(std::map<uint16_t, ue>::iterator iter=users.begin(); m.n_ues < ENB_METRICS_MAX_USERS &&iter!=users.end(); ++iter) {
-    ue *u = (ue*) &iter->second;
-    m.ues[m.n_ues++].state = u->get_state();
+  if (running) {
+    pthread_mutex_lock(&user_mutex);
+    m.n_ues = 0;
+    for(std::map<uint16_t, ue>::iterator iter=users.begin(); m.n_ues < ENB_METRICS_MAX_USERS &&iter!=users.end(); ++iter) {
+      ue *u = (ue*) &iter->second;
+      if(iter->first != SRSLTE_MRNTI){
+        m.ues[m.n_ues++].state = u->get_state();
+      }
+    }
+    pthread_mutex_unlock(&user_mutex);
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
-uint32_t rrc::generate_sibs()
-{
-  // nof_messages includes SIB2 by default, plus all configured SIBs
-  uint32_t nof_messages = 1+cfg.sibs[0].sib.sib1.N_sched_info;
-  LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info = cfg.sibs[0].sib.sib1.sched_info; 
-  
-  // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
-  // all SIBs in a SI message msg[i] share the same periodicity
-  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT *msg = (LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT*)calloc(nof_messages, sizeof(LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT));
+/*******************************************************************************
+  MAC interface
 
-  // Copy SIB1 to first SI message
-  msg[0].N_sibs = 1;
-  memcpy(&msg[0].sibs[0], &cfg.sibs[0], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
-
-  // Copy rest of SIBs
-  // first msg is SIB1, therefore start with second
-  for (uint32_t sched_info_elem = 1; sched_info_elem < nof_messages; sched_info_elem++) {
-    uint32_t current_msg_element_offset = 0;
-
-    msg[sched_info_elem].N_sibs = 0;
-
-    // SIB2 always in second SI message
-    if (sched_info_elem == 1) {
-      msg[sched_info_elem].N_sibs++;
-      memcpy(&msg[sched_info_elem].sibs[0], &cfg.sibs[1], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
-      current_msg_element_offset = 1; // make sure "other SIBs" do not overwrite this SIB2
-      // Save SIB2
-      memcpy(&sib2, &cfg.sibs[1].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
-    } else {
-      current_msg_element_offset = 0; // no SIB2, no offset
-    }
-
-    // Add other SIBs to this message, if any
-    for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].N_sib_mapping_info; mapping++) {
-      msg[sched_info_elem].N_sibs++;
-      // current_msg_element_offset skips SIB2 if necessary
-      memcpy(&msg[sched_info_elem].sibs[mapping + current_msg_element_offset],
-              &cfg.sibs[(int) sched_info[sched_info_elem].sib_mapping_info[mapping].sib_type+2],
-              sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
-    }
-  }
-
-  // Pack payload for all messages 
-  for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-    LIBLTE_BIT_MSG_STRUCT bitbuffer;
-    liblte_rrc_pack_bcch_dlsch_msg(&msg[msg_index], &bitbuffer);
-    srslte_bit_pack_vector(bitbuffer.msg, sib_buffer[msg_index].msg, bitbuffer.N_bits);
-    sib_buffer[msg_index].N_bytes = (bitbuffer.N_bits-1)/8+1;
-  }
-
-  free(msg);
-  return nof_messages;
-}
-
-void rrc::config_mac()
-{ 
-  
-  // Fill MAC scheduler configuration for SIBs 
-  sched_interface::cell_cfg_t sched_cfg; 
-  bzero(&sched_cfg, sizeof(sched_interface::cell_cfg_t));
-  for (uint32_t i=0;i<nof_si_messages;i++) {
-    sched_cfg.sibs[i].len = sib_buffer[i].N_bytes;
-    if (i == 0) {
-      sched_cfg.sibs[i].period_rf = 8; // SIB1 is always 8 rf
-    } else {
-      sched_cfg.sibs[i].period_rf = liblte_rrc_si_periodicity_num[cfg.sibs[0].sib.sib1.sched_info[i-1].si_periodicity];          
-    }
-  }
-  sched_cfg.si_window_ms = liblte_rrc_si_window_length_num[cfg.sibs[0].sib.sib1.si_window_length];  
-  sched_cfg.prach_rar_window = liblte_rrc_ra_response_window_size_num[cfg.sibs[1].sib.sib2.rr_config_common_sib.rach_cnfg.ra_resp_win_size];
-  sched_cfg.maxharq_msg3tx = cfg.sibs[1].sib.sib2.rr_config_common_sib.rach_cnfg.max_harq_msg3_tx; 
-
-  // Copy Cell configuration 
-  memcpy(&sched_cfg.cell, &cfg.cell, sizeof(srslte_cell_t));
-  
-  // Configure MAC scheduler 
-  mac->cell_cfg(&sched_cfg);
-}
-
+  Those functions that shall be called from a phch_worker should push the command
+  to the queue and process later
+*******************************************************************************/
 
 void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 {
@@ -201,90 +133,21 @@ void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 }
 
 void rrc::rl_failure(uint16_t rnti)
-{ 
-  rrc_log->info("Radio-Link failure detected rnti=0x%x\n", rnti);
-  if (s1ap->user_exists(rnti)) {
-    if (!s1ap->user_link_lost(rnti)) {
-      rrc_log->info("Removing rnti=0x%x\n", rnti);
-      rem_user_thread(rnti);
-    }
-  } else {
-    rrc_log->warning("User rnti=0x%x context not existing in S1AP. Removing user\n", rnti);
-    rem_user_thread(rnti);
-  }
+{
+  rrc_pdu p = {rnti, LCID_RLF_USER, NULL};
+  rx_pdu_queue.push(p);
 }
 
-void rrc::add_user(uint16_t rnti)
+void rrc::set_activity_user(uint16_t rnti)
 {
-  pthread_mutex_lock(&user_mutex);
-  if (users.count(rnti) == 0) {
-    users[rnti].parent = this; 
-    users[rnti].rnti   = rnti; 
-    rlc->add_user(rnti);
-    pdcp->add_user(rnti);    
-    rrc_log->info("Added new user rnti=0x%x\n", rnti);
-  } else {
-    rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
-  }
-  pthread_mutex_unlock(&user_mutex);
-}
-
-void rrc::rem_user(uint16_t rnti)
-{
-  pthread_mutex_lock(&user_mutex);
-  if (users.count(rnti) == 1) {
-    rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
-    rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
-    /* **Caution** order of removal here is important: from bottom to top */
-    mac->ue_rem(rnti);  // MAC handles PHY
-
-    pthread_mutex_unlock(&user_mutex);
-    usleep(50000);
-    pthread_mutex_lock(&user_mutex);
-
-    rlc->rem_user(rnti);
-    pdcp->rem_user(rnti);
-    gtpu->rem_user(rnti);
-    users[rnti].sr_free();
-    users[rnti].cqi_free();
-    users.erase(rnti);
-    rrc_log->info("Removed user rnti=0x%x\n", rnti);
-  } else {
-    rrc_log->error("Removing user rnti=0x%x (does not exist)\n", rnti);
-  }
-  pthread_mutex_unlock(&user_mutex);
-}
-
-// Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a 
-// valid RNTI
-void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti) 
-{
-  // Remove new_rnti
-  rem_user_thread(new_rnti);
-  
-  // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
-  if (users.count(old_rnti) == 1) {
-    if (users[old_rnti].is_connected()) {
-      users[old_rnti].send_connection_reconf_upd(pool_allocate);
-    } else {
-      users[old_rnti].send_connection_release();
-    }
-  }  
-}
-
-void rrc::set_activity_user(uint16_t rnti) 
-{
-  if (users.count(rnti) == 1) {
-    users[rnti].set_activity();
-  }
+  rrc_pdu p = {rnti, LCID_ACT_USER, NULL};
+  rx_pdu_queue.push(p);
 }
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
-  if (users.count(rnti) == 1) {
-    rrc_pdu p = {rnti, LCID_REM_USER, NULL};
-    rx_pdu_queue.push(p);
-  }
+  rrc_pdu p = {rnti, LCID_REM_USER, NULL};
+  rx_pdu_queue.push(p);
 }
 
 uint32_t rrc::get_nof_users() {
@@ -295,6 +158,62 @@ void rrc::max_retx_attempted(uint16_t rnti)
 {
 
 }
+
+// This function is called from PRACH worker (can wait)
+void rrc::add_user(uint16_t rnti)
+{
+  pthread_mutex_lock(&user_mutex);
+  if (users.count(rnti) == 0) {
+
+    users[rnti].parent = this;
+    users[rnti].rnti   = rnti;
+    rlc->add_user(rnti);
+    pdcp->add_user(rnti);
+    rrc_log->info("Added new user rnti=0x%x\n", rnti);
+  } else {
+    rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
+  }
+
+  if(rnti == SRSLTE_MRNTI){
+    srslte::srslte_pdcp_config_t cfg;
+    cfg.is_control = false;
+    cfg.is_data = true;
+    cfg.direction = SECURITY_DIRECTION_DOWNLINK;
+    uint32_t teid_in = 1;
+
+    for(uint32_t i = 0; i <mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size; i++) {
+      uint32_t lcid = mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[i].logicalchannelid_r9;
+      rlc->add_bearer_mrb(SRSLTE_MRNTI,lcid);
+      pdcp->add_bearer(SRSLTE_MRNTI,lcid,cfg);
+      gtpu->add_bearer(SRSLTE_MRNTI,lcid, 1, 1, &teid_in);
+    }
+  }
+
+  pthread_mutex_unlock(&user_mutex);
+}
+
+/* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
+ * valid RNTI.
+ * Called by MAC reader thread (can wait to process)
+ */
+void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
+{
+  // Remove new_rnti
+  rem_user_thread(new_rnti);
+
+  // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
+  pthread_mutex_lock(&user_mutex);
+  if (users.count(old_rnti) == 1) {
+    if (users[old_rnti].is_connected()) {
+      users[old_rnti].send_connection_reconf_upd(pool_allocate);
+    } else {
+      users[old_rnti].send_connection_release();
+    }
+  }
+  pthread_mutex_unlock(&user_mutex);
+}
+
+
 
 /*******************************************************************************
   PDCP interface
@@ -313,6 +232,8 @@ void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   bzero(&dl_dcch_msg, sizeof(LIBLTE_RRC_DL_DCCH_MSG_STRUCT));
 
+  pthread_mutex_lock(&user_mutex);
+
   if (users.count(rnti) == 1) {
     dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_DL_INFO_TRANSFER; 
     memcpy(dl_dcch_msg.msg.dl_info_transfer.dedicated_info.msg, sdu->msg, sdu->N_bytes);
@@ -325,30 +246,24 @@ void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
   } else {
     rrc_log->error("Rx SDU for unknown rnti=0x%x\n", rnti);
   }
+
+  pthread_mutex_unlock(&user_mutex);
 }
 
-void rrc::release_complete(uint16_t rnti)
-{
-  rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
-  if (users.count(rnti) == 1) {
-    if (!users[rnti].is_idle()) {
-      rlc->clear_buffer(rnti); 
-      users[rnti].send_connection_release();
-      // There is no RRCReleaseComplete message from UE thus wait ~100 subframes for tx
-      usleep(100000);
-    }
-    rem_user(rnti);
-  } else {
-    rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
-  }
+void rrc::release_complete(uint16_t rnti) {
+  rrc_pdu p = {rnti, LCID_REL_USER, NULL};
+  rx_pdu_queue.push(p);
 }
 
 bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg)
 {
+  pthread_mutex_lock(&user_mutex);
+
   rrc_log->info("Adding initial context for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
     rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 
@@ -409,15 +324,20 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
   // Setup E-RABs
   users[rnti].setup_erabs(&msg->E_RABToBeSetupListCtxtSUReq);
 
+  pthread_mutex_unlock(&user_mutex);
+
   return true;
 }
 
 bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg)
 {
+  pthread_mutex_lock(&user_mutex);
+
   rrc_log->info("Setting up erab(s) for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
     rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 
@@ -429,20 +349,34 @@ bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_ST
   // Setup E-RABs
   users[rnti].setup_erabs(&msg->E_RABToBeSetupListBearerSUReq);
 
+  pthread_mutex_unlock(&user_mutex);
+
   return true;
 }
 
 bool rrc::release_erabs(uint32_t rnti)
 {
+  pthread_mutex_lock(&user_mutex);
   rrc_log->info("Releasing E-RABs for 0x%x\n", rnti);
 
   if(users.count(rnti) == 0) {
     rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 
-  return users[rnti].release_erabs();
+  bool ret = users[rnti].release_erabs();
+  pthread_mutex_unlock(&user_mutex);
+  return ret;
 }
+
+
+
+/*******************************************************************************
+  Paging functions
+  These functions use a different mutex because access different shared variables
+  than user map
+*******************************************************************************/
 
 void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID) 
 {
@@ -536,17 +470,21 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
   return false;     
 }
 
-
 void rrc::read_pdu_pcch(uint8_t *payload, uint32_t buffer_size)
 {
+  pthread_mutex_lock(&paging_mutex);
   uint32_t N_bytes = (bit_buf_paging.N_bits-1)/8+1;
   if (N_bytes <= buffer_size) {
     srslte_bit_pack_vector(bit_buf_paging.msg, payload, bit_buf_paging.N_bits);    
-  }    
+  }
+  pthread_mutex_unlock(&paging_mutex);
 }
 
+
 /*******************************************************************************
-  Parsers
+  Private functions
+  All private functions are not mutexed and must be called from a mutexed enviornment
+  from either a public function or the internal thread
 *******************************************************************************/
 
 void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
@@ -585,12 +523,13 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
           if (users.count(old_rnti)) {
             rrc_log->error("Not supported: ConnectionReestablishment for rnti=0x%x. Sending Connection Reject\n", old_rnti);
             users[rnti].send_connection_reest_rej();
-            rem_user_thread(old_rnti);
+            s1ap->user_release(old_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_RELEASE_DUE_TO_EUTRAN_GENERATED_REASON);
           } else {
             rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
             users[rnti].send_connection_reest_rej();
           }
           // remove temporal rnti
+          rrc_log->warning("Received ConnectionReestablishment for rnti=0x%x. Removing temporal rnti=0x%x\n", old_rnti, rnti);
           rem_user_thread(rnti);
         } else {
           rrc_log->error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE\n", rnti);
@@ -616,6 +555,213 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
   }
 }
 
+void rrc::process_rl_failure(uint16_t rnti)
+{
+  if (users.count(rnti) == 1) {
+    uint32_t n_rfl = users[rnti].rl_failure();
+    if (n_rfl == 1) {
+      rrc_log->info("Radio-Link failure detected rnti=0x%x\n", rnti);
+      if (s1ap->user_exists(rnti)) {
+        if (!s1ap->user_release(rnti, LIBLTE_S1AP_CAUSERADIONETWORK_RADIO_CONNECTION_WITH_UE_LOST)) {
+          rrc_log->info("Removing rnti=0x%x\n", rnti);
+        }
+      } else {
+        rrc_log->warning("User rnti=0x%x context not existing in S1AP. Removing user\n", rnti);
+        // Remove user from separate thread to wait to close all resources
+        rem_user_thread(rnti);
+      }
+    } else {
+      rrc_log->info("%d Radio-Link failure detected rnti=0x%x\n", n_rfl, rnti);
+    }
+  } else {
+    rrc_log->error("Radio-Link failure detected for uknown rnti=0x%x\n", rnti);
+  }
+}
+
+void rrc::process_release_complete(uint16_t rnti)
+{
+  rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
+  if (users.count(rnti) == 1) {
+    if (!users[rnti].is_idle()) {
+      rlc->clear_buffer(rnti);
+      users[rnti].send_connection_release();
+      // There is no RRCReleaseComplete message from UE thus wait ~50 subframes for tx
+      usleep(50000);
+    }
+    rem_user_thread(rnti);
+  } else {
+    rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
+  }
+}
+
+void rrc::rem_user(uint16_t rnti)
+{
+  pthread_mutex_lock(&user_mutex);
+  if (users.count(rnti) == 1) {
+    rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
+    rrc_log->info("Disconnecting rnti=0x%x.\n", rnti);
+
+    /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
+     */
+    mac->ue_rem(rnti);  // MAC handles PHY
+    gtpu->rem_user(rnti);
+
+    // Now remove RLC and PDCP
+    rlc->rem_user(rnti);
+    pdcp->rem_user(rnti);
+
+    // And deallocate resources from RRC
+    users[rnti].sr_free();
+    users[rnti].cqi_free();
+
+    users.erase(rnti);
+    rrc_log->info("Removed user rnti=0x%x\n", rnti);
+  } else {
+    rrc_log->error("Removing user rnti=0x%x (does not exist)\n", rnti);
+  }
+  pthread_mutex_unlock(&user_mutex);
+}
+
+void rrc::config_mac()
+{
+  // Fill MAC scheduler configuration for SIBs
+  sched_interface::cell_cfg_t sched_cfg;
+  bzero(&sched_cfg, sizeof(sched_interface::cell_cfg_t));
+  for (uint32_t i=0;i<nof_si_messages;i++) {
+    sched_cfg.sibs[i].len = sib_buffer[i].N_bytes;
+    if (i == 0) {
+      sched_cfg.sibs[i].period_rf = 8; // SIB1 is always 8 rf
+    } else {
+      sched_cfg.sibs[i].period_rf = liblte_rrc_si_periodicity_num[cfg.sibs[0].sib.sib1.sched_info[i-1].si_periodicity];
+    }
+  }
+  sched_cfg.si_window_ms = liblte_rrc_si_window_length_num[cfg.sibs[0].sib.sib1.si_window_length];
+  sched_cfg.prach_rar_window = liblte_rrc_ra_response_window_size_num[cfg.sibs[1].sib.sib2.rr_config_common_sib.rach_cnfg.ra_resp_win_size];
+  sched_cfg.prach_freq_offset = cfg.sibs[1].sib.sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset;
+  sched_cfg.maxharq_msg3tx = cfg.sibs[1].sib.sib2.rr_config_common_sib.rach_cnfg.max_harq_msg3_tx;
+
+  sched_cfg.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+  rrc_log->info("Allocating %d PRBs for PUCCH\n", sched_cfg.nrb_pucch);
+
+  // Copy Cell configuration
+  memcpy(&sched_cfg.cell, &cfg.cell, sizeof(srslte_cell_t));
+
+  // Configure MAC scheduler
+  mac->cell_cfg(&sched_cfg);
+}
+
+uint32_t rrc::generate_sibs()
+{
+  // nof_messages includes SIB2 by default, plus all configured SIBs
+  uint32_t nof_messages = 1+cfg.sibs[0].sib.sib1.N_sched_info;
+  LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info = cfg.sibs[0].sib.sib1.sched_info;
+
+  // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
+  // all SIBs in a SI message msg[i] share the same periodicity
+  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT *msg = (LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT*)calloc(nof_messages+1, sizeof(LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT));
+
+  // Copy SIB1 to first SI message
+  msg[0].N_sibs = 1;
+  memcpy(&msg[0].sibs[0], &cfg.sibs[0], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
+
+  // Copy rest of SIBs
+  for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages; sched_info_elem++) {
+    uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
+    uint32_t current_msg_element_offset = 0;
+
+    msg[msg_index].N_sibs = 0;
+
+    // SIB2 always in second SI message
+    if (msg_index == 1) {
+      msg[msg_index].N_sibs++;
+      memcpy(&msg[msg_index].sibs[0], &cfg.sibs[1], sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
+      current_msg_element_offset = 1; // make sure "other SIBs" do not overwrite this SIB2
+      // Save SIB2
+      memcpy(&sib2, &cfg.sibs[1].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
+    } else {
+      current_msg_element_offset = 0; // no SIB2, no offset
+    }
+
+    // Add other SIBs to this message, if any
+    for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].N_sib_mapping_info; mapping++) {
+      msg[msg_index].N_sibs++;
+      // current_msg_element_offset skips SIB2 if necessary
+      memcpy(&msg[msg_index].sibs[mapping + current_msg_element_offset],
+             &cfg.sibs[(int) sched_info[sched_info_elem].sib_mapping_info[mapping].sib_type+2],
+             sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT));
+    }
+  }
+
+  // Pack payload for all messages
+  for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
+    LIBLTE_BIT_MSG_STRUCT bitbuffer;
+    liblte_rrc_pack_bcch_dlsch_msg(&msg[msg_index], &bitbuffer);
+    srslte_bit_pack_vector(bitbuffer.msg, sib_buffer[msg_index].msg, bitbuffer.N_bits);
+    sib_buffer[msg_index].N_bytes = (bitbuffer.N_bits-1)/8+1;
+  }
+
+  free(msg);
+  return nof_messages;
+}
+
+void rrc::configure_mbsfn_sibs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13)
+{
+  // Temp assignment of MCCH, this will eventually come from a cfg file
+  mcch.pmch_infolist_r9_size = 1;
+  mcch.commonsf_allocpatternlist_r9_size = 1;
+  mcch.commonsf_allocperiod_r9 = LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF64;
+  mcch.commonsf_allocpatternlist_r9[0].radio_fr_alloc_offset = 0;
+  mcch.commonsf_allocpatternlist_r9[0].radio_fr_alloc_period = LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N1;
+  mcch.commonsf_allocpatternlist_r9[0].subfr_alloc = 32+31;
+  mcch.commonsf_allocpatternlist_r9[0].subfr_alloc_num_frames = LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ONE;
+
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size = 1;
+
+
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].logicalchannelid_r9 = 1;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].sessionid_r9 = 0;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].sessionid_r9_present = true;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_explicit = true;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mcc = 0;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mnc = 3;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_index_r9 = 0;
+  mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.serviceid_r9 = 0;
+
+  if(mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size > 1) {
+
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].logicalchannelid_r9 = 2;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].sessionid_r9 = 1;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].sessionid_r9_present = true;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.plmn_id_explicit = true;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.plmn_id_r9.mcc = 0;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.plmn_id_r9.mnc = 3;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.plmn_index_r9 = 0;
+    mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[1].tmgi_r9.serviceid_r9 = 1;
+
+  }
+  mcch.pmch_infolist_r9[0].pmch_config_r9.datamcs_r9 = 10;
+  mcch.pmch_infolist_r9[0].pmch_config_r9.mch_schedulingperiod_r9 = LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF64;
+  mcch.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9 = 64*6;
+
+
+
+  phy->configure_mbsfn(sib2,sib13,mcch);
+  mac->write_mcch(sib2,sib13,&mcch);
+}
+
+void rrc::configure_security(uint16_t rnti,
+                             uint32_t lcid,
+                             uint8_t *k_rrc_enc,
+                             uint8_t *k_rrc_int,
+                             uint8_t *k_up_enc,
+                             uint8_t *k_up_int,
+                             srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                             srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+{
+  // TODO: add k_up_enc, k_up_int support to PDCP
+  pdcp->config_security(rnti, lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+}
+
 /*******************************************************************************
   RRC thread
 *******************************************************************************/
@@ -630,7 +776,8 @@ void rrc::run_thread()
     if (p.pdu) {
       rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
     }
-    pthread_mutex_lock(&user_mutex);
+
+    // Mutex these calls even though it's a private function
     if (users.count(p.rnti) == 1) {
       switch(p.lcid)
       {
@@ -642,76 +789,97 @@ void rrc::run_thread()
           parse_ul_dcch(p.rnti, p.lcid, p.pdu);
           break;
         case LCID_REM_USER:
-          pthread_mutex_unlock(&user_mutex);
-          usleep(10000);
           rem_user(p.rnti);
-          pthread_mutex_lock(&user_mutex);
+          break;
+        case LCID_REL_USER:
+          process_release_complete(p.rnti);
+          break;
+        case LCID_RLF_USER:
+          process_rl_failure(p.rnti);
+          break;
+        case LCID_ACT_USER:
+          if (users.count(p.rnti) == 1) {
+            users[p.rnti].set_activity();
+          }
+          break;
+        case LCID_EXIT:
+          rrc_log->info("Exiting thread\n");
           break;
         default:
           rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
           break;
       }
     } else {
-      printf("Discarting rnti=0x%xn", p.rnti);
-      rrc_log->warning("Discarting PDU for removed rnti=0x%x\n", p.rnti);
+      rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
     }
-    pthread_mutex_unlock(&user_mutex);
   }
 }
+
+
+
+/*******************************************************************************
+  Activity monitor class
+*******************************************************************************/
+
+rrc::activity_monitor::activity_monitor(rrc* parent_)
+{
+  running = true;
+  parent = parent_;
+}
+
+void rrc::activity_monitor::stop()
+{
+  if (running) {
+    running = false;
+    thread_cancel();
+    wait_thread_finish();
+  }
+}
+
 void rrc::activity_monitor::run_thread()
 {
-  while(running) 
+  while(running)
   {
     usleep(10000);
     pthread_mutex_lock(&parent->user_mutex);
-    uint16_t rem_rnti = 0; 
+    uint16_t rem_rnti = 0;
     for(std::map<uint16_t, ue>::iterator iter=parent->users.begin(); rem_rnti == 0 && iter!=parent->users.end(); ++iter) {
-      ue *u = (ue*) &iter->second;
-      uint16_t rnti = (uint16_t) iter->first; 
+      if(iter->first != SRSLTE_MRNTI){
+        ue *u = (ue*) &iter->second;
+        uint16_t rnti = (uint16_t) iter->first;
 
-      if (parent->cnotifier && u->is_connected() && !u->connect_notified) {
-        parent->cnotifier->user_connected(rnti);
-        u->connect_notified = true; 
-      }
-      
-      if (u->is_timeout()) {
-        parent->rrc_log->info("User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, parent->s1ap->user_exists(rnti)?"yes":"no");
-        rem_rnti = rnti;        
-      }      
-    }    
-    pthread_mutex_unlock(&parent->user_mutex);
-    if (rem_rnti) {
-      if (parent->s1ap->user_exists(rem_rnti)) {
-        parent->s1ap->user_inactivity(rem_rnti);
-      } else {
-        parent->rem_user(rem_rnti);          
+        if (parent->cnotifier && u->is_connected() && !u->connect_notified) {
+          parent->cnotifier->user_connected(rnti);
+          u->connect_notified = true;
+        }
+
+        if (u->is_timeout()) {
+          parent->rrc_log->info("User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, parent->s1ap->user_exists(rnti)?"yes":"no");
+          rem_rnti = rnti;
+        }
       }
     }
+    if (rem_rnti) {
+      if (parent->s1ap->user_exists(rem_rnti)) {
+        parent->s1ap->user_release(rem_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
+      } else {
+        if(rem_rnti != SRSLTE_MRNTI)
+          parent->rem_user_thread(rem_rnti);
+      }
+    }
+    pthread_mutex_unlock(&parent->user_mutex);
   }
 }
 
-/*******************************************************************************
-  RRC::UE Helpers
-*******************************************************************************/
 
-void rrc::configure_security(uint16_t rnti,
-                             uint32_t lcid,
-                             uint8_t *k_rrc_enc,
-                             uint8_t *k_rrc_int,
-                             uint8_t *k_up_enc,
-                             uint8_t *k_up_int,
-                             srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                             srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
-{
-  // TODO: add k_up_enc, k_up_int support to PDCP
-  pdcp->config_security(rnti, lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
-}
-  
-  
-  
-  
+
+
+
 /*******************************************************************************
   UE class
+
+  Every function in UE class is called from a mutex environment thus does not
+  need extra protection.
 *******************************************************************************/
 rrc::ue::ue()
 {
@@ -730,12 +898,19 @@ rrc::ue::ue()
   cqi_idx          = 0;
   cqi_sched_sf_idx = 0;
   cqi_sched_prb_idx = 0;
+  rlf_cnt          = 0;
   state            = RRC_STATE_IDLE;
+  pool             = srslte::byte_buffer_pool::get_instance();
 }
 
 rrc_state_t rrc::ue::get_state()
 {
   return state;
+}
+
+uint32_t rrc::ue::rl_failure() {
+  rlf_cnt++;
+  return rlf_cnt;
 }
 
 void rrc::ue::set_activity() 
@@ -873,6 +1048,7 @@ void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
     m_tmsi    = msg->ue_id.s_tmsi.m_tmsi;
     has_tmsi = true;
   }
+  establishment_cause = msg->cause;
   send_connection_setup();
   state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
 }
@@ -899,9 +1075,9 @@ void rrc::ue::handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE
   parent->mac->phy_config_enabled(rnti, true);
 
   if(has_tmsi) {
-    parent->s1ap->initial_ue(rnti, pdu, m_tmsi, mmec);
+    parent->s1ap->initial_ue(rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause, pdu, m_tmsi, mmec);
   } else {
-    parent->s1ap->initial_ue(rnti, pdu);
+    parent->s1ap->initial_ue(rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause, pdu);
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
@@ -1090,8 +1266,12 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
   LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT res;
+  res.ext=false;
   res.E_RABSetupListBearerSURes.len = 0;
   res.E_RABFailedToSetupListBearerSURes.len = 0;
+
+  res.CriticalityDiagnostics_present = false;
+  res.E_RABFailedToSetupListBearerSURes_present = false;
 
   for(uint32_t i=0; i<e->len; i++) {
     res.E_RABSetupListBearerSURes_present = true;
@@ -1135,7 +1315,6 @@ void rrc::ue::send_connection_setup(bool is_setup)
     rr_cfg = &dl_ccch_msg.msg.rrc_con_reest.rr_cnfg; 
   }
 
-  
   // Add SRB1 to cfg 
   rr_cfg->srb_to_add_mod_list_size = 1; 
   rr_cfg->srb_to_add_mod_list[0].srb_id = 1; 
@@ -1235,7 +1414,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   sched_cfg.pucch_cfg.N_cs               = parent->sib2.rr_config_common_sib.pucch_cnfg.n_cs_an;
   sched_cfg.pucch_cfg.n_rb_2             = parent->sib2.rr_config_common_sib.pucch_cnfg.n_rb_cqi;
   sched_cfg.pucch_cfg.n1_pucch_an        = parent->sib2.rr_config_common_sib.pucch_cnfg.n1_pucch_an;
-
+ 
   // Configure MAC 
   parent->mac->ue_cfg(rnti, &sched_cfg);
     
@@ -1262,12 +1441,10 @@ void rrc::ue::send_connection_setup(bool is_setup)
   send_dl_ccch(&dl_ccch_msg);
 }
 
-
 void rrc::ue::send_connection_reest()
 {
   send_connection_setup(false);
 }
-
 
 void rrc::ue::send_connection_release()
 {
@@ -1447,6 +1624,8 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   // Get DRB1 configuration 
   if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0], 1)) {
     parent->rrc_log->error("Getting DRB1 configuration\n");
+    printf("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qCI.QCI);
+    return;
   } else {
     conn_reconf->rr_cnfg_ded.drb_to_add_mod_list_size = 1; 
   }
@@ -1499,7 +1678,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 
 void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  srslte::byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
+  srslte::byte_buffer_t *pdu = pool_allocate;
 
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG;
@@ -1524,8 +1703,10 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     uint8_t lcid  = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
 
     // Get DRB configuration
-    if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i], lcid)) {
-      parent->rrc_log->error("Getting DRB configuration\n");
+    if (get_drbid_config(&conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i], lcid-2)) {
+      parent->rrc_log->error("Getting DRB configuration\n");    
+      printf("ERROR: The QCI %d is invalid or not configured.\n", erabs[lcid+4].qos_params.qCI.QCI);
+      return;
     } else {
       conn_reconf->rr_cnfg_ded.drb_to_add_mod_list_size++;
     }
@@ -1584,7 +1765,7 @@ void rrc::ue::send_ue_cap_enquiry()
 void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg) 
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP 
-  byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
+  byte_buffer_t *pdu = pool_allocate;
   if (pdu) {
     liblte_rrc_pack_dl_ccch_msg(dl_ccch_msg, (LIBLTE_BIT_MSG_STRUCT*) &parent->bit_buf);
     srslte_bit_pack_vector(parent->bit_buf.msg, pdu->msg, parent->bit_buf.N_bits);
@@ -1601,10 +1782,10 @@ void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg)
   }
 }
 
-void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buffer_t *pdu) 
+void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buffer_t *pdu)
 {  
   if (!pdu) {
-    pdu = parent->pool->allocate(__FUNCTION__);
+    pdu = pool_allocate;
   }
   if (pdu) {
     liblte_rrc_pack_dl_dcch_msg(dl_dcch_msg, (LIBLTE_BIT_MSG_STRUCT*) &parent->bit_buf);
@@ -1672,11 +1853,7 @@ int rrc::ue::sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr)
     return -1; 
   }  
   if (parent->cfg.sr_cfg.sf_mapping[j_min] < period) {
-    if (period > 5) {
-      *I_sr = period - 5 + parent->cfg.sr_cfg.sf_mapping[j_min]; 
-    } else {
-      *I_sr = period + parent->cfg.sr_cfg.sf_mapping[j_min]; 
-    }
+    *I_sr = period - 5 + parent->cfg.sr_cfg.sf_mapping[j_min];
   } else {
     parent->rrc_log->error("Allocating SR: invalid sf_idx=%d for period=%d\n", parent->cfg.sr_cfg.sf_mapping[j_min], period);
     return -1; 
@@ -1701,7 +1878,6 @@ int rrc::ue::sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr)
 
   return 0; 
 }
-
 
 int rrc::ue::cqi_free()
 {
@@ -1793,8 +1969,5 @@ int rrc::ue::cqi_allocate(uint32_t period, uint32_t *pmi_idx, uint32_t *n_pucch)
 
   return 0; 
 }
-
-
-
 
 }

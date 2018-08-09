@@ -83,7 +83,8 @@ public:
     
   int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res);
   int get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res);
-
+  int get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res);
+  void build_mch_sched(uint32_t tbs);
   void rl_failure(uint16_t rnti);
   void rl_ok(uint16_t rnti); 
   void tti_clock(); 
@@ -114,7 +115,7 @@ public:
 
   uint32_t get_current_tti();
   void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
-
+  void write_mcch(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT *mcch);
 private:  
 
   static const int MAX_LOCATIONS = 20;
@@ -123,7 +124,8 @@ private:
   
   static const int MAC_PDU_THREAD_PRIO  = 60;
 
-  
+  // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since access for different TTIs
+  pthread_rwlock_t rwlock;
   
   // Interaction with PHY 
   phy_interface_mac    *phy_h; 
@@ -141,7 +143,12 @@ private:
   sched            scheduler; 
   dl_metric_rr     sched_metric_dl_rr;
   ul_metric_rr     sched_metric_ul_rr;
-
+  sched_interface::cell_cfg_t cell_config;
+  
+  
+  sched_interface::dl_pdu_mch_t mch;
+  
+  
   /* Map of active UEs */
   std::map<uint16_t, ue*> ue_db;   
   uint16_t        last_rnti;   
@@ -170,6 +177,16 @@ private:
   srslte_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG];
   srslte_softbuffer_tx_t pcch_softbuffer_tx;
   srslte_softbuffer_tx_t rar_softbuffer_tx;
+  
+  const static int mcch_payload_len = 3000; //TODO FIND OUT MAX LENGTH
+  int current_mcch_length;
+  uint8_t mcch_payload_buffer[mcch_payload_len];
+  LIBLTE_RRC_MCCH_MSG_STRUCT mcch;
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2; 
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
+  
+  const static int mtch_payload_len = 10000;
+  uint8_t mtch_payload_buffer[mtch_payload_len];
   
   /* Functions for MAC Timers */
   srslte::timers  timers_db;

@@ -45,13 +45,22 @@ ue::ue()
 ue::~ue()
 {
   for (uint32_t i = 0; i < phy_log.size(); i++) {
-    delete(phy_log[i]);
+    if (phy_log[i]) {
+      delete(phy_log[i]);
+    }
+  }
+  if (usim) {
+    delete usim;
   }
 }
 
-bool ue::init(all_args_t *args_)
-{
-  args     = args_;
+bool ue::init(all_args_t *args_) {
+  args = args_;
+
+  int nof_phy_threads = args->expert.phy.nof_phy_threads;
+  if (nof_phy_threads > 3) {
+    nof_phy_threads = 3;
+  }
 
   if (!args->log.filename.compare("stdout")) {
     logger = &logger_stdout;
@@ -64,7 +73,7 @@ bool ue::init(all_args_t *args_)
 
   rf_log.init("RF  ", logger);
   // Create array of pointers to phy_logs
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+  for (int i=0;i<nof_phy_threads;i++) {
     srslte::log_filter *mylog = new srslte::log_filter;
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
@@ -80,21 +89,29 @@ bool ue::init(all_args_t *args_)
   gw_log.init("GW  ", logger);
   usim_log.init("USIM", logger);
 
+  pool_log.init("POOL", logger);
+  pool_log.set_level(srslte::LOG_LEVEL_ERROR);
+  byte_buffer_pool::get_instance()->set_log(&pool_log);
+
   // Init logs
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
   rf_log.info("Starting UE\n");
-  for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
+  for (int i=0;i<nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
   
   /* here we add a log layer to handle logging from the phy library*/
-  srslte::log_filter *lib_log = new srslte::log_filter;
-  char tmp[16];
-  sprintf(tmp, "PHY_LIB");
-  lib_log->init(tmp, logger, true);
-  phy_log.push_back(lib_log);
-  ((srslte::log_filter*) phy_log[args->expert.phy.nof_phy_threads])->set_level(level(args->log.phy_lib_level));
- 
+  if (level(args->log.phy_lib_level) != LOG_LEVEL_NONE) {
+    srslte::log_filter *lib_log = new srslte::log_filter;
+    char tmp[16];
+    sprintf(tmp, "PHY_LIB");
+    lib_log->init(tmp, logger, true);
+    phy_log.push_back(lib_log);
+    ((srslte::log_filter*) phy_log[nof_phy_threads])->set_level(level(args->log.phy_lib_level));
+  } else {
+    phy_log.push_back(NULL);
+  }
+
   
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
@@ -104,8 +121,10 @@ bool ue::init(all_args_t *args_)
   gw_log.set_level(level(args->log.gw_level));
   usim_log.set_level(level(args->log.usim_level));
 
-  for (int i=0;i<args->expert.phy.nof_phy_threads + 1;i++) {
-    ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+  for (int i=0;i<nof_phy_threads + 1;i++) {
+    if (phy_log[i]) {
+      ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
+    }
   }
   mac_log.set_hex_limit(args->log.mac_hex_limit);
   rlc_log.set_hex_limit(args->log.rlc_hex_limit);
@@ -130,6 +149,13 @@ bool ue::init(all_args_t *args_)
   }
   
   // Init layers
+
+  // Init USIM first to allow early exit in case reader couldn't be found
+  usim = usim_base::get_instance(&args->usim, &usim_log);
+  if (usim->init(&args->usim, &usim_log)) {
+    usim_log.console("Failed to initialize USIM.\n");
+    return false;
+  }
 
   // PHY inits in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
@@ -160,7 +186,11 @@ bool ue::init(all_args_t *args_)
   if (args->rf.burst_preamble.compare("auto")) {
     radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
   }
-  
+  if (args->rf.continuous_tx.compare("auto")) {
+    printf("set continuous %s\n", args->rf.continuous_tx.c_str());
+    radio.set_continuous_tx(args->rf.continuous_tx.compare("yes")?false:true);
+  }
+
   radio.set_manual_calibration(&args->rf_cal);
 
   // Set PHY options
@@ -192,15 +222,12 @@ bool ue::init(all_args_t *args_)
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
-  usim.init(&args->usim, &usim_log);
-  srslte_nas_config_t nas_cfg(1, args->apn); /* RB_ID_SRB1 */
-  nas.init(&usim, &rrc, &gw, &nas_log, nas_cfg);
+  srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
+  nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
-
   gw.set_netmask(args->expert.ip_netmask);
-
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
-
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
+  
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
   args->rrc.nof_supported_bands = 1;
@@ -226,7 +253,6 @@ bool ue::init(all_args_t *args_)
   }
 
   printf("...\n");
-  nas.attach_request();
 
   started = true;
   return true;
@@ -241,7 +267,7 @@ void ue::stop()
 {
   if(started)
   {
-    usim.stop();
+    usim->stop();
     nas.stop();
     rrc.stop();
     
@@ -273,6 +299,14 @@ void ue::stop()
   }
 }
 
+bool ue::attach() {
+  return nas.attach_request();
+}
+
+bool ue::deattach() {
+  return nas.deattach_request();
+}
+
 bool ue::is_attached()
 {
   return rrc.is_connected();
@@ -288,6 +322,7 @@ void ue::print_pool() {
 
 bool ue::get_metrics(ue_metrics_t &m)
 {
+  bzero(&m, sizeof(ue_metrics_t));
   m.rf = rf_metrics;
   bzero(&rf_metrics, sizeof(rf_metrics_t));
   rf_metrics.rf_error = false; // Reset error flag
@@ -304,8 +339,18 @@ bool ue::get_metrics(ue_metrics_t &m)
   return false;
 }
 
+
 void ue::radio_overflow() {
   phy.radio_overflow();
+}
+void ue::print_mbms()
+{
+  rrc.print_mbms();
+}
+
+bool ue::mbms_service_start(uint32_t serv, uint32_t port)
+{
+  return rrc.mbms_service_start(serv, port);
 }
 
 void ue::rf_msg(srslte_rf_error_t error)

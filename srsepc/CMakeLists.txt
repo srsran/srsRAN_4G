@@ -47,4 +47,11 @@ link_directories(
 # Add subdirectories
 ########################################################################
 add_subdirectory(src)
-#add_subdirectory(test)
+
+########################################################################
+# Default configuration files
+########################################################################
+install(FILES epc.conf.example DESTINATION ${DATA_DIR})
+install(FILES mbms.conf.example DESTINATION ${DATA_DIR})
+install(FILES user_db.csv.example DESTINATION ${DATA_DIR})
+install(PROGRAMS srsepc_if_masq.sh DESTINATION ${RUNTIME_DIR})

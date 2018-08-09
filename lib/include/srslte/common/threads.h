@@ -89,7 +89,7 @@ public:
     period_us = period_us_; 
     start(priority);
   }
-  void stop() {
+  void stop_thread() {
     run_enable = false;
     wait_thread_finish();
   }

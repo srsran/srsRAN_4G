@@ -31,7 +31,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/upper/rlc_common.h"
 #include <pthread.h>
 #include <map>
@@ -49,31 +49,32 @@ class rlc_um
     ,public rlc_common
 {
 public:
-  rlc_um();
+  rlc_um(uint32_t queue_len = 32);
   ~rlc_um();
-
-  void init(log          *rlc_entity_log_,
-            uint32_t              lcid_,
-            srsue::pdcp_interface_rlc   *pdcp_,
-            srsue::rrc_interface_rlc    *rrc_,
-            mac_interface_timers *mac_timers_);
+  void init(log                       *rlc_entity_log_,
+            uint32_t                   lcid_,
+            srsue::pdcp_interface_rlc *pdcp_,
+            srsue::rrc_interface_rlc  *rrc_,
+            mac_interface_timers      *mac_timers_);
   void configure(srslte_rlc_config_t cnfg);
-  void reset();
+  void reestablish();
   void stop();
   void empty_queue(); 
+  bool is_mrb();
 
   rlc_mode_t    get_mode();
   uint32_t      get_bearer();
 
   // PDCP interface
   void write_sdu(byte_buffer_t *sdu);
+  void write_sdu_nb(byte_buffer_t *sdu);
 
   // MAC interface
   uint32_t get_buffer_state();
   uint32_t get_total_buffer_state();
   int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
-
+  int get_increment_sequence_num();
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);
 
@@ -86,11 +87,12 @@ private:
   uint32_t                     lcid;
   srsue::pdcp_interface_rlc   *pdcp;
   srsue::rrc_interface_rlc    *rrc;
-  mac_interface_timers        *mac_timers; 
+  mac_interface_timers        *mac_timers;
 
   // TX SDU buffers
-  msg_queue           tx_sdu_queue;
+  rlc_tx_queue           tx_sdu_queue;
   byte_buffer_t      *tx_sdu;
+  byte_buffer_t      tx_sdu_temp;
 
   // Rx window
   std::map<uint32_t, rlc_umd_pdu_t>  rx_window;
@@ -129,6 +131,7 @@ private:
   srslte::timers::timer *reordering_timer;
   uint32_t               reordering_timer_id;
 
+  bool     tx_enabled;
   bool     pdu_lost;
 
   int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
@@ -136,6 +139,8 @@ private:
   void reassemble_rx_sdus();
   bool inside_reordering_window(uint16_t sn);
   void debug_state();
+
+  std::string rb_name();
 };
 
 /****************************************************************************

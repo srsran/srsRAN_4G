@@ -51,7 +51,8 @@ void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
                srsue::ue_interface       *ue_,
                log                       *rlc_log_, 
                mac_interface_timers      *mac_timers_,
-               uint32_t                  lcid_)
+               uint32_t                  lcid_,
+               int                       buffer_size_)
 {
   pdcp    = pdcp_;
   rrc     = rrc_;
@@ -59,11 +60,12 @@ void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
   rlc_log = rlc_log_;
   mac_timers = mac_timers_;
   default_lcid = lcid_;
+  buffer_size  = buffer_size_;
 
   gettimeofday(&metrics_time[1], NULL);
   reset_metrics(); 
 
-  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers); // SRB0
+  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers, buffer_size); // SRB0
 }
 
 void rlc::reset_metrics() 
@@ -75,8 +77,9 @@ void rlc::reset_metrics()
 void rlc::stop()
 {
   for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
-    if(rlc_array[i].active())
+    if(rlc_array[i].active()) {
       rlc_array[i].stop();
+    }
   }
 }
 
@@ -100,10 +103,21 @@ void rlc::get_metrics(rlc_metrics_t &m)
     }
   }
 
+  // Add multicast metrics
+  for (int i=0;i<SRSLTE_N_MCH_LCIDS;i++) {
+    m.dl_tput_mbps += (dl_tput_bytes_mrb[i]*8/(double)1e6)/secs;
+    if(rlc_array_mrb[i].is_mrb()) {
+      rlc_log->info("MCH_LCID=%d, RX throughput: %4.6f Mbps.\n",
+                    i,
+                    (dl_tput_bytes_mrb[i]*8/(double)1e6)/secs);
+    }
+  }
+
   memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));
   reset_metrics();
 }
 
+// A call to reestablish stops all lcids but does not delete the instances. The mapping lcid to rlc mode can not change
 void rlc::reestablish() {
   for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
     if(rlc_array[i].active()) {
@@ -112,14 +126,12 @@ void rlc::reestablish() {
   }
 }
 
+// Resetting the RLC layer returns the object to the state after the call to init(): All lcids are stopped and
+// defaul lcid=0 is created
 void rlc::reset()
 {
-  for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
-    if(rlc_array[i].active())
-      rlc_array[i].reset();
-  }
-
-  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers); // SRB0
+  stop();
+  rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers, buffer_size); // SRB0
 }
 
 void rlc::empty_queue()
@@ -137,6 +149,18 @@ void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 {
   if(valid_lcid(lcid)) {
     rlc_array[lcid].write_sdu(sdu);
+  }
+}
+void rlc::write_sdu_nb(uint32_t lcid, byte_buffer_t *sdu)
+{
+  if(valid_lcid(lcid)) {
+    rlc_array[lcid].write_sdu_nb(sdu);
+  }
+}
+void rlc::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
+{
+  if(valid_lcid_mrb(lcid)) {
+    rlc_array_mrb[lcid].write_sdu(sdu);
   }
 }
 
@@ -165,11 +189,29 @@ uint32_t rlc::get_total_buffer_state(uint32_t lcid)
   }
 }
 
+uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
+{
+  if(valid_lcid_mrb(lcid)) {
+    return rlc_array_mrb[lcid].get_total_buffer_state();
+  } else {
+    return 0;
+  }
+}
+
 int rlc::read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
 {
   if(valid_lcid(lcid)) {
     ul_tput_bytes[lcid] += nof_bytes;
     return rlc_array[lcid].read_pdu(payload, nof_bytes);
+  }
+  return 0;
+}
+
+int rlc::read_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
+{
+  if(valid_lcid_mrb(lcid)) {
+    ul_tput_bytes[lcid] += nof_bytes;
+    return rlc_array_mrb[lcid].read_pdu(payload, nof_bytes);
   }
   return 0;
 }
@@ -227,6 +269,14 @@ void rlc::write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes)
   }
 }
 
+void rlc::write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
+{
+  if(valid_lcid_mrb(lcid)) {
+    dl_tput_bytes_mrb[lcid] += nof_bytes;
+    rlc_array_mrb[lcid].write_pdu(payload, nof_bytes);
+  }
+}
+
 /*******************************************************************************
   RRC interface
 *******************************************************************************/
@@ -265,16 +315,16 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
     switch(cnfg.rlc_mode)
     {
     case LIBLTE_RRC_RLC_MODE_AM:
-      rlc_array[lcid].init(RLC_MODE_AM, rlc_log, lcid, pdcp, rrc, mac_timers);
+      rlc_array[lcid].init(RLC_MODE_AM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_BI:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_UNI_DL:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
       break;
     case LIBLTE_RRC_RLC_MODE_UM_UNI_UL:
-      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers);
+      rlc_array[lcid].init(RLC_MODE_UM, rlc_log, lcid, pdcp, rrc, mac_timers, buffer_size);
       break;
     default:
       rlc_log->error("Cannot add RLC entity - invalid mode\n");
@@ -283,8 +333,29 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
   } else {
     rlc_log->warning("Bearer %s already created.\n", rrc->get_rb_name(lcid).c_str());
   }
-  rlc_array[lcid].configure(cnfg);    
+  rlc_array[lcid].configure(cnfg);
 
+}
+
+void rlc::add_bearer_mrb(uint32_t lcid)
+{
+  // 36.321 Table 6.2.1-4
+  if(lcid >= SRSLTE_N_MCH_LCIDS) {
+    rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
+    return;
+  }
+  rlc_array_mrb[lcid].init(rlc_log, lcid, pdcp, rrc, mac_timers);
+  rlc_array_mrb[lcid].configure(srslte_rlc_config_t::mch_config());
+}
+
+void rlc::add_bearer_mrb_enb(uint32_t lcid)
+{
+   if(lcid >= SRSLTE_N_MCH_LCIDS) {
+    rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
+    return;
+  }
+  rlc_array_mrb[lcid].init(rlc_log,lcid,pdcp,rrc,mac_timers);
+  rlc_array_mrb[lcid].configure(srslte_rlc_config_t::mch_config());
 }
 
 /*******************************************************************************
@@ -296,6 +367,17 @@ bool rlc::valid_lcid(uint32_t lcid)
     rlc_log->warning("Invalid LCID=%d\n", lcid);
     return false;
   } else if(!rlc_array[lcid].active()) {
+    return false;
+  }
+  return true;
+}
+
+bool rlc::valid_lcid_mrb(uint32_t lcid)
+{
+  if(lcid >= SRSLTE_N_MCH_LCIDS) {
+    return false;
+  }
+  if(!rlc_array_mrb[lcid].is_mrb()) {
     return false;
   }
   return true;

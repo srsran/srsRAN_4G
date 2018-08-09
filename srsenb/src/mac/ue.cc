@@ -115,8 +115,7 @@ srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 {
   uint8_t *ret = NULL; 
-  pthread_mutex_lock(&mutex);
-  if (len > 0) {   
+  if (len > 0) {
     if (!pending_buffers[tti%NOF_HARQ_PROCESSES]) {
       ret = pdus.request(len);   
       pending_buffers[tti%NOF_HARQ_PROCESSES] = ret; 
@@ -127,8 +126,7 @@ uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
   } else {
     log_h->warning("Requesting buffer for zero bytes\n");
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  return ret;
 }
 
 bool ue::process_pdus()
@@ -142,7 +140,7 @@ void ue::set_tti(uint32_t tti) {
 
 #include <assert.h>
 
-void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
+void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp)
 {
   // Unpack ULSCH MAC PDU 
   mac_msg_ul.init_rx(nof_bytes, true);
@@ -151,6 +149,8 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
   if (pcap) {
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti);
   }
+
+  pdus.deallocate(pdu);
 
   uint32_t lcid_most_data = 0;
   int most_data = -99;
@@ -171,7 +171,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
       if (mac_msg_ul.get()->get_sdu_lcid() == 0) {
         uint8_t *x = mac_msg_ul.get()->get_sdu_ptr();
         uint32_t sum = 0;
-        for (int i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
+        for (uint32_t i = 0; i < mac_msg_ul.get()->get_payload_size(); i++) {
           sum += x[i];
         }
         if (sum == 0) {
@@ -188,7 +188,13 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
       }
 
       // Indicate scheduler to update BSR counters 
-      sched->ul_recv_len(rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
+      //sched->ul_recv_len(rnti, mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_payload_size());
+
+      // Indicate RRC about successful activity if valid RLC message is received
+      if (mac_msg_ul.get()->get_payload_size() > 64) { // do not count RLC status messages only
+        rrc->set_activity_user(rnti);
+        log_h->debug("UL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
+      }
 
       if ((int) mac_msg_ul.get()->get_payload_size() > most_data) {
         most_data = (int) mac_msg_ul.get()->get_payload_size();
@@ -198,7 +204,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
       // Save contention resolution if lcid == 0
       if (mac_msg_ul.get()->get_sdu_lcid() == 0 && route_pdu) {
         int nbytes = srslte::sch_subh::MAC_CE_CONTRES_LEN;
-        if (mac_msg_ul.get()->get_payload_size() >= nbytes) {
+        if (mac_msg_ul.get()->get_payload_size() >= (uint32_t)nbytes) {
           uint8_t *ue_cri_ptr = (uint8_t *) &conres_id;
           uint8_t *pkt_ptr = mac_msg_ul.get()->get_sdu_ptr(); // Warning here: we want to include the
           for (int i = 0; i < nbytes; i++) {
@@ -327,7 +333,7 @@ void ue::allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t total_sdu_le
     while(sdu_len > 3 && n > 0) {
       if (pdu->new_subh()) { // there is space for a new subheader
         log_h->debug("SDU:   set_sdu(), lcid=%d, sdu_len=%d, sdu_space=%d\n", lcid, sdu_len, sdu_space);
-        n = pdu->get()->set_sdu(lcid, sdu_len, this); 
+          n = pdu->get()->set_sdu(lcid, sdu_len, this);
         if (n > 0) { // new SDU could be added      
           sdu_len -= n; 
           log_h->debug("SDU:   rnti=0x%x, lcid=%d, nbytes=%d, rem_len=%d\n", 
@@ -386,6 +392,29 @@ uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[s
   
   pthread_mutex_unlock(&mutex);
   return ret; 
+}
+
+uint8_t* ue::generate_mch_pdu(sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems , uint32_t grant_size)
+{
+  uint8_t *ret = NULL; 
+  pthread_mutex_lock(&mutex);
+  mch_mac_msg_dl.init_tx(tx_payload_buffer[0],grant_size);
+  
+    for(uint32_t i = 0; i <nof_pdu_elems;i++){
+      if(sched.pdu[i].lcid == srslte::mch_subh::MCH_SCHED_INFO) {
+        mch_mac_msg_dl.new_subh();
+        mch_mac_msg_dl.get()->set_next_mch_sched_info(sched.mtch_sched[i].lcid,sched.mtch_sched[i].stop);
+      } else if (sched.pdu[i].lcid == 0) {
+        mch_mac_msg_dl.new_subh();
+        mch_mac_msg_dl.get()->set_sdu(0, sched.pdu[i].nbytes, sched.mcch_payload);
+      } else if (sched.pdu[i].lcid <= srslte::mch_subh::MTCH_MAX_LCID) {
+        mch_mac_msg_dl.new_subh();
+        mch_mac_msg_dl.get()->set_sdu(sched.pdu[i].lcid,  sched.pdu[i].nbytes,sched.mtch_sched[i].mtch_payload);
+      }
+    }
+  ret = mch_mac_msg_dl.write_packet(log_h);
+  pthread_mutex_unlock(&mutex);
+  return ret;
 }
 
 

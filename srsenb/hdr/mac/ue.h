@@ -43,7 +43,7 @@ class ue : public srslte::read_pdu_interface,
 {
 public:
   
-  ue() : mac_msg_dl(20), mac_msg_ul(20), conres_id_available(false),
+  ue() : mac_msg_dl(20), mch_mac_msg_dl(10), mac_msg_ul(20), conres_id_available(false),
          dl_ri_counter(0),
          dl_pmi_counter(0),
          conres_id(0),
@@ -89,13 +89,14 @@ public:
   void     config(uint16_t rnti, uint32_t nof_prb, sched_interface *sched, rrc_interface_mac *rrc_, rlc_interface_mac *rlc, srslte::log *log_h);
   uint8_t* generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                     uint32_t nof_pdu_elems, uint32_t grant_size);
+  uint8_t* generate_mch_pdu(sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
   
   srslte_softbuffer_tx_t* get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx);
   srslte_softbuffer_rx_t* get_rx_softbuffer(uint32_t tti);
   
   bool     process_pdus(); 
   uint8_t *request_buffer(uint32_t tti, uint32_t len); 
-  void     process_pdu(uint8_t *pdu, uint32_t nof_bytes, uint32_t tstamp);
+  void     process_pdu(uint8_t *pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp);
   void     push_pdu(uint32_t tti, uint32_t len); 
   void     deallocate_pdu(uint32_t tti);
   
@@ -114,9 +115,9 @@ public:
 
 
   bool is_phy_added;
-
+  int  read_pdu(uint32_t lcid, uint8_t *payload, uint32_t requested_bytes); 
 private: 
-  int  read_pdu(uint32_t lcid, uint8_t *payload, uint32_t requested_bytes);   
+    
   void allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t sdu_len);   
   bool process_ce(srslte::sch_subh *subh); 
   void allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid);
@@ -152,6 +153,7 @@ private:
   // For UL there are multiple buffers per PID and are managed by pdu_queue
   srslte::pdu_queue pdus; 
   srslte::sch_pdu mac_msg_dl, mac_msg_ul;
+  srslte::mch_pdu mch_mac_msg_dl;
   
   rlc_interface_mac *rlc; 
   rrc_interface_mac* rrc;

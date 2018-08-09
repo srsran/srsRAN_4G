@@ -93,10 +93,11 @@ class ul_harq_proc : public harq_proc
 {
 public:
   
-  typedef struct {
+  struct ul_alloc_t {
     uint32_t RB_start;
     uint32_t L;
-  } ul_alloc_t;
+    inline void set(uint32_t start, uint32_t len) {RB_start = start; L = len;}
+  };
   
   void       new_tx(uint32_t tti, int mcs, int tbs);
   

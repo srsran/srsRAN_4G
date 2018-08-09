@@ -579,17 +579,15 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
     
     frame_idx=frame_idx%4;
     
-    if (frame_idx == 0) {
-      memcpy(q->data, bch_payload, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);
+    memcpy(q->data, bch_payload, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);
 
-      /* encode & modulate */
-      srslte_crc_attach(&q->crc, q->data, SRSLTE_BCH_PAYLOAD_LEN);
-      srslte_crc_set_mask(q->data, q->cell.nof_ports);
-      
-      srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, SRSLTE_BCH_PAYLOADCRC_LEN);
+    /* encode & modulate */
+    srslte_crc_attach(&q->crc, q->data, SRSLTE_BCH_PAYLOAD_LEN);
+    srslte_crc_set_mask(q->data, q->cell.nof_ports);
 
-      srslte_rm_conv_tx(q->data_enc, SRSLTE_BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
-    }
+    srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, SRSLTE_BCH_PAYLOADCRC_LEN);
+
+    srslte_rm_conv_tx(q->data_enc, SRSLTE_BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
 
     srslte_scrambling_b_offset(&q->seq, &q->rm_b[frame_idx * nof_bits],
         frame_idx * nof_bits, nof_bits);

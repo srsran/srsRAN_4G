@@ -36,8 +36,15 @@
 #include <pthread.h>
 
 namespace srsenb {
-  
- 
+
+
+/* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
+ * Rest of operations are thread-safe
+ *
+ * The subclass sched_ue is thread-safe so that access to shared variables like buffer states
+ * from scheduler thread and other threads is protected for each individual user.
+ */
+
 class sched : public sched_interface
 {  
   
@@ -66,9 +73,10 @@ public:
   public: 
 
     /* Virtual methods for user metric calculation */
+    virtual void           reset_allocation(uint32_t nof_rb_) = 0;
     virtual void           new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb, uint32_t tti) = 0;
     virtual ul_harq_proc*  get_user_allocation(sched_ue *user) = 0; 
-    virtual void           update_allocation(ul_harq_proc::ul_alloc_t alloc) = 0;
+    virtual bool           update_allocation(ul_harq_proc::ul_alloc_t alloc) = 0;
   };
 
   
@@ -88,7 +96,7 @@ public:
   void set_sched_cfg(sched_args_t *sched_cfg);
   int reset();
 
-  int ue_cfg(uint16_t rnti, ue_cfg_t *ue_cfg); 
+  int ue_cfg(uint16_t rnti, ue_cfg_t *ue_cfg);
   int ue_rem(uint16_t rnti);
   bool ue_exists(uint16_t rnti); 
   
@@ -120,7 +128,6 @@ public:
   int dl_sched(uint32_t tti, dl_sched_res_t *sched_result);  
   int ul_sched(uint32_t tti, ul_sched_res_t *sched_result); 
 
-
   /* Custom TPC functions 
    */
   void tpc_inc(uint16_t rnti); 
@@ -144,8 +151,10 @@ private:
   metric_ul *ul_metric; 
   srslte::log *log_h; 
   rrc_interface_mac *rrc;
-  
-  cell_cfg_t cfg; 
+
+  pthread_rwlock_t rwlock;
+
+  cell_cfg_t cfg;
   sched_args_t sched_cfg; 
 
   const static int MAX_PRB = 100; 
@@ -208,7 +217,7 @@ private:
   uint32_t P; 
   uint32_t start_rbg;
   uint32_t si_n_rbg;
-  uint32_t rar_n_rb; 
+  uint32_t rar_n_rbg;
   uint32_t nof_rbg; 
   uint32_t sf_idx;
   uint32_t sfn;
@@ -216,10 +225,7 @@ private:
   uint32_t current_cfi;
   
   bool configured;
-  
-  pthread_mutex_t mutex, mutex2;
-  
-  
+
 };
 
 

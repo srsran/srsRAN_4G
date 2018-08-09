@@ -63,9 +63,19 @@ void test_set_2()
   uint8_t op[] = {0xcd, 0xc2, 0x02, 0xd5, 0x12, 0x3e, 0x20, 0xf6, 0x2b, 0x6d, 0x67, 0x6a, 0xc7, 0x2c, 0xb3, 0x18};
   // f1
 
-   uint8_t mac_o[8]; 
+  uint8_t opc_o[16];
+  err_lte = liblte_compute_opc(k,op,opc_o);
+  assert(err_lte == LIBLTE_SUCCESS);
+
+  arrprint(opc_o, sizeof(opc_o));
+
+  uint8_t opc_a[] = {0xcd, 0x63, 0xcb, 0x71, 0x95, 0x4a, 0x9f, 0x4e, 0x48, 0xa5, 0x99, 0x4e, 0x37, 0xa0, 0x2b, 0xaf};
+  err_cmp = arrcmp(opc_o,opc_a,sizeof(opc_o));
+  assert(err_cmp == 0);
+
+  uint8_t mac_o[8];
   err_lte = liblte_security_milenage_f1(k,
-                                        op,
+                                        opc_o,
                                         rand,
                                         sqn,
                                         amf,
@@ -84,7 +94,7 @@ void test_set_2()
 
   uint8_t mac_so[8];
   err_lte = liblte_security_milenage_f1_star(k,
-                                   op,
+                                   opc_o,
                                    rand,
                                    sqn,
                                    amf,
@@ -93,9 +103,9 @@ void test_set_2()
   assert(err_lte == LIBLTE_SUCCESS);
 
   uint8_t mac_s[] = {0x01, 0xcf, 0xaf, 0x9e, 0xc4, 0xe8, 0x71, 0xe9};
-  
+
   arrprint(mac_so, sizeof(mac_so));
-  
+
   err_cmp = arrcmp(mac_so, mac_s, sizeof(mac_s));
   assert(err_cmp == 0);
 
@@ -106,7 +116,7 @@ void test_set_2()
   uint8_t ak_o[6];
 
   err_lte = liblte_security_milenage_f2345(k,
-                                 op,
+                                 opc_o,
                                  rand,
                                  res_o,
                                  ck_o,
@@ -126,7 +136,7 @@ void test_set_2()
   err_cmp = arrcmp(res_o, res, sizeof(res));
   assert(err_cmp == 0);
 
-  // CK 
+  // CK
   arrprint(ck_o, sizeof(ck_o));
 
   err_cmp = arrcmp(ck_o, ck, sizeof(ck));
@@ -142,10 +152,10 @@ void test_set_2()
   err_cmp = arrcmp(ak_o, ak, sizeof(ak));
   assert(err_cmp == 0);
 
-  // f star 
+  // f star
   uint8_t ak_star_o[6];
-  
-  err_lte = liblte_security_milenage_f5_star(k, op, rand, ak_star_o);
+
+  err_lte = liblte_security_milenage_f5_star(k, opc_o, rand, ak_star_o);
   assert(err_lte == LIBLTE_SUCCESS);
 
   arrprint(ak_star_o, sizeof(ak_star_o));
@@ -160,6 +170,7 @@ void test_set_2()
 */
 
 int main(int argc, char * argv[]) {
+
   test_set_2();
   /*
   test_set_3();

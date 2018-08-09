@@ -124,8 +124,12 @@ mme_gtpc::send_create_session_request(uint64_t imsi)
   // APN
   strncpy(cs_req->apn, m_s1ap->m_s1ap_args.mme_apn.c_str(), sizeof(cs_req->apn)-1);
   cs_req->apn[sizeof(cs_req->apn)-1] = 0;
+
   // RAT Type
   //cs_req->rat_type = srslte::GTPC_RAT_TYPE::EUTRAN;
+
+  //Bearer QoS
+  cs_req->eps_bearer_context_created.ebi = 5;
 
   //Check whether this UE is already registed
   std::map<uint64_t, struct gtpc_ctx>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
@@ -243,10 +247,9 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   //Set EPS bearer context
   //FIXME default EPS bearer is hard-coded
   int default_bearer=5;
-  erab_ctx_t *erab_ctx = &ecm_ctx->erabs_ctx[default_bearer]; 
+  erab_ctx_t *erab_ctx = &ecm_ctx->erabs_ctx[default_bearer];
   erab_ctx->pdn_addr_alloc= cs_resp->paa;
   erab_ctx->sgw_s1u_fteid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid;
-
   m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, erab_ctx);
   return;
 }

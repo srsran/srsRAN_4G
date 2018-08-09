@@ -51,8 +51,11 @@ void nas_test() {
   uint8                               msg_type;
   LIBLTE_BYTE_MSG_STRUCT              buf;
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
+  bzero(&attach_accept, sizeof(LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT));
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT  act_def_eps_bearer_context_req;
+  bzero(&act_def_eps_bearer_context_req, sizeof(LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT));
 
+  bzero(&buf, sizeof(LIBLTE_BYTE_MSG_STRUCT));
   memcpy(buf.msg, nas_message, nas_message_len);
   buf.N_bytes = nas_message_len;
   liblte_mme_parse_msg_header(&buf, &pd, &msg_type);

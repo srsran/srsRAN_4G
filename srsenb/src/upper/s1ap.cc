@@ -87,7 +87,7 @@ void s1ap::get_metrics(s1ap_metrics_t &m)
 
 void s1ap::run_thread()
 {
-  srslte::byte_buffer_t *pdu = pool_allocate;
+  srslte::byte_buffer_t *pdu = pool->allocate("s1ap::run_thread");
   if (!pdu) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
     return;
@@ -174,22 +174,22 @@ void s1ap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
+void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
-  send_initialuemessage(rnti, pdu, false);
+  send_initialuemessage(rnti, cause, pdu, false);
 }
 
-void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec)
+void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
-  send_initialuemessage(rnti, pdu, true, m_tmsi, mmec);
+  send_initialuemessage(rnti, cause, pdu, true, m_tmsi, mmec);
 }
 
 void s1ap::write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu)
@@ -204,82 +204,35 @@ void s1ap::write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu)
   send_ulnastransport(rnti, pdu);
 }
 
-void s1ap::user_inactivity(uint16_t rnti)
+bool s1ap::user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio)
 {
   s1ap_log->info("User inactivity - RNTI:0x%x\n", rnti);
 
   if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
     s1ap_log->warning("User RNTI:0x%x context not found\n", rnti);
-    return;
+    return false;
   }
 
   if(ue_ctxt_map[rnti].release_requested) {
     s1ap_log->warning("UE context for RNTI:0x%x is in zombie state. Releasing...\n", rnti);
     ue_ctxt_map.erase(rnti);
     rrc->release_complete(rnti);
-    return;
+    return false;
   }
 
   LIBLTE_S1AP_CAUSE_STRUCT cause;
   cause.ext                     = false;
   cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
   cause.choice.radioNetwork.ext = false;
-  cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY;
+  cause.choice.radioNetwork.e   = cause_radio;
 
   ue_ctxt_map[rnti].release_requested = true;
-  send_uectxtreleaserequest(rnti, &cause);
-}
-
-
-void s1ap::release_eutran(uint16_t rnti)
-{
-  s1ap_log->info("Release by EUTRAN - RNTI:0x%x\n", rnti);
-
-  if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
-    s1ap_log->warning("User RNTI:0x%x context not found\n", rnti);
-    return;
-  }
-
-  if(ue_ctxt_map[rnti].release_requested) {
-    return;
-  }
-
-  LIBLTE_S1AP_CAUSE_STRUCT cause;
-  cause.ext                     = false;
-  cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-  cause.choice.radioNetwork.ext = false;
-  cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_RELEASE_DUE_TO_EUTRAN_GENERATED_REASON;
-
-  ue_ctxt_map[rnti].release_requested = true;
-  send_uectxtreleaserequest(rnti, &cause);
+  return send_uectxtreleaserequest(rnti, &cause);
 }
 
 bool s1ap::user_exists(uint16_t rnti)
 {
   return ue_ctxt_map.end() != ue_ctxt_map.find(rnti); 
-}
-
-bool s1ap::user_link_lost(uint16_t rnti)
-{
-  s1ap_log->info("User link lost - RNTI:0x%x\n", rnti);
-
-  if(ue_ctxt_map.end() == ue_ctxt_map.find(rnti)) {
-    s1ap_log->warning("User RNTI:0x%x context not found\n", rnti);
-    return false;
-  }
-
-  if(ue_ctxt_map[rnti].release_requested) {
-    return false;
-  }
-
-  LIBLTE_S1AP_CAUSE_STRUCT cause;
-  cause.ext                     = false;
-  cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-  cause.choice.radioNetwork.ext = false;
-  cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_RADIO_CONNECTION_WITH_UE_LOST;
-
-  ue_ctxt_map[rnti].release_requested = true;
-  return send_uectxtreleaserequest(rnti, &cause);
 }
 
 void s1ap::ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res)
@@ -321,8 +274,8 @@ bool s1ap::connect_mme()
   memset(&local_addr, 0, sizeof(struct sockaddr_in));
   local_addr.sin_family = ADDR_FAMILY;
   local_addr.sin_port = 0;  // Any local port will do
-  if(inet_pton(AF_INET, args.gtp_bind_addr.c_str(), &(local_addr.sin_addr)) != 1) {
-    s1ap_log->error("Error converting IP address (%s) to sockaddr_in structure\n", args.gtp_bind_addr.c_str());
+  if(inet_pton(AF_INET, args.s1c_bind_addr.c_str(), &(local_addr.sin_addr)) != 1) {
+    s1ap_log->error("Error converting IP address (%s) to sockaddr_in structure\n", args.s1c_bind_addr.c_str());
     return false;
   }
   bind(socket_fd, (struct sockaddr *)&local_addr, sizeof(local_addr));
@@ -656,7 +609,7 @@ bool s1ap::handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT *msg)
 /* S1AP message senders
 ********************************************************************************/
 
-bool s1ap::send_initialuemessage(uint16_t rnti, srslte::byte_buffer_t *pdu, bool has_tmsi, uint32_t m_tmsi, uint8_t mmec)
+bool s1ap::send_initialuemessage(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, bool has_tmsi, uint32_t m_tmsi, uint8_t mmec)
 {
   if(!mme_connected) {
     return false;
@@ -709,7 +662,7 @@ bool s1ap::send_initialuemessage(uint16_t rnti, srslte::byte_buffer_t *pdu, bool
 
   // RRC Establishment Cause
   initue->RRC_Establishment_Cause.ext = false;
-  initue->RRC_Establishment_Cause.e   = LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_MO_SIGNALLING;
+  initue->RRC_Establishment_Cause.e   = cause;
 
   liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
   s1ap_log->info_hex(msg.msg, msg.N_bytes, "Sending InitialUEMessage for RNTI:0x%x", rnti);
@@ -896,6 +849,9 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_I
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
+
+  pool->deallocate(buf);
+
   if(n_sent == -1) {
     s1ap_log->error("Failed to send InitialContextSetupResponse for RNTI:0x%x\n", rnti);
     return false;
@@ -947,6 +903,9 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETU
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
+
+  pool->deallocate(buf);
+
   if(n_sent == -1) {
     s1ap_log->error("Failed to send E_RABSetupResponse for RNTI:0x%x\n", rnti);
     return false;
@@ -986,12 +945,15 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   fail->Cause.choice.radioNetwork.ext = false;
   fail->Cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_UNSPECIFIED;
 
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&buf);
+  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf);
   s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending InitialContextSetupFailure for RNTI:0x%x", rnti);
 
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
+
+  pool->deallocate(buf);
+
   if(n_sent == -1) {
     s1ap_log->error("Failed to send UplinkNASTransport for RNTI:0x%x\n", rnti);
     return false;

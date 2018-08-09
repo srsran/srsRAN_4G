@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
 
   for (i = 0; i < cell.nof_ports; i++) {
     tx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-
+    bzero(tx_sf_symbols[i],sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn[i], SRSLTE_CP_EXT, tx_slot_symbols[i], tx_sf_symbols[i], cell.nof_prb)) {
       fprintf(stderr, "Error creating iFFT object\n");
       exit(-1);
@@ -271,7 +271,7 @@ int main(int argc, char **argv) {
 
   for (i = 0; i < nof_rx_antennas; i++) {
     rx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-
+    bzero(rx_sf_symbols[i],sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ofdm_rx_init_mbsfn(&fft_mbsfn[i], SRSLTE_CP_EXT, rx_sf_symbols[i], rx_slot_symbols[i], cell.nof_prb)) {
       fprintf(stderr, "Error creating iFFT object\n");
       exit(-1);
@@ -430,6 +430,15 @@ int main(int argc, char **argv) {
   ret = SRSLTE_SUCCESS;
 
 quit:
+
+  for (i = 0; i < nof_rx_antennas; i++) {
+    srslte_ofdm_tx_free(&ifft_mbsfn[i]);
+    srslte_ofdm_rx_free(&fft_mbsfn[i]);
+    if (rx_sf_symbols[i]) {
+      free(rx_sf_symbols[i]);
+    }
+  }
+
   srslte_pmch_free(&pmch_tx);
   srslte_pmch_free(&pmch_rx);
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
@@ -453,6 +462,9 @@ quit:
   }
 
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
+    if (tx_sf_symbols[i]) {
+      free(tx_sf_symbols[i]);
+    }
     for (j = 0; j < SRSLTE_MAX_PORTS; j++) {
       if (ce[i][j]) {
         free(ce[i][j]);

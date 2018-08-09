@@ -1,0 +1,153 @@
+sib1 =
+{
+    intra_freq_reselection = "Allowed";
+    q_rx_lev_min = -130;
+    //p_max = 3;
+    cell_barred = "Not Barred"
+    si_window_length = 20;
+    sched_info =
+    (
+        {
+            si_periodicity = 16;
+	    si_mapping_info = [13]; // comma-separated array of SIB-indexes (from 3 to 13). 
+				   // Leave empty or commented to just scheduler sib2
+        }
+    );
+    system_info_value_tag = 0;
+};
+
+sib2 = 
+{
+    rr_config_common_sib =
+    {
+        rach_cnfg = 
+        {
+            num_ra_preambles = 52;
+            preamble_init_rx_target_pwr = -108;
+            pwr_ramping_step = 6;  // in dB
+            preamble_trans_max = 7;
+            ra_resp_win_size = 10;  // in ms
+            mac_con_res_timer = 64; // in ms
+            max_harq_msg3_tx = 4;
+        };
+        bcch_cnfg = 
+        {
+            modification_period_coeff = 16; // in ms
+        };
+        pcch_cnfg = 
+        {
+            default_paging_cycle = 32; // in rf
+            nB = "1";
+        };
+        prach_cnfg =
+        {
+            root_sequence_index = 128;
+            prach_cnfg_info =
+            {
+                high_speed_flag = false;
+                prach_config_index = 3;
+                prach_freq_offset = 0;
+                zero_correlation_zone_config = 11;
+            };
+        };
+        pdsch_cnfg = 
+        {
+            p_b = 0; 
+            rs_power = -4;
+        };
+        pusch_cnfg = 
+        {
+            n_sb = 1;
+            hopping_mode = "inter-subframe";
+            pusch_hopping_offset = 2;
+            enable_64_qam = false;
+            ul_rs = 
+            {
+                cyclic_shift = 0; 
+                group_assignment_pusch = 0;
+                group_hopping_enabled = false; 
+                sequence_hopping_enabled = false; 
+            };
+        };
+        pucch_cnfg =
+        {
+            delta_pucch_shift = 1;
+            n_rb_cqi = 1;
+            n_cs_an = 0;
+            n1_pucch_an = 2;
+        };
+        ul_pwr_ctrl =
+        {
+            p0_nominal_pusch = -108; 
+            alpha = 1.0; 
+            p0_nominal_pucch = -88; 
+            delta_flist_pucch =
+            {
+                format_1  = 2; 
+                format_1b = 3; 
+                format_2  = 0; 
+                format_2a = 0; 
+                format_2b = 0; 
+            };
+            delta_preamble_msg3 = 4;
+        };
+        ul_cp_length = "Normal";
+    };
+
+    ue_timers_and_constants =
+    {
+        t300 = 2000; // in ms
+        t301 = 100;  // in ms
+        t310 = 1000; // in ms
+        n310 = 1;
+        t311 = 1000; // in ms
+        n311 = 1;
+    };
+	
+    freqInfo = 
+    {
+        ul_carrier_freq_present = true; 
+        ul_bw_present = true; 
+        additional_spectrum_emission = 1; 
+    };
+
+  
+    
+    mbsfnSubframeConfigList = 
+    {
+        radioframeAllocationPeriod = "1";
+        subframeAllocationNumFrames = "1";
+        radioframeAllocationOffset = 0;
+        subframeAllocation = 63; 
+      
+    };
+
+    mbsfnSubframeConfigListLength = 1;
+    
+    time_alignment_timer = "INFINITY"; // use "sf500", "sf750", etc.
+};
+
+sib13 = 
+{
+    mbsfn_notification_config = 
+    {
+        mbsfn_notification_repetition_coeff = "2";
+        mbsfn_notification_offset = 0;
+        mbsfn_notification_sf_index = 1;
+    };
+    mbsfn_area_info_list_size = 1;
+    mbsfn_area_info_list = 
+    {
+        non_mbsfn_region_length = "2";
+        mcch_repetition_period = "64";
+        mcch_modification_period = "512";
+        signalling_mcs = "2";
+        mbsfn_area_id = 1;
+        notification_indicator = 0;
+        mcch_offset = 0;
+        sf_alloc_info = 32;
+    };
+
+    
+};
+

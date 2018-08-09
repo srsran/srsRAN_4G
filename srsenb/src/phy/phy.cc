@@ -95,7 +95,9 @@ bool phy::init(phy_args_t *args,
                mac_interface_phy *mac,
                srslte::log_filter* log_h)
 {
+
   std::vector<srslte::log_filter*> log_vec;
+  this->log_h = log_h;
   for (int i=0;i<args->nof_phy_threads;i++) {
     log_vec.push_back(log_h);
   }
@@ -114,7 +116,7 @@ bool phy::init(phy_args_t *args,
   
   radio_handler = radio_handler_;
   nof_workers = args->nof_phy_threads; 
-  
+  this->log_h = (srslte::log*)log_vec[0];
   workers_common.params = *args; 
 
   workers_common.init(&cfg->cell, radio_handler, mac);
@@ -225,6 +227,28 @@ void phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICAT
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_config_dedicated(rnti, NULL, dedicated);
   }
+}
+
+void phy::configure_mbsfn(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT mcch)
+{
+  if(sib2->mbsfn_subfr_cnfg_list_size > 1) {
+    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_subfr_cnfg_list_size);
+  }
+  if(sib2->mbsfn_subfr_cnfg_list_size > 0) {
+    memcpy(&phy_rrc_config.mbsfn.mbsfn_subfr_cnfg, &sib2->mbsfn_subfr_cnfg_list[0], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
+  }
+    
+  memcpy(&phy_rrc_config.mbsfn.mbsfn_notification_cnfg, &sib13->mbsfn_notification_config, sizeof(LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT));
+  if(sib13->mbsfn_area_info_list_r9_size > 1) {
+    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9_size);
+  }
+   if(sib13->mbsfn_area_info_list_r9_size > 0) {
+    memcpy(&phy_rrc_config.mbsfn.mbsfn_area_info, &sib13->mbsfn_area_info_list_r9[0], sizeof(LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT));
+  }
+  
+  memcpy(&phy_rrc_config.mbsfn.mcch, &mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+  
+  workers_common.configure_mbsfn(&phy_rrc_config.mbsfn);
 }
 
 // Start GUI 

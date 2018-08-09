@@ -1099,7 +1099,7 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(uint8 *key,
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
-                                              uint8 *op,
+                                              uint8 *op_c,
                                               uint8 *rand,
                                               uint8 *sqn,
                                               uint8 *amf,
@@ -1108,13 +1108,13 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     ROUND_KEY_STRUCT  round_keys;
     uint32            i;
-    uint8             op_c[16];
     uint8             temp[16];
     uint8             in1[16];
     uint8             out1[16];
     uint8             rijndael_input[16];
 
     if(k     != NULL &&
+       op_c  != NULL &&
        rand  != NULL &&
        sqn   != NULL &&
        amf   != NULL &&
@@ -1122,9 +1122,6 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
     {
         // Initialize the round keys
         rijndael_key_schedule(k, &round_keys);
-
-        // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
 
         // Compute temp
         for(i=0; i<16; i++)
@@ -1183,7 +1180,7 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8 *k,
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
-                                                   uint8 *op,
+                                                   uint8 *op_c,
                                                    uint8 *rand,
                                                    uint8 *sqn,
                                                    uint8 *amf,
@@ -1192,13 +1189,13 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     ROUND_KEY_STRUCT  round_keys;
     uint32            i;
-    uint8             op_c[16];
     uint8             temp[16];
     uint8             in1[16];
     uint8             out1[16];
     uint8             rijndael_input[16];
 
     if(k     != NULL &&
+       op_c  != NULL &&
        rand  != NULL &&
        sqn   != NULL &&
        amf   != NULL &&
@@ -1206,9 +1203,6 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
     {
         // Initialize the round keys
         rijndael_key_schedule(k, &round_keys);
-
-        // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
 
         // Compute temp
         for(i=0; i<16; i++)
@@ -1267,7 +1261,7 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1_star(uint8 *k,
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
-                                                 uint8 *op,
+                                                 uint8 *op_c,
                                                  uint8 *rand,
                                                  uint8 *res,
                                                  uint8 *ck,
@@ -1277,12 +1271,12 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     ROUND_KEY_STRUCT  round_keys;
     uint32            i;
-    uint8             op_c[16];
     uint8             temp[16];
     uint8             out[16];
     uint8             rijndael_input[16];
 
     if(k    != NULL &&
+       op_c != NULL &&
        rand != NULL &&
        res  != NULL &&
        ck   != NULL &&
@@ -1291,9 +1285,6 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
     {
         // Initialize the round keys
         rijndael_key_schedule(k, &round_keys);
-
-        // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
 
         // Compute temp
         for(i=0; i<16; i++)
@@ -1378,27 +1369,24 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f2345(uint8 *k,
     Document Reference: 35.206 v10.0.0 Annex 3
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
-                                                   uint8 *op,
+                                                   uint8 *op_c,
                                                    uint8 *rand,
                                                    uint8 *ak)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
     ROUND_KEY_STRUCT  round_keys;
     uint32            i;
-    uint8             op_c[16];
     uint8             temp[16];
     uint8             out[16];
     uint8             rijndael_input[16];
 
     if(k    != NULL &&
+       op_c != NULL &&
        rand != NULL &&
        ak   != NULL)
     {
         // Initialize the round keys
         rijndael_key_schedule(k, &round_keys);
-
-        // Compute OPc
-        compute_OPc(&round_keys, op, op_c);
 
         // Compute temp
         for(i=0; i<16; i++)
@@ -1424,36 +1412,47 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8 *k,
         {
             ak[i] = out[i];
         }
-
         err = LIBLTE_SUCCESS;
     }
-
     return(err);
+}
+
+/*********************************************************************
+    Name: liblte_compute_opc
+
+    Description: Computes OPc from OP and K.
+
+    Document Reference: 35.206 v10.0.0 Annex 3
+*********************************************************************/
+
+LIBLTE_ERROR_ENUM liblte_compute_opc(uint8            *k,
+                                     uint8            *op,
+                                     uint8            *op_c)
+{
+  uint32 i;
+  ROUND_KEY_STRUCT round_keys;
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+
+  if(k    != NULL &&
+     op   != NULL &&
+     op_c  != NULL)
+  {
+
+    rijndael_key_schedule(k, &round_keys);
+    rijndael_encrypt(op, &round_keys, op_c);
+    for(i=0; i<16; i++)
+    {
+      op_c[i] ^= op[i];
+    }
+    err = LIBLTE_SUCCESS;
+  }
+  return err;
 }
 
 /*******************************************************************************
                               LOCAL FUNCTIONS
 *******************************************************************************/
 
-/*********************************************************************
-    Name: compute_OPc
-
-    Description: Computes OPc from OP and K.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-void compute_OPc(ROUND_KEY_STRUCT *rk,
-                 uint8            *op,
-                 uint8            *op_c)
-{
-    uint32 i;
-
-    rijndael_encrypt(op, rk, op_c);
-    for(i=0; i<16; i++)
-    {
-        op_c[i] ^= op[i];
-    }
-}
 
 /*********************************************************************
     Name: rijndael_key_schedule

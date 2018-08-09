@@ -28,16 +28,19 @@ qci_config = (
 {
   qci=9;
   pdcp_config = {
-    discard_timer = 100;                
-    pdcp_sn_size = 12;                  
+    discard_timer = -1;
+    status_report_required = true;
   }
   rlc_config = {
-    ul_um = {
-      sn_field_length = 10; 
+    ul_am = {
+      t_poll_retx = 120;
+      poll_pdu = 64;
+      poll_byte = 750;
+      max_retx_thresh = 16;
     };
-    dl_um = {
-      sn_field_length = 10; 
-      t_reordering    = 80;             
+    dl_am = {
+      t_reordering = 50;
+      t_status_prohibit = 50;
     };
   };
   logical_channel_config = {
@@ -49,5 +52,3 @@ qci_config = (
 }
 
 );
-
-

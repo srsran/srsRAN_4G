@@ -20,19 +20,22 @@
 #                     from antenna to timestamp insertion. 
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
 # burst_preamble_us:  Preamble length to transmit before start of burst. 
-#                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
+#                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us.
+# continuous_tx:      Transmit samples continuously to the radio or on bursts (auto/yes/no).
+#                     Default is auto (yes for UHD, no for rest)
 #####################################################################
 [rf]
 dl_earfcn = 3400
 freq_offset = 0
 tx_gain = 80
-rx_gain = 40
+#rx_gain = 40
 
 #nof_rx_ant = 1
 #device_name = auto
 #device_args = auto
 #time_adv_nsamples = auto
 #burst_preamble_us = auto
+#continuous_tx     = auto
 
 
 #####################################################################
@@ -74,7 +77,7 @@ nas_filename = /tmp/nas.pcap
 #                If set to negative, a single log file will be created.
 #####################################################################
 [log]
-all_level = info
+all_level = warning
 phy_lib_level = none
 all_hex_limit = 32
 filename = /tmp/ue.log
@@ -83,40 +86,49 @@ file_max_size = -1
 #####################################################################
 # USIM configuration
 #
+# mode: USIM mode (soft/pcsc)
 # algo: Authentication algorithm (xor/milenage)
 # op:   128-bit Operator Variant Algorithm Configuration Field (hex)
-# amf:  16-bit Authentication Management Field (hex)
 # k:    128-bit subscriber key (hex)
 # imsi: 15 digit International Mobile Subscriber Identity
 # imei: 15 digit International Mobile Station Equipment Identity
+# pin:  PIN in case real SIM card is used
+# reader: Specify card reader by it's name as listed by 'pcsc_scan'. If empty, try all available readers.
 #####################################################################
 [usim]
+mode = soft
 algo = xor
-op   = 63BFA50EE6523365FF14C1F45F88737D
+opc  = 63BFA50EE6523365FF14C1F45F88737D
 k    = 00112233445566778899aabbccddeeff
 imsi = 001010123456789
 imei = 353490069873319
-
+#reader = 
+#pin  = 1234
 
 #####################################################################
 # RRC configuration
 #
 # ue_category:   Sets UE category (range 1-5). Default: 4
 # feature_group: Hex value of the featureGroupIndicators field in the
-#                UECapabilityInformation message. Default 0xe6041c00
+#                UECapabilityInformation message. Default 0xe6041000
 #####################################################################
 [rrc]
 #ue_category   = 4
-#feature_group = 0xe6041c00
+#feature_group = 0xe6041000
 
 #####################################################################
 # NAS configuration
 #
-# apn:		Set Access Point Name (APN)
+# apn:               Set Access Point Name (APN)
+# user:              Username for CHAP authentication
+# pass:              Password for CHAP authentication
+# force_imsi_attach: Whether to always perform an IMSI
 #####################################################################
 [nas]
-# apn = internetinternet
-
+#apn = internetinternet
+#user = srsuser
+#pass = srspass
+#force_imsi_attach = false
 
 [gui]
 enable = false
@@ -148,9 +160,13 @@ enable = false
 #                       good for long channels. For best performance at highest SNR reduce it to 1.  
 # sfo_correct_disable:  Disables phase correction before channel estimation to compensate for 
 #                       sampling frequency offset. Default is enabled. 
-# sss_algorithm:        Selects the SSS estimation algorithm. Can choose between 
+# sfo_ema:              EMA coefficient to average sample offsets used to compute SFO
+# sfo_correct_period:   Period in ms to correct sample time to adjust for SFO
+# sss_algorithm:        Selects the SSS estimation algorithm. Can choose between
 #                       {full, partial, diff}. 
-# estimator_fil_w:      Chooses the coefficients for the 3-tap channel estimator centered filter. 
+# estimator_fil_auto:   The channel estimator smooths the channel estimate with an adaptative filter.
+# estimator_fil_stddev: Sets the channel estimator smooth gaussian filter standard deviation.
+# estimator_fil_order:  Sets the channel estimator smooth gaussian filter order (even values perform better).
 #                       The taps are [w, 1-2w, w]
 # metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
 #
@@ -185,11 +201,12 @@ enable = false
 #                        RS adjustments are allowed.
 #
 # pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
-#                        compatible with TM1. It is False by default.
+#                        used in TM1. It is True by default.
 #
 #####################################################################
 [expert]
 #ip_netmask          = 255.255.255.0
+#mbms_service        = -1
 #rssi_sensor_enabled = false
 #rx_gain_offset      = 72
 #prach_gain          = 30
@@ -203,14 +220,18 @@ enable = false
 #equalizer_mode      = mmse
 #time_correct_period = 5
 #sfo_correct_disable = false
+#sfo_ema             = 0.1
+#sfo_correct_period  = 10
 #sss_algorithm       = full
-#estimator_fil_w     = 0.1
+#estimator_fil_auto  = false
+#estimator_fil_stddev  = 1.0
+#estimator_fil_order  = 4
 #average_subframe_enabled = true
 #sic_pss_enabled     = true
 #pregenerate_signals = false
 #metrics_csv_enable  = false
 #metrics_csv_filename = /tmp/ue_metrics.csv
-#pdsch_csi_enabled  = true     # Caution! Only TM1 supported!
+#pdsch_csi_enabled  = true
 
 # CFO related values
 #cfo_is_doppler      = false

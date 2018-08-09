@@ -41,13 +41,13 @@ int rf_get_available_devices(char **devnames, int max_strlen) {
 
 double srslte_rf_set_rx_gain_th(srslte_rf_t *rf, double gain)
 {
-  if (gain > rf->new_rx_gain + 2 || gain < rf->new_rx_gain - 2) {
+  if (gain > rf->cur_rx_gain + 2 || gain < rf->cur_rx_gain - 2){
     pthread_mutex_lock(&rf->mutex);
     rf->new_rx_gain = gain; 
     pthread_cond_signal(&rf->cond);
     pthread_mutex_unlock(&rf->mutex);
   }
-  return gain; 
+  return rf->cur_rx_gain;
 }
 
 void srslte_rf_set_tx_rx_gain_offset(srslte_rf_t *rf, double offset) {
@@ -65,8 +65,9 @@ static void* thread_gain_fcn(void *h) {
       pthread_cond_wait(&rf->cond, &rf->mutex);
     }
     if (rf->new_rx_gain != rf->cur_rx_gain) {
-      rf->cur_rx_gain = rf->new_rx_gain; 
-      srslte_rf_set_rx_gain(h, rf->cur_rx_gain);
+      srslte_rf_set_rx_gain(h, rf->new_rx_gain);
+      rf->cur_rx_gain = srslte_rf_get_rx_gain(h);
+      rf->new_rx_gain = rf->cur_rx_gain;
     }
     if (rf->tx_gain_same_rx) {
       printf("setting also tx\n");
@@ -80,17 +81,17 @@ static void* thread_gain_fcn(void *h) {
 
 /* Create auxiliary thread and mutexes for AGC */
 int srslte_rf_start_gain_thread(srslte_rf_t *rf, bool tx_gain_same_rx) {
-  rf->tx_gain_same_rx = tx_gain_same_rx; 
-  rf->tx_rx_gain_offset = 0.0; 
+  rf->tx_gain_same_rx = tx_gain_same_rx;
+  rf->tx_rx_gain_offset = 0.0;
   if (pthread_mutex_init(&rf->mutex, NULL)) {
-    return -1; 
+    return -1;
   }
   if (pthread_cond_init(&rf->cond, NULL)) {
-    return -1; 
+    return -1;
   }
   if (pthread_create(&rf->thread_gain, NULL, thread_gain_fcn, rf)) {
     perror("pthread_create");
-    return -1; 
+    return -1;
   }
   return 0;
 }
@@ -225,6 +226,15 @@ double srslte_rf_get_tx_gain(srslte_rf_t *rf)
 {
   return ((rf_dev_t*) rf->dev)->srslte_rf_get_tx_gain(rf->handler);  
 }
+
+srslte_rf_info_t *srslte_rf_get_info(srslte_rf_t *rf) {
+  srslte_rf_info_t *ret = NULL;
+  if (((rf_dev_t*) rf->dev)->srslte_rf_get_info) {
+     ret = ((rf_dev_t*) rf->dev)->srslte_rf_get_info(rf->handler);
+  }
+  return ret;
+}
+
 
 double srslte_rf_set_rx_freq(srslte_rf_t *rf, double freq)
 {

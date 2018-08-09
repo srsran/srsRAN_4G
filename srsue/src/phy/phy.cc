@@ -52,7 +52,7 @@ namespace srsue {
 
 phy::phy() : workers_pool(MAX_WORKERS), 
              workers(MAX_WORKERS), 
-             workers_common(phch_recv::MUTEX_X_WORKER*MAX_WORKERS)
+             workers_common(phch_recv::MUTEX_X_WORKER*MAX_WORKERS),nof_coworkers(0)
 {
 }
 
@@ -96,19 +96,16 @@ void phy::set_default_args(phy_args_t *args)
   args->equalizer_mode      = "mmse"; 
   args->cfo_integer_enabled = false; 
   args->cfo_correct_tol_hz  = 50; 
-  args->time_correct_period = 5; 
   args->sss_algorithm       = "full";
-  args->estimator_fil_w     = 0.1; 
+  args->estimator_fil_auto  = false;
+  args->estimator_fil_stddev = 1.0f;
+  args->estimator_fil_order  = 4;
 }
 
 bool phy::check_args(phy_args_t *args) 
 {
-  if (args->nof_phy_threads > 3) {
+  if (args->nof_phy_threads > MAX_WORKERS * 2) {
     log_h->console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
-    return false; 
-  }
-  if (args->estimator_fil_w > 1.0) {
-    log_h->console("Error in PHY args: estimator_fil_w must be 0<=w<=1\n");
     return false; 
   }
   if (args->snr_ema_coeff > 1.0) {
@@ -142,9 +139,17 @@ bool phy::init(srslte::radio_multi* radio_handler, mac_interface_phy *mac, rrc_i
   }
 
   nof_workers = args->nof_phy_threads;
-  this->log_phy_lib_h = (srslte::log*) log_vec[nof_workers];
-  srslte_phy_log_register_handler(this, srslte_phy_handler);
-  
+  if (nof_workers > MAX_WORKERS) {
+    nof_coworkers = SRSLTE_MIN(nof_workers - MAX_WORKERS, MAX_WORKERS);
+    nof_workers = MAX_WORKERS;
+  }
+  if (log_vec[nof_workers]) {
+    this->log_phy_lib_h = (srslte::log*) log_vec[nof_workers];
+    srslte_phy_log_register_handler(this, srslte_phy_handler);
+  } else {
+    this->log_phy_lib_h = NULL;
+  }
+
   initiated = false;
   start();
   return true;
@@ -161,6 +166,10 @@ void phy::run_thread() {
     workers[i].set_common(&workers_common);
     workers[i].init(SRSLTE_MAX_PRB, (srslte::log*) log_vec[i], (srslte::log*) log_vec[nof_workers], &sf_recv);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);
+  }
+
+  for (uint32_t i=0;i<nof_coworkers;i++) {
+    workers[i].enable_pdsch_coworker();
   }
 
   // Warning this must be initialized after all workers have been added to the pool
@@ -225,7 +234,7 @@ void phy::set_timeadv_rar(uint32_t ta_cmd) {
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   uint32_t new_nta = srslte_N_ta_new(n_ta, ta_cmd);
-  //sf_recv.set_time_adv_sec(((float) new_nta)*SRSLTE_LTE_TS);
+  sf_recv.set_time_adv_sec(((float) new_nta)*SRSLTE_LTE_TS);
   Info("PHY:   Set TA: ta_cmd: %d, n_ta: %d, old_n_ta: %d, ta_usec: %.1f\n", ta_cmd, new_nta, n_ta, ((float) new_nta)*SRSLTE_LTE_TS*1e6);
   n_ta = new_nta;
 }
@@ -250,20 +259,6 @@ void phy::configure_ul_params(bool pregen_disabled)
   }
 }
 
-void phy::cell_search_start()
-{
-  sf_recv.cell_search_start();
-}
-
-void phy::cell_search_next()
-{
-  sf_recv.cell_search_next();
-}
-
-void phy::sync_reset() {
-  sf_recv.reset_sync();
-}
-
 void phy::meas_reset() {
   sf_recv.meas_reset();
 }
@@ -276,13 +271,16 @@ int phy::meas_stop(uint32_t earfcn, int pci) {
   return sf_recv.meas_stop(earfcn, pci);
 }
 
-void phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
-{
-  sf_recv.cell_select(earfcn, phy_cell);
+bool phy::cell_select(phy_cell_t *cell) {
+  return sf_recv.cell_select(cell);
 }
 
-bool phy::cell_handover(srslte_cell_t cell) {
-  return sf_recv.cell_handover(cell);
+phy_interface_rrc::cell_search_ret_t  phy::cell_search(phy_cell_t *cell) {
+  return sf_recv.cell_search(cell);
+}
+
+bool phy::cell_is_camping() {
+  return sf_recv.cell_is_camping();
 }
 
 float phy::get_phr()
@@ -348,13 +346,14 @@ int phy::prach_tx_tti()
 
 // Handle the case of a radio overflow. Resynchronise inmediatly
 void phy::radio_overflow() {
-  sf_recv.reset_sync();
+  sf_recv.radio_overflow();
 }
 
 void phy::reset()
 {
   Info("Resetting PHY\n");
   n_ta = 0;
+  sf_recv.set_time_adv_sec(0);
   pdcch_dl_search_reset();
   for(uint32_t i=0;i<nof_workers;i++) {
     workers[i].reset();
@@ -366,6 +365,7 @@ uint32_t phy::get_current_tti()
 {
   return sf_recv.get_current_tti();
 }
+
 
 void phy::sr_send()
 {
@@ -386,11 +386,6 @@ void phy::set_earfcn(vector< uint32_t > earfcns)
 void phy::force_freq(float dl_freq, float ul_freq)
 {
   sf_recv.force_freq(dl_freq, ul_freq);
-}
-
-bool phy::sync_status()
-{
-  return sf_recv.status_is_sync();
 }
 
 void phy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])
@@ -453,6 +448,42 @@ void phy::set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedi
 void phy::set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT* tdd)
 {
   memcpy(&config.common.tdd_cnfg, tdd, sizeof(LIBLTE_RRC_TDD_CONFIG_STRUCT));
+}
+
+void phy::set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2)
+{
+  if(sib2->mbsfn_subfr_cnfg_list_size > 1) {
+    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_subfr_cnfg_list_size);
+  }
+  if(sib2->mbsfn_subfr_cnfg_list_size > 0) {
+    memcpy(&config.mbsfn.mbsfn_subfr_cnfg, &sib2->mbsfn_subfr_cnfg_list[0], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
+    workers_common.build_mch_table();
+  }
+}
+
+void phy::set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13)
+{
+  memcpy(&config.mbsfn.mbsfn_notification_cnfg, &sib13->mbsfn_notification_config, sizeof(LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT));
+  if(sib13->mbsfn_area_info_list_r9_size > 1) {
+    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9_size);
+  }
+  if(sib13->mbsfn_area_info_list_r9_size > 0) {
+    memcpy(&config.mbsfn.mbsfn_area_info, &sib13->mbsfn_area_info_list_r9[0], sizeof(LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT));
+    workers_common.build_mcch_table();
+  }
+}
+
+void phy::set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch)
+{
+  memcpy(&config.mbsfn.mcch, mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+  mac->set_mbsfn_config(config.mbsfn.mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size);
+  workers_common.set_mch_period_stop(config.mbsfn.mcch.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9);
+  workers_common.set_mcch(); 
+}
+
+void phy::set_mch_period_stop(uint32_t stop)
+{
+  workers_common.set_mch_period_stop(stop);
 }
 
 }

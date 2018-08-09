@@ -46,16 +46,13 @@ void srslte_phy_log_register_handler(void *ctx, phy_log_handler_t handler) {
 }
 
  void srslte_phy_log_print(phy_logger_level_t log_level, const char *format, ...) {
+  char tmp[256];
   va_list   args;
   va_start(args, format);
   if (phy_log_handler) {
-    char *args_msg = NULL;
-    if(vasprintf(&args_msg, format, args) > 0) {
-      phy_log_handler(log_level, callback_ctx, args_msg);
+    if(vsnprintf(tmp, 256, format, args) > 0) {
+      phy_log_handler(log_level, callback_ctx, tmp);
     }
-    if (args_msg) {
-      free(args_msg); 
-    }
-  } 
+  }
   va_end(args);
 }

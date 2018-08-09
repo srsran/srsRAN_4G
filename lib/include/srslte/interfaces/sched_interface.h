@@ -80,7 +80,10 @@ public:
     uint32_t maxharq_msg3tx;
     uint32_t n1pucch_an;
     uint32_t delta_pucch_shift; 
-    
+
+    // If non-negative, statically allocate N prbs at the edges of the uplink for PUCCH
+    int      nrb_pucch;
+
     uint32_t nrb_cqi; 
     uint32_t ncs_an;
     
@@ -129,6 +132,22 @@ public:
     uint32_t nbytes;
   } dl_sched_pdu_t; 
   
+  
+  typedef struct {
+      uint32_t lcid;
+      uint32_t lcid_buffer_size;
+      uint32_t stop;
+      uint8_t *mtch_payload;
+  } dl_mtch_sched_t;
+  
+  typedef struct {
+    dl_sched_pdu_t pdu[20];
+    dl_mtch_sched_t mtch_sched[8];
+    uint32_t num_mtch_sched;
+    uint8_t *mcch_payload;
+    uint32_t current_sf_allocation_num;
+  } dl_pdu_mch_t; 
+ 
   typedef struct {
     uint32_t              rnti; 
     srslte_dci_format_t   dci_format;

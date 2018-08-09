@@ -104,6 +104,12 @@ void srslte_vec_lut_sss(const short *x, const unsigned short *lut, short *y, con
   srslte_vec_lut_sss_simd(x, lut, y, len);
 }
 
+void srslte_vec_lut_sis(const short *x, const unsigned int *lut, short *y, const uint32_t len) {
+  for (int i=0; i < len; i++) {
+    y[lut[i]] = x[i];
+  }
+}
+
 void *srslte_vec_malloc(uint32_t size) {
   void *ptr;
   if (posix_memalign(&ptr, SRSLTE_SIMD_BIT_ALIGN, size)) {
@@ -133,7 +139,7 @@ void srslte_vec_fprint_c(FILE *stream, cf_t *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
-    fprintf(stream, "%+2.2f%+2.2fi, ", __real__ x[i], __imag__ x[i]);
+    fprintf(stream, "%+2.5f%+2.5fi, ", __real__ x[i], __imag__ x[i]);
   }
   fprintf(stream, "];\n");
 }
@@ -362,6 +368,10 @@ uint32_t srslte_vec_max_fi(const float *x, const uint32_t len) {
   return srslte_vec_max_fi_simd(x, len);
 }
 
+uint32_t srslte_vec_max_abs_fi(const float *x, const uint32_t len) {
+  return srslte_vec_max_abs_fi_simd(x, len);
+}
+
 // CP autocorr
 uint32_t srslte_vec_max_abs_ci(const cf_t *x, const uint32_t len) {
   return srslte_vec_max_ci_simd(x, len);
@@ -421,8 +431,8 @@ void srslte_vec_quant_sus(const int16_t *in, uint16_t *out, const float gain, co
   }
 }
 
-void srs_vec_cf_cpy(const cf_t *dst, cf_t *src, int len) {
-  srslte_vec_cp_simd(dst, src, len);
+void srs_vec_cf_cpy(const cf_t *src, cf_t *dst, int len) {
+  srslte_vec_cp_simd(src, dst, len);
 }
 
 void srslte_vec_interleave(const cf_t *x, const cf_t *y, cf_t *z, const int len) {
@@ -431,4 +441,8 @@ void srslte_vec_interleave(const cf_t *x, const cf_t *y, cf_t *z, const int len)
 
 void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z, const int len) {
   srslte_vec_interleave_add_simd(x, y, z, len);
+}
+
+void srslte_vec_apply_cfo(const cf_t *x, float cfo, cf_t *z, int len) {
+  srslte_vec_apply_cfo_simd(x, cfo, z, len);
 }

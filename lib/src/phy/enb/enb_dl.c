@@ -70,6 +70,11 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], u
       }
     }
 
+    if (srslte_ofdm_tx_init_mbsfn(&q->ifft_mbsfn, SRSLTE_CP_EXT, q->sf_symbols[0], out_buffer[0], max_prb)) {
+      fprintf(stderr, "Error initiating FFT \n");
+      goto clean_exit;
+    }
+
     if (srslte_pbch_init(&q->pbch)) {
       fprintf(stderr, "Error creating PBCH object\n");
       goto clean_exit;
@@ -82,7 +87,15 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], u
       fprintf(stderr, "Error creating PHICH object\n");
       goto clean_exit;
     }
+    int mbsfn_area_id = 1;
+    
+    
+    if (srslte_pmch_init(&q->pmch, max_prb)) {
+      fprintf(stderr, "Error creating PMCH object\n");
+    }
+    srslte_pmch_set_area_id(&q->pmch, mbsfn_area_id);
 
+    
     if (srslte_pdcch_init_enb(&q->pdcch, max_prb)) {
       fprintf(stderr, "Error creating PDCCH object\n");
       goto clean_exit;
@@ -97,7 +110,11 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], u
       fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
       goto clean_exit;
     }
-    
+
+    if (srslte_refsignal_mbsfn_init(&q->mbsfnr_signal, max_prb)) {
+      fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
+      goto clean_exit;
+    }    
     ret = SRSLTE_SUCCESS;
     
   } else {
@@ -117,15 +134,16 @@ void srslte_enb_dl_free(srslte_enb_dl_t *q)
     for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
       srslte_ofdm_tx_free(&q->ifft[i]);
     }
+    srslte_ofdm_tx_free(&q->ifft_mbsfn);
     srslte_regs_free(&q->regs);
     srslte_pbch_free(&q->pbch);
     srslte_pcfich_free(&q->pcfich);
     srslte_phich_free(&q->phich);
     srslte_pdcch_free(&q->pdcch);
     srslte_pdsch_free(&q->pdsch);
-    
+    srslte_pmch_free(&q->pmch);
     srslte_refsignal_free(&q->csr_signal);
-    
+    srslte_refsignal_free(&q->mbsfnr_signal);
     for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
       if (q->sf_symbols[i]) {
         free(q->sf_symbols[i]);
@@ -154,11 +172,23 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
         return SRSLTE_ERROR;
       }
       for (int i = 0; i < q->cell.nof_ports; i++) {
+
+        q->slot1_symbols[i] = &q->sf_symbols[i][SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, SRSLTE_CP_NORM)];
+
         if (srslte_ofdm_tx_set_prb(&q->ifft[i], q->cell.cp, q->cell.nof_prb)) {
           fprintf(stderr, "Error re-planning iFFT (%d)\n", i);
           return SRSLTE_ERROR;
         }
       }
+    
+      if (srslte_ofdm_tx_set_prb(&q->ifft_mbsfn, SRSLTE_CP_EXT, q->cell.nof_prb)) {
+        fprintf(stderr, "Error re-planning ifft_mbsfn\n");
+        return SRSLTE_ERROR;
+      }
+      
+      srslte_ofdm_set_non_mbsfn_region(&q->ifft_mbsfn, 2);
+      //srslte_ofdm_set_normalize(&q->ifft_mbsfn, true);
+      
       if (srslte_pbch_set_cell(&q->pbch, q->cell)) {
         fprintf(stderr, "Error creating PBCH object\n");
         return SRSLTE_ERROR;
@@ -181,9 +211,19 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
         fprintf(stderr, "Error creating PDSCH object\n");
         return SRSLTE_ERROR;
       }
+      
+      if (srslte_pmch_set_cell(&q->pmch, q->cell)) {
+        fprintf(stderr, "Error creating PMCH object\n");
+        return SRSLTE_ERROR;
+      }
 
       if (srslte_refsignal_cs_set_cell(&q->csr_signal, q->cell)) {
         fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
+        return SRSLTE_ERROR;
+      }
+      int mbsfn_area_id = 1;
+      if (srslte_refsignal_mbsfn_set_cell(&q->mbsfnr_signal, q->cell, mbsfn_area_id)) {
+        fprintf(stderr, "Error initializing MBSFNR signal (%d)\n",ret);
         return SRSLTE_ERROR;
       }
       /* Generate PSS/SSS signals */
@@ -200,6 +240,11 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
 }
 
 
+
+void srslte_enb_dl_set_non_mbsfn_region(srslte_enb_dl_t *q, uint8_t non_mbsfn_region)
+{
+  srslte_ofdm_set_non_mbsfn_region(&q->ifft_mbsfn, non_mbsfn_region);
+}
 
 void srslte_enb_dl_set_amp(srslte_enb_dl_t *q, float amp)
 {
@@ -331,18 +376,31 @@ void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti)
   srslte_enb_dl_put_refs(q, sf_idx);
   srslte_enb_dl_put_mib(q, tti);
   srslte_enb_dl_put_pcfich(q, sf_idx);
-  
+
+}
+
+void srslte_enb_dl_put_mbsfn_base(srslte_enb_dl_t *q, uint32_t tti) 
+{
+  uint32_t sf_idx1 = tti%10;
+  srslte_enb_dl_put_pcfich(q, sf_idx1);
+  srslte_refsignal_mbsfn_put_sf(q->cell, 0,q->csr_signal.pilots[0][sf_idx1], q->mbsfnr_signal.pilots[0][sf_idx1], q->sf_symbols[0]);
 }
 
 void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q)
 {
   // TODO: PAPR control
-  float norm_factor = (float) sqrt(q->cell.nof_prb)/15/sqrt(q->ifft[0].symbol_sz);
-
+  float norm_factor = 0.05f / sqrt(q->cell.nof_prb);
   for (int i = 0; i < q->cell.nof_ports; i++) {
-    srslte_ofdm_tx_sf(&q->ifft[i]);
-    srslte_vec_sc_prod_cfc(q->ifft[i].out_buffer, q->tx_amp*norm_factor, q->ifft[i].out_buffer, (uint32_t) SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+    srslte_ofdm_tx_sf(&q->ifft[i]);    
+    srslte_vec_sc_prod_cfc(q->ifft[i].out_buffer, norm_factor, q->ifft[i].out_buffer, (uint32_t) SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
   }
+}
+
+void srslte_enb_dl_gen_signal_mbsfn(srslte_enb_dl_t *q)
+{
+  float norm_factor = 0.05f / sqrt(q->cell.nof_prb);
+  srslte_ofdm_tx_sf(&q->ifft_mbsfn);
+  srslte_vec_sc_prod_cfc(q->ifft_mbsfn.out_buffer, norm_factor, q->ifft_mbsfn.out_buffer, (uint32_t) SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
 }
 
 int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, uint16_t rnti)
@@ -359,14 +417,16 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant,
                                srslte_dci_format_t format, srslte_dci_location_t location,
                                uint16_t rnti, uint32_t sf_idx) 
 {
-  srslte_dci_msg_t dci_msg;
+  srslte_dci_msg_t dci_msg = {};
   
   bool rnti_is_user = true; 
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || (rnti >= SRSLTE_RARNTI_START && rnti <= SRSLTE_RARNTI_END)) {
     rnti_is_user = false; 
   }
-  
-  srslte_dci_msg_pack_pdsch(grant, format, &dci_msg, q->cell.nof_prb, q->cell.nof_ports, rnti_is_user);
+
+  if (srslte_dci_msg_pack_pdsch(grant, format, &dci_msg, q->cell.nof_prb, q->cell.nof_ports, rnti_is_user)) {
+    fprintf(stderr, "Error packing DCI grant\n");
+  }
   if (srslte_pdcch_encode(&q->pdcch, &dci_msg, location, rnti, q->sf_symbols, sf_idx, q->cfi)) {
     fprintf(stderr, "Error encoding DCI message\n");
     return SRSLTE_ERROR;
@@ -379,7 +439,7 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
                                srslte_dci_location_t location,
                                uint16_t rnti, uint32_t sf_idx) 
 {
-  srslte_dci_msg_t dci_msg;
+  srslte_dci_msg_t dci_msg = {};
 
   srslte_dci_msg_pack_pusch(grant, &dci_msg, q->cell.nof_prb);
   if (srslte_pdcch_encode(&q->pdcch, &dci_msg, location, rnti, q->sf_symbols, sf_idx, q->cfi)) {
@@ -438,7 +498,23 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srs
   return SRSLTE_SUCCESS; 
 }
 
-
+int srslte_enb_dl_put_pmch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer, uint32_t sf_idx, uint8_t *data_mbms)
+{
+   /* Encode PMCH */
+         
+  int mbsfn_area_id = 1;
+  if (srslte_pmch_cfg(&q->pmch_cfg, q->cell, grant, q->cfi, sf_idx)) {
+    fprintf(stderr, "Error configuring PMCH\n");
+    return SRSLTE_ERROR;
+  } 
+  /* Encode PMCH */
+  if (srslte_pmch_encode(&q->pmch, &q->pmch_cfg, softbuffer, data_mbms, mbsfn_area_id, q->sf_symbols)) {
+    fprintf(stderr, "Error encoding PDSCH\n");
+    return SRSLTE_ERROR;
+  }
+    
+ return SRSLTE_SUCCESS; 
+}
 
 void srslte_enb_dl_save_signal(srslte_enb_dl_t *q, srslte_softbuffer_tx_t *softbuffer, uint8_t *data, uint32_t tti, uint32_t rv_idx, uint16_t rnti, uint32_t cfi)
 {

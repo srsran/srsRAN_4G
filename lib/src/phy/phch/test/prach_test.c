@@ -123,6 +123,7 @@ int main(int argc, char **argv) {
 
   srslte_prach_free(p);
   free(p);
+  srslte_dft_exit();
 
   printf("Done\n");
   exit(0);

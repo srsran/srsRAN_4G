@@ -278,6 +278,7 @@ int main(int argc, char **argv) {
   free(symbols);
   free(llr);
   free(llr_c);
+  free(llr_s);
   free(data_rx);
   free(data_rx2);
   

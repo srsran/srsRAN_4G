@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include "srslte/common/gen_mch_tables.h"
 #include <srslte/phy/common/phy_common.h>
 #include "srslte/phy/io/filesink.h"
 #include "srslte/srslte.h"
@@ -66,6 +67,7 @@ pthread_t plot_thread;
 sem_t plot_sem; 
 uint32_t plot_sf_idx=0;
 bool plot_track = true; 
+bool enable_mbsfn_plot = false;
 #endif
 char *output_file_name;
 #define PRINT_CHANGE_SCHEDULIGN
@@ -103,6 +105,7 @@ typedef struct {
   int decimate;
   int32_t mbsfn_area_id;
   uint8_t  non_mbsfn_region;
+  uint8_t  mbsfn_sf_mask;
   int verbose;
 }prog_args_t;
 
@@ -138,6 +141,7 @@ void args_default(prog_args_t *args) {
   args->cpu_affinity = -1;
   args->mbsfn_area_id = -1;
   args->non_mbsfn_region = 2;
+  args->mbsfn_sf_mask = 32;
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -185,7 +189,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDFRnvrfuUsSZyWMN")) != -1) {
+  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDFRnvrfuUsSZyWMNB")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -275,6 +279,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'N':
       args->non_mbsfn_region = atoi(argv[optind]);
       break;
+    case 'B':
+      args->mbsfn_sf_mask = atoi(argv[optind]);
+      break;
     default:
       usage(args, argv[0]);
       exit(-1);
@@ -357,6 +364,12 @@ int main(int argc, char **argv) {
 
   parse_args(&prog_args, argc, argv);
   
+#ifndef DISABLE_GRAPHICS
+  if(prog_args.mbsfn_area_id > -1) {
+    enable_mbsfn_plot = true;
+  }
+#endif
+  
   for (int i = 0; i< SRSLTE_MAX_CODEWORDS; i++) {
     data[i] = srslte_vec_malloc(sizeof(uint8_t)*1500*8);
     if (!data[i]) {
@@ -364,8 +377,11 @@ int main(int argc, char **argv) {
       go_exit = true;
     }
   }
-
-  
+  uint8_t mch_table[10];
+  bzero(&mch_table[0], sizeof(uint8_t)*10);
+  if(prog_args.mbsfn_area_id < -1) {
+    generate_mcch_table(mch_table, prog_args.mbsfn_sf_mask);
+  }
   if(prog_args.cpu_affinity > -1) {
     
     cpu_set_t cpuset;
@@ -385,7 +401,7 @@ int main(int argc, char **argv) {
   }
   
   if (prog_args.net_port > 0) {
-    if (srslte_netsink_init(&net_sink, prog_args.net_address, prog_args.net_port, SRSLTE_NETSINK_TCP)) {
+    if (srslte_netsink_init(&net_sink, prog_args.net_address, prog_args.net_port, SRSLTE_NETSINK_UDP)) {
       fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address, prog_args.net_port);
       exit(-1);
     }
@@ -590,8 +606,13 @@ int main(int argc, char **argv) {
   }
 
 #ifndef DISABLE_RF
-  if (prog_args.rf_gain < 0) {
-    srslte_ue_sync_start_agc(&ue_sync, srslte_rf_set_rx_gain_th_wrapper_, cell_detect_config.init_agc);
+  if (prog_args.rf_gain < 0 && !prog_args.input_file_name) {
+    srslte_rf_info_t *rf_info = srslte_rf_get_info(&rf);
+    srslte_ue_sync_start_agc(&ue_sync,
+                             srslte_rf_set_rx_gain_th_wrapper_,
+                             rf_info->min_rx_gain,
+                             rf_info->max_rx_gain,
+                             cell_detect_config.init_agc);
   }
 #endif
 #ifdef PRINT_CHANGE_SCHEDULIGN
@@ -668,7 +689,7 @@ int main(int argc, char **argv) {
             decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, search only in appropiate places */
-            if ((sfidx == 5 && (sfn%2)==0) || sfidx == 1) {
+            if ((sfidx == 5 && (sfn%2)==0) ||mch_table[sfidx] == 1) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 
@@ -677,7 +698,7 @@ int main(int argc, char **argv) {
 
           gettimeofday(&t[1], NULL);
           if (decode_pdsch) {
-            if(sfidx != 1 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
+            if(mch_table[sfidx] == 0 || prog_args.mbsfn_area_id < 0){ // Not an MBSFN subframe
               if (cell.nof_ports == 1) {
                 /* Transmission mode 1 */
                 n = srslte_ue_dl_decode(&ue_dl, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
@@ -864,6 +885,8 @@ int main(int argc, char **argv) {
           PRINT_LINE_ADVANCE_CURSOR();
           ue_dl.pdsch_pkt_errors = 0;
           ue_dl.pdsch_pkts_total = 0;
+          ue_dl.pmch_pkt_errors = 0;
+          ue_dl.pmch_pkts_total = 0;
           /*
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0;
@@ -944,7 +967,7 @@ int main(int argc, char **argv) {
 
 
 plot_real_t p_sync, pce;
-plot_scatter_t  pscatequal, pscatequal_pdcch;
+plot_scatter_t  pscatequal, pscatequal_pdcch, pscatequal_pmch;
 
 float tmp_plot[110*15*2048];
 float tmp_plot2[110*15*2048];
@@ -963,7 +986,16 @@ void *plot_thread_run(void *arg) {
   plot_scatter_setYAxisScale(&pscatequal, -4, 4);
 
   plot_scatter_addToWindowGrid(&pscatequal, (char*)"pdsch_ue", 0, 0);
-
+  
+  
+  if(enable_mbsfn_plot) {
+    plot_scatter_init(&pscatequal_pmch);
+    plot_scatter_setTitle(&pscatequal_pmch, "PMCH - Equalized Symbols");
+    plot_scatter_setXAxisScale(&pscatequal_pmch, -4, 4);
+    plot_scatter_setYAxisScale(&pscatequal_pmch, -4, 4);
+    plot_scatter_addToWindowGrid(&pscatequal_pmch, (char*)"pdsch_ue", 0, 1);
+  }
+  
   if (!prog_args.disable_plots_except_constellation) {
     plot_real_init(&pce);
     plot_real_setTitle(&pce, "Channel Response - Magnitude");
@@ -979,7 +1011,7 @@ void *plot_thread_run(void *arg) {
     plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
     plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
 
-    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue",    0, 1);
+    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue",    0, (enable_mbsfn_plot)?2:1);
     plot_real_addToWindowGrid(&pscatequal_pdcch, (char*)"pdsch_ue", 1, 0);
     plot_real_addToWindowGrid(&p_sync, (char*)"pdsch_ue", 1, 1);
   }
@@ -988,6 +1020,7 @@ void *plot_thread_run(void *arg) {
     sem_wait(&plot_sem);
     
     uint32_t nof_symbols = ue_dl.pdsch_cfg.nbits[0].nof_re;
+    uint32_t nof_symbols_pmch = ue_dl.pmch_cfg.nbits[0].nof_re;
     if (!prog_args.disable_plots_except_constellation) {      
       for (i = 0; i < nof_re; i++) {
         tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
@@ -1031,6 +1064,10 @@ void *plot_thread_run(void *arg) {
     
     plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d[0], nof_symbols);
     
+    if(enable_mbsfn_plot) {
+      plot_scatter_setNewData(&pscatequal_pmch, ue_dl.pmch.d, nof_symbols_pmch);
+    }
+
     if (plot_sf_idx == 1) {
       if (prog_args.net_port_signal > 0) {
         srslte_netsink_write(&net_sink_signal, &sf_buffer[srslte_ue_sync_sf_len(&ue_sync)/7], 

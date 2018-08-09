@@ -151,14 +151,19 @@ struct rlc_status_pdu_t{
 class rlc_common
 {
 public:
+
+  // Size of the Uplink buffer in number of PDUs
+  const static int RLC_BUFFER_NOF_PDU = 128;
+
+  virtual ~rlc_common() {}
   virtual void init(srslte::log                       *rlc_entity_log_,
                     uint32_t                           lcid_,
                     srsue::pdcp_interface_rlc         *pdcp_,
                     srsue::rrc_interface_rlc          *rrc_,
                     srslte::mac_interface_timers      *mac_timers_) = 0;
   virtual void configure(srslte_rlc_config_t cnfg) = 0;
-  virtual void reset() = 0;
   virtual void stop() = 0;
+  virtual void reestablish() = 0;
   virtual void empty_queue() = 0; 
 
   virtual rlc_mode_t    get_mode() = 0;
@@ -166,6 +171,7 @@ public:
 
   // PDCP interface
   virtual void write_sdu(byte_buffer_t *sdu) = 0;
+  virtual void write_sdu_nb(byte_buffer_t *sdu) = 0;
 
   // MAC interface
   virtual uint32_t get_buffer_state() = 0;

@@ -89,6 +89,8 @@ typedef struct SRSLTE_API {
 
   srslte_sch_t dl_sch;
 
+  void *coworker_ptr;
+
 } srslte_pdsch_t;
 
 
@@ -166,6 +168,8 @@ SRSLTE_API void srslte_pdsch_set_max_noi(srslte_pdsch_t *q,
                                          uint32_t max_iter);
 
 SRSLTE_API float srslte_pdsch_last_noi(srslte_pdsch_t *q);
+
+SRSLTE_API int srslte_pdsch_enable_coworker(srslte_pdsch_t *q);
 
 SRSLTE_API uint32_t srslte_pdsch_last_noi_cw(srslte_pdsch_t *q,
                                              uint32_t cw_idx);

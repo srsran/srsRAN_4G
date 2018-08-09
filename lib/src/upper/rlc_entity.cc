@@ -33,34 +33,49 @@ rlc_entity::rlc_entity()
 {
 }
 
-void rlc_entity::init(rlc_mode_t                   mode,
+void rlc_entity::init(rlc_mode_t                   mode_,
                       log                         *rlc_entity_log_,
                       uint32_t                     lcid_,
                       srsue::pdcp_interface_rlc   *pdcp_,
                       srsue::rrc_interface_rlc    *rrc_,
-                      mac_interface_timers        *mac_timers_)
+                      mac_interface_timers        *mac_timers_,
+                      int                          buffer_size)
 {
-  tm.reset();
-  um.reset();
-  am.reset();
 
-  switch(mode)
-  {
-  case RLC_MODE_TM:
-    rlc = &tm;
-    break;
-  case RLC_MODE_UM:
-    rlc = &um;
-    break;
-  case RLC_MODE_AM:
-    rlc = &am;
-    break;
-  default:
-    rlc_entity_log_->error("Invalid RLC mode - defaulting to TM\n");
-    rlc = &tm;
-    break;
+  if (buffer_size <= 0) {
+    buffer_size = rlc_common::RLC_BUFFER_NOF_PDU;
   }
-
+  // Create the RLC instance the first time init() is called.
+  // If called to reestablished, the entity is stopped but not destroyed
+  // Next call to init() must use same mode
+  if (rlc == NULL) {
+    switch(mode_)
+    {
+      case RLC_MODE_TM:
+        rlc = new rlc_tm((uint32_t) buffer_size);
+        break;
+      case RLC_MODE_UM:
+        rlc = new rlc_um((uint32_t) buffer_size);
+        break;
+      case RLC_MODE_AM:
+        rlc = new rlc_am((uint32_t) buffer_size);
+        break;
+      default:
+        rlc_entity_log_->error("Invalid RLC mode - defaulting to TM\n");
+        rlc = new rlc_tm((uint32_t) buffer_size);
+        break;
+    }
+    lcid = lcid_;
+    mode = mode_;
+  } else {
+    if (lcid != lcid_) {
+      rlc_entity_log_->warning("Reestablishing RLC instance. LCID changed from %d to %d\n", lcid, lcid_);
+      lcid = lcid_;
+    }
+    if (mode != mode_) {
+      rlc_entity_log_->console("Error reestablishing RLC instance. Mode changed from %d to %d. \n", mode, mode_);
+    }
+  }
   rlc->init(rlc_entity_log_, lcid_, pdcp_, rrc_, mac_timers_);
 }
 
@@ -70,19 +85,16 @@ void rlc_entity::configure(srslte_rlc_config_t cnfg)
     rlc->configure(cnfg);
 }
 
+// Reestablishment stops the entity but does not destroy it. Mode will not change
 void rlc_entity::reestablish() {
-  rlc->reset();
+  rlc->reestablish();
 }
 
-void rlc_entity::reset()
-{
-  rlc->reset();
-  rlc = NULL;
-}
-
+// A call to stop() stops the entity and clears deletes the instance. Next time this entity can be used for other mode.
 void rlc_entity::stop()
 {
   rlc->stop();
+  delete rlc;
   rlc = NULL;
 }
 
@@ -117,6 +129,12 @@ void rlc_entity::write_sdu(byte_buffer_t *sdu)
 {
   if(rlc)
     rlc->write_sdu(sdu);
+}
+
+void rlc_entity::write_sdu_nb(byte_buffer_t *sdu)
+{
+  if(rlc)
+    rlc->write_sdu_nb(sdu);
 }
 
 // MAC interface

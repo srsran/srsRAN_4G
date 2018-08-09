@@ -48,3 +48,11 @@ link_directories(
 ########################################################################
 add_subdirectory(src)
 add_subdirectory(test)
+
+########################################################################
+# Default configuration files
+########################################################################
+install(FILES enb.conf.example DESTINATION ${DATA_DIR})
+install(FILES drb.conf.example DESTINATION ${DATA_DIR})
+install(FILES rr.conf.example DESTINATION ${DATA_DIR})
+install(FILES sib.conf.example DESTINATION ${DATA_DIR})

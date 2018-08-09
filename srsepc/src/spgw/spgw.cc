@@ -329,21 +329,20 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   bool ip_found = false;
   srslte::gtpc_f_teid_ie enb_fteid;
 
-  struct timeval t_now, t_delta;
- 
-  version = msg->msg[0]>>4;
-  ((uint8_t*)&dest_ip)[0] = msg->msg[16]; 
-  ((uint8_t*)&dest_ip)[1] = msg->msg[17];
-  ((uint8_t*)&dest_ip)[2] = msg->msg[18];
-  ((uint8_t*)&dest_ip)[3] = msg->msg[19];
-
-  dest_addr.s_addr = dest_ip;
-
-  //m_spgw_log->console("IP version: %d\n", version);
-  //m_spgw_log->console("Received packet to IP: %s\n", inet_ntoa(dest_addr));
+  struct iphdr *iph = (struct iphdr *) msg->msg;
+  if(iph->version != 4)
+  {
+    m_spgw_log->warning("IPv6 not supported yet.\n");
+    return;
+  }
+  if(iph->tot_len < 20)
+  {
+    m_spgw_log->warning("Invalid IP header length.\n");
+    return;
+  }
 
   pthread_mutex_lock(&m_mutex);
-  gtp_fteid_it = m_ip_to_teid.find(dest_ip);
+  gtp_fteid_it = m_ip_to_teid.find(iph->daddr);
   if(gtp_fteid_it != m_ip_to_teid.end())
   {
     ip_found = true;
@@ -370,7 +369,7 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   header.teid         = enb_fteid.teid;
 
   //Write header into packet
-  if(!srslte::gtpu_write_header(&header, msg))
+  if(!srslte::gtpu_write_header(&header, msg, m_spgw_log))
   {
     m_spgw_log->console("Error writing GTP-U header on PDU\n");
   }
@@ -396,7 +395,7 @@ spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
 {
   //m_spgw_log->console("Received PDU from S1-U. Bytes=%d\n",msg->N_bytes);
   srslte::gtpu_header_t header;
-  srslte::gtpu_read_header(msg, &header);
+  srslte::gtpu_read_header(msg, &header, m_spgw_log);
  
   //m_spgw_log->console("TEID 0x%x. Bytes=%d\n", header.teid, msg->N_bytes);
   int n = write(m_sgi_if, msg->msg, msg->N_bytes);
@@ -537,6 +536,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   cs_resp->eps_bearer_context_created.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present=true;
   cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid =  tunnel_ctx->up_user_fteid;
+
   //Fill in the PAA
   cs_resp->paa_present = true;
   cs_resp->paa.pdn_type = srslte::GTPC_PDN_TYPE_IPV4;

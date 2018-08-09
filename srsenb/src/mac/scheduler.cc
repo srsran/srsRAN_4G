@@ -43,7 +43,7 @@ namespace srsenb {
  * Initialization and sched configuration functions 
  * 
  *******************************************************/
-sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_rbg(0), si_n_rbg(0), rar_n_rb(0),
+sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_rbg(0), si_n_rbg(0), rar_n_rbg(0),
                  nof_rbg(0), sf_idx(0), sfn(0), current_cfi(0) {
   current_tti = 0;
   log_h = NULL;
@@ -57,22 +57,21 @@ sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_
   bzero(&sched_cfg, sizeof(sched_cfg));
   bzero(&common_locations, sizeof(common_locations));
   bzero(&pdsch_re, sizeof(pdsch_re));
-  bzero(&mutex, sizeof(mutex));
 
   for (int i = 0; i < 3; i++) {
     bzero(rar_locations[i], sizeof(sched_ue::sched_dci_cce_t) * 10);
   }
-
-  pthread_mutex_init(&mutex, NULL);
-  pthread_mutex_init(&mutex2, NULL);
   reset();
+
+  pthread_rwlock_init(&rwlock, NULL);
 }
 
 sched::~sched()
 {
   srslte_regs_free(&regs);
-  pthread_mutex_destroy(&mutex);
-  pthread_mutex_destroy(&mutex2);
+  pthread_rwlock_wrlock(&rwlock);
+  pthread_rwlock_unlock(&rwlock);
+  pthread_rwlock_destroy(&rwlock);
 }
 
 void sched::init(rrc_interface_mac *rrc_, srslte::log* log)
@@ -92,9 +91,11 @@ int sched::reset()
   bzero(pending_msg3, sizeof(pending_msg3_t)*10);
   bzero(pending_rar, sizeof(sched_rar_t)*SCHED_MAX_PENDING_RAR);
   bzero(pending_sibs, sizeof(sched_sib_t)*MAX_SIBS); 
+  configured = false;
+  pthread_rwlock_wrlock(&rwlock);
   ue_db.clear();
-  configured = false; 
-  return 0; 
+  pthread_rwlock_unlock(&rwlock);
+  return 0;
 }
 
 void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
@@ -118,8 +119,6 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
     return -1;
   }
 
-  pthread_mutex_lock(&mutex);
-  
   memcpy(&cfg, cell_cfg, sizeof(sched_interface::cell_cfg_t));
     
   // Get DCI locations 
@@ -129,8 +128,8 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
   }
 
   P = srslte_ra_type0_P(cfg.cell.nof_prb);
-  si_n_rbg = 4/P; 
-  rar_n_rb = 3; 
+  si_n_rbg  = ceilf((float) 4/P);
+  rar_n_rbg = ceilf((float) 3/P);
   nof_rbg = (uint32_t) ceil((float) cfg.cell.nof_prb/P);
       
   // Compute Common locations for DCI for each CFI
@@ -147,9 +146,7 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
   }  
   configured = true;
   
-  pthread_mutex_unlock(&mutex);
-  
-  return 0; 
+  return 0;
 }
 
 
@@ -161,223 +158,211 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
 
 int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t *ue_cfg)
 {
-  pthread_mutex_lock(&mutex);
-  
-   // Add or config user 
-  ue_db[rnti].set_cfg(rnti, ue_cfg, &cfg, &regs, log_h);   
+   // Add or config user
+  pthread_rwlock_rdlock(&rwlock);
+  ue_db[rnti].set_cfg(rnti, ue_cfg, &cfg, &regs, log_h);
   ue_db[rnti].set_max_mcs(sched_cfg.pusch_max_mcs, sched_cfg.pdsch_max_mcs);
   ue_db[rnti].set_fixed_mcs(sched_cfg.pusch_mcs, sched_cfg.pdsch_mcs);
+  pthread_rwlock_unlock(&rwlock);
 
-  pthread_mutex_unlock(&mutex);
-  return 0; 
+  return 0;
 }
 
 int sched::ue_rem(uint16_t rnti)
 {
-  pthread_mutex_lock(&mutex);
-  pthread_mutex_lock(&mutex2);
   int ret = 0;
-  if (ue_db.count(rnti)) {         
+  pthread_rwlock_wrlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db.erase(rnti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex2);
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 bool sched::ue_exists(uint16_t rnti) 
 {
-  return (ue_db.count(rnti) == 1); 
+  pthread_rwlock_rdlock(&rwlock);
+  bool ret = (ue_db.count(rnti) == 1);
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
-  pthread_mutex_lock(&mutex);
-  if (ue_db.count(rnti)) {         
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].phy_config_enabled(current_tti, enabled);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
   }
-  pthread_mutex_unlock(&mutex);
+  pthread_rwlock_unlock(&rwlock);
 }
 
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t *cfg)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].set_bearer_cfg(lc_id, cfg);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
+  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
 int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
-  pthread_mutex_lock(&mutex);
-  pthread_mutex_lock(&mutex2);
   int ret = 0;
-  if (ue_db.count(rnti)) {         
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].rem_bearer(lc_id);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex2);
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
-  pthread_mutex_lock(&mutex);
-  uint32_t ret = 0; 
-  if (ue_db.count(rnti)) {         
+  uint32_t ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ret = ue_db[rnti].get_pending_dl_new_data(current_tti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
-  pthread_mutex_lock(&mutex);
-  uint32_t ret = 0; 
-  if (ue_db.count(rnti)) {         
+  uint32_t ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ret = ue_db[rnti].get_pending_ul_new_data(current_tti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
-/* \Warning: This function is not mutexed because it can produce late changes on the buffer state while
- * the scheduler is already allocating data, resulting in empty grants.
- * Ideally we would like the scheduler to query the RLC for buffer states in order to get the most updated
- * buffer state with the minimum overhead. However, the current architecture is designed to be compliant
- * with the FAPI interface
- *
- * We add a new mutex used only in ue_rem to avoid the UE being removed in between the access to
- * ue_db.count() and the access to the std::map.
- */
 int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  pthread_mutex_lock(&mutex2);
   int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
     ue_db[rnti].dl_buffer_state(lc_id, tx_queue, retx_queue);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex2);
+  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
-/* \Warning Read comment in dl_rlc_buffer_state() */
 int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
 {
-  pthread_mutex_lock(&mutex2);
   int ret = 0;
-  if (ue_db.count(rnti)) {         
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].mac_buffer_state(ce_code);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex2);
+  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
 int sched::dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) {
-  pthread_mutex_lock(&mutex);
   int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
     ue_db[rnti].set_dl_ant_info(dl_ant_info);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
+  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ret = ue_db[rnti].set_ack_info(tti, tb_idx, ack);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 int sched::ul_crc_info(uint32_t tti, uint16_t rnti, bool crc)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].set_ul_crc(tti, crc);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].set_dl_ri(tti, cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 int sched::dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
 {
-  pthread_mutex_lock(&mutex);
   int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
     ue_db[rnti].set_dl_pmi(tti, pmi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
+  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
 int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
-  pthread_mutex_lock(&mutex);
   int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
     ue_db[rnti].set_dl_cqi(tti, cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
+  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
@@ -399,90 +384,94 @@ int sched::dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t es
 
 int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].set_ul_cqi(tti, cqi, ul_ch_code);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].ul_buffer_state(lcid, bsr, set_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 int sched::ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].ul_recv_len(lcid, len);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 int sched::ul_phr(uint16_t rnti, int phr)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].ul_phr(phr);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 {
-  pthread_mutex_lock(&mutex);
-  int ret = 0; 
-  if (ue_db.count(rnti)) {         
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].set_sr();;
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_mutex_unlock(&mutex);
-  return ret; 
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 void sched::tpc_inc(uint16_t rnti)
 {
-  if (ue_db.count(rnti)) {         
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].tpc_inc();
   } else {
     Error("User rnti=0x%x not found\n", rnti);    
   }
+  pthread_rwlock_unlock(&rwlock);
 }
 
 void sched::tpc_dec(uint16_t rnti)
 {
-  if (ue_db.count(rnti)) {         
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
     ue_db[rnti].tpc_dec();
   } else {
     Error("User rnti=0x%x not found\n", rnti);    
   }
+  pthread_rwlock_unlock(&rwlock);
 }
 
 /*******************************************************
@@ -545,19 +534,20 @@ int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST])
       } 
       uint32_t n_sf = (current_tti-pending_sibs[i].window_start); 
       if ((i == 0 && (sfn%2) == 0 && sf_idx == 5) ||
-          (i >  0 && n_sf >= (cfg.si_window_ms/nof_tx)*pending_sibs[i].n_tx && sf_idx==1)) 
+          (i >  0 && n_sf >= (cfg.si_window_ms/nof_tx)*pending_sibs[i].n_tx && sf_idx==9)) 
       {
         uint32_t rv = get_rvidx(pending_sibs[i].n_tx);
         
         // Try to allocate DCI first 
-        if (generate_dci(&bc[nof_bc_elems].dci_location, &common_locations[current_cfi-1], bc_aggr_level)) {          
-          if (generate_format1a(start_rbg*P, si_n_rbg*P, cfg.sibs[i].len, rv, &bc[nof_bc_elems].dci) >= 0) {
+        if (generate_dci(&bc[nof_bc_elems].dci_location, &common_locations[current_cfi-1], bc_aggr_level)) {
+          int tbs = generate_format1a(start_rbg*P, si_n_rbg*P, cfg.sibs[i].len, rv, &bc[nof_bc_elems].dci);
+          if (tbs >= (int) cfg.sibs[i].len) {
             bc[nof_bc_elems].index = i; 
             bc[nof_bc_elems].type  = sched_interface::dl_sched_bc_t::BCCH;
-            bc[nof_bc_elems].tbs   = cfg.sibs[i].len; 
+            bc[nof_bc_elems].tbs   = tbs;
             
-            Debug("SCHED: SIB%d, start_rb=%d, n_rb=%d, rv=%d, len=%d, period=%d\n", 
-                  i+1, start_rbg*P, si_n_rbg*P, rv, cfg.sibs[i].len, cfg.sibs[i].period_rf);
+            Debug("SCHED: SIB%d, start_rb=%d, n_rb=%d, rv=%d, len=%d, period=%d, mcs=%d\n",
+                  i+1, start_rbg*P, si_n_rbg*P, rv, cfg.sibs[i].len, cfg.sibs[i].period_rf, bc[nof_bc_elems].dci.mcs_idx);
             
             pending_sibs[i].n_tx++;
             
@@ -588,7 +578,7 @@ int sched::dl_sched_bc(dl_sched_bc_t bc[MAX_BC_LIST])
             bc[nof_bc_elems].tbs  = tbs;
             nof_bc_elems++;
             
-            Info("SCHED: PCH start_rb=%d, tbs=%d\n", start_rbg, tbs);
+            Info("SCHED: PCH start_rb=%d, tbs=%d, mcs=%d\n", start_rbg, tbs, bc[nof_bc_elems].dci.mcs_idx);
 
             avail_rbg -= si_n_rbg;
             start_rbg += si_n_rbg;                   
@@ -610,7 +600,7 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
   int nof_rar_elems = 0; 
   for (uint32_t i=0;i<SCHED_MAX_PENDING_RAR;i++) 
   {
-    if (pending_rar[i].buf_rar > 0 && avail_rbg >= rar_n_rb) 
+    if (pending_rar[i].buf_rar > 0 && avail_rbg >= rar_n_rbg)
     {
       /* Check if we are still within the RAR window, otherwise discard it */
       if (current_tti <= (pending_rar[i].rar_tti + cfg.prach_rar_window + 3)%10240 && current_tti >= pending_rar[i].rar_tti + 3)
@@ -647,8 +637,8 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
                 pending_msg3[pending_tti].n_prb   = n_prb; 
                 pending_msg3[pending_tti].mcs     = rar[nof_rar_elems].grants[nof_grants].grant.trunc_mcs; 
             
-                log_h->info("SCHED: RAR, ra_id=%d, rnti=0x%x, rarnti_idx=%d, start_rb=%d, n_rb=%d, rar_grant_rba=%d, rar_grant_mcs=%d\n", 
-                  pending_rar[j].ra_id, pending_rar[j].rnti, rar_sfidx, start_rbg*P, rar_n_rb, 
+                log_h->info("SCHED: RAR, ra_id=%d, rnti=0x%x, rarnti_idx=%d, start_rb=%d, n_rb=%d, rar_grant_rba=%d, rar_grant_mcs=%d\n",
+                  pending_rar[j].ra_id, pending_rar[j].rnti, rar_sfidx, start_rbg*P, rar_n_rbg*P,
                   rar[nof_rar_elems].grants[nof_grants].grant.rba, 
                   rar[nof_rar_elems].grants[nof_grants].grant.trunc_mcs);
               } else {
@@ -661,11 +651,11 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
           rar[nof_rar_elems].nof_grants = nof_grants; 
           rar[nof_rar_elems].rarnti     = rar_sfidx; 
                   
-          if (generate_format1a(start_rbg*P, rar_n_rb, buf_rar, 0, &rar[nof_rar_elems].dci) >= 0) {
+          if (generate_format1a(start_rbg*P, rar_n_rbg*P, buf_rar, 0, &rar[nof_rar_elems].dci) >= 0) {
             rar[nof_rar_elems].tbs = buf_rar; 
             nof_rar_elems++;
-            avail_rbg -= rar_n_rb;
-            start_rbg += rar_n_rb;           
+            avail_rbg -= rar_n_rbg;
+            start_rbg += rar_n_rbg;
           } else {
             Error("SCHED: Allocating Format1A grant\n");
           }
@@ -743,8 +733,14 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
         }
         Warning("SCHED: Could not schedule DL DCI for rnti=0x%x, pid=%d, cfi=%d\n", rnti, h->get_id(), current_cfi);
       }      
-    }    
-  } 
+    }
+
+    // Reset blocked PIDs
+    user->reset_timeout_dl_harq(current_tti);
+
+  }
+
+
   
   return nof_data_elems; 
 } 
@@ -755,7 +751,6 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   if (!configured) {
     return 0; 
   }
-  pthread_mutex_lock(&mutex);
 
   /* If ul_sched() not yet called this tti, reset CCE state */
   if (current_tti != tti) {
@@ -773,30 +768,38 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   rar_aggr_level = 2; 
   bzero(sched_result, sizeof(sched_interface::dl_sched_res_t));
 
+  pthread_rwlock_rdlock(&rwlock);
+
   /* Schedule Broadcast data */
   sched_result->nof_bc_elems   += dl_sched_bc(sched_result->bc);
- 
+  
   /* Schedule RAR */
   sched_result->nof_rar_elems  += dl_sched_rar(sched_result->rar);
-    
+
   /* Schedule pending RLC data */
   sched_result->nof_data_elems += dl_sched_data(sched_result->data);
-  
+
+  pthread_rwlock_unlock(&rwlock);
+
   /* Set CFI */
   sched_result->cfi = current_cfi; 
   
-  pthread_mutex_unlock(&mutex);
-  return 0; 
+  return 0;
 }
 
 // Uplink sched 
 int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched_result)
 {
+  typedef std::map<uint16_t, sched_ue>::iterator it_t;
+
   if (!configured) {
     return 0; 
   }
 
-  pthread_mutex_lock(&mutex);
+  if (cfg.prach_freq_offset + 6 > cfg.cell.nof_prb) {
+    fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
+    return -1;
+  }
 
   /* If dl_sched() not yet called this tti (this tti is +4ms advanced), reset CCE state */
   if (TTI_TX(current_tti) != tti) {
@@ -816,66 +819,99 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     
   // current_cfi is set in dl_sched() 
   bzero(sched_result, sizeof(sched_interface::ul_sched_res_t));
+  ul_metric->reset_allocation(cfg.cell.nof_prb);
+
+  pthread_rwlock_rdlock(&rwlock);
 
   // Get HARQ process for this TTI 
-  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+  for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user = (sched_ue*) &iter->second;
     uint16_t rnti  = (uint16_t) iter->first; 
 
     user->has_pucch = false;
 
     ul_harq_proc *h = user->get_ul_harq(current_tti);
-  
+
     /* Indicate PHICH acknowledgment if needed */
     if (h->has_pending_ack()) {
       sched_result->phich[nof_phich_elems].phich = h->get_ack(0)?ul_sched_phich_t::ACK:ul_sched_phich_t::NACK;
       sched_result->phich[nof_phich_elems].rnti = rnti;
       nof_phich_elems++;
     }
-  }    
-
-  ul_metric->new_tti(ue_db, cfg.cell.nof_prb, current_tti); 
-  
-  // Update available allocation if there's a pending RAR
-  if (pending_msg3[tti%10].enabled) {
-    ul_harq_proc::ul_alloc_t msg3 = {pending_msg3[tti%10].n_prb, pending_msg3[tti%10].L}; 
-    ul_metric->update_allocation(msg3);
   }
 
-  // Allocate PUCCH resources 
-  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
-    sched_ue *user = (sched_ue*) &iter->second;
-    uint16_t rnti  = (uint16_t) iter->first; 
-    uint32_t prb_idx[2] = {0, 0}; 
-    if (user->get_pucch_sched(current_tti, prb_idx)) {
-      user->has_pucch = true;
-      // allocate PUCCH
-      for (int i=0;i<2;i++) {
-        ul_harq_proc::ul_alloc_t pucch = {prb_idx[i], 1};
-        ul_metric->update_allocation(pucch);
+  // Update available allocation if there's a pending RAR
+  if (pending_msg3[tti%10].enabled) {
+    ul_harq_proc::ul_alloc_t msg3 = {pending_msg3[tti%10].n_prb, pending_msg3[tti%10].L};
+    if(ul_metric->update_allocation(msg3)) {
+      log_h->debug("SCHED: Allocated msg3 RBs within (%d,%d)\n", msg3.RB_start, msg3.RB_start + msg3.L);
+    }
+    else {
+      log_h->warning("SCHED: Could not allocate msg3 within (%d,%d)\n", msg3.RB_start, msg3.RB_start + msg3.L);
+    }
+  }
+
+  // Allocate PUCCH resources
+  if (cfg.nrb_pucch >= 0) {
+    ul_harq_proc::ul_alloc_t pucch = {0, (uint32_t) cfg.nrb_pucch};
+    if(!ul_metric->update_allocation(pucch)) {
+      log_h->warning("SCHED: Failed to allocate PUCCH\n");
+    }
+    pucch.RB_start = cfg.cell.nof_prb-cfg.nrb_pucch;
+    pucch.L        = (uint32_t) cfg.nrb_pucch;
+    if(!ul_metric->update_allocation(pucch)) {
+      log_h->warning("SCHED: Failed to allocate PUCCH\n");
+    } else {
+      log_h->debug("Allocating PUCCH (%d,%d)\n", pucch.RB_start, pucch.RB_start+pucch.L);
+    }
+  } else {
+    for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+      sched_ue *user = (sched_ue*) &iter->second;
+      uint16_t rnti  = (uint16_t) iter->first;
+      uint32_t prb_idx[2] = {0, 0};
+      if (user->get_pucch_sched(current_tti, prb_idx)) {
+        user->has_pucch = true;
+        // allocate PUCCH
+        for (int i=0;i<2;i++) {
+          ul_harq_proc::ul_alloc_t pucch = {prb_idx[i], 1};
+          ul_metric->update_allocation(pucch);
+        }
       }
     }
   }
-  
+
+  // reserve PRBs for PRACH
+  if(srslte_prach_tti_opportunity_config(cfg.prach_config, tti, -1)) {
+    ul_harq_proc::ul_alloc_t prach = {cfg.prach_freq_offset, 6};
+    if(!ul_metric->update_allocation(prach)) {
+      log_h->warning("SCHED: Failed to allocate PRACH RBs within (%d,%d)\n", prach.RB_start, prach.RB_start + prach.L);
+    }
+    else {
+      log_h->debug("SCHED: Allocated PRACH RBs within (%d,%d)\n", prach.RB_start, prach.RB_start + prach.L);
+    }
+  }
+
+  ul_metric->new_tti(ue_db, cfg.cell.nof_prb, current_tti);
+
   // Now allocate PUSCH 
-  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+  for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user = (sched_ue*) &iter->second;
     uint16_t rnti  = (uint16_t) iter->first; 
 
-    ul_harq_proc *h = NULL; 
-    
+    ul_harq_proc *h = NULL;
+
     // Check if there are pending Msg3 transmissions 
     bool is_rar = false; 
     if (pending_msg3[tti%10].enabled && pending_msg3[tti%10].rnti == rnti) {
-      h = user->get_ul_harq(tti);  
+      h = user->get_ul_harq(tti);
       if (h) {
-        ul_harq_proc::ul_alloc_t alloc; 
-        alloc.L        = pending_msg3[tti%10].L; 
-        alloc.RB_start = pending_msg3[tti%10].n_prb; 
+        ul_harq_proc::ul_alloc_t alloc;
+        alloc.L        = pending_msg3[tti%10].L;
+        alloc.RB_start = pending_msg3[tti%10].n_prb;
         h->set_alloc(alloc);
-        h->set_rar_mcs(pending_msg3[tti%10].mcs);        
+        h->set_rar_mcs(pending_msg3[tti%10].mcs);
         is_rar = true; 
-        pending_msg3[tti%10].enabled = false; 
+        pending_msg3[tti%10].enabled = false;
       } else {
         Warning("No HARQ pid available for transmission of Msg3\n");
       }
@@ -950,17 +986,17 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   }
 
   // Update pending data counters after this TTI
-  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+  for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user = (sched_ue *) &iter->second;
     uint16_t rnti = (uint16_t) iter->first;
 
     user->get_ul_harq(current_tti)->reset_pending_data();
   }
 
+  pthread_rwlock_unlock(&rwlock);
+
   sched_result->nof_dci_elems   = nof_dci_elems;
   sched_result->nof_phich_elems = nof_phich_elems;
-
-  pthread_mutex_unlock(&mutex);
 
   return SRSLTE_SUCCESS;
 }
@@ -1003,6 +1039,10 @@ void sched::generate_cce_location(srslte_regs_t *regs_, sched_ue::sched_dci_cce_
 
 bool sched::generate_dci(srslte_dci_location_t *sched_location, sched_ue::sched_dci_cce_t *locations, uint32_t aggr_level, sched_ue *user) 
 {
+  if (!locations->nof_loc[aggr_level]) {
+    Error("In generate_dci(): No locations for aggr_level=%d\n", aggr_level);
+    return false;
+  }
   uint32_t nof_cand  = 0;
   uint32_t test_cand = rand()%locations->nof_loc[aggr_level];
   bool allocated=false;
@@ -1064,6 +1104,9 @@ int sched::generate_format1a(uint32_t rb_start, uint32_t l_crb, uint32_t tbs_byt
     Error("Can't allocate Format 1A for TBS=%d\n", tbs);
     return -1; 
   }
+
+  Debug("ra_tbs=%d/%d, tbs_bytes=%d, tbs=%d, mcs=%d\n",
+        srslte_ra_tbs_from_idx(mcs, 2),srslte_ra_tbs_from_idx(mcs, 3),tbs_bytes,tbs,mcs);
   
   dci->alloc_type = SRSLTE_RA_ALLOC_TYPE2; 
   dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;

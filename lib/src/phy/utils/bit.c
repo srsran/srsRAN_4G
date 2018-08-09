@@ -205,6 +205,163 @@ void srslte_bit_interleaver_run(srslte_bit_interleaver_t *q, uint8_t *input, uin
 }
 
 
+void srslte_bit_interleave_i(uint8_t *input, uint8_t *output, uint32_t *interleaver, uint32_t nof_bits) {
+  srslte_bit_interleave_i_w_offset(input, output, interleaver, nof_bits, 0);
+}
+
+void srslte_bit_interleave_i_w_offset(uint8_t *input, uint8_t *output, uint32_t *interleaver, uint32_t nof_bits, uint32_t w_offset) {
+  uint32_t st=0, w_offset_p=0;
+  static const uint8_t mask[] = { 0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
+
+  if (w_offset < 8 && w_offset > 0) {
+    st=1;
+    for (uint32_t j=0;j<8-w_offset;j++) {
+      uint32_t i_p = interleaver[j];
+      if (input[i_p/8] & mask[i_p%8]) {
+        output[0] |= mask[j+w_offset];
+      } else {
+        output[0] &= ~(mask[j+w_offset]);
+      }
+    }
+    w_offset_p=8-w_offset;
+  }
+
+#ifdef LV_HAVE_SSE
+  __m64 m64mask = _mm_setr_pi8((uint8_t) 0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1);
+
+  union {
+    uint8_t v[8];
+    __m64 m64;
+  } a, b, c;
+
+  union {
+    __m128i m128;
+    uint16_t u32[4];
+    uint16_t u16[8];
+    uint8_t u8[16];
+    struct {
+      __m64 reg_a;
+      __m64 reg_b;
+    } m64;
+    struct {
+      uint16_t i0, i1, i2, i3, i4, i5, i6, i7;
+    } v16;
+    struct {
+      uint32_t i0, i1, i2, i3;
+    } v32;
+  } ipx1, ipx2, epx1, epx2;
+  for (uint32_t i = st; i < nof_bits / 8; i++) {
+    ipx1.m128 = _mm_loadu_si128((__m128i *) (interleaver + (i * 8 + 0) - w_offset_p));
+    epx1.m128 = _mm_shuffle_epi8(ipx1.m128, _mm_set_epi8(0x00, 0x04, 0x08, 0x0C,
+                                                         0x00, 0x04, 0x08, 0x0C,
+                                                         0x00, 0x04, 0x08, 0x0C,
+                                                         0x00, 0x04, 0x08, 0x0C));
+    ipx2.m128 = _mm_loadu_si128((__m128i *) (interleaver + (i * 8 + 4) - w_offset_p));
+    epx2.m128 = _mm_shuffle_epi8(ipx2.m128, _mm_set_epi8(0x00, 0x04, 0x08, 0x0C,
+                                                         0x00, 0x04, 0x08, 0x0C,
+                                                         0x00, 0x04, 0x08, 0x0C,
+                                                         0x00, 0x04, 0x08, 0x0C));
+
+    epx1.m128 = _mm_blendv_epi8(epx2.m128, epx1.m128, _mm_setr_epi8(+1, +1, +1, +1,
+                                                                    -1, -1, -1, -1,
+                                                                    +1, +1, +1, +1,
+                                                                    -1, -1, -1, -1));
+
+    b.m64 = _mm_and_si64(epx1.m64.reg_a, _mm_set1_pi8(0x7));
+    b.m64 = _mm_shuffle_pi8(m64mask, b.m64);
+
+    ipx1.m128 = _mm_srli_epi32(ipx1.m128, 3);
+    ipx2.m128 = _mm_srli_epi32(ipx2.m128, 3);
+
+    a.m64 = _mm_set_pi8(input[ipx1.v32.i0],
+                        input[ipx1.v32.i1],
+                        input[ipx1.v32.i2],
+                        input[ipx1.v32.i3],
+                        input[ipx2.v32.i0],
+                        input[ipx2.v32.i1],
+                        input[ipx2.v32.i2],
+                        input[ipx2.v32.i3]);
+
+    c.m64 = _mm_cmpeq_pi8(_mm_and_si64(a.m64, b.m64), b.m64);
+    output[i] = (uint8_t) _mm_movemask_pi8(c.m64);
+  }
+
+#if 0 /* Disabled */
+  /* THIS PIECE OF CODE IS FOR CHECKING SIMD BEHAVIOUR. DO NOT ENABLE. */
+  uint8_t *output2 = malloc(nof_bits/8);
+  for (uint32_t i=st;i<nof_bits/8;i++) {
+
+    uint16_t i_p0 = interleaver[i*8+0-w_offset_p];
+    uint16_t i_p1 = interleaver[i*8+1-w_offset_p];
+    uint16_t i_p2 = interleaver[i*8+2-w_offset_p];
+    uint16_t i_p3 = interleaver[i*8+3-w_offset_p];
+    uint16_t i_p4 = interleaver[i*8+4-w_offset_p];
+    uint16_t i_p5 = interleaver[i*8+5-w_offset_p];
+    uint16_t i_p6 = interleaver[i*8+6-w_offset_p];
+    uint16_t i_p7 = interleaver[i*8+7-w_offset_p];
+
+    uint8_t out0  = (input[i_p0/8] & mask[i_p0%8])?mask[0]:(uint8_t)0;
+    uint8_t out1  = (input[i_p1/8] & mask[i_p1%8])?mask[1]:(uint8_t)0;
+    uint8_t out2  = (input[i_p2/8] & mask[i_p2%8])?mask[2]:(uint8_t)0;
+    uint8_t out3  = (input[i_p3/8] & mask[i_p3%8])?mask[3]:(uint8_t)0;
+    uint8_t out4  = (input[i_p4/8] & mask[i_p4%8])?mask[4]:(uint8_t)0;
+    uint8_t out5  = (input[i_p5/8] & mask[i_p5%8])?mask[5]:(uint8_t)0;
+    uint8_t out6  = (input[i_p6/8] & mask[i_p6%8])?mask[6]:(uint8_t)0;
+    uint8_t out7  = (input[i_p7/8] & mask[i_p7%8])?mask[7]:(uint8_t)0;
+
+    output2[i] = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7;
+  }
+
+  for(uint32_t i = st; i < nof_bits/8; i++) {
+    if (output[i] != output2[i]) {
+      printf("%05d/%05d %02X %02X\n", i, nof_bits/8, output[i], output2[i]);
+    }
+    //output[i] = output2[i];
+  }
+  free(output2);
+#endif /* Disabled */
+#else /* LV_HAVE_SSE */
+  for (uint32_t i=st;i<nof_bits/8;i++) {
+
+    uint32_t i_p0 = interleaver[i*8+0-w_offset_p];
+    uint32_t i_p1 = interleaver[i*8+1-w_offset_p];
+    uint32_t i_p2 = interleaver[i*8+2-w_offset_p];
+    uint32_t i_p3 = interleaver[i*8+3-w_offset_p];
+    uint32_t i_p4 = interleaver[i*8+4-w_offset_p];
+    uint32_t i_p5 = interleaver[i*8+5-w_offset_p];
+    uint32_t i_p6 = interleaver[i*8+6-w_offset_p];
+    uint32_t i_p7 = interleaver[i*8+7-w_offset_p];
+
+    uint8_t out0  = (input[i_p0/8] & mask[i_p0%8])?mask[0]:0;
+    uint8_t out1  = (input[i_p1/8] & mask[i_p1%8])?mask[1]:0;
+    uint8_t out2  = (input[i_p2/8] & mask[i_p2%8])?mask[2]:0;
+    uint8_t out3  = (input[i_p3/8] & mask[i_p3%8])?mask[3]:0;
+    uint8_t out4  = (input[i_p4/8] & mask[i_p4%8])?mask[4]:0;
+    uint8_t out5  = (input[i_p5/8] & mask[i_p5%8])?mask[5]:0;
+    uint8_t out6  = (input[i_p6/8] & mask[i_p6%8])?mask[6]:0;
+    uint8_t out7  = (input[i_p7/8] & mask[i_p7%8])?mask[7]:0;
+
+    output[i] = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7;
+  }
+#endif /* LV_HAVE_SSE */
+
+  for (uint32_t j=0;j<nof_bits%8;j++) {
+    uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];
+    if (input[i_p/8] & mask[i_p%8]) {
+      output[nof_bits/8] |= mask[j];
+    } else {
+      output[nof_bits/8] &= ~(mask[j]);
+    }
+  }
+  for (uint32_t j=0;j<w_offset;j++) {
+    uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];
+    if (input[i_p/8] & (1<<(7-i_p%8))) {
+      output[nof_bits/8] |= mask[j];
+    } else {
+      output[nof_bits/8] &= ~(mask[j]);
+    }
+  }
+}
 
 void srslte_bit_interleave(uint8_t *input, uint8_t *output, uint16_t *interleaver, uint32_t nof_bits) {
   srslte_bit_interleave_w_offset(input, output, interleaver, nof_bits, 0);

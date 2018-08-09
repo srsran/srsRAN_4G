@@ -199,8 +199,10 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
   if (q               != NULL             &&
       srslte_cell_isvalid(&cell))
   {
-    q->pkt_errors = 0;
-    q->pkts_total = 0;
+    q->pdsch_pkt_errors = 0;
+    q->pdsch_pkts_total = 0;
+    q->pmch_pkt_errors = 0;
+    q->pmch_pkts_total = 0;
     q->pending_ul_dci_rnti = 0;
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
@@ -218,6 +220,12 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
           return SRSLTE_ERROR;
         }
       }
+
+      if (srslte_ofdm_rx_set_prb(&q->fft_mbsfn, SRSLTE_CP_EXT, q->cell.nof_prb)) {
+        fprintf(stderr, "Error resizing MBSFN FFT\n");
+        return SRSLTE_ERROR;
+      }
+
       if (srslte_chest_dl_set_cell(&q->chest, q->cell)) {
         fprintf(stderr, "Error resizing channel estimator\n");
         return SRSLTE_ERROR;
@@ -237,9 +245,15 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
       }
 
       if (srslte_pdsch_set_cell(&q->pdsch, q->cell)) {
-        fprintf(stderr, "Error creating PDSCH object\n");
+        fprintf(stderr, "Error resizing PDSCH object\n");
         return SRSLTE_ERROR;
       }
+
+      if (srslte_pmch_set_cell(&q->pmch, q->cell)) {
+        fprintf(stderr, "Error resizing PMCH object\n");
+        return SRSLTE_ERROR;
+      }
+
       q->current_rnti = 0;
     }
     ret = SRSLTE_SUCCESS;
@@ -477,6 +491,9 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
   int found_dci = srslte_ue_dl_find_dl_dci(q, tm, cfi, sf_idx, rnti, &dci_msg);
   if (found_dci == 1) {
     
+    INFO("PDCCH: DL DCI %s rnti=0x%x, cce_index=%d, L=%d, tti=%d\n", srslte_dci_format_string(dci_msg.format),
+         q->current_rnti, q->last_location.ncce, (1<<q->last_location.L), tti);
+
     if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, q->cell.nof_ports, &dci_unpacked, &grant)) {
       fprintf(stderr, "Error unpacking DCI\n");
       return SRSLTE_ERROR;   
@@ -643,6 +660,7 @@ int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
                                    q->sf_symbols_m, q->ce_m,
                                    noise_estimate,
                                    q->current_mbsfn_area_id, data);
+    
     
     if (ret == SRSLTE_ERROR) {
       q->pmch_pkt_errors++;

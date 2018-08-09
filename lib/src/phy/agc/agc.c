@@ -45,6 +45,8 @@ int srslte_agc_init_acc(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_fr
   bzero(q, sizeof(srslte_agc_t));
   q->mode = mode; 
   q->nof_frames = nof_frames;  
+  q->max_gain = 90.0;
+  q->min_gain = 0.0;
   if (nof_frames > 0) {
     q->y_tmp = srslte_vec_malloc(sizeof(float) * nof_frames);
     if (!q->y_tmp) {
@@ -86,6 +88,13 @@ void srslte_agc_reset(srslte_agc_t *q) {
   }
 }
 
+void srslte_agc_set_gain_range(srslte_agc_t *q, double min_gain, double max_gain) {
+  if (q) {
+    q->min_gain = min_gain;
+    q->max_gain = max_gain;
+  }
+}
+
 void srslte_agc_set_bandwidth(srslte_agc_t *q, float bandwidth) {
   q->bandwidth = bandwidth;
 }
@@ -116,19 +125,23 @@ void srslte_agc_lock(srslte_agc_t *q, bool enable) {
 
 void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
   if (!q->lock) {
-    float gain_db = 10*log10(q->gain); 
-    float gain_uhd_db = 50.0;
-    //float gain_uhd = 1.0;  
+    double gain_db = 10.0 * log10(q->gain);
+    double gain_uhd_db = 50.0;
+
     float y = 0; 
     // Apply current gain to input signal 
     if (!q->uhd_handler) {
       srslte_vec_sc_prod_cfc(signal, q->gain, signal, len);
     } else {
-      if (gain_db < 0) {
-        gain_db = 5.0;
-      }
-      if (isinf(gain_db) || isnan(gain_db)) {
-        gain_db = 40.0;
+      if (gain_db < q->min_gain) {
+        gain_db = q->min_gain + 5.0;
+        INFO("Warning: Rx signal strength is too high. Forcing minimum Rx gain %.2fdB\n", gain_db);
+      } else if (gain_db > q->max_gain) {
+        gain_db = q->max_gain;
+        INFO("Warning: Rx signal strength is too weak. Forcing maximum Rx gain %.2fdB\n", gain_db);
+      } else if (isinf(gain_db) || isnan(gain_db)) {
+        gain_db = (q->min_gain + q->max_gain) / 2.0;
+        INFO("Warning: AGC went to an unknown state. Setting Rx gain to %.2fdB\n", gain_db);
       } else {
         gain_uhd_db = q->set_gain_callback(q->uhd_handler, gain_db);
         q->gain = pow(10, gain_uhd_db/10);

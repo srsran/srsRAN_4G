@@ -30,11 +30,13 @@
 #include <signal.h>
 #include <pthread.h>
 
+#include "srslte/common/config_file.h"
+
 #include <iostream>
-#include <fstream>
 #include <string>
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <srsenb/hdr/enb.h>
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_stdout.h"
@@ -75,6 +77,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("enb.mnc",           bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
     ("enb.mme_addr",      bpo::value<string>(&args->enb.s1ap.mme_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connnection")
     ("enb.gtp_bind_addr", bpo::value<string>(&args->enb.s1ap.gtp_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for GTP connection")
+    ("enb.s1c_bind_addr", bpo::value<string>(&args->enb.s1ap.s1c_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for S1AP connection")
     ("enb.phy_cell_id",   bpo::value<uint32_t>(&args->enb.pci)->default_value(0),                  "Physical Cell Identity (PCI)")
     ("enb.n_prb",         bpo::value<uint32_t>(&args->enb.n_prb)->default_value(25),               "Number of PRB")
     ("enb.nof_ports",     bpo::value<uint32_t>(&args->enb.nof_ports)->default_value(1),            "Number of ports")
@@ -165,7 +168,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         "Number of PHY threads")
 
     ("expert.link_failure_nof_err",
-        bpo::value<int>(&args->expert.mac.link_failure_nof_err)->default_value(50),
+        bpo::value<int>(&args->expert.mac.link_failure_nof_err)->default_value(100),
         "Number of PUSCH failures after which a radio-link failure is triggered")
 
     ("expert.max_prach_offset_us",
@@ -181,9 +184,16 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         "Chooses the coefficients for the 3-tap channel estimator centered filter.")
 
     ("expert.rrc_inactivity_timer",
-        bpo::value<uint32_t>(&args->expert.rrc_inactivity_timer)->default_value(10000),
+        bpo::value<uint32_t>(&args->expert.rrc_inactivity_timer)->default_value(60000),
         "Inactivity timer in ms")
+  
+    ("expert.enable_mbsfn",
+        bpo::value<bool>(&args->expert.enable_mbsfn)->default_value(false),
+        "enables mbms in the enodeb")
 
+    ("expert.print_buffer_state",
+        bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
+       "Prints on the console the buffer state every 10 seconds")
 
     ("rf_calibration.tx_corr_dc_gain",  bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),  "TX DC offset gain correction")
     ("rf_calibration.tx_corr_dc_phase", bpo::value<float>(&args->rf_cal.tx_corr_dc_phase)->default_value(0.0), "TX DC offset phase correction")
@@ -217,30 +227,30 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
   }
 
   // print version number and exit
-    // print version number and exit
-    if (vm.count("version")) {
-        cout << "Version " <<
-                srslte_get_version_major() << "." <<
-                srslte_get_version_minor() << "." <<
-                srslte_get_version_patch() << endl;
-        exit(0);
-    }
-
-  // no config file given - print usage and exit
-  if (!vm.count("config_file")) {
-      cout << "Error: Configuration file not provided" << endl;
-      cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
-      exit(0);
-  } else {
-      cout << "Reading configuration file " << config_file << "..." << endl;
-      ifstream conf(config_file.c_str(), ios::in);
-      if(conf.fail()) {
-        cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
-        exit(1);
-      }
-      bpo::store(bpo::parse_config_file(conf, common), vm);
-      bpo::notify(vm);
+  if (vm.count("version")) {
+    cout << "Version " <<
+         srslte_get_version_major() << "." <<
+         srslte_get_version_minor() << "." <<
+         srslte_get_version_patch() << endl;
+    exit(0);
   }
+
+  // if no config file given, check users home path
+  if (!vm.count("config_file")) {
+    if (!config_exists(config_file, "enb.conf")) {
+      cout << "Failed to read eNB configuration file " << config_file << " - exiting" << endl;
+      exit(1);
+    }
+  }
+
+  cout << "Reading configuration file " << config_file << "..." << endl;
+  ifstream conf(config_file.c_str(), ios::in);
+  if(conf.fail()) {
+    cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
+    exit(1);
+  }
+  bpo::store(bpo::parse_config_file(conf, common), vm);
+  bpo::notify(vm);
 
   // Convert hex strings
   {
@@ -322,6 +332,22 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
       args->log.s1ap_hex_limit = args->log.all_hex_limit;
     }
   }
+
+  // Check remaining eNB config files
+  if (!config_exists(args->enb_files.sib_config, "sib.conf")) {
+    cout << "Failed to read SIB configuration file " << args->enb_files.sib_config << " - exiting" << endl;
+    exit(1);
+  }
+
+  if (!config_exists(args->enb_files.rr_config, "rr.conf")) {
+    cout << "Failed to read RR configuration file " << args->enb_files.rr_config << " - exiting" << endl;
+    exit(1);
+  }
+
+  if (!config_exists(args->enb_files.drb_config, "drb.conf")) {
+    cout << "Failed to read DRB configuration file " << args->enb_files.drb_config << " - exiting" << endl;
+    exit(1);
+  }
 }
 
 static int  sigcnt = 0;
@@ -385,12 +411,22 @@ int main(int argc, char *argv[])
 
   bool plot_started         = false; 
   bool signals_pregenerated = false; 
-  while(running) {
+  if(running) {
     if (!plot_started && args.gui.enable) {
       enb->start_plot();
       plot_started = true; 
     }
-    sleep(1);
+  }
+  int cnt=0;
+  while (running) {
+    if (args.expert.print_buffer_state) {
+      cnt++;
+      if (cnt==1000) {
+        cnt=0;
+        enb->print_pool();
+      }
+    }
+    usleep(10000);
   }
   pthread_cancel(input);
   metrics.stop();

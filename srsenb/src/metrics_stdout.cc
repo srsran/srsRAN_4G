@@ -41,6 +41,8 @@ using namespace std;
 
 namespace srsenb{
 
+#define MAX(a,b) (a>b?a:b)
+
 char const * const prefixes[2][9] =
 {
   {   "",   "m",   "u",   "n",    "p",    "f",    "a",    "z",    "y", },
@@ -111,8 +113,8 @@ void metrics_stdout::print_metrics()
   {
     n_reports = 0;
     cout << endl;
-    cout << "------DL-------------------------------UL--------------------------------" << endl;
-    cout << "rnti   cqi ri      mcs  brate   bler   snr  phr   mcs  brate   bler   bsr" << endl;
+    cout << "------DL------------------------------UL----------------------------------" << endl;
+    cout << "rnti  cqi    ri   mcs  brate   bler   snr   phr   mcs  brate   bler    bsr" << endl;
   }
   if (metrics.rrc.n_ues > 0) {
     
@@ -125,29 +127,41 @@ void metrics_stdout::print_metrics()
       }
     
       cout << std::hex << metrics.mac[i].rnti << " ";
-      cout << float_to_string(metrics.mac[i].dl_cqi, 2);
-      cout << float_to_string(metrics.mac[i].dl_ri, 3);
-      cout << float_to_string(metrics.phy[i].dl.mcs, 2);
-      if (metrics.mac[i].tx_brate > 0 && metrics_report_period) {
-        cout << float_to_eng_string((float) metrics.mac[i].tx_brate/metrics_report_period, 2);
+      cout << float_to_string(MAX(0.1,metrics.mac[i].dl_cqi), 2);
+      cout << float_to_string(metrics.mac[i].dl_ri, 1);
+      if(not isnan(metrics.phy[i].dl.mcs)) {
+        cout << float_to_string(MAX(0.1,metrics.phy[i].dl.mcs), 2);
       } else {
-        cout << float_to_string(0, 2);                
+        cout << float_to_string(0,2);
+      }
+      if (metrics.mac[i].tx_brate > 0 && metrics_report_period) {
+        cout << float_to_eng_string(MAX(0.1,(float) metrics.mac[i].tx_brate/metrics_report_period), 2);
+      } else {
+        cout << float_to_string(0, 2) << "";
       }
       if (metrics.mac[i].tx_pkts > 0 && metrics.mac[i].tx_errors) {
-        cout << float_to_string((float) 100*metrics.mac[i].tx_errors/metrics.mac[i].tx_pkts, 1) << "%";
+        cout << float_to_string(MAX(0.1,(float) 100*metrics.mac[i].tx_errors/metrics.mac[i].tx_pkts), 1) << "%";
       } else {
         cout << float_to_string(0, 1) << "%";
       }
-      cout << float_to_string(metrics.phy[i].ul.sinr, 2);
+      if(not isnan(metrics.phy[i].ul.sinr)) {
+        cout << float_to_string(MAX(0.1,metrics.phy[i].ul.sinr), 2);
+      } else {
+        cout << float_to_string(0,2);
+      }
       cout << float_to_string(metrics.mac[i].phr, 2);
-      cout << float_to_string(metrics.phy[i].ul.mcs, 2);
+      if(not isnan(metrics.phy[i].ul.mcs)) {
+        cout << float_to_string(MAX(0.1,metrics.phy[i].ul.mcs), 2);
+      } else {
+        cout << float_to_string(0,2);
+      }
       if (metrics.mac[i].rx_brate > 0 && metrics_report_period) {
-        cout << float_to_eng_string((float) metrics.mac[i].rx_brate/metrics_report_period, 2);
+        cout << float_to_eng_string(MAX(0.1,(float) metrics.mac[i].rx_brate/metrics_report_period), 2);
       } else {        
-        cout << float_to_string(0, 2);        
+        cout << float_to_string(0, 2) << "";
       }
       if (metrics.mac[i].rx_pkts > 0 && metrics.mac[i].rx_errors > 0) {
-        cout << float_to_string((float) 100*metrics.mac[i].rx_errors/metrics.mac[i].rx_pkts, 1) << "%";
+        cout << float_to_string(MAX(0.1,(float) 100*metrics.mac[i].rx_errors/metrics.mac[i].rx_pkts), 1) << "%";
       } else {
         cout << float_to_string(0, 1) << "%";
       }
@@ -174,7 +188,14 @@ void metrics_stdout::print_disconnect()
 std::string metrics_stdout::float_to_string(float f, int digits)
 {
   std::ostringstream os;
-  const int    precision = (f == 0.0) ? digits-1 : digits - log10(fabs(f))-2*DBL_EPSILON;
+  int precision;
+  if(isnan(f) or abs(f) < 0.0001) {
+    f = 0.0;
+    precision = digits-1;
+  }
+  else {
+    precision = digits - (int)(log10(fabs(f))-2*DBL_EPSILON);
+  }
   os << std::setw(6) << std::fixed << std::setprecision(precision) << f;
   return os.str();
 }

@@ -1092,6 +1092,63 @@ uint32_t srslte_vec_max_fi_simd(const float *x, const int len) {
   return max_index;
 }
 
+uint32_t srslte_vec_max_abs_fi_simd(const float *x, const int len) {
+  int i = 0;
+
+  float max_value = -INFINITY;
+  uint32_t max_index = 0;
+
+#if SRSLTE_SIMD_I_SIZE
+  __attribute__ ((aligned (SRSLTE_SIMD_I_SIZE*sizeof(int)))) int indexes_buffer[SRSLTE_SIMD_I_SIZE] = {0};
+  __attribute__ ((aligned (SRSLTE_SIMD_I_SIZE*sizeof(float)))) float values_buffer[SRSLTE_SIMD_I_SIZE] = {0};
+
+  for (int k = 0; k < SRSLTE_SIMD_I_SIZE; k++) indexes_buffer[k] = k;
+  simd_i_t simd_inc = srslte_simd_i_set1(SRSLTE_SIMD_I_SIZE);
+  simd_i_t simd_indexes = srslte_simd_i_load(indexes_buffer);
+  simd_i_t simd_max_indexes = srslte_simd_i_set1(0);
+
+  simd_f_t simd_max_values = srslte_simd_f_set1(-INFINITY);
+
+  if (SRSLTE_IS_ALIGNED(x)) {
+    for (; i < len - SRSLTE_SIMD_I_SIZE + 1; i += SRSLTE_SIMD_I_SIZE) {
+      simd_f_t a = srslte_simd_f_abs(srslte_simd_f_load(&x[i]));
+      simd_sel_t res = srslte_simd_f_max(a, simd_max_values);
+      simd_max_indexes = srslte_simd_i_select(simd_max_indexes, simd_indexes, res);
+      simd_max_values = (simd_f_t) srslte_simd_i_select((simd_i_t) simd_max_values, (simd_i_t) a, res);
+      simd_indexes = srslte_simd_i_add(simd_indexes, simd_inc);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_I_SIZE + 1; i += SRSLTE_SIMD_I_SIZE) {
+      simd_f_t a = srslte_simd_f_abs(srslte_simd_f_loadu(&x[i]));
+      simd_sel_t res = srslte_simd_f_max(a, simd_max_values);
+      simd_max_indexes = srslte_simd_i_select(simd_max_indexes, simd_indexes, res);
+      simd_max_values = (simd_f_t) srslte_simd_i_select((simd_i_t) simd_max_values, (simd_i_t) a, res);
+      simd_indexes = srslte_simd_i_add(simd_indexes, simd_inc);
+    }
+  }
+
+  srslte_simd_i_store(indexes_buffer, simd_max_indexes);
+  srslte_simd_f_store(values_buffer, simd_max_values);
+
+  for (int k = 0; k < SRSLTE_SIMD_I_SIZE; k++) {
+    if (values_buffer[k] > max_value) {
+      max_value = values_buffer[k];
+      max_index = (uint32_t) indexes_buffer[k];
+    }
+  }
+#endif /* SRSLTE_SIMD_I_SIZE */
+
+  for (; i < len; i++) {
+    float a = fabsf(x[i]);
+    if (a > max_value) {
+      max_value = a;
+      max_index = (uint32_t)i;
+    }
+  }
+
+  return max_index;
+}
+
 uint32_t srslte_vec_max_ci_simd(const cf_t *x, const int len) {
   int i = 0;
 
@@ -1251,3 +1308,54 @@ void srslte_vec_interleave_add_simd(const cf_t *x, const cf_t *y, cf_t *z, const
     z[k++] += y[i];
   }
 }
+
+void srslte_vec_apply_cfo_simd(const cf_t *x, float cfo, cf_t *z, int len) {
+  const float TWOPI = 2.0f * (float) M_PI;
+  int i = 0;
+
+#if SRSLTE_SIMD_CF_SIZE
+  __attribute__ ((aligned (SRSLTE_SIMD_BIT_ALIGN/8))) cf_t _osc[SRSLTE_SIMD_CF_SIZE];
+  __attribute__ ((aligned (SRSLTE_SIMD_BIT_ALIGN/8))) cf_t _phase[SRSLTE_SIMD_CF_SIZE];
+
+  if (i < len - SRSLTE_SIMD_CF_SIZE + 1) {
+    for (int k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
+      _osc[k] = cexpf(_Complex_I * TWOPI * cfo * SRSLTE_SIMD_CF_SIZE);
+      _phase[k] = cexpf(_Complex_I * TWOPI * cfo * k);
+    }
+  }
+  simd_cf_t _simd_osc = srslte_simd_cfi_load(_osc);
+  simd_cf_t _simd_phase = srslte_simd_cfi_load(_phase);
+
+  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t a = srslte_simd_cfi_load(&x[i]);
+
+      simd_cf_t r = srslte_simd_cf_prod(a, _simd_phase);
+
+      srslte_simd_cfi_store(&z[i], r);
+
+      _simd_phase = srslte_simd_cf_prod(_simd_phase, _simd_osc);
+
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+      for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+        simd_cf_t a = srslte_simd_cfi_loadu(&x[i]);
+
+        simd_cf_t r = srslte_simd_cf_prod(a, _simd_phase);
+        _simd_phase = srslte_simd_cf_prod(_simd_phase, _simd_osc);
+
+        srslte_simd_cfi_storeu(&z[i], r);
+      }
+    }
+  }
+#endif
+  cf_t osc = cexpf(_Complex_I * TWOPI * cfo);
+  cf_t phase = cexpf(_Complex_I * TWOPI * cfo * i);
+  for (; i < len; i++) {
+    z[i] = x[i] * phase;
+
+    phase *= osc;
+  }
+}
+

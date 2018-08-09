@@ -47,15 +47,15 @@ class rlc_entity
 {
 public:
   rlc_entity();
-  void init(rlc_mode_t            mode,
-            log          *rlc_entity_log_,
-            uint32_t              lcid_,
-            srsue::pdcp_interface_rlc   *pdcp_,
-            srsue::rrc_interface_rlc    *rrc_,
-            mac_interface_timers *mac_timers_);
+  void init(rlc_mode_t                  mode,
+            log                        *rlc_entity_log_,
+            uint32_t                    lcid_,
+            srsue::pdcp_interface_rlc  *pdcp_,
+            srsue::rrc_interface_rlc   *rrc_,
+            mac_interface_timers       *mac_timers_,
+            int                         buffer_size = -1); // use -1 for default buffer sizes
 
   void configure(srslte_rlc_config_t cnfg);
-  void reset();
   void reestablish();
   void stop();
   void empty_queue();
@@ -66,6 +66,7 @@ public:
 
   // PDCP interface
   void write_sdu(byte_buffer_t *sdu);
+  void write_sdu_nb(byte_buffer_t *sdu);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -75,10 +76,8 @@ public:
   
 
 private:
-  rlc_tm tm;
-  rlc_um um;
-  rlc_am am;
-
+  rlc_mode_t mode;
+  uint32_t   lcid;
   rlc_common *rlc;
 };
 

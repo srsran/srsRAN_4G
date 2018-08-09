@@ -37,18 +37,24 @@ void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interfa
   log_h = pdcp_log_;
   
   pool = srslte::byte_buffer_pool::get_instance();
+
+  pthread_rwlock_init(&rwlock, NULL);
 }
 
 void pdcp::stop()
 {
+  pthread_rwlock_wrlock(&rwlock);
   for(std::map<uint32_t, user_interface>::iterator iter=users.begin(); iter!=users.end(); ++iter) {
-    rem_user((uint32_t) iter->first);
+    clear_user(&iter->second);
   }
   users.clear();
+  pthread_rwlock_unlock(&rwlock);
+  pthread_rwlock_destroy(&rwlock);
 }
 
 void pdcp::add_user(uint16_t rnti)
 {
+  pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
     srslte::pdcp *obj = new srslte::pdcp;     
     obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf, log_h, RB_ID_SRB0, SECURITY_DIRECTION_DOWNLINK);
@@ -61,59 +67,86 @@ void pdcp::add_user(uint16_t rnti)
     users[rnti].gtpu_itf.gtpu = gtpu;
     users[rnti].pdcp = obj;
   }
+  pthread_rwlock_unlock(&rwlock);
+}
+
+// Private unlocked deallocation of user
+void pdcp::clear_user(user_interface *ue)
+{
+  ue->pdcp->stop();
+  delete ue->pdcp;
+  ue->pdcp = NULL;
 }
 
 void pdcp::rem_user(uint16_t rnti)
 {
+  pthread_rwlock_wrlock(&rwlock);
   if (users.count(rnti)) {
-    users[rnti].pdcp->stop();
-    delete users[rnti].pdcp; 
-    users[rnti].pdcp = NULL;
+    clear_user(&users[rnti]);
     users.erase(rnti);
   }
+  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cfg)
 {
+  pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    users[rnti].pdcp->add_bearer(lcid, cfg);
+    if(rnti != SRSLTE_MRNTI){
+      users[rnti].pdcp->add_bearer(lcid, cfg);
+    } else {
+      users[rnti].pdcp->add_bearer_mrb(lcid, cfg);
+    }
   }
+  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::reset(uint16_t rnti)
 {
+  pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].pdcp->reset();
   }
+  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::config_security(uint16_t rnti, uint32_t lcid, uint8_t* k_rrc_enc_, uint8_t* k_rrc_int_, 
                            srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_, 
                            srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
 {
+  pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].pdcp->config_security(lcid, k_rrc_enc_, k_rrc_int_, cipher_algo_, integ_algo_);
     users[rnti].pdcp->enable_integrity(lcid);
     users[rnti].pdcp->enable_encryption(lcid);
   }
+  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
+  pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].pdcp->write_pdu(lcid, sdu);
   } else {
     pool->deallocate(sdu);
   }
+  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
+  pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    users[rnti].pdcp->write_sdu(lcid, sdu);
+    if(rnti != SRSLTE_MRNTI){
+      users[rnti].pdcp->write_sdu(lcid, sdu);
+    }else {
+      users[rnti].pdcp->write_sdu_mch(lcid, sdu);
+    }
   } else {
     pool->deallocate(sdu);
   }
+  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
@@ -123,6 +156,7 @@ void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::byte_buffer_t *
 
 void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::byte_buffer_t* sdu)
 {
+  
   rlc->write_sdu(rnti, lcid, sdu);
 }
 

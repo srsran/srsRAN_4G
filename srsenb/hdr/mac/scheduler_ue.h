@@ -35,12 +35,19 @@
 
 namespace srsenb {
 
+
+/** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
+ * higher layers and mac threads.
+ *
+ * 1 mutex is created for every user and only access to same user variables are mutexed
+ */
 class sched_ue {
   
 public: 
   
   // used by sched_metric
-  uint32_t ue_idx;
+  dl_harq_proc* dl_next_alloc;
+  ul_harq_proc* ul_next_alloc;
 
   bool has_pucch;
   
@@ -55,6 +62,7 @@ public:
    * 
    ************************************************************/
   sched_ue();
+  ~sched_ue();
   void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
   void set_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg, sched_interface::cell_cfg_t *cell_cfg, 
@@ -92,12 +100,18 @@ public:
  * Functions used by scheduler metric objects
  *******************************************************/
 
-  uint32_t   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols); 
-  uint32_t   get_required_prb_ul(uint32_t req_bytes); 
+  uint32_t   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
+  uint32_t   get_required_prb_ul(uint32_t req_bytes);
+  uint32_t   prb_to_rbg(uint32_t nof_prb);
+  uint32_t   rgb_to_prb(uint32_t nof_rbg);
+
 
   uint32_t   get_pending_dl_new_data(uint32_t tti);
   uint32_t   get_pending_ul_new_data(uint32_t tti);
+  uint32_t   get_pending_ul_old_data();
+  uint32_t   get_pending_dl_new_data_total(uint32_t tti);
 
+  void          reset_timeout_dl_harq(uint32_t tti);
   dl_harq_proc *get_pending_dl_harq(uint32_t tti);
   dl_harq_proc *get_empty_dl_harq();   
   ul_harq_proc *get_ul_harq(uint32_t tti);   
@@ -124,8 +138,6 @@ public:
   bool       get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2]);
   bool       pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
 
-  uint32_t   get_pending_ul_old_data();
-
 private: 
   
   typedef struct {
@@ -146,13 +158,22 @@ private:
   
   static bool bearer_is_ul(ue_bearer_t *lch);
   static bool bearer_is_dl(ue_bearer_t *lch);
-  
+
+  uint32_t   get_pending_dl_new_data_unlocked(uint32_t tti);
+  uint32_t   get_pending_ul_old_data_unlocked();
+  uint32_t   get_pending_ul_new_data_unlocked(uint32_t tti);
+
+  bool       needs_cqi_unlocked(uint32_t tti, bool will_send = false);
+
+  int        generate_format2a_unlocked(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+
   bool is_first_dl_tx();
-      
-  
-  sched_interface::ue_cfg_t cfg; 
+
+  sched_interface::ue_cfg_t cfg;
   srslte_cell_t cell; 
   srslte::log* log_h;
+
+  pthread_mutex_t mutex;
   
   /* Buffer states */
   bool sr; 
@@ -174,7 +195,8 @@ private:
   uint32_t max_mcs_dl; 
   uint32_t max_mcs_ul; 
   int      fixed_mcs_ul; 
-  int      fixed_mcs_dl; 
+  int      fixed_mcs_dl;
+  uint32_t P;
 
   int next_tpc_pusch;
   int next_tpc_pucch; 

@@ -55,7 +55,7 @@ void enb::cleanup(void)
 
 enb::enb() : started(false) {
   srslte_dft_load();
-  pool = srslte::byte_buffer_pool::get_instance();
+  pool = srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE);
 
   logger = NULL;
   args = NULL;
@@ -98,6 +98,10 @@ bool enb::init(all_args_t *args_)
   rrc_log.init("RRC ", logger);
   gtpu_log.init("GTPU", logger);
   s1ap_log.init("S1AP", logger);
+
+  pool_log.init("POOL", logger);
+  pool_log.set_level(srslte::LOG_LEVEL_ERROR);
+  pool->set_log(&pool_log);
 
   // Init logs
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
@@ -205,7 +209,22 @@ bool enb::init(all_args_t *args_)
     fprintf(stderr, "Error parsing DRB configuration\n");
     return false; 
   }
+
+  uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib.sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset;
+
+  if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
+    fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", prach_freq_offset);
+    return false;
+  }
+
+  if (prach_freq_offset < rrc_cfg.cqi_cfg.nof_prb || prach_freq_offset < rrc_cfg.sr_cfg.nof_prb ) {
+    fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d lower than CQI offset: %d or SR offset: %d\n",
+            prach_freq_offset, rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb);
+    return false;
+  }
+
   rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
+  rrc_cfg.enable_mbsfn =  args->expert.enable_mbsfn;
   
   // Copy cell struct to rrc and phy 
   memcpy(&rrc_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));
@@ -218,7 +237,7 @@ bool enb::init(all_args_t *args_)
   pdcp.init(&rlc, &rrc, &gtpu, &pdcp_log);
   rrc.init(&rrc_cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &rrc_log);
   s1ap.init(args->enb.s1ap, &rrc, &s1ap_log);
-  gtpu.init(args->enb.s1ap.gtp_bind_addr, args->enb.s1ap.mme_addr, &pdcp, &gtpu_log);
+  gtpu.init(args->enb.s1ap.gtp_bind_addr, args->enb.s1ap.mme_addr, &pdcp, &gtpu_log, args->expert.enable_mbsfn);
   
   started = true;
   return true;
@@ -233,16 +252,17 @@ void enb::stop()
 {
   if(started)
   {
+    s1ap.stop();
     gtpu.stop();
     phy.stop();
     mac.stop();
-    usleep(100000);
+    usleep(50000);
 
     rlc.stop();
     pdcp.stop();
     rrc.stop();
 
-    usleep(1e5);
+    usleep(10000);
     if(args->pcap.enable)
     {
        mac_pcap.close();
@@ -254,6 +274,10 @@ void enb::stop()
 
 void enb::start_plot() {
   phy.start_plot();
+}
+
+void enb::print_pool() {
+  srslte::byte_buffer_pool::get_instance()->print_all_buffers();
 }
 
 bool enb::get_metrics(enb_metrics_t &m)

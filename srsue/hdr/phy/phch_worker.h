@@ -45,6 +45,7 @@ public:
   ~phch_worker();
   void  reset(); 
   void  set_common(phch_common *phy);
+  void  enable_pdsch_coworker();
   bool  init(uint32_t max_prb, srslte::log *log, srslte::log *log_phy_lib_h, chest_feedback_itf *chest_loop);
 
   bool  set_cell(srslte_cell_t cell);
@@ -53,6 +54,7 @@ public:
   cf_t* get_buffer(uint32_t antenna_idx);
   void  set_tti(uint32_t tti, uint32_t tx_tti); 
   void  set_tx_time(srslte_timestamp_t tx_time, uint32_t next_offset);
+  void  set_prach(cf_t *prach_ptr, float prach_power);
   void  set_cfo(float cfo);
 
   void  set_ul_params(bool pregen_disabled = false);
@@ -88,9 +90,10 @@ private:
 
   
   /* Internal methods */
-  bool extract_fft_and_pdcch_llr(); 
-  void compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr);
 
+  void compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr);
+  bool extract_fft_and_pdcch_llr(subframe_cfg_t sf_cfg);
+  
   /* ... for DL */
   bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);
   bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
@@ -103,6 +106,11 @@ private:
                    uint16_t rnti,
                    uint32_t pid,
                    bool acks[SRSLTE_MAX_CODEWORDS]);
+
+  bool decode_pmch(srslte_ra_dl_grant_t *grant,
+                   uint8_t *payload,
+                   srslte_softbuffer_rx_t* softbuffer,
+                   uint16_t mbsfn_area_id);
 
   /* ... for UL */
   void encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, uint32_t current_tx_nb, srslte_softbuffer_tx_t *softbuffer, 
@@ -154,6 +162,7 @@ private:
   srslte_ue_ul_t     ue_ul; 
   srslte_timestamp_t tx_time; 
   srslte_uci_data_t  uci_data; 
+  srslte_cqi_value_t cqi_report;
   uint16_t           ul_rnti;
   
   // UL configuration parameters 
@@ -169,6 +178,8 @@ private:
   bool                              sr_configured;
   float                             cfo;
   bool                              rar_cqi_request;
+  cf_t                             *prach_ptr;
+  float                             prach_power;
 
   uint32_t rssi_read_cnt;
 

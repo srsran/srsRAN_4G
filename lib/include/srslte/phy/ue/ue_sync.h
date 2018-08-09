@@ -61,6 +61,8 @@
 #include "srslte/phy/common/timestamp.h"
 #include "srslte/phy/io/filesource.h"
 
+#define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  10
+#define DEFAULT_SFO_EMA_COEFF                 0.1
 
 #define DEFAULT_CFO_BW_PSS  0.05
 #define DEFAULT_CFO_PSS_MIN 400  // typical bias of PSS estimation.
@@ -140,8 +142,7 @@ typedef struct SRSLTE_API {
   int next_rf_sample_offset;
   int last_sample_offset; 
   float mean_sample_offset; 
-  float mean_sfo; 
-  uint32_t sample_offset_correct_period; 
+  uint32_t sample_offset_correct_period;
   float sfo_ema; 
   
 
@@ -198,7 +199,9 @@ SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
 
 SRSLTE_API int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, 
                                         double (set_gain_callback)(void*, double), 
-                                        float init_gain_value); 
+                                        double min_gain,
+                                        double max_gain,
+                                        double init_gain_value);
 
 SRSLTE_API uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q); 
 
@@ -248,8 +251,11 @@ SRSLTE_API float srslte_ue_sync_get_sfo(srslte_ue_sync_t *q);
 
 SRSLTE_API int srslte_ue_sync_get_last_sample_offset(srslte_ue_sync_t *q); 
 
-SRSLTE_API void srslte_ue_sync_set_sample_offset_correct_period(srslte_ue_sync_t *q, 
-                                                                uint32_t nof_subframes); 
+SRSLTE_API void srslte_ue_sync_set_sfo_correct_period(srslte_ue_sync_t *q,
+                                                      uint32_t nof_subframes);
+
+SRSLTE_API void srslte_ue_sync_set_sfo_ema(srslte_ue_sync_t *q,
+                                           float ema_coefficient);
 
 SRSLTE_API void srslte_ue_sync_get_last_timestamp(srslte_ue_sync_t *q, 
                                                   srslte_timestamp_t *timestamp);

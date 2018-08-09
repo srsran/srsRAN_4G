@@ -32,6 +32,7 @@
 
 #define DEVNAME_B200 "uhd_b200"
 #define DEVNAME_X300 "uhd_x300"
+#define DEVNAME_N300 "uhd_n300"
 #define DEVNAME_E3X0 "uhd_e3x0"
 
 
@@ -80,6 +81,8 @@ SRSLTE_API double rf_uhd_set_rx_gain(void *h,
 SRSLTE_API double rf_uhd_get_rx_gain(void *h);
 
 SRSLTE_API double rf_uhd_get_tx_gain(void *h);
+
+SRSLTE_API srslte_rf_info_t *rf_uhd_get_info(void *h);
 
 SRSLTE_API void rf_uhd_suppress_stdout(void *h);
 

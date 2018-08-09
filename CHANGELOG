@@ -1,6 +1,17 @@
 Change Log for Releases
 ==============================
 
+## 18.06.1
+  * Fixed RLC reestablish
+  * Fixed aperiodic QCI retx
+  * Fixed eNB instability
+  * Fixed Debian packaging
+
+## 18.06
+  * Added eMBMS support in srsUE/srsENB/srsEPC
+  * Added support for hard SIM cards
+  * Many bug-fixes and improved stability and performance in all parts
+
 ## 18.03.1
   * Fixed compilation for NEON
   * Fixed logging and RLC AM issue

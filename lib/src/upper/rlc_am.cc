@@ -36,7 +36,7 @@
 
 namespace srslte {
 
-rlc_am::rlc_am() : tx_sdu_queue(16)
+rlc_am::rlc_am(uint32_t queue_len) : tx_sdu_queue(queue_len)
 {
   log = NULL;
   pdcp = NULL;
@@ -68,30 +68,24 @@ rlc_am::rlc_am() : tx_sdu_queue(16)
   do_status     = false;
 }
 
+// Warning: must call stop() to properly deallocate all buffers
 rlc_am::~rlc_am()
 {
-  // reset RLC and dealloc SDUs
-  stop();
-
-  if(rx_sdu) {
-    pool->deallocate(rx_sdu);
-  }
-
-  if(tx_sdu) {
-    pool->deallocate(tx_sdu);
-  }
+  pthread_mutex_destroy(&mutex);
+  pool = NULL;
 }
 
-void rlc_am::init(srslte::log                 *log_,
-                  uint32_t                     lcid_,
-                  srsue::pdcp_interface_rlc   *pdcp_,
-                  srsue::rrc_interface_rlc    *rrc_,
+void rlc_am::init(srslte::log                  *log_,
+                  uint32_t                      lcid_,
+                  srsue::pdcp_interface_rlc    *pdcp_,
+                  srsue::rrc_interface_rlc     *rrc_,
                   srslte::mac_interface_timers *mac_timers)
 {
   log  = log_;
   lcid = lcid_;
   pdcp = pdcp_;
   rrc  = rrc_;
+  tx_enabled = true;
 }
 
 void rlc_am::configure(srslte_rlc_config_t cfg_)
@@ -107,21 +101,22 @@ void rlc_am::configure(srslte_rlc_config_t cfg_)
 void rlc_am::empty_queue() {
   // Drop all messages in TX SDU queue
   byte_buffer_t *buf;
-  while(tx_sdu_queue.size() > 0) {
-    tx_sdu_queue.read(&buf);
+  while(tx_sdu_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
+  tx_sdu_queue.reset();
+}
+
+void rlc_am::reestablish() {
+  stop();
+  tx_enabled = true;
 }
 
 void rlc_am::stop()
 {
-  reset();
-  pthread_mutex_destroy(&mutex);
-}
-
-void rlc_am::reset()
-{
-  // Empty tx_sdu_queue before locking the mutex 
+  // Empty tx_sdu_queue before locking the mutex
+  tx_enabled = false;
+  usleep(100);
   empty_queue();
 
   pthread_mutex_lock(&mutex);
@@ -199,8 +194,34 @@ uint32_t rlc_am::get_bearer()
 
 void rlc_am::write_sdu(byte_buffer_t *sdu)
 {
-  tx_sdu_queue.write(sdu);
-  log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+  if (!tx_enabled) {
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+    return;
+  }
+  if (sdu) {
+    tx_sdu_queue.write(sdu);
+    log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+  } else {
+    log->warning("NULL SDU pointer in write_sdu()\n");
+  }
+}
+
+void rlc_am::write_sdu_nb(byte_buffer_t *sdu)
+{
+  if (!tx_enabled) {
+    byte_buffer_pool::get_instance()->deallocate(sdu);
+    return;
+  }
+  if (sdu) {
+    if (tx_sdu_queue.try_write(sdu)) {
+      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+    } else {
+      log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+      pool->deallocate(sdu);
+    }
+  } else {
+    log->warning("NULL SDU pointer in write_sdu()\n");
+  }
 }
 
 /****************************************************************************
@@ -278,7 +299,7 @@ uint32_t rlc_am::get_buffer_state()
   // check if pollRetx timer expired (Section 5.2.2.3 in TS 36.322)
   if (poll_retx()) {
     // if both tx and retx buffer are empty, retransmit next PDU to be ack'ed
-    log->info("Poll reTx timer expired (lcid=%d)\n", lcid);
+    log->debug("Poll reTx timer expired (lcid=%d)\n", lcid);
     if ((tx_window.size() > 0 && retx_queue.size() == 0 && tx_sdu_queue.size() == 0)) {
       std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.find(vt_s - 1);
       if (it != tx_window.end()) {
@@ -670,6 +691,13 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
     lower += old_header.li[i];
   }
 
+  // Make sure LI is not deleted in case the SDU boundary is crossed
+  // FIXME: fix if N_li > 1
+  if (new_header.N_li == 1 && retx.so_start + new_header.li[0] < retx.so_end && retx.so_end <= retx.so_start + pdu_space) {
+    // This segment crosses a SDU boundary
+    new_header.N_li++;
+  }
+
   // Update retx_queue
   if(tx_window[retx.sn].buf->N_bytes == retx.so_end) {
     retx_queue.pop_front();
@@ -913,6 +941,13 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
 #endif
   }
 
+  // check available space for payload
+  if (nof_bytes > pdu.buf->get_tailroom()) {
+    log->error("%s Discarding SN: %d of size %d B (available space %d B)\n",
+              rrc->get_rb_name(lcid).c_str(), header.sn, nof_bytes, pdu.buf->get_tailroom());
+    pool->deallocate(pdu.buf);
+    return;
+  }
   memcpy(pdu.buf->msg, payload, nof_bytes);
   pdu.buf->N_bytes  = nof_bytes;
   memcpy(&pdu.header, &header, sizeof(rlc_amd_pdu_header_t));
@@ -1098,7 +1133,7 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
               // sanity check
               if (status.nacks[j].so_start >= it->second.buf->N_bytes) {
                 // print error but try to send original PDU again
-                log->error("SO_start is larger than original PDU (%d >= %d)\n",
+                log->info("SO_start is larger than original PDU (%d >= %d)\n",
                            status.nacks[j].so_start,
                            it->second.buf->N_bytes);
                 status.nacks[j].so_start = 0;
@@ -1153,6 +1188,7 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 void rlc_am::reassemble_rx_sdus()
 {
+  uint32_t len = 0;
   if(!rx_sdu) {
     rx_sdu = pool_allocate;
     if (!rx_sdu) {
@@ -1172,36 +1208,46 @@ void rlc_am::reassemble_rx_sdus()
     // Handle any SDU segments
     for(uint32_t i=0; i<rx_window[vr_r].header.N_li; i++)
     {
-      uint32_t len = rx_window[vr_r].header.li[i];
-      if (rx_sdu->get_tailroom() >= len) {
-        memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
-        rx_sdu->N_bytes += len;
-        rx_window[vr_r].buf->msg += len;
-        rx_window[vr_r].buf->N_bytes -= len;
-        log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", rrc->get_rb_name(lcid).c_str(), rx_sdu->N_bytes);
-        rx_sdu->set_timestamp();
-        pdcp->write_pdu(lcid, rx_sdu);
+      len = rx_window[vr_r].header.li[i];
+      // sanity check to avoid zero-size SDUs
+      if (len == 0) {
+        break;
+      }
 
-        rx_sdu = pool_allocate;
-        if (!rx_sdu) {
+      if (rx_sdu->get_tailroom() >= len) {
+        if ((rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer) + len < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
+          memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
+          rx_sdu->N_bytes += len;
+          rx_window[vr_r].buf->msg += len;
+          rx_window[vr_r].buf->N_bytes -= len;
+          log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", rrc->get_rb_name(lcid).c_str(), rx_sdu->N_bytes);
+          rx_sdu->set_timestamp();
+          pdcp->write_pdu(lcid, rx_sdu);
+
+          rx_sdu = pool_allocate;
+          if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
-          log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+            log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
           exit(-1);
 #else
-          log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
-          return;
+            log->error("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
+            return;
 #endif
+          }
+        } else {
+          log->error("Cannot read %d bytes from rx_window. vr_r=%d, msg-buffer=%ld bytes\n", len, vr_r, (rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer));
+          pool->deallocate(rx_sdu);
+          goto exit;
         }
       } else {
         log->error("Cannot fit RLC PDU in SDU buffer, dropping both.\n");
         pool->deallocate(rx_sdu);
-        pool->deallocate(rx_window[vr_r].buf);
-        rx_window.erase(vr_r);
+        goto exit;
       }
     }
 
     // Handle last segment
-    uint32_t len = rx_window[vr_r].buf->N_bytes;
+    len = rx_window[vr_r].buf->N_bytes;
     if (rx_sdu->get_tailroom() >= len) {
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
       rx_sdu->N_bytes += rx_window[vr_r].buf->N_bytes;
@@ -1228,6 +1274,7 @@ void rlc_am::reassemble_rx_sdus()
       }
     }
 
+exit:
     // Move the rx_window
     pool->deallocate(rx_window[vr_r].buf);
     rx_window.erase(vr_r);
@@ -1264,7 +1311,6 @@ void rlc_am::debug_state()
              "vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d\n",
              rrc->get_rb_name(lcid).c_str(), vt_a, vt_ms, vt_s, poll_sn,
              vr_r, vr_mr, vr_x, vr_ms, vr_h);
-
 }
 
 void rlc_am::print_rx_segments()
@@ -1345,7 +1391,13 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
         count += it->header.li[i];
       }
     }
-    carryover = it->buf->N_bytes - count;
+
+    // accumulate segment sizes until end aligned PDU is received
+    if (rlc_am_not_start_aligned(it->header.fi)) {
+      carryover += it->buf->N_bytes - count;
+    } else {
+      carryover = it->buf->N_bytes - count;
+    }
     tmpit = it;
     if(rlc_am_end_aligned(it->header.fi) && ++tmpit != pdu->segments.end()) {
       header.li[header.N_li++] = carryover;
@@ -1741,14 +1793,24 @@ std::string rlc_am_to_string(rlc_status_pdu_t *status)
   return ss.str();
 }
 
-bool rlc_am_start_aligned(uint8_t fi)
+bool rlc_am_start_aligned(const uint8_t fi)
 {
   return (fi == RLC_FI_FIELD_START_AND_END_ALIGNED || fi == RLC_FI_FIELD_NOT_END_ALIGNED);
 }
 
-bool rlc_am_end_aligned(uint8_t fi)
+bool rlc_am_end_aligned(const uint8_t fi)
 {
   return (fi == RLC_FI_FIELD_START_AND_END_ALIGNED || fi == RLC_FI_FIELD_NOT_START_ALIGNED);
+}
+
+bool rlc_am_is_unaligned(const uint8_t fi)
+{
+  return (fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
+}
+
+bool rlc_am_not_start_aligned(const uint8_t fi)
+{
+  return (fi == RLC_FI_FIELD_NOT_START_ALIGNED || fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
 }
 
 } // namespace srsue

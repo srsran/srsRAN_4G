@@ -7,6 +7,8 @@
 #include <assert.h>
 
 #include "srslte/common/liblte_security.h"
+#include "srslte/srslte.h"
+#include "srslte/common/liblte_security.h"
 
 /*
  * Prototypes
@@ -440,9 +442,17 @@ void test_set_6()
   uint8_t * out = (uint8_t *) calloc(len_bytes,
       sizeof(uint8_t));
 
+  struct timeval t[3];
+
   // encryption
-  err_lte = liblte_security_encryption_eea2(key, count, bearer,
-      direction, msg, len_bits, out);
+  gettimeofday(&t[1], NULL);
+  for (int i=0;i<100;i++) {
+    err_lte = liblte_security_encryption_eea2(key, count, bearer,
+                                              direction, msg, len_bits, out);
+  }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("encryption: %u bits, t=%d us, rate=%.1f Mbps/s\n", len_bits, (int) t[0].tv_usec/100, (float) 100*len_bits/t[0].tv_usec);
   assert(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text
@@ -450,8 +460,14 @@ void test_set_6()
   assert(err_cmp == 0);
 
   // decryption
-  err_lte = liblte_security_decryption_eea2(key, count, bearer,
-      direction, ct, len_bits, out);
+  gettimeofday(&t[1], NULL);
+  for (int i=0;i<100;i++) {
+    err_lte = liblte_security_decryption_eea2(key, count, bearer,
+                                              direction, ct, len_bits, out);
+  }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("decryption: %u bits, t=%d us, rate=%.1f Mbps/s\n", len_bits, (int) t[0].tv_usec/100, (float) 100*len_bits/t[0].tv_usec);
   assert(err_lte == LIBLTE_SUCCESS);
 
   // compare cipher text

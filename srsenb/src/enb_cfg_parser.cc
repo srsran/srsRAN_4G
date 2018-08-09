@@ -210,7 +210,39 @@ int enb::parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUC
     ("time_alignment_timer", &data->time_alignment_timer, 
      liblte_rrc_time_alignment_timer_text, LIBLTE_RRC_TIME_ALIGNMENT_TIMER_N_ITEMS)
   );
+  
+  
+  sib2.add_field(
+     new parser::field<uint32>
+    ("mbsfnSubframeConfigListLength", &data->mbsfn_subfr_cnfg_list_size)
+  );
+  
+  
+    parser::section mbsfnSubframeConfigList("mbsfnSubframeConfigList");
+      sib2.add_subsection(&mbsfnSubframeConfigList);
+      
+    mbsfnSubframeConfigList.add_field( 
+       new parser::field<uint32>
+      ("subframeAllocation", &data->mbsfn_subfr_cnfg_list[0].subfr_alloc)
+    );
 
+    mbsfnSubframeConfigList.add_field( 
+       new parser::field<uint8>
+      ("radioframeAllocationOffset", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_offset)
+    );
+
+    mbsfnSubframeConfigList.add_field( 
+       new parser::field_enum_str<LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ENUM>
+      ("subframeAllocationNumFrames", &data->mbsfn_subfr_cnfg_list[0].subfr_alloc_num_frames,
+       liblte_rrc_subframe_allocation_num_frames_text,LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_N_ITEMS)
+    );
+
+    mbsfnSubframeConfigList.add_field( 
+       new parser::field_enum_str<LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_ENUM>
+      ("radioframeAllocationPeriod", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_period,
+       liblte_rrc_radio_frame_allocation_period_text, LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N_ITEMS)
+    );
+ 
   parser::section freqinfo("freqInfo");
   sib2.add_subsection(&freqinfo);
   freqinfo.add_field(
@@ -701,6 +733,7 @@ uint32_t HexToBytes(const std::string& str, uint8_t *char_value, uint32_t buff_l
   return i/2;
 }
 
+
 int enb::parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT *data) 
 {  
   parser::section sib9("sib9");
@@ -729,6 +762,86 @@ int enb::parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUC
   }
 }
 
+int enb::parse_sib13(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *data)
+{
+  parser::section sib13("sib13");
+  
+  sib13.add_field(
+     new parser::field<uint8>
+    ("mbsfn_area_info_list_size", &data->mbsfn_area_info_list_r9_size)
+  );
+  
+  parser::section mbsfn_notification_config("mbsfn_notification_config");
+  sib13.add_subsection(&mbsfn_notification_config);
+  
+  
+  mbsfn_notification_config.add_field( 
+     new parser::field_enum_str<LIBLTE_RRC_NOTIFICATION_REPETITION_COEFF_R9_ENUM>
+    ("mbsfn_notification_repetition_coeff", &data->mbsfn_notification_config.repetition_coeff, liblte_rrc_notification_repetition_coeff_r9_text,LIBLTE_RRC_NOTIFICATION_REPETITION_COEFF_R9_N_ITEMS)
+  );
+  
+  mbsfn_notification_config.add_field( 
+     new parser::field<uint8>
+    ("mbsfn_notification_offset", &data->mbsfn_notification_config.offset)
+  );
+  
+  mbsfn_notification_config.add_field( 
+     new parser::field<uint8>
+    ("mbsfn_notification_sf_index", &data->mbsfn_notification_config.sf_index)
+  );
+  
+  
+  parser::section mbsfn_area_info_list("mbsfn_area_info_list");
+  sib13.add_subsection(&mbsfn_area_info_list);
+  
+  mbsfn_area_info_list.add_field(
+   new parser::field_enum_str<LIBLTE_RRC_NON_MBSFN_REGION_LENGTH_ENUM>
+    ("non_mbsfn_region_length", &data->mbsfn_area_info_list_r9[0].non_mbsfn_region_length,
+          liblte_rrc_non_mbsfn_region_length_text,LIBLTE_RRC_NON_MBSFN_REGION_LENGTH_N_ITEMS)
+  );
+  
+  mbsfn_area_info_list.add_field(
+   new parser::field_enum_str<LIBLTE_RRC_MCCH_REPETITION_PERIOD_ENUM>
+    ("mcch_repetition_period", &data->mbsfn_area_info_list_r9[0].mcch_repetition_period_r9,
+          liblte_rrc_mcch_repetition_period_r9_text,LIBLTE_RRC_MCCH_REPETITION_PERIOD_N_ITEMS)
+  );
+  
+  
+  mbsfn_area_info_list.add_field(
+   new parser::field_enum_str<LIBLTE_RRC_MCCH_MODIFICATION_PERIOD_ENUM>
+    ("mcch_modification_period", &data->mbsfn_area_info_list_r9[0].mcch_modification_period_r9,
+          liblte_rrc_mcch_modification_period_r9_text,LIBLTE_RRC_MCCH_MODIFICATION_PERIOD_N_ITEMS)
+  );
+  
+  mbsfn_area_info_list.add_field(
+   new parser::field_enum_str<LIBLTE_RRC_MCCH_SIGNALLING_MCS_ENUM>
+    ("signalling_mcs", &data->mbsfn_area_info_list_r9[0].signalling_mcs_r9,
+          liblte_rrc_mcch_signalling_mcs_r9_text,LIBLTE_RRC_MCCH_SIGNALLING_MCS_N_ITEMS)
+  );
+  
+  
+  mbsfn_area_info_list.add_field( 
+     new parser::field<uint8>
+    ("mbsfn_area_id", &data->mbsfn_area_info_list_r9[0].mbsfn_area_id_r9)
+  );
+
+  mbsfn_area_info_list.add_field( 
+     new parser::field<uint8>
+    ("notification_indicator", &data->mbsfn_area_info_list_r9[0].notification_indicator_r9)
+  );
+  
+  mbsfn_area_info_list.add_field( 
+     new parser::field<uint8>
+    ("mcch_offset", &data->mbsfn_area_info_list_r9[0].mcch_offset_r9)
+  );
+  
+  mbsfn_area_info_list.add_field( 
+     new parser::field<uint8>
+    ("sf_alloc_info", &data->mbsfn_area_info_list_r9[0].sf_alloc_info_r9)
+  );
+  return parser::parse_section(filename, &sib13);
+}
+
 int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_common)
 {
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1 = &rrc_cfg->sibs[0].sib.sib1;
@@ -741,7 +854,8 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
   rrc_cfg->sibs[3].sib_type = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT *sib9 = &rrc_cfg->sibs[8].sib.sib9;
   rrc_cfg->sibs[8].sib_type = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9;
-
+  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13 = &rrc_cfg->sibs[12].sib.sib13;
+  rrc_cfg->sibs[12].sib_type = LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13;
   
   // Read SIB1 configuration from file 
   bzero(sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
@@ -765,7 +879,7 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
   if (parse_sib2(args->enb_files.sib_config, sib2)) {
     return -1; 
   }
-  
+ 
   // SRS not yet supported 
   sib2->rr_config_common_sib.srs_ul_cnfg.present = false; 
   if (sib2->ul_bw.present) {
@@ -817,7 +931,13 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
       return -1; 
     }    
   }
-
+  
+  if (sib_is_present(sib1->sched_info, sib1->N_sched_info, LIBLTE_RRC_SIB_TYPE_13_v920)) {
+    bzero(sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT));
+    if (parse_sib13(args->enb_files.sib_config, sib13)) {
+      return -1; 
+    }    
+  }
   // Copy PHY common configuration 
   bzero(phy_config_common, sizeof(phy_cfg_t));  
   memcpy(&phy_config_common->prach_cnfg, &sib2->rr_config_common_sib.prach_cnfg, sizeof(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT));
