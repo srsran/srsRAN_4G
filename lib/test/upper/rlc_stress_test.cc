@@ -122,7 +122,7 @@ public:
     ,lcid(lcid_)
     ,log("MAC  ")
   {
-    log.set_level(srslte::LOG_LEVEL_ERROR);
+    log.set_level(srslte::LOG_LEVEL_WARNING);
     log.set_hex_limit(LOG_HEX_LIMIT);
   }
 
@@ -170,7 +170,7 @@ private:
           pcap->write_ul_am_ccch(pdu->msg, pdu->N_bytes);
         }
       } else {
-        log.info_hex(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)\n", pdu->N_bytes);
+        log.warning_hex(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)\n", pdu->N_bytes);
       }
     }
     byte_buffer_pool::get_instance()->deallocate(pdu);
@@ -355,12 +355,20 @@ void stress_test(stress_test_args_t args)
     usleep(1e6);
   }
 
+  printf("Test finished, tearing down ..\n");
+
   // Stop RLC instances first to release blocking writers
   rlc1.stop();
   rlc2.stop();
 
+  printf("RLC entities stopped.\n");
+
+  // Stop upper layer writers
   tester1.stop();
   tester2.stop();
+
+  printf("Writers stopped.\n");
+
   mac.stop();
   if (args.write_pcap) {
     pcap.close();
@@ -387,7 +395,7 @@ void stress_test(stress_test_args_t args)
 
 
 int main(int argc, char **argv) {
-  stress_test_args_t args;
+  stress_test_args_t args = {};
   parse_args(&args, argc, argv);
 
   if (args.zero_seed) {
