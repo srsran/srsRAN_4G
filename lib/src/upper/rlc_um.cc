@@ -75,12 +75,12 @@ bool rlc_um::configure(srslte_rlc_config_t cnfg_)
     return false;
   }
 
-  log->warning("%s configured in %s mode: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode],
-               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
-
   // store config
   cfg = cnfg_.um;
+
+  log->warning("%s configured in %s mode: ft_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
+               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode],
+               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
 
   return true;
 }
