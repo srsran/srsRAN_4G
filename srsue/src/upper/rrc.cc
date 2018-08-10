@@ -3348,9 +3348,8 @@ bool rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 void rrc::rrc_meas::update_phy()
 {
   phy->meas_reset();
-  for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
-    meas_t m = iter->second;
-    meas_obj_t o = objects[m.object_id];
+  for(std::map<uint32_t, meas_obj_t>::iterator iter=objects.begin(); iter!=objects.end(); ++iter) {
+    meas_obj_t o = iter->second;
     // Instruct PHY to look for neighbour cells on this frequency
     phy->meas_start(o.earfcn);
     for(std::map<uint32_t, meas_cell_t>::iterator iter=o.meas_cells.begin(); iter!=o.meas_cells.end(); ++iter) {
