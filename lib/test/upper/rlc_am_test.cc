@@ -42,15 +42,21 @@ class mac_dummy_timers
     :public srslte::mac_interface_timers
 {
 public:
-  srslte::timers::timer* timer_get(uint32_t timer_id)
-  {
-    return &t;
+  mac_dummy_timers() : timers(8) {}
+  srslte::timers::timer* timer_get(uint32_t timer_id) {
+    return timers.get(timer_id);
   }
-  uint32_t timer_get_unique_id(){return 0;}
-  void timer_release_id(uint32_t id){}
-
+  void timer_release_id(uint32_t timer_id) {
+    timers.release_id(timer_id);
+  }
+  uint32_t timer_get_unique_id() {
+    return timers.get_unique_id();
+  }
+  void step_all() {
+    timers.step_all();
+  }
 private:
-  srslte::timers::timer t;
+  srslte::timers timers;
 };
 
 class rlc_am_tester
@@ -166,8 +172,8 @@ void basic_test()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -250,8 +256,8 @@ void concat_test()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -319,8 +325,8 @@ void segment_test()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -405,8 +411,8 @@ void retx_test()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -436,8 +442,11 @@ void retx_test()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -502,8 +511,8 @@ void resegment_test_1()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -534,8 +543,11 @@ void resegment_test_1()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -612,8 +624,8 @@ void resegment_test_2()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -644,8 +656,11 @@ void resegment_test_2()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -719,8 +734,8 @@ void resegment_test_3()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -751,8 +766,11 @@ void resegment_test_3()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -822,8 +840,8 @@ void resegment_test_4()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -854,8 +872,11 @@ void resegment_test_4()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -925,8 +946,8 @@ void resegment_test_5()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 5 SDUs into RLC1
   byte_buffer_t sdu_bufs[NBUFS];
@@ -957,8 +978,11 @@ void resegment_test_5()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -1027,8 +1051,8 @@ void resegment_test_6()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push SDUs into RLC1
   byte_buffer_t sdu_bufs[9];
@@ -1069,8 +1093,11 @@ void resegment_test_6()
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(4 == rlc2.get_buffer_state());
 
@@ -1165,8 +1192,8 @@ void resegment_test_7()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 2 SDUs into RLC1
   byte_buffer_t sdu_bufs[N_SDU_BUFS];
@@ -1201,8 +1228,11 @@ void resegment_test_7()
     }
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(12 == rlc1.get_buffer_state());
 
@@ -1222,7 +1252,7 @@ void resegment_test_7()
     }
   }
 
-  usleep(10000);
+
 
   // Read status PDU from RLC2
   assert(rlc2.get_buffer_state());
@@ -1236,7 +1266,6 @@ void resegment_test_7()
 #endif
 
   assert(15 == rlc1.get_buffer_state());
-
 
   // second round of retx, forcing resegmentation
   byte_buffer_t retx2[4];
@@ -1253,6 +1282,13 @@ void resegment_test_7()
 
   // check buffer states
   assert(0 == rlc1.get_buffer_state());
+
+  // Step timers until poll_retx timeout expires
+  cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
+
   assert(0 == rlc2.get_buffer_state());
 
   // Check number of SDUs and their content
@@ -1318,8 +1354,8 @@ void resegment_test_8()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
+  assert(rlc2.configure(&cnfg) == true);
 
   // Push 2 SDUs into RLC1
   byte_buffer_t sdu_bufs[N_SDU_BUFS];
@@ -1354,8 +1390,11 @@ void resegment_test_8()
     }
   }
 
-  // Sleep to let reordering timeout expire
-  usleep(10000);
+  // Step timers until reordering timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   assert(12 == rlc1.get_buffer_state());
 
@@ -1375,7 +1414,11 @@ void resegment_test_8()
     }
   }
 
-  usleep(20000);
+  // Step timers until reordering timeout expires
+  cnt = 7;
+  while (cnt--) {
+    timers.step_all();
+  }
 
   // Read status PDU from RLC2
   assert(rlc2.get_buffer_state());
@@ -1408,8 +1451,7 @@ void resegment_test_8()
 
   // Check number of SDUs and their content
   assert(tester.n_sdus == N_SDU_BUFS);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
+  for(int i=0; i<tester.n_sdus; i++) {
     assert(tester.sdus[i]->N_bytes == sdu_size);
     for(uint32_t j=0;j<N_SDU_BUFS;j++) {
       assert(tester.sdus[i]->msg[j] == i);
@@ -1449,7 +1491,7 @@ void reset_test()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
 
   // Push 1 SDU of size 10 into RLC1
   byte_buffer_t sdu_buf;
@@ -1499,7 +1541,7 @@ void stop_test()
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
-  rlc1.configure(&cnfg);
+  assert(rlc1.configure(&cnfg) == true);
 
   // start thread reading
   ul_writer writer(&rlc1);
@@ -1542,7 +1584,6 @@ int main(int argc, char **argv) {
 
   resegment_test_6();
   byte_buffer_pool::get_instance()->cleanup();
-
   resegment_test_7();
   byte_buffer_pool::get_instance()->cleanup();
 
