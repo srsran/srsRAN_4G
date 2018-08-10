@@ -62,6 +62,8 @@ public:
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
   virtual void enable_integrity() = 0;
   virtual void enable_encryption() = 0;
+  virtual uint32_t get_dl_count() = 0;
+  virtual uint32_t get_ul_count() = 0;
 
   // RLC interface
   virtual void write_pdu(byte_buffer_t *pdu) = 0;

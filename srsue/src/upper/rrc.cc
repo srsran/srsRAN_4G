@@ -2021,6 +2021,7 @@ void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
 void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
   srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
   bit_buf.N_bits = pdu->N_bytes * 8;
+  bzero(&dl_dcch_msg, sizeof(dl_dcch_msg));
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
@@ -2699,8 +2700,16 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
   rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid).c_str());
 }
 
-void rrc::release_drb(uint8_t lcid) {
-  // TODO
+void rrc::release_drb(uint32_t drb_id)
+{
+  uint32_t lcid = RB_ID_SRB2 + drb_id;
+
+  if (drbs.find(drb_id) != drbs.end()) {
+    rrc_log->info("Releasing radio bearer %s\n", get_rb_name(lcid).c_str());
+    drbs.erase(lcid);
+  } else {
+    rrc_log->error("Couldn't release radio bearer %s. Doesn't exist.\n", get_rb_name(lcid).c_str());
+  }
 }
 
 void rrc::add_mrb(uint32_t lcid, uint32_t port)

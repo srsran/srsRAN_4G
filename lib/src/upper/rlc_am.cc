@@ -238,7 +238,7 @@ uint32_t rlc_am::get_total_buffer_state()
   check_reordering_timeout();
   if(do_status && !status_prohibited()) {
     n_bytes += prepare_status();
-    log->debug("Buffer state - status report: %d bytes\n", n_bytes);
+    log->debug("%s Buffer state - total status report: %d bytes\n", rrc->get_rb_name(lcid).c_str(), n_bytes);
   }
 
   // Bytes needed for retx
@@ -292,7 +292,7 @@ uint32_t rlc_am::get_buffer_state()
   check_reordering_timeout();
   if(do_status && !status_prohibited()) {
     n_bytes = prepare_status();
-    log->debug("Buffer state - status report: %d bytes\n", n_bytes);
+    log->debug("%s Buffer state - status report: %d bytes\n", rrc->get_rb_name(lcid).c_str(), n_bytes);
     goto unlock_and_return;
   }
 

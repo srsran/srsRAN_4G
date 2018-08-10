@@ -214,10 +214,13 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
       }
 
       if (do_integrity) {
-        integrity_verify(pdu->msg,
+        if (not integrity_verify(pdu->msg,
                          rx_count,
                          pdu->N_bytes - 4,
-                         &(pdu->msg[pdu->N_bytes - 4]));
+                         &(pdu->msg[pdu->N_bytes - 4]))) {
+          log->error_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+          goto exit;
+        }
       }
 
       pdcp_unpack_control_pdu(pdu, &sn);
@@ -226,6 +229,7 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
     // pass to RRC
     rrc->write_pdu(lcid, pdu);
   }
+exit:
   rx_count++;
 }
 
@@ -403,6 +407,17 @@ uint8_t pdcp_entity::get_bearer_id(uint8_t lcid)
   }
 }
 
+
+uint32_t pdcp_entity::get_dl_count()
+{
+  return rx_count;
+}
+
+
+uint32_t pdcp_entity::get_ul_count()
+{
+  return tx_count;
+}
 
 /****************************************************************************
  * Pack/Unpack helper functions

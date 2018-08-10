@@ -94,6 +94,7 @@ void pdcp::reset()
   // destroy all bearers
   pthread_rwlock_wrlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+    it->second->reset();
     delete(it->second);
     pdcp_array.erase(it);
   }
@@ -137,6 +138,7 @@ void pdcp::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
   }
   pthread_rwlock_unlock(&rwlock);
 }
+
 void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
@@ -154,7 +156,6 @@ unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
-
 void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
@@ -171,6 +172,21 @@ void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
 unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
 }
+
+void pdcp::del_bearer(uint32_t lcid)
+{
+  pthread_rwlock_wrlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    pdcp_map_t::iterator it = pdcp_array.find(lcid);
+    delete(it->second);
+    pdcp_array.erase(it);
+    pdcp_log->warning("Deleted PDCP bearer %s\n", rrc->get_rb_name(lcid).c_str());
+  } else {
+    pdcp_log->warning("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
 
 void pdcp::config_security(uint32_t lcid,
                            uint8_t *k_enc,
@@ -214,6 +230,29 @@ void pdcp::enable_encryption(uint32_t lcid)
   }
   pthread_rwlock_unlock(&rwlock);
 }
+
+uint32_t pdcp::get_dl_count(uint32_t lcid)
+{
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    ret = pdcp_array.at(lcid)->get_dl_count();
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
+}
+
+uint32_t pdcp::get_ul_count(uint32_t lcid)
+{
+  int ret = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    ret = pdcp_array.at(lcid)->get_ul_count();
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
+}
+
 
 /*******************************************************************************
   RLC interface

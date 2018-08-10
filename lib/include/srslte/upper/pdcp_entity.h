@@ -83,6 +83,8 @@ public:
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
   void enable_integrity();
   void enable_encryption();
+  uint32_t get_dl_count();
+  uint32_t get_ul_count();
 
   // RLC interface
   void write_pdu(byte_buffer_t *pdu);

@@ -301,12 +301,27 @@ void ue::stop()
   }
 }
 
-bool ue::attach() {
+bool ue::switch_on() {
   return nas.attach_request();
 }
 
-bool ue::deattach() {
-  return nas.deattach_request();
+bool ue::switch_off() {
+  // generate detach request
+  nas.detach_request();
+
+  // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
+  const uint32_t RB_ID_SRB1 = 1;
+  int cnt = 0, timeout = 5;
+  while (rlc.get_buffer_state(RB_ID_SRB1) && ++cnt <= timeout) {
+    sleep(1);
+  }
+  bool detach_sent = true;
+  if (rlc.get_buffer_state(RB_ID_SRB1)) {
+    nas_log.warning("Detach couldn't be sent after %ds.\n", timeout);
+    detach_sent = false;
+  }
+
+  return detach_sent;
 }
 
 bool ue::is_attached()
