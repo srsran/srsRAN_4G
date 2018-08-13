@@ -45,9 +45,9 @@ nas::init(s1ap_interface_nas *s1ap,
           hss_interface_nas  *hss,
           srslte::log        *nas_log)
 {
-  m_s1ap = s1ap;
-  m_gtpc = gtpc;
-  m_hss  = hss;
+  m_s1ap    = s1ap;
+  m_gtpc    = gtpc;
+  m_hss     = hss;
   m_nas_log = nas_log;
 }
 /*******************************

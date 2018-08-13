@@ -352,21 +352,21 @@ main (int argc,char * argv[] )
   if (spgw->init(&args.spgw_args,&spgw_log)) {
     cout << "Error initializing SP-GW" << endl;
     exit(1);
-  } 
+  }
 
-  mme->start(); 
+  mme->start();
   spgw->start();
   while(running) {
     sleep(1);
   }
 
   mme->stop();
-  mme->cleanup();   
+  mme->cleanup();
   spgw->stop();
   spgw->cleanup();
   hss->stop();
   hss->cleanup();
 
-  cout << std::endl <<"---  exiting  ---" << endl;  
+  cout << std::endl <<"---  exiting  ---" << endl;
   return 0;
 }
