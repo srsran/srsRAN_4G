@@ -63,7 +63,21 @@ SRSLTE_API uint32_t srslte_crc_attach(srslte_crc_t *h,
 
 SRSLTE_API uint32_t srslte_crc_attach_byte(srslte_crc_t *h, 
                                            uint8_t *data, 
-                                           int len); 
+                                           int len);
+
+static inline void srslte_crc_checksum_put_byte(srslte_crc_t *h, uint8_t byte) {
+
+  // Polynom order 8, 16, 24 or 32 only.
+  int ord = h->order - 8;
+  uint64_t crc = h->crcinit;
+
+  crc = (crc << 8) ^ h->table[((crc >> (ord)) & 0xff) ^ byte];
+  h->crcinit = crc;
+}
+
+static inline uint64_t srslte_crc_checksum_get(srslte_crc_t *h) {
+  return (h->crcinit  & h->crcmask);
+}
 
 SRSLTE_API uint32_t srslte_crc_checksum_byte(srslte_crc_t *h, 
                                              uint8_t *data, 

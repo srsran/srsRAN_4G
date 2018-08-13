@@ -264,15 +264,12 @@ static int encode_tb_off(srslte_sch_t *q,
           /* Append Transport Block parity bits to the last CB */
           memcpy(q->cb_in, &data[rp/8], (rlen - 24) * sizeof(uint8_t)/8);
           memcpy(&q->cb_in[(rlen - 24)/8], parity, 3 * sizeof(uint8_t));
-        }        
-        
-        /* Attach Codeblock CRC */
-        if (cb_segm->C > 1) {
-          srslte_crc_attach_byte(&q->crc_cb, q->cb_in, rlen);
         }
 
-        /* Turbo Encoding */
-        srslte_tcod_encode_lut(&q->encoder, q->cb_in, q->parity_bits, cblen_idx);        
+        /* Turbo Encoding
+         * If Codeblock CRC is required it is given the CRC instance pointer, otherwise CRC pointer shall be NULL
+         */
+        srslte_tcod_encode_lut(&q->encoder, (cb_segm->C > 1) ? &q->crc_cb : NULL, q->cb_in, q->parity_bits, cblen_idx);
       }
       DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d\n",cblen_idx, n_e, wp, nof_e_bits);
       

@@ -70,11 +70,11 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
   cfg.sn_len    = 0;
   sn_len_bytes  = 0;
 
-  if(cfg.is_control) {
+  if (cfg.is_control) {
     cfg.sn_len   = 5;
     sn_len_bytes = 1;
   }
-  if(cfg.is_data) {
+  if (cfg.is_data) {
     cfg.sn_len   = 12;
     sn_len_bytes = 2;
   }
@@ -89,6 +89,7 @@ void pdcp_entity::reestablish() {
     tx_count = 0;
     rx_count = 0;
   } else {
+    // Only reset counter in RLC-UM
     if (rlc->rb_is_um(lcid)) {
       tx_count = 0;
       rx_count = 0;
@@ -96,11 +97,13 @@ void pdcp_entity::reestablish() {
   }
 }
 
+// Used to stop/pause the entity (called on RRC conn release)
 void pdcp_entity::reset()
 {
-  active      = false;
-  if(log)
+  active = false;
+  if (log) {
     log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
+  }
 }
 
 bool pdcp_entity::is_active()
@@ -108,8 +111,8 @@ bool pdcp_entity::is_active()
   return active;
 }
 
-// RRC interface
-void pdcp_entity::write_sdu(byte_buffer_t *sdu)
+// GW/RRC interface
+void pdcp_entity::write_sdu(byte_buffer_t *sdu, bool blocking)
 {
   log->info_hex(sdu->msg, sdu->N_bytes,
         "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
@@ -141,7 +144,7 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu)
   }
   tx_count++;
 
-  rlc->write_sdu(lcid, sdu);
+  rlc->write_sdu(lcid, sdu, blocking);
 }
 
 void pdcp_entity::config_security(uint8_t *k_enc_,
@@ -211,10 +214,13 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
       }
 
       if (do_integrity) {
-        integrity_verify(pdu->msg,
+        if (not integrity_verify(pdu->msg,
                          rx_count,
                          pdu->N_bytes - 4,
-                         &(pdu->msg[pdu->N_bytes - 4]));
+                         &(pdu->msg[pdu->N_bytes - 4]))) {
+          log->error_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+          goto exit;
+        }
       }
 
       pdcp_unpack_control_pdu(pdu, &sn);
@@ -223,6 +229,7 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
     // pass to RRC
     rrc->write_pdu(lcid, pdu);
   }
+exit:
   rx_count++;
 }
 
@@ -400,6 +407,17 @@ uint8_t pdcp_entity::get_bearer_id(uint8_t lcid)
   }
 }
 
+
+uint32_t pdcp_entity::get_dl_count()
+{
+  return rx_count;
+}
+
+
+uint32_t pdcp_entity::get_ul_count()
+{
+  return tx_count;
+}
 
 /****************************************************************************
  * Pack/Unpack helper functions

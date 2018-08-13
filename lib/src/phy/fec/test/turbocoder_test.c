@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     }
 
     srslte_tcod_encode(&tcod, input_bits, output_bits, long_cb);
-    srslte_tcod_encode_lut(&tcod, input_bytes, parity, len);
+    srslte_tcod_encode_lut(&tcod, NULL, input_bytes, parity, len);
 
     srslte_bit_unpack_vector(parity, parity_bits, 2*(long_cb+4));
     

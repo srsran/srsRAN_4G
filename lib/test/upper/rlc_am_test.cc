@@ -27,11 +27,13 @@
 #include <iostream>
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_stdout.h"
+#include "srslte/common/threads.h"
 #include "srslte/upper/rlc_am.h"
 #include "srslte/common/rlc_pcap.h"
 #include <assert.h>
 #define NBUFS 5
 #define HAVE_PCAP 0
+#define SDU_SIZE 500
 
 using namespace srsue;
 using namespace srslte;
@@ -89,6 +91,48 @@ public:
   byte_buffer_t *sdus[10];
   int n_sdus;
   rlc_pcap *pcap;
+};
+
+class ul_writer : public thread
+{
+public:
+  ul_writer(rlc_am* rlc_) : rlc(rlc_), running(false) {}
+  ~ul_writer() { stop(); }
+  void stop()
+  {
+    running = false;
+    int cnt=0;
+    while(running && cnt<100) {
+      usleep(10000);
+      cnt++;
+    }
+    wait_thread_finish();
+  }
+
+private:
+  void run_thread() {
+    int sn = 0;
+    running = true;
+    while(running) {
+      byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_tester::run_thread", true);
+      if (!pdu) {
+        printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
+        // backoff for a bit
+        usleep(1000);
+        continue;
+      }
+      for (uint32_t i = 0; i < SDU_SIZE; i++) {
+        pdu->msg[i] = sn;
+      }
+      sn++;
+      pdu->N_bytes = SDU_SIZE;
+      rlc->write_sdu(pdu);
+    }
+    running = false;
+  }
+
+  rlc_am* rlc;
+  bool running;
 };
 
 void basic_test()
@@ -169,6 +213,10 @@ void basic_test()
     assert(tester.sdus[i]->N_bytes == 1);
     assert(*(tester.sdus[i]->msg)  == i);
   }
+
+  // Check statistics
+  assert(rlc1.get_num_tx_bytes() == rlc2.get_num_rx_bytes());
+  assert(rlc2.get_num_tx_bytes() == rlc1.get_num_rx_bytes());
 }
 
 void concat_test()
@@ -234,6 +282,10 @@ void concat_test()
     assert(tester.sdus[i]->N_bytes == 1);
     assert(*(tester.sdus[i]->msg)  == i);
   }
+
+  // check statistics
+  assert(rlc1.get_num_tx_bytes() == rlc2.get_num_rx_bytes());
+  assert(rlc2.get_num_tx_bytes() == rlc1.get_num_rx_bytes());
 }
 
 void segment_test()
@@ -317,6 +369,9 @@ void segment_test()
     for(int j=0;j<10;j++)
       assert(tester.sdus[i]->msg[j]  == j);
   }
+
+  assert(rlc1.get_num_tx_bytes() == rlc2.get_num_rx_bytes());
+  assert(rlc2.get_num_tx_bytes() == rlc1.get_num_rx_bytes());
 }
 
 void retx_test()
@@ -710,14 +765,14 @@ void resegment_test_3()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 14); // 4 byte header + 10 data
+  retx1.N_bytes = rlc1.read_pdu(retx1.msg, 16); // 6 byte header + 10 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 14); // 4 byte header + 10 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 16); // 6 byte header + 10 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -1187,7 +1242,7 @@ void resegment_test_7()
   byte_buffer_t retx2[4];
   for (uint32_t i = 0; i < 4; i++) {
     assert(rlc1.get_buffer_state() != 0);
-    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 7);
+    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 9);
     assert(retx2[i].N_bytes != 0);
 
     rlc2.write_pdu(retx2[i].msg, retx2[i].N_bytes);
@@ -1337,9 +1392,9 @@ void resegment_test_8()
 
   // second round of retx, reduce grant size to force different segment sizes
   byte_buffer_t retx2[20];
-  for (uint32_t i = 0; i < 9; i++) {
+  for (uint32_t i = 0; i < 7; i++) {
     assert(rlc1.get_buffer_state() != 0);
-    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 7);
+    retx2[i].N_bytes = rlc1.read_pdu(retx2[i].msg, 9);
     assert(retx2[i].N_bytes != 0);
     rlc2.write_pdu(retx2[i].msg, retx2[i].N_bytes);
 #if HAVE_PCAP
@@ -1421,6 +1476,42 @@ void reset_test()
   assert(0 == rlc1.get_buffer_state());
 }
 
+void stop_test()
+{
+  srslte::log_filter log1("RLC_AM_1");
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_hex_limit(-1);
+  rlc_am_tester     tester;
+  mac_dummy_timers  timers;
+
+  rlc_am rlc1;
+
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+
+  rlc1.init(&log1, 1, &tester, &tester, &timers);
+
+  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
+  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
+  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
+  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
+  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
+  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
+  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+
+  rlc1.configure(&cnfg);
+
+  // start thread reading
+  ul_writer writer(&rlc1);
+  writer.start(-2);
+
+  // let writer thread block on tx_queue
+  usleep(1e6);
+
+  // stop RLC1
+  rlc1.stop();
+}
+
 int main(int argc, char **argv) {
   basic_test();
   byte_buffer_pool::get_instance()->cleanup();
@@ -1459,5 +1550,8 @@ int main(int argc, char **argv) {
   byte_buffer_pool::get_instance()->cleanup();
 
   reset_test();
+  byte_buffer_pool::get_instance()->cleanup();
+
+  stop_test();
   byte_buffer_pool::get_instance()->cleanup();
 }

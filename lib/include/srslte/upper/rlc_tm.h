@@ -36,8 +36,7 @@
 
 namespace srslte {
 
-class rlc_tm
-    :public rlc_common
+class rlc_tm : public rlc_common
 {
 public:
   rlc_tm(uint32_t queue_len = 16);
@@ -47,7 +46,7 @@ public:
             srsue::pdcp_interface_rlc *pdcp_,
             srsue::rrc_interface_rlc  *rrc_,
             mac_interface_timers      *mac_timers);
-  void configure(srslte_rlc_config_t cnfg);
+  bool configure(srslte_rlc_config_t cnfg);
   void stop();
   void reestablish();
   void empty_queue(); 
@@ -55,9 +54,12 @@ public:
   rlc_mode_t    get_mode();
   uint32_t      get_bearer();
 
+  uint32_t get_num_tx_bytes();
+  uint32_t get_num_rx_bytes();
+  void reset_metrics();
+
   // PDCP interface
-  void write_sdu(byte_buffer_t *sdu);
-  void write_sdu_nb(byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu, bool blocking);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -74,6 +76,9 @@ private:
   srsue::rrc_interface_rlc  *rrc;
 
   bool tx_enabled;
+
+  uint32_t num_tx_bytes;
+  uint32_t num_rx_bytes;
 
   // Thread-safe queues for MAC messages
   rlc_tx_queue    ul_queue;

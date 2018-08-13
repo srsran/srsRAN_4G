@@ -38,6 +38,7 @@
 
 #include "srsue/hdr/ue.h"
 #include "srslte/common/config_file.h"
+#include "srslte/common/crash_handler.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/metrics_csv.h"
@@ -544,7 +545,7 @@ int main(int argc, char *argv[])
   pthread_create(&input, NULL, &input_loop, &args);
 
   printf("Attaching UE...\n");
-  while (!ue->attach() && running) {
+  while (!ue->switch_on() && running) {
     sleep(1);
   }
   if (running) {
@@ -584,6 +585,7 @@ int main(int argc, char *argv[])
     }
     sleep(1);
   }
+  ue->switch_off();
   pthread_cancel(input);
   metricshub.stop();
   ue->stop();

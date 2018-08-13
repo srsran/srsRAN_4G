@@ -48,17 +48,6 @@ void gen_crc_table(srslte_crc_t *h) {
   }
 }
 
-uint64_t crctable(srslte_crc_t *h, uint8_t byte) {
-
-  // Polynom order 8, 16, 24 or 32 only.
-  int ord = h->order - 8;
-  uint64_t crc = h->crcinit;
-
-  crc = (crc << 8) ^ h->table[((crc >> (ord)) & 0xff) ^ byte];
-  h->crcinit = crc;
-  return (crc  & h->crcmask);
-}
-
 uint64_t reversecrcbit(uint32_t crc, int nbits, srslte_crc_t *h) {
 
   uint64_t m, rmask = 0x1;
@@ -137,8 +126,9 @@ uint32_t srslte_crc_checksum(srslte_crc_t *h, uint8_t *data, int len) {
     } else {
       byte = (uint8_t) (srslte_bit_pack(&pter, 8) & 0xFF);
     }
-    crc = crctable(h, byte);
+    srslte_crc_checksum_put_byte(h, byte);
   }
+  crc = (uint32_t) srslte_crc_checksum_get(h);
 
   // Reverse CRC res8 positions
   if (a == 1) {
@@ -159,8 +149,9 @@ uint32_t srslte_crc_checksum_byte(srslte_crc_t *h, uint8_t *data, int len) {
 
   // Calculate CRC
   for (i = 0; i < len/8; i++) {
-    crc = crctable(h, data[i]);
+    srslte_crc_checksum_put_byte(h, data[i]);
   }
+  crc = (uint32_t) srslte_crc_checksum_get(h);
 
   return crc;
 

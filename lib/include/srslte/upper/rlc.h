@@ -31,7 +31,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/rlc_entity.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "srslte/upper/rlc_common.h"
 
@@ -50,7 +49,7 @@ class rlc
 {
 public:
   rlc();
-  virtual ~rlc() {}
+  virtual ~rlc();
   void init(srsue::pdcp_interface_rlc *pdcp_,
             srsue::rrc_interface_rlc  *rrc_,
             srsue::ue_interface       *ue_,
@@ -63,8 +62,7 @@ public:
   void get_metrics(rlc_metrics_t &m);
 
   // PDCP interface
-  void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
-  void write_sdu_nb(uint32_t lcid, byte_buffer_t *sdu);
+  void write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking = true);
   void write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu);
   bool rb_is_um(uint32_t lcid);
 
@@ -88,7 +86,8 @@ public:
   void add_bearer(uint32_t lcid);
   void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
   void add_bearer_mrb(uint32_t lcid);
-  void add_bearer_mrb_enb(uint32_t lcid);
+  void del_bearer(uint32_t lcid);
+
 private:
   void reset_metrics(); 
   
@@ -98,14 +97,17 @@ private:
   srsue::rrc_interface_rlc    *rrc;
   srslte::mac_interface_timers *mac_timers; 
   srsue::ue_interface         *ue;
-  srslte::rlc_entity           rlc_array[SRSLTE_N_RADIO_BEARERS];
-  srslte::rlc_um               rlc_array_mrb[SRSLTE_N_MCH_LCIDS];
+
+  typedef std::map<uint16_t, rlc_common*> rlc_map_t;
+  typedef std::pair<uint16_t, rlc_common*> rlc_map_pair_t;
+
+  rlc_map_t rlc_array, rlc_array_mrb;
+  pthread_rwlock_t rwlock;
+
   uint32_t                     default_lcid;
   int                          buffer_size;
 
-  long                ul_tput_bytes[SRSLTE_N_RADIO_BEARERS];
-  long                dl_tput_bytes[SRSLTE_N_RADIO_BEARERS];
-  long                dl_tput_bytes_mrb[SRSLTE_N_MCH_LCIDS];
+  // Timer needed for metrics calculation
   struct timeval      metrics_time[3];
 
   bool valid_lcid(uint32_t lcid);

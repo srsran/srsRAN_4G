@@ -33,6 +33,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
+#include "pdcp_interface.h"
 
 
 namespace srslte {
@@ -59,7 +60,7 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU",
  * PDCP Entity interface
  * Common interface for all PDCP entities
  ***************************************************************************/
-class pdcp_entity
+class pdcp_entity : public pdcp_entity_interface
 {
 public:
   pdcp_entity();
@@ -75,13 +76,15 @@ public:
   bool is_active();
 
   // RRC interface
-  void write_sdu(byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu, bool blocking);
   void config_security(uint8_t *k_enc_,
                        uint8_t *k_int_,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
   void enable_integrity();
   void enable_encryption();
+  uint32_t get_dl_count();
+  uint32_t get_ul_count();
 
   // RLC interface
   void write_pdu(byte_buffer_t *pdu);

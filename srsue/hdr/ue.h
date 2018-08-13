@@ -69,8 +69,8 @@ public:
 
   bool init(all_args_t *args_);
   void stop();
-  bool attach();
-  bool deattach();
+  bool switch_on();
+  bool switch_off();
   bool is_attached();
   void start_plot();
   void print_mbms();
@@ -115,6 +115,7 @@ private:
   srslte::log_filter  nas_log;
   srslte::log_filter  gw_log;
   srslte::log_filter  usim_log;
+  srslte::log_filter  pool_log;
 
   all_args_t       *args;
   bool              started;

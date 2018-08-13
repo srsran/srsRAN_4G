@@ -237,8 +237,8 @@ bool rrc::have_drb() {
   return drb_up;
 }
 
-void rrc::set_args(rrc_args_t *args) {
-  memcpy(&this->args, args, sizeof(rrc_args_t));
+void rrc::set_args(rrc_args_t args_) {
+  args = args_;
 }
 
 /*
@@ -248,11 +248,14 @@ void rrc::run_thread() {
   while(running) {
     cmd_msg_t msg = cmd_q.wait_pop();
     switch(msg.command) {
-      case cmd_msg_t::STOP:
-        return;
+      case cmd_msg_t::PDU:
+        process_pdu(msg.lcid, msg.pdu);
+        break;
       case cmd_msg_t::PCCH:
         process_pcch(msg.pdu);
         break;
+      case cmd_msg_t::STOP:
+        return;
     }
   }
 }
@@ -1939,6 +1942,16 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid).c_str());
 
+  // add PDU to command queue
+  cmd_msg_t msg;
+  msg.pdu = pdu;
+  msg.command = cmd_msg_t::PDU;
+  msg.lcid = lcid;
+  cmd_q.push(msg);
+}
+
+void rrc::process_pdu(uint32_t lcid, byte_buffer_t *pdu)
+{
   switch (lcid) {
     case RB_ID_SRB0:
       parse_dl_ccch(pdu);
@@ -2008,6 +2021,7 @@ void rrc::parse_dl_ccch(byte_buffer_t *pdu) {
 void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
   srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
   bit_buf.N_bits = pdu->N_bytes * 8;
+  bzero(&dl_dcch_msg, sizeof(dl_dcch_msg));
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
@@ -2686,8 +2700,16 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
   rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid).c_str());
 }
 
-void rrc::release_drb(uint8_t lcid) {
-  // TODO
+void rrc::release_drb(uint32_t drb_id)
+{
+  uint32_t lcid = RB_ID_SRB2 + drb_id;
+
+  if (drbs.find(drb_id) != drbs.end()) {
+    rrc_log->info("Releasing radio bearer %s\n", get_rb_name(lcid).c_str());
+    drbs.erase(lcid);
+  } else {
+    rrc_log->error("Couldn't release radio bearer %s. Doesn't exist.\n", get_rb_name(lcid).c_str());
+  }
 }
 
 void rrc::add_mrb(uint32_t lcid, uint32_t port)
@@ -2833,9 +2855,9 @@ void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, floa
         if (objects[m->object_id].earfcn == earfcn) {
           // If it's a newly discovered cell, add it to objects
           if (!m->cell_values.count(pci)) {
-            uint32_t cell_idx = objects[m->object_id].cells.size();
-            objects[m->object_id].cells[cell_idx].pci      = pci;
-            objects[m->object_id].cells[cell_idx].q_offset = 0;
+            uint32_t cell_idx = objects[m->object_id].found_cells.size();
+            objects[m->object_id].found_cells[cell_idx].pci      = pci;
+            objects[m->object_id].found_cells[cell_idx].q_offset = 0;
           }
           // Update or add cell
           L3_filter(&m->cell_values[pci], values);
@@ -2873,7 +2895,7 @@ bool rrc::rrc_meas::find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t *
       if (object) {
         *object = &obj->second;
       }
-      for (std::map<uint32_t, meas_cell_t>::iterator c = obj->second.cells.begin(); c != obj->second.cells.end(); ++c) {
+      for (std::map<uint32_t, meas_cell_t>::iterator c = obj->second.found_cells.begin(); c != obj->second.found_cells.end(); ++c) {
         if (c->second.pci == pci) {
           if (cell_idx) {
             *cell_idx = c->first;
@@ -2999,7 +3021,7 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
     if (find_earfcn_cell(phy->get_current_earfcn(), phy->get_current_pci(), &serving_object, &serving_cell_idx)) {
       Ofp = serving_object->q_offset;
       if (serving_cell_idx >= 0) {
-        Ocp = serving_object->cells[serving_cell_idx].q_offset;
+        Ocp = serving_object->found_cells[serving_cell_idx].q_offset;
       }
     } else {
       log_h->warning("Can't find current eafcn=%d, pci=%d in objects list. Using Ofp=0, Ocp=0\n",
@@ -3044,7 +3066,7 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
       // Rest are evaluated for every cell in frequency
       } else {
         meas_obj_t *obj = &objects[m->second.object_id];
-        for (std::map<uint32_t, meas_cell_t>::iterator cell = obj->cells.begin(); cell != obj->cells.end(); ++cell) {
+        for (std::map<uint32_t, meas_cell_t>::iterator cell = obj->found_cells.begin(); cell != obj->found_cells.end(); ++cell) {
           if (m->second.cell_values.count(cell->second.pci)) {
             float Ofn = obj->q_offset;
             float Ocn = cell->second.q_offset;
@@ -3201,18 +3223,18 @@ bool rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 
         if (src_obj->black_cells_to_remove_list_present) {
           for (uint32_t j=0;j<src_obj->black_cells_to_remove_list.N_cell_idx;j++) {
-            dst_obj->cells.erase(src_obj->black_cells_to_remove_list.cell_idx[j]);
+            dst_obj->meas_cells.erase(src_obj->black_cells_to_remove_list.cell_idx[j]);
           }
         }
 
         for (uint32_t j=0;j<src_obj->N_cells_to_add_mod;j++) {
-          dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset = liblte_rrc_q_offset_range_num[src_obj->cells_to_add_mod_list[j].cell_offset];
-          dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci      = src_obj->cells_to_add_mod_list[j].pci;
+          dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset = liblte_rrc_q_offset_range_num[src_obj->cells_to_add_mod_list[j].cell_offset];
+          dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci      = src_obj->cells_to_add_mod_list[j].pci;
 
           log_h->info("MEAS: Added measObjectId=%d, earfcn=%d, q_offset=%f, pci=%d, offset_cell=%f\n",
                       cfg->meas_obj_to_add_mod_list.meas_obj_list[i].meas_obj_id, dst_obj->earfcn, dst_obj->q_offset,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci,
-                      dst_obj->cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset);
+                      dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci,
+                      dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset);
 
         }
 
@@ -3335,12 +3357,11 @@ bool rrc::rrc_meas::parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *cfg)
 void rrc::rrc_meas::update_phy()
 {
   phy->meas_reset();
-  for(std::map<uint32_t, meas_t>::iterator iter=active.begin(); iter!=active.end(); ++iter) {
-    meas_t m = iter->second;
-    meas_obj_t o = objects[m.object_id];
+  for(std::map<uint32_t, meas_obj_t>::iterator iter=objects.begin(); iter!=objects.end(); ++iter) {
+    meas_obj_t o = iter->second;
     // Instruct PHY to look for neighbour cells on this frequency
     phy->meas_start(o.earfcn);
-    for(std::map<uint32_t, meas_cell_t>::iterator iter=o.cells.begin(); iter!=o.cells.end(); ++iter) {
+    for(std::map<uint32_t, meas_cell_t>::iterator iter=o.meas_cells.begin(); iter!=o.meas_cells.end(); ++iter) {
       // Instruct PHY to look for cells IDs on this frequency
       phy->meas_start(o.earfcn, iter->second.pci);
     }

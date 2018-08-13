@@ -734,7 +734,8 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
         dl_sched_res->sched_grants[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, 1, mcs_data.tbs/8);
       }
     } else {
-      //TRANSMIT NOTHING
+      dl_sched_res->sched_grants[0].rnti = 0;
+      dl_sched_res->sched_grants[0].data[0] = NULL;
     }
     mch.current_sf_allocation_num++;
   }

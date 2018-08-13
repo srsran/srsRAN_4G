@@ -56,7 +56,7 @@ void pdcp::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
-    srslte::pdcp *obj = new srslte::pdcp;     
+    srslte::pdcp *obj = new srslte::pdcp;
     obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf, log_h, RB_ID_SRB0, SECURITY_DIRECTION_DOWNLINK);
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;
@@ -154,9 +154,8 @@ void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::byte_buffer_t *
   gtpu->write_pdu(rnti, lcid, pdu);
 }
 
-void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::byte_buffer_t* sdu)
+void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::byte_buffer_t* sdu, bool blocking)
 {
-  
   rlc->write_sdu(rnti, lcid, sdu);
 }
 

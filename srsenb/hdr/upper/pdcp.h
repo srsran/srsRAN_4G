@@ -39,7 +39,7 @@ class pdcp :  public pdcp_interface_rlc,
               public pdcp_interface_rrc
 {
 public:
- 
+  virtual ~pdcp() {};
   void init(rlc_interface_pdcp *rlc_, rrc_interface_pdcp *rrc_, gtpu_interface_pdcp *gtpu_, srslte::log *pdcp_log_);
   void stop(); 
   
@@ -68,7 +68,7 @@ private:
     uint16_t rnti; 
     srsenb::rlc_interface_pdcp *rlc; 
     // rlc_interface_pdcp
-    void write_sdu(uint32_t lcid,  srslte::byte_buffer_t *sdu);
+    void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking);
     bool rb_is_um(uint32_t lcid);
   };
   

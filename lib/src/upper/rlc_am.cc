@@ -61,6 +61,9 @@ rlc_am::rlc_am(uint32_t queue_len) : tx_sdu_queue(queue_len)
   vr_ms   = 0;
   vr_h    = 0;
 
+  num_tx_bytes = 0;
+  num_rx_bytes = 0;
+
   pdu_without_poll  = 0;
   byte_without_poll = 0;
 
@@ -88,23 +91,27 @@ void rlc_am::init(srslte::log                  *log_,
   tx_enabled = true;
 }
 
-void rlc_am::configure(srslte_rlc_config_t cfg_)
+bool rlc_am::configure(srslte_rlc_config_t cfg_)
 {
   cfg = cfg_.am;
   log->warning("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
             "t_reordering=%d, t_status_prohibit=%d\n",
             rrc->get_rb_name(lcid).c_str(), cfg.t_poll_retx, cfg.poll_pdu, cfg.poll_byte, cfg.max_retx_thresh,
             cfg.t_reordering, cfg.t_status_prohibit);
+
+  return true;
 }
 
 
 void rlc_am::empty_queue() {
   // Drop all messages in TX SDU queue
+  pthread_mutex_lock(&mutex);
   byte_buffer_t *buf;
   while(tx_sdu_queue.try_read(&buf)) {
     pool->deallocate(buf);
   }
   tx_sdu_queue.reset();
+  pthread_mutex_unlock(&mutex);
 }
 
 void rlc_am::reestablish() {
@@ -192,32 +199,25 @@ uint32_t rlc_am::get_bearer()
  * PDCP interface
  ***************************************************************************/
 
-void rlc_am::write_sdu(byte_buffer_t *sdu)
+void rlc_am::write_sdu(byte_buffer_t *sdu, bool blocking)
 {
   if (!tx_enabled) {
     byte_buffer_pool::get_instance()->deallocate(sdu);
     return;
   }
   if (sdu) {
-    tx_sdu_queue.write(sdu);
-    log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
-  } else {
-    log->warning("NULL SDU pointer in write_sdu()\n");
-  }
-}
-
-void rlc_am::write_sdu_nb(byte_buffer_t *sdu)
-{
-  if (!tx_enabled) {
-    byte_buffer_pool::get_instance()->deallocate(sdu);
-    return;
-  }
-  if (sdu) {
-    if (tx_sdu_queue.try_write(sdu)) {
+    if (blocking) {
+      // block on write to queue
+      tx_sdu_queue.write(sdu);
       log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
     } else {
-      log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
-      pool->deallocate(sdu);
+      // non-blocking write
+      if (tx_sdu_queue.try_write(sdu)) {
+        log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+      } else {
+        log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", rrc->get_rb_name(lcid).c_str(), sdu->N_bytes, tx_sdu_queue.size());
+        pool->deallocate(sdu);
+      }
     }
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");
@@ -238,7 +238,7 @@ uint32_t rlc_am::get_total_buffer_state()
   check_reordering_timeout();
   if(do_status && !status_prohibited()) {
     n_bytes += prepare_status();
-    log->debug("Buffer state - status report: %d bytes\n", n_bytes);
+    log->debug("%s Buffer state - total status report: %d bytes\n", rrc->get_rb_name(lcid).c_str(), n_bytes);
   }
 
   // Bytes needed for retx
@@ -292,7 +292,7 @@ uint32_t rlc_am::get_buffer_state()
   check_reordering_timeout();
   if(do_status && !status_prohibited()) {
     n_bytes = prepare_status();
-    log->debug("Buffer state - status report: %d bytes\n", n_bytes);
+    log->debug("%s Buffer state - status report: %d bytes\n", rrc->get_rb_name(lcid).c_str(), n_bytes);
     goto unlock_and_return;
   }
 
@@ -363,14 +363,15 @@ unlock_and_return:
 int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
+  int pdu_size = 0;
 
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
   log->debug("tx_window size - %zu PDUs\n", tx_window.size());
 
   // Tx STATUS if requested
   if(do_status && !status_prohibited()) {
-    pthread_mutex_unlock(&mutex);
-    return build_status_pdu(payload, nof_bytes);
+    pdu_size = build_status_pdu(payload, nof_bytes);
+    goto unlock_and_exit;
   }
 
   // if tx_window is full and retx_queue empty, retransmit next PDU to be ack'ed
@@ -390,25 +391,27 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   // RETX if required
   if(retx_queue.size() > 0) {
-    int ret = build_retx_pdu(payload, nof_bytes);
-    if (ret > 0) {
-      pthread_mutex_unlock(&mutex);
-      return ret;
+    pdu_size = build_retx_pdu(payload, nof_bytes);
+    if (pdu_size > 0) {
+      goto unlock_and_exit;
     }
   }
 
   // Build a PDU from SDUs
-  int ret = build_data_pdu(payload, nof_bytes);
+  pdu_size = build_data_pdu(payload, nof_bytes);
 
+unlock_and_exit:
+  num_tx_bytes += pdu_size;
   pthread_mutex_unlock(&mutex);
-  return ret;
+  return pdu_size;
 }
 
 void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
-  if(nof_bytes < 1)
-    return;
+  if (nof_bytes < 1) return;
+
   pthread_mutex_lock(&mutex);
+  num_rx_bytes += nof_bytes;
 
   if(rlc_am_is_control_pdu(payload)) {
     handle_control_pdu(payload, nof_bytes);
@@ -423,6 +426,25 @@ void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
   pthread_mutex_unlock(&mutex);
 }
+
+uint32_t rlc_am::get_num_tx_bytes()
+{
+  return num_tx_bytes;
+}
+
+uint32_t rlc_am::get_num_rx_bytes()
+{
+  return num_rx_bytes;
+}
+
+void rlc_am::reset_metrics()
+{
+  pthread_mutex_lock(&mutex);
+  num_rx_bytes = 0;
+  num_tx_bytes = 0;
+  pthread_mutex_unlock(&mutex);
+}
+
 
 /****************************************************************************
  * Timer checks
@@ -641,6 +663,11 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
   uint32_t pdu_space = 0;
 
   head_len = rlc_am_packed_length(&new_header);
+  if (old_header.N_li > 0) {
+    // Make sure we can fit at least one N_li element if old header contained at least one
+    head_len += 2;
+  }
+
   if(nof_bytes <= head_len)
   {
     log->warning("%s Cannot build a PDU segment - %d bytes available, %d bytes required for header\n",
@@ -749,7 +776,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
-  byte_buffer_t *pdu = pool_allocate;
+  byte_buffer_t *pdu = pool_allocate_blocking;
   if (!pdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
@@ -930,7 +957,7 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
 
   // Write to rx window
   rlc_amd_rx_pdu_t pdu;
-  pdu.buf = pool_allocate;
+  pdu.buf = pool_allocate_blocking;
   if (!pdu.buf) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
@@ -1023,7 +1050,7 @@ void rlc_am::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
   }
 
   rlc_amd_rx_pdu_t segment;
-  segment.buf = pool_allocate;
+  segment.buf = pool_allocate_blocking;
   if (!segment.buf) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
@@ -1190,7 +1217,7 @@ void rlc_am::reassemble_rx_sdus()
 {
   uint32_t len = 0;
   if(!rx_sdu) {
-    rx_sdu = pool_allocate;
+    rx_sdu = pool_allocate_blocking;
     if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
       log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
@@ -1224,7 +1251,7 @@ void rlc_am::reassemble_rx_sdus()
           rx_sdu->set_timestamp();
           pdcp->write_pdu(lcid, rx_sdu);
 
-          rx_sdu = pool_allocate;
+          rx_sdu = pool_allocate_blocking;
           if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
             log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
@@ -1262,7 +1289,7 @@ void rlc_am::reassemble_rx_sdus()
       log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", rrc->get_rb_name(lcid).c_str(), rx_sdu->N_bytes);
       rx_sdu->set_timestamp();
       pdcp->write_pdu(lcid, rx_sdu);
-      rx_sdu = pool_allocate;
+      rx_sdu = pool_allocate_blocking;
       if (!rx_sdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
         log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
@@ -1407,7 +1434,7 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
   }
 
   // Copy data
-  byte_buffer_t *full_pdu = pool_allocate;
+  byte_buffer_t *full_pdu = pool_allocate_blocking;
   if (!full_pdu) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");

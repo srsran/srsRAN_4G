@@ -31,6 +31,7 @@
 #include <pthread.h>
 
 #include "srslte/common/config_file.h"
+#include "srslte/common/crash_handler.h"
 
 #include <iostream>
 #include <string>

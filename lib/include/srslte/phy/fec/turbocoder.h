@@ -40,6 +40,7 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/fec/tc_interl.h"
+#include "srslte/phy/fec/crc.h"
 
 #define SRSLTE_TCOD_MAX_LEN_CB_BYTES (6144/8)
 
@@ -68,7 +69,8 @@ SRSLTE_API int srslte_tcod_encode(srslte_tcod_t *h,
                                   uint8_t *output, 
                                   uint32_t long_cb);
 
-SRSLTE_API int srslte_tcod_encode_lut(srslte_tcod_t *h, 
+SRSLTE_API int srslte_tcod_encode_lut(srslte_tcod_t *h,
+                                      srslte_crc_t *crc,
                                       uint8_t *input, 
                                       uint8_t *parity, 
                                       uint32_t cblen_idx); 

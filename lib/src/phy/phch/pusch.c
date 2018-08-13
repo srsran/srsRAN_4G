@@ -444,6 +444,7 @@ int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
         return -1;
       }
     }
+    q->users[rnti_idx]->sequence_generated = false;
     for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
       if (srslte_sequence_pusch(&q->users[rnti_idx]->seq[i], rnti, 2 * i, q->cell.id,
                                 q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM)))

@@ -113,7 +113,6 @@ public:
     fail_rate = fail_rate_;
     opp_sdu_ratio = opp_sdu_ratio_;
     run_enable = true;
-    running = false;
     pdu_tx_delay_usec = pdu_tx_delay_usec_;
     pcap = pcap_;
     is_dl = is_dl_;
@@ -123,21 +122,12 @@ public:
   void stop()
   {
     run_enable = false;
-    int cnt=0;
-    while(running && cnt<100) {
-      usleep(10000);
-      cnt++;
-    }
-    if(running) {
-      thread_cancel();
-    }
     wait_thread_finish();
   }
 
 private:
   void run_thread()
   {
-    running = true;
     byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("mac_reader::run_thread");
     if (!pdu) {
       printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
@@ -163,7 +153,6 @@ private:
         }
       }
     }
-    running = false;
     byte_buffer_pool::get_instance()->deallocate(pdu);
   }
 
@@ -175,9 +164,7 @@ private:
   rlc_pcap *pcap;
   uint32_t lcid;
   bool is_dl;
-
   bool run_enable;
-  bool running;
 };
 
 class mac_dummy
@@ -227,7 +214,6 @@ public:
   rlc_tester(rlc_interface_pdcp *rlc_, std::string name_, uint32_t sdu_gen_delay_usec_, uint32_t lcid_){
     rlc = rlc_;
     run_enable = true;
-    running = false;
     rx_pdus = 0;
     name = name_;
     sdu_gen_delay_usec = sdu_gen_delay_usec_;
@@ -237,14 +223,6 @@ public:
   void stop()
   {
     run_enable = false;
-    int cnt=0;
-    while(running && cnt<100) {
-      usleep(10000);
-      cnt++;
-    }
-    if(running) {
-      thread_cancel();
-    }
     wait_thread_finish();
   }
 
@@ -275,7 +253,6 @@ private:
   void run_thread()
   {
     uint8_t sn = 0;
-    running = true;
     while(run_enable) {
       byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_tester::run_thread");
       if (!pdu) {
@@ -292,11 +269,9 @@ private:
       rlc->write_sdu(lcid, pdu);
       if (sdu_gen_delay_usec) usleep(sdu_gen_delay_usec);
     }
-    running = false;
   }
 
   bool run_enable;
-  bool running;
   long rx_pdus;
   uint32_t lcid;
 
@@ -325,7 +300,7 @@ void stress_test(stress_test_args_t args)
   srslte_rlc_config_t cnfg_;
   if (args.mode == "AM") {
     // config RLC AM bearer
-    cnfg_.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
+    cnfg_.rlc_mode = RLC_MODE_AM;
     cnfg_.am.max_retx_thresh = 4;
     cnfg_.am.poll_byte = 25*1000;
     cnfg_.am.poll_pdu = 4;
@@ -334,7 +309,7 @@ void stress_test(stress_test_args_t args)
     cnfg_.am.t_status_prohibit = 5;
   } else if (args.mode == "UM") {
     // config UM bearer
-    cnfg_.rlc_mode = LIBLTE_RRC_RLC_MODE_UM_BI;
+    cnfg_.rlc_mode = RLC_MODE_UM;
     cnfg_.um.t_reordering = 5;
     cnfg_.um.rx_mod = 32;
     cnfg_.um.rx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
@@ -381,6 +356,10 @@ void stress_test(stress_test_args_t args)
     usleep(1e6);
   }
 
+  // Stop RLC instances first to release blocking writers
+  rlc1.stop();
+  rlc2.stop();
+
   tester1.stop();
   tester2.stop();
   mac.stop();
@@ -388,15 +367,23 @@ void stress_test(stress_test_args_t args)
     pcap.close();
   }
 
-  printf("RLC1 received %d SDUs in %ds (%.2f PDU/s)\n",
+  rlc_metrics_t metrics;
+  rlc1.get_metrics(metrics);
+
+  printf("RLC1 received %d SDUs in %ds (%.2f PDU/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
          tester1.get_nof_rx_pdus(),
          args.test_duration_sec,
-         (float)tester1.get_nof_rx_pdus()/args.test_duration_sec);
+         (float)tester1.get_nof_rx_pdus()/args.test_duration_sec,
+         metrics.dl_tput_mbps,
+         metrics.ul_tput_mbps);
 
-  printf("RLC2 received %d SDUs in %ds (%.2f PDU/s)\n",
+  rlc2.get_metrics(metrics);
+  printf("RLC2 received %d SDUs in %ds (%.2f PDU/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
          tester2.get_nof_rx_pdus(),
          args.test_duration_sec,
-         (float)tester2.get_nof_rx_pdus()/args.test_duration_sec);
+         (float)tester2.get_nof_rx_pdus()/args.test_duration_sec,
+         metrics.dl_tput_mbps,
+         metrics.ul_tput_mbps);
 }
 
 

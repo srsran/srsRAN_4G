@@ -371,12 +371,13 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       clock_src = DEFAULT;
     }
 
+#if HAVE_ASYNC_THREAD
     bool start_async_thread = true;
-
     if (strstr(args, "silent")) {
       REMOVE_SUBSTRING_WITHCOMAS(args, "silent");
       start_async_thread = false;
     }
+#endif
 
     // Set over the wire format
     char *otw_format = "sc16";
@@ -615,8 +616,13 @@ int rf_uhd_close(void *h)
   uhd_tx_metadata_free(&handler->tx_md);
   uhd_rx_metadata_free(&handler->rx_md_first);
   uhd_rx_metadata_free(&handler->rx_md);
-  handler->async_thread_running = false;
-  pthread_join(handler->async_thread, NULL);
+
+#if HAVE_ASYNC_THREAD
+  if (handler->async_thread_running) {
+    handler->async_thread_running = false;
+    pthread_join(handler->async_thread, NULL);
+  }
+#endif
 
   uhd_tx_streamer_free(&handler->tx_stream);
   uhd_rx_streamer_free(&handler->rx_stream);
@@ -797,7 +803,7 @@ int rf_uhd_recv_with_time_multi(void *h,
 
       rxd_samples = 0;
       uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
-                                             num_rx_samples, md, 0.5, false, &rxd_samples);
+                                             num_rx_samples, md, 1.0, false, &rxd_samples);
       if (error) {
         fprintf(stderr, "Error receiving from UHD: %d\n", error);
         log_rx_error(handler);
@@ -907,7 +913,7 @@ int rf_uhd_send_timed_multi(void *h,
         buffs_ptr[i] = buff;
       }
       uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, 
-                                             tx_samples, &handler->tx_md, 0.5, &txd_samples);
+                                             tx_samples, &handler->tx_md, 1.0, &txd_samples);
       if (error) {
         fprintf(stderr, "Error sending to UHD: %d\n", error);
         goto unlock;

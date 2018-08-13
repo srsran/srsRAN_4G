@@ -280,7 +280,7 @@ public:
   void stop();
 
   rrc_state_t get_state();
-  void set_args(rrc_args_t *args);
+  void set_args(rrc_args_t args);
 
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);
@@ -326,10 +326,12 @@ private:
 
   typedef struct {
     enum {
+      PDU,
       PCCH,
       STOP
     } command;
     byte_buffer_t *pdu;
+    uint16_t lcid;
   } cmd_msg_t;
 
   bool running;
@@ -477,7 +479,8 @@ private:
     typedef struct {
       uint32_t                        earfcn;
       float                           q_offset;
-      std::map<uint32_t, meas_cell_t> cells;
+      std::map<uint32_t, meas_cell_t> meas_cells;
+      std::map<uint32_t, meas_cell_t> found_cells;
     } meas_obj_t;
 
     typedef struct {
@@ -606,6 +609,7 @@ private:
   void          send_rrc_ue_cap_info();
 
   // Parsers
+  void          process_pdu(uint32_t lcid, byte_buffer_t *pdu);
   void          parse_dl_ccch(byte_buffer_t *pdu);
   void          parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu);
   void          parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
@@ -634,8 +638,8 @@ private:
   void          handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig);
   void          add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);
   void          add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
-  void          release_drb(uint8_t lcid);
-   void         add_mrb(uint32_t lcid, uint32_t port);
+  void          release_drb(uint32_t drb_id);
+  void          add_mrb(uint32_t lcid, uint32_t port);
   bool          apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
   void          apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults); 
   void          apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults); 

@@ -34,17 +34,17 @@ if (RPATH)
 endif (RPATH)
 
 
-add_executable(srsepc main.cc )
-target_link_libraries(srsepc  srsepc_mme
-                              srsepc_hss
-                              srsepc_sgw
-                              srslte_upper
-                              srslte_common
-                              ${CMAKE_THREAD_LIBS_INIT} 
-                              ${Boost_LIBRARIES} 
-                              ${SEC_LIBRARIES}
-                              ${LIBCONFIGPP_LIBRARIES}
-                              ${SCTP_LIBRARIES})
+add_executable(srsepc main.cc)
+target_link_libraries( srsepc  srsepc_mme
+                               srsepc_hss
+                               srsepc_sgw
+                               srslte_upper
+                               srslte_common
+                               ${CMAKE_THREAD_LIBS_INIT}
+                               ${Boost_LIBRARIES}
+                               ${SEC_LIBRARIES}
+                               ${LIBCONFIGPP_LIBRARIES}
+                               ${SCTP_LIBRARIES})
 
 add_executable(srsmbms mbms-gw/main.cc )
 target_link_libraries(srsmbms   srsepc_mbms_gw

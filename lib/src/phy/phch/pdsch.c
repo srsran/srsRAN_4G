@@ -427,6 +427,8 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
         return -1;
       }
     }
+    q->users[rnti_idx]->sequence_generated = false;
+
     for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
       for (int j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
         if (srslte_sequence_pdsch(&q->users[rnti_idx]->seq[j][i], rnti, j, 2 * i, q->cell.id,
