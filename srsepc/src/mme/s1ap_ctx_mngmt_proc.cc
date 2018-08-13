@@ -124,7 +124,8 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx, uint16_t e
   //Set E-RAB S-GW F-TEID
   erab_ctx_req->transportLayerAddress.n_bits = 32; //IPv4
   uint32_t sgw_s1u_ip = htonl(esm_ctx->sgw_s1u_fteid.ipv4);
-  liblte_value_2_bits(sgw_s1u_ip, (uint8_t**) &erab_ctx_req->transportLayerAddress.buffer, 32);
+  uint8_t *tmp_ptr = erab_ctx_req->transportLayerAddress.buffer;
+  liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);
 
   uint32_t sgw_s1u_teid = esm_ctx->sgw_s1u_fteid.teid;
   memcpy(erab_ctx_req->gTP_TEID.buffer, &sgw_s1u_teid, sizeof(uint32_t));
