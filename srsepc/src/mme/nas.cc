@@ -359,10 +359,6 @@ nas::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, srslte:
 bool
 nas::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
-  uint8_t     autn[16];
-  uint8_t     rand[16];
-  uint8_t     xres[8];
-
   LIBLTE_MME_AUTHENTICATION_FAILURE_MSG_STRUCT auth_fail;
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_failure_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_fail);
   if(err != LIBLTE_SUCCESS){
@@ -392,7 +388,7 @@ nas::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, srslte::byte_
       return false;
     }
     //Get Authentication Vectors from HSS
-    if (!m_hss->gen_auth_info_answer(m_emm_ctx.imsi, m_sec_ctx.k_asme, autn, rand, m_sec_ctx.xres)) {
+    if (!m_hss->gen_auth_info_answer(m_emm_ctx.imsi, m_sec_ctx.k_asme, m_sec_ctx.autn, m_sec_ctx.rand, m_sec_ctx.xres)) {
       m_nas_log->console("User not found. IMSI %015lu\n", m_emm_ctx.imsi);
       m_nas_log->info("User not found. IMSI %015lu\n", m_emm_ctx.imsi);
       return false;
