@@ -786,7 +786,7 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
                              );
 
   memcpy(&nas_buffer->msg[1],mac,4);
-  m_nas_log->info("Packed Attach Complete\n");
+  m_nas_log->info("Packed Attach Accept\n");
 
   //Add nas message to context setup request
   //erab_ctxt->nAS_PDU_present = true;
