@@ -358,12 +358,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   uint8_t     rand[16];
   uint8_t     xres[8];
 
-  nas nas_ctx;
-  emm_ctx_t *emm_ctx = &nas_ctx.m_emm_ctx;
-  ecm_ctx_t *ecm_ctx = &nas_ctx.m_ecm_ctx;
-  sec_ctx_t *sec_ctx = &nas_ctx.m_sec_ctx;
-
-  //Set UE's EMM context
+  //Get UE's IMSI
   uint64_t imsi = 0;
   for(int i=0;i<=14;i++){
     imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
@@ -381,6 +376,13 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
     }
     m_s1ap->delete_ue_ctx(imsi);
   }
+
+  //Set UE's EMM context
+  nas *nas_ctx = new nas;
+  nas_ctx->init(m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+  sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
 
   //Save IMSI, MME UE S1AP Id and make sure UE is EMM_DEREGISTERED
   emm_ctx->imsi = imsi;
@@ -410,8 +412,8 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
 
   //Initialize E-RABs
   for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
-    nas_ctx.m_esm_ctx[i].state = ERAB_DEACTIVATED;
-    nas_ctx.m_esm_ctx[i].erab_id = i;
+    nas_ctx->m_esm_ctx[i].state = ERAB_DEACTIVATED;
+    nas_ctx->m_esm_ctx[i].erab_id = i;
   }
 
   //Log Attach Request information
@@ -438,9 +440,10 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   emm_ctx->attach_type = attach_req.eps_attach_type;
 
   //Get Authentication Vectors from HSS
-  if (!m_hss->gen_auth_info_answer(emm_ctx->imsi, sec_ctx->k_asme, autn, rand, sec_ctx->xres)) {
+  if (!m_hss->gen_auth_info_answer(emm_ctx->imsi, sec_ctx->k_asme, sec_ctx->autn, sec_ctx->rand, sec_ctx->xres)) {
     m_s1ap_log->console("User not found. IMSI %015lu\n",emm_ctx->imsi);
     m_s1ap_log->info("User not found. IMSI %015lu\n",emm_ctx->imsi);
+    delete nas_ctx;
     return false;
   }
   //Allocate eKSI for this authentication vector
@@ -448,14 +451,12 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   sec_ctx->eksi=0;
 
   //Save the UE context
-  nas *new_ctx = new nas;
-  memcpy(new_ctx,&nas_ctx,sizeof(nas));
-  m_s1ap->add_nas_ctx_to_imsi_map(new_ctx);
-  m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(new_ctx);
+  m_s1ap->add_nas_ctx_to_imsi_map(nas_ctx);
+  m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
   m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  new_ctx->pack_authentication_request(reply_buffer);
+  nas_ctx->pack_authentication_request(reply_buffer);
 
   //Send reply to eNB
   *reply_flag = true;

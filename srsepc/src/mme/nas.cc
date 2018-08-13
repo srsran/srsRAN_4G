@@ -476,7 +476,6 @@ nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg)
 {
   srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
-  //Setup initiating message
   LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
   bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
 
