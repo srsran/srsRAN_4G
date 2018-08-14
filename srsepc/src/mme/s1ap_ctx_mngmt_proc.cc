@@ -297,8 +297,9 @@ s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECON
 bool
 s1ap_ctx_mngmt_proc::send_ue_context_release_command(nas *nas_ctx)
 {
+  srslte::byte_buffer_t *reply_buffer = m_pool->allocate();
+
   //Prepare reply PDU
-  srslte::byte_buffer_t *reply_buffer;
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
   bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
   pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
@@ -318,15 +319,19 @@ s1ap_ctx_mngmt_proc::send_ue_context_release_command(nas *nas_ctx)
 
   LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
   if (err != LIBLTE_SUCCESS) {
-    m_s1ap_log->error("Could not pack Initial Context Setup Request Message\n");
+    m_s1ap_log->error("Could not pack Context Release Command Message\n");
+    m_pool->deallocate(reply_buffer);
     return false;
   }
 
   //Send Reply to eNB
   if(!m_s1ap->s1ap_tx_pdu(reply_buffer,&nas_ctx->m_ecm_ctx.enb_sri)){
-    m_s1ap_log->error("Error sending UE Context Release command.\n");
+    m_s1ap_log->error("Error sending UE Context Release Command.\n");
+    m_pool->deallocate(reply_buffer);
     return false;
   }
+
+  m_pool->deallocate(reply_buffer);
   return true;
 }
 
