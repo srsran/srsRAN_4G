@@ -983,6 +983,8 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
 
    uint32_t nof_bytes_in = 0;
 
+   memset(data[0], 0x0, nof_bytes);
+
    // for each requested subframe
    for(int i = 0; i < nof_sf; ++i)
      { 
@@ -1018,6 +1020,12 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
            RF_SHMEM_DBUG("RX, bin %u, new_len %u, total %u, %s", 
                          bin, new_len, nof_bytes_in, printMsg(element, logbuff, sizeof(logbuff)));
 #endif
+         }
+
+        if(rf_shmem_is_enb(_state))
+         {
+           // enb clear ul bin on every rx
+           memset(element, 0x0, sizeof(*element));
          }
 
        // unlock
@@ -1083,6 +1091,7 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
      {
        const uint32_t nof_bytes = RF_SHMEM_BYTES_X_SAMPLE(nsamples);
 
+       // get the bin for this tx_tti
        const uint32_t bin = get_bin(&tv_tx_tti);
 
        // lock this bin
@@ -1096,13 +1105,13 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
        // one and only 1 enb for tx
        if(rf_shmem_is_enb(_state))
          {
-           // clear bin on every new tx
+           // enb clear dl bin before tx
            memset(element, 0x0, sizeof(*element));
          }
 
+       // new bin entry
        if(element->nof_sf == 0)
         {
-          // fresh bin
           memcpy(element->iqdata, data[0], nof_bytes);
 
           element->is_sob       = is_sob;
@@ -1117,12 +1126,14 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
         {
           cf_t * q = (cf_t*)data[0];
 
-          // existing I/Q data needs to be summed
+          // existing I/Q data needs to be summed XXX TODO
           for(int i = 0; i < nsamples; ++i)
            {
-             element->iqdata[i] += q[i];
+             element->iqdata[i] = q[i];
            }
         }
+
+       ++element->nof_sf;
 
        ++_state->tx_nof_ok;
 
