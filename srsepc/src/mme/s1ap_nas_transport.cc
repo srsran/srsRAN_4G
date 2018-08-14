@@ -94,6 +94,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
 
+  m_s1ap_log->console("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
   //Make sure M-TMSI is present, if mandatory
   if (msg_type != LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST && !init_ue->S_TMSI_present){
     m_s1ap_log->error("Initial UE Message 0x%x -- S-TMSI not present\n", msg_type);
