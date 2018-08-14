@@ -63,6 +63,7 @@
 
 // define to allow debug
 // #define RF_SHMEM_DEBUG_MODE
+#undef RF_SHMEM_DEBUG_MODE
 
 #ifdef RF_SHMEM_DEBUG_MODE
 static bool rf_shmem_log_dbug  = true;
@@ -162,8 +163,9 @@ static const struct timeval tv_4step = {0, 4000}; // 4 sf
 #define RF_SHMEM_MAX_SAMPLES 23040
 
 // subtract the other fields of the struct to align mem size to 256k per bin
+// to avoid shmget failure
 #define RF_SHMEM_MAX_CF_LEN RF_SHMEM_SAMPLES_X_BYTE((256000                     - \
-                                                     12                         - \
+                                                     16                         - \
                                                      sizeof(float)))            - \
                                                      2 * sizeof(struct timeval) - \
                                                      2 * sizeof(int) 
@@ -171,7 +173,8 @@ static const struct timeval tv_4step = {0, 4000}; // 4 sf
 // msg element (not for stack allocation)
 typedef struct {
   uint64_t       seqnum;                      // seq num
-  uint32_t       nof_bytes;                   // nbytes
+  uint32_t       nof_bytes;                   // num bytes
+  uint32_t       nof_sf;                      // num subframes
   float          tx_srate;                    // tx sample rate
   struct timeval tv_tx_tti;                   // tti time (tti + 4)
   struct timeval tv_tx_time;                  // actual tx time
@@ -189,12 +192,12 @@ typedef struct {
 
 #define RF_SHMEM_DATA_SEGMENT_SIZE sizeof(rf_shmem_segment_t)
 
-#ifdef RF_SHMEM_DEBUG_MODE
 const char * printMsg(const rf_shmem_element_t * element, char * buff, int buff_len)
  {
-   snprintf(buff, buff_len, "seqnum %lu, nof_bytes %u, srate %6.4f MHz, tti_tx %ld:%06ld, sob %d, eob %d",
+   snprintf(buff, buff_len, "seqnum %lu, nof_bytes %u, nof_sf %u, srate %6.4f MHz, tti_tx %ld:%06ld, sob %d, eob %d",
             element->seqnum,
             element->nof_bytes,
+            element->nof_sf,
             element->tx_srate/1e6,
             element->tv_tx_tti.tv_sec,
             element->tv_tx_tti.tv_usec,
@@ -203,7 +206,6 @@ const char * printMsg(const rf_shmem_element_t * element, char * buff, int buff_
     
     return buff;
  }
-#endif
 
 // rf dev info
 typedef struct {
@@ -452,7 +454,8 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
       {
         if(wait_for_create == false)
          {
-           RF_SHMEM_WARN("failed to get shm_ul_id %s, abort", strerror(errno));
+           RF_SHMEM_WARN("failed to get shm_ul_id %s, check segment size %zu, abort", 
+                         strerror(errno), RF_SHMEM_DATA_SEGMENT_SIZE);
 
            return -1;
          }
@@ -980,9 +983,6 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
 
    uint32_t nof_bytes_in = 0;
 
-   // enb purge data after read, vs multiple ue's that read
-   bool purge = rf_shmem_is_enb(_state);
-
    // for each requested subframe
    for(int i = 0; i < nof_sf; ++i)
      { 
@@ -1019,30 +1019,6 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
                          bin, new_len, nof_bytes_in, printMsg(element, logbuff, sizeof(logbuff)));
 #endif
          }
-       else
-         {
-          // stale entry
-          if(timercmp(&element->tv_tx_tti, &tv_zero, !=))
-           {
-#ifdef RF_SHMEM_DEBUG_MODE
-             struct timeval tv_diff;
-             timersub(&element->tv_tx_tti, &tv_now, &tv_diff);
-
-             char logbuff[256] = {0};
-             RF_SHMEM_DBUG("RX, bin %u, orphan, overrun %6.6lf, %s", 
-                           bin, 
-                           -rf_shmem_get_fs(&tv_diff),
-                           printMsg(element, logbuff, sizeof(logbuff)));
-#endif
-             // purge stale data
-             purge = true;
-           }
-        }
-
-       if(purge)
-        {
-          memset(element, 0x0, sizeof(*element));
-        }
 
        // unlock
        sem_post(sem[bin]);
@@ -1082,6 +1058,7 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
 
    // assume all tx are 4 tti in the future
    // code base may advance timespec slightly which can mess up our bins
+   // so we just force the tx_time here to be 4 sf ahead
    timeradd(&_state->tv_this_tti, &tv_4step, &tv_tx_tti);
 
    gettimeofday(&tv_now, NULL);
@@ -1116,38 +1093,36 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
 
        rf_shmem_element_t * element = &_state->tx_segment->elements[bin];
 
-#undef  COMBINE_SIGNALS
-#ifdef  COMBINE_SIGNALS
-       // is this a combined sf it the current tx_tti == bin tti
-       const bool is_new_bin = timercmp(&element->tv_tx_tti, &tv_tx_tti, !=);
+       // one and only 1 enb for tx
+       if(rf_shmem_is_enb(_state))
+         {
+           // clear bin on every new tx
+           memset(element, 0x0, sizeof(*element));
+         }
 
-       // load data into bin new bin just set data, existing data needs to be summed
-       for(int i = 0; i < nsamples; ++i)
+       if(element->nof_sf == 0)
         {
-         // on tx we need to combine signals in the bin data
-         // but this approach seems to be incorrect
+          // fresh bin
+          memcpy(element->iqdata, data[0], nof_bytes);
+
+          element->is_sob       = is_sob;
+          element->is_eob       = is_eob;
+          element->tx_srate     = _state->tx_srate;
+          element->seqnum       = _state->tx_seqnum++;
+          element->nof_bytes    = nof_bytes;
+          element->tv_tx_time   = tv_now;
+          element->tv_tx_tti    = tv_tx_tti;
+        }
+       else
+        {
           cf_t * q = (cf_t*)data[0];
 
-          if(is_new_bin)
+          // existing I/Q data needs to be summed
+          for(int i = 0; i < nsamples; ++i)
            {
-             element->iqdata[i] = q[i];
-           }
-          else
-           {
-             element->iqdata[i] += (q[i] * (1.0f * 0.0 * I));
+             element->iqdata[i] += q[i];
            }
         }
-#else
-       memcpy(element->iqdata, data[0], nof_bytes);
-#endif
-     
-       element->is_sob       = is_sob;
-       element->is_eob       = is_eob;
-       element->tx_srate     = _state->tx_srate;
-       element->seqnum       = _state->tx_seqnum++;
-       element->nof_bytes    = nof_bytes;
-       element->tv_tx_time   = tv_now;
-       element->tv_tx_tti    = tv_tx_tti;
 
        ++_state->tx_nof_ok;
 
