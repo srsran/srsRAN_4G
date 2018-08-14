@@ -135,7 +135,16 @@ class nas
 {
 public:
   nas();
-  void init(s1ap_interface_nas *s1ap, gtpc_interface_nas *gtpc, hss_interface_nas *hss, srslte::log *nas_log);
+  void init(uint16_t mcc,
+            uint16_t mnc,
+            uint8_t  mme_code,
+            uint16_t mme_group,
+            std::string apn,
+            std::string dns,
+            s1ap_interface_nas *s1ap,
+            gtpc_interface_nas *gtpc,
+            hss_interface_nas *hss,
+            srslte::log *nas_log);
 
   /*Initial UE messages*/
   bool handle_nas_attach_request(      uint32_t enb_ue_s1ap_id,

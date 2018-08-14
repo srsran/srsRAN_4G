@@ -40,11 +40,24 @@ nas::nas() {
 }
 
 void
-nas::init(s1ap_interface_nas *s1ap,
+nas::init(uint16_t mcc,
+          uint16_t mnc,
+          uint8_t  mme_code,
+          uint16_t mme_group,
+          std::string apn,
+          std::string dns,
+          s1ap_interface_nas *s1ap,
           gtpc_interface_nas *gtpc,
           hss_interface_nas  *hss,
           srslte::log        *nas_log)
 {
+  m_mcc       = mcc;
+  m_mnc       = mnc;
+  m_mme_code  = mme_code;
+  m_mme_group = mme_group;
+  m_apn       = apn;
+  m_dns       = dns;
+
   m_s1ap    = s1ap;
   m_gtpc    = gtpc;
   m_hss     = hss;
@@ -788,10 +801,6 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   memcpy(&nas_buffer->msg[1],mac,4);
   m_nas_log->info("Packed Attach Accept\n");
 
-  //Add nas message to context setup request
-  //erab_ctxt->nAS_PDU_present = true;
-  //memcpy(erab_ctxt->nAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  //erab_ctxt->nAS_PDU.n_octets = nas_buffer->N_bytes;
   return true;
 }
 

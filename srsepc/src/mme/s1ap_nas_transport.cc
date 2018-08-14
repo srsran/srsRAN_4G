@@ -354,7 +354,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
                                                    struct sctp_sndrcvinfo *enb_sri)
 {
   uint8_t     k_asme[32];
-  uint8_t     autn[16]; 
+  uint8_t     autn[16];
   uint8_t     rand[16];
   uint8_t     xres[8];
 
@@ -379,7 +379,13 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
 
   //Set UE's EMM context
   nas *nas_ctx = new nas;
-  nas_ctx->init(m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
+  nas_ctx->init(m_s1ap->m_s1ap_args.mcc,
+                m_s1ap->m_s1ap_args.mnc,
+                m_s1ap->m_s1ap_args.mme_code,
+                m_s1ap->m_s1ap_args.mme_group,
+                m_s1ap->m_s1ap_args.mme_apn,
+                m_s1ap->m_s1ap_args.dns_addr,
+                m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
   emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
   ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
   sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
@@ -497,7 +503,13 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
     m_s1ap_log->info("Attach Request -- Could not find M-TMSI 0x%x\n", m_tmsi);
 
     nas *nas_ctx = new nas;
-    nas_ctx->init(m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
+    nas_ctx->init(m_s1ap->m_s1ap_args.mcc,
+                  m_s1ap->m_s1ap_args.mnc,
+                  m_s1ap->m_s1ap_args.mme_code,
+                  m_s1ap->m_s1ap_args.mme_group,
+                  m_s1ap->m_s1ap_args.mme_apn,
+                  m_s1ap->m_s1ap_args.dns_addr,
+                  m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
     emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
     ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
     sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
