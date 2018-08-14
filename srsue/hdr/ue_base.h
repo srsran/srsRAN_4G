@@ -121,6 +121,10 @@ typedef struct {
 }expert_args_t;
 
 typedef struct {
+  bool daemonize;
+} runtime_args_t;
+
+typedef struct {
   rf_args_t     rf;
   rf_cal_t      rf_cal; 
   pcap_args_t   pcap;
@@ -132,6 +136,7 @@ typedef struct {
   std::string   ue_category_str;
   nas_args_t    nas;
   expert_args_t expert;
+  runtime_args_t runtime;
 }all_args_t;
 
 typedef enum {

@@ -313,7 +313,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("rf_calibration.tx_corr_iq_i", bpo::value<float>(&args->rf_cal.tx_corr_iq_i)->default_value(0.0),
      "TX IQ imbalance inphase correction")
     ("rf_calibration.tx_corr_iq_q", bpo::value<float>(&args->rf_cal.tx_corr_iq_q)->default_value(0.0),
-     "TX IQ imbalance quadrature correction");
+     "TX IQ imbalance quadrature correction")
+
+    ("runtime.daemonize", bpo::value<bool>(&args->runtime.daemonize)->default_value(false), "Run the process as a daemon")
+    ;
 
   // Positional options - config file location
   bpo::options_description position("Positional options");
@@ -479,6 +482,7 @@ void *input_loop(void *m) {
         metrics_screen.toggle_print(do_metrics);
       } else
       if (0 == key.compare("q")) {
+        cout << "recv quit command." << endl;
         running = false;
       }  
     else if (0 == key.compare("mbms")) {
@@ -518,6 +522,11 @@ int main(int argc, char *argv[])
 
   parse_args(&args, argc, argv);
 
+  if(args.runtime.daemonize) {
+    cout << "Running as a daemon\n";
+    daemon(1, 0); 
+  }
+
   srsue_instance_type_t type = LTE;
   ue_base *ue = ue_base::get_instance(type);
   if (!ue) {
@@ -540,8 +549,10 @@ int main(int argc, char *argv[])
     metrics_file.set_ue_handle(ue);
   }
 
-  pthread_t input;
-  pthread_create(&input, NULL, &input_loop, &args);
+  pthread_t input = {0};
+  if(! args.runtime.daemonize) {
+    pthread_create(&input, NULL, &input_loop, &args);
+  }
 
   printf("Attaching UE...\n");
   while (!ue->attach() && running) {
@@ -584,7 +595,9 @@ int main(int argc, char *argv[])
     }
     sleep(1);
   }
-  pthread_cancel(input);
+
+  if(input)
+    pthread_cancel(input);
   metricshub.stop();
   ue->stop();
   ue->cleanup();
