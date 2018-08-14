@@ -95,6 +95,8 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
 
   m_s1ap_log->console("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
+  m_s1ap_log->info   ("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
+
   //Make sure M-TMSI is present, if mandatory
   if (msg_type != LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST && !init_ue->S_TMSI_present){
     m_s1ap_log->error("Initial UE Message 0x%x -- S-TMSI not present\n", msg_type);
@@ -284,8 +286,8 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       nas_ctx->handle_nas_detach_request(nas_msg, reply_buffer, reply_flag);
       break;
     default:
-      m_s1ap_log->warning("Unhandled NAS integrity protected message 0x%x\n", msg_type );
-      m_s1ap_log->console("Unhandled NAS integrity protected message 0x%x\n", msg_type );
+      m_s1ap_log->warning("Unhandled NAS integrity protected message %s\n", liblte_nas_msg_type_to_string(msg_type));
+      m_s1ap_log->console("Unhandled NAS integrity protected message %s\n", liblte_nas_msg_type_to_string(msg_type));
       m_pool->deallocate(nas_msg);
       return false;
     }
