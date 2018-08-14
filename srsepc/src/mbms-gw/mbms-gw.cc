@@ -126,7 +126,6 @@ mbms_gw::stop()
 srslte::error_t
 mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
 {
-  char dev[IFNAMSIZ] = "sgi_mb";
   struct ifreq ifr;
 
   if(m_sgi_mb_up)
@@ -146,7 +145,7 @@ mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
 
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ-1);
+  strncpy(ifr.ifr_ifrn.ifrn_name, args->name.c_str(), std::min(args->name.length(), (size_t)IFNAMSIZ-1));
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1]='\0';
 
   if(ioctl(m_sgi_mb_if, TUNSETIFF, &ifr) < 0)
