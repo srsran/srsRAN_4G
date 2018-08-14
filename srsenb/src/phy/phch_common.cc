@@ -63,6 +63,9 @@ bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interf
   is_first_tx = true; 
   for (uint32_t i=0;i<max_mutex;i++) {
     pthread_mutex_init(&tx_mutex[i], NULL);
+    if (i>0){
+      pthread_mutex_lock(&tx_mutex[i]);
+    }
   }
   reset(); 
   return true; 
