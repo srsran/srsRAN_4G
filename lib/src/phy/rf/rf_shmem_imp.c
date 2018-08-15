@@ -330,13 +330,14 @@ static inline double rf_shmem_get_fs(const struct timeval *tv)
 }
 
 
-// downsample during initial sync
+// XXX this could be a place where we introduce noise/jamming effects
 static int rf_shmem_resample(double srate_in, 
                              double srate_out, 
                              cf_t * data_in, 
                              cf_t * data_out,
                              int nof_bytes)
 {
+  // downsample needed during initial sync since ue is at lowest sample rate
   if(srate_in && srate_out && (srate_in != srate_out))
    {
      const double sratio = srate_out / srate_in;
@@ -489,6 +490,7 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
       return -1;
     }
 
+  // set ul/dl bins to avoid ue/enb cross talk
   if(rf_shmem_is_enb(_state))
     {
       _state->tx_segment = (rf_shmem_segment_t *) _state->shm_dl;
@@ -746,7 +748,7 @@ int rf_shmem_close(void *h)
 
    RF_SHMEM_GET_STATE(h);
 
-   // enb cleans up all shared resources
+   // enb creats/cleans up all shared resources
    if(rf_shmem_is_enb(_state))
     {
       if(_state->shm_dl)
@@ -1126,9 +1128,10 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
         {
           cf_t * q = (cf_t*)data[0];
 
-          // existing I/Q data needs to be summed XXX TODO
+          // XXX existing I/Q data from multiple UL transmission needs to be summed
           for(int i = 0; i < nsamples; ++i)
            {
+             // is this correct ???
              element->iqdata[i] = q[i];
            }
         }
