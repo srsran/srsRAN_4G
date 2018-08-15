@@ -139,6 +139,7 @@ public:
             uint16_t mnc,
             uint8_t  mme_code,
             uint16_t mme_group,
+            uint16_t tac,
             std::string apn,
             std::string dns,
             s1ap_interface_nas *s1ap,

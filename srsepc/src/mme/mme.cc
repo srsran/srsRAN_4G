@@ -94,8 +94,8 @@ mme::init(mme_args_t* args, srslte::log_filter *nas_log, srslte::log_filter *s1a
   }
 
   /*Log successful initialization*/
-  m_s1ap_log->info("MME Initialized. MCC: %d, MNC: %d\n",args->s1ap_args.mcc, args->s1ap_args.mnc);
-  m_s1ap_log->console("MME Initialized. \n");
+  m_s1ap_log->info("MME Initialized. MCC: 0x%x, MNC: 0x%x\n", args->s1ap_args.mcc, args->s1ap_args.mnc);
+  m_s1ap_log->console("MME Initialized. MCC: 0x%x, MNC: 0x%x\n", args->s1ap_args.mcc, args->s1ap_args.mnc);
   return 0;
 }
 

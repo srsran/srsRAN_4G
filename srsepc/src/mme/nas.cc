@@ -44,6 +44,7 @@ nas::init(uint16_t mcc,
           uint16_t mnc,
           uint8_t  mme_code,
           uint16_t mme_group,
+          uint16_t tac,
           std::string apn,
           std::string dns,
           s1ap_interface_nas *s1ap,
@@ -55,6 +56,7 @@ nas::init(uint16_t mcc,
   m_mnc       = mnc;
   m_mme_code  = mme_code;
   m_mme_group = mme_group;
+  m_tac       = tac;
   m_apn       = apn;
   m_dns       = dns;
 
@@ -62,6 +64,7 @@ nas::init(uint16_t mcc,
   m_gtpc    = gtpc;
   m_hss     = hss;
   m_nas_log = nas_log;
+  m_nas_log->info("NAS Context Initialized. MCC: 0x%x, MNC 0x%x\n", m_mcc, m_mnc);
 }
 /*******************************
  *
@@ -702,6 +705,24 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
 
+  //Get decimal MCC and MNC
+  uint32_t mcc = 0;
+  mcc += 0x000F & m_mcc;
+  mcc += 10*( (0x00F0 & m_mcc) >> 4);
+  mcc += 100*( (0x0F00 & m_mcc) >> 8);
+
+  uint32_t mnc = 0;
+  if ( 0xFF00 == (m_mnc & 0xFF00)) {
+      //Two digit MNC
+      mnc += 0x000F & m_mnc;
+      mnc += 10*((0x00F0 & m_mnc) >> 4);
+  } else {
+      //Three digit MNC
+      mnc += 0x000F & m_mnc;
+      mnc += 10*((0x00F0 & m_mnc) >> 4);
+      mnc += 100*((0x0F00 & m_mnc) >> 8);
+  }
+
   //Attach accept
   attach_accept.eps_attach_result = m_emm_ctx.attach_type;
 
@@ -709,17 +730,18 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   attach_accept.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
   attach_accept.t3412.value = 30;                                    // 30 minute periodic timer
 
-  //FIXME: Set tai_list from config
   attach_accept.tai_list.N_tais = 1;
-  attach_accept.tai_list.tai[0].mcc = m_mcc;
-  attach_accept.tai_list.tai[0].mnc = m_mnc;
+  attach_accept.tai_list.tai[0].mcc = mcc;
+  attach_accept.tai_list.tai[0].mnc = mnc;
   attach_accept.tai_list.tai[0].tac = m_tac;
+
+  m_nas_log->info("Attach Accept -- MCC 0x%x, MNC 0x%x\n", m_mcc, m_mnc);
 
   //Allocate a GUTI ot the UE
   attach_accept.guti_present=true;
   attach_accept.guti.type_of_id = 6; //110 -> GUTI
-  attach_accept.guti.guti.mcc = m_mcc;
-  attach_accept.guti.guti.mnc = m_mnc;
+  attach_accept.guti.guti.mcc = mcc;
+  attach_accept.guti.guti.mnc = mnc;
   attach_accept.guti.guti.mme_group_id = m_mme_group;
   attach_accept.guti.guti.mme_code = m_mme_code;
   attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(m_emm_ctx.imsi);
@@ -732,8 +754,8 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
 
   //Set up LAI for combined EPS/IMSI attach
   attach_accept.lai_present=true;
-  attach_accept.lai.mcc = m_mcc;
-  attach_accept.lai.mnc = m_mnc;
+  attach_accept.lai.mcc = mcc;
+  attach_accept.lai.mnc = mnc;
   attach_accept.lai.lac = 001;
 
   attach_accept.ms_id_present=true;
