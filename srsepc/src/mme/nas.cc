@@ -1005,7 +1005,6 @@ nas::pack_service_reject(srslte::byte_buffer_t *reply_msg)
  * Security Functions
  *
  ************************/
-
 bool
 nas::short_integrity_check(srslte::byte_buffer_t *pdu)
 {
