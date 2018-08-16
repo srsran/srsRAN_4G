@@ -39,12 +39,10 @@ pthread_mutex_t s1ap_nas_transport_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 s1ap_nas_transport::s1ap_nas_transport()
 {
-  return;
 }
 
 s1ap_nas_transport::~s1ap_nas_transport()
 {
-  return;
 }
 
 s1ap_nas_transport*
