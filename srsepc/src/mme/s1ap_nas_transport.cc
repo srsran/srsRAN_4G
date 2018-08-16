@@ -169,16 +169,12 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg, &pd, &sec_hdr_type);
 
   //Find UE EMM context if message is security protected.
-  if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
-  {
+  if (sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS) {
     //Make sure EMM context is set-up, to do integrity check/de-chiphering
-    if(emm_ctx->imsi == 0)
-    {
-      //No EMM context found.
-      //Perhaps a temporary context is being created?
+    if (emm_ctx->imsi == 0) {
+      //No EMM context found. Perhaps a temporary context is being created?
       //This can happen with integrity protected identity reponse messages
-      if( !(msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
-      {
+      if ( !(msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) ) {
         m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
         m_pool->deallocate(nas_msg);
         return false;
@@ -356,11 +352,6 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
                                                    bool* reply_flag,
                                                    struct sctp_sndrcvinfo *enb_sri)
 {
-  uint8_t     k_asme[32];
-  uint8_t     autn[16];
-  uint8_t     rand[16];
-  uint8_t     xres[8];
-
   //Get UE's IMSI
   uint64_t imsi = 0;
   for(int i=0;i<=14;i++){
