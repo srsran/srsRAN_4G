@@ -97,6 +97,7 @@ public:
   bool delete_ue_ctx(uint64_t imsi);
 
   uint32_t allocate_m_tmsi(uint64_t imsi);
+  uint64_t find_imsi_from_m_tmsi(uint32_t m_tmsi);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;

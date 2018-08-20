@@ -582,6 +582,19 @@ s1ap::allocate_m_tmsi(uint64_t imsi)
   return m_tmsi;
 }
 
+uint64_t
+s1ap::find_imsi_from_m_tmsi(uint32_t m_tmsi)
+{
+  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
+  if (it != m_s1ap->m_tmsi_to_imsi.end()) {
+    m_s1ap_log->debug("Found IMSI %015lu from M-TMSI 0x%x", it->second, m_tmsi);
+    return it->second;
+  } else {
+    m_s1ap_log->debug("Could not find IMSI from M-TMSI 0x%x", m_tmsi);
+    return 0;
+  }
+}
+
 void
 s1ap::print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx)
 {
