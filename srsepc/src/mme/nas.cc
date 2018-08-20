@@ -71,8 +71,77 @@ nas::init(uint16_t mcc,
  * Handle UE Initiating Messages
  *
  ********************************/
-
 //FIXME Move UE Initiating mesages from s1ap_nas_transport
+bool
+nas::handle_nas_attach_request( uint32_t enb_ue_s1ap_id,
+                                srslte::byte_buffer_t *nas_msg,
+                                srslte::byte_buffer_t *reply_buffer,
+                                bool* reply_flag,
+                                struct sctp_sndrcvinfo *enb_sri)
+{
+  bool save = true;
+  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req;
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
+
+  //Get NAS Attach Request and PDN connectivity request messages
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_req);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS attach request. Error: %s\n", liblte_error_text[err]);
+    m_pool->deallocate(nas_msg);
+    return save;
+  }
+  /*Get PDN Connectivity Request*/
+  err = liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req);
+  if(err != LIBLTE_SUCCESS){
+    m_s1ap_log->error("Error unpacking NAS PDN Connectivity Request. Error: %s\n", liblte_error_text[err]);
+    m_pool->deallocate(nas_msg);
+    return save;
+  }
+
+  //Get attach type from attach request
+  if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
+    m_nas_log->console("Attach Request -- IMSI-style attach request\n");
+    m_nas_log->info("Attach Request -- IMSI-style attach request\n");
+    save = handle_nas_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
+  } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
+    m_nas_log->console("Attach Request -- GUTI-style attach request\n");
+    m_nas_log->info("Attach Request -- GUTI-style attach request\n");
+    save = handle_nas_guti_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, nas_msg, reply_buffer, reply_flag, enb_sri);
+  } else {
+    m_nas_log->error("Unhandled Mobile Id type in attach request\n");
+    return save;
+  }
+
+  //Log Attach Request information
+  m_nas_log->console("Attach request -- IMSI: %015lu\n", m_emm_ctx.imsi);
+  m_nas_log->info("Attach request -- IMSI: %015lu\n", m_emm_ctx.imsi);
+  m_nas_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id);
+  m_nas_log->info("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id);
+  m_nas_log->console("Attach request -- Attach type: %d\n", attach_req.eps_attach_type);
+  m_nas_log->info("Attach request -- Attach type: %d\n", attach_req.eps_attach_type);
+  m_nas_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
+                      attach_req.ue_network_cap.eea[0], attach_req.ue_network_cap.eea[1], attach_req.ue_network_cap.eea[2], attach_req.ue_network_cap.eea[3],
+                      attach_req.ue_network_cap.eea[4], attach_req.ue_network_cap.eea[5], attach_req.ue_network_cap.eea[6], attach_req.ue_network_cap.eea[7]);
+  m_nas_log->info("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
+                     attach_req.ue_network_cap.eea[0], attach_req.ue_network_cap.eea[1], attach_req.ue_network_cap.eea[2], attach_req.ue_network_cap.eea[3],
+                     attach_req.ue_network_cap.eea[4], attach_req.ue_network_cap.eea[5], attach_req.ue_network_cap.eea[6], attach_req.ue_network_cap.eea[7]);
+  m_nas_log->console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
+                      attach_req.ue_network_cap.eia[0], attach_req.ue_network_cap.eia[1], attach_req.ue_network_cap.eia[2], attach_req.ue_network_cap.eia[3],
+                      attach_req.ue_network_cap.eia[4], attach_req.ue_network_cap.eia[5], attach_req.ue_network_cap.eia[6], attach_req.ue_network_cap.eia[7]);
+  m_nas_log->info("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
+                     attach_req.ue_network_cap.eia[0], attach_req.ue_network_cap.eia[1], attach_req.ue_network_cap.eia[2], attach_req.ue_network_cap.eia[3],
+                     attach_req.ue_network_cap.eia[4], attach_req.ue_network_cap.eia[5], attach_req.ue_network_cap.eia[6], attach_req.ue_network_cap.eia[7]);
+  m_nas_log->console("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
+  m_nas_log->info("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
+  m_nas_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
+  m_nas_log->info("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
+  m_nas_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
+  m_nas_log->info("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
+  m_nas_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
+  m_nas_log->info("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
+  return save;
+}
+
 bool
 nas::handle_imsi_attach_request(uint32_t enb_ue_s1ap_id,
                                              const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
@@ -120,25 +189,6 @@ nas::handle_imsi_attach_request(uint32_t enb_ue_s1ap_id,
     m_esm_ctx[i].erab_id = i;
   }
 
-  //Log Attach Request information
-  m_nas_log->console("Attach request -- IMSI: %015lu\n", m_emm_ctx.imsi);
-  m_nas_log->info("Attach request -- IMSI: %015lu\n", m_emm_ctx.imsi);
-  m_nas_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id);
-  m_nas_log->info("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id);
-  m_nas_log->console("Attach request -- Attach type: %d\n", attach_req.eps_attach_type);
-  m_nas_log->info("Attach request -- Attach type: %d\n", attach_req.eps_attach_type);
-
-  m_nas_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
-                      attach_req.ue_network_cap.eea[0], attach_req.ue_network_cap.eea[1], attach_req.ue_network_cap.eea[2], attach_req.ue_network_cap.eea[3],
-                      attach_req.ue_network_cap.eea[4], attach_req.ue_network_cap.eea[5], attach_req.ue_network_cap.eea[6], attach_req.ue_network_cap.eea[7]);
-  m_nas_log->console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
-                      attach_req.ue_network_cap.eia[0], attach_req.ue_network_cap.eia[1], attach_req.ue_network_cap.eia[2], attach_req.ue_network_cap.eia[3],
-                      attach_req.ue_network_cap.eia[4], attach_req.ue_network_cap.eia[5], attach_req.ue_network_cap.eia[6], attach_req.ue_network_cap.eia[7]);
-
-  m_nas_log->console("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
-  m_nas_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
-  m_nas_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
-  m_nas_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
 
   //Save attach request type
   m_emm_ctx.attach_type = attach_req.eps_attach_type;
@@ -215,20 +265,6 @@ nas::handle_guti_attach_request_known_ue( uint32_t enb_ue_s1ap_id,
     m_nas_log->info("Generating KeNB with UL NAS COUNT: %d\n", m_sec_ctx.ul_nas_count);
     m_nas_log->console("Generating KeNB with UL NAS COUNT: %d\n", m_sec_ctx.ul_nas_count);
     m_nas_log->info_hex(m_sec_ctx.k_enb, 32, "Key eNodeB (k_enb)\n");
-
-    m_nas_log->console("Attach request -- IMSI: %015lu\n", m_emm_ctx.imsi);
-    m_nas_log->info("Attach request -- IMSI: %015lu\n", m_emm_ctx.imsi);
-    m_nas_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id);
-    m_nas_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
-                  attach_req.ue_network_cap.eea[0], attach_req.ue_network_cap.eea[1], attach_req.ue_network_cap.eea[2], attach_req.ue_network_cap.eea[3],
-                  attach_req.ue_network_cap.eea[4], attach_req.ue_network_cap.eea[5], attach_req.ue_network_cap.eea[6], attach_req.ue_network_cap.eea[7]);
-    m_nas_log->console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
-                  attach_req.ue_network_cap.eia[0], attach_req.ue_network_cap.eia[1], attach_req.ue_network_cap.eia[2], attach_req.ue_network_cap.eia[3],
-                  attach_req.ue_network_cap.eia[4], attach_req.ue_network_cap.eia[5], attach_req.ue_network_cap.eia[6], attach_req.ue_network_cap.eia[7]);
-    m_nas_log->console("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
-    m_nas_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
-    m_nas_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
-    m_nas_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
 
     if (m_ecm_ctx.eit) {
       m_nas_log->console("Secure ESM information transfer requested.\n");
@@ -361,23 +397,6 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
       m_esm_ctx[i].erab_id = i;
     }
 
-    m_nas_log->console("Attach request -- IMSI: %015lu\n", m_emm_ctx.imsi);
-    m_nas_log->info("Attach request -- IMSI: %015lu\n", m_emm_ctx.imsi);
-    m_nas_log->console("Attach request -- eNB-UE S1AP Id: %d, MME-UE S1AP Id: %d\n", m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id);
-    m_nas_log->console("Attach Request -- UE Network Capabilities EEA: %d%d%d%d%d%d%d%d\n",
-                      attach_req.ue_network_cap.eea[0], attach_req.ue_network_cap.eea[1], attach_req.ue_network_cap.eea[2], attach_req.ue_network_cap.eea[3],
-                      attach_req.ue_network_cap.eea[4], attach_req.ue_network_cap.eea[5], attach_req.ue_network_cap.eea[6], attach_req.ue_network_cap.eea[7]);
-    m_nas_log->console("Attach Request -- UE Network Capabilities EIA: %d%d%d%d%d%d%d%d\n",
-                      attach_req.ue_network_cap.eia[0], attach_req.ue_network_cap.eia[1], attach_req.ue_network_cap.eia[2], attach_req.ue_network_cap.eia[3],
-                      attach_req.ue_network_cap.eia[4], attach_req.ue_network_cap.eia[5], attach_req.ue_network_cap.eia[6], attach_req.ue_network_cap.eia[7]);
-    m_nas_log->console("Attach Request -- MS Network Capabilities Present: %s\n", attach_req.ms_network_cap_present ? "true" : "false");
-    m_nas_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
-    m_nas_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
-    m_nas_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
-
-    m_nas_log->console("Could not find M-TMSI. Sending ID request\n");
-    m_nas_log->info("Could not find M-TMSI=. Sending Id Request\n");
-
     //Store temporary ue context
     m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(this);
     m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,m_ecm_ctx.mme_ue_s1ap_id);
@@ -386,6 +405,7 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
     *reply_flag = true;
     return true;
 }
+
 /*
  *
  * Handle Uplink NAS Transport message

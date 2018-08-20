@@ -88,6 +88,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   memcpy(nas_msg->msg, &init_ue->NAS_PDU.buffer, init_ue->NAS_PDU.n_octets);
   nas_msg->N_bytes = init_ue->NAS_PDU.n_octets;
 
+  uint64_t imsi;
   uint32_t m_tmsi;
   uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
@@ -102,8 +103,29 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_pool->deallocate(nas_msg);
     return false;
   }
+
+  //Get NAS context if TMSI is present
+  nas *nas_ctx = NULL;
   if (init_ue->S_TMSI_present) {
     m_tmsi = ntohl(*((uint32_t*)&init_ue->S_TMSI.m_TMSI.buffer));
+    imsi = m_s1ap->find_imsi_from_m_tmsi(m_tmsi);
+    if(imsi !=0){
+      nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
+    }
+  }
+
+  //Create new NAS context if Attach request without known NAS context
+  //This will be release if the attach request returns an error
+  if (msg_type == LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST && nas_ctx == NULL) {
+    nas_ctx = new nas;
+    nas_ctx->init(m_s1ap->m_s1ap_args.mcc,
+                  m_s1ap->m_s1ap_args.mnc,
+                  m_s1ap->m_s1ap_args.mme_code,
+                  m_s1ap->m_s1ap_args.mme_group,
+                  m_s1ap->m_s1ap_args.tac,
+                  m_s1ap->m_s1ap_args.mme_apn,
+                  m_s1ap->m_s1ap_args.dns_addr,
+                  m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
   }
 
   switch (msg_type)
@@ -111,7 +133,10 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Attach Request\n");
     m_s1ap_log->info("Received Initial UE message -- Attach Request\n");
-    err = handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+    err = nas_ctx->handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+    if (err == false) {
+      delete nas_ctx;
+    }
     break;
   case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Service Request\n");
@@ -339,6 +364,7 @@ s1ap_nas_transport::handle_nas_attach_request(uint32_t enb_ue_s1ap_id,
     m_s1ap_log->error("Unhandled Mobile Id type in attach request\n");
     return false;
   }
+
   return true;
 }
 
