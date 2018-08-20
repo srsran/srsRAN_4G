@@ -148,13 +148,21 @@ public:
             srslte::log *nas_log);
 
   /*Initial UE messages*/
-  bool handle_nas_guti_attach_request_known_ue( uint32_t enb_ue_s1ap_id,
-                                                const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                                const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                                srslte::byte_buffer_t *nas_msg,
-                                                srslte::byte_buffer_t *reply_buffer,
-                                                bool* reply_flag,
-                                                struct sctp_sndrcvinfo *enb_sri);
+  bool handle_guti_attach_request_known_ue( uint32_t enb_ue_s1ap_id,
+                                            const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
+                                            const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
+                                            srslte::byte_buffer_t *nas_msg,
+                                            srslte::byte_buffer_t *reply_buffer,
+                                            bool* reply_flag,
+                                            struct sctp_sndrcvinfo *enb_sri);
+
+  bool handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
+                                              const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
+                                              const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
+                                              srslte::byte_buffer_t *nas_msg,
+                                              srslte::byte_buffer_t *reply_buffer,
+                                              bool* reply_flag,
+                                              struct sctp_sndrcvinfo *enb_sri);
   /* Uplink NAS messages handling */
   bool handle_nas_authentication_response(  srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool* reply_flag);
   bool handle_nas_security_mode_complete(   srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
