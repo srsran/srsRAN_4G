@@ -239,6 +239,8 @@ bool ue::init(all_args_t *args_) {
   earfcn_list.push_back(args->rf.dl_earfcn);
   phy.set_earfcn(earfcn_list);
 
+  phy.set_search_phy_cell_id(args->rf.phy_cell_id);
+
   if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {
     phy.force_freq(args->rf.dl_freq, args->rf.ul_freq);
   }
