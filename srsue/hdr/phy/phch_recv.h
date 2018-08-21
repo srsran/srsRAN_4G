@@ -80,6 +80,7 @@ public:
   // From UE configuration
   void    set_agc_enable(bool enable);
   void    set_earfcn(std::vector<uint32_t> earfcn);
+  void    set_search_phy_cell_id(int32_t search_phy_cell_id);
   void    force_freq(float dl_freq, float ul_freq);
 
   // Other functions
@@ -100,6 +101,7 @@ private:
     void     reset();
     float    get_last_cfo();
     void     set_agc_enable(bool enable);
+    void     set_search_phy_cell_id(int32_t search_phy_cell_id);
     ret_code run(srslte_cell_t *cell);
 
   private:
@@ -109,6 +111,7 @@ private:
     srslte_ue_cellsearch_t  cs;
     srslte_ue_mib_sync_t    ue_mib_sync;
     int                     force_N_id_2;
+    int32_t                 search_phy_cell_id;
   };
 
   // Class to synchronize system frame number
