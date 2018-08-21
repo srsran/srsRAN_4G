@@ -650,4 +650,9 @@ s1ap::send_ue_context_release_command(uint32_t mme_ue_s1ap_id)
   return true;
 }
 
+bool
+s1ap::send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *nas_msg, struct sctp_sndrcvinfo enb_sri)
+{
+  return m_s1ap_nas_transport->send_downlink_nas_transport(enb_ue_s1ap_id, mme_ue_s1ap_id, nas_msg, enb_sri);
+}
 } //namespace srsepc

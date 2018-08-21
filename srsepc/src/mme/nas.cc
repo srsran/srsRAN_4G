@@ -482,54 +482,56 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
  * Handle Uplink NAS Transport message
  *
  */
-
 bool
-nas::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
+nas::handle_nas_authentication_response(srslte::byte_buffer_t *nas_rx)
 {
-
+  srslte::byte_buffer_t *nas_tx;
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
-  m_nas_log->console("Authentication Response -- IMSI %015lu\n", m_emm_ctx.imsi);
+  bool ue_valid=true;
 
   //Get NAS authentication response
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_resp);
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_rx, &auth_resp);
   if(err != LIBLTE_SUCCESS){
     m_nas_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
     return false;
   }
-  m_nas_log->console("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
-                      auth_resp.res[0], auth_resp.res[1], auth_resp.res[2], auth_resp.res[3],
-                      auth_resp.res[4], auth_resp.res[5], auth_resp.res[6], auth_resp.res[7]);
-  m_nas_log->info("Authentication Response -- RES 0x%x%x%x%x%x%x%x%x\n",
-                      auth_resp.res[0], auth_resp.res[1], auth_resp.res[2], auth_resp.res[3],
-                      auth_resp.res[4], auth_resp.res[5], auth_resp.res[6], auth_resp.res[7]);
 
-  bool ue_valid=true;
+  //Log received authentication response
+  m_nas_log->console("Authentication Response -- IMSI %015lu\n", m_emm_ctx.imsi);
+  m_nas_log->info("Authentication Response -- IMSI %015lu\n", m_emm_ctx.imsi);
+  m_nas_log->info_hex(auth_resp.res,8, "Authentication response -- RES");
+  m_nas_log->info_hex(m_sec_ctx.xres,8, "Authentication response -- XRES");
+
+  //Check UE authentication
   for(int i=0; i<8;i++){
     if( auth_resp.res[i] != m_sec_ctx.xres[i] ) {
       ue_valid = false;
     }
   }
 
+  nas_tx = m_pool->allocate();
   if(!ue_valid) {
-    m_nas_log->info_hex(m_sec_ctx.xres,8, "XRES");
+    //Authentication rejected
     m_nas_log->console("UE Authentication Rejected.\n");
     m_nas_log->warning("UE Authentication Rejected.\n");
 
     //Send back Athentication Reject
-    pack_authentication_reject(reply_buffer);
-    *reply_flag = true;
-    m_nas_log->console("Downlink NAS: Sending Authentication Reject.\n");
-    return false;
+    pack_authentication_reject(nas_tx);
+    m_nas_log->info("Downlink NAS: Sending Authentication Reject.\n");
   } else {
+    //Authentication accepted
     m_nas_log->console("UE Authentication Accepted.\n");
     m_nas_log->info("UE Authentication Accepted.\n");
 
     //Send Security Mode Command
     m_sec_ctx.ul_nas_count = 0; // Reset the NAS uplink counter for the right key k_enb derivation
-    pack_security_mode_command(reply_buffer);
-    *reply_flag = true;
+    pack_security_mode_command(nas_tx);
     m_nas_log->console("Downlink NAS: Sending NAS Security Mode Command.\n");
   }
+
+  //Send reply
+  m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
+  m_pool->deallocate(nas_tx);
   return true;
 }
 

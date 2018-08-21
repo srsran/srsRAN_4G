@@ -223,7 +223,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
       m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
-      nas_ctx->handle_nas_authentication_response(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_nas_authentication_response(nas_msg);
       break;
     // Authentication failure with the option sync failure can be sent not integrity protected
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
@@ -673,7 +673,7 @@ s1ap_nas_transport::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
 }
 
 bool
-s1ap_nas_transport::send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *nas_msg, struct sctp_sndrcvinfo *enb_sri)
+s1ap_nas_transport::send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *nas_msg, struct sctp_sndrcvinfo enb_sri)
 {
   //Allocate Reply buffer
   srslte::byte_buffer_t *reply_msg = m_pool->allocate();
@@ -709,7 +709,7 @@ s1ap_nas_transport::send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_
     m_pool->deallocate(reply_msg);
     return false;
   }
-  m_s1ap->s1ap_tx_pdu(nas_msg,enb_sri);
+  m_s1ap->s1ap_tx_pdu(nas_msg, &enb_sri);
   m_pool->deallocate(reply_msg);
   return true;
 }
