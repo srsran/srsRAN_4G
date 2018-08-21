@@ -409,8 +409,6 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
   bool err = nas_ctx->handle_imsi_attach_request( enb_ue_s1ap_id,
                                                   attach_req,
                                                   pdn_con_req,
-                                                  reply_buffer,
-                                                  reply_flag,
                                                   enb_sri);
   if (err == false){
     delete nas_ctx;
@@ -709,7 +707,7 @@ s1ap_nas_transport::send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_
     m_pool->deallocate(reply_msg);
     return false;
   }
-  m_s1ap->s1ap_tx_pdu(nas_msg, &enb_sri);
+  m_s1ap->s1ap_tx_pdu(reply_msg, &enb_sri);
   m_pool->deallocate(reply_msg);
   return true;
 }

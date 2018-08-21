@@ -157,8 +157,6 @@ public:
   bool handle_imsi_attach_request(uint32_t enb_ue_s1ap_id,
                                       const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
                                       const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                      srslte::byte_buffer_t *reply_buffer,
-                                      bool* reply_flag,
                                       struct sctp_sndrcvinfo *enb_sri);
 
   bool handle_guti_attach_request( uint32_t enb_ue_s1ap_id,

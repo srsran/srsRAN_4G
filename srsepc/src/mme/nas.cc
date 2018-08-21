@@ -100,7 +100,7 @@ nas::handle_attach_request( uint32_t enb_ue_s1ap_id,
   if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
     m_nas_log->console("Attach Request -- IMSI-style attach request\n");
     m_nas_log->info("Attach Request -- IMSI-style attach request\n");
-    save = handle_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, reply_buffer, reply_flag, enb_sri);
+    save = handle_imsi_attach_request(enb_ue_s1ap_id, attach_req, pdn_con_req, enb_sri);
   } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
     m_nas_log->console("Attach Request -- GUTI-style attach request\n");
     m_nas_log->info("Attach Request -- GUTI-style attach request\n");
@@ -144,10 +144,9 @@ bool
 nas::handle_imsi_attach_request( uint32_t enb_ue_s1ap_id,
                                  const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
                                  const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                 srslte::byte_buffer_t *reply_buffer,
-                                 bool* reply_flag,
                                  struct sctp_sndrcvinfo *enb_sri)
 {
+  srslte::byte_buffer_t *nas_tx;
 
   //Get IMSI
   uint64_t imsi = 0;
@@ -196,6 +195,7 @@ nas::handle_imsi_attach_request( uint32_t enb_ue_s1ap_id,
     m_nas_log->info("User not found. IMSI %015lu\n",m_emm_ctx.imsi);
     return false;
   }
+
   //Allocate eKSI for this authentication vector
   //Here we assume a new security context thus a new eKSI
   m_sec_ctx.eksi=0;
@@ -206,10 +206,13 @@ nas::handle_imsi_attach_request( uint32_t enb_ue_s1ap_id,
   m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,m_ecm_ctx.mme_ue_s1ap_id);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_buffer);
+  nas_tx = m_pool->allocate();
+  pack_authentication_request(nas_tx);
 
   //Send reply to eNB
-  *reply_flag = true;
+  m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
+  m_pool->deallocate(nas_tx);
+
   m_nas_log->info("Downlink NAS: Sending Authentication Request\n");
   m_nas_log->console("Downlink NAS: Sending Authentication Request\n");
   return true;
@@ -842,30 +845,9 @@ nas::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg)
 
 /*Packing/Unpacking helper functions*/
 bool
-nas::pack_authentication_request(srslte::byte_buffer_t *reply_msg)
+nas::pack_authentication_request(srslte::byte_buffer_t *nas_buffer)
 {
-  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-
-  //Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
-
-  //Pack NAS PDU 
+  //Pack NAS msg
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
   memcpy(auth_req.autn , m_sec_ctx.autn, 16);
   memcpy(auth_req.rand, m_sec_ctx.rand, 16);
@@ -878,21 +860,6 @@ nas::pack_authentication_request(srslte::byte_buffer_t *reply_msg)
     m_nas_log->console("Error packing Authentication Request\n");
     return false;
   }
-
-  //Copy NAS PDU to Downlink NAS Trasport message buffer
-  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
-
-  //Pack Downlink NAS Transport Message
-  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if (err != LIBLTE_SUCCESS) {
-    m_nas_log->error("Error packing Authentication Request\n");
-    m_nas_log->console("Error packing Authentication Request\n");
-    return false;
-  }
-
-  m_pool->deallocate(nas_buffer);
-
   return true;
 }
 
@@ -944,29 +911,8 @@ nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg)
 }
 
 bool
-nas::pack_security_mode_command(srslte::byte_buffer_t *reply_msg)
+nas::pack_security_mode_command(srslte::byte_buffer_t *nas_buffer)
 {
-  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-
-  //Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
-
   //Pack NAS PDU
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
 
@@ -995,8 +941,7 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *reply_msg)
 
   uint8_t  sec_hdr_type=3;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, m_sec_ctx.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
-  if(err != LIBLTE_SUCCESS)
-  {
+  if (err != LIBLTE_SUCCESS) {
     m_nas_log->console("Error packing Authentication Request\n");
     return false;
   }
@@ -1028,20 +973,7 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *reply_msg)
                      nas_buffer->N_bytes - 5,
                      mac
   );
-
   memcpy(&nas_buffer->msg[1],mac,4);
-  //Copy NAS PDU to Downlink NAS Trasport message buffer
-  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
-
-  //Pack Downlink NAS Transport Message
-  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if (err != LIBLTE_SUCCESS) {
-    m_nas_log->console("Error packing Authentication Request\n");
-    return false;
-  }
-  m_nas_log->debug_hex(reply_msg->msg, reply_msg->N_bytes, "Security Mode Command: ");
-  m_pool->deallocate(nas_buffer);
   return true;
 }
 
