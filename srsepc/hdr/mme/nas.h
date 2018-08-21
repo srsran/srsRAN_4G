@@ -193,13 +193,13 @@ public:
   bool handle_nas_detach_request(           srslte::byte_buffer_t *nas_msg);
 
   /* Downlink NAS messages packing */
-  bool pack_authentication_request  (srslte::byte_buffer_t *reply_msg);
-  bool pack_authentication_reject   (srslte::byte_buffer_t *reply_msg);
-  bool pack_security_mode_command   (srslte::byte_buffer_t *reply_msg);
-  bool pack_esm_information_request (srslte::byte_buffer_t *reply_msg);
-  bool pack_identity_request        (srslte::byte_buffer_t *reply_msg);
-  bool pack_emm_information         (srslte::byte_buffer_t *reply_msg);
-  bool pack_service_reject          (srslte::byte_buffer_t *reply_msg);
+  bool pack_authentication_request  (srslte::byte_buffer_t *nas_buffer);
+  bool pack_authentication_reject   (srslte::byte_buffer_t *nas_buffer);
+  bool pack_security_mode_command   (srslte::byte_buffer_t *nas_buffer);
+  bool pack_esm_information_request (srslte::byte_buffer_t *nas_buffer);
+  bool pack_identity_request        (srslte::byte_buffer_t *nas_buffer);
+  bool pack_emm_information         (srslte::byte_buffer_t *nas_buffer);
+  bool pack_service_reject          (srslte::byte_buffer_t *nas_buffer);
   bool pack_attach_accept           (srslte::byte_buffer_t *nas_buffer);
 
   /* Security functions */

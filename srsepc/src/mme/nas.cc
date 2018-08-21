@@ -315,12 +315,14 @@ nas::handle_guti_attach_request_known_ue( uint32_t enb_ue_s1ap_id,
     m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
 
     m_emm_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id;
+
     //Save Attach type
     m_emm_ctx.attach_type = attach_req.eps_attach_type;
 
     //Set eNB information
     m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
     memcpy(&m_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+
     //Save whether secure ESM information transfer is necessary
     m_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
 
@@ -434,50 +436,56 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
                                               bool* reply_flag,
                                               struct sctp_sndrcvinfo *enb_sri)
 {
-    //Could not find IMSI from M-TMSI, send Id request
-    //The IMSI will be set when the identity response is received
-    //Set EMM ctx
-    m_emm_ctx.imsi = 0;
-    m_emm_ctx.state = EMM_STATE_DEREGISTERED;
+  srslte::byte_buffer_t *nas_tx;
 
-    //Save UE network capabilities
-    memcpy(&m_sec_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
-    m_sec_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
-    if (attach_req.ms_network_cap_present) {
-        memcpy(&m_sec_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
-    }
-    //Initialize NAS count
-    m_sec_ctx.ul_nas_count = 0;
-    m_sec_ctx.dl_nas_count = 0;
-    m_emm_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id;
+  //Could not find IMSI from M-TMSI, send Id request
+  //The IMSI will be set when the identity response is received
+  //Set EMM ctx
+  m_emm_ctx.imsi = 0;
+  m_emm_ctx.state = EMM_STATE_DEREGISTERED;
 
-    //Set ECM context
-    m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-    m_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+  //Save UE network capabilities
+  memcpy(&m_sec_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
+  m_sec_ctx.ms_network_cap_present =  attach_req.ms_network_cap_present;
+  if (attach_req.ms_network_cap_present) {
+      memcpy(&m_sec_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+  }
+  //Initialize NAS count
+  m_sec_ctx.ul_nas_count = 0;
+  m_sec_ctx.dl_nas_count = 0;
+  m_emm_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id;
 
-    uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;
+  //Set ECM context
+  m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+  m_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
 
-    //Save attach request type
-    m_emm_ctx.attach_type = attach_req.eps_attach_type;
+  uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;
 
-    //Save whether ESM information transfer is necessary
-    m_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
+  //Save attach request type
+  m_emm_ctx.attach_type = attach_req.eps_attach_type;
 
-    //Add eNB info to UE ctxt
-    memcpy(&m_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-    //Initialize E-RABs
-    for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
-      m_esm_ctx[i].state = ERAB_DEACTIVATED;
-      m_esm_ctx[i].erab_id = i;
-    }
+  //Save whether ESM information transfer is necessary
+  m_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
 
-    //Store temporary ue context
-    m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(this);
-    m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,m_ecm_ctx.mme_ue_s1ap_id);
+  //Add eNB info to UE ctxt
+  memcpy(&m_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+  //Initialize E-RABs
+  for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
+    m_esm_ctx[i].state = ERAB_DEACTIVATED;
+    m_esm_ctx[i].erab_id = i;
+  }
 
-    pack_identity_request(reply_buffer);
-    *reply_flag = true;
-    return true;
+  //Store temporary ue context
+  m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(this);
+  m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,m_ecm_ctx.mme_ue_s1ap_id);
+
+  //Send Identity Request
+  nas_tx = m_pool->allocate();
+  pack_identity_request(nas_tx);
+  m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
+  m_pool->deallocate(nas_tx);
+
+  return true;
 }
 
 /*
@@ -847,6 +855,8 @@ nas::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg)
 bool
 nas::pack_authentication_request(srslte::byte_buffer_t *nas_buffer)
 {
+  m_nas_log->info("Packing Authentication Request\n");
+
   //Pack NAS msg
   LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
   memcpy(auth_req.autn , m_sec_ctx.autn, 16);
@@ -913,6 +923,8 @@ nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg)
 bool
 nas::pack_security_mode_command(srslte::byte_buffer_t *nas_buffer)
 {
+  m_nas_log->info("Packing Security Mode Command\n");
+
   //Pack NAS PDU
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
 
@@ -978,28 +990,9 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *nas_buffer)
 }
 
 bool
-nas::pack_esm_information_request(srslte::byte_buffer_t *reply_msg)
+nas::pack_esm_information_request(srslte::byte_buffer_t *nas_buffer)
 {
-  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-
-  //Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
+  m_nas_log->info("Packing ESM Information request\n");
 
   LIBLTE_MME_ESM_INFORMATION_REQUEST_MSG_STRUCT esm_info_req;
   esm_info_req.eps_bearer_id = 0;
@@ -1024,22 +1017,7 @@ nas::pack_esm_information_request(srslte::byte_buffer_t *reply_msg)
                              nas_buffer->N_bytes - 5,
                              mac
                              );
-
   memcpy(&nas_buffer->msg[1],mac,4);
-
-  //Copy NAS PDU to Downlink NAS Trasport message buffer
-  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
-
-  //Pack Downlink NAS Transport Message
-  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if(err != LIBLTE_SUCCESS) {
-    m_nas_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
-    m_nas_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
-    return false;
-  }
-
-  m_pool->deallocate(nas_buffer);
   return true;
 }
 
@@ -1172,28 +1150,9 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
 }
 
 bool
-nas::pack_identity_request(srslte::byte_buffer_t *reply_msg)
+nas::pack_identity_request(srslte::byte_buffer_t *nas_buffer)
 {
-  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-
-  //Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
+  m_nas_log->info("Packing Identity Request\n");
 
   LIBLTE_MME_ID_REQUEST_MSG_STRUCT id_req;
   id_req.id_type = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
@@ -1203,20 +1162,6 @@ nas::pack_identity_request(srslte::byte_buffer_t *reply_msg)
     m_nas_log->console("Error packing Identity REquest\n");
     return false;
   }
-
-  //Copy NAS PDU to Downlink NAS Trasport message buffer
-  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
-
-  //Pack Downlink NAS Transport Message
-  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if (err != LIBLTE_SUCCESS) {
-    m_nas_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
-    m_nas_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
-    return false;
-  }
-
-  m_pool->deallocate(nas_buffer);
   return true;
 }
 
