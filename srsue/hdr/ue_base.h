@@ -55,6 +55,7 @@ namespace srsue {
 
 typedef struct {
   uint32_t      dl_earfcn;
+  int32_t       phy_cell_id;
   float         dl_freq;
   float         ul_freq;
   float         freq_offset;

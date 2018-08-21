@@ -102,6 +102,11 @@ SRSLTE_API int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t * q,
                                          srslte_ue_cellsearch_result_t found_cells[3], 
                                          uint32_t *max_N_id_2); 
 
+SRSLTE_API int srslte_ue_cellsearch_scan_cell_id(srslte_ue_cellsearch_t * q,
+                                                 int32_t search_cell_id,
+                                                 srslte_ue_cellsearch_result_t found_cells[3],
+                                                 uint32_t *max_N_id_2);
+
 SRSLTE_API int srslte_ue_cellsearch_set_nof_valid_frames(srslte_ue_cellsearch_t *q, 
                                                          uint32_t nof_frames);
 

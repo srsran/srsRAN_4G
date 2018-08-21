@@ -76,6 +76,7 @@ public:
   void write_trace(std::string filename);
 
   void set_earfcn(std::vector<uint32_t> earfcns);
+  void set_search_phy_cell_id(int32_t cell_id);
   void force_freq(float dl_freq, float ul_freq);
 
   void radio_overflow();

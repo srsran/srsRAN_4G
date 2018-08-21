@@ -271,6 +271,35 @@ int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t * q,
   return nof_detected_cells;
 }
 
+/** Finds up to 3 cells, one per each N_id_2=0,1,2 and stores ID and CP in the structure pointed by found_cell.
+ * Each position in found_cell corresponds to a different N_id_2.
+ * Saves in the pointer max_N_id_2 the N_id_2 index of the cell with the matching cell ID
+ * Returns the number of found cells or a negative number if error
+ */
+int srslte_ue_cellsearch_scan_cell_id(srslte_ue_cellsearch_t * q,
+                                      int32_t search_cell_id,
+                                      srslte_ue_cellsearch_result_t found_cells[3],
+                                      uint32_t *max_N_id_2)
+{
+  int ret = 0;
+  uint32_t nof_detected_cells = 0;
+  for (uint32_t N_id_2=0;N_id_2<3 && ret >= 0;N_id_2++) {
+    ret = srslte_ue_cellsearch_scan_N_id_2(q, N_id_2, &found_cells[N_id_2]);
+    if (ret < 0) {
+      fprintf(stderr, "Error searching cell\n");
+      return ret;
+    }
+    if (max_N_id_2) {
+      if (found_cells[N_id_2].cell_id == search_cell_id) {
+        *max_N_id_2 = N_id_2;
+        nof_detected_cells += ret;
+        break;
+      }
+    }
+  }
+  return nof_detected_cells;
+}
+
 /** Finds a cell for a given N_id_2 and stores ID and CP in the structure pointed by found_cell. 
  * Returns 1 if the cell is found, 0 if not or -1 on error
  */

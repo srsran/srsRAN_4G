@@ -9,6 +9,7 @@
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
 # Optional parameters: 
+# phy_cell_id         Physical Cell ID
 # dl_freq:            Override DL frequency corresponding to dl_earfcn
 # ul_freq:            Override UL frequency corresponding to dl_earfcn
 # nof_rx_ant:         Number of RX antennas (Default 1, supported 1 or 2)
