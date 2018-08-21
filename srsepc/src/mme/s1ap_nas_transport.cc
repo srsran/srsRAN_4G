@@ -235,7 +235,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_s1ap_log->info("Plain Protected UL NAS: Detach Request\n");
       m_s1ap_log->console("Plain Protected UL NAS: Detach Request\n");
-      nas_ctx->handle_nas_detach_request(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_nas_detach_request(nas_msg);
       break;
     default:
       m_s1ap_log->warning("Unhandled Plain NAS message 0x%x\n", msg_type );
@@ -302,7 +302,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_s1ap_log->info("Integrity Protected UL NAS: Detach Request\n");
       m_s1ap_log->console("Integrity Protected UL NAS: Detach Request\n");
-      nas_ctx->handle_nas_detach_request(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_nas_detach_request(nas_msg);
       break;
     default:
       m_s1ap_log->warning("Unhandled NAS integrity protected message %s\n", liblte_nas_msg_type_to_string(msg_type));

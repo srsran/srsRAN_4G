@@ -482,27 +482,6 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
  * Handle Uplink NAS Transport message
  *
  */
-bool
-nas::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
-{
-
-  m_nas_log->console("Detach request -- IMSI %015lu\n", m_emm_ctx.imsi);
-  m_nas_log->info("Detach request -- IMSI %015lu\n", m_emm_ctx.imsi);
-  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
-
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &detach_req);
-  if(err !=LIBLTE_SUCCESS) {
-      m_nas_log->error("Could not unpack detach request\n");
-      return false;
-  }
-
-  m_gtpc->send_delete_session_request(m_emm_ctx.imsi);
-  m_emm_ctx.state = EMM_STATE_DEREGISTERED;
-  if (m_ecm_ctx.mme_ue_s1ap_id!=0) {
-      m_s1ap->send_ue_context_release_command(m_ecm_ctx.mme_ue_s1ap_id);
-  }
-  return true;
-}
 
 bool
 nas::handle_nas_authentication_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool* reply_flag)
@@ -826,6 +805,28 @@ nas::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, srslte::byte_
     //TODO Start T3460 Timer! 
 
     break;
+  }
+  return true;
+}
+
+bool
+nas::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg)
+{
+
+  m_nas_log->console("Detach request -- IMSI %015lu\n", m_emm_ctx.imsi);
+  m_nas_log->info("Detach request -- IMSI %015lu\n", m_emm_ctx.imsi);
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &detach_req);
+  if(err !=LIBLTE_SUCCESS) {
+    m_nas_log->error("Could not unpack detach request\n");
+    return false;
+  }
+
+  m_gtpc->send_delete_session_request(m_emm_ctx.imsi);
+  m_emm_ctx.state = EMM_STATE_DEREGISTERED;
+  if (m_ecm_ctx.mme_ue_s1ap_id!=0) {
+    m_s1ap->send_ue_context_release_command(m_ecm_ctx.mme_ue_s1ap_id);
   }
   return true;
 }

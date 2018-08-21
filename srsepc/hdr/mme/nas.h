@@ -192,7 +192,7 @@ public:
   bool handle_identity_response(            srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_tracking_area_update_request( srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_authentication_failure(       srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_nas_detach_request(           srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_nas_detach_request(           srslte::byte_buffer_t *nas_msg);
 
   /* Downlink NAS messages packing */
   bool pack_authentication_request  (srslte::byte_buffer_t *reply_msg);
