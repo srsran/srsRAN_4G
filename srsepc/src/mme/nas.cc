@@ -483,7 +483,7 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
  *
  */
 bool
-nas::handle_nas_authentication_response(srslte::byte_buffer_t *nas_rx)
+nas::handle_authentication_response(srslte::byte_buffer_t *nas_rx)
 {
   srslte::byte_buffer_t *nas_tx;
   LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_resp;
@@ -536,41 +536,48 @@ nas::handle_nas_authentication_response(srslte::byte_buffer_t *nas_rx)
 }
 
 bool
-nas::handle_nas_security_mode_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag)
+nas::handle_security_mode_complete(srslte::byte_buffer_t *nas_rx)
 {
+  srslte::byte_buffer_t *nas_tx;
   LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sm_comp;
 
-  //Get NAS authentication response
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_security_mode_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &sm_comp);
+  //Get NAS security mode complete
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_security_mode_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_rx, &sm_comp);
   if(err != LIBLTE_SUCCESS){
     m_nas_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
     return false;
   }
 
+  //Log security mode complete
   m_nas_log->info("Security Mode Command Complete -- IMSI: %lu\n", m_emm_ctx.imsi);
   m_nas_log->console("Security Mode Command Complete -- IMSI: %lu\n", m_emm_ctx.imsi);
+
+  //Check wether secure ESM information transfer is required
+  nas_tx = m_pool->allocate();
   if (m_ecm_ctx.eit == true) {
-    pack_esm_information_request(reply_buffer);
+    //Secure ESM information transfer is required
     m_nas_log->console("Sending ESM information request\n");
-    m_nas_log->info_hex(reply_buffer->msg, reply_buffer->N_bytes, "Sending ESM information request\n");
-    *reply_flag = true;
+    m_nas_log->info("Sending ESM information request\n");
+
+    //Packing ESM information request
+    pack_esm_information_request(nas_tx);
+    m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
   } else {
-    //Get subscriber info from HSS
+    //Secure ESM information transfer not necessary
+    //Sending create session request to SP-GW.
     uint8_t default_bearer=5;
     m_hss->gen_update_loc_answer(m_emm_ctx.imsi, &m_esm_ctx[default_bearer].qci);
     m_nas_log->debug("Getting subscription information -- QCI %d\n", m_esm_ctx[default_bearer].qci);
     m_nas_log->console("Getting subscription information -- QCI %d\n", m_esm_ctx[default_bearer].qci);
-    //FIXME The packging of GTP-C messages is not ready.
-    //This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
     m_gtpc->send_create_session_request(m_emm_ctx.imsi);
-    *reply_flag = false; //No reply needed
   }
+  m_pool->deallocate(nas_tx);
   return true;
 }
 
 
 bool
-nas::handle_nas_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+nas::handle_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
 {
 
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_comp;

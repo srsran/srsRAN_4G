@@ -185,9 +185,9 @@ public:
                                               bool* reply_flag,
                                               struct sctp_sndrcvinfo *enb_sri);
   /* Uplink NAS messages handling */
-  bool handle_nas_authentication_response(  srslte::byte_buffer_t *nas_rx);
-  bool handle_nas_security_mode_complete(   srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_nas_attach_complete(          srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
+  bool handle_authentication_response(  srslte::byte_buffer_t *nas_rx);
+  bool handle_security_mode_complete(   srslte::byte_buffer_t *nas_rx);
+  bool handle_attach_complete(          srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_esm_information_response(     srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_identity_response(            srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_tracking_area_update_request( srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);

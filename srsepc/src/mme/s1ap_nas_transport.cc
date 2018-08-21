@@ -223,7 +223,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
       m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
-      nas_ctx->handle_nas_authentication_response(nas_msg);
+      nas_ctx->handle_authentication_response(nas_msg);
       break;
     // Authentication failure with the option sync failure can be sent not integrity protected
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
@@ -257,7 +257,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
       sec_ctx->dl_nas_count = 0;
       mac_valid = nas_ctx->integrity_check(nas_msg);
       if(mac_valid){
-        nas_ctx->handle_nas_security_mode_complete(nas_msg, reply_buffer, reply_flag);
+        nas_ctx->handle_security_mode_complete(nas_msg);
       } else {
         m_s1ap_log->warning("Invalid MAC in Security Mode Command Complete message.\n" );
       }
@@ -282,7 +282,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_s1ap_log->info("Integrity Protected UL NAS: Received Attach Complete\n");
       m_s1ap_log->console("Integrity Protected UL NAS: Received Attach Complete\n");
-      nas_ctx->handle_nas_attach_complete(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_attach_complete(nas_msg, reply_buffer, reply_flag);
       break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
       m_s1ap_log->info("Integrity Protected UL NAS: Received ESM Information Response\n");
