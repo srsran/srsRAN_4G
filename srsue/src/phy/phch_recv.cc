@@ -745,6 +745,11 @@ void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
   this->earfcn = earfcn;
 }
 
+void phch_recv::set_search_phy_cell_id(int32_t search_phy_cell_id)
+{
+  search_p.set_search_phy_cell_id(search_phy_cell_id);
+}
+
 void phch_recv::force_freq(float dl_freq, float ul_freq) {
   this->dl_freq = dl_freq;
   this->ul_freq = ul_freq;
@@ -884,6 +889,7 @@ void phch_recv::search::init(cf_t *buffer[SRSLTE_MAX_PORTS], srslte::log *log_h,
   p->set_ue_sync_opts(&cs.ue_sync, 0);
 
   force_N_id_2 = -1;
+  search_phy_cell_id = -1;
 }
 
 void phch_recv::search::reset()
@@ -907,6 +913,11 @@ void phch_recv::search::set_agc_enable(bool enable) {
   } else {
     fprintf(stderr, "Error stop AGC not implemented\n");
   }
+}
+
+void phch_recv::search::set_search_phy_cell_id(int32_t search_phy_cell_id)
+{
+  this->search_phy_cell_id = search_phy_cell_id;
 }
 
 phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
@@ -940,6 +951,8 @@ phch_recv::search::ret_code phch_recv::search::run(srslte_cell_t *cell)
   if (force_N_id_2 >= 0 && force_N_id_2 < 3) {
     ret = srslte_ue_cellsearch_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
     max_peak_cell = force_N_id_2;
+  } else if ((search_phy_cell_id >= 0) && (search_phy_cell_id <= 503)) {
+    ret = srslte_ue_cellsearch_scan_cell_id(&cs, search_phy_cell_id, found_cells, &max_peak_cell);
   } else {
     ret = srslte_ue_cellsearch_scan(&cs, found_cells, &max_peak_cell);
   }

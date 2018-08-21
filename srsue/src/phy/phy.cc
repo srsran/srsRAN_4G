@@ -383,6 +383,11 @@ void phy::set_earfcn(vector< uint32_t > earfcns)
   sf_recv.set_earfcn(earfcns);
 }
 
+void phy::set_search_phy_cell_id(int32_t cell_id)
+{
+  sf_recv.set_search_phy_cell_id(cell_id);
+}
+
 void phy::force_freq(float dl_freq, float ul_freq)
 {
   sf_recv.force_freq(dl_freq, ul_freq);
