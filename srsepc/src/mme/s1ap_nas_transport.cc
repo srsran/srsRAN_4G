@@ -133,7 +133,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Attach Request\n");
     m_s1ap_log->info("Received Initial UE message -- Attach Request\n");
-    err = nas_ctx->handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+    err = handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
     if (err == false) {
       delete nas_ctx;
     }
@@ -669,6 +669,48 @@ s1ap_nas_transport::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
   sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
 
   sec_ctx->ul_nas_count++; //Increment the NAS count, not to break the security ctx
+  return true;
+}
+
+bool
+s1ap_nas_transport::send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *nas_msg, struct sctp_sndrcvinfo *enb_sri)
+{
+  //Allocate Reply buffer
+  srslte::byte_buffer_t *reply_msg = m_pool->allocate();
+
+  //Setup initiating message
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+
+  tx_pdu.ext          = false;
+  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+
+  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
+  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
+  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+
+  //Setup Dw NAS structure
+  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
+  dw_nas->ext=false;
+  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_s1ap_id;
+  dw_nas->HandoverRestrictionList_present=false;
+  dw_nas->SubscriberProfileIDforRFP_present=false;
+
+  //Copy NAS PDU to Downlink NAS Trasport message buffer
+  memcpy(dw_nas->NAS_PDU.buffer, nas_msg->msg, nas_msg->N_bytes);
+  dw_nas->NAS_PDU.n_octets = nas_msg->N_bytes;
+
+  //Pack Downlink NAS Transport Message
+  LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
+  if (err != LIBLTE_SUCCESS) {
+    m_s1ap_log->error("Error packing Downlink NAS Transport.\n");
+    m_s1ap_log->console("Error packing Downlink NAS Transport.\n");
+    m_pool->deallocate(reply_msg);
+    return false;
+  }
+  m_s1ap->s1ap_tx_pdu(nas_msg,enb_sri);
+  m_pool->deallocate(reply_msg);
   return true;
 }
 
