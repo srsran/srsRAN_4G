@@ -170,9 +170,7 @@ public:
   bool handle_guti_attach_request_known_ue( uint32_t enb_ue_s1ap_id,
                                             const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
                                             const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                            srslte::byte_buffer_t *nas_msg,
-                                            srslte::byte_buffer_t *reply_buffer,
-                                            bool* reply_flag,
+                                            srslte::byte_buffer_t *nas_rx,
                                             struct sctp_sndrcvinfo *enb_sri);
 
   bool handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,

@@ -479,8 +479,6 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
                                                     attach_req,
                                                     pdn_con_req,
                                                     nas_msg,
-                                                    reply_buffer,
-                                                    reply_flag,
                                                     enb_sri);
     } else {
       m_s1ap_log->error("Found M-TMSI but could not find UE context\n");
