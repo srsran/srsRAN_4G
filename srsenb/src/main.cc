@@ -83,6 +83,8 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("enb.nof_ports",     bpo::value<uint32_t>(&args->enb.nof_ports)->default_value(1),            "Number of ports")
     ("enb.tm",            bpo::value<uint32_t>(&args->enb.transmission_mode)->default_value(1),    "Transmission mode (1-8)")
     ("enb.p_a",           bpo::value<float>(&args->enb.p_a)->default_value(0.0f),                  "Power allocation rho_a (-6, -4.77, -3, -1.77, 0, 1, 2, 3)")
+    ("enb.m1u_bind_addr", bpo::value<string>(&args->enb.m1u_bind_addr)->default_value("127.0.1.200"),  "Local IP address to bind for M1-U connection")
+    ("enb.m1u_multi_addr",bpo::value<string>(&args->enb.m1u_multi_addr)->default_value("239.255.0.1"), "Listen multicast group for M1-U connection")
 
     ("enb_files.sib_config", bpo::value<string>(&args->enb_files.sib_config)->default_value("sib.conf"),      "SIB configuration files")
     ("enb_files.rr_config",  bpo::value<string>(&args->enb_files.rr_config)->default_value("rr.conf"),      "RR configuration files")
