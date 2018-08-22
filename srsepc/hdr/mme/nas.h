@@ -183,12 +183,12 @@ public:
   /* Uplink NAS messages handling */
   bool handle_authentication_response(  srslte::byte_buffer_t *nas_rx);
   bool handle_security_mode_complete(   srslte::byte_buffer_t *nas_rx);
-  bool handle_attach_complete(          srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_esm_information_response(     srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_identity_response(            srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_tracking_area_update_request( srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_authentication_failure(       srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_nas_detach_request(           srslte::byte_buffer_t *nas_msg);
+  bool handle_attach_complete(          srslte::byte_buffer_t *nas_rx);
+  bool handle_esm_information_response(     srslte::byte_buffer_t *nas_rx);
+  bool handle_identity_response(            srslte::byte_buffer_t *nas_rx);
+  bool handle_tracking_area_update_request( srslte::byte_buffer_t *nas_rx);
+  bool handle_authentication_failure(       srslte::byte_buffer_t *nas_rx);
+  bool handle_nas_detach_request(           srslte::byte_buffer_t *nas_rx);
 
   /* Downlink NAS messages packing */
   bool pack_authentication_request  (srslte::byte_buffer_t *nas_buffer);

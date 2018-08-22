@@ -593,18 +593,15 @@ nas::handle_security_mode_complete(srslte::byte_buffer_t *nas_rx)
 
 
 bool
-nas::handle_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+nas::handle_attach_complete(srslte::byte_buffer_t *nas_rx)
 {
-
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_comp;
   uint8_t pd, msg_type;
-  srslte::byte_buffer_t *esm_msg = m_pool->allocate();
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_bearer;
-
-  m_nas_log->info_hex(nas_msg->msg, nas_msg->N_bytes, "NAS Attach complete");
+  srslte::byte_buffer_t *nas_tx;
 
   //Get NAS authentication response
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &attach_comp);
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_complete_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_rx, &attach_comp);
   if(err != LIBLTE_SUCCESS){
     m_nas_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
     return false;
@@ -618,6 +615,7 @@ nas::handle_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_
 
   m_nas_log->console("Unpacked Attached Complete Message. IMSI %" PRIu64 "\n", m_emm_ctx.imsi);
   m_nas_log->console("Unpacked Activate Default EPS Bearer message. EPS Bearer id %d\n",act_bearer.eps_bearer_id);
+
   if (act_bearer.eps_bearer_id < 5 || act_bearer.eps_bearer_id > 15) {
     m_nas_log->error("EPS Bearer ID out of range\n");
     return false;
@@ -625,10 +623,15 @@ nas::handle_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_
   if (m_emm_ctx.state == EMM_STATE_DEREGISTERED) {
     //Attach requested from attach request
     m_gtpc->send_modify_bearer_request(m_emm_ctx.imsi, act_bearer.eps_bearer_id, &m_esm_ctx[act_bearer.eps_bearer_id].enb_fteid);
-    //Send reply to eNB
-    m_nas_log->console("Packing EMM Information\n");
-    *reply_flag = pack_emm_information(reply_msg);
-    m_nas_log->console("Sending EMM Information, bytes %d\n",reply_msg->N_bytes);
+
+    //Send reply to EMM Info to UE
+    nas_tx = m_pool->allocate();
+    pack_emm_information(nas_tx);
+
+    m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
+    m_pool->deallocate(nas_tx);
+
+    m_nas_log->console("Sending EMM Information");
     m_nas_log->info("Sending EMM Information\n");
   }
   m_emm_ctx.state = EMM_STATE_REGISTERED;
@@ -636,12 +639,12 @@ nas::handle_attach_complete(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_
 }
 
 bool
-nas::handle_esm_information_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+nas::handle_esm_information_response(srslte::byte_buffer_t *nas_rx)
 {
   LIBLTE_MME_ESM_INFORMATION_RESPONSE_MSG_STRUCT esm_info_resp;
 
   //Get NAS authentication response
-  LIBLTE_ERROR_ENUM err = srslte_mme_unpack_esm_information_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &esm_info_resp);
+  LIBLTE_ERROR_ENUM err = srslte_mme_unpack_esm_information_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_rx, &esm_info_resp);
   if(err != LIBLTE_SUCCESS){
     m_nas_log->error("Error unpacking NAS authentication response. Error: %s\n", liblte_error_text[err]);
     return false;
@@ -670,14 +673,12 @@ nas::handle_esm_information_response(srslte::byte_buffer_t *nas_msg, srslte::byt
 }
 
 bool
-nas::handle_identity_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+nas::handle_identity_response(srslte::byte_buffer_t *nas_rx)
 {
-  uint8_t     autn[16];
-  uint8_t     rand[16];
-  uint8_t     xres[8];
-
+  srslte::byte_buffer_t *nas_tx;
   LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_identity_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &id_resp);
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_identity_response_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_rx, &id_resp);
   if(err != LIBLTE_SUCCESS){
     m_nas_log->error("Error unpacking NAS identity response. Error: %s\n", liblte_error_text[err]);
     return false;
@@ -707,83 +708,39 @@ nas::handle_identity_response(srslte::byte_buffer_t *nas_msg, srslte::byte_buffe
   m_s1ap->add_nas_ctx_to_imsi_map(this);
 
   //Pack NAS Authentication Request in Downlink NAS Transport msg
-  pack_authentication_request(reply_msg);
+  nas_tx = m_pool->allocate();
+  pack_authentication_request(nas_tx);
 
   //Send reply to eNB
-  *reply_flag = true;
-   m_nas_log->info("Downlink NAS: Sent Authentication Request\n");
-   m_nas_log->console("Downlink NAS: Sent Authentication Request\n");
-  //TODO Start T3460 Timer! 
+  m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
+  m_pool->deallocate(nas_tx);
 
+  m_nas_log->info("Downlink NAS: Sent Authentication Request\n");
+  m_nas_log->console("Downlink NAS: Sent Authentication Request\n");
   return true;
 }
 
 
 bool
-nas::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+nas::handle_tracking_area_update_request(srslte::byte_buffer_t *nas_rx)
 {
-
   m_nas_log->console("Warning: Tracking Area Update Request messages not handled yet.\n");
   m_nas_log->warning("Warning: Tracking Area Update Request messages not handled yet.\n");
-  //Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
-  //m_nas_log->console("Tracking area accept to MME-UE S1AP Id %d\n", ue_ctx->mme_ue_s1ap_id);
-  LIBLTE_MME_TRACKING_AREA_UPDATE_ACCEPT_MSG_STRUCT tau_acc;
-
-  //T3412 Timer
-  tau_acc.t3412_present = true;
-  tau_acc.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
-  tau_acc.t3412.value = 30;                                   // 30 minute periodic timer
-
-  //GUTI
-  tau_acc.guti_present=true;
-  tau_acc.guti.type_of_id = 6; //110 -> GUTI
-  tau_acc.guti.guti.mcc = m_mcc;
-  tau_acc.guti.guti.mnc = m_mnc;
-  tau_acc.guti.guti.mme_group_id = m_mme_group;
-  tau_acc.guti.guti.mme_code = m_mme_code;
-  tau_acc.guti.guti.m_tmsi = 0xF000;
-  m_nas_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
-                    tau_acc.guti.guti.mcc,
-                    tau_acc.guti.guti.mnc,
-                    tau_acc.guti.guti.mme_group_id,
-                    tau_acc.guti.guti.mme_code,
-                    tau_acc.guti.guti.m_tmsi);
-
-  //Unused Options
-  tau_acc.t3402_present = false;
-  tau_acc.t3423_present = false;
-  tau_acc.equivalent_plmns_present = false;
-  tau_acc.emerg_num_list_present = false;
-  tau_acc.eps_network_feature_support_present = false;
-  tau_acc.additional_update_result_present = false;
-  tau_acc.t3412_ext_present = false;
 
   return true;
 }
 
 
 bool
-nas::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
+nas::handle_authentication_failure(srslte::byte_buffer_t *nas_rx)
 {
+  m_nas_log->info("Received Authentication Failure\n");
+
+  srslte::byte_buffer_t *nas_tx;
   LIBLTE_MME_AUTHENTICATION_FAILURE_MSG_STRUCT auth_fail;
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_authentication_failure_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &auth_fail);
+  LIBLTE_ERROR_ENUM err;
+
+  err = liblte_mme_unpack_authentication_failure_msg((LIBLTE_BYTE_MSG_STRUCT *) nas_rx, &auth_fail);
   if(err != LIBLTE_SUCCESS){
     m_nas_log->error("Error unpacking NAS authentication failure. Error: %s\n", liblte_error_text[err]);
     return false;
@@ -821,14 +778,16 @@ nas::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, srslte::byte_
     m_sec_ctx.eksi = (m_sec_ctx.eksi+1)%6;
 
     //Pack NAS Authentication Request in Downlink NAS Transport msg
-    pack_authentication_request(reply_msg);
+    nas_tx = m_pool->allocate();
+    pack_authentication_request(nas_tx);
 
     //Send reply to eNB
-    *reply_flag = true;
+    m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
+    m_pool->deallocate(nas_tx);
+
     m_nas_log->info("Downlink NAS: Sent Authentication Request\n");
     m_nas_log->console("Downlink NAS: Sent Authentication Request\n");
-    //TODO Start T3460 Timer! 
-
+    //TODO Start T3460 Timer!
     break;
   }
   return true;
@@ -879,27 +838,9 @@ nas::pack_authentication_request(srslte::byte_buffer_t *nas_buffer)
 }
 
 bool
-nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg)
+nas::pack_authentication_reject(srslte::byte_buffer_t *nas_buffer)
 {
-  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
+  m_nas_log->info("Packing Authentication Reject\n");
 
   LIBLTE_MME_AUTHENTICATION_REJECT_MSG_STRUCT auth_rej;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_authentication_reject_msg(&auth_rej, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
@@ -908,20 +849,6 @@ nas::pack_authentication_reject(srslte::byte_buffer_t *reply_msg)
     m_nas_log->console("Error packing Authentication Reject\n");
     return false;
   }
-
-  //Copy NAS PDU to Downlink NAS Trasport message buffer
-  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
-
-  //Pack Downlink NAS Transport Message
-  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if (err != LIBLTE_SUCCESS) {
-    m_nas_log->error("Error packing Dw NAS Transport: Authentication Reject\n");
-    m_nas_log->console("Error packing Downlink NAS Transport: Authentication Reject\n");
-    return false;
-  }
-
-  m_pool->deallocate(nas_buffer);
   return true;
 }
 
@@ -1030,6 +957,7 @@ bool
 nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
 {
   m_nas_log->info("Packing Attach Accept\n");
+
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
 
@@ -1171,28 +1099,9 @@ nas::pack_identity_request(srslte::byte_buffer_t *nas_buffer)
 }
 
 bool
-nas::pack_emm_information(srslte::byte_buffer_t *reply_msg)
+nas::pack_emm_information(srslte::byte_buffer_t *nas_buffer)
 {
-  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
-
-  //Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_ecm_ctx.mme_ue_s1ap_id;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
+  m_nas_log->info("Packing EMM Information\n");
 
   LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
   emm_info.full_net_name_present = true;
@@ -1224,48 +1133,17 @@ nas::pack_emm_information(srslte::byte_buffer_t *reply_msg)
                              nas_buffer->N_bytes - 5,
                              mac
                              );
-
   memcpy(&nas_buffer->msg[1],mac,4);
-  //Copy NAS PDU to Downlink NAS Trasport message buffer
-  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
 
-  //Pack Downlink NAS Transport Message
-  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if (err != LIBLTE_SUCCESS) {
-    m_nas_log->error("Error packing Dw NAS Transport: EMM Info\n");
-    m_nas_log->console("Error packing Downlink NAS Transport: EMM Info\n");
-    return false;
-  }
-
-  m_nas_log->info("Packed UE EMM information\n"); 
+  m_nas_log->info("Packed UE EMM information\n");
   return true;
 }
 
 bool
-nas::pack_service_reject(srslte::byte_buffer_t *reply_msg)
+nas::pack_service_reject(srslte::byte_buffer_t *nas_buffer)
 {
   uint8_t emm_cause = LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED;
-  srslte::byte_buffer_t *nas_buffer = m_pool->allocate();
 
-  //Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext          = false;
-  tx_pdu.choice_type  = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
-
-  //Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT *dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext=false;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID = m_s1ap->get_next_mme_ue_s1ap_id();
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = m_ecm_ctx.enb_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present=false;
-  dw_nas->SubscriberProfileIDforRFP_present=false;
   LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT service_rej;
   service_rej.t3442_present = true;
   service_rej.t3442.unit = LIBLTE_MME_GPRS_TIMER_DEACTIVATED;
@@ -1278,18 +1156,6 @@ nas::pack_service_reject(srslte::byte_buffer_t *reply_msg)
   if (err != LIBLTE_SUCCESS) {
     m_nas_log->error("Error packing Service Reject\n");
     m_nas_log->console("Error packing Service Reject\n");
-    return false;
-  }
-
-  //Copy NAS PDU to Downlink NAS Trasport message buffer
-  memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
-
-  //Pack Downlink NAS Transport Message
-  err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
-  if (err != LIBLTE_SUCCESS) {
-    m_nas_log->error("Error packing Dw NAS Transport: Service Reject\n");
-    m_nas_log->console("Error packing Downlink NAS Transport: Service Reject\n");
     return false;
   }
   return true;

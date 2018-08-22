@@ -218,7 +218,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received Identity Response\n");
       m_s1ap_log->console("Uplink NAS: Received Identity Response\n");
-      nas_ctx->handle_identity_response(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_identity_response(nas_msg);
       break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
       m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
@@ -229,7 +229,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
       m_s1ap_log->info("Plain UL NAS: Authentication Failure\n");
       m_s1ap_log->console("Plain UL NAS: Authentication Failure\n");
-      nas_ctx->handle_authentication_failure(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_authentication_failure(nas_msg);
       break;
     // Detach request can be sent not integrity protected when "power off" option is used
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
@@ -282,22 +282,22 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_s1ap_log->info("Integrity Protected UL NAS: Received Attach Complete\n");
       m_s1ap_log->console("Integrity Protected UL NAS: Received Attach Complete\n");
-      nas_ctx->handle_attach_complete(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_attach_complete(nas_msg);
       break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
       m_s1ap_log->info("Integrity Protected UL NAS: Received ESM Information Response\n");
       m_s1ap_log->console("Integrity Protected UL NAS: Received ESM Information Response\n");
-      nas_ctx->handle_esm_information_response(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_esm_information_response(nas_msg);
       break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
       m_s1ap_log->info("Integrity Protected UL NAS: Tracking Area Update Request\n");
       m_s1ap_log->console("Integrity Protected UL NAS: Tracking Area Update Request\n");
-      nas_ctx->handle_tracking_area_update_request(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_tracking_area_update_request(nas_msg);
       break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
       m_s1ap_log->info("Integrity Protected UL NAS: Authentication Failure\n");
       m_s1ap_log->console("Integrity Protected UL NAS: Authentication Failure\n");
-      nas_ctx->handle_authentication_failure(nas_msg, reply_buffer, reply_flag);
+      nas_ctx->handle_authentication_failure(nas_msg);
       break;
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_s1ap_log->info("Integrity Protected UL NAS: Detach Request\n");
