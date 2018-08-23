@@ -493,6 +493,27 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
   return true;
 }
 
+
+bool
+nas::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
+                                              uint32_t enb_ue_s1ap_id,
+                                              srslte::byte_buffer_t *nas_msg,
+                                              srslte::byte_buffer_t *reply_buffer,
+                                              bool* reply_flag,
+                                              struct sctp_sndrcvinfo *enb_sri)
+{
+  m_s1ap_log->info("Tracking Area Update Request -- S-TMSI 0x%x\n", m_tmsi);
+  m_s1ap_log->console("Tracking Area Update Request -- S-TMSI 0x%x\n", m_tmsi);
+  m_s1ap_log->info("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+  m_s1ap_log->console("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+
+  m_s1ap_log->console("Warning: Tracking area update requests are not handled yet.\n");
+  m_s1ap_log->warning("Tracking area update requests are not handled yet.\n");
+
+  m_sec_ctx->ul_nas_count++; //Increment the NAS count, not to break the security ctx
+  return true;
+}
+
 /*
  *
  * Handle Uplink NAS Transport message
