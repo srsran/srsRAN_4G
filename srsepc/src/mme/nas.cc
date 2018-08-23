@@ -66,7 +66,8 @@ nas::init(uint16_t mcc,
   m_nas_log = nas_log;
   m_nas_log->info("NAS Context Initialized. MCC: 0x%x, MNC 0x%x\n", m_mcc, m_mnc);
 }
-/*******************************
+
+/**********************************
  *
  * Handle UE Initiating Messages
  *
@@ -493,6 +494,137 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
   return true;
 }
 
+bool
+nas::handle_nas_service_request( uint32_t m_tmsi,
+                                                uint32_t enb_ue_s1ap_id,
+                                                srslte::byte_buffer_t *nas_msg,
+                                                struct sctp_sndrcvinfo *enb_sri)
+{
+  m_nas_log->info("Service request -- S-TMSI 0x%x\n", m_tmsi);
+  m_nas_log->console("Service request -- S-TMSI 0x%x\n", m_tmsi);
+  m_nas_log->info("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+  m_nas_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
+
+  bool mac_valid = false;
+  LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &service_req);
+  if (err !=LIBLTE_SUCCESS) {
+    m_nas_log->error("Could not unpack service request\n");
+    return false;
+  }
+
+  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
+  if (it == m_s1ap->m_tmsi_to_imsi.end()) {
+    m_nas_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    m_nas_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    nas nas_tmp;
+    nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+    nas_tmp.pack_service_reject(reply_buffer);
+    *reply_flag = true;
+    return true;
+  }
+
+  nas *nas_ctx = m_s1ap->find_nas_ctx_from_imsi(it->second);
+  if (nas_ctx == NULL || nas_ctx->m_emm_ctx.state != EMM_STATE_REGISTERED) {
+    m_nas_log->console("UE is not EMM-Registered.\n");
+    m_nas_log->error("UE is not EMM-Registered.\n");
+    nas_ctx->pack_service_reject(reply_buffer);
+    *reply_flag = true;
+    return true;
+  }
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+  sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
+
+  m_sec_ctx->ul_nas_count++;
+  mac_valid = short_integrity_check(nas_msg);
+  if (mac_valid) {
+    m_nas_log->console("Service Request -- Short MAC valid\n");
+    m_nas_log->info("Service Request -- Short MAC valid\n");
+    if(m_ecm_ctx.state == ECM_STATE_CONNECTED) {
+      m_nas_log->error("Service Request -- User is ECM CONNECTED\n");
+
+      //Release previous context
+      m_nas_log->info("Service Request -- Releasing previouse ECM context. eNB S1AP Id %d, MME UE S1AP Id %d\n", ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
+      m_s1ap->send_ue_context_release_command(nas_ctx);
+      m_s1ap->release_ue_ecm_ctx(m_ecm_ctx->mme_ue_s1ap_id);
+    }
+
+    m_ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+
+    //UE not connect. Connect normally.
+    m_nas_log->console("Service Request -- User is ECM DISCONNECTED\n");
+    m_nas_log->info("Service Request -- User is ECM DISCONNECTED\n");
+
+    //Create ECM context
+    m_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+
+    //Set eNB information
+    m_ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+    memcpy(&m_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+
+    //Save whether secure ESM information transfer is necessary
+    m_ecm_ctx.eit = false;
+
+    //Get UE IP, and uplink F-TEID
+    if(m_emm_ctx.ue_ip.s_addr == 0 ){
+      m_s1ap_log->error("UE has no valid IP assigned upon reception of service request");
+      return false;
+    }
+
+    m_nas_log->console("UE previously assigned IP: %s",inet_ntoa(emm_ctx->ue_ip));
+
+    //Re-generate K_eNB
+    srslte::security_generate_k_enb(sec_ctx->k_asme, sec_ctx->ul_nas_count, sec_ctx->k_enb);
+    m_nas_log->info("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
+    m_nas_log->console("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
+    m_nas_log->info_hex(sec_ctx->k_enb, 32, "Key eNodeB (k_enb)\n");
+    m_nas_log->console("UE Ctr TEID %d\n", emm_ctx->sgw_ctrl_fteid.teid);
+
+    //Save UE ctx to MME UE S1AP id
+    m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
+    m_s1ap->send_initial_context_setup_request(nas_ctx, 5);
+  } else {
+    m_nas_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
+    m_nas_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
+  }
+  return true;
+}
+
+bool
+nas::handle_nas_detach_request( uint32_t m_tmsi,
+                                uint32_t enb_ue_s1ap_id,
+                                srslte::byte_buffer_t *nas_msg,
+                                struct sctp_sndrcvinfo *enb_sri)
+{
+  m_nas_log->info("Detach Request -- S-TMSI 0x%x\n", m_tmsi);
+  m_nas_log->console("Detach Request -- S-TMSI 0x%x\n", m_tmsi);
+  m_nas_log->info("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+  m_nas_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+
+  bool mac_valid = false;
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &detach_req);
+  if (err !=LIBLTE_SUCCESS) {
+    m_s1ap_log->error("Could not unpack detach request\n");
+    return false;
+  }
+
+  m_mme_gtpc->send_delete_session_request(m_emm_ctx.imsi);
+  m_emm_ctx->state = EMM_STATE_DEREGISTERED;
+  m_sec_ctx->ul_nas_count++;
+
+  m_nas_log->console("Received. M-TMSI 0x%x\n", m_tmsi);
+
+  //Received detach request as an initial UE message
+  //eNB created new ECM context to send the detach request; this needs to be cleared.
+  m_ecm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
+  m_ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+  m_s1ap->send_ue_context_release_command(nas_ctx);
+  return true;
+}
 
 bool
 nas::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
@@ -514,11 +646,11 @@ nas::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
   return true;
 }
 
-/*
+/***************************************
  *
- * Handle Uplink NAS Transport message
+ * Handle Uplink NAS Transport messages
  *
- */
+ ***************************************/
 bool
 nas::handle_authentication_response(srslte::byte_buffer_t *nas_rx)
 {

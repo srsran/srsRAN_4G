@@ -180,6 +180,13 @@ public:
                                               srslte::byte_buffer_t *reply_buffer,
                                               bool* reply_flag,
                                               struct sctp_sndrcvinfo *enb_sri);
+
+
+  bool handle_nas_service_request( uint32_t m_tmsi,
+                                   uint32_t enb_ue_s1ap_id,
+                                   srslte::byte_buffer_t *nas_msg,
+                                   struct sctp_sndrcvinfo *enb_sri);
+
   /* Uplink NAS messages handling */
   bool handle_authentication_response(  srslte::byte_buffer_t *nas_rx);
   bool handle_security_mode_complete(   srslte::byte_buffer_t *nas_rx);
