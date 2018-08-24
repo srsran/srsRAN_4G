@@ -96,47 +96,22 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   m_s1ap_log->console("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
   m_s1ap_log->info   ("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
 
-  //Make sure M-TMSI is present, if mandatory
-  if (msg_type != LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST && !init_ue->S_TMSI_present){
-    m_s1ap_log->error("Initial UE Message 0x%x -- S-TMSI not present\n", msg_type);
-    m_s1ap_log->console("Initial UE message 0x%x -- S-TMSI not present\n", msg_type);
-    m_pool->deallocate(nas_msg);
-    return false;
-  }
-
-  //Get NAS context if TMSI is present
-  nas *nas_ctx = NULL;
-  if (init_ue->S_TMSI_present) {
-    m_tmsi = ntohl(*((uint32_t*)&init_ue->S_TMSI.m_TMSI.buffer));
-    imsi = m_s1ap->find_imsi_from_m_tmsi(m_tmsi);
-    if(imsi !=0){
-      nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
-    }
-  }
-
-  //Create new NAS context if Attach request without known NAS context
-  //This will be release if the attach request returns an error
-  if (msg_type == LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST && nas_ctx == NULL) {
-    nas_ctx = new nas;
-    nas_ctx->init(m_s1ap->m_s1ap_args.mcc,
-                  m_s1ap->m_s1ap_args.mnc,
-                  m_s1ap->m_s1ap_args.mme_code,
-                  m_s1ap->m_s1ap_args.mme_group,
-                  m_s1ap->m_s1ap_args.tac,
-                  m_s1ap->m_s1ap_args.mme_apn,
-                  m_s1ap->m_s1ap_args.dns_addr,
-                  m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
-  }
+  nas_init_t nas_init;
+  nas_init.mcc       = m_s1ap->m_s1ap_args.mcc;
+  nas_init.mnc       = m_s1ap->m_s1ap_args.mnc;
+  nas_init.mme_code  = m_s1ap->m_s1ap_args.mme_code;
+  nas_init.mme_group = m_s1ap->m_s1ap_args.mme_group;
+  nas_init.tac       = m_s1ap->m_s1ap_args.tac;
+  nas_init.mme_apn   = m_s1ap->m_s1ap_args.mme_apn;
+  nas_init.dns_addr  = m_s1ap->m_s1ap_args.dns_addr;
 
   switch (msg_type)
   {
   case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Attach Request\n");
     m_s1ap_log->info("Received Initial UE message -- Attach Request\n");
-    err = handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-    if (err == false) {
-      delete nas_ctx;
-    }
+    err = nas::handle_nas_attach_request(enb_ue_s1ap_id, nas_init, enb_sri, nas_msg,
+                                         m_s1ap, m_gtpc, m_hss, m_s1ap->m_nas_log);
     break;
   case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Service Request\n");
