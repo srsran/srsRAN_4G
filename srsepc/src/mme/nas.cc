@@ -34,7 +34,6 @@
 
 namespace srsepc{
 
-
 nas::nas() {
   m_pool = srslte::byte_buffer_pool::get_instance();
 }
@@ -188,6 +187,82 @@ nas::handle_imsi_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
                                                    srslte::log        *nas_log)
 
 {
+  nas *nas_ctx;
+  srslte::byte_buffer_t *nas_tx;
+  srslte::byte_buffer_pool *pool = srslte::byte_buffer_pool::get_instance();
+
+  //Get IMSI
+  uint64_t imsi = 0;
+  for(int i=0;i<=14;i++){
+    imsi  += attach_req.eps_mobile_id.imsi[i]*std::pow(10,14-i);
+  }
+
+  //Create UE context
+  nas_ctx = new nas;
+  nas_ctx->init(args,s1ap,gtpc,hss,nas_log);
+
+  //Save IMSI, MME UE S1AP Id and make sure UE is EMM_DEREGISTERED
+  nas_ctx->m_emm_ctx.imsi = imsi;
+  nas_ctx->m_emm_ctx.state = EMM_STATE_DEREGISTERED;
+  nas_ctx->m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+
+  //Save UE network capabilities
+  memcpy(&nas_ctx->m_sec_ctx.ue_network_cap, &attach_req.ue_network_cap, sizeof(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT));
+  nas_ctx->m_sec_ctx.ms_network_cap_present = attach_req.ms_network_cap_present;
+  if (attach_req.ms_network_cap_present) {
+    memcpy(&nas_ctx->m_sec_ctx.ms_network_cap, &attach_req.ms_network_cap, sizeof(LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT));
+  }
+
+  uint8_t eps_bearer_id = pdn_con_req.eps_bearer_id;             //TODO: Unused
+  nas_ctx->m_emm_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id;
+
+  //Initialize NAS count
+  nas_ctx->m_sec_ctx.ul_nas_count = 0;
+  nas_ctx->m_sec_ctx.dl_nas_count = 0;
+
+  //Set eNB information
+  nas_ctx->m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+  memcpy(&nas_ctx->m_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+
+  //Save whether secure ESM information transfer is necessary
+  nas_ctx->m_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
+
+  //Initialize E-RABs
+  for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
+    nas_ctx->m_esm_ctx[i].state = ERAB_DEACTIVATED;
+    nas_ctx->m_esm_ctx[i].erab_id = i;
+  }
+
+  //Save attach request type
+  nas_ctx->m_emm_ctx.attach_type = attach_req.eps_attach_type;
+
+  //Get Authentication Vectors from HSS
+  if (!hss->gen_auth_info_answer(nas_ctx->m_emm_ctx.imsi, nas_ctx->m_sec_ctx.k_asme, nas_ctx->m_sec_ctx.autn, nas_ctx->m_sec_ctx.rand, nas_ctx->m_sec_ctx.xres)) {
+    nas_log->console("User not found. IMSI %015lu\n",nas_ctx->m_emm_ctx.imsi);
+    nas_log->info("User not found. IMSI %015lu\n",nas_ctx->m_emm_ctx.imsi);
+    delete nas_ctx;
+    return false;
+  }
+
+  //Allocate eKSI for this authentication vector
+  //Here we assume a new security context thus a new eKSI
+  nas_ctx->m_sec_ctx.eksi=0;
+
+  //Save the UE context
+  s1ap->add_nas_ctx_to_imsi_map(nas_ctx);
+  s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
+  s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
+
+  //Pack NAS Authentication Request in Downlink NAS Transport msg
+  nas_tx = pool->allocate();
+  nas_ctx->pack_authentication_request(nas_tx);
+
+  //Send reply to eNB
+  s1ap->send_downlink_nas_transport(nas_ctx->m_ecm_ctx.enb_ue_s1ap_id, nas_ctx->m_ecm_ctx.mme_ue_s1ap_id, nas_tx, nas_ctx->m_ecm_ctx.enb_sri);
+  pool->deallocate(nas_tx);
+
+  nas_log->info("Downlink NAS: Sending Authentication Request\n");
+  nas_log->console("Downlink NAS: Sending Authentication Request\n");
   return true;
 }
 

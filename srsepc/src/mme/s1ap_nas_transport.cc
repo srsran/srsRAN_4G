@@ -88,8 +88,8 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   memcpy(nas_msg->msg, &init_ue->NAS_PDU.buffer, init_ue->NAS_PDU.n_octets);
   nas_msg->N_bytes = init_ue->NAS_PDU.n_octets;
 
-  uint64_t imsi;
-  uint32_t m_tmsi;
+  uint64_t imsi = 0;
+  uint32_t m_tmsi = 0;
   uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
 
