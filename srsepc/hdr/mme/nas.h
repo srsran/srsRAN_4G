@@ -160,7 +160,7 @@ public:
   //Attach request messages
   static bool handle_attach_request( uint32_t enb_ue_s1ap_id,
                                      struct sctp_sndrcvinfo *enb_sri,
-                                     srslte::byte_buffer_t *nas_msg,
+                                     srslte::byte_buffer_t *nas_rx,
                                      nas_init_t args,
                                      s1ap_interface_nas *s1ap,
                                      gtpc_interface_nas *gtpc,
@@ -196,7 +196,8 @@ public:
   bool handle_guti_attach_request_known_ue( uint32_t enb_ue_s1ap_id,
                                             struct sctp_sndrcvinfo *enb_sri,
                                             const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                            const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req);
+                                            const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
+                                            srslte::byte_buffer_t *nas_rx);
 
   //Service request Messages
   //Dettach request Messages
