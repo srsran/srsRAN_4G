@@ -53,6 +53,7 @@ public:
   virtual bool     add_nas_ctx_to_mme_ue_s1ap_id_map(nas *nas_ctx) = 0;
   virtual bool     add_ue_to_enb_set(int32_t enb_assoc, uint32_t mme_ue_s1ap_id) = 0;
   virtual bool     release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id) = 0;
+  virtual bool     delete_ue_ctx(uint64_t imsi) = 0;
   virtual uint64_t find_imsi_from_m_tmsi(uint32_t m_tmsi) = 0;
   virtual nas*     find_nas_ctx_from_imsi(uint64_t imsi) = 0;
   virtual bool     send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup) = 0;

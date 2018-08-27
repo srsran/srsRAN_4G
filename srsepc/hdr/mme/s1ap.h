@@ -94,7 +94,7 @@ public:
 
   bool release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
   void release_ues_ecm_ctx_in_enb(int32_t enb_assoc);
-  bool delete_ue_ctx(uint64_t imsi);
+  virtual bool delete_ue_ctx(uint64_t imsi);
 
   uint32_t allocate_m_tmsi(uint64_t imsi);
   virtual uint64_t find_imsi_from_m_tmsi(uint32_t m_tmsi);
