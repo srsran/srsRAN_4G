@@ -105,6 +105,10 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   nas_init.apn       = m_s1ap->m_s1ap_args.mme_apn;
   nas_init.dns       = m_s1ap->m_s1ap_args.dns_addr;
 
+  if(init_ue->S_TMSI_present){
+    m_tmsi = ntohl(*((uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer));
+  }
+
   switch (msg_type)
   {
   case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:

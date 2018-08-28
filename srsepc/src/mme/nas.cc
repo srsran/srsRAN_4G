@@ -145,30 +145,20 @@ nas::handle_attach_request( uint32_t enb_ue_s1ap_id,
   {
     //Get attach type from attach request
     if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
-      nas_log->console("Attach Request -- IMSI-style attach request\n");
-      nas_log->info("Attach Request -- IMSI-style attach request\n");
       nas::handle_imsi_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, s1ap, gtpc, hss, nas_log);
     } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
-      nas_log->console("Attach Request -- GUTI-style attach request\n");
-      nas_log->info("Attach Request -- GUTI-style attach request\n");
       nas::handle_guti_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, s1ap, gtpc, hss, nas_log);
     } else {
-      nas_log->error("Unhandled Mobile Id type in attach request\n");
       return false;
     }
   } else {
     nas_log->info("Attach Request -- Found previously attached UE.\n");
     nas_log->console("Attach Request -- Found previously attach UE.\n");
     if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
-      nas_log->console("Attach Request -- IMSI-style attach request\n");
-      nas_log->info("Attach Request -- IMSI-style attach request\n");
       nas::handle_imsi_attach_request_known_ue(nas_ctx, enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, nas_rx, args, s1ap, gtpc, hss, nas_log);
     } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
-      nas_log->console("Attach Request -- GUTI-style attach request\n");
-      nas_log->info("Attach Request -- GUTI-style attach request\n");
       nas::handle_guti_attach_request_known_ue(nas_ctx, enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, nas_rx, args, s1ap, gtpc, hss, nas_log);
     } else {
-      nas_log->error("Unhandled Mobile Id type in attach request\n");
       return false;
     }
   }
@@ -201,9 +191,10 @@ nas::handle_imsi_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
   nas_ctx = new nas;
   nas_ctx->init(args,s1ap,gtpc,hss,nas_log);
 
-  //Save IMSI, MME UE S1AP Id and make sure UE is EMM_DEREGISTERED
+  //Save IMSI, eNB UE S1AP Id, MME UE S1AP Id and make sure UE is EMM_DEREGISTERED
   nas_ctx->m_emm_ctx.imsi = imsi;
   nas_ctx->m_emm_ctx.state = EMM_STATE_DEREGISTERED;
+  nas_ctx->m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
   nas_ctx->m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
   //Save UE network capabilities
@@ -221,7 +212,6 @@ nas::handle_imsi_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
   nas_ctx->m_sec_ctx.dl_nas_count = 0;
 
   //Set eNB information
-  nas_ctx->m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
   memcpy(&nas_ctx->m_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
   //Save whether secure ESM information transfer is necessary
@@ -654,7 +644,7 @@ nas::handle_attach_complete(srslte::byte_buffer_t *nas_rx)
     m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id, nas_tx, m_ecm_ctx.enb_sri);
     m_pool->deallocate(nas_tx);
 
-    m_nas_log->console("Sending EMM Information");
+    m_nas_log->console("Sending EMM Information\n");
     m_nas_log->info("Sending EMM Information\n");
   }
   m_emm_ctx.state = EMM_STATE_REGISTERED;
@@ -1100,8 +1090,9 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
                              );
 
   memcpy(&nas_buffer->msg[1],mac,4);
-  m_nas_log->info("Packed Attach Accept\n");
 
+  //Log attach accept info
+  m_nas_log->info("Packed Attach Accept\n");
   return true;
 }
 
