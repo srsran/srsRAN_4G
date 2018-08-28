@@ -162,18 +162,16 @@ nas::handle_attach_request( uint32_t enb_ue_s1ap_id,
     if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
       nas_log->console("Attach Request -- IMSI-style attach request\n");
       nas_log->info("Attach Request -- IMSI-style attach request\n");
-      nas::handle_imsi_attach_request_known_ue(nas_ctx, enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, s1ap, gtpc, hss, nas_log);
+      nas::handle_imsi_attach_request_known_ue(nas_ctx, enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, nas_rx, args, s1ap, gtpc, hss, nas_log);
     } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
       nas_log->console("Attach Request -- GUTI-style attach request\n");
       nas_log->info("Attach Request -- GUTI-style attach request\n");
-      nas_ctx->handle_guti_attach_request_known_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, nas_rx);
+      nas::handle_guti_attach_request_known_ue(nas_ctx, enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, nas_rx, args, s1ap, gtpc, hss, nas_log);
     } else {
       nas_log->error("Unhandled Mobile Id type in attach request\n");
       return false;
     }
   }
-
-  //Log Attach Request information
   return true;
 }
 
@@ -274,6 +272,7 @@ nas::handle_imsi_attach_request_known_ue( nas *nas_ctx,
                                           struct sctp_sndrcvinfo *enb_sri,
                                           const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
                                           const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
+                                          srslte::byte_buffer_t *nas_rx,
                                           nas_init_t args,
                                           s1ap_interface_nas *s1ap,
                                           gtpc_interface_nas *gtpc,
@@ -294,146 +293,6 @@ nas::handle_imsi_attach_request_known_ue( nas *nas_ctx,
   //Handle new attach
   err = nas::handle_imsi_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, s1ap, gtpc, hss, nas_log);
   return err;
-}
-
-bool
-nas::handle_guti_attach_request_known_ue( uint32_t enb_ue_s1ap_id,
-                                          struct sctp_sndrcvinfo *enb_sri,
-                                          const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                          const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                          srslte::byte_buffer_t *nas_rx)
-{
-  m_nas_log->console("Found UE context. IMSI: %015lu, old eNB UE S1ap Id %d, old MME UE S1AP Id %d\n",m_emm_ctx.imsi, m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id);
-
-  bool msg_valid = false;
-  srslte::byte_buffer_t *nas_tx;
-
-  //Check NAS integrity
-  m_sec_ctx.ul_nas_count++;
-  msg_valid = integrity_check(nas_rx);
-  if (msg_valid == true && m_emm_ctx.state == EMM_STATE_DEREGISTERED) {
-    m_nas_log->console("GUTI Attach -- NAS Integrity OK. UL count %d, DL count %d\n",m_sec_ctx.ul_nas_count, m_sec_ctx.dl_nas_count);
-    m_nas_log->info   ("GUTI Attach -- NAS Integrity OK. UL count %d, DL count %d\n",m_sec_ctx.ul_nas_count, m_sec_ctx.dl_nas_count);
-
-    //Create new MME UE S1AP Identity
-    m_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-    m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-
-    m_emm_ctx.procedure_transaction_id = pdn_con_req.proc_transaction_id;
-
-    //Save Attach type
-    m_emm_ctx.attach_type = attach_req.eps_attach_type;
-
-    //Set eNB information
-    m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-    memcpy(&m_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-
-    //Save whether secure ESM information transfer is necessary
-    m_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
-
-    //Initialize E-RABs
-    for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
-      m_esm_ctx[i].state = ERAB_DEACTIVATED;
-      m_esm_ctx[i].erab_id = i;
-    }
-
-    //Store context based on MME UE S1AP id
-    m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(this);
-    m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id, m_ecm_ctx.mme_ue_s1ap_id);
-
-    //Re-generate K_eNB
-    srslte::security_generate_k_enb(m_sec_ctx.k_asme, m_sec_ctx.ul_nas_count, m_sec_ctx.k_enb);
-    m_nas_log->info("Generating KeNB with UL NAS COUNT: %d\n", m_sec_ctx.ul_nas_count);
-    m_nas_log->console("Generating KeNB with UL NAS COUNT: %d\n", m_sec_ctx.ul_nas_count);
-    m_nas_log->info_hex(m_sec_ctx.k_enb, 32, "Key eNodeB (k_enb)\n");
-
-    //Send reply
-    nas_tx = m_pool->allocate();
-    if (m_ecm_ctx.eit) {
-      m_nas_log->console("Secure ESM information transfer requested.\n");
-      m_nas_log->info("Secure ESM information transfer requested.\n");
-      pack_esm_information_request(nas_tx);
-      m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id,nas_tx, *enb_sri);
-    } else {
-      //Get subscriber info from HSS
-      uint8_t default_bearer=5;
-      m_hss->gen_update_loc_answer(m_emm_ctx.imsi,&m_esm_ctx[default_bearer].qci);
-      m_nas_log->debug("Getting subscription information -- QCI %d\n", m_esm_ctx[default_bearer].qci);
-      m_nas_log->console("Getting subscription information -- QCI %d\n", m_esm_ctx[default_bearer].qci);
-      m_gtpc->send_create_session_request(m_emm_ctx.imsi);
-    }
-    m_pool->deallocate(nas_tx);
-    return true;
-  } else {
-    if (m_emm_ctx.state != EMM_STATE_DEREGISTERED) {
-      m_nas_log->error("Received GUTI-Attach Request from attached user.\n");
-      m_nas_log->console("Received GUTI-Attach Request from attached user.\n");
-
-      //Delete previous Ctx, restart authentication
-      //Detaching previoulsy attached UE.
-      m_gtpc->send_delete_session_request(m_emm_ctx.imsi);
-      if (m_ecm_ctx.mme_ue_s1ap_id != 0) {
-        m_s1ap->send_ue_context_release_command(m_ecm_ctx.mme_ue_s1ap_id);
-      }
-    }
-    m_sec_ctx.ul_nas_count = 0;
-    m_sec_ctx.dl_nas_count = 0;
-
-    //Create new MME UE S1AP Identity
-    uint32_t new_mme_ue_s1ap_id =  m_s1ap->get_next_mme_ue_s1ap_id();
-
-    //Make sure context from previous NAS connections is not present
-    if (m_ecm_ctx.mme_ue_s1ap_id!=0) {
-      m_s1ap->release_ue_ecm_ctx(m_ecm_ctx.mme_ue_s1ap_id);
-    }
-    m_ecm_ctx.mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-
-    //Set EMM as de-registered
-    m_emm_ctx.state = EMM_STATE_DEREGISTERED;
-    //Save Attach type
-    m_emm_ctx.attach_type = attach_req.eps_attach_type;
-
-    //Set UE ECM context
-    m_ecm_ctx.mme_ue_s1ap_id = m_ecm_ctx.mme_ue_s1ap_id;
-
-    //Set eNB information
-    m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-    memcpy(&m_ecm_ctx.enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-    //Save whether secure ESM information transfer is necessary
-    m_ecm_ctx.eit = pdn_con_req.esm_info_transfer_flag_present;
-
-    //Initialize E-RABs
-    for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
-      m_esm_ctx[i].state = ERAB_DEACTIVATED;
-      m_esm_ctx[i].erab_id = i;
-    }
-    //Store context based on MME UE S1AP id
-    m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(this);
-    m_s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,m_ecm_ctx.mme_ue_s1ap_id);
-
-    //NAS integrity failed. Re-start authentication process.
-    m_nas_log->console("GUTI Attach request NAS integrity failed.\n");
-    m_nas_log->console("RE-starting authentication procedure.\n");
-
-    //Get Authentication Vectors from HSS
-    if (!m_hss->gen_auth_info_answer(m_emm_ctx.imsi, m_sec_ctx.k_asme, m_sec_ctx.autn, m_sec_ctx.rand, m_sec_ctx.xres)) {
-      m_nas_log->console("User not found. IMSI %015lu\n",m_emm_ctx.imsi);
-      m_nas_log->info("User not found. IMSI %015lu\n",m_emm_ctx.imsi);
-      return false;
-    }
-
-    //Restarting security context. Reseting eKSI to 0.
-    m_sec_ctx.eksi=0;
-    nas_tx = m_pool->allocate();
-    pack_authentication_request(nas_tx);
-
-    //Send reply to eNB
-    m_s1ap->send_downlink_nas_transport(m_ecm_ctx.enb_ue_s1ap_id, m_ecm_ctx.mme_ue_s1ap_id,nas_tx, *enb_sri);
-    m_pool->deallocate(nas_tx);
-    m_nas_log->info("Downlink NAS: Sent Authentication Request\n");
-    m_nas_log->console("Downlink NAS: Sent Authentication Request\n");
-    return true;
-  }
 }
 
 bool
@@ -506,6 +365,156 @@ nas::handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
 
   return true;
 }
+
+bool
+nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
+                                          uint32_t enb_ue_s1ap_id,
+                                          struct sctp_sndrcvinfo *enb_sri,
+                                          const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
+                                          const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
+                                          srslte::byte_buffer_t *nas_rx,
+                                          nas_init_t args,
+                                          s1ap_interface_nas *s1ap,
+                                          gtpc_interface_nas *gtpc,
+                                          hss_interface_nas  *hss,
+                                          srslte::log        *nas_log)
+{
+  bool msg_valid = false;
+  srslte::byte_buffer_t *nas_tx;
+  srslte::byte_buffer_pool *pool = srslte::byte_buffer_pool::get_instance();
+
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+  sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
+
+  nas_log->console("Found UE context. IMSI: %015lu, old eNB UE S1ap Id %d, old MME UE S1AP Id %d\n", emm_ctx->imsi, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
+
+  //Check NAS integrity
+  sec_ctx->ul_nas_count++;
+  msg_valid = nas_ctx->integrity_check(nas_rx);
+  if (msg_valid == true && emm_ctx->state == EMM_STATE_DEREGISTERED) {
+    nas_log->console("GUTI Attach -- NAS Integrity OK. UL count %d, DL count %d\n",sec_ctx->ul_nas_count, sec_ctx->dl_nas_count);
+    nas_log->info   ("GUTI Attach -- NAS Integrity OK. UL count %d, DL count %d\n",sec_ctx->ul_nas_count, sec_ctx->dl_nas_count);
+
+    //Create new MME UE S1AP Identity
+    ecm_ctx->mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+    ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+
+    emm_ctx->procedure_transaction_id = pdn_con_req.proc_transaction_id;
+
+    //Save Attach type
+    emm_ctx->attach_type = attach_req.eps_attach_type;
+
+    //Set eNB information
+    ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+    memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+
+    //Save whether secure ESM information transfer is necessary
+    ecm_ctx->eit = pdn_con_req.esm_info_transfer_flag_present;
+
+    //Initialize E-RABs
+    for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
+      nas_ctx->m_esm_ctx[i].state = ERAB_DEACTIVATED;
+      nas_ctx->m_esm_ctx[i].erab_id = i;
+    }
+
+    //Store context based on MME UE S1AP id
+    s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
+    s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id, ecm_ctx->mme_ue_s1ap_id);
+
+    //Re-generate K_eNB
+    srslte::security_generate_k_enb(sec_ctx->k_asme, sec_ctx->ul_nas_count, sec_ctx->k_enb);
+    nas_log->info("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
+    nas_log->console("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
+    nas_log->info_hex(sec_ctx->k_enb, 32, "Key eNodeB (k_enb)\n");
+
+    //Send reply
+    nas_tx = pool->allocate();
+    if (ecm_ctx->eit) {
+      nas_log->console("Secure ESM information transfer requested.\n");
+      nas_log->info("Secure ESM information transfer requested.\n");
+      nas_ctx->pack_esm_information_request(nas_tx);
+      s1ap->send_downlink_nas_transport(ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id, nas_tx, *enb_sri);
+    } else {
+      //Get subscriber info from HSS
+      uint8_t default_bearer=5;
+      hss->gen_update_loc_answer(emm_ctx->imsi,&nas_ctx->m_esm_ctx[default_bearer].qci);
+      nas_log->debug("Getting subscription information -- QCI %d\n", nas_ctx->m_esm_ctx[default_bearer].qci);
+      nas_log->console("Getting subscription information -- QCI %d\n", nas_ctx->m_esm_ctx[default_bearer].qci);
+      gtpc->send_create_session_request(emm_ctx->imsi);
+    }
+    pool->deallocate(nas_tx);
+    return true;
+  } else {
+    if (emm_ctx->state != EMM_STATE_DEREGISTERED) {
+      nas_log->error("Received GUTI-Attach Request from attached user.\n");
+      nas_log->console("Received GUTI-Attach Request from attached user.\n");
+
+      //Delete previous Ctx, restart authentication
+      //Detaching previoulsy attached UE.
+      gtpc->send_delete_session_request(emm_ctx->imsi);
+      if (ecm_ctx->mme_ue_s1ap_id != 0) {
+        s1ap->send_ue_context_release_command(ecm_ctx->mme_ue_s1ap_id);
+      }
+    }
+    sec_ctx->ul_nas_count = 0;
+    sec_ctx->dl_nas_count = 0;
+
+    //Create new MME UE S1AP Identity
+    uint32_t new_mme_ue_s1ap_id =  s1ap->get_next_mme_ue_s1ap_id();
+
+    //Make sure context from previous NAS connections is not present
+    if (ecm_ctx->mme_ue_s1ap_id!=0) {
+      s1ap->release_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id);
+    }
+    ecm_ctx->mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+
+    //Set EMM as de-registered
+    emm_ctx->state = EMM_STATE_DEREGISTERED;
+    //Save Attach type
+    emm_ctx->attach_type = attach_req.eps_attach_type;
+
+    //Set eNB information
+    ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+    memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+    //Save whether secure ESM information transfer is necessary
+    ecm_ctx->eit = pdn_con_req.esm_info_transfer_flag_present;
+
+    //Initialize E-RABs
+    for (uint i = 0 ; i< MAX_ERABS_PER_UE; i++) {
+      nas_ctx->m_esm_ctx[i].state = ERAB_DEACTIVATED;
+      nas_ctx->m_esm_ctx[i].erab_id = i;
+    }
+    //Store context based on MME UE S1AP id
+    s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
+    s1ap->add_ue_to_enb_set(enb_sri->sinfo_assoc_id,ecm_ctx->mme_ue_s1ap_id);
+
+    //NAS integrity failed. Re-start authentication process.
+    nas_log->console("GUTI Attach request NAS integrity failed.\n");
+    nas_log->console("RE-starting authentication procedure.\n");
+
+    //Get Authentication Vectors from HSS
+    if (!hss->gen_auth_info_answer(emm_ctx->imsi, sec_ctx->k_asme, sec_ctx->autn, sec_ctx->rand, sec_ctx->xres)) {
+      nas_log->console("User not found. IMSI %015lu\n", emm_ctx->imsi);
+      nas_log->info("User not found. IMSI %015lu\n", emm_ctx->imsi);
+      return false;
+    }
+
+    //Restarting security context. Reseting eKSI to 0.
+    sec_ctx->eksi=0;
+    nas_tx = pool->allocate();
+    nas_ctx->pack_authentication_request(nas_tx);
+
+    //Send reply to eNB
+    s1ap->send_downlink_nas_transport(ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id,nas_tx, *enb_sri);
+    pool->deallocate(nas_tx);
+    nas_log->info("Downlink NAS: Sent Authentication Request\n");
+    nas_log->console("Downlink NAS: Sent Authentication Request\n");
+    return true;
+  }
+}
+
+//Service Requests
 
 /***************************************
  *
