@@ -221,9 +221,29 @@ public:
                                       gtpc_interface_nas *gtpc,
                                       hss_interface_nas  *hss,
                                       srslte::log        *nas_log);
+
   //Dettach request messages
+  static bool handle_detach_request(  uint32_t m_tmsi,
+                                      uint32_t enb_ue_s1ap_id,
+                                      struct sctp_sndrcvinfo *enb_sri,
+                                      srslte::byte_buffer_t *nas_rx,
+                                      nas_init_t args,
+                                      s1ap_interface_nas *s1ap,
+                                      gtpc_interface_nas *gtpc,
+                                      hss_interface_nas  *hss,
+                                      srslte::log        *nas_log);
+
   //Tracking area update request messages
-  
+  static bool handle_tracking_area_update_request( uint32_t m_tmsi,
+                                                   uint32_t enb_ue_s1ap_id,
+                                                   struct sctp_sndrcvinfo *enb_sri,
+                                                   srslte::byte_buffer_t *nas_rx,
+                                                   nas_init_t args,
+                                                   s1ap_interface_nas *s1ap,
+                                                   gtpc_interface_nas *gtpc,
+                                                   hss_interface_nas  *hss,
+                                                   srslte::log        *nas_log);
+
   /* Uplink NAS messages handling */
   bool handle_authentication_response      (srslte::byte_buffer_t *nas_rx);
   bool handle_security_mode_complete       (srslte::byte_buffer_t *nas_rx);
@@ -232,7 +252,7 @@ public:
   bool handle_identity_response            (srslte::byte_buffer_t *nas_rx);
   bool handle_tracking_area_update_request (srslte::byte_buffer_t *nas_rx);
   bool handle_authentication_failure       (srslte::byte_buffer_t *nas_rx);
-  bool handle_nas_detach_request           (srslte::byte_buffer_t *nas_rx);
+  bool handle_detach_request           (srslte::byte_buffer_t *nas_rx);
 
   /* Downlink NAS messages packing */
   bool pack_authentication_request  (srslte::byte_buffer_t *nas_buffer);

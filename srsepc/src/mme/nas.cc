@@ -505,15 +505,16 @@ nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
 }
 
 //Service Requests
-  bool nas::handle_service_request( uint32_t m_tmsi,
-                                    uint32_t enb_ue_s1ap_id,
-                                    struct sctp_sndrcvinfo *enb_sri,
-                                    srslte::byte_buffer_t *nas_rx,
-                                    nas_init_t args,
-                                    s1ap_interface_nas *s1ap,
-                                    gtpc_interface_nas *gtpc,
-                                    hss_interface_nas  *hss,
-                                    srslte::log        *nas_log)
+bool
+nas::handle_service_request( uint32_t m_tmsi,
+                             uint32_t enb_ue_s1ap_id,
+                             struct sctp_sndrcvinfo *enb_sri,
+                             srslte::byte_buffer_t *nas_rx,
+                             nas_init_t args,
+                             s1ap_interface_nas *s1ap,
+                             gtpc_interface_nas *gtpc,
+                             hss_interface_nas  *hss,
+                             srslte::log        *nas_log)
 {
   nas_log->info("Service request -- S-TMSI 0x%x\n", m_tmsi);
   nas_log->console("Service request -- S-TMSI 0x%x\n", m_tmsi);
@@ -615,6 +616,96 @@ nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
   return true;
 }
 
+bool nas::handle_detach_request( uint32_t m_tmsi,
+                                    uint32_t enb_ue_s1ap_id,
+                                    struct sctp_sndrcvinfo *enb_sri,
+                                    srslte::byte_buffer_t *nas_rx,
+                                    nas_init_t args,
+                                    s1ap_interface_nas *s1ap,
+                                    gtpc_interface_nas *gtpc,
+                                    hss_interface_nas  *hss,
+                                    srslte::log        *nas_log)
+{
+  nas_log->info("Detach Request -- S-TMSI 0x%x\n", m_tmsi);
+  nas_log->console("Detach Request -- S-TMSI 0x%x\n", m_tmsi);
+  nas_log->info("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+  nas_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+
+  bool mac_valid = false;
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_rx, &detach_req);
+  if (err !=LIBLTE_SUCCESS) {
+    nas_log->error("Could not unpack detach request\n");
+    return false;
+  }
+
+  uint64_t imsi = s1ap->find_imsi_from_m_tmsi(m_tmsi);
+  if (imsi == 0) {
+    nas_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    nas_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    return true;
+  }
+
+  nas *nas_ctx = s1ap->find_nas_ctx_from_imsi(imsi);
+  if (nas_ctx == NULL) {
+    nas_log->console("Could not find UE context from IMSI\n");
+    nas_log->error("Could not find UE context from IMSI\n");
+    return true;
+  }
+
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+  sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
+
+  gtpc->send_delete_session_request(emm_ctx->imsi);
+  emm_ctx->state = EMM_STATE_DEREGISTERED;
+  sec_ctx->ul_nas_count++;
+
+  nas_log->console("Received. M-TMSI 0x%x\n", m_tmsi);
+  //Received detach request as an initial UE message
+  //eNB created new ECM context to send the detach request; this needs to be cleared.
+  ecm_ctx->mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+  ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+  s1ap->send_ue_context_release_command(ecm_ctx->mme_ue_s1ap_id);
+  return true;
+}
+
+bool
+nas::handle_tracking_area_update_request( uint32_t m_tmsi,
+                                          uint32_t enb_ue_s1ap_id,
+                                          struct sctp_sndrcvinfo *enb_sri,
+                                          srslte::byte_buffer_t *nas_rx,
+                                          nas_init_t args,
+                                          s1ap_interface_nas *s1ap,
+                                          gtpc_interface_nas *gtpc,
+                                          hss_interface_nas  *hss,
+                                          srslte::log        *nas_log)
+{
+  nas_log->info("Tracking Area Update Request -- S-TMSI 0x%x\n", m_tmsi);
+  nas_log->console("Tracking Area Update Request -- S-TMSI 0x%x\n", m_tmsi);
+  nas_log->info("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+  nas_log->console("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+
+  nas_log->console("Warning: Tracking area update requests are not handled yet.\n");
+  nas_log->warning("Tracking area update requests are not handled yet.\n");
+
+  uint64_t imsi = s1ap->find_imsi_from_m_tmsi(m_tmsi);
+  if (imsi == 0) {
+    nas_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    nas_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    return true;
+  }
+
+  nas *nas_ctx = s1ap->find_nas_ctx_from_imsi(imsi);
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+
+  sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
+
+  sec_ctx->ul_nas_count++; //Increment the NAS count, not to break the security ctx
+  return true;
+}
 /***************************************
  *
  * Handle Uplink NAS Transport messages
@@ -916,7 +1007,7 @@ nas::handle_authentication_failure(srslte::byte_buffer_t *nas_rx)
 }
 
 bool
-nas::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg)
+nas::handle_detach_request(srslte::byte_buffer_t *nas_msg)
 {
 
   m_nas_log->console("Detach request -- IMSI %015lu\n", m_emm_ctx.imsi);
