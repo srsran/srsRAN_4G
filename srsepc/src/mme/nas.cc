@@ -505,6 +505,115 @@ nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
 }
 
 //Service Requests
+  bool nas::handle_service_request( uint32_t m_tmsi,
+                                    uint32_t enb_ue_s1ap_id,
+                                    struct sctp_sndrcvinfo *enb_sri,
+                                    srslte::byte_buffer_t *nas_rx,
+                                    nas_init_t args,
+                                    s1ap_interface_nas *s1ap,
+                                    gtpc_interface_nas *gtpc,
+                                    hss_interface_nas  *hss,
+                                    srslte::log        *nas_log)
+{
+  nas_log->info("Service request -- S-TMSI 0x%x\n", m_tmsi);
+  nas_log->console("Service request -- S-TMSI 0x%x\n", m_tmsi);
+  nas_log->info("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+  nas_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+
+  bool mac_valid = false;
+  LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
+  srslte::byte_buffer_pool *pool = srslte::byte_buffer_pool::get_instance();
+
+  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_rx, &service_req);
+  if (err !=LIBLTE_SUCCESS) {
+    nas_log->error("Could not unpack service request\n");
+    return false;
+  }
+
+  uint64_t imsi = s1ap->find_imsi_from_m_tmsi(m_tmsi);
+  if (imsi == 0) {
+    nas_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    nas_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
+    nas nas_tmp;
+    nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+    nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+    srslte::byte_buffer_t *nas_tx = pool->allocate();
+    nas_tmp.pack_service_reject(nas_tx);
+    s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx, *enb_sri);
+    pool->deallocate(nas_tx);
+    return true;
+  }
+
+  nas *nas_ctx = s1ap->find_nas_ctx_from_imsi(imsi);
+  if (nas_ctx == NULL || nas_ctx->m_emm_ctx.state != EMM_STATE_REGISTERED) {
+    nas_log->console("UE is not EMM-Registered.\n");
+    nas_log->error("UE is not EMM-Registered.\n");
+    nas nas_tmp;
+    nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
+    nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+    srslte::byte_buffer_t *nas_tx = pool->allocate();
+    nas_tmp.pack_service_reject(nas_tx);
+    s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx, *enb_sri);
+    pool->deallocate(nas_tx);
+    return true;
+  }
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+  sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
+
+  sec_ctx->ul_nas_count++;
+  mac_valid = nas_ctx->short_integrity_check(nas_rx);
+  if (mac_valid) {
+    nas_log->console("Service Request -- Short MAC valid\n");
+    nas_log->info("Service Request -- Short MAC valid\n");
+    if(ecm_ctx->state == ECM_STATE_CONNECTED) {
+      nas_log->error("Service Request -- User is ECM CONNECTED\n");
+
+      //Release previous context
+      nas_log->info("Service Request -- Releasing previouse ECM context. eNB S1AP Id %d, MME UE S1AP Id %d\n", ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
+      s1ap->send_ue_context_release_command(ecm_ctx->mme_ue_s1ap_id);
+      s1ap->release_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id);
+    }
+
+    ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+
+    //UE not connect. Connect normally.
+    nas_log->console("Service Request -- User is ECM DISCONNECTED\n");
+    nas_log->info("Service Request -- User is ECM DISCONNECTED\n");
+
+    //Create ECM context
+    ecm_ctx->mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+
+    //Set eNB information
+    ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
+    memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+
+    //Save whether secure ESM information transfer is necessary
+    ecm_ctx->eit = false;
+
+    //Get UE IP, and uplink F-TEID
+    if(emm_ctx->ue_ip.s_addr == 0 ){
+      nas_log->error("UE has no valid IP assigned upon reception of service request");
+    }
+
+    nas_log->console("UE previously assigned IP: %s",inet_ntoa(emm_ctx->ue_ip));
+
+    //Re-generate K_eNB
+    srslte::security_generate_k_enb(sec_ctx->k_asme, sec_ctx->ul_nas_count, sec_ctx->k_enb);
+    nas_log->info("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
+    nas_log->console("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
+    nas_log->info_hex(sec_ctx->k_enb, 32, "Key eNodeB (k_enb)\n");
+    nas_log->console("UE Ctr TEID %d\n", emm_ctx->sgw_ctrl_fteid.teid);
+
+    //Save UE ctx to MME UE S1AP id
+    s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
+    s1ap->send_initial_context_setup_request(imsi,5);
+  } else {
+    nas_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
+    nas_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
+  }
+  return true;
+}
 
 /***************************************
  *

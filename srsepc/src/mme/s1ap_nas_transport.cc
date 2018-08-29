@@ -294,13 +294,6 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     m_pool->deallocate(nas_msg);
     return false;
   }
-
-  if (*reply_flag == true) {
-    m_s1ap_log->console("DL NAS: Sent Downlink NAS Message. DL NAS Count=%d, UL NAS count=%d\n", sec_ctx->dl_nas_count, sec_ctx->ul_nas_count);
-    m_s1ap_log->info("DL NAS: Sent Downlink NAS message. DL NAS Count=%d, UL NAS count=%d\n", sec_ctx->dl_nas_count, sec_ctx->ul_nas_count);
-    m_s1ap_log->info("DL NAS: MME UE S1AP id %d\n",ecm_ctx->mme_ue_s1ap_id);
-    m_s1ap_log->console("DL NAS: MME UE S1AP id %d\n",ecm_ctx->mme_ue_s1ap_id);
-  }
   m_pool->deallocate(nas_msg);
   return true;
 }
