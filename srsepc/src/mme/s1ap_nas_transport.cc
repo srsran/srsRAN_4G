@@ -115,12 +115,13 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
     m_s1ap_log->console("Received Initial UE message -- Attach Request\n");
     m_s1ap_log->info("Received Initial UE message -- Attach Request\n");
     err = nas::handle_attach_request(enb_ue_s1ap_id, enb_sri, nas_msg, nas_init,
-                                         m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
+                                     m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
     break;
   case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Service Request\n");
     m_s1ap_log->info("Received Initial UE message -- Service Request\n");
-    err = handle_nas_service_request(m_tmsi, enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+    err = nas::handle_service_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, nas_init,
+                                      m_s1ap, m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
     break;
   case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
     m_s1ap_log->console("Received Initial UE message -- Detach Request\n");
@@ -295,105 +296,6 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     return false;
   }
   m_pool->deallocate(nas_msg);
-  return true;
-}
-
-bool
-s1ap_nas_transport::handle_nas_service_request( uint32_t m_tmsi,
-                                                uint32_t enb_ue_s1ap_id,
-                                                srslte::byte_buffer_t *nas_msg,
-                                                srslte::byte_buffer_t *reply_buffer,
-                                                bool* reply_flag,
-                                                struct sctp_sndrcvinfo *enb_sri)
-{
-  m_s1ap_log->info("Service request -- S-TMSI 0x%x\n", m_tmsi);
-  m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", m_tmsi);
-  m_s1ap_log->info("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
-  m_s1ap_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
-
-  bool mac_valid = false;
-  LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
-
-  LIBLTE_ERROR_ENUM err = liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &service_req);
-  if (err !=LIBLTE_SUCCESS) {
-    m_s1ap_log->error("Could not unpack service request\n");
-    return false;
-  }
-
-  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
-  if (it == m_s1ap->m_tmsi_to_imsi.end()) {
-    m_s1ap_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
-    m_s1ap_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
-    nas nas_tmp;
-    nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
-    nas_tmp.pack_service_reject(reply_buffer);
-    *reply_flag = true;
-    return true;
-  }
-
-  nas *nas_ctx = m_s1ap->find_nas_ctx_from_imsi(it->second);
-  if (nas_ctx == NULL || nas_ctx->m_emm_ctx.state != EMM_STATE_REGISTERED) {
-    m_s1ap_log->console("UE is not EMM-Registered.\n");
-    m_s1ap_log->error("UE is not EMM-Registered.\n");
-    nas_ctx->pack_service_reject(reply_buffer);
-    *reply_flag = true;
-    return true;
-  }
-  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
-  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
-  sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
-
-  sec_ctx->ul_nas_count++;
-  mac_valid = nas_ctx->short_integrity_check(nas_msg);
-  if (mac_valid) {
-    m_s1ap_log->console("Service Request -- Short MAC valid\n");
-    m_s1ap_log->info("Service Request -- Short MAC valid\n");
-    if(ecm_ctx->state == ECM_STATE_CONNECTED) {
-      m_s1ap_log->error("Service Request -- User is ECM CONNECTED\n");
-
-      //Release previous context
-      m_s1ap_log->info("Service Request -- Releasing previouse ECM context. eNB S1AP Id %d, MME UE S1AP Id %d\n", ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(nas_ctx);
-      m_s1ap->release_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id);
-    }
-
-    ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
-
-    //UE not connect. Connect normally.
-    m_s1ap_log->console("Service Request -- User is ECM DISCONNECTED\n");
-    m_s1ap_log->info("Service Request -- User is ECM DISCONNECTED\n");
-
-    //Create ECM context
-    ecm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
-
-    //Set eNB information
-    ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
-    memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
-
-    //Save whether secure ESM information transfer is necessary
-    ecm_ctx->eit = false;
-
-    //Get UE IP, and uplink F-TEID
-    if(emm_ctx->ue_ip.s_addr == 0 ){
-      m_s1ap_log->error("UE has no valid IP assigned upon reception of service request");
-    }
-
-    m_s1ap_log->console("UE previously assigned IP: %s",inet_ntoa(emm_ctx->ue_ip));
-
-    //Re-generate K_eNB
-    srslte::security_generate_k_enb(sec_ctx->k_asme, sec_ctx->ul_nas_count, sec_ctx->k_enb);
-    m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
-    m_s1ap_log->console("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
-    m_s1ap_log->info_hex(sec_ctx->k_enb, 32, "Key eNodeB (k_enb)\n");
-    m_s1ap_log->console("UE Ctr TEID %d\n", emm_ctx->sgw_ctrl_fteid.teid);
-
-    //Save UE ctx to MME UE S1AP id
-    m_s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
-    m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(nas_ctx, 5);
-  } else {
-    m_s1ap_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
-    m_s1ap_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
-  }
   return true;
 }
 
