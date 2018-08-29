@@ -135,7 +135,6 @@ void phch_recv::reset()
   current_earfcn = -1;
   sfn_p.reset();
   search_p.reset();
-  phy_state.go_idle();
 
 }
 

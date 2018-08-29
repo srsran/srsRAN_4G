@@ -448,8 +448,11 @@ TEST(srslte_vec_convert_fi,
   TEST_CALL(srslte_vec_convert_fi(x, scale, z, block_size))
 
   for (int i = 0; i < block_size; i++) {
-      gold = (short) ((x[i] * scale));
-      mse += cabsf((float)gold - (float) z[i]);
+    gold = (short) ((x[i] * scale));
+    double err = cabsf((float)gold - (float) z[i]);
+    if (err > mse) {
+      mse = err;
+    }
   }
 
   free(x);
@@ -470,8 +473,11 @@ TEST(srslte_vec_convert_if,
   TEST_CALL(srslte_vec_convert_if(x, scale, z, block_size))
 
   for (int i = 0; i < block_size; i++) {
-      gold = ((float)x[i]) * k;
-      mse += fabsf(gold - z[i]);
+    gold = ((float)x[i]) * k;
+    double err = cabsf((float)gold - (float) z[i]);
+    if (err > mse) {
+      mse = err;
+    }
   }
 
   free(x);

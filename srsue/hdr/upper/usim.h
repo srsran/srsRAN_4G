@@ -132,6 +132,7 @@ private:
   uint8_t     k_enb_star[32];
 
   uint32_t    current_ncc;
+  bool        is_first_ncc;
 
   bool initiated;
 
