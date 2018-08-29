@@ -257,6 +257,9 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     if(!vm.count("log.hss_hex_limit")) {
       args->log_args.hss_hex_limit = args->log_args.all_hex_limit;
     }
+    if(!vm.count("log.nas_hex_limit")) {
+      args->log_args.nas_hex_limit = args->log_args.all_hex_limit;
+    }
   }
 
   // Check user database

@@ -614,7 +614,7 @@ hss::increment_ue_sqn(uint64_t imsi)
   }
 
   increment_sqn(ue_ctx->sqn,ue_ctx->sqn);
-  m_hss_log->debug("Incremented SQN (IMSI: %" PRIu64 ")" PRIu64 "\n", imsi);
+  m_hss_log->debug("Incremented SQN  -- IMSI: %" PRIu64 "\n", imsi);
   m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN: ");
 }
 

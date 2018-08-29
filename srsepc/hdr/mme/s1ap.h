@@ -89,15 +89,15 @@ public:
   bool add_nas_ctx_to_mme_ue_s1ap_id_map(nas *nas_ctx);
   bool add_ue_to_enb_set(int32_t enb_assoc, uint32_t mme_ue_s1ap_id);
 
-  nas* find_nas_ctx_from_imsi(uint64_t imsi);
+  virtual nas* find_nas_ctx_from_imsi(uint64_t imsi);
   nas* find_nas_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
 
   bool release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
   void release_ues_ecm_ctx_in_enb(int32_t enb_assoc);
-  bool delete_ue_ctx(uint64_t imsi);
+  virtual bool delete_ue_ctx(uint64_t imsi);
 
   uint32_t allocate_m_tmsi(uint64_t imsi);
-  uint64_t find_imsi_from_m_tmsi(uint32_t m_tmsi);
+  virtual uint64_t find_imsi_from_m_tmsi(uint32_t m_tmsi);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;

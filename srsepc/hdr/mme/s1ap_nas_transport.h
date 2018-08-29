@@ -48,27 +48,6 @@ public:
   bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *nas_msg, struct sctp_sndrcvinfo enb_sri);
 
-  bool handle_nas_attach_request(uint32_t enb_ue_s1ap_id,
-                                 srslte::byte_buffer_t *nas_msg,
-                                 srslte::byte_buffer_t *reply_buffer,
-                                 bool* reply_flag,
-                                 struct sctp_sndrcvinfo *enb_sri);
-
-  bool handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
-                                      const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                      const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                      srslte::byte_buffer_t *reply_buffer,
-                                      bool* reply_flag,
-                                      struct sctp_sndrcvinfo *enb_sri);
-
-  bool handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
-                                        const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                        const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                        srslte::byte_buffer_t *nas_msg,
-                                        srslte::byte_buffer_t *reply_buffer,
-                                        bool* reply_flag,
-                                        struct sctp_sndrcvinfo *enb_sri);
-
   bool handle_nas_detach_request( uint32_t m_tmsi,
                                   uint32_t enb_ue_s1ap_id,
                                   srslte::byte_buffer_t *nas_msg,
