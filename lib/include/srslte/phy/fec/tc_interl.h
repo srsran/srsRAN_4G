@@ -47,8 +47,9 @@ typedef struct SRSLTE_API {
 SRSLTE_API int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, 
                                         uint32_t long_cb);
 
-SRSLTE_API int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, 
-                                         uint32_t long_cb);
+SRSLTE_API int srslte_tc_interl_LTE_gen_interl(srslte_tc_interl_t *h,
+                                               uint32_t long_cb,
+                                               uint32_t interl_win);
 
 SRSLTE_API int srslte_tc_interl_init(srslte_tc_interl_t *h, 
                                      uint32_t max_long_cb);

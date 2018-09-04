@@ -65,6 +65,8 @@ typedef struct SRSLTE_API {
   uint16_t ue_rnti;
   bool is_ue;
 
+  bool llr_is_8bit;
+
   /* Power allocation parameter 3GPP 36.213 Clause 5.2 Rho_b */
   float rho_a;
 

@@ -47,53 +47,16 @@
 #define SRSLTE_TCOD_TOTALTAIL 12
 
 #define SRSLTE_TCOD_MAX_LEN_CB     6144
-#define SRSLTE_TCOD_MAX_LEN_CODED  (SRSLTE_TCOD_RATE*SRSLTE_TCOD_MAX_LEN_CB+SRSLTE_TCOD_TOTALTAIL)
 
 typedef struct SRSLTE_API {
-  int max_long_cb;
-  float *beta;
-} srslte_map_gen_vl_t;
+  uint32_t max_long_cb;
+  int16_t *beta;
+} tdec_gen_t;
 
-typedef struct SRSLTE_API {
-  int max_long_cb;
-
-  srslte_map_gen_vl_t dec;
-
-  float *llr1;
-  float *llr2;
-  float *w;
-  float *syst;
-  float *parity;
-
-  int current_cbidx; 
-  uint32_t current_cb_len;
-  uint32_t n_iter; 
-  srslte_tc_interl_t interleaver[SRSLTE_NOF_TC_CB_SIZES];
-} srslte_tdec_gen_t;
-
-SRSLTE_API int srslte_tdec_gen_init(srslte_tdec_gen_t * h, 
-                                uint32_t max_long_cb);
-
-SRSLTE_API void srslte_tdec_gen_free(srslte_tdec_gen_t * h);
-
-SRSLTE_API int srslte_tdec_gen_reset(srslte_tdec_gen_t * h, uint32_t long_cb);
-
-SRSLTE_API void srslte_tdec_gen_iteration(srslte_tdec_gen_t * h, 
-                                      float * input, 
-                                      uint32_t long_cb);
-
-SRSLTE_API void srslte_tdec_gen_decision(srslte_tdec_gen_t * h, 
-                                     uint8_t *output, 
-                                     uint32_t long_cb);
-
-SRSLTE_API void srslte_tdec_gen_decision_byte(srslte_tdec_gen_t * h, 
-                                          uint8_t *output, 
-                                          uint32_t long_cb); 
-
-SRSLTE_API int srslte_tdec_gen_run_all(srslte_tdec_gen_t * h, 
-                                   float * input, 
-                                   uint8_t *output,
-                                   uint32_t nof_iterations, 
-                                   uint32_t long_cb);
+int tdec_gen_init(void **h, uint32_t max_long_cb);
+void tdec_gen_free(void *h);
+void tdec_gen_dec(void *h, int16_t * input, int16_t *app, int16_t * parity, int16_t *output, uint32_t long_cb);
+void tdec_gen_extract_input(int16_t *input, int16_t *syst, int16_t *parity0, int16_t *parity1, int16_t *app2, uint32_t long_cb);
+void tdec_gen_decision_byte(int16_t *app1, uint8_t *output, uint32_t long_cb);
 
 #endif // SRSLTE_TURBODECODER_GEN_H

@@ -139,6 +139,10 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_ph
     return false;
   }
 
+  if (phy->args->pdsch_8bit_decoder) {
+    ue_dl.pdsch.llr_is_8bit = true;
+    ue_dl.pdsch.dl_sch.llr_is_8bit = true;
+  }
 
   srslte_chest_dl_set_rsrp_neighbour(&ue_dl.chest, true);
   srslte_chest_dl_average_subframe(&ue_dl.chest, phy->args->average_subframe_enabled);

@@ -24,78 +24,22 @@
  *
  */
 
-/**********************************************************************************************
- *  File:         turbodecoder.h
- *
- *  Description:  Turbo Decoder.
- *                Parallel Concatenated Convolutional Code (PCCC) with two 8-state constituent
- *                encoders and one turbo code internal interleaver. The coding rate of turbo
- *                encoder is 1/3.
- *                MAP_GEN is the MAX-LOG-MAP generic implementation of the decoder.
- *
- *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.3.2
- *********************************************************************************************/
-
-#ifndef SRSLTE_TURBODECODER_SSE_
-#define SRSLTE_TURBODECODER_SSE_
+#ifndef SRSLTE_TURBODECODER_SSE_H
+#define SRSLTE_TURBODECODER_SSE_H
 
 #include "srslte/config.h"
-#include "srslte/phy/fec/tc_interl.h"
-#include "srslte/phy/fec/cbsegm.h"
-
-#define SRSLTE_TCOD_RATE 3
-#define SRSLTE_TCOD_TOTALTAIL 12
-
-#define SRSLTE_TCOD_MAX_LEN_CB     6144
-#define SRSLTE_TCOD_MAX_LEN_CODED  (SRSLTE_TCOD_RATE*SRSLTE_TCOD_MAX_LEN_CB+SRSLTE_TCOD_TOTALTAIL)
 
 typedef struct SRSLTE_API {
-  int max_long_cb;
+  uint32_t max_long_cb;
   int16_t *alpha;
   int16_t *branch;
-} map_gen_t;
+} tdec_sse_t;
 
-typedef struct SRSLTE_API {
-  int max_long_cb;
+int tdec_sse_init(void **h, uint32_t max_long_cb);
+void tdec_sse_free(void *h);
+void tdec_sse_dec(void *h, int16_t * input, int16_t *app, int16_t * parity,
+                 int16_t *output, uint32_t long_cb);
+void tdec_sse_extract_input(int16_t *input, int16_t *syst, int16_t *parity0, int16_t *parity1, int16_t *app2, uint32_t long_cb);
+void tdec_sse_decision_byte(int16_t *app1, uint8_t *output, uint32_t long_cb);
 
-  map_gen_t dec;
-
-  int16_t *app1;
-  int16_t *app2;
-  int16_t *ext1;
-  int16_t *ext2;
-  int16_t *syst;
-  int16_t *parity0;
-  int16_t *parity1;
-  
-  int current_cbidx; 
-  srslte_tc_interl_t interleaver[SRSLTE_NOF_TC_CB_SIZES];
-  int n_iter;
-} srslte_tdec_sse_t;
-
-SRSLTE_API int srslte_tdec_sse_init(srslte_tdec_sse_t * h, 
-                                uint32_t max_long_cb);
-
-SRSLTE_API void srslte_tdec_sse_free(srslte_tdec_sse_t * h);
-
-SRSLTE_API int srslte_tdec_sse_reset(srslte_tdec_sse_t * h, uint32_t long_cb);
-
-SRSLTE_API void srslte_tdec_sse_iteration(srslte_tdec_sse_t * h, 
-                                      int16_t * input, 
-                                      uint32_t long_cb);
-
-SRSLTE_API void srslte_tdec_sse_decision(srslte_tdec_sse_t * h, 
-                                     uint8_t *output, 
-                                     uint32_t long_cb);
-
-SRSLTE_API void srslte_tdec_sse_decision_byte(srslte_tdec_sse_t * h, 
-                                          uint8_t *output, 
-                                          uint32_t long_cb); 
-
-SRSLTE_API int srslte_tdec_sse_run_all(srslte_tdec_sse_t * h, 
-                                   int16_t * input, 
-                                   uint8_t *output,
-                                   uint32_t nof_iterations, 
-                                   uint32_t long_cb);
-
-#endif // SRSLTE_TURBODECODER_SSE_
+#endif // SRSLTE_TURBODECODER_SSE_H

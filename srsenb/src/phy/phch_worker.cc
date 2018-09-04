@@ -153,7 +153,11 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
   
   Info("Worker %d configured cell %d PRB\n", get_id(), phy->cell.nof_prb);
-  
+
+  if (phy->params.pusch_8bit_decoder) {
+    enb_ul.pusch.llr_is_8bit = true;
+    enb_ul.pusch.ul_sch.llr_is_8bit = true;
+  }
   initiated = true; 
   running   = true;
 

@@ -70,10 +70,12 @@ SRSLTE_API int srslte_tcod_encode(srslte_tcod_t *h,
                                   uint32_t long_cb);
 
 SRSLTE_API int srslte_tcod_encode_lut(srslte_tcod_t *h,
-                                      srslte_crc_t *crc,
-                                      uint8_t *input, 
+                                      srslte_crc_t *crc_tb,
+                                      srslte_crc_t *crc_cb,
+                                      uint8_t *input,
                                       uint8_t *parity, 
-                                      uint32_t cblen_idx); 
+                                      uint32_t cblen_idx,
+                                      bool last_cb);
 
 SRSLTE_API void srslte_tcod_gentable(); 
 

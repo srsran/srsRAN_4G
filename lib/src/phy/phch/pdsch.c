@@ -669,6 +669,50 @@ static int srslte_pdsch_codeword_encode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
   return SRSLTE_SUCCESS;
 }
 
+static void csi_correction(srslte_pdsch_t *q, srslte_pdsch_cfg_t *cfg, uint32_t codeword_idx, uint32_t tb_idx, void *e)
+{
+
+  srslte_ra_nbits_t *nbits = &cfg->nbits[tb_idx];
+  uint32_t qm = 0;
+  switch(cfg->grant.mcs[tb_idx].mod) {
+
+    case SRSLTE_MOD_BPSK:
+      qm = 1;
+      break;
+    case SRSLTE_MOD_QPSK:
+      qm = 2;
+      break;
+    case SRSLTE_MOD_16QAM:
+      qm = 4;
+      break;
+    case SRSLTE_MOD_64QAM:
+      qm = 6;
+      break;
+    default:
+      ERROR("No modulation");
+  }
+
+  const uint32_t csi_max_idx = srslte_vec_max_fi(q->csi[codeword_idx], nbits->nof_bits / qm);
+  float csi_max = 1.0f;
+  if (csi_max_idx < nbits->nof_bits / qm) {
+    csi_max = q->csi[codeword_idx][csi_max_idx];
+  }
+  int8_t *e_b   = e;
+  int16_t  *e_s = e;
+  for (int i = 0; i < nbits->nof_bits / qm; i++) {
+    const float csi = q->csi[codeword_idx][i] / csi_max;
+    if (q->llr_is_8bit) {
+      for (int k = 0; k < qm; k++) {
+        e_b[qm * i + k] = (int8_t) ((float) e_b[qm * i + k] * csi);
+      }
+    } else {
+      for (int k = 0; k < qm; k++) {
+        e_s[qm * i + k] = (int16_t) ((float) e_s[qm * i + k] * csi);
+      }
+    }
+  }
+}
+
 static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *cfg, srslte_sch_t *dl_sch,
                                         srslte_softbuffer_rx_t *softbuffer, uint16_t rnti, uint8_t *data,
                                         uint32_t codeword_idx, uint32_t tb_idx, bool *ack) {
@@ -686,47 +730,24 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
      * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation,
      * thus we don't need tot set it in the LLRs normalization
      */
-    srslte_demod_soft_demodulate_s(mcs->mod, q->d[codeword_idx], q->e[codeword_idx], nbits->nof_re);
+    if (q->llr_is_8bit) {
+      srslte_demod_soft_demodulate_b(mcs->mod, q->d[codeword_idx], q->e[codeword_idx], nbits->nof_re);
+    } else {
+      srslte_demod_soft_demodulate_s(mcs->mod, q->d[codeword_idx], q->e[codeword_idx], nbits->nof_re);
+    }
 
     /* Select scrambling sequence */
     srslte_sequence_t *seq = get_user_sequence(q, rnti, codeword_idx, cfg->sf_idx, nbits->nof_bits);
 
     /* Bit scrambling */
-    srslte_scrambling_s_offset(seq, q->e[codeword_idx], 0, nbits->nof_bits);
-
-    uint32_t qm = 0;
-    switch(cfg->grant.mcs[tb_idx].mod) {
-
-      case SRSLTE_MOD_BPSK:
-        qm = 1;
-        break;
-      case SRSLTE_MOD_QPSK:
-        qm = 2;
-        break;
-      case SRSLTE_MOD_16QAM:
-        qm = 4;
-        break;
-      case SRSLTE_MOD_64QAM:
-        qm = 6;
-        break;
-      default:
-        ERROR("No modulation");
+    if (q->llr_is_8bit) {
+      srslte_scrambling_sb_offset(seq, q->e[codeword_idx], 0, nbits->nof_bits);
+    } else {
+      srslte_scrambling_s_offset(seq, q->e[codeword_idx], 0, nbits->nof_bits);
     }
 
-    int16_t *e = q->e[codeword_idx];
-
     if (q->csi_enabled) {
-      const uint32_t csi_max_idx = srslte_vec_max_fi(q->csi[codeword_idx], nbits->nof_bits / qm);
-      float csi_max = 1.0f;
-      if (csi_max_idx < nbits->nof_bits / qm) {
-        csi_max = q->csi[codeword_idx][csi_max_idx];
-      }
-      for (int i = 0; i < nbits->nof_bits / qm; i++) {
-        const float csi = q->csi[codeword_idx][i] / csi_max;
-        for (int k = 0; k < qm; k++) {
-          e[qm * i + k] = (int16_t) ((float) e[qm * i + k] * csi);
-        }
-      }
+      csi_correction(q, cfg, codeword_idx, tb_idx, q->e[codeword_idx]);
     }
 
     /* Return  */

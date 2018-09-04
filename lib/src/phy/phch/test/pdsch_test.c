@@ -62,19 +62,24 @@ uint32_t nof_rx_antennas = 1;
 bool tb_cw_swap = false;
 bool enable_coworker = false;
 uint32_t pmi = 0;
-char *input_file = NULL; 
+char *input_file = NULL;
+int M=1;
+
+bool use_8_bit = false;
 
 void usage(char *prog) {
-  printf("Usage: %s [fmMcsrtRFpnwav] \n", prog);
+  printf("Usage: %s [fmMbcsrtRFpnwav] \n", prog);
   printf("\t-f read signal from file [Default generate it with pdsch_encode()]\n");
   printf("\t-m MCS [Default %d]\n", mcs[0]);
   printf("\t-M MCS2 [Default %d]\n", mcs[1]);
   printf("\t-c cell id [Default %d]\n", cell.id);
+  printf("\t-b Use 8-bit LLR [Default 16-bit]\n");
   printf("\t-s subframe [Default %d]\n", subframe);
   printf("\t-r rv_idx [Default %d]\n", rv_idx[0]);
   printf("\t-t rv_idx2 [Default %d]\n", rv_idx[1]);
   printf("\t-R rnti [Default %d]\n", rnti);
   printf("\t-F cfi [Default %d]\n", cfi);
+  printf("\t-X Number of repetitions for time measurement [Default %d]\n", M);
   printf("\t-x Transmission mode [single|diversity|cdd|multiplex] [Default %s]\n", mimo_type_str);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-a nof_rx_antennas [Default %d]\n", nof_rx_antennas);
@@ -86,7 +91,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "fmMcsrtRFpnawvxj")) != -1) {
+  while ((opt = getopt(argc, argv, "fmMcsbrtRFpnawvXxj")) != -1) {
     switch(opt) {
     case 'f':
       input_file = argv[optind];
@@ -94,11 +99,17 @@ void parse_args(int argc, char **argv) {
     case 'm':
       mcs[0] = (uint32_t) atoi(argv[optind]);
       break;
+    case 'b':
+      use_8_bit = true;
+      break;
     case 'M':
       mcs[1] = (uint32_t) atoi(argv[optind]);
       break;
     case 's':
       subframe = atoi(argv[optind]);
+      break;
+    case 'X':
+      M = (uint32_t) atoi(argv[optind]);
       break;
     case 'r':
       rv_idx[0] = (uint32_t) atoi(argv[optind]);
@@ -166,7 +177,6 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   srslte_softbuffer_tx_t *softbuffers_tx[SRSLTE_MAX_CODEWORDS];
-  int M=1;
   bool acks[SRSLTE_MAX_CODEWORDS] = {false};
 
   parse_args(argc,argv);
@@ -318,6 +328,9 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
+
+  pdsch_rx.llr_is_8bit = use_8_bit;
+  pdsch_rx.dl_sch.llr_is_8bit = use_8_bit;
 
   srslte_pdsch_set_rnti(&pdsch_rx, rnti);
 
@@ -517,8 +530,8 @@ int main(int argc, char **argv) {
       for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
         if (data_tx[tb][byte] != data_rx[tb][byte]) {
           ERROR("Found BYTE (%d) error in TB %d (%02X != %02X), quiting...", byte, tb, data_tx[tb][byte], data_rx[tb][byte]);
-          printf("Tx: "); srslte_vec_fprint_byte(stdout, data_tx[tb], grant.mcs[tb].tbs / 8);
-          printf("Rx: "); srslte_vec_fprint_byte(stdout, data_rx[tb], grant.mcs[tb].tbs / 8);
+          //printf("Tx: "); srslte_vec_fprint_byte(stdout, data_tx[tb], grant.mcs[tb].tbs / 8);
+          //printf("Rx: "); srslte_vec_fprint_byte(stdout, data_rx[tb], grant.mcs[tb].tbs / 8);
           ret = SRSLTE_ERROR;
           goto quit;
         }

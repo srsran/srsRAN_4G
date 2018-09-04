@@ -58,7 +58,11 @@ void srslte_vec_sub_sss(const int16_t *x, const int16_t *y, int16_t *z, const ui
   srslte_vec_sub_sss_simd(x, y, z, len);
 }
 
-// Noise estimation in chest_dl, interpolation 
+void srslte_vec_sub_bbb(const int8_t *x, const int8_t *y, int8_t *z, const uint32_t len) {
+  srslte_vec_sub_bbb_simd(x, y, z, len);
+}
+
+// Noise estimation in chest_dl, interpolation
 void srslte_vec_sub_ccc(const cf_t *x, const cf_t *y, cf_t *z, const uint32_t len) {
   return srslte_vec_sub_fff((const float*) x,(const float*) y,(float*) z, 2*len);
 }
@@ -100,8 +104,16 @@ void srslte_vec_convert_fi(const float *x, const float scale, int16_t *z, const 
   srslte_vec_convert_fi_simd(x, z, scale, len);
 }
 
+void srslte_vec_convert_fb(const float *x, const float scale, int8_t *z, const uint32_t len) {
+  srslte_vec_convert_fb_simd(x, z, scale, len);
+}
+
 void srslte_vec_lut_sss(const short *x, const unsigned short *lut, short *y, const uint32_t len) {
   srslte_vec_lut_sss_simd(x, lut, y, len);
+}
+
+void srslte_vec_lut_bbb(const int8_t *x, const unsigned short *lut, int8_t *y, const uint32_t len) {
+  srslte_vec_lut_bbb_simd(x, lut, y, len);
 }
 
 void srslte_vec_lut_sis(const short *x, const unsigned int *lut, short *y, const uint32_t len) {
@@ -163,6 +175,15 @@ void srslte_vec_fprint_b(FILE *stream, uint8_t *x, const uint32_t len) {
   fprintf(stream, "];\n");
 }
 
+void srslte_vec_fprint_bs(FILE *stream, int8_t *x, const uint32_t len) {
+  int i;
+  fprintf(stream, "[");
+  for (i=0;i<len;i++) {
+    fprintf(stream, "%4d, ", x[i]);
+  }
+  fprintf(stream, "];\n");
+}
+
 void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
@@ -185,7 +206,7 @@ void srslte_vec_fprint_s(FILE *stream, short *x, const uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
-    fprintf(stream, "%d, ", x[i]);
+    fprintf(stream, "%4d, ", x[i]);
   }
   fprintf(stream, "];\n");
 }
@@ -271,9 +292,16 @@ void srslte_vec_prod_fff(const float *x, const float *y, float *z, const uint32_
   srslte_vec_prod_fff_simd(x, y, z, len);
 }
 
-// Scrambling Short
 void srslte_vec_prod_sss(const int16_t *x, const int16_t *y, int16_t *z, const uint32_t len) {
   srslte_vec_prod_sss_simd(x,y,z,len);
+}
+
+// Scrambling
+void srslte_vec_neg_sss(const int16_t *x, const int16_t *y, int16_t *z, const uint32_t len) {
+  srslte_vec_neg_sss_simd(x,y,z,len);
+}
+void srslte_vec_neg_bbb(const int8_t *x, const int8_t *y, int8_t *z, const uint32_t len) {
+  srslte_vec_neg_bbb_simd(x,y,z,len);
 }
 
 // CFO and OFDM processing

@@ -545,6 +545,7 @@ typedef struct {
   bool sic_pss_enabled;
   float rx_gain_offset;
   bool pdsch_csi_enabled;
+  bool pdsch_8bit_decoder;
   uint32_t intra_freq_meas_len_ms;
   uint32_t intra_freq_meas_period_ms;
 } phy_args_t; 

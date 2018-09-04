@@ -52,6 +52,14 @@
 #endif
 
 
+// Useful macros for templates
+#define CONCAT(a, b) a##b
+#define CONCAT2(a, b) CONCAT(a,b)
+
+#define STRING2(x) #x
+#define STRING(x) STRING2(x)
+
+
 // Common error codes
 #define SRSLTE_SUCCESS                0
 #define SRSLTE_ERROR                  -1

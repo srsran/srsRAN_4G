@@ -204,6 +204,8 @@ enable = false
 # pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
 #                        used in TM1. It is True by default.
 #
+# pdsch_8bit_decoder:    Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)
+#
 #####################################################################
 [expert]
 #ip_netmask          = 255.255.255.0
@@ -215,7 +217,7 @@ enable = false
 #cqi_fixed           = 10
 #snr_ema_coeff       = 0.1
 #snr_estim_alg       = refs
-#pdsch_max_its       = 4
+#pdsch_max_its       = 8    # These are half iterations
 #attach_enable_64qam = false
 #nof_phy_threads     = 2
 #equalizer_mode      = mmse
@@ -234,6 +236,7 @@ enable = false
 #metrics_period_secs = 1
 #metrics_csv_filename = /tmp/ue_metrics.csv
 #pdsch_csi_enabled  = true
+#pdsch_8bit_decoder = false
 
 # CFO related values
 #cfo_is_doppler      = false

@@ -30,7 +30,6 @@
 #include <stdint.h>
 
 #include "srslte/phy/fec/tc_interl.h"
-#include "srslte/phy/fec/turbocoder.h"
 
 #define TURBO_SRSLTE_TCOD_RATE 	3
 

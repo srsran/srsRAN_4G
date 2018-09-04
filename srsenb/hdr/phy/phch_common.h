@@ -41,6 +41,7 @@ namespace srsenb {
 typedef struct {
   float max_prach_offset_us; 
   int pusch_max_its;
+  bool pusch_8bit_decoder;
   float tx_amplitude; 
   int nof_phy_threads;  
   std::string equalizer_mode; 

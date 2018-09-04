@@ -32,12 +32,18 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <srslte/phy/phch/sch.h>
 #include "srslte/phy/phch/pdsch.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-#define SRSLTE_PDSCH_MAX_TDEC_ITERS         4
+#define SRSLTE_PDSCH_MAX_TDEC_ITERS         10
+
+#ifdef LV_HAVE_SSE
+#include <immintrin.h>
+#endif /* LV_HAVE_SSE */
+
 
 /* 36.213 Table 8.6.3-1: Mapping of HARQ-ACK offset values and the index signalled by higher layers */
 float beta_harq_offset[16] = {2.0, 2.5, 3.125, 4.0, 5.0, 6.250, 8.0, 10.0, 
@@ -184,8 +190,6 @@ static int encode_tb_off(srslte_sch_t *q,
                      uint32_t Qm, uint32_t rv, uint32_t nof_e_bits,  
                      uint8_t *data, uint8_t *e_bits, uint32_t w_offset) 
 {
-  uint8_t parity[3] = {0, 0, 0};
-  uint32_t par;
   uint32_t i;
   uint32_t cb_len=0, rp=0, wp=0, rlen=0, n_e=0;
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -213,17 +217,9 @@ static int encode_tb_off(srslte_sch_t *q,
       gamma = Gp%cb_segm->C;
     }
 
-    if (data) {
+    /* Reset TB CRC */
+    srslte_crc_set_init(&q->crc_tb, 0);
 
-      /* Compute transport block CRC */
-      par = srslte_crc_checksum_byte(&q->crc_tb, data, cb_segm->tbs);
-
-      /* parity bits will be appended later */
-      parity[0] = (par&(0xff<<16))>>16;
-      parity[1] = (par&(0xff<<8))>>8;
-      parity[2] = par&0xff;
-    }
-    
     wp = 0;
     rp = 0;
     for (i = 0; i < cb_segm->C; i++) {
@@ -252,6 +248,7 @@ static int encode_tb_off(srslte_sch_t *q,
           cb_len, rlen, wp, rp, n_e);
 
       if (data) {
+        bool last_cb = false;
 
         /* Copy data to another buffer, making space for the Codeblock CRC */
         if (i < cb_segm->C - 1) {
@@ -263,13 +260,19 @@ static int encode_tb_off(srslte_sch_t *q,
           
           /* Append Transport Block parity bits to the last CB */
           memcpy(q->cb_in, &data[rp/8], (rlen - 24) * sizeof(uint8_t)/8);
-          memcpy(&q->cb_in[(rlen - 24)/8], parity, 3 * sizeof(uint8_t));
+          last_cb = true;
         }
 
         /* Turbo Encoding
          * If Codeblock CRC is required it is given the CRC instance pointer, otherwise CRC pointer shall be NULL
          */
-        srslte_tcod_encode_lut(&q->encoder, (cb_segm->C > 1) ? &q->crc_cb : NULL, q->cb_in, q->parity_bits, cblen_idx);
+        srslte_tcod_encode_lut(&q->encoder,
+                               &q->crc_tb,
+                               (cb_segm->C > 1) ? &q->crc_cb : NULL,
+                               q->cb_in,
+                               q->parity_bits,
+                               cblen_idx,
+                               last_cb);
       }
       DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d\n",cblen_idx, n_e, wp, nof_e_bits);
       
@@ -304,142 +307,117 @@ static int encode_tb(srslte_sch_t *q,
 bool decode_tb_cb(srslte_sch_t *q, 
                      srslte_softbuffer_rx_t *softbuffer, srslte_cbsegm_t *cb_segm, 
                      uint32_t Qm, uint32_t rv, uint32_t nof_e_bits, 
-                     int16_t *e_bits, uint8_t *data,
-                     uint32_t cb_size_group) 
+                     void *e_bits, uint8_t *data)
 {
 
-  bool cb_map[SRSLTE_MAX_CODEBLOCKS];
-    
-  uint32_t cb_idx[SRSLTE_TDEC_MAX_NPAR];
-  int16_t *decoder_input[SRSLTE_TDEC_MAX_NPAR];
-  
-  uint32_t nof_cb     = cb_size_group?cb_segm->C2:cb_segm->C1;
-  uint32_t first_cb   = cb_size_group?cb_segm->C1:0;
-  uint32_t cb_len     = cb_size_group?cb_segm->K2:cb_segm->K1;
-  uint32_t cb_len_idx = cb_size_group?cb_segm->K2_idx:cb_segm->K1_idx;
+  int8_t *e_bits_b  = e_bits;
+  int16_t *e_bits_s = e_bits;
 
-  uint32_t rlen       = cb_segm->C==1?cb_len:(cb_len-24);
-  uint32_t Gp         = nof_e_bits / Qm;
-  uint32_t gamma      = cb_segm->C>0?Gp%cb_segm->C:Gp;
-  uint32_t n_e        = Qm * (Gp/cb_segm->C);
-  
-  if (nof_cb > SRSLTE_MAX_CODEBLOCKS) {
+  if (cb_segm->C > SRSLTE_MAX_CODEBLOCKS) {
     fprintf(stderr, "Error SRSLTE_MAX_CODEBLOCKS=%d\n", SRSLTE_MAX_CODEBLOCKS);
-    return false; 
+    return false;
   }
-  
-  for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
-    cb_idx[i]        = i+first_cb; 
-    decoder_input[i] = NULL;
-  }
-  
-  uint32_t remaining_cb = 0;
-  for (int i=0;i<nof_cb;i++) {
-    /* Do not process blocks with CRC Ok */
-    cb_map[i] = softbuffer->cb_crc[i];
-    if (softbuffer->cb_crc[i] == false) {
-      remaining_cb ++;
-    }
-  }
-    
-  srslte_tdec_reset(&q->decoder, cb_len);
-  
+
   q->nof_iterations = 0;
 
-  while(remaining_cb>0) {
-        
-    // Unratematch the codeblocks left to decode 
-    for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
-      
-      if (!decoder_input[i] && remaining_cb > 0) {        
-        // Find an unprocessed CB 
-        cb_idx[i]=first_cb;
-        while(cb_idx[i]<first_cb+nof_cb-1 && cb_map[cb_idx[i]]) {
-          cb_idx[i]++;
+  for (int cb_idx=0;cb_idx<cb_segm->C;cb_idx++)
+  {
+    /* Do not process blocks with CRC Ok */
+    if (softbuffer->cb_crc[cb_idx] == false) {
+
+      uint32_t cb_len     = cb_idx<cb_segm->C1?cb_segm->K1:cb_segm->K2;
+      uint32_t cb_len_idx = cb_idx<cb_segm->C1?cb_segm->K1_idx:cb_segm->K2_idx;
+
+      uint32_t rlen       = cb_segm->C==1?cb_len:(cb_len-24);
+      uint32_t Gp         = nof_e_bits / Qm;
+      uint32_t gamma      = cb_segm->C>0?Gp%cb_segm->C:Gp;
+      uint32_t n_e        = Qm * (Gp/cb_segm->C);
+
+      uint32_t rp   = cb_idx*n_e;
+      uint32_t n_e2 = n_e;
+
+      if (cb_idx > cb_segm->C - gamma) {
+        n_e2 = n_e+Qm;
+        rp   = (cb_segm->C - gamma)*n_e + (cb_idx-(cb_segm->C - gamma))*n_e2;
+      }
+
+      if (q->llr_is_8bit) {
+        if (srslte_rm_turbo_rx_lut_8bit(&e_bits_b[rp], (int8_t*) softbuffer->buffer_f[cb_idx], n_e2, cb_len_idx, rv)) {
+          fprintf(stderr, "Error in rate matching\n");
+          return SRSLTE_ERROR;
         }
-        if (cb_map[cb_idx[i]] == false) {
-          cb_map[cb_idx[i]] = true; 
-          
-          uint32_t rp   = cb_idx[i]*n_e;  
-          uint32_t n_e2 = n_e;
-          
-          if (cb_idx[i] > cb_segm->C - gamma) {
-            n_e2 = n_e+Qm;
-            rp   = (cb_segm->C - gamma)*n_e + (cb_idx[i]-(cb_segm->C - gamma))*n_e2;
-          }
-
-          INFO("CB %d: rp=%d, n_e=%d, i=%d\n", cb_idx[i], rp, n_e2, i);
-          if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[cb_idx[i]], n_e2, cb_len_idx, rv)) {
-            fprintf(stderr, "Error in rate matching\n");
-            return SRSLTE_ERROR;
-          }
-
-          decoder_input[i] = softbuffer->buffer_f[cb_idx[i]];
+      } else {
+        if (srslte_rm_turbo_rx_lut(&e_bits_s[rp], softbuffer->buffer_f[cb_idx], n_e2, cb_len_idx, rv)) {
+          fprintf(stderr, "Error in rate matching\n");
+          return SRSLTE_ERROR;
         }
       }
-    }
-        
-    // Run 1 iteration for the codeblocks in queue
-    srslte_tdec_iteration_par(&q->decoder, decoder_input, cb_len);
 
-    // Decide output bits and compute CRC 
-    for (int i=0;i<srslte_tdec_get_nof_parallel(&q->decoder);i++) {
-      if (decoder_input[i]) {        
-        srslte_tdec_decision_byte_par_cb(&q->decoder, q->cb_in, i, cb_len);
+      srslte_tdec_new_cb(&q->decoder, cb_len);
 
-        uint32_t len_crc; 
-        srslte_crc_t *crc_ptr; 
-        
-        if (cb_segm->C > 1) {
-          len_crc = cb_len; 
-          crc_ptr = &q->crc_cb; 
+      // Run iterations and use CRC for early stopping
+      bool early_stop = false;
+      uint32_t cb_noi = 0;
+      do {
+        if (q->llr_is_8bit) {
+          srslte_tdec_iteration_8bit(&q->decoder, (int8_t*) softbuffer->buffer_f[cb_idx], &data[cb_idx*rlen/8]);
         } else {
-          len_crc = cb_segm->tbs+24; 
-          crc_ptr = &q->crc_tb; 
+          srslte_tdec_iteration(&q->decoder, softbuffer->buffer_f[cb_idx], &data[cb_idx*rlen/8]);
+        }
+        q->nof_iterations++;
+        cb_noi++;
+
+        uint32_t len_crc;
+        srslte_crc_t *crc_ptr;
+
+        if (cb_segm->C > 1) {
+          len_crc = cb_len;
+          crc_ptr = &q->crc_cb;
+        } else {
+          len_crc = cb_segm->tbs+24;
+          crc_ptr = &q->crc_tb;
         }
 
         // CRC is OK
-        if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
+        if (!srslte_crc_checksum_byte(crc_ptr, &data[cb_idx*rlen/8], len_crc)) {
 
-          memcpy(softbuffer->data[cb_idx[i]], q->cb_in, rlen/8 * sizeof(uint8_t));
-          softbuffer->cb_crc[cb_idx[i]] = true;
+          softbuffer->cb_crc[cb_idx] = true;
+          early_stop = true;
 
-          q->nof_iterations += srslte_tdec_get_nof_iterations_cb(&q->decoder, i);
-
-          // Reset number of iterations for that CB in the decoder 
-          srslte_tdec_reset_cb(&q->decoder, i);
-          remaining_cb--;        
-          decoder_input[i] = NULL; 
-          cb_idx[i] = 0; 
-
-        // CRC is error and exceeded maximum iterations for this CB.
-        // Early stop the whole transport block.
-        } else if (srslte_tdec_get_nof_iterations_cb(&q->decoder, i) >= q->max_iterations) {
-          INFO("CB %d: Error. CB is erroneous. remaining_cb=%d, i=%d, first_cb=%d, nof_cb=%d\n", 
-                cb_idx[i], remaining_cb, i, first_cb, nof_cb);
-
-          q->nof_iterations += q->max_iterations;
-          srslte_tdec_reset_cb(&q->decoder, i);
-          remaining_cb--;
-          decoder_input[i] = NULL;
-          cb_idx[i] = 0;
+          // CRC is error and exceeded maximum iterations for this CB.
+          // Early stop the whole transport block.
         }
-      }
-    }    
-  }
 
-  softbuffer->tb_crc = true;
-  for (int i = 0; i < nof_cb && softbuffer->tb_crc; i++) {
-    /* If one CB failed return false */
-    softbuffer->tb_crc = softbuffer->cb_crc[i];
-  }
-  if (softbuffer->tb_crc) {
-    for (int i = 0; i < nof_cb; i++) {
-      memcpy(&data[i * rlen / 8], softbuffer->data[i], rlen/8 * sizeof(uint8_t));
+      } while (cb_noi < q->max_iterations && !early_stop);
+
+      INFO("CB %d: rp=%d, n_e=%d, cb_len=%d, CRC=%s, rlen=%d, iterations=%d/%d\n",
+           cb_idx, rp, n_e2, cb_len, early_stop?"OK":"KO", rlen, cb_noi, q->max_iterations);
+
+    } else {
+      // Copy decoded data from previous transmissions
+      uint32_t cb_len     = cb_idx<cb_segm->C1?cb_segm->K1:cb_segm->K2;
+      uint32_t rlen       = cb_segm->C==1?cb_len:(cb_len-24);
+      memcpy(&data[cb_idx*rlen/8], softbuffer->data[cb_idx], rlen/8 * sizeof(uint8_t));
     }
   }
 
-  q->nof_iterations /= nof_cb;
+  softbuffer->tb_crc = true;
+  for (int i = 0; i < cb_segm->C && softbuffer->tb_crc; i++) {
+    /* If one CB failed return false */
+    softbuffer->tb_crc = softbuffer->cb_crc[i];
+  }
+  // If TB CRC failed, save correct CB for next retransmission
+  if (!softbuffer->tb_crc) {
+    for (int i = 0; i < cb_segm->C; i++) {
+      if (softbuffer->cb_crc[i]) {
+        uint32_t cb_len     = i<cb_segm->C1?cb_segm->K1:cb_segm->K2;
+        uint32_t rlen       = cb_segm->C==1?cb_len:(cb_len-24);
+        memcpy(softbuffer->data[i], &data[i * rlen / 8], rlen/8 * sizeof(uint8_t));
+      }
+    }
+  }
+
+  q->nof_iterations /= cb_segm->C;
   return softbuffer->tb_crc;
 }
 
@@ -484,18 +462,14 @@ static int decode_tb(srslte_sch_t *q,
     }
         
     bool crc_ok = true; 
-    
-    uint32_t nof_cb_groups = cb_segm->C2>0?2:1; 
-    
+
     data[cb_segm->tbs/8+0] = 0; 
     data[cb_segm->tbs/8+1] = 0; 
     data[cb_segm->tbs/8+2] = 0; 
     
-    // Process Codeblocks in groups of equal CB size to parallelize according to SRSLTE_TDEC_MAX_NPAR
-    for (uint32_t i=0;i<nof_cb_groups && crc_ok;i++) {
-      crc_ok = decode_tb_cb(q, softbuffer, cb_segm, Qm, rv, nof_e_bits, e_bits, data, i);            
-    }
-    
+    // Process Codeblocks
+    crc_ok = decode_tb_cb(q, softbuffer, cb_segm, Qm, rv, nof_e_bits, e_bits, data);
+
     if (crc_ok) {
 
       uint32_t par_rx = 0, par_tx = 0;
@@ -593,23 +567,287 @@ static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs,
   }
 }
 
+static void ulsch_interleave_qm2(const uint8_t *g_bits, uint32_t rows, uint32_t cols, uint8_t *q_bits, uint32_t ri_min_row, const uint8_t *ri_present) {
+  uint32_t bit_read_idx = 0;
+
+  for (uint32_t j = 0; j < ri_min_row; j++) {
+    for (uint32_t i = 0; i < cols; i++) {
+      uint32_t k = (i * rows + j) * 2;
+
+      uint32_t read_byte_idx = bit_read_idx / 8;
+      uint32_t read_bit_idx = bit_read_idx % 8;
+      uint32_t write_byte_idx = k / 8;
+      uint32_t write_bit_idx = k % 8;
+      uint8_t w = (g_bits[read_byte_idx] >> (6 - read_bit_idx)) & (uint8_t) 0x03;
+      q_bits[write_byte_idx] |= w << (6 - write_bit_idx);
+
+      bit_read_idx += 2;
+    }
+  }
+
+  for (uint32_t j = ri_min_row; j < rows; j++) {
+    for (uint32_t i = 0; i < cols; i++) {
+      uint32_t k = (i * rows + j) * 2;
+
+      if (ri_present[k]) {
+        /* do nothing */
+      } else {
+        uint32_t read_byte_idx = bit_read_idx / 8;
+        uint32_t read_bit_idx = bit_read_idx % 8;
+        uint32_t write_byte_idx = k / 8;
+        uint32_t write_bit_idx = k % 8;
+        uint8_t w = (g_bits[read_byte_idx] >> (6 - read_bit_idx)) & (uint8_t) 0x03;
+        q_bits[write_byte_idx] |= w << (6 - write_bit_idx);
+
+        bit_read_idx += 2;
+      }
+    }
+  }
+}
+
+static void ulsch_interleave_qm4(uint8_t *g_bits, uint32_t rows, uint32_t cols, uint8_t *q_bits, uint32_t ri_min_row, const uint8_t *ri_present) {
+  uint32_t bit_read_idx = 0;
+  
+  for (uint32_t j = 0; j < ri_min_row; j++) {
+    int32_t i = 0;
+
+#ifndef LV_HAVE_SSE
+    __m128i _counter = _mm_slli_epi32(_mm_add_epi32(_mm_mullo_epi32(_counter0,_rows),_mm_set1_epi32(j)), 2);
+    uint8_t *_g_bits = &g_bits[bit_read_idx/8];
+
+    /* First bits are aligned to byte */
+    if (0 == (bit_read_idx & 0x3)) {
+      for (; i < (cols - 3); i += 4) {
+
+        uint8_t w1 = *(_g_bits++);
+        uint8_t w2 = *(_g_bits++);
+
+        __m128i _write_byte_idx = _mm_srli_epi32(_counter, 3);
+        __m128i _write_bit_idx = _mm_and_si128(_counter, _7);
+        __m128i _write_shift = _mm_sub_epi32(_4, _write_bit_idx);
+
+        q_bits[_mm_extract_epi32(_write_byte_idx, 0)] |= (w1 >> 0x4) << _mm_extract_epi32(_write_shift, 0);
+        q_bits[_mm_extract_epi32(_write_byte_idx, 1)] |= (w1 & 0xf) << _mm_extract_epi32(_write_shift, 1);
+        q_bits[_mm_extract_epi32(_write_byte_idx, 2)] |= (w2 >> 0x4) << _mm_extract_epi32(_write_shift, 2);
+        q_bits[_mm_extract_epi32(_write_byte_idx, 3)] |= (w2 & 0xf) << _mm_extract_epi32(_write_shift, 3);
+        _counter = _mm_add_epi32(_counter, _inc);
+      }
+    } else {
+      for (; i < (cols - 3); i += 4) {
+        __m128i _write_byte_idx = _mm_srli_epi32(_counter, 3);
+        __m128i _write_bit_idx = _mm_and_si128(_counter, _7);
+        __m128i _write_shift = _mm_sub_epi32(_4, _write_bit_idx);
+
+        uint8_t w1 = *(_g_bits);
+        uint8_t w2 = *(_g_bits++);
+        uint8_t w3 = *(_g_bits++);
+        q_bits[_mm_extract_epi32(_write_byte_idx, 0)] |= (w1 & 0xf) << _mm_extract_epi32(_write_shift, 0);
+        q_bits[_mm_extract_epi32(_write_byte_idx, 1)] |= (w2 >> 0x4) << _mm_extract_epi32(_write_shift, 1);
+        q_bits[_mm_extract_epi32(_write_byte_idx, 2)] |= (w2 & 0xf) << _mm_extract_epi32(_write_shift, 2);
+        q_bits[_mm_extract_epi32(_write_byte_idx, 3)] |= (w3 >> 0x4) << _mm_extract_epi32(_write_shift, 3);
+
+        _counter = _mm_add_epi32(_counter, _inc);
+      }
+    }
+    bit_read_idx += i * 4;
+#endif /* LV_HAVE_SSE */
+
+    /* Spare bits */
+    for (; i < cols; i++) {
+      uint32_t k = (i * rows + j) * 4;
+
+      uint32_t read_byte_idx = bit_read_idx / 8;
+      uint32_t read_bit_idx = bit_read_idx % 8;
+      uint32_t write_byte_idx = k / 8;
+      uint32_t write_bit_idx = k % 8;
+      uint8_t w = (g_bits[read_byte_idx] >> (4 - read_bit_idx)) & (uint8_t) 0x0f;
+      q_bits[write_byte_idx] |= w << (4 - write_bit_idx);
+
+      bit_read_idx += 4;
+    }
+  }
+
+  /* Do rows containing RI */
+  for (uint32_t j = ri_min_row; j < rows; j++) {
+    for (uint32_t i = 0; i < cols; i++) {
+      uint32_t k = (i * rows + j) * 4;
+
+      if (ri_present[k]) {
+        /* do nothing */
+      } else {
+        uint32_t read_byte_idx = bit_read_idx / 8;
+        uint32_t read_bit_idx = bit_read_idx % 8;
+        uint32_t write_byte_idx = k / 8;
+        uint32_t write_bit_idx = k % 8;
+        uint8_t w = (g_bits[read_byte_idx] >> (4 - read_bit_idx)) & (uint8_t) 0x0f;
+        q_bits[write_byte_idx] |= w << (4 - write_bit_idx);
+
+        bit_read_idx += 4;
+      }
+    }
+
+  }
+}
+
+static void ulsch_interleave_qm6(const uint8_t *g_bits,
+                                 uint32_t rows,
+                                 uint32_t cols,
+                                 uint8_t *q_bits,
+                                 uint32_t ri_min_row,
+                                 const uint8_t *ri_present) {
+  uint32_t bit_read_idx = 0;
+
+  for (uint32_t j = 0; j < ri_min_row; j++) {
+    for (uint32_t i = 0; i < cols; i++) {
+      uint32_t k = (i * rows + j) * 6;
+
+      uint32_t read_byte_idx = bit_read_idx / 8;
+      uint32_t read_bit_idx = bit_read_idx % 8;
+      uint32_t write_byte_idx = k / 8;
+      uint32_t write_bit_idx = k % 8;
+      uint8_t w;
+
+      switch (read_bit_idx) {
+        case 0:
+          w = g_bits[read_byte_idx] >> 2;
+          break;
+        case 2:
+          w = g_bits[read_byte_idx] & (uint8_t) 0x3f;
+          break;
+        case 4:
+          w = ((g_bits[read_byte_idx] << 2) | (g_bits[read_byte_idx + 1] >> 6)) & (uint8_t) 0x3f;
+          break;
+        case 6:
+          w = ((g_bits[read_byte_idx] << 4) | (g_bits[read_byte_idx + 1] >> 4)) & (uint8_t) 0x3f;
+          break;
+        default:
+          w = 0;
+      }
+
+      switch (write_bit_idx) {
+        case 0:
+          q_bits[write_byte_idx] |= w << 2;
+          break;
+        case 2:
+          q_bits[write_byte_idx] |= w;
+          break;
+        case 4:
+          q_bits[write_byte_idx] |= w >> 2;
+          q_bits[write_byte_idx + 1] |= w << 6;
+          break;
+        case 6:
+          q_bits[write_byte_idx] |= w >> 4;
+          q_bits[write_byte_idx + 1] |= w << 4;
+          break;
+        default:
+          /* Do nothing */;
+      }
+
+      bit_read_idx += 6;
+    }
+  }
+
+  for (uint32_t j = ri_min_row; j < rows; j++) {
+    for (uint32_t i = 0; i < cols; i++) {
+      uint32_t k = (i * rows + j) * 6;
+
+      if (ri_present[k]) {
+        /* do nothing */
+      } else {
+        uint32_t read_byte_idx = bit_read_idx / 8;
+        uint32_t read_bit_idx = bit_read_idx % 8;
+        uint32_t write_byte_idx = k / 8;
+        uint32_t write_bit_idx = k % 8;
+        uint8_t w;
+
+        switch (read_bit_idx) {
+          case 0:
+            w = g_bits[read_byte_idx] >> 2;
+            break;
+          case 2:
+            w = g_bits[read_byte_idx] & (uint8_t) 0x3f;
+            break;
+          case 4:
+            w = ((g_bits[read_byte_idx] << 2) | (g_bits[read_byte_idx + 1] >> 6)) & (uint8_t) 0x3f;
+            break;
+          case 6:
+            w = ((g_bits[read_byte_idx] << 4) | (g_bits[read_byte_idx + 1] >> 4)) & (uint8_t) 0x3f;
+            break;
+          default:
+            w = 0;
+        }
+
+        switch (write_bit_idx) {
+          case 0:
+            q_bits[write_byte_idx] |= w << 2;
+            break;
+          case 2:
+            q_bits[write_byte_idx] |= w;
+            break;
+          case 4:
+            q_bits[write_byte_idx] |= w >> 2;
+            q_bits[write_byte_idx + 1] |= w << 6;
+            break;
+          case 6:
+            q_bits[write_byte_idx] |= w >> 4;
+            q_bits[write_byte_idx + 1] |= w << 4;
+            break;
+          default:
+            /* Do nothing */;
+        }
+
+        bit_read_idx += 6;
+      }
+    }
+  }
+}
+
 /* UL-SCH channel interleaver according to 5.2.2.8 of 36.212 */
 void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
                       uint32_t N_pusch_symbs, uint8_t *q_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
                       uint8_t *ri_present, uint32_t *inteleaver_lut)
 {
-  
+
+  const uint32_t nof_bits = H_prime_total * Qm;
+  uint32_t rows = H_prime_total / N_pusch_symbs;
+  uint32_t cols = N_pusch_symbs;
+  uint32_t ri_min_row = rows;
+
   // Prepare ri_bits for fast search using temp_buffer
   if (nof_ri_bits > 0) {
     for (uint32_t i=0;i<nof_ri_bits;i++) {
-      ri_present[ri_bits[i].position] = 1;       
+      uint32_t ri_row = (ri_bits[i].position / Qm) % rows;
+
+      if (ri_row < ri_min_row) {
+        ri_min_row = ri_row;
+      }
+
+      ri_present[ri_bits[i].position] = 1;
     }
   }
-  
+
+#if 1
+  bzero(q_bits, nof_bits / 8);
+  switch (Qm) {
+    case 2:
+      ulsch_interleave_qm2(g_bits, rows, cols, q_bits, ri_min_row, ri_present);
+      break;
+    case 4:
+      ulsch_interleave_qm4(g_bits, rows, cols, q_bits, ri_min_row, ri_present);
+      break;
+    case 6:
+      ulsch_interleave_qm6(g_bits, rows, cols, q_bits, ri_min_row, ri_present);
+      break;
+    default:
+      /* This line should never be reached */
+      fprintf(stderr, "Wrong Qm (%d)\n", Qm);
+  }
+#else
   // Genearate interleaver table and interleave bits
   ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut); 
   srslte_bit_interleave_i(g_bits, q_bits, inteleaver_lut, H_prime_total*Qm);
-  
+#endif
+
   // Reset temp_buffer because will be reused next time
   if (nof_ri_bits > 0) {
     for (uint32_t i=0;i<nof_ri_bits;i++) {

@@ -603,7 +603,11 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     srslte_dft_precoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
     
     // Soft demodulation
-    srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
+    if (q->llr_is_8bit) {
+      srslte_demod_soft_demodulate_b(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
+    } else {
+      srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
+    }
 
     // Generate scrambling sequence if not pre-generated
     srslte_sequence_t *seq = get_user_sequence(q, rnti, cfg->sf_idx, cfg->nbits.nof_bits);
@@ -632,7 +636,11 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     }
     
     // Descrambling
-    srslte_scrambling_s_offset(seq, q->q, 0, cfg->nbits.nof_bits);
+    if (q->llr_is_8bit) {
+      srslte_scrambling_sb_offset(seq, q->q, 0, cfg->nbits.nof_bits);
+    } else {
+      srslte_scrambling_s_offset(seq, q->q, 0, cfg->nbits.nof_bits);
+    }
 
     // Decode
     ret = srslte_ulsch_uci_decode(&q->ul_sch, cfg, softbuffer, q->q, q->g, data, uci_data);
