@@ -1942,12 +1942,31 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", get_rb_name(lcid).c_str());
 
+  // If the message contains a ConnectionSetup, acknowledge the transmission to avoid blocking of paging procedure
+  if (lcid == 0) {
+    // FIXME: We unpack and process this message twice to check if it's ConnectionSetup
+    srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes * 8);
+    bit_buf.N_bits = pdu->N_bytes * 8;
+    bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
+    liblte_rrc_unpack_dl_ccch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_ccch_msg);
+    if (dl_ccch_msg.msg_type == LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP) {
+      // Must enter CONNECT before stopping T300
+      state = RRC_STATE_CONNECTED;
+
+      mac_timers->timer_get(t300)->stop();
+      mac_timers->timer_get(t302)->stop();
+      rrc_log->console("RRC Connected\n");
+
+    }
+  }
+
   // add PDU to command queue
   cmd_msg_t msg;
   msg.pdu = pdu;
   msg.command = cmd_msg_t::PDU;
   msg.lcid = lcid;
   cmd_q.push(msg);
+
 }
 
 void rrc::process_pdu(uint32_t lcid, byte_buffer_t *pdu)
@@ -2561,12 +2580,6 @@ void rrc::handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup) {
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->rr_cnfg);
 
-  // Must enter CONNECT before stopping T300
-  state = RRC_STATE_CONNECTED;
-
-  rrc_log->console("RRC Connected\n");
-  mac_timers->timer_get(t300)->stop();
-  mac_timers->timer_get(t302)->stop();
   nas->set_barring(nas_interface_rrc::BARRING_NONE);
 
   if (dedicatedInfoNAS) {
