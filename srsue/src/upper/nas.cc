@@ -1176,7 +1176,8 @@ void nas::send_detach_request(bool switch_off)
     return;
   }
 
-  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_request = {};
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_request;
+  bzero(&detach_request, sizeof(detach_request));
   if (switch_off) {
     detach_request.detach_type.switch_off = 1;
     detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_SWITCH_OFF;

@@ -729,10 +729,10 @@ uint32_t rrc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint
  */
 bool rrc::si_acquire(uint32_t sib_index)
 {
-  uint32_t tti;
+  uint32_t tti = 0;
   uint32_t si_win_start=0, si_win_len=0;
-  uint16_t period;
-  uint32_t sched_index;
+  uint16_t period = 0;
+  uint32_t sched_index = 0;
   uint32_t x, sf, offset;
 
   uint32_t last_win_start = 0;
