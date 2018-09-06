@@ -41,9 +41,35 @@ using namespace std;
 
 namespace srsenb {
 
-void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
-  nof_mutex = nof_mutex_; 
-  assert(nof_mutex <= max_mutex);
+phch_common::phch_common(uint32_t max_workers) : tx_sem(max_workers)
+{
+  this->nof_workers = nof_workers;
+  params.max_prach_offset_us = 20;
+  radio = NULL;
+  mac = NULL;
+  is_first_tx = false;
+  is_first_of_burst = false;
+  pdsch_p_b = 0;
+  this->max_workers = max_workers;
+  bzero(&pusch_cfg, sizeof(pusch_cfg));
+  bzero(&hopping_cfg, sizeof(hopping_cfg));
+  bzero(&pucch_cfg, sizeof(pucch_cfg));
+  bzero(&ul_grants, sizeof(ul_grants));
+
+  for (uint32_t i=0;i<max_workers;i++) {
+    sem_init(&tx_sem[i], 0, 0); // All semaphores start blocked
+  }
+}
+
+phch_common::~phch_common() {
+  for (uint32_t i=0;i<max_workers;i++) {
+    sem_destroy(&tx_sem[i]);
+  }
+}
+
+void phch_common::set_nof_workers(uint32_t nof_workers)
+{
+  this->nof_workers = nof_workers;
 }
 
 void phch_common::reset() {
@@ -61,35 +87,42 @@ bool phch_common::init(srslte_cell_t *cell_, srslte::radio* radio_h_, mac_interf
   
   is_first_of_burst = true; 
   is_first_tx = true; 
-  for (uint32_t i=0;i<max_mutex;i++) {
-    pthread_mutex_init(&tx_mutex[i], NULL);
-  }
-  reset(); 
+  reset();
   return true; 
 }
 
 void phch_common::stop() {
-  for (uint32_t i=0;i<nof_mutex;i++) {
-    pthread_mutex_trylock(&tx_mutex[i]);
-    pthread_mutex_unlock(&tx_mutex[i]);
+  for (uint32_t i=0;i<max_workers;i++) {
+    sem_post(&tx_sem[i]);
   }
 }
 
-void phch_common::worker_end(uint32_t tx_mutex_cnt, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time)
+/* The transmission of UL subframes must be in sequence. The correct sequence is guaranteed by a chain of N semaphores,
+ * one per TTI%nof_workers. Each threads waits for the semaphore for the current thread and after transmission allows
+ * next TTI to be transmitted
+ *
+ * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
+ * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
+ */
+void phch_common::worker_end(uint32_t tti, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
 
-  // Wait previous TTIs to be transmitted 
+  // This variable is not protected but it is very unlikely that 2 threads arrive here simultaneously since at the beginning
+  // there is no workload and threads are separated by 1 ms
   if (is_first_tx) {
-    is_first_tx = false; 
-  } else {
-    pthread_mutex_lock(&tx_mutex[tx_mutex_cnt%nof_mutex]);
+    is_first_tx = false;
+    // Allow my own transmission if I'm the first to transmit
+    sem_post(&tx_sem[tti%nof_workers]);
   }
 
-  radio->set_tti(tx_mutex_cnt);
+  // Wait for the green light to transmit in the current TTI
+  sem_wait(&tx_sem[tti%nof_workers]);
+
+  radio->set_tti(tti);
   radio->tx((void **) buffer, nof_samples, tx_time);
-  
-  // Trigger next transmission 
-  pthread_mutex_unlock(&tx_mutex[(tx_mutex_cnt+1)%nof_mutex]);
+
+  // Allow next TTI to transmit
+  sem_post(&tx_sem[(tti+1)%nof_workers]);
 
   // Trigger MAC clock
   mac->tti_clock();

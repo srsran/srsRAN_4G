@@ -33,6 +33,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <vector>
+#include <semaphore.h>
 #include "srslte/srslte.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
@@ -116,7 +117,8 @@ typedef struct {
     uint8_t last_ri;
     uint8_t last_pmi;
 
-    phch_common(uint32_t max_mutex = 3);
+    phch_common(uint32_t max_workers);
+    ~phch_common();
     void init(phy_interface_rrc::phy_cfg_t *config,
               phy_args_t  *args,
               srslte::log *_log,
@@ -144,8 +146,7 @@ typedef struct {
 
     void worker_end(uint32_t tti, bool tx_enable, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
 
-    void set_nof_mutex(uint32_t nof_mutex);
-
+    void set_nof_workers(uint32_t nof_workers);
     bool sr_enabled;
     int  sr_last_tx_tti;
 
@@ -179,7 +180,9 @@ typedef struct {
 
     
     
-    std::vector<pthread_mutex_t>    tx_mutex;
+    std::vector<sem_t>    tx_sem;
+    uint32_t              nof_workers;
+    uint32_t              max_workers;
 
     bool               is_first_of_burst;
     srslte::radio      *radio_h;
@@ -207,10 +210,6 @@ typedef struct {
     pending_ack_t pending_ack[TTIMOD_SZ];
     
     bool            is_first_tx;
-
-    uint32_t        nof_workers;
-    uint32_t        nof_mutex;
-    uint32_t        max_mutex;
 
     srslte_cell_t   cell;
 

@@ -206,7 +206,7 @@ cf_t* phch_worker::get_buffer_rx(uint32_t antenna_idx)
   return signal_buffer_rx[antenna_idx];
 }
 
-void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timestamp_t tx_time_)
+void phch_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestamp_t tx_time_)
 {
   tti_rx       = tti_; 
   tti_tx_dl    = TTI_TX(tti_rx);
@@ -219,7 +219,7 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timesta
   t_rx         = TTIMOD(tti_rx);
   t_tx_ul      = TTIMOD(tti_tx_ul);
 
-  tx_mutex_cnt = tx_mutex_cnt_;
+  tx_worker_cnt = tx_worker_cnt_;
   memcpy(&tx_time, &tx_time_, sizeof(srslte_timestamp_t));
 }
 
@@ -483,7 +483,7 @@ void phch_worker::work_imp()
   pthread_mutex_unlock(&mutex);
 
   Debug("Sending to radio\n");
-  phy->worker_end(tx_mutex_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
+  phy->worker_end(tx_worker_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
 
   is_worker_running = false;
 

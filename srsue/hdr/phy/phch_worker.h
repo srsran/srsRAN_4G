@@ -52,7 +52,7 @@ public:
 
   /* Functions used by main PHY thread */
   cf_t* get_buffer(uint32_t antenna_idx);
-  void  set_tti(uint32_t tti, uint32_t tx_tti); 
+  void  set_tti(uint32_t tti, uint32_t tx_worker_cnt);
   void  set_tx_time(srslte_timestamp_t tx_time, uint32_t next_offset);
   void  set_prach(cf_t *prach_ptr, float prach_power);
   void  set_cfo(float cfo);
