@@ -90,11 +90,9 @@ void rlc::get_metrics(rlc_metrics_t &m)
   get_time_interval(metrics_time);
   double secs = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec*1e-6;
   
-  m.dl_tput_mbps = 0; 
-  m.ul_tput_mbps = 0; 
   for (int i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
-    m.dl_tput_mbps += (dl_tput_bytes[i]*8/(double)1e6)/secs;
-    m.ul_tput_mbps += (ul_tput_bytes[i]*8/(double)1e6)/secs;    
+    m.dl_tput_mbps[i] = (dl_tput_bytes[i]*8/(double)1e6)/secs;
+    m.ul_tput_mbps[i] = (ul_tput_bytes[i]*8/(double)1e6)/secs;
     if(rlc_array[i].active()) {
       rlc_log->info("LCID=%d, RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
                     i,
@@ -105,7 +103,7 @@ void rlc::get_metrics(rlc_metrics_t &m)
 
   // Add multicast metrics
   for (int i=0;i<SRSLTE_N_MCH_LCIDS;i++) {
-    m.dl_tput_mbps += (dl_tput_bytes_mrb[i]*8/(double)1e6)/secs;
+    m.dl_tput_mrb_mbps[i] = (dl_tput_bytes_mrb[i]*8/(double)1e6)/secs;
     if(rlc_array_mrb[i].is_mrb()) {
       rlc_log->info("MCH_LCID=%d, RX throughput: %4.6f Mbps.\n",
                     i,
