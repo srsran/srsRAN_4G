@@ -52,7 +52,7 @@ namespace srsue {
 
 phy::phy() : workers_pool(MAX_WORKERS), 
              workers(MAX_WORKERS), 
-             workers_common(phch_recv::MUTEX_X_WORKER*MAX_WORKERS),nof_coworkers(0)
+             workers_common(MAX_WORKERS),nof_coworkers(0)
 {
 }
 
