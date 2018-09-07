@@ -48,7 +48,7 @@ namespace srsenb {
 
 phy::phy() : workers_pool(MAX_WORKERS), 
              workers(MAX_WORKERS), 
-             workers_common(txrx::MUTEX_X_WORKER*MAX_WORKERS),
+             workers_common(MAX_WORKERS),
              nof_workers(0)
 {
   radio_handler = NULL;
@@ -141,10 +141,10 @@ bool phy::init(phy_args_t *args,
 void phy::stop()
 {  
   tx_rx.stop();  
-  workers_common.stop();
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].stop();
   }
+  workers_common.stop();
   workers_pool.stop();
   prach.stop();
 }
