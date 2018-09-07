@@ -235,10 +235,21 @@ bool rlc_am::rlc_am_tx::configure(srslte_rlc_am_config_t cfg_)
 
 void rlc_am::rlc_am_tx::stop()
 {
-
   empty_queue();
 
   pthread_mutex_lock(&mutex);
+
+  if (parent->mac_timers && poll_retx_timer) {
+    poll_retx_timer->stop();
+    parent->mac_timers->timer_release_id(poll_retx_timer_id);
+    poll_retx_timer = NULL;
+  }
+
+  if (parent->mac_timers && status_prohibit_timer) {
+    status_prohibit_timer->stop();
+    parent->mac_timers->timer_release_id(status_prohibit_timer_id);
+    status_prohibit_timer = NULL;
+  }
 
   vt_a    = 0;
   vt_ms   = RLC_AM_WINDOW_SIZE;
@@ -474,7 +485,7 @@ unlock_and_exit:
 void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
-  if (poll_retx_timer_id == timeout_id) {
+  if (poll_retx_timer && poll_retx_timer_id == timeout_id) {
     // if both tx and retx buffer are empty, retransmit next PDU to be ack'ed (Section 5.2.2.3 in TS 36.322)
     log->debug("Poll reTx timer expired (lcid=%d)\n", parent->lcid);
     if ((tx_window.size() > 0 && retx_queue.size() == 0 && tx_sdu_queue.size() == 0)) {
@@ -492,7 +503,7 @@ void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
       }
     }
   } else
-  if (status_prohibit_timer_id == timeout_id) {
+  if (status_prohibit_timer && status_prohibit_timer_id == timeout_id) {
     status_prohibited = true;
     status_prohibit_timer->reset();
   }
@@ -525,12 +536,14 @@ bool rlc_am::rlc_am_tx::poll_required()
     return true;
   }
 
-  if (poll_retx_timer->is_expired()) {
-    // re-arm timer
-    poll_retx_timer->reset();
-    poll_retx_timer->set(this, cfg.t_poll_retx);
-    poll_retx_timer->run();
-    return true;
+  if (poll_retx_timer) {
+    if (poll_retx_timer->is_expired()) {
+      // re-arm timer
+      poll_retx_timer->reset();
+      poll_retx_timer->set(this, cfg.t_poll_retx);
+      poll_retx_timer->run();
+      return true;
+    }
   }
 
   if (tx_sdu_queue.size() == 0 && retx_queue.size() == 0) {
@@ -1205,7 +1218,12 @@ void rlc_am::rlc_am_rx::reestablish()
 void rlc_am::rlc_am_rx::stop()
 {
   pthread_mutex_lock(&mutex);
-  reordering_timer->reset();
+
+  if (parent->mac_timers && reordering_timer) {
+    reordering_timer->stop();
+    parent->mac_timers->timer_release_id(reordering_timer_id);
+    reordering_timer = NULL;
+  }
 
   if (rx_sdu) {
     pool->deallocate(rx_sdu);
@@ -1584,7 +1602,7 @@ void rlc_am::rlc_am_rx::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 void rlc_am::rlc_am_rx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
-  if (reordering_timer_id == timeout_id) {
+  if (reordering_timer && reordering_timer_id == timeout_id) {
     reordering_timer->reset();
     log->debug("%s reordering timeout expiry - updating vr_ms\n", RB_NAME);
 
