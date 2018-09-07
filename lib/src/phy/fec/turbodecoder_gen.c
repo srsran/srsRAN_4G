@@ -215,10 +215,12 @@ int tdec_gen_init(void **hh, uint32_t max_long_cb)
 void tdec_gen_free(void *hh)
 {
   tdec_gen_t *h = (tdec_gen_t*) hh;
-  if (h->beta) {
-    free(h->beta);
+  if (h) {
+    if (h->beta) {
+      free(h->beta);
+    }
+    free(h);
   }
-  bzero(h, sizeof(tdec_gen_t));
 }
 
 void tdec_gen_dec(void *hh, int16_t *input, int16_t *app, int16_t *parity, int16_t *output, uint32_t long_cb)

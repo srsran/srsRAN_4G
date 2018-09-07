@@ -379,13 +379,15 @@ void tdec_sse_free(void *hh)
 {
   tdec_sse_t *h = (tdec_sse_t*) hh;
 
-  if (h->alpha) {
-    free(h->alpha);
+  if (h) {
+    if (h->alpha) {
+      free(h->alpha);
+    }
+    if (h->branch) {
+      free(h->branch);
+    }
+    free(h);
   }
-  if (h->branch) {
-    free(h->branch);
-  }
-  bzero(h, sizeof(tdec_sse_t));
 }
 
 /* Runs one instance of a decoder */

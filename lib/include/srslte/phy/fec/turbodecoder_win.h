@@ -603,10 +603,12 @@ int MAKE_FUNC(init)(void **hh, uint32_t max_long_cb)
 void MAKE_FUNC(free)(void *hh)
 {
   MAKE_TYPE *h = (MAKE_TYPE*) hh;
-  if (h->beta) {
-    free(h->beta);
+  if (h) {
+    if (h->beta) {
+      free(h->beta);
+    }
+    free(h);
   }
-  bzero(h, sizeof(MAKE_TYPE));
 }
 
 void MAKE_FUNC(dec)(void *hh, llr_t *input, llr_t *app, llr_t *parity, llr_t *output, uint32_t long_cb)
