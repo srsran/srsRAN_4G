@@ -81,8 +81,8 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
     return;
   }
 
-  nof_tx_mutex = MUTEX_X_WORKER * workers_pool->get_nof_workers();
-  worker_com->set_nof_mutex(nof_tx_mutex);
+  nof_workers = workers_pool->get_nof_workers();
+  worker_com->set_nof_workers(nof_workers);
 
   // Initialize cell searcher
   search_p.init(sf_buffer, log_h, nof_rx_antennas, this);
@@ -128,7 +128,7 @@ void phch_recv::reset()
   radio_overflow_return = false;
   in_sync_cnt = 0;
   out_of_sync_cnt = 0;
-  tx_mutex_cnt = 0;
+  tx_worker_cnt = 0;
   time_adv_sec = 0;
   next_offset  = 0;
   srate_mode = SRATE_NONE;
@@ -454,13 +454,13 @@ void phch_recv::run_thread()
 
               worker->set_prach(prach_ptr?&prach_ptr[prach_sf_cnt*SRSLTE_SF_LEN_PRB(cell.nof_prb)]:NULL, prach_power);
               worker->set_cfo(get_tx_cfo());
-              worker->set_tti(tti, tx_mutex_cnt);
+              worker->set_tti(tti, tx_worker_cnt);
               worker->set_tx_time(tx_time, next_offset);
               next_offset  = 0;
               if (next_time_adv_sec != time_adv_sec) {
                 time_adv_sec = next_time_adv_sec;
               }
-              tx_mutex_cnt = (tx_mutex_cnt+1) % nof_tx_mutex;
+              tx_worker_cnt = (tx_worker_cnt+1) % nof_workers;
 
               // Advance/reset prach subframe pointer
               if (prach_ptr) {

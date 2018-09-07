@@ -64,7 +64,7 @@ int pcsc_usim::init(usim_args_t *args, srslte::log *log_)
     log->error("Error reading IMSI from SIM.\n");
     return ret;
   }
-  imsi_str = tmp;
+  imsi_str.assign(tmp, tmp_len);
 
   // Check extracted IMSI and convert
   if(15 == imsi_str.length()) {

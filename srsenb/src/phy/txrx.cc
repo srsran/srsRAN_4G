@@ -42,7 +42,7 @@ using namespace std;
 
 namespace srsenb {
 
-txrx::txrx() : tx_mutex_cnt(0), nof_tx_mutex(0), tti(0) {
+txrx::txrx() : tx_worker_cnt(0), nof_workers(0), tti(0) {
   running = false;   
   radio_h = NULL; 
   log_h   = NULL; 
@@ -58,11 +58,11 @@ bool txrx::init(srslte::radio* radio_h_, srslte::thread_pool* workers_pool_, phc
   workers_pool = workers_pool_;
   worker_com   = worker_com_;
   prach        = prach_; 
-  tx_mutex_cnt = 0; 
+  tx_worker_cnt = 0; 
   running      = true; 
   
-  nof_tx_mutex = MUTEX_X_WORKER*workers_pool->get_nof_workers();
-  worker_com->set_nof_mutex(nof_tx_mutex);
+  nof_workers = workers_pool->get_nof_workers();
+  worker_com->set_nof_workers(nof_workers);
     
   start(prio_);
   return true; 
@@ -126,12 +126,12 @@ void txrx::run_thread()
       srslte_timestamp_add(&tx_time, 0, HARQ_DELAY_MS*1e-3);
       
       Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d\n", 
-            tti, tx_mutex_cnt, 
+            tti, tx_worker_cnt, 
             tx_time.full_secs, tx_time.frac_secs,
             worker->get_id());
       
-      worker->set_time(tti, tx_mutex_cnt, tx_time);
-      tx_mutex_cnt = (tx_mutex_cnt+1)%nof_tx_mutex;
+      worker->set_time(tti, tx_worker_cnt, tx_time);
+      tx_worker_cnt = (tx_worker_cnt+1)%nof_workers;
       
       // Trigger phy worker execution
       workers_pool->start_worker(worker);       

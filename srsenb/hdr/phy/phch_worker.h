@@ -46,7 +46,7 @@ public:
   void  reset();
   
   cf_t *get_buffer_rx(uint32_t antenna_idx);
-  void set_time(uint32_t tti, uint32_t tx_mutex_cnt, srslte_timestamp_t tx_time);
+  void set_time(uint32_t tti, uint32_t tx_worker_cnt, srslte_timestamp_t tx_time);
   
   int  add_rnti(uint16_t rnti);
   void rem_rnti(uint16_t rnti);
@@ -93,8 +93,9 @@ private:
   cf_t          *signal_buffer_rx[SRSLTE_MAX_PORTS];
   cf_t          *signal_buffer_tx[SRSLTE_MAX_PORTS];
   uint32_t       tti_rx, tti_tx_dl, tti_tx_ul;
-  uint32_t       sf_rx, sf_tx, tx_mutex_cnt;
+  uint32_t       sf_rx, sf_tx;
   uint32_t       t_rx, t_tx_dl, t_tx_ul;
+  uint32_t       tx_worker_cnt;
   srslte_enb_dl_t enb_dl;
   srslte_enb_ul_t enb_ul;
   srslte_softbuffer_tx_t temp_mbsfn_softbuffer;

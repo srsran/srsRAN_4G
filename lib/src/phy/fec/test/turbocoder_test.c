@@ -97,7 +97,8 @@ int main(int argc, char **argv) {
     }
 
     /* Create CRC for Transport Block, it is not currently used but it is required */
-    srslte_crc_t crc_tb = {};
+    srslte_crc_t crc_tb;
+    bzero(&crc_tb, sizeof(crc_tb));
     if (srslte_crc_init(&crc_tb, SRSLTE_LTE_CRC24A, 24)) {
       printf("error initialising CRC\n");
       exit(-1);

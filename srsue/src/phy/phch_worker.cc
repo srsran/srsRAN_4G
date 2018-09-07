@@ -193,10 +193,10 @@ cf_t* phch_worker::get_buffer(uint32_t antenna_idx)
   return signal_buffer[antenna_idx]; 
 }
 
-void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
+void phch_worker::set_tti(uint32_t tti_, uint32_t tx_worker_cnt)
 {
-  tti    = tti_; 
-  tx_tti = tx_tti_;
+  tti    = tti_;
+  tx_tti = tx_worker_cnt;
   log_h->step(tti);
   if (log_phy_lib_h) {
     log_phy_lib_h->step(tti);

@@ -75,12 +75,12 @@ bool rlc_um::configure(srslte_rlc_config_t cnfg_)
     return false;
   }
 
-  log->warning("%s configured in %s mode: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode],
-               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
-
   // store config
   cfg = cnfg_.um;
+
+  log->warning("%s configured in %s mode: ft_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
+               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode],
+               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
 
   return true;
 }
@@ -149,7 +149,6 @@ void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
   } else {
     tx.try_write_sdu(sdu);
   }
-
 }
 
 /****************************************************************************
@@ -199,7 +198,7 @@ void rlc_um::reset_metrics()
 
 std::string rlc_um::get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bool is_mrb)
 {
-  if(is_mrb) {
+  if (is_mrb) {
     std::stringstream ss;
     ss << "MRB" << lcid;
     return ss.str();

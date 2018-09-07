@@ -190,8 +190,8 @@ uint32_t prbset_to_bitmask() {
 int main(int argc, char **argv) {
   struct timeval t[3] = {};
   size_t tx_nof_bits = 0, rx_nof_bits = 0;
-  srslte_enb_dl_t enb_dl = {};
-  srslte_ue_dl_t ue_dl = {};
+  srslte_enb_dl_t enb_dl;
+  srslte_ue_dl_t ue_dl;
   srslte_softbuffer_tx_t *softbuffer_tx[SRSLTE_MAX_TB] = {};
   srslte_softbuffer_rx_t *softbuffer_rx[SRSLTE_MAX_TB] = {};
   uint8_t *data_tx[SRSLTE_MAX_TB] = {};
@@ -205,6 +205,9 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   cf_t *signal_buffer[SRSLTE_MAX_PORTS] = {NULL};
+
+  bzero(&enb_dl, sizeof(enb_dl));
+  bzero(&ue_dl, sizeof(ue_dl));
 
   /*
    * Allocate Memory
@@ -304,9 +307,12 @@ int main(int argc, char **argv) {
     /*
      * Run eNodeB
      */
-    srslte_ra_dl_dci_t dci = {};
+    srslte_ra_dl_dci_t dci;
     srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
-    srslte_ra_dl_grant_t grant = {};
+    srslte_ra_dl_grant_t grant;
+
+    bzero(&dci, sizeof(dci));
+    bzero(&grant, sizeof(grant));
 
     prbset_num = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
     last_prbset_num = prbset_num;
