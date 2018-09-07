@@ -979,7 +979,9 @@ void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   log->info("%s Rx Status PDU: %s\n", RB_NAME, rlc_am_to_string(&status).c_str());
 
-  poll_retx_timer->reset();
+  if (poll_retx_timer) {
+    poll_retx_timer->reset();
+  }
 
   // flush retx queue to avoid unordered SNs, we expect the Rx to request lost PDUs again
   if (status.N_nack > 0) {
