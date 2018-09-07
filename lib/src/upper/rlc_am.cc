@@ -955,107 +955,6 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   return (ptr-payload) + pdu->N_bytes;
 }
 
-void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header)
-{
-  std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator it;
-
-  log->info_hex(payload, nof_bytes, "%s Rx data PDU SN: %d (%d B), %s",
-                RB_NAME, header.sn, nof_bytes, rlc_fi_field_text[header.fi]);
-
-  if(!inside_rx_window(header.sn)) {
-    if(header.p) {
-      log->info("%s Status packet requested through polling bit\n", RB_NAME);
-      do_status = true;
-    }
-    log->info("%s SN: %d outside rx window [%d:%d] - discarding\n",
-              RB_NAME, header.sn, vr_r, vr_mr);
-    return;
-  }
-
-  it = rx_window.find(header.sn);
-  if(rx_window.end() != it) {
-    if(header.p) {
-      log->info("%s Status packet requested through polling bit\n", RB_NAME);
-      do_status = true;
-    }
-    log->info("%s Discarding duplicate SN: %d\n",
-              RB_NAME, header.sn);
-    return;
-  }
-
-  // Write to rx window
-  rlc_amd_rx_pdu_t pdu;
-  pdu.buf = pool_allocate_blocking;
-  if (!pdu.buf) {
-#ifdef RLC_AM_BUFFER_DEBUG
-    log->console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
-    exit(-1);
-#else
-    log->error("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
-    return;
-#endif
-  }
-
-  // check available space for payload
-  if (nof_bytes > pdu.buf->get_tailroom()) {
-    log->error("%s Discarding SN: %d of size %d B (available space %d B)\n",
-              RB_NAME, header.sn, nof_bytes, pdu.buf->get_tailroom());
-    pool->deallocate(pdu.buf);
-    return;
-  }
-  memcpy(pdu.buf->msg, payload, nof_bytes);
-  pdu.buf->N_bytes  = nof_bytes;
-  memcpy(&pdu.header, &header, sizeof(rlc_amd_pdu_header_t));
-
-  rx_window[header.sn] = pdu;
-
-  // Update vr_h
-  if(RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_h)) {
-    vr_h = (header.sn + 1) % MOD;
-  }
-
-  // Update vr_ms
-  it = rx_window.find(vr_ms);
-  while(rx_window.end() != it) {
-    vr_ms = (vr_ms + 1)%MOD;
-    it = rx_window.find(vr_ms);
-  }
-
-  // Check poll bit
-  if(header.p) {
-    log->info("%s Status packet requested through polling bit\n", RB_NAME);
-    poll_received = true;
-
-    // 36.322 v10 Section 5.2.3
-    if(RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ms) ||
-       RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_mr))
-    {
-      do_status = true;
-    }
-    // else delay for reordering timer
-  }
-
-  // Reassemble and deliver SDUs
-  reassemble_rx_sdus();
-
-  // Update reordering variables and timers (36.322 v10.0.0 Section 5.1.3.2.3)
-  if (reordering_timer->is_running()) {
-    if(vr_x == vr_r || (!inside_rx_window(vr_x) && vr_x != vr_mr)) {
-      reordering_timer->reset();
-    }
-  }
-
-  if (not reordering_timer->is_running()) {
-    if(RX_MOD_BASE(vr_h) > RX_MOD_BASE(vr_r)) {
-      reordering_timer->set(this, cfg.t_reordering);
-      reordering_timer->run();
-      vr_x = vr_h;
-    }
-  }
-
-  debug_state();
-}
-
 void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
@@ -1344,6 +1243,109 @@ void rlc_am::rlc_am_rx::stop()
   pthread_mutex_unlock(&mutex);
 }
 
+
+void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header)
+{
+  std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator it;
+
+  log->info_hex(payload, nof_bytes, "%s Rx data PDU SN: %d (%d B), %s",
+                RB_NAME, header.sn, nof_bytes, rlc_fi_field_text[header.fi]);
+
+  if(!inside_rx_window(header.sn)) {
+    if(header.p) {
+      log->info("%s Status packet requested through polling bit\n", RB_NAME);
+      do_status = true;
+    }
+    log->info("%s SN: %d outside rx window [%d:%d] - discarding\n",
+              RB_NAME, header.sn, vr_r, vr_mr);
+    return;
+  }
+
+  it = rx_window.find(header.sn);
+  if(rx_window.end() != it) {
+    if(header.p) {
+      log->info("%s Status packet requested through polling bit\n", RB_NAME);
+      do_status = true;
+    }
+    log->info("%s Discarding duplicate SN: %d\n",
+              RB_NAME, header.sn);
+    return;
+  }
+
+  // Write to rx window
+  rlc_amd_rx_pdu_t pdu;
+  pdu.buf = pool_allocate_blocking;
+  if (!pdu.buf) {
+#ifdef RLC_AM_BUFFER_DEBUG
+    log->console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
+    exit(-1);
+#else
+    log->error("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
+    return;
+#endif
+  }
+
+  // check available space for payload
+  if (nof_bytes > pdu.buf->get_tailroom()) {
+    log->error("%s Discarding SN: %d of size %d B (available space %d B)\n",
+               RB_NAME, header.sn, nof_bytes, pdu.buf->get_tailroom());
+    pool->deallocate(pdu.buf);
+    return;
+  }
+  memcpy(pdu.buf->msg, payload, nof_bytes);
+  pdu.buf->N_bytes  = nof_bytes;
+  memcpy(&pdu.header, &header, sizeof(rlc_amd_pdu_header_t));
+
+  rx_window[header.sn] = pdu;
+
+  // Update vr_h
+  if(RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_h)) {
+    vr_h = (header.sn + 1) % MOD;
+  }
+
+  // Update vr_ms
+  it = rx_window.find(vr_ms);
+  while(rx_window.end() != it) {
+    vr_ms = (vr_ms + 1)%MOD;
+    it = rx_window.find(vr_ms);
+  }
+
+  // Check poll bit
+  if(header.p) {
+    log->info("%s Status packet requested through polling bit\n", RB_NAME);
+    poll_received = true;
+
+    // 36.322 v10 Section 5.2.3
+    if(RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ms) ||
+       RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_mr))
+    {
+      do_status = true;
+    }
+    // else delay for reordering timer
+  }
+
+  // Reassemble and deliver SDUs
+  reassemble_rx_sdus();
+
+  // Update reordering variables and timers (36.322 v10.0.0 Section 5.1.3.2.3)
+  if (reordering_timer) {
+    if (reordering_timer->is_running()) {
+      if(vr_x == vr_r || (!inside_rx_window(vr_x) && vr_x != vr_mr)) {
+        reordering_timer->reset();
+      }
+    }
+
+    if (not reordering_timer->is_running()) {
+      if(RX_MOD_BASE(vr_h) > RX_MOD_BASE(vr_r)) {
+        reordering_timer->set(this, cfg.t_reordering);
+        reordering_timer->run();
+        vr_x = vr_h;
+      }
+    }
+  }
+
+  debug_state();
+}
 
 
 void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header)
