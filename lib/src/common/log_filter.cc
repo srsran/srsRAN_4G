@@ -59,6 +59,10 @@ log_filter::log_filter(std::string layer, logger *logger_, bool tti)
   init(layer, logger_, tti);
 }
 
+log_filter::~log_filter()
+{
+}
+
 void log_filter::init(std::string layer, logger *logger_, bool tti)
 {
   service_name  = layer;
