@@ -25,7 +25,7 @@
  */
 
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <pthread.h>
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_stdout.h"
@@ -34,7 +34,7 @@
 #include "srslte/upper/rlc.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
-#include <assert.h>
+#include <cassert>
 #include <srslte/upper/rlc_interface.h>
 
 #define SDU_SIZE (1500)
