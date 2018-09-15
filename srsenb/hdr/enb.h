@@ -47,6 +47,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_file.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/live_mac_trace.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -73,6 +74,7 @@ struct enb_files_t {
   std::string rr_config;
   std::string drb_config;
 };
+
 
 struct log_args_t {
   std::string all_level;

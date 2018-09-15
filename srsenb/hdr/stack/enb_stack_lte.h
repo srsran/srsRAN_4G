@@ -95,6 +95,7 @@ private:
 
   srsenb::mac      mac;
   srslte::mac_pcap mac_pcap;
+  srslte::live_mac_trace live_mac_trace;
   srsenb::rlc      rlc;
   srsenb::pdcp     pdcp;
   srsenb::rrc      rrc;

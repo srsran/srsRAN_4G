@@ -40,7 +40,7 @@ namespace srslte {
 class live_mac_trace : thread{
 public:
   live_mac_trace();
-  void init(char * server_ip_addr_, uint16_t server_udp_port_, char * client_ip_addr_, uint16_t client_udp_port_);
+  void init(const char * server_ip_addr_, uint16_t server_udp_port_, const char * client_ip_addr_, uint16_t client_udp_port_);
   void stop();
   void set_ue_id(uint16_t ue_id);
 

@@ -99,7 +99,11 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
 
     ("pcap.enable",       bpo::value<bool>(&args->stack.pcap.enable)->default_value(false),         "Enable MAC packet captures for wireshark")
     ("pcap.filename",     bpo::value<string>(&args->stack.pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
-
+     ("live_trace.enable",   bpo::value<bool>(&args->stack.trace.enable)->default_value(false),          "Enable MAC packet live over UDP for wireshark")
+    ("live_trace.src_ip",   bpo::value<string>(&args->stack.trace.src_ip)->default_value("127.0.0.1"),  "Source IP for UDP packets")
+    ("live_trace.src_port", bpo::value<uint16_t>(&args->stack.trace.src_port)->default_value(5687),     "Source Port for UDP packets")
+    ("live_trace.dst_ip",   bpo::value<string>(&args->stack.trace.dst_ip)->default_value("127.0.0.1"),  "Destination IP for UDP packets")
+    ("live_trace.dst_port", bpo::value<uint16_t>(&args->stack.trace.dst_port)->default_value(5647),     "Destination Port for UDP packets")
     ("gui.enable",        bpo::value<bool>(&args->gui.enable)->default_value(false),          "Enable GUI plots")
 
     ("log.phy_level",     bpo::value<string>(&args->phy.log.phy_level),   "PHY log level")

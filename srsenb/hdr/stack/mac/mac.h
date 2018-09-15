@@ -31,6 +31,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/live_mac_trace.h"
 #include "scheduler.h"
 #include "scheduler_metric.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
@@ -62,6 +63,7 @@ public:
   void stop();
   
   void start_pcap(srslte::mac_pcap* pcap_);
+  void start_trace(srslte::live_mac_trace * mac_trace_);
 
   /******** Interface from PHY (PHY -> MAC) ****************/
   int sr_detected(uint32_t tti, uint16_t rnti) final;
@@ -194,6 +196,9 @@ private:
   
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap;
+
+  // pointer to MAC over UDP object
+  srslte::live_mac_trace* mac_trace;
   
 
   /* Class to run upper-layer timers with normal priority */

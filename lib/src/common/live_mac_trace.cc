@@ -35,7 +35,7 @@ live_mac_trace::live_mac_trace() : thread("MAC_LIVE_THREAD")
   pool = byte_buffer_pool::get_instance();
 }
 
-void live_mac_trace::init(char * server_ip_addr_, uint16_t server_udp_port_, char * client_ip_addr_, uint16_t client_udp_port_){
+void live_mac_trace::init(const char * server_ip_addr_, uint16_t server_udp_port_, const char * client_ip_addr_, uint16_t client_udp_port_){
   ueid = 0;
   socket_d = -1;
   socket_d = socket(AF_INET, SOCK_DGRAM, 0);

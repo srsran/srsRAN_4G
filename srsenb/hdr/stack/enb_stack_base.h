@@ -54,10 +54,19 @@ typedef struct {
 } stack_log_args_t;
 
 typedef struct {
+  bool enable;
+  std::string src_ip;
+  uint16_t src_port;
+  std::string dst_ip;
+  uint16_t dst_port;
+}live_trace_args_t;
+
+typedef struct {
   mac_args_t          mac;
   s1ap_args_t         s1ap;
   pcap_args_t         pcap;
   stack_log_args_t    log;
+  live_trace_args_t   trace;
   embms_args_t        embms;
 } stack_args_t;
 

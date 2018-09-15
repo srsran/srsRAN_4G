@@ -101,6 +101,34 @@ rx_gain = 40
 enable = false
 filename = /tmp/enb.pcap
 
+
+#####################################################################
+# MAC-layer live capture configuration
+#
+# Packets are sent live over UDP to a destination host and 
+# traces can be anaylized just in time by Wireshark. To use the 
+# dissector, activate 'Try heuristic sub-dissectors first' 
+# under UDP protocol preferences. Depending of version of Wireshark 
+# version, you need activate 'Try Heuristic LTE-MAC over UDP framing'
+# under the MAC-LTE protocol preferences. For Wireshark > 2.0 you 
+# find the heuristic activation in the 'Enabled Protocols' window
+# in the analyze menu (mac_lte_udp). 
+# For more information see: https://wiki.wireshark.org/MAC-LTE
+#
+# enable:   Enable MAC layer packet captures (true/false)
+# src_ip: File path to use for packet captures
+# src_port: File path to use for packet captures
+# dst_ip: File path to use for packet captures
+# dst_port: File path to use for packet captures
+#####################################################################
+
+[live_trace]
+enable = false
+src_ip = 127.0.0.1
+src_port = 5687
+dst_ip = 127.0.0.1
+dst_port = 5647
+
 #####################################################################
 # Log configuration
 #

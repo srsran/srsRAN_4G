@@ -28,6 +28,7 @@
 #include "srslte/common/pdu_queue.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/common/live_mac_trace.h"
 #include <pthread.h>
 #include "mac_metrics.h"
 
@@ -48,7 +49,8 @@ public:
   void     reset();
   
   void     start_pcap(srslte::mac_pcap* pcap_);
-
+  void     start_trace(srslte::live_mac_trace * mac_trace_);
+  
   void     set_tti(uint32_t tti); 
   
   void     config(uint16_t rnti, uint32_t nof_prb, sched_interface *sched, rrc_interface_mac *rrc_, rlc_interface_mac *rlc, srslte::log *log_h);
@@ -99,6 +101,7 @@ private:
   mac_metrics_t metrics;
 
   srslte::mac_pcap* pcap = nullptr;
+  srslte::live_mac_trace* mac_trace = nullptr;
 
   uint64_t conres_id = 0;
 

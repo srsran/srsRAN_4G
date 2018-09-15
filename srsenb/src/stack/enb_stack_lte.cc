@@ -83,6 +83,13 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     mac.start_pcap(&mac_pcap);
   }
 
+  // Set up pcap and trace
+  if (args.trace.enable) {
+    live_mac_trace.init(args.trace.src_ip.c_str(), args.trace.src_port, args.trace.dst_ip.c_str(), args.trace.dst_port);
+    mac.start_trace(&live_mac_trace);
+  }
+
+
   // verify configuration correctness
   uint32_t       prach_freq_offset = rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
   srslte_cell_t& cell_cfg          = rrc_cfg.cell;
