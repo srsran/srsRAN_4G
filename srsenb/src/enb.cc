@@ -131,6 +131,12 @@ bool enb::init(all_args_t *args_)
     mac_pcap.open(args->pcap.filename.c_str());
     mac.start_pcap(&mac_pcap);
   }
+
+  if(args->trace.enable)
+  {
+    mac_trace.init(args->trace.src_ip.c_str(), args->trace.src_port, args->trace.dst_ip.c_str(), args->trace.dst_port);
+    mac.start_trace(&mac_trace);
+  }
   
   // Init layers
   
@@ -266,6 +272,10 @@ void enb::stop()
     if(args->pcap.enable)
     {
        mac_pcap.close();
+    }
+    if(args->trace.enable)
+    {
+      mac_trace.stop();
     }
     radio.stop();
     started = false;

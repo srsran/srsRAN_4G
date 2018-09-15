@@ -48,6 +48,7 @@ mac::mac() : timers_db(128), timers_thread(&timers_db), tti(0), last_rnti(0),
 {
   started = false;  
   pcap = NULL;
+  mac_trace = NULL;
   phy_h = NULL;
   rlc_h = NULL;
   rrc_h = NULL;
@@ -146,6 +147,17 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     ue *u = iter->second;
     u->start_pcap(pcap);
+  }
+}
+
+
+void mac::start_trace(srslte::live_mac_trace* mac_trace_)
+{
+  mac_trace = mac_trace_;
+  // Set mac trace in all UEs for UL messages
+  for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+    ue *u = iter->second;
+    u->start_trace(mac_trace);
   }
 }
 
@@ -485,6 +497,10 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
     ue_db[last_rnti]->start_pcap(pcap);
   }
 
+  if (mac_trace) {
+    ue_db[last_rnti]->start_trace(mac_trace);
+  }
+
   pthread_rwlock_unlock(&rwlock);
 
   // Save RA info
@@ -578,6 +594,10 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
             pcap->write_dl_crnti(dl_sched_res->sched_grants[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti);
           }
 
+          if (mac_trace) {
+            mac_trace->write_dl_crnti(dl_sched_res->sched_grants[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti);
+          } 
+
         } else {
           /* TB not enabled OR no data to send: set pointers to NULL  */
           dl_sched_res->sched_grants[n].data[tb] = NULL;
@@ -611,6 +631,9 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
       pcap->write_dl_ranti(dl_sched_res->sched_grants[n].data[0], sched_result.rar[i].tbs, dl_sched_res->sched_grants[n].rnti, true, tti);
     }
 
+    if (mac_trace) {
+      mac_trace->write_dl_ranti(dl_sched_res->sched_grants[n].data[0], sched_result.rar[i].tbs, dl_sched_res->sched_grants[n].rnti, true, tti);
+    }
     n++;
   }
 
@@ -630,6 +653,9 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
       if (pcap) {
         pcap->write_dl_sirnti(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
+      if (mac_trace) {
+        mac_trace->write_dl_sirnti(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
+      }
 #endif
     } else {
       dl_sched_res->sched_grants[n].softbuffers[0] = &pcch_softbuffer_tx;
@@ -638,6 +664,10 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
       if (pcap) {
         pcap->write_dl_pch(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
+      }
+
+      if (mac_trace) {
+        mac_trace->write_dl_pch(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
     }
 

@@ -53,6 +53,7 @@
 #include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/live_mac_trace.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 
@@ -96,6 +97,14 @@ typedef struct {
 }pcap_args_t;
 
 typedef struct {
+  bool enable;
+  std::string src_ip;
+  uint16_t src_port;
+  std::string dst_ip;
+  uint16_t dst_port;
+}live_trace_args_t;
+
+typedef struct {
   std::string   phy_level;
   std::string   phy_lib_level;
   std::string   mac_level;
@@ -136,6 +145,7 @@ typedef struct {
   rf_args_t     rf;
   rf_cal_t      rf_cal; 
   pcap_args_t   pcap;
+  live_trace_args_t trace;
   log_args_t    log;
   gui_args_t    gui;
   expert_args_t expert;
@@ -183,6 +193,7 @@ private:
   srsenb::phy phy;
   srsenb::mac mac;
   srslte::mac_pcap mac_pcap;
+  srslte::live_mac_trace mac_trace;
   srsenb::rlc rlc;
   srsenb::pdcp pdcp;
   srsenb::rrc rrc;
