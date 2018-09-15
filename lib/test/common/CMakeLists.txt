@@ -51,6 +51,9 @@ target_link_libraries(log_filter_test srslte_phy srslte_common srslte_phy ${SEC_
 add_executable(timeout_test timeout_test.cc)
 target_link_libraries(timeout_test srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable(live_mac_trace_test live_mac_trace_test.cc)
+target_link_libraries(live_mac_trace_test srslte_common ${CMAKE_THREAD_LIBS_INIT})
+
 add_executable(bcd_helpers_test bcd_helpers_test.cc)
 
 add_executable(pdu_test pdu_test.cc)
