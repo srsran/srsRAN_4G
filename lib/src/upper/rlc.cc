@@ -505,9 +505,33 @@ void rlc::del_bearer(uint32_t lcid)
     rlc_array.erase(it);
     rlc_log->warning("Deleted RLC bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
-    rlc_log->warning("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
+    rlc_log->error("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
   }
 
+  pthread_rwlock_unlock(&rwlock);
+}
+
+
+void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
+{
+  pthread_rwlock_wrlock(&rwlock);
+
+  // make sure old LCID exists and new LCID is still free
+  if (valid_lcid(old_lcid) && not valid_lcid(new_lcid)) {
+    // insert old rlc entity into new LCID
+    rlc_map_t::iterator it = rlc_array.find(old_lcid);
+    rlc_common *rlc_entity = it->second;
+    if (not rlc_array.insert(rlc_map_pair_t(new_lcid, rlc_entity)).second) {
+      rlc_log->error("Error inserting RLC entity into array\n.");
+      goto exit;
+    }
+    // erase from old position
+    rlc_array.erase(it);
+    rlc_log->warning("Changed LCID of RLC bearer from %d to %d\n", old_lcid, new_lcid);
+  } else {
+    rlc_log->error("Can't change LCID of bearer %s from %d to %d. Bearer doesn't exist or new LCID already occupied.\n", rrc->get_rb_name(old_lcid).c_str(), old_lcid, new_lcid);
+  }
+exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
