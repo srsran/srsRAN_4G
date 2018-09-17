@@ -41,6 +41,10 @@
 #include "srslte/phy/utils/vector.h"
 
 
+#ifdef LV_HAVE_SSE
+#include <immintrin.h>
+#endif /* LV_HAVE_SSE */
+
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
 
@@ -699,13 +703,71 @@ static void csi_correction(srslte_pdsch_t *q, srslte_pdsch_cfg_t *cfg, uint32_t 
   }
   int8_t *e_b   = e;
   int16_t  *e_s = e;
-  for (int i = 0; i < nbits->nof_bits / qm; i++) {
-    const float csi = q->csi[codeword_idx][i] / csi_max;
-    if (q->llr_is_8bit) {
+  float *csi_v = q->csi[codeword_idx];
+  if (q->llr_is_8bit) {
+    for (int i = 0; i < nbits->nof_bits / qm; i++) {
+      const float csi = *(csi_v++) / csi_max;
       for (int k = 0; k < qm; k++) {
-        e_b[qm * i + k] = (int8_t) ((float) e_b[qm * i + k] * csi);
+        *e_b = (int8_t) ((float) *e_b * csi);
+        e_b++;
       }
-    } else {
+    }
+  } else {
+    int i = 0;
+
+#ifdef LV_HAVE_SSE
+    __m128 _csi_scale = _mm_set1_ps(INT16_MAX / csi_max);
+    __m64 *_e = (__m64 *) e;
+
+    switch(cfg->grant.mcs[tb_idx].mod) {
+      case SRSLTE_MOD_QPSK:
+        for (; i < nbits->nof_bits - 3; i += 4) {
+          __m128 _csi1 = _mm_set1_ps(*(csi_v++));
+          __m128 _csi2 = _mm_set1_ps(*(csi_v++));
+          _csi1 = _mm_blend_ps(_csi1, _csi2, 3);
+
+          _csi1 = _mm_mul_ps(_csi1, _csi_scale);
+
+          _e[0] = _mm_mulhi_pi16(_e[0], _mm_cvtps_pi16(_csi1));
+          _e += 1;
+        }
+        break;
+      case SRSLTE_MOD_16QAM:
+        for (; i < nbits->nof_bits - 3; i += 4) {
+          __m128 _csi = _mm_set1_ps(*(csi_v++));
+
+          _csi = _mm_mul_ps(_csi, _csi_scale);
+
+          _e[0] = _mm_mulhi_pi16(_e[0], _mm_cvtps_pi16(_csi));
+          _e += 1;
+        }
+        break;
+      case SRSLTE_MOD_64QAM:
+        for (; i < nbits->nof_bits - 11; i += 12) {
+          __m128 _csi1 = _mm_set1_ps(*(csi_v++));
+          __m128 _csi3 = _mm_set1_ps(*(csi_v++));
+
+          _csi1 = _mm_mul_ps(_csi1, _csi_scale);
+          _csi3 = _mm_mul_ps(_csi3, _csi_scale);
+          __m128 _csi2 = _mm_blend_ps(_csi1, _csi3, 3);
+
+          _e[0] = _mm_mulhi_pi16(_e[0], _mm_cvtps_pi16(_csi1));
+          _e[1] = _mm_mulhi_pi16(_e[1], _mm_cvtps_pi16(_csi2));
+          _e[2] = _mm_mulhi_pi16(_e[2], _mm_cvtps_pi16(_csi3));
+          _e += 3;
+        }
+        break;
+      case SRSLTE_MOD_BPSK:
+      case SRSLTE_MOD_LAST:
+        /* Do nothing */
+        break;
+    }
+
+    i /= qm;
+#endif /* LV_HAVE_SSE */
+
+    for (; i < nbits->nof_bits / qm; i++) {
+      const float csi = q->csi[codeword_idx][i] / csi_max;
       for (int k = 0; k < qm; k++) {
         e_s[qm * i + k] = (int16_t) ((float) e_s[qm * i + k] * csi);
       }
