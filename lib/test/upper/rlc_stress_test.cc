@@ -102,12 +102,20 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   }
 }
 
+// Interface for MAC reader to step timer
+class mac_reader_interface {
+public:
+  // MAC reader calls step_timers after each RLC transmission
+  virtual void step_timer() = 0;
+};
+
 class mac_reader
     :public thread
 {
 public:
-  mac_reader(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, uint32_t pdu_tx_delay_usec_, rlc_pcap *pcap_, uint32_t lcid_, bool is_dl_ = true)
+  mac_reader(mac_reader_interface *mac_, rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, uint32_t pdu_tx_delay_usec_, rlc_pcap *pcap_, uint32_t lcid_, bool is_dl_ = true)
   {
+    mac = mac_;
     rlc1 = rlc1_;
     rlc2 = rlc2_;
     fail_rate = fail_rate_;
@@ -152,10 +160,13 @@ private:
           }
         }
       }
+      // step timer
+      mac->step_timer();
     }
     byte_buffer_pool::get_instance()->deallocate(pdu);
   }
 
+  mac_reader_interface *mac;
   rlc_interface_mac *rlc1;
   rlc_interface_mac *rlc2;
   float fail_rate;
@@ -169,11 +180,13 @@ private:
 
 class mac_dummy
     :public srslte::mac_interface_timers
+    ,public mac_reader_interface
 {
 public:
   mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, int32_t pdu_tx_delay, uint32_t lcid, rlc_pcap* pcap = NULL)
-    :r1(rlc1_, rlc2_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, lcid, true)
-    ,r2(rlc2_, rlc1_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, lcid, false)
+    :r1(this, rlc1_, rlc2_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, lcid, true)
+    ,r2(this, rlc2_, rlc1_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, lcid, false)
+    ,timers(8)
   {
   }
 
@@ -191,13 +204,20 @@ public:
 
   srslte::timers::timer* timer_get(uint32_t timer_id)
   {
-    return &t;
+    return timers.get(timer_id);
   }
-  uint32_t timer_get_unique_id(){return 0;}
-  void timer_release_id(uint32_t id){}
+  uint32_t timer_get_unique_id() {
+    return timers.get_unique_id();
+  }
+  void timer_release_id(uint32_t timer_id) {
+    timers.release_id(timer_id);
+  }
+  void step_timer() {
+    timers.step_all();
+  }
 
 private:
-  srslte::timers::timer t;
+  srslte::timers timers;
 
   mac_reader r1;
   mac_reader r2;
