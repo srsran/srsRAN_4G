@@ -121,7 +121,10 @@ void live_mac_trace::pack_and_queue(uint8_t* pdu, uint32_t pdu_len_bytes, uint32
   
   udp_pdu = pool->allocate();
 
-  memcpy(udp_pdu->msg, pdu, pdu_len_bytes);
+  if(pdu != NULL){
+    memcpy(udp_pdu->msg, pdu, pdu_len_bytes);
+  }
+ 
   udp_pdu->N_bytes = pdu_len_bytes;
 
   mac_trace_pdu.pdu = udp_pdu;
