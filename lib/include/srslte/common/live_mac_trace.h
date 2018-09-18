@@ -32,12 +32,12 @@
 #include "srslte/common/pcap.h"
 #include "srslte/srslte.h"
 #include "srslte/common/threads.h"
-
-#define MAC_UDP_PDU_MAX_SIZE 1600
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/block_queue.h"
 
 namespace srslte {
 
-class live_mac_trace {
+class live_mac_trace : thread{
 public:
   live_mac_trace();
   void init(char * server_ip_addr_, uint16_t server_udp_port_, char * client_ip_addr_, uint16_t client_udp_port_);
@@ -55,16 +55,28 @@ public:
   void write_dl_mch(uint8_t *pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti);
 
 private:
+  byte_buffer_pool        *pool;
+  bool running;
+  byte_buffer_t udp_datagram;
+
   uint16_t ueid;
   uint16_t udp_port;
-  uint8_t buffer[MAC_UDP_PDU_MAX_SIZE];
+
+  typedef struct{
+    MAC_Context_Info_t  context;
+    srslte::byte_buffer_t*  pdu;
+  }mac_trace_pdu_t;
+
+  srslte::block_queue<mac_trace_pdu_t> mac_trace_pdu_queue;
 
   struct sockaddr_in server_addr;
   struct sockaddr_in client_addr;
 
   int socket_d;
-  void send_mac_datagram(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti,
+  void pack_and_queue(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti,
                               uint16_t crnti_, uint8_t direction, uint8_t rnti_type);
+  void send_mac_datagram(uint8_t* pdu, uint32_t pdu_len_bytes, MAC_Context_Info_t *context);
+  void run_thread();
 };
 
 }

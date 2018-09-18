@@ -30,8 +30,9 @@ using namespace std;
 
 namespace srslte{
   
-live_mac_trace::live_mac_trace(){
-
+live_mac_trace::live_mac_trace() : thread("MAC_LIVE_THREAD")
+{
+  pool = byte_buffer_pool::get_instance();
 }
 
 void live_mac_trace::init(char * server_ip_addr_, uint16_t server_udp_port_, char * client_ip_addr_, uint16_t client_udp_port_){
@@ -58,109 +59,150 @@ void live_mac_trace::init(char * server_ip_addr_, uint16_t server_udp_port_, cha
   client_addr.sin_family = AF_INET;
   client_addr.sin_addr.s_addr = inet_addr(client_ip_addr_);
   client_addr.sin_port = htons(client_udp_port_);
+  mac_trace_pdu_queue.clear();
+  start();
+}
+
+void live_mac_trace::run_thread(){
+  running = true;
+ 
+  while(running){
+    mac_trace_pdu_t mac_trace_pdu = mac_trace_pdu_queue.wait_pop();
+    if(mac_trace_pdu.pdu != NULL){
+      send_mac_datagram(mac_trace_pdu.pdu->msg, mac_trace_pdu.pdu->N_bytes, &mac_trace_pdu.context);
+      pool->deallocate(mac_trace_pdu.pdu);
+    }
+  }
 }
 
 void live_mac_trace::stop(){
+  running = false;
+  mac_trace_pdu_t mac_trace_pdu;
+  mac_trace_pdu.pdu = NULL;
+  mac_trace_pdu_queue.push(mac_trace_pdu);
+  sleep(0.01); // not sexy 
+  wait_thread_finish();
   close(socket_d);
-
 }
 
 void live_mac_trace::write_dl_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, bool crc_ok, uint32_t tti)
 {
-  send_mac_datagram(pdu, pdu_len_bytes, 0, crc_ok, tti, rnti, DIRECTION_DOWNLINK, C_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, tti, rnti, DIRECTION_DOWNLINK, C_RNTI);
 }
 void live_mac_trace::write_dl_ranti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, bool crc_ok, uint32_t tti)
 {
-  send_mac_datagram(pdu, pdu_len_bytes, 0, crc_ok, tti, rnti, DIRECTION_DOWNLINK, RA_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, tti, rnti, DIRECTION_DOWNLINK, RA_RNTI);
 }
 void live_mac_trace::write_ul_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint32_t reTX, uint32_t tti)
 {
-  send_mac_datagram(pdu, pdu_len_bytes, reTX, true, tti, rnti, DIRECTION_UPLINK, C_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, reTX, true, tti, rnti, DIRECTION_UPLINK, C_RNTI);
 }
 void live_mac_trace::write_dl_bch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)
 {
-  send_mac_datagram(pdu, pdu_len_bytes, 0, crc_ok, tti, 0, DIRECTION_DOWNLINK, NO_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, tti, 0, DIRECTION_DOWNLINK, NO_RNTI);
 }
 void live_mac_trace::write_dl_pch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)
 {
-  send_mac_datagram(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_PRNTI, DIRECTION_DOWNLINK, P_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_PRNTI, DIRECTION_DOWNLINK, P_RNTI);
 }
 void live_mac_trace::write_dl_mch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)
 {
-  send_mac_datagram(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_MRNTI, DIRECTION_DOWNLINK, M_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_MRNTI, DIRECTION_DOWNLINK, M_RNTI);
 }
 void live_mac_trace::write_dl_sirnti(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)
 {
-  send_mac_datagram(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
+  pack_and_queue(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
 }
 
-void live_mac_trace::send_mac_datagram(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti,
+void live_mac_trace::pack_and_queue(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti,
                               uint16_t rnti, uint8_t direction, uint8_t rnti_type){
+  byte_buffer_t*  udp_pdu;
+  mac_trace_pdu_t mac_trace_pdu;
+  
+  udp_pdu = pool->allocate();
+
+  memcpy(udp_pdu->msg, pdu, pdu_len_bytes);
+  udp_pdu->N_bytes = pdu_len_bytes;
+
+  mac_trace_pdu.pdu = udp_pdu;
+
+  mac_trace_pdu.context.radioType = FDD_RADIO;
+  mac_trace_pdu.context.direction = direction;
+  mac_trace_pdu.context.rntiType = rnti_type;
+  mac_trace_pdu.context.rnti = rnti;
+  mac_trace_pdu.context.ueid = ueid;
+  mac_trace_pdu.context.isRetx = reTX;
+  mac_trace_pdu.context.crcStatusOK = crc_ok;
+  mac_trace_pdu.context.sysFrameNumber = (uint16_t)(tti/10);
+  mac_trace_pdu.context.subFrameNumber = (uint16_t)(tti%10);
+  mac_trace_pdu_queue.push(mac_trace_pdu);
+}
+
+void live_mac_trace::send_mac_datagram(uint8_t* pdu, uint32_t pdu_len_bytes, MAC_Context_Info_t *context){
 
   ssize_t bytes_sent;
   uint32_t offset = 0;
   uint16_t tmp16;
-
+  
   uint32_t total_size = pdu_len_bytes + sizeof(MAC_Context_Info_t) + sizeof(MAC_LTE_START_STRING);
   
-  if (total_size >= MAC_UDP_PDU_MAX_SIZE){
-    printf("PDU size exceeds allocated byte buffer\n");
+  if( SRSLTE_MAX_BUFFER_SIZE_BYTES <= total_size){
+    printf("Send length does exceed max buffer length\n");
     return;
   }
-   
-  memset(buffer, 0, total_size);
 
   // MAC_LTE_START_STRING for UDP heuristics 
-  memcpy(buffer + offset, MAC_LTE_START_STRING, strlen(MAC_LTE_START_STRING));
+  memcpy(udp_datagram.msg + offset, MAC_LTE_START_STRING, strlen(MAC_LTE_START_STRING));
   offset += strlen(MAC_LTE_START_STRING);
   
   /*****************************************************************/
   /* Context information (same as written by UDP heuristic clients */
-  buffer[offset++] = FDD_RADIO;
-  buffer[offset++] = direction;
-  buffer[offset++] = rnti_type;
+  udp_datagram.msg[offset++] = context->radioType;
+  udp_datagram.msg[offset++] = context->direction;
+  udp_datagram.msg[offset++] = context->rntiType;
 
   /* RNTI */
-  buffer[offset++] = MAC_LTE_RNTI_TAG;
-  tmp16 = htons(rnti);
-  memcpy(buffer + offset, &tmp16, 2);
+  udp_datagram.msg[offset++] = MAC_LTE_RNTI_TAG;
+  tmp16 = htons(context->rnti);
+  memcpy(udp_datagram.msg + offset, &tmp16, 2);
   offset += 2;
 
   /* UEId */
-  buffer[offset++] = MAC_LTE_UEID_TAG;
-  tmp16 = htons(ueid);
-  memcpy(buffer + offset, &tmp16, 2);
+  udp_datagram.msg[offset++] = MAC_LTE_UEID_TAG;
+  tmp16 = htons(context->ueid);
+  memcpy(udp_datagram.msg + offset, &tmp16, 2);
   offset += 2;
 
   /* Subframe Number and System Frame Number */
   /* SFN is stored in 12 MSB and SF in 4 LSB */
-  buffer[offset++] = MAC_LTE_FRAME_SUBFRAME_TAG;
-  tmp16 = (((uint16_t)(tti/10)) << 4) | (uint16_t)(tti%10);
+
+  udp_datagram.msg[offset++] = MAC_LTE_FRAME_SUBFRAME_TAG;
+  tmp16 = (context->sysFrameNumber << 4) | context->subFrameNumber;
   tmp16 = htons(tmp16);
-  memcpy(buffer + offset, &tmp16, 2);
+  memcpy(udp_datagram.msg + offset, &tmp16, 2);
   offset += 2;
 
   /* CRC Status */
-  buffer[offset++] = MAC_LTE_CRC_STATUS_TAG;
-  buffer[offset++] = crc_ok;
+  udp_datagram.msg[offset++] = MAC_LTE_CRC_STATUS_TAG;
+  udp_datagram.msg[offset++] = context->crcStatusOK;
 
   /* Data tag immediately preceding PDU */
-  buffer[offset++] = MAC_LTE_PAYLOAD_TAG;
+  udp_datagram.msg[offset++] = MAC_LTE_PAYLOAD_TAG;
 
   /* Write PDU data into buffer */
   if (pdu != NULL) {
-    memcpy(buffer + offset, (void*)pdu, pdu_len_bytes);
+    memcpy(udp_datagram.msg + offset, (void*)pdu, pdu_len_bytes);
     offset += pdu_len_bytes;
   }
   // Remote IP 
-  bytes_sent = sendto(socket_d, buffer, offset, 0, (const struct sockaddr *) &client_addr, sizeof(client_addr));
+  // TODO: sendto thread safe with mutex
+  bytes_sent = sendto(socket_d, udp_datagram.msg, offset, 0, (const struct sockaddr *) &client_addr, sizeof(client_addr));
 
   if (bytes_sent != offset) {
     printf("Failed to sent MAC UDP Frame (expected %d bytes, sent %d, (errno %d))\n", offset, bytes_sent, errno);
   }
-
+  bzero(udp_datagram.msg, offset);
+  udp_datagram.clear();
 }
 
-}
-
-
+} //namespace
