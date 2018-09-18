@@ -240,6 +240,7 @@ public:
   virtual void reset() = 0;
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking = true) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
+  virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
   virtual void config_security(uint32_t lcid,
                                uint8_t *k_enc_,
                                uint8_t *k_int_,
@@ -273,10 +274,12 @@ class rlc_interface_rrc
 public:
   virtual void reset() = 0;
   virtual void reestablish() = 0;
+  virtual void reestablish(uint32_t lcid) = 0;
   virtual void add_bearer(uint32_t lcid) = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
   virtual void add_bearer_mrb(uint32_t lcid) = 0;
   virtual void del_bearer(uint32_t lcid) = 0;
+  virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
 };
 
 // RLC interface for PDCP

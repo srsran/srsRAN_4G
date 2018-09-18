@@ -144,7 +144,7 @@ void rlc::get_metrics(rlc_metrics_t &m)
   pthread_rwlock_unlock(&rwlock);
 }
 
-// A call to reestablish stops all lcids but does not delete the instances. The mapping lcid to rlc mode can not change
+// Reestablish all RLC bearer
 void rlc::reestablish()
 {
   pthread_rwlock_rdlock(&rwlock);
@@ -157,6 +157,18 @@ void rlc::reestablish()
     it->second->reestablish();
   }
 
+  pthread_rwlock_unlock(&rwlock);
+}
+
+// Reestablish a specific RLC bearer
+void rlc::reestablish(uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    rlc_array.at(lcid)->reestablish();
+  } else {
+    rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
+  }
   pthread_rwlock_unlock(&rwlock);
 }
 

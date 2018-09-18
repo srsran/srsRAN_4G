@@ -81,6 +81,7 @@ public:
 
   // RRC interface
   void reestablish();
+  void reestablish(uint32_t lcid);
   void reset();
   void empty_queue();
   void add_bearer(uint32_t lcid);
