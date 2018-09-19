@@ -108,7 +108,11 @@ int main(int argc, char **argv) {
   mac_trace.init(server_ip_addr, server_udp_port, client_ip_addr, client_udp_port);
   test_thread test_thread_a;
   test_thread_a.init(client_ip_addr, client_udp_port);
-  mac_trace.write_dl_crnti(pdu, sizeof(pdu), 60128, true, 2133);
+  int i = 0;
+  for (i = 0; i < 100; i++){
+    mac_trace.write_dl_crnti(pdu, sizeof(pdu), 60128, true, 2133);
+    sleep(0.001);
+  }
   sleep(0.05);
   test_thread_a.stop();
   mac_trace.stop();
