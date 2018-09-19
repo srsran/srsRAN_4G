@@ -14,7 +14,7 @@ if (ENABLE_SSE)
     #
     # Check compiler for SSE4_1 intrinsics
     #
-    if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+    if (CMAKE_COMPILER_IS_GNUCC OR (CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
         set(CMAKE_REQUIRED_FLAGS "-msse4.1")
         check_c_source_runs("
         #include <emmintrin.h>
@@ -38,7 +38,7 @@ if (ENABLE_SSE)
         #
         # Check compiler for AVX intrinsics
         #
-        if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+        if (CMAKE_COMPILER_IS_GNUCC OR (CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
             set(CMAKE_REQUIRED_FLAGS "-mavx")
             check_c_source_runs("
             #include <immintrin.h>
@@ -72,7 +72,7 @@ if (ENABLE_SSE)
       #
       # Check compiler for AVX intrinsics
       #
-      if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+      if (CMAKE_COMPILER_IS_GNUCC OR (CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
           set(CMAKE_REQUIRED_FLAGS "-mavx2")
           check_c_source_runs("
           #include <immintrin.h>
@@ -106,7 +106,7 @@ if (ENABLE_SSE)
         #
         # Check compiler for AVX intrinsics
         #
-        if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+        if (CMAKE_COMPILER_IS_GNUCC OR (CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
             set(CMAKE_REQUIRED_FLAGS "-mfma")
             check_c_source_runs("
             #include <immintrin.h>
@@ -141,7 +141,7 @@ if (ENABLE_SSE)
         #
         # Check compiler for AVX intrinsics
         #
-        if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+        if (CMAKE_COMPILER_IS_GNUCC OR (CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
             set(CMAKE_REQUIRED_FLAGS "-mavx512f")
             check_c_source_runs("
           #include <immintrin.h>

@@ -71,7 +71,7 @@ srslte_tdec_16bit_impl_t sse16_win_impl = {
 #endif
 
 /* AVX window implementation */
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
 #define WINIMP_IS_AVX16
 #include "srslte/phy/fec/turbodecoder_win.h"
 #undef WINIMP_IS_AVX16
@@ -100,7 +100,7 @@ srslte_tdec_8bit_impl_t sse8_win_impl = {
 #endif
 
 /* AVX window implementation */
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
 #define WINIMP_IS_AVX8
 #include "srslte/phy/fec/turbodecoder_win.h"
 #undef WINIMP_IS_AVX8
@@ -178,7 +178,7 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
       h->dec8[0] = &sse8_win_impl;
       h->current_llr_type = SRSLTE_TDEC_8;
       break;
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
     case SRSLTE_TDEC_AVX_WINDOW:
       h->dec16[0] = &avx16_win_impl;
       h->current_llr_type = SRSLTE_TDEC_16;
@@ -240,7 +240,7 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
     h->dec16[AUTO_16_SSE] = &sse_impl;
     h->dec16[AUTO_16_SSEWIN] = &sse16_win_impl;
     h->dec8[AUTO_8_SSEWIN]  = &sse8_win_impl;
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
     h->dec16[AUTO_16_AVXWIN] = &avx16_win_impl;
     h->dec8[AUTO_8_AVXWIN]  = &avx8_win_impl;
 #endif
@@ -363,7 +363,7 @@ static void tdec_decision_byte(srslte_tdec_t * h, uint8_t *output)
 /* Returns number of subblocks in automatic mode for this long_cb */
 uint32_t srslte_tdec_autoimp_get_subblocks(uint32_t long_cb)
 {
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   if (!(long_cb%16) && long_cb > 800) {
     return 16;
   } else
@@ -391,7 +391,7 @@ static int tdec_sb_idx(uint32_t long_cb) {
 
 uint32_t srslte_tdec_autoimp_get_subblocks_8bit(uint32_t long_cb)
 {
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   if (!(long_cb%32) && long_cb > 2048) {
     return 32;
   } else

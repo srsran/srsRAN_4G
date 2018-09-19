@@ -187,6 +187,28 @@ void pdcp::del_bearer(uint32_t lcid)
   pthread_rwlock_unlock(&rwlock);
 }
 
+void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
+{
+  pthread_rwlock_wrlock(&rwlock);
+
+  // make sure old LCID exists and new LCID is still free
+  if (valid_lcid(old_lcid) && not valid_lcid(new_lcid)) {
+    // insert old PDCP entity into new LCID
+    pdcp_map_t::iterator it = pdcp_array.find(old_lcid);
+    pdcp_entity_interface *pdcp_entity = it->second;
+    if (not pdcp_array.insert(pdcp_map_pair_t(new_lcid, pdcp_entity)).second) {
+      pdcp_log->error("Error inserting PDCP entity into array\n.");
+      goto exit;
+    }
+    // erase from old position
+    pdcp_array.erase(it);
+    pdcp_log->warning("Changed LCID of PDCP bearer from %d to %d\n", old_lcid, new_lcid);
+  } else {
+    pdcp_log->error("Can't change PDCP of bearer %s from %d to %d. Bearer doesn't exist or new LCID already occupied.\n", rrc->get_rb_name(old_lcid).c_str(), old_lcid, new_lcid);
+  }
+exit:
+  pthread_rwlock_unlock(&rwlock);
+}
 
 void pdcp::config_security(uint32_t lcid,
                            uint8_t *k_enc,

@@ -333,8 +333,8 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
   endif(NOT WIN32)
  if (ENABLE_ASAN)
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
  endif (ENABLE_ASAN)
 endif(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
@@ -345,6 +345,23 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 message(STATUS "CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
+
+
+########################################################################
+# clang-tidy check
+########################################################################
+find_program(
+        CLANG_TIDY_BIN
+        NAMES "clang-tidy"
+        DOC "Path to clang-tidy executable"
+)
+if(NOT CLANG_TIDY_BIN)
+  message(STATUS "clang-tidy not found.")
+else()
+  message(STATUS "clang-tidy found: ${CLANG_TIDY_BIN}")
+  set(DO_CLANG_TIDY "${CLANG_TIDY_BIN}" "-checks=*,-clang-analyzer-alpha.*")
+endif()
+
 
 ########################################################################
 # Create uninstall targets

@@ -65,8 +65,8 @@
 #else
 #ifdef WINIMP_IS_AVX16
 
-  #ifndef LV_HAVE_AVX
-  #error "Selected AVX window decoder but instruction set not supported"
+  #ifndef LV_HAVE_AVX2
+  #error "Selected AVX2 window decoder but instruction set not supported"
   #endif
 
   #include <immintrin.h>
@@ -139,8 +139,8 @@
 
 #ifdef WINIMP_IS_AVX8
 
-  #ifndef LV_HAVE_AVX
-  #error "Selected AVX window decoder but instruction set not supported"
+  #ifndef LV_HAVE_AVX2
+  #error "Selected AVX2 window decoder but instruction set not supported"
   #endif
 
   #include <immintrin.h>
