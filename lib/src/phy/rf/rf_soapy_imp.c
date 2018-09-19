@@ -851,7 +851,7 @@ int rf_soapy_send_timed_multi(void *h,
 
   // Convert initial tx time
   if (has_time_spec) {
-    timeNs = secs * 1000000000;
+    timeNs = (long long)secs * 1000000000;
     timeNs = timeNs + (frac_secs * 1000000000);
   }
 

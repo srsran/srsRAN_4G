@@ -166,8 +166,13 @@ static inline void srslte_mat_2x2_mmse_csi_simd(simd_cf_t y0,
   simd_cf_t _noise_estimate;
   simd_f_t _norm = srslte_simd_f_set1(norm);
 
+#if HAVE_NEON
+  _noise_estimate.val[0] = srslte_simd_f_set1(noise_estimate);
+  _noise_estimate.val[1] = srslte_simd_f_zero();
+#else /* HAVE_NEON */
   _noise_estimate.re = srslte_simd_f_set1(noise_estimate);
   _noise_estimate.im = srslte_simd_f_zero();
+#endif /* HAVE_NEON */
 
   /* 1. A = H' x H + No*/
   simd_cf_t a00 =
