@@ -38,9 +38,6 @@ int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac
   
   max_prach_offset_us = 50; 
   
-  pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&cvar, NULL);
-
   if (srslte_prach_init_cfg(&prach, &prach_cfg, cell.nof_prb)) {
     fprintf(stderr, "Error initiating PRACH\n");
     return -1; 
@@ -50,34 +47,20 @@ int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac
 
   nof_sf = (uint32_t) ceilf(prach.T_tot*1000); 
 
-  signal_buffer_rx = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*nof_sf*SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  if (!signal_buffer_rx) {
-    perror("malloc");
-    return -1;
-  }
-  
   start(priority);
   initiated = true;
 
   sf_cnt = 0;
-  pending_tti   = 0; 
-  processed_tti = 0; 
-  return 0; 
+  return 0;
 }
 
 void prach_worker::stop()
 {
   srslte_prach_free(&prach);
 
-  if (signal_buffer_rx) {
-    free(signal_buffer_rx);
-  }
-  pthread_mutex_lock(&mutex);
-  processed_tti = 99999; 
-  running = false; 
-  pthread_cond_signal(&cvar);
-  pthread_mutex_unlock(&mutex);
-  
+  running = false;
+  sf_buffer *s = NULL;
+  pending_buffers.push(s);
   wait_thread_finish();
 }
 
@@ -90,35 +73,45 @@ int prach_worker::new_tti(uint32_t tti_rx, cf_t* buffer_rx)
 {
   // Save buffer only if it's a PRACH TTI
   if (srslte_prach_tti_opportunity(&prach, tti_rx, -1) || sf_cnt) {
-    memcpy(&signal_buffer_rx[sf_cnt*SRSLTE_SF_LEN_PRB(cell.nof_prb)], buffer_rx, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    if (sf_cnt == 0) {
+      current_buffer = buffer_pool.allocate();
+      if (!current_buffer) {
+        log_h->warning("PRACH skipping tti=%d due to lack of available buffers\n", tti_rx);
+        return 0;
+      }
+    }
+    if (!current_buffer) {
+      log_h->error("PRACH: Expected available current_buffer\n");
+      return -1;
+    }
+    if (current_buffer->nof_samples+SRSLTE_SF_LEN_PRB(cell.nof_prb) < sf_buffer_sz) {
+      memcpy(&current_buffer->samples[sf_cnt*SRSLTE_SF_LEN_PRB(cell.nof_prb)], buffer_rx, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+      current_buffer->nof_samples += SRSLTE_SF_LEN_PRB(cell.nof_prb);
+      if (sf_cnt == 0) {
+        current_buffer->tti = tti_rx;
+      }
+    } else {
+      log_h->error("PRACH: Not enough space in current_buffer\n");
+      return -1;
+    }
     sf_cnt++;
     if (sf_cnt == nof_sf) {
-      sf_cnt = 0; 
-      if ((int) pending_tti != processed_tti) {
-        log_h->warning("PRACH thread did not finish processing TTI=%d\n", pending_tti);
-      }
-      pthread_mutex_lock(&mutex);
-      if (tti_rx+1 > nof_sf) {
-        pending_tti = tti_rx+1-nof_sf;       
-      } else {
-        pending_tti = 10240+(tti_rx+1-nof_sf);
-      }
-      pthread_cond_signal(&cvar);
-      pthread_mutex_unlock(&mutex);
+      sf_cnt = 0;
+      pending_buffers.push(current_buffer);
     }
   }
   return 0; 
 }
 
 
-int prach_worker::run_tti(uint32_t tti_rx)
+int prach_worker::run_tti(sf_buffer *b)
 {
-  if (srslte_prach_tti_opportunity(&prach, tti_rx, -1)) 
+  if (srslte_prach_tti_opportunity(&prach, b->tti, -1))
   {
     // Detect possible PRACHs
     if (srslte_prach_detect_offset(&prach,
                                    prach_cfg.freq_offset,
-                                   &signal_buffer_rx[prach.N_cp],
+                                   &b->samples[prach.N_cp],
                                    nof_sf*SRSLTE_SF_LEN_PRB(cell.nof_prb)-prach.N_cp,
                                    prach_indices, 
                                    prach_offsets,
@@ -135,7 +128,7 @@ int prach_worker::run_tti(uint32_t tti_rx)
             i, prach_nof_det, prach_indices[i], prach_offsets[i]*1e6, prach_p2avg[i], max_prach_offset_us);
         
         if (prach_offsets[i]*1e6 < max_prach_offset_us) {
-          mac->rach_detected(tti_rx, prach_indices[i], (uint32_t) (prach_offsets[i]*1e6));            
+          mac->rach_detected(b->tti, prach_indices[i], (uint32_t) (prach_offsets[i]*1e6));
         }
       }
     }
@@ -147,18 +140,15 @@ void prach_worker::run_thread()
 {
   running = true; 
   while(running) {
-   pthread_mutex_lock(&mutex);
-   while(processed_tti == (int) pending_tti) {
-    pthread_cond_wait(&cvar, &mutex);
-   }
-   pthread_mutex_unlock(&mutex);
-   log_h->debug("Processing pending_tti=%d\n", pending_tti);
-   if (running) {
-    if (run_tti(pending_tti)) {
-      running = false; 
+    sf_buffer* b = pending_buffers.wait_pop();
+    if (running && b) {
+      int ret = run_tti(b);
+      b->reset();
+      buffer_pool.deallocate(b);
+      if (ret) {
+        running = false;
+      }
     }
-    processed_tti = pending_tti;
-   }
   }
 }
 

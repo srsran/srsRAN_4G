@@ -83,6 +83,7 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
 void mac::stop()
 {
   srslte_softbuffer_rx_free(&pch_softbuffer);
+  srslte_softbuffer_rx_free(&mch_softbuffer);
 
   pdu_process_thread.stop();
   stop_thread();
