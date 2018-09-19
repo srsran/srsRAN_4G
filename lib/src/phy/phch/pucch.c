@@ -920,7 +920,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
             }
           }
           srslte_demod_soft_demodulate_s(SRSLTE_MOD_QPSK, q->z, llr_pucch2, SRSLTE_PUCCH2_NOF_BITS/2);
-          srslte_scrambling_s(&q->users[rnti]->seq_f2[sf_idx], llr_pucch2);  
+          srslte_scrambling_s(seq, llr_pucch2);
           q->last_corr = (float) srslte_uci_decode_cqi_pucch(&q->cqi, llr_pucch2, bits, nof_bits)/2000;
           ret = 1; 
         } else {
