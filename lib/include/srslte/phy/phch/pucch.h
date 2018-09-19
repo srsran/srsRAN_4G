@@ -81,6 +81,7 @@ typedef struct SRSLTE_API {
 
 typedef struct  {
   srslte_sequence_t seq_f2[SRSLTE_NSUBFRAMES_X_FRAME];
+  uint32_t cell_id;
   bool sequence_generated;
 } srslte_pucch_user_t; 
 
@@ -111,11 +112,16 @@ typedef struct SRSLTE_API {
   float last_corr;
   uint32_t last_n_prb;
   uint32_t last_n_pucch;
-  
+
+  srslte_sequence_t tmp_seq;
+  uint16_t ue_rnti;
+  bool is_ue;
 }srslte_pucch_t;
 
 
-SRSLTE_API int srslte_pucch_init(srslte_pucch_t *q);
+SRSLTE_API int srslte_pucch_init_ue(srslte_pucch_t *q);
+
+SRSLTE_API int srslte_pucch_init_enb(srslte_pucch_t *q);
 
 SRSLTE_API void srslte_pucch_free(srslte_pucch_t *q);
 

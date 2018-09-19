@@ -65,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   srslte_pucch_t pucch;
-  if (srslte_pucch_init(&pucch, cell)) {
+  if (srslte_pucch_init_ue(&pucch, cell)) {
     mexErrMsgTxt("Error initiating PUSCH\n");
     return;
   }

@@ -76,7 +76,7 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
     srslte_ofdm_set_normalize(&q->fft, false);
     srslte_ofdm_set_freq_shift(&q->fft, -0.5);
 
-    if (srslte_pucch_init(&q->pucch)) {
+    if (srslte_pucch_init_enb(&q->pucch)) {
       fprintf(stderr, "Error creating PUCCH object\n");
       goto clean_exit;
     }

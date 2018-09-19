@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
     return test_uci_cqi_pucch();
   }
 
-  if (srslte_pucch_init(&pucch)) {
+  if (srslte_pucch_init_ue(&pucch)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }

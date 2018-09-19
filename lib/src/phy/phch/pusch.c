@@ -481,16 +481,24 @@ static srslte_sequence_t *get_user_sequence(srslte_pusch_t *q, uint16_t rnti, ui
 {
   uint32_t rnti_idx = q->is_ue?0:rnti;
 
-  // The scrambling sequence is pregenerated for all RNTIs in the eNodeB but only for C-RNTI in the UE
-  if (q->users[rnti_idx] && q->users[rnti_idx]->sequence_generated &&
-      q->users[rnti_idx]->cell_id == q->cell.id                    &&
-      q->ue_rnti == rnti                                           &&
-      ((rnti >= SRSLTE_CRNTI_START && rnti < SRSLTE_CRNTI_END) || !q->is_ue))
-  {
-    return &q->users[rnti_idx]->seq[sf_idx];
+  if (rnti >= SRSLTE_CRNTI_START && rnti < SRSLTE_CRNTI_END) {
+    // The scrambling sequence is pregenerated for all RNTIs in the eNodeB but only for C-RNTI in the UE
+    if (q->users[rnti_idx]                          &&
+        q->users[rnti_idx]->sequence_generated      &&
+        q->users[rnti_idx]->cell_id == q->cell.id   &&
+        (!q->is_ue || q->ue_rnti == rnti))
+    {
+      return &q->users[rnti_idx]->seq[sf_idx];
+    } else {
+      if (srslte_sequence_pusch(&q->tmp_seq, rnti, 2 * sf_idx, q->cell.id, len)) {
+        fprintf(stderr, "Error generating temporal scrambling sequence\n");
+        return NULL;
+      }
+      return &q->tmp_seq;
+    }
   } else {
-    srslte_sequence_pusch(&q->tmp_seq, rnti, 2 * sf_idx, q->cell.id, len);
-    return &q->tmp_seq;
+    fprintf(stderr, "Invalid RNTI=0x%x\n", rnti);
+    return NULL;
   }
 }
 
