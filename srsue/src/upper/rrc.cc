@@ -209,8 +209,6 @@ void rrc::init(phy_interface_rrc *phy_,
   set_mac_default();
 
   measurements.init(this);
-  // set seed for rand (used in attach)
-  srand(time(NULL));
 
   running = true;
   start();
