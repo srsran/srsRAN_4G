@@ -144,6 +144,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
      "Netmask of the tun_srsue device")
 
+    ("expert.ip_devname",
+     bpo::value<string>(&args->expert.ip_devname)->default_value("tun_srsue"),
+     "Name of the tun_srsue device")
+
      ("expert.mbms_service",
      bpo::value<int>(&args->expert.mbms_service)->default_value(-1),
      "automatically starts an mbms service of the number given")

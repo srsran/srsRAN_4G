@@ -52,6 +52,7 @@ public:
 
   void get_metrics(gw_metrics_t &m);
   void set_netmask(std::string netmask);
+  void set_tundevname(const std::string & devname);
 
   // PDCP interface
   void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu);
@@ -67,6 +68,7 @@ private:
 
   bool default_netmask;
   std::string netmask;
+  std::string tundevname;
 
   static const int GW_THREAD_PRIO = 7;
 
