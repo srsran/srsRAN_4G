@@ -237,7 +237,11 @@ bool enb::init(all_args_t *args_)
   pdcp.init(&rlc, &rrc, &gtpu, &pdcp_log);
   rrc.init(&rrc_cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &rrc_log);
   s1ap.init(args->enb.s1ap, &rrc, &s1ap_log);
-  gtpu.init(args->enb.s1ap.gtp_bind_addr, args->enb.s1ap.mme_addr, &pdcp, &gtpu_log, args->expert.enable_mbsfn);
+  gtpu.init(gtpu_config_t(args->enb.s1ap.gtp_bind_addr, 
+                          args->enb.s1ap.mme_addr,
+                          args->enb.m1u_multi_addr,
+                          args->enb.m1u_bind_addr),
+                          &pdcp, &gtpu_log, args->expert.enable_mbsfn);
   
   started = true;
   return true;

@@ -58,6 +58,24 @@ namespace srsenb {
 
 #define GTPU_HEADER_LEN 8
 
+// local gtp, mme and m1-u config passed via enb args
+struct gtpu_config_t{
+ const std::string gtp_bind_addr;
+ const std::string mme_addr;
+ const std::string m1u_bind_addr;
+ const std::string m1u_multi_addr;
+
+ gtpu_config_t(const std::string & gtp_bind_addr_,
+               const std::string & mme_addr_,
+               const std::string & m1u_bind_addr_,
+               const std::string & m1u_multi_addr_) :
+  gtp_bind_addr(gtp_bind_addr_),
+  mme_addr(mme_addr_),
+  m1u_bind_addr(m1u_bind_addr_),
+  m1u_multi_addr(m1u_multi_addr_)
+ { }
+};
+
 class gtpu
     :public gtpu_interface_rrc
     ,public gtpu_interface_pdcp
@@ -67,7 +85,7 @@ public:
 
   gtpu();
 
-  bool init(std::string gtp_bind_addr_, std::string mme_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
+  bool init(const gtpu_config_t & config, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
   void stop();
 
   // gtpu_interface_rrc
@@ -88,14 +106,28 @@ private:
   bool                         enable_mbsfn;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
+  std::string                  m1u_bind_addr;
+  std::string                  m1u_multi_addr;
   srsenb::pdcp_interface_gtpu *pdcp;
   srslte::log                 *gtpu_log;
+
+  struct mch_config_t{
+    const std::string m1u_bind_addr;
+    const std::string m1u_multi_addr;
+
+    mch_config_t( const std::string & m1u_bind_addr_,
+                  const std::string & m1u_multi_addr_) :
+     m1u_bind_addr(m1u_bind_addr_),
+     m1u_multi_addr(m1u_multi_addr_)
+    { }
+};
+
 
   // Class to create
   class mch_thread : public thread {
   public:
     mch_thread() : initiated(false),running(false),run_enable(false),pool(NULL) {}
-    bool init(pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
+    bool init(const mch_config_t & config, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
     void stop();
   private:
     void run_thread();
@@ -110,6 +142,8 @@ private:
     srslte::log         *gtpu_log;
     int m1u_sd;
     int lcid_counter;
+    std::string   m1u_bind_addr;
+    std::string   m1u_multi_addr;
 
     srslte::byte_buffer_pool *pool;
   };

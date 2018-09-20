@@ -69,6 +69,8 @@ typedef struct {
   uint32_t    nof_ports;
   uint32_t    transmission_mode;
   float       p_a;
+  std::string m1u_bind_addr;
+  std::string m1u_multi_addr;
 }enb_args_t;
 
 typedef struct {

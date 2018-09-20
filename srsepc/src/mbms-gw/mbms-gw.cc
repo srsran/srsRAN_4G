@@ -126,7 +126,6 @@ mbms_gw::stop()
 srslte::error_t
 mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
 {
-  char dev[IFNAMSIZ] = "sgi_mb";
   struct ifreq ifr;
 
   if(m_sgi_mb_up)
@@ -146,7 +145,7 @@ mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
 
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ-1);
+  strncpy(ifr.ifr_ifrn.ifrn_name, args->name.c_str(), std::min(args->name.length(), (size_t)IFNAMSIZ-1));
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1]='\0';
 
   if(ioctl(m_sgi_mb_if, TUNSETIFF, &ifr) < 0)
@@ -234,11 +233,11 @@ mbms_gw::init_m1_u(mbms_gw_args_t *args)
   /* Set local interface for outbound multicast packets*/
   /* The IP must be associated with a local multicast capable interface */
   struct in_addr local_if;
-  local_if.s_addr = inet_addr("127.0.1.200");
+  local_if.s_addr = inet_addr(args->m1u_bind_addr.c_str());
   if(setsockopt(m_m1u, IPPROTO_IP, IP_MULTICAST_IF, (char*)&local_if, sizeof(struct in_addr))<0){
-    perror("Error setting multicast interface.\n");
+    m_mbms_gw_log->error("Error %s setting multicast interface %s.\n", strerror(errno), args->m1u_bind_addr.c_str());
   } else {
-    printf("Multicast interface specified.\n");
+    m_mbms_gw_log->info("Multicast interface %s specified.\n", args->m1u_bind_addr.c_str());
   }
 
   bzero(&m_m1u_multi_addr,sizeof(m_m1u_multi_addr));

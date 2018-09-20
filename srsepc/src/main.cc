@@ -84,6 +84,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string mme_apn;
   string spgw_bind_addr;
   string sgi_if_addr;
+  string sgi_if_name;
   string dns_addr;
   string hss_db_file;
   string hss_auth_algo;
@@ -113,6 +114,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),"HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"),"IP address of SP-GW for the S1-U connection")
     ("spgw.sgi_if_addr",    bpo::value<string>(&sgi_if_addr)->default_value("176.16.0.1"),"IP address of TUN interface for the SGi connection")
+    ("spgw.sgi_if_name",    bpo::value<string>(&sgi_if_name)->default_value("srs_spgw_sgi"),"Name of TUN interface for the SGi connection")
 
     ("log.s1ap_level",     bpo::value<string>(&args->log_args.s1ap_level),   "MME S1AP log level")
     ("log.s1ap_hex_limit", bpo::value<int>(&args->log_args.s1ap_hex_limit),  "MME S1AP log hex dump limit")
@@ -213,6 +215,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   args->mme_args.s1ap_args.mme_apn = mme_apn;
   args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
   args->spgw_args.sgi_if_addr = sgi_if_addr;
+  args->spgw_args.sgi_if_name = sgi_if_name;
   args->hss_args.db_file = hss_db_file;
   args->hss_args.auth_algo = hss_auth_algo;
 

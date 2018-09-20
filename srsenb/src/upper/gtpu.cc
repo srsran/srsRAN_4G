@@ -43,12 +43,14 @@ gtpu::gtpu():mchthread()
 
 }
 
-bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
+bool gtpu::init(const gtpu_config_t & config, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
 {
   pdcp          = pdcp_;
   gtpu_log      = gtpu_log_;
-  gtp_bind_addr = gtp_bind_addr_;
-  mme_addr      = mme_addr_;
+  gtp_bind_addr = config.gtp_bind_addr;
+  mme_addr      = config.mme_addr;
+  m1u_bind_addr  = config.m1u_bind_addr;
+  m1u_multi_addr = config.m1u_multi_addr;
 
   pool          = byte_buffer_pool::get_instance();
 
@@ -102,7 +104,7 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   // Start MCH thread if enabled
   this->enable_mbsfn = enable_mbsfn;
   if(enable_mbsfn) {
-    mchthread.init(pdcp, gtpu_log);
+    mchthread.init(mch_config_t(m1u_bind_addr, m1u_multi_addr), pdcp, gtpu_log);
   }
   return true;
 }
@@ -293,11 +295,13 @@ void gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t *teidin)
 /****************************************************************************
 * Class to run the MCH thread
 ***************************************************************************/
-bool gtpu::mch_thread::init(pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
+bool gtpu::mch_thread::init(const mch_config_t & config, pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
 {
   pool           = byte_buffer_pool::get_instance();
   this->pdcp     = pdcp;
   this->gtpu_log = gtpu_log;
+  m1u_bind_addr   = config.m1u_bind_addr;
+  m1u_multi_addr  = config.m1u_multi_addr;
 
   struct sockaddr_in bindaddr;
   
@@ -322,11 +326,13 @@ bool gtpu::mch_thread::init(pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
 
   /* Send an ADD MEMBERSHIP message via setsockopt */
   struct ip_mreq mreq;
-  mreq.imr_multiaddr.s_addr = inet_addr("239.255.0.1"); //Multicast address of the service
-  mreq.imr_interface.s_addr = inet_addr("127.0.1.200"); //Address of the IF the socket will listen to.
+  mreq.imr_multiaddr.s_addr = inet_addr(m1u_bind_addr.c_str()); //Multicast address of the service
+  mreq.imr_interface.s_addr = inet_addr(m1u_multi_addr.c_str()); //Address of the IF the socket will listen to.
   if (setsockopt(m1u_sd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                  &mreq, sizeof(mreq)) < 0) {
-    gtpu_log->error("Register musticast group for M1-U\n");
+    gtpu_log->error("Register musticast group %s for M1-U interface %s\n", 
+                    m1u_multi_addr.c_str(),
+                    m1u_bind_addr.c_str());
     return false;
   }
   gtpu_log->info("M1-U initialized\n");
