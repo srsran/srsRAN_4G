@@ -310,7 +310,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("expert.pdsch_8bit_decoder",
        bpo::value<bool>(&args->expert.phy.pdsch_8bit_decoder)->default_value(false),
-       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)");
+       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
+
+    ("runtime.daemonize", bpo::value<bool>(&args->runtime.daemonize)->default_value(false), "Run the process as a daemon")
+    ;
 
   // Positional options - config file location
   bpo::options_description position("Positional options");
@@ -476,6 +479,7 @@ void *input_loop(void *m) {
         metrics_screen.toggle_print(do_metrics);
       } else
       if (0 == key.compare("q")) {
+        cout << "recv quit command." << endl;
         running = false;
       }  
     else if (0 == key.compare("mbms")) {
@@ -515,6 +519,11 @@ int main(int argc, char *argv[])
 
   parse_args(&args, argc, argv);
 
+  if(args.runtime.daemonize) {
+    cout << "Running as a daemon\n";
+    daemon(1, 0); 
+  }
+
   srsue_instance_type_t type = LTE;
   ue_base *ue = ue_base::get_instance(type);
   if (!ue) {
@@ -537,8 +546,10 @@ int main(int argc, char *argv[])
     metrics_file.set_ue_handle(ue);
   }
 
-  pthread_t input;
-  pthread_create(&input, NULL, &input_loop, &args);
+  pthread_t input = {0};
+  if(! args.runtime.daemonize) {
+    pthread_create(&input, NULL, &input_loop, &args);
+  }
 
   printf("Attaching UE...\n");
   while (!ue->switch_on() && running) {
@@ -582,7 +593,10 @@ int main(int argc, char *argv[])
     sleep(1);
   }
   ue->switch_off();
-  pthread_cancel(input);
+
+  if(input)
+    pthread_cancel(input);
+
   metricshub.stop();
   ue->stop();
   ue->cleanup();

@@ -50,8 +50,13 @@ typedef struct {
 }log_args_t;
 
 typedef struct {
+  bool daemonize;
+} runtime_args_t;
+
+typedef struct {
   mbms_gw_args_t mbms_gw_args;
   log_args_t     log_args;
+  runtime_args_t runtime;
 }all_args_t;
 
 srslte::LOG_LEVEL_ENUM
@@ -113,6 +118,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("log.all_hex_limit", bpo::value<int>(&args->log_args.all_hex_limit)->default_value(32),  "ALL log hex dump limit")
 
     ("log.filename",      bpo::value<string>(&args->log_args.filename)->default_value("/tmp/mbms.log"),"Log filename")
+
+    ("runtime.daemonize", bpo::value<bool>(&args->runtime.daemonize)->default_value(false), "Run this process as a daemon")
     ;
 
   // Positional options - config file location
@@ -185,7 +192,6 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
 int
 main (int argc,char * argv[] )
 {
-  cout << endl <<"---  Software Radio Systems MBMS  ---" << endl << endl;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   signal(SIGKILL, sig_int_handler);
@@ -210,6 +216,13 @@ main (int argc,char * argv[] )
   mbms_gw_log.init("MBMS",logger);
   mbms_gw_log.set_level(level(args.log_args.mbms_gw_level));
   mbms_gw_log.set_hex_limit(args.log_args.mbms_gw_hex_limit);
+
+  if(args.runtime.daemonize) {
+    cout << "Running as a daemon\n";
+    daemon(1, 0);
+  } else {
+    cout << endl <<"---  Software Radio Systems MBMS  ---" << endl << endl;
+  }
 
   mbms_gw *mbms_gw = mbms_gw::get_instance();
   if(mbms_gw->init(&args.mbms_gw_args,&mbms_gw_log)) {

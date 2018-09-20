@@ -205,6 +205,8 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("expert.m1u_if_addr",
      bpo::value<string>(&args->expert.m1u_if_addr)->default_value("127.0.1.201"),
      "IP address of the interface the eNB will listen for M1-U traffic.")
+
+    ("runtime.daemonize", bpo::value<bool>(&args->runtime.daemonize)->default_value(false), "Run this process as a daemon")
   ;
 
   // Positional options - config file location
@@ -388,6 +390,10 @@ void *input_loop(void *m)
         }
         metrics->toggle_print(do_metrics);
       }
+      if ('q' == key) {
+        cout << "recv quit command." << endl;
+        running = false;
+      }  
     }
   }
   return NULL;
@@ -399,20 +405,28 @@ int main(int argc, char *argv[])
   signal(SIGTERM, sig_int_handler);
   all_args_t        args;
   metrics_stdout    metrics;
-  enb              *enb = enb::get_instance();
 
   srslte_debug_handle_crash(argc, argv);
 
-  cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
-
   parse_args(&args, argc, argv);
+
+  if(args.runtime.daemonize) {
+    cout << "Running as a daemon\n";
+    daemon(1, 0);
+  } else {
+    cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
+  }
+
+  enb *enb = enb::get_instance();
   if(!enb->init(&args)) {
     exit(1);
   }
   metrics.init(enb, args.expert.metrics_period_secs);
 
-  pthread_t input;
-  pthread_create(&input, NULL, &input_loop, &metrics);
+  pthread_t input = {0};
+  if(! args.runtime.daemonize) {
+    pthread_create(&input, NULL, &input_loop, &metrics);
+  }
 
   bool plot_started         = false; 
   bool signals_pregenerated = false; 
@@ -433,7 +447,8 @@ int main(int argc, char *argv[])
     }
     usleep(10000);
   }
-  pthread_cancel(input);
+  if(input)
+    pthread_cancel(input);
   metrics.stop();
   enb->stop();
   enb->cleanup();

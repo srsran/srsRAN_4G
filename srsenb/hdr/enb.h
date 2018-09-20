@@ -132,6 +132,10 @@ typedef struct {
   std::string m1u_if_addr;
 }expert_args_t;
 
+typedef struct {
+  bool daemonize;
+} runtime_args_t;
+
 typedef struct { 
   enb_args_t    enb;
   enb_files_t   enb_files; 
@@ -140,6 +144,7 @@ typedef struct {
   log_args_t    log;
   gui_args_t    gui;
   expert_args_t expert;
+  runtime_args_t runtime;
 }all_args_t;
 
 /*******************************************************************************
