@@ -805,31 +805,15 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
   ZERO_OBJECT(id_resp);
 
   liblte_mme_unpack_identity_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &id_req);
+
+  // Deallocate PDU after parsing
+  pool->deallocate(pdu);
+
+  ctxt.rx_count++;
+
   nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
 
-  switch(id_req.id_type) {
-  case LIBLTE_MME_MOBILE_ID_TYPE_IMSI:
-    id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMSI;
-    usim->get_imsi_vec(id_resp.mobile_id.imsi, 15);
-    break;
-  case LIBLTE_MME_MOBILE_ID_TYPE_IMEI:
-    id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEI;
-    usim->get_imei_vec(id_resp.mobile_id.imei, 15);
-    break;
-  default:
-    nas_log->error("Unhandled ID type: %d\n", id_req.id_type);
-    pool->deallocate(pdu);
-    return;
-  }
-
-  pdu->reset();
-  liblte_mme_pack_identity_response_msg(&id_resp, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-
-  if(pcap != NULL) {
-    pcap->write_nas(pdu->msg, pdu->N_bytes);
-  }
-
-  rrc->write_sdu(lcid, pdu);
+  send_identity_response(lcid, id_req.id_type);
 }
 
 void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
@@ -1329,7 +1313,40 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
 }
 
 
-void nas::send_identity_response() {}
+void nas::send_identity_response(uint32_t lcid, uint8 id_type)
+{
+  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
+  ZERO_OBJECT(id_resp);
+
+  switch(id_type) {
+    case LIBLTE_MME_MOBILE_ID_TYPE_IMSI:
+      id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMSI;
+      usim->get_imsi_vec(id_resp.mobile_id.imsi, 15);
+      break;
+    case LIBLTE_MME_MOBILE_ID_TYPE_IMEI:
+      id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEI;
+      usim->get_imei_vec(id_resp.mobile_id.imei, 15);
+      break;
+    default:
+      nas_log->error("Unhandled ID type: %d\n", id_type);
+      return;
+  }
+
+  byte_buffer_t *pdu = pool_allocate_blocking;
+  if (!pdu) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_identity_response().\n");
+    return;
+  }
+
+  liblte_mme_pack_identity_response_msg(&id_resp, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
+
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  rrc->write_sdu(lcid, pdu);
+  ctxt.tx_count++;
+}
 
 void nas::send_service_request() {
   byte_buffer_t *msg = pool_allocate_blocking;
