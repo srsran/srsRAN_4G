@@ -594,6 +594,10 @@ hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
 
   uint8_t mac_s_tmp[8];
 
+  for(int i=0; i<2; i++){
+    amf[i] = 0;
+  }
+
   security_milenage_f1_star(k, opc, last_rand, sqn_ms, amf, mac_s_tmp);
 
   m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
