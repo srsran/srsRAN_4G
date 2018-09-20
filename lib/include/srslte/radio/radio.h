@@ -140,7 +140,7 @@ class radio {
 
   srslte_rf_t rf_device;
 
-  const static uint32_t burst_preamble_max_samples = 30720000;  // 30.72 MHz is maximum frequency
+  const static uint32_t burst_preamble_max_samples = 4096;
   double burst_preamble_sec;// Start of burst preamble time (off->on RF transition time)
   srslte_timestamp_t end_of_burst_time;
   bool is_start_of_burst;
