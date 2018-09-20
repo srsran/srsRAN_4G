@@ -200,6 +200,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("rf_calibration.tx_corr_iq_i",     bpo::value<float>(&args->rf_cal.tx_corr_iq_i)->default_value(0.0),     "TX IQ imbalance inphase correction")
     ("rf_calibration.tx_corr_iq_q",     bpo::value<float>(&args->rf_cal.tx_corr_iq_q)->default_value(0.0),     "TX IQ imbalance quadrature correction")
 
+    ("runtime.daemonize", bpo::value<bool>(&args->runtime.daemonize)->default_value(false), "Run this process as a daemon")
   ;
 
   // Positional options - config file location
@@ -383,6 +384,10 @@ void *input_loop(void *m)
         }
         metrics->toggle_print(do_metrics);
       }
+      if ('q' == key) {
+        cout << "recv quit command." << endl;
+        running = false;
+      }  
     }
   }
   return NULL;
@@ -394,20 +399,28 @@ int main(int argc, char *argv[])
   signal(SIGTERM, sig_int_handler);
   all_args_t        args;
   metrics_stdout    metrics;
-  enb              *enb = enb::get_instance();
 
   srslte_debug_handle_crash(argc, argv);
 
-  cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
-
   parse_args(&args, argc, argv);
+
+  if(args.runtime.daemonize) {
+    cout << "Running as a daemon\n";
+    daemon(1, 0);
+  } else {
+    cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
+  }
+
+  enb *enb = enb::get_instance();
   if(!enb->init(&args)) {
     exit(1);
   }
   metrics.init(enb, args.expert.metrics_period_secs);
 
-  pthread_t input;
-  pthread_create(&input, NULL, &input_loop, &metrics);
+  pthread_t input = {0};
+  if(! args.runtime.daemonize) {
+    pthread_create(&input, NULL, &input_loop, &metrics);
+  }
 
   bool plot_started         = false; 
   bool signals_pregenerated = false; 
@@ -428,7 +441,8 @@ int main(int argc, char *argv[])
     }
     usleep(10000);
   }
-  pthread_cancel(input);
+  if(input)
+    pthread_cancel(input);
   metrics.stop();
   enb->stop();
   enb->cleanup();
