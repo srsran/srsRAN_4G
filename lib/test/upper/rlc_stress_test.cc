@@ -37,7 +37,8 @@
 #include <assert.h>
 #include <srslte/upper/rlc_interface.h>
 
-#define SDU_SIZE 1500
+#define SDU_SIZE (1500)
+#define LOG_HEX_LIMIT (-1)
 
 using namespace std;
 using namespace srsue;
@@ -55,6 +56,7 @@ typedef struct {
   bool        single_tx;
   bool        write_pcap;
   float       opp_sdu_ratio;
+  bool        zero_seed;
 } stress_test_args_t;
 
 void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
@@ -78,7 +80,8 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution")
   ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
   ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
-  ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file");
+  ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
+  ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero");
 
   // these options are allowed on the command line
   bpo::options_description cmdline_options;
@@ -102,104 +105,31 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   }
 }
 
-// Interface for MAC reader to step timer
-class mac_reader_interface {
-public:
-  // MAC reader calls step_timers after each RLC transmission
-  virtual void step_timer() = 0;
-};
-
-class mac_reader
-    :public thread
+class mac_dummy
+    :public srslte::mac_interface_timers
+    ,public thread
 {
 public:
-  mac_reader(mac_reader_interface *mac_, rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, uint32_t pdu_tx_delay_usec_, rlc_pcap *pcap_, uint32_t lcid_, bool is_dl_ = true)
+  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, int32_t pdu_tx_delay_usec_, uint32_t lcid_, rlc_pcap* pcap_ = NULL)
+    :timers(8)
+    ,run_enable(true)
+    ,rlc1(rlc1_)
+    ,rlc2(rlc2_)
+    ,fail_rate(fail_rate_)
+    ,opp_sdu_ratio(opp_sdu_ratio_)
+    ,pdu_tx_delay_usec(pdu_tx_delay_usec_)
+    ,pcap(pcap_)
+    ,lcid(lcid_)
+    ,log("MAC  ")
   {
-    mac = mac_;
-    rlc1 = rlc1_;
-    rlc2 = rlc2_;
-    fail_rate = fail_rate_;
-    opp_sdu_ratio = opp_sdu_ratio_;
-    run_enable = true;
-    pdu_tx_delay_usec = pdu_tx_delay_usec_;
-    pcap = pcap_;
-    is_dl = is_dl_;
-    lcid = lcid_;
+    log.set_level(srslte::LOG_LEVEL_ERROR);
+    log.set_hex_limit(LOG_HEX_LIMIT);
   }
 
   void stop()
   {
     run_enable = false;
     wait_thread_finish();
-  }
-
-private:
-  void run_thread()
-  {
-    byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("mac_reader::run_thread");
-    if (!pdu) {
-      printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
-      exit(-1);
-    }
-
-    while(run_enable) {
-      // generate MAC opportunities of random size or with fixed ratio
-      float r = opp_sdu_ratio ? opp_sdu_ratio : (float)rand()/RAND_MAX;
-      int opp_size = r*SDU_SIZE;
-      uint32_t buf_state = rlc1->get_buffer_state(lcid);
-      if (buf_state) {
-        int read = rlc1->read_pdu(lcid, pdu->msg, opp_size);
-        if (pdu_tx_delay_usec) usleep(pdu_tx_delay_usec);
-        if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
-          pdu->N_bytes = read;
-          rlc2->write_pdu(lcid, pdu->msg, pdu->N_bytes);
-          if (is_dl) {
-            pcap->write_dl_am_ccch(pdu->msg, pdu->N_bytes);
-          } else {
-            pcap->write_ul_am_ccch(pdu->msg, pdu->N_bytes);
-          }
-        }
-      }
-      // step timer
-      mac->step_timer();
-    }
-    byte_buffer_pool::get_instance()->deallocate(pdu);
-  }
-
-  mac_reader_interface *mac;
-  rlc_interface_mac *rlc1;
-  rlc_interface_mac *rlc2;
-  float fail_rate;
-  float opp_sdu_ratio;
-  uint32_t pdu_tx_delay_usec;
-  rlc_pcap *pcap;
-  uint32_t lcid;
-  bool is_dl;
-  bool run_enable;
-};
-
-class mac_dummy
-    :public srslte::mac_interface_timers
-    ,public mac_reader_interface
-{
-public:
-  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, int32_t pdu_tx_delay, uint32_t lcid, rlc_pcap* pcap = NULL)
-    :r1(this, rlc1_, rlc2_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, lcid, true)
-    ,r2(this, rlc2_, rlc1_, fail_rate_, opp_sdu_ratio_, pdu_tx_delay, pcap, lcid, false)
-    ,timers(8)
-  {
-  }
-
-  void start()
-  {
-    r1.start(7);
-    r2.start(7);
-  }
-
-  void stop()
-  {
-    r1.stop();
-    r2.stop();
   }
 
   srslte::timers::timer* timer_get(uint32_t timer_id)
@@ -217,12 +147,60 @@ public:
   }
 
 private:
+  void run_tti(rlc_interface_mac *tx_rlc, rlc_interface_mac *rx_rlc, bool is_dl)
+  {
+    byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate(__PRETTY_FUNCTION__);
+    if (!pdu) {
+      printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
+      exit(-1);
+    }
+
+    float r = opp_sdu_ratio ? opp_sdu_ratio : (float)rand()/RAND_MAX;
+    int opp_size = r*SDU_SIZE;
+    uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
+    if (buf_state) {
+      int read = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
+      pdu->N_bytes = read;
+      if (pdu_tx_delay_usec) usleep(pdu_tx_delay_usec);
+      if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
+        rx_rlc->write_pdu(lcid, pdu->msg, pdu->N_bytes);
+        if (is_dl) {
+          pcap->write_dl_am_ccch(pdu->msg, pdu->N_bytes);
+        } else {
+          pcap->write_ul_am_ccch(pdu->msg, pdu->N_bytes);
+        }
+      } else {
+        log.info_hex(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)\n", pdu->N_bytes);
+      }
+    }
+    byte_buffer_pool::get_instance()->deallocate(pdu);
+  }
+
+  void run_thread()
+  {
+    while (run_enable) {
+      // Downlink direction first (RLC1->RLC2)
+      run_tti(rlc1, rlc2, true);
+
+      // UL direction (RLC2->RLC1)
+      run_tti(rlc2, rlc1, false);
+
+      // step timer
+      step_timer();
+    }
+  }
+
+  rlc_interface_mac *rlc1;
+  rlc_interface_mac *rlc2;
   srslte::timers timers;
-
-  mac_reader r1;
-  mac_reader r2;
+  bool run_enable;
+  float fail_rate;
+  float opp_sdu_ratio;
+  uint32_t pdu_tx_delay_usec;
+  rlc_pcap *pcap;
+  uint32_t lcid;
+  srslte::log_filter log;
 };
-
 
 
 class rlc_tester
@@ -251,10 +229,12 @@ public:
   {
     assert(rx_lcid == lcid);
     if (sdu->N_bytes != SDU_SIZE) {
-      printf("Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, SDU_SIZE);
+      srslte::log_filter log1("Testr");;
+      log1.set_level(srslte::LOG_LEVEL_ERROR);
+      log1.set_hex_limit(sdu->N_bytes);
+      log1.error_hex(sdu->msg, sdu->N_bytes, "Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, SDU_SIZE);
       exit(-1);
     }
-
     byte_buffer_pool::get_instance()->deallocate(sdu);
     rx_pdus++;
   }
@@ -265,13 +245,12 @@ public:
   
   // RRC interface
   void max_retx_attempted(){}
-  std::string get_rb_name(uint32_t rx_lcid) { return std::string(""); }
+  std::string get_rb_name(uint32_t rx_lcid) { return std::string("DRB1"); }
 
   int get_nof_rx_pdus() { return rx_pdus; }
 
 private:
-  void run_thread()
-  {
+  void run_thread() {
     uint8_t sn = 0;
     while(run_enable) {
       byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_tester::run_thread");
@@ -308,8 +287,8 @@ void stress_test(stress_test_args_t args)
   srslte::log_filter log2("RLC_2");
   log1.set_level((LOG_LEVEL_ENUM)args.log_level);
   log2.set_level((LOG_LEVEL_ENUM)args.log_level);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
+  log1.set_hex_limit(LOG_HEX_LIMIT);
+  log2.set_hex_limit(LOG_HEX_LIMIT);
   rlc_pcap pcap;
   uint32_t lcid = 1;
 
@@ -410,6 +389,12 @@ void stress_test(stress_test_args_t args)
 int main(int argc, char **argv) {
   stress_test_args_t args;
   parse_args(&args, argc, argv);
+
+  if (args.zero_seed) {
+    srand(0);
+  } else {
+    srand(time(NULL));
+  }
 
   stress_test(args);
   byte_buffer_pool::get_instance()->cleanup();
