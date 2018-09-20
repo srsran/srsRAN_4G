@@ -130,6 +130,7 @@ private:
   bool have_guti;
   bool have_ctxt;
   nas_sec_ctxt ctxt;
+  bool auth_request;
 
   uint32_t ip_addr;
   uint8_t eps_bearer_id;

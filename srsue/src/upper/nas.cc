@@ -46,7 +46,7 @@ namespace srsue {
  ********************************************************************/
 
 nas::nas()
-  : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), ip_addr(0), eps_bearer_id(0)
+  : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), auth_request(false), ip_addr(0), eps_bearer_id(0)
 {
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
@@ -781,6 +781,7 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu, const 
     nas_log->info("Network authentication successful\n");
     send_authentication_response(res, res_len, sec_hdr_type);
     nas_log->info_hex(ctxt.k_asme, 32, "Generated k_asme:\n");
+    auth_request = true;
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     nas_log->error("Network authentication synchronization failure.\n");
     send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
@@ -818,7 +819,6 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
 
 void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
 {
-
   if (!pdu) {
     nas_log->error("Invalid PDU\n");
     return;
@@ -867,9 +867,12 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
     return;
   }
 
-  // Reset counters (as per 24.301 5.4.3.2)
-  ctxt.rx_count = 0;
-  ctxt.tx_count = 0;
+  // Reset counters (as per 24.301 5.4.3.2), only needed for initial security mode command
+  if (auth_request) {
+    ctxt.rx_count = 0;
+    ctxt.tx_count = 0;
+    auth_request = false;
+  }
 
   ctxt.cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) sec_mode_cmd.selected_nas_sec_algs.type_of_eea;
   ctxt.integ_algo  = (INTEGRITY_ALGORITHM_ID_ENUM) sec_mode_cmd.selected_nas_sec_algs.type_of_eia;
