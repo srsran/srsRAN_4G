@@ -117,13 +117,10 @@ void rlc::get_metrics(rlc_metrics_t &m)
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
   double secs = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec*1e-6;
-  
-  m.dl_tput_mbps = 0; 
-  m.ul_tput_mbps = 0;
 
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
-    m.dl_tput_mbps += (it->second->get_num_rx_bytes()*8/(double)1e6)/secs;
-    m.ul_tput_mbps += (it->second->get_num_tx_bytes()*8/(double)1e6)/secs;
+    m.dl_tput_mbps[it->first] = (it->second->get_num_rx_bytes()*8/static_cast<double>(1e6))/secs;
+    m.ul_tput_mbps[it->first] = (it->second->get_num_tx_bytes()*8/static_cast<double>(1e6))/secs;
     rlc_log->info("LCID=%d, RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
                     it->first,
                     (it->second->get_num_rx_bytes()*8/(double)1e6)/secs,
@@ -132,10 +129,10 @@ void rlc::get_metrics(rlc_metrics_t &m)
 
   // Add multicast metrics
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
-    m.dl_tput_mbps += (it->second->get_num_rx_bytes()*8/(double)1e6)/secs;
+    m.dl_tput_mbps[it->first] = (it->second->get_num_rx_bytes()*8/static_cast<double>(1e6))/secs;
     rlc_log->info("MCH_LCID=%d, RX throughput: %4.6f Mbps\n",
                   it->first,
-                  (it->second->get_num_rx_bytes()*8/(double)1e6)/secs);
+                  (it->second->get_num_rx_bytes()*8/static_cast<double>(1e6))/secs);
   }
 
   memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));

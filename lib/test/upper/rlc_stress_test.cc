@@ -374,16 +374,16 @@ void stress_test(stress_test_args_t args)
          tester1.get_nof_rx_pdus(),
          args.test_duration_sec,
          (float)tester1.get_nof_rx_pdus()/args.test_duration_sec,
-         metrics.dl_tput_mbps,
-         metrics.ul_tput_mbps);
+         metrics.dl_tput_mbps[lcid],
+         metrics.ul_tput_mbps[lcid]);
 
   rlc2.get_metrics(metrics);
   printf("RLC2 received %d SDUs in %ds (%.2f PDU/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
          tester2.get_nof_rx_pdus(),
          args.test_duration_sec,
          (float)tester2.get_nof_rx_pdus()/args.test_duration_sec,
-         metrics.dl_tput_mbps,
-         metrics.ul_tput_mbps);
+         metrics.dl_tput_mbps[lcid],
+         metrics.ul_tput_mbps[lcid]);
 }
 
 

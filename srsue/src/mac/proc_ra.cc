@@ -237,7 +237,8 @@ void ra_proc::step_resource_selection() {
     }
     if (sel_group == RA_GROUP_A) {
       if (nof_groupA_preambles) {
-        sel_preamble = preambleTransmissionCounter%nof_groupA_preambles;
+        // randomly choose preamble from [0 nof_groupA_preambles)
+        sel_preamble = rand() % nof_groupA_preambles;
       } else {
         rError("Selected group preamble A but nof_groupA_preambles=0\n");
         state = RA_PROBLEM;
@@ -245,7 +246,8 @@ void ra_proc::step_resource_selection() {
       }
     } else {
       if (nof_groupB_preambles) {
-        sel_preamble = nof_groupA_preambles + rand()%nof_groupB_preambles;
+        // randomly choose preamble from [nof_groupA_preambles nof_groupB_preambles)
+        sel_preamble = nof_groupA_preambles + rand() % nof_groupB_preambles;
       } else {
         rError("Selected group preamble B but nof_groupA_preambles=0\n");
         state = RA_PROBLEM;
@@ -254,7 +256,7 @@ void ra_proc::step_resource_selection() {
     }
     sel_maskIndex = 0;           
   }
-  
+
   rDebug("Selected preambleIndex=%d maskIndex=%d GroupA=%d, GroupB=%d\n", 
         sel_preamble, sel_maskIndex,nof_groupA_preambles, nof_groupB_preambles);
   state = PREAMBLE_TRANSMISSION;
