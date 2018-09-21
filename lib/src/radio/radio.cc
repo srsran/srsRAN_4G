@@ -358,8 +358,8 @@ void radio::set_tx_srate(double srate)
   cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
   burst_preamble_samples = (uint32_t) (cur_tx_srate * burst_preamble_sec);
   if (burst_preamble_samples > burst_preamble_max_samples) {
-    burst_preamble_samples = burst_preamble_max_samples;
     fprintf(stderr, "Error setting TX srate %.1f MHz. Maximum burst preamble samples: %d, requested: %d\n", srate*1e-6, burst_preamble_max_samples, burst_preamble_samples  );
+    burst_preamble_samples = burst_preamble_max_samples;
   }
   burst_preamble_time_rounded = (double) burst_preamble_samples/cur_tx_srate;  
   
