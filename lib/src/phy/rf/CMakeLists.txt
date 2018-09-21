@@ -25,7 +25,7 @@ if(RF_FOUND)
 
   # Include common RF files
   set(SOURCES_RF "")
-  list(APPEND SOURCES_RF rf_imp.c)
+  list(APPEND SOURCES_RF rf_imp.c rf_dummy_imp.c rf_shmem_imp.c)
 
   if (UHD_FOUND)
     add_definitions(-DENABLE_UHD)
