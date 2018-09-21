@@ -1684,9 +1684,10 @@ int rlc_am::rlc_am_rx::get_status(rlc_status_pdu_t* status)
 
   // We don't use segment NACKs - just NACK the full PDU
   uint32_t i = vr_r;
-  while(RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms)) {
+  while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status->N_nack < RLC_AM_WINDOW_SIZE) {
     if(rx_window.find(i) == rx_window.end()) {
-      status->nacks[status->N_nack++].nack_sn = i;
+      status->nacks[status->N_nack].nack_sn = i;
+      status->N_nack++;
     }
     i = (i + 1)%MOD;
   }
