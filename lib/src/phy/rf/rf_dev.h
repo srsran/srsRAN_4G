@@ -178,47 +178,88 @@ static rf_dev_t dev_soapy = {
 
 #endif
 
-//#define ENABLE_DUMMY_DEV
+#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
-int dummy_rcv() {
-  usleep(100000);
-  return 1; 
-}
-void dummy_fnc() {
-  
-}
 
+#include "rf_dummy_imp.h"
 static rf_dev_t dev_dummy = {
-  "dummy", 
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc, 
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,  
-  dummy_rcv,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc
-};
+  .name                              = "dummyrf", 
+  .srslte_rf_devname                 = rf_dummy_devname,
+  .srslte_rf_rx_wait_lo_locked       = rf_dummy_rx_wait_lo_locked,
+  .srslte_rf_start_rx_stream         = rf_dummy_start_rx_stream,
+  .srslte_rf_stop_rx_stream          = rf_dummy_stop_rx_stream,
+  .srslte_rf_flush_buffer            = rf_dummy_flush_buffer,
+  .srslte_rf_has_rssi                = rf_dummy_has_rssi,
+  .srslte_rf_get_rssi                = rf_dummy_get_rssi,
+  .srslte_rf_suppress_stdout         = rf_dummy_suppress_stdout,
+  .srslte_rf_register_error_handler  = rf_dummy_register_error_handler,
+  .srslte_rf_open                    = rf_dummy_open,
+  .srslte_rf_open_multi              = rf_dummy_open_multi,
+  .srslte_rf_close                   = rf_dummy_close,
+  .srslte_rf_set_master_clock_rate   = rf_dummy_set_master_clock_rate,
+  .srslte_rf_is_master_clock_dynamic = rf_dummy_is_master_clock_dynamic,
+  .srslte_rf_set_rx_srate            = rf_dummy_set_rx_srate,
+  .srslte_rf_set_rx_gain             = rf_dummy_set_rx_gain,
+  .srslte_rf_set_tx_gain             = rf_dummy_set_tx_gain,
+  .srslte_rf_get_rx_gain             = rf_dummy_get_rx_gain,
+  .srslte_rf_get_tx_gain             = rf_dummy_get_tx_gain,
+  .srslte_rf_get_info                = rf_dummy_get_rf_info,
+  .srslte_rf_set_rx_freq             = rf_dummy_set_rx_freq, 
+  .srslte_rf_set_tx_srate            = rf_dummy_set_tx_srate,
+  .srslte_rf_set_tx_freq             = rf_dummy_set_tx_freq,
+  .srslte_rf_get_time                = rf_dummy_get_time,  
+  .srslte_rf_recv_with_time          = rf_dummy_recv_with_time,
+  .srslte_rf_recv_with_time_multi    = rf_dummy_recv_with_time_multi,
+  .srslte_rf_send_timed              = rf_dummy_send_timed,
+  .srslte_rf_send_timed_multi        = rf_dummy_send_timed_multi,
+  .srslte_rf_set_tx_cal              = rf_dummy_set_tx_cal,
+  .srslte_rf_set_rx_cal              = rf_dummy_set_rx_cal
+};                        
 #endif
+
+
+#define ENABLE_SHMEMRF
+
+#ifdef  ENABLE_SHMEMRF
+
+#include "rf_shmem_imp.h"
+
+static rf_dev_t dev_shmem = {
+  .name                              = "shmemrf", 
+  .srslte_rf_devname                 = rf_shmem_devname,
+  .srslte_rf_rx_wait_lo_locked       = rf_shmem_rx_wait_lo_locked,
+  .srslte_rf_start_rx_stream         = rf_shmem_start_rx_stream,
+  .srslte_rf_stop_rx_stream          = rf_shmem_stop_rx_stream,
+  .srslte_rf_flush_buffer            = rf_shmem_flush_buffer,
+  .srslte_rf_has_rssi                = rf_shmem_has_rssi,
+  .srslte_rf_get_rssi                = rf_shmem_get_rssi,
+  .srslte_rf_suppress_stdout         = rf_shmem_suppress_stdout,
+  .srslte_rf_register_error_handler  = rf_shmem_register_error_handler,
+  .srslte_rf_open                    = rf_shmem_open,
+  .srslte_rf_open_multi              = rf_shmem_open_multi,
+  .srslte_rf_close                   = rf_shmem_close,
+  .srslte_rf_set_master_clock_rate   = rf_shmem_set_master_clock_rate,
+  .srslte_rf_is_master_clock_dynamic = rf_shmem_is_master_clock_dynamic,
+  .srslte_rf_set_rx_srate            = rf_shmem_set_rx_srate,
+  .srslte_rf_set_rx_gain             = rf_shmem_set_rx_gain,
+  .srslte_rf_set_tx_gain             = rf_shmem_set_tx_gain,
+  .srslte_rf_get_rx_gain             = rf_shmem_get_rx_gain,
+  .srslte_rf_get_tx_gain             = rf_shmem_get_tx_gain,
+  .srslte_rf_get_info                = rf_shmem_get_rf_info,
+  .srslte_rf_set_rx_freq             = rf_shmem_set_rx_freq, 
+  .srslte_rf_set_tx_srate            = rf_shmem_set_tx_srate,
+  .srslte_rf_set_tx_freq             = rf_shmem_set_tx_freq,
+  .srslte_rf_get_time                = rf_shmem_get_time,  
+  .srslte_rf_recv_with_time          = rf_shmem_recv_with_time,
+  .srslte_rf_recv_with_time_multi    = rf_shmem_recv_with_time_multi,
+  .srslte_rf_send_timed              = rf_shmem_send_timed,
+  .srslte_rf_send_timed_multi        = rf_shmem_send_timed_multi,
+  .srslte_rf_set_tx_cal              = rf_shmem_set_tx_cal,
+  .srslte_rf_set_rx_cal              = rf_shmem_set_rx_cal
+};                        
+#endif
+
 
 static rf_dev_t *available_devices[] = {
 
@@ -233,6 +274,9 @@ static rf_dev_t *available_devices[] = {
 #endif
 #ifdef ENABLE_DUMMY_DEV
   &dev_dummy,
+#endif
+#ifdef ENABLE_SHMEMRF
+  &dev_shmem,
 #endif
   NULL
 };
