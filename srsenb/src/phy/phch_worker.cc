@@ -1073,7 +1073,7 @@ void phch_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, uint32_t 
 {
   metrics.ul.mcs         = SRSLTE_VEC_CMA((float) mcs,         metrics.ul.mcs,         metrics.ul.n_samples);
   metrics.ul.sinr        = SRSLTE_VEC_CMA((float) sinr,        metrics.ul.sinr,        metrics.ul.n_samples);
-  metrics.ul.rssi        = SRSLTE_VEC_CMA((float) sinr,        metrics.ul.rssi,        metrics.ul.n_samples);
+  metrics.ul.rssi        = SRSLTE_VEC_CMA((float) rssi,        metrics.ul.rssi,        metrics.ul.n_samples);
   metrics.ul.turbo_iters = SRSLTE_VEC_CMA((float) turbo_iters, metrics.ul.turbo_iters, metrics.ul.n_samples);  
   metrics.ul.n_samples++;
 }

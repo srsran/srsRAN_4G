@@ -139,7 +139,7 @@
 #define SRSLTE_SIMD_S_SIZE    8
 #define SRSLTE_SIMD_C16_SIZE  8
 
-#else /* LV_HAVE_NEON */
+#else /* HAVE_NEON */
 #define SRSLTE_SIMD_F_SIZE    0
 #define SRSLTE_SIMD_CF_SIZE   0
 
@@ -514,7 +514,7 @@ static inline simd_f_t srslte_simd_f_abs(simd_f_t a) {
   return _mm_andnot_ps(_mm_set1_ps(-0.0f), a);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
-  return vqabsq_s32(a);
+  return vabsq_f32(a);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
@@ -990,13 +990,13 @@ static inline simd_cf_t srslte_simd_cf_rcp (simd_cf_t a) {
 
 static inline simd_cf_t srslte_simd_cf_neg (simd_cf_t a) {
   simd_cf_t ret;
-#if LV_HAVE_NEON
+#if HAVE_NEON
   ret.val[0] = srslte_simd_f_neg(a.val[0]);
   ret.val[1] = srslte_simd_f_neg(a.val[1]);
-#else  /* LV_HAVE_NEON */
+#else  /* HAVE_NEON */
   ret.re = srslte_simd_f_neg(a.re);
   ret.im = srslte_simd_f_neg(a.im);
-#endif /* LV_HAVE_NEON */
+#endif /* HAVE_NEON */
   return ret;
 }
 
@@ -1007,37 +1007,37 @@ static inline simd_cf_t srslte_simd_cf_neg_mask (simd_cf_t a, simd_f_t mask) {
   mask = _mm256_permutevar8x32_ps(mask, _mm256_setr_epi32(0,4,1,5,2,6,3,7));
 #endif /* LV_HAVE_AVX2 */
 #endif /* LV_HAVE_AVX512 */
-#if LV_HAVE_NEON
+#if HAVE_NEON
   ret.val[0] = srslte_simd_f_neg_mask(a.val[0], mask);
   ret.val[1] = srslte_simd_f_neg_mask(a.val[1], mask);
-#else /* LV_HAVE_NEON */
+#else /* HAVE_NEON */
   ret.re = srslte_simd_f_neg_mask(a.re, mask);
   ret.im = srslte_simd_f_neg_mask(a.im, mask);
-#endif /* LV_HAVE_NEON */
+#endif /* HAVE_NEON */
   return ret;
 }
 
 static inline simd_cf_t srslte_simd_cf_conj (simd_cf_t a) {
   simd_cf_t ret;
-#if LV_HAVE_NEON
+#if HAVE_NEON
   ret.val[0] = a.val[0];
   ret.val[1] = srslte_simd_f_neg(a.val[1]);
-#else /* LV_HAVE_NEON */
+#else /* HAVE_NEON */
   ret.re = a.re;
   ret.im = srslte_simd_f_neg(a.im);
-#endif /* LV_HAVE_NEON */
+#endif /* HAVE_NEON */
   return ret;
 }
 
 static inline simd_cf_t srslte_simd_cf_mulj (simd_cf_t a) {
   simd_cf_t ret;
-#if LV_HAVE_NEON
+#if HAVE_NEON
   ret.val[0] = srslte_simd_f_neg(a.val[1]);
   ret.val[1] = a.val[0];
-#else /* LV_HAVE_NEON */
+#else /* HAVE_NEON */
   ret.re = srslte_simd_f_neg(a.im);
   ret.im = a.re;
-#endif /* LV_HAVE_NEON */
+#endif /* HAVE_NEON */
   return ret;
 }
 
