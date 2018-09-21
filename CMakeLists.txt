@@ -75,7 +75,8 @@ option(ENABLE_HARDSIM  "Enable support for SIM cards"             ON)
 
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
-option(ENABLE_ASAN     "Enable gcc address sanitizer"             OFF)
+option(ENABLE_ASAN     "Enable gcc/clang address sanitizer"       OFF)
+option(ENABLE_MSAN     "Enable clang memory sanitizer"            OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
@@ -315,7 +316,6 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     endif(HAVE_SSE)
   endif(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
-  
   if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
     message(STATUS "have ARM")
@@ -332,10 +332,21 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
   endif(NOT WIN32)
- if (ENABLE_ASAN)
-   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
- endif (ENABLE_ASAN)
+
+  if (ENABLE_ASAN AND ENABLE_MSAN)
+    message(FATAL_ERROR "ASAN and MSAN cannot be enabled at the same time.")
+  endif (ENABLE_ASAN AND ENABLE_MSAN)
+
+  if (ENABLE_ASAN)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+  endif (ENABLE_ASAN)
+
+  if (ENABLE_MSAN AND CMAKE_C_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=memory -fno-omit-frame-pointer -fPIE -pie")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=memory -fno-omit-frame-pointer -fPIE -pie")
+  endif (ENABLE_MSAN AND CMAKE_C_COMPILER_ID MATCHES "Clang")
+
 endif(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
