@@ -70,10 +70,11 @@ void spgw::cleanup()
   pthread_mutex_unlock(&spgw_instance_mutex);
 }
 
-int spgw::init(spgw_args_t*        args,
-               srslte::log_filter* gtpu_log,
-               srslte::log_filter* gtpc_log,
-               srslte::log_filter* spgw_log)
+int spgw::init(spgw_args_t*                           args,
+               srslte::log_filter*                    gtpu_log,
+               srslte::log_filter*                    gtpc_log,
+               srslte::log_filter*                    spgw_log,
+               const std::map<std::string, uint64_t>& ip_to_imsi)
 {
   srslte::error_t err;
   m_pool = srslte::byte_buffer_pool::get_instance();
@@ -88,7 +89,7 @@ int spgw::init(spgw_args_t*        args,
   }
 
   // Init GTP-C
-  if (m_gtpc->init(args, this, m_gtpu, gtpc_log) != 0) {
+  if (m_gtpc->init(args, this, m_gtpu, gtpc_log, ip_to_imsi) != 0) {
     m_spgw_log->console("Could not initialize the S1-U interface.\n");
     return -1;
   }

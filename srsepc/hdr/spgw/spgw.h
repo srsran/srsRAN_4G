@@ -75,7 +75,11 @@ class spgw : public thread
 public:
   static spgw* get_instance(void);
   static void  cleanup(void);
-  int init(spgw_args_t* args, srslte::log_filter* gtpu_log, srslte::log_filter* gtpc_log, srslte::log_filter* spgw_log);
+  int          init(spgw_args_t*                           args,
+                    srslte::log_filter*                    gtpu_log,
+                    srslte::log_filter*                    gtpc_log,
+                    srslte::log_filter*                    spgw_log,
+                    const std::map<std::string, uint64_t>& ip_to_imsi);
   void stop();
   void run_thread();
 
@@ -83,14 +87,6 @@ private:
   spgw();
   virtual ~spgw();
   static spgw* m_instance;
-
-  srslte::error_t init_sgi_if(spgw_args_t* args);
-  srslte::error_t init_s1u(spgw_args_t* args);
-  srslte::error_t init_ue_ip(spgw_args_t* args);
-
-  uint64_t  get_new_ctrl_teid();
-  uint64_t  get_new_user_teid();
-  in_addr_t get_new_ue_ipv4();
 
   spgw_tunnel_ctx_t* create_gtp_ctx(struct srslte::gtpc_create_session_request* cs_req);
   bool               delete_gtp_ctx(uint32_t ctrl_teid);

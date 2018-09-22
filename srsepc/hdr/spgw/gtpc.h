@@ -29,6 +29,7 @@
 #include "srsepc/hdr/spgw/spgw.h"
 #include "srslte/asn1/gtpc.h"
 #include "srslte/interfaces/epc_interfaces.h"
+#include <set>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -39,16 +40,20 @@ class spgw::gtpc : public gtpc_interface_gtpu
 public:
   gtpc();
   virtual ~gtpc();
-  int  init(spgw_args_t* args, spgw* spgw, gtpu_interface_gtpc* gtpu, srslte::log_filter* gtpc_log);
+  int  init(spgw_args_t*                           args,
+            spgw*                                  spgw,
+            gtpu_interface_gtpc*                   gtpu,
+            srslte::log_filter*                    gtpc_log,
+            const std::map<std::string, uint64_t>& ip_to_imsi);
   void stop();
 
   srslte::error_t init_s11(spgw_args_t *args);
-  srslte::error_t init_ue_ip(spgw_args_t* args);
+  srslte::error_t init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64_t>& ip_to_imsi);
 
   int       get_s11();
   uint64_t  get_new_ctrl_teid();
   uint64_t  get_new_user_teid();
-  in_addr_t get_new_ue_ipv4();
+  in_addr_t get_new_ue_ipv4(uint64_t imsi);
 
   void handle_s11_pdu(srslte::byte_buffer_t* msg);
   bool send_s11_pdu(const srslte::gtpc_pdu& pdu);
@@ -90,6 +95,9 @@ public:
   std::map<uint32_t, spgw_tunnel_ctx*> m_teid_to_tunnel_ctx; // Map control TEID to tunnel ctx. Usefull to get
                                                              // reply ctrl TEID, UE IP, etc.
 
+  std::set<uint32_t>                 m_ue_ip_addr_pool;
+  std::map<uint64_t, struct in_addr> m_imsi_to_ip;
+
   srslte::log_filter*       m_gtpc_log;
   srslte::byte_buffer_pool* m_pool;
 };
@@ -107,18 +115,6 @@ inline uint64_t spgw::gtpc::get_new_ctrl_teid()
 inline uint64_t spgw::gtpc::get_new_user_teid()
 {
   return m_next_user_teid++;
-}
-
-inline in_addr_t spgw::gtpc::get_new_ue_ipv4()
-{
-  m_h_next_ue_ip++;
-  return ntohl(m_h_next_ue_ip);
-}
-
-inline srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args)
-{
-  m_h_next_ue_ip = ntohl(inet_addr(args->sgi_if_addr.c_str()));
-  return srslte::ERROR_NONE;
 }
 
 } // namespace srsepc

@@ -54,7 +54,11 @@ spgw::gtpc::~gtpc()
   return;
 }
 
-int spgw::gtpc::init(spgw_args_t* args, spgw* spgw, gtpu_interface_gtpc* gtpu, srslte::log_filter* gtpc_log)
+int spgw::gtpc::init(spgw_args_t*                           args,
+                     spgw*                                  spgw,
+                     gtpu_interface_gtpc*                   gtpu,
+                     srslte::log_filter*                    gtpc_log,
+                     const std::map<std::string, uint64_t>& ip_to_imsi)
 {
   srslte::error_t err;
   m_pool = srslte::byte_buffer_pool::get_instance();
@@ -74,7 +78,7 @@ int spgw::gtpc::init(spgw_args_t* args, spgw* spgw, gtpu_interface_gtpc* gtpu, s
   }
 
   // Init IP pool
-  err = init_ue_ip(args);
+  err = init_ue_ip(args, ip_to_imsi);
   if (err != srslte::ERROR_NONE) {
     m_gtpc_log->console("Could not initialize the IP pool.\n");
     return -1;
@@ -442,7 +446,7 @@ spgw_tunnel_ctx_t* spgw::gtpc::create_gtpc_ctx(const struct srslte::gtpc_create_
   // Setup uplink user TEID
   uint64_t spgw_uplink_user_teid = get_new_user_teid();
   // Allocate UE IP
-  in_addr_t ue_ip = get_new_ue_ipv4();
+  in_addr_t ue_ip = get_new_ue_ipv4(cs_req.imsi);
 
   uint8_t default_bearer_id = 5;
 
@@ -533,6 +537,66 @@ bool spgw::gtpc::free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx)
     tunnel_ctx->paging_queue.pop();
   }
   return true;
+}
+
+srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64_t>& ip_to_imsi)
+{
+  std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.find(args->sgi_if_addr);
+
+  // check for collision w/our ip address
+  if (iter != ip_to_imsi.end()) {
+    m_gtpc_log->error("SPGW: static ip addr %s for imsi %lu, is reserved for the epc tun interface\n",
+                      iter->first.c_str(), iter->second);
+    return srslte::ERROR_OUT_OF_BOUNDS;
+  }
+
+  // load our imsi to ip lookup table
+  for (std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.begin(); iter != ip_to_imsi.end(); ++iter) {
+    struct in_addr in_addr;
+    in_addr.s_addr = inet_addr(iter->first.c_str());
+    if (!m_imsi_to_ip.insert(std::make_pair(iter->second, in_addr)).second) {
+      m_gtpc_log->error("SPGW: duplicate imsi %lu for static ip address %s.\n", iter->second, iter->first.c_str());
+      return srslte::ERROR_OUT_OF_BOUNDS;
+    }
+  }
+
+  // XXX TODO add an upper bound to ip addr range via config, use 254 for now
+  // first address is allocated to the epc tun interface, start w/next addr
+  for (uint32_t n = 1; n < 254; ++n) {
+    struct in_addr ue_addr;
+    ue_addr.s_addr = inet_addr(args->sgi_if_addr.c_str()) + htonl(n);
+
+    std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.find(inet_ntoa(ue_addr));
+    if (iter != ip_to_imsi.end()) {
+      m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is reserved for imsi %lu, not adding to pool\n",
+                        iter->first.c_str(), iter->second);
+    } else {
+      m_ue_ip_addr_pool.insert(ue_addr.s_addr);
+      m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is added to pool\n", inet_ntoa(ue_addr));
+    }
+  }
+  return srslte::ERROR_NONE;
+}
+
+in_addr_t spgw::gtpc::get_new_ue_ipv4(uint64_t imsi)
+{
+  struct in_addr ue_addr;
+
+  std::map<uint64_t, struct in_addr>::const_iterator iter = m_imsi_to_ip.find(imsi);
+  if (iter != m_imsi_to_ip.end()) {
+    ue_addr = iter->second;
+    m_gtpc_log->info("SPGW: get_new_ue_ipv4 static ip addr %s\n", inet_ntoa(ue_addr));
+  } else {
+    if (m_ue_ip_addr_pool.empty()) {
+      m_gtpc_log->error("SPGW: ue address pool is empty\n");
+      ue_addr.s_addr = 0;
+    } else {
+      ue_addr.s_addr = *m_ue_ip_addr_pool.begin();
+      m_ue_ip_addr_pool.erase(ue_addr.s_addr);
+      m_gtpc_log->info("SPGW: get_new_ue_ipv4 pool ip addr %s\n", inet_ntoa(ue_addr));
+    }
+  }
+  return ue_addr.s_addr;
 }
 
 } // namespace srsepc

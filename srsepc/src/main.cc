@@ -456,7 +456,7 @@ int main(int argc, char* argv[])
   }
 
   spgw* spgw = spgw::get_instance();
-  if (spgw->init(&args.spgw_args, &gtpu_log, &spgw_gtpc_log, &spgw_log)) {
+  if (spgw->init(&args.spgw_args, &gtpu_log, &spgw_gtpc_log, &spgw_log, hss->get_ip_to_imsi())) {
     cout << "Error initializing SP-GW" << endl;
     exit(1);
   }
