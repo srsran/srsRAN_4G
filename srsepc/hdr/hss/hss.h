@@ -67,6 +67,7 @@ typedef struct{
     uint8_t  sqn[6];
     uint16_t qci;
     uint8_t  last_rand[16];
+    std::string static_ip_addr;
 }hss_ue_ctx_t;
 
 enum hss_auth_algo {
@@ -86,6 +87,8 @@ public:
   bool gen_update_loc_answer(uint64_t imsi, uint8_t* qci);
 
   bool resync_sqn(uint64_t imsi, uint8_t *auts);
+
+  std::map<std::string, uint64_t> get_ip_to_imsi() const;
 
 private:
 
@@ -132,6 +135,8 @@ private:
   
   uint16_t mcc;
   uint16_t mnc;
+
+  std::map<std::string, uint64_t> m_ip_to_imsi;
 };
 
 } // namespace srsepc

@@ -40,6 +40,8 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/threads.h"
 #include "srslte/asn1/gtpc.h"
+#include <map>
+#include <set>
 
 namespace srsepc{
 
@@ -70,7 +72,7 @@ class spgw:
 public:
   static spgw* get_instance(void);
   static void cleanup(void);
-  int init(spgw_args_t* args, srslte::log_filter *spgw_log);
+  int init(spgw_args_t* args, srslte::log_filter *spgw_log, const std::map<std::string, uint64_t> & ip_to_imsi);
   void stop();
   void run_thread();
 
@@ -90,11 +92,11 @@ private:
 
   srslte::error_t init_sgi_if(spgw_args_t *args);
   srslte::error_t init_s1u(spgw_args_t *args);
-  srslte::error_t init_ue_ip(spgw_args_t *args);
+  srslte::error_t init_ue_ip(spgw_args_t *args, const std::map<std::string, uint64_t> & ip_to_imsi);
 
   uint64_t get_new_ctrl_teid();
   uint64_t get_new_user_teid();
-  in_addr_t get_new_ue_ipv4();
+  in_addr_t get_new_ue_ipv4(uint64_t imsi);
 
   spgw_tunnel_ctx_t* create_gtp_ctx(struct srslte::gtpc_create_session_request *cs_req);
   bool delete_gtp_ctx(uint32_t ctrl_teid);
@@ -123,7 +125,8 @@ private:
   std::map<uint32_t,spgw_tunnel_ctx*> m_teid_to_tunnel_ctx;         //Map control TEID to tunnel ctx. Usefull to get reply ctrl TEID, UE IP, etc.
   std::map<in_addr_t,srslte::gtpc_f_teid_ie> m_ip_to_teid;          //Map IP to User-plane TEID for downlink traffic
 
-  uint32_t m_h_next_ue_ip;
+  std::set<uint32_t> m_ue_ip_addr_pool;
+  std::map<uint64_t, struct in_addr> m_imsi_to_ip;
 
   /*Time*/
   struct timeval m_t_last_dl;
