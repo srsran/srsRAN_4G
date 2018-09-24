@@ -210,38 +210,38 @@ int enb::parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUC
     ("time_alignment_timer", &data->time_alignment_timer, 
      liblte_rrc_time_alignment_timer_text, LIBLTE_RRC_TIME_ALIGNMENT_TIMER_N_ITEMS)
   );
-  
-  
-  sib2.add_field(
-     new parser::field<uint32>
-    ("mbsfnSubframeConfigListLength", &data->mbsfn_subfr_cnfg_list_size)
-  );
-  
-  
-    parser::section mbsfnSubframeConfigList("mbsfnSubframeConfigList");
+
+  parser::section mbsfnSubframeConfigList("mbsfnSubframeConfigList");
       sib2.add_subsection(&mbsfnSubframeConfigList);
-      
-    mbsfnSubframeConfigList.add_field( 
-       new parser::field<uint32>
-      ("subframeAllocation", &data->mbsfn_subfr_cnfg_list[0].subfr_alloc)
-    );
 
-    mbsfnSubframeConfigList.add_field( 
-       new parser::field<uint8>
-      ("radioframeAllocationOffset", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_offset)
-    );
+  bool mbsfn_present=false;
+  mbsfnSubframeConfigList.set_optional(&mbsfn_present);
 
-    mbsfnSubframeConfigList.add_field( 
-       new parser::field_enum_str<LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ENUM>
-      ("subframeAllocationNumFrames", &data->mbsfn_subfr_cnfg_list[0].subfr_alloc_num_frames,
-       liblte_rrc_subframe_allocation_num_frames_text,LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_N_ITEMS)
-    );
+  if (mbsfn_present) {
+    data->mbsfn_subfr_cnfg_list_size = 1;
+  }
 
-    mbsfnSubframeConfigList.add_field( 
-       new parser::field_enum_str<LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_ENUM>
-      ("radioframeAllocationPeriod", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_period,
-       liblte_rrc_radio_frame_allocation_period_text, LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N_ITEMS)
-    );
+  mbsfnSubframeConfigList.add_field(
+     new parser::field<uint32>
+    ("subframeAllocation", &data->mbsfn_subfr_cnfg_list[0].subfr_alloc)
+  );
+
+  mbsfnSubframeConfigList.add_field(
+     new parser::field<uint8>
+    ("radioframeAllocationOffset", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_offset)
+  );
+
+  mbsfnSubframeConfigList.add_field(
+     new parser::field_enum_str<LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ENUM>
+    ("subframeAllocationNumFrames", &data->mbsfn_subfr_cnfg_list[0].subfr_alloc_num_frames,
+     liblte_rrc_subframe_allocation_num_frames_text,LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_N_ITEMS)
+  );
+
+  mbsfnSubframeConfigList.add_field(
+     new parser::field_enum_str<LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_ENUM>
+    ("radioframeAllocationPeriod", &data->mbsfn_subfr_cnfg_list[0].radio_fr_alloc_period,
+     liblte_rrc_radio_frame_allocation_period_text, LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N_ITEMS)
+  );
  
   parser::section freqinfo("freqInfo");
   sib2.add_subsection(&freqinfo);
