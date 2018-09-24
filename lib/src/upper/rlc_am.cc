@@ -469,19 +469,9 @@ int rlc_am::rlc_am_tx::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     goto unlock_and_exit;
   }
 
-  // if tx_window is full and retx_queue empty, retransmit next PDU to be ack'ed
+  // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit random PDU
   if (tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.empty()) {
-    if (tx_window[vt_a].buf != NULL) {
-      log->warning("Full Tx window, ReTx'ing first outstanding PDU\n");
-      rlc_amd_retx_t retx = {};
-      retx.is_segment = false;
-      retx.so_start   = 0;
-      retx.so_end     = tx_window[vt_a].buf->N_bytes;
-      retx.sn         = vt_a;
-      retx_queue.push_back(retx);
-    } else {
-      log->error("Found invalid PDU in tx_window.\n");
-    }
+    retransmit_random_pdu();
   }
 
   // RETX if required
@@ -505,27 +495,31 @@ void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
   if (poll_retx_timer != NULL && poll_retx_timer_id == timeout_id) {
-    // if both tx and retx buffer are empty, retransmit next PDU to be ack'ed (Section 5.2.2.3 in TS 36.322)
-    log->debug("Poll reTx timer expired (lcid=%d)\n", parent->lcid);
-    if ((not tx_window.empty() && retx_queue.empty() && tx_sdu_queue.size() == 0)) {
-      std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.find(vt_s - 1);
-      if (it != tx_window.end()) {
-        log->info("Schedule last PDU (SN=%d) for reTx.\n", vt_s - 1);
-        rlc_amd_retx_t retx = {};
-        retx.is_segment = false;
-        retx.so_start = 0;
-        retx.so_end = tx_window[vt_s - 1].buf->N_bytes;
-        retx.sn = vt_s - 1;
-        retx_queue.push_back(retx);
-      } else {
-        log->error("Found invalid PDU in tx_window.\n");
-      }
+    log->debug("Poll reTx timer expired for LCID=%d after %d ms\n", parent->lcid, poll_retx_timer->get_timeout());
+    // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit random PDU
+    if ((tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.empty() && tx_sdu_queue.size() == 0)) {
+      retransmit_random_pdu();
     }
   } else
   if (status_prohibit_timer != NULL && status_prohibit_timer_id == timeout_id) {
     status_prohibited = false;
   }
   pthread_mutex_unlock(&mutex);
+}
+
+void rlc_am::rlc_am_tx::retransmit_random_pdu()
+{
+  // randomly select PDU in tx window for retransmission
+  std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.begin();
+  std::advance(it, rand() % tx_window.size());
+
+  log->info("Schedule SN=%d for reTx.\n", it->first);
+  rlc_amd_retx_t retx = {};
+  retx.is_segment = false;
+  retx.so_start = 0;
+  retx.so_end = it->second.buf->N_bytes;
+  retx.sn = it->first;
+  retx_queue.push_back(retx);
 }
 
 uint32_t rlc_am::rlc_am_tx::get_num_tx_bytes()
@@ -556,7 +550,7 @@ bool rlc_am::rlc_am_tx::poll_required()
 
   if (poll_retx_timer != NULL) {
     if (poll_retx_timer->is_expired()) {
-      // re-arm timer
+      // re-arm timer (will be stopped when status PDU is received)
       poll_retx_timer->reset();
       poll_retx_timer->run();
       return true;
