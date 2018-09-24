@@ -516,9 +516,6 @@ unlock:
 
 int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
 {
-  srslte_uci_data_t uci_data;
-  ZERO_OBJECT(uci_data);
-
   uint32_t wideband_cqi_value = 0, wideband_pmi = 0;
   bool wideband_pmi_present = false;
 
@@ -526,6 +523,8 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
   for (uint32_t i=0;i<nof_pusch;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {
+      srslte_uci_data_t uci_data;
+      ZERO_OBJECT(uci_data);
 
     #ifdef LOG_EXECTIME
       char timestr[64];
