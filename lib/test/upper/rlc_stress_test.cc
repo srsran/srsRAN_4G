@@ -37,7 +37,6 @@
 #include <cassert>
 #include <srslte/upper/rlc_interface.h>
 
-#define SDU_SIZE (1500)
 #define LOG_HEX_LIMIT (-1)
 
 using namespace std;
@@ -47,6 +46,7 @@ namespace bpo = boost::program_options;
 
 typedef struct {
   std::string mode;
+  uint32_t    sdu_size;
   uint32_t    test_duration_sec;
   float       error_rate;
   uint32_t    sdu_gen_delay_usec;
@@ -57,6 +57,7 @@ typedef struct {
   bool        write_pcap;
   float       opp_sdu_ratio;
   bool        zero_seed;
+  bool        pedantic;
 } stress_test_args_t;
 
 void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
@@ -73,6 +74,7 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   common.add_options()
   ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
   ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(5), "Duration (sec)")
+  ("sdu_size",      bpo::value<uint32_t>(&args->sdu_size)->default_value(1500), "Size of SDUs")
   ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(0), "SDU generation delay (usec)")
   ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(0), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
   ("error_rate",    bpo::value<float>(&args->error_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
@@ -81,7 +83,8 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
   ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
   ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
-  ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero");
+  ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero")
+  ("pedantic",      bpo::value<bool>(&args->pedantic)->default_value(true), "Whether to perform strict SDU size checking at receiver");
 
   // these options are allowed on the command line
   bpo::options_description cmdline_options;
@@ -93,7 +96,7 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   bpo::notify(vm);
 
   // help option was given - print usage and exit
-  if (vm.count("help")) {
+  if (vm.count("help") > 0) {
     cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
     cout << common << endl << general << endl;
     exit(0);
@@ -110,19 +113,17 @@ class mac_dummy
     ,public thread
 {
 public:
-  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, float fail_rate_, float opp_sdu_ratio_, int32_t pdu_tx_delay_usec_, uint32_t lcid_, rlc_pcap* pcap_ = NULL)
+  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, stress_test_args_t args_, uint32_t lcid_, rlc_pcap* pcap_ = NULL)
     :timers(8)
     ,run_enable(true)
     ,rlc1(rlc1_)
     ,rlc2(rlc2_)
-    ,fail_rate(fail_rate_)
-    ,opp_sdu_ratio(opp_sdu_ratio_)
-    ,pdu_tx_delay_usec(pdu_tx_delay_usec_)
+    ,args(args_)
     ,pcap(pcap_)
     ,lcid(lcid_)
     ,log("MAC  ")
   {
-    log.set_level(srslte::LOG_LEVEL_WARNING);
+    log.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
     log.set_hex_limit(LOG_HEX_LIMIT);
   }
 
@@ -155,14 +156,16 @@ private:
       exit(-1);
     }
 
-    float r = opp_sdu_ratio ? opp_sdu_ratio : (float)rand()/RAND_MAX;
-    int opp_size = r*SDU_SIZE;
+    float r = args.opp_sdu_ratio ? args.opp_sdu_ratio : static_cast<float>(rand())/RAND_MAX;
+    int opp_size = r*args.sdu_size;
     uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
-    if (buf_state) {
+    if (buf_state > 0) {
       int read = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
       pdu->N_bytes = read;
-      if (pdu_tx_delay_usec) usleep(pdu_tx_delay_usec);
-      if(((float)rand()/RAND_MAX > fail_rate) && read>0) {
+      if (args.pdu_tx_delay_usec > 0) {
+        usleep(args.pdu_tx_delay_usec);
+      }
+      if(((float)rand()/RAND_MAX > args.error_rate) && read>0) {
         rx_rlc->write_pdu(lcid, pdu->msg, pdu->N_bytes);
         if (is_dl) {
           pcap->write_dl_am_ccch(pdu->msg, pdu->N_bytes);
@@ -194,9 +197,7 @@ private:
   rlc_interface_mac *rlc2;
   srslte::timers timers;
   bool run_enable;
-  float fail_rate;
-  float opp_sdu_ratio;
-  uint32_t pdu_tx_delay_usec;
+  stress_test_args_t args;
   rlc_pcap *pcap;
   uint32_t lcid;
   srslte::log_filter log;
@@ -209,13 +210,17 @@ class rlc_tester
     ,public thread
 {
 public:
-  rlc_tester(rlc_interface_pdcp *rlc_, std::string name_, uint32_t sdu_gen_delay_usec_, uint32_t lcid_){
-    rlc = rlc_;
-    run_enable = true;
-    rx_pdus = 0;
-    name = name_;
-    sdu_gen_delay_usec = sdu_gen_delay_usec_;
-    lcid = lcid_;
+  rlc_tester(rlc_interface_pdcp *rlc_, std::string name_, stress_test_args_t args_, uint32_t lcid_)
+    :log("Testr")
+    ,rlc(rlc_)
+    ,run_enable(true)
+    ,rx_pdus()
+    ,name(name_)
+    ,args(args_)
+    ,lcid(lcid_)
+  {
+    log.set_level(srslte::LOG_LEVEL_ERROR);
+    log.set_hex_limit(LOG_HEX_LIMIT);
   }
 
   void stop()
@@ -228,13 +233,14 @@ public:
   void write_pdu(uint32_t rx_lcid, byte_buffer_t *sdu)
   {
     assert(rx_lcid == lcid);
-    if (sdu->N_bytes != SDU_SIZE) {
-      srslte::log_filter log1("Testr");;
-      log1.set_level(srslte::LOG_LEVEL_ERROR);
-      log1.set_hex_limit(sdu->N_bytes);
-      log1.error_hex(sdu->msg, sdu->N_bytes, "Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, SDU_SIZE);
-      exit(-1);
+    if (sdu->N_bytes % args.sdu_size != 0) {
+      log.error_hex(sdu->msg, sdu->N_bytes, "Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, args.sdu_size);
+      // fail if SDU is not exactly what we expected
+      if (args.pedantic && sdu->N_bytes != args.sdu_size) {
+        exit(-1);
+      }
     }
+
     byte_buffer_pool::get_instance()->deallocate(sdu);
     rx_pdus++;
   }
@@ -254,29 +260,32 @@ private:
     uint8_t sn = 0;
     while(run_enable) {
       byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_tester::run_thread");
-      if (!pdu) {
+      if (pdu == NULL) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
         // backoff for a bit
         usleep(1000);
         continue;
       }
-      for (uint32_t i = 0; i < SDU_SIZE; i++) {
+      for (uint32_t i = 0; i < args.sdu_size; i++) {
         pdu->msg[i] = sn;
       }
       sn++;
-      pdu->N_bytes = SDU_SIZE;
+      pdu->N_bytes = args.sdu_size;
       rlc->write_sdu(lcid, pdu);
-      if (sdu_gen_delay_usec) usleep(sdu_gen_delay_usec);
+      if (args.sdu_gen_delay_usec > 0) {
+        usleep(args.sdu_gen_delay_usec);
+      }
     }
   }
 
   bool run_enable;
-  long rx_pdus;
+  uint64_t rx_pdus;
   uint32_t lcid;
+  srslte::log_filter log;
 
   std::string name;
 
-  uint32_t sdu_gen_delay_usec;
+  stress_test_args_t args;
 
   rlc_interface_pdcp *rlc;
 };
@@ -285,8 +294,8 @@ void stress_test(stress_test_args_t args)
 {
   srslte::log_filter log1("RLC_1");
   srslte::log_filter log2("RLC_2");
-  log1.set_level((LOG_LEVEL_ENUM)args.log_level);
-  log2.set_level((LOG_LEVEL_ENUM)args.log_level);
+  log1.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
+  log2.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
   log1.set_hex_limit(LOG_HEX_LIMIT);
   log2.set_hex_limit(LOG_HEX_LIMIT);
   rlc_pcap pcap;
@@ -326,9 +335,9 @@ void stress_test(stress_test_args_t args)
   rlc rlc1;
   rlc rlc2;
 
-  rlc_tester tester1(&rlc1, "tester1", args.sdu_gen_delay_usec, lcid);
-  rlc_tester tester2(&rlc2, "tester2", args.sdu_gen_delay_usec, lcid);
-  mac_dummy     mac(&rlc1, &rlc2, args.error_rate, args.opp_sdu_ratio, args.pdu_tx_delay_usec, lcid, &pcap);
+  rlc_tester tester1(&rlc1, "tester1", args, lcid);
+  rlc_tester tester2(&rlc2, "tester2", args, lcid);
+  mac_dummy     mac(&rlc1, &rlc2, args, lcid, &pcap);
   ue_interface  ue;
 
   rlc1.init(&tester1, &tester1, &ue, &log1, &mac, 0);
@@ -345,6 +354,10 @@ void stress_test(stress_test_args_t args)
     tester2.start(7);
   }
   mac.start();
+
+  if (args.test_duration_sec < 1) {
+    args.test_duration_sec = 1;
+  }
 
   for (uint32_t i = 0; i < args.test_duration_sec; i++) {
     // if enabled, mimic reestablishment every second
@@ -374,21 +387,21 @@ void stress_test(stress_test_args_t args)
     pcap.close();
   }
 
-  rlc_metrics_t metrics;
+  rlc_metrics_t metrics = {};
   rlc1.get_metrics(metrics);
 
-  printf("RLC1 received %d SDUs in %ds (%.2f PDU/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
+  printf("RLC1 received %d SDUs in %ds (%.2f/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
          tester1.get_nof_rx_pdus(),
          args.test_duration_sec,
-         (float)tester1.get_nof_rx_pdus()/args.test_duration_sec,
+         static_cast<double>(tester1.get_nof_rx_pdus()/args.test_duration_sec),
          metrics.dl_tput_mbps[lcid],
          metrics.ul_tput_mbps[lcid]);
 
   rlc2.get_metrics(metrics);
-  printf("RLC2 received %d SDUs in %ds (%.2f PDU/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
+  printf("RLC2 received %d SDUs in %ds (%.2f/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
          tester2.get_nof_rx_pdus(),
          args.test_duration_sec,
-         (float)tester2.get_nof_rx_pdus()/args.test_duration_sec,
+         static_cast<double>(tester2.get_nof_rx_pdus()/args.test_duration_sec),
          metrics.dl_tput_mbps[lcid],
          metrics.ul_tput_mbps[lcid]);
 }
