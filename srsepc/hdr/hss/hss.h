@@ -42,6 +42,11 @@
 #include <fstream>
 #include <map>
 
+#define LTE_FDD_ENB_IND_HE_N_BITS    5
+#define LTE_FDD_ENB_IND_HE_MASK      0x1FUL
+#define LTE_FDD_ENB_IND_HE_MAX_VALUE 31
+#define LTE_FDD_ENB_SEQ_HE_MAX_VALUE 0x07FFFFFFFFFFUL
+
 namespace srsepc{
 
 typedef struct{
@@ -106,6 +111,7 @@ private:
   void get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint len);
 
   void increment_ue_sqn(uint64_t imsi);
+  void increment_seq_after_resync(uint64_t imsi);
   void increment_sqn(uint8_t *sqn, uint8_t *next_sqn);
   void set_sqn(uint64_t imsi, uint8_t *sqn);
 
