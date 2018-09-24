@@ -29,10 +29,12 @@
 #include "srsenb/hdr/upper/rrc.h"
 #include "srslte/srslte.h"
 #include "srslte/asn1/liblte_mme.h"
-
+#include "srslte/common/int_helpers.h"
 
 using srslte::byte_buffer_t;
 using srslte::bit_buffer_t;
+using srslte::uint32_to_uint8;
+using srslte::uint8_to_uint32;
 
 namespace srsenb {
   
