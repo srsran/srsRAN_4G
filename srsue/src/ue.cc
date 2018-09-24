@@ -181,8 +181,10 @@ bool ue::init(all_args_t *args_) {
   
   // Set RF options
   if (args->rf.time_adv_nsamples.compare("auto")) {
-    radio.set_tx_adv(atoi(args->rf.time_adv_nsamples.c_str()));
-  }  
+    int t = atoi(args->rf.time_adv_nsamples.c_str());
+    radio.set_tx_adv(abs(t));
+    radio.set_tx_adv_neg(t<0);
+  }
   if (args->rf.burst_preamble.compare("auto")) {
     radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
   }
