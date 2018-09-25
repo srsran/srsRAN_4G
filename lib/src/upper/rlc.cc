@@ -280,7 +280,7 @@ uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
   uint32_t ret = 0;
 
   pthread_rwlock_rdlock(&rwlock);
-  if (valid_lcid(lcid)) {
+  if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->get_total_buffer_state();
   }
   pthread_rwlock_unlock(&rwlock);
@@ -306,7 +306,7 @@ int rlc::read_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
   uint32_t ret = 0;
 
   pthread_rwlock_rdlock(&rwlock);
-  if (valid_lcid(lcid)) {
+  if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->read_pdu(payload, nof_bytes);
   }
   pthread_rwlock_unlock(&rwlock);
@@ -508,12 +508,30 @@ void rlc::del_bearer(uint32_t lcid)
 {
   pthread_rwlock_wrlock(&rwlock);
 
-  if (valid_lcid_mrb(lcid)) {
+  if (valid_lcid(lcid)) {
     rlc_map_t::iterator it = rlc_array.find(lcid);
     it->second->stop();
     delete(it->second);
     rlc_array.erase(it);
     rlc_log->warning("Deleted RLC bearer %s\n", rrc->get_rb_name(lcid).c_str());
+  } else {
+    rlc_log->error("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
+  }
+
+  pthread_rwlock_unlock(&rwlock);
+}
+
+
+void rlc::del_bearer_mrb(uint32_t lcid)
+{
+  pthread_rwlock_wrlock(&rwlock);
+
+  if (valid_lcid_mrb(lcid)) {
+    rlc_map_t::iterator it = rlc_array_mrb.find(lcid);
+    it->second->stop();
+    delete(it->second);
+    rlc_array_mrb.erase(it);
+    rlc_log->warning("Deleted RLC MRB bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
     rlc_log->error("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
   }

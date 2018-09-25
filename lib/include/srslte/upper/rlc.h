@@ -88,6 +88,7 @@ public:
   void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
   void add_bearer_mrb(uint32_t lcid);
   void del_bearer(uint32_t lcid);
+  void del_bearer_mrb(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
 
 private:
