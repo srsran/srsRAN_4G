@@ -233,10 +233,10 @@ public:
   void write_pdu(uint32_t rx_lcid, byte_buffer_t *sdu)
   {
     assert(rx_lcid == lcid);
-    if (sdu->N_bytes % args.sdu_size != 0) {
-      log.error_hex(sdu->msg, sdu->N_bytes, "Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, args.sdu_size);
-      // fail if SDU is not exactly what we expected
-      if (args.pedantic && sdu->N_bytes != args.sdu_size) {
+    if (sdu->N_bytes != args.sdu_size) {
+      log.error_hex(sdu->msg, sdu->N_bytes, "Received SDU with size %d, expected %d.\n", sdu->N_bytes, args.sdu_size);
+      // exit if in pedantic mode or SDU is not a multiple of the expected size
+      if (args.pedantic || sdu->N_bytes % args.sdu_size != 0) {
         exit(-1);
       }
     }
