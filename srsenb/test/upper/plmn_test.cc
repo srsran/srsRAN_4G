@@ -65,7 +65,7 @@ void s1ap_plmn_test()
   // 3-digit MNC test
   mnc = 0xF456;
   srslte::s1ap_mccmnc_to_plmn(mcc, mnc, &plmn);
-  assert(plmn == 0x216354);
+  assert(plmn == 0x214365);
   srslte::s1ap_plmn_to_mccmnc(plmn, &mcc, &mnc);
   assert(mcc == 0xF123);
   assert(mnc == 0xF456);
