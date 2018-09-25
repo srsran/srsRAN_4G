@@ -322,9 +322,14 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY:
         break;
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED:
-        mac_valid = integrity_check(pdu);
-        cipher_decrypt(pdu);
-        break;
+        if((mac_valid = integrity_check(pdu))) {
+          cipher_decrypt(pdu);
+          break;
+        } else {
+          nas_log->error("Not handling NAS message with integrity check error\n");
+          pool->deallocate(pdu);
+          return;
+        }
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT:
         break;
     default:
