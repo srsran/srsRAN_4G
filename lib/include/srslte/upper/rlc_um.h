@@ -48,7 +48,7 @@ class rlc_um
     :public rlc_common
 {
 public:
-  rlc_um(uint32_t queue_len = 32);
+  rlc_um(uint32_t queue_len = 128);
   ~rlc_um();
   void init(log                       *rlc_entity_log_,
             uint32_t                   lcid_,

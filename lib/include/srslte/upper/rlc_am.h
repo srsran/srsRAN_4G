@@ -69,7 +69,7 @@ struct rlc_amd_retx_t{
 class rlc_am : public rlc_common
 {
 public:
-  rlc_am(uint32_t queue_len = 16);
+  rlc_am(uint32_t queue_len = 128);
   ~rlc_am();
   void init(log                   *log_,
             uint32_t              lcid_,
