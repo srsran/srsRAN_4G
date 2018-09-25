@@ -78,7 +78,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
       fprintf(stderr, "Error creating PUSCH object\n");
       goto clean_exit;
     }
-    if (srslte_pucch_init(&q->pucch)) {
+    if (srslte_pucch_init_ue(&q->pucch)) {
       fprintf(stderr, "Error creating PUSCH object\n");
       goto clean_exit;
     }

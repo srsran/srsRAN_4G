@@ -96,8 +96,16 @@ int main(int argc, char **argv) {
       }
     }
 
+    /* Create CRC for Transport Block, it is not currently used but it is required */
+    srslte_crc_t crc_tb;
+    bzero(&crc_tb, sizeof(crc_tb));
+    if (srslte_crc_init(&crc_tb, SRSLTE_LTE_CRC24A, 24)) {
+      printf("error initialising CRC\n");
+      exit(-1);
+    }
+
     srslte_tcod_encode(&tcod, input_bits, output_bits, long_cb);
-    srslte_tcod_encode_lut(&tcod, NULL, input_bytes, parity, len);
+    srslte_tcod_encode_lut(&tcod, &crc_tb, NULL, input_bytes, parity, len, false);
 
     srslte_bit_unpack_vector(parity, parity_bits, 2*(long_cb+4));
     

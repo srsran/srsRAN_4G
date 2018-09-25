@@ -218,7 +218,7 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
                          rx_count,
                          pdu->N_bytes - 4,
                          &(pdu->msg[pdu->N_bytes - 4]))) {
-          log->error_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+          log->error_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d (Dropping PDU)", rrc->get_rb_name(lcid).c_str(), sn);
           goto exit;
         }
       }

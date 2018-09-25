@@ -27,13 +27,15 @@
 #ifndef SRSLTE_RLC_METRICS_H
 #define SRSLTE_RLC_METRICS_H
 
+#include "srslte/common/common.h"
 
 namespace srslte {
 
 struct rlc_metrics_t
 {
-  float dl_tput_mbps;
-  float ul_tput_mbps;
+  float dl_tput_mbps[SRSLTE_N_RADIO_BEARERS];
+  float ul_tput_mbps[SRSLTE_N_RADIO_BEARERS];
+  float dl_tput_mrb_mbps[SRSLTE_N_MCH_LCIDS];
 };
 
 } // namespace srslte

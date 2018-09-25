@@ -130,6 +130,7 @@ private:
   bool have_guti;
   bool have_ctxt;
   nas_sec_ctxt ctxt;
+  bool auth_request;
 
   uint32_t ip_addr;
   uint8_t eps_bearer_id;
@@ -180,7 +181,7 @@ private:
   void gen_service_request(byte_buffer_t *msg);
 
   // Senders
-  void send_identity_response();
+  void send_identity_response(uint32_t lcid, uint8 id_type);
   void send_service_request();
   void send_esm_information_response(const uint8 proc_transaction_id);
   void send_authentication_response(const uint8_t* res, const size_t res_len, const uint8_t sec_hdr_type);

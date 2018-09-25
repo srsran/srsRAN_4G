@@ -193,7 +193,13 @@ int srslte_tcod_encode(srslte_tcod_t *h, uint8_t *input, uint8_t *output, uint32
 }
 
 /* Expects bytes and produces bytes. The systematic and parity bits are interlaced in the output */
-int srslte_tcod_encode_lut(srslte_tcod_t *h, srslte_crc_t *crc, uint8_t *input, uint8_t *parity, uint32_t cblen_idx)
+int srslte_tcod_encode_lut(srslte_tcod_t *h,
+                           srslte_crc_t *crc_tb,
+                           srslte_crc_t *crc_cb,
+                           uint8_t *input,
+                           uint8_t *parity,
+                           uint32_t cblen_idx,
+                           bool last_cb)
 {
   if (cblen_idx < 188) {
     uint32_t long_cb = (uint32_t) srslte_cbsegm_cbsize(cblen_idx);
@@ -204,20 +210,24 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, srslte_crc_t *crc, uint8_t *input, 
     }
 
     /* Reset CRC */
-    if (crc) {
-      srslte_crc_set_init(crc, 0);
+    if (crc_cb) {
+      srslte_crc_set_init(crc_cb, 0);
     }
 
     /* Parity bits for the 1st constituent encoders */
     uint8_t state0 = 0;
-    if (crc) {
+    if (crc_cb) {
+      int block_size_nocrc = (long_cb - crc_cb->order - ((last_cb) ? crc_tb->order : 0)) / 8;
 
       /* if CRC pointer is given */
-      for (int i = 0; i < (long_cb - crc->order) / 8; i++) {
+      for (int i = 0; i < block_size_nocrc; i++) {
         uint8_t in = input[i];
 
-        /* Put byte in CRC and save latest checksum */
-        srslte_crc_checksum_put_byte(crc, in);
+        /* Put byte in TB CRC and save latest checksum */
+        srslte_crc_checksum_put_byte(crc_tb, in);
+
+        /* Put byte in CB CRC and save latest checksum */
+        srslte_crc_checksum_put_byte(crc_cb, in);
 
         /* Run actual encoder */
         tcod_lut_t l = tcod_lut[state0][in];
@@ -225,10 +235,27 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, srslte_crc_t *crc, uint8_t *input, 
         state0 = l.next_state;
       }
 
-      uint32_t checksum = (uint32_t) srslte_crc_checksum_get(crc);
-      for (int i = 0; i < crc->order / 8; i++) {
-        int mask_shift = 8 * (crc->order / 8 - i - 1);
-        int idx = (long_cb - crc->order) / 8 + i;
+      if (last_cb) {
+        uint32_t checksum = (uint32_t) srslte_crc_checksum_get(crc_tb);
+        for (int i = 0; i < crc_tb->order / 8; i++) {
+          int mask_shift = 8 * (crc_tb->order / 8 - i - 1);
+          int idx = block_size_nocrc + i;
+          uint8_t in = (uint8_t) ((checksum >> mask_shift) & 0xff);
+
+          /* Put byte in CB CRC and save latest checksum */
+          srslte_crc_checksum_put_byte(crc_cb, in);
+
+          input[idx] = in;
+          tcod_lut_t l = tcod_lut[state0][in];
+          parity[idx] = l.output;
+          state0 = l.next_state;
+        }
+      }
+
+      uint32_t checksum = (uint32_t) srslte_crc_checksum_get(crc_cb);
+      for (int i = 0; i < crc_cb->order / 8; i++) {
+        int mask_shift = 8 * (crc_cb->order / 8 - i - 1);
+        int idx = (long_cb - crc_cb->order) / 8 + i;
         uint8_t in = (uint8_t) ((checksum >> mask_shift) & 0xff);
 
         input[idx] = in;
@@ -239,10 +266,30 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, srslte_crc_t *crc, uint8_t *input, 
 
     } else {
       /* No CRC given */
-      for (uint32_t i = 0; i < long_cb / 8; i++) {
-        tcod_lut_t l = tcod_lut[state0][input[i]];
+      int block_size_nocrc = (long_cb - ((last_cb) ? crc_tb->order : 0)) / 8;
+
+      for (uint32_t i = 0; i < block_size_nocrc; i++) {
+        uint8_t in = input[i];
+
+        srslte_crc_checksum_put_byte(crc_tb, in);
+
+        tcod_lut_t l = tcod_lut[state0][in];
         parity[i] = l.output;
         state0 = l.next_state;
+      }
+
+      if (last_cb) {
+        uint32_t checksum = (uint32_t) srslte_crc_checksum_get(crc_tb);
+        for (int i = 0; i < crc_tb->order / 8; i++) {
+          int mask_shift = 8 * (crc_tb->order / 8 - i - 1);
+          int idx = block_size_nocrc + i;
+          uint8_t in = (uint8_t) ((checksum >> mask_shift) & 0xff);
+
+          input[idx] = in;
+          tcod_lut_t l = tcod_lut[state0][in];
+          parity[idx] = l.output;
+          state0 = l.next_state;
+        }
       }
     }
     parity[long_cb / 8] = 0;  // will put tail here later

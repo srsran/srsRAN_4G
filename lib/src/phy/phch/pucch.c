@@ -416,7 +416,7 @@ void srslte_pucch_set_threshold(srslte_pucch_t *q, float format1_threshold) {
 }
 
 /** Initializes the PDCCH transmitter and receiver */
-int srslte_pucch_init(srslte_pucch_t *q) {
+int srslte_pucch_init_(srslte_pucch_t *q, bool is_ue) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL) {
     ret = SRSLTE_ERROR;
@@ -426,17 +426,26 @@ int srslte_pucch_init(srslte_pucch_t *q) {
       return SRSLTE_ERROR;
     }
 
-    q->users = calloc(sizeof(srslte_pucch_user_t*), 1+SRSLTE_SIRNTI);
+    q->is_ue = is_ue;
+
+    q->users = calloc(sizeof(srslte_pucch_user_t*), q->is_ue?1:(1+SRSLTE_SIRNTI));
     if (!q->users) {
       perror("malloc");
       goto clean_exit;
     }
-    
+
+    if (srslte_sequence_init(&q->tmp_seq, 20)) {
+      goto clean_exit;
+    }
+
     srslte_uci_cqi_pucch_init(&q->cqi);
 
     q->z = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
     q->z_tmp = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
-    q->ce = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
+
+    if (!q->is_ue) {
+      q->ce = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
+    }
 
     q->threshold_format1  = 0.8;
 
@@ -449,13 +458,28 @@ clean_exit:
   return ret;
 }
 
+int srslte_pucch_init_ue(srslte_pucch_t *q) {
+  return srslte_pucch_init_(q, true);
+}
+
+int srslte_pucch_init_enb(srslte_pucch_t *q) {
+  return srslte_pucch_init_(q, false);
+}
+
 void srslte_pucch_free(srslte_pucch_t *q) {
   if (q->users) {
-    for (int rnti=0;rnti<=SRSLTE_SIRNTI;rnti++) {
-      srslte_pucch_clear_rnti(q, rnti);
+    if (q->is_ue) {
+      srslte_pucch_clear_rnti(q, 0);
+    } else {
+      for (int rnti = 0; rnti <= SRSLTE_SIRNTI; rnti++) {
+        srslte_pucch_clear_rnti(q, rnti);
+      }
     }
     free(q->users);
   }
+
+  srslte_sequence_free(&q->tmp_seq);
+
   srslte_uci_cqi_pucch_free(&q->cqi);
   if (q->z) {
     free(q->z);
@@ -466,7 +490,7 @@ void srslte_pucch_free(srslte_pucch_t *q) {
   if (q->ce) {
     free(q->ce);
   }
-  
+
   srslte_modem_table_free(&q->mod);
   bzero(q, sizeof(srslte_pucch_t));
 }
@@ -497,31 +521,45 @@ int srslte_pucch_set_cell(srslte_pucch_t *q, srslte_cell_t cell) {
 
 
 void srslte_pucch_clear_rnti(srslte_pucch_t *q, uint16_t rnti) {
-  if (q->users[rnti]) {
+  uint32_t rnti_idx = q->is_ue?0:rnti;
+
+  if (q->users[rnti_idx]) {
     for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-      srslte_sequence_free(&q->users[rnti]->seq_f2[i]);
+      srslte_sequence_free(&q->users[rnti_idx]->seq_f2[i]);
     }    
-    free(q->users[rnti]);
-    q->users[rnti] = NULL; 
+    free(q->users[rnti_idx]);
+    q->users[rnti_idx] = NULL;
+    q->ue_rnti = 0;
   }
 }
 
 int srslte_pucch_set_crnti(srslte_pucch_t *q, uint16_t rnti) {
-  if (!q->users[rnti]) {
-    q->users[rnti] = calloc(1, sizeof(srslte_pucch_user_t));
-    if (q->users[rnti]) {
-      for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
-        // Precompute scrambling sequence for pucch format 2    
-        if (srslte_sequence_pucch(&q->users[rnti]->seq_f2[sf_idx], rnti, 2*sf_idx, q->cell.id)) {
-          fprintf(stderr, "Error computing PUCCH Format 2 scrambling sequence\n");
-          srslte_pucch_clear_rnti(q, rnti);
-          return SRSLTE_ERROR; 
-        }        
+
+  uint32_t rnti_idx = q->is_ue?0:rnti;
+  if (!q->users[rnti_idx] || q->is_ue) {
+    if (!q->users[rnti_idx]) {
+      q->users[rnti_idx] = calloc(1, sizeof(srslte_pucch_user_t));
+      if (!q->users[rnti_idx]) {
+        perror("calloc");
+        return -1;
       }
-      q->users[rnti]->sequence_generated = true;
     }
+    q->users[rnti_idx]->sequence_generated = false;
+    for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
+      // Precompute scrambling sequence for pucch format 2
+      if (srslte_sequence_pucch(&q->users[rnti_idx]->seq_f2[sf_idx], rnti, 2*sf_idx, q->cell.id)) {
+        fprintf(stderr, "Error computing PUCCH Format 2 scrambling sequence\n");
+        srslte_pucch_clear_rnti(q, rnti);
+        return SRSLTE_ERROR;
+      }
+    }
+    q->ue_rnti = rnti;
+    q->users[rnti_idx]->cell_id = q->cell.id;
+    q->users[rnti_idx]->sequence_generated = true;
+  } else {
+    fprintf(stderr, "Error generating PUSCH sequence: rnti=0x%x already generated\n", rnti);
   }
-  return SRSLTE_SUCCESS; 
+  return SRSLTE_SUCCESS;
 }
 
 bool srslte_pucch_set_cfg(srslte_pucch_t *q, srslte_pucch_cfg_t *cfg, bool group_hopping_en)
@@ -592,11 +630,36 @@ int srslte_pucch_format2ab_mod_bits(srslte_pucch_format_t format, uint8_t bits[2
   }
 }
 
+static srslte_sequence_t *get_user_sequence(srslte_pucch_t *q, uint16_t rnti, uint32_t sf_idx)
+{
+  uint32_t rnti_idx = q->is_ue?0:rnti;
+
+  // The scrambling sequence is pregenerated for all RNTIs in the eNodeB but only for C-RNTI in the UE
+  if (rnti >= SRSLTE_CRNTI_START && rnti < SRSLTE_CRNTI_END) {
+    if (q->users[rnti_idx] &&
+        q->users[rnti_idx]->sequence_generated &&
+        q->users[rnti_idx]->cell_id == q->cell.id &&
+        (!q->is_ue || q->ue_rnti == rnti))
+    {
+      return &q->users[rnti_idx]->seq_f2[sf_idx];
+    } else {
+      if (srslte_sequence_pucch(&q->tmp_seq, rnti, 2 * sf_idx, q->cell.id)) {
+        fprintf(stderr, "Error computing PUCCH Format 2 scrambling sequence\n");
+        return NULL;
+      }
+      return &q->tmp_seq;
+    }
+  } else {
+    fprintf(stderr, "Invalid RNTI=0x%x\n", rnti);
+    return NULL;
+  }
+}
+
 /* Encode PUCCH bits according to Table 5.4.1-1 in Section 5.4.1 of 36.211 */
 static int uci_mod_bits(srslte_pucch_t *q, srslte_pucch_format_t format, uint8_t bits[SRSLTE_PUCCH_MAX_BITS], uint32_t sf_idx, uint16_t rnti)
 {  
   uint8_t tmp[2];
-  
+  srslte_sequence_t *seq;
   switch(format) {
     case SRSLTE_PUCCH_FORMAT_1:
       q->d[0] = uci_encode_format1();
@@ -612,12 +675,13 @@ static int uci_mod_bits(srslte_pucch_t *q, srslte_pucch_format_t format, uint8_t
     case SRSLTE_PUCCH_FORMAT_2:
     case SRSLTE_PUCCH_FORMAT_2A:
     case SRSLTE_PUCCH_FORMAT_2B:
-      if (q->users[rnti] && q->users[rnti]->sequence_generated) {
+      seq = get_user_sequence(q, rnti, sf_idx);
+      if (seq) {
         memcpy(q->bits_scram, bits, SRSLTE_PUCCH2_NOF_BITS*sizeof(uint8_t));
-        srslte_scrambling_b(&q->users[rnti]->seq_f2[sf_idx], q->bits_scram);
+        srslte_scrambling_b(seq, q->bits_scram);
         srslte_mod_modulate(&q->mod, q->bits_scram, q->d, SRSLTE_PUCCH2_NOF_BITS);
       } else {
-        fprintf(stderr, "Error modulating PUCCH2 bits: rnti not set\n");
+        fprintf(stderr, "Error modulating PUCCH2 bits: could not generate sequence\n");
         return -1; 
       }
       break;
@@ -745,6 +809,8 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
                         uint8_t bits[SRSLTE_PUCCH_MAX_BITS], uint32_t nof_bits)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  srslte_sequence_t *seq;
+
   if (q          != NULL && 
       ce         != NULL && 
       sf_symbols != NULL)
@@ -843,7 +909,8 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
       case SRSLTE_PUCCH_FORMAT_2:
       case SRSLTE_PUCCH_FORMAT_2A:
       case SRSLTE_PUCCH_FORMAT_2B:
-        if (q->users[rnti] && q->users[rnti]->sequence_generated) {
+        seq = get_user_sequence(q, rnti, sf_idx);
+        if (seq) {
           pucch_encode_(q, format, n_pucch, sf_idx, rnti, NULL, ref, true);
           srslte_vec_prod_conj_ccc(q->z, ref, q->z_tmp, SRSLTE_PUCCH_MAX_SYMBOLS);
           for (int i=0;i<SRSLTE_PUCCH2_NOF_BITS/2;i++) {
@@ -853,11 +920,11 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
             }
           }
           srslte_demod_soft_demodulate_s(SRSLTE_MOD_QPSK, q->z, llr_pucch2, SRSLTE_PUCCH2_NOF_BITS/2);
-          srslte_scrambling_s(&q->users[rnti]->seq_f2[sf_idx], llr_pucch2);  
+          srslte_scrambling_s(seq, llr_pucch2);
           q->last_corr = (float) srslte_uci_decode_cqi_pucch(&q->cqi, llr_pucch2, bits, nof_bits)/2000;
           ret = 1; 
         } else {
-          fprintf(stderr, "Decoding PUCCH2: rnti not set\n");
+          fprintf(stderr, "Decoding PUCCH2: could not generate sequence\n");
           return -1; 
         }
         break;

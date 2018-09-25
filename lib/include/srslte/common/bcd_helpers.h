@@ -150,9 +150,9 @@ inline void s1ap_plmn_to_mccmnc(uint32_t plmn, uint16_t *mcc, uint16_t *mnc)
     *mnc |= nibbles[4];       // MNC digit 3
   } else {
     // 3-digit MNC
-    *mnc |= nibbles[5] << 8;  // MNC digit 1
-    *mnc |= nibbles[4] << 4;  // MNC digit 2
-    *mnc |= nibbles[2] ;      // MNC digit 3
+    *mnc |= nibbles[2] << 8;  // MNC digit 1
+    *mnc |= nibbles[5] << 4;  // MNC digit 2
+    *mnc |= nibbles[4] ;      // MNC digit 3
   }
 }
 
@@ -177,9 +177,9 @@ inline void s1ap_mccmnc_to_plmn(uint16_t mcc, uint16_t mnc, uint32_t *plmn)
     nibbles[4] = (mnc & 0x000F);      // MNC digit 3
   } else {
     // 3-digit MNC
-    nibbles[5] = (mnc & 0x0F00) >> 8; // MNC digit 1
-    nibbles[4] = (mnc & 0x00F0) >> 4; // MNC digit 2
-    nibbles[2] = (mnc & 0x000F);      // MNC digit 3
+    nibbles[2] = (mnc & 0x0F00) >> 8; // MNC digit 1
+    nibbles[5] = (mnc & 0x00F0) >> 4; // MNC digit 2
+    nibbles[4] = (mnc & 0x000F);      // MNC digit 3
   }
 
   *plmn = 0x000000;

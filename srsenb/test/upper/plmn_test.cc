@@ -10,6 +10,7 @@
 #include <assert.h>
 #include "srsenb/hdr/upper/common_enb.h"
 #include "srslte/asn1/liblte_rrc.h"
+#include "srslte/common/bcd_helpers.h"
 
 void rrc_plmn_test()
 {
@@ -55,17 +56,17 @@ void s1ap_plmn_test()
   uint32_t plmn;
 
   // 2-digit MNC test
-  srsenb::s1ap_mccmnc_to_plmn(mcc, mnc, &plmn);
+  srslte::s1ap_mccmnc_to_plmn(mcc, mnc, &plmn);
   assert(plmn == 0x21F354);
-  srsenb::s1ap_plmn_to_mccmnc(plmn, &mcc, &mnc);
+  srslte::s1ap_plmn_to_mccmnc(plmn, &mcc, &mnc);
   assert(mcc == 0xF123);
   assert(mnc == 0xFF45);
 
   // 3-digit MNC test
   mnc = 0xF456;
-  srsenb::s1ap_mccmnc_to_plmn(mcc, mnc, &plmn);
-  assert(plmn == 0x216354);
-  srsenb::s1ap_plmn_to_mccmnc(plmn, &mcc, &mnc);
+  srslte::s1ap_mccmnc_to_plmn(mcc, mnc, &plmn);
+  assert(plmn == 0x214365);
+  srslte::s1ap_plmn_to_mccmnc(plmn, &mcc, &mnc);
   assert(mcc == 0xF123);
   assert(mnc == 0xF456);
 }

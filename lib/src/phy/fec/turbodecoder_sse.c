@@ -31,13 +31,15 @@
 #include <strings.h>
 #include <math.h>
 
-#include "srslte/phy/fec/turbodecoder_simd.h"
+#include "srslte/phy/fec/turbodecoder_sse.h"
 #include "srslte/phy/utils/vector.h"
 
 #include <inttypes.h>
 
 #ifdef LV_HAVE_SSE
 #include <smmintrin.h>
+#include <srslte/phy/fec/turbodecoder_sse.h>
+
 #endif
 
 
@@ -47,21 +49,46 @@
 #define TOTALTAIL       12
 
 #define INF 10000
-#define ZERO 0
 
 
 #ifdef LV_HAVE_SSE
 
-/*
+
+#define debug_enabled 0
+
+#if debug_enabled
+#define debug_state(c,d)       printf("k=%5d, in=%5d, pa=%5d, out=%5d, alpha=", k-d,\
+                          s->branch[2*(k-d)] + s->branch[2*(k-d)+1], \
+                          -s->branch[2*(k-d)] + s->branch[2*(k-d)+1], output[k-d]);print_128i(alpha_k);\
+                          printf(", beta=");print_128i(beta_k);printf("\n");
+
 static void print_128i(__m128i x) {
-  int16_t *s = (int16_t*) &x; 
-  printf("[%d", s[0]);
+  int16_t *s = (int16_t*) &x;
+  printf("[%5d", s[0]);
   for (int i=1;i<8;i++) {
-    printf(",%d", s[i]);
+    printf(",%5d", s[i]);
   }
-  printf("]\n");
+  printf("]");
 }
-*/
+
+static uint32_t max_128i(__m128i x) {
+  int16_t *s = (int16_t*) &x;
+  int16_t m = -INF;
+  uint32_t max = 0;
+  for (int i=1;i<8;i++) {
+    if (s[i] > m) {
+      max = i;
+      m = s[i];
+    }
+  }
+  return max;
+}
+
+#else
+#define debug_state(c,d)
+#endif
+
+
 //#define use_beta_transposed_max
 
 #ifndef use_beta_transposed_max
@@ -75,7 +102,7 @@ static inline int16_t hMax(__m128i buffer)
 }
 
 /* Computes beta values */
-void map_sse_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
+void tdec_sse_beta(tdec_sse_t * s, int16_t * output, uint32_t long_cb)
 {
   int k;
   uint32_t end = long_cb + 3;
@@ -130,7 +157,7 @@ void map_sse_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
     bn = _mm_sub_epi16(beta_k, g);\
     bp = _mm_shuffle_epi8(bp, shuf_bp);\
     bn = _mm_shuffle_epi8(bn, shuf_bn);\
-    beta_k = _mm_max_epi16(bp, bn);    
+    beta_k = _mm_max_epi16(bp, bn);
 
     /* Loads the alpha metrics from memory and adds them to the temporal bn and bp 
      * metrics. Then computes horizontal maximum of both metrics and computes difference
@@ -141,8 +168,10 @@ void map_sse_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
     alphaPtr--;\
     bp = _mm_add_epi16(bp, alpha_k);\
     bn = _mm_add_epi16(bn, alpha_k);\
-    output[k-d] = hMax(bn)-hMax(bp);
-    
+    output[k-d] = hMax(bn)-hMax(bp);\
+    debug_state(c,d);
+
+
   /* The tail does not require to load alpha or produce outputs. Only update 
    * beta metrics accordingly */
   for (k=end-1; k>=long_cb; k--) {
@@ -150,7 +179,7 @@ void map_sse_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
     int16_t g1 = s->branch[2*k+1];
     g = _mm_set_epi16(g1, g0, g0, g1, g1, g0, g0, g1);
     BETA_STEP(g);
-  }  
+  }
   
   /* We inline 2 trelis steps for each normalization */
   __m128i norm;
@@ -179,7 +208,7 @@ void map_sse_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
 #endif
 
 /* Computes alpha metrics */
-void map_sse_alpha(map_gen_t * s, uint32_t long_cb)
+void tdec_sse_alpha(tdec_sse_t * s, uint32_t long_cb)
 {
   uint32_t k;
   int16_t *alpha = s->alpha;
@@ -268,7 +297,7 @@ void map_sse_alpha(map_gen_t * s, uint32_t long_cb)
 }
 
 /* Compute branch metrics (gamma) */
-void map_sse_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t long_cb) 
+void tdec_sse_gamma(tdec_sse_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t long_cb) 
 {
   __m128i res00, res10, res01, res11, res0, res1; 
   __m128i in, ap, pa, g1, g0;
@@ -313,6 +342,8 @@ void map_sse_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity,
     resPtr++;
     _mm_store_si128(resPtr, res1);    
     resPtr++;
+
+    //printf("k=%d, in=%d, pa=%d, g0=%d, g1=%d\n", i, input[i], parity[i], h->branch[2*i], h->branch[2*i+1]);
   }
 
   for (int i=long_cb;i<long_cb+3;i++) {
@@ -322,6 +353,163 @@ void map_sse_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity,
 }
 
 
+/* Inititalizes constituent decoder object */
+int tdec_sse_init(void **hh, uint32_t max_long_cb)
+{
+  *hh = calloc(1, sizeof(tdec_sse_t));
+  
+  tdec_sse_t *h = (tdec_sse_t*) *hh; 
+  
+  h->max_long_cb = max_long_cb;
+
+  h->alpha = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + TOTALTAIL + 1) * NUMSTATES);
+  if (!h->alpha) {
+    perror("srslte_vec_malloc");
+    return -1;
+  }
+  h->branch = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + TOTALTAIL + 1) * NUMSTATES);
+  if (!h->branch) {
+    perror("srslte_vec_malloc");
+    return -1;
+  }
+  return 1;
+}
+
+void tdec_sse_free(void *hh)
+{
+  tdec_sse_t *h = (tdec_sse_t*) hh;
+
+  if (h) {
+    if (h->alpha) {
+      free(h->alpha);
+    }
+    if (h->branch) {
+      free(h->branch);
+    }
+    free(h);
+  }
+}
+
+/* Runs one instance of a decoder */
+void tdec_sse_dec(void *hh, int16_t * input, int16_t *app, int16_t * parity,
+                 int16_t *output, uint32_t long_cb)
+{
+  tdec_sse_t *h = (tdec_sse_t*) hh;
+
+  // Compute branch metrics
+  tdec_sse_gamma(h, input, app, parity, long_cb);
+
+  // Forward recursion
+  tdec_sse_alpha(h, long_cb);
+
+  // Backwards recursion + LLR computation
+  tdec_sse_beta(h, output, long_cb);
+}
+
+/* Deinterleaves the 3 streams from the input (systematic and 2 parity bits) into
+ * 3 buffers ready to be used by compute_gamma()
+ */
+void tdec_sse_extract_input(int16_t *input, int16_t *syst0, int16_t *app2, int16_t *parity0, int16_t *parity1, uint32_t long_cb) {
+  uint32_t i;
+
+  __m128i *inputPtr = (__m128i*) input;
+  __m128i in0, in1, in2;
+  __m128i s0, s1, s2, s;
+  __m128i p00, p01, p02, p0;
+  __m128i p10, p11, p12, p1;
+
+  __m128i *sysPtr = (__m128i*) syst0;
+  __m128i *pa0Ptr = (__m128i*) parity0;
+  __m128i *pa1Ptr = (__m128i*) parity1;
+
+  // pick bits 0, 3, 6 from 1st word
+  __m128i s0_mask = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,13,12,7,6,1,0);
+  // pick bits 1, 4, 7 from 2st word
+  __m128i s1_mask = _mm_set_epi8(0xff,0xff,0xff,0xff,15,14,9,8,3,2,0xff,0xff,0xff,0xff,0xff,0xff);
+  // pick bits 2, 5 from 3rd word
+  __m128i s2_mask = _mm_set_epi8(11,10,5,4,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff);
+
+  // pick bits 1, 4, 7 from 1st word
+  __m128i p00_mask = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,15,14,9,8,3,2);
+  // pick bits 2, 5, from 2st word
+  __m128i p01_mask = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,11,10,5,4,0xff,0xff,0xff,0xff,0xff,0xff);
+  // pick bits 0, 3, 6 from 3rd word
+  __m128i p02_mask = _mm_set_epi8(13,12,7,6,1,0,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff);
+
+  // pick bits 2, 5 from 1st word
+  __m128i p10_mask = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,11,10,5,4);
+  // pick bits 0, 3, 6, from 2st word
+  __m128i p11_mask = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,13,12,7,6,1,0,0xff,0xff,0xff,0xff);
+  // pick bits 1, 4, 7 from 3rd word
+  __m128i p12_mask = _mm_set_epi8(15,14,9,8,3,2,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff);
+
+  // Split systematic and parity bits
+  for (i = 0; i < long_cb/8; i++) {
+
+    in0 = _mm_load_si128(inputPtr); inputPtr++;
+    in1 = _mm_load_si128(inputPtr); inputPtr++;
+    in2 = _mm_load_si128(inputPtr); inputPtr++;
+
+    /* Deinterleave Systematic bits */
+    s0 = _mm_shuffle_epi8(in0, s0_mask);
+    s1 = _mm_shuffle_epi8(in1, s1_mask);
+    s2 = _mm_shuffle_epi8(in2, s2_mask);
+    s = _mm_or_si128(s0, s1);
+    s = _mm_or_si128(s, s2);
+
+    _mm_store_si128(sysPtr, s);
+    sysPtr++;
+
+    /* Deinterleave parity 0 bits */
+    p00 = _mm_shuffle_epi8(in0, p00_mask);
+    p01 = _mm_shuffle_epi8(in1, p01_mask);
+    p02 = _mm_shuffle_epi8(in2, p02_mask);
+    p0 = _mm_or_si128(p00, p01);
+    p0 = _mm_or_si128(p0, p02);
+
+    _mm_store_si128(pa0Ptr, p0);
+    pa0Ptr++;
+
+    /* Deinterleave parity 1 bits */
+    p10 = _mm_shuffle_epi8(in0, p10_mask);
+    p11 = _mm_shuffle_epi8(in1, p11_mask);
+    p12 = _mm_shuffle_epi8(in2, p12_mask);
+    p1 = _mm_or_si128(p10, p11);
+    p1 = _mm_or_si128(p1, p12);
+
+    _mm_store_si128(pa1Ptr, p1);
+    pa1Ptr++;
+
+  }
+
+  for (i = 0; i < 3; i++) {
+    syst0[i+long_cb]    = input[3*long_cb + 2*i];
+    parity0[i+long_cb] = input[3*long_cb + 2*i + 1];
+  }
+  for (i = 0; i < 3; i++) {
+    app2[i+long_cb]    = input[3*long_cb + 6 + 2*i];
+    parity1[i+long_cb] = input[3*long_cb + 6 + 2*i + 1];
+  }
+}
+
+void tdec_sse_decision_byte(int16_t *app1, uint8_t *output, uint32_t long_cb)
+{
+  uint8_t mask[8] = {0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
+
+  // long_cb is always byte aligned
+  for (uint32_t i = 0; i < long_cb/8; i++) {
+    uint8_t out0 = app1[8*i+0]>0?mask[0]:0;
+    uint8_t out1 = app1[8*i+1]>0?mask[1]:0;
+    uint8_t out2 = app1[8*i+2]>0?mask[2]:0;
+    uint8_t out3 = app1[8*i+3]>0?mask[3]:0;
+    uint8_t out4 = app1[8*i+4]>0?mask[4]:0;
+    uint8_t out5 = app1[8*i+5]>0?mask[5]:0;
+    uint8_t out6 = app1[8*i+6]>0?mask[6]:0;
+    uint8_t out7 = app1[8*i+7]>0?mask[7]:0;
+
+    output[i] = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7;
+  }
+}
 
 
 
@@ -381,7 +569,7 @@ static inline __m128i transposed_max(__m128i a, __m128i b, __m128i c, __m128i d,
   return res;   
 }
 
-void map_sse_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
+void tdec_sse_beta(tdec_sse_t * s, int16_t * output, uint32_t long_cb)
 {
   int k;
   uint32_t end = long_cb + 3;

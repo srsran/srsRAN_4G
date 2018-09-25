@@ -61,6 +61,7 @@ public:
   void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
   void add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
   void del_bearer(uint32_t lcid);
+  void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
   void config_security(uint32_t lcid,
                        uint8_t *k_enc,
                        uint8_t *k_int,

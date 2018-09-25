@@ -39,6 +39,8 @@ struct mac_metrics_t
   int rx_errors;
   int rx_brate;
   int ul_buffer;
+  float dl_retx_avg;
+  float ul_retx_avg;
 };
 
 } // namespace srsue

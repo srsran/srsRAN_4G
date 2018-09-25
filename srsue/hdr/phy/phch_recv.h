@@ -83,7 +83,6 @@ public:
   void    force_freq(float dl_freq, float ul_freq);
 
   // Other functions
-  const static int MUTEX_X_WORKER = 4;
   double set_rx_gain(double gain);
   int radio_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
   int scell_recv_fnc(cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time);
@@ -438,9 +437,9 @@ private:
   float         time_adv_sec, next_time_adv_sec;
   uint32_t      tti;
   bool          do_agc;
-  
-  uint32_t      nof_tx_mutex;
-  uint32_t      tx_mutex_cnt;
+
+  uint32_t      tx_worker_cnt;
+  uint32_t      nof_workers;
 
   float         ul_dl_factor;
   int           current_earfcn;

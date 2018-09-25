@@ -53,4 +53,9 @@ SRSLTE_API int srslte_demod_soft_demodulate_s(srslte_mod_t modulation,
                                               short* llr, 
                                               int nsymbols); 
 
+SRSLTE_API int srslte_demod_soft_demodulate_b(srslte_mod_t modulation,
+                                              const cf_t* symbols,
+                                              int8_t* llr,
+                                              int nsymbols);
+
 #endif // SRSLTE_DEMOD_SOFT_H

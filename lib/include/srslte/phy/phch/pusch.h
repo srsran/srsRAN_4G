@@ -74,6 +74,8 @@ typedef struct SRSLTE_API {
   uint16_t ue_rnti;
   uint32_t max_re;
 
+  bool llr_is_8bit;
+
   srslte_dft_precoding_t dft_precoding;  
   
   /* buffers */

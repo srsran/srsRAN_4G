@@ -60,6 +60,8 @@ bool verbose = false;
 
 #define TEST(X, CODE) static bool test_##X (char *func_name, double *timing, uint32_t block_size) {\
     struct timeval start, end;\
+    bzero(&start, sizeof(start));\
+    bzero(&end, sizeof(end));\
     float mse = 0.0f;\
     bool passed;\
     strncpy(func_name, #X, 32);\
@@ -781,7 +783,8 @@ TEST(srslte_vec_apply_cfo,
 )
 
 TEST(srslte_cfo_correct,
-     srslte_cfo_t srslte_cfo = {0};
+     srslte_cfo_t srslte_cfo;
+     bzero(&srslte_cfo, sizeof(srslte_cfo));
      MALLOC(cf_t, x);
      MALLOC(cf_t, z);
 
@@ -807,7 +810,8 @@ TEST(srslte_cfo_correct,
 )
 
 TEST(srslte_cfo_correct_change,
-     srslte_cfo_t srslte_cfo = {0};
+     srslte_cfo_t srslte_cfo;
+     bzero(&srslte_cfo, sizeof(srslte_cfo));
      MALLOC(cf_t, x);
      MALLOC(cf_t, z);
 

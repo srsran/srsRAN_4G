@@ -532,7 +532,7 @@ hss::resync_sqn(uint64_t imsi, uint8_t *auts)
     ret = resync_sqn_milenage(imsi, auts);
     break;
   }
-  increment_ue_sqn(imsi);
+  increment_seq_after_resync(imsi);
   return ret;
 }
 
@@ -594,6 +594,10 @@ hss::resync_sqn_milenage(uint64_t imsi, uint8_t *auts)
 
   uint8_t mac_s_tmp[8];
 
+  for(int i=0; i<2; i++){
+    amf[i] = 0;
+  }
+
   security_milenage_f1_star(k, opc, last_rand, sqn_ms, amf, mac_s_tmp);
 
   m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
@@ -621,20 +625,85 @@ hss::increment_ue_sqn(uint64_t imsi)
 void
 hss::increment_sqn(uint8_t *sqn, uint8_t *next_sqn)
 {
-  // Awkward 48 bit sqn and doing arithmetic 
-  uint64_t tmp_sqn = 0;
-  uint8_t *p = (uint8_t *)&tmp_sqn;
+  // The following SQN incrementation function is implemented according to 3GPP TS 33.102 version 11.5.1 Annex C
 
-  for(int i = 0; i < 6; i++) {
-    p[5-i] = sqn[i];
+  uint64_t seq;
+  uint64_t ind;
+  uint64_t sqn64;
+
+  sqn64 =0;
+
+  for(int i=0; i<6; i++)
+  {
+    sqn64 |= (uint64_t)sqn[i] << (5-i)*8;
   }
 
-  tmp_sqn++;
-  for(int i = 0; i < 6; i++){
-    next_sqn[i] = p[5-i];
+  seq = sqn64 >> LTE_FDD_ENB_IND_HE_N_BITS;
+  ind = sqn64 & LTE_FDD_ENB_IND_HE_MASK;
+
+  uint64_t nextseq;
+  uint64_t nextind;
+  uint64_t nextsqn;
+
+  nextseq = (seq + 1) % LTE_FDD_ENB_SEQ_HE_MAX_VALUE;
+  nextind = (ind + 1) % LTE_FDD_ENB_IND_HE_MAX_VALUE;
+  nextsqn = (nextseq << LTE_FDD_ENB_IND_HE_N_BITS) | nextind;
+
+  for(int i=0; i<6; i++)
+  {
+    next_sqn[i] =  (nextsqn >> (5-i)*8) & 0xFF;
   }
+
   return;
+
 }
+
+
+void
+hss::increment_seq_after_resync(uint64_t imsi)
+{
+
+// This function only increment the SEQ part of the SQN for resynchronization purpose
+
+  hss_ue_ctx_t *ue_ctx = NULL;
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
+  if(ret == false)
+  {
+    return;
+  }
+
+  uint8_t *sqn = ue_ctx->sqn;
+
+  uint64_t seq;
+  uint64_t ind;
+  uint64_t sqn64;
+
+  sqn64 =0;
+
+  for(int i=0; i<6; i++)
+  {
+    sqn64 |= (uint64_t)sqn[i] << (5-i)*8;
+  }
+
+  seq = sqn64 >> LTE_FDD_ENB_IND_HE_N_BITS;
+  ind = sqn64 & LTE_FDD_ENB_IND_HE_MASK;
+
+  uint64_t nextseq;
+  uint64_t nextsqn;
+
+  nextseq = (seq + 1) % LTE_FDD_ENB_SEQ_HE_MAX_VALUE;
+  nextsqn = (nextseq << LTE_FDD_ENB_IND_HE_N_BITS) | ind;
+
+  for(int i=0; i<6; i++)
+  {
+    sqn[i] =  (nextsqn >> (5-i)*8) & 0xFF;
+  }
+
+  return;
+
+}
+
+
 
 void
 hss::set_sqn(uint64_t imsi, uint8_t *sqn)

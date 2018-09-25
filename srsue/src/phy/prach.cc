@@ -191,8 +191,8 @@ cf_t *prach::generate(float cfo, uint32_t *nof_sf, float *target_power) {
       *target_power = target_power_dbm;
     }
 
-    Info("PRACH: Transmitted preamble=%d, CFO=%.2f KHz, nof_sf=%d, target_power=%.1f dBm\n",
-         preamble_idx, cfo*15, nsf, target_power_dbm);
+    Info("PRACH: Transmitted preamble=%d, tti=%d, CFO=%.2f KHz, nof_sf=%d, target_power=%.1f dBm\n",
+         preamble_idx, transmitted_tti, cfo*15, nsf, target_power_dbm);
     preamble_idx = -1;
 
     return signal_buffer;

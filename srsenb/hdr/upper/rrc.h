@@ -296,6 +296,7 @@ public:
     int cqi_sched_sf_idx; 
     int cqi_sched_prb_idx;
     int get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drbid);
+    srslte::byte_buffer_t erab_info;
   }; 
   
   
@@ -333,8 +334,7 @@ private:
   srslte::byte_buffer_pool  *pool;
   srslte::bit_buffer_t  bit_buf;
   srslte::bit_buffer_t  bit_buf_paging;
-  srslte::byte_buffer_t erab_info;
-    
+
   phy_interface_rrc    *phy;
   mac_interface_rrc    *mac;
   rlc_interface_rrc    *rlc;

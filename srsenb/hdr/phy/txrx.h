@@ -50,8 +50,6 @@ public:
             uint32_t prio);
   void stop();
     
-  const static int MUTEX_X_WORKER = 4; 
-  
 private:
     
   void run_thread(); 
@@ -61,12 +59,12 @@ private:
   srslte::thread_pool  *workers_pool;
   prach_worker         *prach; 
   phch_common          *worker_com;
-    
-  uint32_t tx_mutex_cnt; 
-  uint32_t nof_tx_mutex; 
-  
+
   // Main system TTI counter   
-  uint32_t tti; 
+  uint32_t tti;
+
+  uint32_t tx_worker_cnt;
+  uint32_t nof_workers;
   
   bool running; 
 };

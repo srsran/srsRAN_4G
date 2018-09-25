@@ -153,7 +153,11 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
   
   Info("Worker %d configured cell %d PRB\n", get_id(), phy->cell.nof_prb);
-  
+
+  if (phy->params.pusch_8bit_decoder) {
+    enb_ul.pusch.llr_is_8bit = true;
+    enb_ul.pusch.ul_sch.llr_is_8bit = true;
+  }
   initiated = true; 
   running   = true;
 
@@ -202,7 +206,7 @@ cf_t* phch_worker::get_buffer_rx(uint32_t antenna_idx)
   return signal_buffer_rx[antenna_idx];
 }
 
-void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timestamp_t tx_time_)
+void phch_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestamp_t tx_time_)
 {
   tti_rx       = tti_; 
   tti_tx_dl    = TTI_TX(tti_rx);
@@ -215,7 +219,7 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timesta
   t_rx         = TTIMOD(tti_rx);
   t_tx_ul      = TTIMOD(tti_tx_ul);
 
-  tx_mutex_cnt = tx_mutex_cnt_;
+  tx_worker_cnt = tx_worker_cnt_;
   memcpy(&tx_time, &tx_time_, sizeof(srslte_timestamp_t));
 }
 
@@ -479,7 +483,7 @@ void phch_worker::work_imp()
   pthread_mutex_unlock(&mutex);
 
   Debug("Sending to radio\n");
-  phy->worker_end(tx_mutex_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
+  phy->worker_end(tx_worker_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
 
   is_worker_running = false;
 
@@ -512,9 +516,6 @@ unlock:
 
 int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
 {
-  srslte_uci_data_t uci_data;
-  ZERO_OBJECT(uci_data);
-
   uint32_t wideband_cqi_value = 0, wideband_pmi = 0;
   bool wideband_pmi_present = false;
 
@@ -522,6 +523,8 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
   for (uint32_t i=0;i<nof_pusch;i++) {
     uint16_t rnti = grants[i].rnti;
     if (rnti) {
+      srslte_uci_data_t uci_data;
+      ZERO_OBJECT(uci_data);
 
     #ifdef LOG_EXECTIME
       char timestr[64];
@@ -1069,7 +1072,7 @@ void phch_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, uint32_t 
 {
   metrics.ul.mcs         = SRSLTE_VEC_CMA((float) mcs,         metrics.ul.mcs,         metrics.ul.n_samples);
   metrics.ul.sinr        = SRSLTE_VEC_CMA((float) sinr,        metrics.ul.sinr,        metrics.ul.n_samples);
-  metrics.ul.rssi        = SRSLTE_VEC_CMA((float) sinr,        metrics.ul.rssi,        metrics.ul.n_samples);
+  metrics.ul.rssi        = SRSLTE_VEC_CMA((float) rssi,        metrics.ul.rssi,        metrics.ul.n_samples);
   metrics.ul.turbo_iters = SRSLTE_VEC_CMA((float) turbo_iters, metrics.ul.turbo_iters, metrics.ul.n_samples);  
   metrics.ul.n_samples++;
 }

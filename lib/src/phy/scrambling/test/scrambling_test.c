@@ -177,6 +177,83 @@ int main(int argc, char **argv) {
 
     free(input_f);
     free(scrambled_f);
+
+    int16_t *input_s, *scrambled_s;
+
+    // Scramble also shorts
+    input_s= malloc(sizeof(int16_t) * seq.cur_len);
+    if (!input_s) {
+      perror("malloc");
+      exit(-1);
+    }
+    scrambled_s = malloc(sizeof(int16_t) * seq.cur_len);
+    if (!scrambled_s) {
+      perror("malloc");
+      exit(-1);
+    }
+
+    for (i=0;i<seq.cur_len;i++) {
+      input_s[i] = 100*(rand()/RAND_MAX)-50;
+      scrambled_s[i] = input_s[i];
+    }
+
+    gettimeofday(&t[1], NULL);
+    srslte_scrambling_s(&seq, scrambled_s);
+    gettimeofday(&t[2], NULL);
+    srslte_scrambling_s(&seq, scrambled_s);
+
+
+    get_time_interval(t);
+    printf("Texec short=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
+
+    for (i=0;i<seq.cur_len;i++) {
+      if (scrambled_s[i] != input_s[i]) {
+        printf("Error in %d\n", i);
+        exit(-1);
+      }
+    }
+
+    free(input_s);
+    free(scrambled_s);
+
+
+    int8_t *input_b, *scrambled_b;
+
+    // Scramble also bytes
+    input_b= malloc(sizeof(int8_t) * seq.cur_len);
+    if (!input_b) {
+      perror("malloc");
+      exit(-1);
+    }
+    scrambled_b = malloc(sizeof(int8_t) * seq.cur_len);
+    if (!scrambled_b) {
+      perror("malloc");
+      exit(-1);
+    }
+
+    for (i=0;i<seq.cur_len;i++) {
+      input_b[i] = 100*(rand()/RAND_MAX)-50;
+      scrambled_b[i] = input_b[i];
+    }
+
+    gettimeofday(&t[1], NULL);
+    srslte_scrambling_sb_offset(&seq, scrambled_b, 0, seq.cur_len);
+    gettimeofday(&t[2], NULL);
+    srslte_scrambling_sb_offset(&seq, scrambled_b, 0, seq.cur_len);
+
+
+    get_time_interval(t);
+    printf("Texec char=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
+
+    for (i=0;i<seq.cur_len;i++) {
+      if (scrambled_b[i] != input_b[i]) {
+        printf("Error in %d\n", i);
+        exit(-1);
+      }
+    }
+
+    free(input_b);
+    free(scrambled_b);
   }
   printf("Ok\n");
   srslte_sequence_free(&seq);

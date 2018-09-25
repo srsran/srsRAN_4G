@@ -83,6 +83,7 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
 void mac::stop()
 {
   srslte_softbuffer_rx_free(&pch_softbuffer);
+  srslte_softbuffer_rx_free(&mch_softbuffer);
 
   pdu_process_thread.stop();
   stop_thread();
@@ -476,6 +477,8 @@ void mac::get_metrics(mac_metrics_t &m)
        ul_harq.get_average_retx());
   
   metrics.ul_buffer = (int) bsr_procedure.get_buffer_state();
+  metrics.dl_retx_avg = dl_harq.get_average_retx();
+  metrics.ul_retx_avg = ul_harq.get_average_retx();
   m = metrics;  
   bzero(&metrics, sizeof(mac_metrics_t));  
 }

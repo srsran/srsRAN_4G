@@ -139,6 +139,7 @@ int srslte_sequence_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed) {
   for (int i=0;i<len;i++) {
     q->c_float[i] = (1-2*q->c[i]);
     q->c_short[i] = (int16_t) q->c_float[i];
+    q->c_char[i]  = (int8_t) q->c_float[i];;
   }
   return SRSLTE_SUCCESS;
 }
@@ -164,6 +165,10 @@ int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
     if (!q->c_short) {
       return SRSLTE_ERROR;
     }
+    q->c_char = srslte_vec_malloc(len * sizeof(int8_t));
+    if (!q->c_char) {
+      return SRSLTE_ERROR;
+    }
     q->max_len = len;
   }
   return SRSLTE_SUCCESS;
@@ -181,6 +186,9 @@ void srslte_sequence_free(srslte_sequence_t *q) {
   }
   if (q->c_short) {
     free(q->c_short);
+  }
+  if (q->c_char) {
+    free(q->c_char);
   }
   bzero(q, sizeof(srslte_sequence_t));
 }

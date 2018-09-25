@@ -29,10 +29,12 @@
 #include "srsenb/hdr/upper/rrc.h"
 #include "srslte/srslte.h"
 #include "srslte/asn1/liblte_mme.h"
-
+#include "srslte/common/int_helpers.h"
 
 using srslte::byte_buffer_t;
 using srslte::bit_buffer_t;
+using srslte::uint32_to_uint8;
+using srslte::uint8_to_uint32;
 
 namespace srsenb {
   
@@ -1225,8 +1227,9 @@ void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT 
   parent->gtpu->add_bearer(rnti, lcid, addr_, erabs[id].teid_out, &(erabs[id].teid_in));
 
   if(nas_pdu) {
-    memcpy(parent->erab_info.msg, nas_pdu->buffer, nas_pdu->n_octets);
-    parent->erab_info.N_bytes = nas_pdu->n_octets;
+    memcpy(erab_info.buffer, nas_pdu->buffer, nas_pdu->n_octets);
+    erab_info.N_bytes = nas_pdu->n_octets;
+    parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   }
 }
 
@@ -1665,9 +1668,11 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 
   // Add NAS Attach accept 
   conn_reconf->N_ded_info_nas = 1; 
-  conn_reconf->ded_info_nas_list[0].N_bytes = parent->erab_info.N_bytes;
-  memcpy(conn_reconf->ded_info_nas_list[0].msg, parent->erab_info.msg, parent->erab_info.N_bytes);
-  
+
+  parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+  conn_reconf->ded_info_nas_list[0].N_bytes = erab_info.N_bytes;
+  memcpy(conn_reconf->ded_info_nas_list[0].msg, erab_info.buffer, erab_info.N_bytes);
+ 
   // Reuse same PDU
   pdu->reset();
   
@@ -1723,8 +1728,9 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     // DRB has already been configured in GTPU through bearer setup
 
     // Add NAS message
-    conn_reconf->ded_info_nas_list[conn_reconf->N_ded_info_nas].N_bytes = parent->erab_info.N_bytes;
-    memcpy(conn_reconf->ded_info_nas_list[conn_reconf->N_ded_info_nas].msg, parent->erab_info.msg, parent->erab_info.N_bytes);
+    parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
+    conn_reconf->ded_info_nas_list[conn_reconf->N_ded_info_nas].N_bytes = erab_info.N_bytes;
+    memcpy(conn_reconf->ded_info_nas_list[conn_reconf->N_ded_info_nas].msg, erab_info.buffer, erab_info.N_bytes);
     conn_reconf->N_ded_info_nas++;
   }
 

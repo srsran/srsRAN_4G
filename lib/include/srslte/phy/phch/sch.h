@@ -59,6 +59,8 @@ typedef struct SRSLTE_API {
   uint32_t max_iterations;
   uint32_t nof_iterations;
 
+  bool llr_is_8bit;
+
   /* buffers */
   uint8_t *cb_in; 
   uint8_t *parity_bits;  

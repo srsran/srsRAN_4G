@@ -47,74 +47,97 @@
 #define SRSLTE_TCOD_TOTALTAIL 12
 
 #define SRSLTE_TCOD_MAX_LEN_CB     6144
-#define SRSLTE_TCOD_MAX_LEN_CODED  (SRSLTE_TCOD_RATE*SRSLTE_TCOD_MAX_LEN_CB+SRSLTE_TCOD_TOTALTAIL)
 
-#include "srslte/phy/fec/turbodecoder_gen.h"
-#include "srslte/phy/fec/turbodecoder_simd.h"
+// Expect the input to be aligned for sub-block window processing.
+#define SRSLTE_TDEC_EXPECT_INPUT_SB 1
+
+// Include interfaces for 8 and 16 bit decoder implementations
+#define LLR_IS_8BIT
+#include "srslte/phy/fec/turbodecoder_impl.h"
+#undef LLR_IS_8BIT
+
+#define LLR_IS_16BIT
+#include "srslte/phy/fec/turbodecoder_impl.h"
+#undef LLR_IS_16BIT
+
+#define SRSLTE_TDEC_NOF_AUTO_MODES_8  2
+#define SRSLTE_TDEC_NOF_AUTO_MODES_16 3
+
+typedef enum {SRSLTE_TDEC_8, SRSLTE_TDEC_16} srslte_tdec_llr_type_t;
 
 typedef struct SRSLTE_API {
-  float *input_conv;
-  union {
-    srslte_tdec_simd_t tdec_simd;
-    srslte_tdec_gen_t  tdec_gen;
-  };
+  uint32_t max_long_cb;
+
+  void *dec8_hdlr[SRSLTE_TDEC_NOF_AUTO_MODES_8];
+  void *dec16_hdlr[SRSLTE_TDEC_NOF_AUTO_MODES_16];
+  srslte_tdec_8bit_impl_t *dec8[SRSLTE_TDEC_NOF_AUTO_MODES_8];
+  srslte_tdec_16bit_impl_t *dec16[SRSLTE_TDEC_NOF_AUTO_MODES_16];
+  int nof_blocks8[SRSLTE_TDEC_NOF_AUTO_MODES_8];
+  int nof_blocks16[SRSLTE_TDEC_NOF_AUTO_MODES_16];
+
+  // Declare as void types as can be int8 or int16
+  void *app1;
+  void *app2;
+  void *ext1;
+  void *ext2;
+  void *syst0;
+  void *parity0;
+  void *parity1;
+
+  void *input_conv;
+
+  bool force_not_sb;
+
+  srslte_tdec_impl_type_t dec_type;
+
+  srslte_tdec_llr_type_t current_llr_type;
+  uint32_t current_dec;
+  uint32_t current_long_cb;
+  uint32_t current_inter_idx;
+  int current_cbidx;
+  srslte_tc_interl_t interleaver[4][SRSLTE_NOF_TC_CB_SIZES];
+  int n_iter;
 } srslte_tdec_t;
 
 SRSLTE_API int srslte_tdec_init(srslte_tdec_t * h, 
                                 uint32_t max_long_cb);
 
+SRSLTE_API int srslte_tdec_init_manual(srslte_tdec_t * h,
+                                      uint32_t max_long_cb,
+                                      srslte_tdec_impl_type_t dec_type);
+
 SRSLTE_API void srslte_tdec_free(srslte_tdec_t * h);
 
-SRSLTE_API int srslte_tdec_reset(srslte_tdec_t * h, 
+SRSLTE_API void srslte_tdec_force_not_sb(srslte_tdec_t *h);
+
+SRSLTE_API int srslte_tdec_new_cb(srslte_tdec_t * h,
                                  uint32_t long_cb);
 
-SRSLTE_API int srslte_tdec_reset_cb(srslte_tdec_t * h, 
-                                    uint32_t cb_idx);
+SRSLTE_API int srslte_tdec_get_nof_iterations(srslte_tdec_t * h);
 
-SRSLTE_API int srslte_tdec_get_nof_iterations_cb(srslte_tdec_t * h, 
-                                                 uint32_t cb_idx);
+SRSLTE_API uint32_t srslte_tdec_autoimp_get_subblocks(uint32_t long_cb);
 
-SRSLTE_API uint32_t srslte_tdec_get_nof_parallel(srslte_tdec_t * h);
+SRSLTE_API uint32_t srslte_tdec_autoimp_get_subblocks_8bit(uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_iteration(srslte_tdec_t * h, 
-                                      int16_t* input, 
-                                      uint32_t long_cb);
+                                      int16_t* input,
+                                      uint8_t *output);
 
-SRSLTE_API void srslte_tdec_decision(srslte_tdec_t * h, 
-                                     uint8_t *output, 
-                                     uint32_t long_cb);
-
-SRSLTE_API void srslte_tdec_decision_byte(srslte_tdec_t * h, 
-                                          uint8_t *output, 
-                                          uint32_t long_cb); 
-
-SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h, 
-                                   int16_t * input, 
+SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h,
+                                   int16_t * input,
                                    uint8_t *output,
                                    uint32_t nof_iterations, 
                                    uint32_t long_cb);
 
-SRSLTE_API void srslte_tdec_iteration_par(srslte_tdec_t * h, 
-                                          int16_t* input[SRSLTE_TDEC_MAX_NPAR],
-                                          uint32_t long_cb);
+SRSLTE_API void srslte_tdec_iteration_8bit(srslte_tdec_t * h,
+                                            int8_t* input,
+                                            uint8_t *output);
 
-SRSLTE_API void srslte_tdec_decision_par(srslte_tdec_t * h, 
-                                         uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
+SRSLTE_API int srslte_tdec_run_all_8bit(srslte_tdec_t * h,
+                                         int8_t * input,
+                                         uint8_t *output,
+                                         uint32_t nof_iterations,
                                          uint32_t long_cb);
 
-SRSLTE_API void srslte_tdec_decision_byte_par(srslte_tdec_t * h, 
-                                              uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
-                                              uint32_t long_cb); 
-
-SRSLTE_API void srslte_tdec_decision_byte_par_cb(srslte_tdec_t * h, 
-                                                 uint8_t *output, 
-                                                 uint32_t cb_idx, 
-                                                 uint32_t long_cb);
-
-SRSLTE_API int srslte_tdec_run_all_par(srslte_tdec_t * h, 
-                                       int16_t * input[SRSLTE_TDEC_MAX_NPAR],
-                                       uint8_t *output[SRSLTE_TDEC_MAX_NPAR],
-                                       uint32_t nof_iterations, 
-                                       uint32_t long_cb);
 
 #endif // SRSLTE_TURBODECODER_H

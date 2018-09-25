@@ -68,6 +68,11 @@ SRSLTE_API void srslte_scrambling_s_offset(srslte_sequence_t *s,
                                            int offset, 
                                            int len);
 
+SRSLTE_API void srslte_scrambling_sb_offset(srslte_sequence_t *s,
+                                            int8_t *data,
+                                            int offset,
+                                            int len);
+
 SRSLTE_API void srslte_scrambling_c(srslte_sequence_t *s, 
                                     cf_t *data);
 

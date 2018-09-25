@@ -228,7 +228,7 @@ int rf_soapy_start_rx_stream(void *h, bool now)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   if(handler->rx_stream_active == false){
-    if(SoapySDRDevice_activateStream(handler->device, handler->rxStream, 0, 0, 0) != 0)
+    if(SoapySDRDevice_activateStream(handler->device, handler->rxStream, SOAPY_SDR_HAS_TIME | SOAPY_SDR_END_BURST, 0, 0) != 0)
       return SRSLTE_ERROR;
     handler->rx_stream_active = true;
    }
@@ -339,9 +339,19 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   rf_soapy_set_rx_srate(handler, 1.92e6);
   rf_soapy_set_tx_srate(handler, 1.92e6);
 
-  if(SoapySDRDevice_getNumChannels(handler->device, SOAPY_SDR_RX) > 0){
+  size_t channels = SoapySDRDevice_getNumChannels(handler->device, SOAPY_SDR_RX);
+
+  if((channels > 0) && (nof_rx_antennas > 0)){
     printf("Setting up RX stream\n");
-    if(SoapySDRDevice_setupStream(handler->device, &(handler->rxStream), SOAPY_SDR_RX, SOAPY_SDR_CF32, NULL, 0, NULL) != 0) {
+    size_t numChannels = channels;
+    if (channels > nof_rx_antennas) {
+      numChannels = nof_rx_antennas;
+    }
+    size_t rx_channels[numChannels];
+    for(int i = 0 ; i < numChannels ; i++) {
+      rx_channels[i] = i;
+    }
+    if(SoapySDRDevice_setupStream(handler->device, &(handler->rxStream), SOAPY_SDR_RX, SOAPY_SDR_CF32, rx_channels, numChannels, NULL) != 0) {
       printf("Rx setupStream fail: %s\n", SoapySDRDevice_lastError());
       return SRSLTE_ERROR;
     }
@@ -439,9 +449,11 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
 
 #if HAVE_ASYNC_THREAD
   bool start_async_thread = true;
-  if (strstr(args, "silent")) {
-    REMOVE_SUBSTRING_WITHCOMAS(args, "silent");
-    start_async_thread = false;
+  if (args) {
+    if (strstr(args, "silent")) {
+        REMOVE_SUBSTRING_WITHCOMAS(args, "silent");
+        start_async_thread = false;
+    }
   }
 #endif
 
@@ -839,7 +851,7 @@ int rf_soapy_send_timed_multi(void *h,
 
   // Convert initial tx time
   if (has_time_spec) {
-    timeNs = secs * 1000000000;
+    timeNs = (long long)secs * 1000000000;
     timeNs = timeNs + (frac_secs * 1000000000);
   }
 
