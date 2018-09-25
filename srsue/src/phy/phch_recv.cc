@@ -53,6 +53,7 @@ phch_recv::phch_recv() {
   ul_freq = -1;
   bzero(&cell, sizeof(srslte_cell_t));
   bzero(&metrics, sizeof(sync_metrics_t));
+  cellsearch_earfcn_index = 0;
   running = false;
   worker_com = NULL;
 }

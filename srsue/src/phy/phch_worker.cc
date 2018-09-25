@@ -61,6 +61,7 @@ phch_worker::phch_worker() : tr_exec(10240)
   chest_loop = NULL;
 
   bzero(signal_buffer, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
+  ZERO_OBJECT(cell);
 
   mem_initiated   = false;
   cell_initiated  = false; 

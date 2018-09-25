@@ -867,7 +867,6 @@ bool resegment_test_3()
 
 bool resegment_test_4()
 {
-
   // SDUs:              |  10  |  10  |  10  |  10  |  10  |
   // PDUs:              | 5 | 5|         30         | 5 | 5|
   // Retx PDU segments:        |    15    |    15   |
@@ -980,7 +979,6 @@ bool resegment_test_4()
 
 bool resegment_test_5()
 {
-
   // SDUs:              |  10  |  10  |  10  |  10  |  10  |
   // PDUs:              |2|3|            40            |3|2|
   // Retx PDU segments:     |     20      |     20     |
@@ -1373,6 +1371,18 @@ bool resegment_test_7()
     timers.step_all();
   }
 
+  // Read status PDU from RLC2
+  assert(rlc2.get_buffer_state());
+  status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+#if HAVE_PCAP
+  pcap.write_ul_am_ccch(status_buf.msg, status_buf.N_bytes);
+#endif
+
+  // check status again
+  assert(0 == rlc1.get_buffer_state());
   assert(0 == rlc2.get_buffer_state());
 
   // Check number of SDUs and their content
@@ -1441,11 +1451,11 @@ bool resegment_test_8()
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   if (not rlc1.configure(&cnfg)) {
-    exit(-1);
+    return -1;
   }
 
   if (not rlc2.configure(&cnfg)) {
-    exit(-1);
+    return -1;
   }
 
   // Push 2 SDUs into RLC1

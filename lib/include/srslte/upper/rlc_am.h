@@ -69,14 +69,14 @@ struct rlc_amd_retx_t{
 class rlc_am : public rlc_common
 {
 public:
-  rlc_am(uint32_t queue_len = 16);
+  rlc_am(uint32_t queue_len = 128);
   ~rlc_am();
-  void init(log          *rlc_entity_log_,
+  void init(log                   *log_,
             uint32_t              lcid_,
             srsue::pdcp_interface_rlc   *pdcp_,
             srsue::rrc_interface_rlc    *rrc_,
-            mac_interface_timers *mac_timers);
-  bool configure(srslte_rlc_config_t cnfg);
+            mac_interface_timers *mac_timers_);
+  bool configure(srslte_rlc_config_t cfg_);
   void reestablish();
   void stop();
 
@@ -104,7 +104,7 @@ private:
   class rlc_am_tx : public timer_callback
   {
   public:
-    rlc_am_tx(rlc_am *parent_, uint32_t queue_len);
+    rlc_am_tx(rlc_am *parent_, uint32_t queue_len_);
     ~rlc_am_tx();
 
     void init();
@@ -139,6 +139,7 @@ private:
 
     bool retx_queue_has_sn(uint32_t sn);
     int  required_buffer_size(rlc_amd_retx_t retx);
+    void retransmit_random_pdu();
 
     // Timer checks
     bool status_prohibited;
