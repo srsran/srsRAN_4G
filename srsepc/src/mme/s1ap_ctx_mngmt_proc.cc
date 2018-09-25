@@ -127,7 +127,7 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas *nas_ctx, uint16_t e
   uint8_t *tmp_ptr = erab_ctx_req->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);
 
-  uint32_t sgw_s1u_teid = erab_ctx->sgw_s1u_fteid.teid;
+  uint32_t sgw_s1u_teid = esm_ctx->sgw_s1u_fteid.teid;
   srslte::uint32_to_uint8(sgw_s1u_teid,erab_ctx_req->gTP_TEID.buffer);
 
   //Set UE security capabilities and k_enb
