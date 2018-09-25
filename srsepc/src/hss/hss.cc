@@ -198,8 +198,8 @@ hss::read_db_file(std::string db_filename)
 
       // optional imsi to ip
       if(split.size() == column_size_2) {
-         char buf[128];
-         if(inet_ntop(AF_INET, split[8].c_str(), buf, sizeof(buf))) {
+         char buf[128] = {0};
+         if(inet_pton(AF_INET, split[8].c_str(), buf)) {
            if(m_ip_to_imsi.insert(std::make_pair(split[8], ue_ctx->imsi)).second) {
              ue_ctx->static_ip_addr = split[8];
              m_hss_log->info("static ip addr %s\n", ue_ctx->static_ip_addr.c_str());
