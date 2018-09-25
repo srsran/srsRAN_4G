@@ -1064,6 +1064,17 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
        return 0;
      }
 
+#undef ASYMETRIC_ENB_TO_UE_LINK
+#ifdef ASYMETRIC_ENB_TO_UE_LINK
+  static size_t cnt = 0;
+
+   if(! rf_shmem_is_enb(_state))
+     {
+       if(++cnt < 1e4)
+         return nsamples;
+     }
+#endif
+
    struct timeval tv_now, tv_tx_tti;
 
    // assume all tx are 4 tti in the future
