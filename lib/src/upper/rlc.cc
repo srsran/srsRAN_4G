@@ -124,8 +124,8 @@ void rlc::get_metrics(rlc_metrics_t &m)
     m.ul_tput_mbps[it->first] = (it->second->get_num_tx_bytes()*8/static_cast<double>(1e6))/secs;
     rlc_log->info("LCID=%d, RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
                     it->first,
-                    (it->second->get_num_rx_bytes()*8/(double)1e6)/secs,
-                    (it->second->get_num_tx_bytes()*8/(double)1e6)/secs);
+                    (it->second->get_num_rx_bytes()*8/static_cast<double>(1e6))/secs,
+                    (it->second->get_num_tx_bytes()*8/static_cast<double>(1e6))/secs);
   }
 
   // Add multicast metrics
