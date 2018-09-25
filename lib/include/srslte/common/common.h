@@ -125,7 +125,7 @@ public:
 #ifdef ENABLE_TIMESTAMP
       timestamp_is_set = false;
 #endif
-      msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       next = NULL; 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
       bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
@@ -134,6 +134,9 @@ public:
     byte_buffer_t(const byte_buffer_t& buf)
     {
       bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+      next = NULL;
+      // copy actual contents
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
     }
@@ -143,6 +146,8 @@ public:
       if (&buf == this)
         return *this;
       bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+      next = NULL;
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
       return *this;
