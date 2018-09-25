@@ -677,7 +677,12 @@ int sched::dl_sched_rar(dl_sched_rar_t rar[MAX_RAR_LIST])
 // Schedules data to users
 int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST]) 
 {
-  uint32_t nof_ctrl_symbols = (cfg.cell.nof_prb<10)?(current_cfi+1):current_cfi; 
+  // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
+  if (cfg.cell.nof_prb<10 and srslte_prach_tti_opportunity_config(cfg.prach_config, current_tti+4, -1)) {
+     start_rbg = avail_rbg;
+  }
+
+  uint32_t nof_ctrl_symbols = (cfg.cell.nof_prb<10)?(current_cfi+1):current_cfi;
   dl_metric->new_tti(ue_db, start_rbg, avail_rbg, nof_ctrl_symbols, current_tti); 
   
   int nof_data_elems = 0; 

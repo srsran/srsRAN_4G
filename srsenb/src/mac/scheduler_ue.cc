@@ -498,7 +498,10 @@ int sched_ue::generate_format1(dl_harq_proc *h,
     srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
     uint32_t nof_ctrl_symbols = cfi+(cell.nof_prb<10?1:0);
     uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
-    if (fixed_mcs_dl < 0) {
+    if(need_conres_ce and cell.nof_prb<10) { // SRB0 Tx. Use a higher MCS for the PRACH to fit in 6 PRBs
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(4), nof_prb)/8;
+      mcs = 4;
+    } else if (fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb)/8;
@@ -1221,6 +1224,7 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   // Avoid the unusual case n_prb=1, mcs=6 tbs=328 (used in voip)
   if (nof_prb == 1 && sel_mcs == 6) {
     sel_mcs--;
+    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(sel_mcs), nof_prb)/8;
   }
 
   if (mcs && tbs >= 0) {
