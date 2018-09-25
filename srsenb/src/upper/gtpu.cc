@@ -52,35 +52,19 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
 
   pool          = byte_buffer_pool::get_instance();
 
-  // Set up sink socket
-  snk_fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (snk_fd < 0) {
-    gtpu_log->error("Failed to create sink socket\n");
+  // Set up socket
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (fd < 0) {
+    gtpu_log->error("Failed to create socket\n");
     return false;
   }
   int enable = 1;
 #if defined (SO_REUSEADDR)
-  if (setsockopt(snk_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
       gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
 #endif
 #if defined (SO_REUSEPORT)
-  if (setsockopt(snk_fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
-      gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
-#endif
-
-
-  // Set up source socket
-  src_fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (src_fd < 0) {
-    gtpu_log->error("Failed to create source socket\n");
-    return false;
-  }
-#if defined (SO_REUSEADDR)
-  if (setsockopt(src_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-      gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
-#endif
-#if defined (SO_REUSEPORT)
-  if (setsockopt(src_fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
       gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
 #endif
 
@@ -90,7 +74,7 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   bindaddr.sin_addr.s_addr = inet_addr(gtp_bind_addr.c_str());
   bindaddr.sin_port        = htons(GTPU_PORT);
 
-  if (bind(src_fd, (struct sockaddr *)&bindaddr, sizeof(struct sockaddr_in))) {
+  if (bind(fd, (struct sockaddr *)&bindaddr, sizeof(struct sockaddr_in))) {
     gtpu_log->error("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
     gtpu_log->console("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
     return false;
@@ -128,11 +112,8 @@ void gtpu::stop()
     wait_thread_finish();
   }
 
-  if (snk_fd) {
-    close(snk_fd);
-  }
-  if (src_fd) {
-    close(src_fd);
+  if (fd) {
+    close(fd);
   }
 }
 
@@ -152,7 +133,7 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   servaddr.sin_port        = htons(GTPU_PORT);
 
   gtpu_write_header(&header, pdu, gtpu_log);
-  if (sendto(snk_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
+  if (sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
     perror("sendto");
   }
 
@@ -223,6 +204,10 @@ void gtpu::run_thread()
   }
   run_enable = true;
 
+  sockaddr_in client;
+  socklen_t   client_len = sizeof(client);
+  size_t      buflen = SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET;
+
   running=true;
   while(run_enable) {
 
@@ -230,7 +215,7 @@ void gtpu::run_thread()
     gtpu_log->debug("Waiting for read...\n");
     int n = 0;
     do{
-      n = recv(src_fd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0);
+      n = recvfrom(fd, pdu->msg, buflen, 0, (struct sockaddr *)&client, &client_len);
     } while (n == -1 && errno == EAGAIN);
 
     if (n < 0) {
@@ -239,40 +224,71 @@ void gtpu::run_thread()
 
     pdu->N_bytes = (uint32_t) n;
 
-    gtpu_header_t header;
-    gtpu_read_header(pdu, &header,gtpu_log);
-
-    uint16_t rnti = 0;
-    uint16_t lcid = 0;
-    teidin_to_rntilcid(header.teid, &rnti, &lcid);
-
-    pthread_mutex_lock(&mutex);
-    bool user_exists = (rnti_bearers.count(rnti) > 0);
-    pthread_mutex_unlock(&mutex);
-
-    if(!user_exists) {
-      gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);
-      continue;
-    }
-
-    if(lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
-      gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
-      continue;
-    }
-
-    gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
-
-    pdcp->write_sdu(rnti, lcid, pdu);
-
-    do {
-      pdu = pool_allocate;
-      if (!pdu) {
-        gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
-        usleep(10000);
+    if(pdu->msg[1] == 0x01) {
+      if(n<10) {
+        continue;
       }
-    } while(!pdu);
+      // Echo request - send response
+      uint16_t seq = 0;
+      uint8_to_uint16(&pdu->msg[8], &seq);
+      echo_response(client.sin_addr.s_addr, client.sin_port, seq);
+
+    }else{
+      gtpu_header_t header;
+      gtpu_read_header(pdu, &header,gtpu_log);
+
+      uint16_t rnti = 0;
+      uint16_t lcid = 0;
+      teidin_to_rntilcid(header.teid, &rnti, &lcid);
+
+      pthread_mutex_lock(&mutex);
+      bool user_exists = (rnti_bearers.count(rnti) > 0);
+      pthread_mutex_unlock(&mutex);
+
+      if(!user_exists) {
+        gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);
+        continue;
+      }
+
+      if(lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
+        gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
+        continue;
+      }
+
+      gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
+
+      pdcp->write_sdu(rnti, lcid, pdu);
+
+      do {
+        pdu = pool_allocate;
+        if (!pdu) {
+          gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
+          usleep(10000);
+        }
+      } while(!pdu);
+    }
   }
   running = false;
+}
+
+void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
+{
+  gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
+
+  uint8_t resp[12];
+  bzero(resp, 12);
+  resp[0] = 0x32;                 //flags
+  resp[1] = 0x02;                 //type
+  uint16_to_uint8(4,   &resp[2]); //length
+  uint32_to_uint8(0,   &resp[4]); //TEID
+  uint16_to_uint8(seq, &resp[8]); //seq
+
+  struct sockaddr_in servaddr;
+  servaddr.sin_family      = AF_INET;
+  servaddr.sin_addr.s_addr = addr;
+  servaddr.sin_port        = port;
+
+  sendto(fd, resp, 12, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
 }
 
 /****************************************************************************

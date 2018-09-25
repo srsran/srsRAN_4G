@@ -124,12 +124,11 @@ private:
   }bearer_map;
   std::map<uint16_t, bearer_map> rnti_bearers;
 
-  // Socket file descriptors
-  int snk_fd;
-  int src_fd;
+  // Socket file descriptor
+  int fd;
 
-  //Threading
   void run_thread();
+  void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
 
   pthread_mutex_t mutex;
 
