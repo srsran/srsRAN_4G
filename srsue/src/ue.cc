@@ -226,6 +226,7 @@ bool ue::init(all_args_t *args_) {
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
+  gw.set_tundevname(args->expert.ip_devname);
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
   
   // Get current band from provided EARFCN
