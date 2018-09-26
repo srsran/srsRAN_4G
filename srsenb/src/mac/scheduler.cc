@@ -796,7 +796,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     return 0; 
   }
 
-  if (cfg.prach_freq_offset + 6 > cfg.cell.nof_prb) {
+  if (cfg.prach_freq_offset + 6 > cfg.cell.nof_prb and cfg.cell.nof_prb>10) {
     fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
     return -1;
   }
