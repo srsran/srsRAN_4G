@@ -59,10 +59,10 @@
 
 #define ASYNC_DL_SCHED  (HARQ_DELAY_MS <= 4)
 
-// Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
+// Cat 4 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1
-#define SRSLTE_MAX_BUFFER_SIZE_BITS  102048
-#define SRSLTE_MAX_BUFFER_SIZE_BYTES 12756
+#define SRSLTE_MAX_BUFFER_SIZE_BITS  150752
+#define SRSLTE_MAX_BUFFER_SIZE_BYTES (SRSLTE_MAX_BUFFER_SIZE_BITS/8)
 #define SRSLTE_BUFFER_HEADER_OFFSET  1020
 
 #define SRSLTE_BUFFER_POOL_LOG_ENABLED
