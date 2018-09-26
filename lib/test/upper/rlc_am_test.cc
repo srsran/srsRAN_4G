@@ -1254,8 +1254,6 @@ bool resegment_test_7()
   rlc_am rlc1;
   rlc_am rlc2;
 
-  int len;
-
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
 
@@ -1300,7 +1298,14 @@ bool resegment_test_7()
     assert(pdu_bufs[i].N_bytes);
   }
 
-  assert(0 == rlc1.get_buffer_state());
+  // Step timers until poll_retx timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
+
+  // RLC should try to retx a random PDU because it needs to request a status from the receiver
+  assert(0 != rlc1.get_buffer_state());
 
   // Skip PDU with SN 2
   for(uint32_t i=0;i<N_PDU_BUFS;i++) {
@@ -1313,17 +1318,18 @@ bool resegment_test_7()
   }
 
   // Step timers until reordering timeout expires
-  int cnt = 5;
+  cnt = 5;
   while (cnt--) {
     timers.step_all();
   }
 
-  assert(12 == rlc1.get_buffer_state());
+  // RLC should try to retransmit a random PDU because it needs to re-request a status PDU from the receiver
+  assert(0 != rlc1.get_buffer_state());
 
   // first round of retx, forcing resegmentation
   byte_buffer_t retx[4];
   for (uint32_t i = 0; i < 4; i++) {
-    assert(rlc1.get_buffer_state());
+    assert(0 != rlc1.get_buffer_state());
     retx[i].N_bytes = rlc1.read_pdu(retx[i].msg, 7);
     assert(retx[i].N_bytes);
 
@@ -1497,7 +1503,8 @@ bool resegment_test_8()
     timers.step_all();
   }
 
-  assert(12 == rlc1.get_buffer_state());
+  // what PDU to retransmit is random but it must not be zero
+  assert(0 != rlc1.get_buffer_state());
 
   // first round of retx, forcing resegmentation
   byte_buffer_t retx[4];
