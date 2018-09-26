@@ -496,8 +496,10 @@ void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
   pthread_mutex_lock(&mutex);
   if (poll_retx_timer != NULL && poll_retx_timer_id == timeout_id) {
     log->debug("Poll reTx timer expired for LCID=%d after %d ms\n", parent->lcid, poll_retx_timer->get_timeout());
-    // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit random PDU
-    if ((tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.empty() && tx_sdu_queue.size() == 0)) {
+    // Section 5.2.2.3 in TS 36.311, schedule random PDU for retransmission if
+    // (a) both tx and retx buffer are empty, or
+    // (b) no new data PDU can be transmitted (tx window is full)
+    if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || tx_window.size() >= RLC_AM_WINDOW_SIZE) {
       retransmit_random_pdu();
     }
   } else
@@ -509,17 +511,18 @@ void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
 
 void rlc_am::rlc_am_tx::retransmit_random_pdu()
 {
-  // randomly select PDU in tx window for retransmission
-  std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.begin();
-  std::advance(it, rand() % tx_window.size());
-
-  log->info("Schedule SN=%d for reTx.\n", it->first);
-  rlc_amd_retx_t retx = {};
-  retx.is_segment = false;
-  retx.so_start = 0;
-  retx.so_end = it->second.buf->N_bytes;
-  retx.sn = it->first;
-  retx_queue.push_back(retx);
+  if (not tx_window.empty()) {
+    // randomly select PDU in tx window for retransmission
+    std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.begin();
+    std::advance(it, rand() % tx_window.size());
+    log->info("Schedule SN=%d for reTx.\n", it->first);
+    rlc_amd_retx_t retx = {};
+    retx.is_segment = false;
+    retx.so_start = 0;
+    retx.so_end = it->second.buf->N_bytes;
+    retx.sn = it->first;
+    retx_queue.push_back(retx);
+  }
 }
 
 uint32_t rlc_am::rlc_am_tx::get_num_tx_bytes()
@@ -830,8 +833,7 @@ int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
 
 int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
-  if(tx_sdu == NULL && tx_sdu_queue.size() == 0)
-  {
+  if (tx_sdu == NULL && tx_sdu_queue.size() == 0) {
     log->info("No data available to be sent\n");
     return 0;
   }
@@ -875,7 +877,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint32_t head_len  = rlc_am_packed_length(&header);
   uint32_t to_move   = 0;
   uint32_t last_li   = 0;
-  uint32_t pdu_space = nof_bytes;
+  uint32_t pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
   uint8_t *pdu_ptr   = pdu->msg;
 
   if(pdu_space <= head_len + 1)
@@ -906,7 +908,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       tx_sdu = NULL;
     }
     if (pdu_space > to_move) {
-      pdu_space -= to_move;
+      pdu_space -= SRSLTE_MIN(to_move, pdu->get_tailroom());;
     } else {
       pdu_space = 0;
     }
@@ -934,8 +936,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     pdu->N_bytes    += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg     += to_move;
-    if(tx_sdu->N_bytes == 0)
-    {
+    if (tx_sdu->N_bytes == 0) {
       log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                 RB_NAME, tx_sdu->get_latency_us());
       pool->deallocate(tx_sdu);
