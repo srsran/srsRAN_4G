@@ -214,7 +214,7 @@ int enb::parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUC
   parser::section mbsfnSubframeConfigList("mbsfnSubframeConfigList");
       sib2.add_subsection(&mbsfnSubframeConfigList);
 
-  bool mbsfn_present=true;
+  bool mbsfn_present=false;
   mbsfnSubframeConfigList.set_optional(&mbsfn_present);
 
   if (mbsfn_present) {
