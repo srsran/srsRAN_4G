@@ -55,7 +55,8 @@ typedef struct {
   uint32_t    log_level;
   bool        single_tx;
   bool        write_pcap;
-  float       opp_sdu_ratio;
+  uint32_t    avg_opp_size;
+  bool        random_opp;
   bool        zero_seed;
   bool        pedantic;
 } stress_test_args_t;
@@ -75,10 +76,11 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
   ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(5), "Duration (sec)")
   ("sdu_size",      bpo::value<uint32_t>(&args->sdu_size)->default_value(1500), "Size of SDUs")
+  ("avg_opp_size",  bpo::value<uint32_t>(&args->avg_opp_size)->default_value(1505), "Size of the MAC opportunity (if not random)")
+  ("random_opp",    bpo::value<bool>(&args->random_opp)->default_value(true), "Whether to generate random MAC opportunities")
   ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(0), "SDU generation delay (usec)")
   ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(0), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
   ("error_rate",    bpo::value<float>(&args->error_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
-  ("opp_sdu_ratio", bpo::value<float>(&args->opp_sdu_ratio)->default_value(0.0), "Ratio between MAC opportunity and SDU size (0==random)")
   ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution")
   ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
   ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
@@ -156,8 +158,11 @@ private:
       exit(-1);
     }
 
-    float r = args.opp_sdu_ratio ? args.opp_sdu_ratio : static_cast<float>(rand())/RAND_MAX;
-    int opp_size = r*args.sdu_size;
+    float factor = 1.0;
+    if (args.random_opp) {
+      factor = 0.5 + static_cast<float>(rand())/RAND_MAX;
+    }
+    int opp_size = args.avg_opp_size * factor;
     uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
     if (buf_state > 0) {
       int read = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
