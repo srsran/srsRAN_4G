@@ -157,10 +157,14 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         "Pregenerate uplink signals after attach. Improves CPU performance.")
 
     ("expert.pusch_max_its",
-        bpo::value<int>(&args->expert.phy.pusch_max_its)->default_value(4),
+        bpo::value<int>(&args->expert.phy.pusch_max_its)->default_value(8),
         "Maximum number of turbo decoder iterations")
 
-    ("expert.tx_amplitude",
+      ("expert.pusch_8bit_decoder",
+       bpo::value<bool>(&args->expert.phy.pusch_8bit_decoder)->default_value(false),
+       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
+
+      ("expert.tx_amplitude",
         bpo::value<float>(&args->expert.phy.tx_amplitude)->default_value(0.6),
         "Transmit amplitude factor")
 

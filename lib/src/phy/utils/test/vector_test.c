@@ -60,6 +60,8 @@ bool verbose = false;
 
 #define TEST(X, CODE) static bool test_##X (char *func_name, double *timing, uint32_t block_size) {\
     struct timeval start, end;\
+    bzero(&start, sizeof(start));\
+    bzero(&end, sizeof(end));\
     float mse = 0.0f;\
     bool passed;\
     strncpy(func_name, #X, 32);\
@@ -448,8 +450,11 @@ TEST(srslte_vec_convert_fi,
   TEST_CALL(srslte_vec_convert_fi(x, scale, z, block_size))
 
   for (int i = 0; i < block_size; i++) {
-      gold = (short) ((x[i] * scale));
-      mse += cabsf((float)gold - (float) z[i]);
+    gold = (short) ((x[i] * scale));
+    double err = cabsf((float)gold - (float) z[i]);
+    if (err > mse) {
+      mse = err;
+    }
   }
 
   free(x);
@@ -470,8 +475,11 @@ TEST(srslte_vec_convert_if,
   TEST_CALL(srslte_vec_convert_if(x, scale, z, block_size))
 
   for (int i = 0; i < block_size; i++) {
-      gold = ((float)x[i]) * k;
-      mse += fabsf(gold - z[i]);
+    gold = ((float)x[i]) * k;
+    double err = cabsf((float)gold - (float) z[i]);
+    if (err > mse) {
+      mse = err;
+    }
   }
 
   free(x);
@@ -775,7 +783,8 @@ TEST(srslte_vec_apply_cfo,
 )
 
 TEST(srslte_cfo_correct,
-     srslte_cfo_t srslte_cfo = {0};
+     srslte_cfo_t srslte_cfo;
+     bzero(&srslte_cfo, sizeof(srslte_cfo));
      MALLOC(cf_t, x);
      MALLOC(cf_t, z);
 
@@ -801,7 +810,8 @@ TEST(srslte_cfo_correct,
 )
 
 TEST(srslte_cfo_correct_change,
-     srslte_cfo_t srslte_cfo = {0};
+     srslte_cfo_t srslte_cfo;
+     bzero(&srslte_cfo, sizeof(srslte_cfo));
      MALLOC(cf_t, x);
      MALLOC(cf_t, z);
 

@@ -46,7 +46,7 @@ namespace srsue {
  ********************************************************************/
 
 nas::nas()
-  : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), ip_addr(0), eps_bearer_id(0)
+  : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), auth_request(false), ip_addr(0), eps_bearer_id(0)
 {
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
@@ -308,25 +308,31 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   uint8 pd = 0;
   uint8 msg_type = 0;
   uint8 sec_hdr_type = 0;
-  bool  mac_valid = false;
 
   nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s PDU", rrc->get_rb_name(lcid).c_str());
 
   // Parse the message security header
   liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)pdu, &pd, &sec_hdr_type);
-  switch(sec_hdr_type)
+  switch (sec_hdr_type)
   {
     case LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS:
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT:
     case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
+      break;
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY:
-        break;
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED:
-        mac_valid = integrity_check(pdu);
-        cipher_decrypt(pdu);
+      if((integrity_check(pdu))) {
+        if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED) {
+          cipher_decrypt(pdu);
+        }
         break;
+      } else {
+        nas_log->error("Not handling NAS message with integrity check error\n");
+        pool->deallocate(pdu);
+        return;
+      }
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT:
-        break;
+      break;
     default:
       nas_log->error("Not handling NAS message with SEC_HDR_TYPE=%02X\n", sec_hdr_type);
       pool->deallocate(pdu);
@@ -781,6 +787,7 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu, const 
     nas_log->info("Network authentication successful\n");
     send_authentication_response(res, res_len, sec_hdr_type);
     nas_log->info_hex(ctxt.k_asme, 32, "Generated k_asme:\n");
+    auth_request = true;
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     nas_log->error("Network authentication synchronization failure.\n");
     send_authentication_failure(LIBLTE_MME_EMM_CAUSE_SYNCH_FAILURE, res);
@@ -805,36 +812,19 @@ void nas::parse_identity_request(uint32_t lcid, byte_buffer_t *pdu) {
   ZERO_OBJECT(id_resp);
 
   liblte_mme_unpack_identity_request_msg((LIBLTE_BYTE_MSG_STRUCT *) pdu, &id_req);
+
+  // Deallocate PDU after parsing
+  pool->deallocate(pdu);
+
+  ctxt.rx_count++;
+
   nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
 
-  switch(id_req.id_type) {
-  case LIBLTE_MME_MOBILE_ID_TYPE_IMSI:
-    id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMSI;
-    usim->get_imsi_vec(id_resp.mobile_id.imsi, 15);
-    break;
-  case LIBLTE_MME_MOBILE_ID_TYPE_IMEI:
-    id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEI;
-    usim->get_imei_vec(id_resp.mobile_id.imei, 15);
-    break;
-  default:
-    nas_log->error("Unhandled ID type: %d\n", id_req.id_type);
-    pool->deallocate(pdu);
-    return;
-  }
-
-  pdu->reset();
-  liblte_mme_pack_identity_response_msg(&id_resp, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
-
-  if(pcap != NULL) {
-    pcap->write_nas(pdu->msg, pdu->N_bytes);
-  }
-
-  rrc->write_sdu(lcid, pdu);
+  send_identity_response(lcid, id_req.id_type);
 }
 
 void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
 {
-
   if (!pdu) {
     nas_log->error("Invalid PDU\n");
     return;
@@ -883,9 +873,12 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
     return;
   }
 
-  // Reset counters (as per 24.301 5.4.3.2)
-  ctxt.rx_count = 0;
-  ctxt.tx_count = 0;
+  // Reset counters (as per 24.301 5.4.3.2), only needed for initial security mode command
+  if (auth_request) {
+    ctxt.rx_count = 0;
+    ctxt.tx_count = 0;
+    auth_request = false;
+  }
 
   ctxt.cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM) sec_mode_cmd.selected_nas_sec_algs.type_of_eea;
   ctxt.integ_algo  = (INTEGRITY_ALGORITHM_ID_ENUM) sec_mode_cmd.selected_nas_sec_algs.type_of_eia;
@@ -1176,7 +1169,8 @@ void nas::send_detach_request(bool switch_off)
     return;
   }
 
-  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_request = {};
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_request;
+  bzero(&detach_request, sizeof(detach_request));
   if (switch_off) {
     detach_request.detach_type.switch_off = 1;
     detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_SWITCH_OFF;
@@ -1328,7 +1322,40 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
 }
 
 
-void nas::send_identity_response() {}
+void nas::send_identity_response(uint32_t lcid, uint8 id_type)
+{
+  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
+  ZERO_OBJECT(id_resp);
+
+  switch(id_type) {
+    case LIBLTE_MME_MOBILE_ID_TYPE_IMSI:
+      id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMSI;
+      usim->get_imsi_vec(id_resp.mobile_id.imsi, 15);
+      break;
+    case LIBLTE_MME_MOBILE_ID_TYPE_IMEI:
+      id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEI;
+      usim->get_imei_vec(id_resp.mobile_id.imei, 15);
+      break;
+    default:
+      nas_log->error("Unhandled ID type: %d\n", id_type);
+      return;
+  }
+
+  byte_buffer_t *pdu = pool_allocate_blocking;
+  if (!pdu) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in send_identity_response().\n");
+    return;
+  }
+
+  liblte_mme_pack_identity_response_msg(&id_resp, (LIBLTE_BYTE_MSG_STRUCT *) pdu);
+
+  if(pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  rrc->write_sdu(lcid, pdu);
+  ctxt.tx_count++;
+}
 
 void nas::send_service_request() {
   byte_buffer_t *msg = pool_allocate_blocking;

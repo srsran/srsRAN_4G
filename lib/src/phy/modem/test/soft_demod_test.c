@@ -112,6 +112,7 @@ int main(int argc, char **argv) {
   cf_t *symbols;
   float *llr;
   short *llr_s;
+  int8_t *llr_b;
 
   parse_args(argc, argv);
 
@@ -153,13 +154,20 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  llr_b = srslte_vec_malloc(sizeof(int8_t) * num_bits);
+  if (!llr_b) {
+    perror("malloc");
+    exit(-1);
+  }
+
   /* generate random data */
   srand(0);
   
   int ret = -1;
   struct timeval t[3]; 
   float mean_texec = 0.0; 
-  float mean_texec_s = 0.0; 
+  float mean_texec_s = 0.0;
+  float mean_texec_b = 0.0;
   for (int n=0;n<nof_frames;n++) {
     for (i=0;i<num_bits;i++) {
       input[i] = rand()%2;
@@ -186,7 +194,16 @@ int main(int argc, char **argv) {
     if (n > 0) {
       mean_texec_s = SRSLTE_VEC_CMA((float) t[0].tv_usec, mean_texec_s, n-1);      
     }
-    
+
+    gettimeofday(&t[1], NULL);
+    srslte_demod_soft_demodulate_b(modulation, symbols, llr_b, num_bits / mod.nbits_x_symbol);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+
+    if (n > 0) {
+      mean_texec_b = SRSLTE_VEC_CMA((float) t[0].tv_usec, mean_texec_b, n-1);
+    }
+
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       printf("bits=");
       srslte_vec_fprint_b(stdout, input, num_bits);
@@ -200,6 +217,9 @@ int main(int argc, char **argv) {
       printf("llr_s=");
       srslte_vec_fprint_s(stdout, llr_s, num_bits);
 
+      printf("llr_b=");
+      srslte_vec_fprint_bs(stdout, llr_b, num_bits);
+
     }
 
     // Check demodulation errors
@@ -212,7 +232,9 @@ int main(int argc, char **argv) {
   }
   ret = 0; 
 
-clean_exit:  
+clean_exit:
+  free(llr_b);
+  free(llr_s);
   free(llr);
   free(symbols);
   free(output);
@@ -220,7 +242,7 @@ clean_exit:
 
   srslte_modem_table_free(&mod);
 
-  printf("Mean Throughput: %.2f/%.2f. Mbps ExTime: %.2f/%.2f us\n", 
-         num_bits/mean_texec, num_bits/mean_texec_s, mean_texec, mean_texec_s);    
+  printf("Mean Throughput: %.2f/%.2f/%.2f. Mbps ExTime: %.2f/%.2f/%.2f us\n",
+         num_bits/mean_texec, num_bits/mean_texec_s, num_bits/mean_texec_b, mean_texec, mean_texec_s, mean_texec_b);
   exit(ret);
 }

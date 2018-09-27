@@ -28,8 +28,9 @@
 #include "srslte/upper/rlc_um.h"
 #include <sstream>
 #include <srslte/upper/rlc_interface.h>
+#include <srslte/upper/rlc_common.h>
 
-#define RX_MOD_BASE(x) (x-vr_uh-cfg.rx_window_size)%cfg.rx_mod
+#define RX_MOD_BASE(x) (((x)-vr_uh-cfg.rx_window_size)%cfg.rx_mod)
 
 namespace srslte {
 
@@ -75,12 +76,12 @@ bool rlc_um::configure(srslte_rlc_config_t cnfg_)
     return false;
   }
 
-  log->warning("%s configured in %s mode: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode],
-               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
-
   // store config
   cfg = cnfg_.um;
+
+  log->warning("%s configured in %s mode: ft_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
+               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode],
+               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
 
   return true;
 }
@@ -93,6 +94,11 @@ bool rlc_um::rlc_um_rx::configure(srslte_rlc_config_t cnfg_, std::string rb_name
   if (cfg.rx_mod == 0) {
     log->error("Error configuring %s RLC UM: rx_mod==0\n", get_rb_name());
     return false;
+  }
+
+  // set reordering timer
+  if (reordering_timer != NULL) {
+    reordering_timer->set(this, cfg.t_reordering);
   }
 
   rb_name = rb_name_;
@@ -149,7 +155,6 @@ void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
   } else {
     tx.try_write_sdu(sdu);
   }
-
 }
 
 /****************************************************************************
@@ -199,7 +204,7 @@ void rlc_um::reset_metrics()
 
 std::string rlc_um::get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bool is_mrb)
 {
-  if(is_mrb) {
+  if (is_mrb) {
     std::stringstream ss;
     ss << "MRB" << lcid;
     return ss.str();
@@ -465,12 +470,11 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   vt_us = (vt_us + 1)%cfg.tx_mod;
 
   // Add header and TX
-  log->debug("%s packing PDU with length %d\n", get_rb_name(), pdu->N_bytes);
   rlc_um_write_data_pdu_header(&header, pdu);
   memcpy(payload, pdu->msg, pdu->N_bytes);
   uint32_t ret = pdu->N_bytes;
 
-  log->debug("%s returning length %d\n", get_rb_name(), pdu->N_bytes);
+  log->info("%s Transmitting PDU SN=%d  (%d B)\n", get_rb_name(), header.sn, pdu->N_bytes);
   pool->deallocate(pdu);
 
   debug_state();
@@ -546,9 +550,7 @@ void rlc_um::rlc_um_rx::reestablish()
 void rlc_um::rlc_um_rx::stop()
 {
   pthread_mutex_lock(&mutex);
-  if(reordering_timer) {
-    reordering_timer->stop();
-  }
+
   vr_ur    = 0;
   vr_ux    = 0;
   vr_uh    = 0;
@@ -560,7 +562,8 @@ void rlc_um::rlc_um_rx::stop()
     rx_sdu = NULL;
   }
 
-  if (mac_timers && reordering_timer) {
+  if (mac_timers != NULL && reordering_timer != NULL) {
+    reordering_timer->stop();
     mac_timers->timer_release_id(reordering_timer_id);
     reordering_timer = NULL;
   }
@@ -643,7 +646,7 @@ void rlc_um::rlc_um_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
   if(!reordering_timer->is_running()) {
     if(RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur)) {
-      reordering_timer->set(this, cfg.t_reordering);
+      reordering_timer->reset();
       reordering_timer->run();
       vr_ux = vr_uh;
     }
@@ -715,7 +718,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
 
       // Handle last segment
       if (rx_sdu->N_bytes > 0 || rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-        log->debug("Writing last segment in SDU buffer. Lower edge vr_ur=%d, Buffer size=%d, segment size=%d\n",
+        log->info("Writing last segment in SDU buffer. Lower edge vr_ur=%d, Buffer size=%d, segment size=%d\n",
                    vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
 
         memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
@@ -754,18 +757,36 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
 
   // Now update vr_ur until we reach an SN we haven't yet received
   while(rx_window.end() != rx_window.find(vr_ur)) {
+    log->debug("Reassemble loop for vr_ur=%d\n", vr_ur);
+    if ((vr_ur_in_rx_sdu+1)%cfg.rx_mod != vr_ur) {
+      log->warning("PDU SN=%d lost, dropping remainder of %d\n", vr_ur_in_rx_sdu+1, vr_ur);
+      rx_sdu->reset();
+    }
+
     // Handle any SDU segments
     for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++) {
       int len = rx_window[vr_ur].header.li[i];
-
       // Check if the first part of the PDU is a middle or end segment
       if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-        log->warning("Dropping PDU %d due to lost start segment\n", vr_ur);
+        log->warning_hex(rx_window[vr_ur].buf->msg, len, "Dropping first part of SN %d due to lost start segment\n", vr_ur);
+
         // Advance data pointers and continue with next segment
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
         rx_sdu->reset();
-        break;
+
+        // beginning of next SDU?
+        if (rx_window[vr_ur].header.fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED) {
+          len = rx_window[vr_ur].buf->N_bytes;
+          log->info_hex(rx_window[vr_ur].buf->msg, len, "Copying first %d bytes of new SDU\n", len);
+          memcpy(rx_sdu->msg, rx_window[vr_ur].buf->msg, len);
+          rx_sdu->N_bytes = len;
+          rx_window[vr_ur].buf->msg += len;
+          rx_window[vr_ur].buf->N_bytes -= len;
+          log->info("Updating vr_ur_in_rx_sdu. old=%d, new=%d\n", vr_ur_in_rx_sdu, vr_ur);
+          vr_ur_in_rx_sdu = vr_ur;
+          goto clean_up_rx_window;
+        }
       }
 
       // Check available space in SDU
@@ -775,7 +796,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         goto clean_up_rx_window;
       }
 
-      log->debug("Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d\n",
+      log->info_hex(rx_window[vr_ur].buf->msg, len, "Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d\n",
                  len, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur_in_rx_sdu, vr_ur, cfg.rx_mod, (vr_ur_in_rx_sdu+1)%cfg.rx_mod);
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
       rx_sdu->N_bytes += len;
@@ -812,11 +833,10 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         rx_window[vr_ur].buf->N_bytes                   < SRSLTE_MAX_BUFFER_SIZE_BYTES   &&
         rx_window[vr_ur].buf->N_bytes + rx_sdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES)
     {
-
+      log->info_hex(rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes, "Writing last segment in SDU buffer. Updating vr_ur=%d, Buffer size=%d, segment size=%d\n",
+                vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
       rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
-      log->debug("Writing last segment in SDU buffer. Updating vr_ur=%d, Buffer size=%d, segment size=%d\n",
-                 vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
     } else {
       log->error("Out of bounds while reassembling SDU buffer in UM: sdu_len=%d, window_buffer_len=%d, vr_ur=%d\n",
                  rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur);
@@ -843,8 +863,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
       pdu_lost = false;
     }
 
-    clean_up_rx_window:
-
+clean_up_rx_window:
     // Clean up rx_window
     pool->deallocate(rx_window[vr_ur].buf);
     rx_window.erase(vr_ur);
@@ -854,16 +873,15 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
 }
 
 // Only called when lock is hold
+// 36.322 Section 5.1.2.2.1
 bool rlc_um::rlc_um_rx::inside_reordering_window(uint16_t sn)
 {
-  if(cfg.rx_window_size == 0) {
+  if (cfg.rx_window_size == 0 || rx_window.empty()) {
     return true;
   }
-  if(RX_MOD_BASE(sn) >= RX_MOD_BASE(vr_uh-cfg.rx_window_size) &&
-     RX_MOD_BASE(sn) <  RX_MOD_BASE(vr_uh))
-  {
+  if (RX_MOD_BASE(vr_uh-cfg.rx_window_size) <= RX_MOD_BASE(sn) && RX_MOD_BASE(sn) < RX_MOD_BASE(vr_uh)) {
     return true;
-  }else{
+  } else {
     return false;
   }
 }
@@ -889,8 +907,7 @@ void rlc_um::rlc_um_rx::reset_metrics()
 
 void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
 {
-  if(reordering_timer_id == timeout_id)
-  {
+  if (reordering_timer_id == timeout_id) {
     pthread_mutex_lock(&mutex);
 
     // 36.322 v10 Section 5.1.2.2.4
@@ -898,19 +915,19 @@ void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
               get_rb_name());
 
     log->warning("Lost PDU SN: %d\n", vr_ur);
+
     pdu_lost = true;
     rx_sdu->reset();
-    while(RX_MOD_BASE(vr_ur) < RX_MOD_BASE(vr_ux))
-    {
+
+    while(RX_MOD_BASE(vr_ur) < RX_MOD_BASE(vr_ux)) {
       vr_ur = (vr_ur + 1)%cfg.rx_mod;
       log->debug("Entering Reassemble from timeout id=%d\n", timeout_id);
       reassemble_rx_sdus();
       log->debug("Finished reassemble from timeout id=%d\n", timeout_id);
     }
     reordering_timer->stop();
-    if(RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur))
-    {
-      reordering_timer->set(this, cfg.t_reordering);
+    if (RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur)) {
+      reordering_timer->reset();
       reordering_timer->run();
       vr_ux = vr_uh;
     }

@@ -36,6 +36,11 @@ add_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen_del
 add_test(rlc_um_stress_test rlc_stress_test --mode=UM --loglevel 1)
 add_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --opp_sdu_ratio=1.0)
 
+# Run clang-tidy if available
+if(CLANG_TIDY_BIN)
+  set_target_properties(rlc_stress_test PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+endif()
+
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srslte_upper srslte_phy srslte_common)
 add_test(rlc_um_data_test rlc_um_data_test)

@@ -214,7 +214,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "Sets the noise estimation algorithm. (Default refs)")
 
     ("expert.pdsch_max_its",
-     bpo::value<int>(&args->expert.phy.pdsch_max_its)->default_value(4),
+     bpo::value<int>(&args->expert.phy.pdsch_max_its)->default_value(8),
      "Maximum number of turbo decoder iterations")
 
     ("expert.attach_enable_64qam",
@@ -307,7 +307,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(true),
      "Stores the Channel State Information and uses it for weightening the softbits. It is only used in TM1.")
 
-    ("rf_calibration.tx_corr_dc_gain", bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),
+    ("expert.pdsch_8bit_decoder",
+       bpo::value<bool>(&args->expert.phy.pdsch_8bit_decoder)->default_value(false),
+       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
+
+      ("rf_calibration.tx_corr_dc_gain", bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),
      "TX DC offset gain correction")
     ("rf_calibration.tx_corr_dc_phase", bpo::value<float>(&args->rf_cal.tx_corr_dc_phase)->default_value(0.0),
      "TX DC offset phase correction")

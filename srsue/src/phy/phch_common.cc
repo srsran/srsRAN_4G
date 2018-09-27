@@ -39,15 +39,14 @@ namespace srsue {
 
 cf_t zeros[50000];
 
-phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
+phch_common::phch_common(uint32_t max_workers) : tx_sem(max_workers)
 {
   config    = NULL; 
   args      = NULL; 
   log_h     = NULL; 
   radio_h   = NULL; 
-  mac       = NULL; 
-  max_mutex = max_mutex_;
-  nof_mutex = 0;
+  mac       = NULL;
+  this->max_workers = max_workers;
   rx_gain_offset = 0;
   last_ri = 0;
   last_pmi = 0;
@@ -65,16 +64,27 @@ phch_common::phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_)
 
   bzero(zeros, 50000*sizeof(cf_t));
 
-  // FIXME: This is an ugly fix to avoid the TX filters to empty
-  /*
-  for (int i=0;i<50000;i++) {
-    zeros[i] = 0.01*cexpf(((float) i/50000)*0.1*_Complex_I);
-  }*/
+  for (uint32_t i=0;i<max_workers;i++) {
+    sem_init(&tx_sem[i], 0, 0); // All semaphores start blocked
+  }
 
   reset();
 
   sib13_configured = false;
   mcch_configured  = false;
+}
+
+phch_common::~phch_common() {
+  for (uint32_t i=0;i<max_workers;i++) {
+    sem_post(&tx_sem[i]);
+  }
+  for (uint32_t i=0;i<max_workers;i++) {
+    sem_destroy(&tx_sem[i]);
+  }
+}
+
+void phch_common::set_nof_workers(uint32_t nof_workers) {
+  this->nof_workers = nof_workers;
 }
   
 void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args, srslte::log *_log, srslte::radio *_radio, rrc_interface_phy *_rrc, mac_interface_phy *_mac)
@@ -87,15 +97,6 @@ void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args,
   args      = _args; 
   is_first_tx = true; 
   sr_last_tx_tti = -1;
-  
-  for (uint32_t i=0;i<nof_mutex;i++) {
-    pthread_mutex_init(&tx_mutex[i], NULL);
-  }
-}
-
-void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
-  nof_mutex = nof_mutex_; 
-  assert(nof_mutex <= max_mutex);
 }
 
 bool phch_common::ul_rnti_active(uint32_t tti) {
@@ -231,23 +232,30 @@ bool phch_common::is_any_pending_ack() {
   return false;
 }
 
-/* The transmisison of UL subframes must be in sequence. Each worker uses this function to indicate
- * that all processing is done and data is ready for transmission or there is no transmission at all (tx_enable). 
- * In that case, the end of burst message will be send to the radio 
+/* The transmission of UL subframes must be in sequence. The correct sequence is guaranteed by a chain of N semaphores,
+ * one per TTI%max_workers. Each threads waits for the semaphore for the current thread and after transmission allows
+ * next TTI to be transmitted
+ *
+ * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
+ * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
 void phch_common::worker_end(uint32_t tti, bool tx_enable, 
                                    cf_t *buffer, uint32_t nof_samples, 
-                                   srslte_timestamp_t tx_time) 
+                                   srslte_timestamp_t tx_time)
 {
 
-  // Wait previous TTIs to be transmitted 
+  // This variable is not protected but it is very unlikely that 2 threads arrive here simultaneously since at the beginning
+  // there is no workload and threads are separated by 1 ms
   if (is_first_tx) {
-    is_first_tx = false; 
-  } else {
-    pthread_mutex_lock(&tx_mutex[tti%nof_mutex]);
+    is_first_tx = false;
+    // Allow my own transmission if I'm the first to transmit
+    sem_post(&tx_sem[tti%nof_workers]);
   }
 
-  radio_h->set_tti(tti); 
+  // Wait for the green light to transmit in the current TTI
+  sem_wait(&tx_sem[tti%nof_workers]);
+
+  radio_h->set_tti(tti);
   if (tx_enable) {
     radio_h->tx_single(buffer, nof_samples, tx_time);
     is_first_of_burst = false; 
@@ -263,8 +271,9 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
       }
     }
   }
-  // Trigger next transmission 
-  pthread_mutex_unlock(&tx_mutex[(tti+1)%nof_mutex]);
+
+  // Allow next TTI to transmit
+  sem_post(&tx_sem[(tti+1)%nof_workers]);
 }    
 
 

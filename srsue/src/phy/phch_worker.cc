@@ -61,6 +61,7 @@ phch_worker::phch_worker() : tr_exec(10240)
   chest_loop = NULL;
 
   bzero(signal_buffer, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
+  ZERO_OBJECT(cell);
 
   mem_initiated   = false;
   cell_initiated  = false; 
@@ -139,6 +140,10 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_ph
     return false;
   }
 
+  if (phy->args->pdsch_8bit_decoder) {
+    ue_dl.pdsch.llr_is_8bit = true;
+    ue_dl.pdsch.dl_sch.llr_is_8bit = true;
+  }
 
   srslte_chest_dl_set_rsrp_neighbour(&ue_dl.chest, true);
   srslte_chest_dl_average_subframe(&ue_dl.chest, phy->args->average_subframe_enabled);
@@ -189,10 +194,10 @@ cf_t* phch_worker::get_buffer(uint32_t antenna_idx)
   return signal_buffer[antenna_idx]; 
 }
 
-void phch_worker::set_tti(uint32_t tti_, uint32_t tx_tti_)
+void phch_worker::set_tti(uint32_t tti_, uint32_t tx_worker_cnt)
 {
-  tti    = tti_; 
-  tx_tti = tx_tti_;
+  tti    = tti_;
+  tx_tti = tx_worker_cnt;
   log_h->step(tti);
   if (log_phy_lib_h) {
     log_phy_lib_h->step(tti);

@@ -26,6 +26,8 @@
 
 #include "srsenb/hdr/upper/s1ap.h"
 #include "srsenb/hdr/upper/common_enb.h"
+#include "srslte/common/bcd_helpers.h"
+#include "srslte/common/int_helpers.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -35,6 +37,9 @@
 #include <netinet/in.h>
 #include <netinet/sctp.h>
 #include <arpa/inet.h>	//for inet_ntop()
+
+using srslte::s1ap_mccmnc_to_plmn;
+using srslte::uint32_to_uint8;
 
 namespace srsenb{
 

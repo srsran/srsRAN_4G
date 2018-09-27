@@ -417,7 +417,8 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant,
                                srslte_dci_format_t format, srslte_dci_location_t location,
                                uint16_t rnti, uint32_t sf_idx) 
 {
-  srslte_dci_msg_t dci_msg = {};
+  srslte_dci_msg_t dci_msg;
+  bzero(&dci_msg, sizeof(dci_msg));
   
   bool rnti_is_user = true; 
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || (rnti >= SRSLTE_RARNTI_START && rnti <= SRSLTE_RARNTI_END)) {
@@ -439,7 +440,8 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
                                srslte_dci_location_t location,
                                uint16_t rnti, uint32_t sf_idx) 
 {
-  srslte_dci_msg_t dci_msg = {};
+  srslte_dci_msg_t dci_msg;
+  bzero(&dci_msg, sizeof(dci_msg));
 
   srslte_dci_msg_pack_pusch(grant, &dci_msg, q->cell.nof_prb);
   if (srslte_pdcch_encode(&q->pdcch, &dci_msg, location, rnti, q->sf_symbols, sf_idx, q->cfi)) {

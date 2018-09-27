@@ -59,10 +59,10 @@
 
 #define ASYNC_DL_SCHED  (HARQ_DELAY_MS <= 4)
 
-// Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
+// Cat 4 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1
-#define SRSLTE_MAX_BUFFER_SIZE_BITS  102048
-#define SRSLTE_MAX_BUFFER_SIZE_BYTES 12756
+#define SRSLTE_MAX_BUFFER_SIZE_BITS  150752
+#define SRSLTE_MAX_BUFFER_SIZE_BYTES (SRSLTE_MAX_BUFFER_SIZE_BITS/8)
 #define SRSLTE_BUFFER_HEADER_OFFSET  1020
 
 #define SRSLTE_BUFFER_POOL_LOG_ENABLED
@@ -122,8 +122,10 @@ public:
     byte_buffer_t():N_bytes(0)
     {
       bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+#ifdef ENABLE_TIMESTAMP
       timestamp_is_set = false;
-      msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+#endif
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       next = NULL; 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
       bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
@@ -132,6 +134,9 @@ public:
     byte_buffer_t(const byte_buffer_t& buf)
     {
       bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+      next = NULL;
+      // copy actual contents
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
     }
@@ -141,6 +146,8 @@ public:
       if (&buf == this)
         return *this;
       bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+      next = NULL;
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
       return *this;
@@ -149,7 +156,9 @@ public:
     {
       msg       = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bytes   = 0;
-      timestamp_is_set = false; 
+#ifdef ENABLE_TIMESTAMP
+      timestamp_is_set = false;
+#endif
     }
     uint32_t get_headroom()
     {
@@ -183,8 +192,10 @@ public:
 
 private:
 
+#ifdef ENABLE_TIMESTAMP
     struct timeval timestamp[3];
     bool           timestamp_is_set; 
+#endif
     byte_buffer_t *next;
 };
 
@@ -199,6 +210,9 @@ struct bit_buffer_t{
     bit_buffer_t():N_bits(0)
     {
       msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+#ifdef ENABLE_TIMESTAMP
+      timestamp_is_set = false;
+#endif
     }
     bit_buffer_t(const bit_buffer_t& buf){
       N_bits = buf.N_bits;
@@ -216,7 +230,9 @@ struct bit_buffer_t{
     {
       msg       = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bits    = 0;
-      timestamp_is_set = false; 
+#ifdef ENABLE_TIMESTAMP
+      timestamp_is_set = false;
+#endif
     }
     uint32_t get_headroom()
     {
@@ -241,10 +257,11 @@ struct bit_buffer_t{
 #endif
     }
 
-private: 
+private:
+#ifdef ENABLE_TIMESTAMP
     struct timeval timestamp[3];
     bool           timestamp_is_set; 
-
+#endif
 };
 
 } // namespace srslte

@@ -129,7 +129,9 @@ int main(int argc, char **argv)
 {
   int ret = SRSLTE_ERROR;
   srslte::radio_multi *radio_h = NULL;
-  srslte_timestamp_t ts_rx = {}, ts_tx = {};
+  srslte_timestamp_t ts_rx, ts_tx;
+  bzero(&ts_rx, sizeof(ts_rx));
+  bzero(&ts_tx, sizeof(ts_tx));
 
   signal(SIGINT, sig_int_handler);
 

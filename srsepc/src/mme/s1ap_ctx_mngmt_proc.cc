@@ -24,11 +24,11 @@
  *
  */
 
-//#include "srslte/upper/s1ap_common.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srsepc/hdr/mme/s1ap.h"
 #include "srsepc/hdr/mme/s1ap_ctx_mngmt_proc.h"
 #include "srslte/common/liblte_security.h"
+#include "srslte/common/int_helpers.h"
 
 
 namespace srsepc{
@@ -122,18 +122,14 @@ s1ap_ctx_mngmt_proc::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx,
 
 
   //Set E-RAB S-GW F-TEID
-  //if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
-  //  m_s1ap_log->error("Did not receive S1-U TEID in create session response\n");
-  //  return false;
-  //} 
   erab_ctx_req->transportLayerAddress.n_bits = 32; //IPv4
   uint32_t sgw_s1u_ip = htonl(erab_ctx->sgw_s1u_fteid.ipv4);
   //uint32_t sgw_s1u_ip = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid.ipv4;
   uint8_t *tmp_ptr =  erab_ctx_req->transportLayerAddress.buffer;
   liblte_value_2_bits(sgw_s1u_ip, &tmp_ptr, 32);//FIXME consider ipv6
 
-  uint32_t sgw_s1u_teid = erab_ctx->sgw_s1u_fteid.teid; 
-  memcpy(erab_ctx_req->gTP_TEID.buffer, &sgw_s1u_teid, sizeof(uint32_t));
+  uint32_t sgw_s1u_teid = erab_ctx->sgw_s1u_fteid.teid;
+  srslte::uint32_to_uint8(sgw_s1u_teid,erab_ctx_req->gTP_TEID.buffer);
 
   //Set UE security capabilities and k_enb
   bzero(in_ctxt_req->UESecurityCapabilities.encryptionAlgorithms.buffer,sizeof(uint8_t)*16);

@@ -28,6 +28,7 @@
 #define SRSENB_PHCH_COMMON_H
 
 #include <map>
+#include <semaphore.h>
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/common/gen_mch_tables.h"
@@ -36,11 +37,13 @@
 #include "srslte/common/thread_pool.h"
 #include "srslte/radio/radio.h"
 #include <string.h>
+
 namespace srsenb {
 
 typedef struct {
   float max_prach_offset_us; 
   int pusch_max_its;
+  bool pusch_8bit_decoder;
   float tx_amplitude; 
   int nof_phy_threads;  
   std::string equalizer_mode; 
@@ -72,29 +75,16 @@ class phch_common
 {
 public:
  
-  
-  phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_) {
-    nof_mutex = 0;
-    max_mutex = max_mutex_; 
-    params.max_prach_offset_us = 20;
-    radio = NULL;
-    mac = NULL;
-    is_first_tx = false;
-    is_first_of_burst = false;
-    pdsch_p_b = 0;
-    nof_workers = 0;
-    bzero(&pusch_cfg, sizeof(pusch_cfg));
-    bzero(&hopping_cfg, sizeof(hopping_cfg));
-    bzero(&pucch_cfg, sizeof(pucch_cfg));
-    bzero(&ul_grants, sizeof(ul_grants));
-  }
-  
+
+  phch_common(uint32_t nof_workers);
+  ~phch_common();
+
+  void set_nof_workers(uint32_t nof_workers);
+
   bool init(srslte_cell_t *cell, srslte::radio *radio_handler, mac_interface_phy *mac);  
   void reset(); 
   void stop();
   
-  void set_nof_mutex(uint32_t nof_mutex); 
-
   void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
@@ -147,13 +137,12 @@ public:
   
 
 private:
-  std::vector<pthread_mutex_t>    tx_mutex; 
+  std::vector<sem_t>    tx_sem;
   bool            is_first_tx;
   bool            is_first_of_burst; 
 
   uint32_t        nof_workers;
-  uint32_t        nof_mutex;
-  uint32_t        max_mutex;
+  uint32_t        max_workers;
 
   pthread_mutex_t user_mutex;
   
