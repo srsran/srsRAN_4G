@@ -908,7 +908,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       tx_sdu = NULL;
     }
     if (pdu_space > to_move) {
-      pdu_space -= SRSLTE_MIN(to_move, pdu->get_tailroom());;
+      pdu_space -= SRSLTE_MIN(to_move, pdu->get_tailroom());
     } else {
       pdu_space = 0;
     }
