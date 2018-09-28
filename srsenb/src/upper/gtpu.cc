@@ -122,8 +122,10 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
 {
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
   gtpu_header_t header;
-  header.flags        = 0x30;
-  header.message_type = 0xFF;
+  bzero(&header,sizeof(header));
+  header.flags.version        = GTPU_VERSION_V1;
+  header.flags.protocol_type  = GTP_PROTO;
+  header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = pdu->N_bytes;
   header.teid         = rnti_bearers[rnti].teids_out[lcid];
 
@@ -224,48 +226,50 @@ void gtpu::run_thread()
 
     pdu->N_bytes = (uint32_t) n;
 
-    if(pdu->msg[1] == 0x01) {
-      if(n<10) {
-        continue;
-      }
-      // Echo request - send response
-      uint16_t seq = 0;
-      uint8_to_uint16(&pdu->msg[8], &seq);
-      echo_response(client.sin_addr.s_addr, client.sin_port, seq);
+    gtpu_header_t header;
+    if(!gtpu_read_header(pdu, &header,gtpu_log)){
+      continue;
+    }
 
-    }else{
-      gtpu_header_t header;
-      gtpu_read_header(pdu, &header,gtpu_log);
+    switch(header.message_type) {
 
-      uint16_t rnti = 0;
-      uint16_t lcid = 0;
-      teidin_to_rntilcid(header.teid, &rnti, &lcid);
+      case GTPU_MSG_ECHO_REQUEST:
+        // Echo request - send response
+        echo_response(client.sin_addr.s_addr, client.sin_port, header.seq_number);
+        break;
 
-      pthread_mutex_lock(&mutex);
-      bool user_exists = (rnti_bearers.count(rnti) > 0);
-      pthread_mutex_unlock(&mutex);
+      case GTPU_MSG_DATA_PDU:
 
-      if(!user_exists) {
-        gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);
-        continue;
-      }
+        uint16_t rnti = 0;
+        uint16_t lcid = 0;
+        teidin_to_rntilcid(header.teid, &rnti, &lcid);
 
-      if(lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
-        gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
-        continue;
-      }
+        pthread_mutex_lock(&mutex);
+        bool user_exists = (rnti_bearers.count(rnti) > 0);
+        pthread_mutex_unlock(&mutex);
 
-      gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
-
-      pdcp->write_sdu(rnti, lcid, pdu);
-
-      do {
-        pdu = pool_allocate;
-        if (!pdu) {
-          gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
-          usleep(10000);
+        if(!user_exists) {
+          gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);
+          continue;
         }
-      } while(!pdu);
+
+        if(lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
+          gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
+          continue;
+        }
+
+        gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
+
+        pdcp->write_sdu(rnti, lcid, pdu);
+
+        do {
+          pdu = pool_allocate;
+          if (!pdu) {
+            gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
+            usleep(10000);
+          }
+        } while(!pdu);
+        break;
     }
   }
   running = false;
@@ -274,6 +278,14 @@ void gtpu::run_thread()
 void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 {
   gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
+
+  gtpu_header_t header;
+  bzero(&header, sizeof(header));
+
+  //flags
+  header.flags.version = GTPU_VERSION_V1;
+  header.flags.protocol_type = GTP_PROTO;
+  header.flags.sequence = 1;
 
   uint8_t resp[12];
   bzero(resp, 12);

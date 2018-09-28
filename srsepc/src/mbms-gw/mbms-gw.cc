@@ -285,31 +285,30 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
 {
   uint8_t version;
   srslte::gtpu_header_t header;
+  bzero(&header, sizeof(srslte::gtpu_header_t));
 
   //Setup GTP-U header
-  header.flags        = 0x30;
-  header.message_type = 0xFF;
+  header.flags.version = GTPU_VERSION_V1;
+  header.flags.protocol_type = GTP_PROTO;
+  header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
   header.teid         = 0xAAAA; //FIXME Harcoded TEID for now
 
   //Sanity Check IP packet
-  if(msg->N_bytes < 20)
-  {
+  if (msg->N_bytes < 20) {
     m_mbms_gw_log->error("IPv4 min len: %d, drop msg len %d\n", 20, msg->N_bytes);
     return;
   }
 
   //IP Headers
   struct iphdr *iph = (struct iphdr *) msg->msg;
-  if(iph->version != 4)
-  {
+  if(iph->version != 4) {
     m_mbms_gw_log->warning("IPv6 not supported yet.\n");
     return;
   }
 
   //Write GTP-U header into packet
-  if(!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log))
-  {
+  if (!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log)) {
     m_mbms_gw_log->console("Error writing GTP-U header on PDU\n");
   }
 

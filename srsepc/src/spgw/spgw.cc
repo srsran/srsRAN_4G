@@ -363,14 +363,15 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
 
   //Setup GTP-U header
   srslte::gtpu_header_t header;
-  header.flags        = 0x30;
-  header.message_type = 0xFF;
+  bzero(&header,sizeof(srslte::gtpu_header_t));
+  header.flags.version        = GTPU_VERSION_V1;
+  header.flags.protocol_type  = GTP_PROTO;
+  header.message_type         = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
   header.teid         = enb_fteid.teid;
 
   //Write header into packet
-  if(!srslte::gtpu_write_header(&header, msg, m_spgw_log))
-  {
+  if (!srslte::gtpu_write_header(&header, msg, m_spgw_log)) {
     m_spgw_log->console("Error writing GTP-U header on PDU\n");
   }
 

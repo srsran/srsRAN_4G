@@ -40,22 +40,54 @@ namespace srslte {
  *        | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
  *
  * 1      |  Version  |PT | * | E | S |PN |
- * 2      |           Message Type        |
- * 3      |         Length (1st Octet)    |
- * 4      |         Length (2nd Octet)    |
- * 5      |          TEID (1st Octet)     |
- * 6      |          TEID (2nd Octet)     |
- * 7      |          TEID (3rd Octet)     |
- * 8      |          TEID (4th Octet)     |
+ * 2      |         Message Type          |
+ * 3      |     Length (1st Octet)        |
+ * 4      |     Length (2nd Octet)        |
+ * 5      |      TEID (1st Octet)         |
+ * 6      |      TEID (2nd Octet)         |
+ * 7      |      TEID (3rd Octet)         |
+ * 8      |      TEID (4th Octet)         |
+ * 9      |    Seq Number (1st Octet)     |
+ * 10     |    Seq Number (2st Octet)     |
+ * 11     |            N-PDU              |
+ * 12     |  Next Extension Header Type   |
  ***************************************************************************/
 
-#define GTPU_HEADER_LEN 8
+#define GTPU_BASE_HEADER_LEN 8
+#define GTPU_EXTENDED_HEADER_LEN 12
+
+#define GTPU_VERSION_V1 1
+
+#define GTP_PRIME_PROTO 0
+#define GTP_PROTO 1
+
+#define  GTPU_MSG_ECHO_REQUEST 0
+#define  GTPU_MSG_ECHO_RESPONSE 1
+#define  GTPU_MSG_ERROR_INDICATION 26
+#define  GTPU_MSG_SUPPORTED_EXTENSION_HEADERS_NOTIFICATION 31
+#define  GTPU_MSG_END_MARKER 254
+#define  GTPU_MSG_DATA_PDU 255
 
 typedef struct{
-  uint8_t   flags;
+  uint8_t version : 3;
+  uint8_t protocol_type : 1;
+  uint8_t star : 1;
+  uint8_t ext_header :1;
+  uint8_t sequence :1;
+  uint8_t pkt_number :1;
+}gtpu_flags_t;
+
+typedef struct{
+  union{
+    gtpu_flags_t flag_bits;
+    uint8_t flags;
+  } gtpu_flags;
   uint8_t   message_type;
   uint16_t  length;
   uint32_t  teid;
+  uint16_t  seq_number;
+  uint8_t   n_pdu;
+  uint8_t   next_ext_hdr_type;
 }gtpu_header_t;
 
 
