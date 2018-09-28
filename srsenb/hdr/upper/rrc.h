@@ -182,39 +182,39 @@ public:
     bool running;
     void run_thread(); 
   };
-  
+
   class ue
   {
-  public: 
-    ue(); 
+  public:
+    ue();
     bool is_connected();
-    bool is_idle(); 
+    bool is_idle();
     bool is_timeout();
     void set_activity();
 
     uint32_t rl_failure();
 
     rrc_state_t get_state();
-    
+
     void send_connection_setup(bool is_setup = true);
-    void send_connection_reest(); 
+    void send_connection_reest();
     void send_connection_release();
-    void send_connection_reest_rej(); 
+    void send_connection_reest_rej();
     void send_connection_reconf(srslte::byte_buffer_t *sdu);
     void send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
-    void send_connection_reconf_upd(srslte::byte_buffer_t *pdu); 
+    void send_connection_reconf_upd(srslte::byte_buffer_t *pdu);
     void send_security_mode_command();
     void send_ue_cap_enquiry();
     void parse_ul_dcch(uint32_t lcid, srslte::byte_buffer_t* pdu);
 
     void handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg);
-    void handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQUEST_STRUCT *msg); 
+    void handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQUEST_STRUCT *msg);
     void handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu);
     void handle_rrc_reconf_complete(LIBLTE_RRC_CONNECTION_RECONFIGURATION_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu);
     void handle_security_mode_complete(LIBLTE_RRC_SECURITY_MODE_COMPLETE_STRUCT *msg);
     void handle_security_mode_failure(LIBLTE_RRC_SECURITY_MODE_FAILURE_STRUCT *msg);
     void handle_ue_cap_info(LIBLTE_RRC_UE_CAPABILITY_INFORMATION_STRUCT *msg);
-    
+
     void set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT *rates);
     void set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps);
     void set_security_key(uint8_t* key, uint32_t length);
@@ -229,26 +229,26 @@ public:
     void notify_s1ap_ue_ctxt_setup_complete();
     void notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
 
-    int sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr); 
-    void sr_get(uint32_t *I_sr, uint32_t *N_pucch_sr); 
+    int sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr);
+    void sr_get(uint32_t *I_sr, uint32_t *N_pucch_sr);
     int sr_free();
 
-    int cqi_allocate(uint32_t period, uint32_t *pmi_idx, uint32_t *n_pucch); 
-    void cqi_get(uint32_t *pmi_idx, uint32_t *n_pucch); 
-    int cqi_free(); 
-    
+    int cqi_allocate(uint32_t period, uint32_t *pmi_idx, uint32_t *n_pucch);
+    void cqi_get(uint32_t *pmi_idx, uint32_t *n_pucch);
+    int cqi_free();
+
     void send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg);
     void send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, srslte::byte_buffer_t *pdu = NULL);
-    
-    uint16_t rnti; 
-    rrc *parent; 
-    
-    bool connect_notified; 
-    
+
+    uint16_t rnti;
+    rrc *parent;
+
+    bool connect_notified;
+
   private:
     srslte::byte_buffer_pool  *pool;
 
-    struct timeval t_last_activity; 
+    struct timeval t_last_activity;
 
     LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM establishment_cause;
 
@@ -260,10 +260,10 @@ public:
     uint32_t    rlf_cnt;
     uint8_t     transaction_id;
     rrc_state_t state;
-    
+
     std::map<uint32_t, LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT>  srbs;
     std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT>  drbs;
-    
+
     uint8_t               k_enb[32];      // Provided by MME
     uint8_t               k_rrc_enc[32];
     uint8_t               k_rrc_int[32];
@@ -290,20 +290,21 @@ public:
     bool sr_allocated;
     uint32_t sr_N_pucch;
     uint32_t sr_I;
-    uint32_t cqi_pucch; 
-    uint32_t cqi_idx; 
-    bool cqi_allocated; 
-    int cqi_sched_sf_idx; 
+    uint32_t cqi_pucch;
+    uint32_t cqi_idx;
+    bool cqi_allocated;
+    int cqi_sched_sf_idx;
     int cqi_sched_prb_idx;
     int get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drbid);
+    bool nas_pending;
     srslte::byte_buffer_t erab_info;
-  }; 
-  
-  
-private: 
-      
+  };
+
+
+private:
+
   std::map<uint16_t,ue> users;
-  
+
   std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT > pending_paging; 
 
   activity_monitor act_monitor; 
@@ -362,7 +363,8 @@ private:
   typedef struct {
     uint32_t nof_users[100][80]; 
   } sr_sched_t;
-    
+
+
   sr_sched_t sr_sched; 
   sr_sched_t cqi_sched; 
   LIBLTE_RRC_MCCH_MSG_STRUCT mcch;
