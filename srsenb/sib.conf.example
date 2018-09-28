@@ -111,17 +111,6 @@ sib2 =
         additional_spectrum_emission = 1; 
     };
 
-    mbsfnSubframeConfigList = 
-    {
-        radioframeAllocationPeriod = "1";
-        subframeAllocationNumFrames = "1";
-        radioframeAllocationOffset = 0;
-        subframeAllocation = 63; 
-      
-    };
-
-    mbsfnSubframeConfigListLength = 0;
-
     time_alignment_timer = "INFINITY"; // use "sf500", "sf750", etc.
 };
 
