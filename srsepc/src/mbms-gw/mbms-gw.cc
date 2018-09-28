@@ -288,8 +288,8 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
   bzero(&header, sizeof(srslte::gtpu_header_t));
 
   //Setup GTP-U header
-  header.flags.version = GTPU_VERSION_V1;
-  header.flags.protocol_type = GTP_PROTO;
+  header.gtpu_flags.flag_bits.version = GTPU_VERSION_V1;
+  header.gtpu_flags.flag_bits.protocol_type = GTP_PROTO;
   header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
   header.teid         = 0xAAAA; //FIXME Harcoded TEID for now

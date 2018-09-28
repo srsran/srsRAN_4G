@@ -330,28 +330,24 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   srslte::gtpc_f_teid_ie enb_fteid;
 
   struct iphdr *iph = (struct iphdr *) msg->msg;
-  if(iph->version != 4)
-  {
+  if (iph->version != 4) {
     m_spgw_log->warning("IPv6 not supported yet.\n");
     return;
   }
-  if(iph->tot_len < 20)
-  {
+  if (iph->tot_len < 20) {
     m_spgw_log->warning("Invalid IP header length.\n");
     return;
   }
 
   pthread_mutex_lock(&m_mutex);
   gtp_fteid_it = m_ip_to_teid.find(iph->daddr);
-  if(gtp_fteid_it != m_ip_to_teid.end())
-  {
+  if (gtp_fteid_it != m_ip_to_teid.end()) {
     ip_found = true;
     enb_fteid = gtp_fteid_it->second;
   }
   pthread_mutex_unlock(&m_mutex);
 
-  if(ip_found == false)
-  {
+  if (ip_found == false) {
     //m_spgw_log->console("IP Packet is not for any UE\n");
     return;
   }
@@ -364,9 +360,9 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   //Setup GTP-U header
   srslte::gtpu_header_t header;
   bzero(&header,sizeof(srslte::gtpu_header_t));
-  header.flags.version        = GTPU_VERSION_V1;
-  header.flags.protocol_type  = GTP_PROTO;
-  header.message_type         = GTPU_MSG_DATA_PDU;
+  header.gtpu_flags.flag_bits.version        = GTPU_VERSION_V1;
+  header.gtpu_flags.flag_bits.protocol_type  = GTP_PROTO;
+  header.message_type                        = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
   header.teid         = enb_fteid.teid;
 

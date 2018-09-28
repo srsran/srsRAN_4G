@@ -123,8 +123,8 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
   gtpu_header_t header;
   bzero(&header,sizeof(header));
-  header.flags.version        = GTPU_VERSION_V1;
-  header.flags.protocol_type  = GTP_PROTO;
+  header.gtpu_flags.flag_bits.version        = GTPU_VERSION_V1;
+  header.gtpu_flags.flag_bits.protocol_type  = GTP_PROTO;
   header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = pdu->N_bytes;
   header.teid         = rnti_bearers[rnti].teids_out[lcid];
@@ -282,25 +282,27 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
   gtpu_header_t header;
   bzero(&header, sizeof(header));
 
-  //flags
-  header.flags.version = GTPU_VERSION_V1;
-  header.flags.protocol_type = GTP_PROTO;
-  header.flags.sequence = 1;
+  srslte::byte_buffer_t *pdu = pool_allocate;
 
-  uint8_t resp[12];
-  bzero(resp, 12);
-  resp[0] = 0x32;                 //flags
-  resp[1] = 0x02;                 //type
-  uint16_to_uint8(4,   &resp[2]); //length
-  uint32_to_uint8(0,   &resp[4]); //TEID
-  uint16_to_uint8(seq, &resp[8]); //seq
+  //flags
+  header.gtpu_flags.flag_bits.version = GTPU_VERSION_V1;
+  header.gtpu_flags.flag_bits.protocol_type = GTP_PROTO;
+  header.gtpu_flags.flag_bits.sequence = 1;
+
+  header.message_type = GTPU_MSG_ECHO_RESPONSE;
+  header.teid = 0;
+  header.length = 4;
+  header.seq_number = seq;
+
+  gtpu_write_header(&header,pdu,gtpu_log);
 
   struct sockaddr_in servaddr;
   servaddr.sin_family      = AF_INET;
   servaddr.sin_addr.s_addr = addr;
   servaddr.sin_port        = port;
 
-  sendto(fd, resp, 12, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
+  sendto(fd, pdu->msg, 12, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
+  pool->deallocate(pdu);
 }
 
 /****************************************************************************

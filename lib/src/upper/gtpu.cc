@@ -38,15 +38,15 @@ namespace srslte {
 bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte::log *gtpu_log)
 {
 
-  if(header->flags.version != GTPU_VERSION_V1) {
+  if(header->gtpu_flags.flag_bits.version != GTPU_VERSION_V1) {
     gtpu_log->error("gtpu_write_header - Unhandled GTP-U Version.\n");
     return false;
   }
-  if(header->flags.protocol_type != GTP_PROTO) {
+  if(header->gtpu_flags.flag_bits.protocol_type != GTP_PROTO) {
     gtpu_log->error("gtpu_write_header - Unhandled Protocol Type.\n");
     return false;
   }
-  if(header->flags.ext_header) {
+  if(header->gtpu_flags.flag_bits.ext_header) {
     gtpu_log->error("gtpu_write_header - Unhandled Header Extensions.\n");
     return false;
   }
@@ -64,7 +64,7 @@ bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte
 
   uint8_t *ptr = pdu->msg;
 
-  *ptr = header->flags;
+  *ptr = header->gtpu_flags.flags;
   ptr++;
   *ptr = header->message_type;
   ptr++;
@@ -79,7 +79,7 @@ bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte:
 {
   uint8_t *ptr  = pdu->msg;
 
-  header->flags  = *ptr;
+  header->gtpu_flags.flags  = *ptr;
   ptr++;
   header->message_type      = *ptr;
   ptr++;
