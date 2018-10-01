@@ -222,7 +222,11 @@ private:
   int parse_rr(all_args_t *args, rrc_cfg_t *rrc_cfg);
   int parse_drb(all_args_t *args, rrc_cfg_t *rrc_cfg); 
   bool sib_is_present(LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info, uint32_t nof_sched_info, LIBLTE_RRC_SIB_TYPE_ENUM sib_num);
-  int parse_cell_cfg(all_args_t *args, srslte_cell_t *cell); 
+  int parse_cell_cfg(all_args_t *args, srslte_cell_t *cell);
+
+  std::string get_build_mode();
+  std::string get_build_info();
+  std::string get_build_string();
 };
 
 } // namespace srsenb

@@ -26,6 +26,9 @@
 
 #include <boost/algorithm/string.hpp>
 #include "srsenb/hdr/enb.h"
+#include "srslte/build_info.h"
+#include <iostream>
+#include <sstream>
 
 namespace srsenb {
 
@@ -54,6 +57,9 @@ void enb::cleanup(void)
 }
 
 enb::enb() : started(false) {
+  // print build info
+  std::cout << std::endl << get_build_string() << std::endl;
+
   srslte_dft_load();
   pool = srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE);
 
@@ -340,6 +346,26 @@ srslte::LOG_LEVEL_ENUM enb::level(std::string l)
   }else{
     return srslte::LOG_LEVEL_NONE;
   }
+}
+
+std::string enb::get_build_mode()
+{
+  return std::string(srslte_get_build_mode());
+}
+
+std::string enb::get_build_info()
+{
+  if (std::string(srslte_get_build_info()) == "") {
+    return std::string(srslte_get_version());
+  }
+  return std::string(srslte_get_build_info());
+}
+
+std::string enb::get_build_string()
+{
+  std::stringstream ss;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  return ss.str();
 }
 
 } // namespace srsenb
