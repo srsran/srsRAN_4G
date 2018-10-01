@@ -43,8 +43,7 @@ bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte
   }
 
   //msg type
-  if(header->message_type != GTPU_MSG_DATA_PDU || header->message_type != GTPU_MSG_ECHO_REQUEST) {
-    gtpu_log->error("gtpu_write_header - Unhandled message type: 0x%x\n", header->message_type);
+  if(!gtpu_supported_msg_type_check(header,gtpu_log)){
     return false;
   }
 
