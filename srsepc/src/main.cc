@@ -22,6 +22,7 @@
  *
  */
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <errno.h>
 #include <signal.h>
@@ -30,6 +31,7 @@
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/config_file.h"
+#include "srslte/build_info.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/hss/hss.h"
 #include "srsepc/hdr/spgw/spgw.h"
@@ -280,12 +282,35 @@ level(std::string l)
   }
 }
 
+std::string get_build_mode()
+{
+  return std::string(srslte_get_build_mode());
+}
+
+std::string get_build_info()
+{
+  if (std::string(srslte_get_build_info()) == "") {
+    return std::string(srslte_get_version());
+  }
+  return std::string(srslte_get_build_info());
+}
+
+std::string get_build_string()
+{
+  std::stringstream ss;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  return ss.str();
+}
+
 int
 main (int argc,char * argv[] )
 {
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   signal(SIGKILL, sig_int_handler);
+
+  // print build info
+  cout << endl << get_build_string() << endl;
 
   cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
   srslte_debug_handle_crash(argc, argv);
