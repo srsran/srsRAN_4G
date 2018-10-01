@@ -122,9 +122,7 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
 {
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
   gtpu_header_t header;
-  bzero(&header,sizeof(header));
-  header.gtpu_flags.flag_bits.version        = GTPU_VERSION_V1;
-  header.gtpu_flags.flag_bits.protocol_type  = GTP_PROTO;
+  header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
   header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = pdu->N_bytes;
   header.teid         = rnti_bearers[rnti].teids_out[lcid];
@@ -280,19 +278,16 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
   gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
 
   gtpu_header_t header;
-  bzero(&header, sizeof(header));
-
   srslte::byte_buffer_t *pdu = pool_allocate;
 
-  //flags
-  header.gtpu_flags.flag_bits.version = GTPU_VERSION_V1;
-  header.gtpu_flags.flag_bits.protocol_type = GTP_PROTO;
-  header.gtpu_flags.flag_bits.sequence = 1;
-
+  //header
+  header.flags = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
   header.message_type = GTPU_MSG_ECHO_RESPONSE;
   header.teid = 0;
   header.length = 4;
   header.seq_number = seq;
+  header.n_pdu = 0;
+  header.next_ext_hdr_type = 0;
 
   gtpu_write_header(&header,pdu,gtpu_log);
 

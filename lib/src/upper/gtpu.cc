@@ -26,7 +26,7 @@
 
 
 #include "srslte/upper/gtpu.h"
-
+#include "srslte/common/int_helpers.h"
 
 namespace srslte {
 
@@ -37,40 +37,45 @@ namespace srslte {
 
 bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte::log *gtpu_log)
 {
+  //flags
+  if(!gtpu_supported_flags_check(header,gtpu_log)){
+    return false;
+  }
 
-  if(header->gtpu_flags.flag_bits.version != GTPU_VERSION_V1) {
-    gtpu_log->error("gtpu_write_header - Unhandled GTP-U Version.\n");
-    return false;
-  }
-  if(header->gtpu_flags.flag_bits.protocol_type != GTP_PROTO) {
-    gtpu_log->error("gtpu_write_header - Unhandled Protocol Type.\n");
-    return false;
-  }
-  if(header->gtpu_flags.flag_bits.ext_header) {
-    gtpu_log->error("gtpu_write_header - Unhandled Header Extensions.\n");
-    return false;
-  }
-  if(header->message_type != GTPU_MSG_DATA_PDU) {
+  //msg type
+  if(header->message_type != GTPU_MSG_DATA_PDU || header->message_type != GTPU_MSG_ECHO_REQUEST) {
     gtpu_log->error("gtpu_write_header - Unhandled message type: 0x%x\n", header->message_type);
     return false;
   }
-  if(pdu->get_headroom() < GTPU_BASE_HEADER_LEN) {
-    gtpu_log->error("gtpu_write_header - No room in PDU for header\n");
-    return false;
+
+  //If E, S or PN are set, the header is longer
+  if (header->flags & (GTPU_FLAGS_EXTENDED_HDR | GTPU_FLAGS_SEQUENCE | GTPU_FLAGS_PACKET_NUM)) {
+    if(pdu->get_headroom() < GTPU_EXTENDED_HEADER_LEN) {
+      gtpu_log->error("gtpu_write_header - No room in PDU for header\n");
+      return false;
+    }
+    pdu->msg      -= GTPU_EXTENDED_HEADER_LEN;
+    pdu->N_bytes  += GTPU_EXTENDED_HEADER_LEN;
+  } else {
+    if(pdu->get_headroom() < GTPU_BASE_HEADER_LEN) {
+      gtpu_log->error("gtpu_write_header - No room in PDU for header\n");
+      return false;
+    }
+    pdu->msg      -= GTPU_BASE_HEADER_LEN;
+    pdu->N_bytes  += GTPU_BASE_HEADER_LEN;
   }
 
-  pdu->msg      -= GTPU_BASE_HEADER_LEN;
-  pdu->N_bytes  += GTPU_BASE_HEADER_LEN;
-
+  //write mandatory fields
   uint8_t *ptr = pdu->msg;
-
-  *ptr = header->gtpu_flags.flags;
+  *ptr = header->flags;
   ptr++;
   *ptr = header->message_type;
   ptr++;
   uint16_to_uint8(header->length, ptr);
   ptr += 2;
   uint32_to_uint8(header->teid, ptr);
+  //write optional fields
+
 
   return true;
 }
@@ -79,7 +84,7 @@ bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte:
 {
   uint8_t *ptr  = pdu->msg;
 
-  header->gtpu_flags.flags  = *ptr;
+  header->flags             = *ptr;
   ptr++;
   header->message_type      = *ptr;
   ptr++;
@@ -87,21 +92,18 @@ bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte:
   ptr += 2;
   uint8_to_uint32(ptr, &header->teid);
 
-  if(header->gtpu_flags.flag_bits.version != GTPU_VERSION_V1) {
-    gtpu_log->error("gtpu_read_header - Unhandled GTP-U version. Flags: 0x%x\n", header->gtpu_flags.flags);
+  //flags
+  if(!gtpu_supported_flags_check(header,gtpu_log)){
     return false;
   }
-  if(header->gtpu_flags.flag_bits.protocol_type != GTP_PROTO) {
-    gtpu_log->error("gtpu_read_header - Unhandled GTP Protocol. Flags: 0x%x\n", header->gtpu_flags.flags);
-    return false;
-  }
-  if(header->gtpu_flags.flag_bits.ext_header) {
-    gtpu_log->error("gtpu_read_header - Unhandled GTP-U Header Extensions. Flags: 0x%x\n", header->gtpu_flags.flags);
+
+  //message_type
+  if(!gtpu_supported_msg_type_check(header,gtpu_log)){
     return false;
   }
 
   //If E, S or PN are set, header is longer
-  if(header->gtpu_flags.flag_bits.sequence || header->gtpu_flags.flag_bits.ext_header || header->gtpu_flags.flag_bits.ext_header) {
+  if (header->flags & (GTPU_FLAGS_EXTENDED_HDR | GTPU_FLAGS_SEQUENCE | GTPU_FLAGS_PACKET_NUM)) {
     pdu->msg      += GTPU_EXTENDED_HEADER_LEN;
     pdu->N_bytes  -= GTPU_EXTENDED_HEADER_LEN;
 
@@ -116,15 +118,6 @@ bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte:
   } else {
     pdu->msg      += GTPU_BASE_HEADER_LEN;
     pdu->N_bytes  -= GTPU_BASE_HEADER_LEN;
-  }
-
-  if(header->gtpu_flags.flag_bits.sequence){
-    ptr+=2;
-  }
-
-  if(header->message_type != GTPU_MSG_DATA_PDU || header->message_type != GTPU_MSG_ECHO_REQUEST) {
-    gtpu_log->error("gtpu_read_header - Unhandled message type: 0x%x\n", header->message_type);
-    return false;
   }
 
   return true;

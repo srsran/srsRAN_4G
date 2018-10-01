@@ -359,10 +359,8 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
 
   //Setup GTP-U header
   srslte::gtpu_header_t header;
-  bzero(&header,sizeof(srslte::gtpu_header_t));
-  header.gtpu_flags.flag_bits.version        = GTPU_VERSION_V1;
-  header.gtpu_flags.flag_bits.protocol_type  = GTP_PROTO;
-  header.message_type                        = GTPU_MSG_DATA_PDU;
+  header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
+  header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
   header.teid         = enb_fteid.teid;
 

@@ -56,10 +56,13 @@ namespace srslte {
 #define GTPU_BASE_HEADER_LEN 8
 #define GTPU_EXTENDED_HEADER_LEN 12
 
-#define GTPU_VERSION_V1 1
-
-#define GTP_PRIME_PROTO 0
-#define GTP_PROTO 1
+#define GTPU_FLAGS_VERSION_MASK 0xE0
+#define GTPU_FLAGS_VERSION_V1 0x20
+#define GTPU_FLAGS_GTP_PRIME_PROTOCOL 0x00
+#define GTPU_FLAGS_GTP_PROTOCOL 0x10
+#define GTPU_FLAGS_EXTENDED_HDR 0x04
+#define GTPU_FLAGS_SEQUENCE 0x02
+#define GTPU_FLAGS_PACKET_NUM 0x01
 
 #define  GTPU_MSG_ECHO_REQUEST 0
 #define  GTPU_MSG_ECHO_RESPONSE 1
@@ -69,19 +72,7 @@ namespace srslte {
 #define  GTPU_MSG_DATA_PDU 255
 
 typedef struct{
-  uint8_t version : 3;
-  uint8_t protocol_type : 1;
-  uint8_t star : 1;
-  uint8_t ext_header :1;
-  uint8_t sequence :1;
-  uint8_t pkt_number :1;
-}gtpu_flags_t;
-
-typedef struct{
-  union{
-    gtpu_flags_t flag_bits;
-    uint8_t flags;
-  } gtpu_flags;
+  uint8_t   flags;
   uint8_t   message_type;
   uint16_t  length;
   uint32_t  teid;
@@ -94,34 +85,37 @@ typedef struct{
 bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte::log *gtpu_log);
 bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte::log *gtpu_log);
 
-inline void uint8_to_uint32(uint8_t *buf, uint32_t *i)
+inline bool gtpu_supported_flags_check(gtpu_header_t *header, srslte::log *gtpu_log)
 {
-  *i =  (uint32_t)buf[0] << 24 |
-    (uint32_t)buf[1] << 16 |
-    (uint32_t)buf[2] << 8  |
-    (uint32_t)buf[3];
+  //flags
+  if( (header->flags & GTPU_FLAGS_VERSION_MASK) != GTPU_FLAGS_VERSION_V1 ) {
+    gtpu_log->error("gtpu_write_header - Unhandled GTP-U Version.\n");
+    return false;
+  }
+  if( !(header->flags & GTPU_FLAGS_GTP_PROTOCOL) ) {
+    gtpu_log->error("gtpu_write_header - Unhandled Protocol Type.\n");
+    return false;
+  }
+  if( !(header->flags & GTPU_FLAGS_EXTENDED_HDR) ) {
+    gtpu_log->error("gtpu_write_header - Unhandled Header Extensions.\n");
+    return false;
+  }
+  if( !(header->flags & GTPU_FLAGS_PACKET_NUM) ) {
+    gtpu_log->error("gtpu_write_header - Unhandled Packet Number.\n");
+    return false;
+  }
+  return true;
 }
 
-inline void uint32_to_uint8(uint32_t i, uint8_t *buf)
+inline bool gtpu_supported_msg_type_check(gtpu_header_t *header, srslte::log *gtpu_log)
 {
-  buf[0] = (i >> 24) & 0xFF;
-  buf[1] = (i >> 16) & 0xFF;
-  buf[2] = (i >> 8) & 0xFF;
-  buf[3] = i & 0xFF;
+  //msg_tpye
+  if(header->message_type != GTPU_MSG_DATA_PDU || header->message_type != GTPU_MSG_ECHO_REQUEST) {
+    gtpu_log->error("gtpu_write_header - Unhandled message type: 0x%x\n", header->message_type);
+    return false;
+  }
+  return true;
 }
-
-inline void uint8_to_uint16(uint8_t *buf, uint16_t *i)
-{
-  *i =  (uint32_t)buf[0] << 8  |
-    (uint32_t)buf[1];
-}
-
-inline void uint16_to_uint8(uint16_t i, uint8_t *buf)
-{
-  buf[0] = (i >> 8) & 0xFF;
-  buf[1] = i & 0xFF;
-}
-
 
 }//namespace
 
