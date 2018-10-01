@@ -40,24 +40,6 @@
 
 namespace srsenb {
 
-/****************************************************************************
- * GTPU Header
- * Ref: 3GPP TS 29.281 v10.1.0 Section 5
- *
- *        | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
- *
- * 1      |  Version  |PT | * | E | S |PN |
- * 2      |           Message Type        |
- * 3      |         Length (1st Octet)    |
- * 4      |         Length (2nd Octet)    |
- * 5      |          TEID (1st Octet)     |
- * 6      |          TEID (2nd Octet)     |
- * 7      |          TEID (3rd Octet)     |
- * 8      |          TEID (4th Octet)     |
- ***************************************************************************/
-
-#define GTPU_HEADER_LEN 8
-
 class gtpu
     :public gtpu_interface_rrc
     ,public gtpu_interface_pdcp

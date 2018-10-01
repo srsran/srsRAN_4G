@@ -132,7 +132,10 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   servaddr.sin_addr.s_addr = htonl(rnti_bearers[rnti].spgw_addrs[lcid]);
   servaddr.sin_port        = htons(GTPU_PORT);
 
-  gtpu_write_header(&header, pdu, gtpu_log);
+  if(!gtpu_write_header(&header, pdu, gtpu_log)){
+    gtpu_log->error("Error writing GTP-U Header. Flags 0x%x, Message Type 0x%x\n", header.flags, header.message_type);
+    return;
+  }
   if (sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
     perror("sendto");
   }

@@ -89,19 +89,19 @@ inline bool gtpu_supported_flags_check(gtpu_header_t *header, srslte::log *gtpu_
 {
   //flags
   if( (header->flags & GTPU_FLAGS_VERSION_MASK) != GTPU_FLAGS_VERSION_V1 ) {
-    gtpu_log->error("gtpu_write_header - Unhandled GTP-U Version.\n");
+    gtpu_log->error("gtpu_header - Unhandled GTP-U Version. Flags: 0x%x\n", header->flags);
     return false;
   }
   if( !(header->flags & GTPU_FLAGS_GTP_PROTOCOL) ) {
-    gtpu_log->error("gtpu_write_header - Unhandled Protocol Type.\n");
+    gtpu_log->error("gtpu_header - Unhandled Protocol Type. Flags: 0x%x\n\n", header->flags);
     return false;
   }
-  if( !(header->flags & GTPU_FLAGS_EXTENDED_HDR) ) {
-    gtpu_log->error("gtpu_write_header - Unhandled Header Extensions.\n");
+  if( header->flags & GTPU_FLAGS_EXTENDED_HDR ) {
+    gtpu_log->error("gtpu_header - Unhandled Header Extensions. Flags: 0x%x\n\n", header->flags);
     return false;
   }
-  if( !(header->flags & GTPU_FLAGS_PACKET_NUM) ) {
-    gtpu_log->error("gtpu_write_header - Unhandled Packet Number.\n");
+  if( header->flags & GTPU_FLAGS_PACKET_NUM ) {
+    gtpu_log->error("gtpu_header - Unhandled Packet Number. Flags: 0x%x\n\n", header->flags);
     return false;
   }
   return true;
@@ -110,8 +110,8 @@ inline bool gtpu_supported_flags_check(gtpu_header_t *header, srslte::log *gtpu_
 inline bool gtpu_supported_msg_type_check(gtpu_header_t *header, srslte::log *gtpu_log)
 {
   //msg_tpye
-  if(header->message_type != GTPU_MSG_DATA_PDU || header->message_type != GTPU_MSG_ECHO_REQUEST) {
-    gtpu_log->error("gtpu_write_header - Unhandled message type: 0x%x\n", header->message_type);
+  if( header->message_type != GTPU_MSG_DATA_PDU && header->message_type != GTPU_MSG_ECHO_REQUEST ) {
+    gtpu_log->error("gtpu_header - Unhandled message type: 0x%x\n", header->message_type);
     return false;
   }
   return true;

@@ -39,11 +39,13 @@ bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte
 {
   //flags
   if(!gtpu_supported_flags_check(header,gtpu_log)){
+    gtpu_log->error("gtpu_write_header - Unhandled GTP-U Flags. Flags: 0x%x\n", header->flags);
     return false;
   }
 
   //msg type
   if(!gtpu_supported_msg_type_check(header,gtpu_log)){
+    gtpu_log->error("gtpu_write_header - Unhandled GTP-U Message Type. Message Type: 0x%x\n", header->message_type);
     return false;
   }
 
@@ -114,11 +116,13 @@ bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte:
 
   //flags
   if(!gtpu_supported_flags_check(header,gtpu_log)){
+    gtpu_log->error("gtpu_read_header - Unhandled GTP-U Flags. Flags: 0x%x\n", header->flags);
     return false;
   }
 
   //message_type
   if(!gtpu_supported_msg_type_check(header,gtpu_log)){
+    gtpu_log->error("gtpu_read_header - Unhandled GTP-U Message Type. Flags: 0x%x\n", header->message_type);
     return false;
   }
 
