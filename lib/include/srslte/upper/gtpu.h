@@ -52,8 +52,8 @@ namespace srslte {
 #define GTPU_HEADER_LEN 8
 
 typedef struct{
-  uint8_t   flags;          // Only support 0x30 - v1, PT1 (GTP), no other flags
-  uint8_t   message_type;   // Only support 0xFF - T-PDU type
+  uint8_t   flags;
+  uint8_t   message_type;
   uint16_t  length;
   uint32_t  teid;
 }gtpu_header_t;
