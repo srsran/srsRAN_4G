@@ -165,8 +165,6 @@ bool enb::init(all_args_t *args_)
   if (args->rf.burst_preamble.compare("auto")) {
     radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
   }
-  
-  radio.set_manual_calibration(&args->rf_cal);
 
   radio.set_rx_gain(args->rf.rx_gain);
   radio.set_tx_gain(args->rf.tx_gain);    

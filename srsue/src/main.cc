@@ -90,12 +90,10 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("nas.pass",              bpo::value<string>(&args->nas.apn_pass)->default_value(""),  "Password for CHAP authentication")
     ("nas.force_imsi_attach", bpo::value<bool>(&args->nas.force_imsi_attach)->default_value(false),  "Whether to always perform an IMSI attach")
 
-
     ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
     ("pcap.nas_enable",   bpo::value<bool>(&args->pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
     ("pcap.nas_filename", bpo::value<string>(&args->pcap.nas_filename)->default_value("ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
-
 
     ("trace.enable", bpo::value<bool>(&args->trace.enable)->default_value(false), "Enable PHY and radio timing traces")
     ("trace.phy_filename", bpo::value<string>(&args->trace.phy_filename)->default_value("ue.phy_trace"),
@@ -122,7 +120,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("log.nas_hex_limit", bpo::value<int>(&args->log.nas_hex_limit), "NAS log hex dump limit")
     ("log.usim_level", bpo::value<string>(&args->log.usim_level), "USIM log level")
     ("log.usim_hex_limit", bpo::value<int>(&args->log.usim_hex_limit), "USIM log hex dump limit")
-
 
     ("log.all_level", bpo::value<string>(&args->log.all_level)->default_value("info"), "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log.all_hex_limit)->default_value(32), "ALL log hex dump limit")
@@ -309,16 +306,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
     ("expert.pdsch_8bit_decoder",
        bpo::value<bool>(&args->expert.phy.pdsch_8bit_decoder)->default_value(false),
-       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
-
-      ("rf_calibration.tx_corr_dc_gain", bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),
-     "TX DC offset gain correction")
-    ("rf_calibration.tx_corr_dc_phase", bpo::value<float>(&args->rf_cal.tx_corr_dc_phase)->default_value(0.0),
-     "TX DC offset phase correction")
-    ("rf_calibration.tx_corr_iq_i", bpo::value<float>(&args->rf_cal.tx_corr_iq_i)->default_value(0.0),
-     "TX IQ imbalance inphase correction")
-    ("rf_calibration.tx_corr_iq_q", bpo::value<float>(&args->rf_cal.tx_corr_iq_q)->default_value(0.0),
-     "TX IQ imbalance quadrature correction");
+       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)");
 
   // Positional options - config file location
   bpo::options_description position("Positional options");

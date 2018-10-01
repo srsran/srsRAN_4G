@@ -134,7 +134,6 @@ typedef struct {
   enb_args_t    enb;
   enb_files_t   enb_files; 
   rf_args_t     rf;
-  rf_cal_t      rf_cal; 
   pcap_args_t   pcap;
   log_args_t    log;
   gui_args_t    gui;
@@ -142,7 +141,7 @@ typedef struct {
 }all_args_t;
 
 /*******************************************************************************
-  Main UE class
+  Main eNB class
 *******************************************************************************/
 
 class enb

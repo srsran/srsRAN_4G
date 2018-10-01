@@ -122,7 +122,6 @@ typedef struct {
 
 typedef struct {
   rf_args_t     rf;
-  rf_cal_t      rf_cal; 
   pcap_args_t   pcap;
   trace_args_t  trace;
   log_args_t    log;

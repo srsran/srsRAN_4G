@@ -193,10 +193,7 @@ bool ue::init(all_args_t *args_) {
     radio.set_continuous_tx(args->rf.continuous_tx.compare("yes")?false:true);
   }
 
-  radio.set_manual_calibration(&args->rf_cal);
-
   // Set PHY options
-
   if (args->rf.tx_gain > 0) {
     args->expert.phy.ul_pwr_ctrl_en = false; 
   } else {

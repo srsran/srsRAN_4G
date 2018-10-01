@@ -199,12 +199,6 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("expert.print_buffer_state",
         bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
        "Prints on the console the buffer state every 10 seconds")
-
-    ("rf_calibration.tx_corr_dc_gain",  bpo::value<float>(&args->rf_cal.tx_corr_dc_gain)->default_value(0.0),  "TX DC offset gain correction")
-    ("rf_calibration.tx_corr_dc_phase", bpo::value<float>(&args->rf_cal.tx_corr_dc_phase)->default_value(0.0), "TX DC offset phase correction")
-    ("rf_calibration.tx_corr_iq_i",     bpo::value<float>(&args->rf_cal.tx_corr_iq_i)->default_value(0.0),     "TX IQ imbalance inphase correction")
-    ("rf_calibration.tx_corr_iq_q",     bpo::value<float>(&args->rf_cal.tx_corr_iq_q)->default_value(0.0),     "TX IQ imbalance quadrature correction")
-
   ;
 
   // Positional options - config file location

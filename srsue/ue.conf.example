@@ -249,21 +249,3 @@ enable = false
 #cfo_loop_pss_tol    = 400
 #cfo_loop_ref_min    = 0
 #cfo_loop_pss_conv   = 20
-
-#####################################################################
-# Manual RF calibration
-#
-# Applies DC offset and IQ imbalance to TX and RX modules. 
-# Currently this configuration is only used if the detected device is a bladeRF
-#
-# tx_corr_dc_gain: TX DC offset gain correction
-# tx_corr_dc_phase: TX DC offset phase correction
-# tx_corr_iq_i: TX IQ imbalance inphase correction
-# tx_corr_iq_q: TX IQ imbalance quadrature correction
-# same can be configured for rx_*
-#####################################################################
-[rf_calibration]
-tx_corr_dc_gain = 20
-tx_corr_dc_phase = 184
-tx_corr_iq_i = 19
-tx_corr_iq_q = 97
