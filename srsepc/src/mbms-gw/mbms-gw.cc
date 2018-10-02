@@ -234,7 +234,7 @@ mbms_gw::init_m1_u(mbms_gw_args_t *args)
   /* Set local interface for outbound multicast packets*/
   /* The IP must be associated with a local multicast capable interface */
   struct in_addr local_if;
-  local_if.s_addr = inet_addr("127.0.1.200");
+  local_if.s_addr = inet_addr(args->m1u_multi_if.c_str());
   if(setsockopt(m_m1u, IPPROTO_IP, IP_MULTICAST_IF, (char*)&local_if, sizeof(struct in_addr))<0){
     perror("Error setting multicast interface.\n");
   } else {

@@ -51,6 +51,7 @@ typedef struct {
   std::string sgi_mb_if_addr;
   std::string sgi_mb_if_mask;
   std::string m1u_multi_addr;
+  std::string m1u_multi_if;
 } mbms_gw_args_t;
 
 struct pseudo_hdr
