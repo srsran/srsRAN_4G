@@ -905,7 +905,7 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
   }
 
   // Update MBSFN list counter. Only 1 supported
-  if (mbsfn_section_present) {
+  if (mbsfn_section_present && args->expert.enable_mbsfn) {
     sib2->mbsfn_subfr_cnfg_list_size = 1;
   }
 
