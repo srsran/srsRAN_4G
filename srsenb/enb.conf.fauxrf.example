@@ -1,0 +1,182 @@
+#####################################################################
+#                   srsENB configuration file
+#####################################################################
+
+#####################################################################
+# eNB configuration
+#
+# enb_id:         20-bit eNB identifier.
+# cell_id:        8-bit cell identifier.
+# tac:            16-bit Tracking Area Code.
+# mcc:            Mobile Country Code
+# mnc:            Mobile Network Code
+# mme_addr:       IP address of MME for S1 connnection
+# gtp_bind_addr:  Local IP address to bind for GTP connection
+# s1c_bind_addr:  Local IP address to bind for S1AP connection
+# n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
+# tm:             Transmission mode 1-4 (TM1 default)
+# nof_ports:      Number of Tx ports (1 port default, set to 2 for TM2/3/4)
+#
+#####################################################################
+[enb]
+enb_id = 0x19B
+cell_id = 0x01
+phy_cell_id = 1
+tac = 0x0007
+mcc = 001
+mnc = 01
+mme_addr = 127.0.1.100
+gtp_bind_addr = 127.0.1.1
+s1c_bind_addr = 127.0.1.1
+n_prb = 25
+#tm = 4
+#nof_ports = 2
+
+#####################################################################
+# eNB configuration files 
+#
+# sib_config:  SIB1, SIB2 and SIB3 configuration file 
+# note: when enabling mbms, use the sib.conf.mbsfn configuration file which includes SIB13
+# rr_config:   Radio Resources configuration file 
+# drb_config:  DRB configuration file 
+#####################################################################
+[enb_files]
+sib_config = sib.mbsfn.conf
+rr_config  = rr.conf
+drb_config = drb.conf
+
+#####################################################################
+# RF configuration
+#
+# dl_earfcn: EARFCN code for DL
+# tx_gain: Transmit gain (dB). 
+# rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
+#
+# Optional parameters:
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn (must be set if dl_freq is set)
+# device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
+# device_args:        Arguments for the device driver. Options are "auto" or any string. 
+#                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
+#                     Default for bladeRF: ""
+# #time_adv_nsamples: Transmission time advance (in number of samples) to compensate for RF delay 
+#                     from antenna to timestamp insertion. 
+#                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
+# burst_preamble_us:  Preamble length to transmit before start of burst. 
+#                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
+#####################################################################
+[rf]
+dl_earfcn = 3400
+tx_gain = 80
+rx_gain = 40
+
+device_name = shmemrf
+device_args = enb
+time_adv_nsamples = 0
+burst_preamble_us = 0
+
+
+#####################################################################
+# MAC-layer packet capture configuration
+#
+# Packets are captured to file in the compact format decoded by 
+# the Wireshark mac-lte-framed dissector and with DLT 147. 
+# To use the dissector, edit the preferences for DLT_USER to 
+# add an entry with DLT=147, Payload Protocol=mac-lte-framed.
+# For more information see: https://wiki.wireshark.org/MAC-LTE
+#
+# enable:   Enable MAC layer packet captures (true/false)
+# filename: File path to use for packet captures
+#####################################################################
+[pcap]
+enable = false
+filename = /tmp/enb.pcap
+
+#####################################################################
+# Log configuration
+#
+# Log levels can be set for individual layers. "all_level" sets log
+# level for all layers unless otherwise configured.
+# Format: e.g. phy_level = info
+#
+# In the same way, packet hex dumps can be limited for each level.
+# "all_hex_limit" sets the hex limit for all layers unless otherwise
+# configured.
+# Format: e.g. phy_hex_limit = 32
+#
+# Logging layers: phy, mac, rlc, pdcp, rrc, nas, gtpu, usim, all
+# Logging levels: debug, info, warning, error, none
+#
+# filename: File path to use for log output. Can be set to stdout
+#           to print logs to standard output
+# file_max_size: Maximum file size (in kilobytes). When passed, multiple files are created.
+#                If set to negative, a single log file will be created.
+#####################################################################
+[log]
+all_level = warn
+phy_level = warn
+phy_lib_level = warn
+all_hex_limit = 32
+filename = enb.log
+file_max_size = -1
+
+[gui]
+enable = false
+
+#####################################################################
+# Scheduler configuration options
+#
+# pdsch_mcs:         Optional fixed PDSCH MCS (ignores reported CQIs if specified)
+# pdsch_max_mcs:     Optional PDSCH MCS limit 
+# pusch_mcs:         Optional fixed PUSCH MCS (ignores reported CQIs if specified)
+# pusch_max_mcs:     Optional PUSCH MCS limit 
+# #nof_ctrl_symbols: Number of control symbols 
+#
+#####################################################################
+[scheduler]
+#pdsch_mcs        = -1
+#pdsch_max_mcs    = -1
+#pusch_mcs        = -1
+pusch_max_mcs    = 16
+nof_ctrl_symbols = 3
+
+#####################################################################
+# Expert configuration options
+#
+# pdsch_max_its:        Maximum number of turbo decoder iterations (Default 4)
+# nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
+# metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
+# pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
+# tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
+# link_failure_nof_err: Number of PUSCH failures after which a radio-link failure is triggered. 
+#                       a link failure is when SNR<0 and CRC=KO
+# max_prach_offset_us:  Maximum allowed RACH offset (in us) 
+#
+#####################################################################
+[expert]
+#pdsch_max_its        = 4
+nof_phy_threads       = 1
+#pregenerate_signals  = false
+#tx_amplitude         = 0.6
+#link_failure_nof_err = 50
+#rrc_inactivity_timer = 60000
+#max_prach_offset_us  = 30
+enable_mbsfn = true
+
+#####################################################################
+# Manual RF calibration
+#
+# Applies DC offset and IQ imbalance to TX and RX modules. 
+# Currently this configuration is only used if the detected device is a bladeRF
+#
+# tx_corr_dc_gain: TX DC offset gain correction
+# tx_corr_dc_phase: TX DC offset phase correction
+# tx_corr_iq_i: TX IQ imbalance inphase correction
+# tx_corr_iq_q: TX IQ imbalance quadrature correction
+# same can be configured for rx_*
+#####################################################################
+[rf_calibration]
+#tx_corr_dc_gain = 20
+#tx_corr_dc_phase = 184
+#tx_corr_iq_i = 19
+#tx_corr_iq_q = 97

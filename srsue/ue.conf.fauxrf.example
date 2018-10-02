@@ -1,0 +1,265 @@
+#####################################################################
+#                   srsUE configuration file
+#####################################################################
+# RF configuration
+#
+# dl_earfcn: Downlink EARFCN code.
+# freq_offset: Uplink and Downlink optional frequency offset (in Hz)
+# tx_gain: Transmit gain (dB). 
+# rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
+#
+# Optional parameters: 
+# dl_freq:            Override DL frequency corresponding to dl_earfcn
+# ul_freq:            Override UL frequency corresponding to dl_earfcn
+# nof_rx_ant:         Number of RX antennas (Default 1, supported 1 or 2)
+# device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
+# device_args:        Arguments for the device driver. Options are "auto" or any string. 
+#                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
+#                     Default for bladeRF: ""
+# #time_adv_nsamples: Transmission time advance (in number of samples) to compensate for RF delay 
+#                     from antenna to timestamp insertion. 
+#                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
+# burst_preamble_us:  Preamble length to transmit before start of burst. 
+#                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us.
+# continuous_tx:      Transmit samples continuously to the radio or on bursts (auto/yes/no).
+#                     Default is auto (yes for UHD, no for rest)
+#####################################################################
+[rf]
+dl_earfcn = 3400
+freq_offset = 0
+tx_gain = 80
+rx_gain = 40
+
+nof_rx_ant = 1
+device_name = shmemrf
+device_args = ue
+#time_adv_nsamples = auto
+#burst_preamble_us = auto
+continuous_tx     = no
+
+
+#####################################################################
+# MAC-layer packet capture configuration
+#
+# Packets are captured to file in the compact format decoded by 
+# the Wireshark mac-lte-framed dissector and with DLT 147. 
+# To use the dissector, edit the preferences for DLT_USER to 
+# add an entry with DLT=147, Payload Protocol=mac-lte-framed.
+# For more information see: https://wiki.wireshark.org/MAC-LTE
+#
+# enable:   Enable MAC layer packet captures (true/false)
+# filename: File path to use for packet captures
+#####################################################################
+[pcap]
+enable = false
+filename = /tmp/ue.pcap
+nas_enable = false
+nas_filename = /tmp/nas.pcap
+
+#####################################################################
+# Log configuration
+#
+# Log levels can be set for individual layers. "all_level" sets log
+# level for all layers unless otherwise configured.
+# Format: e.g. phy_level = info
+#
+# In the same way, packet hex dumps can be limited for each level.
+# "all_hex_limit" sets the hex limit for all layers unless otherwise
+# configured.
+# Format: e.g. phy_hex_limit = 32
+#
+# Logging layers: phy, mac, rlc, pdcp, rrc, nas, gw, usim, all
+# Logging levels: debug, info, warning, error, none
+#
+# filename: File path to use for log output. Can be set to stdout
+#           to print logs to standard output
+# file_max_size: Maximum file size (in kilobytes). When passed, multiple files are created.
+#                If set to negative, a single log file will be created.
+#####################################################################
+[log]
+all_level = info
+phy_level = info
+phy_lib_level = info
+all_hex_limit = 32
+filename = ue.log
+file_max_size = -1
+
+#####################################################################
+# USIM configuration
+#
+# mode: USIM mode (soft/pcsc)
+# algo: Authentication algorithm (xor/milenage)
+# op:   128-bit Operator Variant Algorithm Configuration Field (hex)
+# k:    128-bit subscriber key (hex)
+# imsi: 15 digit International Mobile Subscriber Identity
+# imei: 15 digit International Mobile Station Equipment Identity
+# pin:  PIN in case real SIM card is used
+# reader: Specify card reader by it's name as listed by 'pcsc_scan'. If empty, try all available readers.
+#####################################################################
+[usim]
+mode = soft
+algo = xor
+opc  = 63BFA50EE6523365FF14C1F45F88737D
+k    = 00112233445566778899aabbccddeeff
+imsi = 001010123456789
+imei = 353490069873319
+#reader = 
+#pin  = 1234
+
+#####################################################################
+# RRC configuration
+#
+# ue_category:   Sets UE category (range 1-5). Default: 4
+# feature_group: Hex value of the featureGroupIndicators field in the
+#                UECapabilityInformation message. Default 0xe6041000
+#####################################################################
+[rrc]
+#ue_category   = 4
+#feature_group = 0xe6041000
+
+#####################################################################
+# NAS configuration
+#
+# apn:               Set Access Point Name (APN)
+# user:              Username for CHAP authentication
+# pass:              Password for CHAP authentication
+# force_imsi_attach: Whether to always perform an IMSI
+#####################################################################
+[nas]
+#apn = internetinternet
+#user = srsuser
+#pass = srspass
+#force_imsi_attach = false
+
+[gui]
+enable = false
+
+#####################################################################
+# Expert configuration options
+#
+# ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
+# rssi_sensor_enabled:  Enable or disable RF frontend RSSI sensor. Required for RSRP metrics but
+#                       can cause UHD instability for long-duration testing. Default true.
+# rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
+# prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only.,
+#                       Default is to use tx_gain in [rf] section. 
+# cqi_max:              Upper bound on the maximum CQI to be reported. Default 15. 
+# cqi_fixed:            Fixes the reported CQI to a constant value. Default disabled.
+# snr_ema_coeff:        Sets the SNR exponential moving average coefficient (Default 0.1)
+# snr_estim_alg:        Sets the noise estimation algorithm. (Default refs)
+#                          Options: pss:   use difference between received and known pss signal, 
+#                                   refs:  use difference between noise references and noiseless (after filtering)
+#                                   empty: use empty subcarriers in the boarder of pss/sss signal
+# pdsch_max_its:        Maximum number of turbo decoder iterations (Default 4)
+# attach_enable_64qam:  Enables PUSCH 64QAM modulation before attachment (Necessary for old 
+#                        Amarisoft LTE 100 eNodeB, disabled by default)
+# nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
+# equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
+#                       non-negative real number to indicate a regularized zf coefficient.
+#                       Default is MMSE.
+# time_correct_period:  Period for sampling time offset correction. Default is 10 (ue_sync.c),
+#                       good for long channels. For best performance at highest SNR reduce it to 1.  
+# sfo_correct_disable:  Disables phase correction before channel estimation to compensate for 
+#                       sampling frequency offset. Default is enabled. 
+# sfo_ema:              EMA coefficient to average sample offsets used to compute SFO
+# sfo_correct_period:   Period in ms to correct sample time to adjust for SFO
+# sss_algorithm:        Selects the SSS estimation algorithm. Can choose between
+#                       {full, partial, diff}. 
+# estimator_fil_auto:   The channel estimator smooths the channel estimate with an adaptative filter.
+# estimator_fil_stddev: Sets the channel estimator smooth gaussian filter standard deviation.
+# estimator_fil_order:  Sets the channel estimator smooth gaussian filter order (even values perform better).
+#                       The taps are [w, 1-2w, w]
+# metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
+#
+# pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
+#
+# average_subframe_enabled: Averages in the time domain the channel estimates within 1 subframe.
+#                           Needs accurate CFO correction.
+#
+# sic_pss_enabled:      Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells.
+#                       Must be disabled if cells have identical channel and timing, for instance if generated from
+#                       the same source.
+#
+# metrics_csv_enable:   Write UE metrics to CSV file.
+#
+# metrics_csv_filename: File path to use for CSV metrics.
+#
+# cfo_integer_enabled:  Enables integer CFO estimation and correction. This needs improvement
+#                       and may lead to incorrect synchronization. Use with caution.
+# cfo_correct_tol_hz:   Tolerance (in Hz) for digial CFO compensation. Lower tolerance means that
+#                       a new table will be generated more often.
+#
+# cfo_is_doppler:        Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed
+#                        to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.
+# cfo_pss_ema:           CFO Exponential Moving Average coefficient for PSS estimation during TRACK.
+# cfo_ref_ema:           CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition
+# cfo_ref_mask:          Bitmask for subframes on which to run RS estimation (set to 0 to disable, default sf=[1, 5])
+# cfo_loop_bw:           CFO feedback loop bandwidth for samples from PSS or RS
+# cfo_loop_pss_tol:      Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop
+#                        and RS estimations are used instead (when available)
+# cfo_loop_ref_min:      Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop
+# cfo_loop_pss_timeout:  After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively,
+#                        RS adjustments are allowed.
+#
+# pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
+#                        used in TM1. It is True by default.
+#
+#####################################################################
+[expert]
+#ip_netmask          = 255.255.255.0
+mbms_service         = 0
+#rssi_sensor_enabled = false
+#rx_gain_offset      = 72
+#prach_gain          = 30
+#cqi_max             = 15
+#cqi_fixed           = 10
+#snr_ema_coeff       = 0.1
+#snr_estim_alg       = refs
+#pdsch_max_its       = 4
+#attach_enable_64qam = false
+nof_phy_threads      = 1
+#equalizer_mode      = mmse
+#time_correct_period = 5
+#sfo_correct_disable = false
+#sfo_ema             = 0.1
+#sfo_correct_period  = 10
+#sss_algorithm       = full
+#estimator_fil_auto  = false
+#estimator_fil_stddev  = 1.0
+#estimator_fil_order  = 4
+#average_subframe_enabled = true
+#sic_pss_enabled     = true
+#pregenerate_signals = false
+#metrics_csv_enable  = false
+#metrics_csv_filename = /tmp/ue_metrics.csv
+#pdsch_csi_enabled  = true
+
+# CFO related values
+#cfo_is_doppler      = false
+#cfo_integer_enabled = false
+#cfo_correct_tol_hz  = 1.0
+#cfo_pss_ema         = 0.05
+#cfo_ref_mask        = 1023
+#cfo_loop_bw_pss     = 0.05
+#cfo_loop_bw_ref     = 0.01
+#cfo_loop_pss_tol    = 400
+#cfo_loop_ref_min    = 0
+#cfo_loop_pss_conv   = 20
+
+#####################################################################
+# Manual RF calibration
+#
+# Applies DC offset and IQ imbalance to TX and RX modules. 
+# Currently this configuration is only used if the detected device is a bladeRF
+#
+# tx_corr_dc_gain: TX DC offset gain correction
+# tx_corr_dc_phase: TX DC offset phase correction
+# tx_corr_iq_i: TX IQ imbalance inphase correction
+# tx_corr_iq_q: TX IQ imbalance quadrature correction
+# same can be configured for rx_*
+#####################################################################
+[rf_calibration]
+#tx_corr_dc_gain = 20
+#tx_corr_dc_phase = 184
+#tx_corr_iq_i = 19
+#tx_corr_iq_q = 97
