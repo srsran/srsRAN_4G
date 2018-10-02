@@ -223,6 +223,7 @@ void gtpu::run_thread()
         gtpu_log->error("Failed to read from socket\n");
     }
 
+    gtpu_log->debug("Received %d bytes from S1-U interface\n", n);
     pdu->N_bytes = (uint32_t) n;
 
     gtpu_header_t header;
@@ -401,12 +402,12 @@ void gtpu::mch_thread::run_thread()
     do{
       n =  recvfrom(m1u_sd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0, (struct sockaddr *) &src_addr, &addrlen);
     } while (n == -1 && errno == EAGAIN);
+    gtpu_log->debug("Received %d bytes from M1-U interface\n", n);
 
     pdu->N_bytes = (uint32_t) n;
 
     gtpu_header_t header;
     gtpu_read_header(pdu, &header, gtpu_log);
-
     pdcp->write_sdu(SRSLTE_MRNTI, lcid, pdu);
     do {
       pdu = pool_allocate;
