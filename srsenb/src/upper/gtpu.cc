@@ -403,7 +403,7 @@ void gtpu::mch_thread::run_thread()
     } while (n == -1 && errno == EAGAIN);
 
     pdu->N_bytes = (uint32_t) n;
-    
+
     gtpu_header_t header;
     gtpu_read_header(pdu, &header, gtpu_log);
 
