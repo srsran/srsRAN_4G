@@ -105,6 +105,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("mbms_gw.sgi_mb_if_mask",      bpo::value<string>(&mbms_gw_sgi_mb_if_mask)->default_value("255.255.255.255"), "SGi-mb TUN interface mask.")
     ("mbms_gw.m1u_multi_addr",      bpo::value<string>(&mbms_gw_m1u_multi_addr)->default_value("239.255.0.1"), "M1-u GTPu destination multicast address.")
     ("mbms_gw.m1u_multi_if",        bpo::value<string>(&mbms_gw_m1u_multi_if)->default_value("127.0.1.200"), "Local interface IP for M1-U multicast packets.")
+    ("mbms_gw.m1u_multi_ttl",       bpo::value<int>(&args->mbms_gw_args.m1u_multi_ttl)->default_value(1), "TTL for M1-U multicast packets.")
 
     ("log.all_level",     bpo::value<string>(&args->log_args.all_level)->default_value("info"),   "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log_args.all_hex_limit)->default_value(32),  "ALL log hex dump limit")

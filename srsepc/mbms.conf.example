@@ -16,6 +16,7 @@ sgi_mb_if_addr = 172.16.0.254
 sgi_mb_if_mask = 255.255.255.255
 m1u_multi_addr = 239.255.0.1
 m1u_multi_if   = 127.0.1.200
+m1u_multi_ttl  = 1
 
 ####################################################################
 # Log configuration

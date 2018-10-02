@@ -238,7 +238,13 @@ mbms_gw::init_m1_u(mbms_gw_args_t *args)
   if(setsockopt(m_m1u, IPPROTO_IP, IP_MULTICAST_IF, (char*)&local_if, sizeof(struct in_addr))<0){
     perror("Error setting multicast interface.\n");
   } else {
-    printf("Multicast interface specified.\n");
+    printf("Multicast interface specified. Address: %s\n", args->m1u_multi_if.c_str());
+  }
+
+  /*Set Multicast TTL*/
+  if ( setsockopt(m_m1u, IPPROTO_IP,IP_MULTICAST_TTL,&args->m1u_multi_ttl,sizeof(args->m1u_multi_ttl)) <0 ) {
+    perror("Error setting multicast ttl.\n");
+    return srslte::ERROR_CANT_START;
   }
 
   bzero(&m_m1u_multi_addr,sizeof(m_m1u_multi_addr));
