@@ -70,8 +70,6 @@ private:
   bool                         enable_mbsfn;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
-  std::string                  m1u_multiaddr;
-  std::string                  m1u_if_addr;
   srsenb::pdcp_interface_gtpu *pdcp;
   srslte::log                 *gtpu_log;
 
@@ -79,7 +77,7 @@ private:
   class mch_thread : public thread {
   public:
     mch_thread() : initiated(false),running(false),run_enable(false),pool(NULL) {}
-    bool init(pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
+    bool init(std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
     void stop();
   private:
     void run_thread();
@@ -94,6 +92,8 @@ private:
     srslte::log         *gtpu_log;
     int m1u_sd;
     int lcid_counter;
+    std::string                  m1u_multiaddr;
+    std::string                  m1u_if_addr;
 
     srslte::byte_buffer_pool *pool;
   };

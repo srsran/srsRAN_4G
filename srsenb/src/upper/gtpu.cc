@@ -49,9 +49,6 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m
   gtpu_log      = gtpu_log_;
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
-  m1u_multiaddr = m1u_multiaddr_;
-  m1u_if_addr   = m1u_if_addr_;
-
   pool          = byte_buffer_pool::get_instance();
 
   // Set up socket
@@ -88,7 +85,7 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m
   // Start MCH thread if enabled
   this->enable_mbsfn = enable_mbsfn;
   if(enable_mbsfn) {
-    mchthread.init(pdcp, gtpu_log);
+    mchthread.init(m1u_multiaddr_, m1u_if_addr_, pdcp, gtpu_log);
   }
   return true;
 }
@@ -322,16 +319,14 @@ void gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t *teidin)
 /****************************************************************************
 * Class to run the MCH thread
 ***************************************************************************/
-bool gtpu::mch_thread::init(pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
+bool gtpu::mch_thread::init(std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
 {
   pool           = byte_buffer_pool::get_instance();
   this->pdcp     = pdcp;
   this->gtpu_log = gtpu_log;
+  m1u_multiaddr = m1u_multiaddr_;
+  m1u_if_addr   = m1u_if_addr_;
 
-
-gtpu_log->info("M1-U initialized\n");
-return true;
-}
   struct sockaddr_in bindaddr;
 
   // Set up sink socket
