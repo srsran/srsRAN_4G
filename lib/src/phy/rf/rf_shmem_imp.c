@@ -24,24 +24,16 @@
  *
  */
 
-#include <string.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <errno.h>
-
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-
-#include "srslte/srslte.h"
-#include "rf_shmem_imp.h"
-#include "srslte/phy/rf/rf.h"
-#include "srslte/phy/resampling/resample_arb.h"
+// J Giovatto Oct 03, 2018
+// The approach is simple the enb and ue transmit raw IQ data which
+// would have been sent to the radio device driver (UHD) etc. Samples
+// are sent and received verbatim except in the case where the ue is in
+// cell search where downsampling is applied. At some point some artifical
+// "jammming" of the data stream my be desireable by substiting some random values.
+// Shared memory was chosen over unix/inet sockets to allow for the fastest
+// data transfer and possible combining IQ data in a single buffer. Each ul and dl subframe
+// worth of iqdata and metadata  is held in a "bin" where tx bin index is 4 sf 
+// ahead of the rx bin index.
 
 // J Giovatto Aug 08, 2018
 // suggest running non DEBUG_MODE with n_prb of 15 or 25 anything higher has not 
@@ -60,6 +52,26 @@
 // 1) sudo ./srsepc ./epc.conf
 // 2) sudo ./srsue  ./ue.conf
 // 3) sudo ./srsenb ./enb.conf
+
+
+#include <string.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <errno.h>
+
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+#include "srslte/srslte.h"
+#include "rf_shmem_imp.h"
+#include "srslte/phy/rf/rf.h"
+#include "srslte/phy/resampling/resample_arb.h"
 
 // define to allow debug
 // #define RF_SHMEM_DEBUG_MODE
@@ -159,18 +171,8 @@ static const struct timeval tv_zero  = {0,0};
 static const struct timeval tv_step  = {0, 1000}; // 1 sf
 static const struct timeval tv_4step = {0, 4000}; // 4 sf
 
-// sf len at nprb=100 is 184320 bytes or 23040 samples
-#define RF_SHMEM_MAX_SAMPLES 23040
 
-// subtract the other fields of the struct to align mem size to 256k per bin
-// to avoid shmget failure
-#define RF_SHMEM_MAX_CF_LEN RF_SHMEM_SAMPLES_X_BYTE((256000                     - \
-                                                     16                         - \
-                                                     sizeof(float)))            - \
-                                                     2 * sizeof(struct timeval) - \
-                                                     2 * sizeof(int) 
-
-// msg element (not for stack allocation)
+// msg element meta data
 typedef struct {
   uint64_t       seqnum;                      // seq num
   uint32_t       nof_bytes;                   // num bytes
@@ -180,10 +182,21 @@ typedef struct {
   struct timeval tv_tx_time;                  // actual tx time
   int            is_sob;                      // is start of burst
   int            is_eob;                      // is end of burst
-  cf_t           iqdata[RF_SHMEM_MAX_CF_LEN]; // data
+} rf_shmem_element_meta_t;
+
+
+// sf len at nprb=100 is 184320 bytes or 23040 samples
+// subtract the other fields of the struct to align mem size to 256k per bin
+// to avoid shmget failure
+#define RF_SHMEM_MAX_CF_LEN RF_SHMEM_SAMPLES_X_BYTE((256000 - sizeof(rf_shmem_element_meta_t)))
+
+// msg element (not for stack allocation)
+typedef struct {
+  rf_shmem_element_meta_t meta;                        // meta data
+  cf_t                    iqdata[RF_SHMEM_MAX_CF_LEN]; // data
 } rf_shmem_element_t;
 
-sem_t * sem[RF_SHMEM_NUM_SF_X_FRAME] = {0};  // element locks
+sem_t * sem[RF_SHMEM_NUM_SF_X_FRAME] = {0};  // element r/w bin locks
 
 // msg element bins 1 for each sf (tti)
 typedef struct {
@@ -195,14 +208,14 @@ typedef struct {
 const char * printMsg(const rf_shmem_element_t * element, char * buff, int buff_len)
  {
    snprintf(buff, buff_len, "seqnum %lu, nof_bytes %u, nof_sf %u, srate %6.4f MHz, tti_tx %ld:%06ld, sob %d, eob %d",
-            element->seqnum,
-            element->nof_bytes,
-            element->nof_sf,
-            element->tx_srate/1e6,
-            element->tv_tx_tti.tv_sec,
-            element->tv_tx_tti.tv_usec,
-            element->is_sob,
-            element->is_eob);
+            element->meta.seqnum,
+            element->meta.nof_bytes,
+            element->meta.nof_sf,
+            element->meta.tx_srate/1e6,
+            element->meta.tv_tx_tti.tv_sec,
+            element->meta.tv_tx_tti.tv_usec,
+            element->meta.is_sob,
+            element->meta.is_eob);
     
     return buff;
  }
@@ -238,8 +251,8 @@ typedef struct {
    int                  shm_ul_id;
    void *               shm_dl;
    void *               shm_ul;
-   rf_shmem_segment_t * rx_segment;
-   rf_shmem_segment_t * tx_segment;
+   rf_shmem_segment_t * rx_segment; // rx bins
+   rf_shmem_segment_t * tx_segment; // tx bins
 } rf_shmem_state_t;
 
 
@@ -273,37 +286,37 @@ static void rf_shmem_handle_error(srslte_rf_error_t error)
 }
 
 
-static  rf_shmem_state_t rf_shmem_state = { .dev_name        = "shmemrf",
-                                          .nodetype        = RF_SHMEM_NTYPE_NONE,
-                                          .nof_tx_ports    = 1,
-                                          .nof_rx_ports    = 1,
-                                          .rx_gain         = 0.0,
-                                          .tx_gain         = 0.0,
-                                          .rx_srate        = SRSLTE_CS_SAMP_FREQ,
-                                          .tx_srate        = SRSLTE_CS_SAMP_FREQ,
-                                          .rx_freq         = 0.0,
-                                          .tx_freq         = 0.0,
-                                          .rx_cal          = {},
-                                          .tx_cal          = {},
-                                          .clock_rate      = 0.0,
-                                          .error_handler   = rf_shmem_handle_error,
-                                          .rx_stream       = false,
-                                          .tx_seqnum       = 0,
-                                          .state_lock      = PTHREAD_MUTEX_INITIALIZER,
-                                          .tv_sos          = {},
-                                          .tv_this_tti     = {},
-                                          .tv_next_tti     = {},
-                                          .tx_nof_late     = 0,
-                                          .tx_nof_ok       = 0,
-                                          .rf_info         = {},
-                                          .shm_dl_key      = 0,
-                                          .shm_ul_key      = 0,
-                                          .shm_dl_id       = 0,
-                                          .shm_ul_id       = 0,
-                                          .shm_dl          = NULL,
-                                          .shm_ul          = NULL,
-                                          .rx_segment      = NULL,
-                                          .tx_segment      = NULL,
+static rf_shmem_state_t rf_shmem_state = { .dev_name        = "shmemrf",
+                                           .nodetype        = RF_SHMEM_NTYPE_NONE,
+                                           .nof_tx_ports    = 1,
+                                           .nof_rx_ports    = 1,
+                                           .rx_gain         = 0.0,
+                                           .tx_gain         = 0.0,
+                                           .rx_srate        = SRSLTE_CS_SAMP_FREQ,
+                                           .tx_srate        = SRSLTE_CS_SAMP_FREQ,
+                                           .rx_freq         = 0.0,
+                                           .tx_freq         = 0.0,
+                                           .rx_cal          = {},
+                                           .tx_cal          = {},
+                                           .clock_rate      = 0.0,
+                                           .error_handler   = rf_shmem_handle_error,
+                                           .rx_stream       = false,
+                                           .tx_seqnum       = 0,
+                                           .state_lock      = PTHREAD_MUTEX_INITIALIZER,
+                                           .tv_sos          = {},
+                                           .tv_this_tti     = {},
+                                           .tv_next_tti     = {},
+                                           .tx_nof_late     = 0,
+                                           .tx_nof_ok       = 0,
+                                           .rf_info         = {},
+                                           .shm_dl_key      = 0,
+                                           .shm_ul_key      = 0,
+                                           .shm_dl_id       = 0,
+                                           .shm_ul_id       = 0,
+                                           .shm_dl          = NULL,
+                                           .shm_ul          = NULL,
+                                           .rx_segment      = NULL,
+                                           .tx_segment      = NULL,
                                         };
 
 #define RF_SHMEM_GET_STATE(h)  assert(h); rf_shmem_state_t *_state = (rf_shmem_state_t *)(h)
@@ -1007,13 +1020,13 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
         rf_shmem_element_t * element = &_state->rx_segment->elements[bin];
        
         // check current tti w/bin tti 
-        if(timercmp(&_state->tv_this_tti, &element->tv_tx_tti, ==))
+        if(timercmp(&_state->tv_this_tti, &element->meta.tv_tx_tti, ==))
          {
-           const int new_len = rf_shmem_resample(element->tx_srate,
+           const int new_len = rf_shmem_resample(element->meta.tx_srate,
                                                  _state->rx_srate,
                                                  element->iqdata,
                                                  (cf_t*)(((uint8_t*)data[0]) + nof_bytes_in),
-                                                 element->nof_bytes);
+                                                 element->meta.nof_bytes);
 
            nof_bytes_in += new_len;
 
@@ -1077,8 +1090,8 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
 
    struct timeval tv_now, tv_tx_tti;
 
-   // assume all tx are 4 tti in the future
-   // code base may advance timespec slightly which can mess up our bins
+   // all tx are 4 tti in the future
+   // code base may advance timespec slightly which can mess up our bin index
    // so we just force the tx_time here to be 4 sf ahead
    timeradd(&_state->tv_this_tti, &tv_4step, &tv_tx_tti);
 
@@ -1115,39 +1128,39 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
 
        rf_shmem_element_t * element = &_state->tx_segment->elements[bin];
 
-       // one and only 1 enb for tx
+       // 1 and only 1 enb for tx
        if(rf_shmem_is_enb(_state))
          {
-           // enb clear dl bin before tx
+           // enb clears stale dl bin before tx
            memset(element, 0x0, sizeof(*element));
          }
 
        // new bin entry
-       if(element->nof_sf == 0)
+       if(element->meta.nof_sf == 0)
         {
           memcpy(element->iqdata, data[0], nof_bytes);
 
-          element->is_sob       = is_sob;
-          element->is_eob       = is_eob;
-          element->tx_srate     = _state->tx_srate;
-          element->seqnum       = _state->tx_seqnum++;
-          element->nof_bytes    = nof_bytes;
-          element->tv_tx_time   = tv_now;
-          element->tv_tx_tti    = tv_tx_tti;
+          element->meta.is_sob       = is_sob;
+          element->meta.is_eob       = is_eob;
+          element->meta.tx_srate     = _state->tx_srate;
+          element->meta.seqnum       = _state->tx_seqnum++;
+          element->meta.nof_bytes    = nof_bytes;
+          element->meta.tv_tx_time   = tv_now;
+          element->meta.tv_tx_tti    = tv_tx_tti;
         }
        else
         {
           cf_t * q = (cf_t*)data[0];
 
-          // XXX existing I/Q data from multiple UL transmission needs to be summed
+          // XXX TODO I/Q data from multiple UL transmission needs to be summed
           for(int i = 0; i < nsamples; ++i)
            {
-             // is this correct ???
-             element->iqdata[i] = q[i];
+             // is this correct, just sum iq data ???
+             element->iqdata[i] += q[i];
            }
         }
 
-       ++element->nof_sf;
+       ++element->meta.nof_sf;
 
        ++_state->tx_nof_ok;
 
