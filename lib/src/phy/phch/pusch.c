@@ -533,6 +533,10 @@ int srslte_pusch_encode(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softb
     srslte_sequence_t *seq = get_user_sequence(q, rnti, cfg->sf_idx, cfg->nbits.nof_bits);
 
     // Run scrambling
+    if (!seq) {
+      fprintf(stderr, "Error getting scrambling sequence\n");
+      return SRSLTE_ERROR;
+    }
     srslte_scrambling_bytes(seq, (uint8_t*) q->q, cfg->nbits.nof_bits);
 
     // Correct UCI placeholder/repetition bits
