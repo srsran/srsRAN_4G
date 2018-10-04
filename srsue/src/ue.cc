@@ -32,6 +32,7 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 
 using namespace srslte;
 
@@ -226,19 +227,34 @@ bool ue::init(all_args_t *args_) {
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
   gw.set_tundevname(args->expert.ip_devname);
-  
-  // Get current band from provided EARFCN
-  args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
-  args->rrc.nof_supported_bands = 1;
+ 
+  std::vector<uint32_t> earfcn_list;
+
+  if(! args->rf.dl_earfcn_list.empty()) {
+      std::stringstream ss(args->rf.dl_earfcn_list);
+      int idx = 0;
+      while(ss.good()) {
+         std::string substr;
+         getline(ss, substr, ',');
+        
+         const int earfcn = atoi(substr.c_str());
+         args->rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
+         args->rrc.nof_supported_bands = ++idx;
+         earfcn_list.push_back(earfcn);
+      }
+   } else {
+    // Get current band from provided EARFCN
+    args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
+    args->rrc.nof_supported_bands = 1;
+    earfcn_list.push_back(args->rf.dl_earfcn);
+  }
+
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
 
   // set args and initialize RRC
   rrc.set_args(args->rrc);
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
 
-  // Currently EARFCN list is set to only one frequency as indicated in ue.conf
-  std::vector<uint32_t> earfcn_list;
-  earfcn_list.push_back(args->rf.dl_earfcn);
   phy.set_earfcn(earfcn_list);
 
   if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {

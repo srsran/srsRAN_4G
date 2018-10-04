@@ -66,6 +66,7 @@ typedef struct {
   std::string   time_adv_nsamples;
   std::string   burst_preamble;
   std::string   continuous_tx;
+  std::string   dl_earfcn_list;
 }rf_args_t;
 
 typedef struct {
