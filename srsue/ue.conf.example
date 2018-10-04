@@ -3,7 +3,7 @@
 #####################################################################
 # RF configuration
 #
-# dl_earfcn: Downlink EARFCN code.
+# dl_earfcn: Downlink EARFCN code list 3400,2100,...
 # freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
