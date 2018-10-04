@@ -31,8 +31,8 @@
 #include <sstream>
 
 #define MOD 1024
-#define RX_MOD_BASE(x) ((x-vr_r)%1024)
-#define TX_MOD_BASE(x) ((x-vt_a)%1024)
+#define RX_MOD_BASE(x) (((x)-vr_r)%1024)
+#define TX_MOD_BASE(x) (((x)-vt_a)%1024)
 #define LCID (parent->lcid)
 #define RB_NAME (parent->rb_name.c_str())
 
@@ -198,6 +198,7 @@ rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_, uint32_t queue_len_)
   ,tx_enabled(false)
 {
   pthread_mutex_init(&mutex, NULL);
+  ZERO_OBJECT(tx_status);
 }
 
 rlc_am::rlc_am_tx::~rlc_am_tx()
@@ -209,7 +210,7 @@ void rlc_am::rlc_am_tx::init()
 {
   log = parent->log;
 
-  if (parent->mac_timers) {
+  if (parent->mac_timers != NULL) {
     poll_retx_timer_id = parent->mac_timers->timer_get_unique_id();
     poll_retx_timer    = parent->mac_timers->timer_get(poll_retx_timer_id);
 
@@ -224,8 +225,17 @@ bool rlc_am::rlc_am_tx::configure(srslte_rlc_am_config_t cfg_)
   cfg = cfg_;
 
   // check timers
-  if (not poll_retx_timer or not status_prohibit_timer) {
+  if (poll_retx_timer == NULL or status_prohibit_timer == NULL) {
     return false;
+  }
+
+  // configure timers
+  if (cfg.t_status_prohibit > 0) {
+    status_prohibit_timer->set(this, static_cast<uint32_t>(cfg.t_status_prohibit));
+  }
+
+  if (cfg.t_poll_retx > 0) {
+    poll_retx_timer->set(this, static_cast<uint32_t>(cfg.t_poll_retx));
   }
 
   tx_enabled = true;
@@ -239,13 +249,15 @@ void rlc_am::rlc_am_tx::stop()
 
   pthread_mutex_lock(&mutex);
 
-  if (parent->mac_timers && poll_retx_timer) {
+  tx_enabled = false;
+
+  if (parent->mac_timers != NULL && poll_retx_timer != NULL) {
     poll_retx_timer->stop();
     parent->mac_timers->timer_release_id(poll_retx_timer_id);
     poll_retx_timer = NULL;
   }
 
-  if (parent->mac_timers && status_prohibit_timer) {
+  if (parent->mac_timers != NULL && status_prohibit_timer != NULL) {
     status_prohibit_timer->stop();
     parent->mac_timers->timer_release_id(status_prohibit_timer_id);
     status_prohibit_timer = NULL;
@@ -283,7 +295,7 @@ void rlc_am::rlc_am_tx::empty_queue()
   }
 
   // deallocate SDU that is currently processed
-  if(tx_sdu) {
+  if (tx_sdu != NULL) {
     pool->deallocate(tx_sdu);
     tx_sdu = NULL;
   }
@@ -310,13 +322,13 @@ uint32_t rlc_am::rlc_am_tx::get_buffer_state()
 
   // Bytes needed for status report
   if (do_status() && not status_prohibited) {
-    n_bytes = parent->rx.get_status(&tx_status);
+    n_bytes = parent->rx.get_status_pdu_length();
     log->debug("%s Buffer state - status report: %d bytes\n", RB_NAME, n_bytes);
     goto unlock_and_return;
   }
 
   // Bytes needed for retx
-  if (retx_queue.size() > 0) {
+  if (not retx_queue.empty()) {
     rlc_amd_retx_t retx = retx_queue.front();
     log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
     if(tx_window.end() != tx_window.find(retx.sn)) {
@@ -326,7 +338,7 @@ uint32_t rlc_am::rlc_am_tx::get_buffer_state()
         retx_queue.pop_front();
         goto unlock_and_return;
       }
-      n_bytes = (uint32_t) req_bytes;
+      n_bytes = static_cast<uint32_t>(req_bytes);
       log->debug("Buffer state - retx: %d bytes\n", n_bytes);
       goto unlock_and_return;
     }
@@ -336,7 +348,7 @@ uint32_t rlc_am::rlc_am_tx::get_buffer_state()
   if (tx_window.size() < 1024) {
     n_sdus  = tx_sdu_queue.size();
     n_bytes = tx_sdu_queue.size_bytes();
-    if (tx_sdu) {
+    if (tx_sdu != NULL) {
       n_sdus++;
       n_bytes += tx_sdu->N_bytes;
     }
@@ -366,12 +378,12 @@ uint32_t rlc_am::rlc_am_tx::get_total_buffer_state()
 
   // Bytes needed for status report
   if(do_status() && not status_prohibited) {
-    n_bytes += parent->rx.get_status(&tx_status);
+    n_bytes += parent->rx.get_status_pdu_length();
     log->debug("%s Buffer state - total status report: %d bytes\n", RB_NAME, n_bytes);
   }
 
   // Bytes needed for retx
-  if(retx_queue.size() > 0) {
+  if(not retx_queue.empty()) {
     rlc_amd_retx_t retx = retx_queue.front();
     log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
     if(tx_window.end() != tx_window.find(retx.sn)) {
@@ -390,19 +402,19 @@ uint32_t rlc_am::rlc_am_tx::get_total_buffer_state()
   if(tx_window.size() < 1024) {
     n_sdus  = tx_sdu_queue.size();
     n_bytes += tx_sdu_queue.size_bytes();
-    if(tx_sdu)
-    {
+    if (tx_sdu != NULL) {
       n_sdus++;
       n_bytes += tx_sdu->N_bytes;
     }
   }
 
   // Room needed for header extensions? (integer rounding)
-  if(n_sdus > 1)
+  if (n_sdus > 1) {
     n_bytes += ((n_sdus-1)*1.5)+0.5;
+  }
 
   // Room needed for fixed header?
-  if(n_bytes > 0) {
+  if (n_bytes > 0) {
     n_bytes += 3;
     log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
   }
@@ -417,7 +429,8 @@ void rlc_am::rlc_am_tx::write_sdu(byte_buffer_t *sdu, bool blocking)
     byte_buffer_pool::get_instance()->deallocate(sdu);
     return;
   }
-  if (sdu) {
+  
+  if (sdu != NULL) {
     if (blocking) {
       // block on write to queue
       tx_sdu_queue.write(sdu);
@@ -427,7 +440,7 @@ void rlc_am::rlc_am_tx::write_sdu(byte_buffer_t *sdu, bool blocking)
       if (tx_sdu_queue.try_write(sdu)) {
         log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, sdu->N_bytes, tx_sdu_queue.size());
       } else {
-        log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, sdu->N_bytes, tx_sdu_queue.size());
+        log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, sdu->N_bytes, tx_sdu_queue.size());
         pool->deallocate(sdu);
       }
     }
@@ -439,10 +452,16 @@ void rlc_am::rlc_am_tx::write_sdu(byte_buffer_t *sdu, bool blocking)
 int rlc_am::rlc_am_tx::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
+
   int pdu_size = 0;
 
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
   log->debug("tx_window size - %zu PDUs\n", tx_window.size());
+
+  if (not tx_enabled) {
+    log->debug("RLC entity not active. Not generating PDU.\n");
+    goto unlock_and_exit;
+  }
 
   // Tx STATUS if requested
   if(do_status() && not status_prohibited) {
@@ -450,23 +469,13 @@ int rlc_am::rlc_am_tx::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     goto unlock_and_exit;
   }
 
-  // if tx_window is full and retx_queue empty, retransmit next PDU to be ack'ed
-  if (tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.size() == 0) {
-    if (tx_window[vt_a].buf != NULL) {
-      log->warning("Full Tx window, ReTx'ing first outstanding PDU\n");
-      rlc_amd_retx_t retx;
-      retx.is_segment = false;
-      retx.so_start   = 0;
-      retx.so_end     = tx_window[vt_a].buf->N_bytes;
-      retx.sn         = vt_a;
-      retx_queue.push_back(retx);
-    } else {
-      log->error("Found invalid PDU in tx_window.\n");
-    }
+  // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit random PDU
+  if (tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.empty()) {
+    retransmit_random_pdu();
   }
 
   // RETX if required
-  if(retx_queue.size() > 0) {
+  if (not retx_queue.empty()) {
     pdu_size = build_retx_pdu(payload, nof_bytes);
     if (pdu_size > 0) {
       goto unlock_and_exit;
@@ -485,29 +494,35 @@ unlock_and_exit:
 void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
-  if (poll_retx_timer && poll_retx_timer_id == timeout_id) {
-    // if both tx and retx buffer are empty, retransmit next PDU to be ack'ed (Section 5.2.2.3 in TS 36.322)
-    log->debug("Poll reTx timer expired (lcid=%d)\n", parent->lcid);
-    if ((tx_window.size() > 0 && retx_queue.size() == 0 && tx_sdu_queue.size() == 0)) {
-      std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.find(vt_s - 1);
-      if (it != tx_window.end()) {
-        log->info("Schedule last PDU (SN=%d) for reTx.\n", vt_s - 1);
-        rlc_amd_retx_t retx;
-        retx.is_segment = false;
-        retx.so_start = 0;
-        retx.so_end = tx_window[vt_s - 1].buf->N_bytes;
-        retx.sn = vt_s - 1;
-        retx_queue.push_back(retx);
-      } else {
-        log->error("Found invalid PDU in tx_window.\n");
-      }
+  if (poll_retx_timer != NULL && poll_retx_timer_id == timeout_id) {
+    log->debug("Poll reTx timer expired for LCID=%d after %d ms\n", parent->lcid, poll_retx_timer->get_timeout());
+    // Section 5.2.2.3 in TS 36.311, schedule random PDU for retransmission if
+    // (a) both tx and retx buffer are empty, or
+    // (b) no new data PDU can be transmitted (tx window is full)
+    if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+      retransmit_random_pdu();
     }
   } else
-  if (status_prohibit_timer && status_prohibit_timer_id == timeout_id) {
-    status_prohibited = true;
-    status_prohibit_timer->reset();
+  if (status_prohibit_timer != NULL && status_prohibit_timer_id == timeout_id) {
+    status_prohibited = false;
   }
   pthread_mutex_unlock(&mutex);
+}
+
+void rlc_am::rlc_am_tx::retransmit_random_pdu()
+{
+  if (not tx_window.empty()) {
+    // randomly select PDU in tx window for retransmission
+    std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it = tx_window.begin();
+    std::advance(it, rand() % tx_window.size());
+    log->info("Schedule SN=%d for reTx.\n", it->first);
+    rlc_amd_retx_t retx = {};
+    retx.is_segment = false;
+    retx.so_start = 0;
+    retx.so_end = it->second.buf->N_bytes;
+    retx.sn = it->first;
+    retx_queue.push_back(retx);
+  }
 }
 
 uint32_t rlc_am::rlc_am_tx::get_num_tx_bytes()
@@ -528,25 +543,28 @@ void rlc_am::rlc_am_tx::reset_metrics()
 
 bool rlc_am::rlc_am_tx::poll_required()
 {
-  if (cfg.poll_pdu > 0 && pdu_without_poll > (uint32_t)cfg.poll_pdu) {
+  if (cfg.poll_pdu > 0 && pdu_without_poll > static_cast<uint32_t>(cfg.poll_pdu)) {
     return true;
   }
 
-  if (cfg.poll_byte > 0 && byte_without_poll > (uint32_t)cfg.poll_byte) {
+  if (cfg.poll_byte > 0 && byte_without_poll > static_cast<uint32_t>(cfg.poll_byte)) {
     return true;
   }
 
-  if (poll_retx_timer) {
+  if (poll_retx_timer != NULL) {
     if (poll_retx_timer->is_expired()) {
-      // re-arm timer
+      // re-arm timer (will be stopped when status PDU is received)
       poll_retx_timer->reset();
-      poll_retx_timer->set(this, cfg.t_poll_retx);
       poll_retx_timer->run();
       return true;
     }
   }
 
-  if (tx_sdu_queue.size() == 0 && retx_queue.size() == 0) {
+  if (tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+    return true;
+  }
+
+  if (tx_sdu_queue.size() == 0 && retx_queue.empty()) {
     return true;
   }
 
@@ -564,26 +582,30 @@ bool rlc_am::rlc_am_tx::poll_required()
 
 int rlc_am::rlc_am_tx::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
-  int pdu_len = parent->rx.get_status(&tx_status);
-  if (pdu_len > 0 && nof_bytes >= (uint32_t)pdu_len)
-  {
+  int pdu_len = parent->rx.get_status_pdu(&tx_status, nof_bytes);
+  log->debug("%s\n", rlc_am_status_pdu_to_string(&tx_status).c_str());
+  if (pdu_len > 0 && nof_bytes >= static_cast<uint32_t>(pdu_len)) {
     log->info("%s Tx status PDU - %s\n",
-              RB_NAME, rlc_am_to_string(&tx_status).c_str());
+              RB_NAME, rlc_am_status_pdu_to_string(&tx_status).c_str());
 
     parent->rx.reset_status();
 
-    if(cfg.t_status_prohibit > 0 && status_prohibit_timer) {
-      status_prohibited = false;
-      status_prohibit_timer->set(this, cfg.t_status_prohibit);
+    if (cfg.t_status_prohibit > 0 && status_prohibit_timer != NULL) {
+      status_prohibited = true;
+
+      // re-arm timer
+      status_prohibit_timer->reset();
       status_prohibit_timer->run();
     }
     debug_state();
-    return rlc_am_write_status_pdu(&tx_status, payload);
-  }else{
+    pdu_len = rlc_am_write_status_pdu(&tx_status, payload);
+  } else{
     log->warning("%s Cannot tx status PDU - %d bytes available, %d bytes required\n",
                  RB_NAME, nof_bytes, pdu_len);
-    return 0;
+    pdu_len = 0;
   }
+
+  return pdu_len;
 }
 
 int rlc_am::rlc_am_tx::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
@@ -614,7 +636,8 @@ int rlc_am::rlc_am_tx::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
     retx_queue.pop_front();
     return -1;
   }
-  if(retx.is_segment || req_size > (int)nof_bytes) {
+
+  if (retx.is_segment || req_size > static_cast<int>(nof_bytes)) {
     log->debug("%s build_retx_pdu - resegmentation required\n", RB_NAME);
     return build_segment(payload, nof_bytes, retx);
   }
@@ -633,8 +656,8 @@ int rlc_am::rlc_am_tx::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
     poll_sn           = vt_s;
     pdu_without_poll  = 0;
     byte_without_poll = 0;
-    if (poll_retx_timer) {
-      poll_retx_timer->set(this, cfg.t_poll_retx);
+    if (poll_retx_timer != NULL) {
+      poll_retx_timer->reset();
       poll_retx_timer->run();
     }
   }
@@ -646,6 +669,8 @@ int rlc_am::rlc_am_tx::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
   retx_queue.pop_front();
   tx_window[retx.sn].retx_count++;
   if (tx_window[retx.sn].retx_count >= cfg.max_retx_thresh) {
+    log->warning("%s Signaling max number of reTx=%d for for PDU %d\n",
+              RB_NAME, tx_window[retx.sn].retx_count, retx.sn);
     parent->rrc->max_retx_attempted();
   }
 
@@ -656,15 +681,14 @@ int rlc_am::rlc_am_tx::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
   return (ptr-payload) + tx_window[retx.sn].buf->N_bytes;
 }
 
-int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t retx)
-{
-  if (!tx_window[retx.sn].buf) {
+int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t retx) {
+  if (tx_window[retx.sn].buf == NULL) {
     log->error("In build_segment: retx.sn=%d has null buffer\n", retx.sn);
     return 0;
   }
-  if(!retx.is_segment){
+  if (!retx.is_segment) {
     retx.so_start = 0;
-    retx.so_end   = tx_window[retx.sn].buf->N_bytes;
+    retx.so_end = tx_window[retx.sn].buf->N_bytes;
   }
 
   // Construct new header
@@ -676,28 +700,27 @@ int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
   log->info("%s pdu_without_poll: %d\n", RB_NAME, pdu_without_poll);
   log->info("%s byte_without_poll: %d\n", RB_NAME, byte_without_poll);
 
-  new_header.dc   = RLC_DC_FIELD_DATA_PDU;
-  new_header.rf   = 1;
-  new_header.fi   = RLC_FI_FIELD_NOT_START_OR_END_ALIGNED;
-  new_header.sn   = old_header.sn;
-  new_header.lsf  = 0;
-  new_header.so   = retx.so_start;
+  new_header.dc = RLC_DC_FIELD_DATA_PDU;
+  new_header.rf = 1;
+  new_header.fi = RLC_FI_FIELD_NOT_START_OR_END_ALIGNED;
+  new_header.sn = old_header.sn;
+  new_header.lsf = 0;
+  new_header.so = retx.so_start;
   new_header.N_li = 0;
-  new_header.p    = 0;
-  if(poll_required())
-  {
+  new_header.p = 0;
+  if (poll_required()) {
     log->debug("%s setting poll bit to request status\n", RB_NAME);
-    new_header.p      = 1;
-    poll_sn           = vt_s;
-    pdu_without_poll  = 0;
+    new_header.p = 1;
+    poll_sn = vt_s;
+    pdu_without_poll = 0;
     byte_without_poll = 0;
-    if (poll_retx_timer) {
-      poll_retx_timer->set(this, cfg.t_poll_retx);
+    if (poll_retx_timer != NULL) {
+      poll_retx_timer->reset();
       poll_retx_timer->run();
     }
   }
 
-  uint32_t head_len  = 0;
+  uint32_t head_len = 0;
   uint32_t pdu_space = 0;
 
   head_len = rlc_am_packed_length(&new_header);
@@ -706,76 +729,84 @@ int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
     head_len += 2;
   }
 
-  if(nof_bytes <= head_len)
-  {
+  if (nof_bytes <= head_len) {
     log->warning("%s Cannot build a PDU segment - %d bytes available, %d bytes required for header\n",
                  RB_NAME, nof_bytes, head_len);
     return 0;
   }
 
-  pdu_space = nof_bytes-head_len;
-  if(pdu_space < (retx.so_end-retx.so_start))
-    retx.so_end = retx.so_start+pdu_space;
+  pdu_space = nof_bytes - head_len;
+  if (pdu_space < (retx.so_end - retx.so_start)) {
+    retx.so_end = retx.so_start + pdu_space;
+  }
 
   // Need to rebuild the li table & update fi based on so_start and so_end
-  if(retx.so_start == 0 && rlc_am_start_aligned(old_header.fi))
+  if (retx.so_start == 0 && rlc_am_start_aligned(old_header.fi)) {
     new_header.fi &= RLC_FI_FIELD_NOT_END_ALIGNED;   // segment is start aligned
+  }
 
   uint32_t lower     = 0;
   uint32_t upper     = 0;
   uint32_t li        = 0;
 
   for(uint32_t i=0; i<old_header.N_li; i++) {
-    if(lower >= retx.so_end)
+    if (lower >= retx.so_end) {
       break;
+    }
 
-    if(pdu_space <= 2)
+    if (pdu_space <= 2) {
       break;
+    }
 
     upper += old_header.li[i];
 
     head_len    = rlc_am_packed_length(&new_header);
+
+    // Accomodate some extra space for for LIs if old header contained segments too
+    head_len += old_header.N_li;
+
     pdu_space   = nof_bytes-head_len;
-    if(pdu_space < (retx.so_end-retx.so_start))
-      retx.so_end = retx.so_start+pdu_space;
+    if(pdu_space < (retx.so_end-retx.so_start)) {
+      retx.so_end = retx.so_start + pdu_space;
+    }
 
     if(upper > retx.so_start && lower < retx.so_end) {  // Current SDU is needed
       li = upper - lower;
-      if(upper > retx.so_end)
+      if (upper > retx.so_end) {
         li -= upper - retx.so_end;
-      if(lower < retx.so_start)
+      }
+      if (lower < retx.so_start) {
         li -= retx.so_start - lower;
-      if(lower > 0 && lower == retx.so_start)
+      }
+      if (lower > 0 && lower == retx.so_start) {
         new_header.fi &= RLC_FI_FIELD_NOT_END_ALIGNED;   // segment start is aligned with this SDU
-      if(upper == retx.so_end) {
+      }
+      if (upper == retx.so_end) {
         new_header.fi &= RLC_FI_FIELD_NOT_START_ALIGNED; // segment end is aligned with this SDU
       }
-      new_header.li[new_header.N_li++] = li;
+      new_header.li[new_header.N_li] = li;
+
+      // only increment N_li if more SDU (segments) are being added
+      if (retx.so_end > upper) {
+        new_header.N_li++;
+      }
     }
 
     lower += old_header.li[i];
-  }
-
-  // Make sure LI is not deleted in case the SDU boundary is crossed
-  // FIXME: fix if N_li > 1
-  if (new_header.N_li == 1 && retx.so_start + new_header.li[0] < retx.so_end && retx.so_end <= retx.so_start + pdu_space) {
-    // This segment crosses a SDU boundary
-    new_header.N_li++;
   }
 
   // Update retx_queue
   if(tx_window[retx.sn].buf->N_bytes == retx.so_end) {
     retx_queue.pop_front();
     new_header.lsf = 1;
-    if(rlc_am_end_aligned(old_header.fi))
+    if(rlc_am_end_aligned(old_header.fi)) {
       new_header.fi &= RLC_FI_FIELD_NOT_START_ALIGNED;   // segment is end aligned
+    }
   } else if(retx_queue.front().so_end == retx.so_end) {
     retx_queue.pop_front();
   } else {
     retx_queue.front().is_segment = true;
     retx_queue.front().so_start = retx.so_end;
-    if(new_header.N_li > 0)
-      new_header.N_li--;
   }
 
   // Write header and pdu
@@ -785,37 +816,37 @@ int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
   uint32_t len  = retx.so_end - retx.so_start;
   memcpy(ptr, data, len);
 
-  log->info("%s Retx PDU segment scheduled for tx. SN: %d, SO: %d\n",
-            RB_NAME, retx.sn, retx.so_start);
-
   debug_state();
   int pdu_len = (ptr-payload) + len;
-  if(pdu_len > (int)nof_bytes) {
+  if (pdu_len > static_cast<int>(nof_bytes)) {
     log->error("%s Retx PDU segment length error. Available: %d, Used: %d\n",
                RB_NAME, nof_bytes, pdu_len);
     log->debug("%s Retx PDU segment length error. Header len: %ld, Payload len: %d, N_li: %d\n",
                RB_NAME, (ptr-payload), len, new_header.N_li);
   }
+
+  log->info_hex(payload, pdu_len, "%s Retx PDU segment of SN=%d (%d B), SO: %d, N_li: %d\n",
+                RB_NAME, retx.sn, pdu_len, retx.so_start, new_header.N_li);
+
   return pdu_len;
 
 }
 
 int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
-  if(!tx_sdu && tx_sdu_queue.size() == 0)
-  {
+  if (tx_sdu == NULL && tx_sdu_queue.size() == 0) {
     log->info("No data available to be sent\n");
     return 0;
   }
 
   // do not build any more PDU if window is already full
-  if (!tx_sdu && tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+  if (tx_sdu == NULL && tx_window.size() >= RLC_AM_WINDOW_SIZE) {
     log->info("Tx window full.\n");
     return 0;
   }
 
   byte_buffer_t *pdu = pool_allocate_blocking;
-  if (!pdu) {
+  if (pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
     log->console("tx_window size: %d PDUs\n", tx_window.size());
@@ -847,7 +878,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint32_t head_len  = rlc_am_packed_length(&header);
   uint32_t to_move   = 0;
   uint32_t last_li   = 0;
-  uint32_t pdu_space = nof_bytes;
+  uint32_t pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
   uint8_t *pdu_ptr   = pdu->msg;
 
   if(pdu_space <= head_len + 1)
@@ -862,8 +893,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
              RB_NAME, pdu_space, head_len);
 
   // Check for SDU segment
-  if(tx_sdu)
-  {
+  if (tx_sdu != NULL) {
     to_move = ((pdu_space-head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space-head_len;
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li          = to_move;
@@ -878,10 +908,11 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
     }
-    if(pdu_space > to_move)
-      pdu_space -= to_move;
-    else
+    if (pdu_space > to_move) {
+      pdu_space -= SRSLTE_MIN(to_move, pdu->get_tailroom());
+    } else {
       pdu_space = 0;
+    }
     header.fi |= RLC_FI_FIELD_NOT_START_ALIGNED; // First byte does not correspond to first byte of SDU
 
     log->debug("%s Building PDU - added SDU segment (len:%d) - pdu_space: %d, head_len: %d \n",
@@ -889,12 +920,13 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Pull SDUs from queue
-  while(pdu_space > head_len + 1 && tx_sdu_queue.size() > 0)
-  {
-    if(last_li > 0)
-      header.li[header.N_li++] = last_li;
+  while (pdu_space > head_len + 1 && tx_sdu_queue.size() > 0) {
+    if (last_li > 0) {
+      header.li[header.N_li] = last_li;
+      header.N_li++;
+    }
     head_len = rlc_am_packed_length(&header);
-    if(head_len >= pdu_space) {
+    if (head_len >= pdu_space) {
       header.N_li--;
       break;
     }
@@ -906,17 +938,17 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     pdu->N_bytes    += to_move;
     tx_sdu->N_bytes -= to_move;
     tx_sdu->msg     += to_move;
-    if(tx_sdu->N_bytes == 0)
-    {
+    if (tx_sdu->N_bytes == 0) {
       log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                 RB_NAME, tx_sdu->get_latency_us());
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
     }
-    if(pdu_space > to_move)
+    if(pdu_space > to_move) {
       pdu_space -= to_move;
-    else
+    } else {
       pdu_space = 0;
+    }
 
     log->debug("%s Building PDU - added SDU segment (len:%d) - pdu_space: %d, head_len: %d \n",
                RB_NAME, to_move, pdu_space, head_len);
@@ -928,8 +960,9 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
-  if(tx_sdu)
+  if (tx_sdu != NULL) {
     header.fi |= RLC_FI_FIELD_NOT_END_ALIGNED; // Last byte does not correspond to last byte of SDU
+  }
 
   // Set Poll bit
   pdu_without_poll++;
@@ -943,8 +976,8 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     poll_sn           = vt_s;
     pdu_without_poll  = 0;
     byte_without_poll = 0;
-    if (poll_retx_timer) {
-      poll_retx_timer->set(this, cfg.t_poll_retx);
+    if (poll_retx_timer != NULL) {
+      poll_retx_timer->reset();
       poll_retx_timer->run();
     }
   }
@@ -962,10 +995,11 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint8_t *ptr = payload;
   rlc_am_write_data_pdu_header(&header, &ptr);
   memcpy(ptr, pdu->msg, pdu->N_bytes);
-  log->info_hex(payload, pdu->N_bytes, "%s PDU scheduled for tx. SN: %d (%d B)\n", RB_NAME, header.sn, pdu->N_bytes);
-
+  int total_len = (ptr-payload) + pdu->N_bytes;
+  log->info_hex(payload, total_len, "%s Tx PDU SN=%d (%d B)\n", RB_NAME, header.sn, total_len);
+  log->debug("%s\n", rlc_amd_pdu_header_to_string(header).c_str());
   debug_state();
-  return (ptr-payload) + pdu->N_bytes;
+  return total_len;
 }
 
 void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
@@ -977,10 +1011,10 @@ void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
   rlc_status_pdu_t status;
   rlc_am_read_status_pdu(payload, nof_bytes, &status);
 
-  log->info("%s Rx Status PDU: %s\n", RB_NAME, rlc_am_to_string(&status).c_str());
+  log->info("%s Rx Status PDU: %s\n", RB_NAME, rlc_am_status_pdu_to_string(&status).c_str());
 
-  if (poll_retx_timer) {
-    poll_retx_timer->reset();
+  if (poll_retx_timer != NULL) {
+    poll_retx_timer->stop();
   }
 
   // flush retx queue to avoid unordered SNs, we expect the Rx to request lost PDUs again
@@ -1005,7 +1039,8 @@ void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
         if(tx_window.end() != it)
         {
           if(!retx_queue_has_sn(i)) {
-            rlc_amd_retx_t retx;
+            rlc_amd_retx_t retx = {};
+            retx.sn         = i;
             retx.is_segment = false;
             retx.so_start   = 0;
             retx.so_end     = it->second.buf->N_bytes;
@@ -1036,8 +1071,6 @@ void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
                              RB_NAME, i, status.nacks[j].so_start, status.nacks[j].so_end, it->second.buf->N_bytes);
               }
             }
-
-            retx.sn         = i;
             retx_queue.push_back(retx);
           }
         }
@@ -1050,7 +1083,7 @@ void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
         it = tx_window.find(i);
         if (it != tx_window.end()) {
           if(update_vt_a) {
-            if(it->second.buf) {
+            if (it->second.buf != NULL) {
               pool->deallocate(it->second.buf);
               it->second.buf = 0;
             }
@@ -1080,7 +1113,7 @@ void rlc_am::rlc_am_tx::debug_state()
 int rlc_am::rlc_am_tx::required_buffer_size(rlc_amd_retx_t retx)
 {
   if (!retx.is_segment) {
-    if (tx_window.count(retx.sn)) {
+    if (tx_window.count(retx.sn) == 1) {
       if (tx_window[retx.sn].buf) {
         return rlc_am_packed_length(&tx_window[retx.sn].header) + tx_window[retx.sn].buf->N_bytes;
       } else {
@@ -1106,33 +1139,34 @@ int rlc_am::rlc_am_tx::required_buffer_size(rlc_amd_retx_t retx)
   new_header.so   = retx.so_start;
   new_header.N_li = 0;
 
-  uint32_t head_len  = 0;
-
   // Need to rebuild the li table & update fi based on so_start and so_end
-  if(retx.so_start != 0 && rlc_am_start_aligned(old_header.fi))
+  if(retx.so_start != 0 && rlc_am_start_aligned(old_header.fi)) {
     new_header.fi &= RLC_FI_FIELD_NOT_END_ALIGNED;   // segment is start aligned
+  }
 
   uint32_t lower     = 0;
   uint32_t upper     = 0;
   uint32_t li        = 0;
 
   for(uint32_t i=0; i<old_header.N_li; i++) {
-    if(lower >= retx.so_end)
+    if(lower >= retx.so_end) {
       break;
+    }
 
     upper += old_header.li[i];
 
-    head_len    = rlc_am_packed_length(&new_header);
-
-    if(upper > retx.so_start && lower < retx.so_end) {  // Current SDU is needed
+    if (upper > retx.so_start && lower < retx.so_end) {  // Current SDU is needed
       li = upper - lower;
-      if(upper > retx.so_end)
+      if (upper > retx.so_end) {
         li -= upper - retx.so_end;
-      if(lower < retx.so_start)
+      }
+      if (lower < retx.so_start) {
         li -= retx.so_start - lower;
-      if(lower > 0 && lower == retx.so_start)
+      }
+      if (lower > 0 && lower == retx.so_start) {
         new_header.fi &= RLC_FI_FIELD_NOT_END_ALIGNED;   // segment start is aligned with this SDU
-      if(upper == retx.so_end) {
+      }
+      if (upper == retx.so_end) {
         new_header.fi &= RLC_FI_FIELD_NOT_START_ALIGNED; // segment end is aligned with this SDU
       }
       new_header.li[new_header.N_li++] = li;
@@ -1152,9 +1186,10 @@ int rlc_am::rlc_am_tx::required_buffer_size(rlc_amd_retx_t retx)
 bool rlc_am::rlc_am_tx::retx_queue_has_sn(uint32_t sn)
 {
   std::deque<rlc_amd_retx_t>::iterator q_it;
-  for(q_it = retx_queue.begin(); q_it != retx_queue.end(); q_it++) {
-    if(q_it->sn == sn)
+  for (q_it = retx_queue.begin(); q_it != retx_queue.end(); ++q_it) {
+    if (q_it->sn == sn) {
       return true;
+    }
   }
   return false;
 }
@@ -1192,8 +1227,8 @@ rlc_am::rlc_am_rx::~rlc_am_rx()
 
 void rlc_am::rlc_am_rx::init()
 {
-  log  = parent->log;
-  if (parent->mac_timers) {
+  log = parent->log;
+  if (parent->mac_timers != NULL) {
     reordering_timer_id   = parent->mac_timers->timer_get_unique_id();
     reordering_timer      = parent->mac_timers->timer_get(reordering_timer_id);
   }
@@ -1205,8 +1240,13 @@ bool rlc_am::rlc_am_rx::configure(srslte_rlc_am_config_t cfg_)
   cfg = cfg_;
 
   // check timers
-  if (not reordering_timer) {
+  if (reordering_timer == NULL) {
     return false;
+  }
+
+  // configure timer
+  if (cfg.t_reordering > 0) {
+    reordering_timer->set(this, static_cast<uint32_t>(cfg.t_reordering));
   }
 
   return true;
@@ -1221,13 +1261,13 @@ void rlc_am::rlc_am_rx::stop()
 {
   pthread_mutex_lock(&mutex);
 
-  if (parent->mac_timers && reordering_timer) {
+  if (parent->mac_timers != NULL && reordering_timer != NULL) {
     reordering_timer->stop();
     parent->mac_timers->timer_release_id(reordering_timer_id);
     reordering_timer = NULL;
   }
 
-  if (rx_sdu) {
+  if (rx_sdu != NULL) {
     pool->deallocate(rx_sdu);
     rx_sdu = NULL;
   }
@@ -1268,8 +1308,11 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
 {
   std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator it;
 
-  log->info_hex(payload, nof_bytes, "%s Rx data PDU SN: %d (%d B), %s",
-                RB_NAME, header.sn, nof_bytes, rlc_fi_field_text[header.fi]);
+  log->info_hex(payload, nof_bytes, "%s Rx data PDU SN=%d (%d B)",
+                RB_NAME,
+                header.sn,
+                nof_bytes);
+  log->debug("%s\n", rlc_amd_pdu_header_to_string(header).c_str());
 
   if(!inside_rx_window(header.sn)) {
     if(header.p) {
@@ -1295,7 +1338,7 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
   // Write to rx window
   rlc_amd_rx_pdu_t pdu;
   pdu.buf = pool_allocate_blocking;
-  if (!pdu.buf) {
+  if (pdu.buf == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Couldn't allocate PDU in handle_data_pdu().\n");
     exit(-1);
@@ -1331,14 +1374,12 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
   }
 
   // Check poll bit
-  if(header.p) {
+  if (header.p) {
     log->info("%s Status packet requested through polling bit\n", RB_NAME);
     poll_received = true;
 
     // 36.322 v10 Section 5.2.3
-    if(RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ms) ||
-       RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_mr))
-    {
+    if (RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ms) || RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_mr)) {
       do_status = true;
     }
     // else delay for reordering timer
@@ -1348,16 +1389,16 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
   reassemble_rx_sdus();
 
   // Update reordering variables and timers (36.322 v10.0.0 Section 5.1.3.2.3)
-  if (reordering_timer) {
+  if (reordering_timer != NULL) {
     if (reordering_timer->is_running()) {
       if(vr_x == vr_r || (!inside_rx_window(vr_x) && vr_x != vr_mr)) {
-        reordering_timer->reset();
+        reordering_timer->stop();
       }
     }
 
     if (not reordering_timer->is_running()) {
       if(RX_MOD_BASE(vr_h) > RX_MOD_BASE(vr_r)) {
-        reordering_timer->set(this, cfg.t_reordering);
+        reordering_timer->reset();
         reordering_timer->run();
         vr_x = vr_h;
       }
@@ -1372,8 +1413,9 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
 {
   std::map<uint32_t, rlc_amd_rx_pdu_segments_t>::iterator it;
 
-  log->info_hex(payload, nof_bytes, "%s Rx data PDU segment. SN: %d, SO: %d",
-                RB_NAME, header.sn, header.so);
+  log->info_hex(payload, nof_bytes, "%s Rx data PDU segment of SN=%d (%d B), SO=%d, N_li=%d",
+                RB_NAME, header.sn, nof_bytes, header.so, header.N_li);
+  log->debug("%s\n", rlc_amd_pdu_header_to_string(header).c_str());
 
   // Check inside rx window
   if(!inside_rx_window(header.sn)) {
@@ -1388,7 +1430,7 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
 
   rlc_amd_rx_pdu_t segment;
   segment.buf = pool_allocate_blocking;
-  if (!segment.buf) {
+  if (segment.buf == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Couldn't allocate PDU in handle_data_pdu_segment().\n");
     exit(-1);
@@ -1404,9 +1446,9 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
 
   // Check if we already have a segment from the same PDU
   it = rx_segments.find(header.sn);
-  if(rx_segments.end() != it) {
+  if (rx_segments.end() != it) {
 
-    if(header.p) {
+    if (header.p) {
       log->info("%s Status packet requested through polling bit\n", RB_NAME);
       do_status = true;
     }
@@ -1429,14 +1471,13 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
     pdu.segments.push_back(segment);
     rx_segments[header.sn] = pdu;
 
-
     // Update vr_h
-    if(RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_h))
-      vr_h  = (header.sn + 1)%MOD;
+    if (RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_h)) {
+      vr_h = (header.sn + 1) % MOD;
+    }
 
     // Check poll bit
-    if(header.p)
-    {
+    if (header.p) {
       log->info("%s Status packet requested through polling bit\n", RB_NAME);
       poll_received = true;
 
@@ -1459,9 +1500,9 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
 void rlc_am::rlc_am_rx::reassemble_rx_sdus()
 {
   uint32_t len = 0;
-  if(!rx_sdu) {
+  if (rx_sdu == NULL) {
     rx_sdu = pool_allocate_blocking;
-    if (!rx_sdu) {
+    if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
       log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (1)\n");
       exit(-1);
@@ -1479,6 +1520,9 @@ void rlc_am::rlc_am_rx::reassemble_rx_sdus()
     for(uint32_t i=0; i<rx_window[vr_r].header.N_li; i++)
     {
       len = rx_window[vr_r].header.li[i];
+
+      log->debug_hex(rx_window[vr_r].buf->msg, len, "Handling segment %d/%d of length %d B of SN=%d\n", i+1, rx_window[vr_r].header.N_li, len, vr_r);
+
       // sanity check to avoid zero-size SDUs
       if (len == 0) {
         break;
@@ -1495,7 +1539,7 @@ void rlc_am::rlc_am_rx::reassemble_rx_sdus()
           parent->pdcp->write_pdu(parent->lcid, rx_sdu);
 
           rx_sdu = pool_allocate_blocking;
-          if (!rx_sdu) {
+          if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
             log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
           exit(-1);
@@ -1518,22 +1562,23 @@ void rlc_am::rlc_am_rx::reassemble_rx_sdus()
 
     // Handle last segment
     len = rx_window[vr_r].buf->N_bytes;
+    log->debug_hex(rx_window[vr_r].buf->msg, len, "Handling last segment of length %d B of SN=%d\n", len, vr_r);
     if (rx_sdu->get_tailroom() >= len) {
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
       rx_sdu->N_bytes += rx_window[vr_r].buf->N_bytes;
     } else {
-      log->error("Cannot fit RLC PDU in SDU buffer, dropping both.\n");
+      log->error("Cannot fit RLC PDU in SDU buffer, dropping both. Erasing SN=%d.\n", vr_r);
       pool->deallocate(rx_sdu);
       pool->deallocate(rx_window[vr_r].buf);
       rx_window.erase(vr_r);
     }
 
-    if(rlc_am_end_aligned(rx_window[vr_r].header.fi)) {
+    if (rlc_am_end_aligned(rx_window[vr_r].header.fi)) {
       log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", RB_NAME, rx_sdu->N_bytes);
       rx_sdu->set_timestamp();
       parent->pdcp->write_pdu(parent->lcid, rx_sdu);
       rx_sdu = pool_allocate_blocking;
-      if (!rx_sdu) {
+      if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
         log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (3)\n");
         exit(-1);
@@ -1546,6 +1591,19 @@ void rlc_am::rlc_am_rx::reassemble_rx_sdus()
 
 exit:
     // Move the rx_window
+    log->debug("Erasing SN=%d.\n", vr_r);
+    // also erase any segments of this SN
+    std::map<uint32_t, rlc_amd_rx_pdu_segments_t>::iterator it;
+    it = rx_segments.find(vr_r);
+    if(rx_segments.end() != it) {
+      log->debug("Erasing segments of SN=%d\n", vr_r);
+      std::list<rlc_amd_rx_pdu_t>::iterator segit;
+      for(segit = it->second.segments.begin(); segit != it->second.segments.end(); ++segit) {
+        log->debug(" Erasing segment of SN=%d SO=%d Len=%d N_li=%d\n", segit->header.sn, segit->header.so, segit->buf->N_bytes,  segit->header.N_li);
+        pool->deallocate(segit->buf);
+      }
+      it->second.segments.clear();
+    }
     pool->deallocate(rx_window[vr_r].buf);
     rx_window.erase(vr_r);
     vr_r = (vr_r + 1)%MOD;
@@ -1604,7 +1662,7 @@ void rlc_am::rlc_am_rx::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 void rlc_am::rlc_am_rx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
-  if (reordering_timer && reordering_timer_id == timeout_id) {
+  if (reordering_timer != NULL && reordering_timer_id == timeout_id) {
     reordering_timer->reset();
     log->debug("%s reordering timeout expiry - updating vr_ms\n", RB_NAME);
 
@@ -1621,7 +1679,7 @@ void rlc_am::rlc_am_rx::timer_expired(uint32_t timeout_id)
     }
 
     if (RX_MOD_BASE(vr_h) > RX_MOD_BASE(vr_ms)) {
-      reordering_timer->set(this, cfg.t_reordering);
+      reordering_timer->reset();
       reordering_timer->run();
       vr_x = vr_h;
     }
@@ -1631,8 +1689,8 @@ void rlc_am::rlc_am_rx::timer_expired(uint32_t timeout_id)
   pthread_mutex_unlock(&mutex);
 }
 
-// Called from Tx object (packs status PDU and returns length of it)
-int rlc_am::rlc_am_rx::get_status(rlc_status_pdu_t* status)
+// Called from Tx object to pack status PDU that doesn't exceed a given size
+int rlc_am::rlc_am_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t max_pdu_size)
 {
   pthread_mutex_lock(&mutex);
   status->N_nack = 0;
@@ -1640,14 +1698,32 @@ int rlc_am::rlc_am_rx::get_status(rlc_status_pdu_t* status)
 
   // We don't use segment NACKs - just NACK the full PDU
   uint32_t i = vr_r;
-  while(RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms)) {
+  while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status->N_nack < RLC_AM_WINDOW_SIZE && rlc_am_packed_length(status) <= max_pdu_size-2) {
+    status->ack_sn = i;
     if(rx_window.find(i) == rx_window.end()) {
-      status->nacks[status->N_nack++].nack_sn = i;
+      status->nacks[status->N_nack].nack_sn = i;
+      status->N_nack++;
     }
     i = (i + 1)%MOD;
   }
   pthread_mutex_unlock(&mutex);
   return rlc_am_packed_length(status);
+}
+
+// Called from Tx object to obtain length of the full status PDU
+int rlc_am::rlc_am_rx::get_status_pdu_length()
+{
+  pthread_mutex_lock(&mutex);
+  rlc_status_pdu_t status;
+  uint32_t i = vr_r;
+  while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status.N_nack < RLC_AM_WINDOW_SIZE) {
+    if(rx_window.find(i) == rx_window.end()) {
+      status.N_nack++;
+    }
+    i = (i + 1)%MOD;
+  }
+  pthread_mutex_unlock(&mutex);
+  return rlc_am_packed_length(&status);
 }
 
 void rlc_am::rlc_am_rx::print_rx_segments()
@@ -1694,12 +1770,14 @@ bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rl
   uint32_t so = 0;
   std::list<rlc_amd_rx_pdu_t>::iterator it, tmpit;
   for(it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
-    if(so != it->header.so)
+    if (so != it->header.so) {
       return false;
+    }
     so += it->buf->N_bytes;
   }
-  if(!pdu->segments.back().header.lsf)
+  if (!pdu->segments.back().header.lsf) {
     return false;
+  }
 
   // We have all segments of the PDU - reconstruct and handle
   rlc_amd_pdu_header_t header;
@@ -1716,36 +1794,49 @@ bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rl
   header.fi |= (pdu->segments.front().header.fi & RLC_FI_FIELD_NOT_START_ALIGNED);
   header.fi |= (pdu->segments.back().header.fi  & RLC_FI_FIELD_NOT_END_ALIGNED);
 
+  log->debug("Starting header reconstruction of %zd segments\n", pdu->segments.size());
+
   // Reconstruct li fields
   uint16_t count     = 0;
   uint16_t carryover = 0;
   for(it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
-    if(it->header.N_li > 0) {
-      header.li[header.N_li++] = it->header.li[0] + carryover;
-      count += it->header.li[0];
-      for(uint32_t i=1; i<it->header.N_li; i++) {
-        header.li[header.N_li++] = it->header.li[i];
-        count += it->header.li[i];
+    log->debug(" Handling %d PDU segments\n", it->header.N_li);
+    for(uint32_t i=0; i<it->header.N_li; i++) {
+      header.li[header.N_li] = it->header.li[i];
+      if (i == 0) {
+        header.li[header.N_li] += carryover;
       }
+      log->debug("  - adding segment %d/%d (%d B, SO=%d, carryover=%d, count=%d)\n", i+1, it->header.N_li, header.li[header.N_li], header.so, carryover, count);
+      header.N_li++;
+      count += it->header.li[i];
+      carryover = 0;
     }
 
-    // accumulate segment sizes until end aligned PDU is received
-    if (rlc_am_not_start_aligned(it->header.fi)) {
+    if (count <= it->buf->N_bytes) {
       carryover += it->buf->N_bytes - count;
+      log->debug("Incremented carryover (it->buf->N_bytes=%d, count=%d). New carryover=%d\n", it->buf->N_bytes, count, carryover);
     } else {
-      carryover = it->buf->N_bytes - count;
+      // Next segment would be too long, recalculate carryover
+      header.N_li--;
+      carryover = it->buf->N_bytes - (count - header.li[header.N_li]);
+      log->debug("Recalculated carryover=%d (it->buf->N_bytes=%d, count=%d, header.li[header.N_li]=%d)\n", carryover, it->buf->N_bytes, count, header.li[header.N_li]);
     }
+
     tmpit = it;
     if(rlc_am_end_aligned(it->header.fi) && ++tmpit != pdu->segments.end()) {
-      header.li[header.N_li++] = carryover;
+      log->debug("Header is end-aligned, overwrite header.li[%d]=%d\n", header.N_li, carryover);
+      header.li[header.N_li] = carryover;
+      header.N_li++;
       carryover = 0;
     }
     count = 0;
   }
 
+  log->debug("Finished header reconstruction of %zd segments\n", pdu->segments.size());
+
   // Copy data
   byte_buffer_t *full_pdu = pool_allocate_blocking;
-  if (!full_pdu) {
+  if (full_pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");
     exit(-1);
@@ -1801,14 +1892,14 @@ void rlc_am_read_data_pdu_header(uint8_t **payload, uint32_t *nof_bytes, rlc_amd
   uint8_t  ext;
   uint8_t *ptr = *payload;
 
-  header->dc = (rlc_dc_field_t)((*ptr >> 7) & 0x01);
+  header->dc = static_cast<rlc_dc_field_t>((*ptr >> 7) & 0x01);
 
   if(RLC_DC_FIELD_DATA_PDU == header->dc)
   {
     // Fixed part
     header->rf =                 ((*ptr >> 6) & 0x01);
     header->p  =                 ((*ptr >> 5) & 0x01);
-    header->fi = (rlc_fi_field_t)((*ptr >> 3) & 0x03);
+    header->fi = static_cast<rlc_fi_field_t>((*ptr >> 3) & 0x03);
     ext        =                 ((*ptr >> 2) & 0x01);
     header->sn =                 (*ptr & 0x03) << 8; // 2 bits SN
     ptr++;
@@ -1848,8 +1939,9 @@ void rlc_am_read_data_pdu_header(uint8_t **payload, uint32_t *nof_bytes, rlc_amd
     }
 
     // Account for padding if N_li is odd
-    if(header->N_li%2 == 1)
+    if (header->N_li%2 == 1) {
       ptr++;
+    }
 
     *nof_bytes -= ptr-*payload;
     *payload    = ptr;
@@ -1885,7 +1977,7 @@ void rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t *header, uint8_t **payloa
   ptr++;
 
   // Segment part
-  if(header->rf)
+  if (header->rf)
   {
     *ptr  = (header->lsf & 0x01) << 7;
     *ptr |= (header->so  & 0x7F00) >> 8; // 7 bits of SO
@@ -1916,8 +2008,9 @@ void rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t *header, uint8_t **payloa
     }
   }
   // Pad if N_li is odd
-  if(header->N_li%2 == 1)
+  if (header->N_li%2 == 1) {
     ptr++;
+  }
 
   *payload = ptr;
 }
@@ -1937,7 +2030,7 @@ void rlc_am_read_status_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_status_pdu
   srslte_bit_unpack_vector(payload, tmp.msg, nof_bytes*8);
   tmp.N_bits = nof_bytes*8;
 
-  rlc_dc_field_t dc = (rlc_dc_field_t)srslte_bit_pack(&ptr, 1);
+  rlc_dc_field_t dc = static_cast<rlc_dc_field_t>(srslte_bit_pack(&ptr, 1));
 
   if(RLC_DC_FIELD_CONTROL_PDU == dc)
   {
@@ -2009,7 +2102,9 @@ int rlc_am_write_status_pdu(rlc_status_pdu_t *status, uint8_t *payload)
 uint32_t rlc_am_packed_length(rlc_amd_pdu_header_t *header)
 {
   uint32_t len = 2;                 // Fixed part is 2 bytes
-  if(header->rf) len += 2;          // Segment header is 2 bytes
+  if (header->rf) {
+    len += 2; // Segment header is 2 bytes
+  }
   len += header->N_li * 1.5 + 0.5;  // Extension part - integer rounding up
   return len;
 }
@@ -2045,7 +2140,7 @@ bool rlc_am_is_pdu_segment(uint8_t *payload)
   return ((*(payload) >> 6) & 0x01) == 1;
 }
 
-std::string rlc_am_to_string(rlc_status_pdu_t *status)
+std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t *status)
 {
   std::stringstream ss;
   ss << "ACK_SN = " << status->ack_sn;
@@ -2063,6 +2158,28 @@ std::string rlc_am_to_string(rlc_status_pdu_t *status)
       }
     }
   }
+  return ss.str();
+}
+
+std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t &header)
+{
+  std::stringstream ss;
+  ss << "[" << rlc_dc_field_text[header.dc];
+  ss << ", RF=" << (header.rf ? "1":"0");
+  ss << ", P=" << (header.p ? "1":"0");
+  ss << ", FI=" << (header.fi ? "1":"0");
+  ss << ", SN=" << header.sn;
+  ss << ", LSF=" << (header.lsf ? "1":"0");
+  ss << ", SO=" << header.so;
+  ss << ", N_li=" << header.N_li;
+  if (header.N_li > 0) {
+    ss << " (";
+    for (uint32_t i = 0; i < header.N_li; i++) {
+      ss << header.li[i] << ", ";
+    }
+    ss << ")";
+  }
+  ss << "]";
   return ss.str();
 }
 
@@ -2086,4 +2203,4 @@ bool rlc_am_not_start_aligned(const uint8_t fi)
   return (fi == RLC_FI_FIELD_NOT_START_ALIGNED || fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED);
 }
 
-} // namespace srsue
+} // namespace srslte

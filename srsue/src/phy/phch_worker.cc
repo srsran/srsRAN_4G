@@ -61,6 +61,7 @@ phch_worker::phch_worker() : tr_exec(10240)
   chest_loop = NULL;
 
   bzero(signal_buffer, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
+  ZERO_OBJECT(cell);
 
   mem_initiated   = false;
   cell_initiated  = false; 
@@ -1268,6 +1269,22 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
   char timestr[64];
   timestr[0]='\0';
   
+  /* Check input values ranges */
+  if (rnti == 0) {
+    Warning("Encode PUSCH: Invalid RNTI (= 0)\n");
+    return;
+  } else if (rv > 3) {
+    Warning("Encode PUSCH: Invalid RV (= %ud)\n", rv);
+    return;
+  } else if (payload == NULL) {
+    Warning("Encode PUSCH: NULL payload\n");
+    return;
+  } else if (softbuffer == NULL) {
+    Warning("Encode PUSCH: NULL softbuffer\n");
+    return;
+  }
+
+  /* Configure and encode */
   if (srslte_ue_ul_cfg_grant(&ue_ul, grant, TTI_TX(tti), rv, current_tx_nb)) {
     Error("Configuring UL grant\n");
   }

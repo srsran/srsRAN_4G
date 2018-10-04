@@ -205,24 +205,17 @@ bool rf_soapy_rx_wait_lo_locked(void *h)
   return true;
 }
 
-
-void rf_soapy_set_tx_cal(void *h, srslte_rf_cal_t *cal)
+void rf_soapy_calibrate_tx(void *h)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   double actual_bw = SoapySDRDevice_getBandwidth(handler->device, SOAPY_SDR_TX, 0);
   char str_buf[25];
   snprintf(str_buf, sizeof(str_buf), "%f", actual_bw);
+  str_buf[24] = 0;
   if (SoapySDRDevice_writeSetting(handler->device, "CALIBRATE_TX", str_buf)) {
     printf("Error calibrating Rx\n");
   }
 }
-
-
-void rf_soapy_set_rx_cal(void *h, srslte_rf_cal_t *cal)
-{
-  // not supported
-}
-
 
 int rf_soapy_start_rx_stream(void *h, bool now)
 {

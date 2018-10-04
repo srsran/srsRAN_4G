@@ -56,7 +56,7 @@ public:
             log                       *rlc_log_,
             mac_interface_timers      *mac_timers_,
             uint32_t                   lcid_,
-            int                        buffer_size = -1); // -1 to use default buffer sizes
+            int                        buffer_size_ = -1); // -1 to use default buffer sizes
   void stop();
 
   void get_metrics(rlc_metrics_t &m);
@@ -88,6 +88,7 @@ public:
   void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
   void add_bearer_mrb(uint32_t lcid);
   void del_bearer(uint32_t lcid);
+  void del_bearer_mrb(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
 
 private:

@@ -37,6 +37,7 @@ namespace srslte {
 rlc_um::rlc_um(uint32_t queue_len)
     :lcid(0)
     ,tx(queue_len)
+    ,pool(byte_buffer_pool::get_instance())
     ,rrc(NULL)
     ,log(NULL)
 {
@@ -150,6 +151,11 @@ uint32_t rlc_um::get_bearer()
  ***************************************************************************/
 void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
 {
+  if (sdu->N_bytes > RLC_UM_MAX_SDU_SIZE) {
+    log->warning("Dropping too long SDU of size %d B (Max. size %d B).", sdu->N_bytes, RLC_UM_MAX_SDU_SIZE);
+    pool->deallocate(sdu);
+  }
+
   if (blocking) {
     tx.write_sdu(sdu);
   } else {
@@ -399,7 +405,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint8_t *pdu_ptr   = pdu->msg;
 
   int head_len  = rlc_um_packed_length(&header);
-  int pdu_space = nof_bytes;
+  int pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());;
 
   if(pdu_space <= head_len + 1)
   {
@@ -430,7 +436,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       pool->deallocate(tx_sdu);
       tx_sdu = NULL;
     }
-    pdu_space -= to_move;
+    pdu_space -= SRSLTE_MIN(to_move, pdu->get_tailroom());
     header.fi |= RLC_FI_FIELD_NOT_START_ALIGNED; // First byte does not correspond to first byte of SDU
   }
 
@@ -474,7 +480,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   memcpy(payload, pdu->msg, pdu->N_bytes);
   uint32_t ret = pdu->N_bytes;
 
-  log->info("%s Transmitting PDU SN=%d  (%d B)\n", get_rb_name(), header.sn, pdu->N_bytes);
+  log->info("%s Tx PDU SN=%d (%d B)\n", get_rb_name(), header.sn, pdu->N_bytes);
   pool->deallocate(pdu);
 
   debug_state();
@@ -595,7 +601,7 @@ void rlc_um::rlc_um_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.rx_sn_field_length, &header);
 
-  log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN: %d", get_rb_name(), header.sn);
+  log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN: %d (%d B)", get_rb_name(), header.sn, nof_bytes);
 
   if(RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_uh-cfg.rx_window_size) &&
      RX_MOD_BASE(header.sn) <  RX_MOD_BASE(vr_ur))
@@ -758,35 +764,29 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
   // Now update vr_ur until we reach an SN we haven't yet received
   while(rx_window.end() != rx_window.find(vr_ur)) {
     log->debug("Reassemble loop for vr_ur=%d\n", vr_ur);
-    if ((vr_ur_in_rx_sdu+1)%cfg.rx_mod != vr_ur) {
-      log->warning("PDU SN=%d lost, dropping remainder of %d\n", vr_ur_in_rx_sdu+1, vr_ur);
+
+    if (not pdu_belongs_to_rx_sdu()) {
+      log->warning("PDU SN=%d lost, stop reassambling SDU (vr_ur_in_rx_sdu=%d)\n", vr_ur_in_rx_sdu+1, vr_ur_in_rx_sdu);
+      pdu_lost = false; // Reset flag to not prevent reassembling of further segments
       rx_sdu->reset();
     }
 
     // Handle any SDU segments
     for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++) {
       int len = rx_window[vr_ur].header.li[i];
+      log->debug("Handling SDU egment i=%d with len=%d of vr_ur=%d N_li=%d [%s]\n", i, len, vr_ur, rx_window[vr_ur].header.N_li, rlc_fi_field_text[rx_window[vr_ur].header.fi]);
       // Check if the first part of the PDU is a middle or end segment
       if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-        log->warning_hex(rx_window[vr_ur].buf->msg, len, "Dropping first part of SN %d due to lost start segment\n", vr_ur);
+        log->warning_hex(rx_window[vr_ur].buf->msg, len, "Dropping first %d B of SN %d due to lost start segment\n", len, vr_ur);
 
         // Advance data pointers and continue with next segment
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
         rx_sdu->reset();
 
-        // beginning of next SDU?
-        if (rx_window[vr_ur].header.fi == RLC_FI_FIELD_NOT_START_OR_END_ALIGNED) {
-          len = rx_window[vr_ur].buf->N_bytes;
-          log->info_hex(rx_window[vr_ur].buf->msg, len, "Copying first %d bytes of new SDU\n", len);
-          memcpy(rx_sdu->msg, rx_window[vr_ur].buf->msg, len);
-          rx_sdu->N_bytes = len;
-          rx_window[vr_ur].buf->msg += len;
-          rx_window[vr_ur].buf->N_bytes -= len;
-          log->info("Updating vr_ur_in_rx_sdu. old=%d, new=%d\n", vr_ur_in_rx_sdu, vr_ur);
-          vr_ur_in_rx_sdu = vr_ur;
-          goto clean_up_rx_window;
-        }
+        // Reset flag, it is safe to process all remaining segments of this PDU
+        pdu_lost = false;
+        continue;
       }
 
       // Check available space in SDU
@@ -796,16 +796,22 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         goto clean_up_rx_window;
       }
 
-      log->info_hex(rx_window[vr_ur].buf->msg, len, "Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d\n",
-                 len, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur_in_rx_sdu, vr_ur, cfg.rx_mod, (vr_ur_in_rx_sdu+1)%cfg.rx_mod);
+      if (not pdu_belongs_to_rx_sdu()) {
+        log->info_hex(rx_window[vr_ur].buf->msg, len, "Copying first %d bytes of new SDU\n", len);
+        log->info("Updating vr_ur_in_rx_sdu. old=%d, new=%d\n", vr_ur_in_rx_sdu, vr_ur);
+        vr_ur_in_rx_sdu = vr_ur;
+      } else {
+        log->info_hex(rx_window[vr_ur].buf->msg, len, "Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d\n",
+                      len, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur_in_rx_sdu, vr_ur, cfg.rx_mod, (vr_ur_in_rx_sdu+1)%cfg.rx_mod);
+      }
+
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
       rx_sdu->N_bytes += len;
       rx_window[vr_ur].buf->msg += len;
       rx_window[vr_ur].buf->N_bytes -= len;
-      if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%cfg.rx_mod))) {
-        log->warning("Dropping remainder of lost PDU (update vr_ur middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
-        rx_sdu->reset();
-      } else {
+      vr_ur_in_rx_sdu = vr_ur;
+
+      if (not pdu_lost && pdu_belongs_to_rx_sdu()) {
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)", get_rb_name(), vr_ur, i);
         rx_sdu->set_timestamp();
         if(cfg.is_mrb){
@@ -818,6 +824,11 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
           log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
           return;
         }
+      } else {
+        log->warning("Dropping remainder of lost PDU (update vr_ur middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
+        // Advance data pointers and continue with next segment
+        rx_window[vr_ur].buf->msg += len;
+        rx_window[vr_ur].buf->N_bytes -= len;
       }
       pdu_lost = false;
     }
@@ -833,8 +844,8 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         rx_window[vr_ur].buf->N_bytes                   < SRSLTE_MAX_BUFFER_SIZE_BYTES   &&
         rx_window[vr_ur].buf->N_bytes + rx_sdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES)
     {
-      log->info_hex(rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes, "Writing last segment in SDU buffer. Updating vr_ur=%d, Buffer size=%d, segment size=%d\n",
-                vr_ur, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
+      log->info_hex(rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes, "Writing last segment in SDU buffer. Updating vr_ur=%d, vr_ur_in_rx_sdu=%d, Buffer size=%d, segment size=%d\n",
+                vr_ur, vr_ur_in_rx_sdu, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes);
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, rx_window[vr_ur].buf->N_bytes);
       rx_sdu->N_bytes += rx_window[vr_ur].buf->N_bytes;
     } else {
@@ -871,6 +882,18 @@ clean_up_rx_window:
     vr_ur = (vr_ur + 1)%cfg.rx_mod;
   }
 }
+
+
+// Only called when lock is hold
+bool rlc_um::rlc_um_rx::pdu_belongs_to_rx_sdu()
+{
+  // return true if the currently received SDU
+  if (((vr_ur_in_rx_sdu + 1)%cfg.rx_mod == vr_ur) || (vr_ur == vr_ur_in_rx_sdu)) {
+    return true;
+  }
+  return false;
+}
+
 
 // Only called when lock is hold
 // 36.322 Section 5.1.2.2.1

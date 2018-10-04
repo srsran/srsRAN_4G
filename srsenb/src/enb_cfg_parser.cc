@@ -201,7 +201,7 @@ int enb::parse_sib1(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUC
   return parser::parse_section(filename, &sib1);
 }
 
-int enb::parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *data) 
+int enb::parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *data, bool *mbsfn_section_present)
 {  
   parser::section sib2("sib2");
 
@@ -214,12 +214,7 @@ int enb::parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUC
   parser::section mbsfnSubframeConfigList("mbsfnSubframeConfigList");
       sib2.add_subsection(&mbsfnSubframeConfigList);
 
-  bool mbsfn_present=false;
-  mbsfnSubframeConfigList.set_optional(&mbsfn_present);
-
-  if (mbsfn_present) {
-    data->mbsfn_subfr_cnfg_list_size = 1;
-  }
+  mbsfnSubframeConfigList.set_optional(mbsfn_section_present);
 
   mbsfnSubframeConfigList.add_field(
      new parser::field<uint32>
@@ -876,11 +871,12 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
    
   // Generate SIB2
   bzero(sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
-  if (parse_sib2(args->enb_files.sib_config, sib2)) {
+  bool mbsfn_section_present = false;
+  if (parse_sib2(args->enb_files.sib_config, sib2, &mbsfn_section_present)) {
     return -1; 
   }
  
-  // SRS not yet supported 
+  // SRS not yet supported
   sib2->rr_config_common_sib.srs_ul_cnfg.present = false; 
   if (sib2->ul_bw.present) {
     switch(args->enb.n_prb) {
@@ -907,8 +903,13 @@ int enb::parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_
   if (sib2->arfcn_value_eutra.present) {
     sib2->arfcn_value_eutra.value = args->rf.ul_earfcn;
   }
-  
-  // Generate SIB3 if defined in mapping info 
+
+  // Update MBSFN list counter. Only 1 supported
+  if (mbsfn_section_present && args->expert.enable_mbsfn) {
+    sib2->mbsfn_subfr_cnfg_list_size = 1;
+  }
+
+  // Generate SIB3 if defined in mapping info
   if (sib_is_present(sib1->sched_info, sib1->N_sched_info, LIBLTE_RRC_SIB_TYPE_3)) {
     bzero(sib3, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT));
     if (parse_sib3(args->enb_files.sib_config, sib3)) {

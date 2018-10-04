@@ -41,8 +41,15 @@ bsr_proc::bsr_proc()
   initiated = false; 
   last_print = 0; 
   next_tx_tti = 0; 
-  triggered_bsr_type=NONE; 
-  
+  triggered_bsr_type=NONE;
+
+  for (int i=0;i<MAX_LCID;i++)  {
+    lcg[i]        = -1;
+    priorities[i] = -1;
+    last_pending_data[i] = 0;
+  }
+  lcg[0] = 0;
+  priorities[0] = 99;
 }
 
 void bsr_proc::init(rlc_interface_mac *rlc_, srslte::log* log_h_, mac_interface_rrc::mac_cfg_t *mac_cfg_, srslte::timers *timers_db_)
@@ -68,15 +75,8 @@ void bsr_proc::reset()
   
   reset_sr = false; 
   sr_is_sent = false; 
-  triggered_bsr_type = NONE; 
-  for (int i=0;i<MAX_LCID;i++)  {
-    lcg[i]        = -1; 
-    priorities[i] = -1; 
-    last_pending_data[i] = 0; 
-  }        
-  lcg[0] = 0; 
-  priorities[0] = 99;   
-  next_tx_tti = 0; 
+  triggered_bsr_type = NONE;
+  next_tx_tti = 0;
 }
 
 /* Process Periodic BSR */

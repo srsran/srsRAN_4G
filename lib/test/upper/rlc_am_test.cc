@@ -732,11 +732,11 @@ bool resegment_test_2()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
-  assert(16 == rlc1.get_buffer_state());
+  assert(18 == rlc1.get_buffer_state());
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 16); // 6 byte header + 10 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 18); // 6 byte header + 12 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -867,7 +867,6 @@ bool resegment_test_3()
 
 bool resegment_test_4()
 {
-
   // SDUs:              |  10  |  10  |  10  |  10  |  10  |
   // PDUs:              | 5 | 5|         30         | 5 | 5|
   // Retx PDU segments:        |    15    |    15   |
@@ -960,9 +959,11 @@ bool resegment_test_4()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
+  assert(23 == rlc1.get_buffer_state());
+
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 21); // 6 byte header + 15 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 23); // 6 byte header + 18 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -980,7 +981,6 @@ bool resegment_test_4()
 
 bool resegment_test_5()
 {
-
   // SDUs:              |  10  |  10  |  10  |  10  |  10  |
   // PDUs:              |2|3|            40            |3|2|
   // Retx PDU segments:     |     20      |     20     |
@@ -1071,9 +1071,11 @@ bool resegment_test_5()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
+  assert(31 == rlc1.get_buffer_state());
+
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 27); // 7 byte header + 20 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 34); // 7 byte header + 24 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -1197,11 +1199,11 @@ bool resegment_test_6()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
-  assert(155 == rlc1.get_buffer_state());
+  assert(159 == rlc1.get_buffer_state());
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  len = rlc1.read_pdu(retx2.msg, 157);
+  len = rlc1.read_pdu(retx2.msg, 162);
   retx2.N_bytes = len;
 
   // Write the retx PDU to RLC2
@@ -1216,6 +1218,7 @@ bool resegment_test_6()
   }
   for(int i=3;i<9;i++)
   {
+    if (i >= tester.n_sdus) return -1;
     if(tester.sdus[i]->N_bytes != 54) return -1;
     for(int j=0;j<54;j++) {
       if (tester.sdus[i]->msg[j] != j) return -1;
@@ -1255,8 +1258,6 @@ bool resegment_test_7()
 
   rlc_am rlc1;
   rlc_am rlc2;
-
-  int len;
 
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -1302,7 +1303,14 @@ bool resegment_test_7()
     assert(pdu_bufs[i].N_bytes);
   }
 
-  assert(0 == rlc1.get_buffer_state());
+  // Step timers until poll_retx timeout expires
+  int cnt = 5;
+  while (cnt--) {
+    timers.step_all();
+  }
+
+  // RLC should try to retx a random PDU because it needs to request a status from the receiver
+  assert(0 != rlc1.get_buffer_state());
 
   // Skip PDU with SN 2
   for(uint32_t i=0;i<N_PDU_BUFS;i++) {
@@ -1315,17 +1323,18 @@ bool resegment_test_7()
   }
 
   // Step timers until reordering timeout expires
-  int cnt = 5;
+  cnt = 5;
   while (cnt--) {
     timers.step_all();
   }
 
-  assert(12 == rlc1.get_buffer_state());
+  // RLC should try to retransmit a random PDU because it needs to re-request a status PDU from the receiver
+  assert(0 != rlc1.get_buffer_state());
 
   // first round of retx, forcing resegmentation
   byte_buffer_t retx[4];
   for (uint32_t i = 0; i < 4; i++) {
-    assert(rlc1.get_buffer_state());
+    assert(0 != rlc1.get_buffer_state());
     retx[i].N_bytes = rlc1.read_pdu(retx[i].msg, 7);
     assert(retx[i].N_bytes);
 
@@ -1373,6 +1382,18 @@ bool resegment_test_7()
     timers.step_all();
   }
 
+  // Read status PDU from RLC2
+  assert(rlc2.get_buffer_state());
+  status_buf.N_bytes = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+
+  // Write status PDU to RLC1
+  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+#if HAVE_PCAP
+  pcap.write_ul_am_ccch(status_buf.msg, status_buf.N_bytes);
+#endif
+
+  // check status again
+  assert(0 == rlc1.get_buffer_state());
   assert(0 == rlc2.get_buffer_state());
 
   // Check number of SDUs and their content
@@ -1441,11 +1462,11 @@ bool resegment_test_8()
   cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   if (not rlc1.configure(&cnfg)) {
-    exit(-1);
+    return -1;
   }
 
   if (not rlc2.configure(&cnfg)) {
-    exit(-1);
+    return -1;
   }
 
   // Push 2 SDUs into RLC1
@@ -1487,7 +1508,8 @@ bool resegment_test_8()
     timers.step_all();
   }
 
-  assert(12 == rlc1.get_buffer_state());
+  // what PDU to retransmit is random but it must not be zero
+  assert(0 != rlc1.get_buffer_state());
 
   // first round of retx, forcing resegmentation
   byte_buffer_t retx[4];
