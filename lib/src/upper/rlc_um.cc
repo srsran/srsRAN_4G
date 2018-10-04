@@ -151,11 +151,6 @@ uint32_t rlc_um::get_bearer()
  ***************************************************************************/
 void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
 {
-  if (sdu->N_bytes > RLC_UM_MAX_SDU_SIZE) {
-    log->warning("Dropping too long SDU of size %d B (Max. size %d B).", sdu->N_bytes, RLC_UM_MAX_SDU_SIZE);
-    pool->deallocate(sdu);
-  }
-
   if (blocking) {
     tx.write_sdu(sdu);
   } else {

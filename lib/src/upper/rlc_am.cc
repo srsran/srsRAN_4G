@@ -920,7 +920,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Pull SDUs from queue
-  while (pdu_space > head_len + 1 && tx_sdu_queue.size() > 0) {
+  while (pdu_space > head_len + 1 && tx_sdu_queue.size() > 0 && header.N_li < RLC_AM_WINDOW_SIZE) {
     if (last_li > 0) {
       header.li[header.N_li] = last_li;
       header.N_li++;

@@ -39,8 +39,6 @@
 
 namespace srslte {
 
-#define RLC_UM_MAX_SDU_SIZE (2048-1) // Length of LI field is 11bits
-
 struct rlc_umd_pdu_t{
   rlc_umd_pdu_header_t  header;
   byte_buffer_t        *buf;
