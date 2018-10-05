@@ -45,6 +45,7 @@ gw::gw()
 {
   current_ip_addr = 0;
   default_netmask = true;
+  tundevname = "";
 }
 
 void gw::init(pdcp_interface_gw *pdcp_, nas_interface_gw *nas_, srslte::log *gw_log_, srslte::srslte_gw_config_t cfg_)
@@ -123,6 +124,11 @@ void gw::set_netmask(std::string netmask)
 {
   default_netmask = false;
   this->netmask = netmask;
+}
+
+void gw::set_tundevname(const std::string & devname)
+{
+  tundevname = devname;
 }
 
 
@@ -242,8 +248,6 @@ srslte::error_t gw::init_if(char *err_str)
     return(srslte::ERROR_ALREADY_STARTED);
   }
 
-  char dev[IFNAMSIZ] = "tun_srsue";
-
   // Construct the TUN device
   tun_fd = open("/dev/net/tun", O_RDWR);
   gw_log->info("TUN file descriptor = %d\n", tun_fd);
@@ -255,7 +259,7 @@ srslte::error_t gw::init_if(char *err_str)
   }
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ-1);
+  strncpy(ifr.ifr_ifrn.ifrn_name, tundevname.c_str(), std::min(tundevname.length(), (size_t)(IFNAMSIZ-1)));
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1] = 0;
   if(0 > ioctl(tun_fd, TUNSETIFF, &ifr))
   {

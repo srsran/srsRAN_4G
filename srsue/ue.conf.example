@@ -137,6 +137,7 @@ enable = false
 # Expert configuration options
 #
 # ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
+# ip_devname:           Nanme of the tun_srsue device. Default: tun_srsue
 # rssi_sensor_enabled:  Enable or disable RF frontend RSSI sensor. Required for RSRP metrics but
 #                       can cause UHD instability for long-duration testing. Default true.
 # rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
@@ -209,6 +210,7 @@ enable = false
 #####################################################################
 [expert]
 #ip_netmask          = 255.255.255.0
+#ip_devname          = tun_srsue
 #mbms_service        = -1
 #rssi_sensor_enabled = false
 #rx_gain_offset      = 62

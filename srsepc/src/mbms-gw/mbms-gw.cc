@@ -126,7 +126,6 @@ mbms_gw::stop()
 srslte::error_t
 mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
 {
-  char dev[IFNAMSIZ] = "sgi_mb";
   struct ifreq ifr;
 
   if(m_sgi_mb_up)
@@ -138,22 +137,22 @@ mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
   // Construct the TUN device
   m_sgi_mb_if = open("/dev/net/tun", O_RDWR);
   m_mbms_gw_log->info("TUN file descriptor = %d\n", m_sgi_mb_if);
-  if(m_sgi_mb_if < 0)
-  {
+  if (m_sgi_mb_if < 0) {
       m_mbms_gw_log->error("Failed to open TUN device: %s\n", strerror(errno));
       return(srslte::ERROR_CANT_START);
   }
 
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ-1);
+  strncpy(ifr.ifr_ifrn.ifrn_name, args->sgi_mb_if_name.c_str(), std::min(args->sgi_mb_if_name.length(), (size_t)IFNAMSIZ-1) );
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1]='\0';
 
-  if(ioctl(m_sgi_mb_if, TUNSETIFF, &ifr) < 0)
-  {
-      m_mbms_gw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
-      close(m_sgi_mb_if);
-      return(srslte::ERROR_CANT_START);
+  if (ioctl(m_sgi_mb_if, TUNSETIFF, &ifr) < 0) {
+    m_mbms_gw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
+    close(m_sgi_mb_if);
+    return(srslte::ERROR_CANT_START);
+  } else {
+    m_mbms_gw_log->debug("Set TUN device name: %s\n", args->sgi_mb_if_name.c_str());
   }
 
   // Bring up the interface
@@ -236,7 +235,8 @@ mbms_gw::init_m1_u(mbms_gw_args_t *args)
   struct in_addr local_if;
   local_if.s_addr = inet_addr(args->m1u_multi_if.c_str());
   if(setsockopt(m_m1u, IPPROTO_IP, IP_MULTICAST_IF, (char*)&local_if, sizeof(struct in_addr))<0){
-    perror("Error setting multicast interface.\n");
+    m_mbms_gw_log->error("Error %s setting multicast interface %s.\n", strerror(errno), args->m1u_multi_if.c_str());
+    return srslte::ERROR_CANT_START;
   } else {
     printf("Multicast interface specified. Address: %s\n", args->m1u_multi_if.c_str());
   }
