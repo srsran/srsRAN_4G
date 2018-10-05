@@ -85,6 +85,7 @@ bool enb::init(all_args_t *args_)
   } else {
     logger_file.init(args->log.filename, args->log.file_max_size);
     logger_file.log("\n\n");
+    logger_file.log(get_build_string().c_str());
     logger = &logger_file;
   }
 
