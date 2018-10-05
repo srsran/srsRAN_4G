@@ -1582,7 +1582,7 @@ bool rrc::con_reconfig(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig) {
 
   byte_buffer_t *nas_sdu;
   for (uint32_t i = 0; i < reconfig->N_ded_info_nas; i++) {
-    nas_sdu = pool_allocate;
+    nas_sdu = pool_allocate_blocking;
     if (nas_sdu) {
       memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
       nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
@@ -1887,7 +1887,7 @@ byte_buffer_t* rrc::byte_align_and_pack()
   }
 
   // Reset and reuse sdu buffer if provided
-  byte_buffer_t *pdcp_buf = pool_allocate;
+  byte_buffer_t *pdcp_buf = pool_allocate_blocking;
   if (pdcp_buf) {
     srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
     pdcp_buf->N_bytes = bit_buf.N_bits / 8;
@@ -2051,7 +2051,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
 
   switch (dl_dcch_msg.msg_type) {
     case LIBLTE_RRC_DL_DCCH_MSG_TYPE_DL_INFO_TRANSFER:
-      pdu = pool_allocate;
+      pdu = pool_allocate_blocking;
       if (!pdu) {
         rrc_log->error("Fatal error: out of buffers in pool\n");
         return;

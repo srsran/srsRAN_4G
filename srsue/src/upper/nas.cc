@@ -1490,7 +1490,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
     esm_info_resp.protocol_cnfg_opts_present = false;
   }
 
-  byte_buffer_t *pdu = pool_allocate;
+  byte_buffer_t *pdu = pool_allocate_blocking;
   if (!pdu) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in send_attach_request().\n");
     return;

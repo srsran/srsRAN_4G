@@ -313,7 +313,7 @@ void gw::run_thread()
   struct iphdr   *ip_pkt;
   uint32          idx = 0;
   int32           N_bytes;
-  srslte::byte_buffer_t *pdu = pool_allocate;
+  srslte::byte_buffer_t *pdu = pool_allocate_blocking;
   if (!pdu) {
     gw_log->error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
     return;
