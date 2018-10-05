@@ -64,6 +64,7 @@ sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_
   reset();
 
   pthread_rwlock_init(&rwlock, NULL);
+  pthread_mutex_init(&sched_mutex, NULL);
 }
 
 sched::~sched()
@@ -72,6 +73,7 @@ sched::~sched()
   pthread_rwlock_wrlock(&rwlock);
   pthread_rwlock_unlock(&rwlock);
   pthread_rwlock_destroy(&rwlock);
+  pthread_mutex_destroy(&sched_mutex);
 }
 
 void sched::init(rrc_interface_mac *rrc_, srslte::log* log)
@@ -773,6 +775,7 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   rar_aggr_level = 2; 
   bzero(sched_result, sizeof(sched_interface::dl_sched_res_t));
 
+  pthread_mutex_lock(&sched_mutex);
   pthread_rwlock_rdlock(&rwlock);
 
   /* Schedule Broadcast data */
@@ -785,6 +788,7 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   sched_result->nof_data_elems += dl_sched_data(sched_result->data);
 
   pthread_rwlock_unlock(&rwlock);
+  pthread_mutex_unlock(&sched_mutex);
 
   /* Set CFI */
   sched_result->cfi = current_cfi; 
@@ -820,13 +824,14 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     sf_idx = (tti+10240-HARQ_DELAY_MS)%10;
   }
   int nof_dci_elems   = 0; 
-  int nof_phich_elems = 0; 
-    
-  // current_cfi is set in dl_sched() 
+  int nof_phich_elems = 0;
+
+  pthread_mutex_lock(&sched_mutex);
+  pthread_rwlock_rdlock(&rwlock);
+
+  // current_cfi is set in dl_sched()
   bzero(sched_result, sizeof(sched_interface::ul_sched_res_t));
   ul_metric->reset_allocation(cfg.cell.nof_prb);
-
-  pthread_rwlock_rdlock(&rwlock);
 
   // Get HARQ process for this TTI 
   for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
@@ -845,7 +850,19 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     }
   }
 
+  // reserve PRBs for PRACH
+  if(srslte_prach_tti_opportunity_config(cfg.prach_config, tti, -1)) {
+    ul_harq_proc::ul_alloc_t prach = {cfg.prach_freq_offset, 6};
+    if(!ul_metric->update_allocation(prach)) {
+      log_h->warning("SCHED: Failed to allocate PRACH RBs within (%d,%d)\n", prach.RB_start, prach.RB_start + prach.L);
+    }
+    else {
+      log_h->debug("SCHED: Allocated PRACH RBs within (%d,%d)\n", prach.RB_start, prach.RB_start + prach.L);
+    }
+  }
+
   // Update available allocation if there's a pending RAR
+  // NOTE: It has priority over PUCCH.
   if (pending_msg3[tti%10].enabled) {
     ul_harq_proc::ul_alloc_t msg3 = {pending_msg3[tti%10].n_prb, pending_msg3[tti%10].L};
     if(ul_metric->update_allocation(msg3)) {
@@ -860,14 +877,12 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   if (cfg.nrb_pucch >= 0) {
     ul_harq_proc::ul_alloc_t pucch = {0, (uint32_t) cfg.nrb_pucch};
     if(!ul_metric->update_allocation(pucch)) {
-      log_h->warning("SCHED: Failed to allocate PUCCH\n");
+      log_h->warning("SCHED: There was a collision with the PUCCH (%d, %d)\n", pucch.RB_start, pucch.RB_start+pucch.L);
     }
     pucch.RB_start = cfg.cell.nof_prb-cfg.nrb_pucch;
     pucch.L        = (uint32_t) cfg.nrb_pucch;
     if(!ul_metric->update_allocation(pucch)) {
-      log_h->warning("SCHED: Failed to allocate PUCCH\n");
-    } else {
-      log_h->debug("Allocating PUCCH (%d,%d)\n", pucch.RB_start, pucch.RB_start+pucch.L);
+      log_h->warning("SCHED: There was a collision with the PUCCH (%d, %d)\n", pucch.RB_start, pucch.RB_start+pucch.L);
     }
   } else {
     for(it_t iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
@@ -882,17 +897,6 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
           ul_metric->update_allocation(pucch);
         }
       }
-    }
-  }
-
-  // reserve PRBs for PRACH
-  if(srslte_prach_tti_opportunity_config(cfg.prach_config, tti, -1)) {
-    ul_harq_proc::ul_alloc_t prach = {cfg.prach_freq_offset, 6};
-    if(!ul_metric->update_allocation(prach)) {
-      log_h->warning("SCHED: Failed to allocate PRACH RBs within (%d,%d)\n", prach.RB_start, prach.RB_start + prach.L);
-    }
-    else {
-      log_h->debug("SCHED: Allocated PRACH RBs within (%d,%d)\n", prach.RB_start, prach.RB_start + prach.L);
     }
   }
 
@@ -999,6 +1003,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   }
 
   pthread_rwlock_unlock(&rwlock);
+  pthread_mutex_unlock(&sched_mutex);
 
   sched_result->nof_dci_elems   = nof_dci_elems;
   sched_result->nof_phich_elems = nof_phich_elems;

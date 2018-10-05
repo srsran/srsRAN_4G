@@ -41,9 +41,9 @@ namespace srsenb {
  *
  * Downlink Metric 
  *
- *****************************************************************/  
-  
-uint32_t dl_metric_rr::calc_rbg_mask(bool mask[MAX_RBG]) 
+ *****************************************************************/
+
+uint32_t dl_metric_rr::calc_rbg_mask(bool mask[MAX_RBG])
 {
   // Build RBG bitmask  
   uint32_t rbg_bitmask = 0; 
@@ -301,13 +301,14 @@ bool ul_metric_rr::new_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
 
 bool ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
 {
+  bool ret = false;
   if(allocation_is_valid(alloc)) {
-    for (uint32_t n=alloc.RB_start;n<alloc.RB_start+alloc.L;n++) {
-      used_rb[n] = true;
-    }
-    return true;
+    ret = true;
   }
-  return false;
+  for (uint32_t n=alloc.RB_start;n<alloc.RB_start+alloc.L;n++) {
+    used_rb[n] = true;
+  }
+  return ret;
 }
 
 ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue *user)

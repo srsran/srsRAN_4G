@@ -87,7 +87,7 @@ void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_in
 
   if (cfg_) {
     memcpy(&cfg, cfg_, sizeof(sched_interface::ue_cfg_t));
-  }  
+  }
   
   Info("SCHED: Added user rnti=0x%x\n", rnti);
   // Config HARQ processes
@@ -102,6 +102,7 @@ void sched_ue::set_cfg(uint16_t rnti_, sched_interface::ue_cfg_t *cfg_, sched_in
       sched::generate_cce_location(regs, &dci_locations[cfi][sf_idx], cfi+1, sf_idx, rnti);
     }
   }
+
   pthread_mutex_unlock(&mutex);
 
   for (int i=0;i<sched_interface::MAX_LC;i++) {
@@ -1209,7 +1210,6 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   uint32_t max_Qm  = is_ul?4:6; // Allow 16-QAM in PUSCH Only
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-
   int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, &sel_mcs)/8;
 
   /* If less bytes are requested, lower the MCS */
