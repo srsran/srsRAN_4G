@@ -876,12 +876,12 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   // Allocate PUCCH resources
   if (cfg.nrb_pucch >= 0) {
     ul_harq_proc::ul_alloc_t pucch = {0, (uint32_t) cfg.nrb_pucch};
-    if(!ul_metric->update_allocation(pucch)) {
+    if (!ul_metric->update_allocation(pucch) and cfg.cell.nof_prb != 6) {
       log_h->warning("SCHED: There was a collision with the PUCCH (%d, %d)\n", pucch.RB_start, pucch.RB_start+pucch.L);
     }
     pucch.RB_start = cfg.cell.nof_prb-cfg.nrb_pucch;
     pucch.L        = (uint32_t) cfg.nrb_pucch;
-    if(!ul_metric->update_allocation(pucch)) {
+    if (!ul_metric->update_allocation(pucch) and cfg.cell.nof_prb != 6) {
       log_h->warning("SCHED: There was a collision with the PUCCH (%d, %d)\n", pucch.RB_start, pucch.RB_start+pucch.L);
     }
   } else {
