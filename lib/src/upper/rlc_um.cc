@@ -774,6 +774,11 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
       if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
         log->warning_hex(rx_window[vr_ur].buf->msg, len, "Dropping first %d B of SN %d due to lost start segment\n", len, vr_ur);
 
+        if (rx_window[vr_ur].buf->N_bytes < len) {
+          log->error("Dropping remaining remainder of SN %d too (N_bytes=%u < len=%d)\n", vr_ur, rx_window[vr_ur].buf->N_bytes, len);
+          goto clean_up_rx_window;
+        }
+
         // Advance data pointers and continue with next segment
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
