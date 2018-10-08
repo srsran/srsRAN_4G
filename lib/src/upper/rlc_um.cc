@@ -676,7 +676,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
       return;
     }
   }
-  
+
   // First catch up with lower edge of reordering window
   while(!inside_reordering_window(vr_ur))
   {
@@ -820,7 +820,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
       rx_window[vr_ur].buf->N_bytes -= len;
       vr_ur_in_rx_sdu = vr_ur;
 
-      if (not pdu_lost && pdu_belongs_to_rx_sdu()) {
+      if (pdu_belongs_to_rx_sdu()) {
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)", get_rb_name(), vr_ur, i);
         rx_sdu->set_timestamp();
         if(cfg.is_mrb){
