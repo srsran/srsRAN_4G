@@ -58,7 +58,6 @@ typedef struct {
   uint32_t    avg_opp_size;
   bool        random_opp;
   bool        zero_seed;
-  bool        pedantic;
 } stress_test_args_t;
 
 void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
@@ -85,8 +84,7 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
   ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
   ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
-  ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero")
-  ("pedantic",      bpo::value<bool>(&args->pedantic)->default_value(true), "Whether to perform strict SDU size checking at receiver");
+  ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero");
 
   // these options are allowed on the command line
   bpo::options_description cmdline_options;
@@ -240,10 +238,7 @@ public:
     assert(rx_lcid == lcid);
     if (sdu->N_bytes != args.sdu_size) {
       log.error_hex(sdu->msg, sdu->N_bytes, "Received SDU with size %d, expected %d.\n", sdu->N_bytes, args.sdu_size);
-      // exit if in pedantic mode or SDU is not a multiple of the expected size
-      if (args.pedantic || sdu->N_bytes % args.sdu_size != 0) {
-        exit(-1);
-      }
+      exit(-1);
     }
 
     byte_buffer_pool::get_instance()->deallocate(sdu);
