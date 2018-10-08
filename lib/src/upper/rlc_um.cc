@@ -376,6 +376,12 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
+
+  if (not tx_enabled) {
+    pthread_mutex_unlock(&mutex);
+    return 0;
+  }
+
   if(!tx_sdu && tx_sdu_queue.size() == 0) {
     log->info("No data available to be sent\n");
     pthread_mutex_unlock(&mutex);
@@ -475,7 +481,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   memcpy(payload, pdu->msg, pdu->N_bytes);
   uint32_t ret = pdu->N_bytes;
 
-  log->info("%s Tx PDU SN=%d (%d B)\n", get_rb_name(), header.sn, pdu->N_bytes);
+  log->info_hex(payload, ret, "%s Tx PDU SN=%d (%d B)\n", get_rb_name(), header.sn, pdu->N_bytes);
   pool->deallocate(pdu);
 
   debug_state();
@@ -670,19 +676,22 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
       return;
     }
   }
-
+  
   // First catch up with lower edge of reordering window
   while(!inside_reordering_window(vr_ur))
   {
+    log->debug("SN=%d is not inside reordering windows\n", vr_ur);
+
     if(rx_window.end() == rx_window.find(vr_ur))
     {
+      log->debug("SN=%d not in rx_window. Reset received SDU\n", vr_ur);
       rx_sdu->reset();
     }else{
       // Handle any SDU segments
       for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++)
       {
         int len = rx_window[vr_ur].header.li[i];
-
+        log->debug_hex(rx_window[vr_ur].buf->msg, len, "Handling segment %d/%d of length %d B of SN=%d\n", i+1, rx_window[vr_ur].header.N_li, len, vr_ur);
         // Check if we received a middle or end segment
         if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
           log->warning("Dropping PDU %d due to lost start segment\n", vr_ur);
@@ -768,8 +777,8 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
 
     // Handle any SDU segments
     for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++) {
-      int len = rx_window[vr_ur].header.li[i];
-      log->debug("Handling SDU egment i=%d with len=%d of vr_ur=%d N_li=%d [%s]\n", i, len, vr_ur, rx_window[vr_ur].header.N_li, rlc_fi_field_text[rx_window[vr_ur].header.fi]);
+      uint16_t len = rx_window[vr_ur].header.li[i];
+      log->debug("Handling SDU segment i=%d with len=%d of vr_ur=%d N_li=%d [%s]\n", i, len, vr_ur, rx_window[vr_ur].header.N_li, rlc_fi_field_text[rx_window[vr_ur].header.fi]);
       // Check if the first part of the PDU is a middle or end segment
       if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
         log->warning_hex(rx_window[vr_ur].buf->msg, len, "Dropping first %d B of SN %d due to lost start segment\n", len, vr_ur);
@@ -948,7 +957,7 @@ void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
       reassemble_rx_sdus();
       log->debug("Finished reassemble from timeout id=%d\n", timeout_id);
     }
-    reordering_timer->stop();
+
     if (RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur)) {
       reordering_timer->reset();
       reordering_timer->run();
@@ -958,11 +967,6 @@ void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
     debug_state();
     pthread_mutex_unlock(&mutex);
   }
-}
-
-bool rlc_um::rlc_um_rx::reordering_timeout_running()
-{
-  return reordering_timer->is_running();
 }
 
 /****************************************************************************

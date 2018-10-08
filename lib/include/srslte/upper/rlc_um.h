@@ -200,7 +200,6 @@ private:
 
     // helper functions
     void debug_state();
-    bool reordering_timeout_running();
     const char* get_rb_name();
   };
 
