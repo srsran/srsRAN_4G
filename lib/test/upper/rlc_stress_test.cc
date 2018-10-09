@@ -36,6 +36,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <cassert>
 #include <srslte/upper/rlc_interface.h>
+#include "srslte/common/crash_handler.h"
 
 #define LOG_HEX_LIMIT (-1)
 
@@ -407,7 +408,10 @@ void stress_test(stress_test_args_t args)
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
+  srslte_debug_handle_crash(argc, argv);
+
   stress_test_args_t args = {};
   parse_args(&args, argc, argv);
 
