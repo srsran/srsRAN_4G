@@ -463,11 +463,6 @@ void phch_worker::work_imp()
 
   tr_log_end();
 
-  if (next_offset > 0) {
-    phy->worker_end(tx_tti, signal_ready, signal_ptr, SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
-  } else {
-    phy->worker_end(tx_tti, signal_ready, &signal_ptr[-next_offset], SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
-  }
 
   if(SUBFRAME_TYPE_REGULAR == sf_cfg.sf_type) {
     if (!dl_action.generate_ack_callback) {
@@ -491,6 +486,13 @@ void phch_worker::work_imp()
       phy->set_mch_period_stop(0);
     }
   }
+
+  if (next_offset > 0) {
+    phy->worker_end(tx_tti, signal_ready, signal_ptr, SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
+  } else {
+    phy->worker_end(tx_tti, signal_ready, &signal_ptr[-next_offset], SRSLTE_SF_LEN_PRB(cell.nof_prb)+next_offset, tx_time);
+  }
+
   if(SUBFRAME_TYPE_REGULAR == sf_cfg.sf_type){
     update_measurements();
   }
