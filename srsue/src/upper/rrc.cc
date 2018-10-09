@@ -1398,7 +1398,7 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
 void rrc::send_ul_info_transfer(byte_buffer_t *nas_msg) {
   bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
 
-  rrc_log->debug("Preparing RX Info Transfer\n");
+  rrc_log->debug("Preparing UL Info Transfer\n");
 
   // Prepare RX INFO packet
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_UL_INFO_TRANSFER;
