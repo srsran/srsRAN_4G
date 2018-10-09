@@ -244,15 +244,17 @@ typedef struct {
    struct timeval       tv_next_tti;
    size_t               tx_nof_late;
    size_t               tx_nof_ok;
+   size_t               tx_nof_drop;
    srslte_rf_info_t     rf_info;
    key_t                shm_dl_key;
    key_t                shm_ul_key;
    int                  shm_dl_id;
    int                  shm_ul_id;
-   void *               shm_dl;
-   void *               shm_ul;
-   rf_shmem_segment_t * rx_segment; // rx bins
-   rf_shmem_segment_t * tx_segment; // tx bins
+   void *               shm_dl;      // dl shared mem
+   void *               shm_ul;      // ul shared mem
+   rf_shmem_segment_t * rx_segment;  // rx bins
+   rf_shmem_segment_t * tx_segment;  // tx bins
+   int                  rand_loss;   // random loss 0=none, 100=all
 } rf_shmem_state_t;
 
 
@@ -308,6 +310,7 @@ static rf_shmem_state_t rf_shmem_state = { .dev_name        = "shmemrf",
                                            .tv_next_tti     = {},
                                            .tx_nof_late     = 0,
                                            .tx_nof_ok       = 0,
+                                           .tx_nof_drop     = 0,
                                            .rf_info         = {},
                                            .shm_dl_key      = 0,
                                            .shm_ul_key      = 0,
@@ -317,6 +320,7 @@ static rf_shmem_state_t rf_shmem_state = { .dev_name        = "shmemrf",
                                            .shm_ul          = NULL,
                                            .rx_segment      = NULL,
                                            .tx_segment      = NULL,
+                                           .rand_loss       = 0,
                                         };
 
 #define RF_SHMEM_GET_STATE(h)  assert(h); rf_shmem_state_t *_state = (rf_shmem_state_t *)(h)
@@ -1065,8 +1069,8 @@ int rf_shmem_send_timed(void *h, void *data, int nsamples,
 
 
 int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
-                             time_t full_secs, double frac_secs, bool has_time_spec,
-                             bool blocking, bool is_sob, bool is_eob)
+                              time_t full_secs, double frac_secs, bool has_time_spec,
+                              bool blocking, bool is_sob, bool is_eob)
  {
    RF_SHMEM_GET_STATE(h);
 
@@ -1077,16 +1081,16 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
        return 0;
      }
 
-#undef ASYMETRIC_ENB_TO_UE_LINK
-#ifdef ASYMETRIC_ENB_TO_UE_LINK
-  static size_t cnt = 0;
-
-   if(! rf_shmem_is_enb(_state))
-     {
-       if(++cnt < 1e4)
+   // some random loss the higher the number the more loss (0-100)
+   // xxx todo set via config
+   if(_state->rand_loss > 0)
+    {
+      if((rand() % 100) < _state->rand_loss)
+       {
+         ++_state->tx_nof_drop;
          return nsamples;
-     }
-#endif
+       }
+    } 
 
    struct timeval tv_now, tv_tx_tti;
 
