@@ -939,9 +939,8 @@ void rlc_um::rlc_um_rx::reset_metrics()
 
 void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
 {
-  if (reordering_timer_id == timeout_id) {
-    pthread_mutex_lock(&mutex);
-
+  pthread_mutex_lock(&mutex);
+  if (reordering_timer != NULL && reordering_timer_id == timeout_id) {
     // 36.322 v10 Section 5.1.2.2.4
     log->info("%s reordering timeout expiry - updating vr_ur and reassembling\n",
               get_rb_name());
@@ -965,8 +964,8 @@ void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
     }
 
     debug_state();
-    pthread_mutex_unlock(&mutex);
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 /****************************************************************************
