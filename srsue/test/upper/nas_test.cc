@@ -175,6 +175,7 @@ int security_command_test()
   nas.write_pdu(LCID, tmp);
 
   // TODO: add check for authentication response
+  rrc_dummy.reset();
 
   // reuse buffer for security mode command
   memcpy(tmp->msg, sec_mode_command_pdu, sizeof(sec_mode_command_pdu));
