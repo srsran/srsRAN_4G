@@ -1124,9 +1124,20 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
   // Set the PDN con req parameters
   pdn_con_req.eps_bearer_id = 0x00; // Unassigned bearer ID
   pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
-  pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
   pdn_con_req.apn_present = false;
+
+  //Set PDN protocol type
+  if (cfg.apn_protocol == "ipv4"){
+    nas_log->console("Setting PDN protocol to IPv4\n");
+    pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
+  } else if (cfg.apn_protocol == "ipv6") {
+    nas_log->console("Setting PDN protocol to IPv6\n");
+    pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV6;
+  } else {
+    nas_log->warning("Unsupported PDN prtocol. Defaulting to IPv4\n");
+    pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
+  }
 
   // Set the optional flags
   if (cfg.apn == "") {

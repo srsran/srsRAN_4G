@@ -120,12 +120,14 @@ imei = 353490069873319
 # NAS configuration
 #
 # apn:               Set Access Point Name (APN)
+# apn_protocol:      Set APN protocol (IPv4 or IPv6.)
 # user:              Username for CHAP authentication
 # pass:              Password for CHAP authentication
 # force_imsi_attach: Whether to always perform an IMSI attach
 #####################################################################
 [nas]
-#apn = internetinternet
+apn = srsapn
+apn_protocol = ipv6
 #user = srsuser
 #pass = srspass
 #force_imsi_attach = false

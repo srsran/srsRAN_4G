@@ -41,6 +41,7 @@ namespace srsue {
 
 typedef struct {
   std::string apn_name;
+  std::string apn_protocol;
   std::string apn_user;
   std::string apn_pass;
   bool        force_imsi_attach;
