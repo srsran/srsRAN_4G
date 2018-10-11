@@ -680,8 +680,6 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       if (gw->setup_if_addr6(ipv6_if_id, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
-      pool->deallocate(pdu);
-      return;
     } else {
       nas_log->error("Not handling IPV6 or IPV4V6\n");
       pool->deallocate(pdu);
