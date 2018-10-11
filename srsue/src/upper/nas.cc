@@ -653,6 +653,35 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       if (gw->setup_if_addr(ip_addr, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
+    } else if (LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type){
+      memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
+      nas_log->info("Network attach successful. APN: %s, IPv6 interface id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+                    act_def_eps_bearer_context_req.apn.apn,
+                    act_def_eps_bearer_context_req.pdn_addr.addr[0],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[1],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[2],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[3],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[4],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[5],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[6],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[7]);
+
+      nas_log->console("Network attach successful. IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+                       act_def_eps_bearer_context_req.pdn_addr.addr[0],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[1],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[2],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[3],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[4],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[5],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[6],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[7]);
+      // Setup GW
+      char *err_str = NULL;
+      if (gw->setup_if_addr6(ipv6_if_id, err_str)) {
+        nas_log->error("Failed to set gateway address - %s\n", err_str);
+      }
+      pool->deallocate(pdu);
+      return;
     } else {
       nas_log->error("Not handling IPV6 or IPV4V6\n");
       pool->deallocate(pdu);
@@ -1128,7 +1157,7 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
   pdn_con_req.apn_present = false;
 
   //Set PDN protocol type
-  if (cfg.apn_protocol == "ipv4"){
+  if (cfg.apn_protocol == "ipv4" || cfg.apn_protocol == ""){
     nas_log->console("Setting PDN protocol to IPv4\n");
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   } else if (cfg.apn_protocol == "ipv6") {

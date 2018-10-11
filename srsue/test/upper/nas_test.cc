@@ -127,6 +127,7 @@ private:
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
   error_t setup_if_addr(uint32_t ip_addr, char *err_str) { return ERROR_NONE; }
+  error_t setup_if_addr6(uint8_t *ipv6_if_id, char *err_str) { return ERROR_NONE; }
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
 };

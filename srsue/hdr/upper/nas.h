@@ -134,6 +134,7 @@ private:
   bool auth_request;
 
   uint32_t ip_addr;
+  uint8_t ipv6_if_id[8];
   uint8_t eps_bearer_id;
 
   uint8_t chap_id;

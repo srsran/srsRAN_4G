@@ -60,6 +60,7 @@ public:
 
   // NAS interface
   srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str);
+  srslte::error_t setup_if_addr6(uint8_t *ipv6_if_id, char *err_str);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
@@ -88,6 +89,7 @@ private:
   bool                if_up;
 
   uint32_t            current_ip_addr;
+  uint8_t             current_if_id[8];
 
   long                ul_tput_bytes;
   long                dl_tput_bytes;

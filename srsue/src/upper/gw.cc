@@ -37,6 +37,11 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
+struct in6_ifreq {
+  struct in6_addr ifr6_addr;
+  __u32 ifr6_prefixlen;
+  unsigned int ifr6_ifindex;
+};
 
 namespace srsue {
 
@@ -165,29 +170,14 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
     struct in_addr dst_addr;
     memcpy(&dst_addr.s_addr, &pdu->msg[16],4);
 
-    if(!if_up)
-    {
+    if (!if_up) {
       gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
-    }else{
+    } else {
       int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
-      if(n > 0 && (pdu->N_bytes != (uint32_t)n))
-      {
+      if(n > 0 && (pdu->N_bytes != (uint32_t) n) ) {
         gw_log->warning("DL TUN/TAP write failure\n");
       }
     }
-    /*
-    // Strip IP/UDP header
-    pdu->msg += 28;
-    pdu->N_bytes -= 28;
-
-    if(mbsfn_sock_fd) {
-      if(lcid > 0 && lcid < SRSLTE_N_MCH_LCIDS) {
-        mbsfn_sock_addr.sin_port = htons(mbsfn_ports[lcid]);
-        if(sendto(mbsfn_sock_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&mbsfn_sock_addr, sizeof(struct sockaddr_in))<0) {
-          gw_log->error("Failed to send MCH PDU to port %d\n", mbsfn_ports[lcid]);
-        }
-      }
-    }*/
   }
   pool->deallocate(pdu);
 }
@@ -233,6 +223,63 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
     }
 
     current_ip_addr = ip_addr;
+
+    // Setup a thread to receive packets from the TUN device
+    start(GW_THREAD_PRIO);
+  }
+
+  return(srslte::ERROR_NONE);
+}
+
+srslte::error_t gw::setup_if_addr6(uint8_t *ipv6_if_id, char *err_str)
+{
+  struct sockaddr_in6 sai;
+  struct in6_ifreq ifr6;
+  bool match = true;
+
+  for (int i=0; i<8; i++){
+    if(ipv6_if_id[i] != current_if_id[i]){
+      match = false;
+      break;
+    }
+  }
+
+  if (!match) {
+    if (!if_up) {
+      if( init_if(err_str) ) {
+        gw_log->error("init_if failed\n");
+        return(srslte::ERROR_CANT_START);
+      }
+    }
+
+    // Setup the IP address
+    sock                                                   = socket(AF_INET6, SOCK_DGRAM, 0);
+    ifr.ifr_addr.sa_family                                 = AF_INET6;
+
+    if(inet_pton(AF_INET6, "fe80::", (void *)&sai.sin6_addr) <= 0) {
+      gw_log->error("Bad address\n");
+      return srslte::ERROR_CANT_START;
+    }
+
+    memcpy(&sai.sin6_addr.s6_addr[8], ipv6_if_id, 8);
+    if (ioctl(sock, SIOGIFINDEX, &ifr) < 0) {
+      perror("SIOGIFINDEX");
+      return srslte::ERROR_CANT_START;
+    }
+    ifr6.ifr6_ifindex = ifr.ifr_ifindex;
+    ifr6.ifr6_prefixlen = 64;
+    memcpy((char *) &ifr6.ifr6_addr, (char *) &sai.sin6_addr,
+      sizeof(struct in6_addr));
+
+    if (ioctl(sock, SIOCSIFADDR, &ifr6) < 0) {
+      err_str = strerror(errno);
+      gw_log->error("Could not set IPv6 Link local address. Error %s\n", err_str);
+      return srslte::ERROR_CANT_START;
+    }
+
+    for (int i=0; i<8; i++){
+      current_if_id[i] = ipv6_if_id[i];
+    }
 
     // Setup a thread to receive packets from the TUN device
     start(GW_THREAD_PRIO);

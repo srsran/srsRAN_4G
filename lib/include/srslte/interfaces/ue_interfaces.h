@@ -105,6 +105,7 @@ class gw_interface_nas
 {
 public:
   virtual srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str) = 0;
+  virtual srslte::error_t setup_if_addr6(uint8_t *ipv6_if_id, char *err_str) = 0;
 };
 
 // GW interface for RRC
