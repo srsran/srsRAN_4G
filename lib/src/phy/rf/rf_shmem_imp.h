@@ -116,8 +116,4 @@ SRSLTE_API   int    rf_shmem_send_timed_multi(void *h,
                                              bool is_start_of_burst,
                                              bool is_end_of_burst);
 
-SRSLTE_API   void   rf_shmem_set_tx_cal(void *h, srslte_rf_cal_t *cal);
-
-SRSLTE_API   void   rf_shmem_set_rx_cal(void *h, srslte_rf_cal_t *cal);
-
 #endif

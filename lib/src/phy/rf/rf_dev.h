@@ -212,9 +212,7 @@ static rf_dev_t dev_dummy = {
   .srslte_rf_recv_with_time          = rf_dummy_recv_with_time,
   .srslte_rf_recv_with_time_multi    = rf_dummy_recv_with_time_multi,
   .srslte_rf_send_timed              = rf_dummy_send_timed,
-  .srslte_rf_send_timed_multi        = rf_dummy_send_timed_multi,
-  .srslte_rf_set_tx_cal              = rf_dummy_set_tx_cal,
-  .srslte_rf_set_rx_cal              = rf_dummy_set_rx_cal
+  .srslte_rf_send_timed_multi        = rf_dummy_send_timed_multi
 };                        
 #endif
 
@@ -254,9 +252,7 @@ static rf_dev_t dev_shmem = {
   .srslte_rf_recv_with_time          = rf_shmem_recv_with_time,
   .srslte_rf_recv_with_time_multi    = rf_shmem_recv_with_time_multi,
   .srslte_rf_send_timed              = rf_shmem_send_timed,
-  .srslte_rf_send_timed_multi        = rf_shmem_send_timed_multi,
-  .srslte_rf_set_tx_cal              = rf_shmem_set_tx_cal,
-  .srslte_rf_set_rx_cal              = rf_shmem_set_rx_cal
+  .srslte_rf_send_timed_multi        = rf_shmem_send_timed_multi
 };                        
 #endif
 
