@@ -64,8 +64,6 @@ typedef struct {
    double               tx_srate;
    double               rx_freq;
    double               tx_freq;
-   srslte_rf_cal_t      tx_cal;
-   srslte_rf_cal_t      rx_cal;
    double               clock_rate;
    void (*error_handler)(srslte_rf_error_t error);
    bool                 rx_stream;
@@ -94,8 +92,6 @@ static  rf_dummy_info_t rf_dummy_info = { .dev_name        = "dummyrf",
                                           .tx_srate        = SRSLTE_CS_SAMP_FREQ,
                                           .rx_freq         = 0.0,
                                           .tx_freq         = 0.0,
-                                          .rx_cal          = {},
-                                          .tx_cal          = {},
                                           .clock_rate      = 0.0,
                                           .error_handler   = rf_dummy_handle_error,
                                           .rx_stream       = false,
@@ -339,34 +335,6 @@ double rf_dummy_set_tx_freq(void *h, double freq)
 
    return _info->tx_freq;
  }
-
-
-void rf_dummy_set_tx_cal(void *h, srslte_rf_cal_t *cal)
-{
-   GET_DEV_INFO(h);
-
-   memcpy(&(_info->tx_cal), cal, sizeof(srslte_rf_cal_t));
-
-   LOG_INFO("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
-            cal->dc_gain, 
-            cal->dc_phase, 
-            cal->iq_i,
-            cal->iq_q);
-}
-
-
-void rf_dummy_set_rx_cal(void *h, srslte_rf_cal_t *cal)
-{
-   GET_DEV_INFO(h);
-
-   memcpy(&(_info->rx_cal), cal, sizeof(srslte_rf_cal_t));
-
-   LOG_INFO("gain %3.2lf, phase %3.2lf, I %3.2lf, Q %3.2lf", 
-            cal->dc_gain,
-            cal->dc_phase,
-            cal->iq_i,
-            cal->iq_q);
-}
 
 
 void rf_dummy_get_time(void *h, time_t *full_secs, double *frac_secs)
