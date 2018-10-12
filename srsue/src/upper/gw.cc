@@ -32,16 +32,11 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <linux/ip.h>
+#include <linux/ipv6.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-
-struct in6_ifreq {
-  struct in6_addr ifr6_addr;
-  __u32 ifr6_prefixlen;
-  unsigned int ifr6_ifindex;
-};
 
 namespace srsue {
 
@@ -357,9 +352,11 @@ void gw::add_mch_port(uint32_t lcid, uint32_t port)
 /********************/
 void gw::run_thread()
 {
-  struct iphdr   *ip_pkt;
+  struct iphdr    *ip_pkt;
+  struct ipv6hdr  *ip6_pkt;
   uint32          idx = 0;
   int32           N_bytes;
+  uint16_t        pkt_len;
   srslte::byte_buffer_t *pdu = pool_allocate_blocking;
   if (!pdu) {
     gw_log->error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
@@ -386,12 +383,16 @@ void gw::run_thread()
     {
       pdu->N_bytes = idx + N_bytes;
       ip_pkt       = (struct iphdr*)pdu->msg;
-
-      // Warning: Accept only IPv4 packets
-      if (ip_pkt->version == 4) {
+      ip6_pkt       = (struct ipv6hdr*)pdu->msg;
+      if (ip_pkt->version == 4 || ip_pkt->version == 6) {
+        if (ip_pkt->version == 4){
+          pkt_len = ntohs(ip_pkt->tot_len);
+        } else if (ip_pkt->version == 6){
+          pkt_len = ntohs(ip6_pkt->payload_len)+40;
+        }
+        gw_log->debug("IPv%d packet total length: %d Bytes\n", ip_pkt->version, pkt_len);
         // Check if entire packet was received
-        if(ntohs(ip_pkt->tot_len) == pdu->N_bytes)
-        {
+        if (pkt_len == pdu->N_bytes) {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
           while(run_enable && !pdcp->is_lcid_enabled(cfg.lcid) && attach_wait < ATTACH_WAIT_TOUT) {
@@ -427,7 +428,10 @@ void gw::run_thread()
           }
         }else{
           idx += N_bytes;
+          gw_log->debug("Entire packet not read from socket. Total Length %d, N_Bytes %d.\n", ip_pkt->tot_len, pdu->N_bytes);
         }
+      } else {
+        gw_log->error("IP Version not handled. Version %d\n", ip_pkt->version);
       }
     }else{
       gw_log->error("Failed to read from TUN interface - gw receive thread exiting.\n");
