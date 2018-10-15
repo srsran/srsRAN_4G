@@ -108,7 +108,7 @@ public:
   }
 
   myobj wait_pop() { // blocking pop
-    myobj value;
+    myobj value = myobj();
     pop_(&value, true);
     return value;
   }
