@@ -587,6 +587,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
 
   if (pdu->N_bytes <= 5) {
     nas_log->error("Invalid attach accept PDU size (%d)\n", pdu->N_bytes);
+    pool->deallocate(pdu);
     return;
   }
 
@@ -629,7 +630,18 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     liblte_mme_unpack_activate_default_eps_bearer_context_request_msg(&attach_accept.esm_msg,
                                                                       &act_def_eps_bearer_context_req);
 
-    if (LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
+    if ( (cfg.apn_protocol == "ipv4" && LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) ||
+         (cfg.apn_protocol == "ipv6" && LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) ){
+      nas_log->error("Failed to attach -- Mismatch between PDN protocol and PDN type in attach accept.\n");
+      pool->deallocate(pdu);
+      return;
+    }
+    if ( ("ipv4v6" == cfg.apn_protocol && LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) ||
+         ("ipv4v6" == cfg.apn_protocol && LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) ){
+      nas_log->warning("Requested IPv4v6, but only received a single PDN address.\n");
+      nas_log->warning("EMM Cause: %d\n", attach_accept.emm_cause );
+    }
+    if (LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type || LIBLTE_MME_PDN_TYPE_IPV4V6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[0] << 24;
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[1] << 16;
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[2] << 8;
@@ -653,7 +665,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       if (gw->setup_if_addr(ip_addr, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
-    } else if (LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type){
+    } else if (LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type || LIBLTE_MME_PDN_TYPE_IPV4V6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type){
       memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
       nas_log->info("Network attach successful. APN: %s, IPv6 interface id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
                     act_def_eps_bearer_context_req.apn.apn,
@@ -681,7 +693,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
     } else {
-      nas_log->error("Not handling IPV6 or IPV4V6\n");
+      nas_log->error("PDN type not IPv4, IPv6 nor IPv4v6\n");
       pool->deallocate(pdu);
       return;
     }
