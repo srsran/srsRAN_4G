@@ -216,13 +216,16 @@ struct bit_buffer_t{
 #endif
     }
     bit_buffer_t(const bit_buffer_t& buf){
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bits = buf.N_bits;
       memcpy(msg, buf.msg, N_bits);
     }
     bit_buffer_t & operator= (const bit_buffer_t & buf){
       // avoid self assignment
-      if (&buf == this)
+      if (&buf == this) {
         return *this;
+      }
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bits = buf.N_bits;
       memcpy(msg, buf.msg, N_bits);
       return *this;
