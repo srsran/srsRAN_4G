@@ -27,6 +27,7 @@
 #ifndef SRSUE_GW_H
 #define SRSUE_GW_H
 
+#include <net/if.h>
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -34,8 +35,6 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/threads.h"
 #include "gw_metrics.h"
-
-#include <linux/if.h>
 
 namespace srsue {
 
@@ -97,6 +96,8 @@ private:
 
   void                run_thread();
   srslte::error_t     init_if(char *err_str);
+  bool find_ipv6_addr(struct in6_addr *in6_out);
+  void del_ipv6_addr(struct in6_addr *in6p);
 
   // MBSFN
   int      mbsfn_sock_fd;                   // Sink UDP socket file descriptor

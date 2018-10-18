@@ -770,7 +770,6 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     nas_log->info("Sending Attach Complete\n");
     rrc->write_sdu(lcid, pdu);
     ctxt.tx_count++;
-
   } else {
     nas_log->info("Not handling attach type %u\n", attach_accept.eps_attach_result);
     state = EMM_STATE_DEREGISTERED;
@@ -1173,8 +1172,12 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
   } else if (cfg.apn_protocol == "ipv6") {
     nas_log->console("Setting PDN protocol to IPv6\n");
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV6;
+  } else if (cfg.apn_protocol == "ipv4v6") {
+    nas_log->console("Setting PDN protocol to IPv4v6\n");
+    pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4V6;
   } else {
     nas_log->warning("Unsupported PDN prtocol. Defaulting to IPv4\n");
+    nas_log->console("Unsupported PDN prtocol: %s. Defaulting to IPv4\n", cfg.apn_protocol.c_str());
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   }
 

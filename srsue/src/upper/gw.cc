@@ -33,10 +33,11 @@
 #include <arpa/inet.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
-#include <linux/if.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
 
 namespace srsue {
 
@@ -329,6 +330,12 @@ srslte::error_t gw::init_if(char *err_str)
       return(srslte::ERROR_CANT_START);
   }
 
+  // Delete link-local IPv6 address.
+  struct in6_addr in6p;
+  char addr_str[INET6_ADDRSTRLEN];
+  if(find_ipv6_addr(&in6p)){
+    gw_log->debug("Found link-local IPv6 address: %s\n",inet_ntop(AF_INET6, &in6p, addr_str,INET6_ADDRSTRLEN) );
+  }
   if_up = true;
 
   return(srslte::ERROR_NONE);
@@ -443,4 +450,117 @@ void gw::run_thread()
   gw_log->info("GW IP receiver thread exiting.\n");
 }
 
+/********************/
+/* NETLINK Helpers  */
+/********************/
+bool gw::find_ipv6_addr(struct in6_addr *in6_out)
+{
+  int status, rtattrlen, fd = -1;
+  unsigned int if_index;
+  struct rtattr *rta, *rtatp;
+  struct nlmsghdr *nlmp;
+  struct ifaddrmsg *rtmp;
+  struct in6_addr *in6p;
+  char buf[2048];
+  struct {
+    struct nlmsghdr n;
+    struct ifaddrmsg r;
+    char buf[1024];
+  } req;
+
+  gw_log->debug("Trying to obtain IPv6 addr of %s interface\n", tundevname.c_str());
+  
+  //Get Interface Index
+  if_index = if_nametoindex(tundevname.c_str());
+  if(if_index == 0){
+    gw_log->error("Could not find interface index\n");
+    goto err_out;
+  }
+
+  // Open NETLINK socket
+  fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
+  if (fd < 0) {
+    gw_log->error("Error openning NETLINK socket -- %s\n", strerror(errno));
+    goto err_out;
+  }
+
+  // We use RTM_GETADDR to get the ip address from the kernel
+  memset(&req, 0, sizeof(req));
+  req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
+  req.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_MATCH;
+  req.n.nlmsg_type = RTM_GETADDR;
+
+  // AF_INET6 is used to signify the kernel to fetch only ipv6 entires. 
+  req.r.ifa_family = AF_INET6;
+  
+  // Fill up all the attributes for the rtnetlink header. 
+  // The lenght is important. 16 signifies we are requesting IPv6 addresses
+  rta = (struct rtattr *)(((char *)&req) + NLMSG_ALIGN(req.n.nlmsg_len));
+  rta->rta_len = RTA_LENGTH(16);
+
+  // Time to send and recv the message from kernel 
+  status = send(fd, &req, req.n.nlmsg_len, 0);
+  if (status < 0) {
+    gw_log->error("Error sending NETLINK message to kernel -- %s", strerror(errno));
+    goto err_out;
+  }
+
+  status = recv(fd, buf, sizeof(buf), 0);
+  if (status < 0) {
+    gw_log->error("Error receiving from NETLINK socket\n");
+    goto err_out;
+  }
+
+  if (status == 0) {
+    printf("Nothing received from NETLINK Socket\n");
+    goto err_out;
+  }
+
+  // Parse the reply
+  for (nlmp = (struct nlmsghdr *)buf; (size_t)status > sizeof(*nlmp);) {
+    int len = nlmp->nlmsg_len;
+    int req_len = len - sizeof(*nlmp);
+
+    if (req_len < 0 || len > status) {
+      gw_log->error("Error in length of NETLINK message\n");
+      goto err_out;
+    }
+
+    if (!NLMSG_OK(nlmp, status)) {
+      gw_log->error("NLMSG not OK in NETLINK reply\n");
+      goto err_out;
+    }
+
+    rtmp = (struct ifaddrmsg *)NLMSG_DATA(nlmp);
+    rtatp = (struct rtattr *)IFA_RTA(rtmp);
+
+    rtattrlen = IFA_PAYLOAD(nlmp);
+    for (; RTA_OK(rtatp, rtattrlen); rtatp = RTA_NEXT(rtatp, rtattrlen)) {
+      // We are looking IFA_ADDRESS rt_attribute type.
+      // For more info on the different types see man(7) rtnetlink.
+      if (rtatp->rta_type == IFA_ADDRESS) {
+        in6p = (struct in6_addr *)RTA_DATA(rtatp);
+        if (if_index == rtmp->ifa_index) {
+          for (int i = 0; i < 16; i++) {
+            in6_out->s6_addr16[i] = in6p->s6_addr16[i];
+          }
+          goto out;
+        }
+      }
+    }
+    status -= NLMSG_ALIGN(len);
+    nlmp = (struct nlmsghdr *)((char *)nlmp + NLMSG_ALIGN(len));
+  }
+
+err_out:
+  if (fd > 0) {
+    close(fd);
+  }
+  return false;
+out:
+  close(fd);
+  return true;
+}
+
+void gw::del_ipv6_addr(struct in6_addr *in6p) {}
 } // namespace srsue
