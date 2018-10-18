@@ -641,7 +641,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       nas_log->warning("Requested IPv4v6, but only received a single PDN address.\n");
       nas_log->warning("EMM Cause: %d\n", attach_accept.emm_cause );
     }
-    if (LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type || LIBLTE_MME_PDN_TYPE_IPV4V6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
+    if (LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[0] << 24;
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[1] << 16;
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[2] << 8;
@@ -665,7 +665,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       if (gw->setup_if_addr(ip_addr, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }
-    } else if (LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type || LIBLTE_MME_PDN_TYPE_IPV4V6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type){
+    } else if (LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type){
       memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
       nas_log->info("Network attach successful. APN: %s, IPv6 interface id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
                     act_def_eps_bearer_context_req.apn.apn,
@@ -689,6 +689,54 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
                        act_def_eps_bearer_context_req.pdn_addr.addr[7]);
       // Setup GW
       char *err_str = NULL;
+      if (gw->setup_if_addr6(ipv6_if_id, err_str)) {
+        nas_log->error("Failed to set gateway address - %s\n", err_str);
+      }
+    } else if (LIBLTE_MME_PDN_TYPE_IPV4V6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type){ 
+      memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
+      //IPv6
+      nas_log->info("Network attach successful. APN: %s, IPv6 interface id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+                    act_def_eps_bearer_context_req.apn.apn,
+                    act_def_eps_bearer_context_req.pdn_addr.addr[0],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[1],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[2],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[3],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[4],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[5],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[6],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[7]);
+      nas_log->console("Network attach successful. IPv6 interface Id: %02x%02x:%02x%02x:%02x%02x:%02x%02x\n",
+                       act_def_eps_bearer_context_req.pdn_addr.addr[0],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[1],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[2],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[3],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[4],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[5],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[6],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[7]);
+      //IPv4
+      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[8] << 24;
+      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[9] << 16;
+      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[10] << 8;
+      ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[11];
+
+      nas_log->info("Network attach successful. APN: %s, IP: %u.%u.%u.%u\n",
+                    act_def_eps_bearer_context_req.apn.apn,
+                    act_def_eps_bearer_context_req.pdn_addr.addr[8],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[9],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[10],
+                    act_def_eps_bearer_context_req.pdn_addr.addr[11]);
+
+      nas_log->console("Network attach successful. IP: %u.%u.%u.%u\n",
+                       act_def_eps_bearer_context_req.pdn_addr.addr[8],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[9],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[10],
+                       act_def_eps_bearer_context_req.pdn_addr.addr[11]);
+      
+      char *err_str = NULL;
+      if (gw->setup_if_addr(ip_addr, err_str)) {
+        nas_log->error("Failed to set gateway address - %s\n", err_str);
+      }
       if (gw->setup_if_addr6(ipv6_if_id, err_str)) {
         nas_log->error("Failed to set gateway address - %s\n", err_str);
       }

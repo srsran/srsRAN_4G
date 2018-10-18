@@ -335,6 +335,9 @@ srslte::error_t gw::init_if(char *err_str)
   char addr_str[INET6_ADDRSTRLEN];
   if(find_ipv6_addr(&in6p)){
     gw_log->debug("Found link-local IPv6 address: %s\n",inet_ntop(AF_INET6, &in6p, addr_str,INET6_ADDRSTRLEN) );
+    del_ipv6_addr(&in6p);
+  } else {
+    gw_log->warning("Could not find link-local IPv6 address.\n");
   }
   if_up = true;
 
@@ -562,5 +565,59 @@ out:
   return true;
 }
 
-void gw::del_ipv6_addr(struct in6_addr *in6p) {}
+void gw::del_ipv6_addr(struct in6_addr *in6p)
+{
+  int status, fd =-1;
+  unsigned int if_index;
+  struct {
+    struct nlmsghdr n;
+    struct ifaddrmsg ifa;
+    char buf[1024];
+  } req;
+
+  //Get Interface Index
+  if_index = if_nametoindex(tundevname.c_str());
+  if(if_index == 0){
+    gw_log->error("Could not find interface index\n");
+    goto out;
+  }
+
+  // Open netlink socket
+  fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
+  if (fd < 0) {
+    gw_log->error("Error openning NETLINK socket -- %s\n", strerror(errno));
+    goto out;
+  }
+  
+  // We use RTM_DELADDR to delete the ip address from the interface
+  memset(&req, 0, sizeof(req));
+  req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
+  req.n.nlmsg_type = RTM_DELADDR;
+  req.n.nlmsg_flags = NLM_F_REQUEST;
+
+  req.ifa.ifa_family = AF_INET6;
+  req.ifa.ifa_prefixlen = 64;
+  req.ifa.ifa_index = if_index;  // set the tun_srsue index
+  req.ifa.ifa_scope = 0;
+  
+  //Add RT atribute
+  struct rtattr *rta;
+  rta = (struct rtattr *)(((char *)&req.n) + NLMSG_ALIGN(req.n.nlmsg_len));
+  rta->rta_type = IFA_LOCAL;
+  rta->rta_len = RTA_LENGTH(16);
+  memcpy(RTA_DATA(rta), in6p, 16);
+  req.n.nlmsg_len = NLMSG_ALIGN(req.n.nlmsg_len) + rta->rta_len;
+
+  status = send(fd, &req, req.n.nlmsg_len, 0);
+  if (status < 0) {
+    gw_log->error("Error sending NETLINK message\n");
+    goto out;
+  }
+
+out:
+  if (fd<0){
+    close(fd);
+  }
+  return;
+}
 } // namespace srsue
