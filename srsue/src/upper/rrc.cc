@@ -1375,7 +1375,7 @@ void rrc::send_con_restablish_complete() {
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_REEST_COMPLETE;
   ul_dcch_msg.msg.rrc_con_reest_complete.rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg();
+  send_ul_dcch_msg(RB_ID_SRB1);
 }
 
 void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
@@ -1392,13 +1392,13 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
 
   pool->deallocate(nas_msg);
   
-  send_ul_dcch_msg();
+  send_ul_dcch_msg(RB_ID_SRB1);
 }
 
-void rrc::send_ul_info_transfer(byte_buffer_t *nas_msg) {
+void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *nas_msg) {
   bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
 
-  rrc_log->debug("Preparing UL Info Transfer\n");
+  rrc_log->debug("%s Preparing UL Info Transfer\n", get_rb_name(lcid).c_str());
 
   // Prepare RX INFO packet
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_UL_INFO_TRANSFER;
@@ -1408,7 +1408,7 @@ void rrc::send_ul_info_transfer(byte_buffer_t *nas_msg) {
 
   pool->deallocate(nas_msg);
 
-  send_ul_dcch_msg();
+  send_ul_dcch_msg(lcid);
 }
 
 void rrc::send_security_mode_complete() {
@@ -1418,7 +1418,7 @@ void rrc::send_security_mode_complete() {
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_SECURITY_MODE_COMPLETE;
   ul_dcch_msg.msg.security_mode_complete.rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg();
+  send_ul_dcch_msg(RB_ID_SRB1);
 }
 
 void rrc::send_rrc_con_reconfig_complete() {
@@ -1428,7 +1428,7 @@ void rrc::send_rrc_con_reconfig_complete() {
   ul_dcch_msg.msg_type = LIBLTE_RRC_UL_DCCH_MSG_TYPE_RRC_CON_RECONFIG_COMPLETE;
   ul_dcch_msg.msg.rrc_con_reconfig_complete.rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg();
+  send_ul_dcch_msg(RB_ID_SRB1);
 }
 
 bool rrc::ho_prepare() {
@@ -1919,13 +1919,13 @@ void rrc::send_ul_ccch_msg()
   }
 }
 
-void rrc::send_ul_dcch_msg()
+void rrc::send_ul_dcch_msg(uint32_t lcid)
 {
   liblte_rrc_pack_ul_dcch_msg(&ul_dcch_msg, (LIBLTE_BIT_MSG_STRUCT *) &bit_buf);
   byte_buffer_t *pdu = byte_align_and_pack();
   if (pdu) {
-    rrc_log->info("Sending %s\n", liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
-    pdcp->write_sdu(RB_ID_SRB1, pdu);
+    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "%s Sending %s\n", get_rb_name(lcid).c_str(), liblte_rrc_ul_dcch_msg_type_text[ul_dcch_msg.msg_type]);
+    pdcp->write_sdu(lcid, pdu);
   }
 }
 
@@ -1936,7 +1936,7 @@ void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
     return;
   }
   rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
-  send_ul_info_transfer(sdu);
+  send_ul_info_transfer(lcid, sdu);
 }
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
@@ -2178,7 +2178,7 @@ void rrc::send_rrc_ue_cap_info() {
   cap->inter_rat_params.cdma2000_hrpd_present = false;
   cap->inter_rat_params.cdma2000_1xrtt_present = false;
 
-  send_ul_dcch_msg();
+  send_ul_dcch_msg(RB_ID_SRB1);
 }
 
 
@@ -2979,7 +2979,7 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   }
 
   // Send to lower layers
-  parent->send_ul_dcch_msg();
+  parent->send_ul_dcch_msg(RB_ID_SRB1);
 }
 
 /* Handle entering/leaving event conditions 5.5.4.1 */

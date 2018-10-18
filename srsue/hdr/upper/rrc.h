@@ -359,7 +359,7 @@ private:
 
   byte_buffer_t* byte_align_and_pack();
   void send_ul_ccch_msg();
-  void send_ul_dcch_msg();
+  void send_ul_dcch_msg(uint32_t lcid);
   srslte::bit_buffer_t          bit_buf;
 
   pthread_mutex_t mutex;
@@ -603,7 +603,7 @@ private:
   void          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause);
   void          send_con_restablish_complete();
   void          send_con_setup_complete(byte_buffer_t *nas_msg);
-  void          send_ul_info_transfer(byte_buffer_t *nas_msg);
+  void          send_ul_info_transfer(uint32_t lcid, byte_buffer_t *nas_msg);
   void          send_security_mode_complete();
   void          send_rrc_con_reconfig_complete();
   void          send_rrc_ue_cap_info();
