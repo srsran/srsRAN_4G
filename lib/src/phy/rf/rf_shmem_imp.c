@@ -66,7 +66,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
-#include <sys/shm.h>
+#include <sys/mman.h>
+#include <sys/stat.h> /* For mode constants */
+#include <fcntl.h>    /* For O_* constants */
 
 #include "srslte/srslte.h"
 #include "rf_shmem_imp.h"
@@ -244,10 +246,8 @@ typedef struct {
    size_t               tx_nof_ok;
    size_t               tx_nof_drop;
    srslte_rf_info_t     rf_info;
-   key_t                shm_dl_key;
-   key_t                shm_ul_key;
-   int                  shm_dl_id;
-   int                  shm_ul_id;
+   int                  shm_dl_fd;
+   int                  shm_ul_fd;
    void *               shm_dl;      // dl shared mem
    void *               shm_ul;      // ul shared mem
    rf_shmem_segment_t * rx_segment;  // rx bins
@@ -308,10 +308,8 @@ static rf_shmem_state_t rf_shmem_state = { .dev_name        = "shmemrf",
                                            .tx_nof_ok       = 0,
                                            .tx_nof_drop     = 0,
                                            .rf_info         = {},
-                                           .shm_dl_key      = 0,
-                                           .shm_ul_key      = 0,
-                                           .shm_dl_id       = 0,
-                                           .shm_ul_id       = 0,
+                                           .shm_dl_fd       = 0,
+                                           .shm_ul_fd       = 0,
                                            .shm_dl          = NULL,
                                            .shm_ul          = NULL,
                                            .rx_segment      = NULL,
@@ -397,96 +395,88 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
 
   // assume 1 enb which is resposible for creating all shared resources
   bool wait_for_create = false;
+  mode_t mode = S_IRWXU;// | S_IRWXG | S_IRWXO;
 
   if(rf_shmem_is_enb(_state))
     {
       rf_shmem_node_type = 'E';
 
-      dl_shm_flags = IPC_CREAT | 0600;
-      ul_shm_flags = IPC_CREAT | 0600;
+      dl_shm_flags = O_CREAT | O_TRUNC | O_RDWR;
+      ul_shm_flags = O_CREAT | O_TRUNC | O_RDWR;
     }
   else
     {
       rf_shmem_node_type = 'U';
 
-      dl_shm_flags = 0600;
-      ul_shm_flags = 0600;
+      dl_shm_flags = O_RDWR;
+      ul_shm_flags = O_RDWR;
 
       // let enb create all resources
       wait_for_create = true;
     }
 
-  // dl shm key
-  if((_state->shm_dl_key = ftok("/tmp", 'D')) < 0)
-    {
-      RF_SHMEM_WARN("failed to get shm_dl_key %s", strerror(errno));
+  do {
+    if((_state->shm_dl_fd = shm_open("/srslte_shm_dl", dl_shm_flags, mode)) < 0)
+      {
+        if(wait_for_create == false)
+          {
+            RF_SHMEM_WARN("failed to get shm_dl_fd %s", strerror(errno));
 
-      return -1;
-    }
-  else
-    {
-      RF_SHMEM_WARN("got shm_dl_key 0x%x", _state->shm_dl_key);
-    }
+            return -1;
+          }
+        else
+          {
+            RF_SHMEM_WARN("failed to get shm_dl_fd %s, retry", strerror(errno));
+
+            sleep(1);
+          }
+      }
+    else
+      {
+        if(rf_shmem_node_type == 'E')
+          {
+            ftruncate(_state->shm_dl_fd, RF_SHMEM_DATA_SEGMENT_SIZE);
+          }
+        RF_SHMEM_WARN("got shm_dl_fd 0x%x", _state->shm_dl_fd);
+      }
+  } while(_state->shm_dl_fd < 0);
+    
+  
 
 
   // ul shm key
-  if((_state->shm_ul_key = ftok("/tmp", 'U')) < 0)
-    {
-      RF_SHMEM_WARN("failed to get shm_ul_key %s", strerror(errno));
-
-      return -1;
-    }
-  else
-    {
-      RF_SHMEM_WARN("got shm_ul_key 0x%x, use ipcs -m to find me later", _state->shm_ul_key);
-    }
-
-
   do {
-    // dl shm id
-    if((_state->shm_dl_id = shmget(_state->shm_dl_key, RF_SHMEM_DATA_SEGMENT_SIZE, dl_shm_flags)) < 0)
+    if((_state->shm_ul_fd = shm_open("/srslte_shm_ul", ul_shm_flags, mode)) < 0)
       {
         if(wait_for_create == false)
-         {
-           RF_SHMEM_WARN("failed to get shm_dl_id %s, abort", strerror(errno));
+          {
+            RF_SHMEM_WARN("failed to get shm_ul_fd %s", strerror(errno));
 
-           return -1;
-         }
+            return -1;
+          }
         else
-         {
-           RF_SHMEM_WARN("failed to get shm_dl_id %s, retry", strerror(errno));
+          {
+            RF_SHMEM_WARN("failed to get shm_ul_fd %s, retry", strerror(errno));
 
-           sleep(1);
-         }
+            sleep(1);
+          }
       }
-   } while(_state->shm_dl_id < 0);
-
-
-  do {
-    // ul shm id
-    if((_state->shm_ul_id = shmget(_state->shm_ul_key, RF_SHMEM_DATA_SEGMENT_SIZE, ul_shm_flags)) < 0)
+    else
       {
-        if(wait_for_create == false)
-         {
-           RF_SHMEM_WARN("failed to get shm_ul_id %s, check segment size %zu, abort", 
-                         strerror(errno), RF_SHMEM_DATA_SEGMENT_SIZE);
-
-           return -1;
-         }
-        else
-         {
-           RF_SHMEM_WARN("failed to get shm_ul_id %s, retry", strerror(errno));
-
-           sleep(1);
-         }
+        if(rf_shmem_node_type == 'E')
+          {
+            ftruncate(_state->shm_ul_fd, RF_SHMEM_DATA_SEGMENT_SIZE);
+          }
+        RF_SHMEM_WARN("got shm_ul_fd 0x%x", _state->shm_ul_fd);
       }
-   } while(_state->shm_ul_id < 0);
+  } while(_state->shm_ul_fd < 0);
+
 
 
   // dl shm addr
-  if((_state->shm_dl = shmat(_state->shm_dl_id, NULL, 0)) == (void *) -1)
+  if((_state->shm_dl = mmap(0, RF_SHMEM_DATA_SEGMENT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, _state->shm_dl_fd, 0)) == (void *) -1)
     {
-      RF_SHMEM_WARN("failed to attach shm_dl %s", strerror(errno));
+      RF_SHMEM_WARN("failed to map shm_dl %s", strerror(errno));
 
       rf_shmem_close(_state);
 
@@ -494,9 +484,9 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
     }
 
   // ul shm addr
-  if((_state->shm_ul = shmat(_state->shm_ul_id, NULL, 0)) == (void *) -1)
+  if((_state->shm_ul = mmap(0, RF_SHMEM_DATA_SEGMENT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, _state->shm_ul_fd, 0)) == (void *) -1)
     {
-      RF_SHMEM_WARN("failed to attach shm_ul %s", strerror(errno));
+      RF_SHMEM_WARN("failed to map shm_ul %s", strerror(errno));
 
       rf_shmem_close(_state);
 
@@ -766,18 +756,28 @@ int rf_shmem_close(void *h)
     {
       if(_state->shm_dl)
         {
-          shmdt(_state->shm_dl);
+          munmap(_state->shm_dl, RF_SHMEM_DATA_SEGMENT_SIZE);
 
-          shmctl(_state->shm_dl_id, IPC_RMID, NULL);
+          shm_unlink("/srslte_shm_dl");
+
+          if(close(_state->shm_dl_fd) < 0)
+            {
+              RF_SHMEM_WARN("failed to close shm_dl_fd %s", strerror(errno));
+            }
 
           _state->shm_dl = NULL;
         }
 
       if(_state->shm_ul)
         {
-          shmdt(_state->shm_ul);
+          munmap(_state->shm_ul, RF_SHMEM_DATA_SEGMENT_SIZE);
 
-          shmctl(_state->shm_ul_id, IPC_RMID, NULL);
+          shm_unlink("/srslte_shm_ul");
+
+          if(close(_state->shm_ul_fd) < 0)
+            {
+              RF_SHMEM_WARN("failed to close shm_ul_fd %s", strerror(errno));
+            }
 
           _state->shm_ul = NULL;
         }
