@@ -36,6 +36,7 @@
 #include <string>
 
 #include "srslte/asn1/liblte_rrc.h"
+#include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/common.h"
 #include "srslte/common/security.h"
@@ -104,8 +105,7 @@ public:
 class gw_interface_nas
 {
 public:
-  virtual srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str) = 0;
-  virtual srslte::error_t setup_if_addr6(uint8_t *ipv6_if_id, char *err_str) = 0;
+  virtual srslte::error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t *ipv6_if_id, char *err_str) = 0;
 };
 
 // GW interface for RRC
