@@ -108,8 +108,7 @@ public:
   }
 
   myobj wait_pop() { // blocking pop
-    myobj value;
-    bzero(&value, sizeof(myobj));
+    myobj value = myobj();
     pop_(&value, true);
     return value;
   }
@@ -154,8 +153,8 @@ private:
     }
     if (value) {
       *value = q.front();
-      q.pop();
     }
+    q.pop();
     ret = true;
     if (mutexed_callback) {
       mutexed_callback->popping(*value);

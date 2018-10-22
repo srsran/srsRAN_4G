@@ -204,7 +204,7 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
   } else {
     // Handle SRB messages
     if (cfg.is_control) {
-      uint32_t sn;
+      uint32_t sn = 0;
       if (do_encryption) {
         cipher_decrypt(&(pdu->msg[sn_len_bytes]),
                        rx_count,
@@ -218,7 +218,7 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
                          rx_count,
                          pdu->N_bytes - 4,
                          &(pdu->msg[pdu->N_bytes - 4]))) {
-          log->error_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d (Dropping PDU)", rrc->get_rb_name(lcid).c_str(), sn);
+          log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
           goto exit;
         }
       }

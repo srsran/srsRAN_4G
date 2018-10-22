@@ -22,6 +22,7 @@
  *
  */
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <errno.h>
 #include <signal.h>
@@ -30,6 +31,7 @@
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/config_file.h"
+#include "srslte/build_info.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/hss/hss.h"
 #include "srsepc/hdr/spgw/spgw.h"
@@ -87,6 +89,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string mme_apn;
   string spgw_bind_addr;
   string sgi_if_addr;
+  string sgi_if_name;
   string dns_addr;
   string hss_db_file;
   string hss_auth_algo;
@@ -116,6 +119,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),   "HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"), "IP address of SP-GW for the S1-U connection")
     ("spgw.sgi_if_addr",    bpo::value<string>(&sgi_if_addr)->default_value("176.16.0.1"),   "IP address of TUN interface for the SGi connection")
+    ("spgw.sgi_if_name",    bpo::value<string>(&sgi_if_name)->default_value("srs_spgw_sgi"), "Name of TUN interface for the SGi connection")
 
     ("pcap.enable",         bpo::value<bool>(&args->mme_args.s1ap_args.pcap_enable)->default_value(false),         "Enable S1AP PCAP")
     ("pcap.filename",       bpo::value<string>(&args->mme_args.s1ap_args.pcap_filename)->default_value("/tmp/epc.pcap"), "PCAP filename")
@@ -221,6 +225,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   args->mme_args.s1ap_args.mme_apn = mme_apn;
   args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
   args->spgw_args.sgi_if_addr = sgi_if_addr;
+  args->spgw_args.sgi_if_name = sgi_if_name;
   args->hss_args.db_file = hss_db_file;
   args->hss_args.auth_algo = hss_auth_algo;
 
@@ -290,12 +295,35 @@ level(std::string l)
   }
 }
 
+std::string get_build_mode()
+{
+  return std::string(srslte_get_build_mode());
+}
+
+std::string get_build_info()
+{
+  if (std::string(srslte_get_build_info()) == "") {
+    return std::string(srslte_get_version());
+  }
+  return std::string(srslte_get_build_info());
+}
+
+std::string get_build_string()
+{
+  std::stringstream ss;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  return ss.str();
+}
+
 int
 main (int argc,char * argv[] )
 {
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   signal(SIGKILL, sig_int_handler);
+
+  // print build info
+  cout << endl << get_build_string() << endl;
 
   cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
   srslte_debug_handle_crash(argc, argv);
@@ -312,6 +340,8 @@ main (int argc,char * argv[] )
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log_args.filename);
+    logger_file.log("\n\n");
+    logger_file.log(get_build_string().c_str());
     logger_file.log("\n---  Software Radio Systems EPC log ---\n\n");
     logger = &logger_file;
   }

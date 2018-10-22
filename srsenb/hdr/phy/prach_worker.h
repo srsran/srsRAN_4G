@@ -73,7 +73,6 @@ private:
     cf_t samples[sf_buffer_sz];
     uint32_t nof_samples;
     uint32_t tti;
-    char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
   };
   srslte::buffer_pool<sf_buffer>  buffer_pool;
   srslte::block_queue<sf_buffer*> pending_buffers;

@@ -97,16 +97,6 @@ void radio::reset()
   usleep(100000);
 }
 
-void radio::set_manual_calibration(rf_cal_t* calibration)
-{
-  srslte_rf_cal_t tx_cal; 
-  tx_cal.dc_gain  = calibration->tx_corr_dc_gain;
-  tx_cal.dc_phase = calibration->tx_corr_dc_phase;
-  tx_cal.iq_i     = calibration->tx_corr_iq_i;
-  tx_cal.iq_q     = calibration->tx_corr_iq_q;
-  srslte_rf_set_tx_cal(&rf_device, &tx_cal);
-}
-
 void radio::set_tx_rx_gain_offset(float offset) {
   srslte_rf_set_tx_rx_gain_offset(&rf_device, offset);  
 }

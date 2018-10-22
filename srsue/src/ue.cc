@@ -193,10 +193,7 @@ bool ue::init(all_args_t *args_) {
     radio.set_continuous_tx(args->rf.continuous_tx.compare("yes")?false:true);
   }
 
-  radio.set_manual_calibration(&args->rf_cal);
-
   // Set PHY options
-
   if (args->rf.tx_gain > 0) {
     args->expert.phy.ul_pwr_ctrl_en = false; 
   } else {
@@ -228,6 +225,7 @@ bool ue::init(all_args_t *args_) {
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
+  gw.set_tundevname(args->expert.ip_devname);
   
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);

@@ -40,56 +40,82 @@ namespace srslte {
  *        | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
  *
  * 1      |  Version  |PT | * | E | S |PN |
- * 2      |           Message Type        |
- * 3      |         Length (1st Octet)    |
- * 4      |         Length (2nd Octet)    |
- * 5      |          TEID (1st Octet)     |
- * 6      |          TEID (2nd Octet)     |
- * 7      |          TEID (3rd Octet)     |
- * 8      |          TEID (4th Octet)     |
+ * 2      |         Message Type          |
+ * 3      |     Length (1st Octet)        |
+ * 4      |     Length (2nd Octet)        |
+ * 5      |      TEID (1st Octet)         |
+ * 6      |      TEID (2nd Octet)         |
+ * 7      |      TEID (3rd Octet)         |
+ * 8      |      TEID (4th Octet)         |
+ * 9      |    Seq Number (1st Octet)     |
+ * 10     |    Seq Number (2st Octet)     |
+ * 11     |            N-PDU              |
+ * 12     |  Next Extension Header Type   |
  ***************************************************************************/
 
-#define GTPU_HEADER_LEN 8
+#define GTPU_BASE_HEADER_LEN 8
+#define GTPU_EXTENDED_HEADER_LEN 12
+
+#define GTPU_FLAGS_VERSION_MASK 0xE0
+#define GTPU_FLAGS_VERSION_V1 0x20
+#define GTPU_FLAGS_GTP_PRIME_PROTOCOL 0x00
+#define GTPU_FLAGS_GTP_PROTOCOL 0x10
+#define GTPU_FLAGS_EXTENDED_HDR 0x04
+#define GTPU_FLAGS_SEQUENCE 0x02
+#define GTPU_FLAGS_PACKET_NUM 0x01
+
+#define  GTPU_MSG_ECHO_REQUEST 1
+#define  GTPU_MSG_ECHO_RESPONSE 2
+#define  GTPU_MSG_ERROR_INDICATION 26
+#define  GTPU_MSG_SUPPORTED_EXTENSION_HEADERS_NOTIFICATION 31
+#define  GTPU_MSG_END_MARKER 254
+#define  GTPU_MSG_DATA_PDU 255
 
 typedef struct{
-  uint8_t   flags;          // Only support 0x30 - v1, PT1 (GTP), no other flags
-  uint8_t   message_type;   // Only support 0xFF - T-PDU type
+  uint8_t   flags;
+  uint8_t   message_type;
   uint16_t  length;
   uint32_t  teid;
+  uint16_t  seq_number;
+  uint8_t   n_pdu;
+  uint8_t   next_ext_hdr_type;
 }gtpu_header_t;
 
 
 bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte::log *gtpu_log);
 bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte::log *gtpu_log);
 
-inline void uint8_to_uint32(uint8_t *buf, uint32_t *i)
+inline bool gtpu_supported_flags_check(gtpu_header_t *header, srslte::log *gtpu_log)
 {
-  *i =  (uint32_t)buf[0] << 24 |
-    (uint32_t)buf[1] << 16 |
-    (uint32_t)buf[2] << 8  |
-    (uint32_t)buf[3];
+  //flags
+  if( (header->flags & GTPU_FLAGS_VERSION_MASK) != GTPU_FLAGS_VERSION_V1 ) {
+    gtpu_log->error("gtpu_header - Unhandled GTP-U Version. Flags: 0x%x\n", header->flags);
+    return false;
+  }
+  if( !(header->flags & GTPU_FLAGS_GTP_PROTOCOL) ) {
+    gtpu_log->error("gtpu_header - Unhandled Protocol Type. Flags: 0x%x\n\n", header->flags);
+    return false;
+  }
+  if( header->flags & GTPU_FLAGS_EXTENDED_HDR ) {
+    gtpu_log->error("gtpu_header - Unhandled Header Extensions. Flags: 0x%x\n\n", header->flags);
+    return false;
+  }
+  if( header->flags & GTPU_FLAGS_PACKET_NUM ) {
+    gtpu_log->error("gtpu_header - Unhandled Packet Number. Flags: 0x%x\n\n", header->flags);
+    return false;
+  }
+  return true;
 }
 
-inline void uint32_to_uint8(uint32_t i, uint8_t *buf)
+inline bool gtpu_supported_msg_type_check(gtpu_header_t *header, srslte::log *gtpu_log)
 {
-  buf[0] = (i >> 24) & 0xFF;
-  buf[1] = (i >> 16) & 0xFF;
-  buf[2] = (i >> 8) & 0xFF;
-  buf[3] = i & 0xFF;
+  //msg_tpye
+  if( header->message_type != GTPU_MSG_DATA_PDU && header->message_type != GTPU_MSG_ECHO_REQUEST && header->message_type != GTPU_MSG_ECHO_RESPONSE) {
+    gtpu_log->error("gtpu_header - Unhandled message type: 0x%x\n", header->message_type);
+    return false;
+  }
+  return true;
 }
-
-inline void uint8_to_uint16(uint8_t *buf, uint16_t *i)
-{
-  *i =  (uint32_t)buf[0] << 8  |
-    (uint32_t)buf[1];
-}
-
-inline void uint16_to_uint8(uint16_t i, uint8_t *buf)
-{
-  buf[0] = (i >> 8) & 0xFF;
-  buf[1] = i & 0xFF;
-}
-
 
 }//namespace
 

@@ -51,7 +51,7 @@ uint8_t auth_request_pdu[] = { 0x07, 0x52, 0x01, 0x0c, 0x63, 0xa8, 0x54, 0x13, 0
 uint8_t sec_mode_command_pdu[] = { 0x37, 0x37, 0xc7, 0x67, 0xae, 0x00, 0x07, 0x5d, 0x02, 0x01,
                                    0x02, 0xe0, 0x60, 0xc1 };
 
-uint8_t attach_accept_pdu[] = { 0x27, 0x0f, 0x4f, 0xb3, 0xef, 0x01, 0x07, 0x42, 0x01, 0x3e,
+uint8_t attach_accept_pdu[] = { 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x42, 0x01, 0x3e,
                                 0x06, 0x00, 0x00, 0xf1, 0x10, 0x00, 0x01, 0x00, 0x2a, 0x52,
                                 0x01, 0xc1, 0x01, 0x04, 0x1b, 0x07, 0x74, 0x65, 0x73, 0x74,
                                 0x31, 0x32, 0x33, 0x06, 0x6d, 0x6e, 0x63, 0x30, 0x30, 0x31,
@@ -60,7 +60,7 @@ uint8_t attach_accept_pdu[] = { 0x27, 0x0f, 0x4f, 0xb3, 0xef, 0x01, 0x07, 0x42, 
                                 0x80, 0x50, 0x0b, 0xf6, 0x00, 0xf1, 0x10, 0x80, 0x01, 0x01,
                                 0x35, 0x16, 0x6d, 0xbc, 0x64, 0x01, 0x00 };
 
-uint8_t esm_info_req_pdu[] = { 0x27, 0x1d, 0xbf, 0x7e, 0x05, 0x01, 0x02, 0x5a, 0xd9 };
+uint8_t esm_info_req_pdu[] = { 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x5a, 0xd9 };
 
 uint16 mcc = 61441;
 uint16 mnc = 65281;
@@ -98,6 +98,7 @@ public:
   }
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
   uint32_t get_last_sdu_len() { return last_sdu_len; }
+  void reset() { last_sdu_len = 0; }
 
   int plmn_search(srsue::rrc_interface_nas::found_plmn_t* found) {
     memcpy(found, &plmns, sizeof(found_plmn_t));
@@ -164,6 +165,7 @@ int security_command_test()
 
   srsue::nas nas;
   srslte_nas_config_t cfg;
+  ZERO_OBJECT(cfg);
   nas.init(&usim, &rrc_dummy, &gw, &nas_log, cfg);
 
   // push auth request PDU to NAS to generate security context
@@ -173,6 +175,7 @@ int security_command_test()
   nas.write_pdu(LCID, tmp);
 
   // TODO: add check for authentication response
+  rrc_dummy.reset();
 
   // reuse buffer for security mode command
   memcpy(tmp->msg, sec_mode_command_pdu, sizeof(sec_mode_command_pdu));
@@ -218,6 +221,8 @@ int mme_attach_request_test()
   usim.init(&args, &usim_log);
 
   srslte_nas_config_t nas_cfg;
+  ZERO_OBJECT(nas_cfg);
+  nas_cfg.force_imsi_attach = true;
   nas_cfg.apn = "test123";
   srsue::nas nas;
   nas.init(&usim, &rrc_dummy, &gw, &nas_log, nas_cfg);
@@ -225,6 +230,9 @@ int mme_attach_request_test()
   nas.attach_request();
 
   // this will time out in the first place
+
+  // reset length of last received NAS PDU
+  rrc_dummy.reset();
 
   // finally push attach accept
   byte_buffer_t* tmp = byte_buffer_pool::get_instance()->allocate();
@@ -278,9 +286,11 @@ int esm_info_request_test()
 
   srsue::nas nas;
   srslte_nas_config_t cfg;
+  ZERO_OBJECT(cfg);
   cfg.apn = "srslte";
   cfg.user = "srsuser";
   cfg.pass = "srspass";
+  cfg.force_imsi_attach = true;
   nas.init(&usim, &rrc_dummy, &gw, &nas_log, cfg);
 
   // push ESM info request PDU to NAS to generate response

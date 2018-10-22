@@ -48,9 +48,12 @@ const uint16_t GTPU_RX_PORT = 2152;
 
 typedef struct {
   std::string name;
+  std::string sgi_mb_if_name;
   std::string sgi_mb_if_addr;
   std::string sgi_mb_if_mask;
   std::string m1u_multi_addr;
+  std::string m1u_multi_if;
+  int         m1u_multi_ttl;
 } mbms_gw_args_t;
 
 struct pseudo_hdr

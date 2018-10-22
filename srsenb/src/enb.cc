@@ -26,6 +26,9 @@
 
 #include <boost/algorithm/string.hpp>
 #include "srsenb/hdr/enb.h"
+#include "srslte/build_info.h"
+#include <iostream>
+#include <sstream>
 
 namespace srsenb {
 
@@ -54,6 +57,9 @@ void enb::cleanup(void)
 }
 
 enb::enb() : started(false) {
+  // print build info
+  std::cout << std::endl << get_build_string() << std::endl;
+
   srslte_dft_load();
   pool = srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE);
 
@@ -79,6 +85,7 @@ bool enb::init(all_args_t *args_)
   } else {
     logger_file.init(args->log.filename, args->log.file_max_size);
     logger_file.log("\n\n");
+    logger_file.log(get_build_string().c_str());
     logger = &logger_file;
   }
 
@@ -159,8 +166,6 @@ bool enb::init(all_args_t *args_)
   if (args->rf.burst_preamble.compare("auto")) {
     radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
   }
-  
-  radio.set_manual_calibration(&args->rf_cal);
 
   radio.set_rx_gain(args->rf.rx_gain);
   radio.set_tx_gain(args->rf.tx_gain);    
@@ -212,15 +217,23 @@ bool enb::init(all_args_t *args_)
 
   uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib.sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset;
 
-  if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
-    fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", prach_freq_offset);
-    return false;
-  }
+  if(cell_cfg.nof_prb>10) {
+    if (prach_freq_offset + 6 > cell_cfg.nof_prb - SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
+      fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", prach_freq_offset);
+      return false;
+    }
 
-  if (prach_freq_offset < rrc_cfg.cqi_cfg.nof_prb || prach_freq_offset < rrc_cfg.sr_cfg.nof_prb ) {
-    fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d lower than CQI offset: %d or SR offset: %d\n",
-            prach_freq_offset, rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb);
-    return false;
+    if (prach_freq_offset < SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
+      fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d lower than CQI offset: %d or SR offset: %d\n",
+              prach_freq_offset, rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb);
+      return false;
+    }
+  } else { // 6 PRB case
+    if (prach_freq_offset+6 > cell_cfg.nof_prb) {
+      fprintf(stderr, "Invalid PRACH configuration: frequency interval=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
+              prach_freq_offset, prach_freq_offset+6, cell_cfg.nof_prb);
+      return false;
+    }
   }
 
   rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
@@ -237,8 +250,8 @@ bool enb::init(all_args_t *args_)
   pdcp.init(&rlc, &rrc, &gtpu, &pdcp_log);
   rrc.init(&rrc_cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &rrc_log);
   s1ap.init(args->enb.s1ap, &rrc, &s1ap_log);
-  gtpu.init(args->enb.s1ap.gtp_bind_addr, args->enb.s1ap.mme_addr, &pdcp, &gtpu_log, args->expert.enable_mbsfn);
-  
+  gtpu.init(args->enb.s1ap.gtp_bind_addr, args->enb.s1ap.mme_addr, args->expert.m1u_multiaddr, args->expert.m1u_if_addr, &pdcp, &gtpu_log, args->expert.enable_mbsfn);
+
   started = true;
   return true;
 }
@@ -340,6 +353,26 @@ srslte::LOG_LEVEL_ENUM enb::level(std::string l)
   }else{
     return srslte::LOG_LEVEL_NONE;
   }
+}
+
+std::string enb::get_build_mode()
+{
+  return std::string(srslte_get_build_mode());
+}
+
+std::string enb::get_build_info()
+{
+  if (std::string(srslte_get_build_info()) == "") {
+    return std::string(srslte_get_version());
+  }
+  return std::string(srslte_get_build_info());
+}
+
+std::string enb::get_build_string()
+{
+  std::stringstream ss;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  return ss.str();
 }
 
 } // namespace srsenb

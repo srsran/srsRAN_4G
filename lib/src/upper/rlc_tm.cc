@@ -153,7 +153,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   uint32_t pdu_size = ul_queue.size_tail_bytes();
   if (pdu_size > nof_bytes) {
-    log->error("TX %s PDU size larger than MAC opportunity\n", rrc->get_rb_name(lcid).c_str());
+    log->error("TX %s PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
     return -1;
   }
   byte_buffer_t *buf;

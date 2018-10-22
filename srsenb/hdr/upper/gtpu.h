@@ -40,24 +40,6 @@
 
 namespace srsenb {
 
-/****************************************************************************
- * GTPU Header
- * Ref: 3GPP TS 29.281 v10.1.0 Section 5
- *
- *        | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |
- *
- * 1      |  Version  |PT | * | E | S |PN |
- * 2      |           Message Type        |
- * 3      |         Length (1st Octet)    |
- * 4      |         Length (2nd Octet)    |
- * 5      |          TEID (1st Octet)     |
- * 6      |          TEID (2nd Octet)     |
- * 7      |          TEID (3rd Octet)     |
- * 8      |          TEID (4th Octet)     |
- ***************************************************************************/
-
-#define GTPU_HEADER_LEN 8
-
 class gtpu
     :public gtpu_interface_rrc
     ,public gtpu_interface_pdcp
@@ -67,7 +49,7 @@ public:
 
   gtpu();
 
-  bool init(std::string gtp_bind_addr_, std::string mme_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
+  bool init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
   void stop();
 
   // gtpu_interface_rrc
@@ -95,7 +77,7 @@ private:
   class mch_thread : public thread {
   public:
     mch_thread() : initiated(false),running(false),run_enable(false),pool(NULL) {}
-    bool init(pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
+    bool init(std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
     void stop();
   private:
     void run_thread();
@@ -110,6 +92,8 @@ private:
     srslte::log         *gtpu_log;
     int m1u_sd;
     int lcid_counter;
+    std::string                  m1u_multiaddr;
+    std::string                  m1u_if_addr;
 
     srslte::byte_buffer_pool *pool;
   };
@@ -124,12 +108,11 @@ private:
   }bearer_map;
   std::map<uint16_t, bearer_map> rnti_bearers;
 
-  // Socket file descriptors
-  int snk_fd;
-  int src_fd;
+  // Socket file descriptor
+  int fd;
 
-  //Threading
   void run_thread();
+  void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
 
   pthread_mutex_t mutex;
 

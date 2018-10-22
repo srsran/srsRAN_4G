@@ -225,7 +225,8 @@ private:
     void timer_expired(uint32_t timeout_id);
 
     // Functions needed by Tx subclass to query rx state
-    int get_status(rlc_status_pdu_t* status);
+    int get_status_pdu_length();
+    int get_status_pdu(rlc_status_pdu_t* status, const uint32_t nof_bytes);
     bool get_do_status();
     void reset_status(); // called when status PDU has been sent
 
@@ -320,7 +321,8 @@ uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
 bool        rlc_am_is_control_pdu(byte_buffer_t *pdu);
 bool        rlc_am_is_control_pdu(uint8_t *payload);
 bool        rlc_am_is_pdu_segment(uint8_t *payload);
-std::string rlc_am_to_string(rlc_status_pdu_t *status);
+std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t *status);
+std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t &header);
 bool        rlc_am_start_aligned(const uint8_t fi);
 bool        rlc_am_end_aligned(const uint8_t fi);
 bool        rlc_am_is_unaligned(const uint8_t fi);

@@ -59,13 +59,13 @@
 
 #define ASYNC_DL_SCHED  (HARQ_DELAY_MS <= 4)
 
-// Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
+// Cat 4 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1
-#define SRSLTE_MAX_BUFFER_SIZE_BITS  102048
-#define SRSLTE_MAX_BUFFER_SIZE_BYTES 12756
+#define SRSLTE_MAX_BUFFER_SIZE_BITS  150752
+#define SRSLTE_MAX_BUFFER_SIZE_BYTES (SRSLTE_MAX_BUFFER_SIZE_BITS/8)
 #define SRSLTE_BUFFER_HEADER_OFFSET  1020
 
-#define SRSLTE_BUFFER_POOL_LOG_ENABLED
+//#define SRSLTE_BUFFER_POOL_LOG_ENABLED
 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
 #define pool_allocate (pool->allocate(__PRETTY_FUNCTION__))
@@ -73,6 +73,7 @@
 #define SRSLTE_BUFFER_POOL_LOG_NAME_LEN 128
 #else
 #define pool_allocate (pool->allocate())
+#define pool_allocate_blocking (pool->allocate(NULL, true))
 #endif
 
 #define ZERO_OBJECT(x) memset(&(x), 0x0, sizeof((x)))
@@ -215,13 +216,16 @@ struct bit_buffer_t{
 #endif
     }
     bit_buffer_t(const bit_buffer_t& buf){
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bits = buf.N_bits;
       memcpy(msg, buf.msg, N_bits);
     }
     bit_buffer_t & operator= (const bit_buffer_t & buf){
       // avoid self assignment
-      if (&buf == this)
+      if (&buf == this) {
         return *this;
+      }
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bits = buf.N_bits;
       memcpy(msg, buf.msg, N_bits);
       return *this;

@@ -157,7 +157,6 @@ spgw::stop()
 srslte::error_t
 spgw::init_sgi_if(spgw_args_t *args)
 {
-  char dev[IFNAMSIZ] = "srs_spgw_sgi";
   struct ifreq ifr;
 
   if (m_sgi_up) {
@@ -175,7 +174,7 @@ spgw::init_sgi_if(spgw_args_t *args)
 
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ-1);
+  strncpy(ifr.ifr_ifrn.ifrn_name, args->sgi_if_name.c_str(), std::min(args->sgi_if_name.length(), (size_t)(IFNAMSIZ-1)));
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1]='\0';
 
   if (ioctl(m_sgi_if, TUNSETIFF, &ifr) < 0) {
@@ -344,8 +343,8 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
 
   //Setup GTP-U header
   srslte::gtpu_header_t header;
-  header.flags        = 0x30;
-  header.message_type = 0xFF;
+  header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
+  header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
   header.teid         = enb_fteid.teid;
 
