@@ -462,7 +462,7 @@ srslte::error_t gw::setup_if_addr6(uint8_t *ipv6_if_id, char *err_str)
 
 bool gw::find_ipv6_addr(struct in6_addr *in6_out)
 {
-  int status, rtattrlen, fd = -1;
+  int n, rtattrlen, fd = -1;
   unsigned int if_index;
   struct rtattr *rta, *rtatp;
   struct nlmsghdr *nlmp;
@@ -506,41 +506,40 @@ bool gw::find_ipv6_addr(struct in6_addr *in6_out)
   rta->rta_len = RTA_LENGTH(16);
 
   // Time to send and recv the message from kernel 
-  status = send(fd, &req, req.n.nlmsg_len, 0);
-  if (status < 0) {
+  n = send(fd, &req, req.n.nlmsg_len, 0);
+  if (n < 0) {
     gw_log->error("Error sending NETLINK message to kernel -- %s", strerror(errno));
     goto err_out;
   }
 
-  status = recv(fd, buf, sizeof(buf), 0);
-  if (status < 0) {
+  n = recv(fd, buf, sizeof(buf), 0);
+  if (n < 0) {
     gw_log->error("Error receiving from NETLINK socket\n");
     goto err_out;
   }
 
-  if (status == 0) {
-    printf("Nothing received from NETLINK Socket\n");
+  if (n == 0) {
+    gw_log->error("Nothing received from NETLINK Socket\n");
     goto err_out;
   }
 
   // Parse the reply
-  for (nlmp = (struct nlmsghdr *)buf; (size_t)status > sizeof(*nlmp);) {
-    int len = nlmp->nlmsg_len;
-    int req_len = len - sizeof(*nlmp);
-
-    if (req_len < 0 || len > status) {
-      gw_log->error("Error in length of NETLINK message\n");
+  for (nlmp = (struct nlmsghdr *)buf; NLMSG_OK (nlmp, n); nlmp = NLMSG_NEXT (nlmp, n)){
+    
+    //Chack NL message type
+    if (nlmp->nlmsg_type == NLMSG_DONE){ 
+      gw_log->error("Reach end of NETLINK message without finding IPv6 address.\n");
       goto err_out;
     }
-
-    if (!NLMSG_OK(nlmp, status)) {
-      gw_log->error("NLMSG not OK in NETLINK reply\n");
+    if (nlmp->nlmsg_type == NLMSG_ERROR) {
+      gw_log->error("NLMSG_ERROR in NETLINK reply\n");
       goto err_out;
     }
+    gw_log->debug("NETLINK message type %d\n", nlmp->nlmsg_type);
 
+    //Get IFA message
     rtmp = (struct ifaddrmsg *)NLMSG_DATA(nlmp);
     rtatp = (struct rtattr *)IFA_RTA(rtmp);
-
     rtattrlen = IFA_PAYLOAD(nlmp);
     for (; RTA_OK(rtatp, rtattrlen); rtatp = RTA_NEXT(rtatp, rtattrlen)) {
       // We are looking IFA_ADDRESS rt_attribute type.
@@ -555,8 +554,6 @@ bool gw::find_ipv6_addr(struct in6_addr *in6_out)
         }
       }
     }
-    status -= NLMSG_ALIGN(len);
-    nlmp = (struct nlmsghdr *)((char *)nlmp + NLMSG_ALIGN(len));
   }
 
 err_out:
