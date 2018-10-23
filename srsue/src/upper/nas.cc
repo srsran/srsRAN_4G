@@ -1303,7 +1303,7 @@ void nas::send_detach_request(bool switch_off)
     detach_request.nas_ksi.nas_ksi       = ctxt.ksi;
     nas_log->info("Requesting Detach with GUTI\n");
     liblte_mme_pack_detach_request_msg(&detach_request,
-                                       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
                                        ctxt.tx_count,
                                        (LIBLTE_BYTE_MSG_STRUCT *) pdu);
 
