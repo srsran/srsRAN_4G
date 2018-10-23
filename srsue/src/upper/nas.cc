@@ -1135,6 +1135,8 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
 
   // GUTI or IMSI attach
   if(have_guti && have_ctxt) {
+    attach_req.tmsi_status_present = true;
+    attach_req.tmsi_status = LIBLTE_MME_TMSI_STATUS_VALID_TMSI;
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI;
     memcpy(&attach_req.eps_mobile_id.guti, &ctxt.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
     attach_req.old_guti_type         = LIBLTE_MME_GUTI_TYPE_NATIVE;
