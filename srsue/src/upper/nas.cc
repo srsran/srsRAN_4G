@@ -184,7 +184,7 @@ bool nas::detach_request() {
     case EMM_STATE_REGISTERED:
       // send detach request
       send_detach_request(true);
-      state = EMM_STATE_DEREGISTERED_INITIATED;
+      state = EMM_STATE_DEREGISTERED;
       break;
     case EMM_STATE_DEREGISTERED_INITIATED:
       // do nothing ..
@@ -1337,7 +1337,11 @@ void nas::send_detach_request(bool switch_off)
   }
 
   nas_log->info("Sending detach request\n");
-  rrc->write_sdu(cfg.lcid, pdu);
+  if (rrc->is_connected()) {
+    rrc->write_sdu(cfg.lcid, pdu);
+  } else {
+    rrc->connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING, pdu);
+  }
 }
 
 void nas::send_detach_accept()
