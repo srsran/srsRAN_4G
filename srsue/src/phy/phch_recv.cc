@@ -191,9 +191,14 @@ phy_interface_rrc::cell_search_ret_t phch_recv::cell_search(phy_interface_rrc::p
   Info("Cell Search: Start EARFCN index=%u/%lu\n", cellsearch_earfcn_index, earfcn.size());
   phy_state.go_idle();
 
+  for (std::vector<uint32_t>::const_iterator i = earfcn.begin(); i != earfcn.end(); ++i) {
+    Info("COOPER:%d\n", *i);
+  }
+
   if (current_earfcn != (int) earfcn[cellsearch_earfcn_index]) {
     current_earfcn = (int) earfcn[cellsearch_earfcn_index];
     Info("Cell Search: changing frequency to EARFCN=%d\n", current_earfcn);
+    Info("COOPER cellsearch_earfcn_index:%d\n ", cellsearch_earfcn_index);
     set_frequency();
   }
 

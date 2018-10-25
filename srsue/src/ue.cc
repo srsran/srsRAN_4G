@@ -24,7 +24,6 @@
  *
  */
 
-
 #include "srsue/hdr/ue.h"
 #include "srslte/srslte.h"
 #include <pthread.h>
@@ -238,7 +237,14 @@ bool ue::init(all_args_t *args_) {
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;
-  earfcn_list.push_back(args->rf.dl_earfcn);
+  //earfcn_list.push_back(args->rf.dl_earfcn);
+  std::stringstream ss(args->rf.dl_earfcn);
+  while(ss.good())
+  {
+      std::string substr;
+      getline(ss, substr, ',');
+      earfcn_list.push_back(stoi(substr));
+  }
   phy.set_earfcn(earfcn_list);
 
   if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {
