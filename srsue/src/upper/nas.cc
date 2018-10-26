@@ -54,6 +54,7 @@ nas::nas()
   ctxt.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
   plmn_is_selected = false;
   chap_id = 0;
+  memset(ipv6_if_id, 0, sizeof(ipv6_if_id));
 }
 
 void nas::init(usim_interface_nas *usim_,
@@ -409,6 +410,21 @@ bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
 
   memcpy(k_asme_, ctxt.k_asme, 32);
   return true;
+}
+
+uint32_t nas::get_ipv4_addr()
+{
+  return ip_addr;
+}
+
+bool nas::get_ipv6_addr(uint8_t *ipv6_addr)
+{
+  uint8_t null_addr[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+  if (memcmp(ipv6_addr, null_addr, 8) != 0) {
+    memcpy(ipv6_addr, ipv6_if_id, 8);
+    return true;
+  }
+  return false;
 }
 
 /*******************************************************************************

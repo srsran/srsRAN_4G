@@ -140,6 +140,8 @@ public:
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
+  virtual uint32_t  get_ipv4_addr() = 0;
+  virtual bool      get_ipv6_addr(uint8_t *ipv6_addr) = 0;
 };
 
 // NAS interface for UE

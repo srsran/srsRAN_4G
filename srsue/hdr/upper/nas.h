@@ -88,6 +88,8 @@ public:
   uint32_t get_ul_count();
   bool is_attached();
   bool get_k_asme(uint8_t *k_asme_, uint32_t n);
+  uint32_t get_ipv4_addr();
+  bool get_ipv6_addr(uint8_t *ipv6_addr);
 
   // UE interface
   bool attach_request();
