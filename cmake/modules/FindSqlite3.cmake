@@ -1,0 +1,22 @@
+# - Try to find sqlite3
+#
+# Once done this will define
+#  POLARSSL_FOUND        - System has polarssl
+#  POLARSSL_INCLUDE_DIRS - The polarssl include directories
+#  POLARSSL_LIBRARIES    - The polarssl library
+
+INCLUDE(FindPkgConfig)
+#PKG_CHECK_MODULES(PC_POLARSSL polarssl)
+PKG_CHECK_MODULES(PC_SQLITE3 sqlite3)
+
+FIND_PATH(
+    SQLITE3_INCLUDE_DIRS
+    NAMES sqlite3.h
+    PATHS /usr/include
+)
+
+message(STATUS "SQLITE3 INCLUDE DIRS: " ${SQLITE3_INCLUDE_DIRS})
+
+#INCLUDE(FindPackageHandleStandardArgs)
+#FIND_PACKAGE_HANDLE_STANDARD_ARGS(POLARSSL DEFAULT_MSG POLARSSL_LIBRARIES POLARSSL_INCLUDE_DIRS)
+MARK_AS_ADVANCED(SQLITE3_INCLUDE_DIRS)
