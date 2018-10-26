@@ -135,6 +135,18 @@ else(POLARSSL_FOUND)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
+# SQLITE
+# /usr/include/sqlite3.h
+#find_library(SQLITE3)
+set (SQL_LIB_DIR_LOCATION "/usr/include/sqlite3.h")
+find_library(SQLite3 NAMES sqlite3 PATHS ${SQL_LIB_DIR_LOCATION})
+set(INCLUDE_DIRS "/usr/include/") # um ... #${NAME}/include) # is this correct? 
+
+#find_package(sqlite3)
+target_link_libraries(SRSLTE SQLite3)
+include_directories(SRSLTE PRIVATE ${INCLUDE_DIRS})
+
+
 # Hard-SIM support
 if(ENABLE_HARDSIM)
   find_package(PCSCLite)
@@ -253,7 +265,7 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++03")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++03 -l sqlite3")
 
   find_package(SSE)
   if (HAVE_AVX2)

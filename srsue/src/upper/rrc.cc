@@ -27,8 +27,10 @@
 
 #include <unistd.h>
 #include <iostream>
+#include <sqlite3.h> 
 #include <sstream>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <inttypes.h> // for printing uint64_t
 #include <srslte/asn1/liblte_rrc.h>
@@ -43,6 +45,61 @@ namespace srsue {
 
 const static uint32_t NOF_REQUIRED_SIBS = 4;
 const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SIB2, SIB3 and SIB13 (eMBMS)
+
+
+// Database connection stuff
+static int callback(void *data, int argc, char **argv, char **azColName){
+    int i;
+    fprintf(stderr, "%s: ", (const char*)data);
+
+    for(i = 0; i<argc; i++){
+        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+    }
+
+    printf("\n");
+    return 0;
+}
+
+static sqlite3 * get_db_handle() {
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+    char *sql;
+    const char* data = "Callback function called";
+
+    rc = sqlite3_open("/home/y/projects/srsLTE/build2/cell_data.db", &db);
+
+    // TODO: fix this!
+    /**
+    if( rc ) {
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        return(0);
+    } else {
+        fprintf(stderr, "Opened database successfully\n");
+        return *db;
+    }**/
+    return db;
+}
+
+static int write_sib1_data(cell_t *serving_cell){
+    const char* data = "Callback function called";
+    char *zErrMsg = 0;
+    sqlite3 * db = get_db_handle(); 
+    std::ostringstream os;
+    os << "INSERT INTO sib1_data COLUMNS (mcc, mnc) VALUES (" << serving_cell->get_mcc() << "," << serving_cell->get_mnc() << ")";
+    const char* sql = os.str().c_str();
+    int rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
+    if( rc != SQLITE_OK ) {
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+    } else {
+        fprintf(stdout, "Operation done successfully\n");
+    }
+    return rc;
+
+    sqlite3_close(db);
+}
+
 
 /*******************************************************************************
   Base functions 
@@ -1703,6 +1760,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
     rrc_log->info("Processing SIB%d (%d/%d)\n", liblte_rrc_sys_info_block_type_num[dlsch_msg.sibs[i].sib_type], i, dlsch_msg.N_sibs);
 
     if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[i].sib_type) {
+      // TODO: I think this is a potential place for a db write.
       serving_cell->set_sib1(&dlsch_msg.sibs[i].sib.sib1);
       handle_sib1();
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib2()) {
@@ -1720,6 +1778,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 
 void rrc::handle_sib1()
 {
+  // TODO: I think this is a potential place for a db write.
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1 = serving_cell->sib1ptr();
   rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
                 serving_cell->get_cell_id()&0xfff,
@@ -1742,6 +1801,8 @@ void rrc::handle_sib1()
   if(sib1->tdd) {
     phy->set_config_tdd(&sib1->tdd_cnfg);
   }
+  // TODO: Save to db here?
+  write_sib1_data(serving_cell);
 }
 
 void rrc::handle_sib2()
