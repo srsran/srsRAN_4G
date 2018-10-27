@@ -63,14 +63,14 @@ configure_file(
 # Options
 ########################################################################
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
-option(ENABLE_SRSENB   "Build srsENB application"                 ON)
-option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
+option(ENABLE_SRSENB   "Build srsENB application"                 OFF)
+option(ENABLE_SRSEPC   "Build srsEPC application"                 OFF)
 option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_UHD      "Enable UHD"                               ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
-option(ENABLE_SOAPYSDR "Enable SoapySDR"                          ON)
+option(ENABLE_SOAPYSDR "Enable SoapySDR"                          OFF)
 option(ENABLE_HARDSIM  "Enable support for SIM cards"             ON)
 
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
@@ -134,18 +134,6 @@ else(POLARSSL_FOUND)
     message(FATAL_ERROR "Either PolarSSL or mbedTLS are required to build srsLTE")
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
-
-# SQLITE
-# /usr/include/sqlite3.h
-#find_library(SQLITE3)
-set (SQL_LIB_DIR_LOCATION "/usr/include/sqlite3.h")
-find_library(SQLite3 NAMES sqlite3 PATHS ${SQL_LIB_DIR_LOCATION})
-set(INCLUDE_DIRS "/usr/include/") # um ... #${NAME}/include) # is this correct? 
-
-#find_package(sqlite3)
-target_link_libraries(SRSLTE SQLite3)
-include_directories(SRSLTE PRIVATE ${INCLUDE_DIRS})
-
 
 # Hard-SIM support
 if(ENABLE_HARDSIM)
@@ -260,12 +248,12 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
     include(CheckCXXCompilerFlag)
     check_cxx_compiler_flag(${flag} ${have})
     if(${have})
-        add_definitions(${flag})        
+        add_definitions(${flag})
     endif(${have})
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++03 -l sqlite3")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++03")
 
   find_package(SSE)
   if (HAVE_AVX2)
