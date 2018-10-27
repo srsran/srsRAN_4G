@@ -1,3 +1,5 @@
 *.swp
 *.swo
 build*
+*workspace
+db
