@@ -67,7 +67,7 @@ static sqlite3 * get_db_handle() {
     char *sql;
     const char* data = "Callback function called";
 
-    rc = sqlite3_open("/home/y/projects/srsLTE/build2/cell_data.db", &db);
+    rc = sqlite3_open("/home/cooperq/Code/srsLTE/db/cell_data.db", &db);
 
     // TODO: fix this!
     /**
@@ -86,8 +86,11 @@ static int write_sib1_data(cell_t *serving_cell){
     char *zErrMsg = 0;
     sqlite3 * db = get_db_handle(); 
     std::ostringstream os;
-    os << "INSERT INTO sib1_data COLUMNS (mcc, mnc) VALUES (" << serving_cell->get_mcc() << "," << serving_cell->get_mnc() << ")";
-    const char* sql = os.str().c_str();
+    os << "INSERT INTO sib1_data (mcc, mnc) VALUES (" << serving_cell->get_mcc() << "," << serving_cell->get_mnc() << ")";
+    // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
+    const std::string& tmp = os.str();
+    const char* sql = tmp.c_str();
+    printf("SQL QUERY: %s\n", sql);
     int rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
     if( rc != SQLITE_OK ) {
         fprintf(stderr, "SQL error: %s\n", zErrMsg);
