@@ -107,11 +107,31 @@ static sqlite3 * get_db_handle(const char* db_path) {
   static int write_sib1_data(cell_t *serving_cell, const char* db_path){
       const char* data = "Callback function called";
       char *zErrMsg = 0;
+
       sqlite3 * db = get_db_handle(db_path); 
       printf("Writing to db path: %s\n", db_path);
       std::ostringstream os;
+      std::string mcc_string = "";
+      std::string mnc_string = "";
+      uint16_t tac = serving_cell->get_tac();
+      uint32_t cid = serving_cell->get_cell_id();
+      uint32_t phyid = serving_cell->get_pci();
+      uint32_t earfcn = serving_cell->get_earfcn();
+      long seconds = (unsigned long)time(NULL);
+      float rsrp = serving_cell->get_rsrp(); // TODO: this is broken! Also just wrong (rssi).
+      mcc_to_string(serving_cell->get_mcc(), &mcc_string);
+      mnc_to_string(serving_cell->get_mnc(), &mnc_string);
       // TODO: Insert the rest of the values
-      os << "INSERT INTO sib1_data (mcc, mnc) VALUES (" << serving_cell->get_mcc() << "," << serving_cell->get_mnc() << ")";
+      os << "INSERT INTO sib1_data (mcc, mnc, tac, cid, phyid, earfcn, datetime, rssi) VALUES (" 
+        <<  mcc_string << "," 
+        << mnc_string << ", " 
+        << tac << ","
+        << cid << ","
+        << phyid << ","
+        << earfcn << ","
+        << seconds << ","
+        << rsrp
+        << ")";
       // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
       const std::string& tmp = os.str();
       const char* sql = tmp.c_str();
