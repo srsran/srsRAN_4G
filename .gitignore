@@ -4,3 +4,4 @@ build*
 *workspace
 db
 *.crash
+.fftw_wisdom

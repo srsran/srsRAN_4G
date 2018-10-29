@@ -69,105 +69,128 @@ static sqlite3 * get_db_handle(const char* db_path) {
     const char* data = "Callback function called";
 
     rc = sqlite3_open(db_path, &db);
+    // TODO instantiate the DB if it doesn't exist 
+    sql = "CREATE TABLE IF NOT EXISTS \"sib1_data\" ("
+      "mcc int,"
+      "mnc int,"
+      "tac int,"
+      "cid int,"
+      "phyid int,"
+      "earfcn int,"
+      "lat double,"
+      "long double,"
+      "datetime datetime,"
+      "rssi double,"
+      "sib_blob varbinary );";
 
-    // TODO: fix this!
-    /**
-    if( rc ) {
-        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-        return(0);
-    } else {
-        fprintf(stderr, "Opened database successfully\n");
-        return *db;
-    }**/
-    return db;
-}
-
-static int write_sib1_data(cell_t *serving_cell, const char* db_path){
-    const char* data = "Callback function called";
-    char *zErrMsg = 0;
-    sqlite3 * db = get_db_handle(db_path); 
-    printf("Writing to db path: %s\n", db_path);
-    std::ostringstream os;
-    os << "INSERT INTO sib1_data (mcc, mnc) VALUES (" << serving_cell->get_mcc() << "," << serving_cell->get_mnc() << ")";
-    // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
-    const std::string& tmp = os.str();
-    const char* sql = tmp.c_str();
-    printf("SQL QUERY: %s\n", sql);
-    int rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
+    rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
     if( rc != SQLITE_OK ) {
         fprintf(stderr, "SQL error: %s\n", zErrMsg);
         sqlite3_free(zErrMsg);
     } else {
         fprintf(stdout, "Operation done successfully\n");
     }
-    return rc;
-
-    sqlite3_close(db);
-}
 
 
-/*******************************************************************************
-  Base functions 
-*******************************************************************************/
-
-rrc::rrc()
-  :state(RRC_STATE_IDLE)
-  ,drb_up(false)
-  ,serving_cell(NULL)
-{
-  n310_cnt       = 0;
-  n311_cnt       = 0;
-  serving_cell = new cell_t();
-  neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
-  initiated = false;
-  running = false;
-  go_idle = false;
-  go_rlf  = false;
-}
-
-rrc::~rrc()
-{
-  if (serving_cell) {
-    delete(serving_cell);
+      // TODO: fix this!
+      /**
+      if( rc ) {
+          fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+          return(0);
+      } else {
+          fprintf(stderr, "Opened database successfully\n");
+          return *db;
+      }**/
+      return db;
   }
 
-  std::vector<cell_t*>::iterator it;
-  for (it = neighbour_cells.begin(); it != neighbour_cells.end(); ++it) {
-    delete(*it);
-  }
-}
+  static int write_sib1_data(cell_t *serving_cell, const char* db_path){
+      const char* data = "Callback function called";
+      char *zErrMsg = 0;
+      sqlite3 * db = get_db_handle(db_path); 
+      printf("Writing to db path: %s\n", db_path);
+      std::ostringstream os;
+      // TODO: Insert the rest of the values
+      os << "INSERT INTO sib1_data (mcc, mnc) VALUES (" << serving_cell->get_mcc() << "," << serving_cell->get_mnc() << ")";
+      // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
+      const std::string& tmp = os.str();
+      const char* sql = tmp.c_str();
+      printf("SQL QUERY: %s\n", sql);
+      int rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
+      if( rc != SQLITE_OK ) {
+          fprintf(stderr, "SQL error: %s\n", zErrMsg);
+          sqlite3_free(zErrMsg);
+      } else {
+          fprintf(stdout, "Operation done successfully\n");
+      }
+      return rc;
 
-static void liblte_rrc_handler(void *ctx, char *str) {
-  rrc *r = (rrc *) ctx;
-  r->liblte_rrc_log(str);
-}
-
-void rrc::liblte_rrc_log(char *str) {
-  if (rrc_log) {
-    rrc_log->warning("[ASN]: %s\n", str);
-  } else {
-    printf("[ASN]: %s\n", str);
+      sqlite3_close(db);
   }
-}
-void rrc::print_mbms()
-{
-  if(rrc_log) {
-    if(serving_cell->has_mcch) {
-      LIBLTE_RRC_MCCH_MSG_STRUCT msg;
-      memcpy(&msg, &serving_cell->mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
-      std::stringstream ss;
-      for(uint32_t i=0;i<msg.pmch_infolist_r9_size; i++){
-        ss << "PMCH: " << i << std::endl;
-        LIBLTE_RRC_PMCH_INFO_R9_STRUCT *pmch = &msg.pmch_infolist_r9[i];
-        for(uint32_t j=0;j<pmch->mbms_sessioninfolist_r9_size; j++) {
-          LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT *sess = &pmch->mbms_sessioninfolist_r9[j];
-          ss << "  Service ID: " << sess->tmgi_r9.serviceid_r9;
-          if(sess->sessionid_r9_present) {
-            ss << ", Session ID: " << (uint32_t)sess->sessionid_r9;
-          }
-          if(sess->tmgi_r9.plmn_id_explicit) {
-            std::string tmp;
-            if(mcc_to_string(sess->tmgi_r9.plmn_id_r9.mcc, &tmp)) {
+
+
+  /*******************************************************************************
+    Base functions 
+  *******************************************************************************/
+
+  rrc::rrc()
+    :state(RRC_STATE_IDLE)
+    ,drb_up(false)
+    ,serving_cell(NULL)
+  {
+    n310_cnt       = 0;
+    n311_cnt       = 0;
+    serving_cell = new cell_t();
+    neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
+    initiated = false;
+    running = false;
+    go_idle = false;
+    go_rlf  = false;
+  }
+
+  rrc::~rrc()
+  {
+    if (serving_cell) {
+      delete(serving_cell);
+    }
+
+    std::vector<cell_t*>::iterator it;
+    for (it = neighbour_cells.begin(); it != neighbour_cells.end(); ++it) {
+      delete(*it);
+    }
+  }
+
+  static void liblte_rrc_handler(void *ctx, char *str) {
+    rrc *r = (rrc *) ctx;
+    r->liblte_rrc_log(str);
+  }
+
+  void rrc::liblte_rrc_log(char *str) {
+    if (rrc_log) {
+      rrc_log->warning("[ASN]: %s\n", str);
+    } else {
+      printf("[ASN]: %s\n", str);
+    }
+  }
+  void rrc::print_mbms()
+  {
+    if(rrc_log) {
+      if(serving_cell->has_mcch) {
+        LIBLTE_RRC_MCCH_MSG_STRUCT msg;
+        memcpy(&msg, &serving_cell->mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+        std::stringstream ss;
+        for(uint32_t i=0;i<msg.pmch_infolist_r9_size; i++){
+          ss << "PMCH: " << i << std::endl;
+          LIBLTE_RRC_PMCH_INFO_R9_STRUCT *pmch = &msg.pmch_infolist_r9[i];
+          for(uint32_t j=0;j<pmch->mbms_sessioninfolist_r9_size; j++) {
+            LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT *sess = &pmch->mbms_sessioninfolist_r9[j];
+            ss << "  Service ID: " << sess->tmgi_r9.serviceid_r9;
+            if(sess->sessionid_r9_present) {
+              ss << ", Session ID: " << (uint32_t)sess->sessionid_r9;
+            }
+            if(sess->tmgi_r9.plmn_id_explicit) {
+              std::string tmp;
+              if(mcc_to_string(sess->tmgi_r9.plmn_id_r9.mcc, &tmp)) {
               ss << ", MCC: " << tmp;
             }
             if(mnc_to_string(sess->tmgi_r9.plmn_id_r9.mnc, &tmp)) {
