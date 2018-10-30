@@ -116,21 +116,20 @@ static sqlite3 * get_db_handle(const char* db_path) {
       uint16_t tac = serving_cell->get_tac();
       uint32_t cid = serving_cell->get_cell_id();
       uint32_t phyid = serving_cell->get_pci();
-      uint32_t earfcn = serving_cell->get_earfcn();
+      uint32_t earfcn = serving_cell->get_earfcn(); 
       long seconds = (unsigned long)time(NULL);
       float rsrp = serving_cell->get_rsrp(); // TODO: this is broken! Also just wrong (rssi).
       mcc_to_string(serving_cell->get_mcc(), &mcc_string);
       mnc_to_string(serving_cell->get_mnc(), &mnc_string);
       // TODO: Insert the rest of the values
-      os << "INSERT INTO sib1_data (mcc, mnc, tac, cid, phyid, earfcn, datetime, rssi) VALUES (" 
+      os << "INSERT INTO sib1_data (mcc, mnc, tac, cid, phyid, earfcn, datetime) VALUES (" 
         <<  mcc_string << "," 
         << mnc_string << ", " 
         << tac << ","
         << cid << ","
         << phyid << ","
         << earfcn << ","
-        << seconds << ","
-        << rsrp
+        << seconds
         << ")";
       // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
       const std::string& tmp = os.str();
@@ -391,7 +390,8 @@ void rrc::run_tti(uint32_t tti) {
     rrc_log->debug("State %s\n", rrc_state_text[state]);
     switch (state) {
       case RRC_STATE_IDLE:
-
+      rrc_log->info("CASE: RRC_STATE_IDLE\n");
+      rrc_log->info("serving_cell has sib: %d\n", serving_cell->has_sib(0));
         /* CAUTION: The execution of cell_search() and cell_selection() take more than 1 ms
          * and will slow down MAC TTI ticks. This has no major effect at the moment because
          * the UE is in IDLE but we could consider splitting MAC and RRC threads to avoid this
@@ -402,6 +402,7 @@ void rrc::run_tti(uint32_t tti) {
           rrc_log->debug("Running cell selection and reselection in IDLE\n");
           switch(cell_selection()) {
             case rrc::CHANGED_CELL:
+              rrc_log->info("changed cell!!");
               // New cell has been selected, start receiving PCCH
               mac->pcch_start_rx();
               break;
@@ -418,7 +419,10 @@ void rrc::run_tti(uint32_t tti) {
         }
         break;
       case RRC_STATE_CONNECTED:
+        rrc_log->info("CASE: RRC_STATE_CONNECTED\n");
+        rrc_log->info("serving_cell has sib: %d\n", serving_cell->has_sib(0));
         if (ho_start) {
+          rrc_log->info("ho_start!!");
           ho_start = false;
           if (!ho_prepare()) {
             con_reconfig_failed();
@@ -426,10 +430,12 @@ void rrc::run_tti(uint32_t tti) {
         }
         measurements.run_tti(tti);
         if (go_idle) {
+          rrc_log->info("go_idle!!!");
           go_idle = false;
-          leave_connected();
+          leave_connected(); // Leave connected cell.
         }
         if (go_rlf) {
+          rrc_log->info("go_rlf!!!");
           go_rlf = false;
           // Initiate connection re-establishment procedure after RLF
           send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
