@@ -1408,7 +1408,7 @@ void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *nas_msg) {
 
   pool->deallocate(nas_msg);
 
-  send_ul_dcch_msg(lcid);
+  send_ul_dcch_msg(rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1);
 }
 
 void rrc::send_security_mode_complete() {
