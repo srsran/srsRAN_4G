@@ -571,6 +571,15 @@ exit:
 }
 
 
+bool rlc::has_bearer(uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  bool ret = valid_lcid(lcid);
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
+}
+
+
 /*******************************************************************************
   Helpers (Lock must be hold when calling those)
 *******************************************************************************/
