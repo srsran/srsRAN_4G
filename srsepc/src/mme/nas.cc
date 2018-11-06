@@ -1253,6 +1253,8 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   act_def_eps_bearer_context_req.transaction_id_present = false;
   //set eps_qos
   act_def_eps_bearer_context_req.eps_qos.qci =  m_esm_ctx[5].qci;
+  act_def_eps_bearer_context_req.eps_qos.br_present = false;
+  act_def_eps_bearer_context_req.eps_qos.br_ext_present = false;
 
   //set apn
   strncpy(act_def_eps_bearer_context_req.apn.apn, m_apn.c_str(), LIBLTE_STRING_LEN);
