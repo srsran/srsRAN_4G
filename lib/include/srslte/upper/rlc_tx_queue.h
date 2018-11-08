@@ -110,6 +110,10 @@ public:
     unread_bytes = 0;
   }
 
+  queue_metrics_t get_qmetrics(bool bReset) {
+    return queue.get_qmetrics(bReset);
+  }
+
 private:
   bool                        is_empty() { return queue.empty(); }
 

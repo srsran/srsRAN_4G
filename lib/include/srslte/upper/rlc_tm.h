@@ -67,6 +67,7 @@ public:
   int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
 
+  queue_metrics_t get_qmetrics(bool bReset);
 private:
 
   byte_buffer_pool          *pool;

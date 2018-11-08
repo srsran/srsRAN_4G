@@ -52,6 +52,7 @@ typedef struct {
   mac_metrics_t   mac[ENB_METRICS_MAX_USERS];
   rrc_metrics_t   rrc; 
   s1ap_metrics_t  s1ap;
+  srslte::rlc_metrics_t rlc;
   bool            running;
 }enb_metrics_t;
 

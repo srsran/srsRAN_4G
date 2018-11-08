@@ -248,4 +248,14 @@ std::string rlc::user_interface::get_rb_name(uint32_t lcid)
   return std::string(rb_id_text[lcid]);
 }
 
+void rlc::get_metrics(srslte::rlc_metrics_t &m)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  for(std::map<uint32_t, user_interface>::iterator iter=users.begin(); iter!=users.end(); ++iter) {
+    iter->second.rlc->get_metrics(m);
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
+
 }
