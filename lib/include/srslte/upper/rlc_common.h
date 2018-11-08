@@ -28,7 +28,6 @@
 #define SRSLTE_RLC_COMMON_H
 
 #include "srslte/upper/rlc_interface.h"
-#include "srslte/common/block_queue.h"
 
 namespace srslte {
 
