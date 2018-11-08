@@ -585,7 +585,7 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
       mac_timers->timer_get(t300)->run();
 
       // Send connectionRequest message to lower layers
-      send_con_request(cause);
+      // send_con_request(cause);
 
       // Save dedicatedInfoNAS SDU
       if (this->dedicatedInfoNAS) {
@@ -607,7 +607,8 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
         rrc_log->info("Timer T300 expired: ConnectionRequest timed out\n");
         mac->reset();
         set_mac_default();
-        rlc->reestablish();
+        ret = false;
+        //rlc->reestablish();
       } else {
         // T300 is stopped but RRC not Connected is because received Reject: Section 5.3.3.8
         rrc_log->info("Timer T300 stopped: Received ConnectionReject\n");
@@ -1807,9 +1808,11 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
     rrc_log->info("Processing SIB%d (%d/%d)\n", liblte_rrc_sys_info_block_type_num[dlsch_msg.sibs[i].sib_type], i, dlsch_msg.N_sibs);
 
     if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[i].sib_type) {
-      // TODO: I think this is a potential place for a db write.
       serving_cell->set_sib1(&dlsch_msg.sibs[i].sib.sib1);
       handle_sib1();
+      rrc_log->info("FOUND SIB1 -- LEAVE CONNECTED\n");
+      leave_connected();
+      cell_search();
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib2()) {
       serving_cell->set_sib2(&dlsch_msg.sibs[i].sib.sib2);
       handle_sib2();
@@ -2021,8 +2024,8 @@ void rrc::send_ul_ccch_msg()
     rrc_log->debug("Setting UE contention resolution ID: %" PRIu64 "\n", uecri);
     mac->set_contention_id(uecri);
 
-    rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
-    pdcp->write_sdu(RB_ID_SRB0, pdu);
+    // rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
+    // pdcp->write_sdu(RB_ID_SRB0, pdu);
   }
 }
 
