@@ -65,7 +65,7 @@ static sqlite3 * get_db_handle(const char* db_path) {
     sqlite3 *db;
     char *zErrMsg = 0;
     int rc;
-    char *sql;
+    const char *sql;
     const char* data = "Callback function called";
 
     rc = sqlite3_open(db_path, &db);
@@ -390,8 +390,6 @@ void rrc::run_tti(uint32_t tti) {
     rrc_log->debug("State %s\n", rrc_state_text[state]);
     switch (state) {
       case RRC_STATE_IDLE:
-      rrc_log->info("CASE: RRC_STATE_IDLE\n");
-      rrc_log->info("serving_cell has sib: %d\n", serving_cell->has_sib(0));
         /* CAUTION: The execution of cell_search() and cell_selection() take more than 1 ms
          * and will slow down MAC TTI ticks. This has no major effect at the moment because
          * the UE is in IDLE but we could consider splitting MAC and RRC threads to avoid this
@@ -419,10 +417,7 @@ void rrc::run_tti(uint32_t tti) {
         }
         break;
       case RRC_STATE_CONNECTED:
-        rrc_log->info("CASE: RRC_STATE_CONNECTED\n");
-        rrc_log->info("serving_cell has sib: %d\n", serving_cell->has_sib(0));
         if (ho_start) {
-          rrc_log->info("ho_start!!");
           ho_start = false;
           if (!ho_prepare()) {
             con_reconfig_failed();
@@ -430,12 +425,10 @@ void rrc::run_tti(uint32_t tti) {
         }
         measurements.run_tti(tti);
         if (go_idle) {
-          rrc_log->info("go_idle!!!");
           go_idle = false;
           leave_connected(); // Leave connected cell.
         }
         if (go_rlf) {
-          rrc_log->info("go_rlf!!!");
           go_rlf = false;
           // Initiate connection re-establishment procedure after RLF
           send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_OTHER_FAILURE);
@@ -1832,7 +1825,6 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 
 void rrc::handle_sib1()
 {
-  // TODO: I think this is a potential place for a db write.
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1 = serving_cell->sib1ptr();
   rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
                 serving_cell->get_cell_id()&0xfff,
@@ -1855,7 +1847,7 @@ void rrc::handle_sib1()
   if(sib1->tdd) {
     phy->set_config_tdd(&sib1->tdd_cnfg);
   }
-  // TODO: Save to db here?
+
   write_sib1_data(serving_cell, args.db_path.c_str());
 }
 

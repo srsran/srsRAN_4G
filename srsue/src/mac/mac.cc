@@ -171,7 +171,6 @@ void mac::run_period() {
     ra_procedure.start_mac_order();
   }
 
-  Info("======================== In mac.cc!! tti: %d\n", tti);
   ra_procedure.step(tti); // TODO: yomna
   timers.step_all();
   rrc_h->run_tti(tti);
