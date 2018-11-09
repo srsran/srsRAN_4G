@@ -38,6 +38,8 @@
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
+#include <boost/algorithm/string.hpp>
+#include <thread>
 
 using namespace srslte;
 
@@ -80,7 +82,7 @@ static sqlite3 * get_db_handle(const char* db_path) {
       "lat double,"
       "long double,"
       "datetime datetime,"
-      "rssi double,"
+      "rsrp double,"
       "sib_blob varbinary );";
 
     rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
@@ -118,18 +120,34 @@ static sqlite3 * get_db_handle(const char* db_path) {
       uint32_t phyid = serving_cell->get_pci();
       uint32_t earfcn = serving_cell->get_earfcn(); 
       long seconds = (unsigned long)time(NULL);
-      float rsrp = serving_cell->get_rsrp(); // TODO: this is broken! Also just wrong (rssi).
+      float rsrp = serving_cell->get_rsrp(); 
+      // Sometimes RSRP returns NaN, not sure why it isn't set
+      rsrp==rsrp? rsrp = rsrp:
+                  rsrp = 0.0;
+      
+      // Process GPS coordinates
+      // TODO: replace this with GPSd libraries http://www.catb.org/gpsd/client-howto.html
+      std::string out = exec("/usr/local/bin/gps.sh");
+      std::istringstream iss(out);
+      std::vector<std::string> results(std::istream_iterator<std::string>{iss},
+                                       std::istream_iterator<std::string>());
+      float lat = atof(results[0].c_str());
+      float lon = atof(results[1].c_str());
+
       mcc_to_string(serving_cell->get_mcc(), &mcc_string);
       mnc_to_string(serving_cell->get_mnc(), &mnc_string);
       // TODO: Insert the rest of the values
-      os << "INSERT INTO sib1_data (mcc, mnc, tac, cid, phyid, earfcn, datetime) VALUES (" 
+      os << "INSERT INTO sib1_data (mcc, mnc, tac, cid, phyid, earfcn, datetime, lat, long, rsrp) VALUES (" 
         <<  mcc_string << "," 
         << mnc_string << ", " 
         << tac << ","
         << cid << ","
         << phyid << ","
         << earfcn << ","
-        << seconds
+        << seconds << ","
+        << lat << ","
+        << lon << ","
+        << rsrp 
         << ")";
       // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
       const std::string& tmp = os.str();
@@ -1851,7 +1869,9 @@ void rrc::handle_sib1()
     phy->set_config_tdd(&sib1->tdd_cnfg);
   }
 
-  write_sib1_data(serving_cell, args.db_path.c_str());
+  std::thread sql (write_sib1_data, serving_cell, args.db_path.c_str());
+  sql.detach();
+  //write_sib1_data(serving_cell, args.db_path.c_str());
 }
 
 void rrc::handle_sib2()
