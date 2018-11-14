@@ -1832,12 +1832,18 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
       leave_connected();
       cell_search();
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib2()) {
+      leave_connected();
+      cell_search();
       serving_cell->set_sib2(&dlsch_msg.sibs[i].sib.sib2);
       handle_sib2();
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib3()) {
+      leave_connected();
+      cell_search();
       serving_cell->set_sib3(&dlsch_msg.sibs[i].sib.sib3);
       handle_sib3();
     }else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib13()) {
+      leave_connected();
+      cell_search();
       serving_cell->set_sib13(&dlsch_msg.sibs[i].sib.sib13);
       handle_sib13();
     }
@@ -1869,9 +1875,8 @@ void rrc::handle_sib1()
     phy->set_config_tdd(&sib1->tdd_cnfg);
   }
 
-  std::thread sql (write_sib1_data, serving_cell, args.db_path.c_str());
-  sql.detach();
-  //write_sib1_data(serving_cell, args.db_path.c_str());
+  std::thread thread_sql (write_sib1_data, serving_cell, args.db_path.c_str());
+  thread_sql.detach();
 }
 
 void rrc::handle_sib2()
