@@ -22,7 +22,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "build srsLTE"
+            "preLaunchTask": "debug srsLTE"
         }
     ]
 }

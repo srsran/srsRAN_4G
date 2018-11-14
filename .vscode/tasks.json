@@ -11,6 +11,15 @@
                 "kind": "build",
                 "isDefault": true,
             }
-        }
+        },
+        {
+            "label": "debug srsLTE",
+            "type": "shell",
+            "command": "cd debug && make",
+            "group": {
+                "kind": "test",
+                "isDefault": true,
+            }
+        },
     ]
 }
