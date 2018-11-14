@@ -219,11 +219,9 @@ void gw::add_mch_port(uint32_t lcid, uint32_t port)
 /********************/
 void gw::run_thread()
 {
-  struct iphdr    *ip_pkt;
-  struct ipv6hdr  *ip6_pkt;
-  uint32          idx = 0;
-  int32           N_bytes;
-  uint16_t        pkt_len;
+  uint32 idx = 0;
+  int32  N_bytes = 0;
+
   srslte::byte_buffer_t *pdu = pool_allocate_blocking;
   if (!pdu) {
     gw_log->error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
@@ -246,16 +244,19 @@ void gw::run_thread()
       break;
     }
     gw_log->debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_fd, idx);
-    if(N_bytes > 0)
-    {
+    if (N_bytes > 0) {
+      struct iphdr *ip_pkt = (struct iphdr*)pdu->msg;
+      struct ipv6hdr *ip6_pkt = (struct ipv6hdr*)pdu->msg;
+      uint16_t pkt_len = 0;
       pdu->N_bytes = idx + N_bytes;
-      ip_pkt       = (struct iphdr*)pdu->msg;
-      ip6_pkt       = (struct ipv6hdr*)pdu->msg;
       if (ip_pkt->version == 4 || ip_pkt->version == 6) {
         if (ip_pkt->version == 4){
           pkt_len = ntohs(ip_pkt->tot_len);
         } else if (ip_pkt->version == 6){
           pkt_len = ntohs(ip6_pkt->payload_len)+40;
+        } else {
+          gw_log->error_hex(pdu->msg, pdu->N_bytes, "Unsupported IP version. Dropping packet.\n");
+          continue;
         }
         gw_log->debug("IPv%d packet total length: %d Bytes\n", ip_pkt->version, pkt_len);
         // Check if entire packet was received
