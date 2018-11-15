@@ -29,6 +29,7 @@
 #include "srsue/hdr/upper/usim_base.h"
 #include "srsue/hdr/upper/usim.h"
 #include "srsue/hdr/upper/nas.h"
+#include "srsue/hdr/upper/gw.h"
 #include "srslte/upper/rlc.h"
 #include "srsue/hdr/upper/rrc.h"
 #include "srsue/hdr/mac/mac.h"
@@ -70,15 +71,17 @@ using namespace srslte;
 namespace srslte {
 
 // fake classes
-class pdcp_dummy : public rrc_interface_pdcp
+class pdcp_dummy : public rrc_interface_pdcp, public pdcp_interface_gw
 {
 public:
-      void write_pdu(uint32_t lcid, byte_buffer_t *pdu) {}
-      void write_pdu_bcch_bch(byte_buffer_t *pdu) {}
-      void write_pdu_bcch_dlsch(byte_buffer_t *pdu) {}
-      void write_pdu_pcch(byte_buffer_t *pdu) {}
-      void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
-      std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
+  void write_pdu(uint32_t lcid, byte_buffer_t *pdu) {}
+  void write_pdu_bcch_bch(byte_buffer_t *pdu) {}
+  void write_pdu_bcch_dlsch(byte_buffer_t *pdu) {}
+  void write_pdu_pcch(byte_buffer_t *pdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
+  std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
+  void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking) {}
+  bool is_lcid_enabled(uint32_t lcid) { return false; }
 };
 
 class rrc_dummy : public rrc_interface_nas
@@ -200,16 +203,20 @@ int mme_attach_request_test()
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
+  srslte::log_filter gw_log("GW");
 
   nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  gw_log.set_level(srslte::LOG_LEVEL_DEBUG);
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
   usim_log.set_hex_limit(100000);
+  gw_log.set_hex_limit(100000);
 
   rrc_dummy rrc_dummy;
-  gw_dummy gw;
+  pdcp_dummy pdcp_dummy;
+
   srsue::usim usim;
   usim_args_t args;
   args.mode = "soft";
@@ -225,8 +232,15 @@ int mme_attach_request_test()
   nas_cfg.force_imsi_attach = true;
   nas_cfg.apn = "test123";
   srsue::nas nas;
+  srsue::gw gw;
+
   nas.init(&usim, &rrc_dummy, &gw, &nas_log, nas_cfg);
 
+  srslte_gw_config_t gw_config(3);
+  gw.init(&pdcp_dummy, &nas, &gw_log, gw_config);
+  gw.set_tundevname("tun0");
+
+  // trigger test
   nas.attach_request();
 
   // this will time out in the first place
