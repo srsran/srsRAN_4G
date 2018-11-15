@@ -198,6 +198,7 @@ public:
 
     void send_connection_setup(bool is_setup = true);
     void send_connection_reest();
+    void send_connection_reject();
     void send_connection_release();
     void send_connection_reest_rej();
     void send_connection_reconf(srslte::byte_buffer_t *sdu);

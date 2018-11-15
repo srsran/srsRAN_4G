@@ -1044,6 +1044,12 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 
 void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
 {
+  if (not parent->s1ap->is_mme_connected()) {
+    printf("send reject\n");
+    parent->rrc_log->error("MME isn't connected. Sending Connection Reject\n");
+    send_connection_reject();
+  }
+
   set_activity();
   
   if(msg->ue_id_type == LIBLTE_RRC_CON_REQ_UE_ID_TYPE_S_TMSI) {
@@ -1303,7 +1309,17 @@ void rrc::ue::send_connection_reest_rej()
   dl_ccch_msg.msg_type = LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST_REJ;
   
   send_dl_ccch(&dl_ccch_msg);
-  
+}
+
+void rrc::ue::send_connection_reject()
+{
+  LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
+  bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
+
+  dl_ccch_msg.msg_type = LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ;
+  dl_ccch_msg.msg.rrc_con_rej.wait_time = 10;
+
+  send_dl_ccch(&dl_ccch_msg);
 }
 
 void rrc::ue::send_connection_setup(bool is_setup)
