@@ -548,7 +548,7 @@ bool gw::find_ipv6_addr(struct in6_addr *in6_out)
         in6p = (struct in6_addr *)RTA_DATA(rtatp);
         if (if_index == rtmp->ifa_index) {
           for (int i = 0; i < 16; i++) {
-            in6_out->s6_addr16[i] = in6p->s6_addr16[i];
+            in6_out->s6_addr[i] = in6p->s6_addr[i];
           }
           goto out;
         }
