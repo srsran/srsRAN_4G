@@ -128,6 +128,9 @@ private:
   void log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT *attach_req);
   void log_unhandled_pdn_con_request_ies(const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT *pdn_con_req);
   void log_unhandled_initial_ue_message_ies(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue);
+
+  void cipher_decrypt(eps_sec_ctx_t *sec_ctxt, srslte::byte_buffer_t *pdu);
+  void cipher_encrypt(eps_sec_ctx_t *sec_ctxt, srslte::byte_buffer_t *pdu);
 };
 } //namespace srsepc
 #endif // SRSEPC_S1AP_NAS_TRANSPORT_H

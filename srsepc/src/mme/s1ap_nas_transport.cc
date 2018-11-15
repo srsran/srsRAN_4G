@@ -264,18 +264,25 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   }
   else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT)
   {
+
+    mac_valid = integrity_check(emm_ctx, nas_msg);
+    if (mac_valid == false){
+      m_s1ap_log->warning("Invalid MAC message.\n" );
+      return false;
+    }
+
+    if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT) {
+      cipher_decrypt(&emm_ctx->security_ctxt, nas_msg);
+      liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
+    }
+
     switch (msg_type) {
       case  LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
       m_s1ap_log->info("Uplink NAS: Received Security Mode Complete\n");
       m_s1ap_log->console("Uplink NAS: Received Security Mode Complete\n");
       emm_ctx->security_ctxt.ul_nas_count = 0;
       emm_ctx->security_ctxt.dl_nas_count = 0;
-      mac_valid = integrity_check(emm_ctx,nas_msg);
-      if(mac_valid){
-        handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      } else {
-        m_s1ap_log->warning("Invalid MAC in Security Mode Command Complete message.\n" );
-      }
+      handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
       break;
     default:
       m_s1ap_log->warning("Unhandled NAS message with new EPS security context 0x%x\n", msg_type );
@@ -287,11 +294,17 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     //Integrity protected NAS message, possibly ciphered.
     emm_ctx->security_ctxt.ul_nas_count++;
     mac_valid = integrity_check(emm_ctx,nas_msg);
-    if(!mac_valid){
+    if(mac_valid == false){
       m_s1ap_log->warning("Invalid MAC in NAS message type 0x%x.\n", msg_type);
       m_pool->deallocate(nas_msg);
       return false;
     }
+
+    if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED){
+      cipher_decrypt(&emm_ctx->security_ctxt, nas_msg);
+      liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
+    }
+
     switch (msg_type) {
     case  LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
       m_s1ap_log->info("Integrity Protected UL NAS: Received Attach Complete\n");
@@ -2134,6 +2147,77 @@ s1ap_nas_transport::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQ
     m_s1ap_log->warning("NAS attach request: Old GUTI type present, but not handled.\n");
   }
   return;
+}
+
+
+void s1ap_nas_transport::cipher_decrypt(eps_sec_ctx_t * sec_ctxt, srslte::byte_buffer_t *pdu)
+{
+  srslte::byte_buffer_t tmp_pdu;
+  switch(sec_ctxt->cipher_algo)
+  {
+  case srslte::CIPHERING_ALGORITHM_ID_EEA0:
+      break;
+  case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
+      srslte::security_128_eea1(&sec_ctxt->k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_UPLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &tmp_pdu.msg[6]);
+      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+      m_s1ap_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+      break;
+  case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
+      srslte::security_128_eea2(&sec_ctxt->k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_UPLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &tmp_pdu.msg[6]);
+      m_s1ap_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+      break;
+    default:
+      m_s1ap_log->error("Ciphering algorithms not known\n");
+      break;
+  }
+}
+
+void s1ap_nas_transport::cipher_encrypt(eps_sec_ctx_t * sec_ctxt, srslte::byte_buffer_t *pdu)
+{
+  srslte::byte_buffer_t pdu_tmp;
+  switch(sec_ctxt->cipher_algo)
+  {
+  case srslte::CIPHERING_ALGORITHM_ID_EEA0:
+      break;
+  case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
+      srslte::security_128_eea1(&sec_ctxt->k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &pdu_tmp.msg[6]);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+      m_s1ap_log->debug_hex(pdu_tmp.msg, pdu->N_bytes, "Encrypted");
+      break;
+  case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
+      srslte::security_128_eea2(&sec_ctxt->k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &pdu_tmp.msg[6]);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+      m_s1ap_log->debug_hex(pdu_tmp.msg, pdu->N_bytes, "Encrypted");
+      break;
+  default:
+      m_s1ap_log->error("Ciphering algorithm not known\n");
+      break;
+  }
 }
 
 void
