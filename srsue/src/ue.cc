@@ -233,8 +233,8 @@ bool ue::init(all_args_t *args_) {
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
 
   // set args and initialize RRC
-  rrc.set_args(args->rrc);
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
+  rrc.set_args(args->rrc);
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;
