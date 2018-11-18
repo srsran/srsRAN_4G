@@ -265,7 +265,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT)
   {
 
-    mac_valid = integrity_check(emm_ctx, nas_msg);
+    mac_valid = integrity_check(&emm_ctx->security_ctxt, nas_msg);
     if (mac_valid == false){
       m_s1ap_log->warning("Invalid MAC message.\n" );
       return false;
@@ -293,7 +293,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   {
     //Integrity protected NAS message, possibly ciphered.
     emm_ctx->security_ctxt.ul_nas_count++;
-    mac_valid = integrity_check(emm_ctx,nas_msg);
+    mac_valid = integrity_check(&emm_ctx->security_ctxt, nas_msg);
     if(mac_valid == false){
       m_s1ap_log->warning("Invalid MAC in NAS message type 0x%x.\n", msg_type);
       m_pool->deallocate(nas_msg);
@@ -659,7 +659,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       //Check NAS integrity
       bool msg_valid = false;
       emm_ctx->security_ctxt.ul_nas_count++;
-      msg_valid = integrity_check(emm_ctx,nas_msg);
+      msg_valid = integrity_check(&emm_ctx->security_ctxt, nas_msg);
       if(msg_valid == true && emm_ctx->state == EMM_STATE_DEREGISTERED)
       {
         m_s1ap_log->console("GUTI Attach Integrity valid. UL count %d, DL count %d\n",emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.dl_nas_count);
@@ -860,7 +860,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
   emm_ctx->security_ctxt.ul_nas_count++;
-  mac_valid = short_integrity_check(emm_ctx,nas_msg);
+  mac_valid = short_integrity_check(&emm_ctx->security_ctxt, nas_msg);
   if(mac_valid)
   {
     m_s1ap_log->console("Service Request -- Short MAC valid\n");
@@ -1334,66 +1334,97 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
 }
 
 bool
-s1ap_nas_transport::short_integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu)
+s1ap_nas_transport::short_integrity_check(eps_sec_ctx_t * sec_ctxt, srslte::byte_buffer_t *pdu)
 {
-  uint8_t exp_mac[4];
+  uint8_t exp_mac[4] = {0x00, 0x00, 0x00, 0x00};
   uint8_t *mac = &pdu->msg[2];
   int i;
 
-  srslte::security_128_eia1(&emm_ctx->security_ctxt.k_nas_int[16],
-                     emm_ctx->security_ctxt.ul_nas_count,
-                     0,
-                     SECURITY_DIRECTION_UPLINK,
-                     &pdu->msg[0],
-                     2,
-                     &exp_mac[0]);
-
+  switch (sec_ctxt->integ_algo)
+  {
+  case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+    srslte::security_128_eia1(&sec_ctxt->k_nas_int[16],
+                              sec_ctxt->ul_nas_count,
+                              0,
+                              SECURITY_DIRECTION_UPLINK,
+                              &pdu->msg[5],
+                              pdu->N_bytes - 5,
+                              &exp_mac[0]);
+    break;
+  case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+    srslte::security_128_eia2(&sec_ctxt->k_nas_int[16],
+                              sec_ctxt->ul_nas_count,
+                              0,
+                              SECURITY_DIRECTION_UPLINK,
+                              &pdu->msg[5],
+                              pdu->N_bytes - 5,
+                              &exp_mac[0]);
+    break;
+  default:
+    break;
+  }
   // Check if expected mac equals the sent mac
   for(i=0; i<2; i++){
     if(exp_mac[i+2] != mac[i]){
       m_s1ap_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
                        "Received: count=%d, [%02x %02x]\n",
-                          emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                          sec_ctxt->ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
                           pdu->msg[1] & 0x1F, mac[0], mac[1]);
       return false;
     }
   }
   m_s1ap_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                emm_ctx->security_ctxt.ul_nas_count, pdu->msg[1] & 0x1F);
+                sec_ctxt->ul_nas_count, pdu->msg[1] & 0x1F);
     return true;
 }
 
-
-bool
-s1ap_nas_transport::integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu)
+bool s1ap_nas_transport::integrity_check(eps_sec_ctx_t *sec_ctxt, srslte::byte_buffer_t *pdu)
 {
-  uint8_t exp_mac[4];
+  uint8_t exp_mac[4] = {0x00, 0x00, 0x00, 0x00};
   uint8_t *mac = &pdu->msg[1];
   int i;
 
-  srslte::security_128_eia1(&emm_ctx->security_ctxt.k_nas_int[16],
-                     emm_ctx->security_ctxt.ul_nas_count,
-                     0,
-                     SECURITY_DIRECTION_UPLINK,
-                     &pdu->msg[5],
-                     pdu->N_bytes-5,
-                     &exp_mac[0]);
-
+  switch (sec_ctxt->integ_algo)
+  {
+  case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+    srslte::security_128_eia1(&sec_ctxt->k_nas_int[16],
+                              sec_ctxt->ul_nas_count,
+                              0,
+                              SECURITY_DIRECTION_UPLINK,
+                              &pdu->msg[5],
+                              pdu->N_bytes - 5,
+                              &exp_mac[0]);
+    break;
+  case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+    srslte::security_128_eia2(&sec_ctxt->k_nas_int[16],
+                              sec_ctxt->ul_nas_count,
+                              0,
+                              SECURITY_DIRECTION_UPLINK,
+                              &pdu->msg[5],
+                              pdu->N_bytes - 5,
+                              &exp_mac[0]);
+    break;
+  default:
+    break;
+  }
   // Check if expected mac equals the sent mac
-  for(i=0; i<4; i++){
-    if(exp_mac[i] != mac[i]){
+  for (i = 0; i < 4; i++) {
+    if (exp_mac[i] != mac[i]) {
       m_s1ap_log->warning("Integrity check failure. UL Local: count=%d, [%02x %02x %02x %02x], "
-                       "Received: UL count=%d, [%02x %02x %02x %02x]\n",
-                       emm_ctx->security_ctxt.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
-                       pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
+                          "Received: UL count=%d, [%02x %02x %02x %02x]\n",
+                          sec_ctxt->ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
+                          pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
       return false;
     }
   }
   m_s1ap_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                emm_ctx->security_ctxt.ul_nas_count, pdu->msg[5]);
-    return true;
+                   sec_ctxt->ul_nas_count, pdu->msg[5]);
+  return true;
 }
-
 
 bool 
 s1ap_nas_transport::handle_authentication_failure(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag)
@@ -1620,7 +1651,12 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
 
   //Pack NAS PDU 
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
- 
+  
+  // FIXME Selection based on UE caps and network preferences 
+
+  ue_emm_ctx->security_ctxt.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+  ue_emm_ctx->security_ctxt.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+
   sm_cmd.selected_nas_sec_algs.type_of_eea = LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0;
   sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_128_EIA1;
 
@@ -1645,15 +1681,15 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->console("Error packing Authentication Request\n");
+    m_s1ap_log->console("Error packing Security Mode Command\n");
     return false;
   }
 
   //Generate EPS security context
   uint8_t mac[4];
   srslte::security_generate_k_nas( ue_emm_ctx->security_ctxt.k_asme,
-                           srslte::CIPHERING_ALGORITHM_ID_EEA0,
-                           srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
+                           ue_emm_ctx->security_ctxt.cipher_algo,
+                           ue_emm_ctx->security_ctxt.integ_algo,
                            ue_emm_ctx->security_ctxt.k_nas_enc,
                            ue_emm_ctx->security_ctxt.k_nas_int
                          );
@@ -1666,16 +1702,9 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   m_s1ap_log->info("Generating KeNB with UL NAS COUNT: %d\n", ue_emm_ctx->security_ctxt.ul_nas_count);
   m_s1ap_log->console("Generating KeNB with UL NAS COUNT: %d\n", ue_emm_ctx->security_ctxt.ul_nas_count);
   m_s1ap_log->info_hex(ue_emm_ctx->security_ctxt.k_enb, 32, "Key eNodeB (k_enb)\n");
+  
   //Generate MAC for integrity protection
-  //FIXME Write wrapper to support EIA1, EIA2, etc.
-  srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
-                     ue_emm_ctx->security_ctxt.dl_nas_count,
-                     0,
-                     SECURITY_DIRECTION_DOWNLINK,
-                     &nas_buffer->msg[5],
-                     nas_buffer->N_bytes - 5,
-                     mac
-  ); 
+  integrity_generate(&ue_emm_ctx->security_ctxt, nas_buffer, mac);
 
   memcpy(&nas_buffer->msg[1],mac,4);
   //Copy NAS PDU to Downlink NAS Trasport message buffer
@@ -1686,7 +1715,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT *) reply_msg);
   if(err != LIBLTE_SUCCESS)
   {
-    m_s1ap_log->console("Error packing Authentication Request\n");
+    m_s1ap_log->console("Error packing S1AP PDU transport message\n");
     return false;
   }
   m_s1ap_log->debug_hex(reply_msg->msg, reply_msg->N_bytes, "Security Mode Command: ");
@@ -1734,14 +1763,7 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
   }
 
   uint8_t mac[4];
-  srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
-                             ue_emm_ctx->security_ctxt.dl_nas_count,
-                             0,
-                             SECURITY_DIRECTION_DOWNLINK,
-                             &nas_buffer->msg[5],
-                             nas_buffer->N_bytes - 5,
-                             mac
-                             );
+  integrity_generate(&ue_emm_ctx->security_ctxt, nas_buffer, mac);
 
   memcpy(&nas_buffer->msg[1],mac,4);
   
@@ -1886,14 +1908,7 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   //Integrity protect NAS message
   uint8_t mac[4];
-  srslte::security_128_eia1 (&ue_emm_ctx->security_ctxt.k_nas_int[16],
-                             ue_emm_ctx->security_ctxt.dl_nas_count,
-                             0,
-                             SECURITY_DIRECTION_DOWNLINK,
-                             &nas_buffer->msg[5],
-                             nas_buffer->N_bytes - 5,
-                             mac
-                             );
+  integrity_generate(&ue_emm_ctx->security_ctxt, nas_buffer, mac);
 
   memcpy(&nas_buffer->msg[1],mac,4);
   m_s1ap_log->info("Packed Attach Complete\n");
@@ -2006,14 +2021,7 @@ s1ap_nas_transport::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_
   }
 
   uint8_t mac[4];
-  srslte::security_128_eia1 (&emm_ctx->security_ctxt.k_nas_int[16],
-                             emm_ctx->security_ctxt.dl_nas_count,
-                             0,
-                             SECURITY_DIRECTION_DOWNLINK,
-                             &nas_buffer->msg[5],
-                             nas_buffer->N_bytes - 5,
-                             mac
-                             );
+  integrity_generate(&emm_ctx->security_ctxt, nas_buffer, mac);
 
   memcpy(&nas_buffer->msg[1],mac,4);
   //Copy NAS PDU to Downlink NAS Trasport message buffer
@@ -2216,6 +2224,35 @@ void s1ap_nas_transport::cipher_encrypt(eps_sec_ctx_t * sec_ctxt, srslte::byte_b
       break;
   default:
       m_s1ap_log->error("Ciphering algorithm not known\n");
+      break;
+  }
+}
+
+void s1ap_nas_transport::integrity_generate(eps_sec_ctx_t *sec_ctxt,
+                              srslte::byte_buffer_t *pdu,
+                              uint8_t *mac) {
+  switch (sec_ctxt->integ_algo) {
+    case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+      srslte::security_128_eia1(&sec_ctxt->k_nas_int[16],
+                        sec_ctxt->dl_nas_count,
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[5],
+                        pdu->N_bytes - 5,
+                        mac);
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+      srslte::security_128_eia2(&sec_ctxt->k_nas_int[16],
+                        sec_ctxt->dl_nas_count,
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[5],
+                        pdu->N_bytes - 5,
+                        mac);
+      break;
+    default:
       break;
   }
 }

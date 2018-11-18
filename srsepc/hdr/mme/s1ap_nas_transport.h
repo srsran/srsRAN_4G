@@ -110,8 +110,8 @@ private:
   bool handle_authentication_failure(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx,  srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue_ctx_t* ue_ctx, srslte::byte_buffer_t *reply_msg, bool *reply_flag);
 
-  bool integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
-  bool short_integrity_check(ue_emm_ctx_t *emm_ctx, srslte::byte_buffer_t *pdu);
+  bool integrity_check(eps_sec_ctx_t * sec_ctxt, srslte::byte_buffer_t *pdu);
+  bool short_integrity_check(eps_sec_ctx_t * sec_ctxt, srslte::byte_buffer_t *pdu);
 
   bool pack_authentication_request(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t next_mme_ue_s1ap_id, uint8_t eksi, uint8_t *autn, uint8_t *rand);
   bool pack_authentication_reject(srslte::byte_buffer_t *reply_msg, uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id);
@@ -131,6 +131,10 @@ private:
 
   void cipher_decrypt(eps_sec_ctx_t *sec_ctxt, srslte::byte_buffer_t *pdu);
   void cipher_encrypt(eps_sec_ctx_t *sec_ctxt, srslte::byte_buffer_t *pdu);
+
+  void integrity_generate(eps_sec_ctx_t *sec_ctxt,
+                              srslte::byte_buffer_t *pdu,
+                              uint8_t *mac);
 };
 } //namespace srsepc
 #endif // SRSEPC_S1AP_NAS_TRANSPORT_H
