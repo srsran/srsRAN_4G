@@ -97,81 +97,83 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   srslte::byte_buffer_t *nas_msg = m_pool->allocate();
   memcpy(nas_msg->msg, &init_ue->NAS_PDU.buffer, init_ue->NAS_PDU.n_octets);
   nas_msg->N_bytes = init_ue->NAS_PDU.n_octets;
+  uint32_t *m_tmsi;
+
+  bool rtn = true;
 
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
-  if(msg_type == LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST)
+  switch(msg_type)
   {
-    m_s1ap_log->info("Received Attach Request \n");
-    m_s1ap_log->console("Received Attach Request \n");
-    handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-  }
-  else if(msg_type == LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST)
-  {
-    m_s1ap_log->info("Received Service Request \n");
-    m_s1ap_log->console("Received Service Request \n");
-    if(!init_ue->S_TMSI_present)
-    {
-      m_s1ap_log->error("Service request -- S-TMSI  not present\n");
-      m_s1ap_log->console("Service request -- S-TMSI not present\n" );
-      return false;
-    }
-    uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
-    uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
-    m_s1ap_log->info("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
-    m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
-    m_s1ap_log->info("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
-    m_s1ap_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
-    handle_nas_service_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-    return true;
-  }
-  else if(msg_type == LIBLTE_MME_MSG_TYPE_DETACH_REQUEST)
-  {
-    m_s1ap_log->console("Received Initial UE message -- Detach Request\n");
-    m_s1ap_log->info("Received Initial UE message -- Detach Request\n");
-    if(!init_ue->S_TMSI_present)
-    {
-      m_s1ap_log->error("Detach request -- S-TMSI  not present\n");
-      m_s1ap_log->console("Detach request -- S-TMSI not present\n" );
-      return false;
-    }
-    uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
-    uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
-    m_s1ap_log->info("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
-    m_s1ap_log->console("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
-    m_s1ap_log->info("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
-    m_s1ap_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+    case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
+      m_s1ap_log->info("Received Attach Request \n");
+      m_s1ap_log->console("Received Attach Request \n");
+      handle_nas_attach_request(enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+      break;
+    case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
+      m_s1ap_log->info("Received Service Request \n");
+      m_s1ap_log->console("Received Service Request \n");
+      if(!init_ue->S_TMSI_present)
+      {
+        m_s1ap_log->error("Service request -- S-TMSI  not present\n");
+        m_s1ap_log->console("Service request -- S-TMSI not present\n" );
+        rtn = false;
+        break;
+      }
+      m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
+      m_s1ap_log->info("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
+      m_s1ap_log->console("Service request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
+      m_s1ap_log->info("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+      m_s1ap_log->console("Service request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
+      handle_nas_service_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+      rtn = true;
+      break;
+    case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
+      m_s1ap_log->console("Received Initial UE message -- Detach Request\n");
+      m_s1ap_log->info("Received Initial UE message -- Detach Request\n");
+      if(!init_ue->S_TMSI_present)
+      {
+        m_s1ap_log->error("Detach request -- S-TMSI  not present\n");
+        m_s1ap_log->console("Detach request -- S-TMSI not present\n" );
+        rtn = false;
+        break;
+      }
+      m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
+      m_s1ap_log->info("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
+      m_s1ap_log->console("Detach Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
+      m_s1ap_log->info("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
+      m_s1ap_log->console("Detach Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
 
-    handle_nas_detach_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-    return true;
-  }
-  else if(msg_type == LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST)
-  {
+      handle_nas_detach_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
+      rtn = true;
+      break;
+    case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Tracking Area Update Request\n");
       m_s1ap_log->info("Received Initial UE message -- Tracking Area Update Request\n");
       if(!init_ue->S_TMSI_present)
       {
         m_s1ap_log->error("Tracking Area Update Request -- S-TMSI  not present\n");
         m_s1ap_log->console("Tracking Area Update Request -- S-TMSI not present\n" );
-        return false;
+        rtn = false;
+        break;
       }
-      uint32_t *m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
-      uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+      m_tmsi = (uint32_t*) &init_ue->S_TMSI.m_TMSI.buffer;
       m_s1ap_log->info("Tracking Area Update Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi));
       m_s1ap_log->console("Tracking Area Update Request -- S-TMSI 0x%x\n", ntohl(*m_tmsi) );
       m_s1ap_log->info("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id);
       m_s1ap_log->console("Tracking Area Update Request -- eNB UE S1AP Id %d\n", enb_ue_s1ap_id); 
 
       handle_nas_tracking_area_update_request(ntohl(*m_tmsi), enb_ue_s1ap_id, nas_msg, reply_buffer,reply_flag, enb_sri);
-      return true;
-  }
-  else
-  {
-    m_s1ap_log->info("Unhandled Initial UE Message 0x%x\n",msg_type);
-    m_s1ap_log->console("Unhandled Initial UE Message 0x%x \n", msg_type);
-  }
-  m_pool->deallocate(nas_msg);
+      rtn = true;
+      break;
 
-  return true;
+    default:
+      m_s1ap_log->info("Unhandled Initial UE Message 0x%x\n",msg_type);
+      m_s1ap_log->console("Unhandled Initial UE Message 0x%x \n", msg_type);
+      break;
+  }
+
+  m_pool->deallocate(nas_msg);
+  return rtn;
 }
 
 bool
