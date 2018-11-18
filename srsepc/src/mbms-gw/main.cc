@@ -82,9 +82,11 @@ void
 parse_args(all_args_t *args, int argc, char* argv[]) {
 
   string mbms_gw_name;
+  string mbms_gw_sgi_mb_if_name;
   string mbms_gw_sgi_mb_if_addr;
   string mbms_gw_sgi_mb_if_mask;
   string mbms_gw_m1u_multi_addr;
+  string mbms_gw_m1u_multi_if;
 
   string log_filename;
 
@@ -100,9 +102,12 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   common.add_options()
 
     ("mbms_gw.name",      bpo::value<string>(&mbms_gw_name)->default_value("srsmbmsgw01"), "MBMS-GW Name")
+    ("mbms_gw.sgi_mb_if_name",      bpo::value<string>(&mbms_gw_sgi_mb_if_name)->default_value("sgi_mb"), "SGi-mb TUN interface Address.")
     ("mbms_gw.sgi_mb_if_addr",      bpo::value<string>(&mbms_gw_sgi_mb_if_addr)->default_value("172.16.1.1"), "SGi-mb TUN interface Address.")
     ("mbms_gw.sgi_mb_if_mask",      bpo::value<string>(&mbms_gw_sgi_mb_if_mask)->default_value("255.255.255.255"), "SGi-mb TUN interface mask.")
     ("mbms_gw.m1u_multi_addr",      bpo::value<string>(&mbms_gw_m1u_multi_addr)->default_value("239.255.0.1"), "M1-u GTPu destination multicast address.")
+    ("mbms_gw.m1u_multi_if",        bpo::value<string>(&mbms_gw_m1u_multi_if)->default_value("127.0.1.200"), "Local interface IP for M1-U multicast packets.")
+    ("mbms_gw.m1u_multi_ttl",       bpo::value<int>(&args->mbms_gw_args.m1u_multi_ttl)->default_value(1), "TTL for M1-U multicast packets.")
 
     ("log.all_level",     bpo::value<string>(&args->log_args.all_level)->default_value("info"),   "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log_args.all_hex_limit)->default_value(32),  "ALL log hex dump limit")
@@ -153,9 +158,11 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   bpo::notify(vm);
 
   args->mbms_gw_args.name = mbms_gw_name;
+  args->mbms_gw_args.sgi_mb_if_name = mbms_gw_sgi_mb_if_name;
   args->mbms_gw_args.sgi_mb_if_addr = mbms_gw_sgi_mb_if_addr;
   args->mbms_gw_args.sgi_mb_if_mask = mbms_gw_sgi_mb_if_mask;
   args->mbms_gw_args.m1u_multi_addr = mbms_gw_m1u_multi_addr;
+  args->mbms_gw_args.m1u_multi_if   = mbms_gw_m1u_multi_if;
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {

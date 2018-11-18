@@ -150,6 +150,9 @@ nof_ctrl_symbols = 3
 # link_failure_nof_err: Number of PUSCH failures after which a radio-link failure is triggered. 
 #                       a link failure is when SNR<0 and CRC=KO
 # max_prach_offset_us:  Maximum allowed RACH offset (in us)
+# enable_mbsfn:         Enable MBMS transmission in the eNB
+# m1u_multiaddr:        Multicast addres the M1-U socket will register to
+# m1u_if_addr:          Address of the inteferface the M1-U interface will listen for multicast packets.
 #
 #####################################################################
 [expert]
@@ -162,21 +165,5 @@ nof_ctrl_symbols = 3
 #rrc_inactivity_timer = 60000
 #max_prach_offset_us  = 30
 #enable_mbsfn = false
-
-#####################################################################
-# Manual RF calibration
-#
-# Applies DC offset and IQ imbalance to TX and RX modules. 
-# Currently this configuration is only used if the detected device is a bladeRF
-#
-# tx_corr_dc_gain: TX DC offset gain correction
-# tx_corr_dc_phase: TX DC offset phase correction
-# tx_corr_iq_i: TX IQ imbalance inphase correction
-# tx_corr_iq_q: TX IQ imbalance quadrature correction
-# same can be configured for rx_*
-#####################################################################
-[rf_calibration]
-tx_corr_dc_gain = 20
-tx_corr_dc_phase = 184
-tx_corr_iq_i = 19
-tx_corr_iq_q = 97
+#m1u_multiaddr = 239.255.0.1
+#m1u_if_addr = 127.0.1.201 

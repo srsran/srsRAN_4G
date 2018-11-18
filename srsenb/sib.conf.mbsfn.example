@@ -111,8 +111,6 @@ sib2 =
         additional_spectrum_emission = 1; 
     };
 
-  
-    
     mbsfnSubframeConfigList = 
     {
         radioframeAllocationPeriod = "1";

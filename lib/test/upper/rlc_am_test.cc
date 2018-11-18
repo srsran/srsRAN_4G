@@ -732,11 +732,11 @@ bool resegment_test_2()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
-  assert(16 == rlc1.get_buffer_state());
+  assert(18 == rlc1.get_buffer_state());
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 16); // 6 byte header + 10 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 18); // 6 byte header + 12 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -959,9 +959,11 @@ bool resegment_test_4()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
+  assert(23 == rlc1.get_buffer_state());
+
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 21); // 6 byte header + 15 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 23); // 6 byte header + 18 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -1069,9 +1071,11 @@ bool resegment_test_5()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
+  assert(31 == rlc1.get_buffer_state());
+
   // Read the remaining segment
   byte_buffer_t retx2;
-  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 27); // 7 byte header + 20 data
+  retx2.N_bytes = rlc1.read_pdu(retx2.msg, 34); // 7 byte header + 24 data
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
@@ -1195,11 +1199,11 @@ bool resegment_test_6()
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx1.msg, retx1.N_bytes);
 
-  assert(155 == rlc1.get_buffer_state());
+  assert(159 == rlc1.get_buffer_state());
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  len = rlc1.read_pdu(retx2.msg, 157);
+  len = rlc1.read_pdu(retx2.msg, 162);
   retx2.N_bytes = len;
 
   // Write the retx PDU to RLC2
@@ -1214,6 +1218,7 @@ bool resegment_test_6()
   }
   for(int i=3;i<9;i++)
   {
+    if (i >= tester.n_sdus) return -1;
     if(tester.sdus[i]->N_bytes != 54) return -1;
     for(int j=0;j<54;j++) {
       if (tester.sdus[i]->msg[j] != j) return -1;

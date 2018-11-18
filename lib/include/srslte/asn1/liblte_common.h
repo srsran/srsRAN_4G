@@ -57,6 +57,9 @@
 #define LIBLTE_MAX_MSG_SIZE_BYTES 12756
 #define LIBLTE_MSG_HEADER_OFFSET  1020
 
+//Macro to make it easier to convert defines into strings
+#define LIBLTE_CASE_STR(code) case code: return #code
+
 /*******************************************************************************
                               TYPEDEFS
 *******************************************************************************/
@@ -102,7 +105,7 @@ typedef struct{
     uint32 N_bits;
     uint8  header[LIBLTE_MSG_HEADER_OFFSET];
     uint8  msg[LIBLTE_MAX_MSG_SIZE_BITS];
-}LIBLTE_BIT_MSG_STRUCT;
+}LIBLTE_BIT_MSG_STRUCT __attribute__ ((aligned (8)));
 
 typedef struct{
     uint32 N_bytes;

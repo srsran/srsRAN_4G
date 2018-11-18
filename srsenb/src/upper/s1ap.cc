@@ -259,6 +259,11 @@ void s1ap::ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPR
 
 //}
 
+bool s1ap::is_mme_connected()
+{
+  return mme_connected;
+}
+
 /*******************************************************************************
 /* S1AP connection helpers
 ********************************************************************************/

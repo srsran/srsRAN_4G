@@ -126,7 +126,6 @@ mbms_gw::stop()
 srslte::error_t
 mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
 {
-  char dev[IFNAMSIZ] = "sgi_mb";
   struct ifreq ifr;
 
   if(m_sgi_mb_up)
@@ -138,22 +137,22 @@ mbms_gw::init_sgi_mb_if(mbms_gw_args_t *args)
   // Construct the TUN device
   m_sgi_mb_if = open("/dev/net/tun", O_RDWR);
   m_mbms_gw_log->info("TUN file descriptor = %d\n", m_sgi_mb_if);
-  if(m_sgi_mb_if < 0)
-  {
+  if (m_sgi_mb_if < 0) {
       m_mbms_gw_log->error("Failed to open TUN device: %s\n", strerror(errno));
       return(srslte::ERROR_CANT_START);
   }
 
   memset(&ifr, 0, sizeof(ifr));
   ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-  strncpy(ifr.ifr_ifrn.ifrn_name, dev, IFNAMSIZ-1);
+  strncpy(ifr.ifr_ifrn.ifrn_name, args->sgi_mb_if_name.c_str(), std::min(args->sgi_mb_if_name.length(), (size_t)IFNAMSIZ-1) );
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1]='\0';
 
-  if(ioctl(m_sgi_mb_if, TUNSETIFF, &ifr) < 0)
-  {
-      m_mbms_gw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
-      close(m_sgi_mb_if);
-      return(srslte::ERROR_CANT_START);
+  if (ioctl(m_sgi_mb_if, TUNSETIFF, &ifr) < 0) {
+    m_mbms_gw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
+    close(m_sgi_mb_if);
+    return(srslte::ERROR_CANT_START);
+  } else {
+    m_mbms_gw_log->debug("Set TUN device name: %s\n", args->sgi_mb_if_name.c_str());
   }
 
   // Bring up the interface
@@ -234,11 +233,18 @@ mbms_gw::init_m1_u(mbms_gw_args_t *args)
   /* Set local interface for outbound multicast packets*/
   /* The IP must be associated with a local multicast capable interface */
   struct in_addr local_if;
-  local_if.s_addr = inet_addr("127.0.1.200");
+  local_if.s_addr = inet_addr(args->m1u_multi_if.c_str());
   if(setsockopt(m_m1u, IPPROTO_IP, IP_MULTICAST_IF, (char*)&local_if, sizeof(struct in_addr))<0){
-    perror("Error setting multicast interface.\n");
+    m_mbms_gw_log->error("Error %s setting multicast interface %s.\n", strerror(errno), args->m1u_multi_if.c_str());
+    return srslte::ERROR_CANT_START;
   } else {
-    printf("Multicast interface specified.\n");
+    printf("Multicast interface specified. Address: %s\n", args->m1u_multi_if.c_str());
+  }
+
+  /*Set Multicast TTL*/
+  if ( setsockopt(m_m1u, IPPROTO_IP,IP_MULTICAST_TTL,&args->m1u_multi_ttl,sizeof(args->m1u_multi_ttl)) <0 ) {
+    perror("Error setting multicast ttl.\n");
+    return srslte::ERROR_CANT_START;
   }
 
   bzero(&m_m1u_multi_addr,sizeof(m_m1u_multi_addr));
@@ -287,29 +293,26 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
   srslte::gtpu_header_t header;
 
   //Setup GTP-U header
-  header.flags        = 0x30;
-  header.message_type = 0xFF;
+  header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
+  header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
   header.teid         = 0xAAAA; //FIXME Harcoded TEID for now
 
   //Sanity Check IP packet
-  if(msg->N_bytes < 20)
-  {
+  if (msg->N_bytes < 20) {
     m_mbms_gw_log->error("IPv4 min len: %d, drop msg len %d\n", 20, msg->N_bytes);
     return;
   }
 
   //IP Headers
   struct iphdr *iph = (struct iphdr *) msg->msg;
-  if(iph->version != 4)
-  {
+  if(iph->version != 4) {
     m_mbms_gw_log->warning("IPv6 not supported yet.\n");
     return;
   }
 
   //Write GTP-U header into packet
-  if(!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log))
-  {
+  if (!srslte::gtpu_write_header(&header, msg, m_mbms_gw_log)) {
     m_mbms_gw_log->console("Error writing GTP-U header on PDU\n");
   }
 

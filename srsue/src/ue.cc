@@ -193,10 +193,7 @@ bool ue::init(all_args_t *args_) {
     radio.set_continuous_tx(args->rf.continuous_tx.compare("yes")?false:true);
   }
 
-  radio.set_manual_calibration(&args->rf_cal);
-
   // Set PHY options
-
   if (args->rf.tx_gain > 0) {
     args->expert.phy.ul_pwr_ctrl_en = false; 
   } else {
@@ -224,10 +221,11 @@ bool ue::init(all_args_t *args_) {
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
-  srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
+  srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_protocol, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
+  gw.set_tundevname(args->expert.ip_devname);
   
   // Get current band from provided EARFCN
   args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
@@ -235,8 +233,8 @@ bool ue::init(all_args_t *args_) {
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
 
   // set args and initialize RRC
-  rrc.set_args(args->rrc);
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
+  rrc.set_args(args->rrc);
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;

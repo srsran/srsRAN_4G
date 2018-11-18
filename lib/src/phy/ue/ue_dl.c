@@ -450,9 +450,9 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
       }
     } else {
       if (grant->pinfo == 2) {
-        ERROR("Not implemented codebook index (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+        /* Not implemented */
       } else if (grant->pinfo > 2) {
-        ERROR("Reserved codebook index (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
+        /* Reserved */
       }
       pmi = grant->pinfo % 2;
     }

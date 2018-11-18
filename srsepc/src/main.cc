@@ -22,6 +22,7 @@
  *
  */
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <errno.h>
 #include <signal.h>
@@ -30,6 +31,7 @@
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/config_file.h"
+#include "srslte/build_info.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/hss/hss.h"
 #include "srsepc/hdr/spgw/spgw.h"
@@ -46,6 +48,8 @@ sig_int_handler(int signo){
 }
 
 typedef struct {
+  std::string   nas_level;
+  int           nas_hex_limit;
   std::string   s1ap_level;
   int           s1ap_hex_limit;
   std::string   gtpc_level;
@@ -85,6 +89,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string mme_apn;
   string spgw_bind_addr;
   string sgi_if_addr;
+  string sgi_if_name;
   string dns_addr;
   string hss_db_file;
   string hss_auth_algo;
@@ -114,10 +119,13 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),   "HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"), "IP address of SP-GW for the S1-U connection")
     ("spgw.sgi_if_addr",    bpo::value<string>(&sgi_if_addr)->default_value("176.16.0.1"),   "IP address of TUN interface for the SGi connection")
+    ("spgw.sgi_if_name",    bpo::value<string>(&sgi_if_name)->default_value("srs_spgw_sgi"), "Name of TUN interface for the SGi connection")
 
     ("pcap.enable",         bpo::value<bool>(&args->mme_args.s1ap_args.pcap_enable)->default_value(false),         "Enable S1AP PCAP")
     ("pcap.filename",       bpo::value<string>(&args->mme_args.s1ap_args.pcap_filename)->default_value("/tmp/epc.pcap"), "PCAP filename")
 
+    ("log.nas_level",       bpo::value<string>(&args->log_args.nas_level),    "MME NAS  log level")
+    ("log.nas_hex_limit",   bpo::value<int>(&args->log_args.nas_hex_limit),   "MME NAS log hex dump limit")
     ("log.s1ap_level",      bpo::value<string>(&args->log_args.s1ap_level),   "MME S1AP log level")
     ("log.s1ap_hex_limit",  bpo::value<int>(&args->log_args.s1ap_hex_limit),  "MME S1AP log hex dump limit")
     ("log.gtpc_level",      bpo::value<string>(&args->log_args.gtpc_level),   "MME GTPC log level")
@@ -202,7 +210,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   if(!srslte::string_to_mnc(mnc, &args->mme_args.s1ap_args.mnc)) {
     cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
- 
+
   // Convert MCC/MNC strings
   if(!srslte::string_to_mcc(mcc, &args->hss_args.mcc)) {
     cout << "Error parsing mme.mcc:" << mcc << " - must be a 3-digit string." << endl;
@@ -217,11 +225,15 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   args->mme_args.s1ap_args.mme_apn = mme_apn;
   args->spgw_args.gtpu_bind_addr = spgw_bind_addr;
   args->spgw_args.sgi_if_addr = sgi_if_addr;
+  args->spgw_args.sgi_if_name = sgi_if_name;
   args->hss_args.db_file = hss_db_file;
   args->hss_args.auth_algo = hss_auth_algo;
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
+    if(!vm.count("log.nas_level")) {
+      args->log_args.nas_level = args->log_args.all_level;
+    }
     if(!vm.count("log.s1ap_level")) {
       args->log_args.s1ap_level = args->log_args.all_level;
     }
@@ -249,6 +261,9 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     }
     if(!vm.count("log.hss_hex_limit")) {
       args->log_args.hss_hex_limit = args->log_args.all_hex_limit;
+    }
+    if(!vm.count("log.nas_hex_limit")) {
+      args->log_args.nas_hex_limit = args->log_args.all_hex_limit;
     }
   }
 
@@ -280,12 +295,35 @@ level(std::string l)
   }
 }
 
+std::string get_build_mode()
+{
+  return std::string(srslte_get_build_mode());
+}
+
+std::string get_build_info()
+{
+  if (std::string(srslte_get_build_info()) == "") {
+    return std::string(srslte_get_version());
+  }
+  return std::string(srslte_get_build_info());
+}
+
+std::string get_build_string()
+{
+  std::stringstream ss;
+  ss << "Built in " << get_build_mode() << " mode using " << get_build_info() << "." << std::endl;
+  return ss.str();
+}
+
 int
 main (int argc,char * argv[] )
 {
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   signal(SIGKILL, sig_int_handler);
+
+  // print build info
+  cout << endl << get_build_string() << endl;
 
   cout << endl <<"---  Software Radio Systems EPC  ---" << endl << endl;
   srslte_debug_handle_crash(argc, argv);
@@ -302,9 +340,16 @@ main (int argc,char * argv[] )
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log_args.filename);
+    logger_file.log("\n\n");
+    logger_file.log(get_build_string().c_str());
     logger_file.log("\n---  Software Radio Systems EPC log ---\n\n");
     logger = &logger_file;
   }
+
+  srslte::log_filter nas_log;
+  nas_log.init("NAS ",logger);
+  nas_log.set_level(level(args.log_args.nas_level));
+  nas_log.set_hex_limit(args.log_args.nas_hex_limit);
 
   srslte::log_filter s1ap_log;
   s1ap_log.init("S1AP",logger);
@@ -334,7 +379,7 @@ main (int argc,char * argv[] )
   }
 
   mme *mme = mme::get_instance();
-  if (mme->init(&args.mme_args, &s1ap_log, &mme_gtpc_log, hss)) {
+  if (mme->init(&args.mme_args, &nas_log, &s1ap_log, &mme_gtpc_log, hss)) {
     cout << "Error initializing MME" << endl;
     exit(1);
   }
@@ -358,6 +403,6 @@ main (int argc,char * argv[] )
   hss->stop();
   hss->cleanup();
 
-  cout << std::endl <<"---  exiting  ---" << endl;  
+  cout << std::endl <<"---  exiting  ---" << endl;
   return 0;
 }

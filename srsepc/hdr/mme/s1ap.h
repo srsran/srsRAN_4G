@@ -32,6 +32,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/s1ap_pcap.h"
+#include "srslte/interfaces/epc_interfaces.h"
 
 #include <strings.h>
 #include <arpa/inet.h>
@@ -41,7 +42,7 @@
 #include <unistd.h>
 #include <map>
 #include <set>
-#include "s1ap_common.h"
+#include "nas.h"
 #include "s1ap_mngmt_proc.h"
 #include "s1ap_nas_transport.h"
 #include "s1ap_ctx_mngmt_proc.h"
@@ -52,7 +53,9 @@ namespace srsepc{
 
 const uint16_t S1MME_PORT = 36412;
 
-class s1ap
+class s1ap:
+    public s1ap_interface_nas,
+    public s1ap_interface_gtpc
 {
 public:
 
@@ -60,7 +63,7 @@ public:
   static void cleanup();
 
   int enb_listen();
-  int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1ap * hss_);
+  int init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, srslte::log_filter *nas_log, hss_interface_nas * hss_);
   void stop();
 
   int get_s1_mme();
@@ -82,28 +85,34 @@ public:
   void add_new_enb_ctx(const enb_ctx_t &enb_ctx, const struct sctp_sndrcvinfo* enb_sri);
   void get_enb_ctx(uint16_t sctp_stream);
 
-  bool add_ue_ctx_to_imsi_map(ue_ctx_t *ue_ctx);
-  bool add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx_t *ue_ctx);
+  bool add_nas_ctx_to_imsi_map(nas *nas_ctx);
+  bool add_nas_ctx_to_mme_ue_s1ap_id_map(nas *nas_ctx);
   bool add_ue_to_enb_set(int32_t enb_assoc, uint32_t mme_ue_s1ap_id);
 
-  ue_ctx_t* find_ue_ctx_from_imsi(uint64_t imsi);
-  ue_ctx_t* find_ue_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
+  virtual nas* find_nas_ctx_from_imsi(uint64_t imsi);
+  nas* find_nas_ctx_from_mme_ue_s1ap_id(uint32_t mme_ue_s1ap_id);
 
   bool release_ue_ecm_ctx(uint32_t mme_ue_s1ap_id);
   void release_ues_ecm_ctx_in_enb(int32_t enb_assoc);
-  bool delete_ue_ctx(uint64_t imsi);
+  virtual bool delete_ue_ctx(uint64_t imsi);
 
   uint32_t allocate_m_tmsi(uint64_t imsi);
+  virtual uint64_t find_imsi_from_m_tmsi(uint32_t m_tmsi);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
+  srslte::log_filter            *m_nas_log;
 
   s1ap_mngmt_proc*               m_s1ap_mngmt_proc;
   s1ap_nas_transport*            m_s1ap_nas_transport;
   s1ap_ctx_mngmt_proc*           m_s1ap_ctx_mngmt_proc;
 
-  std::map<uint32_t, uint64_t>                      m_tmsi_to_imsi;
+  std::map<uint32_t, uint64_t>   m_tmsi_to_imsi;
 
+  //Interfaces
+  virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup);
+  virtual bool send_ue_context_release_command(uint32_t mme_ue_s1ap_id);
+  virtual bool send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *nas_msg, struct sctp_sndrcvinfo enb_sri);
 private:
   s1ap();
   virtual ~s1ap();
@@ -113,14 +122,14 @@ private:
   uint32_t                       m_plmn;
   srslte::byte_buffer_pool      *m_pool;
 
-  hss_interface_s1ap *m_hss;
+  hss_interface_nas *m_hss;
   int m_s1mme;
   std::map<uint16_t, enb_ctx_t*>                    m_active_enbs;
   std::map<int32_t, uint16_t>                       m_sctp_to_enb_id;
   std::map<int32_t,std::set<uint32_t> >             m_enb_assoc_to_ue_ids;
 
-  std::map<uint64_t, ue_ctx_t*>                     m_imsi_to_ue_ctx;
-  std::map<uint32_t, ue_ctx_t*>                     m_mme_ue_s1ap_id_to_ue_ctx;
+  std::map<uint64_t, nas*>                          m_imsi_to_nas_ctx;
+  std::map<uint32_t, nas*>                          m_mme_ue_s1ap_id_to_nas_ctx;
 
   uint32_t                                          m_next_mme_ue_s1ap_id;
   uint32_t                                          m_next_m_tmsi;

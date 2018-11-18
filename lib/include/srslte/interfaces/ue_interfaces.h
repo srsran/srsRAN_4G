@@ -36,6 +36,7 @@
 #include <string>
 
 #include "srslte/asn1/liblte_rrc.h"
+#include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/common.h"
 #include "srslte/common/security.h"
@@ -104,7 +105,7 @@ public:
 class gw_interface_nas
 {
 public:
-  virtual srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str) = 0;
+  virtual srslte::error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t *ipv6_if_id, char *err_str) = 0;
 };
 
 // GW interface for RRC
@@ -139,6 +140,8 @@ public:
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
+  virtual uint32_t  get_ipv4_addr() = 0;
+  virtual bool      get_ipv6_addr(uint8_t *ipv6_addr) = 0;
 };
 
 // NAS interface for UE
@@ -280,6 +283,7 @@ public:
   virtual void add_bearer_mrb(uint32_t lcid) = 0;
   virtual void del_bearer(uint32_t lcid) = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
+  virtual bool has_bearer(uint32_t lcid) = 0;
 };
 
 // RLC interface for PDCP

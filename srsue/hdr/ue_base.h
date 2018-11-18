@@ -111,6 +111,7 @@ typedef struct {
 
 typedef struct {
   std::string   ip_netmask;
+  std::string   ip_devname;
   phy_args_t    phy;
   float         metrics_period_secs;
   bool          pregenerate_signals;
@@ -122,7 +123,6 @@ typedef struct {
 
 typedef struct {
   rf_args_t     rf;
-  rf_cal_t      rf_cal; 
   pcap_args_t   pcap;
   trace_args_t  trace;
   log_args_t    log;

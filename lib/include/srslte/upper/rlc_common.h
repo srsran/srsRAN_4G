@@ -37,7 +37,7 @@ namespace srslte {
  ***************************************************************************/
 
 #define RLC_AM_WINDOW_SIZE  512
-
+#define RLC_MAX_SDU_SIZE ((1<<11)-1) // Length of LI field is 11bits
 
 
 typedef enum{

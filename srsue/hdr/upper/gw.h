@@ -27,6 +27,7 @@
 #ifndef SRSUE_GW_H
 #define SRSUE_GW_H
 
+#include <net/if.h>
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -34,8 +35,6 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/threads.h"
 #include "gw_metrics.h"
-
-#include <linux/if.h>
 
 namespace srsue {
 
@@ -52,13 +51,14 @@ public:
 
   void get_metrics(gw_metrics_t &m);
   void set_netmask(std::string netmask);
+  void set_tundevname(const std::string & devname);
 
   // PDCP interface
   void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu);
   void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu);
 
   // NAS interface
-  srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str);
+  srslte::error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char *err_str);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
@@ -67,6 +67,7 @@ private:
 
   bool default_netmask;
   std::string netmask;
+  std::string tundevname;
 
   static const int GW_THREAD_PRIO = 7;
 
@@ -86,6 +87,7 @@ private:
   bool                if_up;
 
   uint32_t            current_ip_addr;
+  uint8_t             current_if_id[8];
 
   long                ul_tput_bytes;
   long                dl_tput_bytes;
@@ -93,6 +95,10 @@ private:
 
   void                run_thread();
   srslte::error_t     init_if(char *err_str);
+  srslte::error_t setup_if_addr4(uint32_t ip_addr, char *err_str);
+  srslte::error_t setup_if_addr6(uint8_t *ipv6_if_id, char *err_str);
+  bool find_ipv6_addr(struct in6_addr *in6_out);
+  void del_ipv6_addr(struct in6_addr *in6p);
 
   // MBSFN
   int      mbsfn_sock_fd;                   // Sink UDP socket file descriptor

@@ -153,6 +153,7 @@ private:
   rrc_interface_mac *rrc;
 
   pthread_rwlock_t rwlock;
+  pthread_mutex_t sched_mutex;
 
   cell_cfg_t cfg;
   sched_args_t sched_cfg; 

@@ -49,14 +49,6 @@ typedef struct {
 } srslte_rf_t;
 
 typedef struct {
-  float dc_gain;
-  float dc_phase;
-  float iq_i;
-  float iq_q; 
-} srslte_rf_cal_t; 
-
-
-typedef struct {
   double min_tx_gain;
   double max_tx_gain;
   double min_rx_gain;
@@ -95,10 +87,6 @@ SRSLTE_API int srslte_rf_start_gain_thread(srslte_rf_t *rf,
                                            bool tx_gain_same_rx); 
 
 SRSLTE_API int srslte_rf_close(srslte_rf_t *h);
-
-SRSLTE_API void srslte_rf_set_tx_cal(srslte_rf_t *h, srslte_rf_cal_t *cal);
-
-SRSLTE_API void srslte_rf_set_rx_cal(srslte_rf_t *h, srslte_rf_cal_t *cal);
 
 SRSLTE_API int srslte_rf_start_rx_stream(srslte_rf_t *h, bool now);
 

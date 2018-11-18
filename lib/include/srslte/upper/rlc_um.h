@@ -146,6 +146,7 @@ private:
     bool configure(srslte_rlc_config_t cfg, std::string rb_name);
     void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes);
     void reassemble_rx_sdus();
+    bool pdu_belongs_to_rx_sdu();
     bool inside_reordering_window(uint16_t sn);
     uint32_t get_num_rx_bytes();
     void reset_metrics();
@@ -199,7 +200,6 @@ private:
 
     // helper functions
     void debug_state();
-    bool reordering_timeout_running();
     const char* get_rb_name();
   };
 
@@ -213,6 +213,7 @@ private:
   uint32_t                  lcid;
   srslte_rlc_um_config_t    cfg;
   std::string               rb_name;
+  byte_buffer_pool          *pool;
 
   std::string               get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bool is_mrb);
 };

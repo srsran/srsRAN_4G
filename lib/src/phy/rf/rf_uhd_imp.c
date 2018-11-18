@@ -230,17 +230,6 @@ bool rf_uhd_rx_wait_lo_locked(void *h)
   return val;
 }
 
-void rf_uhd_set_tx_cal(void *h, srslte_rf_cal_t *cal)
-{
-  
-}
-
-void rf_uhd_set_rx_cal(void *h, srslte_rf_cal_t *cal) 
-{
-  
-}
-
-
 int rf_uhd_start_rx_stream(void *h, bool now)
 {
  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;

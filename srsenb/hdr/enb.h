@@ -128,13 +128,14 @@ typedef struct {
   float      metrics_period_secs;
   bool       enable_mbsfn;
   bool       print_buffer_state;
+  std::string m1u_multiaddr;
+  std::string m1u_if_addr;
 }expert_args_t;
 
 typedef struct { 
   enb_args_t    enb;
   enb_files_t   enb_files; 
   rf_args_t     rf;
-  rf_cal_t      rf_cal; 
   pcap_args_t   pcap;
   log_args_t    log;
   gui_args_t    gui;
@@ -142,7 +143,7 @@ typedef struct {
 }all_args_t;
 
 /*******************************************************************************
-  Main UE class
+  Main eNB class
 *******************************************************************************/
 
 class enb
@@ -222,7 +223,11 @@ private:
   int parse_rr(all_args_t *args, rrc_cfg_t *rrc_cfg);
   int parse_drb(all_args_t *args, rrc_cfg_t *rrc_cfg); 
   bool sib_is_present(LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info, uint32_t nof_sched_info, LIBLTE_RRC_SIB_TYPE_ENUM sib_num);
-  int parse_cell_cfg(all_args_t *args, srslte_cell_t *cell); 
+  int parse_cell_cfg(all_args_t *args, srslte_cell_t *cell);
+
+  std::string get_build_mode();
+  std::string get_build_info();
+  std::string get_build_string();
 };
 
 } // namespace srsenb

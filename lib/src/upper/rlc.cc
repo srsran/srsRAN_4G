@@ -210,6 +210,13 @@ void rlc::empty_queue()
 
 void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking)
 {
+  // FIXME: rework build PDU logic to allow large SDUs (without concatenation)
+  if (sdu->N_bytes > RLC_MAX_SDU_SIZE) {
+    rlc_log->warning("Dropping too long SDU of size %d B (Max. size %d B).\n", sdu->N_bytes, RLC_MAX_SDU_SIZE);
+    pool->deallocate(sdu);
+    return;
+  }
+
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     rlc_array.at(lcid)->write_sdu(sdu, blocking);
@@ -561,6 +568,15 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
   }
 exit:
   pthread_rwlock_unlock(&rwlock);
+}
+
+
+bool rlc::has_bearer(uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  bool ret = valid_lcid(lcid);
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
 }
 
 

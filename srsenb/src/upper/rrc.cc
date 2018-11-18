@@ -885,24 +885,25 @@ void rrc::activity_monitor::run_thread()
 *******************************************************************************/
 rrc::ue::ue()
 {
-  parent           = NULL; 
+  parent            = NULL;
   set_activity();
-  has_tmsi         = false;
-  connect_notified = false; 
-  transaction_id   = 0;
-  sr_allocated     = false;
-  sr_sched_sf_idx  = 0;
-  sr_sched_prb_idx = 0;
-  sr_N_pucch       = 0;
-  sr_I             = 0;
-  cqi_allocated    = false;
-  cqi_pucch        = 0;
-  cqi_idx          = 0;
-  cqi_sched_sf_idx = 0;
+  has_tmsi          = false;
+  connect_notified  = false;
+  transaction_id    = 0;
+  sr_allocated      = false;
+  sr_sched_sf_idx   = 0;
+  sr_sched_prb_idx  = 0;
+  sr_N_pucch        = 0;
+  sr_I              = 0;
+  cqi_allocated     = false;
+  cqi_pucch         = 0;
+  cqi_idx           = 0;
+  cqi_sched_sf_idx  = 0;
   cqi_sched_prb_idx = 0;
-  rlf_cnt          = 0;
-  state            = RRC_STATE_IDLE;
-  pool             = srslte::byte_buffer_pool::get_instance();
+  rlf_cnt           = 0;
+  nas_pending       = false;
+  state             = RRC_STATE_IDLE;
+  pool              = srslte::byte_buffer_pool::get_instance();
 }
 
 rrc_state_t rrc::ue::get_state()
@@ -1043,6 +1044,12 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 
 void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
 {
+  if (not parent->s1ap->is_mme_connected()) {
+    printf("send reject\n");
+    parent->rrc_log->error("MME isn't connected. Sending Connection Reject\n");
+    send_connection_reject();
+  }
+
   set_activity();
   
   if(msg->ue_id_type == LIBLTE_RRC_CON_REQ_UE_ID_TYPE_S_TMSI) {
@@ -1227,9 +1234,12 @@ void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT 
   parent->gtpu->add_bearer(rnti, lcid, addr_, erabs[id].teid_out, &(erabs[id].teid_in));
 
   if(nas_pdu) {
+    nas_pending = true;
     memcpy(erab_info.buffer, nas_pdu->buffer, nas_pdu->n_octets);
     erab_info.N_bytes = nas_pdu->n_octets;
     parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
+  } else {
+    nas_pending = false;
   }
 }
 
@@ -1299,7 +1309,17 @@ void rrc::ue::send_connection_reest_rej()
   dl_ccch_msg.msg_type = LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST_REJ;
   
   send_dl_ccch(&dl_ccch_msg);
-  
+}
+
+void rrc::ue::send_connection_reject()
+{
+  LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
+  bzero(&dl_ccch_msg, sizeof(LIBLTE_RRC_DL_CCCH_MSG_STRUCT));
+
+  dl_ccch_msg.msg_type = LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ;
+  dl_ccch_msg.msg.rrc_con_rej.wait_time = 10;
+
+  send_dl_ccch(&dl_ccch_msg);
 }
 
 void rrc::ue::send_connection_setup(bool is_setup)
@@ -1666,18 +1686,23 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 
   // DRB1 has already been configured in GTPU through bearer setup
 
-  // Add NAS Attach accept 
-  conn_reconf->N_ded_info_nas = 1; 
+  // Add NAS Attach accept
+  if(nas_pending){
+    parent->rrc_log->debug("Adding NAS message to connection reconfiguration\n");
+    conn_reconf->N_ded_info_nas = 1;
 
-  parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
-  conn_reconf->ded_info_nas_list[0].N_bytes = erab_info.N_bytes;
-  memcpy(conn_reconf->ded_info_nas_list[0].msg, erab_info.buffer, erab_info.N_bytes);
- 
+    parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+    conn_reconf->ded_info_nas_list[0].N_bytes = erab_info.N_bytes;
+    memcpy(conn_reconf->ded_info_nas_list[0].msg, erab_info.buffer, erab_info.N_bytes);
+  } else {
+    parent->rrc_log->debug("Not adding NAS message to connection reconfiguration\n");
+    conn_reconf->N_ded_info_nas = 0;
+  }
   // Reuse same PDU
   pdu->reset();
-  
+
   send_dl_dcch(&dl_dcch_msg, pdu);
-  
+
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 

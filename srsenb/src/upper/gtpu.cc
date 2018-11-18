@@ -43,44 +43,27 @@ gtpu::gtpu():mchthread()
 
 }
 
-bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
+bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m1u_multiaddr_, std::string m1u_if_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
 {
   pdcp          = pdcp_;
   gtpu_log      = gtpu_log_;
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
-
   pool          = byte_buffer_pool::get_instance();
 
-  // Set up sink socket
-  snk_fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (snk_fd < 0) {
-    gtpu_log->error("Failed to create sink socket\n");
+  // Set up socket
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (fd < 0) {
+    gtpu_log->error("Failed to create socket\n");
     return false;
   }
   int enable = 1;
 #if defined (SO_REUSEADDR)
-  if (setsockopt(snk_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
       gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
 #endif
 #if defined (SO_REUSEPORT)
-  if (setsockopt(snk_fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
-      gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
-#endif
-
-
-  // Set up source socket
-  src_fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (src_fd < 0) {
-    gtpu_log->error("Failed to create source socket\n");
-    return false;
-  }
-#if defined (SO_REUSEADDR)
-  if (setsockopt(src_fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-      gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
-#endif
-#if defined (SO_REUSEPORT)
-  if (setsockopt(src_fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
       gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
 #endif
 
@@ -90,7 +73,7 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   bindaddr.sin_addr.s_addr = inet_addr(gtp_bind_addr.c_str());
   bindaddr.sin_port        = htons(GTPU_PORT);
 
-  if (bind(src_fd, (struct sockaddr *)&bindaddr, sizeof(struct sockaddr_in))) {
+  if (bind(fd, (struct sockaddr *)&bindaddr, sizeof(struct sockaddr_in))) {
     gtpu_log->error("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
     gtpu_log->console("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
     return false;
@@ -102,15 +85,14 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, srsenb::pdcp_
   // Start MCH thread if enabled
   this->enable_mbsfn = enable_mbsfn;
   if(enable_mbsfn) {
-    mchthread.init(pdcp, gtpu_log);
+    mchthread.init(m1u_multiaddr_, m1u_if_addr_, pdcp, gtpu_log);
   }
   return true;
 }
 
 void gtpu::stop()
 {
-
- if(enable_mbsfn){
+  if(enable_mbsfn){
     mchthread.stop();
   }
 
@@ -128,11 +110,8 @@ void gtpu::stop()
     wait_thread_finish();
   }
 
-  if (snk_fd) {
-    close(snk_fd);
-  }
-  if (src_fd) {
-    close(src_fd);
+  if (fd) {
+    close(fd);
   }
 }
 
@@ -141,8 +120,8 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
 {
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
   gtpu_header_t header;
-  header.flags        = 0x30;
-  header.message_type = 0xFF;
+  header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
+  header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = pdu->N_bytes;
   header.teid         = rnti_bearers[rnti].teids_out[lcid];
 
@@ -151,8 +130,11 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   servaddr.sin_addr.s_addr = htonl(rnti_bearers[rnti].spgw_addrs[lcid]);
   servaddr.sin_port        = htons(GTPU_PORT);
 
-  gtpu_write_header(&header, pdu, gtpu_log);
-  if (sendto(snk_fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
+  if(!gtpu_write_header(&header, pdu, gtpu_log)){
+    gtpu_log->error("Error writing GTP-U Header. Flags 0x%x, Message Type 0x%x\n", header.flags, header.message_type);
+    return;
+  }
+  if (sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
     perror("sendto");
   }
 
@@ -223,6 +205,10 @@ void gtpu::run_thread()
   }
   run_enable = true;
 
+  sockaddr_in client;
+  socklen_t   client_len = sizeof(client);
+  size_t      buflen = SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET;
+
   running=true;
   while(run_enable) {
 
@@ -230,49 +216,90 @@ void gtpu::run_thread()
     gtpu_log->debug("Waiting for read...\n");
     int n = 0;
     do{
-      n = recv(src_fd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0);
+      n = recvfrom(fd, pdu->msg, buflen, 0, (struct sockaddr *)&client, &client_len);
     } while (n == -1 && errno == EAGAIN);
 
     if (n < 0) {
         gtpu_log->error("Failed to read from socket\n");
     }
 
+    gtpu_log->debug("Received %d bytes from S1-U interface\n", n);
     pdu->N_bytes = (uint32_t) n;
 
     gtpu_header_t header;
-    gtpu_read_header(pdu, &header,gtpu_log);
-
-    uint16_t rnti = 0;
-    uint16_t lcid = 0;
-    teidin_to_rntilcid(header.teid, &rnti, &lcid);
-
-    pthread_mutex_lock(&mutex);
-    bool user_exists = (rnti_bearers.count(rnti) > 0);
-    pthread_mutex_unlock(&mutex);
-
-    if(!user_exists) {
-      gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);
+    if(!gtpu_read_header(pdu, &header,gtpu_log)){
       continue;
     }
 
-    if(lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
-      gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
-      continue;
+    switch(header.message_type) {
+
+      case GTPU_MSG_ECHO_REQUEST:
+        // Echo request - send response
+        echo_response(client.sin_addr.s_addr, client.sin_port, header.seq_number);
+        break;
+
+      case GTPU_MSG_DATA_PDU:
+
+        uint16_t rnti = 0;
+        uint16_t lcid = 0;
+        teidin_to_rntilcid(header.teid, &rnti, &lcid);
+
+        pthread_mutex_lock(&mutex);
+        bool user_exists = (rnti_bearers.count(rnti) > 0);
+        pthread_mutex_unlock(&mutex);
+
+        if(!user_exists) {
+          gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);
+          continue;
+        }
+
+        if(lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
+          gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
+          continue;
+        }
+
+        gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
+
+        pdcp->write_sdu(rnti, lcid, pdu);
+
+        do {
+          pdu = pool_allocate;
+          if (!pdu) {
+            gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
+            usleep(10000);
+          }
+        } while(!pdu);
+        break;
     }
-
-    gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
-
-    pdcp->write_sdu(rnti, lcid, pdu);
-
-    do {
-      pdu = pool_allocate;
-      if (!pdu) {
-        gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
-        usleep(10000);
-      }
-    } while(!pdu);
   }
   running = false;
+}
+
+void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
+{
+  gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
+
+  gtpu_header_t header;
+  srslte::byte_buffer_t *pdu = pool_allocate;
+
+  //header
+  header.flags = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
+  header.message_type = GTPU_MSG_ECHO_RESPONSE;
+  header.teid = 0;
+  header.length = 4;
+  header.seq_number = seq;
+  header.n_pdu = 0;
+  header.next_ext_hdr_type = 0;
+
+  gtpu_write_header(&header,pdu,gtpu_log);
+
+  struct sockaddr_in servaddr;
+  servaddr.sin_family      = AF_INET;
+  servaddr.sin_addr.s_addr = addr;
+  servaddr.sin_port        = port;
+
+  sendto(fd, pdu->msg, 12, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
+  pool->deallocate(pdu);
 }
 
 /****************************************************************************
@@ -293,14 +320,16 @@ void gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t *teidin)
 /****************************************************************************
 * Class to run the MCH thread
 ***************************************************************************/
-bool gtpu::mch_thread::init(pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
+bool gtpu::mch_thread::init(std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
 {
   pool           = byte_buffer_pool::get_instance();
   this->pdcp     = pdcp;
   this->gtpu_log = gtpu_log;
+  m1u_multiaddr = m1u_multiaddr_;
+  m1u_if_addr   = m1u_if_addr_;
 
   struct sockaddr_in bindaddr;
-  
+
   // Set up sink socket
   m1u_sd = socket(AF_INET, SOCK_DGRAM, 0);
   if (m1u_sd < 0) {
@@ -322,11 +351,12 @@ bool gtpu::mch_thread::init(pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
 
   /* Send an ADD MEMBERSHIP message via setsockopt */
   struct ip_mreq mreq;
-  mreq.imr_multiaddr.s_addr = inet_addr("239.255.0.1"); //Multicast address of the service
-  mreq.imr_interface.s_addr = inet_addr("127.0.1.200"); //Address of the IF the socket will listen to.
+  mreq.imr_multiaddr.s_addr = inet_addr(m1u_multiaddr.c_str()); //Multicast address of the service
+  mreq.imr_interface.s_addr = inet_addr(m1u_if_addr.c_str());           //Address of the IF the socket will listen to.
   if (setsockopt(m1u_sd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                  &mreq, sizeof(mreq)) < 0) {
     gtpu_log->error("Register musticast group for M1-U\n");
+    gtpu_log->error("M1-U infterface IP: %s, M1-U Multicast Address %s\n", m1u_if_addr.c_str(),m1u_multiaddr.c_str());
     return false;
   }
   gtpu_log->info("M1-U initialized\n");
@@ -372,12 +402,12 @@ void gtpu::mch_thread::run_thread()
     do{
       n =  recvfrom(m1u_sd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0, (struct sockaddr *) &src_addr, &addrlen);
     } while (n == -1 && errno == EAGAIN);
+    gtpu_log->debug("Received %d bytes from M1-U interface\n", n);
 
     pdu->N_bytes = (uint32_t) n;
-    
+
     gtpu_header_t header;
     gtpu_read_header(pdu, &header, gtpu_log);
-
     pdcp->write_sdu(SRSLTE_MRNTI, lcid, pdu);
     do {
       pdu = pool_allocate;

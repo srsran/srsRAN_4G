@@ -1,6 +1,16 @@
 Change Log for Releases
 ==============================
 
+## 18.09
+  * Improved Turbo Decoder performance
+  * Configurable SGi interface name and M1U params
+  * Support for GPTU echo mechanism
+  * Added UE detach capability
+  * Refactor RLC/PDCP classes
+  * Various fixes for ARM-based devices
+  * Added support for bladeRF 2.0 micro
+  * Many bug-fixes and improved stability and performance in all parts
+
 ## 18.06.1
   * Fixed RLC reestablish
   * Fixed aperiodic QCI retx

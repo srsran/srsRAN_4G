@@ -402,23 +402,6 @@ double rf_blade_set_tx_freq(void *h, double freq)
   return freq;
 }
 
-void rf_blade_set_tx_cal(void *h, srslte_rf_cal_t *cal) {
-  rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
-  bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_PHASE, cal->dc_phase);
-  bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_GAIN, cal->dc_gain);
-  bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_I, cal->iq_i);
-  bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_Q, cal->iq_q);  
-}
-
-void rf_blade_set_rx_cal(void *h, srslte_rf_cal_t *cal) {
-  rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
-  bladerf_set_correction(handler->dev, BLADERF_MODULE_RX, BLADERF_CORR_FPGA_PHASE, cal->dc_phase);
-  bladerf_set_correction(handler->dev, BLADERF_MODULE_RX, BLADERF_CORR_FPGA_GAIN, cal->dc_gain);
-  bladerf_set_correction(handler->dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_I, cal->iq_i);
-  bladerf_set_correction(handler->dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_Q, cal->iq_q);  
-}
-
-
 static void timestamp_to_secs(uint32_t rate, uint64_t timestamp, time_t *secs, double *frac_secs) {
   double totalsecs = (double) timestamp/rate;
   time_t secs_i = (time_t) totalsecs;
