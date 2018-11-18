@@ -547,22 +547,6 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
                                                      bool* reply_flag,
                                                      struct sctp_sndrcvinfo *enb_sri)
 {
-  //Parse the message security header
-  uint8 pd = 0;
-  uint8 sec_hdr_type = 0;
-  liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg, &pd, &sec_hdr_type);
-
-  bool integrity_valid = false;
-  if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY)
-  {
-    m_s1ap_log->info("Attach request -- GUTI-stlye attach request is not integrity protected\n");
-    m_s1ap_log->console("Attach request -- GUTI-stlye attach request is not integrity protected\n");
-  }
-  else{
-    m_s1ap_log->info("Attach request -- GUTI-stlye attach request is integrity protected\n");
-    m_s1ap_log->console("Attach request -- GUTI-stlye attach request is integrity protected\n");
-  }
-
 
   //GUTI style attach
   uint32_t m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
@@ -657,6 +641,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
       m_s1ap_log->console("Found UE context. IMSI: %015lu, old eNB UE S1ap Id %d, old MME UE S1AP Id %d\n",emm_ctx->imsi, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
       //Check NAS integrity
+      // Initial GUTI attach request should be always unencrypted and therefore no problem 
       bool msg_valid = false;
       emm_ctx->security_ctxt.ul_nas_count++;
       msg_valid = integrity_check(&emm_ctx->security_ctxt, nas_msg);
@@ -1224,7 +1209,7 @@ s1ap_nas_transport::handle_identity_response(srslte::byte_buffer_t *nas_msg, ue_
   m_s1ap_log->console("ID Response -- IMSI: %015lu\n", imsi);
 
   //Set UE's context IMSI
-  emm_ctx->imsi=imsi;
+  emm_ctx->imsi = imsi;
   ecm_ctx->imsi = imsi;
 
   //Get Authentication Vectors from HSS
@@ -1677,8 +1662,8 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   sm_cmd.nonce_ue_present=false;
   sm_cmd.nonce_mme_present=false;
 
-  uint8_t  sec_hdr_type=3;
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd,sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
+  uint8_t sec_hdr_type = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT;
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_security_mode_command_msg(&sm_cmd, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count,(LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
   {
     m_s1ap_log->console("Error packing Security Mode Command\n");
@@ -1686,7 +1671,7 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   }
 
   //Generate EPS security context
-  uint8_t mac[4];
+
   srslte::security_generate_k_nas( ue_emm_ctx->security_ctxt.k_asme,
                            ue_emm_ctx->security_ctxt.cipher_algo,
                            ue_emm_ctx->security_ctxt.integ_algo,
@@ -1704,9 +1689,10 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   m_s1ap_log->info_hex(ue_emm_ctx->security_ctxt.k_enb, 32, "Key eNodeB (k_enb)\n");
   
   //Generate MAC for integrity protection
+  uint8_t mac[4];
   integrity_generate(&ue_emm_ctx->security_ctxt, nas_buffer, mac);
-
   memcpy(&nas_buffer->msg[1],mac,4);
+
   //Copy NAS PDU to Downlink NAS Trasport message buffer
   memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
   dw_nas->NAS_PDU.n_octets = nas_buffer->N_bytes;
@@ -1902,16 +1888,19 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   act_def_eps_bearer_context_req.esm_cause_present = false;
   act_def_eps_bearer_context_req.connectivity_type_present = false;
 
-  uint8_t sec_hdr_type =2;
+  uint8_t sec_hdr_type = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
   ue_emm_ctx->security_ctxt.dl_nas_count++;
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
   liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, ue_emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
-  //Integrity protect NAS message
+  
+  // Encrypt NAS message
+  cipher_encrypt(&ue_emm_ctx->security_ctxt, nas_buffer);
+  
+  // Integrity protect NAS message
   uint8_t mac[4];
   integrity_generate(&ue_emm_ctx->security_ctxt, nas_buffer, mac);
-
   memcpy(&nas_buffer->msg[1],mac,4);
-  m_s1ap_log->info("Packed Attach Complete\n");
+  m_s1ap_log->info("Packed Attach Accept\n");
  
   //Add nas message to context setup request
   erab_ctxt->nAS_PDU_present = true;
@@ -2010,7 +1999,7 @@ s1ap_nas_transport::pack_emm_information( ue_ctx_t *ue_ctx, srslte::byte_buffer_
   emm_info.utc_and_local_time_zone_present = false;
   emm_info.net_dst_present = false;
 
-  uint8_t sec_hdr_type =2;
+  uint8_t sec_hdr_type = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
   emm_ctx->security_ctxt.dl_nas_count++;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, emm_ctx->security_ctxt.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if(err != LIBLTE_SUCCESS)
