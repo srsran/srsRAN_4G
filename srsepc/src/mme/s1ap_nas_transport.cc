@@ -217,6 +217,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     m_pool->deallocate(nas_msg);
     return false;
   }
+  // Todo: Check on count mismatch of uplink count 
   
   // Check MAC if message is integrity protected
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
@@ -261,6 +262,17 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   }
 
   // Handle message and check if security requirements for messages
+  // 4.4.4.3	Integrity checking of NAS signalling messages in the MME
+  // Except the messages listed below, no NAS signalling messages shall be processed...
+  // - ATTACH REQUEST;
+  // - IDENTITY RESPONSE (if requested identification parameter is IMSI);
+  // - AUTHENTICATION RESPONSE;
+  // - AUTHENTICATION FAILURE;
+  // - SECURITY MODE REJECT;
+  // - DETACH REQUEST;
+  // - DETACH ACCEPT;
+  // - TRACKING AREA UPDATE REQUEST.
+
   switch (msg_type)
   {
   case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
@@ -269,48 +281,48 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     handle_identity_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
-    m_s1ap_log->info("UL NAS: Received Authentication Response\n");
+    m_s1ap_log->info("UL NAS: Received Authentication Response (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Received Authentication Response\n");
     handle_nas_authentication_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
-    // Incase of a successful authentication response, security mode command follows. Reset counter for incoming security mode complete
+    // In case of a successful authentication response, security mode command follows. Reset counter for incoming security mode complete
     emm_ctx->security_ctxt.ul_nas_count = 0;
     emm_ctx->security_ctxt.dl_nas_count = 0;
     increase_ul_nas_cnt = false;
     break;
   // Authentication failure with the option sync failure can be sent not integrity protected
   case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
-    m_s1ap_log->info("Plain UL NAS: Authentication Failure\n");
-    m_s1ap_log->console("Plain UL NAS: Authentication Failure\n");
+    m_s1ap_log->info("UL NAS: Authentication Failure (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
+    m_s1ap_log->console("UL NAS: Authentication Failure\n");
     handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   // Detach request can be sent not integrity protected when "power off" option is used
   case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
-    m_s1ap_log->info("UL NAS: Detach Request\n");
+    m_s1ap_log->info("UL NAS: Detach Request (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Detach Request\n");
     handle_nas_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
-    m_s1ap_log->info("UL NAS: Received Security Mode Complete\n");
+    m_s1ap_log->info("UL NAS: Received Security Mode Complete (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Received Security Mode Complete\n");
     handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   case LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
-    m_s1ap_log->info("UL NAS: Received Attach Complete\n");
+    m_s1ap_log->info("UL NAS: Received Attach Complete (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Received Attach Complete\n");
     handle_nas_attach_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
-    m_s1ap_log->info("UL NAS: Received ESM Information Response\n");
+    m_s1ap_log->info("UL NAS: Received ESM Information Response (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Received ESM Information Response\n");
     handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
-    m_s1ap_log->info("UL NAS: Tracking Area Update Request\n");
+    m_s1ap_log->info("UL NAS: Tracking Area Update Request (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Tracking Area Update Request\n");
     handle_tracking_area_update_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   default:
-    m_s1ap_log->warning("Unhandled NAS message 0x%x\n", msg_type);
+    m_s1ap_log->warning("Unhandled NAS message 0x%x (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", msg_type, sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("Unhandled NAS message 0x%x\n", msg_type);
     m_pool->deallocate(nas_msg);
     return false;
@@ -1732,10 +1744,11 @@ s1ap_nas_transport::pack_esm_information_request(srslte::byte_buffer_t *reply_ms
     return false;
   }
 
+  cipher_encrypt(&ue_emm_ctx->security_ctxt, nas_buffer);
+
   uint8_t mac[4];
   integrity_generate(&ue_emm_ctx->security_ctxt, nas_buffer, mac);
-
-  memcpy(&nas_buffer->msg[1],mac,4);
+  memcpy(&nas_buffer->msg[1], mac, 4);
   
   //Copy NAS PDU to Downlink NAS Trasport message buffer
   memcpy(dw_nas->NAS_PDU.buffer, nas_buffer->msg, nas_buffer->N_bytes);
