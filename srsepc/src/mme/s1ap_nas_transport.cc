@@ -1655,13 +1655,14 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   //Pack NAS PDU 
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
   
-  // FIXME Selection based on UE caps and network preferences 
+  // FIXME: Selection based on UE caps and network preferences 
+  ue_emm_ctx->security_ctxt.cipher_algo = m_s1ap->m_s1ap_args.encryption_algo;
+  ue_emm_ctx->security_ctxt.integ_algo = m_s1ap->m_s1ap_args.integrity_algo;
+  
+  sm_cmd.selected_nas_sec_algs.type_of_eea = (LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_ENUM) ue_emm_ctx->security_ctxt.cipher_algo;
+  sm_cmd.selected_nas_sec_algs.type_of_eia = (LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_ENUM) ue_emm_ctx->security_ctxt.integ_algo;
 
-  ue_emm_ctx->security_ctxt.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-  ue_emm_ctx->security_ctxt.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
-
-  sm_cmd.selected_nas_sec_algs.type_of_eea = LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0;
-  sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_128_EIA1;
+  m_s1ap_log->info("Using security algorithms: EEA%d, EIA%d \n", (int) ue_emm_ctx->security_ctxt.cipher_algo, (int) ue_emm_ctx->security_ctxt.integ_algo);
 
   sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
   sm_cmd.nas_ksi.nas_ksi=ue_emm_ctx->security_ctxt.eksi; 
