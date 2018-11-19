@@ -102,6 +102,7 @@ s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSA
   bool rtn = true;
 
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *)nas_msg, &pd, &msg_type);
+
   switch (msg_type)
   {
   case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
@@ -182,6 +183,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   uint32_t enb_ue_s1ap_id = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
   uint32_t mme_ue_s1ap_id = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
   bool mac_valid = false;
+  bool increase_ul_nas_cnt = true;
 
   //Get UE ECM context
   ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
@@ -216,24 +218,6 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     return false;
   }
   
-  //Find UE EMM context if message is security protected.
-  if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
-  {
-    //Make sure EMM context is set-up, to do integrity check/de-chiphering
-    if(emm_ctx->imsi == 0)
-    {
-      //No EMM context found.
-      //Perhaps a temporary context is being created?
-      //This can happen with integrity protected identity reponse messages
-      if( !(msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
-      {
-        m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
-        m_pool->deallocate(nas_msg);
-        return false;
-      }
-    }
-  }
-
   // Check MAC if message is integrity protected
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
       sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED ||
@@ -257,6 +241,25 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   // Now parse message header and handle message
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT *) nas_msg, &pd, &msg_type);
 
+
+  //Find UE EMM context if message is security protected.
+  if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
+  {
+    //Make sure EMM context is set-up, to do integrity check/de-chiphering
+    if(emm_ctx->imsi == 0)
+    {
+      //No EMM context found.
+      //Perhaps a temporary context is being created?
+      //This can happen with integrity protected identity reponse messages
+      if( !(msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
+      {
+        m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
+        m_pool->deallocate(nas_msg);
+        return false;
+      }
+    }
+  }
+
   // Handle message and check if security requirements for messages
   switch (msg_type)
   {
@@ -269,11 +272,15 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     m_s1ap_log->info("UL NAS: Received Authentication Response\n");
     m_s1ap_log->console("UL NAS: Received Authentication Response\n");
     handle_nas_authentication_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
+    // Incase of a successful authentication response, security mode command follows. Reset counter for incoming security mode complete
+    emm_ctx->security_ctxt.ul_nas_count = 0;
+    emm_ctx->security_ctxt.dl_nas_count = 0;
+    increase_ul_nas_cnt = false;
     break;
   // Authentication failure with the option sync failure can be sent not integrity protected
   case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
-    m_s1ap_log->info("UL NAS: Authentication Failure\n");
-    m_s1ap_log->console("UL NAS: Authentication Failure\n");
+    m_s1ap_log->info("Plain UL NAS: Authentication Failure\n");
+    m_s1ap_log->console("Plain UL NAS: Authentication Failure\n");
     handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   // Detach request can be sent not integrity protected when "power off" option is used
@@ -285,8 +292,6 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
     m_s1ap_log->info("UL NAS: Received Security Mode Complete\n");
     m_s1ap_log->console("UL NAS: Received Security Mode Complete\n");
-    emm_ctx->security_ctxt.ul_nas_count = 0;
-    emm_ctx->security_ctxt.dl_nas_count = 0;
     handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   case LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
@@ -311,95 +316,11 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     return false;
   }
 
-  //Find UE EMM context if message is security protected.
-  if(sec_hdr_type != LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS)
+  //Increment UL NAS count. if counter not resetted in function, e.g., DL Security mode command after Authentication response
+  if(increase_ul_nas_cnt == true)
   {
-    //Make sure EMM context is set-up, to do integrity check/de-chiphering
-    if(emm_ctx->imsi == 0)
-    {
-      //No EMM context found.
-      //Perhaps a temporary context is being created?
-      //This can happen with integrity protected identity reponse messages
-      if( !(msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
-      {
-        m_s1ap_log->warning("Uplink NAS: could not find security context for integrity protected message. MME-UE S1AP id: %d\n",mme_ue_s1ap_id);
-        m_pool->deallocate(nas_msg);
-        return false;
-      }
-    }
-  }
-
-  if( sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS ||
-      (msg_type == LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) ||
-      (msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) ||
-      (msg_type == LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE && sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY))
-  {
-    //Only identity response and authentication response are valid as plain NAS.
-    //Sometimes authentication response/failure and identity response are sent as integrity protected,
-    //but these messages are sent when the securty context is not setup yet, so we cannot integrity check it.
-    switch(msg_type)
-    {
-    case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
-      m_s1ap_log->info("Uplink NAS: Received Identity Response\n");
-      m_s1ap_log->console("Uplink NAS: Received Identity Response\n");
-      handle_identity_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      break;
-    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_RESPONSE:
-      m_s1ap_log->info("Uplink NAS: Received Authentication Response\n");
-      m_s1ap_log->console("Uplink NAS: Received Authentication Response\n");
-      handle_nas_authentication_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      break;
-    // Authentication failure with the option sync failure can be sent not integrity protected
-    case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_FAILURE:
-      m_s1ap_log->info("Plain UL NAS: Authentication Failure\n");
-      m_s1ap_log->console("Plain UL NAS: Authentication Failure\n");
-      handle_authentication_failure(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      break;
-    // Detach request can be sent not integrity protected when "power off" option is used
-    case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
-      m_s1ap_log->info("Plain Protected UL NAS: Detach Request\n");
-      m_s1ap_log->console("Plain Protected UL NAS: Detach Request\n");
-      handle_nas_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
-      break;
-    default:
-      m_s1ap_log->warning("Unhandled Plain NAS message 0x%x\n", msg_type );
-      m_s1ap_log->console("Unhandled Plain NAS message 0x%x\n", msg_type );
-      m_pool->deallocate(nas_msg);
-      return false;
-    }
-    //Increment UL NAS count.
     emm_ctx->security_ctxt.ul_nas_count++;
   }
-  else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT)
-  {
-
-    if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT) {
-   
-    }
-
-    switch (msg_type) {
-     
-    default:
-      m_s1ap_log->warning("Unhandled NAS message with new EPS security context 0x%x\n", msg_type );
-      m_s1ap_log->warning("Unhandled NAS message with new EPS security context 0x%x\n", msg_type );
-    }
-  }
-  else if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY || sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED)
-  {
-    switch (msg_type) {
-
-    default:
-      m_s1ap_log->warning("Unhandled NAS integrity protected message 0x%x\n", msg_type );
-      m_s1ap_log->console("Unhandled NAS integrity protected message 0x%x\n", msg_type );
-      m_pool->deallocate(nas_msg);
-      return false;
-    }
-  }
-  else
-  {
-
-  }
-
 
   if(*reply_flag == true)
   {
@@ -698,7 +619,6 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
       //Check NAS integrity
       // Initial GUTI attach request should be always unencrypted and therefore no problem 
       bool msg_valid = false;
-      emm_ctx->security_ctxt.ul_nas_count++;
       msg_valid = integrity_check(&emm_ctx->security_ctxt, nas_msg);
 
       if(msg_valid == true && emm_ctx->state == EMM_STATE_DEREGISTERED)
@@ -751,7 +671,8 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
         m_s1ap_log->console("PDN Connectivity Request -- EPS Bearer Identity requested: %d\n", pdn_con_req.eps_bearer_id);
         m_s1ap_log->console("PDN Connectivity Request -- Procedure Transaction Id: %d\n", pdn_con_req.proc_transaction_id);
         m_s1ap_log->console("PDN Connectivity Request -- ESM Information Transfer requested: %s\n", pdn_con_req.esm_info_transfer_flag_present ? "true" : "false");
-
+        // Now increase the ul nas count, after enb key generation
+        emm_ctx->security_ctxt.ul_nas_count++;
         //Create session request
         m_s1ap_log->console("GUTI Attach -- NAS Integrity OK.\n");
         if(ecm_ctx->eit)
@@ -900,7 +821,6 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
-  emm_ctx->security_ctxt.ul_nas_count++;
   mac_valid = short_integrity_check(&emm_ctx->security_ctxt, nas_msg);
   if(mac_valid)
   {
@@ -935,10 +855,10 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     //Get UE IP, and uplink F-TEID
     if(emm_ctx->ue_ip.s_addr == 0 )
     {
-      m_s1ap_log->error("UE has no valid IP assigned upon reception of service request");
+      m_s1ap_log->error("UE has no valid IP assigned upon reception of service request\n");
     }
 
-    m_s1ap_log->console("UE previously assigned IP: %s",inet_ntoa(emm_ctx->ue_ip));
+    m_s1ap_log->console("UE previously assigned IP: %s\n",inet_ntoa(emm_ctx->ue_ip));
 
     //Re-generate K_eNB
     srslte::security_generate_k_enb(emm_ctx->security_ctxt.k_asme, emm_ctx->security_ctxt.ul_nas_count, emm_ctx->security_ctxt.k_enb);
@@ -947,6 +867,8 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     m_s1ap_log->info_hex(emm_ctx->security_ctxt.k_enb, 32, "Key eNodeB (k_enb)\n");
     m_s1ap_log->console("UE Ctr TEID %d\n", emm_ctx->sgw_ctrl_fteid.teid);
 
+    // Now increase UL count
+    emm_ctx->security_ctxt.ul_nas_count++;
     //Save UE ctx to MME UE S1AP id
     m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
     m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx,&ecm_ctx->erabs_ctx[5]);
@@ -990,6 +912,7 @@ s1ap_nas_transport::handle_nas_detach_request(uint32_t m_tmsi,
 
   m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
   emm_ctx->state = EMM_STATE_DEREGISTERED;
+  // Move increasment to inital and nas uplink message
   emm_ctx->security_ctxt.ul_nas_count++;
 
   m_s1ap_log->console("Received. M-TMSI 0x%x\n", m_tmsi);
@@ -1048,7 +971,7 @@ s1ap_nas_transport::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
-  emm_ctx->security_ctxt.ul_nas_count++;//Increment the NAS count, not to break the security ctx
+  // emm_ctx->security_ctxt.ul_nas_count++;//Increment the NAS count, not to break the security ctx
   return true;
 }
 bool
@@ -1380,6 +1303,11 @@ s1ap_nas_transport::short_integrity_check(eps_sec_ctx_t * sec_ctxt, srslte::byte
   uint8_t exp_mac[4] = {0x00, 0x00, 0x00, 0x00};
   uint8_t *mac = &pdu->msg[2];
   int i;
+  
+  if(pdu->N_bytes < 4){
+    m_s1ap_log->warning("NAS message to short for short integrity check (pdu len: %d)", pdu->N_bytes);
+    return false;
+  }
 
   switch (sec_ctxt->integ_algo)
   {
@@ -1390,8 +1318,8 @@ s1ap_nas_transport::short_integrity_check(eps_sec_ctx_t * sec_ctxt, srslte::byte
                               sec_ctxt->ul_nas_count,
                               0,
                               SECURITY_DIRECTION_UPLINK,
-                              &pdu->msg[5],
-                              pdu->N_bytes - 5,
+                              &pdu->msg[0],
+                              2,
                               &exp_mac[0]);
     break;
   case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
@@ -1399,8 +1327,8 @@ s1ap_nas_transport::short_integrity_check(eps_sec_ctx_t * sec_ctxt, srslte::byte
                               sec_ctxt->ul_nas_count,
                               0,
                               SECURITY_DIRECTION_UPLINK,
-                              &pdu->msg[5],
-                              pdu->N_bytes - 5,
+                              &pdu->msg[0],
+                              2,
                               &exp_mac[0]);
     break;
   default:
