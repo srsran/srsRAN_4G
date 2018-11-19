@@ -971,7 +971,7 @@ s1ap_nas_transport::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
-  // emm_ctx->security_ctxt.ul_nas_count++;//Increment the NAS count, not to break the security ctx
+  emm_ctx->security_ctxt.ul_nas_count++; //Increment the NAS count, not to break the security ctx
   return true;
 }
 bool
@@ -1303,7 +1303,7 @@ s1ap_nas_transport::short_integrity_check(eps_sec_ctx_t * sec_ctxt, srslte::byte
   uint8_t exp_mac[4] = {0x00, 0x00, 0x00, 0x00};
   uint8_t *mac = &pdu->msg[2];
   int i;
-  
+
   if(pdu->N_bytes < 4){
     m_s1ap_log->warning("NAS message to short for short integrity check (pdu len: %d)", pdu->N_bytes);
     return false;
