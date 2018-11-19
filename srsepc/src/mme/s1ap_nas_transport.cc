@@ -217,7 +217,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
     m_pool->deallocate(nas_msg);
     return false;
   }
-  // Todo: Check on count mismatch of uplink count 
+  // Todo: Check on count mismatch of uplink count and do resync nas counter...
   
   // Check MAC if message is integrity protected
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
@@ -227,7 +227,7 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   { 
     mac_valid = integrity_check(&emm_ctx->security_ctxt, nas_msg);
     if (mac_valid == false){
-      m_s1ap_log->warning("Invalid MAC message. Even if security header indicates integrity protection\n" );
+      m_s1ap_log->warning("Invalid MAC message. Even if security header indicates integrity protection (Maybe: Identity Response or Authenticatio Response)\n" );
     }
   }
 
@@ -299,22 +299,44 @@ s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRA
   case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
     m_s1ap_log->info("UL NAS: Detach Request (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Detach Request\n");
+    // FIXME: check integrity protection in detach request 
     handle_nas_detach_request(nas_msg, ue_ctx, reply_buffer, reply_flag);
     break;
   case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:
     m_s1ap_log->info("UL NAS: Received Security Mode Complete (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Received Security Mode Complete\n");
-    handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
+    if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT && mac_valid == true){
+      handle_nas_security_mode_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
+    } else {
+      // Security Mode Complete was not integrity protected
+      m_s1ap_log->console("Security Mode Complete not integrity protected. Discard message.\n");
+      m_s1ap_log->warning("Security Mode Complete not integrity protected. Discard message.\n");
+      // FIXME: Should we not increase uplink count? increase_ul_nas_cnt = false?
+    }
     break;
   case LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE:
     m_s1ap_log->info("UL NAS: Received Attach Complete (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Received Attach Complete\n");
-    handle_nas_attach_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
+    if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && mac_valid == true){
+      handle_nas_attach_complete(nas_msg, ue_ctx, reply_buffer, reply_flag);
+    } else {
+      // Attach Complete was not integrity protected
+      m_s1ap_log->console("Attach Complete not integrity protected. Discard message.\n");
+      m_s1ap_log->warning("Attach Complete not integrity protected. Discard message.\n");
+      // FIXME: Should we not increase uplink count? increase_ul_nas_cnt = false?
+    }
     break;
   case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE:
     m_s1ap_log->info("UL NAS: Received ESM Information Response (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
     m_s1ap_log->console("UL NAS: Received ESM Information Response\n");
-    handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
+    if(sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && mac_valid == true){
+      handle_esm_information_response(nas_msg, ue_ctx, reply_buffer, reply_flag);
+    } else {
+      // Attach Complete was not integrity protected
+      m_s1ap_log->console("ESM Information Response not integrity protected. Discard message.\n");
+      m_s1ap_log->warning("ESM Information Response not integrity protected. Discard message.\n");
+      // FIXME: Should we not increase uplink count? increase_ul_nas_cnt = false?
+    }
     break;
   case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
     m_s1ap_log->info("UL NAS: Tracking Area Update Request (sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s) \n", sec_hdr_type, mac_valid == true ? "yes": "no", msg_encrypted == true ? "yes": "no");
