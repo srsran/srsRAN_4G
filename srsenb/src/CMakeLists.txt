@@ -15,7 +15,7 @@ if (RPATH)
 endif (RPATH)
 
 
-add_executable(srsenb main.cc enb.cc parser.cc enb_cfg_parser.cc metrics_stdout.cc)
+add_executable(srsenb main.cc enb.cc parser.cc enb_cfg_parser.cc metrics_stdout.cc metrics_csv.cc)
 target_link_libraries(srsenb  srsenb_upper
                               srsenb_mac
                               srsenb_phy

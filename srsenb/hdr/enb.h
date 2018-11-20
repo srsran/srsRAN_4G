@@ -122,12 +122,14 @@ typedef struct {
 }gui_args_t;
 
 typedef struct {
-  phy_args_t phy; 
-  mac_args_t mac; 
-  uint32_t   rrc_inactivity_timer;
-  float      metrics_period_secs;
-  bool       enable_mbsfn;
-  bool       print_buffer_state;
+  phy_args_t  phy;
+  mac_args_t  mac;
+  uint32_t    rrc_inactivity_timer;
+  float       metrics_period_secs;
+  bool        metrics_csv_enable;
+  std::string metrics_csv_filename;
+  bool        enable_mbsfn;
+  bool        print_buffer_state;
   std::string m1u_multiaddr;
   std::string m1u_if_addr;
 }expert_args_t;

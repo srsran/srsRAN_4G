@@ -144,7 +144,9 @@ nof_ctrl_symbols = 3
 # pusch_max_its:        Maximum number of turbo decoder iterations (Default 4)
 # pusch_8bit_decoder:   Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)
 # nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
-# metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
+# metrics_period_secs:  Sets the period at which metrics are requested from the eNB. 
+# metrics_csv_enable:   Write eNB metrics to CSV file.
+# metrics_csv_filename: File path to use for CSV metrics.
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # link_failure_nof_err: Number of PUSCH failures after which a radio-link failure is triggered. 
@@ -159,6 +161,9 @@ nof_ctrl_symbols = 3
 #pusch_max_its        = 8 # These are half iterations
 #pusch_8bit_decoder   = false
 #nof_phy_threads      = 2
+#metrics_period_secs  = 1
+#metrics_csv_enable   = false
+#metrics_csv_filename = /tmp/enb_metrics.csv
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #link_failure_nof_err = 50
