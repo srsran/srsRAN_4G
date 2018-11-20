@@ -41,6 +41,7 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_stdout.h"
+#include "srsenb/hdr/metrics_csv.h"
 
 using namespace std;
 using namespace srsenb;
@@ -147,8 +148,16 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
 
     /* Expert section */
     ("expert.metrics_period_secs",
-        bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
-        "Periodicity for metrics in seconds")
+       bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
+       "Periodicity for metrics in seconds")
+
+    ("expert.metrics_csv_enable",
+       bpo::value<bool>(&args->expert.metrics_csv_enable)->default_value(false),
+       "Write metrics to CSV file")
+
+    ("expert.metrics_csv_filename",
+        bpo::value<string>(&args->expert.metrics_csv_filename)->default_value("/tmp/enb_metrics.csv"),
+       "Metrics CSV filename")
 
     ("expert.pregenerate_signals",
         bpo::value<bool>(&args->expert.phy.pregenerate_signals)->default_value(false),
@@ -284,7 +293,6 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
 
-
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
     if(!vm.count("log.phy_level")) {
@@ -398,7 +406,9 @@ int main(int argc, char *argv[])
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   all_args_t        args;
-  metrics_stdout    metrics;
+  srslte::metrics_hub<enb_metrics_t> metricshub;
+  metrics_stdout    metrics_screen;
+
   enb              *enb = enb::get_instance();
 
   srslte_debug_handle_crash(argc, argv);
@@ -409,10 +419,20 @@ int main(int argc, char *argv[])
   if(!enb->init(&args)) {
     exit(1);
   }
-  metrics.init(enb, args.expert.metrics_period_secs);
 
+  metricshub.init(enb, args.expert.metrics_period_secs);
+  metricshub.add_listener(&metrics_screen);
+  metrics_screen.set_handle(enb);
+
+  srsenb::metrics_csv metrics_file(args.expert.metrics_csv_filename);
+  if (args.expert.metrics_csv_enable) {
+    metricshub.add_listener(&metrics_file);
+    metrics_file.set_handle(enb);
+  }
+
+  // create input thread
   pthread_t input;
-  pthread_create(&input, NULL, &input_loop, &metrics);
+  pthread_create(&input, NULL, &input_loop, &metrics_screen);
 
   bool plot_started         = false; 
   bool signals_pregenerated = false; 
@@ -434,7 +454,7 @@ int main(int argc, char *argv[])
     usleep(10000);
   }
   pthread_cancel(input);
-  metrics.stop();
+  metricshub.stop();
   enb->stop();
   enb->cleanup();
   cout << "---  exiting  ---" << endl;

@@ -46,7 +46,6 @@ class metrics_stdout : public srslte::metrics_listener<ue_metrics_t>
 public:
   metrics_stdout();
 
-  void set_periodicity(float metrics_report_period_sec);
   void toggle_print(bool b);
   void set_metrics(ue_metrics_t &m, const uint32_t period_usec);
   void set_ue_handle(ue_metrics_interface *ue_);
@@ -55,7 +54,6 @@ public:
 private:
   std::string float_to_string(float f, int digits);
   std::string float_to_eng_string(float f, int digits);
-  std::string int_to_eng_string(int f, int digits);
 
   bool                  do_print;
   uint8_t               n_reports;

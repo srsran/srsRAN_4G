@@ -107,7 +107,6 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
   if(metrics.rf.rf_error) {
     printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
-  
 }
 
 std::string metrics_stdout::float_to_string(float f, int digits)

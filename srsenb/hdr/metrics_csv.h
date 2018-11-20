@@ -2,11 +2,11 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2017 Software Radio Systems Limited
+ * Copyright 2013-2015 Software Radio Systems Limited
  *
  * \section LICENSE
  *
- * This file is part of srsLTE.
+ * This file is part of the srsUE library.
  *
  * srsUE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -24,42 +24,44 @@
  *
  */
 
-
 /******************************************************************************
- * File:        metrics_stdout.h
- * Description: Metrics class printing to stdout.
+ * File:        metrics_csv.h
+ * Description: Metrics class writing to CSV file.
  *****************************************************************************/
 
-#ifndef SRSENB_METRICS_STDOUT_H
-#define SRSENB_METRICS_STDOUT_H
+#ifndef SRSENB_METRICS_CSV_H
+#define SRSENB_METRICS_CSV_H
 
 #include <pthread.h>
 #include <stdint.h>
 #include <string>
+#include <iostream>
+#include <fstream>
 
+#include "srslte/common/metrics_hub.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 
 namespace srsenb {
 
-class metrics_stdout : public srslte::metrics_listener<enb_metrics_t>
+class metrics_csv : public srslte::metrics_listener<enb_metrics_t>
 {
 public:
-  metrics_stdout();
+  metrics_csv(std::string filename);
+  ~metrics_csv();
 
-  void toggle_print(bool b);
   void set_metrics(enb_metrics_t &m, const uint32_t period_usec);
   void set_handle(enb_metrics_interface *enb_);
-  void stop() {};
+  void stop();
 
 private:
-  std::string float_to_string(float f, int digits);
-  std::string float_to_eng_string(float f, int digits);
+  std::string float_to_string(float f, int digits, bool add_semicolon = true);
 
-  bool                   do_print;
-  uint8_t                n_reports;
+  float                  metrics_report_period;
+  std::ofstream          file;
   enb_metrics_interface* enb;
+  uint32_t               n_reports;
 };
 
 } // namespace srsenb
 
-#endif // SRSENB_METRICS_STDOUT_H
+#endif // SRSENB_METRICS_CSV_H
