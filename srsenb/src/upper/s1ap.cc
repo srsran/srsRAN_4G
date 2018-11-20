@@ -283,7 +283,10 @@ bool s1ap::connect_mme()
     s1ap_log->error("Error converting IP address (%s) to sockaddr_in structure\n", args.s1c_bind_addr.c_str());
     return false;
   }
-  bind(socket_fd, (struct sockaddr *)&local_addr, sizeof(local_addr));
+  if (bind(socket_fd, (struct sockaddr *)&local_addr, sizeof(local_addr)) != 0) {
+    s1ap_log->error("Failed to bind on S1-C address %s: %s errno %d\n", args.s1c_bind_addr.c_str(), strerror(errno), errno);
+    return false; 
+  }
 
   // Connect to the MME address
   memset(&mme_addr, 0, sizeof(struct sockaddr_in));
