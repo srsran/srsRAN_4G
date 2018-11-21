@@ -226,6 +226,29 @@ TEST(srslte_vec_prod_sss,
          free(z);
 )
 
+TEST(srslte_vec_neg_sss,
+     MALLOC(int16_t, x);
+         MALLOC(int16_t, y);
+         MALLOC(int16_t, z);
+
+         int16_t gold = 0.0f;
+         for (int i = 0; i < block_size; i++) {
+           x[i] = RANDOM_S();
+           do { y[i] = RANDOM_S(); } while (!y[i]);
+         }
+
+         TEST_CALL(srslte_vec_neg_sss(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = y[i] < 0 ? -x[i] : x[i];
+           mse += abs(gold - z[i]);
+         }
+
+         free(x);
+         free(y);
+         free(z);
+)
+
 TEST(srslte_vec_acc_cc,
      MALLOC(cf_t, x);
          cf_t z;
@@ -866,6 +889,9 @@ int main(int argc, char **argv) {
     func_count++;
 
     passed[func_count][size_count] = test_srslte_vec_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] = test_srslte_vec_neg_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     passed[func_count][size_count] = test_srslte_vec_acc_cc(func_names[func_count], &timmings[func_count][size_count], block_size);
