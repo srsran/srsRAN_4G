@@ -316,7 +316,7 @@ bool concat_test()
   return 0;
 }
 
-bool segment_test()
+bool segment_test(bool in_seq_rx)
 {
   srslte::log_filter log1("RLC_AM_1");
   srslte::log_filter log2("RLC_AM_2");
@@ -378,22 +378,33 @@ bool segment_test()
   assert(0 == rlc1.get_buffer_state());
 
   // Write PDUs into RLC2
-  for(int i=0;i<n_pdus;i++)
-  {
-    rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
+  if (in_seq_rx) {
+    // deliver PDUs in order
+    for (int i = 0; i < n_pdus; ++i) {
+      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
+    }
+  } else {
+    // deliver PDUs in reverse order
+    for (int i = n_pdus - 1; i >= 0; --i) {
+      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
+    }
   }
 
-  assert(2 == rlc2.get_buffer_state());
+  // Receiver will only generate status PDU if they arrive in order
+  // If SN=7 arrives first, but the Rx expects SN=0, status reporting will be delayed, see TS 36.322 v10 Section 5.2.3
+  if (in_seq_rx) {
+    assert(2 == rlc2.get_buffer_state());
 
-  // Read status PDU from RLC2
-  byte_buffer_t status_buf;
-  len = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
-  status_buf.N_bytes = len;
+    // Read status PDU from RLC2
+    byte_buffer_t status_buf;
+    len = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+    status_buf.N_bytes = len;
+
+    // Write status PDU to RLC1
+    rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
+  }
 
   assert(0 == rlc2.get_buffer_state());
-
-  // Write status PDU to RLC1
-  rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
   assert(tester.n_sdus == 5);
   for(int i=0; i<tester.n_sdus; i++)
@@ -1706,8 +1717,14 @@ int main(int argc, char **argv)
   };
   byte_buffer_pool::get_instance()->cleanup();
 
-  if (segment_test()) {
-    printf("segment_test failed\n");
+  if (segment_test(true)) {
+    printf("segment_test with in-order PDU reception failed\n");
+    exit(-1);
+  };
+  byte_buffer_pool::get_instance()->cleanup();
+
+  if (segment_test(false)) {
+    printf("segment_test with out-of-order PDU reception failed\n");
     exit(-1);
   };
   byte_buffer_pool::get_instance()->cleanup();
