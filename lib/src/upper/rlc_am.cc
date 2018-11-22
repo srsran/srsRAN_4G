@@ -1759,7 +1759,9 @@ bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rl
     rlc_amd_rx_pdu_t &back = pdu->segments.back();
     n = back.header.so + back.buf->N_bytes;
   }
+
   if(segment->header.so != n) {
+    log->warning("Received PDU with SO=%d, expected %d. Discarding PDU.\n", segment->header.so, n);
     pool->deallocate(segment->buf);
     return false;
   } else {
