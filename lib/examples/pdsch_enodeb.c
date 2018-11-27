@@ -728,7 +728,7 @@ int main(int argc, char **argv) {
 
   uint8_t mch_table[10];
   bzero(&mch_table[0], sizeof(uint8_t)*10);
-  if(mbsfn_area_id < -1) {
+  if(mbsfn_area_id > -1) {
     generate_mcch_table(mch_table, mbsfn_sf_mask);
   }
   N_id_2 = cell.id % 3;
