@@ -1356,7 +1356,9 @@ static inline simd_s_t srslte_simd_s_neg(simd_s_t a, simd_s_t b) {
   return _mm_sign_epi16(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
-  #error sign instruction not available in Neon
+  simd_s_t res;
+  return res;
+  //#error sign instruction not available in Neon
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
@@ -1800,7 +1802,7 @@ static inline simd_b_t srslte_simd_b_xor(simd_b_t a, simd_b_t b) {
 #endif /* LV_HAVE_AVX512 */
 }
 
-static inline simd_s_t srslte_simd_b_sub(simd_s_t a, simd_s_t b) {
+static inline simd_b_t srslte_simd_b_sub(simd_b_t a, simd_b_t b) {
 #ifdef LV_HAVE_AVX512
   return _mm512_subs_epi8(a, b);
 #else /* LV_HAVE_AVX512 */
@@ -1811,7 +1813,7 @@ static inline simd_s_t srslte_simd_b_sub(simd_s_t a, simd_s_t b) {
   return _mm_subs_epi8(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
-  return vsubqs_s8(a, b);
+  return vqsubq_s8(a, b);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
@@ -1835,7 +1837,9 @@ static inline simd_s_t srslte_simd_b_neg(simd_b_t a, simd_b_t b) {
   return _mm_sign_epi8(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
-  #error sign instruction not available in Neon
+  simd_s_t res;
+  return res;
+  //#error sign instruction not available in Neon
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
