@@ -216,6 +216,13 @@ class cell_t
     return false;
   }
 
+  void reset_sibs() {
+    has_valid_sib1 = false;
+    has_valid_sib2 = false;
+    has_valid_sib3 = false;
+    has_valid_sib13 = false;
+  }
+
   uint16_t get_mcc() {
     if (has_valid_sib1) {
       if (sib1.N_plmn_ids > 0) {

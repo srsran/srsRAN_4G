@@ -1845,6 +1845,19 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
         rrc_log->info("Received paging for unknown identity\n");
       }
     }
+
+    if (pcch_msg.system_info_modification_present) {
+      if (pcch_msg.system_info_modification == LIBLTE_RRC_SYSTEM_INFO_MODIFICATION_TRUE) {
+        rrc_log->info("Received System Information notifcation update request.\n");
+        // invalidate and then update all SIBs of serving cell
+        serving_cell->reset_sibs();
+        if (configure_serving_cell()) {
+          rrc_log->info("All SIBs of serving cell obtained successfully\n");
+        } else {
+          rrc_log->error("While obtaining SIBs of serving cell.\n");
+        }
+      }
+    }
   }
 }
 
