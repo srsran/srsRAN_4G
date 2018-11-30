@@ -83,6 +83,7 @@ option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
+option(ENABLE_SHMEMRF   "Enable shared memory rf test device"     ON)
 
 ########################################################################
 # Find dependencies
@@ -175,7 +176,7 @@ if(ENABLE_SOAPYSDR)
   endif(SOAPYSDR_FOUND)
 endif(ENABLE_SOAPYSDR)
 
-if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ENABLE_SHMEMRF)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
 else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
@@ -355,6 +356,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    # The following is needed for weak linking to work under OS X
    set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+if(ENABLE_SHMEMRF)
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -DENABLE_SHMEMRF")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_SHMEMRF")
+endif(ENABLE_SHMEMRF)
 
 message(STATUS "CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
