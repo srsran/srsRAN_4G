@@ -389,15 +389,13 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
 }
 
 void nas::set_k_enb_count(uint32_t count) {
-  // UL count for RRC key derivation depends on UL count of the Authentication Request or Service Request.
-  // This function should be called after sending these messages, for later derivation of the keys.
+  // UL count for RRC key derivation depends on UL Count of the Attach Request or Service Request.
+  // On the case of an Authentication Request, the UL count used to generate K_enb must be reset to zero.
   ctxt.k_enb_count = count;
   return;
 }
 
 uint32_t nas::get_k_enb_count() {
-  // UL count for RRC key derivation depends on UL count of the Authentication Request or Service Request.
-  // On the special case of Service Request without authentication, the UL count for the SR must be used.
   return ctxt.k_enb_count;
 }
 
