@@ -84,6 +84,7 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
 
 // Reestablishment procedure: 36.323 5.2
 void pdcp_entity::reestablish() {
+  log->debug("Re-establishing %s\n", rrc->get_rb_name(lcid).c_str());
   // For SRBs
   if (cfg.is_control) {
     tx_count = 0;
@@ -262,6 +263,14 @@ void pdcp_entity::integrity_generate( uint8_t  *msg,
   default:
     break;
   }
+
+  log->debug("Integrity gen input:\n");
+  log->debug_hex(&k_int[16], 16, "  K_int");
+  log->debug("  Local count: %d\n", tx_count);
+  log->debug("  Bearer ID: %d\n", get_bearer_id(lcid));
+  log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+  log->debug_hex(msg, msg_len, "  Message");
+  log->debug_hex(mac,     4, "MAC (generated)");
 }
 
 bool pdcp_entity::integrity_verify(uint8_t  *msg,
@@ -298,6 +307,13 @@ bool pdcp_entity::integrity_verify(uint8_t  *msg,
   default:
     break;
   }
+
+  log->debug("Integrity check input:\n");
+  log->debug_hex(&k_int[16], 16, "  K_int");
+  log->debug("  Local count: %d\n", count);
+  log->debug("  Bearer ID: %d\n", get_bearer_id(lcid));
+  log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Uplink" : "Downlink");
+  log->debug_hex(msg, msg_len, "  Message");
 
   switch(integ_algo)
   {
