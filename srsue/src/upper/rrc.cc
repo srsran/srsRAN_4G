@@ -219,6 +219,7 @@ void rrc::init(phy_interface_rrc *phy_,
 
 void rrc::stop() {
   running = false;
+  stop_timers();
   cmd_msg_t msg;
   msg.command = cmd_msg_t::STOP;
   cmd_q.push(msg);
@@ -1655,10 +1656,7 @@ void rrc::leave_connected()
   mac->reset();
   set_phy_default();
   set_mac_default();
-  mac_timers->timer_get(t301)->stop();
-  mac_timers->timer_get(t310)->stop();
-  mac_timers->timer_get(t311)->stop();
-  mac_timers->timer_get(t304)->stop();
+  stop_timers();
   rrc_log->info("Going RRC_IDLE\n");
   if (phy->cell_is_camping()) {
     // Receive paging
@@ -1668,10 +1666,14 @@ void rrc::leave_connected()
   }
 }
 
-
-
-
-
+void rrc::stop_timers()
+{
+  mac_timers->timer_get(t300)->stop();
+  mac_timers->timer_get(t301)->stop();
+  mac_timers->timer_get(t310)->stop();
+  mac_timers->timer_get(t311)->stop();
+  mac_timers->timer_get(t304)->stop();
+}
 
 /*******************************************************************************
 *

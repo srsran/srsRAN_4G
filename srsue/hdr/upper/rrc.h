@@ -623,6 +623,7 @@ private:
   void          rrc_connection_release();
   void          radio_link_failure();
   void          leave_connected();
+  void          stop_timers();
 
   void          apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
   void          apply_rr_config_common_ul(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
