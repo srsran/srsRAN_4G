@@ -123,14 +123,14 @@ void rlc_tm::write_sdu(byte_buffer_t *sdu, bool blocking)
 }
 
 // MAC interface
+bool rlc_tm::has_data()
+{
+  return not ul_queue.is_empty();
+}
+
 uint32_t rlc_tm::get_buffer_state()
 {
   return ul_queue.size_bytes();
-}
-
-uint32_t rlc_tm::get_total_buffer_state()
-{
-  return get_buffer_state();
 }
 
 uint32_t rlc_tm::get_num_tx_bytes()

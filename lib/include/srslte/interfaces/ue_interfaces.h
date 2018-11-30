@@ -300,11 +300,12 @@ public:
 class rlc_interface_mac : public srslte::read_pdu_interface
 {
 public:
-  /* MAC calls RLC to get buffer state for a logical channel.
-   * This function should return quickly. */
-  virtual uint32_t get_buffer_state(uint32_t lcid) = 0;
-  virtual uint32_t get_total_buffer_state(uint32_t lcid) = 0; 
+  /* MAC calls has_data() to query whether a logical channel has data to transmit (without
+   * knowing how much. This function should return quickly. */
+  virtual bool has_data(const uint32_t lcid) = 0;
 
+  /* MAC calls RLC to get the buffer state for a logical channel. */
+  virtual uint32_t get_buffer_state(const uint32_t lcid) = 0;
 
   const static int MAX_PDU_SEGMENTS = 20;
 

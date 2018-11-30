@@ -73,7 +73,7 @@ void mux::reset()
 bool mux::is_pending_any_sdu()
 {
   for (uint32_t i=0;i<lch.size();i++) {
-    if (rlc->get_buffer_state(lch[i].id)) {
+    if (rlc->has_data(lch[i].id)) {
       return true; 
     }
   }
@@ -81,7 +81,7 @@ bool mux::is_pending_any_sdu()
 }
 
 bool mux::is_pending_sdu(uint32_t lch_id) {
-  return rlc->get_buffer_state(lch_id)>0;  
+  return rlc->has_data(lch_id);
 }
 
 int mux::find_lchid(uint32_t lcid) 

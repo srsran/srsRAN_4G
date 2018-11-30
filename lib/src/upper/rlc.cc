@@ -256,6 +256,19 @@ bool rlc::rb_is_um(uint32_t lcid)
 /*******************************************************************************
   MAC interface
 *******************************************************************************/
+bool rlc::has_data(uint32_t lcid)
+{
+  bool has_data = false;
+
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    has_data = rlc_array.at(lcid)->has_data();
+  }
+  pthread_rwlock_unlock(&rwlock);
+
+  return has_data;
+}
+
 uint32_t rlc::get_buffer_state(uint32_t lcid)
 {
   uint32_t ret = 0;
@@ -269,26 +282,13 @@ uint32_t rlc::get_buffer_state(uint32_t lcid)
   return ret;
 }
 
-uint32_t rlc::get_total_buffer_state(uint32_t lcid)
-{
-  uint32_t ret = 0;
-
-  pthread_rwlock_rdlock(&rwlock);
-  if (valid_lcid(lcid)) {
-    ret = rlc_array.at(lcid)->get_total_buffer_state();
-  }
-  pthread_rwlock_unlock(&rwlock);
-
-  return ret;
-}
-
 uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
 {
   uint32_t ret = 0;
 
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
-    ret = rlc_array_mrb.at(lcid)->get_total_buffer_state();
+    ret = rlc_array_mrb.at(lcid)->get_buffer_state();
   }
   pthread_rwlock_unlock(&rwlock);
 

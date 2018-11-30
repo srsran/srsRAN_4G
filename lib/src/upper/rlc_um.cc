@@ -162,14 +162,14 @@ void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
  * MAC interface
  ***************************************************************************/
 
-uint32_t rlc_um::get_buffer_state()
+bool rlc_um::has_data()
 {
-  return tx.get_buffer_size_bytes();
+  return tx.has_data();
 }
 
-uint32_t rlc_um::get_total_buffer_state()
+uint32_t rlc_um::get_buffer_state()
 {
-  return get_buffer_state();
+  return tx.get_buffer_state();
 }
 
 int rlc_um::read_pdu(uint8_t *payload, uint32_t nof_bytes)
@@ -313,7 +313,13 @@ void rlc_um::rlc_um_tx::reset_metrics()
 }
 
 
-uint32_t rlc_um::rlc_um_tx::get_buffer_size_bytes()
+bool rlc_um::rlc_um_tx::has_data()
+{
+  return (tx_sdu != NULL || !tx_sdu_queue.is_empty());
+}
+
+
+uint32_t rlc_um::rlc_um_tx::get_buffer_state()
 {
   // Bytes needed for tx SDUs
   uint32_t n_sdus  = tx_sdu_queue.size();
