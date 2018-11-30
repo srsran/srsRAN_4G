@@ -2083,7 +2083,7 @@ s1ap_nas_transport::log_unhandled_attach_request_ies(const LIBLTE_MME_ATTACH_REQ
   }
   if(attach_req->additional_guti_present)
   {
-    m_s1ap_log->warning("NAS attach request: Aditional GUTI present, but not handled.\n");
+    m_s1ap_log->warning("NAS attach request: Additional GUTI present, but not handled.\n");
   }
   if(attach_req->last_visited_registered_tai_present)
   {

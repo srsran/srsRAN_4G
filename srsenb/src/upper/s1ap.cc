@@ -1038,7 +1038,7 @@ std::string s1ap::get_cause(LIBLTE_S1AP_CAUSE_STRUCT *c)
     cause += liblte_s1ap_causemisc_text[c->choice.misc.e];
     break;
   default:
-    cause += "unkown";
+    cause += "unknown";
     break;
   }
   return cause;
