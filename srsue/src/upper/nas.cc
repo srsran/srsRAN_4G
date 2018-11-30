@@ -388,10 +388,10 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
   }
 }
 
-void nas::set_k_enb_count() {
+void nas::set_k_enb_count(uint32_t count) {
   // UL count for RRC key derivation depends on UL count of the Authentication Request or Service Request.
   // This function should be called after sending these messages, for later derivation of the keys.
-  ctxt.k_enb_count = ctxt.tx_count;
+  ctxt.k_enb_count = count;
   return;
 }
 
@@ -889,7 +889,7 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu, const 
     nas_log->info("Network authentication successful\n");
     send_authentication_response(res, res_len, sec_hdr_type);
     nas_log->info_hex(ctxt.k_asme, 32, "Generated k_asme:\n");
-    set_k_enb_count();
+    set_k_enb_count(0);
     auth_request = true;
   } else if (auth_result == AUTH_SYNCH_FAILURE) {
     nas_log->error("Network authentication synchronization failure.\n");
@@ -1180,7 +1180,7 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
   }
 
   if (have_ctxt) {
-    ctxt.tx_count++;
+    set_k_enb_count(ctxt.tx_count++);
   }
 }
 
@@ -1216,9 +1216,7 @@ void nas::gen_service_request(byte_buffer_t *msg) {
   if(pcap != NULL) {
     pcap->write_nas(msg->msg, msg->N_bytes);
   }
-
-  ctxt.tx_count++;
-  set_k_enb_count();
+  set_k_enb_count(ctxt.tx_count++);
 }
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
@@ -1325,6 +1323,7 @@ void nas::send_detach_request(bool switch_off)
                          &pdu->msg[5],
                          pdu->N_bytes - 5,
                          &pdu->msg[1]);
+      ctxt.tx_count++;
     } else {
       nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
     }

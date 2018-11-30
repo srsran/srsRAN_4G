@@ -85,7 +85,6 @@ public:
   void paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy);
   void set_barring(barring_t barring);
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
-  void set_k_enb_count();
   uint32_t get_k_enb_count();
   bool is_attached();
   bool get_k_asme(uint8_t *k_asme_, uint32_t n);
@@ -165,6 +164,7 @@ private:
   bool integrity_check(byte_buffer_t *pdu);
   void cipher_encrypt(byte_buffer_t *pdu);
   void cipher_decrypt(byte_buffer_t *pdu);
+  void set_k_enb_count(uint32_t count);
 
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps);
 
