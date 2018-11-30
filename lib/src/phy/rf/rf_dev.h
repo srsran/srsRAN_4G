@@ -217,8 +217,6 @@ static rf_dev_t dev_dummy = {
 #endif
 
 
-#define ENABLE_SHMEMRF
-
 #ifdef  ENABLE_SHMEMRF
 
 #include "rf_shmem_imp.h"

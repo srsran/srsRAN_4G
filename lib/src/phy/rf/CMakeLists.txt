@@ -59,6 +59,9 @@ if(RF_FOUND)
     target_link_libraries(srslte_rf ${SOAPYSDR_LIBRARIES})
   endif (SOAPYSDR_FOUND)
 
+  if (ENABLE_SHMEMRF)
+    target_link_libraries(srslte_rf rt)
+  endif (ENABLE_SHMEMRF)
 
   INSTALL(TARGETS srslte_rf DESTINATION ${LIBRARY_DIR})
 endif(RF_FOUND)
