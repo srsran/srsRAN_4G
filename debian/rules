@@ -16,3 +16,14 @@ override_dh_auto_configure:
 
 override_dh_auto_test:
 	# skip executing tests
+
+override_dh_installman:
+	cd debian/man ; CHANGELOG_DATE="$(CHANGELOG_DATE)" ./genmanpages.sh
+	dh_installman -a
+
+override_dh_auto_clean:
+	dh_auto_clean
+	$(RM) debian/man/*.1
+
+override_dh_installinit:
+	dh_installinit --no-start

@@ -1,0 +1,26 @@
+NAME
+  srsepc - light-weight LTE core network implementation with MME, HSS and S/P-GW
+
+SYNOPSIS
+  srsepc [options] <config_file>
+
+DESCRIPTION
+
+  srsepc provides a light-weight LTE core network implementation. It constist of a single binary, and provides the following features:
+
+    - MME (Mobility Management Entity) with standard S1AP and GTP-U interface to eNB
+    - S/P-GW with standard SGi exposed as virtual network interface (TUN device)
+    - HSS (Home Subscriber Server) with configurable user database in CSV format
+
+  An example configuration file is available in /usr/share/srslte/epc.conf.example
+
+OPTIONS
+
+  -h/--help       Produce help message
+  -v/--version    Print version information and exit
+
+ 
+AUTHOR
+
+  This manual page was written by Ruben Undheim <ruben.undheim@gmail.com>
+  for the Debian project (and may be used by others).

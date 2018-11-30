@@ -1,3 +1,10 @@
+srslte (18.09-0ubuntu1.1) UNRELEASED; urgency=medium
+
+  * Split into multiple packages to make upgrade from official Debian/Ubuntu
+    version painless
+
+ -- Ruben Undheim <ruben.undheim@gmail.com>  Fri, 30 Nov 2018 08:55:52 +0000
+
 srslte (18.09-0ubuntu1) bionic; urgency=medium
 
   * Update to srsLTE 18.09

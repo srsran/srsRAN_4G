@@ -13,23 +13,101 @@ Build-Depends:
     libconfig++-dev,
     libsctp-dev,
     libuhd-dev,
-    uhd-host
-Standards-Version: 4.1.1
+    uhd-host,
+    txt2man
+Standards-Version: 4.2.1
 Homepage: http://www.softwareradiosystems.com
 Vcs-Git: https://github.com/srsLTE/srsLTE.git
 Vcs-Browser: https://github.com/srsLTE/srsLTE/
 
-Package: srslte
+Package: srslte-dev
 Architecture: any
-Depends:
-    libfftw3-3,
-    libboost-program-options1.55.0 | libboost-program-options1.62.0,
-    libmbedcrypto0 | libmbedcrypto1,
-    libconfig++9v5,
-    libsctp1,
-    uhd-host,
-    libuhd003 | libuhd003.010.003,
-    ${misc:Depends}
-Description: This is srsLTE, a free and open-source LTE software suite.
+Multi-Arch: same
+Section: libdevel
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         srslte-core:any (= ${binary:Version})
+Breaks: srslte (<= 18.09-0ubuntu1)
+Replaces: srslte (<= 18.09-0ubuntu1)
+Description: Static libraries and headers for srslte
  This software allows you to run a full end-to-end, open-source LTE system.
  It contains a UE, eNB and EPC implementation.
+ .
+ This package contains the development files - static libraries and headers
+
+Package: srslte
+Architecture: all
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         srsenb       (>= ${source:Version}), srsenb (<< ${source:Upstream-Version}.0~),
+         srsue        (>= ${source:Version}), srsue  (<< ${source:Upstream-Version}.0~),
+         srsepc       (>= ${source:Version}), srsepc (<< ${source:Upstream-Version}.0~)
+Suggests: nextepc
+Description: LTE software suite for software defined radios (metapackage)
+ This software enables running a full end-to-end, open-source LTE system. It
+ contains a UE, eNB and EPC implementation.
+ .
+ For running a full network, also an implementation of the Evolved Packet Core
+ (EPC) is needed.
+
+Package: srsenb
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         srslte-core (= ${binary:Version})
+Suggests: nextepc
+Breaks: srslte (<= 18.09-0ubuntu1)
+Replaces: srslte (<= 18.09-0ubuntu1)
+Description: Evolved Node B in LTE network for Software Defined Radios
+ This software enables running a "base-station" for an LTE network.
+ .
+ For running a full network, also an implementation of the Evolved Packet Core
+ (EPC) is needed. (such as nextepc)
+ .
+ It contains the evolved Node B (eNB) component of the network.
+
+Package: srsue
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         srslte-core (= ${binary:Version})
+Breaks: srslte (<= 18.09-0ubuntu1)
+Replaces: srslte (<= 18.09-0ubuntu1)
+Description: User Equipment implementation for LTE
+ This software enables using a software defined radio as the user equipment
+ connecting to an LTE network.
+ .
+ srsue provides a complete SDR LTE UE application featuring all layers from PHY
+ to IP.
+ .
+ For running an LTE network, 'srsenb' should be used instead.
+
+Package: srsepc
+Architecture: any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         srslte-core (= ${binary:Version})
+Recommends: srsenb
+Breaks: srslte (<= 18.09-0ubuntu1)
+Replaces: srslte (<= 18.09-0ubuntu1)
+Description: Light-weight LTE core network implementation
+ Together with 'srsenb', this software opens up the possibility to run an LTE
+ network using a software defined radio.
+ .
+ It is a lightweight alternative to tools such as nextepc.
+
+Package: srslte-core
+Architecture: any
+Multi-Arch: allowed
+Depends: ${shlibs:Depends},
+         ${misc:Depends}
+Breaks: srslte (<= 18.09-0ubuntu1)
+Replaces: srslte (<= 18.09-0ubuntu1)
+Description: Common files for srsLTE
+ This software enables running a full end-to-end, open-source LTE system. It
+ contains a UE, eNB and EPC implementation.
+ .
+ For running a full network, also an implementation of the Evolved Packet Core
+ (EPC) is needed.
+ .
+ This package contains the common files for srsenb, srsue and srsepc.

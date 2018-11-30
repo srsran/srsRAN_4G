@@ -1,0 +1,6 @@
+usr/bin/srsenb
+debian/srsenb.service  lib/systemd/system/
+debian/default_config/enb.conf      etc/srslte/
+debian/default_config/sib.conf      etc/srslte/
+debian/default_config/rr.conf       etc/srslte/
+debian/default_config/drb.conf      etc/srslte/

@@ -1,0 +1,7 @@
+usr/bin/srsepc
+usr/bin/srsepc_if_masq.sh
+debian/srsepc.service  lib/systemd/system/
+debian/default_config/epc.conf      etc/srslte/
+debian/default_config/user_db.csv   etc/srslte/
+debian/default_config/mbms.conf     etc/srslte/
+usr/bin/srsmbms

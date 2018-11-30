@@ -1,0 +1,35 @@
+NAME
+  srsenb - Evolved Node B in LTE network for Software Defined Radios
+
+SYNOPSIS
+  srsenb [options] <config_file>
+
+DESCRIPTION
+
+  srsenb provides the Evolved Node B (eNodeB or eNB) part in the LTE network.
+  It is the hardware that is connected to the mobile phone network that
+  communicates directly wirelessly with mobile handsets (UEs), like a base
+  transceiver station (BTS) in GSM networks.
+
+  Features:
+
+    - Round Robin MAC scheduler with FAPI-like C++ API
+    - SR support
+    - Periodic and Aperiodic CQI feedback support
+    - Standard S1AP and GTP-U interfaces to the Core Network
+    - 150 Mbps DL in 20 MHz MIMO TM3/TM4 with commercial UEs
+    - 75 Mbps DL in SISO configuration with commercial UEs
+    - 50 Mbps UL in 20 MHz with commercial UEs
+
+  An example configuration file is available in /usr/share/srslte/enb.conf.example
+
+OPTIONS
+
+  -h/--help       Produce help message
+  -v/--version    Print version information and exit
+
+ 
+AUTHOR
+
+  This manual page was written by Ruben Undheim <ruben.undheim@gmail.com>
+  for the Debian project (and may be used by others).
