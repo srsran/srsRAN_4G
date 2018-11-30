@@ -1178,7 +1178,8 @@ void nas::gen_attach_request(byte_buffer_t *msg) {
   }
 
   if (have_ctxt) {
-    set_k_enb_count(ctxt.tx_count++);
+    set_k_enb_count(ctxt.tx_count);
+    ctxt.tx_count++;
   }
 }
 
@@ -1214,7 +1215,8 @@ void nas::gen_service_request(byte_buffer_t *msg) {
   if(pcap != NULL) {
     pcap->write_nas(msg->msg, msg->N_bytes);
   }
-  set_k_enb_count(ctxt.tx_count++);
+  set_k_enb_count(ctxt.tx_count);
+  ctxt.tx_count++;
 }
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {

@@ -1167,9 +1167,9 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
                              k_up_enc,  k_up_int,
                              cipher_algo, integ_algo);
 
-  parent->rrc_log->debug_hex(k_rrc_enc, 32, "RRC Encryption Key (k_rrc_enc)");
-  parent->rrc_log->debug_hex(k_rrc_int, 32, "RRC Integrity Key (k_rrc_int)");
-  parent->rrc_log->debug_hex(k_up_enc, 32, "RRC Encryption Key (k_rrc_enc)");
+  parent->rrc_log->info_hex(k_rrc_enc, 32, "RRC Encryption Key (k_rrc_enc)");
+  parent->rrc_log->info_hex(k_rrc_int, 32, "RRC Integrity Key (k_rrc_int)");
+  parent->rrc_log->info_hex(k_up_enc, 32, "RRC Encryption Key (k_rrc_enc)");
 }
 
 bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)
