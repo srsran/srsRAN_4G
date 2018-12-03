@@ -181,6 +181,7 @@ private:
   void parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu);
   void parse_emm_information(uint32_t lcid, byte_buffer_t *pdu);
   void parse_detach_request(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_emm_status(uint32_t lcid, byte_buffer_t *pdu);
 
   // Packet generators
   void gen_attach_request(byte_buffer_t *msg);

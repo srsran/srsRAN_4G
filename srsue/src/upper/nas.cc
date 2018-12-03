@@ -381,6 +381,9 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       parse_detach_request(lcid, pdu);
       break;
+    case LIBLTE_MME_MSG_TYPE_EMM_STATUS:
+      parse_emm_status(lcid, pdu);
+      break;
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
       pool->deallocate(pdu);
@@ -1086,6 +1089,32 @@ void nas::parse_detach_request(uint32_t lcid, byte_buffer_t *pdu)
     send_detach_accept();
   } else {
     nas_log->warning("Received detach request in invalid state (state=%d)\n", state);
+  }
+}
+
+void nas::parse_emm_status(uint32_t lcid, byte_buffer_t *pdu)
+{
+  LIBLTE_MME_EMM_STATUS_MSG_STRUCT emm_status;
+  liblte_mme_unpack_emm_status_msg((LIBLTE_BYTE_MSG_STRUCT *)pdu, &emm_status);
+  ctxt.rx_count++;
+  pool->deallocate(pdu);
+
+  switch (emm_status.emm_cause) {
+    case LIBLTE_MME_ESM_CAUSE_INVALID_EPS_BEARER_IDENTITY:
+      nas_log->info("Received EMM status: Invalid EPS bearer identity\n");
+      // TODO: abort any ongoing procedure (see Sec. 6.7 in TS 24.301)
+      break;
+    case LIBLTE_MME_ESM_CAUSE_INVALID_PTI_VALUE:
+      nas_log->info("Received EMM status: Invalid PTI value\n");
+      // TODO: abort any ongoing procedure (see Sec. 6.7 in TS 24.301)
+      break;
+    case LIBLTE_MME_ESM_CAUSE_MESSAGE_TYPE_NON_EXISTENT_OR_NOT_IMPLEMENTED:
+      nas_log->info("Received EMM status: Invalid PTI value\n");
+      // TODO: see Sec. 6.7 in TS 24.301
+      break;
+    default:
+      nas_log->info("Received unknown EMM status (cause=%d)\n", emm_status.emm_cause);
+      break;
   }
 }
 
