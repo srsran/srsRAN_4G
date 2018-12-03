@@ -308,7 +308,7 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr)
     generate_bsr(bsr, 0);
     bsr_sz = bsr->format==LONG_BSR?3:1;
     if (total_data <= (int)grant_size && total_data + 1 + bsr_sz > grant_size) {
-      Debug("Grant is not enough to accomodate the BSR MAC CE\n");
+      Debug("Grant is not enough to accommodate the BSR MAC CE\n");
     } else {
       Debug("BSR:   Including Regular BSR: grant_size=%d, total_data=%d, bsr_sz=%d\n", 
           grant_size, total_data, bsr_sz);

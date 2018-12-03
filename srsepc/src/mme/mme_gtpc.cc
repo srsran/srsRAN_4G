@@ -212,7 +212,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   //Check UE Ipv4 address was allocated
   if(cs_resp->paa_present != true)
   {
-    m_mme_gtpc_log->error("PDN Adress Allocation not present\n");
+    m_mme_gtpc_log->error("PDN Address Allocation not present\n");
     return;
   }
   if(cs_resp->paa.pdn_type != srslte::GTPC_PDN_TYPE_IPV4)
