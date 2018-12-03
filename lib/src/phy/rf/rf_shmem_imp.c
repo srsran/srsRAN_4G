@@ -820,9 +820,11 @@ double rf_shmem_set_rx_gain(void *h, double gain)
  {
    RF_SHMEM_GET_STATE(h);
 
-   RF_SHMEM_INFO("gain %3.2lf to %3.2lf", _state->rx_gain, gain);
+   if(_state->rx_gain != gain) {
+     RF_SHMEM_INFO("gain %3.2lf to %3.2lf", _state->rx_gain, gain);
 
-   _state->rx_gain = gain;
+     _state->rx_gain = gain;
+   }
 
    return _state->rx_gain;
  }
@@ -832,9 +834,11 @@ double rf_shmem_set_tx_gain(void *h, double gain)
  {
    RF_SHMEM_GET_STATE(h);
 
-   RF_SHMEM_INFO("gain %3.2lf to %3.2lf", _state->tx_gain, gain);
+   if(_state->tx_gain != gain) {
+     RF_SHMEM_INFO("gain %3.2lf to %3.2lf", _state->tx_gain, gain);
 
-   _state->tx_gain = gain;
+     _state->tx_gain = gain;
+   }
 
    return _state->tx_gain;
  }
@@ -878,10 +882,12 @@ double rf_shmem_set_rx_srate(void *h, double rate)
  {
    RF_SHMEM_GET_STATE(h);
 
-   RF_SHMEM_INFO("srate %4.2lf MHz to %4.2lf MHz", 
-                 _state->rx_srate / 1e6, rate / 1e6);
+   if(_state->rx_srate != rate) {
+     RF_SHMEM_INFO("srate %4.2lf MHz to %4.2lf MHz", 
+                   _state->rx_srate / 1e6, rate / 1e6);
 
-   _state->rx_srate = rate;
+     _state->rx_srate = rate;
+   }
 
    return _state->rx_srate;
  }
@@ -891,10 +897,12 @@ double rf_shmem_set_tx_srate(void *h, double rate)
  {
    RF_SHMEM_GET_STATE(h);
 
-   RF_SHMEM_INFO("srate %4.2lf MHz to %4.2lf MHz", 
-                 _state->tx_srate / 1e6, rate / 1e6);
+   if(_state->tx_srate != rate) {
+     RF_SHMEM_INFO("srate %4.2lf MHz to %4.2lf MHz", 
+                   _state->tx_srate / 1e6, rate / 1e6);
 
-   _state->tx_srate = rate;
+     _state->tx_srate = rate;
+   }
 
    return _state->tx_srate;
  }
@@ -917,10 +925,12 @@ double rf_shmem_set_tx_freq(void *h, double freq)
  {
    RF_SHMEM_GET_STATE(h);
 
-   RF_SHMEM_INFO("freq %4.2lf MHz to %4.2lf MHz", 
-                 _state->tx_freq / 1e6, freq / 1e6);
+   if(_state->tx_freq != freq) {
+     RF_SHMEM_INFO("freq %4.2lf MHz to %4.2lf MHz", 
+                   _state->tx_freq / 1e6, freq / 1e6);
 
-   _state->tx_freq = freq;
+     _state->tx_freq = freq;
+   }
 
    return _state->tx_freq;
  }
