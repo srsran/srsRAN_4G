@@ -2712,7 +2712,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
 
   drbs[lcid] = *drb_cnfg;
   drb_up     = true;
-  rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid).c_str());
+  rrc_log->info("Added radio bearer %s (LCID=%d)\n", get_rb_name(lcid).c_str(), lcid);
 }
 
 void rrc::release_drb(uint32_t drb_id)
