@@ -1395,8 +1395,10 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   send_ul_dcch_msg(RB_ID_SRB1);
 }
 
-void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *nas_msg) {
+void rrc::send_ul_info_transfer(byte_buffer_t *nas_msg) {
   bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
+
+  uint32_t lcid = rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1;
 
   rrc_log->debug("%s Preparing UL Info Transfer\n", get_rb_name(lcid).c_str());
 
@@ -1408,7 +1410,7 @@ void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *nas_msg) {
 
   pool->deallocate(nas_msg);
 
-  send_ul_dcch_msg(rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1);
+  send_ul_dcch_msg(lcid);
 }
 
 void rrc::send_security_mode_complete() {
@@ -1929,14 +1931,14 @@ void rrc::send_ul_dcch_msg(uint32_t lcid)
   }
 }
 
-void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
+void rrc::write_sdu(byte_buffer_t *sdu) {
 
   if (state == RRC_STATE_IDLE) {
     rrc_log->warning("Received ULInformationTransfer SDU when in IDLE\n");
     return;
   }
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
-  send_ul_info_transfer(lcid, sdu);
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX SDU");
+  send_ul_info_transfer(sdu);
 }
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {

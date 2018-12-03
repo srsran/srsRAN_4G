@@ -833,7 +833,7 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
     rrc->enable_capabilities();
 
     nas_log->info("Sending Attach Complete\n");
-    rrc->write_sdu(lcid, pdu);
+    rrc->write_sdu(pdu);
     ctxt.tx_count++;
   } else {
     nas_log->info("Not handling attach type %u\n", attach_accept.eps_attach_result);
@@ -1045,7 +1045,7 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   nas_log->info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s\n",
                 ctxt.tx_count,
                 rrc->get_rb_name(lcid).c_str());
-  rrc->write_sdu(lcid, pdu);
+  rrc->write_sdu(pdu);
   ctxt.tx_count++;
 }
 
@@ -1306,7 +1306,7 @@ void nas::send_security_mode_reject(uint8_t cause) {
     pcap->write_nas(msg->msg, msg->N_bytes);
   }
   nas_log->info("Sending security mode reject\n");
-  rrc->write_sdu(cfg.lcid, msg);
+  rrc->write_sdu(msg);
 }
 
 void nas::send_detach_request(bool switch_off)
@@ -1371,7 +1371,7 @@ void nas::send_detach_request(bool switch_off)
 
   nas_log->info("Sending detach request\n");
   if (rrc->is_connected()) {
-    rrc->write_sdu(cfg.lcid, pdu);
+    rrc->write_sdu(pdu);
   } else {
     rrc->connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING, pdu);
   }
@@ -1410,7 +1410,7 @@ void nas::send_detach_accept()
   }
 
   nas_log->info("Sending detach accept\n");
-  rrc->write_sdu(cfg.lcid, pdu);
+  rrc->write_sdu(pdu);
 }
 
 
@@ -1445,7 +1445,7 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len,
   }
 
   nas_log->info("Sending Authentication Response\n");
-  rrc->write_sdu(cfg.lcid, pdu);
+  rrc->write_sdu(pdu);
 }
 
 
@@ -1471,7 +1471,7 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
     pcap->write_nas(msg->msg, msg->N_bytes);
   }
   nas_log->info("Sending authentication failure.\n");
-  rrc->write_sdu(cfg.lcid, msg);
+  rrc->write_sdu(msg);
 }
 
 
@@ -1506,7 +1506,7 @@ void nas::send_identity_response(uint32_t lcid, uint8 id_type)
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  rrc->write_sdu(lcid, pdu);
+  rrc->write_sdu(pdu);
   ctxt.tx_count++;
 }
 
@@ -1542,7 +1542,7 @@ void nas::send_service_request() {
   }
 
   nas_log->info("Sending service request\n");
-  rrc->write_sdu(cfg.lcid, msg);
+  rrc->write_sdu(msg);
   ctxt.tx_count++;
 }
 
@@ -1675,7 +1675,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
   }
 
   nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending ESM information response\n");
-  rrc->write_sdu(cfg.lcid, pdu);
+  rrc->write_sdu(pdu);
 
   ctxt.tx_count++;
   chap_id++;

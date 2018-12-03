@@ -194,7 +194,7 @@ public:
 
   const static int MAX_FOUND_PLMNS = 16;
 
-  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_sdu(srslte::byte_buffer_t *sdu) = 0;
   virtual uint16_t get_mcc() = 0;
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
