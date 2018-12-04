@@ -380,7 +380,7 @@ int main(int argc, char **argv) {
   }
   uint8_t mch_table[10];
   bzero(&mch_table[0], sizeof(uint8_t)*10);
-  if(prog_args.mbsfn_area_id < -1) {
+  if(prog_args.mbsfn_area_id > -1) {
     generate_mcch_table(mch_table, prog_args.mbsfn_sf_mask);
   }
   if(prog_args.cpu_affinity > -1) {

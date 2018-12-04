@@ -85,7 +85,7 @@ public:
   void paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy);
   void set_barring(barring_t barring);
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
-  uint32_t get_ul_count();
+  uint32_t get_k_enb_count();
   bool is_attached();
   bool get_k_asme(uint8_t *k_asme_, uint32_t n);
   uint32_t get_ipv4_addr();
@@ -125,6 +125,7 @@ private:
     uint8_t  k_asme[32];
     uint32_t tx_count;
     uint32_t rx_count;
+    uint32_t k_enb_count;
     srslte::CIPHERING_ALGORITHM_ID_ENUM  cipher_algo;
     srslte::INTEGRITY_ALGORITHM_ID_ENUM  integ_algo;
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
@@ -163,6 +164,7 @@ private:
   bool integrity_check(byte_buffer_t *pdu);
   void cipher_encrypt(byte_buffer_t *pdu);
   void cipher_decrypt(byte_buffer_t *pdu);
+  void set_k_enb_count(uint32_t count);
 
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps);
 

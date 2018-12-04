@@ -237,8 +237,6 @@ void pdcp_entity::integrity_generate( uint8_t  *msg,
                                       uint32_t  msg_len,
                                       uint8_t  *mac)
 {
-  uint8_t bearer;
-
   switch(integ_algo)
   {
   case INTEGRITY_ALGORITHM_ID_EIA0:
@@ -264,6 +262,14 @@ void pdcp_entity::integrity_generate( uint8_t  *msg,
   default:
     break;
   }
+
+  log->debug("Integrity gen input:\n");
+  log->debug_hex(&k_int[16], 16, "  K_int");
+  log->debug("  Local count: %d\n", tx_count);
+  log->debug("  Bearer ID: %d\n", get_bearer_id(lcid));
+  log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+  log->debug_hex(msg, msg_len, "  Message");
+  log->debug_hex(mac,     4, "MAC (generated)");
 }
 
 bool pdcp_entity::integrity_verify(uint8_t  *msg,
@@ -301,6 +307,13 @@ bool pdcp_entity::integrity_verify(uint8_t  *msg,
     break;
   }
 
+  log->debug("Integrity check input:\n");
+  log->debug_hex(&k_int[16], 16, "  K_int");
+  log->debug("  Local count: %d\n", count);
+  log->debug("  Bearer ID: %d\n", get_bearer_id(lcid));
+  log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Uplink" : "Downlink");
+  log->debug_hex(msg, msg_len, "  Message");
+
   switch(integ_algo)
   {
   case INTEGRITY_ALGORITHM_ID_EIA0:
@@ -316,8 +329,7 @@ bool pdcp_entity::integrity_verify(uint8_t  *msg,
       }
     }
     if (isValid){
-      log->info_hex(mac_exp, 4, "MAC match (expected)");
-      log->info_hex(mac,     4, "MAC match (found)");
+      log->info_hex(mac_exp, 4, "MAC match");
     }
     break;
   default:

@@ -1045,8 +1045,8 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 void rrc::ue::handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg)
 {
   if (not parent->s1ap->is_mme_connected()) {
-    printf("send reject\n");
-    parent->rrc_log->error("MME isn't connected. Sending Connection Reject\n");
+    parent->rrc_log->error("MME isn't connected. Sending Connection Reject.\n");
+    parent->rrc_log->console("MME isn't connected. Sending Connection Reject.\n");
     send_connection_reject();
   }
 
@@ -1166,6 +1166,10 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
                              k_rrc_enc, k_rrc_int,
                              k_up_enc,  k_up_int,
                              cipher_algo, integ_algo);
+
+  parent->rrc_log->info_hex(k_rrc_enc, 32, "RRC Encryption Key (k_rrc_enc)");
+  parent->rrc_log->info_hex(k_rrc_int, 32, "RRC Integrity Key (k_rrc_int)");
+  parent->rrc_log->info_hex(k_up_enc, 32, "RRC Encryption Key (k_rrc_enc)");
 }
 
 bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)

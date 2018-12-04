@@ -46,6 +46,7 @@ srslte_tdec_16bit_impl_t gen_impl = {
 };
 
 /* SSE no-window implementation */
+#ifdef LV_HAVE_SSE
 #include "srslte/phy/fec/turbodecoder_sse.h"
 srslte_tdec_16bit_impl_t sse_impl = {
     tdec_sse_init,
@@ -56,7 +57,7 @@ srslte_tdec_16bit_impl_t sse_impl = {
 };
 
 /* SSE window implementation */
-#ifdef LV_HAVE_SSE
+
 #define WINIMP_IS_SSE16
 #include "srslte/phy/fec/turbodecoder_win.h"
 #undef WINIMP_IS_SSE16
@@ -162,6 +163,7 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
   switch(dec_type) {
     case SRSLTE_TDEC_AUTO:
       break;
+#ifdef LV_HAVE_SSE
     case SRSLTE_TDEC_SSE:
       h->dec16[0] = &sse_impl;
       h->current_llr_type = SRSLTE_TDEC_16;
@@ -170,13 +172,14 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
       h->dec16[0] = &sse16_win_impl;
       h->current_llr_type = SRSLTE_TDEC_16;
       break;
-    case SRSLTE_TDEC_GENERIC:
-      h->dec16[0] = &gen_impl;
-      h->current_llr_type = SRSLTE_TDEC_16;
-      break;
     case SRSLTE_TDEC_SSE8_WINDOW:
       h->dec8[0] = &sse8_win_impl;
       h->current_llr_type = SRSLTE_TDEC_8;
+      break;
+#endif
+    case SRSLTE_TDEC_GENERIC:
+      h->dec16[0] = &gen_impl;
+      h->current_llr_type = SRSLTE_TDEC_16;
       break;
 #ifdef LV_HAVE_AVX2
     case SRSLTE_TDEC_AVX_WINDOW:
@@ -237,6 +240,11 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
   }
 
   if (dec_type == SRSLTE_TDEC_AUTO) {
+#ifdef HAVE_NEON
+      h->dec16[0] = &gen_impl;
+      h->current_llr_type = SRSLTE_TDEC_16;
+      //h->dec8[0]  = &gen_impl;
+#else
     h->dec16[AUTO_16_SSE] = &sse_impl;
     h->dec16[AUTO_16_SSEWIN] = &sse16_win_impl;
     h->dec8[AUTO_8_SSEWIN]  = &sse8_win_impl;
@@ -244,7 +252,7 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
     h->dec16[AUTO_16_AVXWIN] = &avx16_win_impl;
     h->dec8[AUTO_8_AVXWIN]  = &avx8_win_impl;
 #endif
-
+#endif /* HAVE_NEON */
     for (int td=0;td<SRSLTE_TDEC_NOF_AUTO_MODES_16;td++) {
       if (h->dec16[td]) {
         if ((h->nof_blocks16[td] = h->dec16[td]->tdec_init(&h->dec16_hdlr[td], h->max_long_cb))<0) {
