@@ -203,6 +203,13 @@ main (int argc,char * argv[] )
   srslte::logger_file   logger_file;
   srslte::logger        *logger;
 
+  if(args.runtime.daemonize) {
+    cout << "Running as a daemon\n";
+    daemon(1, 0);
+  } else {
+    cout << endl <<"---  Software Radio Systems MBMS  ---" << endl << endl;
+  }
+
   /*Init logger*/
   if (!args.log_args.filename.compare("stdout")) {
     logger = &logger_stdout;
@@ -216,13 +223,6 @@ main (int argc,char * argv[] )
   mbms_gw_log.init("MBMS",logger);
   mbms_gw_log.set_level(level(args.log_args.mbms_gw_level));
   mbms_gw_log.set_hex_limit(args.log_args.mbms_gw_hex_limit);
-
-  if(args.runtime.daemonize) {
-    cout << "Running as a daemon\n";
-    daemon(1, 0);
-  } else {
-    cout << endl <<"---  Software Radio Systems MBMS  ---" << endl << endl;
-  }
 
   mbms_gw *mbms_gw = mbms_gw::get_instance();
   if(mbms_gw->init(&args.mbms_gw_args,&mbms_gw_log)) {
