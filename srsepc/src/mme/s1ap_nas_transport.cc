@@ -31,6 +31,7 @@
 #include "srsepc/hdr/mme/s1ap_nas_transport.h"
 #include "srslte/common/security.h"
 #include "srslte/common/liblte_security.h"
+#include "srslte/common/bcd_helpers.h"
 
 namespace srsepc{
 
@@ -70,10 +71,14 @@ s1ap_nas_transport::cleanup(void)
 }
 
 void
-s1ap_nas_transport::init(hss_interface_s1ap * hss_)
+s1ap_nas_transport::init(hss_interface_s1ap * hss_, s1ap_interface_nas * s1ap_, srslte::log * m_s1ap_log_, s1ap_args_t * m_s1ap_args_)
 {
-  m_s1ap = s1ap::get_instance();
-  m_s1ap_log = m_s1ap->m_s1ap_log;
+  m_s1ap = s1ap_;
+  
+  memcpy(&nas_args, m_s1ap_args_, sizeof(s1ap_args_t));
+
+  m_s1ap_log = m_s1ap_log_;
+  
   m_pool = srslte::byte_buffer_pool::get_instance();
 
   m_hss = hss_;
@@ -446,7 +451,7 @@ s1ap_nas_transport::handle_nas_imsi_attach_request(uint32_t enb_ue_s1ap_id,
     m_mme_gtpc->send_delete_session_request(imsi);
     if(old_ctx->ecm_ctx.mme_ue_s1ap_id!=0)
     {
-        m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(&old_ctx->ecm_ctx, reply_buffer);
+        m_s1ap->send_ue_context_release_command(&old_ctx->ecm_ctx, reply_buffer);
     }
     m_s1ap->delete_ue_ctx(imsi);
   }
@@ -560,8 +565,12 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
 
   //GUTI style attach
   uint32_t m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
-  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
-  if(it == m_s1ap->m_tmsi_to_imsi.end())
+
+  uint64_t imsi = 0x0;
+  bool imsi_found = false;
+  imsi_found = m_s1ap->find_imsi_by_tmsi(m_tmsi, &imsi);
+
+  if(imsi_found == false)
   {
 
     m_s1ap_log->console("Attach Request -- Could not find M-TMSI 0x%x\n", m_tmsi);
@@ -642,9 +651,9 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
   else{
 
     m_s1ap_log->console("Attach Request -- Found M-TMSI: %d\n",m_tmsi);
-    m_s1ap_log->console("Attach Request -- IMSI: %015lu\n",it->second);
+    m_s1ap_log->console("Attach Request -- IMSI: %015lu\n", imsi);
     //Get UE EMM context
-    ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(it->second);
+    ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
     if(ue_ctx!=NULL)
     {
       ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
@@ -740,7 +749,7 @@ s1ap_nas_transport::handle_nas_guti_attach_request(  uint32_t enb_ue_s1ap_id,
           m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
           if(ecm_ctx->mme_ue_s1ap_id!=0)
           {
-            m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx, reply_buffer);
+            m_s1ap->send_ue_context_release_command(ecm_ctx, reply_buffer);
           }
         }
         emm_ctx->security_ctxt.ul_nas_count = 0;
@@ -832,9 +841,11 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     m_s1ap_log->error("Could not unpack service request\n");
     return false;
   }
+  uint64_t imsi = 0x0;
+  bool imsi_found = false;
+  imsi_found = m_s1ap->find_imsi_by_tmsi(m_tmsi, &imsi);
 
-  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
-  if(it == m_s1ap->m_tmsi_to_imsi.end())
+  if(imsi_found == false)
   {
     m_s1ap_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
     m_s1ap_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
@@ -843,7 +854,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     return true;
   }
 
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(it->second);
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
   if(ue_ctx == NULL || ue_ctx->emm_ctx.state != EMM_STATE_REGISTERED)
   {
     m_s1ap_log->console("UE is not EMM-Registered.\n");
@@ -866,7 +877,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
 
       //Release previous context
       m_s1ap_log->info("Service Request -- Releasing previouse ECM context. eNB S1AP Id %d, MME UE S1AP Id %d\n", ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
-      m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx,reply_buffer);
+      m_s1ap->send_ue_context_release_command(ecm_ctx,reply_buffer);
       m_s1ap->release_ue_ecm_ctx(ecm_ctx->mme_ue_s1ap_id);
     }
 
@@ -905,7 +916,7 @@ s1ap_nas_transport::handle_nas_service_request(uint32_t m_tmsi,
     emm_ctx->security_ctxt.ul_nas_count++;
     //Save UE ctx to MME UE S1AP id
     m_s1ap->add_ue_ctx_to_mme_ue_s1ap_id_map(ue_ctx);
-    m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx,&ecm_ctx->erabs_ctx[5]);
+    m_s1ap->send_initial_context_setup_request(emm_ctx, ecm_ctx,&ecm_ctx->erabs_ctx[5]);
   }
   else
   {
@@ -933,14 +944,17 @@ s1ap_nas_transport::handle_nas_detach_request(uint32_t m_tmsi,
     return false;
   }
 
-  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
-  if(it == m_s1ap->m_tmsi_to_imsi.end())
+  uint64_t imsi = 0x0;
+  bool imsi_found = false;
+  imsi_found = m_s1ap->find_imsi_by_tmsi(m_tmsi, &imsi);
+
+  if(imsi_found == false)
   {
     m_s1ap_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
     m_s1ap_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
     return true;
   }
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(it->second);
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
@@ -954,7 +968,7 @@ s1ap_nas_transport::handle_nas_detach_request(uint32_t m_tmsi,
   //eNB created new ECM context to send the detach request; this needs to be cleared.
   ecm_ctx->mme_ue_s1ap_id = m_s1ap->get_next_mme_ue_s1ap_id();
   ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
-  m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx, reply_buffer); 
+  m_s1ap->send_ue_context_release_command(ecm_ctx, reply_buffer); 
   return true;
 }
 
@@ -978,7 +992,7 @@ s1ap_nas_transport::handle_nas_detach_request(srslte::byte_buffer_t *nas_msg, ue
   ue_ctx->emm_ctx.state = EMM_STATE_DEREGISTERED;
   if(ue_ctx->ecm_ctx.mme_ue_s1ap_id!=0)
   {
-    m_s1ap->m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(&ue_ctx->ecm_ctx, reply_msg);
+    m_s1ap->send_ue_context_release_command(&ue_ctx->ecm_ctx, reply_msg);
   }
   return true;
 }
@@ -994,14 +1008,17 @@ s1ap_nas_transport::handle_nas_tracking_area_update_request(uint32_t m_tmsi,
   m_s1ap_log->console("Warning: Tracking area update requests are not handled yet.\n");
   m_s1ap_log->warning("Tracking area update requests are not handled yet.\n");
 
-  std::map<uint32_t,uint64_t>::iterator it = m_s1ap->m_tmsi_to_imsi.find(m_tmsi);
-  if(it == m_s1ap->m_tmsi_to_imsi.end())
+  uint64_t imsi = 0x0;
+  bool imsi_found = false;
+  imsi_found = m_s1ap->find_imsi_by_tmsi(m_tmsi, &imsi);
+
+  if(imsi_found == false)
   {
     m_s1ap_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
     m_s1ap_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
     return true;
   }
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(it->second);
+  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
   ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
   ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
 
@@ -1280,25 +1297,10 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
 
   //Get decimal MCC and MNC
   uint32_t mcc = 0;
-  mcc += 0x000F & m_s1ap->m_s1ap_args.mcc;
-  mcc += 10*( (0x00F0 & m_s1ap->m_s1ap_args.mcc) >> 4);
-  mcc += 100*( (0x0F00 & m_s1ap->m_s1ap_args.mcc) >> 8);
-
   uint32_t mnc = 0;
-  if( 0xFF00 == (m_s1ap->m_s1ap_args.mnc & 0xFF00 ))
-  {
-    //Two digit MNC
-    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
-    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
-  }
-  else
-  {
-    //Three digit MNC
-    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
-    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
-    mnc += 100*((0x0F00 & m_s1ap->m_s1ap_args.mnc) >> 8);
-  }
-
+  srslte::mcc_to_decial(nas_args.mcc, &mcc);
+  srslte::mnc_to_decial(nas_args.mnc, &mnc);
+ 
   //T3412 Timer
   tau_acc.t3412_present = true;
   tau_acc.t3412.unit = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE;   // GPRS 1 minute unit
@@ -1309,8 +1311,8 @@ s1ap_nas_transport::handle_tracking_area_update_request(srslte::byte_buffer_t *n
   tau_acc.guti.type_of_id = 6; //110 -> GUTI
   tau_acc.guti.guti.mcc = mcc;
   tau_acc.guti.guti.mnc = mnc;
-  tau_acc.guti.guti.mme_group_id = m_s1ap->m_s1ap_args.mme_group;
-  tau_acc.guti.guti.mme_code = m_s1ap->m_s1ap_args.mme_code;
+  tau_acc.guti.guti.mme_group_id = nas_args.mme_group;
+  tau_acc.guti.guti.mme_code = nas_args.mme_code;
   tau_acc.guti.guti.m_tmsi = 0xF000;
   m_s1ap_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
                     tau_acc.guti.guti.mcc,
@@ -1656,8 +1658,8 @@ s1ap_nas_transport::pack_security_mode_command(srslte::byte_buffer_t *reply_msg,
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
   
   // FIXME: Selection based on UE caps and network preferences 
-  ue_emm_ctx->security_ctxt.cipher_algo = m_s1ap->m_s1ap_args.encryption_algo;
-  ue_emm_ctx->security_ctxt.integ_algo = m_s1ap->m_s1ap_args.integrity_algo;
+  ue_emm_ctx->security_ctxt.cipher_algo = nas_args.encryption_algo;
+  ue_emm_ctx->security_ctxt.integ_algo = nas_args.integrity_algo;
   
   sm_cmd.selected_nas_sec_algs.type_of_eea = (LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_ENUM) ue_emm_ctx->security_ctxt.cipher_algo;
   sm_cmd.selected_nas_sec_algs.type_of_eia = (LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_ENUM) ue_emm_ctx->security_ctxt.integ_algo;
@@ -1800,24 +1802,9 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
 
   //Get decimal MCC and MNC
   uint32_t mcc = 0;
-  mcc += 0x000F & m_s1ap->m_s1ap_args.mcc;
-  mcc += 10*( (0x00F0 & m_s1ap->m_s1ap_args.mcc) >> 4);
-  mcc += 100*( (0x0F00 & m_s1ap->m_s1ap_args.mcc) >> 8);
-
   uint32_t mnc = 0;
-  if( 0xFF00 == (m_s1ap->m_s1ap_args.mnc & 0xFF00 ))
-  {
-    //Two digit MNC
-    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
-    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
-  }
-  else
-  {
-    //Three digit MNC
-    mnc += 0x000F & m_s1ap->m_s1ap_args.mnc;
-    mnc += 10*((0x00F0 & m_s1ap->m_s1ap_args.mnc) >> 4);
-    mnc += 100*((0x0F00 & m_s1ap->m_s1ap_args.mnc) >> 8);
-  }
+  srslte::mcc_to_decial(nas_args.mcc, &mcc);
+  srslte::mnc_to_decial(nas_args.mnc, &mnc);
 
   //Attach accept
   attach_accept.eps_attach_result = ue_emm_ctx->attach_type;
@@ -1829,15 +1816,15 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   attach_accept.tai_list.N_tais = 1;
   attach_accept.tai_list.tai[0].mcc = mcc;
   attach_accept.tai_list.tai[0].mnc = mnc;
-  attach_accept.tai_list.tai[0].tac = m_s1ap->m_s1ap_args.tac;
+  attach_accept.tai_list.tai[0].tac = nas_args.tac;
 
   //Allocate a GUTI ot the UE
   attach_accept.guti_present=true;
   attach_accept.guti.type_of_id = 6; //110 -> GUTI
   attach_accept.guti.guti.mcc = mcc;
   attach_accept.guti.guti.mnc = mnc;
-  attach_accept.guti.guti.mme_group_id = m_s1ap->m_s1ap_args.mme_group;
-  attach_accept.guti.guti.mme_code = m_s1ap->m_s1ap_args.mme_code;
+  attach_accept.guti.guti.mme_group_id = nas_args.mme_group;
+  attach_accept.guti.guti.mme_code = nas_args.mme_code;
   attach_accept.guti.guti.m_tmsi = m_s1ap->allocate_m_tmsi(ue_emm_ctx->imsi);
   m_s1ap_log->debug("Allocated GUTI: MCC %d, MNC %d, MME Group Id %d, MME Code 0x%x, M-TMSI 0x%x\n",
                     attach_accept.guti.guti.mcc,
@@ -1886,7 +1873,7 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   act_def_eps_bearer_context_req.eps_qos.mbr_dl_ext = 250; //FIXME check
 
   //set apn
-  strncpy(act_def_eps_bearer_context_req.apn.apn, m_s1ap->m_s1ap_args.mme_apn.c_str(), LIBLTE_STRING_LEN);
+  strncpy(act_def_eps_bearer_context_req.apn.apn, nas_args.mme_apn.c_str(), LIBLTE_STRING_LEN);
   act_def_eps_bearer_context_req.proc_transaction_id = ue_emm_ctx->procedure_transaction_id; //FIXME
 
   //Set DNS server
@@ -1896,7 +1883,7 @@ s1ap_nas_transport::pack_attach_accept(ue_emm_ctx_t *ue_emm_ctx, ue_ecm_ctx_t *u
   act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].len = 4;
 
   struct sockaddr_in dns_addr;
-  inet_pton(AF_INET, m_s1ap->m_s1ap_args.dns_addr.c_str(), &(dns_addr.sin_addr));
+  inet_pton(AF_INET, nas_args.dns_addr.c_str(), &(dns_addr.sin_addr));
   memcpy(act_def_eps_bearer_context_req.protocol_cnfg_opts.opt[0].contents,&dns_addr.sin_addr.s_addr, 4);
 
   //Make sure all unused options are set to false

@@ -90,7 +90,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
   m_s1ap_mngmt_proc = s1ap_mngmt_proc::get_instance();         //Managment procedures
   m_s1ap_mngmt_proc->init();
   m_s1ap_nas_transport = s1ap_nas_transport::get_instance();   //NAS Transport procedures
-  m_s1ap_nas_transport->init(m_hss);
+  m_s1ap_nas_transport->init(m_hss, this, m_s1ap_log, &s1ap_args);
   m_s1ap_ctx_mngmt_proc = s1ap_ctx_mngmt_proc::get_instance(); //Context Management Procedures
   m_s1ap_ctx_mngmt_proc->init();
 
@@ -640,5 +640,30 @@ s1ap::print_enb_ctx_info(const std::string &prefix, const enb_ctx_t &enb_ctx)
   return;
 }
 
+bool s1ap::find_imsi_by_tmsi(uint32_t m_tmsi, uint64_t * imsi){
+  bool found = false;
+  std::map<uint32_t,uint64_t>::iterator it = m_tmsi_to_imsi.find(m_tmsi);
+  if(it == m_tmsi_to_imsi.end()){
+    found = false;
+    *imsi = 0x0;
+  } else {
+    found = true;
+    *imsi = it->second;
+  }
+  
+  return found;
+}
+
+bool
+s1ap::send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx, ue_ecm_ctx_t *ecm_ctx, erab_ctx_t *erab_ctx)
+{
+  return m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, erab_ctx);
+}
+
+bool
+s1ap::send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_buffer)
+{
+  return m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(ecm_ctx, reply_buffer);
+}
 } //namespace srsepc
 

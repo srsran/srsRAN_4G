@@ -32,6 +32,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/s1ap_pcap.h"
+#include "srslte/interfaces/epc_interfaces.h"
 
 #include <strings.h>
 #include <arpa/inet.h>
@@ -48,11 +49,12 @@
 #include "mme_gtpc.h"
 #include "srsepc/hdr/hss/hss.h"
 
+
 namespace srsepc{
 
 const uint16_t S1MME_PORT = 36412;
 
-class s1ap
+class s1ap : public s1ap_interface_nas
 {
 public:
 
@@ -94,6 +96,10 @@ public:
   bool delete_ue_ctx(uint64_t imsi);
 
   uint32_t allocate_m_tmsi(uint64_t imsi);
+  bool find_imsi_by_tmsi(uint32_t tmsi, uint64_t * imsi);
+  
+  bool send_initial_context_setup_request(ue_emm_ctx_t *emm_ctx, ue_ecm_ctx_t *ecm_ctx, erab_ctx_t *erab_ctx);
+  bool send_ue_context_release_command(ue_ecm_ctx_t *ecm_ctx, srslte::byte_buffer_t *reply_buffer);
 
   s1ap_args_t                    m_s1ap_args;
   srslte::log_filter            *m_s1ap_log;
