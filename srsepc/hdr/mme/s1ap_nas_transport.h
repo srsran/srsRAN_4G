@@ -43,7 +43,7 @@ public:
   static s1ap_nas_transport* m_instance;
   static s1ap_nas_transport* get_instance(void);
   static void cleanup(void);
-  void init(hss_interface_s1ap * hss_, s1ap_interface_nas * s1ap_, srslte::log * m_s1ap_log_, s1ap_args_t * m_s1ap_args_);
+  void init(hss_interface_s1ap * hss_, s1ap_interface_nas * s1ap_, srslte::log * m_s1ap_log_, s1ap_args_t m_s1ap_args_);
 
   bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
   bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);

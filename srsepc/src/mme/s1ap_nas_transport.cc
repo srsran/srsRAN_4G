@@ -71,11 +71,11 @@ s1ap_nas_transport::cleanup(void)
 }
 
 void
-s1ap_nas_transport::init(hss_interface_s1ap * hss_, s1ap_interface_nas * s1ap_, srslte::log * m_s1ap_log_, s1ap_args_t * m_s1ap_args_)
+s1ap_nas_transport::init(hss_interface_s1ap * hss_, s1ap_interface_nas * s1ap_, srslte::log * m_s1ap_log_, s1ap_args_t m_s1ap_args_)
 {
   m_s1ap = s1ap_;
   
-  memcpy(&nas_args, m_s1ap_args_, sizeof(s1ap_args_t));
+  nas_args = m_s1ap_args_;
 
   m_s1ap_log = m_s1ap_log_;
   

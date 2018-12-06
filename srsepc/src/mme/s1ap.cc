@@ -82,7 +82,6 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
   m_next_m_tmsi = rand();
   //Init log
   m_s1ap_log = s1ap_log;
-
   //Get pointer to the HSS
   m_hss = hss_;
 
@@ -90,7 +89,7 @@ s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter *s1ap_log, hss_interface_s1
   m_s1ap_mngmt_proc = s1ap_mngmt_proc::get_instance();         //Managment procedures
   m_s1ap_mngmt_proc->init();
   m_s1ap_nas_transport = s1ap_nas_transport::get_instance();   //NAS Transport procedures
-  m_s1ap_nas_transport->init(m_hss, this, m_s1ap_log, &s1ap_args);
+  m_s1ap_nas_transport->init(m_hss, this, m_s1ap_log, s1ap_args);
   m_s1ap_ctx_mngmt_proc = s1ap_ctx_mngmt_proc::get_instance(); //Context Management Procedures
   m_s1ap_ctx_mngmt_proc->init();
 
