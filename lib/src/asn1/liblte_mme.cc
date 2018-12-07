@@ -320,7 +320,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_id_ie(LIBLTE_MME_MOBILE_ID_STRUCT  *mob
             odd = false;
         }else if(LIBLTE_MME_MOBILE_ID_TYPE_TMSI == mobile_id->type_of_id){
             id32 = mobile_id->tmsi;
-            length = 4;
+            length = 5;
             odd = false;
         }
         }else{
