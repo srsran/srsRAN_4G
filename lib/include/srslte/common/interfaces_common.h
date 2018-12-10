@@ -70,12 +70,14 @@ public:
 class srslte_pdcp_config_t
 {
 public:
-  srslte_pdcp_config_t(bool is_control_ = false, bool is_data_ = false, uint8_t direction_ = SECURITY_DIRECTION_UPLINK)
-    :direction(direction_)
+  srslte_pdcp_config_t(uint8_t bearer_id_ = 0, bool is_control_ = false, bool is_data_ = false, uint8_t direction_ = SECURITY_DIRECTION_UPLINK)
+    :bearer_id(bearer_id_)
+    ,direction(direction_)
     ,is_control(is_control_)
     ,is_data(is_data_)
     ,sn_len(12) {}
 
+  uint32_t bearer_id;
   uint8_t  direction;
   bool     is_control;
   bool     is_data;

@@ -244,7 +244,7 @@ void pdcp_entity::integrity_generate( uint8_t  *msg,
   case INTEGRITY_ALGORITHM_ID_128_EIA1:
     security_128_eia1(&k_int[16],
                       tx_count,
-                      get_bearer_id(lcid),
+                      cfg.bearer_id - 1,
                       cfg.direction,
                       msg,
                       msg_len,
@@ -253,7 +253,7 @@ void pdcp_entity::integrity_generate( uint8_t  *msg,
   case INTEGRITY_ALGORITHM_ID_128_EIA2:
     security_128_eia2(&k_int[16],
                       tx_count,
-                      get_bearer_id(lcid),
+                      cfg.bearer_id - 1,
                       cfg.direction,
                       msg,
                       msg_len,
@@ -266,7 +266,7 @@ void pdcp_entity::integrity_generate( uint8_t  *msg,
   log->debug("Integrity gen input:\n");
   log->debug_hex(&k_int[16], 16, "  K_int");
   log->debug("  Local count: %d\n", tx_count);
-  log->debug("  Bearer ID: %d\n", get_bearer_id(lcid));
+  log->debug("  Bearer ID: %d\n", cfg.bearer_id);
   log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
   log->debug_hex(msg, msg_len, "  Message");
   log->debug_hex(mac,     4, "MAC (generated)");
@@ -288,7 +288,7 @@ bool pdcp_entity::integrity_verify(uint8_t  *msg,
   case INTEGRITY_ALGORITHM_ID_128_EIA1:
     security_128_eia1(&k_int[16],
                       count,
-                      get_bearer_id(lcid),
+                      cfg.bearer_id - 1,
                       (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
                       msg,
                       msg_len,
@@ -297,7 +297,7 @@ bool pdcp_entity::integrity_verify(uint8_t  *msg,
   case INTEGRITY_ALGORITHM_ID_128_EIA2:
     security_128_eia2(&k_int[16],
                       count,
-                      get_bearer_id(lcid),
+                      cfg.bearer_id - 1,
                       (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
                       msg,
                       msg_len,
@@ -310,7 +310,7 @@ bool pdcp_entity::integrity_verify(uint8_t  *msg,
   log->debug("Integrity check input:\n");
   log->debug_hex(&k_int[16], 16, "  K_int");
   log->debug("  Local count: %d\n", count);
-  log->debug("  Bearer ID: %d\n", get_bearer_id(lcid));
+  log->debug("  Bearer ID: %d\n", cfg.bearer_id);
   log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Uplink" : "Downlink");
   log->debug_hex(msg, msg_len, "  Message");
 
@@ -351,7 +351,7 @@ void pdcp_entity::cipher_encrypt(uint8_t  *msg,
   case CIPHERING_ALGORITHM_ID_128_EEA1:
     security_128_eea1(&(k_enc[16]),
                       tx_count,
-                      get_bearer_id(lcid),
+                      cfg.bearer_id - 1,
                       cfg.direction,
                       msg,
                       msg_len,
@@ -361,7 +361,7 @@ void pdcp_entity::cipher_encrypt(uint8_t  *msg,
   case CIPHERING_ALGORITHM_ID_128_EEA2:
     security_128_eea2(&(k_enc[16]),
                       tx_count,
-                      get_bearer_id(lcid),
+                      cfg.bearer_id - 1,
                       cfg.direction,
                       msg,
                       msg_len,
@@ -386,7 +386,7 @@ void pdcp_entity::cipher_decrypt(uint8_t  *ct,
   case CIPHERING_ALGORITHM_ID_128_EEA1:
     security_128_eea1(&(k_enc[16]),
                       count,
-                      get_bearer_id(lcid),
+                      cfg.bearer_id - 1,
                       (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
                       ct,
                       ct_len,
@@ -396,7 +396,7 @@ void pdcp_entity::cipher_decrypt(uint8_t  *ct,
   case CIPHERING_ALGORITHM_ID_128_EEA2:
     security_128_eea2(&(k_enc[16]),
                       count,
-                      get_bearer_id(lcid),
+                      cfg.bearer_id - 1,
                       (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
                       ct,
                       ct_len,
@@ -405,17 +405,6 @@ void pdcp_entity::cipher_decrypt(uint8_t  *ct,
     break;
   default:
     break;
-  }
-}
-
-
-uint8_t pdcp_entity::get_bearer_id(uint8_t lcid)
-{
-  #define RB_ID_SRB2 2
-  if(lcid <= RB_ID_SRB2) {
-    return lcid - 1;
-  } else {
-    return lcid - RB_ID_SRB2 - 1;
   }
 }
 

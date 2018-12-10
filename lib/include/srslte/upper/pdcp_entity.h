@@ -129,8 +129,6 @@ private:
                       uint32_t  count,
                       uint32_t  ct_len,
                       uint8_t  *msg);
-
-  uint8_t  get_bearer_id(uint8_t lcid);
 };
 
 /****************************************************************************

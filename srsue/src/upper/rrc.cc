@@ -2610,7 +2610,10 @@ void rrc::handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup) 
 
 void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
   // Setup PDCP
-  pdcp->add_bearer(srb_cnfg->srb_id, srslte_pdcp_config_t(true)); // Set PDCP config control flag
+  srslte_pdcp_config_t pdcp_cfg;
+  pdcp_cfg.is_control = true;
+  pdcp_cfg.bearer_id = srb_cnfg->srb_id;
+  pdcp->add_bearer(srb_cnfg->srb_id, pdcp_cfg);
   if(RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     pdcp->enable_integrity(srb_cnfg->srb_id);
@@ -2675,6 +2678,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
   // Setup PDCP
   srslte_pdcp_config_t pdcp_cfg;
   pdcp_cfg.is_data = true;
+  pdcp_cfg.bearer_id = drb_cnfg->drb_id;
   if (drb_cnfg->pdcp_cnfg.rlc_um_pdcp_sn_size_present) {
     if (LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == drb_cnfg->pdcp_cnfg.rlc_um_pdcp_sn_size) {
       pdcp_cfg.sn_len = 7;
