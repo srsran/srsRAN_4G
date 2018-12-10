@@ -43,6 +43,18 @@
 #define MAX_CMD_LEN (64)
 
 #ifndef IS_ARM
+static __inline int __get_cpuid_count_redef(unsigned int __leaf, unsigned int __subleaf, unsigned int* __eax,
+                                            unsigned int* __ebx, unsigned int* __ecx, unsigned int* __edx)
+{
+  unsigned int __max_leaf = __get_cpuid_max(__leaf & 0x80000000, 0);
+
+  if (__max_leaf == 0 || __max_leaf < __leaf)
+    return 0;
+
+  __cpuid_count(__leaf, __subleaf, *__eax, *__ebx, *__ecx, *__edx);
+  return 1;
+}
+
 const char* x86_get_isa()
 {
   int ret = 0;
@@ -57,7 +69,7 @@ const char* x86_get_isa()
   }
 
   // query advanced features
-  ret = __get_cpuid_count(X86_CPUID_ADVANCED_LEAF, 0, &eax, &ebx, &ecx, &edx);
+  ret = __get_cpuid_count_redef(X86_CPUID_ADVANCED_LEAF, 0, &eax, &ebx, &ecx, &edx);
   if (ret) {
     has_avx2 = ebx & bit_AVX2;
   }
