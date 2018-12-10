@@ -741,7 +741,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       } else if (ue_dl.nof_rx_antennas > 1 && nof_tb == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
       } else {
-        Error("Wrong combination of antennas (%d) or transport blocks (%d) for TM3\n", ue_dl.nof_rx_antennas,
+        Error("Wrong combination of antennas (%d) or transport blocks (%d) for TM4\n", ue_dl.nof_rx_antennas,
               nof_tb);
         valid_config = false;
       }
