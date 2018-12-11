@@ -64,6 +64,10 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
   timer_alignment             = timers.get_unique_id();
   contention_resolution_timer = timers.get_unique_id();
 
+  log_h->debug("Timer Timing Alignment ID 0x%x\n", timer_alignment);
+  log_h->debug("Timer Contention Resolution ID 0x%x\n",
+               contention_resolution_timer);
+
   bsr_procedure.init(       rlc_h, log_h,          &config,                &timers);
   phr_procedure.init(phy_h,        log_h,          &config,                &timers);
   mux_unit.init     (       rlc_h, log_h,                                              &bsr_procedure, &phr_procedure);
@@ -364,9 +368,14 @@ void mac::setup_timers()
   // stop currently running time alignment timer
   if (timers.get(timer_alignment)->is_running()) {
     timers.get(timer_alignment)->stop();
+    log_h->debug("Stop running MAC Time Alignment Timer with ID 0x%x\n",
+                 timer_alignment);
   }
 
-  int value = liblte_rrc_time_alignment_timer_num[config.main.time_alignment_timer];
+  int value =
+      liblte_rrc_time_alignment_timer_num[config.main.time_alignment_timer];
+  log_h->info("Set MAC Time Alignment Timer (0x%x) to: %d value: %d \n",
+              timer_alignment, config.main.time_alignment_timer, value);
   if (value > 0) {
     timers.get(timer_alignment)->set(this, value);
   }
@@ -382,9 +391,11 @@ void mac::timer_expired(uint32_t timer_id)
 }
 
 /* Function called on expiry of TimeAlignmentTimer */
-void mac::timer_alignment_expire()
-{
-  printf("TimeAlignment timer has expired value=%d ms\n", timers.get(timer_alignment)->get_timeout());
+void mac::timer_alignment_expire() {
+  log_h->console("TimeAlignment timer has expired value=%d ms\n",
+                 timers.get(timer_alignment)->get_timeout());
+  log_h->warning("TimeAlignment timer has expired value=%d ms\n",
+                 timers.get(timer_alignment)->get_timeout());
   rrc_h->release_pucch_srs();
   dl_harq.reset();
   ul_harq.reset();
