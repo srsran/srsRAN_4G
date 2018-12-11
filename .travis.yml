@@ -1,0 +1,12 @@
+efore_script:
+   - sudo apt-get -qq update
+   - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
+
+language: cpp
+script:
+ - mkdir build
+ - cd build
+ - cmake ..
+ - make
+ - make test
+ - sudo make install
