@@ -1,4 +1,7 @@
-efore_script:
+dist: trusty
+sudo: required
+
+before_script:
    - sudo apt-get -qq update
    - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
 
