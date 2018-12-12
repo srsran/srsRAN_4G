@@ -100,6 +100,22 @@ srslte_tdec_8bit_impl_t sse8_win_impl = {
 };
 #endif
 
+
+#ifdef HAVE_NEON
+//#include "srslte/phy/fec/turbodecoder_neon.h"
+#define WINIMP_IS_NEON16
+#include "srslte/phy/fec/turbodecoder_win.h"
+#undef WINIMP_IS_NEON16
+
+srslte_tdec_16bit_impl_t arm16_win_impl = {
+    tdec_winarm16_init,
+    tdec_winarm16_free,
+    tdec_winarm16_dec,
+    tdec_winarm16_extract_input,
+    tdec_winarm16_decision_byte
+};
+#endif
+
 /* AVX window implementation */
 #ifdef LV_HAVE_AVX2
 #define WINIMP_IS_AVX8
@@ -119,6 +135,8 @@ srslte_tdec_8bit_impl_t avx8_win_impl = {
 #define AUTO_16_AVXWIN 2
 #define AUTO_8_SSEWIN  0
 #define AUTO_8_AVXWIN  1
+#define AUTO_16_GEN    0
+#define AUTO_16_NEONWIN 1
 
 
 // Include interfaces for 8 and 16 bit decoder implementations
@@ -177,10 +195,17 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
       h->current_llr_type = SRSLTE_TDEC_8;
       break;
 #endif
+#ifdef HAVE_NEON
+    case SRSLTE_TDEC_NEON_WINDOW:
+      h->dec16[0] = &arm16_win_impl;
+      h->current_llr_type = SRSLTE_TDEC_16;
+      break;
+#else
     case SRSLTE_TDEC_GENERIC:
       h->dec16[0] = &gen_impl;
       h->current_llr_type = SRSLTE_TDEC_16;
       break;
+#endif
 #ifdef LV_HAVE_AVX2
     case SRSLTE_TDEC_AVX_WINDOW:
       h->dec16[0] = &avx16_win_impl;
@@ -241,18 +266,21 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
 
   if (dec_type == SRSLTE_TDEC_AUTO) {
 #ifdef HAVE_NEON
-      h->dec16[0] = &gen_impl;
-      h->current_llr_type = SRSLTE_TDEC_16;
-      //h->dec8[0]  = &gen_impl;
-#else
-    h->dec16[AUTO_16_SSE] = &sse_impl;
+    h->dec16[AUTO_16_GEN] = &gen_impl;
+    h->dec16[AUTO_16_NEONWIN] = &arm16_win_impl;
+#elif LV_HAVE_SSE
+    h->dec16[AUTO_16_SSE] = &gen_impl;
     h->dec16[AUTO_16_SSEWIN] = &sse16_win_impl;
     h->dec8[AUTO_8_SSEWIN]  = &sse8_win_impl;
 #ifdef LV_HAVE_AVX2
     h->dec16[AUTO_16_AVXWIN] = &avx16_win_impl;
     h->dec8[AUTO_8_AVXWIN]  = &avx8_win_impl;
 #endif
+#else 
+    h->dec16[AUTO_16_SSE] = &gen_impl;
+    h->dec16[AUTO_16_SSEWIN] = &gen_impl;
 #endif /* HAVE_NEON */
+    
     for (int td=0;td<SRSLTE_TDEC_NOF_AUTO_MODES_16;td++) {
       if (h->dec16[td]) {
         if ((h->nof_blocks16[td] = h->dec16[td]->tdec_init(&h->dec16_hdlr[td], h->max_long_cb))<0) {
