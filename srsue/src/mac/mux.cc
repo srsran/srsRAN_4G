@@ -73,7 +73,7 @@ void mux::reset()
 bool mux::is_pending_any_sdu()
 {
   for (uint32_t i=0;i<lch.size();i++) {
-    if (rlc->get_buffer_state(lch[i].id)) {
+    if (rlc->has_data(lch[i].id)) {
       return true; 
     }
   }
@@ -81,7 +81,7 @@ bool mux::is_pending_any_sdu()
 }
 
 bool mux::is_pending_sdu(uint32_t lch_id) {
-  return rlc->get_buffer_state(lch_id)>0;  
+  return rlc->has_data(lch_id);
 }
 
 int mux::find_lchid(uint32_t lcid) 
@@ -307,11 +307,11 @@ bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz)
 
 bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz) 
 {
- 
   // Get n-th pending SDU pointer and length
-  int sdu_len = rlc->get_buffer_state(lcid); 
-  
-  if (sdu_len > 0) { // there is pending SDU to allocate
+  bool sdu_added = false;
+  int sdu_len = rlc->get_buffer_state(lcid);
+
+  while (sdu_len > 0) { // there is pending SDU to allocate
     int buffer_state = sdu_len; 
     if (sdu_len > max_sdu_sz && max_sdu_sz >= 0) {
       sdu_len = max_sdu_sz;
@@ -326,7 +326,8 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
         if (sdu_len > 0) { // new SDU could be added
           Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n",
                  lcid, buffer_state, sdu_len, sdu_space, max_sdu_sz, pdu_msg->rem_size());
-          return true;               
+          sdu_len = rlc->get_buffer_state(lcid);
+          sdu_added = true;
         } else {
           Warning("SDU:   rlc_buffer=%d, allocated=%d/%d, remaining=%d\n", 
                buffer_state, sdu_len, sdu_space, pdu_msg->rem_size());
@@ -335,7 +336,7 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
       } 
     }
   }
-  return false; 
+  return sdu_added;
 }
 
 void mux::msg3_flush()

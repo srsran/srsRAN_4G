@@ -282,7 +282,7 @@ public:
     sib2_period = 0; 
     send_ack = 0; 
   }
-  uint32_t get_total_buffer_state(uint32_t lcid) {
+  bool has_data(uint32_t lcid) {
     return get_buffer_state(lcid); 
   }
   uint32_t get_buffer_state(uint32_t lcid) {

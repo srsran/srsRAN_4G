@@ -1450,6 +1450,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure SRB1 in PDCP
   srslte::srslte_pdcp_config_t pdcp_cnfg;
+  pdcp_cnfg.bearer_id  = 1;
   pdcp_cnfg.is_control = true;
   pdcp_cnfg.direction = SECURITY_DIRECTION_DOWNLINK;
   parent->pdcp->add_bearer(rnti, 1, pdcp_cnfg);
@@ -1670,6 +1671,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 
   // Configure SRB2 in PDCP
   srslte::srslte_pdcp_config_t pdcp_cnfg;
+  pdcp_cnfg.bearer_id  = 2;
   pdcp_cnfg.direction = SECURITY_DIRECTION_DOWNLINK;
   pdcp_cnfg.is_control = true;
   pdcp_cnfg.is_data = false;
@@ -1753,7 +1755,11 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     // Configure DRB in RLC
     parent->rlc->add_bearer(rnti, lcid, &conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i].rlc_cnfg);
     // Configure DRB in PDCP
-    parent->pdcp->add_bearer(rnti, lcid, &conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i].pdcp_cnfg);
+    srslte::srslte_pdcp_config_t pdcp_config;
+    pdcp_config.bearer_id = conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[i].drb_id;
+    pdcp_config.is_data = true;
+    pdcp_config.direction = SECURITY_DIRECTION_DOWNLINK;
+    parent->pdcp->add_bearer(rnti, lcid, pdcp_config);
     // DRB has already been configured in GTPU through bearer setup
 
     // Add NAS message

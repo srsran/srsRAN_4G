@@ -290,7 +290,7 @@ public:
   bool mbms_service_start(uint32_t serv, uint32_t port);
 
   // NAS interface
-  void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu);
   void enable_capabilities();
   uint16_t get_mcc();
   uint16_t get_mnc();
@@ -603,7 +603,7 @@ private:
   void          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause);
   void          send_con_restablish_complete();
   void          send_con_setup_complete(byte_buffer_t *nas_msg);
-  void          send_ul_info_transfer(uint32_t lcid, byte_buffer_t *nas_msg);
+  void          send_ul_info_transfer(byte_buffer_t *nas_msg);
   void          send_security_mode_complete();
   void          send_rrc_con_reconfig_complete();
   void          send_rrc_ue_cap_info();
@@ -623,6 +623,7 @@ private:
   void          rrc_connection_release();
   void          radio_link_failure();
   void          leave_connected();
+  void          stop_timers();
 
   void          apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
   void          apply_rr_config_common_ul(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);

@@ -194,7 +194,7 @@ public:
 
   const static int MAX_FOUND_PLMNS = 16;
 
-  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_sdu(srslte::byte_buffer_t *sdu) = 0;
   virtual uint16_t get_mcc() = 0;
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
@@ -300,11 +300,12 @@ public:
 class rlc_interface_mac : public srslte::read_pdu_interface
 {
 public:
-  /* MAC calls RLC to get buffer state for a logical channel.
-   * This function should return quickly. */
-  virtual uint32_t get_buffer_state(uint32_t lcid) = 0;
-  virtual uint32_t get_total_buffer_state(uint32_t lcid) = 0; 
+  /* MAC calls has_data() to query whether a logical channel has data to transmit (without
+   * knowing how much. This function should return quickly. */
+  virtual bool has_data(const uint32_t lcid) = 0;
 
+  /* MAC calls RLC to get the buffer state for a logical channel. */
+  virtual uint32_t get_buffer_state(const uint32_t lcid) = 0;
 
   const static int MAX_PDU_SEGMENTS = 20;
 

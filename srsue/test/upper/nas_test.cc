@@ -92,7 +92,7 @@ public:
     plmns.plmn_id.mnc = mnc;
     plmns.tac = 0xffff;
   }
-  void write_sdu(uint32_t lcid, byte_buffer_t *sdu)
+  void write_sdu(byte_buffer_t *sdu)
   {
     last_sdu_len = sdu->N_bytes;
     //printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);

@@ -104,10 +104,10 @@ bool bsr_proc::check_highest_channel() {
   
   for (int i=0;i<MAX_LCID && pending_data_lcid == -1;i++) {
     if (lcg[i] >= 0) {
-      if (rlc->get_buffer_state(i) > 0) {
+      if (rlc->has_data(i)) {
         pending_data_lcid = i; 
         for (int j=0;j<MAX_LCID;j++) {
-          if (rlc->get_buffer_state(j) > 0) {
+          if (rlc->has_data(j)) {
             if (priorities[j] > priorities[i]) {
               pending_data_lcid = -1; 
             }
@@ -148,7 +148,7 @@ bool bsr_proc::check_single_channel() {
   
   for (int i=0;i<MAX_LCID;i++) {
     if (lcg[i] >= 0) {
-      if (rlc->get_buffer_state(i) > 0) {
+      if (rlc->has_data(i)) {
         pending_data_lcid = i;
         nof_nonzero_lcid++; 
       }

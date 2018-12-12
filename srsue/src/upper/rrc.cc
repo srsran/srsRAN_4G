@@ -220,6 +220,7 @@ void rrc::init(phy_interface_rrc *phy_,
 
 void rrc::stop() {
   running = false;
+  stop_timers();
   cmd_msg_t msg;
   msg.command = cmd_msg_t::STOP;
   cmd_q.push(msg);
@@ -1396,8 +1397,10 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   send_ul_dcch_msg(RB_ID_SRB1);
 }
 
-void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *nas_msg) {
+void rrc::send_ul_info_transfer(byte_buffer_t *nas_msg) {
   bzero(&ul_dcch_msg, sizeof(LIBLTE_RRC_UL_DCCH_MSG_STRUCT));
+
+  uint32_t lcid = rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1;
 
   rrc_log->debug("%s Preparing UL Info Transfer\n", get_rb_name(lcid).c_str());
 
@@ -1409,7 +1412,7 @@ void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *nas_msg) {
 
   pool->deallocate(nas_msg);
 
-  send_ul_dcch_msg(rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1);
+  send_ul_dcch_msg(lcid);
 }
 
 void rrc::send_security_mode_complete() {
@@ -1654,10 +1657,7 @@ void rrc::leave_connected()
   mac->reset();
   set_phy_default();
   set_mac_default();
-  mac_timers->timer_get(t301)->stop();
-  mac_timers->timer_get(t310)->stop();
-  mac_timers->timer_get(t311)->stop();
-  mac_timers->timer_get(t304)->stop();
+  stop_timers();
   rrc_log->info("Going RRC_IDLE\n");
   if (phy->cell_is_camping()) {
     // Receive paging
@@ -1667,10 +1667,14 @@ void rrc::leave_connected()
   }
 }
 
-
-
-
-
+void rrc::stop_timers()
+{
+  mac_timers->timer_get(t300)->stop();
+  mac_timers->timer_get(t301)->stop();
+  mac_timers->timer_get(t310)->stop();
+  mac_timers->timer_get(t311)->stop();
+  mac_timers->timer_get(t304)->stop();
+}
 
 /*******************************************************************************
 *
@@ -1930,14 +1934,14 @@ void rrc::send_ul_dcch_msg(uint32_t lcid)
   }
 }
 
-void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
+void rrc::write_sdu(byte_buffer_t *sdu) {
 
   if (state == RRC_STATE_IDLE) {
     rrc_log->warning("Received ULInformationTransfer SDU when in IDLE\n");
     return;
   }
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU", get_rb_name(lcid).c_str());
-  send_ul_info_transfer(lcid, sdu);
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "TX SDU");
+  send_ul_info_transfer(sdu);
 }
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
@@ -2611,7 +2615,10 @@ void rrc::handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup) 
 
 void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
   // Setup PDCP
-  pdcp->add_bearer(srb_cnfg->srb_id, srslte_pdcp_config_t(true)); // Set PDCP config control flag
+  srslte_pdcp_config_t pdcp_cfg;
+  pdcp_cfg.is_control = true;
+  pdcp_cfg.bearer_id = srb_cnfg->srb_id;
+  pdcp->add_bearer(srb_cnfg->srb_id, pdcp_cfg);
   if(RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     pdcp->enable_integrity(srb_cnfg->srb_id);
@@ -2676,6 +2683,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
   // Setup PDCP
   srslte_pdcp_config_t pdcp_cfg;
   pdcp_cfg.is_data = true;
+  pdcp_cfg.bearer_id = drb_cnfg->drb_id;
   if (drb_cnfg->pdcp_cnfg.rlc_um_pdcp_sn_size_present) {
     if (LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == drb_cnfg->pdcp_cnfg.rlc_um_pdcp_sn_size) {
       pdcp_cfg.sn_len = 7;

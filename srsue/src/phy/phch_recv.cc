@@ -441,6 +441,7 @@ void phch_recv::run_thread()
                 if (!prach_ptr) {
                   Error("Generating PRACH\n");
                 }
+                set_time_adv_sec(0.0f);
               }
 
               /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */

@@ -312,11 +312,11 @@ bool ue::switch_off() {
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
   const uint32_t RB_ID_SRB1 = 1;
   int cnt = 0, timeout = 5;
-  while (rlc.get_buffer_state(RB_ID_SRB1) && ++cnt <= timeout) {
+  while (rlc.has_data(RB_ID_SRB1) && ++cnt <= timeout) {
     sleep(1);
   }
   bool detach_sent = true;
-  if (rlc.get_buffer_state(RB_ID_SRB1)) {
+  if (rlc.has_data(RB_ID_SRB1)) {
     nas_log.warning("Detach couldn't be sent after %ds.\n", timeout);
     detach_sent = false;
   }

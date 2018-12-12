@@ -169,8 +169,8 @@ public:
   virtual void write_sdu(byte_buffer_t *sdu, bool blocking) = 0;
 
   // MAC interface
+  virtual bool     has_data() = 0;
   virtual uint32_t get_buffer_state() = 0;
-  virtual uint32_t get_total_buffer_state() = 0;
   virtual int      read_pdu(uint8_t *payload, uint32_t nof_bytes) = 0;
   virtual void     write_pdu(uint8_t *payload, uint32_t nof_bytes) = 0;
 };
