@@ -360,7 +360,6 @@ int init37_neon(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_
   q->decode = decode37_neon;
   q->free = free37_neon;
   q->decode_f = NULL;
-  printf("USING NEON VITERBI***************\n");
   q->symbols_uc = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
   if (!q->symbols_uc) {
     perror("malloc");

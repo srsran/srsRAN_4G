@@ -34,7 +34,7 @@
 #include "srslte/srslte.h"
 
 // Enable to measure execution time
-//#define DO_OFDM
+#define DO_OFDM
 
 #ifdef DO_OFDM
 #define NOF_CE_SYMBOLS SRSLTE_SF_LEN_PRB(cell.nof_prb)

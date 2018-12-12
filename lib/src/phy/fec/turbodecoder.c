@@ -100,22 +100,6 @@ srslte_tdec_8bit_impl_t sse8_win_impl = {
 };
 #endif
 
-
-#ifdef HAVE_NEON
-//#include "srslte/phy/fec/turbodecoder_neon.h"
-#define WINIMP_IS_NEON16
-#include "srslte/phy/fec/turbodecoder_win.h"
-#undef WINIMP_IS_NEON16
-
-srslte_tdec_16bit_impl_t arm16_win_impl = {
-    tdec_winarm16_init,
-    tdec_winarm16_free,
-    tdec_winarm16_dec,
-    tdec_winarm16_extract_input,
-    tdec_winarm16_decision_byte
-};
-#endif
-
 /* AVX window implementation */
 #ifdef LV_HAVE_AVX2
 #define WINIMP_IS_AVX8
@@ -127,6 +111,21 @@ srslte_tdec_8bit_impl_t avx8_win_impl = {
     tdec_winavx8_dec,
     tdec_winavx8_extract_input,
     tdec_winavx8_decision_byte
+};
+#endif
+
+
+#ifdef HAVE_NEON
+#define WINIMP_IS_NEON16
+#include "srslte/phy/fec/turbodecoder_win.h"
+#undef WINIMP_IS_NEON16
+
+srslte_tdec_16bit_impl_t arm16_win_impl = {
+    tdec_winarm16_init,
+    tdec_winarm16_free,
+    tdec_winarm16_dec,
+    tdec_winarm16_extract_input,
+    tdec_winarm16_decision_byte
 };
 #endif
 

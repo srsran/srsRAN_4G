@@ -179,7 +179,7 @@
 
 
 #else
-#if HAVE_NEON
+#ifdef WINIMP_IS_NEON16
   #include <arm_neon.h>
 
   #define WINIMP arm16
@@ -777,7 +777,7 @@ void MAKE_FUNC(extract_input)(llr_t *input, llr_t *systematic, llr_t *app2, llr_
 
 
 
-#ifdef HAVE_NEON
+#ifdef WINIMP_IS_NEON16
 #define insert_bit(a,b)     ap = v_insert_s16(ap, app1[k+(a%b)*nof_blocks], 7-a); \
                             reset_cnt(a,b); 
 #else
@@ -787,7 +787,7 @@ void MAKE_FUNC(extract_input)(llr_t *input, llr_t *systematic, llr_t *app2, llr_
 
 
 
-#ifndef HAVE_NEON
+#ifndef WINIMP_IS_NEON16
 #define decide_for(b)     for (uint32_t i = 0; i < long_cb/8; i++) { \
                             insert_bit(0,b);\
                             insert_bit(1,b);\
@@ -816,7 +816,7 @@ void MAKE_FUNC(extract_input)(llr_t *input, llr_t *systematic, llr_t *app2, llr_
 void MAKE_FUNC(decision_byte)(llr_t *app1, uint8_t *output, uint32_t long_cb)
 {
   uint32_t k=0;
-#ifdef HAVE_NEON
+#ifdef WINIMP_IS_NEON16
   int8_t z = 0;
   int8x16_t zeros =  vld1q_dup_s8(&z);
   int16x8_t ap;
