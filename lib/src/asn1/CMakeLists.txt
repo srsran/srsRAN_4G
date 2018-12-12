@@ -24,6 +24,7 @@ add_library(srslte_asn1 STATIC
   liblte_rrc.cc
   liblte_mme.cc
   liblte_s1ap.cc
+  liblte_m2ap.cc
   gtpc.cc
 )
 install(TARGETS srslte_asn1 DESTINATION ${LIBRARY_DIR})
