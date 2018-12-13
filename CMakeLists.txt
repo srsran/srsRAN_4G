@@ -77,6 +77,7 @@ option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
 option(ENABLE_ASAN     "Enable gcc/clang address sanitizer"       OFF)
 option(ENABLE_MSAN     "Enable clang memory sanitizer"            OFF)
+option(ENABLE_TIDY     "Enable clang tidy"                        OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
@@ -362,18 +363,19 @@ message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
 ########################################################################
 # clang-tidy check
 ########################################################################
-find_program(
-        CLANG_TIDY_BIN
-        NAMES "clang-tidy"
-        DOC "Path to clang-tidy executable"
-)
-if(NOT CLANG_TIDY_BIN)
-  message(STATUS "clang-tidy not found.")
-else()
-  message(STATUS "clang-tidy found: ${CLANG_TIDY_BIN}")
-  set(DO_CLANG_TIDY "${CLANG_TIDY_BIN}" "-checks=*,-clang-analyzer-alpha.*,-modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-bounds-constant-array-index")
-endif()
-
+if(ENABLE_TIDY)
+  find_program(
+          CLANG_TIDY_BIN
+          NAMES "clang-tidy"
+          DOC "Path to clang-tidy executable"
+  )
+  if(NOT CLANG_TIDY_BIN)
+    message(STATUS "clang-tidy not found.")
+  else()
+    message(STATUS "clang-tidy found: ${CLANG_TIDY_BIN}")
+    set(DO_CLANG_TIDY "${CLANG_TIDY_BIN}" "-checks=*,-clang-analyzer-alpha.*,-modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-bounds-constant-array-index")
+  endif()
+endif(ENABLE_TIDY)
 
 ########################################################################
 # Create uninstall targets
