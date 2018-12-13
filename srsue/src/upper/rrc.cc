@@ -120,11 +120,6 @@ static sqlite3 * get_db_handle(const char* db_path) {
       uint32_t phyid = serving_cell->get_pci();
       uint32_t earfcn = serving_cell->get_earfcn(); 
       long seconds = (unsigned long)time(NULL);
-      float rsrp = serving_cell->get_rsrp(); 
-      // Sometimes RSRP returns NaN, not sure why it isn't set
-      rsrp==rsrp? rsrp = rsrp:
-                  rsrp = 0.0;
-      
       // Process GPS coordinates
       // TODO: replace this with GPSd libraries http://www.catb.org/gpsd/client-howto.html
       std::string out = exec("/usr/local/bin/gps.sh");
@@ -133,6 +128,11 @@ static sqlite3 * get_db_handle(const char* db_path) {
                                        std::istream_iterator<std::string>());
       float lat = atof(results[0].c_str());
       float lon = atof(results[1].c_str());
+      float rsrp = serving_cell->get_rsrp(); 
+      // Sometimes RSRP returns NaN, not sure why it isn't set
+      rsrp==rsrp? rsrp = rsrp:
+                  rsrp = 0.0;
+      
 
       mcc_to_string(serving_cell->get_mcc(), &mcc_string);
       mnc_to_string(serving_cell->get_mnc(), &mnc_string);
