@@ -343,5 +343,4 @@ s1ap_nas_transport::send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_
   return true;
 }
 
-
 } //namespace srsepc
