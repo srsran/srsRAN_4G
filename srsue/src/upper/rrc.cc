@@ -210,6 +210,24 @@ void rrc::init(phy_interface_rrc *phy_,
 
   measurements.init(this);
 
+  uint8_t imsi_vec[15];
+  usim->get_imsi_vec(imsi_vec, 15);
+ 
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+
+  // use partial imsi and curr time to create
+  // a non repeating seed
+  const unsigned int seed = ((imsi_vec[0] << 24) | 
+                             (imsi_vec[4] << 16) |
+                             (imsi_vec[9] <<  8) | 
+                             imsi_vec[14]) ^ tv.tv_usec;
+
+  rrc_log->info("using srand seed of 0x%x\n", seed);
+
+  // set seed for rand (used in CHAP auth)
+  srand(seed);
+
   running = true;
   start();
   initiated = true;

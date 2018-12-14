@@ -84,25 +84,6 @@ void nas::init(usim_interface_nas *usim_,
     have_guti = true;
     have_ctxt = true;
   }
-
-  union {
-    uint8_t  a[16];
-    uint32_t b[4];
-  } imsi = { 0, 0, 0, 0 };
-
-  usim->get_imsi_vec(&imsi.a[1], 15);
- 
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-
-  const unsigned int seed = ((imsi.b[0] | imsi.b[1] | imsi.b[2] | imsi.b[3]) ^ tv.tv_usec);
-
-  nas_log->info("using srand seed of 0x%x\n", seed);
-
-  // set seed for rand (used in CHAP auth)
-  srand(seed);
-
-  running = true;
 }
 
 void nas::stop() {
