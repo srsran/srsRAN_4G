@@ -781,7 +781,7 @@ nas::handle_security_mode_complete(srslte::byte_buffer_t *nas_rx)
   }
 
   //Log security mode complete
-  m_nas_log->info("Security Mode Command Complete -- IMSI: %015 " PRIu64 "\n", m_emm_ctx.imsi);
+  m_nas_log->info("Security Mode Command Complete -- IMSI: %015" PRIu64 "\n", m_emm_ctx.imsi);
   m_nas_log->console("Security Mode Command Complete -- IMSI: %015" PRIu64 "\n", m_emm_ctx.imsi);
 
   //Check wether secure ESM information transfer is required
