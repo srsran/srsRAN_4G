@@ -100,8 +100,8 @@ nas::handle_attach_request( uint32_t enb_ue_s1ap_id,
     }
     nas_log->console("Attach request -- IMSI Style Attach request\n");
     nas_log->info("Attach request -- IMSI Style Attach request\n");
-    nas_log->console("Attach request -- IMSI: %015lu\n", imsi);
-    nas_log->info("Attach request -- IMSI: %015lu\n", imsi);
+    nas_log->console("Attach request -- IMSI: %015llu\n", imsi);
+    nas_log->info("Attach request -- IMSI: %015llu\n", imsi);
   } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
     m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
     imsi = s1ap->find_imsi_from_m_tmsi(m_tmsi);
@@ -229,8 +229,8 @@ nas::handle_imsi_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
 
   //Get Authentication Vectors from HSS
   if (!hss->gen_auth_info_answer(nas_ctx->m_emm_ctx.imsi, nas_ctx->m_sec_ctx.k_asme, nas_ctx->m_sec_ctx.autn, nas_ctx->m_sec_ctx.rand, nas_ctx->m_sec_ctx.xres)) {
-    nas_log->console("User not found. IMSI %015lu\n",nas_ctx->m_emm_ctx.imsi);
-    nas_log->info("User not found. IMSI %015lu\n",nas_ctx->m_emm_ctx.imsi);
+    nas_log->console("User not found. IMSI %015llu\n",nas_ctx->m_emm_ctx.imsi);
+    nas_log->info("User not found. IMSI %015llu\n",nas_ctx->m_emm_ctx.imsi);
     delete nas_ctx;
     return false;
   }
@@ -486,8 +486,8 @@ nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
 
     //Get Authentication Vectors from HSS
     if (!hss->gen_auth_info_answer(emm_ctx->imsi, sec_ctx->k_asme, sec_ctx->autn, sec_ctx->rand, sec_ctx->xres)) {
-      nas_log->console("User not found. IMSI %015lu\n", emm_ctx->imsi);
-      nas_log->info("User not found. IMSI %015lu\n", emm_ctx->imsi);
+      nas_log->console("User not found. IMSI %015llu\n", emm_ctx->imsi);
+      nas_log->info("User not found. IMSI %015llu\n", emm_ctx->imsi);
       return false;
     }
 

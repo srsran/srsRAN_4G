@@ -486,8 +486,8 @@ hss::gen_update_loc_answer(uint64_t imsi, uint8_t* qci)
   std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if(ue_ctx_it == m_imsi_to_ue_ctx.end())
   {
-    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
-    m_hss_log->console("User not found. IMSI: %015lu\n",imsi);
+    m_hss_log->info("User not found. IMSI: %015llu\n",imsi);
+    m_hss_log->console("User not found at HSS. IMSI: %015llu\n",imsi);
     return false;
   }
   hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
@@ -505,8 +505,8 @@ hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *opc, ui
   std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if(ue_ctx_it == m_imsi_to_ue_ctx.end())
   {
-    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
-    m_hss_log->console("User not found. IMSI: %015lu\n",imsi);
+    m_hss_log->info("User not found. IMSI: %015llu\n",imsi);
+    m_hss_log->console("User not found at HSS. IMSI: %015llu\n",imsi);
     return false;
   }
   hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
