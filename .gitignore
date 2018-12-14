@@ -1,0 +1,8 @@
+*.swp
+*.swo
+build*/
+*workspace
+db
+*.crash
+.fftw_wisdom
+debug

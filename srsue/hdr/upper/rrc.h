@@ -43,6 +43,7 @@
 #include <queue>
 
 typedef struct {
+  std::string                   db_path;
   uint32_t                      ue_category;
   uint32_t                      feature_group;
   uint8_t                       supported_bands[LIBLTE_RRC_BAND_N_ITEMS];

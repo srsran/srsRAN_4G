@@ -31,6 +31,8 @@
 #include <stdint.h>
 #include <string>
 #include <srslte/asn1/liblte_rrc.h>
+#include <stdexcept>
+#include <stdio.h>
 
 namespace srslte {
 
@@ -191,6 +193,29 @@ inline void s1ap_mccmnc_to_plmn(uint16_t mcc, uint16_t mnc, uint32_t *plmn)
   *plmn |= nibbles[5];
 }
 
+inline std::string exec(const char *cmd)
+{
+  char buffer[128];
+  std::string result = "";
+  FILE *pipe = popen(cmd, "r");
+  if (!pipe)
+    throw std::runtime_error("popen() failed!");
+  try
+  {
+    while (!feof(pipe))
+    {
+      if (fgets(buffer, 128, pipe) != NULL)
+        result += buffer;
+    }
+  }
+  catch (...)
+  {
+    pclose(pipe);
+    throw;
+  }
+  pclose(pipe);
+  return result;
+}
 
 } // namespace srslte
 
