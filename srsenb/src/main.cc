@@ -77,7 +77,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("enb.tac",           bpo::value<string>(&tac)->default_value("0x0"),                          "Tracking Area Code")
     ("enb.mcc",           bpo::value<string>(&mcc)->default_value("001"),                          "Mobile Country Code")
     ("enb.mnc",           bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
-    ("enb.mme_addr",      bpo::value<string>(&args->enb.s1ap.mme_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connnection")
+    ("enb.mme_addr",      bpo::value<string>(&args->enb.s1ap.mme_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connection")
     ("enb.gtp_bind_addr", bpo::value<string>(&args->enb.s1ap.gtp_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for GTP connection")
     ("enb.s1c_bind_addr", bpo::value<string>(&args->enb.s1ap.s1c_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for S1AP connection")
     ("enb.phy_cell_id",   bpo::value<uint32_t>(&args->enb.pci)->default_value(0),                  "Physical Cell Identity (PCI)")

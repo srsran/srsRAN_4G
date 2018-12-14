@@ -552,7 +552,7 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
     if (users.count(rnti)) {
       users[rnti].parse_ul_dcch(lcid, pdu);
     } else {
-      rrc_log->error("Processing %s: Unkown rnti=0x%x\n", rb_id_text[lcid], rnti);
+      rrc_log->error("Processing %s: Unknown rnti=0x%x\n", rb_id_text[lcid], rnti);
     }
   }
 }
@@ -576,7 +576,7 @@ void rrc::process_rl_failure(uint16_t rnti)
       rrc_log->info("%d Radio-Link failure detected rnti=0x%x\n", n_rfl, rnti);
     }
   } else {
-    rrc_log->error("Radio-Link failure detected for uknown rnti=0x%x\n", rnti);
+    rrc_log->error("Radio-Link failure detected for unknown rnti=0x%x\n", rnti);
   }
 }
 

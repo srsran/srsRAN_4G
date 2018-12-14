@@ -179,8 +179,11 @@ void ra_proc::process_timeadv_cmd(uint32_t ta) {
   if (preambleIndex == 0) {
     // Preamble not selected by UE MAC 
     phy_h->set_timeadv_rar(ta);
-    time_alignment_timer->reset();
-    time_alignment_timer->run();
+    // Only if timer is running reset the timer
+    if (time_alignment_timer->is_running()) {
+      time_alignment_timer->reset();
+      time_alignment_timer->run();
+    }
     Debug("Applying RAR TA CMD %d\n", ta);
   } else {
     // Preamble selected by UE MAC 

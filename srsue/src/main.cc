@@ -136,7 +136,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
     ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
     ("usim.pin", bpo::value<string>(&args->usim.pin), "PIN in case real SIM card is used")
-    ("usim.reader", bpo::value<string>(&args->usim.reader)->default_value(""), "Force specifiy PCSC reader. Default: Try all available readers.")
+    ("usim.reader", bpo::value<string>(&args->usim.reader)->default_value(""), "Force specific PCSC reader. Default: Try all available readers.")
 
     /* Expert section */
     ("expert.ip_netmask",
