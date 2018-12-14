@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/srsue/src/srsue",
-            "args": ["~/Code/crocodilehunter/experiments/ue.conf"],
+            "args": ["~/Code/crocodilehunter/data/ue.conf"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
