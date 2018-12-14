@@ -27,8 +27,10 @@
 
 #include <unistd.h>
 #include <iostream>
+#include <sqlite3.h> 
 #include <sstream>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <inttypes.h> // for printing uint64_t
 #include <srslte/asn1/liblte_rrc.h>
@@ -36,6 +38,8 @@
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
+#include <boost/algorithm/string.hpp>
+#include <thread>
 
 using namespace srslte;
 
@@ -44,68 +48,186 @@ namespace srsue {
 const static uint32_t NOF_REQUIRED_SIBS = 4;
 const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SIB2, SIB3 and SIB13 (eMBMS)
 
-/*******************************************************************************
-  Base functions 
-*******************************************************************************/
 
-rrc::rrc()
-  :state(RRC_STATE_IDLE)
-  ,drb_up(false)
-  ,serving_cell(NULL)
-{
-  n310_cnt       = 0;
-  n311_cnt       = 0;
-  serving_cell = new cell_t();
-  neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
-  initiated = false;
-  running = false;
-  go_idle = false;
-  go_rlf  = false;
+// Database connection stuff
+static int callback(void *data, int argc, char **argv, char **azColName){
+    int i;
+    fprintf(stderr, "%s: ", (const char*)data);
+
+    for(i = 0; i<argc; i++){
+        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+    }
+
+    printf("\n");
+    return 0;
 }
 
-rrc::~rrc()
-{
-  if (serving_cell) {
-    delete(serving_cell);
+static sqlite3 * get_db_handle(const char* db_path) {
+    // TODO this should return a DB handle if one already exists
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+    const char *sql;
+    const char* data = "Callback function called";
+
+    rc = sqlite3_open(db_path, &db);
+    // TODO instantiate the DB if it doesn't exist 
+    sql = "CREATE TABLE IF NOT EXISTS \"sib1_data\" ("
+      "mcc int,"
+      "mnc int,"
+      "tac int,"
+      "cid int,"
+      "phyid int,"
+      "earfcn int,"
+      "lat double,"
+      "long double,"
+      "datetime datetime,"
+      "rsrp double,"
+      "sib_blob varbinary );";
+
+    rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
+    if( rc != SQLITE_OK ) {
+        fprintf(stderr, "SQL error: %s\n", zErrMsg);
+        sqlite3_free(zErrMsg);
+    } else {
+        fprintf(stdout, "Operation done successfully\n");
+    }
+
+
+      // TODO: fix this!
+      /**
+      if( rc ) {
+          fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+          return(0);
+      } else {
+          fprintf(stderr, "Opened database successfully\n");
+          return *db;
+      }**/
+      return db;
   }
 
-  std::vector<cell_t*>::iterator it;
-  for (it = neighbour_cells.begin(); it != neighbour_cells.end(); ++it) {
-    delete(*it);
-  }
-}
+  static int write_sib1_data(cell_t *serving_cell, const char* db_path){
+      const char* data = "Callback function called";
+      char *zErrMsg = 0;
 
-static void liblte_rrc_handler(void *ctx, char *str) {
-  rrc *r = (rrc *) ctx;
-  r->liblte_rrc_log(str);
-}
+      sqlite3 * db = get_db_handle(db_path); 
+      printf("Writing to db path: %s\n", db_path);
+      std::ostringstream os;
+      std::string mcc_string = "";
+      std::string mnc_string = "";
+      uint16_t tac = serving_cell->get_tac();
+      uint32_t cid = serving_cell->get_cell_id();
+      uint32_t phyid = serving_cell->get_pci();
+      uint32_t earfcn = serving_cell->get_earfcn(); 
+      long seconds = (unsigned long)time(NULL);
+      // Process GPS coordinates
+      // TODO: replace this with GPSd libraries http://www.catb.org/gpsd/client-howto.html
+      std::string out = exec("/usr/local/bin/gps.sh");
+      std::istringstream iss(out);
+      std::vector<std::string> results(std::istream_iterator<std::string>{iss},
+                                       std::istream_iterator<std::string>());
+      float lat = atof(results[0].c_str());
+      float lon = atof(results[1].c_str());
+      float rsrp = serving_cell->get_rsrp(); 
+      // Sometimes RSRP returns NaN, not sure why it isn't set
+      rsrp==rsrp? rsrp = rsrp:
+                  rsrp = 0.0;
+      
 
-void rrc::liblte_rrc_log(char *str) {
-  if (rrc_log) {
-    rrc_log->warning("[ASN]: %s\n", str);
-  } else {
-    printf("[ASN]: %s\n", str);
+      mcc_to_string(serving_cell->get_mcc(), &mcc_string);
+      mnc_to_string(serving_cell->get_mnc(), &mnc_string);
+      // TODO: Insert the rest of the values
+      os << "INSERT INTO sib1_data (mcc, mnc, tac, cid, phyid, earfcn, datetime, lat, long, rsrp) VALUES (" 
+        <<  mcc_string << "," 
+        << mnc_string << ", " 
+        << tac << ","
+        << cid << ","
+        << phyid << ","
+        << earfcn << ","
+        << seconds << ","
+        << lat << ","
+        << lon << ","
+        << rsrp 
+        << ")";
+      // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
+      const std::string& tmp = os.str();
+      const char* sql = tmp.c_str();
+      printf("SQL QUERY: %s\n", sql);
+      int rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
+      if( rc != SQLITE_OK ) {
+          fprintf(stderr, "SQL error: %s\n", zErrMsg);
+          sqlite3_free(zErrMsg);
+      } else {
+          fprintf(stdout, "Operation done successfully\n");
+      }
+      return rc;
+
+      sqlite3_close(db);
   }
-}
-void rrc::print_mbms()
-{
-  if(rrc_log) {
-    if(serving_cell->has_mcch) {
-      LIBLTE_RRC_MCCH_MSG_STRUCT msg;
-      memcpy(&msg, &serving_cell->mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
-      std::stringstream ss;
-      for(uint32_t i=0;i<msg.pmch_infolist_r9_size; i++){
-        ss << "PMCH: " << i << std::endl;
-        LIBLTE_RRC_PMCH_INFO_R9_STRUCT *pmch = &msg.pmch_infolist_r9[i];
-        for(uint32_t j=0;j<pmch->mbms_sessioninfolist_r9_size; j++) {
-          LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT *sess = &pmch->mbms_sessioninfolist_r9[j];
-          ss << "  Service ID: " << sess->tmgi_r9.serviceid_r9;
-          if(sess->sessionid_r9_present) {
-            ss << ", Session ID: " << (uint32_t)sess->sessionid_r9;
-          }
-          if(sess->tmgi_r9.plmn_id_explicit) {
-            std::string tmp;
-            if(mcc_to_string(sess->tmgi_r9.plmn_id_r9.mcc, &tmp)) {
+
+
+  /*******************************************************************************
+    Base functions 
+  *******************************************************************************/
+
+  rrc::rrc()
+    :state(RRC_STATE_IDLE)
+    ,drb_up(false)
+    ,serving_cell(NULL)
+  {
+    n310_cnt       = 0;
+    n311_cnt       = 0;
+    serving_cell = new cell_t();
+    neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
+    initiated = false;
+    running = false;
+    go_idle = false;
+    go_rlf  = false;
+  }
+
+  rrc::~rrc()
+  {
+    if (serving_cell) {
+      delete(serving_cell);
+    }
+
+    std::vector<cell_t*>::iterator it;
+    for (it = neighbour_cells.begin(); it != neighbour_cells.end(); ++it) {
+      delete(*it);
+    }
+  }
+
+  static void liblte_rrc_handler(void *ctx, char *str) {
+    rrc *r = (rrc *) ctx;
+    r->liblte_rrc_log(str);
+  }
+
+  void rrc::liblte_rrc_log(char *str) {
+    if (rrc_log) {
+      rrc_log->warning("[ASN]: %s\n", str);
+    } else {
+      printf("[ASN]: %s\n", str);
+    }
+  }
+  void rrc::print_mbms()
+  {
+    if(rrc_log) {
+      if(serving_cell->has_mcch) {
+        LIBLTE_RRC_MCCH_MSG_STRUCT msg;
+        memcpy(&msg, &serving_cell->mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
+        std::stringstream ss;
+        for(uint32_t i=0;i<msg.pmch_infolist_r9_size; i++){
+          ss << "PMCH: " << i << std::endl;
+          LIBLTE_RRC_PMCH_INFO_R9_STRUCT *pmch = &msg.pmch_infolist_r9[i];
+          for(uint32_t j=0;j<pmch->mbms_sessioninfolist_r9_size; j++) {
+            LIBLTE_RRC_MBMS_SESSION_INFO_R9_STRUCT *sess = &pmch->mbms_sessioninfolist_r9[j];
+            ss << "  Service ID: " << sess->tmgi_r9.serviceid_r9;
+            if(sess->sessionid_r9_present) {
+              ss << ", Session ID: " << (uint32_t)sess->sessionid_r9;
+            }
+            if(sess->tmgi_r9.plmn_id_explicit) {
+              std::string tmp;
+              if(mcc_to_string(sess->tmgi_r9.plmn_id_r9.mcc, &tmp)) {
               ss << ", MCC: " << tmp;
             }
             if(mnc_to_string(sess->tmgi_r9.plmn_id_r9.mnc, &tmp)) {
@@ -286,7 +408,6 @@ void rrc::run_tti(uint32_t tti) {
     rrc_log->debug("State %s\n", rrc_state_text[state]);
     switch (state) {
       case RRC_STATE_IDLE:
-
         /* CAUTION: The execution of cell_search() and cell_selection() take more than 1 ms
          * and will slow down MAC TTI ticks. This has no major effect at the moment because
          * the UE is in IDLE but we could consider splitting MAC and RRC threads to avoid this
@@ -297,6 +418,7 @@ void rrc::run_tti(uint32_t tti) {
           rrc_log->debug("Running cell selection and reselection in IDLE\n");
           switch(cell_selection()) {
             case rrc::CHANGED_CELL:
+              rrc_log->info("changed cell!!");
               // New cell has been selected, start receiving PCCH
               mac->pcch_start_rx();
               break;
@@ -322,7 +444,7 @@ void rrc::run_tti(uint32_t tti) {
         measurements.run_tti(tti);
         if (go_idle) {
           go_idle = false;
-          leave_connected();
+          leave_connected(); // Leave connected cell.
         }
         if (go_rlf) {
           go_rlf = false;
@@ -481,7 +603,7 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
       mac_timers->timer_get(t300)->run();
 
       // Send connectionRequest message to lower layers
-      send_con_request(cause);
+      // send_con_request(cause);
 
       // Save dedicatedInfoNAS SDU
       if (this->dedicatedInfoNAS) {
@@ -503,7 +625,8 @@ bool rrc::connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
         rrc_log->info("Timer T300 expired: ConnectionRequest timed out\n");
         mac->reset();
         set_mac_default();
-        rlc->reestablish();
+        ret = false;
+        //rlc->reestablish();
       } else {
         // T300 is stopped but RRC not Connected is because received Reject: Section 5.3.3.8
         rrc_log->info("Timer T300 stopped: Received ConnectionReject\n");
@@ -1705,13 +1828,22 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
     if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[i].sib_type) {
       serving_cell->set_sib1(&dlsch_msg.sibs[i].sib.sib1);
       handle_sib1();
+      rrc_log->info("FOUND SIB1 -- LEAVE CONNECTED\n");
+      leave_connected();
+      cell_search();
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib2()) {
+      leave_connected();
+      cell_search();
       serving_cell->set_sib2(&dlsch_msg.sibs[i].sib.sib2);
       handle_sib2();
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib3()) {
+      leave_connected();
+      cell_search();
       serving_cell->set_sib3(&dlsch_msg.sibs[i].sib.sib3);
       handle_sib3();
     }else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib13()) {
+      leave_connected();
+      cell_search();
       serving_cell->set_sib13(&dlsch_msg.sibs[i].sib.sib13);
       handle_sib13();
     }
@@ -1742,6 +1874,9 @@ void rrc::handle_sib1()
   if(sib1->tdd) {
     phy->set_config_tdd(&sib1->tdd_cnfg);
   }
+
+  std::thread thread_sql (write_sib1_data, serving_cell, args.db_path.c_str());
+  thread_sql.detach();
 }
 
 void rrc::handle_sib2()
@@ -1914,8 +2049,8 @@ void rrc::send_ul_ccch_msg()
     rrc_log->debug("Setting UE contention resolution ID: %" PRIu64 "\n", uecri);
     mac->set_contention_id(uecri);
 
-    rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
-    pdcp->write_sdu(RB_ID_SRB0, pdu);
+    // rrc_log->info("Sending %s\n", liblte_rrc_ul_ccch_msg_type_text[ul_ccch_msg.msg_type]);
+    // pdcp->write_sdu(RB_ID_SRB0, pdu);
   }
 }
 

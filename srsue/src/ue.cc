@@ -24,12 +24,12 @@
  *
  */
 
-
 #include "srsue/hdr/ue.h"
 #include "srslte/srslte.h"
 #include <pthread.h>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <algorithm>
 #include <iterator>
 
@@ -228,8 +228,8 @@ bool ue::init(all_args_t *args_) {
   gw.set_tundevname(args->expert.ip_devname);
   
   // Get current band from provided EARFCN
-  args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
-  args->rrc.nof_supported_bands = 1;
+  // args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
+  // args->rrc.nof_supported_bands = 1;
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
 
   // set args and initialize RRC
@@ -238,7 +238,14 @@ bool ue::init(all_args_t *args_) {
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;
-  earfcn_list.push_back(args->rf.dl_earfcn);
+  std::stringstream ss;
+  ss << args->rf.dl_earfcn;
+  while(ss.good())
+  {
+      std::string substr;
+      getline(ss, substr, ',');
+      earfcn_list.push_back(atoi(substr.c_str()));
+  }
   phy.set_earfcn(earfcn_list);
 
   if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {
