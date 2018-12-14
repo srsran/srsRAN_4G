@@ -124,8 +124,8 @@ s1ap::stop()
 
   std::map<uint64_t, nas*>::iterator ue_it = m_imsi_to_nas_ctx.begin();
   while (ue_it!=m_imsi_to_nas_ctx.end()) {
-    m_s1ap_log->info("Deleting UE EMM context. IMSI: %015lu\n", ue_it->first);
-    m_s1ap_log->console("Deleting UE EMM context. IMSI: %015lu\n", ue_it->first);
+    m_s1ap_log->info("Deleting UE EMM context. IMSI: %015" PRIu64 "\n", ue_it->first);
+    m_s1ap_log->console("Deleting UE EMM context. IMSI: %015" PRIu64 "\n", ue_it->first);
     delete ue_it->second;
     m_imsi_to_nas_ctx.erase(ue_it++);
   }
@@ -374,7 +374,7 @@ s1ap::add_nas_ctx_to_imsi_map(nas *nas_ctx)
 {
   std::map<uint64_t, nas*>::iterator ctx_it = m_imsi_to_nas_ctx.find(nas_ctx->m_emm_ctx.imsi);
   if (ctx_it != m_imsi_to_nas_ctx.end()) {
-    m_s1ap_log->error("UE Context already exists. IMSI %015lu",nas_ctx->m_emm_ctx.imsi);
+    m_s1ap_log->error("UE Context already exists. IMSI %015" PRIu64 "",nas_ctx->m_emm_ctx.imsi);
     return false;
   }
   if (nas_ctx->m_ecm_ctx.mme_ue_s1ap_id != 0) {
@@ -385,7 +385,7 @@ s1ap::add_nas_ctx_to_imsi_map(nas *nas_ctx)
     }
   }
   m_imsi_to_nas_ctx.insert(std::pair<uint64_t,nas*>(nas_ctx->m_emm_ctx.imsi, nas_ctx));
-  m_s1ap_log->debug("Saved UE context corresponding to IMSI %015lu\n",nas_ctx->m_emm_ctx.imsi);
+  m_s1ap_log->debug("Saved UE context corresponding to IMSI %015" PRIu64 "\n",nas_ctx->m_emm_ctx.imsi);
   return true;
 }
 
@@ -398,7 +398,7 @@ s1ap::add_nas_ctx_to_mme_ue_s1ap_id_map(nas *nas_ctx)
   }
   std::map<uint32_t, nas*>::iterator ctx_it = m_mme_ue_s1ap_id_to_nas_ctx.find(nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
   if (ctx_it != m_mme_ue_s1ap_id_to_nas_ctx.end()) {
-    m_s1ap_log->error("UE Context already exists. MME UE S1AP Id %015lu",nas_ctx->m_emm_ctx.imsi);
+    m_s1ap_log->error("UE Context already exists. MME UE S1AP Id %015" PRIu64 "",nas_ctx->m_emm_ctx.imsi);
     return false;
   }
   if (nas_ctx->m_emm_ctx.imsi != 0) {
@@ -468,7 +468,7 @@ s1ap::release_ues_ecm_ctx_in_enb(int32_t enb_assoc)
       emm_ctx_t *emm_ctx = &nas_ctx->second->m_emm_ctx;
       ecm_ctx_t *ecm_ctx = &nas_ctx->second->m_ecm_ctx;
 
-      m_s1ap_log->info("Releasing UE context. IMSI: %015lu, UE-MME S1AP Id: %d\n", emm_ctx->imsi, ecm_ctx->mme_ue_s1ap_id);
+      m_s1ap_log->info("Releasing UE context. IMSI: %015" PRIu64 ", UE-MME S1AP Id: %d\n", emm_ctx->imsi, ecm_ctx->mme_ue_s1ap_id);
       if(emm_ctx->state == EMM_STATE_REGISTERED) {
         m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
         emm_ctx->state = EMM_STATE_DEREGISTERED;
@@ -578,7 +578,7 @@ s1ap::allocate_m_tmsi(uint64_t imsi)
   m_next_m_tmsi = (m_next_m_tmsi + 1) % UINT32_MAX;
 
   m_tmsi_to_imsi.insert(std::pair<uint32_t,uint64_t>(m_tmsi,imsi));
-  m_s1ap_log->debug("Allocated M-TMSI 0x%x to IMSI %015lu,\n",m_tmsi,imsi);
+  m_s1ap_log->debug("Allocated M-TMSI 0x%x to IMSI %015" PRIu64 ",\n",m_tmsi,imsi);
   return m_tmsi;
 }
 
@@ -587,7 +587,7 @@ s1ap::find_imsi_from_m_tmsi(uint32_t m_tmsi)
 {
   std::map<uint32_t,uint64_t>::iterator it = m_tmsi_to_imsi.find(m_tmsi);
   if (it != m_tmsi_to_imsi.end()) {
-    m_s1ap_log->debug("Found IMSI %015lu from M-TMSI 0x%x\n", it->second, m_tmsi);
+    m_s1ap_log->debug("Found IMSI %015" PRIu64 " from M-TMSI 0x%x\n", it->second, m_tmsi);
     return it->second;
   } else {
     m_s1ap_log->debug("Could not find IMSI from M-TMSI 0x%x\n", m_tmsi);

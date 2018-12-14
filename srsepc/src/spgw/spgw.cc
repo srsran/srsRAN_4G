@@ -478,7 +478,7 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   //Check if IMSI has active GTP-C and/or GTP-U
   bool gtpc_present = m_imsi_to_ctr_teid.count(cs_req->imsi);
   if (gtpc_present) {
-    m_spgw_log->console("SPGW: GTP-C context for IMSI %015lu already exists.\n", cs_req->imsi);
+    m_spgw_log->console("SPGW: GTP-C context for IMSI %015" PRIu64 " already exists.\n", cs_req->imsi);
     delete_gtp_ctx(m_imsi_to_ctr_teid[cs_req->imsi]);
     m_spgw_log->console("SPGW: Deleted previous context.\n");
   }
