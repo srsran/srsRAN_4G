@@ -230,8 +230,8 @@ bool ue::init(all_args_t *args_) {
  
   std::vector<uint32_t> earfcn_list;
 
-  if(! args->rf.dl_earfcn_list.empty()) {
-      std::stringstream ss(args->rf.dl_earfcn_list);
+  if(! args->rf.dl_earfcn.empty()) {
+      std::stringstream ss(args->rf.dl_earfcn);
       int idx = 0;
       while(ss.good()) {
          std::string substr;
@@ -241,12 +241,11 @@ bool ue::init(all_args_t *args_) {
          args->rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
          args->rrc.nof_supported_bands = ++idx;
          earfcn_list.push_back(earfcn);
+         printf("adding %d to earfcn_list\n", earfcn);
       }
    } else {
-    // Get current band from provided EARFCN
-    args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
-    args->rrc.nof_supported_bands = 1;
-    earfcn_list.push_back(args->rf.dl_earfcn);
+    printf("error: dl_earfcn list is empty\n");
+    return false;
   }
 
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
