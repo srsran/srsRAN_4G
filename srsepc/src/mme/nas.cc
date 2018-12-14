@@ -100,8 +100,8 @@ nas::handle_attach_request( uint32_t enb_ue_s1ap_id,
     }
     nas_log->console("Attach request -- IMSI Style Attach request\n");
     nas_log->info("Attach request -- IMSI Style Attach request\n");
-    nas_log->console("Attach request -- IMSI: %015llu\n", imsi);
-    nas_log->info("Attach request -- IMSI: %015llu\n", imsi);
+    nas_log->console("Attach request -- IMSI: %015" PRIu64 "\n", imsi);
+    nas_log->info("Attach request -- IMSI: %015" PRIu64 "\n", imsi);
   } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
     m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
     imsi = s1ap->find_imsi_from_m_tmsi(m_tmsi);
@@ -229,8 +229,8 @@ nas::handle_imsi_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
 
   //Get Authentication Vectors from HSS
   if (!hss->gen_auth_info_answer(nas_ctx->m_emm_ctx.imsi, nas_ctx->m_sec_ctx.k_asme, nas_ctx->m_sec_ctx.autn, nas_ctx->m_sec_ctx.rand, nas_ctx->m_sec_ctx.xres)) {
-    nas_log->console("User not found. IMSI %015llu\n",nas_ctx->m_emm_ctx.imsi);
-    nas_log->info("User not found. IMSI %015llu\n",nas_ctx->m_emm_ctx.imsi);
+    nas_log->console("User not found. IMSI %015" PRIu64 "\n",nas_ctx->m_emm_ctx.imsi);
+    nas_log->info("User not found. IMSI %015" PRIu64 "\n",nas_ctx->m_emm_ctx.imsi);
     delete nas_ctx;
     return false;
   }
@@ -378,7 +378,7 @@ nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
   ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
   sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
 
-  nas_log->console("Found UE context. IMSI: %015lu, old eNB UE S1ap Id %d, old MME UE S1AP Id %d\n", emm_ctx->imsi, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
+  nas_log->console("Found UE context. IMSI: %015" PRIu64 ", old eNB UE S1ap Id %d, old MME UE S1AP Id %d\n", emm_ctx->imsi, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
 
   //Check NAS integrity
   sec_ctx->ul_nas_count++;
@@ -486,8 +486,8 @@ nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
 
     //Get Authentication Vectors from HSS
     if (!hss->gen_auth_info_answer(emm_ctx->imsi, sec_ctx->k_asme, sec_ctx->autn, sec_ctx->rand, sec_ctx->xres)) {
-      nas_log->console("User not found. IMSI %015llu\n", emm_ctx->imsi);
-      nas_log->info("User not found. IMSI %015llu\n", emm_ctx->imsi);
+      nas_log->console("User not found. IMSI %015" PRIu64 "\n", emm_ctx->imsi);
+      nas_log->info("User not found. IMSI %015" PRIu64 "\n", emm_ctx->imsi);
       return false;
     }
 
@@ -729,8 +729,8 @@ nas::handle_authentication_response(srslte::byte_buffer_t *nas_rx)
   }
 
   //Log received authentication response
-  m_nas_log->console("Authentication Response -- IMSI %015lu\n", m_emm_ctx.imsi);
-  m_nas_log->info("Authentication Response -- IMSI %015lu\n", m_emm_ctx.imsi);
+  m_nas_log->console("Authentication Response -- IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
+  m_nas_log->info("Authentication Response -- IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
   m_nas_log->info_hex(auth_resp.res,8, "Authentication response -- RES");
   m_nas_log->info_hex(m_sec_ctx.xres,8, "Authentication response -- XRES");
 
@@ -905,16 +905,16 @@ nas::handle_identity_response(srslte::byte_buffer_t *nas_rx)
     imsi  += id_resp.mobile_id.imsi[i]*std::pow(10,14-i);
   }
 
-  m_nas_log->info("ID response -- IMSI: %015lu\n", imsi);
-  m_nas_log->console("ID Response -- IMSI: %015lu\n", imsi);
+  m_nas_log->info("ID response -- IMSI: %015" PRIu64 "\n", imsi);
+  m_nas_log->console("ID Response -- IMSI: %015" PRIu64 "\n", imsi);
 
   //Set UE's IMSI
   m_emm_ctx.imsi=imsi;
 
   //Get Authentication Vectors from HSS
   if (!m_hss->gen_auth_info_answer(imsi, m_sec_ctx.k_asme, m_sec_ctx.autn, m_sec_ctx.rand, m_sec_ctx.xres)) {
-    m_nas_log->console("User not found. IMSI %015lu\n",imsi);
-    m_nas_log->info("User not found. IMSI %015lu\n",imsi);
+    m_nas_log->console("User not found. IMSI %015" PRIu64 "\n",imsi);
+    m_nas_log->info("User not found. IMSI %015" PRIu64 "\n",imsi);
     return false;
   }
   //Identity reponse from unknown GUTI atach. Assigning new eKSI.
@@ -979,14 +979,14 @@ nas::handle_authentication_failure(srslte::byte_buffer_t *nas_rx)
       return false;
     }
     if (!m_hss->resync_sqn(m_emm_ctx.imsi, auth_fail.auth_fail_param)) {
-      m_nas_log->console("Resynchronization failed. IMSI %015lu\n", m_emm_ctx.imsi);
-      m_nas_log->info("Resynchronization failed. IMSI %015lu\n", m_emm_ctx.imsi);
+      m_nas_log->console("Resynchronization failed. IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
+      m_nas_log->info("Resynchronization failed. IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
       return false;
     }
     //Get Authentication Vectors from HSS
     if (!m_hss->gen_auth_info_answer(m_emm_ctx.imsi, m_sec_ctx.k_asme, m_sec_ctx.autn, m_sec_ctx.rand, m_sec_ctx.xres)) {
-      m_nas_log->console("User not found. IMSI %015lu\n", m_emm_ctx.imsi);
-      m_nas_log->info("User not found. IMSI %015lu\n", m_emm_ctx.imsi);
+      m_nas_log->console("User not found. IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
+      m_nas_log->info("User not found. IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
       return false;
     }
 
@@ -1013,8 +1013,8 @@ bool
 nas::handle_detach_request(srslte::byte_buffer_t *nas_msg)
 {
 
-  m_nas_log->console("Detach request -- IMSI %015lu\n", m_emm_ctx.imsi);
-  m_nas_log->info("Detach request -- IMSI %015lu\n", m_emm_ctx.imsi);
+  m_nas_log->console("Detach request -- IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
+  m_nas_log->info("Detach request -- IMSI %015" PRIu64 "\n", m_emm_ctx.imsi);
   LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*) nas_msg, &detach_req);
