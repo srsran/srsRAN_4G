@@ -14469,7 +14469,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_servedgummeis(
     }
     // Length
     liblte_value_2_bits(ie->len-1, ptr, 3);
-    liblte_align_up_zero(ptr, 8);
+    // liblte_align_up_zero(ptr, 8);
     uint32_t i;
     for(i=0;i<ie->len;i++) {
       if(liblte_s1ap_pack_servedgummeisitem(&ie->buffer[i], ptr) != LIBLTE_SUCCESS) {
@@ -14492,7 +14492,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_servedgummeis(
   {
     // Length
     ie->len = liblte_bits_2_value(ptr, 3) + 1;
-    liblte_align_up(ptr, 8);
+    // liblte_align_up(ptr, 8);
     if(ie->len > 32) {
       liblte_log_print("ServedGUMMEIs unpack error - max supported dynamic sequence length = 32, ie->len = %d\n", ie->len);
       return LIBLTE_ERROR_DECODE_FAIL;
