@@ -148,7 +148,25 @@ bool ue::init(all_args_t *args_) {
     phy.start_trace();
     radio.start_trace();
   }
-  
+
+  // populate EARFCN list
+  std::vector<uint32_t> earfcn_list;
+  if (!args->rf.dl_earfcn.empty()) {
+    std::stringstream ss(args->rf.dl_earfcn);
+    int idx = 0;
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      const int earfcn               = atoi(substr.c_str());
+      args->rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
+      args->rrc.nof_supported_bands  = ++idx;
+      earfcn_list.push_back(earfcn);
+    }
+  } else {
+    printf("Error: dl_earfcn list is empty\n");
+    return false;
+  }
+
   // Init layers
 
   // Init USIM first to allow early exit in case reader couldn't be found
@@ -227,26 +245,6 @@ bool ue::init(all_args_t *args_) {
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
   gw.set_tundevname(args->expert.ip_devname);
- 
-  std::vector<uint32_t> earfcn_list;
-
-  if(! args->rf.dl_earfcn.empty()) {
-      std::stringstream ss(args->rf.dl_earfcn);
-      int idx = 0;
-      while(ss.good()) {
-         std::string substr;
-         getline(ss, substr, ',');
-        
-         const int earfcn = atoi(substr.c_str());
-         args->rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
-         args->rrc.nof_supported_bands = ++idx;
-         earfcn_list.push_back(earfcn);
-         printf("adding %d to earfcn_list\n", earfcn);
-      }
-   } else {
-    printf("error: dl_earfcn list is empty\n");
-    return false;
-  }
 
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
 
