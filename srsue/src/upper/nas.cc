@@ -1049,8 +1049,24 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   ctxt.tx_count++;
 }
 
-void nas::parse_service_reject(uint32_t lcid, byte_buffer_t *pdu) {
-  nas_log->error("TODO:parse_service_reject\n");
+void nas::parse_service_reject(uint32_t lcid, byte_buffer_t* pdu)
+{
+  LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT service_reject;
+  if (liblte_mme_unpack_service_reject_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu, &service_reject)) {
+    nas_log->error("Error unpacking service reject.\n");
+    goto exit;
+  }
+
+  nas_log->console("Received service reject with EMM cause=0x%x.\n", service_reject.emm_cause);
+  if (service_reject.t3446_present) {
+    nas_log->info("Received service reject with EMM cause=0x%x and t3446=%d\n", service_reject.emm_cause,
+                  service_reject.t3446);
+  }
+
+  // FIXME: handle NAS backoff-timers correctly
+
+exit:
+  ctxt.rx_count++;
   pool->deallocate(pdu);
 }
 
