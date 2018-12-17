@@ -46,6 +46,12 @@ pdcp_entity::pdcp_entity()
   rx_count = 0;
   cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
+  pthread_mutex_init(&mutex, NULL);
+}
+
+pdcp_entity::~pdcp_entity()
+{
+  pthread_mutex_destroy(&mutex);
 }
 
 void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
@@ -119,6 +125,8 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu, bool blocking)
         rrc->get_rb_name(lcid).c_str(), tx_count,
         (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
+  pthread_mutex_lock(&mutex);
+
   if (cfg.is_control) {
     pdcp_pack_control_pdu(tx_count, sdu);
     if(do_integrity) {
@@ -143,6 +151,8 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu, bool blocking)
     log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
   }
   tx_count++;
+
+  pthread_mutex_unlock(&mutex);
 
   rlc->write_sdu(lcid, sdu, blocking);
 }
@@ -182,6 +192,8 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
     pool->deallocate(pdu);
     return;
   }
+
+  pthread_mutex_lock(&mutex);
 
   // Handle DRB messages
   if (cfg.is_data) {
@@ -231,6 +243,7 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
   }
 exit:
   rx_count++;
+  pthread_mutex_unlock(&mutex);
 }
 
 void pdcp_entity::integrity_generate( uint8_t  *msg,
