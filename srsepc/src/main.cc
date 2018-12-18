@@ -174,7 +174,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   // if no config file given, check users home path
   if (!vm.count("config_file")) {
     if (!config_exists(config_file, "epc.conf")) {
-      cout << "Failed to read ePC configuration file " << config_file << " - exiting" << endl;
+      cout << "Failed to read EPC configuration file " << config_file << " - exiting" << endl;
       exit(1);
     }
   }

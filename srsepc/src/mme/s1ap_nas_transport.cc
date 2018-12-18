@@ -97,6 +97,8 @@ bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUE
   nas_init.tac       = m_s1ap->m_s1ap_args.tac;
   nas_init.apn       = m_s1ap->m_s1ap_args.mme_apn;
   nas_init.dns       = m_s1ap->m_s1ap_args.dns_addr;
+  nas_init.integ_algo  = m_s1ap->m_s1ap_args.integrity_algo;
+  nas_init.cipher_algo = m_s1ap->m_s1ap_args.encryption_algo;
 
   if(init_ue->S_TMSI_present){
     srslte::uint8_to_uint32(init_ue->S_TMSI.m_TMSI.buffer, &m_tmsi);
@@ -229,8 +231,9 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
   // - DETACH REQUEST;
   // - DETACH ACCEPT;
   // - TRACKING AREA UPDATE REQUEST.
-  m_s1ap_log->info("UL NAS: sec_hdr_type: 0x%x, mac_vaild: %s, msg_encrypted: %s\n", sec_hdr_type,
-                   mac_valid == true ? "yes" : "no", msg_encrypted == true ? "yes" : "no");
+  m_s1ap_log->info("UL NAS: sec_hdr_type: %s, mac_vaild: %s, msg_encrypted: %s\n",
+                   liblte_nas_sec_hdr_type_to_string(sec_hdr_type), mac_valid == true ? "yes" : "no",
+                   msg_encrypted == true ? "yes" : "no");
 
   switch (msg_type)
   {
@@ -269,8 +272,8 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
       nas_ctx->handle_security_mode_complete(nas_msg);
     } else {
       // Security Mode Complete was not integrity protected
-      m_s1ap_log->console("Security Mode Complete not integrity protected. Discard message.\n");
-      m_s1ap_log->warning("Security Mode Complete not integrity protected. Discard message.\n");
+      m_s1ap_log->console("Security Mode Complete %s. Discard message.\n", (mac_valid ? "not integrity protected": "invalid integrity"));
+      m_s1ap_log->warning("Security Mode Complete %s. Discard message.\n", (mac_valid ? "not integrity protected": "invalid integrity"));
       increase_ul_nas_cnt = false;
     }
     break;

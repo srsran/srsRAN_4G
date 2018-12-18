@@ -52,7 +52,10 @@ nas::init(nas_init_t args,
   m_tac       = args.tac;
   m_apn       = args.apn;
   m_dns       = args.dns;
-
+  
+  m_sec_ctx.integ_algo= args.integ_algo; 
+  m_sec_ctx.cipher_algo= args.cipher_algo; 
+  
   m_s1ap    = s1ap;
   m_gtpc    = gtpc;
   m_hss     = hss;
@@ -1470,10 +1473,11 @@ bool nas::integrity_check(srslte::byte_buffer_t *pdu)
   // Check if expected mac equals the sent mac
   for (i = 0; i < 4; i++) {
     if (exp_mac[i] != mac[i]) {
-      m_nas_log->warning("Integrity check failure. UL Local: count=%d, [%02x %02x %02x %02x], "
-                          "Received: UL count=%d, [%02x %02x %02x %02x]\n",
-                          m_sec_ctx.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
-                          pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
+      m_nas_log->warning("Integrity check failure. Algorithm=EIA%d\n", (int)m_sec_ctx.integ_algo);
+      m_nas_log->warning("UL Local: count=%d, MAC=[%02x %02x %02x %02x], "
+                         "Received: UL count=%d, MAC=[%02x %02x %02x %02x]\n",
+                         m_sec_ctx.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3], pdu->msg[5], mac[0],
+                         mac[1], mac[2], mac[3]);
       return false;
     }
   }

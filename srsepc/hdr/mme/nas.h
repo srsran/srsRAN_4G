@@ -142,6 +142,8 @@ typedef struct {
   uint16_t tac;
   std::string apn;
   std::string dns;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 } nas_init_t;
 
 class nas
