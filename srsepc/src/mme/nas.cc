@@ -612,7 +612,7 @@ nas::handle_service_request( uint32_t m_tmsi,
     s1ap->send_initial_context_setup_request(imsi,5);
   } else {
     nas_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
-    nas_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
+    nas_log->warning("Service Request -- Short MAC invalid. Ignoring service request\n");
   }
   return true;
 }
@@ -1257,7 +1257,7 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   act_def_eps_bearer_context_req.eps_qos.br_ext_present = false;
 
   //set apn
-  strncpy(act_def_eps_bearer_context_req.apn.apn, m_apn.c_str(), LIBLTE_STRING_LEN);
+  strncpy(act_def_eps_bearer_context_req.apn.apn, m_apn.c_str(), LIBLTE_STRING_LEN-1);
   act_def_eps_bearer_context_req.proc_transaction_id = m_emm_ctx.procedure_transaction_id; //FIXME
 
   //Set DNS server
@@ -1385,65 +1385,172 @@ nas::pack_service_reject(srslte::byte_buffer_t *nas_buffer)
  * Security Functions
  *
  ************************/
-bool
-nas::short_integrity_check(srslte::byte_buffer_t *pdu)
+bool nas::short_integrity_check(srslte::byte_buffer_t* pdu)
 {
-  uint8_t exp_mac[4];
-  uint8_t *mac = &pdu->msg[2];
+  uint8_t  exp_mac[4] = {0x00, 0x00, 0x00, 0x00};
+  uint8_t* mac        = &pdu->msg[2];
+  int      i;
+
+  if (pdu->N_bytes < 4) {
+    m_nas_log->warning("NAS message to short for short integrity check (pdu len: %d)", pdu->N_bytes);
+    return false;
+  }
+
+  switch (m_sec_ctx.integ_algo)
+  {
+  case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+    srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
+                              m_sec_ctx.ul_nas_count,
+                              0,
+                              SECURITY_DIRECTION_UPLINK,
+                              &pdu->msg[0],
+                              2,
+                              &exp_mac[0]);
+    break;
+  case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+    srslte::security_128_eia2(&m_sec_ctx.k_nas_int[16],
+                              m_sec_ctx.ul_nas_count,
+                              0,
+                              SECURITY_DIRECTION_UPLINK,
+                              &pdu->msg[0],
+                              2,
+                              &exp_mac[0]);
+    break;
+  default:
+    break;
+  }
+  // Check if expected mac equals the sent mac
+  for (i = 0; i < 2; i++) {
+    if (exp_mac[i + 2] != mac[i]) {
+      m_nas_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
+                         "Received: count=%d, [%02x %02x]\n",
+                         m_sec_ctx.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3], pdu->msg[1] & 0x1F,
+                         mac[0], mac[1]);
+      return false;
+    }
+  }
+  m_nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n", m_sec_ctx.ul_nas_count,
+                  pdu->msg[1] & 0x1F);
+  return true;
+}
+
+bool nas::integrity_check(srslte::byte_buffer_t *pdu)
+{
+  uint8_t exp_mac[4] = {0x00, 0x00, 0x00, 0x00};
+  uint8_t *mac = &pdu->msg[1];
   int i;
 
-  srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
-                     m_sec_ctx.ul_nas_count,
-                     0,
-                     SECURITY_DIRECTION_UPLINK,
-                     &pdu->msg[0],
-                     2,
-                     &exp_mac[0]);
-
+  switch (m_sec_ctx.integ_algo)
+  {
+  case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+    srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
+                              m_sec_ctx.ul_nas_count,
+                              0,
+                              SECURITY_DIRECTION_UPLINK,
+                              &pdu->msg[5],
+                              pdu->N_bytes - 5,
+                              &exp_mac[0]);
+    break;
+  case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+    srslte::security_128_eia2(&m_sec_ctx.k_nas_int[16],
+                              m_sec_ctx.ul_nas_count,
+                              0,
+                              SECURITY_DIRECTION_UPLINK,
+                              &pdu->msg[5],
+                              pdu->N_bytes - 5,
+                              &exp_mac[0]);
+    break;
+  default:
+    break;
+  }
   // Check if expected mac equals the sent mac
-  for(i=0; i<2; i++){
-    if(exp_mac[i+2] != mac[i]){
-      m_nas_log->warning("Short integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
-                          "Received: count=%d, [%02x %02x]\n",
+  for (i = 0; i < 4; i++) {
+    if (exp_mac[i] != mac[i]) {
+      m_nas_log->warning("Integrity check failure. UL Local: count=%d, [%02x %02x %02x %02x], "
+                          "Received: UL count=%d, [%02x %02x %02x %02x]\n",
                           m_sec_ctx.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
-                          pdu->msg[1] & 0x1F, mac[0], mac[1]);
+                          pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
       return false;
     }
   }
   m_nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                  m_sec_ctx.ul_nas_count, pdu->msg[1] & 0x1F);
+                   m_sec_ctx.ul_nas_count, pdu->msg[5]);
   return true;
 }
 
 
-bool
-nas::integrity_check(srslte::byte_buffer_t *pdu)
+void nas::cipher_decrypt(srslte::byte_buffer_t *pdu)
 {
-  uint8_t exp_mac[4];
-  uint8_t *mac = &pdu->msg[1];
-  int i;
-
-  srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
-                     m_sec_ctx.ul_nas_count,
-                     0,
-                     SECURITY_DIRECTION_UPLINK,
-                     &pdu->msg[5],
-                     pdu->N_bytes-5,
-                     &exp_mac[0]);
-
-  // Check if expected mac equals the sent mac
-  for(i=0; i<4; i++){
-    if(exp_mac[i] != mac[i]){
-      m_nas_log->warning("Integrity check failure. UL Local: count=%d, [%02x %02x %02x %02x], "
-                       "Received: UL count=%d, [%02x %02x %02x %02x]\n",
-                       m_sec_ctx.ul_nas_count, exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3],
-                       pdu->msg[5], mac[0], mac[1], mac[2], mac[3]);
-      return false;
-    }
+  srslte::byte_buffer_t tmp_pdu;
+  switch(m_sec_ctx.cipher_algo)
+  {
+  case srslte::CIPHERING_ALGORITHM_ID_EEA0:
+      break;
+  case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
+      srslte::security_128_eea1(&m_sec_ctx.k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_UPLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &tmp_pdu.msg[6]);
+      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+      m_nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+      break;
+  case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
+      srslte::security_128_eea2(&m_sec_ctx.k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_UPLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &tmp_pdu.msg[6]);
+      m_nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+      break;
+    default:
+      m_nas_log->error("Ciphering algorithms not known\n");
+      break;
   }
-  m_nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
-                m_sec_ctx.ul_nas_count, pdu->msg[5]);
-    return true;
+}
+
+void nas::cipher_encrypt(srslte::byte_buffer_t *pdu)
+{
+  srslte::byte_buffer_t pdu_tmp;
+  switch(m_sec_ctx.cipher_algo)
+  {
+  case srslte::CIPHERING_ALGORITHM_ID_EEA0:
+      break;
+  case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
+      srslte::security_128_eea1(&m_sec_ctx.k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &pdu_tmp.msg[6]);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+      m_nas_log->debug_hex(pdu_tmp.msg, pdu->N_bytes, "Encrypted");
+      break;
+  case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
+      srslte::security_128_eea2(&m_sec_ctx.k_nas_enc[16],
+                        pdu->msg[5],
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[6],
+                        pdu->N_bytes-6,
+                        &pdu_tmp.msg[6]);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+      m_nas_log->debug_hex(pdu_tmp.msg, pdu->N_bytes, "Encrypted");
+      break;
+  default:
+      m_nas_log->error("Ciphering algorithm not known\n");
+      break;
+  }
 }
 
 } //namespace srsepc
