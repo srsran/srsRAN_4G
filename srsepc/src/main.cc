@@ -87,6 +87,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string mnc;
   string mme_bind_addr;
   string mme_apn;
+  string encryption_algo;
+  string integrity_algo;
   string spgw_bind_addr;
   string sgi_if_addr;
   string sgi_if_name;
@@ -115,6 +117,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("mme.mme_bind_addr",   bpo::value<string>(&mme_bind_addr)->default_value("127.0.0.1"),  "IP address of MME for S1 connection")
     ("mme.dns_addr",        bpo::value<string>(&dns_addr)->default_value("8.8.8.8"),         "IP address of the DNS server for the UEs")
     ("mme.apn",             bpo::value<string>(&mme_apn)->default_value(""),                 "Set Access Point Name (APN) for data services")
+    ("mme.encryption_algo", bpo::value<string>(&encryption_algo)->default_value("EEA0"),     "Set preferred encryption algorithm for NAS layer ")
+    ("mme.integrity_algo",  bpo::value<string>(&integrity_algo)->default_value("EIA1"),      "Set preferred integrity protection algorithm for NAS")
     ("hss.db_file",         bpo::value<string>(&hss_db_file)->default_value("ue_db.csv"),    ".csv file that stores UE's keys")
     ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),   "HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"), "IP address of SP-GW for the S1-U connection")
@@ -217,6 +221,31 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   }
   if(!srslte::string_to_mnc(mnc, &args->hss_args.mnc)) {
     cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
+  }
+
+  if(boost::iequals(encryption_algo, "eea0")){
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+  } else if (boost::iequals(encryption_algo, "eea1")){
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+  } else if (boost::iequals(encryption_algo, "eea2")){
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+  } else{
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+    cout << "Error parsing mme.encryption_algo:" << encryption_algo << " - must be EEA0, EEA1, or EEA2." << endl;
+    cout << "Using default mme.encryption_algo: EEA0" << endl;
+  }
+
+  if (boost::iequals(integrity_algo, "eia0")){
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+    cout << "Warning parsing mme.integrity_algo:" << encryption_algo << " - EIA0 will not supported by UEs use EIA1 or EIA2" << endl;
+  } else if (boost::iequals(integrity_algo, "eia1")) {
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+  } else if (boost::iequals(integrity_algo, "eia2")) {
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+  } else {
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+    cout << "Error parsing mme.integrity_algo:" << encryption_algo << " - must be EIA0, EIA1, or EIA2." << endl;
+    cout << "Using default mme.integrity_algo: EIA1" << endl;
   }
 
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;

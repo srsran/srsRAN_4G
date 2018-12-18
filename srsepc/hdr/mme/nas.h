@@ -245,28 +245,33 @@ public:
                                                    srslte::log        *nas_log);
 
   /* Uplink NAS messages handling */
-  bool handle_authentication_response      (srslte::byte_buffer_t *nas_rx);
-  bool handle_security_mode_complete       (srslte::byte_buffer_t *nas_rx);
-  bool handle_attach_complete              (srslte::byte_buffer_t *nas_rx);
-  bool handle_esm_information_response     (srslte::byte_buffer_t *nas_rx);
-  bool handle_identity_response            (srslte::byte_buffer_t *nas_rx);
-  bool handle_tracking_area_update_request (srslte::byte_buffer_t *nas_rx);
-  bool handle_authentication_failure       (srslte::byte_buffer_t *nas_rx);
-  bool handle_detach_request           (srslte::byte_buffer_t *nas_rx);
+  bool handle_authentication_response(srslte::byte_buffer_t* nas_rx);
+  bool handle_security_mode_complete(srslte::byte_buffer_t* nas_rx);
+  bool handle_attach_complete(srslte::byte_buffer_t* nas_rx);
+  bool handle_esm_information_response(srslte::byte_buffer_t* nas_rx);
+  bool handle_identity_response(srslte::byte_buffer_t* nas_rx);
+  bool handle_tracking_area_update_request(srslte::byte_buffer_t* nas_rx);
+  bool handle_authentication_failure(srslte::byte_buffer_t* nas_rx);
+  bool handle_detach_request(srslte::byte_buffer_t* nas_rx);
 
   /* Downlink NAS messages packing */
-  bool pack_authentication_request  (srslte::byte_buffer_t *nas_buffer);
-  bool pack_authentication_reject   (srslte::byte_buffer_t *nas_buffer);
-  bool pack_security_mode_command   (srslte::byte_buffer_t *nas_buffer);
-  bool pack_esm_information_request (srslte::byte_buffer_t *nas_buffer);
-  bool pack_identity_request        (srslte::byte_buffer_t *nas_buffer);
-  bool pack_emm_information         (srslte::byte_buffer_t *nas_buffer);
-  bool pack_service_reject          (srslte::byte_buffer_t *nas_buffer);
-  bool pack_attach_accept           (srslte::byte_buffer_t *nas_buffer);
+  bool pack_authentication_request(srslte::byte_buffer_t* nas_buffer);
+  bool pack_authentication_reject(srslte::byte_buffer_t* nas_buffer);
+  bool pack_security_mode_command(srslte::byte_buffer_t* nas_buffer);
+  bool pack_esm_information_request(srslte::byte_buffer_t* nas_buffer);
+  bool pack_identity_request(srslte::byte_buffer_t* nas_buffer);
+  bool pack_emm_information(srslte::byte_buffer_t* nas_buffer);
+  bool pack_service_reject(srslte::byte_buffer_t* nas_buffer);
+  bool pack_attach_accept(srslte::byte_buffer_t* nas_buffer);
 
   /* Security functions */
   bool integrity_check       (srslte::byte_buffer_t *pdu);
   bool short_integrity_check (srslte::byte_buffer_t *pdu);
+
+  void cipher_decrypt(eps_sec_ctx_t* sec_ctxt, srslte::byte_buffer_t* pdu);
+  void cipher_encrypt(eps_sec_ctx_t* sec_ctxt, srslte::byte_buffer_t* pdu);
+
+  void integrity_generate(eps_sec_ctx_t* sec_ctxt, srslte::byte_buffer_t* pdu, uint8_t* mac);
 
   /* UE Context */
   emm_ctx_t m_emm_ctx;
