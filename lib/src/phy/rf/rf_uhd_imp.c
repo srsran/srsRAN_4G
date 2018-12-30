@@ -466,6 +466,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_error error = uhd_usrp_make(&handler->usrp, args);
     if (error) {
       fprintf(stderr, "Error opening UHD: code %d\n", error);
+      free(handler);
       return -1; 
     }
 
