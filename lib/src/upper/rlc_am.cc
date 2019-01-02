@@ -38,16 +38,7 @@
 
 namespace srslte {
 
-rlc_am::rlc_am(uint32_t queue_len)
-  :tx(this, queue_len)
-  ,rx(this)
-  ,log(NULL)
-  ,rrc(NULL)
-  ,pdcp(NULL)
-  ,mac_timers(NULL)
-  ,lcid(0)
-  ,rb_name("")
-  ,cfg()
+rlc_am::rlc_am() : tx(this), rx(this), log(NULL), rrc(NULL), pdcp(NULL), mac_timers(NULL), lcid(0), rb_name(""), cfg()
 {
 }
 
@@ -80,7 +71,7 @@ bool rlc_am::configure(srslte_rlc_config_t cfg_)
     return false;
   }
 
-  if (not tx.configure(cfg_.am)) {
+  if (not tx.configure(cfg_)) {
     return false;
   }
 
@@ -176,26 +167,25 @@ void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
  * Tx subclass implementation
  ***************************************************************************/
 
-rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_, uint32_t queue_len_)
-  :parent(parent_)
-  ,poll_retx_timer(NULL)
-  ,poll_retx_timer_id(0)
-  ,status_prohibit_timer(NULL)
-  ,status_prohibit_timer_id(0)
-  ,vt_a(0)
-  ,vt_ms(RLC_AM_WINDOW_SIZE)
-  ,vt_s(0)
-  ,status_prohibited(false)
-  ,poll_sn(0)
-  ,num_tx_bytes(0)
-  ,pdu_without_poll(0)
-  ,byte_without_poll(0)
-  ,tx_sdu(NULL)
-  ,tx_sdu_queue(queue_len_)
-  ,log(NULL)
-  ,cfg()
-  ,pool(byte_buffer_pool::get_instance())
-  ,tx_enabled(false)
+rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
+  parent(parent_),
+  poll_retx_timer(NULL),
+  poll_retx_timer_id(0),
+  status_prohibit_timer(NULL),
+  status_prohibit_timer_id(0),
+  vt_a(0),
+  vt_ms(RLC_AM_WINDOW_SIZE),
+  vt_s(0),
+  status_prohibited(false),
+  poll_sn(0),
+  num_tx_bytes(0),
+  pdu_without_poll(0),
+  byte_without_poll(0),
+  tx_sdu(NULL),
+  log(NULL),
+  cfg(),
+  pool(byte_buffer_pool::get_instance()),
+  tx_enabled(false)
 {
   pthread_mutex_init(&mutex, NULL);
   ZERO_OBJECT(tx_status);
@@ -219,10 +209,10 @@ void rlc_am::rlc_am_tx::init()
   }
 }
 
-bool rlc_am::rlc_am_tx::configure(srslte_rlc_am_config_t cfg_)
+bool rlc_am::rlc_am_tx::configure(srslte_rlc_config_t cfg_)
 {
   // TODO: add config checks
-  cfg = cfg_;
+  cfg = cfg_.am;
 
   // check timers
   if (poll_retx_timer == NULL or status_prohibit_timer == NULL) {
@@ -237,6 +227,8 @@ bool rlc_am::rlc_am_tx::configure(srslte_rlc_am_config_t cfg_)
   if (cfg.t_poll_retx > 0) {
     poll_retx_timer->set(this, static_cast<uint32_t>(cfg.t_poll_retx));
   }
+
+  tx_sdu_queue.resize(cfg_.tx_queue_length);
 
   tx_enabled = true;
 

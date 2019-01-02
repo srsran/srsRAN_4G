@@ -36,12 +36,7 @@ using namespace asn1::rrc;
 
 namespace srslte {
 
-rlc_um::rlc_um(uint32_t queue_len)
-    :lcid(0)
-    ,tx(queue_len)
-    ,pool(byte_buffer_pool::get_instance())
-    ,rrc(NULL)
-    ,log(NULL)
+rlc_um::rlc_um() : lcid(0), tx(), pool(byte_buffer_pool::get_instance()), rrc(NULL), log(NULL)
 {
   bzero(&cfg, sizeof(srslte_rlc_um_config_t));
 }
@@ -221,14 +216,13 @@ std::string rlc_um::get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bo
  * Tx subclass implementation
  ***************************************************************************/
 
-rlc_um::rlc_um_tx::rlc_um_tx(uint32_t queue_len)
-    :tx_sdu_queue(queue_len)
-    ,pool(byte_buffer_pool::get_instance())
-    ,log(NULL)
-    ,tx_sdu(NULL)
-    ,vt_us(0)
-    ,tx_enabled(false)
-    ,num_tx_bytes(0)
+rlc_um::rlc_um_tx::rlc_um_tx() :
+  pool(byte_buffer_pool::get_instance()),
+  log(NULL),
+  tx_sdu(NULL),
+  vt_us(0),
+  tx_enabled(false),
+  num_tx_bytes(0)
 {
   pthread_mutex_init(&mutex, NULL);
 }
@@ -255,9 +249,7 @@ bool rlc_um::rlc_um_tx::configure(srslte_rlc_config_t cnfg_, std::string rb_name
     return false;
   }
 
-  if(cfg.is_mrb){
-    tx_sdu_queue.resize(512);
-  }
+  tx_sdu_queue.resize(cnfg_.tx_queue_length);
 
   rb_name = rb_name_;
   tx_enabled = true;

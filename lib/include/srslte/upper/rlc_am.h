@@ -69,7 +69,7 @@ struct rlc_amd_retx_t{
 class rlc_am : public rlc_common
 {
 public:
-  rlc_am(uint32_t queue_len = 128);
+  rlc_am();
   ~rlc_am();
   void init(log                   *log_,
             uint32_t              lcid_,
@@ -104,11 +104,11 @@ private:
   class rlc_am_tx : public timer_callback
   {
   public:
-    rlc_am_tx(rlc_am *parent_, uint32_t queue_len_);
+    rlc_am_tx(rlc_am* parent_);
     ~rlc_am_tx();
 
     void init();
-    bool configure(srslte_rlc_am_config_t cfg_);
+    bool configure(srslte_rlc_config_t cfg_);
 
     void empty_queue();
     void reestablish();

@@ -94,8 +94,6 @@ private:
 
   void clear_user(user_interface *ue);
 
-  const static int RLC_TX_QUEUE_LEN = 512;
-
   pthread_rwlock_t rwlock;
 
   std::map<uint32_t,user_interface> users; 

@@ -42,8 +42,6 @@ rlc::rlc()
   rrc = NULL;
   mac_timers = NULL;
   ue = NULL;
-  default_lcid = 0;
-  buffer_size = 0;
   bzero(metrics_time, sizeof(metrics_time));
   pthread_rwlock_init(&rwlock, NULL);
 }
@@ -66,13 +64,12 @@ rlc::~rlc()
   pthread_rwlock_destroy(&rwlock);
 }
 
-void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
-               srsue::rrc_interface_rlc  *rrc_,
-               srsue::ue_interface       *ue_,
-               log                       *rlc_log_, 
-               mac_interface_timers      *mac_timers_,
-               uint32_t                  lcid_,
-               int                       buffer_size_)
+void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
+               srsue::ue_interface*       ue_,
+               log*                       rlc_log_,
+               mac_interface_timers*      mac_timers_,
+               uint32_t                   lcid_)
 {
   pdcp    = pdcp_;
   rrc     = rrc_;
@@ -80,7 +77,6 @@ void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
   rlc_log = rlc_log_;
   mac_timers = mac_timers_;
   default_lcid = lcid_;
-  buffer_size  = buffer_size_;
 
   gettimeofday(&metrics_time[1], NULL);
   reset_metrics();

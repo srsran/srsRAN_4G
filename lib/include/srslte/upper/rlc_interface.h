@@ -30,6 +30,8 @@
 // for custom constructors
 #include "srslte/asn1/rrc_asn1.h"
 
+#define RLC_TX_QUEUE_LEN (128)
+
 namespace srslte {
 
 typedef enum{
@@ -86,12 +88,13 @@ typedef struct {
 class srslte_rlc_config_t
 {
 public:
-  rlc_mode_t               rlc_mode;
-  srslte_rlc_am_config_t    am;
-  srslte_rlc_um_config_t    um;
+  rlc_mode_t             rlc_mode;
+  srslte_rlc_am_config_t am;
+  srslte_rlc_um_config_t um;
+  uint32_t               tx_queue_length;
 
   // Default ctor
-  srslte_rlc_config_t(): rlc_mode(RLC_MODE_TM), am(), um() {};
+  srslte_rlc_config_t() : rlc_mode(RLC_MODE_TM), am(), um(), tx_queue_length(RLC_TX_QUEUE_LEN){};
 
   // Constructor based on rrc_asn1's RLC config
   srslte_rlc_config_t(asn1::rrc::rlc_cfg_c* cnfg) : rlc_mode(RLC_MODE_AM), am(), um()
@@ -131,6 +134,8 @@ public:
         // Handle default case
         break;
     }
+
+    tx_queue_length = RLC_TX_QUEUE_LEN;
   }
 
   // Factory for MCH
@@ -145,6 +150,7 @@ public:
     cfg.um.tx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
     cfg.um.tx_mod              = 32;
     cfg.um.is_mrb              = true;
+    cfg.tx_queue_length        = 512;
     return cfg;
   }
 };

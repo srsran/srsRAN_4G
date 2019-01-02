@@ -48,7 +48,7 @@ class rlc_um
     :public rlc_common
 {
 public:
-  rlc_um(uint32_t queue_len = 128);
+  rlc_um();
   ~rlc_um();
   void init(log                       *rlc_entity_log_,
             uint32_t                   lcid_,
@@ -84,7 +84,7 @@ private:
   class rlc_um_tx
   {
   public:
-    rlc_um_tx(uint32_t queue_len);
+    rlc_um_tx();
     ~rlc_um_tx();
     void init(srslte::log *log_);
     bool configure(srslte_rlc_config_t cfg, std::string rb_name);
