@@ -359,6 +359,7 @@ void phch_common::reset() {
   avg_rsrp = 0;
   avg_rsrp_dbm = 0;
   avg_rsrq_db = 0;
+  avg_ri = 0;
 
   pcell_report_period = 20;
 

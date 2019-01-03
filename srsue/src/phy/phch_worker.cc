@@ -1665,6 +1665,13 @@ void phch_worker::update_measurements()
       }
     }
 
+    // Average RI
+    if (!phy->avg_ri) {
+      phy->avg_ri = SRSLTE_VEC_EMA(phy->last_ri, phy->avg_ri, 0.1);
+    } else {
+      phy->avg_ri = phy->last_ri;
+    }
+
     phy->avg_snr_db_cqi  = 10*log10(phy->avg_rsrp/phy->avg_noise);
 
     // Store metrics
@@ -1674,6 +1681,7 @@ void phch_worker::update_measurements()
     dl_metrics.rssi   = phy->avg_rssi_dbm;
     dl_metrics.pathloss = phy->pathloss;
     dl_metrics.sinr   = phy->avg_snr_db_cqi;
+    dl_metrics.ri     = phy->avg_ri;
     phy->set_dl_metrics(dl_metrics);
 
   }

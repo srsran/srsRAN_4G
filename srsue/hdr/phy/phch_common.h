@@ -99,6 +99,7 @@ typedef struct {
     float rx_gain_offset;
     float avg_snr_db_cqi;
     float avg_snr_db_sync;
+    float avg_ri;
 
     float avg_noise;
     bool  pcell_meas_enabled;
