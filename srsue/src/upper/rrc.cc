@@ -65,45 +65,15 @@ static int callback(void *data, int argc, char **argv, char **azColName){
 static sqlite3 * get_db_handle(const char* db_path) {
     // TODO this should return a DB handle if one already exists
     sqlite3 *db;
-    char *zErrMsg = 0;
-    int rc;
-    const char *sql;
-    const char* data = "Callback function called";
+    int rc = sqlite3_open(db_path, &db);
 
-    rc = sqlite3_open(db_path, &db);
-    // TODO instantiate the DB if it doesn't exist 
-    sql = "CREATE TABLE IF NOT EXISTS \"sib1_data\" ("
-      "mcc int,"
-      "mnc int,"
-      "tac int,"
-      "cid int,"
-      "phyid int,"
-      "earfcn int,"
-      "lat double,"
-      "long double,"
-      "datetime datetime,"
-      "rsrp double,"
-      "sib_blob varbinary );";
-
-    rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
-    if( rc != SQLITE_OK ) {
-        fprintf(stderr, "SQL error: %s\n", zErrMsg);
-        sqlite3_free(zErrMsg);
+    if( rc ) {
+        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+        throw "Can't connect to DB";
     } else {
-        fprintf(stdout, "Operation done successfully\n");
+        fprintf(stderr, "Opened database successfully\n");
+        return db;
     }
-
-
-      // TODO: fix this!
-      /**
-      if( rc ) {
-          fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-          return(0);
-      } else {
-          fprintf(stderr, "Opened database successfully\n");
-          return *db;
-      }**/
-      return db;
   }
 
   static int write_sib1_data(cell_t *serving_cell, const char* db_path){
@@ -137,7 +107,7 @@ static sqlite3 * get_db_handle(const char* db_path) {
       mcc_to_string(serving_cell->get_mcc(), &mcc_string);
       mnc_to_string(serving_cell->get_mnc(), &mnc_string);
       // TODO: Insert the rest of the values
-      os << "INSERT INTO sib1_data (mcc, mnc, tac, cid, phyid, earfcn, datetime, lat, long, rsrp) VALUES (" 
+      os << "INSERT INTO tower_data (mcc, mnc, tac, cid, phyid, earfcn, timestamp, lat, lon, rsrp) VALUES (" 
         <<  mcc_string << "," 
         << mnc_string << ", " 
         << tac << ","
