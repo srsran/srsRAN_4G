@@ -27,7 +27,8 @@
 
 #include <unistd.h>
 #include <iostream>
-#include <sqlite3.h> 
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <sstream>
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,38 +51,8 @@ const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SI
 
 
 // Database connection stuff
-static int callback(void *data, int argc, char **argv, char **azColName){
-    int i;
-    fprintf(stderr, "%s: ", (const char*)data);
-
-    for(i = 0; i<argc; i++){
-        printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-    }
-
-    printf("\n");
-    return 0;
-}
-
-static sqlite3 * get_db_handle(const char* db_path) {
-    // TODO this should return a DB handle if one already exists
-    sqlite3 *db;
-    int rc = sqlite3_open(db_path, &db);
-
-    if( rc ) {
-        fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-        throw "Can't connect to DB";
-    } else {
-        fprintf(stderr, "Opened database successfully\n");
-        return db;
-    }
-  }
-
-  static int write_sib1_data(cell_t *serving_cell, const char* db_path){
-      const char* data = "Callback function called";
-      char *zErrMsg = 0;
-
-      sqlite3 * db = get_db_handle(db_path); 
-      printf("Writing to db path: %s\n", db_path);
+// callback, get_db_handle
+  static int write_sib1_data(cell_t *serving_cell){
       std::ostringstream os;
       std::string mcc_string = "";
       std::string mnc_string = "";
@@ -90,51 +61,55 @@ static sqlite3 * get_db_handle(const char* db_path) {
       uint32_t phyid = serving_cell->get_pci();
       uint32_t earfcn = serving_cell->get_earfcn(); 
       long seconds = (unsigned long)time(NULL);
-      // Process GPS coordinates
-      // TODO: replace this with GPSd libraries http://www.catb.org/gpsd/client-howto.html
-      std::string out = exec("/usr/local/bin/gps.sh");
-      std::istringstream iss(out);
-      std::vector<std::string> results(std::istream_iterator<std::string>{iss},
-                                       std::istream_iterator<std::string>());
-      float lat = atof(results[0].c_str());
-      float lon = atof(results[1].c_str());
       float rsrp = serving_cell->get_rsrp(); 
       // Sometimes RSRP returns NaN, not sure why it isn't set
       rsrp==rsrp? rsrp = rsrp:
-                  rsrp = 0.0;
-      
-
+                  rsrp = 0.0;   
       mcc_to_string(serving_cell->get_mcc(), &mcc_string);
       mnc_to_string(serving_cell->get_mnc(), &mnc_string);
       // TODO: Insert the rest of the values
-      os << "INSERT INTO tower_data (mcc, mnc, tac, cid, phyid, earfcn, timestamp, lat, lon, rsrp) VALUES (" 
-        <<  mcc_string << "," 
+      os << mcc_string << "," 
         << mnc_string << ", " 
         << tac << ","
         << cid << ","
         << phyid << ","
         << earfcn << ","
         << seconds << ","
-        << lat << ","
-        << lon << ","
-        << rsrp 
-        << ")";
+        << rsrp;
       // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
       const std::string& tmp = os.str();
-      const char* sql = tmp.c_str();
-      printf("SQL QUERY: %s\n", sql);
-      int rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
-      if( rc != SQLITE_OK ) {
-          fprintf(stderr, "SQL error: %s\n", zErrMsg);
-          sqlite3_free(zErrMsg);
-      } else {
-          fprintf(stdout, "Operation done successfully\n");
+      const char* packet = tmp.c_str();
+
+      char *socket_path = "/tmp/croc.sock";
+      struct sockaddr_un addr;
+      int fd;
+      if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        perror("socket error");
+        exit(-1);
       }
-      return rc;
 
-      sqlite3_close(db);
-  }
+      memset(&addr, 0, sizeof(addr));
+      addr.sun_family = AF_UNIX;
+      if (*socket_path == '\0')
+      {
+        *addr.sun_path = '\0';
+        strncpy(addr.sun_path + 1, socket_path + 1, sizeof(addr.sun_path) - 2);
+      }
+      else
+      {
+        strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
+      }
 
+      if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+      {
+        perror("connect error");
+        exit(-1);
+      }
+
+      write(fd, packet, strlen(packet));
+  
+
+  } // namespace srsue
 
   /*******************************************************************************
     Base functions 
@@ -1845,8 +1820,8 @@ void rrc::handle_sib1()
     phy->set_config_tdd(&sib1->tdd_cnfg);
   }
 
-  std::thread thread_sql (write_sib1_data, serving_cell, args.db_path.c_str());
-  thread_sql.detach();
+  std::thread thread_socket (write_sib1_data, serving_cell);
+  thread_socket.detach();
 }
 
 void rrc::handle_sib2()
