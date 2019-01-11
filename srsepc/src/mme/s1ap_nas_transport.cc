@@ -296,8 +296,8 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
       nas_ctx->handle_esm_information_response(nas_msg);
     } else {
       // Attach Complete was not integrity protected
-      m_s1ap_log->console("ESM Information Response not integrity protected. Discard message.\n");
-      m_s1ap_log->warning("ESM Information Response not integrity protected. Discard message.\n");
+      m_s1ap_log->console("ESM Information Response %s. Discard message.\n", (mac_valid ? "not integrity protected": "invalid integrity"));
+      m_s1ap_log->warning("ESM Information Response %s. Discard message.\n", (mac_valid ? "not integrity protected": "invalid integrity"));
       increase_ul_nas_cnt = false;
     }
     break;

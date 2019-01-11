@@ -384,7 +384,6 @@ nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
   nas_log->console("Found UE context. IMSI: %015" PRIu64 ", old eNB UE S1ap Id %d, old MME UE S1AP Id %d\n", emm_ctx->imsi, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
 
   //Check NAS integrity
-  sec_ctx->ul_nas_count++;
   msg_valid = nas_ctx->integrity_check(nas_rx);
   if (msg_valid == true && emm_ctx->state == EMM_STATE_DEREGISTERED) {
     nas_log->console("GUTI Attach -- NAS Integrity OK. UL count %d, DL count %d\n",sec_ctx->ul_nas_count, sec_ctx->dl_nas_count);
@@ -437,6 +436,7 @@ nas::handle_guti_attach_request_known_ue( nas *nas_ctx,
       nas_log->console("Getting subscription information -- QCI %d\n", nas_ctx->m_esm_ctx[default_bearer].qci);
       gtpc->send_create_session_request(emm_ctx->imsi);
     }
+    sec_ctx->ul_nas_count++;
     pool->deallocate(nas_tx);
     return true;
   } else {
@@ -566,7 +566,6 @@ nas::handle_service_request( uint32_t m_tmsi,
   ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
   sec_ctx_t *sec_ctx = &nas_ctx->m_sec_ctx;
 
-  sec_ctx->ul_nas_count++;
   mac_valid = nas_ctx->short_integrity_check(nas_rx);
   if (mac_valid) {
     nas_log->console("Service Request -- Short MAC valid\n");
@@ -613,6 +612,7 @@ nas::handle_service_request( uint32_t m_tmsi,
     //Save UE ctx to MME UE S1AP id
     s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
     s1ap->send_initial_context_setup_request(imsi,5);
+    sec_ctx->ul_nas_count++;
   } else {
     nas_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
     nas_log->warning("Service Request -- Short MAC invalid. Ignoring service request\n");
