@@ -269,6 +269,7 @@ public:
   /* Security functions */
   bool integrity_check(srslte::byte_buffer_t* pdu);
   bool short_integrity_check(srslte::byte_buffer_t* pdu);
+  void integrity_generate(srslte::byte_buffer_t* pdu, uint8_t *mac);
   void cipher_decrypt(srslte::byte_buffer_t* pdu);
   void cipher_encrypt(srslte::byte_buffer_t* pdu);
 

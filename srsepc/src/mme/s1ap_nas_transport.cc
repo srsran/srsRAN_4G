@@ -198,8 +198,10 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED ||
       sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT)
   {
+    m_s1ap_log->debug_hex(nas_msg->msg, nas_msg->N_bytes, "Encrypted");
     nas_ctx->cipher_decrypt(nas_msg);
     msg_encrypted = true;
+    m_s1ap_log->debug_hex(nas_msg->msg, nas_msg->N_bytes, "Decrypted");
   }
 
   // Now parse message header and handle message

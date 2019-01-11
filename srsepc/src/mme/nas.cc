@@ -53,8 +53,8 @@ nas::init(nas_init_t args,
   m_apn       = args.apn;
   m_dns       = args.dns;
   
-  m_sec_ctx.integ_algo= args.integ_algo; 
-  m_sec_ctx.cipher_algo= args.cipher_algo; 
+  m_sec_ctx.integ_algo = args.integ_algo; 
+  m_sec_ctx.cipher_algo = args.cipher_algo; 
   
   m_s1ap    = s1ap;
   m_gtpc    = gtpc;
@@ -1079,8 +1079,8 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *nas_buffer)
   //Pack NAS PDU
   LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd;
 
-  sm_cmd.selected_nas_sec_algs.type_of_eea = LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0;
-  sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_128_EIA1;
+  sm_cmd.selected_nas_sec_algs.type_of_eea = (LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_ENUM) m_sec_ctx.cipher_algo;
+  sm_cmd.selected_nas_sec_algs.type_of_eia = (LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_ENUM) m_sec_ctx.integ_algo;
 
   sm_cmd.nas_ksi.tsc_flag=LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
   sm_cmd.nas_ksi.nas_ksi=m_sec_ctx.eksi;
@@ -1112,8 +1112,8 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *nas_buffer)
   //Generate EPS security context
   uint8_t mac[4];
   srslte::security_generate_k_nas( m_sec_ctx.k_asme,
-                           srslte::CIPHERING_ALGORITHM_ID_EEA0,
-                           srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
+                           m_sec_ctx.cipher_algo,
+                           m_sec_ctx.integ_algo,
                            m_sec_ctx.k_nas_enc,
                            m_sec_ctx.k_nas_int
                          );
@@ -1159,16 +1159,11 @@ nas::pack_esm_information_request(srslte::byte_buffer_t *nas_buffer)
     return false;
   }
 
+  cipher_encrypt(nas_buffer);
   uint8_t mac[4];
-  srslte::security_128_eia1 (&m_sec_ctx.k_nas_int[16],
-                             m_sec_ctx.dl_nas_count,
-                             0,
-                             SECURITY_DIRECTION_DOWNLINK,
-                             &nas_buffer->msg[5],
-                             nas_buffer->N_bytes - 5,
-                             mac
-                             );
-  memcpy(&nas_buffer->msg[1],mac,4);
+  integrity_generate(nas_buffer, mac);
+  memcpy(&nas_buffer->msg[1], mac, 4);
+
   return true;
 }
 
@@ -1286,17 +1281,13 @@ nas::pack_attach_accept(srslte::byte_buffer_t *nas_buffer)
   m_sec_ctx.dl_nas_count++;
   liblte_mme_pack_activate_default_eps_bearer_context_request_msg(&act_def_eps_bearer_context_req, &attach_accept.esm_msg);
   liblte_mme_pack_attach_accept_msg(&attach_accept, sec_hdr_type, m_sec_ctx.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
-  //Integrity protect NAS message
-  uint8_t mac[4];
-  srslte::security_128_eia1 (&m_sec_ctx.k_nas_int[16],
-                             m_sec_ctx.dl_nas_count,
-                             0,
-                             SECURITY_DIRECTION_DOWNLINK,
-                             &nas_buffer->msg[5],
-                             nas_buffer->N_bytes - 5,
-                             mac
-                             );
 
+  // Encrypt NAS message
+  cipher_encrypt(nas_buffer);
+
+  // Integrity protect NAS message
+  uint8_t mac[4];
+  integrity_generate(nas_buffer, mac);
   memcpy(&nas_buffer->msg[1],mac,4);
 
   //Log attach accept info
@@ -1486,6 +1477,33 @@ bool nas::integrity_check(srslte::byte_buffer_t *pdu)
   return true;
 }
 
+void nas::integrity_generate(srslte::byte_buffer_t* pdu, uint8_t* mac)
+{
+  switch (m_sec_ctx.integ_algo) {
+    case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+      srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
+                        m_sec_ctx.dl_nas_count,
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[5],
+                        pdu->N_bytes - 5,
+                        mac);
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+      srslte::security_128_eia2(&m_sec_ctx.k_nas_int[16],
+                        m_sec_ctx.dl_nas_count,
+                        0,            // Bearer always 0 for NAS
+                        SECURITY_DIRECTION_DOWNLINK,
+                        &pdu->msg[5],
+                        pdu->N_bytes - 5,
+                        mac);
+      break;
+    default:
+      break;
+  }
+}
 
 void nas::cipher_decrypt(srslte::byte_buffer_t *pdu)
 {
