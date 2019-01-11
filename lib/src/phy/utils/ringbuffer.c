@@ -111,6 +111,7 @@ int srslte_ringbuffer_read(srslte_ringbuffer_t *q, void *p, int nof_bytes)
 
 void srslte_ringbuffer_stop(srslte_ringbuffer_t *q) {
   pthread_mutex_lock(&q->mutex);
+  q->active = false;
   pthread_cond_broadcast(&q->cvar);
   pthread_mutex_unlock(&q->mutex);
 }
