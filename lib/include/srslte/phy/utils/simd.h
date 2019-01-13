@@ -1341,7 +1341,7 @@ static inline simd_s_t srslte_simd_s_mul(simd_s_t a, simd_s_t b) {
 
 static inline simd_s_t srslte_simd_s_neg(simd_s_t a, simd_s_t b) {
 #ifdef LV_HAVE_AVX512
-#error sign instruction not available in avx512
+#warning sign instruction not available in avx512. fallback to avx2
 #else /* LV_HAVE_AVX512 */
 #ifdef LV_HAVE_AVX2
   return _mm256_sign_epi16(a, b);
@@ -1814,7 +1814,7 @@ static inline simd_s_t srslte_simd_b_sub(simd_s_t a, simd_s_t b) {
 
 static inline simd_s_t srslte_simd_b_neg(simd_b_t a, simd_b_t b) {
 #ifdef LV_HAVE_AVX512
-#error sign instruction not available in avx512
+#warning sign instruction not available in avx512. fallback to avx2
 #else /* LV_HAVE_AVX512 */
 #ifdef LV_HAVE_AVX2
   return _mm256_sign_epi8(a, b);
