@@ -1110,7 +1110,6 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *nas_buffer)
   }
 
   //Generate EPS security context
-  uint8_t mac[4];
   srslte::security_generate_k_nas( m_sec_ctx.k_asme,
                            m_sec_ctx.cipher_algo,
                            m_sec_ctx.integ_algo,
@@ -1126,16 +1125,10 @@ nas::pack_security_mode_command(srslte::byte_buffer_t *nas_buffer)
   m_nas_log->info("Generating KeNB with UL NAS COUNT: %d\n", m_sec_ctx.ul_nas_count);
   m_nas_log->console("Generating KeNB with UL NAS COUNT: %d\n", m_sec_ctx.ul_nas_count);
   m_nas_log->info_hex(m_sec_ctx.k_enb, 32, "Key eNodeB (k_enb)\n");
+  
   //Generate MAC for integrity protection
-  //FIXME Write wrapper to support EIA1, EIA2, etc.
-  srslte::security_128_eia1 (&m_sec_ctx.k_nas_int[16],
-                     m_sec_ctx.dl_nas_count,
-                     0,
-                     SECURITY_DIRECTION_DOWNLINK,
-                     &nas_buffer->msg[5],
-                     nas_buffer->N_bytes - 5,
-                     mac
-  );
+  uint8_t mac[4];
+  integrity_generate(nas_buffer, mac);
   memcpy(&nas_buffer->msg[1],mac,4);
   return true;
 }
@@ -1338,14 +1331,7 @@ nas::pack_emm_information(srslte::byte_buffer_t *nas_buffer)
   }
 
   uint8_t mac[4];
-  srslte::security_128_eia1 (&m_sec_ctx.k_nas_int[16],
-                             m_sec_ctx.dl_nas_count,
-                             0,
-                             SECURITY_DIRECTION_DOWNLINK,
-                             &nas_buffer->msg[5],
-                             nas_buffer->N_bytes - 5,
-                             mac
-                             );
+  integrity_generate(nas_buffer,mac);
   memcpy(&nas_buffer->msg[1],mac,4);
 
   m_nas_log->info("Packed UE EMM information\n");
