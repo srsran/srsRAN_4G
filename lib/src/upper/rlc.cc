@@ -587,7 +587,7 @@ bool rlc::has_bearer(uint32_t lcid)
 bool rlc::valid_lcid(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_RADIO_BEARERS) {
-    rlc_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+    rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return false;
   }
 
@@ -601,7 +601,7 @@ bool rlc::valid_lcid(uint32_t lcid)
 bool rlc::valid_lcid_mrb(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_MCH_LCIDS) {
-    rlc_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+    rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return false;
   }
 
