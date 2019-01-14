@@ -134,9 +134,9 @@ public:
     cfg.um.t_reordering        = 0;
     cfg.um.rx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
     cfg.um.rx_window_size      = 0;
-    cfg.um.rx_mod              = 1;
+    cfg.um.rx_mod              = 32;
     cfg.um.tx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
-    cfg.um.tx_mod              = 1;
+    cfg.um.tx_mod              = 32;
     cfg.um.is_mrb              = true;
     return cfg;
   }

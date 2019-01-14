@@ -206,7 +206,8 @@ static int encode_tb_off(srslte_sch_t *q,
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
-      fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
+      fprintf(stderr, "Error number of CB to encode (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C,
+              softbuffer->max_cb);
       return -1; 
     }
 
@@ -457,7 +458,8 @@ static int decode_tb(srslte_sch_t *q,
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
-      fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
+      fprintf(stderr, "Error number of CB to decode (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C,
+              softbuffer->max_cb);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
         

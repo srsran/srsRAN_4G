@@ -348,7 +348,6 @@ srslte_netsink_t net_sink, net_sink_signal;
 int main(int argc, char **argv) {
   struct timeval t[3];
   int ret;
-  int decimate = 1;
   srslte_cell_t cell;  
   int64_t sf_cnt;
   srslte_ue_mib_t ue_mib; 
@@ -509,30 +508,22 @@ int main(int argc, char **argv) {
 
   } else {
 #ifndef DISABLE_RF
-      if(prog_args.decimate)
-      {
-          if(prog_args.decimate > 4 || prog_args.decimate < 0)
-          {
-              printf("Invalid decimation factor, setting to 1 \n");
-          }
-          else
-          {
-              decimate = prog_args.decimate;
-             //ue_sync.decimate = prog_args.decimate;
-          }
+    int decimate = 1;
+    if (prog_args.decimate) {
+      if (prog_args.decimate > 4 || prog_args.decimate < 0) {
+        printf("Invalid decimation factor, setting to 1 \n");
+      } else {
+        decimate = prog_args.decimate;
       }
-    if (srslte_ue_sync_init_multi_decim(&ue_sync,
-                                        cell.nof_prb,
-                                        cell.id==1000,
-                                        srslte_rf_recv_wrapper,
-                                        prog_args.rf_nof_rx_ant,
-                                        (void*) &rf,decimate))
-    {
+    }
+
+    if (srslte_ue_sync_init_multi_decim(&ue_sync, cell.nof_prb, cell.id == 1000, srslte_rf_recv_wrapper,
+                                        prog_args.rf_nof_rx_ant, (void*)&rf, decimate)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
-    if (srslte_ue_sync_set_cell(&ue_sync, cell))
-    {
+
+    if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1);
     }

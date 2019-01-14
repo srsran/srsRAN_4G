@@ -48,6 +48,11 @@ pdcp::~pdcp()
   }
   pdcp_array.clear();
 
+  for (pdcp_map_t::iterator it = pdcp_array_mrb.begin(); it != pdcp_array_mrb.end(); ++it) {
+    delete (it->second);
+  }
+  pdcp_array_mrb.clear();
+
   pthread_rwlock_unlock(&rwlock);
   pthread_rwlock_destroy(&rwlock);
 }

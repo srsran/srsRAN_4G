@@ -64,6 +64,7 @@ class pdcp_entity : public pdcp_entity_interface
 {
 public:
   pdcp_entity();
+  ~pdcp_entity();
   void init(srsue::rlc_interface_pdcp     *rlc_,
             srsue::rrc_interface_pdcp     *rrc_,
             srsue::gw_interface_pdcp      *gw_,
@@ -111,6 +112,8 @@ private:
 
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+
+  pthread_mutex_t mutex;
 
   void integrity_generate(uint8_t  *msg,
                           uint32_t  msg_len,

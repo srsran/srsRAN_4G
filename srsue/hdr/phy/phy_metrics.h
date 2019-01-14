@@ -44,6 +44,7 @@ struct dl_metrics_t
   float rsrp;
   float rsrq;
   float rssi;
+  float ri;
   float turbo_iters;
   float mcs;
   float pathloss;
