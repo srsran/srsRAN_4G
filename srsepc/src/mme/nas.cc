@@ -1321,7 +1321,7 @@ nas::pack_emm_information(srslte::byte_buffer_t *nas_buffer)
   emm_info.utc_and_local_time_zone_present = false;
   emm_info.net_dst_present = false;
 
-  uint8_t sec_hdr_type =2;
+  uint8_t sec_hdr_type =LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
   m_sec_ctx.dl_nas_count++;
   LIBLTE_ERROR_ENUM err = liblte_mme_pack_emm_information_msg(&emm_info, sec_hdr_type, m_sec_ctx.dl_nas_count, (LIBLTE_BYTE_MSG_STRUCT *) nas_buffer);
   if (err != LIBLTE_SUCCESS) {
@@ -1330,6 +1330,10 @@ nas::pack_emm_information(srslte::byte_buffer_t *nas_buffer)
     return false;
   }
 
+  // Encrypt NAS message
+  cipher_encrypt(nas_buffer);
+
+  // Integrity protect NAS message
   uint8_t mac[4];
   integrity_generate(nas_buffer,mac);
   memcpy(&nas_buffer->msg[1],mac,4);
