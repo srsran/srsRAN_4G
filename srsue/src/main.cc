@@ -482,22 +482,22 @@ void *input_loop(void *m) {
     else if (0 == key.compare("mbms")) {
       show_mbms = true;
     } else if (key.find("mbms_service_start") != string::npos) {
-
       char *dup = strdup(key.c_str());
       strtok(dup, " ");
       char *s = strtok(NULL, " ");
+      char* p = strtok(NULL, " ");
       if(NULL == s) {
         cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
-        continue;
+        goto free_mem;
       }
       serv = atoi(s);
-      char* p = strtok(NULL, " ");
       if(NULL == p) {
         cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
-        continue;
+        goto free_mem;
       }
       port = atoi(p);
       mbms_service_start = true;
+free_mem:
       free(dup);
     }
    }
