@@ -53,21 +53,20 @@ const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SI
 // Database connection stuff
 // callback, get_db_handle
   static int write_sib1_data(cell_t *serving_cell){
+      // TODO Does the serving cell change under us after this function is called?
+      // Could we have our data corrupted? If so should we pass in a copy of serving_cell instead?
       std::ostringstream os;
       std::string mcc_string = "";
       std::string mnc_string = "";
+      mcc_to_string(serving_cell->get_mcc(), &mcc_string);
+      mnc_to_string(serving_cell->get_mnc(), &mnc_string);
       uint16_t tac = serving_cell->get_tac();
       uint32_t cid = serving_cell->get_cell_id();
       uint32_t phyid = serving_cell->get_pci();
       uint32_t earfcn = serving_cell->get_earfcn(); 
       long seconds = (unsigned long)time(NULL);
       float rsrp = serving_cell->get_rsrp(); 
-      // Sometimes RSRP returns NaN, not sure why it isn't set
-      rsrp==rsrp? rsrp = rsrp:
-                  rsrp = 0.0;   
-      mcc_to_string(serving_cell->get_mcc(), &mcc_string);
-      mnc_to_string(serving_cell->get_mnc(), &mnc_string);
-      // TODO: Insert the rest of the values
+
       os << mcc_string << "," 
         << mnc_string << ", " 
         << tac << ","
@@ -77,8 +76,11 @@ const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SI
         << seconds << ","
         << rsrp;
       // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
+      
       const std::string& tmp = os.str();
       const char* packet = tmp.c_str();
+
+      printf("**** sending packet: <%s>\n", packet);
 
       char *socket_path = "/tmp/croc.sock";
       struct sockaddr_un addr;
