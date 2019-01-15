@@ -175,8 +175,8 @@ int prach::tx_tti() {
 
 cf_t *prach::generate(float cfo, uint32_t *nof_sf, float *target_power) {
 
-  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx <= 64 &&
-      srslte_cell_isvalid(&cell) && len < MAX_LEN_SF * 30720 && len > 0) {
+  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx <= 63 && srslte_cell_isvalid(&cell) &&
+      len < MAX_LEN_SF * 30720 && len > 0) {
 
     // Correct CFO before transmission FIXME: UL SISO Only
     srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));
