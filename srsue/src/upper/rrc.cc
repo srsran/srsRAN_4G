@@ -1775,19 +1775,14 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
     if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[i].sib_type) {
       serving_cell->set_sib1(&dlsch_msg.sibs[i].sib.sib1);
       handle_sib1();
-      rrc_log->info("FOUND SIB1 -- LEAVE CONNECTED\n");
-      leave_connected();
-      cell_search();
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib2()) {
-      leave_connected();
-      cell_search();
       serving_cell->set_sib2(&dlsch_msg.sibs[i].sib.sib2);
       handle_sib2();
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib3()) {
-      leave_connected();
-      cell_search();
       serving_cell->set_sib3(&dlsch_msg.sibs[i].sib.sib3);
       handle_sib3();
+      leave_connected();
+      cell_search();
     }else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13 == dlsch_msg.sibs[i].sib_type && !serving_cell->has_sib13()) {
       leave_connected();
       cell_search();
@@ -1822,8 +1817,6 @@ void rrc::handle_sib1()
     phy->set_config_tdd(&sib1->tdd_cnfg);
   }
 
-  std::thread thread_socket (write_sib1_data, serving_cell);
-  thread_socket.detach();
 }
 
 void rrc::handle_sib2()
@@ -1831,7 +1824,6 @@ void rrc::handle_sib2()
   rrc_log->info("SIB2 received\n");
 
   apply_sib2_configs(serving_cell->sib2ptr());
-
 }
 
 void rrc::handle_sib3()
@@ -1854,6 +1846,8 @@ void rrc::handle_sib3()
     cell_resel_cfg.s_intrasearchP  = INFINITY;
   }
 
+  std::thread thread_socket (write_sib1_data, serving_cell);
+  thread_socket.detach();
 }
 
 void rrc::handle_sib13()
