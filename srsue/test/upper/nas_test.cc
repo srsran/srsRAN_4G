@@ -158,7 +158,7 @@ int security_command_test()
   args.imsi = "001010123456789";
   args.k = "00112233445566778899aabbccddeeff";
   args.op = "63BFA50EE6523365FF14C1F45F88737D";
-
+  args.using_op = true;
 
   // init USIM
   srsue::usim usim;
