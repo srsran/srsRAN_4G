@@ -390,7 +390,7 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
         fidx_offset = srslte_refsignal_mbsfn_fidx(l - 1);
         srslte_interp_linear_offset(&q->srslte_interp_lin_mbsfn, &pilot_estimates[(2*q->cell.nof_prb) + 6*q->cell.nof_prb*(l - 1)],
                                     &ce[srslte_refsignal_mbsfn_nsymbol(l - 1) * q->cell.nof_prb * SRSLTE_NRE],
-                                    fidx_offset, SRSLTE_NRE/6-fidx_offset);
+                                    fidx_offset, (fidx_offset)?1:2);
         
       }
     } else {
