@@ -11210,6 +11210,20 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_S
 /*******************************************************************************
                               HELPER FUNCTIONS
 *******************************************************************************/
+const char* liblte_nas_sec_hdr_type_to_string(int code)
+{
+  switch(code)
+  {
+    LIBLTE_CASE_STR(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS);                                           
+    LIBLTE_CASE_STR(LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY);
+    LIBLTE_CASE_STR(LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED);
+    LIBLTE_CASE_STR(LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT);
+    LIBLTE_CASE_STR(LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT);
+    LIBLTE_CASE_STR(LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST);
+    default: return "NAS Message Type Unknown";
+  }
+}
+
 const char* liblte_nas_msg_type_to_string(int code)
 {
   switch(code)

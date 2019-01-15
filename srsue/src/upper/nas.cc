@@ -1349,11 +1349,11 @@ void nas::send_detach_request(bool switch_off)
     memcpy(&detach_request.eps_mobile_id.guti, &ctxt.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
     detach_request.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
     detach_request.nas_ksi.nas_ksi       = ctxt.ksi;
-    nas_log->info("Requesting Detach with GUTI\n");
+    nas_log->info("Requesting Detach with GUTI\n"); //If sent as an Initial UE message, it cannot be chiphered
     liblte_mme_pack_detach_request_msg(&detach_request,
-                                       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
-                                       ctxt.tx_count,
-                                       (LIBLTE_BYTE_MSG_STRUCT *) pdu);
+                                       rrc->is_connected() ? LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED
+                                                           : LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
+                                       ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu);
 
     if(pcap != NULL) {
       pcap->write_nas(pdu->msg, pdu->N_bytes);
@@ -1361,7 +1361,9 @@ void nas::send_detach_request(bool switch_off)
 
     // Add MAC
     if (pdu->N_bytes > 5) {
-      cipher_encrypt(pdu);
+      if (rrc->is_connected()) {
+        cipher_encrypt(pdu);
+      }
       integrity_generate(&k_nas_int[16],
                          ctxt.tx_count,
                          SECURITY_DIRECTION_UPLINK,

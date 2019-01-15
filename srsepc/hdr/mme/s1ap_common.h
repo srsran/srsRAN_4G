@@ -44,6 +44,8 @@ typedef struct{
   std::string   mme_apn;
   bool          pcap_enable;
   std::string   pcap_filename;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM  encryption_algo;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM  integrity_algo;
 } s1ap_args_t;
 
 typedef struct{

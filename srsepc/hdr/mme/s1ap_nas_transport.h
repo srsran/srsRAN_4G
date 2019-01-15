@@ -38,47 +38,29 @@ namespace srsepc{
 class s1ap_nas_transport
 {
 public:
-
   static s1ap_nas_transport* m_instance;
   static s1ap_nas_transport* get_instance(void);
   static void cleanup(void);
   void init(hss_interface_nas * hss_);
 
-  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT *init_ue, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT *ul_xport, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t *nas_msg, struct sctp_sndrcvinfo enb_sri);
+  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT* init_ue, struct sctp_sndrcvinfo* enb_sri,
+                                 srslte::byte_buffer_t* reply_buffer, bool* reply_flag);
+  bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT* ul_xport,
+                                   struct sctp_sndrcvinfo* enb_sri, srslte::byte_buffer_t* reply_buffer,
+                                   bool* reply_flag);
+  bool send_downlink_nas_transport(uint32_t enb_ue_s1ap_id, uint32_t mme_ue_s1ap_id, srslte::byte_buffer_t* nas_msg,
+                                   struct sctp_sndrcvinfo enb_sri);
 
-  bool handle_nas_detach_request( uint32_t m_tmsi,
-                                  uint32_t enb_ue_s1ap_id,
-                                  srslte::byte_buffer_t *nas_msg,
-                                  srslte::byte_buffer_t *reply_buffer,
-                                  bool* reply_flag,
-                                  struct sctp_sndrcvinfo *enb_sri);
-
-  bool handle_nas_service_request( uint32_t m_tmsi,
-                                   uint32_t enb_ue_s1ap_id,
-                                   srslte::byte_buffer_t *nas_msg,
-                                   srslte::byte_buffer_t *reply_buffer,
-                                   bool* reply_flag,
-                                   struct sctp_sndrcvinfo *enb_sri);
-
-  bool handle_nas_tracking_area_update_request( uint32_t m_tmsi,
-                                                uint32_t enb_ue_s1ap_id,
-                                                srslte::byte_buffer_t *nas_msg,
-                                                srslte::byte_buffer_t *reply_buffer,
-                                                bool* reply_flag,
-                                                struct sctp_sndrcvinfo *enb_sri);
 private:
   s1ap_nas_transport();
   virtual ~s1ap_nas_transport();
 
-  srslte::log *m_s1ap_log;
-  srslte::byte_buffer_pool *m_pool;
+  srslte::log*              m_s1ap_log;
+  srslte::byte_buffer_pool* m_pool;
 
-  s1ap* m_s1ap;
-  hss_interface_nas*  m_hss;
-  mme_gtpc* m_mme_gtpc;
-
+  s1ap*              m_s1ap;
+  hss_interface_nas* m_hss;
+  mme_gtpc*          m_mme_gtpc;
 };
 } //namespace srsepc
 #endif // SRSEPC_S1AP_NAS_TRANSPORT_H

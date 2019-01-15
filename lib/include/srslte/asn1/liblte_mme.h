@@ -2492,6 +2492,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_transaction_identifier_ie(uint8             
 #define LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT              0x3
 #define LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT 0x4
 #define LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST                                      0xC
+const char* liblte_nas_sec_hdr_type_to_string(int code);
+
 //Message Type
 #define LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST                                                0x41
 #define LIBLTE_MME_MSG_TYPE_ATTACH_ACCEPT                                                 0x42
