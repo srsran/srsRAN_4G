@@ -29,14 +29,16 @@
 
 namespace srslte {
 
-rlc_tm::rlc_tm(uint32_t queue_len) : ul_queue(queue_len)
+rlc_tm::rlc_tm(uint32_t queue_len) :
+  ul_queue(queue_len),
+  tx_enabled(false),
+  log(NULL),
+  pdcp(NULL),
+  rrc(NULL),
+  lcid(0),
+  num_tx_bytes(0),
+  num_rx_bytes(0)
 {
-  log = NULL;
-  pdcp = NULL;
-  rrc = NULL;
-  lcid = 0;
-  num_tx_bytes = 0;
-  num_rx_bytes = 0;
   pool = byte_buffer_pool::get_instance();
 }
 

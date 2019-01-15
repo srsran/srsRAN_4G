@@ -280,7 +280,9 @@ public:
     nsegm_dcch = 0; 
     si_window_len = 0; 
     sib2_period = 0; 
-    send_ack = 0; 
+    send_ack = 0;
+    bzero(&bit_msg, sizeof(bit_msg));
+    bzero(&byte_msg, sizeof(byte_msg));
   }
   bool has_data(uint32_t lcid) {
     return get_buffer_state(lcid); 
