@@ -81,9 +81,6 @@ bool radio::is_init() {
 
 void radio::stop() 
 {
-  if (zeros) {
-    free(zeros);
-  }
   if (is_initialized) {
     srslte_rf_close(&rf_device);
   }
