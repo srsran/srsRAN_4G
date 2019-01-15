@@ -905,6 +905,11 @@ void phch_recv::search::set_agc_enable(bool enable) {
                              rf_info->min_rx_gain,
                              rf_info->max_rx_gain,
                              p->radio_h->get_rx_gain());
+    srslte_ue_sync_start_agc(&cs.ue_sync,
+                             callback_set_rx_gain,
+                             rf_info->min_rx_gain,
+                             rf_info->max_rx_gain,
+                             p->radio_h->get_rx_gain());
   } else {
     fprintf(stderr, "Error stop AGC not implemented\n");
   }
