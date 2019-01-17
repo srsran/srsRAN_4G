@@ -294,6 +294,13 @@ public:
     *val = t;
     return r; 
   }
+  static bool lookupValue(Setting& root, const char* name, float* val)
+  {
+    double t;
+    bool   r = root.lookupValue(name, t);
+    *val     = t;
+    return r;
+  }
   static bool lookupValue(Setting &root, const char *name, bool *val) {
     bool t; 
     bool r = root.lookupValue(name, t);

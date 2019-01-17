@@ -81,9 +81,9 @@ private:
 
   bool                running;
   bool                run_enable;
-  int32               tun_fd;
+  int32_t             tun_fd;
   struct ifreq        ifr;
-  int32               sock;
+  int32_t             sock;
   bool                if_up;
 
   uint32_t            current_ip_addr;

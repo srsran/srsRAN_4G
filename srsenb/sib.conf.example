@@ -1,16 +1,16 @@
 sib1 =
 {
     intra_freq_reselection = "Allowed";
-    q_rx_lev_min = -130;
+    q_rx_lev_min = -65;
     //p_max = 3;
-    cell_barred = "Not Barred"
+    cell_barred = "NotBarred"
     si_window_length = 20;
     sched_info =
     (
         {
             si_periodicity = 16;
-	    si_mapping_info = []; // comma-separated array of SIB-indexes (from 3 to 13). 
-				   // Leave empty or commented to just scheduler sib2
+            si_mapping_info = []; // comma-separated array of SIB-indexes (from 3 to 13). 
+            // Leave empty or commented to just scheduler sib2
         }
     );
     system_info_value_tag = 0;
@@ -89,9 +89,9 @@ sib2 =
                 format_2a = 2;
                 format_2b = 2;
             };
-            delta_preamble_msg3 = 8;
+            delta_preamble_msg3 = 6;
         };
-        ul_cp_length = "Normal";
+        ul_cp_length = "len1";
     };
 
     ue_timers_and_constants =
@@ -103,7 +103,7 @@ sib2 =
         t311 = 1000; // in ms
         n311 = 1;
     };
-	
+
     freqInfo = 
     {
         ul_carrier_freq_present = true; 

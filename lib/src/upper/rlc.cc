@@ -25,11 +25,12 @@
  */
 
 
-#include <srslte/asn1/liblte_rrc.h>
 #include "srslte/upper/rlc.h"
 #include "srslte/upper/rlc_tm.h"
 #include "srslte/upper/rlc_um.h"
 #include "srslte/upper/rlc_am.h"
+
+using namespace asn1::rrc;
 
 namespace srslte {
 
@@ -402,14 +403,15 @@ void rlc::add_bearer(uint32_t lcid)
     add_bearer(lcid, srslte_rlc_config_t());
   } else {
     // SRB1 and SRB2 are AM
-    LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg = {};
-    cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-    cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS45;
-    cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_INFINITY;
-    cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_INFINITY;
-    cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-    cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS35;
-    cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS0;
+    rlc_cfg_c cnfg;
+    cnfg.set(rlc_cfg_c::types::am);
+    rlc_cfg_c::am_s_* amcfg            = &cnfg.am();
+    amcfg->ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms45;
+    amcfg->ul_am_rlc.poll_pdu          = poll_pdu_e::p_infinity;
+    amcfg->ul_am_rlc.poll_byte         = poll_byte_e::kbinfinity;
+    amcfg->ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+    amcfg->dl_am_rlc.t_reordering      = t_reordering_e::ms35;
+    amcfg->dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms0;
     add_bearer(lcid, srslte_rlc_config_t(&cnfg));
   }
 }

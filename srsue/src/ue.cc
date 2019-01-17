@@ -260,7 +260,6 @@ bool ue::init(all_args_t *args_) {
 
   printf("Waiting PHY to initialize...\n");
   phy.wait_initialize();
-  phy.configure_ul_params();
 
   // Enable AGC once PHY is initialized
   if (args->rf.rx_gain < 0) {

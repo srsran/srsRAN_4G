@@ -29,7 +29,6 @@
 #include "srsue/hdr/phy/phch_worker.h"
 #include "srslte/srslte.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/asn1/liblte_rrc.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
@@ -51,6 +50,7 @@ static int plot_worker_id = -1;
 #endif
 /*********************************************/
 
+using namespace asn1::rrc;
 
 namespace srsue {
 
@@ -288,7 +288,7 @@ void phch_worker::work_imp()
 
   // Average RSSI over all symbols (make sure SF length is non-zero)
   float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0 ? (10*log10(srslte_vec_avg_power_cf(signal_buffer[0], SRSLTE_SF_LEN_PRB(cell.nof_prb))) + 30) : 0;
-  if (isnormal(rssi_dbm)) {
+  if (std::isnormal(rssi_dbm)) {
     phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
   }
 
@@ -520,7 +520,7 @@ void phch_worker::work_imp()
 }
 
 void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
-  if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3) {
+  if (phy->config->dedicated.ant_info.explicit_value().tx_mode == asn1::rrc::ant_info_ded_s::tx_mode_e_::tm3) {
     if (ue_dl.nof_rx_antennas > 1) {
       /* If 2 ort more receiving antennas, select RI */
       float cn = 0.0f;
@@ -535,7 +535,7 @@ void phch_worker::compute_ri(uint8_t *ri, uint8_t *pmi, float *sinr) {
       }
     }
     uci_data.uci_ri_len = 1;
-  } else if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+  } else if (phy->config->dedicated.ant_info.explicit_value().tx_mode == asn1::rrc::ant_info_ded_s::tx_mode_e_::tm4) {
     if (sinr) {
       srslte_ue_dl_ri_pmi_select(&ue_dl, ri, pmi, sinr);
       Debug("TM4 ri=%d; pmi=%d; SINR=%.1fdB\n", ue_dl.ri, ue_dl.pmi[ue_dl.ri], 10*log10f(ue_dl.sinr[ue_dl.ri][ue_dl.pmi[ue_dl.ri]]));
@@ -623,12 +623,12 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
       Debug("Looking for RNTI=0x%x\n", dl_rnti);
     }
 
-    if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
+    if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.ant_info.explicit_value().tx_mode, cfi, tti % 10,
                                       dl_rnti, type, &dci_msg) != 1) {
       if (type == SRSLTE_RNTI_RAR) {
         Debug("RAR not found, SNR=%.1f dB, tti=%d, cfi=%d, tx_mode=%d, cell_id=%d\n",
-             10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), tti, cfi,
-             phy->config->dedicated.antenna_info_explicit_value.tx_mode, cell.id);
+              10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)), tti, cfi,
+              phy->config->dedicated.ant_info.explicit_value().tx_mode.value, cell.id);
       }
       return false;
     }
@@ -704,16 +704,16 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   }
 
   uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
-  switch(phy->config->dedicated.antenna_info_explicit_value.tx_mode) {
+  switch (phy->config->dedicated.ant_info.explicit_value().tx_mode.value) {
     /* Implemented Tx Modes */
-    case LIBLTE_RRC_TRANSMISSION_MODE_1:
+    case ant_info_ded_s::tx_mode_e_::tm1:
       mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
       if (nof_tb != 1) {
         Error("Wrong number of transport blocks (%d) for single antenna.", nof_tb);
         valid_config = false;
       }
       break;
-    case LIBLTE_RRC_TRANSMISSION_MODE_2:
+    case ant_info_ded_s::tx_mode_e_::tm2:
       if (cell.nof_ports > 1) {
         mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
       } else {
@@ -724,7 +724,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         valid_config = false; 
       }
       break;
-    case LIBLTE_RRC_TRANSMISSION_MODE_3:
+    case ant_info_ded_s::tx_mode_e_::tm3:
       if (nof_tb == 1) {
         mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
       } else if (ue_dl.nof_rx_antennas > 1 && nof_tb == 2) {
@@ -735,7 +735,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         valid_config = false;
       }
       break;
-    case LIBLTE_RRC_TRANSMISSION_MODE_4:
+    case ant_info_ded_s::tx_mode_e_::tm4:
       if (nof_tb == 1) {
         mimo_type = (grant->pinfo == 0) ? SRSLTE_MIMO_TYPE_TX_DIVERSITY : SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
       } else if (ue_dl.nof_rx_antennas > 1 && nof_tb == 2) {
@@ -748,24 +748,23 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
     break;
 
     /* Not implemented cases */
-    case LIBLTE_RRC_TRANSMISSION_MODE_5:
-    case LIBLTE_RRC_TRANSMISSION_MODE_6:
-    case LIBLTE_RRC_TRANSMISSION_MODE_7:
-    case LIBLTE_RRC_TRANSMISSION_MODE_8:
-      Error("Not implemented Tx mode (%d)\n", phy->config->dedicated.antenna_info_explicit_value.tx_mode);
+    case ant_info_ded_s::tx_mode_e_::tm5:
+    case ant_info_ded_s::tx_mode_e_::tm6:
+    case ant_info_ded_s::tx_mode_e_::tm7:
+    case ant_info_ded_s::tx_mode_e_::tm8_v920:
+      Error("Not implemented Tx mode (%d)\n", phy->config->dedicated.ant_info.explicit_value().tx_mode.value);
       break;
 
     /* Error cases */
-    case LIBLTE_RRC_TRANSMISSION_MODE_N_ITEMS:
     default:
-      Error("Wrong Tx mode (%d)\n", phy->config->dedicated.antenna_info_explicit_value.tx_mode);
+      Error("Wrong Tx mode (%d)\n", phy->config->dedicated.ant_info.explicit_value().tx_mode.value);
       valid_config = false;
   }
 
   /* Set power allocation according to 3GPP 36.213 clause 5.2 Downlink power allocation */
   float rho_a = 1.0f, rho_b = 1.0f;
-  if (phy->config->dedicated.pdsch_cnfg_ded < LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
-    float rho_a_db = liblte_rrc_pdsch_config_p_a_num[(int) phy->config->dedicated.pdsch_cnfg_ded];
+  if (phy->config->dedicated.pdsch_cfg_ded_present) {
+    float rho_a_db = phy->config->dedicated.pdsch_cfg_ded.p_a.to_number();
     rho_a = powf(10.0f, rho_a_db / 20.0f) * ((cell.nof_ports == 1) ? 1.0f : sqrtf(2.0f));
   }
   if (phy->config->common.pdsch_cnfg.p_b < 4) {
@@ -811,7 +810,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   #endif
 
         char pinfo_str[16] = {0};
-        if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+        if (phy->config->dedicated.ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
           snprintf(pinfo_str, 15, ", pinfo=%x", grant->pinfo);
         }
 
@@ -1113,7 +1112,7 @@ void phch_worker::set_uci_periodic_cqi()
         if (cqi_max >= 0 && cqi_report.wideband.wideband_cqi > cqi_max) {
           cqi_report.wideband.wideband_cqi = cqi_max; 
         }
-        if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+        if (phy->config->dedicated.ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
           cqi_report.wideband.pmi_present = true;
           cqi_report.wideband.pmi = phy->last_pmi;
           cqi_report.wideband.rank_is_not_one = (phy->last_ri != 0);
@@ -1132,12 +1131,12 @@ void phch_worker::set_uci_aperiodic_cqi()
 {
   float sinr_db = ue_dl.sinr[phy->last_ri % SRSLTE_MAX_LAYERS][phy->last_pmi%SRSLTE_MAX_CODEBOOKS];
 
-  if (phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic_present) {
+  if (phy->config->dedicated.cqi_report_cfg.cqi_report_mode_aperiodic_present) {
     /* Compute RI, PMI and SINR */
     compute_ri(&phy->last_ri, &phy->last_pmi, &sinr_db);
 
-    switch(phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic) {
-      case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM30:
+    switch (phy->config->dedicated.cqi_report_cfg.cqi_report_mode_aperiodic.value) {
+      case cqi_report_mode_aperiodic_e::rm30:
         /* only Higher Layer-configured subband feedback support right now, according to TS36.213 section 7.2.1
           - A UE shall report a wideband CQI value which is calculated assuming transmission on set S subbands
           - The UE shall also report one subband CQI value for each set S subband. The subband CQI
@@ -1168,8 +1167,8 @@ void phch_worker::set_uci_aperiodic_cqi()
           srslte_cqi_to_str(uci_data.uci_cqi, uci_data.uci_cqi_len, cqi_str, SRSLTE_CQI_STR_MAX_CHAR);
 
           /* Set RI = 1 */
-          if (phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
-              phy->config->dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+          if (phy->config->dedicated.ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3 ||
+              phy->config->dedicated.ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
             uci_data.uci_ri = phy->last_ri;
             uci_data.uci_ri_len = 1;
           } else {
@@ -1180,7 +1179,7 @@ void phch_worker::set_uci_aperiodic_cqi()
                cqi_str, (uci_data.uci_ri_len)?((uci_data.uci_ri == 0)?"ri=0, ":"ri=1, "):"", phy->avg_snr_db_cqi, cqi_report.subband_hl.N);
         }
         break;
-      case LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31:
+      case cqi_report_mode_aperiodic_e::rm31:
         /* only Higher Layer-configured subband feedback support right now, according to TS36.213 section 7.2.1
           - A single precoding matrix is selected from the codebook subset assuming transmission on set S subbands
           - A UE shall report one subband CQI value per codeword for each set S subband which are calculated assuming
@@ -1239,8 +1238,8 @@ void phch_worker::set_uci_aperiodic_cqi()
         }
         break;
       default:
-        Warning("Received CQI request but mode %s is not supported\n", 
-                liblte_rrc_cqi_report_mode_aperiodic_text[phy->config->dedicated.cqi_report_cnfg.report_mode_aperiodic]);
+        Warning("Received CQI request but mode %s is not supported\n",
+                phy->config->dedicated.cqi_report_cfg.cqi_report_mode_aperiodic.to_string().c_str());
         break;
     }
   } else {
@@ -1429,41 +1428,41 @@ void phch_worker::set_ul_params(bool pregen_disabled)
 {
   pthread_mutex_lock(&mutex);
 
-  phy_interface_rrc::phy_cfg_common_t         *common    = &phy->config->common;
-  LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &phy->config->dedicated;
-  
+  phy_interface_rrc::phy_cfg_common_t* common    = &phy->config->common;
+  phys_cfg_ded_s*                      dedicated = &phy->config->dedicated;
+
   Info("Setting new params worker_id=%d, pregen_disabled=%d\n", get_id(), pregen_disabled);
   
   /* PUSCH DMRS signal configuration */
-  bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
-  dmrs_cfg.group_hopping_en    = common->pusch_cnfg.ul_rs.group_hopping_enabled;
-  dmrs_cfg.sequence_hopping_en = common->pusch_cnfg.ul_rs.sequence_hopping_enabled;
-  dmrs_cfg.cyclic_shift        = common->pusch_cnfg.ul_rs.cyclic_shift;
-  dmrs_cfg.delta_ss            = common->pusch_cnfg.ul_rs.group_assignment_pusch;
-  
+  dmrs_cfg.group_hopping_en    = common->pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
+  dmrs_cfg.sequence_hopping_en = common->pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
+  dmrs_cfg.cyclic_shift        = common->pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
+  dmrs_cfg.delta_ss            = common->pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
+
   /* PUSCH Hopping configuration */
-  bzero(&pusch_hopping, sizeof(srslte_pusch_hopping_cfg_t));
-  pusch_hopping.n_sb           = common->pusch_cnfg.n_sb;
-  pusch_hopping.hop_mode       = common->pusch_cnfg.hopping_mode == LIBLTE_RRC_HOPPING_MODE_INTRA_AND_INTER_SUBFRAME ? 
-                                  pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
-                                  pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
-  pusch_hopping.hopping_offset = common->pusch_cnfg.pusch_hopping_offset;
+  pusch_hopping.n_sb     = common->pusch_cnfg.pusch_cfg_basic.n_sb;
+  pusch_hopping.hop_mode = common->pusch_cnfg.pusch_cfg_basic.hop_mode.value ==
+                                   pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
+                               ? pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF
+                               : pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF;
+  pusch_hopping.hopping_offset = common->pusch_cnfg.pusch_cfg_basic.pusch_hop_offset;
 
   /* PUSCH UCI configuration */
-  bzero(&uci_cfg, sizeof(srslte_uci_cfg_t));
-  uci_cfg.I_offset_ack         = dedicated->pusch_cnfg_ded.beta_offset_ack_idx;
-  uci_cfg.I_offset_cqi         = dedicated->pusch_cnfg_ded.beta_offset_cqi_idx;
-  uci_cfg.I_offset_ri          = dedicated->pusch_cnfg_ded.beta_offset_ri_idx;
-  
-  /* PUCCH configuration */  
+  uci_cfg.I_offset_ack = dedicated->pusch_cfg_ded.beta_offset_ack_idx;
+  uci_cfg.I_offset_cqi = dedicated->pusch_cfg_ded.beta_offset_cqi_idx;
+  uci_cfg.I_offset_ri  = dedicated->pusch_cfg_ded.beta_offset_ri_idx;
+
+  /* PUCCH configuration */
   bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
-  pucch_cfg.delta_pucch_shift  = liblte_rrc_delta_pucch_shift_num[common->pucch_cnfg.delta_pucch_shift%LIBLTE_RRC_DELTA_PUCCH_SHIFT_N_ITEMS];
+  pucch_cfg.delta_pucch_shift  = common->pucch_cnfg.delta_pucch_shift.to_number();
   pucch_cfg.N_cs               = common->pucch_cnfg.n_cs_an;
   pucch_cfg.n_rb_2             = common->pucch_cnfg.n_rb_cqi;
-  pucch_cfg.srs_configured     = dedicated->srs_ul_cnfg_ded.setup_present;
+  pucch_cfg.srs_configured     = dedicated->srs_ul_cfg_ded_present and
+                             dedicated->srs_ul_cfg_ded.type() == setup_e::setup and
+                             common->srs_ul_cnfg.type().value == setup_e::setup;
   if (pucch_cfg.srs_configured) {
-    pucch_cfg.srs_cs_subf_cfg    = liblte_rrc_srs_subfr_config_num[common->srs_ul_cnfg.subfr_cnfg%LIBLTE_RRC_SRS_SUBFR_CONFIG_N_ITEMS];
-    pucch_cfg.srs_simul_ack      = common->srs_ul_cnfg.ack_nack_simul_tx;
+    pucch_cfg.srs_cs_subf_cfg = common->srs_ul_cnfg.setup().srs_sf_cfg.to_number();
+    pucch_cfg.srs_simul_ack   = common->srs_ul_cnfg.setup().ack_nack_srs_simul_tx;
   }
   
   /* PUCCH Scheduling configuration */
@@ -1473,39 +1472,56 @@ void phch_worker::set_ul_params(bool pregen_disabled)
   pucch_sched.n_pucch_1[2]     = 0;
   pucch_sched.n_pucch_1[3]     = 0;
   pucch_sched.N_pucch_1        = common->pucch_cnfg.n1_pucch_an;
-  pucch_sched.n_pucch_2        = dedicated->cqi_report_cnfg.report_periodic.pucch_resource_idx;
-  pucch_sched.n_pucch_sr       = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
+  if (dedicated->cqi_report_cfg.cqi_report_periodic_present and
+      dedicated->cqi_report_cfg.cqi_report_periodic.type().value == setup_e::setup) {
+    pucch_sched.n_pucch_2 = dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx;
+  } else {
+    // FIXME: put is_pucch_configured flag here?
+    pucch_sched.n_pucch_2 = 0;
+  }
+
+  /* SR configuration */
+  if (dedicated->sched_request_cfg_present and dedicated->sched_request_cfg.type() == setup_e::setup) {
+    I_sr                   = dedicated->sched_request_cfg.setup().sr_cfg_idx;
+    pucch_sched.n_pucch_sr = dedicated->sched_request_cfg.setup().sr_pucch_res_idx;
+    sr_configured          = true;
+  } else {
+    pucch_sched.n_pucch_sr = 0;
+    sr_configured          = false;
+  }
 
   /* SRS Configuration */
   bzero(&srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
-  srs_cfg.configured           = dedicated->srs_ul_cnfg_ded.setup_present;
-  if (pucch_cfg.srs_configured) {
-    srs_cfg.subframe_config      = liblte_rrc_srs_subfr_config_num[common->srs_ul_cnfg.subfr_cnfg%LIBLTE_RRC_SRS_SUBFR_CONFIG_N_ITEMS];
-    srs_cfg.bw_cfg               = liblte_rrc_srs_bw_config_num[common->srs_ul_cnfg.bw_cnfg%LIBLTE_RRC_SRS_BW_CONFIG_N_ITEMS];
-    srs_cfg.I_srs                = dedicated->srs_ul_cnfg_ded.srs_cnfg_idx;
-    srs_cfg.B                    = dedicated->srs_ul_cnfg_ded.srs_bandwidth;
-    srs_cfg.b_hop                = dedicated->srs_ul_cnfg_ded.srs_hopping_bandwidth;
-    srs_cfg.n_rrc                = dedicated->srs_ul_cnfg_ded.freq_domain_pos;
-    srs_cfg.k_tc                 = dedicated->srs_ul_cnfg_ded.tx_comb;
-    srs_cfg.n_srs                = dedicated->srs_ul_cnfg_ded.cyclic_shift;
+  srs_cfg.configured = dedicated->srs_ul_cfg_ded_present and dedicated->srs_ul_cfg_ded.type() == setup_e::setup and
+                       common->srs_ul_cnfg.type() == setup_e::setup;
+  if (srs_cfg.configured) {
+    srs_cfg.subframe_config = common->srs_ul_cnfg.setup().srs_sf_cfg.to_number();
+    srs_cfg.bw_cfg          = common->srs_ul_cnfg.setup().srs_bw_cfg.to_number();
+    srs_cfg.I_srs           = dedicated->srs_ul_cfg_ded.setup().srs_cfg_idx;
+    srs_cfg.B               = dedicated->srs_ul_cfg_ded.setup().srs_bw;
+    srs_cfg.b_hop           = dedicated->srs_ul_cfg_ded.setup().srs_hop_bw;
+    srs_cfg.n_rrc           = dedicated->srs_ul_cfg_ded.setup().freq_domain_position;
+    srs_cfg.k_tc            = dedicated->srs_ul_cfg_ded.setup().tx_comb;
+    srs_cfg.n_srs           = dedicated->srs_ul_cfg_ded.setup().cyclic_shift;
   }
   
   /* UL power control configuration */
   bzero(&power_ctrl, sizeof(srslte_ue_ul_powerctrl_t));
   power_ctrl.p0_nominal_pusch  = common->ul_pwr_ctrl.p0_nominal_pusch;
-  power_ctrl.alpha             = liblte_rrc_ul_power_control_alpha_num[common->ul_pwr_ctrl.alpha%LIBLTE_RRC_UL_POWER_CONTROL_ALPHA_N_ITEMS];
+  power_ctrl.alpha             = common->ul_pwr_ctrl.alpha.to_number();
   power_ctrl.p0_nominal_pucch  = common->ul_pwr_ctrl.p0_nominal_pucch;
-  power_ctrl.delta_f_pucch[0]  = liblte_rrc_delta_f_pucch_format_1_num[common->ul_pwr_ctrl.delta_flist_pucch.format_1%LIBLTE_RRC_DELTA_F_PUCCH_FORMAT_1_N_ITEMS];
-  power_ctrl.delta_f_pucch[1]  = liblte_rrc_delta_f_pucch_format_1b_num[common->ul_pwr_ctrl.delta_flist_pucch.format_1b%LIBLTE_RRC_DELTA_F_PUCCH_FORMAT_1B_N_ITEMS];
-  power_ctrl.delta_f_pucch[2]  = liblte_rrc_delta_f_pucch_format_2_num[common->ul_pwr_ctrl.delta_flist_pucch.format_2%LIBLTE_RRC_DELTA_F_PUCCH_FORMAT_2_N_ITEMS];
-  power_ctrl.delta_f_pucch[3]  = liblte_rrc_delta_f_pucch_format_2a_num[common->ul_pwr_ctrl.delta_flist_pucch.format_2a%LIBLTE_RRC_DELTA_F_PUCCH_FORMAT_2A_N_ITEMS];
-  power_ctrl.delta_f_pucch[4]  = liblte_rrc_delta_f_pucch_format_2b_num[common->ul_pwr_ctrl.delta_flist_pucch.format_2b%LIBLTE_RRC_DELTA_F_PUCCH_FORMAT_2B_N_ITEMS];
-  
-  power_ctrl.delta_preamble_msg3 = common->ul_pwr_ctrl.delta_preamble_msg3;
-  
+  power_ctrl.delta_f_pucch[0]  = common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format1.to_number();
+  power_ctrl.delta_f_pucch[1]  = common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format1b.to_number();
+  power_ctrl.delta_f_pucch[2]  = common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2.to_number();
+  power_ctrl.delta_f_pucch[3]  = common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2a.to_number();
+  power_ctrl.delta_f_pucch[4]  = common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2b.to_number();
+
+  power_ctrl.delta_preamble_msg3 = common->ul_pwr_ctrl.delta_preamb_msg3;
+
   power_ctrl.p0_ue_pusch       = dedicated->ul_pwr_ctrl_ded.p0_ue_pusch;
-  power_ctrl.delta_mcs_based   = dedicated->ul_pwr_ctrl_ded.delta_mcs_en==LIBLTE_RRC_DELTA_MCS_ENABLED_EN0;
-  power_ctrl.acc_enabled       = dedicated->ul_pwr_ctrl_ded.accumulation_en;
+  power_ctrl.delta_mcs_based =
+      dedicated->ul_pwr_ctrl_ded.delta_mcs_enabled == ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
+  power_ctrl.acc_enabled       = dedicated->ul_pwr_ctrl_ded.accumulation_enabled;
   power_ctrl.p0_ue_pucch       = dedicated->ul_pwr_ctrl_ded.p0_ue_pucch;
   power_ctrl.p_srs_offset      = dedicated->ul_pwr_ctrl_ded.p_srs_offset;
   
@@ -1513,23 +1529,25 @@ void phch_worker::set_ul_params(bool pregen_disabled)
 
   /* CQI configuration */
   bzero(&period_cqi, sizeof(srslte_cqi_periodic_cfg_t));
-  period_cqi.configured        = dedicated->cqi_report_cnfg.report_periodic_setup_present;
-  period_cqi.pmi_idx           = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
-  period_cqi.simul_cqi_ack     = dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi;
-  period_cqi.format_is_subband = dedicated->cqi_report_cnfg.report_periodic.format_ind_periodic ==
-                                 LIBLTE_RRC_CQI_FORMAT_INDICATOR_PERIODIC_SUBBAND_CQI;
-  period_cqi.subband_size      = dedicated->cqi_report_cnfg.report_periodic.format_ind_periodic_subband_k;
-
-  if (dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present) {
-    period_cqi.ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
-    period_cqi.ri_idx_present = true;
-  } else {
-    period_cqi.ri_idx_present = false;
+  period_cqi.configured = dedicated->cqi_report_cfg.cqi_report_periodic_present and
+                          dedicated->cqi_report_cfg.cqi_report_periodic.type() == setup_e::setup;
+  if (period_cqi.configured) {
+    period_cqi.pmi_idx       = dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx;
+    period_cqi.simul_cqi_ack = dedicated->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi;
+    period_cqi.format_is_subband =
+        dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.type().value ==
+        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::subband_cqi;
+    if (period_cqi.format_is_subband) {
+      period_cqi.subband_size =
+          dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.subband_cqi().k;
+    }
+    if (dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present) {
+      period_cqi.ri_idx         = dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx;
+      period_cqi.ri_idx_present = true;
+    } else {
+      period_cqi.ri_idx_present = false;
+    }
   }
-
-  /* SR configuration */
-  I_sr                         = dedicated->sched_request_cnfg.sr_cnfg_idx;
-  sr_configured                = true;
 
   pthread_mutex_unlock(&mutex);
 
@@ -1616,7 +1634,7 @@ void phch_worker::update_measurements()
     
     // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
     float rsrq_db = 10*log10(srslte_chest_dl_get_rsrq(&ue_dl.chest));
-    if (isnormal(rsrq_db)) {
+    if (std::isnormal(rsrq_db)) {
       if (!(tti%phy->pcell_report_period) || !phy->avg_rsrq_db) {
         phy->avg_rsrq_db = rsrq_db;
       } else {
@@ -1626,7 +1644,7 @@ void phch_worker::update_measurements()
 
     // Average RSRP taken from CRS
     float rsrp_lin = srslte_chest_dl_get_rsrp(&ue_dl.chest);
-    if (isnormal(rsrp_lin)) {
+    if (std::isnormal(rsrp_lin)) {
       if (!phy->avg_rsrp) {
         phy->avg_rsrp = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp, snr_ema_coeff);
       } else {
@@ -1638,7 +1656,7 @@ void phch_worker::update_measurements()
     float rsrp_dbm = 10*log10(rsrp_lin) + 30 - phy->rx_gain_offset;
 
     // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
-    if (isnormal(rsrp_dbm)) {
+    if (std::isnormal(rsrp_dbm)) {
       if (!(tti%phy->pcell_report_period) || !phy->avg_rsrp_dbm) {
         phy->avg_rsrp_dbm = rsrp_dbm;
       } else {
@@ -1652,12 +1670,12 @@ void phch_worker::update_measurements()
     }
 
     // Compute PL
-    float tx_crs_power = phy->config->common.pdsch_cnfg.rs_power;
+    float tx_crs_power = phy->config->common.pdsch_cnfg.ref_sig_pwr;
     phy->pathloss = tx_crs_power - phy->avg_rsrp_dbm;
 
     // Average noise 
     float cur_noise = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);
-    if (isnormal(cur_noise)) {
+    if (std::isnormal(cur_noise)) {
       if (!phy->avg_noise) {  
         phy->avg_noise = cur_noise;          
       } else {

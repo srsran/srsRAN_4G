@@ -28,15 +28,15 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include "srslte/asn1/liblte_rrc.h"
-#include "srslte/radio/radio_multi.h"
-#include "srsue/hdr/phy/phy.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/log_filter.h"
-#include "srsue/hdr/mac/mac.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/radio/radio_multi.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/phy/phy.h"
 
-
+using namespace asn1::rrc;
 
 /**********************************************************************
  *  Program arguments processing
@@ -112,98 +112,97 @@ uint32_t sib_start_tti(uint32_t tti, uint32_t period, uint32_t x) {
   return (period*10*(1+tti/(period*10))+x)%10240; // the 1 means next opportunity
 }
 
-void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srsue::mac *mac, srsue::phy *phy) {
+void setup_mac_phy_sib2(sib_type2_s* sib2, srsue::mac* mac, srsue::phy* phy)
+{
 
   // Apply RACH configuration 
   srsue::mac_interface_rrc::mac_cfg_t mac_cfg; 
   mac->get_config(&mac_cfg);
-  memcpy(&mac_cfg.rach, &sib2->rr_config_common_sib.rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT));
+  mac_cfg.rach = sib2->rr_cfg_common.rach_cfg_common;
   mac->set_config(&mac_cfg);
 
-  printf("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms, MaxTrials=%d\n",  
-         liblte_rrc_number_of_ra_preambles_num[sib2->rr_config_common_sib.rach_cnfg.num_ra_preambles], 
-         liblte_rrc_ra_response_window_size_num[sib2->rr_config_common_sib.rach_cnfg.ra_resp_win_size], 
-         liblte_rrc_mac_contention_resolution_timer_num[sib2->rr_config_common_sib.rach_cnfg.mac_con_res_timer], 
-         liblte_rrc_preamble_trans_max_num[sib2->rr_config_common_sib.rach_cnfg.preamble_trans_max]);
-  
+  printf("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms, MaxTrials=%d\n",
+         sib2->rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number(),
+         sib2->rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number(),
+         sib2->rr_cfg_common.rach_cfg_common.ra_supervision_info.mac_contention_resolution_timer.to_number(),
+         sib2->rr_cfg_common.rach_cfg_common.ra_supervision_info.preamb_trans_max.to_number());
+
   // Apply PHY RR Config Common
-  srsue::phy_interface_rrc::phy_cfg_common_t common; 
-  memcpy(&common.pdsch_cnfg,  &sib2->rr_config_common_sib.pdsch_cnfg,  sizeof(LIBLTE_RRC_PDSCH_CONFIG_COMMON_STRUCT));
-  memcpy(&common.pusch_cnfg,  &sib2->rr_config_common_sib.pusch_cnfg,  sizeof(LIBLTE_RRC_PUSCH_CONFIG_COMMON_STRUCT));
-  memcpy(&common.pucch_cnfg,  &sib2->rr_config_common_sib.pucch_cnfg,  sizeof(LIBLTE_RRC_PUCCH_CONFIG_COMMON_STRUCT));
-  memcpy(&common.ul_pwr_ctrl, &sib2->rr_config_common_sib.ul_pwr_ctrl, sizeof(LIBLTE_RRC_UL_POWER_CONTROL_COMMON_STRUCT));
-  memcpy(&common.prach_cnfg,  &sib2->rr_config_common_sib.prach_cnfg,  sizeof(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT));
-  if (sib2->rr_config_common_sib.srs_ul_cnfg.present) {
-    memcpy(&common.srs_ul_cnfg,  &sib2->rr_config_common_sib.srs_ul_cnfg, sizeof(LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT));
-  } else {
-    // default is release
-    common.srs_ul_cnfg.present = false; 
-  }
+  srsue::phy_interface_rrc::phy_cfg_common_t common;
+  common.pdsch_cnfg  = sib2->rr_cfg_common.pdsch_cfg_common;
+  common.pusch_cnfg  = sib2->rr_cfg_common.pusch_cfg_common;
+  common.pucch_cnfg  = sib2->rr_cfg_common.pucch_cfg_common;
+  common.ul_pwr_ctrl = sib2->rr_cfg_common.ul_pwr_ctrl_common;
+  common.prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
+  common.srs_ul_cnfg = sib2->rr_cfg_common.srs_ul_cfg_common;
+
   phy->set_config_common(&common);
   phy->configure_ul_params();
 
   printf("Set PUSCH ConfigCommon: HopOffset=%d, RSGroup=%d, RSNcs=%d, N_sb=%d\n",
-    sib2->rr_config_common_sib.pusch_cnfg.pusch_hopping_offset,
-    sib2->rr_config_common_sib.pusch_cnfg.ul_rs.group_assignment_pusch,
-    sib2->rr_config_common_sib.pusch_cnfg.ul_rs.cyclic_shift, 
-    sib2->rr_config_common_sib.pusch_cnfg.n_sb);
-  
-  printf("Set PUCCH ConfigCommon: DeltaShift=%d, CyclicShift=%d, N1=%d, NRB=%d\n",
-         liblte_rrc_delta_pucch_shift_num[sib2->rr_config_common_sib.pucch_cnfg.delta_pucch_shift],
-         sib2->rr_config_common_sib.pucch_cnfg.n_cs_an,
-         sib2->rr_config_common_sib.pucch_cnfg.n1_pucch_an,
-         sib2->rr_config_common_sib.pucch_cnfg.n_rb_cqi);
+         sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.pusch_hop_offset,
+         sib2->rr_cfg_common.pusch_cfg_common.ul_ref_sigs_pusch.group_assign_pusch,
+         sib2->rr_cfg_common.pusch_cfg_common.ul_ref_sigs_pusch.cyclic_shift,
+         sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.n_sb);
 
-  printf("Set PRACH ConfigCommon: SeqIdx=%d, HS=%d, FreqOffset=%d, ZC=%d, ConfigIndex=%d\n", 
-     sib2->rr_config_common_sib.prach_cnfg.root_sequence_index, 
-     sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.high_speed_flag?1:0,
-     sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset,
-     sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.zero_correlation_zone_config,
-     sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_config_index);
-  
-  printf("Set SRS ConfigCommon: BW-Configuration=%d, SF-Configuration=%d, ACKNACK=%d\n", 
-    sib2->rr_config_common_sib.srs_ul_cnfg.bw_cnfg,
-    sib2->rr_config_common_sib.srs_ul_cnfg.subfr_cnfg,
-    sib2->rr_config_common_sib.srs_ul_cnfg.ack_nack_simul_tx);
-    
+  printf("Set PUCCH ConfigCommon: DeltaShift=%d, CyclicShift=%d, N1=%d, NRB=%d\n",
+         sib2->rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number(),
+         sib2->rr_cfg_common.pucch_cfg_common.n_cs_an, sib2->rr_cfg_common.pucch_cfg_common.n1_pucch_an,
+         sib2->rr_cfg_common.pucch_cfg_common.n_rb_cqi);
+
+  printf("Set PRACH ConfigCommon: SeqIdx=%d, HS=%d, FreqOffset=%d, ZC=%d, ConfigIndex=%d\n",
+         sib2->rr_cfg_common.prach_cfg.root_seq_idx,
+         sib2->rr_cfg_common.prach_cfg.prach_cfg_info.high_speed_flag ? 1 : 0,
+         sib2->rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset,
+         sib2->rr_cfg_common.prach_cfg.prach_cfg_info.zero_correlation_zone_cfg,
+         sib2->rr_cfg_common.prach_cfg.prach_cfg_info.prach_cfg_idx);
+
+  if (sib2->rr_cfg_common.srs_ul_cfg_common.type() == srs_ul_cfg_common_c::types::setup) {
+    srs_ul_cfg_common_c::setup_s_* setup = &sib2->rr_cfg_common.srs_ul_cfg_common.setup();
+    printf("Set SRS ConfigCommon: BW-Configuration=%d, SF-Configuration=%d, ACKNACK=%d\n",
+           setup->srs_bw_cfg.to_number(), setup->srs_sf_cfg.to_number(), setup->ack_nack_srs_simul_tx ? 1 : 0);
+  }
 }
 
-void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srsue::mac *mac, srsue::phy *phy) {
-  
-  // FIXME: There's an error parsing the connectionSetup message. This value is hard-coded: 
- 
-  if (msg->rr_cnfg.phy_cnfg_ded_present) {
-    phy->set_config_dedicated(&msg->rr_cnfg.phy_cnfg_ded);
+void process_connsetup(rrc_conn_setup_s* msg, srsue::mac* mac, srsue::phy* phy)
+{
+
+  // FIXME: There's an error parsing the connectionSetup message. This value is hard-coded:
+
+  rr_cfg_ded_s* rr_ded = &msg->crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded;
+  if (rr_ded->phys_cfg_ded_present) {
+    phy->set_config_dedicated(&rr_ded->phys_cfg_ded);
+    printf("Set PHY configuration: SR-n_pucch=%d, SR-ConfigIndex=%d, SRS-ConfigIndex=%d, SRS-bw=%d, SRS-Nrcc=%d, "
+           "SRS-hop=%d, SRS-Ncs=%d\n",
+           rr_ded->phys_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx,
+           rr_ded->phys_cfg_ded.sched_request_cfg.setup().sr_cfg_idx,
+           rr_ded->phys_cfg_ded.srs_ul_cfg_ded.setup().srs_cfg_idx,
+           rr_ded->phys_cfg_ded.srs_ul_cfg_ded.setup().srs_bw.to_number(),
+           rr_ded->phys_cfg_ded.srs_ul_cfg_ded.setup().freq_domain_position,
+           rr_ded->phys_cfg_ded.srs_ul_cfg_ded.setup().srs_hop_bw.to_number(),
+           rr_ded->phys_cfg_ded.srs_ul_cfg_ded.setup().cyclic_shift.to_number());
   }
-  printf("Set PHY configuration: SR-n_pucch=%d, SR-ConfigIndex=%d, SRS-ConfigIndex=%d, SRS-bw=%d, SRS-Nrcc=%d, SRS-hop=%d, SRS-Ncs=%d\n", 
-         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx,
-         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx, 
-         msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.srs_cnfg_idx, 
-         msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.srs_bandwidth,
-         msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.freq_domain_pos,
-         msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.srs_hopping_bandwidth,
-         msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.cyclic_shift);
-  
-  srsue::mac_interface_rrc::mac_cfg_t mac_set; 
+
+  srsue::mac_interface_rrc::mac_cfg_t mac_set;
   mac->get_config(&mac_set);
-  memcpy(&mac_set.main, &msg->rr_cnfg.mac_main_cnfg, sizeof(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT));
+  mac_set.main = rr_ded->mac_main_cfg.explicit_value();
   // SR is a PHY config but is needed by SR procedure in 36.321 5.4.4
-  memcpy(&mac_set.sr, &msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg, sizeof(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT));
+  mac_set.sr = rr_ded->phys_cfg_ded.sched_request_cfg;
   mac->set_config(&mac_set);
-  
-  printf("Set MAC configuration: dsr-TransMAX: %d, harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n", 
-         liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max], 
-         liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx],
-         liblte_rrc_retransmission_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.retx_bsr_timer],
-         liblte_rrc_periodic_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.periodic_bsr_timer]);
-  
+
+  printf("Set MAC configuration: dsr-TransMAX: %d, harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n",
+         rr_ded->phys_cfg_ded.sched_request_cfg.setup().dsr_trans_max.to_number(),
+         rr_ded->mac_main_cfg.explicit_value().ul_sch_cfg.max_harq_tx.to_number(),
+         rr_ded->mac_main_cfg.explicit_value().ul_sch_cfg.retx_bsr_timer.to_number(),
+         rr_ded->mac_main_cfg.explicit_value().ul_sch_cfg.periodic_bsr_timer.to_number());
+
   phy->configure_ul_params();
-  
+
   // Setup radio bearers
-  for (uint32_t i=0;i<msg->rr_cnfg.srb_to_add_mod_list_size;i++) {
-    if (msg->rr_cnfg.srb_to_add_mod_list[i].lc_default_cnfg_present) {
-      printf("Setting up Default Configuration for SRB%d \n", msg->rr_cnfg.srb_to_add_mod_list[i].srb_id);
-      switch(msg->rr_cnfg.srb_to_add_mod_list[i].srb_id) {
+  for (uint32_t i = 0; i < rr_ded->srb_to_add_mod_list.size(); i++) {
+    if (rr_ded->srb_to_add_mod_list[i].lc_ch_cfg_present) {
+      printf("Setting up Default Configuration for SRB%d \n", rr_ded->srb_to_add_mod_list[i].srb_id);
+      switch (rr_ded->srb_to_add_mod_list[i].srb_id) {
         case 1:
           mac->setup_lcid(1, 0, 1, -1, -1);
           break;
@@ -305,27 +304,35 @@ public:
   int read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) 
   {
     if (lcid == 0) {
-      LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
+      ul_ccch_msg_s ul_ccch_msg;
       // Prepare ConnectionRequest packet
-      ul_ccch_msg.msg_type = LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REQ;
-      ul_ccch_msg.msg.rrc_con_req.ue_id_type = LIBLTE_RRC_CON_REQ_UE_ID_TYPE_RANDOM_VALUE; 
-      ul_ccch_msg.msg.rrc_con_req.ue_id.random = 1000;
-      ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING; 
-      liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, &bit_msg);
+      ul_ccch_msg.msg.set(ul_ccch_msg_type_c::types::c1);
+      ul_ccch_msg.msg.c1().set(ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request);
+      ul_ccch_msg.msg.c1().rrc_conn_request().crit_exts.set(
+          rrc_conn_request_s::crit_exts_c_::types::rrc_conn_request_r8);
+      ul_ccch_msg.msg.c1().rrc_conn_request().crit_exts.rrc_conn_request_r8().ue_id.set(
+          init_ue_id_c::types::random_value);
+      ul_ccch_msg.msg.c1().rrc_conn_request().crit_exts.rrc_conn_request_r8().ue_id.random_value().from_number(1000);
+      ul_ccch_msg.msg.c1().rrc_conn_request().crit_exts.rrc_conn_request_r8().establishment_cause =
+          establishment_cause_e::mo_sig;
 
-      uint64_t uecri=0;
-      uint8_t *ue_cri_ptr = (uint8_t*) &uecri; 
-      uint32_t nbytes = bit_msg.N_bits/8;
-      uint8_t *ptr = bit_msg.msg; 
+      asn1::bit_ref bref(payload, nof_bytes);
+
+      ul_ccch_msg.pack(bref);
+      uint32_t nbytes = (uint32_t)bref.distance_bytes(payload);
+      //      assert(nbytes<1024);
+
+      uint64_t uecri      = 0;
+      uint8_t* ue_cri_ptr = (uint8_t*)&uecri;
+      uint8_t* ptr        = bit_msg.msg;
       for (uint32_t i=0;i<nbytes;i++) {
-        ue_cri_ptr[nbytes-i-1] = (uint8_t) srslte_bit_pack(&ptr, 8);
+        ue_cri_ptr[nbytes - i - 1] = payload[i]; //(uint8_t) srslte_bit_pack(&ptr, 8);
       }
       printf("Setting UE contention resolution ID: %lu\n", uecri);
       mac.set_contention_id(uecri);
 
       // Send ConnectionRequest Packet
       printf("Send ConnectionRequest %d/%d bytes\n", nbytes, nof_bytes);
-      srslte_bit_pack_vector(bit_msg.msg, payload, nbytes*8);
       bzero(&payload[nbytes], (nof_bytes-nbytes)*sizeof(uint8_t));
       return nof_bytes;
     } else if (lcid == 1) {
@@ -343,7 +350,7 @@ public:
             nsegm_dcch++;
           } else {
             r = 0;
-          }                    
+          }
           return r; 
         }
       } else if (send_ack == 1) {
@@ -358,22 +365,23 @@ public:
 
   void     write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) {
     if (lcid == 0) {
-      LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
+      dl_ccch_msg_s dl_ccch_msg;
       printf("ConnSetup received %d bytes\n", nof_bytes);
       srslte_vec_fprint_byte(stdout, payload, nof_bytes);
-      srslte_bit_unpack_vector(payload, bit_msg.msg, nof_bytes*8);
-      bit_msg.N_bits = nof_bytes*8; 
-      liblte_rrc_unpack_dl_ccch_msg(&bit_msg, &dl_ccch_msg);
-      printf("Response: %s\n", liblte_rrc_dl_ccch_msg_type_text[dl_ccch_msg.msg_type]);
-      switch (dl_ccch_msg.msg_type) {
-        case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP: 
+
+      asn1::bit_ref bref(payload, nof_bytes);
+      dl_ccch_msg.unpack(bref);
+
+      printf("Response: %s\n", dl_ccch_msg.msg.c1().type().to_string().c_str());
+      switch (dl_ccch_msg.msg.c1().type().value) {
+        case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup:
           // Process ConnectionSetup
-          process_connsetup(&dl_ccch_msg.msg.rrc_con_setup, &mac, &phy);
+          process_connsetup(&dl_ccch_msg.msg.c1().rrc_conn_setup(), &mac, &phy);
           connsetup_decoded = true; 
           break;
-        case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
-        case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST:
-        case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST_REJ:
+        case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reject:
+        case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest:
+        case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_reject:
           break;
       } 
     } else if (lcid == 1) {
@@ -386,39 +394,43 @@ public:
   
   void     write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes) 
   {
-    LIBLTE_RRC_MIB_STRUCT mib;
+    mib_s mib;
     srslte_vec_fprint_byte(stdout, payload, nof_bytes);
-    srslte_bit_unpack_vector(payload, bit_msg.msg, nof_bytes*8);
-    bit_msg.N_bits = nof_bytes*8; 
-    liblte_rrc_unpack_bcch_bch_msg(&bit_msg, &mib); 
-    printf("MIB received %d bytes, BW=%s MHz\n", nof_bytes, liblte_rrc_dl_bandwidth_text[mib.dl_bw]);
+
+    asn1::bit_ref bref(payload, nof_bytes);
+    mib.unpack(bref);
+
+    printf("MIB received %d bytes, BW=%s MHz\n", nof_bytes, mib.dl_bw.to_string().c_str());
     mib_decoded = true; 
   }
-  
-  void     write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes) 
+
+  void write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes)
   {
-    LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
-    srslte_bit_unpack_vector(payload, bit_msg.msg, nof_bytes*8);
-    bit_msg.N_bits = nof_bytes*8; 
-    liblte_rrc_unpack_bcch_dlsch_msg(&bit_msg, &dlsch_msg);          
-    if (dlsch_msg.N_sibs > 0) {
-      if (dlsch_msg.sibs[0].sib_type == LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 && !sib1_decoded) {
-        si_window_len = liblte_rrc_si_window_length_num[dlsch_msg.sibs[0].sib.sib1.si_window_length];
-        sib2_period = liblte_rrc_si_periodicity_num[dlsch_msg.sibs[0].sib.sib1.sched_info[0].si_periodicity];
-        printf("SIB1 received %d bytes, CellID=%d, si_window=%d, sib2_period=%d\n", 
-                nof_bytes, dlsch_msg.sibs[0].sib.sib1.cell_id&0xfff, si_window_len, sib2_period);          
-        sib1_decoded = true;         
-        mac.clear_rntis();
-      } else if (dlsch_msg.sibs[0].sib_type == LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2) {
-        
+    bcch_dl_sch_msg_s dlsch_msg;
+
+    asn1::bit_ref bref(payload, nof_bytes);
+    dlsch_msg.unpack(bref);
+
+    if (dlsch_msg.msg.c1().type().value == bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
+      si_window_len = dlsch_msg.msg.c1().sib_type1().si_win_len.to_number();
+      sib2_period   = dlsch_msg.msg.c1().sib_type1().sched_info_list[0].si_periodicity.to_number();
+      printf("SIB1 received %d bytes, CellID=%d, si_window=%d, sib2_period=%d\n", nof_bytes,
+             (uint32_t)dlsch_msg.msg.c1().sib_type1().cell_access_related_info.cell_id.to_number() & 0xfff,
+             si_window_len, sib2_period);
+      mac.clear_rntis();
+    } else {
+      sys_info_r8_ies_s::sib_type_and_info_l_& sib_list =
+          dlsch_msg.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info;
+
+      if (sib_list.size() > 0 and sib_list[0].type() == sib_info_item_c::types::sib2) {
         printf("SIB2 received %d bytes\n", nof_bytes);
-        setup_mac_phy_sib2(&dlsch_msg.sibs[0].sib.sib2, &mac, &phy);        
-        sib2_decoded = true; 
+        setup_mac_phy_sib2(&sib_list[0].sib2(), &mac, &phy);
+        sib2_decoded = true;
         mac.clear_rntis();
       }
     }
   }
-  
+
   void write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes) {}
   void write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) {}
   

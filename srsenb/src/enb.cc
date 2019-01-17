@@ -154,9 +154,9 @@ bool enb::init(all_args_t *args_)
     return false;
   }
 
-  uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib.sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset;
+  uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
 
-  if(cell_cfg.nof_prb>10) {
+  if (cell_cfg.nof_prb > 10) {
     if (prach_freq_offset + 6 > cell_cfg.nof_prb - SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
       fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", prach_freq_offset);
       return false;
@@ -168,15 +168,16 @@ bool enb::init(all_args_t *args_)
       return false;
     }
   } else { // 6 PRB case
-    if (prach_freq_offset+6 > cell_cfg.nof_prb) {
-      fprintf(stderr, "Invalid PRACH configuration: frequency interval=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
-              prach_freq_offset, prach_freq_offset+6, cell_cfg.nof_prb);
+    if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
+      fprintf(stderr,
+              "Invalid PRACH configuration: frequency interval=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
+              prach_freq_offset, prach_freq_offset + 6, cell_cfg.nof_prb);
       return false;
     }
   }
 
   rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
-  rrc_cfg.enable_mbsfn =  args->expert.enable_mbsfn;
+  rrc_cfg.enable_mbsfn          = args->expert.enable_mbsfn;
 
   // Copy cell struct to rrc and phy
   memcpy(&rrc_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));

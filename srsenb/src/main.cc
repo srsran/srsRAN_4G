@@ -62,6 +62,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
 
   // Command line only options
   bpo::options_description general("General options");
+  // clang-format off
   general.add_options()
       ("help,h", "Produce help message")
       ("version,v", "Print version information and exit")
@@ -86,26 +87,26 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("enb.tm",            bpo::value<uint32_t>(&args->enb.transmission_mode)->default_value(1),    "Transmission mode (1-8)")
     ("enb.p_a",           bpo::value<float>(&args->enb.p_a)->default_value(0.0f),                  "Power allocation rho_a (-6, -4.77, -3, -1.77, 0, 1, 2, 3)")
 
-    ("enb_files.sib_config", bpo::value<string>(&args->enb_files.sib_config)->default_value("sib.conf"),      "SIB configuration files")
-    ("enb_files.rr_config",  bpo::value<string>(&args->enb_files.rr_config)->default_value("rr.conf"),      "RR configuration files")
-    ("enb_files.drb_config", bpo::value<string>(&args->enb_files.drb_config)->default_value("drb.conf"),      "DRB configuration files")
+    ("enb_files.sib_config", bpo::value<string>(&args->enb_files.sib_config)->default_value("sib.conf"), "SIB configuration files")
+    ("enb_files.rr_config",  bpo::value<string>(&args->enb_files.rr_config)->default_value("rr.conf"),   "RR configuration files")
+    ("enb_files.drb_config", bpo::value<string>(&args->enb_files.drb_config)->default_value("drb.conf"), "DRB configuration files")
 
-    ("rf.dl_earfcn",      bpo::value<uint32_t>(&args->rf.dl_earfcn)->default_value(3400),  "Downlink EARFCN")
-    ("rf.ul_earfcn",      bpo::value<uint32_t>(&args->rf.ul_earfcn)->default_value(0),     "Uplink EARFCN (Default based on Downlink EARFCN)")
-    ("rf.rx_gain",        bpo::value<float>(&args->rf.rx_gain)->default_value(50),           "Front-end receiver gain")
-    ("rf.tx_gain",        bpo::value<float>(&args->rf.tx_gain)->default_value(70),           "Front-end transmitter gain")
-    ("rf.dl_freq",        bpo::value<float>(&args->rf.dl_freq)->default_value(-1),      "Downlink Frequency (if positive overrides EARFCN)")
-    ("rf.ul_freq",        bpo::value<float>(&args->rf.ul_freq)->default_value(-1),      "Uplink Frequency (if positive overrides EARFCN)")
+    ("rf.dl_earfcn",      bpo::value<uint32_t>(&args->rf.dl_earfcn)->default_value(3400), "Downlink EARFCN")
+    ("rf.ul_earfcn",      bpo::value<uint32_t>(&args->rf.ul_earfcn)->default_value(0),    "Uplink EARFCN (Default based on Downlink EARFCN)")
+    ("rf.rx_gain",        bpo::value<float>(&args->rf.rx_gain)->default_value(50),        "Front-end receiver gain")
+    ("rf.tx_gain",        bpo::value<float>(&args->rf.tx_gain)->default_value(70),        "Front-end transmitter gain")
+    ("rf.dl_freq",        bpo::value<float>(&args->rf.dl_freq)->default_value(-1),        "Downlink Frequency (if positive overrides EARFCN)")
+    ("rf.ul_freq",        bpo::value<float>(&args->rf.ul_freq)->default_value(-1),        "Uplink Frequency (if positive overrides EARFCN)")
 
-    ("rf.device_name",       bpo::value<string>(&args->rf.device_name)->default_value("auto"),   "Front-end device name")
-    ("rf.device_args",       bpo::value<string>(&args->rf.device_args)->default_value("auto"),   "Front-end device arguments")
-    ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"),    "Transmission time advance")
-    ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
+    ("rf.device_name",       bpo::value<string>(&args->rf.device_name)->default_value("auto"),       "Front-end device name")
+    ("rf.device_args",       bpo::value<string>(&args->rf.device_args)->default_value("auto"),       "Front-end device arguments")
+    ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"), "Transmission time advance")
+    ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"),    "Transmission time advance")
 
-    ("pcap.enable",       bpo::value<bool>(&args->pcap.enable)->default_value(false),           "Enable MAC packet captures for wireshark")
-    ("pcap.filename",     bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"),   "MAC layer capture filename")
+    ("pcap.enable",       bpo::value<bool>(&args->pcap.enable)->default_value(false),         "Enable MAC packet captures for wireshark")
+    ("pcap.filename",     bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
 
-    ("gui.enable",        bpo::value<bool>(&args->gui.enable)->default_value(false),            "Enable GUI plots")
+    ("gui.enable",        bpo::value<bool>(&args->gui.enable)->default_value(false),          "Enable GUI plots")
 
     ("log.phy_level",     bpo::value<string>(&args->log.phy_level),   "PHY log level")
     ("log.phy_hex_limit", bpo::value<int>(&args->log.phy_hex_limit),  "PHY log hex dump limit")
@@ -130,97 +131,39 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("log.file_max_size", bpo::value<int>(&args->log.file_max_size)->default_value(-1), "Maximum file size (in kilobytes). When passed, multiple files are created. Default -1 (single file)")
 
     /* MCS section */
-    ("scheduler.pdsch_mcs",
-        bpo::value<int>(&args->expert.mac.sched.pdsch_mcs)->default_value(-1),
-        "Optional fixed PDSCH MCS (ignores reported CQIs if specified)")
-    ("scheduler.pdsch_max_mcs",
-        bpo::value<int>(&args->expert.mac.sched.pdsch_max_mcs)->default_value(-1),
-        "Optional PDSCH MCS limit")
-    ("scheduler.pusch_mcs",
-        bpo::value<int>(&args->expert.mac.sched.pusch_mcs)->default_value(-1),
-        "Optional fixed PUSCH MCS (ignores reported CQIs if specified)")
-    ("scheduler.pusch_max_mcs",
-        bpo::value<int>(&args->expert.mac.sched.pusch_max_mcs)->default_value(-1),
-        "Optional PUSCH MCS limit")
-    ("scheduler.nof_ctrl_symbols",
-        bpo::value<int>(&args->expert.mac.sched.nof_ctrl_symbols)->default_value(3),
-        "Number of control symbols")
+    ("scheduler.pdsch_mcs", bpo::value<int>(&args->expert.mac.sched.pdsch_mcs)->default_value(-1), "Optional fixed PDSCH MCS (ignores reported CQIs if specified)")
+    ("scheduler.pdsch_max_mcs", bpo::value<int>(&args->expert.mac.sched.pdsch_max_mcs)->default_value(-1), "Optional PDSCH MCS limit")
+    ("scheduler.pusch_mcs", bpo::value<int>(&args->expert.mac.sched.pusch_mcs)->default_value(-1), "Optional fixed PUSCH MCS (ignores reported CQIs if specified)")
+    ("scheduler.pusch_max_mcs", bpo::value<int>(&args->expert.mac.sched.pusch_max_mcs)->default_value(-1), "Optional PUSCH MCS limit")
+    ("scheduler.nof_ctrl_symbols", bpo::value<int>(&args->expert.mac.sched.nof_ctrl_symbols)->default_value(3), "Number of control symbols")
 
     /* Expert section */
-    ("expert.metrics_period_secs",
-       bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
-       "Periodicity for metrics in seconds")
-
-    ("expert.metrics_csv_enable",
-       bpo::value<bool>(&args->expert.metrics_csv_enable)->default_value(false),
-       "Write metrics to CSV file")
-
-    ("expert.metrics_csv_filename",
-        bpo::value<string>(&args->expert.metrics_csv_filename)->default_value("/tmp/enb_metrics.csv"),
-       "Metrics CSV filename")
-
-    ("expert.pregenerate_signals",
-        bpo::value<bool>(&args->expert.phy.pregenerate_signals)->default_value(false),
-        "Pregenerate uplink signals after attach. Improves CPU performance.")
-
-    ("expert.pusch_max_its",
-        bpo::value<int>(&args->expert.phy.pusch_max_its)->default_value(8),
-        "Maximum number of turbo decoder iterations")
-
-      ("expert.pusch_8bit_decoder",
-       bpo::value<bool>(&args->expert.phy.pusch_8bit_decoder)->default_value(false),
-       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
-
-      ("expert.tx_amplitude",
-        bpo::value<float>(&args->expert.phy.tx_amplitude)->default_value(0.6),
-        "Transmit amplitude factor")
-
-    ("expert.nof_phy_threads",
-        bpo::value<int>(&args->expert.phy.nof_phy_threads)->default_value(2),
-        "Number of PHY threads")
-
-    ("expert.link_failure_nof_err",
-        bpo::value<int>(&args->expert.mac.link_failure_nof_err)->default_value(100),
-        "Number of PUSCH failures after which a radio-link failure is triggered")
-
-    ("expert.max_prach_offset_us",
-        bpo::value<float>(&args->expert.phy.max_prach_offset_us)->default_value(30),
-        "Maximum allowed RACH offset (in us)")
-
-    ("expert.equalizer_mode",
-        bpo::value<string>(&args->expert.phy.equalizer_mode)->default_value("mmse"),
-        "Equalizer mode")
-
-    ("expert.estimator_fil_w",
-        bpo::value<float>(&args->expert.phy.estimator_fil_w)->default_value(0.1),
-        "Chooses the coefficients for the 3-tap channel estimator centered filter.")
-
-    ("expert.rrc_inactivity_timer",
-        bpo::value<uint32_t>(&args->expert.rrc_inactivity_timer)->default_value(60000),
-        "Inactivity timer in ms")
-
-    ("expert.enable_mbsfn",
-        bpo::value<bool>(&args->expert.enable_mbsfn)->default_value(false),
-        "Enables MBMS in the eNB")
-
-    ("expert.print_buffer_state",
-        bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
-       "Prints on the console the buffer state every 10 seconds")
-
-    ("expert.m1u_multiaddr",
-     bpo::value<string>(&args->expert.m1u_multiaddr)->default_value("239.255.0.1"),
-     "M1-U Multicast address the eNB joins.")
-
-    ("expert.m1u_if_addr",
-     bpo::value<string>(&args->expert.m1u_if_addr)->default_value("127.0.1.201"),
-     "IP address of the interface the eNB will listen for M1-U traffic.")
+    ("expert.metrics_period_secs", bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds")
+    ("expert.metrics_csv_enable",  bpo::value<bool>(&args->expert.metrics_csv_enable)->default_value(false), "Write metrics to CSV file")
+    ("expert.metrics_csv_filename", bpo::value<string>(&args->expert.metrics_csv_filename)->default_value("/tmp/enb_metrics.csv"), "Metrics CSV filename")
+    ("expert.pregenerate_signals", bpo::value<bool>(&args->expert.phy.pregenerate_signals)->default_value(false), "Pregenerate uplink signals after attach. Improves CPU performance.")
+    ("expert.pusch_max_its", bpo::value<int>(&args->expert.phy.pusch_max_its)->default_value(8), "Maximum number of turbo decoder iterations")
+    ("expert.pusch_8bit_decoder", bpo::value<bool>(&args->expert.phy.pusch_8bit_decoder)->default_value(false), "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
+    ("expert.tx_amplitude", bpo::value<float>(&args->expert.phy.tx_amplitude)->default_value(0.6), "Transmit amplitude factor")
+    ("expert.nof_phy_threads", bpo::value<int>(&args->expert.phy.nof_phy_threads)->default_value(2), "Number of PHY threads")
+    ("expert.link_failure_nof_err", bpo::value<int>(&args->expert.mac.link_failure_nof_err)->default_value(100), "Number of PUSCH failures after which a radio-link failure is triggered")
+    ("expert.max_prach_offset_us", bpo::value<float>(&args->expert.phy.max_prach_offset_us)->default_value(30), "Maximum allowed RACH offset (in us)")
+    ("expert.equalizer_mode", bpo::value<string>(&args->expert.phy.equalizer_mode)->default_value("mmse"), "Equalizer mode")
+    ("expert.estimator_fil_w", bpo::value<float>(&args->expert.phy.estimator_fil_w)->default_value(0.1), "Chooses the coefficients for the 3-tap channel estimator centered filter.")
+    ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->expert.rrc_inactivity_timer)->default_value(60000), "Inactivity timer in ms")
+    ("expert.enable_mbsfn", bpo::value<bool>(&args->expert.enable_mbsfn)->default_value(false), "Enables MBMS in the eNB")
+    ("expert.print_buffer_state", bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
+    ("expert.m1u_multiaddr", bpo::value<string>(&args->expert.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
+    ("expert.m1u_if_addr", bpo::value<string>(&args->expert.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
   ;
 
   // Positional options - config file location
   bpo::options_description position("Positional options");
   position.add_options()
-  ("config_file", bpo::value< string >(&config_file), "eNodeB configuration file")
+    ("config_file", bpo::value< string >(&config_file), "eNodeB configuration file")
   ;
+
+  // clang-format on
   bpo::positional_options_description p;
   p.add("config_file", -1);
 

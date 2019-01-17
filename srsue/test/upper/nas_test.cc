@@ -41,6 +41,7 @@
 
 
 using namespace srsue;
+using namespace asn1::rrc;
 
 #define LCID 1
 
@@ -88,8 +89,9 @@ class rrc_dummy : public rrc_interface_nas
 {
 public:
   rrc_dummy() : last_sdu_len(0) {
-    plmns.plmn_id.mcc = mcc;
-    plmns.plmn_id.mnc = mnc;
+    plmns.plmn_id.mcc_present = true;
+    mcc_to_bytes(mcc, plmns.plmn_id.mcc.data());
+    mnc_to_bytes(mnc, plmns.plmn_id.mnc);
     plmns.tac = 0xffff;
   }
   void write_sdu(byte_buffer_t *sdu)
@@ -107,9 +109,10 @@ public:
     memcpy(found, &plmns, sizeof(found_plmn_t));
     return 1;
   };
-  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {};
-  void set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi) {}
-  bool connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause, srslte::byte_buffer_t *sdu) {
+  void plmn_select(plmn_id_s plmn_id){};
+  void set_ue_idenity(s_tmsi_s s_tmsi) {}
+  bool connection_request(establishment_cause_e cause, srslte::byte_buffer_t* sdu)
+  {
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
     srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);

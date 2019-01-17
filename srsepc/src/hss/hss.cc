@@ -158,7 +158,7 @@ hss::read_db_file(std::string db_filename)
       if(split.size() != column_size)
       {
         m_hss_log->error("Error parsing UE database. Wrong number of columns in .csv\n");
-        m_hss_log->error("Columns: %lu, Expected %d.\n",split.size(),column_size);
+        m_hss_log->error("Columns: %zd, Expected %d.\n", split.size(), column_size);
         return false;
       }
       hss_ue_ctx_t *ue_ctx = new hss_ue_ctx_t;

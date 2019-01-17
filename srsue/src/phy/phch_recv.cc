@@ -188,7 +188,7 @@ phy_interface_rrc::cell_search_ret_t phch_recv::cell_search(phy_interface_rrc::p
   pthread_mutex_lock(&rrc_mutex);
 
   // Move state to IDLE
-  Info("Cell Search: Start EARFCN index=%u/%lu\n", cellsearch_earfcn_index, earfcn.size());
+  Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, earfcn.size());
   phy_state.go_idle();
 
   if (current_earfcn != (int) earfcn[cellsearch_earfcn_index]) {

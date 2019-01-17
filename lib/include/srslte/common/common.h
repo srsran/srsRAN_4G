@@ -191,8 +191,7 @@ public:
 #endif
     }
 
-private:
-
+  private:
 #ifdef ENABLE_TIMESTAMP
     struct timeval timestamp[3];
     bool           timestamp_is_set; 

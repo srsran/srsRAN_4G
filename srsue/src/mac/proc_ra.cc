@@ -29,9 +29,10 @@
 #define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
-#include <stdlib.h>
-#include <stdint.h>
+#include <inttypes.h> // for printing uint64_t
 #include <signal.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "srsue/hdr/mac/proc_ra.h"
 #include "srsue/hdr/mac/mac.h"
@@ -104,9 +105,9 @@ void ra_proc::read_params() {
     preambleIndex             = 0; // pass when called from higher layers for non-contention based RA
     maskIndex                 = 0; // same
   }
-  nof_preambles             = liblte_rrc_number_of_ra_preambles_num[mac_cfg->rach.num_ra_preambles];
-  if (mac_cfg->rach.preambles_group_a_cnfg.present) {
-    nof_groupA_preambles    = liblte_rrc_size_of_ra_preambles_group_a_num[mac_cfg->rach.preambles_group_a_cnfg.size_of_ra];
+  nof_preambles = mac_cfg->rach.preamb_info.nof_ra_preambs.to_number();
+  if (mac_cfg->rach.preamb_info.preambs_group_a_cfg_present) {
+    nof_groupA_preambles = mac_cfg->rach.preamb_info.preambs_group_a_cfg.size_of_ra_preambs_group_a.to_number();
   } else {
     nof_groupA_preambles    = nof_preambles;
   }
@@ -117,14 +118,14 @@ void ra_proc::read_params() {
 
   nof_groupB_preambles      = nof_preambles - nof_groupA_preambles;
   if (nof_groupB_preambles) {
-    messagePowerOffsetGroupB= liblte_rrc_message_power_offset_group_b_num[mac_cfg->rach.preambles_group_a_cnfg.msg_pwr_offset_group_b];
-    messageSizeGroupA       = liblte_rrc_message_size_group_a_num[mac_cfg->rach.preambles_group_a_cnfg.msg_size];
+    messagePowerOffsetGroupB = mac_cfg->rach.preamb_info.preambs_group_a_cfg.msg_pwr_offset_group_b.to_number();
+    messageSizeGroupA        = mac_cfg->rach.preamb_info.preambs_group_a_cfg.msg_size_group_a.to_number();
   }
-  responseWindowSize        = liblte_rrc_ra_response_window_size_num[mac_cfg->rach.ra_resp_win_size];
-  powerRampingStep          = liblte_rrc_power_ramping_step_num[mac_cfg->rach.pwr_ramping_step];
-  preambleTransMax          = liblte_rrc_preamble_trans_max_num[mac_cfg->rach.preamble_trans_max];
-  iniReceivedTargetPower    = liblte_rrc_preamble_initial_received_target_power_num[mac_cfg->rach.preamble_init_rx_target_pwr];
-  contentionResolutionTimer = liblte_rrc_mac_contention_resolution_timer_num[mac_cfg->rach.mac_con_res_timer]; 
+  responseWindowSize        = mac_cfg->rach.ra_supervision_info.ra_resp_win_size.to_number();
+  powerRampingStep          = mac_cfg->rach.pwr_ramp_params.pwr_ramp_step.to_number();
+  preambleTransMax          = mac_cfg->rach.ra_supervision_info.preamb_trans_max.to_number();
+  iniReceivedTargetPower    = mac_cfg->rach.pwr_ramp_params.preamb_init_rx_target_pwr.to_number();
+  contentionResolutionTimer = mac_cfg->rach.ra_supervision_info.mac_contention_resolution_timer.to_number();
 
   delta_preamble_db         = delta_preamble_db_table[configIndex%5]; 
   
@@ -453,7 +454,7 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id) {
     uecri_successful = true;
     state = COMPLETION;                           
   } else {
-    rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%lx != 0x%lx)\n", 
+    rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%" PRIu64 " != 0x%" PRIu64 ")\n",
           transmitted_contention_id, rx_contention_id);
     // Discard MAC PDU 
     uecri_successful = false;

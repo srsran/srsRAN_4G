@@ -59,7 +59,6 @@ sched_ue::sched_ue() : dl_next_alloc(NULL), ul_next_alloc(NULL), has_pucch(false
   bzero(&dci_locations, sizeof(dci_locations));
   bzero(&dl_harq, sizeof(dl_harq));
   bzero(&ul_harq, sizeof(ul_harq));
-  bzero(&dl_ant_info, sizeof(dl_ant_info));
 
   pthread_mutex_init(&mutex, NULL);
   reset();
@@ -425,10 +424,10 @@ void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cqi)
   pthread_mutex_unlock(&mutex);
 }
 
-void sched_ue::set_dl_ant_info(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *d)
+void sched_ue::set_dl_ant_info(asn1::rrc::phys_cfg_ded_s::ant_info_c_* d)
 {
   pthread_mutex_lock(&mutex);
-  memcpy(&dl_ant_info, d, sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
+  dl_ant_info = *d;
   pthread_mutex_unlock(&mutex);
 }
 
@@ -500,12 +499,12 @@ int sched_ue::generate_format1(dl_harq_proc *h,
     uint32_t nof_ctrl_symbols = cfi+(cell.nof_prb<10?1:0);
     uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
     if(need_conres_ce and cell.nof_prb<10) { // SRB0 Tx. Use a higher MCS for the PRACH to fit in 6 PRBs
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(4), nof_prb)/8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_dl_tbs_idx_from_mcs(4), nof_prb) / 8;
       mcs = 4;
     } else if (fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb)/8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_dl_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb) / 8;
       mcs = fixed_mcs_dl; 
     }
 
@@ -622,7 +621,7 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc *h,
       if (fixed_mcs_dl < 0) {
         tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
       } else {
-        tbs = srslte_ra_tbs_from_idx((uint32_t) srslte_ra_tbs_idx_from_mcs((uint32_t) fixed_mcs_dl), nof_prb) / 8;
+        tbs = srslte_ra_tbs_from_idx((uint32_t)srslte_ra_dl_tbs_idx_from_mcs((uint32_t)fixed_mcs_dl), nof_prb) / 8;
         mcs = fixed_mcs_dl;
       }
       h->new_tx(tb, tti, mcs, tbs, data->dci_location.ncce);
@@ -712,7 +711,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   
   bool is_newtx = true;
   if (h->get_rar_mcs(&mcs)) {
-    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
+    tbs = srslte_ra_tbs_from_idx(srslte_ra_ul_tbs_idx_from_mcs(mcs), allocation.L) / 8;
     h->new_tx(tti, mcs, tbs); 
   } else if (h->is_empty(0)) {
     
@@ -723,7 +722,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(allocation.L, nof_re, req_bytes, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), allocation.L)/8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_ul_tbs_idx_from_mcs(fixed_mcs_ul), allocation.L) / 8;
       mcs = fixed_mcs_ul;
     }
     
@@ -732,7 +731,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
   } else {    
     h->new_retx(0, tti, &mcs, NULL);
     is_newtx = false;
-    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs), allocation.L)/8;
+    tbs      = srslte_ra_tbs_from_idx(srslte_ra_ul_tbs_idx_from_mcs(mcs), allocation.L) / 8;
   }
   
   data->rnti = rnti; 
@@ -936,7 +935,7 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
     if(fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(n+1, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), n+1)/8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_dl_tbs_idx_from_mcs(fixed_mcs_dl), n + 1) / 8;
     }
     if (tbs > 0) {
       nbytes = tbs;
@@ -970,7 +969,7 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), n)/8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_ul_tbs_idx_from_mcs(fixed_mcs_ul), n) / 8;
     }
     if (tbs > 0) {
       nbytes = tbs; 
@@ -1059,22 +1058,21 @@ srslte_dci_format_t sched_ue::get_dci_format() {
 
   if (phy_config_dedicated_enabled) {
     /* FIXME: Assumes UE-Specific Search Space (Not common) */
-    switch (dl_ant_info.tx_mode) {
-      case LIBLTE_RRC_TRANSMISSION_MODE_1:
-      case LIBLTE_RRC_TRANSMISSION_MODE_2:
+    switch (dl_ant_info.explicit_value().tx_mode) {
+      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm1:
+      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm2:
         ret = SRSLTE_DCI_FORMAT1;
         break;
-      case LIBLTE_RRC_TRANSMISSION_MODE_3:
+      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm3:
         ret = SRSLTE_DCI_FORMAT2A;
         break;
-      case LIBLTE_RRC_TRANSMISSION_MODE_4:
+      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm4:
         ret = SRSLTE_DCI_FORMAT2;
         break;
-      case LIBLTE_RRC_TRANSMISSION_MODE_5:
-      case LIBLTE_RRC_TRANSMISSION_MODE_6:
-      case LIBLTE_RRC_TRANSMISSION_MODE_7:
-      case LIBLTE_RRC_TRANSMISSION_MODE_8:
-      case LIBLTE_RRC_TRANSMISSION_MODE_N_ITEMS:
+      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm5:
+      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm6:
+      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm7:
+      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm8_v920:
       default:
         Warning("Incorrect transmission mode (rnti=%04x)\n", rnti);
     }
@@ -1156,7 +1154,9 @@ uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb) {
   return nof_prb; 
 }
 
-int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, uint32_t *mcs) {
+int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, bool is_ul,
+                         uint32_t* mcs)
+{
   float max_coderate = srslte_cqi_to_coderate(cqi);
   int sel_mcs = max_mcs+1; 
   float coderate = 99;
@@ -1165,11 +1165,12 @@ int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32
   int tbs = 0; 
 
   do {
-    sel_mcs--; 
-    uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs);
+    sel_mcs--;
+    uint32_t tbs_idx = (is_ul) ? srslte_ra_ul_tbs_idx_from_mcs(sel_mcs) : srslte_ra_dl_tbs_idx_from_mcs(sel_mcs);
     tbs = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
     coderate = srslte_coderate(tbs, nof_re);
-    Qm = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(srslte_ra_mod_from_mcs(sel_mcs)));
+    srslte_mod_t mod = (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs);
+    Qm               = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(mod));
     eff_coderate = coderate/Qm;
   } while((sel_mcs > 0 && coderate > max_coderate) || eff_coderate > 0.930);
   if (mcs) {
@@ -1210,12 +1211,13 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   uint32_t max_Qm  = is_ul?4:6; // Allow 16-QAM in PUSCH Only
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, &sel_mcs)/8;
+  int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, is_ul, &sel_mcs) / 8;
 
   /* If less bytes are requested, lower the MCS */
   if (tbs > (int) req_bytes && req_bytes > 0) {
-    uint32_t req_tbs_idx = srslte_ra_tbs_to_table_idx(req_bytes*8, nof_prb); 
-    uint32_t req_mcs = srslte_ra_mcs_from_tbs_idx(req_tbs_idx);
+    int req_tbs_idx = srslte_ra_tbs_to_table_idx(req_bytes * 8, nof_prb);
+    int req_mcs     = (is_ul) ? srslte_ra_ul_mcs_from_tbs_idx(req_tbs_idx) : srslte_ra_dl_mcs_from_tbs_idx(req_tbs_idx);
+
     if (req_mcs < sel_mcs) {
       sel_mcs = req_mcs;
       tbs = srslte_ra_tbs_from_idx(req_tbs_idx, nof_prb)/8;
@@ -1224,7 +1226,8 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   // Avoid the unusual case n_prb=1, mcs=6 tbs=328 (used in voip)
   if (nof_prb == 1 && sel_mcs == 6) {
     sel_mcs--;
-    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(sel_mcs), nof_prb)/8;
+    uint32_t tbs_idx = (is_ul) ? srslte_ra_ul_tbs_idx_from_mcs(sel_mcs) : srslte_ra_dl_tbs_idx_from_mcs(sel_mcs);
+    tbs              = srslte_ra_tbs_from_idx(tbs_idx, nof_prb) / 8;
   }
 
   if (mcs && tbs >= 0) {

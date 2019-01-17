@@ -28,7 +28,7 @@
 #define SRSLTE_RLC_INTERFACE_H
 
 // for custom constructors
-#include <srslte/asn1/liblte_rrc.h>
+#include "srslte/asn1/rrc_asn1.h"
 
 namespace srslte {
 
@@ -42,14 +42,13 @@ static const char rlc_mode_text[RLC_MODE_N_ITEMS][20] = {"Transparent Mode",
                                                          "Unacknowledged Mode",
                                                          "Acknowledged Mode"};
 
-typedef enum{
+typedef enum {
   RLC_UMD_SN_SIZE_5_BITS = 0,
   RLC_UMD_SN_SIZE_10_BITS,
   RLC_UMD_SN_SIZE_N_ITEMS,
-}rlc_umd_sn_size_t;
+} rlc_umd_sn_size_t;
 static const char     rlc_umd_sn_size_text[RLC_UMD_SN_SIZE_N_ITEMS][20] = {"5 bits", "10 bits"};
-static const uint16_t rlc_umd_sn_size_num[RLC_UMD_SN_SIZE_N_ITEMS] = {5, 10};
-
+static const uint16_t rlc_umd_sn_size_num[RLC_UMD_SN_SIZE_N_ITEMS]      = {5, 10};
 
 typedef struct {
   /****************************************************************************
@@ -58,33 +57,31 @@ typedef struct {
    ***************************************************************************/
 
   // TX configs
-  int32_t    t_poll_retx;      // Poll retx timeout (ms)
-  int32_t    poll_pdu;         // Insert poll bit after this many PDUs
-  int32_t    poll_byte;        // Insert poll bit after this much data (KB)
-  uint32_t   max_retx_thresh;  // Max number of retx
+  int32_t  t_poll_retx;     // Poll retx timeout (ms)
+  int32_t  poll_pdu;        // Insert poll bit after this many PDUs
+  int32_t  poll_byte;       // Insert poll bit after this much data (KB)
+  uint32_t max_retx_thresh; // Max number of retx
 
   // RX configs
-  int32_t   t_reordering;       // Timer used by rx to detect PDU loss  (ms)
-  int32_t   t_status_prohibit;  // Timer used by rx to prohibit tx of status PDU (ms)
+  int32_t t_reordering;      // Timer used by rx to detect PDU loss  (ms)
+  int32_t t_status_prohibit; // Timer used by rx to prohibit tx of status PDU (ms)
 } srslte_rlc_am_config_t;
-
 
 typedef struct {
   /****************************************************************************
-  * Configurable parameters
-  * Ref: 3GPP TS 36.322 v10.0.0 Section 7
-  ***************************************************************************/
+   * Configurable parameters
+   * Ref: 3GPP TS 36.322 v10.0.0 Section 7
+   ***************************************************************************/
 
   int32_t           t_reordering;       // Timer used by rx to detect PDU loss  (ms)
   rlc_umd_sn_size_t tx_sn_field_length; // Number of bits used for tx (UL) sequence number
   rlc_umd_sn_size_t rx_sn_field_length; // Number of bits used for rx (DL) sequence number
 
-  uint32_t          rx_window_size;
-  uint32_t          rx_mod;             // Rx counter modulus
-  uint32_t          tx_mod;             // Tx counter modulus
-  bool              is_mrb;             // Whether this is a multicast bearer
+  uint32_t rx_window_size;
+  uint32_t rx_mod; // Rx counter modulus
+  uint32_t tx_mod; // Tx counter modulus
+  bool     is_mrb; // Whether this is a multicast bearer
 } srslte_rlc_um_config_t;
-
 
 class srslte_rlc_config_t
 {
@@ -96,30 +93,40 @@ public:
   // Default ctor
   srslte_rlc_config_t(): rlc_mode(RLC_MODE_TM), am(), um() {};
 
-  // Constructor based on liblte's RLC config
-  srslte_rlc_config_t(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) : rlc_mode(RLC_MODE_AM), am(), um()
+  // Constructor based on rrc_asn1's RLC config
+  srslte_rlc_config_t(asn1::rrc::rlc_cfg_c* cnfg) : rlc_mode(RLC_MODE_AM), am(), um()
   {
     // update RLC mode to internal mode struct
-    rlc_mode = (cnfg->rlc_mode == LIBLTE_RRC_RLC_MODE_AM) ? RLC_MODE_AM : RLC_MODE_UM;
+    rlc_mode = (cnfg->type() == asn1::rrc::rlc_cfg_c::types::am) ? RLC_MODE_AM : RLC_MODE_UM;
 
     switch(rlc_mode)
     {
       case RLC_MODE_AM:
-        am.t_poll_retx       = liblte_rrc_t_poll_retransmit_num[cnfg->ul_am_rlc.t_poll_retx];
-        am.poll_pdu          = liblte_rrc_poll_pdu_num[cnfg->ul_am_rlc.poll_pdu];
-        am.poll_byte         = liblte_rrc_poll_byte_num[cnfg->ul_am_rlc.poll_byte]*1000; // KB
-        am.max_retx_thresh   = liblte_rrc_max_retx_threshold_num[cnfg->ul_am_rlc.max_retx_thresh];
-        am.t_reordering      = liblte_rrc_t_reordering_num[cnfg->dl_am_rlc.t_reordering];
-        am.t_status_prohibit = liblte_rrc_t_status_prohibit_num[cnfg->dl_am_rlc.t_status_prohibit];
+        am.t_poll_retx       = cnfg->am().ul_am_rlc.t_poll_retx.to_number();
+        am.poll_pdu          = cnfg->am().ul_am_rlc.poll_pdu.to_number();
+        am.poll_byte         = cnfg->am().ul_am_rlc.poll_byte.to_number() * 1000; // KB
+        am.max_retx_thresh   = cnfg->am().ul_am_rlc.max_retx_thres.to_number();
+        am.t_reordering      = cnfg->am().dl_am_rlc.t_reordering.to_number();
+        am.t_status_prohibit = cnfg->am().dl_am_rlc.t_status_prohibit.to_number();
         break;
       case RLC_MODE_UM:
-        um.t_reordering        = liblte_rrc_t_reordering_num[cnfg->dl_um_bi_rlc.t_reordering];
-        um.rx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->dl_um_bi_rlc.sn_field_len;
+        um.t_reordering        = cnfg->um_bi_dir().dl_um_rlc.t_reordering.to_number();
+        um.rx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->um_bi_dir().dl_um_rlc.sn_field_len.value;
         um.rx_window_size      = (RLC_UMD_SN_SIZE_5_BITS == um.rx_sn_field_length) ? 16 : 512;
         um.rx_mod              = (RLC_UMD_SN_SIZE_5_BITS == um.rx_sn_field_length) ? 32 : 1024;
-        um.tx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->ul_um_bi_rlc.sn_field_len;
+        um.tx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->um_bi_dir().ul_um_rlc.sn_field_len.value;
         um.tx_mod              = (RLC_UMD_SN_SIZE_5_BITS == um.tx_sn_field_length) ? 32 : 1024;
         break;
+        //    case asn1::rrc::rlc_cfg_c::types::um_uni_dir_ul:
+        //      um.tx_sn_field_length = (rlc_umd_sn_size_t)cnfg->um_uni_dir_ul().ul_um_rlc.sn_field_len.value;
+        //      um.tx_mod             = (RLC_UMD_SN_SIZE_5_BITS == um.tx_sn_field_length) ? 32 : 1024;
+        //      break;
+        //    case asn1::rrc::rlc_cfg_c::types::um_uni_dir_dl:
+        //      um.t_reordering       = cnfg->um_uni_dir_dl().dl_um_rlc.t_reordering.to_number();
+        //      um.rx_sn_field_length = (rlc_umd_sn_size_t)cnfg->um_uni_dir_dl().dl_um_rlc.sn_field_len.value;
+        //      um.rx_window_size     = (RLC_UMD_SN_SIZE_5_BITS == um.rx_sn_field_length) ? 16 : 512;
+        //      um.rx_mod             = (RLC_UMD_SN_SIZE_5_BITS == um.rx_sn_field_length) ? 32 : 1024;
+        //      break;
       default:
         // Handle default case
         break;

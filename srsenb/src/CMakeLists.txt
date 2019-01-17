@@ -23,6 +23,7 @@ target_link_libraries(srsenb  srsenb_upper
                               srslte_phy
                               srslte_upper
                               srslte_radio
+                              rrc_asn1
                               ${CMAKE_THREAD_LIBS_INIT} 
                               ${Boost_LIBRARIES} 
                               ${SEC_LIBRARIES}

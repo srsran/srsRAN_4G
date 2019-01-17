@@ -82,7 +82,7 @@ public:
   emm_state_t get_state();
 
   // RRC interface
-  void paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy);
+  void     paging(asn1::rrc::s_tmsi_s* ue_identiy);
   void set_barring(barring_t barring);
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
   uint32_t get_k_enb_count();
@@ -111,11 +111,11 @@ private:
 
   nas_interface_rrc::barring_t current_barring;
 
-  bool plmn_is_selected;
-  LIBLTE_RRC_PLMN_IDENTITY_STRUCT current_plmn;
-  LIBLTE_RRC_PLMN_IDENTITY_STRUCT home_plmn;
+  bool                 plmn_is_selected;
+  asn1::rrc::plmn_id_s current_plmn;
+  asn1::rrc::plmn_id_s home_plmn;
 
-  std::vector<LIBLTE_RRC_PLMN_IDENTITY_STRUCT > known_plmns;
+  std::vector<asn1::rrc::plmn_id_s> known_plmns;
 
   LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
 

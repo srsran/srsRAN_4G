@@ -52,7 +52,7 @@ namespace srsue {
       signal_buffer     = NULL;   
     }
     ~prach();
-    void           init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config, uint32_t max_prb, phy_args_t *args, srslte::log *log_h);
+    void           init(asn1::rrc::prach_cfg_sib_s* config, uint32_t max_prb, phy_args_t* args, srslte::log* log_h);
     bool           set_cell(srslte_cell_t cell);
     bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
     bool           is_ready_to_send(uint32_t current_tti);
@@ -63,10 +63,10 @@ namespace srsue {
   private:
 
     const static int MAX_LEN_SF = 3;
-    
-    LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config;
-    phy_args_t                         *args; 
-    
+
+    asn1::rrc::prach_cfg_sib_s* config;
+    phy_args_t*                 args;
+
     srslte::log   *log_h;
     int            preamble_idx;  
     int            allowed_subframe; 

@@ -26,13 +26,13 @@
 
 #include "srslte/srslte.h"
 
+#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/common.h"
-#include "srslte/common/security.h"
 #include "srslte/common/interfaces_common.h"
+#include "srslte/common/security.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/upper/rlc_interface.h"
-#include "srslte/asn1/liblte_rrc.h"
-#include "srslte/asn1/liblte_s1ap.h"
 
 #include <vector>
 
@@ -96,23 +96,21 @@ public:
 class phy_interface_rrc
 {
 public:
-    
-   typedef struct {
-    LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT     mbsfn_subfr_cnfg;
-    LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT mbsfn_notification_cnfg;
-    LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT           mbsfn_area_info;
-    LIBLTE_RRC_MCCH_MSG_STRUCT                  mcch;
-  } phy_cfg_mbsfn_t;
-  
+  struct phy_cfg_mbsfn_t {
+    asn1::rrc::mbsfn_sf_cfg_s       mbsfn_subfr_cnfg;
+    asn1::rrc::mbms_notif_cfg_r9_s  mbsfn_notification_cnfg;
+    asn1::rrc::mbsfn_area_info_r9_s mbsfn_area_info;
+    asn1::rrc::mcch_msg_s           mcch;
+  };
+
   typedef struct {
     phy_cfg_mbsfn_t  mbsfn;
-  } phy_rrc_cfg_t; 
-  
-  
-  virtual void configure_mbsfn(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT mcch) = 0;
+  } phy_rrc_cfg_t;
+
+  virtual void configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13,
+                               asn1::rrc::mcch_msg_s mcch)                               = 0;
   virtual void set_conf_dedicated_ack(uint16_t rnti, bool rrc_completed) = 0;
-  virtual void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated) = 0;
-  
+  virtual void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated) = 0;
 };
 
 class mac_interface_rrc
@@ -128,10 +126,11 @@ public:
 
   /* Manages UE bearers and associated configuration */
   virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t *cfg) = 0; 
-  virtual int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) = 0; 
-  virtual int set_dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) = 0;
+  virtual int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) = 0;
+  virtual int  set_dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info) = 0;
   virtual void phy_config_enabled(uint16_t rnti, bool enabled) = 0;
-  virtual void write_mcch(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT *mcch) = 0;
+  virtual void write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13,
+                          asn1::rrc::mcch_msg_s* mcch)                                             = 0;
 };
 
 class mac_interface_rlc 
@@ -281,7 +280,6 @@ public:
   virtual void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res) = 0;
   virtual void ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res) = 0;
   virtual bool is_mme_connected() = 0;
-  // virtual void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps) = 0;
 };
 
 }

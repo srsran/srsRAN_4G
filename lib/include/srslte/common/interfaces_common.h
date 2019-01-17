@@ -29,7 +29,6 @@
 
 #include "srslte/common/timers.h"
 #include "srslte/common/security.h"
-#include "srslte/asn1/liblte_rrc.h"
 #include <string>
 
 

@@ -35,10 +35,10 @@
 
 #include <string>
 
-#include "srslte/asn1/liblte_rrc.h"
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/interfaces_common.h"
+#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/common.h"
+#include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
 #include "srslte/upper/rlc_interface.h"
 
@@ -63,7 +63,7 @@ public:
   virtual std::string get_imei_str() = 0;
   virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
   virtual bool get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
-  virtual bool get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id) = 0;
+  virtual bool          get_home_plmn_id(asn1::rrc::plmn_id_s* home_plmn_id)              = 0;
   virtual auth_result_t generate_authentication_response(uint8_t  *rand,
                                                 uint8_t  *autn_enb,
                                                 uint16_t  mcc,
@@ -135,7 +135,7 @@ public:
     BARRING_ALL
   } barring_t;
   virtual void      set_barring(barring_t barring) = 0;
-  virtual void      paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy) = 0;
+  virtual void      paging(asn1::rrc::s_tmsi_s* ue_identiy)              = 0;
   virtual bool      is_attached() = 0;
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_k_enb_count() = 0;
@@ -188,8 +188,8 @@ class rrc_interface_nas
 {
 public:
   typedef struct {
-    LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id;
-    uint16_t                        tac;
+    asn1::rrc::plmn_id_s plmn_id;
+    uint16_t             tac;
   } found_plmn_t;
 
   const static int MAX_FOUND_PLMNS = 16;
@@ -199,10 +199,9 @@ public:
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
   virtual int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]) = 0;
-  virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
-  virtual bool connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
-                                  srslte::byte_buffer_t *dedicatedInfoNAS) = 0;
-  virtual void set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi) = 0;
+  virtual void     plmn_select(asn1::rrc::plmn_id_s plmn_id)                                                       = 0;
+  virtual bool connection_request(asn1::rrc::establishment_cause_e cause, srslte::byte_buffer_t* dedicatedInfoNAS) = 0;
+  virtual void set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi)                                                          = 0;
   virtual bool is_connected() = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
@@ -284,6 +283,7 @@ public:
   virtual void del_bearer(uint32_t lcid) = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
   virtual bool has_bearer(uint32_t lcid) = 0;
+  virtual bool has_data(const uint32_t lcid)                               = 0;
 };
 
 // RLC interface for PDCP
@@ -469,11 +469,11 @@ class mac_interface_rrc : public mac_interface_rrc_common
 public:
   
   typedef struct {
-    LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT           main; 
-    LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT        rach;     
-    LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT sr; 
-    ul_harq_params_t                            ul_harq_params;
-    uint32_t prach_config_index;
+    asn1::rrc::mac_main_cfg_s      main;
+    asn1::rrc::rach_cfg_common_s   rach;
+    asn1::rrc::sched_request_cfg_c sr;
+    ul_harq_params_t               ul_harq_params;
+    uint32_t                       prach_config_index;
   } mac_cfg_t;
 
   virtual void    clear_rntis() = 0;
@@ -493,9 +493,9 @@ public:
   virtual uint32_t get_current_tti() = 0;
 
   virtual void set_config(mac_cfg_t *mac_cfg) = 0;
-  virtual void set_config_main(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *main_cfg) = 0;
-  virtual void set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT *rach_cfg, uint32_t prach_config_index) = 0;
-  virtual void set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT *sr_cfg) = 0;
+  virtual void set_config_main(asn1::rrc::mac_main_cfg_s* main_cfg)                                 = 0;
+  virtual void set_config_rach(asn1::rrc::rach_cfg_common_s* rach_cfg, uint32_t prach_config_index) = 0;
+  virtual void set_config_sr(asn1::rrc::sched_request_cfg_c* sr_cfg)                                = 0;
   virtual void get_config(mac_cfg_t *mac_cfg) = 0;
   
   virtual void get_rntis(ue_rnti_t *rntis) = 0;
@@ -607,32 +607,30 @@ public:
 class phy_interface_rrc
 {
 public:
+  struct phy_cfg_common_t {
+    asn1::rrc::prach_cfg_sib_s      prach_cnfg;
+    asn1::rrc::pdsch_cfg_common_s   pdsch_cnfg;
+    asn1::rrc::pusch_cfg_common_s   pusch_cnfg;
+    asn1::rrc::phich_cfg_s          phich_cnfg;
+    asn1::rrc::pucch_cfg_common_s   pucch_cnfg;
+    asn1::rrc::srs_ul_cfg_common_c  srs_ul_cnfg;
+    asn1::rrc::ul_pwr_ctrl_common_s ul_pwr_ctrl;
+    asn1::rrc::tdd_cfg_s            tdd_cnfg;
+    asn1::rrc::srs_ant_port_e       ant_info;
+  };
+
+  struct phy_cfg_mbsfn_t {
+    asn1::rrc::mbsfn_sf_cfg_s       mbsfn_subfr_cnfg;
+    asn1::rrc::mbms_notif_cfg_r9_s  mbsfn_notification_cnfg;
+    asn1::rrc::mbsfn_area_info_r9_s mbsfn_area_info;
+    asn1::rrc::mcch_msg_s           mcch;
+  };
 
   typedef struct {
-    LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT          prach_cnfg;
-    LIBLTE_RRC_PDSCH_CONFIG_COMMON_STRUCT       pdsch_cnfg;
-    LIBLTE_RRC_PUSCH_CONFIG_COMMON_STRUCT       pusch_cnfg;
-    LIBLTE_RRC_PHICH_CONFIG_STRUCT              phich_cnfg;
-    LIBLTE_RRC_PUCCH_CONFIG_COMMON_STRUCT       pucch_cnfg;
-    LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT      srs_ul_cnfg;
-    LIBLTE_RRC_UL_POWER_CONTROL_COMMON_STRUCT   ul_pwr_ctrl;
-    LIBLTE_RRC_TDD_CONFIG_STRUCT                tdd_cnfg;
-    LIBLTE_RRC_ANTENNA_PORTS_COUNT_ENUM         ant_info;      
-  } phy_cfg_common_t; 
-
-  typedef struct {
-    LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT     mbsfn_subfr_cnfg;
-    LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT mbsfn_notification_cnfg;
-    LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT           mbsfn_area_info;
-    LIBLTE_RRC_MCCH_MSG_STRUCT                  mcch;
-  } phy_cfg_mbsfn_t;
-
-  
-  typedef struct {
-    LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT dedicated;
-    phy_cfg_common_t                            common; 
-    phy_cfg_mbsfn_t                             mbsfn;
-    bool                                        enable_64qam; 
+    asn1::rrc::phys_cfg_ded_s dedicated;
+    phy_cfg_common_t          common;
+    phy_cfg_mbsfn_t           mbsfn;
+    bool                      enable_64qam;
   } phy_cfg_t; 
 
   virtual void get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL) = 0;
@@ -640,14 +638,14 @@ public:
   virtual uint32_t get_current_pci() = 0;
 
   virtual void get_config(phy_cfg_t *phy_cfg) = 0;
-  virtual void set_config(phy_cfg_t *phy_cfg) = 0; 
-  virtual void set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated) = 0;
-  virtual void set_config_common(phy_cfg_common_t *common) = 0; 
-  virtual void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd) = 0; 
+  virtual void set_config(phy_cfg_t *phy_cfg) = 0;
+  virtual void set_config_dedicated(asn1::rrc::phys_cfg_ded_s* dedicated) = 0;
+  virtual void set_config_common(phy_cfg_common_t *common) = 0;
+  virtual void set_config_tdd(asn1::rrc::tdd_cfg_s* tdd)                  = 0;
   virtual void set_config_64qam_en(bool enable) = 0;
-  virtual void set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) = 0;
-  virtual void set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13) = 0;
-  virtual void set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch) = 0;
+  virtual void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2)        = 0;
+  virtual void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13)  = 0;
+  virtual void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch)         = 0;
 
   /* Measurements interface */
   virtual void meas_reset() = 0;

@@ -213,19 +213,19 @@ private:
   rf_metrics_t      rf_metrics;
 
   srslte::LOG_LEVEL_ENUM level(std::string l);
-  
-  bool check_srslte_version();
-  int parse_sib1(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *data);
-  int parse_sib2(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *data, bool *mbsfn_section_present);
-  int parse_sib3(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *data);
-  int parse_sib4(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_4_STRUCT *data);
-  int parse_sib9(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_9_STRUCT *data);
-  int parse_sib13(std::string filename, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *data);
-  int parse_sibs(all_args_t *args, rrc_cfg_t *rrc_cfg, phy_cfg_t *phy_config_common); 
+
+  //  bool check_srslte_version();
+  int  parse_sib1(std::string filename, asn1::rrc::sib_type1_s* data);
+  int  parse_sib2(std::string filename, asn1::rrc::sib_type2_s* data);
+  int  parse_sib3(std::string filename, asn1::rrc::sib_type3_s* data);
+  int  parse_sib4(std::string filename, asn1::rrc::sib_type4_s* data);
+  int  parse_sib9(std::string filename, asn1::rrc::sib_type9_s* data);
+  int  parse_sib13(std::string filename, asn1::rrc::sib_type13_r9_s* data);
+  int  parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_common);
   int parse_rr(all_args_t *args, rrc_cfg_t *rrc_cfg);
-  int parse_drb(all_args_t *args, rrc_cfg_t *rrc_cfg); 
-  bool sib_is_present(LIBLTE_RRC_SCHEDULING_INFO_STRUCT *sched_info, uint32_t nof_sched_info, LIBLTE_RRC_SIB_TYPE_ENUM sib_num);
-  int parse_cell_cfg(all_args_t *args, srslte_cell_t *cell);
+  int parse_drb(all_args_t *args, rrc_cfg_t *rrc_cfg);
+  bool sib_is_present(const asn1::rrc::sched_info_list_l& l, asn1::rrc::sib_type_e sib_num);
+  int  parse_cell_cfg(all_args_t* args, srslte_cell_t* cell);
 
   std::string get_build_mode();
   std::string get_build_info();

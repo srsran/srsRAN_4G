@@ -24,19 +24,19 @@
  *
  */
 
-
-#include <unistd.h>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <sstream>
-#include <srslte/asn1/liblte_mme.h>
-#include "srslte/asn1/liblte_rrc.h"
 #include "srsue/hdr/upper/nas.h"
-#include "srslte/common/security.h"
+#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
+#include "srslte/common/security.h"
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <srslte/asn1/liblte_mme.h>
+#include <sstream>
+#include <unistd.h>
 
 using namespace srslte;
+using namespace asn1::rrc;
 
 namespace srsue {
 
@@ -72,8 +72,11 @@ void nas::init(usim_interface_nas *usim_,
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
     nas_log->error("Getting Home PLMN Id from USIM. Defaulting to 001-01\n");
-    home_plmn.mcc = 61441; // This is 001
-    home_plmn.mnc = 65281; // This is 01
+    uint16_t mcc          = 61441; // This is 001
+    uint16_t mnc          = 65281; // This is 01
+    home_plmn.mcc_present = true;
+    srslte::mcc_to_bytes(mcc, &home_plmn.mcc[0]);
+    srslte::mnc_to_bytes(mnc, home_plmn.mnc);
   }
   cfg     = cfg_;
 
@@ -200,7 +203,8 @@ bool nas::is_attached() {
   return state == EMM_STATE_REGISTERED;
 }
 
-void nas::paging(LIBLTE_RRC_S_TMSI_STRUCT *ue_identiy) {
+void nas::paging(s_tmsi_s* ue_identiy)
+{
   if (state == EMM_STATE_REGISTERED) {
     nas_log->info("Received paging: requesting RRC connection establishment\n");
     if (rrc_connect()) {
@@ -240,14 +244,14 @@ bool nas::rrc_connect() {
 
   // Provide UE-Identity to RRC if have one
   if (have_guti) {
-    LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
-    s_tmsi.mmec   = ctxt.guti.mme_code;
-    s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
+    s_tmsi_s s_tmsi;
+    s_tmsi.mmec.from_number(ctxt.guti.mme_code);
+    s_tmsi.m_tmsi.from_number(ctxt.guti.m_tmsi);
     rrc->set_ue_idenity(s_tmsi);
   }
 
   // Set establishment cause
-  LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM establish_cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING;
+  establishment_cause_e establish_cause = establishment_cause_e::mo_sig;
 
   if (rrc->connection_request(establish_cause, dedicatedInfoNAS))
   {
@@ -631,9 +635,9 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu) {
       memcpy(&ctxt.guti, &attach_accept.guti.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
       have_guti = true;
       // Update RRC UE-Idenity
-      LIBLTE_RRC_S_TMSI_STRUCT s_tmsi;
-      s_tmsi.mmec   = ctxt.guti.mme_code;
-      s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
+      s_tmsi_s s_tmsi;
+      s_tmsi.mmec.from_number(ctxt.guti.mme_code);
+      s_tmsi.m_tmsi.from_number(ctxt.guti.m_tmsi);
       rrc->set_ue_idenity(s_tmsi);
     }
     if (attach_accept.lai_present) {}
@@ -1391,7 +1395,7 @@ void nas::send_detach_request(bool switch_off)
   if (rrc->is_connected()) {
     rrc->write_sdu(pdu);
   } else {
-    rrc->connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING, pdu);
+    rrc->connection_request(establishment_cause_e::mo_sig, pdu);
   }
 }
 

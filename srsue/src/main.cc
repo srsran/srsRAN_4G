@@ -54,7 +54,8 @@ namespace bpo = boost::program_options;
  ***********************************************************************/
 string config_file;
 
-void parse_args(all_args_t *args, int argc, char *argv[]) {
+void parse_args(all_args_t* args, int argc, char* argv[])
+{
 
   // Command line only options
   bpo::options_description general("General options");
@@ -65,6 +66,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
 
   // Command line or config file options
   bpo::options_description common("Configuration options");
+  // clang-format off
   common.add_options()
     ("rf.dl_earfcn", bpo::value<string>(&args->rf.dl_earfcn)->default_value("3400"), "Downlink EARFCN list")
     ("rf.freq_offset", bpo::value<float>(&args->rf.freq_offset)->default_value(0), "(optional) Frequency offset")
@@ -317,6 +319,8 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   bpo::options_description position("Positional options");
   position.add_options()
     ("config_file", bpo::value<string>(&config_file), "UE configuration file");
+  // clang-format on
+
   bpo::positional_options_description p;
   p.add("config_file", -1);
 
@@ -370,14 +374,11 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     exit(1);
   }
 
-  //Check conflicting OP/OPc options and which is being used
-  if (vm.count("usim.op") && !vm["usim.op"].defaulted() &&
-      vm.count("usim.opc") && !vm["usim.opc"].defaulted())
-  {
+  // Check conflicting OP/OPc options and which is being used
+  if (vm.count("usim.op") && !vm["usim.op"].defaulted() && vm.count("usim.opc") && !vm["usim.opc"].defaulted()) {
     cout << "Conflicting options OP and OPc. Please configure either one or the other." << endl;
     exit(1);
-  }
-  else {
+  } else {
     args->usim.using_op = vm.count("usim.op");
   }
 
@@ -412,7 +413,6 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
     }
   }
 
-
   // Apply all_hex_limit to any unset layers
   if (vm.count("log.all_hex_limit")) {
     if (!vm.count("log.phy_hex_limit")) {
@@ -442,24 +442,26 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
   }
 }
 
-static int sigcnt = 0;
-static bool running = true;
-static bool do_metrics = false;
+static int     sigcnt     = 0;
+static bool    running    = true;
+static bool    do_metrics = false;
 metrics_stdout metrics_screen;
-static bool show_mbms = false;
-static bool mbms_service_start = false;
-uint32_t serv, port;
+static bool    show_mbms          = false;
+static bool    mbms_service_start = false;
+uint32_t       serv, port;
 
-void sig_int_handler(int signo) {
+void sig_int_handler(int signo)
+{
   sigcnt++;
   running = false;
-  printf("Stopping srsUE... Press Ctrl+C %d more times to force stop\n", 10-sigcnt);
+  printf("Stopping srsUE... Press Ctrl+C %d more times to force stop\n", 10 - sigcnt);
   if (sigcnt >= 10) {
     exit(-1);
   }
 }
 
-void *input_loop(void *m) {
+void* input_loop(void* m)
+{
   string key;
   while (running) {
     getline(cin, key);
@@ -475,37 +477,35 @@ void *input_loop(void *m) {
           cout << "Enter t to restart trace." << endl;
         }
         metrics_screen.toggle_print(do_metrics);
-      } else
-      if (0 == key.compare("q")) {
+      } else if (0 == key.compare("q")) {
         running = false;
-      }  
-    else if (0 == key.compare("mbms")) {
-      show_mbms = true;
-    } else if (key.find("mbms_service_start") != string::npos) {
-      char *dup = strdup(key.c_str());
-      strtok(dup, " ");
-      char *s = strtok(NULL, " ");
-      char* p = strtok(NULL, " ");
-      if(NULL == s) {
-        cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
-        goto free_mem;
+      } else if (0 == key.compare("mbms")) {
+        show_mbms = true;
+      } else if (key.find("mbms_service_start") != string::npos) {
+        char* dup = strdup(key.c_str());
+        strtok(dup, " ");
+        char* s = strtok(NULL, " ");
+        char* p = strtok(NULL, " ");
+        if (NULL == s) {
+          cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
+          goto free_mem;
+        }
+        serv = atoi(s);
+        if (NULL == p) {
+          cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
+          goto free_mem;
+        }
+        port               = atoi(p);
+        mbms_service_start = true;
+      free_mem:
+        free(dup);
       }
-      serv = atoi(s);
-      if(NULL == p) {
-        cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
-        goto free_mem;
-      }
-      port = atoi(p);
-      mbms_service_start = true;
-free_mem:
-      free(dup);
     }
-   }
   }
   return NULL;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
@@ -517,7 +517,7 @@ int main(int argc, char *argv[])
   parse_args(&args, argc, argv);
 
   srsue_instance_type_t type = LTE;
-  ue_base *ue = ue_base::get_instance(type);
+  ue_base*              ue   = ue_base::get_instance(type);
   if (!ue) {
     cout << "Error creating UE instance." << endl << endl;
     exit(1);
@@ -555,28 +555,27 @@ int main(int argc, char *argv[])
       ue->start_plot();
     }
     // Auto-start MBMS service by default
-    if(args.expert.mbms_service > -1){
-      serv = args.expert.mbms_service;
-      port = 4321;
+    if (args.expert.mbms_service > -1) {
+      serv               = args.expert.mbms_service;
+      port               = 4321;
       mbms_service_start = true;
     }
   }
-  int cnt=0;
+  int cnt = 0;
   while (running) {
-    //
-    if(mbms_service_start) {
-      if(ue->mbms_service_start(serv, port)){
+    if (mbms_service_start) {
+      if (ue->mbms_service_start(serv, port)) {
         mbms_service_start = false;
       }
     }
-    if(show_mbms) {
+    if (show_mbms) {
       show_mbms = false;
       ue->print_mbms();
     }
     if (args.expert.print_buffer_state) {
       cnt++;
-      if (cnt==10) {
-        cnt=0;
+      if (cnt == 10) {
+        cnt = 0;
         ue->print_pool();
       }
     }

@@ -37,6 +37,7 @@
 
 using namespace srsue;
 using namespace srslte;
+using namespace asn1::rrc;
 
 class mac_dummy_timers
     :public srslte::mac_interface_timers
@@ -163,14 +164,14 @@ bool basic_test()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -258,14 +259,14 @@ bool concat_test()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -338,14 +339,14 @@ bool segment_test(bool in_seq_rx)
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -446,14 +447,14 @@ bool retx_test()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -553,14 +554,14 @@ bool resegment_test_1()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -673,14 +674,14 @@ bool resegment_test_2()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -790,14 +791,14 @@ bool resegment_test_3()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -902,14 +903,14 @@ bool resegment_test_4()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -1014,14 +1015,14 @@ bool resegment_test_5()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -1128,14 +1129,14 @@ bool resegment_test_6()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -1276,14 +1277,14 @@ bool resegment_test_7()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -1463,14 +1464,14 @@ bool resegment_test_8()
   rlc1.init(&log1, 1, &tester, &tester, &timers);
   rlc2.init(&log2, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -1621,14 +1622,14 @@ bool reset_test()
 
   rlc1.init(&log1, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
@@ -1677,14 +1678,14 @@ bool stop_test()
 
   rlc1.init(&log1, 1, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-  cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS5;
-  cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-  cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
-  cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
-  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
 
   if (not rlc1.configure(&cnfg)) {
     return -1;
