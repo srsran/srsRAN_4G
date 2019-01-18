@@ -330,9 +330,13 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
   // parse the command line and store result in vm
   bpo::variables_map vm;
-  bpo::store(bpo::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-  bpo::notify(vm);
-
+  try{
+    bpo::store(bpo::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
+    bpo::notify(vm);
+  } catch(bpo::error &e) {
+    cerr<< e.what() << endl;
+    exit(1);
+  }
   // help option was given - print usage and exit
   if (vm.count("help")) {
     cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
