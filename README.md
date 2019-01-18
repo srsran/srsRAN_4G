@@ -1,8 +1,6 @@
 srsLTE
 ========
 
-[![Coverity Scan Build Status](https://scan.coverity.com/projects/10045/badge.svg)](https://scan.coverity.com/projects/10045)
-
 srsLTE is a free and open-source LTE software suite developed by SRS (www.softwareradiosystems.com). 
 
 It includes:
