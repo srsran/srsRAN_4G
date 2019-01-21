@@ -142,7 +142,7 @@ if (ENABLE_SSE)
         # Check compiler for AVX intrinsics
         #
         if (CMAKE_COMPILER_IS_GNUCC OR (CMAKE_C_COMPILER_ID MATCHES "Clang") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-            set(CMAKE_REQUIRED_FLAGS "-mavx512f")
+            set(CMAKE_REQUIRED_FLAGS "-mavx512f -mavx512cd -mavx512bw -mavx512dq -DLV_HAVE_AVX512")
             check_c_source_runs("
           #include <immintrin.h>
           int main()

@@ -38,6 +38,7 @@
 #include "srsue/hdr/mac/mac.h"
 #include "srslte/common/pcap.h"
 
+using namespace asn1::rrc;
 
 namespace srsue {
 
@@ -63,6 +64,10 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
 
   timer_alignment             = timers.get_unique_id();
   contention_resolution_timer = timers.get_unique_id();
+
+  log_h->debug("Timer Timing Alignment ID 0x%x\n", timer_alignment);
+  log_h->debug("Timer Contention Resolution ID 0x%x\n",
+               contention_resolution_timer);
 
   bsr_procedure.init(       rlc_h, log_h,          &config,                &timers);
   phr_procedure.init(phy_h,        log_h,          &config,                &timers);
@@ -275,7 +280,7 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
     ra_procedure.new_grant_dl(grant, action);
   } else if (grant.rnti_type == SRSLTE_RNTI_PCH) {
 
-    memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
+    action->phy_grant         = grant.phy_grant;
     action->generate_ack = false;
     action->decode_enabled[0] = true;
     action->decode_enabled[1] = false;
@@ -336,7 +341,7 @@ void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_i
 
 void mac::new_mch_dl(srslte_ra_dl_grant_t phy_grant, tb_action_dl_t *action)
 {
-  memcpy(&action->phy_grant, &phy_grant, sizeof(srslte_phy_grant_t));
+  action->phy_grant.dl      = phy_grant;
   action->generate_ack = false;
   action->decode_enabled[0] = true;
   srslte_softbuffer_rx_reset_cb(&mch_softbuffer, 1);
@@ -364,9 +369,12 @@ void mac::setup_timers()
   // stop currently running time alignment timer
   if (timers.get(timer_alignment)->is_running()) {
     timers.get(timer_alignment)->stop();
+    log_h->debug("Stop running MAC Time Alignment Timer with ID 0x%x\n",
+                 timer_alignment);
   }
 
-  int value = liblte_rrc_time_alignment_timer_num[config.main.time_alignment_timer];
+  int value = config.main.time_align_timer_ded.to_number();
+  log_h->info("Set MAC Time Alignment Timer (0x%x) to %d \n", timer_alignment, value);
   if (value > 0) {
     timers.get(timer_alignment)->set(this, value);
   }
@@ -382,9 +390,11 @@ void mac::timer_expired(uint32_t timer_id)
 }
 
 /* Function called on expiry of TimeAlignmentTimer */
-void mac::timer_alignment_expire()
-{
-  printf("TimeAlignment timer has expired value=%d ms\n", timers.get(timer_alignment)->get_timeout());
+void mac::timer_alignment_expire() {
+  log_h->console("TimeAlignment timer has expired value=%d ms\n",
+                 timers.get(timer_alignment)->get_timeout());
+  log_h->warning("TimeAlignment timer has expired value=%d ms\n",
+                 timers.get(timer_alignment)->get_timeout());
   rrc_h->release_pucch_srs();
   dl_harq.reset();
   ul_harq.reset();
@@ -392,7 +402,7 @@ void mac::timer_alignment_expire()
 
 void mac::get_rntis(ue_rnti_t* rntis)
 {
-  memcpy(rntis, &uernti, sizeof(ue_rnti_t));
+  *rntis = uernti;
 }
 
 void mac::set_ho_rnti(uint16_t crnti, uint16_t target_pci) {
@@ -421,7 +431,7 @@ void mac::start_cont_ho()
 
 void mac::get_config(mac_cfg_t* mac_cfg)
 {
-  memcpy(mac_cfg, &config, sizeof(mac_cfg_t));
+  *mac_cfg = config;
 }
 
 void mac::set_mbsfn_config(uint32_t nof_mbsfn_services)
@@ -433,25 +443,25 @@ void mac::set_mbsfn_config(uint32_t nof_mbsfn_services)
 
 void mac::set_config(mac_cfg_t* mac_cfg)
 {
-  memcpy(&config, mac_cfg, sizeof(mac_cfg_t));
+  config = *mac_cfg;
   setup_timers();
 }
 
-void mac::set_config_main(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT* main_cfg)
+void mac::set_config_main(mac_main_cfg_s* main_cfg)
 {
-  memcpy(&config.main, main_cfg, sizeof(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT));
+  config.main = *main_cfg;
   setup_timers();
 }
 
-void mac::set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT* rach_cfg, uint32_t prach_config_index)
+void mac::set_config_rach(rach_cfg_common_s* rach_cfg, uint32_t prach_config_index)
 {
-  memcpy(&config.rach, rach_cfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT));
+  config.rach               = *rach_cfg;
   config.prach_config_index = prach_config_index;
 }
 
-void mac::set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT* sr_cfg)
+void mac::set_config_sr(sched_request_cfg_c* sr_cfg)
 {
-  memcpy(&config.sr, sr_cfg, sizeof(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT));
+  config.sr = *sr_cfg;
 }
 
 void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)
@@ -554,12 +564,6 @@ void mac::pdu_process::run_thread()
     }
   }
 }
-
-
-
-
-
-
 
 }
 

@@ -41,32 +41,23 @@
 
 namespace srsenb {
 
-class metrics_stdout
+class metrics_stdout : public srslte::metrics_listener<enb_metrics_t>
 {
 public:
   metrics_stdout();
 
-  bool init(enb_metrics_interface *u, float report_period_secs=1.0);
-  void stop();
   void toggle_print(bool b);
-  static void* metrics_thread_start(void *m);
-  void metrics_thread_run();
+  void set_metrics(enb_metrics_t &m, const uint32_t period_usec);
+  void set_handle(enb_metrics_interface *enb_);
+  void stop() {};
 
 private:
-  void        print_metrics();
-  void        print_disconnect();
   std::string float_to_string(float f, int digits);
   std::string float_to_eng_string(float f, int digits);
-  std::string int_to_eng_string(int f, int digits);
-  
-  enb_metrics_interface *enb_;
 
-  bool          started;
-  bool          do_print;
-  pthread_t     metrics_thread;
-  enb_metrics_t  metrics;
-  float         metrics_report_period; // seconds
-  uint8_t       n_reports;
+  bool                   do_print;
+  uint8_t                n_reports;
+  enb_metrics_interface* enb;
 };
 
 } // namespace srsenb

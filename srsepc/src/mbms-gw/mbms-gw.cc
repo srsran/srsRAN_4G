@@ -319,7 +319,7 @@ mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t *msg)
   int n = sendto(m_m1u, msg->msg, msg->N_bytes, 0,
                  (sockaddr *) &m_m1u_multi_addr, sizeof(struct sockaddr));
   if(n<0){
-    m_mbms_gw_log->console("Error writting to M1-U socket.\n");
+    m_mbms_gw_log->console("Error writing to M1-U socket.\n");
   }
   else{
     m_mbms_gw_log->debug("Sent %d Bytes\n", msg->N_bytes);

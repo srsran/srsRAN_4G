@@ -32,6 +32,7 @@
 #include "srslte/interfaces/sched_interface.h"
 
 #include "scheduler_harq.h"
+#include "srslte/asn1/rrc_asn1.h"
 
 namespace srsenb {
 
@@ -76,7 +77,7 @@ public:
   void ul_phr(int phr); 
   void mac_buffer_state(uint32_t ce_code);
   void ul_recv_len(uint32_t lcid, uint32_t len);
-  void set_dl_ant_info(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dedicated);
+  void set_dl_ant_info(asn1::rrc::phys_cfg_ded_s::ant_info_c_* dedicated);
   void set_ul_cqi(uint32_t tti, uint32_t cqi, uint32_t ul_ch_code);
   void set_dl_ri(uint32_t tti, uint32_t ri);
   void set_dl_pmi(uint32_t tti, uint32_t ri);
@@ -150,8 +151,9 @@ private:
   bool       is_sr_triggered();
   int        alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
 
-  static uint32_t format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb); 
-  static int cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, uint32_t *mcs);
+  static uint32_t format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb);
+  static int cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, bool is_ul,
+                        uint32_t* mcs);
   int alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int *mcs);
   int alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int *mcs);
   int alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int *mcs);
@@ -209,8 +211,7 @@ private:
   ul_harq_proc ul_harq[SCHED_MAX_HARQ_PROC]; 
   
   bool phy_config_dedicated_enabled;
-  LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT dl_ant_info;
-  
+  asn1::rrc::phys_cfg_ded_s::ant_info_c_ dl_ant_info;
 }; 
   
 }

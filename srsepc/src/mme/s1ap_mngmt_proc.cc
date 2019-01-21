@@ -94,8 +94,8 @@ s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRU
   //Check matching PLMNs
   if(enb_ctx.plmn!=m_s1ap->get_plmn()){
 
-    m_s1ap_log->console("Sending S1 Setup Failure - Unkown PLMN\n");
-    m_s1ap_log->warning("Sending S1 Setup Failure - Unkown PLMN\n");
+    m_s1ap_log->console("Sending S1 Setup Failure - Unknown PLMN\n");
+    m_s1ap_log->warning("Sending S1 Setup Failure - Unknown PLMN\n");
     pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN,reply_buffer);
   }
   else{

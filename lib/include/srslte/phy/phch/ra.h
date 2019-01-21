@@ -242,13 +242,19 @@ SRSLTE_API int srslte_ra_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci,
 
 SRSLTE_API int srslte_ra_dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, 
                                                         srslte_ra_dl_grant_t *grant, 
-                                                        uint32_t nof_prb); 
+                                                        uint32_t nof_prb);
 
-SRSLTE_API int srslte_ra_tbs_idx_from_mcs(uint32_t mcs);
+SRSLTE_API int srslte_ra_dl_tbs_idx_from_mcs(uint32_t mcs);
 
-SRSLTE_API srslte_mod_t srslte_ra_mod_from_mcs(uint32_t mcs); 
+SRSLTE_API int srslte_ra_ul_tbs_idx_from_mcs(uint32_t mcs);
 
-SRSLTE_API int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx); 
+SRSLTE_API srslte_mod_t srslte_ra_dl_mod_from_mcs(uint32_t mcs);
+
+SRSLTE_API srslte_mod_t srslte_ra_ul_mod_from_mcs(uint32_t mcs);
+
+SRSLTE_API int srslte_ra_dl_mcs_from_tbs_idx(uint32_t tbs_idx);
+
+SRSLTE_API int srslte_ra_ul_mcs_from_tbs_idx(uint32_t tbs_idx);
 
 SRSLTE_API int srslte_ra_tbs_from_idx(uint32_t tbs_idx, 
                                       uint32_t n_prb); 

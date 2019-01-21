@@ -30,22 +30,24 @@
 #include "pthread.h"
 
 #include "rrc_common.h"
+#include "srslte/common/bcd_helpers.h"
+#include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
-#include "srslte/common/block_queue.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 #include <math.h>
 #include <map>
 #include <queue>
 
+#define SRSLTE_RRC_N_BANDS 43
 typedef struct {
   uint32_t                      ue_category;
   uint32_t                      feature_group;
-  uint8_t                       supported_bands[LIBLTE_RRC_BAND_N_ITEMS];
+  uint8_t                       supported_bands[SRSLTE_RRC_N_BANDS];
   uint32_t                      nof_supported_bands;
 }rrc_args_t;
 
@@ -69,10 +71,12 @@ class cell_t
   bool greater(cell_t *x) {
     return rsrp > x->rsrp || isnan(rsrp);
   }
-  bool plmn_equals(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
+  bool plmn_equals(asn1::rrc::plmn_id_s plmn_id)
+  {
     if (has_valid_sib1) {
-      for (uint32_t i = 0; i < sib1.N_plmn_ids; i++) {
-        if (plmn_id.mcc == sib1.plmn_id[i].id.mcc && plmn_id.mnc == sib1.plmn_id[i].id.mnc) {
+      for (uint32_t i = 0; i < sib1.cell_access_related_info.plmn_id_list.size(); i++) {
+        if (plmn_id.mcc == sib1.cell_access_related_info.plmn_id_list[i].plmn_id.mcc &&
+            plmn_id.mnc == sib1.cell_access_related_info.plmn_id_list[i].plmn_id.mnc) {
           return true;
         }
       }
@@ -82,26 +86,27 @@ class cell_t
 
   uint32_t nof_plmns() {
     if (has_valid_sib1) {
-      return sib1.N_plmn_ids;
+      return sib1.cell_access_related_info.plmn_id_list.size();
     } else {
       return 0;
     }
   }
 
-  LIBLTE_RRC_PLMN_IDENTITY_STRUCT get_plmn(uint32_t idx) {
-    if (idx < sib1.N_plmn_ids && has_valid_sib1) {
-      return sib1.plmn_id[idx].id;
+  asn1::rrc::plmn_id_s get_plmn(uint32_t idx)
+  {
+    if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
+      return sib1.cell_access_related_info.plmn_id_list[idx].plmn_id;
     } else {
-      LIBLTE_RRC_PLMN_IDENTITY_STRUCT null;
-      null.mnc = 0;
-      null.mcc = 0;
+      asn1::rrc::plmn_id_s null;
+      bzero(&null.mcc[0], sizeof(null.mcc));
+      bzero(&null.mnc[0], sizeof(null.mnc));
       return null;
     }
   }
 
   uint16_t get_tac() {
     if (has_valid_sib1) {
-      return sib1.tracking_area_code;
+      return (uint16_t)sib1.cell_access_related_info.tac.to_number();
     } else {
       return 0;
     }
@@ -147,20 +152,24 @@ class cell_t
     return rsrp;
   }
 
-  void set_sib1(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1) {
-    memcpy(&this->sib1, sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
+  void set_sib1(asn1::rrc::sib_type1_s* sib1_)
+  {
+    sib1           = *sib1_;
     has_valid_sib1 = true;
   }
-  void set_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2) {
-    memcpy(&this->sib2, sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
+  void set_sib2(asn1::rrc::sib_type2_s* sib2_)
+  {
+    sib2           = *sib2_;
     has_valid_sib2 = true;
   }
-  void set_sib3(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *sib3) {
-    memcpy(&this->sib3, sib3, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT));
+  void set_sib3(asn1::rrc::sib_type3_s* sib3_)
+  {
+    sib3           = *sib3_;
     has_valid_sib3 = true;
   }
-  void set_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13) {
-    memcpy(&this->sib13, sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT));
+  void set_sib13(asn1::rrc::sib_type13_r9_s* sib13_)
+  {
+    sib13           = *sib13_;
     has_valid_sib13 = true;
   }
 
@@ -172,22 +181,12 @@ class cell_t
     return t[0].tv_sec;
   }
 
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT *sib1ptr() {
-    return &sib1;
-  }
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2ptr() {
-    return &sib2;
-  }
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT *sib3ptr() {
-    return &sib3;
-  }
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13ptr() {
-    return &sib13;
-  }
+  asn1::rrc::sib_type1_s*     sib1ptr() { return &sib1; }
+  asn1::rrc::sib_type2_s*     sib2ptr() { return &sib2; }
+  asn1::rrc::sib_type3_s*     sib3ptr() { return &sib3; }
+  asn1::rrc::sib_type13_r9_s* sib13ptr() { return &sib13; }
 
-  uint32_t get_cell_id() {
-    return sib1.cell_id;
-  }
+  uint32_t get_cell_id() { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
 
   bool has_sib1() {
     return has_valid_sib1;
@@ -216,32 +215,46 @@ class cell_t
     return false;
   }
 
+  void reset_sibs() {
+    has_valid_sib1 = false;
+    has_valid_sib2 = false;
+    has_valid_sib3 = false;
+    has_valid_sib13 = false;
+  }
+
   uint16_t get_mcc() {
+    uint16_t mcc;
     if (has_valid_sib1) {
-      if (sib1.N_plmn_ids > 0) {
-        return sib1.plmn_id[0].id.mcc;
+      if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
+        if (srslte::bytes_to_mcc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mcc[0], &mcc)) {
+          return mcc;
+        }
       }
     }
     return 0;
   }
 
   uint16_t get_mnc() {
+    uint16_t mnc;
     if (has_valid_sib1) {
-      if (sib1.N_plmn_ids > 0) {
-        return sib1.plmn_id[0].id.mnc;
+      if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
+        if (srslte::bytes_to_mnc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc[0], &mnc,
+                                 sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc.size())) {
+          return mnc;
+        }
       }
     }
     return 0;
   }
 
   phy_interface_rrc::phy_cell_t phy_cell;
-  bool     in_sync; 
-  bool     has_mcch;
-   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT  sib1;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT  sib2;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_3_STRUCT  sib3;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
-  LIBLTE_RRC_MCCH_MSG_STRUCT               mcch;
+  bool                          in_sync;
+  bool                          has_mcch;
+  asn1::rrc::sib_type1_s        sib1;
+  asn1::rrc::sib_type2_s        sib2;
+  asn1::rrc::sib_type3_s        sib3;
+  asn1::rrc::sib_type13_r9_s    sib13;
+  asn1::rrc::mcch_msg_s         mcch;
 
 private:
   float    rsrp;
@@ -254,14 +267,13 @@ private:
   bool     has_valid_sib13;
 };
 
-class rrc
-  :public rrc_interface_nas
-  ,public rrc_interface_phy
-  ,public rrc_interface_mac
-  ,public rrc_interface_pdcp
-  ,public rrc_interface_rlc
-  ,public srslte::timer_callback
-  ,public thread
+class rrc : public rrc_interface_nas,
+            public rrc_interface_phy,
+            public rrc_interface_mac,
+            public rrc_interface_pdcp,
+            public rrc_interface_rlc,
+            public srslte::timer_callback,
+            public thread
 {
 public:
   rrc();
@@ -284,21 +296,24 @@ public:
 
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);
-  void liblte_rrc_log(char *str);
-  
+  void srslte_rrc_log(const char* str);
+
+  typedef enum { Rx = 0, Tx } direction_t;
+  template <class T>
+  void log_rrc_message(const std::string source, const direction_t dir, const byte_buffer_t* pdu, const T& msg);
+
   void print_mbms();
   bool mbms_service_start(uint32_t serv, uint32_t port);
 
   // NAS interface
-  void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu);
   void enable_capabilities();
   uint16_t get_mcc();
   uint16_t get_mnc();
   int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]);
-  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
-  bool connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause,
-                          srslte::byte_buffer_t *dedicatedInfoNAS);
-  void set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi);
+  void     plmn_select(asn1::rrc::plmn_id_s plmn_id);
+  bool     connection_request(asn1::rrc::establishment_cause_e cause, srslte::byte_buffer_t* dedicated_info_nas);
+  void     set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi);
 
   // PHY interface
   void in_sync();
@@ -349,25 +364,24 @@ private:
   nas_interface_rrc *nas;
   usim_interface_rrc *usim;
   gw_interface_rrc    *gw;
-  
-  LIBLTE_RRC_UL_DCCH_MSG_STRUCT ul_dcch_msg;
-  LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;
-  LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
-  LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
 
-  byte_buffer_t *dedicatedInfoNAS;
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
+  asn1::rrc::ul_ccch_msg_s ul_ccch_msg;
+  asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
+  asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
 
-  byte_buffer_t* byte_align_and_pack();
+  byte_buffer_t* dedicated_info_nas;
+
   void send_ul_ccch_msg();
-  void send_ul_dcch_msg();
+  void send_ul_dcch_msg(uint32_t lcid);
   srslte::bit_buffer_t          bit_buf;
 
   pthread_mutex_t mutex;
 
-  rrc_state_t state;
+  rrc_state_t         state, last_state;
   uint8_t transaction_id;
-  LIBLTE_RRC_S_TMSI_STRUCT ueIdentity;
-  bool ueIdentity_configured;
+  asn1::rrc::s_tmsi_s ue_identity;
+  bool                ue_identity_configured;
 
   bool drb_up;
 
@@ -380,7 +394,7 @@ private:
   phy_interface_rrc::phy_cfg_t previous_phy_cfg;
   mac_interface_rrc::mac_cfg_t previous_mac_cfg;
   bool pending_mob_reconf;
-  LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT mob_reconf;
+  asn1::rrc::rrc_conn_recfg_s  mob_reconf;
 
   uint8_t k_rrc_enc[32];
   uint8_t k_rrc_int[32];
@@ -390,8 +404,8 @@ private:
   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
-  std::map<uint32_t, LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT> srbs;
-  std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT> drbs;
+  std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
+  std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
   // RRC constants and timers
   srslte::mac_interface_timers *mac_timers;
@@ -454,12 +468,15 @@ private:
   bool go_idle;
   bool go_rlf;
 
+  uint32_t rlc_flush_counter;
+  uint32_t rlc_flush_timeout;
+
   // Measurements sub-class
   class rrc_meas {
   public:
     void init(rrc *parent);
     void reset();
-    bool parse_meas_config(LIBLTE_RRC_MEAS_CONFIG_STRUCT *meas_config);
+    bool parse_meas_config(asn1::rrc::meas_cfg_s* meas_config);
     void new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, float rsrq, uint32_t tti);
     void run_tti(uint32_t tti);
     bool timer_expired(uint32_t timer_id);
@@ -489,7 +506,7 @@ private:
       uint32_t   amount;
       quantity_t trigger_quantity;
       quantity_t report_quantity;
-      LIBLTE_RRC_EVENT_EUTRA_STRUCT event;
+      asn1::rrc::eutra_event_s event;
       enum {EVENT, PERIODIC} trigger_type;
     } report_cfg_t;
 
@@ -540,9 +557,8 @@ private:
     bool find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t **object, int *cell_idx);
     float   range_to_value(quantity_t quant, uint8_t range);
     uint8_t value_to_range(quantity_t quant, float value);
-    bool process_event(LIBLTE_RRC_EVENT_EUTRA_STRUCT *event, uint32_t tti,
-                       bool enter_condition, bool exit_condition,
-                       meas_t *m, meas_value_t *cell);
+    bool    process_event(asn1::rrc::eutra_event_s* event, uint32_t tti, bool enter_condition, bool exit_condition,
+                          meas_t* m, meas_value_t* cell);
 
     void generate_report(uint32_t meas_id);
   };
@@ -590,65 +606,66 @@ private:
 
   phy_interface_rrc::cell_search_ret_t cell_search();
 
-  LIBLTE_RRC_PLMN_IDENTITY_STRUCT selected_plmn_id;
+  asn1::rrc::plmn_id_s selected_plmn_id;
   bool plmn_is_selected;
 
   bool security_is_activated;
 
   // RLC interface
-  void          max_retx_attempted();
+  void max_retx_attempted();
 
   // Senders
-  void          send_con_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause);
-  void          send_con_restablish_request(LIBLTE_RRC_CON_REEST_REQ_CAUSE_ENUM cause);
-  void          send_con_restablish_complete();
-  void          send_con_setup_complete(byte_buffer_t *nas_msg);
-  void          send_ul_info_transfer(byte_buffer_t *nas_msg);
-  void          send_security_mode_complete();
-  void          send_rrc_con_reconfig_complete();
-  void          send_rrc_ue_cap_info();
+  void send_con_request(asn1::rrc::establishment_cause_e cause);
+  void send_con_restablish_request(asn1::rrc::reest_cause_e cause);
+  void send_con_restablish_complete();
+  void send_con_setup_complete(byte_buffer_t* nas_msg);
+  void send_ul_info_transfer(byte_buffer_t* nas_msg);
+  void send_security_mode_complete();
+  void send_rrc_con_reconfig_complete();
+  void send_rrc_ue_cap_info();
 
   // Parsers
-  void          process_pdu(uint32_t lcid, byte_buffer_t *pdu);
-  void          parse_dl_ccch(byte_buffer_t *pdu);
-  void          parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu);
-  void          parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
+  void process_pdu(uint32_t lcid, byte_buffer_t* pdu);
+  void parse_dl_ccch(byte_buffer_t* pdu);
+  void parse_dl_dcch(uint32_t lcid, byte_buffer_t* pdu);
+  void parse_dl_info_transfer(uint32_t lcid, byte_buffer_t* pdu);
 
   // Helpers
-  bool          con_reconfig(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig);
-  void          con_reconfig_failed();
-  bool          con_reconfig_ho(LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig);
-  bool          ho_prepare();
-  void          ho_failed();
-  void          rrc_connection_release();
-  void          radio_link_failure();
-  void          leave_connected();
+  bool con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig);
+  void con_reconfig_failed();
+  bool con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig);
+  bool ho_prepare();
+  void ho_failed();
+  void rrc_connection_release();
+  void radio_link_failure();
+  void leave_connected();
+  void stop_timers();
 
-  void          apply_rr_config_common_dl(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
-  void          apply_rr_config_common_ul(LIBLTE_RRC_RR_CONFIG_COMMON_STRUCT *config);
-  void          handle_sib1();
-  void          handle_sib2();
-  void          handle_sib3();
-  void          handle_sib13();
+  void apply_rr_config_common_dl(asn1::rrc::rr_cfg_common_s* config);
+  void apply_rr_config_common_ul(asn1::rrc::rr_cfg_common_s* config);
+  void handle_sib1();
+  void handle_sib2();
+  void handle_sib3();
+  void handle_sib13();
 
-  void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
-  void          apply_sib13_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
-  void          handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
-  void          handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
-  void          handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig);
-  void          add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);
-  void          add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
-  void          release_drb(uint32_t drb_id);
-  void          add_mrb(uint32_t lcid, uint32_t port);
-  bool          apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
-  void          apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults); 
-  void          apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults); 
-  
-  // Helpers for setting default values 
-  void          set_phy_default_pucch_srs();
-  void          set_phy_default();
-  void          set_mac_default();
-  void          set_rrc_default(); 
+  void apply_sib2_configs(asn1::rrc::sib_type2_s* sib2);
+  void apply_sib13_configs(asn1::rrc::sib_type13_r9_s* sib13);
+  void handle_con_setup(asn1::rrc::rrc_conn_setup_s* setup);
+  void handle_con_reest(asn1::rrc::rrc_conn_reest_s* setup);
+  void handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* reconfig);
+  void add_srb(asn1::rrc::srb_to_add_mod_s* srb_cnfg);
+  void add_drb(asn1::rrc::drb_to_add_mod_s* drb_cnfg);
+  void release_drb(uint32_t drb_id);
+  void add_mrb(uint32_t lcid, uint32_t port);
+  bool apply_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* cnfg);
+  void apply_phy_config_dedicated(asn1::rrc::phys_cfg_ded_s* phy_cnfg, bool apply_defaults);
+  void apply_mac_config_dedicated(asn1::rrc::mac_main_cfg_s* mac_cfg, bool apply_defaults);
+
+  // Helpers for setting default values
+  void set_phy_default_pucch_srs();
+  void set_phy_default();
+  void set_mac_default();
+  void set_rrc_default();
 };
 
 } // namespace srsue

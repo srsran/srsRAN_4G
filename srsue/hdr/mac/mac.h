@@ -27,21 +27,22 @@
 #ifndef SRSUE_MAC_H
 #define SRSUE_MAC_H
 
-#include "srslte/common/log.h"
+#include "demux.h"
 #include "dl_harq.h"
-#include "ul_harq.h"
-#include "srslte/common/timers.h"
 #include "mac_metrics.h"
-#include "proc_ra.h"
-#include "proc_sr.h"
+#include "mux.h"
 #include "proc_bsr.h"
 #include "proc_phr.h"
-#include "mux.h"
-#include "demux.h"
+#include "proc_ra.h"
+#include "proc_sr.h"
+#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/tti_sync_cv.h"
 #include "srslte/common/threads.h"
+#include "srslte/common/timers.h"
+#include "srslte/common/tti_sync_cv.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "ul_harq.h"
 
 namespace srsue {
   
@@ -89,9 +90,9 @@ public:
   /******** set/get MAC configuration  ****************/ 
   void set_config(mac_cfg_t *mac_cfg);
   void get_config(mac_cfg_t *mac_cfg);
-  void set_config_main(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *main_cfg);
-  void set_config_rach(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT *rach_cfg, uint32_t prach_config_index);
-  void set_config_sr(LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT *sr_cfg);
+  void set_config_main(asn1::rrc::mac_main_cfg_s* main_cfg);
+  void set_config_rach(asn1::rrc::rach_cfg_common_s* rach_cfg, uint32_t prach_config_index);
+  void set_config_sr(asn1::rrc::sched_request_cfg_c* sr_cfg);
   void set_contention_id(uint64_t uecri);
 
   void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask);

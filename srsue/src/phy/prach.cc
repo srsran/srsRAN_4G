@@ -39,6 +39,8 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
+using namespace asn1::rrc;
+
 namespace srsue {
  
 
@@ -57,7 +59,7 @@ prach::~prach() {
   }
 }
 
-void prach::init(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT *config_, uint32_t max_prb, phy_args_t *args_, srslte::log* log_h_)
+void prach::init(prach_cfg_sib_s* config_, uint32_t max_prb, phy_args_t* args_, srslte::log* log_h_)
 {
   log_h  = log_h_;
   config = config_;
@@ -92,14 +94,14 @@ bool prach::set_cell(srslte_cell_t cell_)
   if (mem_initiated) {
     // TODO: Check if other PRACH parameters changed
     if (cell_.id != cell.id || !cell_initiated) {
-      memcpy(&cell, &cell_, sizeof(srslte_cell_t));
+      cell         = cell_;
       preamble_idx = -1;
 
-      uint32_t configIdx      = config->prach_cnfg_info.prach_config_index;
-      uint32_t rootSeq        = config->root_sequence_index;
-      uint32_t zeroCorrConfig = config->prach_cnfg_info.zero_correlation_zone_config;
-      uint32_t freq_offset    = config->prach_cnfg_info.prach_freq_offset;
-      bool     highSpeed      = config->prach_cnfg_info.high_speed_flag;
+      uint32_t configIdx      = config->prach_cfg_info.prach_cfg_idx;
+      uint32_t rootSeq        = config->root_seq_idx;
+      uint32_t zeroCorrConfig = config->prach_cfg_info.zero_correlation_zone_cfg;
+      uint32_t freq_offset    = config->prach_cfg_info.prach_freq_offset;
+      bool     highSpeed      = config->prach_cfg_info.high_speed_flag;
 
       if (6 + freq_offset > cell.nof_prb) {
         log_h->console("Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", freq_offset, cell.nof_prb);
@@ -175,8 +177,8 @@ int prach::tx_tti() {
 
 cf_t *prach::generate(float cfo, uint32_t *nof_sf, float *target_power) {
 
-  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx <= 64 &&
-      srslte_cell_isvalid(&cell) && len < MAX_LEN_SF * 30720 && len > 0) {
+  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx <= 63 && srslte_cell_isvalid(&cell) &&
+      len < MAX_LEN_SF * 30720 && len > 0) {
 
     // Correct CFO before transmission FIXME: UL SISO Only
     srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));

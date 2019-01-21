@@ -33,6 +33,7 @@
 #define CHECK_SIM_PIN 1
 
 using namespace srslte;
+using namespace asn1::rrc;
 
 namespace srsue{
 
@@ -164,7 +165,7 @@ bool pcsc_usim::get_imei_vec(uint8_t* imei_, uint32_t n)
   return true;
 }
 
-bool pcsc_usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
+bool pcsc_usim::get_home_plmn_id(plmn_id_s* home_plmn_id)
 {
   if (!initiated) {
     fprintf(stderr, "USIM not initiated!\n");
@@ -174,20 +175,22 @@ bool pcsc_usim::get_home_plmn_id(LIBLTE_RRC_PLMN_IDENTITY_STRUCT *home_plmn_id)
   uint8_t imsi_vec[15];
   get_imsi_vec(imsi_vec, 15);
 
-  std::ostringstream mcc_str, mnc_str;
+  std::ostringstream plmn_str;
 
   int mcc_len = 3;
   for (int i=0;i<mcc_len;i++) {
-    mcc_str << (int) imsi_vec[i];
+    plmn_str << (int)imsi_vec[i];
   }
 
   int mnc_len = sc.get_mnc_len();
   for (int i=mcc_len;i<mcc_len+mnc_len;i++) {
-    mnc_str << (int) imsi_vec[i];
+    plmn_str << (int)imsi_vec[i];
   }
 
-  string_to_mcc(mcc_str.str(), &home_plmn_id->mcc);
-  string_to_mnc(mnc_str.str(), &home_plmn_id->mnc);
+  if (not string_to_plmn_id(*home_plmn_id, plmn_str.str())) {
+    log->error("Error reading home PLMN from SIM.\n");
+    return false;
+  }
 
   log->info("Read Home PLMN Id=%s\n",
                  plmn_id_to_string(*home_plmn_id).c_str());

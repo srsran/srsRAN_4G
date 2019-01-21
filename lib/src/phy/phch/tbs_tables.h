@@ -30,10 +30,12 @@ const int tbs_format1c_table[32] = {
 };
 
 /* Modulation and TBS index table for PDSCH from 3GPP TS 36.213 v10.3.0 table 7.1.7.1-1 */
-const int mcs_tbs_idx_table[29] = { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
-                                    9, 10, 11, 12, 13, 14, 15, 15, 16, 17,
-                                   18, 19, 20, 21, 22, 23, 24, 25, 26};
+const int dl_mcs_tbs_idx_table[29] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  9,  10, 11, 12, 13,
+                                      14, 15, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26};
 
+/* Modulation and TBS index table for PUSCH from 3GPP TS 36.213 v10.3.0 table 8.6.1-1 */
+const int ul_mcs_tbs_idx_table[29] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 10, 11, 12, 13,
+                                      14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 24, 25, 26};
 
 /* Transport Block Size from 3GPP TS 36.213 v10.3.0 table 7.1.7.2.1-1 */
 const int tbs_table[27][110] = {{      16,   32,   56,   88,  120,  152,  176,  208,  224,  256,  288,

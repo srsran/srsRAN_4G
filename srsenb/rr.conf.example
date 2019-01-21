@@ -2,7 +2,7 @@ mac_cnfg =
 {
   phr_cnfg = 
   {
-    dl_pathloss_change = "3dB"; // Valid: 1, 3, 6 or INFINITY
+    dl_pathloss_change = "dB3"; // Valid: 1, 3, 6 or INFINITY
     periodic_phr_timer = 50;
     prohibit_phr_timer = 0;
   };

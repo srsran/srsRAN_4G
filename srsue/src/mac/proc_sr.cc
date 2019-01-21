@@ -44,7 +44,9 @@ void sr_proc::init(phy_interface_mac* phy_h_, rrc_interface_mac *rrc_, srslte::l
   rrc       = rrc_; 
   mac_cfg   = mac_cfg_; 
   phy_h     = phy_h_;
-  initiated = true; 
+  initiated    = true;
+  dsr_transmax = 0;
+  sr_counter   = 0;
   do_ra = false; 
 }
   
@@ -75,7 +77,7 @@ void sr_proc::step(uint32_t tti)
 {
   if (initiated) {
     if (is_pending_sr) {
-      if (mac_cfg->sr.setup_present) {
+      if (mac_cfg->sr.type() == asn1::rrc::setup_e::setup) {
         if (sr_counter < dsr_transmax) {
           if (sr_counter == 0 || need_tx(tti)) {
             sr_counter++;
@@ -120,8 +122,10 @@ void sr_proc::start()
       sr_counter = 0;
       is_pending_sr = true; 
     }
-    dsr_transmax = liblte_rrc_dsr_trans_max_num[mac_cfg->sr.dsr_trans_max];
-    Debug("SR:    Starting Procedure. dsrTransMax=%d\n", dsr_transmax);
+    if (mac_cfg->sr.type() == asn1::rrc::setup_e::setup) {
+      dsr_transmax = mac_cfg->sr.setup().dsr_trans_max.to_number();
+      Info("SR:    Starting Procedure. dsrTransMax=%d\n", dsr_transmax);
+    }
   }
 }
 

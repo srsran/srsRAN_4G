@@ -24,137 +24,116 @@
  *
  */
 
-#include <assert.h>
-#include "srslte/asn1/liblte_rrc.h"
+#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/common/bcd_helpers.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/phy/utils/bit.h"
+#include <iostream>
 
-void pack_test()
+using namespace asn1::rrc;
+
+#define TESTASSERT(cond)                                                                                               \
+  {                                                                                                                    \
+    if (!(cond)) {                                                                                                     \
+      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
+      return -1;                                                                                                       \
+    }                                                                                                                  \
+  }
+
+int basic_test()
 {
   srslte::log_filter log1("RRC");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(1024);
 
-  uint32_t known_reference_len  = 30;
-  uint8_t  known_reference[256] = {0x0d, 0x8f, 0xdf, 0xff, 0xff, 0xff, 0xe2, 0x2f,
-                                   0xfc, 0x38, 0x5e, 0x61, 0xec, 0xa8, 0x00, 0x00,
-                                   0x02, 0x02, 0x10, 0x00, 0x20, 0x05, 0xe6, 0x1e,
-                                   0xca, 0x80, 0x00, 0x00, 0x40, 0x42};
+  uint8_t  known_reference[]   = {0x0d, 0x8f, 0xdf, 0xff, 0xff, 0xff, 0xe2, 0x2f, 0xfc, 0x38,
+                               0x5e, 0x61, 0xec, 0xa8, 0x00, 0x00, 0x02, 0x02, 0x10, 0x00,
+                               0x20, 0x05, 0xe6, 0x1e, 0xca, 0x80, 0x00, 0x00, 0x40, 0x42};
+  uint32_t known_reference_len = sizeof(known_reference);
+  // 0d8fdfffffffe22ffc385e61eca80000020210002005e61eca8000004042
 
-  LIBLTE_BYTE_MSG_STRUCT     byte_buf;
-  LIBLTE_BIT_MSG_STRUCT      bit_buf;
-  LIBLTE_RRC_MCCH_MSG_STRUCT mcch_msg;
+  asn1::bit_ref         bref(&known_reference[0], sizeof(known_reference));
+  asn1::bit_ref         bref0(&known_reference[0], sizeof(known_reference));
+  asn1::rrc::mcch_msg_s mcch_msg;
 
-  mcch_msg.commonsf_allocpatternlist_r9_size = 2;
-  mcch_msg.commonsf_allocpatternlist_r9[0].radio_fr_alloc_offset = 4;
-  mcch_msg.commonsf_allocpatternlist_r9[0].radio_fr_alloc_period = LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N32;
-  mcch_msg.commonsf_allocpatternlist_r9[0].subfr_alloc_num_frames = LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ONE;
-  mcch_msg.commonsf_allocpatternlist_r9[0].subfr_alloc = 0x3F;
-  mcch_msg.commonsf_allocpatternlist_r9[1].radio_fr_alloc_offset = 7;
-  mcch_msg.commonsf_allocpatternlist_r9[1].radio_fr_alloc_period = LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N8;
-  mcch_msg.commonsf_allocpatternlist_r9[1].subfr_alloc_num_frames = LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_FOUR;
-  mcch_msg.commonsf_allocpatternlist_r9[1].subfr_alloc = 0xFFFFFF;
+  mcch_msg.unpack(bref);
 
-  mcch_msg.commonsf_allocperiod_r9 = LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF256;
+  TESTASSERT(mcch_msg.msg.type() == mcch_msg_type_c::types::c1);
+  TESTASSERT(mcch_msg.msg.c1().type() == mcch_msg_type_c::c1_c_::types::mbsfn_area_cfg_r9);
+  mbsfn_area_cfg_r9_s* area_cfg_r9 = &mcch_msg.msg.c1().mbsfn_area_cfg_r9();
+  TESTASSERT(not area_cfg_r9->non_crit_ext_present);
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9.size() == 2);
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9[0].radioframe_alloc_period ==
+             mbsfn_sf_cfg_s::radioframe_alloc_period_e_::n32);
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9[0].radioframe_alloc_offset == 4);
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9[0].sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame);
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9[0].sf_alloc.one_frame().to_string() == "111111");
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9[1].radioframe_alloc_period ==
+             mbsfn_sf_cfg_s::radioframe_alloc_period_e_::n8);
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9[1].radioframe_alloc_offset == 7);
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9[1].sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::four_frames);
+  TESTASSERT(area_cfg_r9->common_sf_alloc_r9[1].sf_alloc.four_frames().to_string() == "111111111111111111111111");
+  TESTASSERT(area_cfg_r9->common_sf_alloc_period_r9 == mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::rf256);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9.size() == 2);
+  TESTASSERT(not area_cfg_r9->pmch_info_list_r9[0].ext);
+  TESTASSERT(not area_cfg_r9->pmch_info_list_r9[0].pmch_cfg_r9.ext);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9 == 1535);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].pmch_cfg_r9.data_mcs_r9 == 16);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].pmch_cfg_r9.mch_sched_period_r9 ==
+             pmch_cfg_r9_s::mch_sched_period_r9_e_::rf1024);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9.size() == 1);
+  TESTASSERT(not area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9[0].ext);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9[0].session_id_r9_present);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.type() ==
+             tmgi_r9_s::plmn_id_r9_c_::types::explicit_value_r9);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0]
+                 .mbms_session_info_list_r9[0]
+                 .tmgi_r9.plmn_id_r9.explicit_value_r9()
+                 .mcc_present);
+  std::string mccmnc_str = srslte::plmn_id_to_string(
+      area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9());
+  TESTASSERT(mccmnc_str == "987654");
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9[0].tmgi_r9.service_id_r9.to_string() ==
+             "000001");
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9[0].session_id_r9.to_string() == "01");
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9[0].lc_ch_id_r9 == 1);
 
-  mcch_msg.pmch_infolist_r9_size = 2;
-
-  mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size = 1;
-  mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].logicalchannelid_r9 = 1;
-  mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].sessionid_r9_present = true;
-  mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].sessionid_r9 = 1;
-  mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_explicit = true;
-  mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mcc = 0xF987;
-  mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mnc = 0xF654;
-  mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.serviceid_r9 = 1;
-  mcch_msg.pmch_infolist_r9[0].pmch_config_r9.datamcs_r9 = 16;
-  mcch_msg.pmch_infolist_r9[0].pmch_config_r9.mch_schedulingperiod_r9 = LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF1024;
-  mcch_msg.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9 = 1535;
-
-  mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9_size = 1;
-  mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].logicalchannelid_r9 = 2;
-  mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].sessionid_r9_present = true;
-  mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].sessionid_r9 = 2;
-  mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_explicit = true;
-  mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mcc = 0xF987;
-  mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mnc = 0xF654;
-  mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].tmgi_r9.serviceid_r9 = 2;
-  mcch_msg.pmch_infolist_r9[1].pmch_config_r9.datamcs_r9 = 8;
-  mcch_msg.pmch_infolist_r9[1].pmch_config_r9.mch_schedulingperiod_r9 = LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF8;
-  mcch_msg.pmch_infolist_r9[1].pmch_config_r9.sf_alloc_end_r9 = 0;
-
-  liblte_rrc_pack_mcch_msg(&mcch_msg, &bit_buf);
-  liblte_pack(bit_buf.msg, bit_buf.N_bits, byte_buf.msg);
-  byte_buf.N_bytes = (bit_buf.N_bits+7)/8;
+  TESTASSERT(not area_cfg_r9->pmch_info_list_r9[1].ext);
+  TESTASSERT(not area_cfg_r9->pmch_info_list_r9[1].pmch_cfg_r9.ext);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].pmch_cfg_r9.sf_alloc_end_r9 == 0);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].pmch_cfg_r9.data_mcs_r9 == 8);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].pmch_cfg_r9.mch_sched_period_r9 ==
+             pmch_cfg_r9_s::mch_sched_period_r9_e_::rf8);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9.size() == 1);
+  TESTASSERT(not area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].ext);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].session_id_r9_present);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.type() ==
+             tmgi_r9_s::plmn_id_r9_c_::types::explicit_value_r9);
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1]
+                 .mbms_session_info_list_r9[0]
+                 .tmgi_r9.plmn_id_r9.explicit_value_r9()
+                 .mcc_present);
+  mccmnc_str = srslte::plmn_id_to_string(
+      area_cfg_r9->pmch_info_list_r9[0].mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9());
+  TESTASSERT(mccmnc_str == "987654");
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].tmgi_r9.service_id_r9.to_string() ==
+             "000002");
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].session_id_r9.to_string() == "02");
+  TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].lc_ch_id_r9 == 2);
 
   //log1.info_hex(byte_buf.msg, byte_buf.N_bytes, "MCCH packed message:");
 
-  assert(byte_buf.N_bytes == known_reference_len);
-  for(uint32 i=0; i<known_reference_len; i++) {
-    assert(byte_buf.msg[i] == known_reference[i]);
-  }
+  uint8_t       rrc_msg2[known_reference_len];
+  asn1::bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
+  mcch_msg.pack(bref2);
+  TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(memcmp(rrc_msg2, known_reference, known_reference_len) == 0);
 
-}
-
-void unpack_test()
-{
-  uint32_t known_reference_len  = 30;
-  uint8_t  known_reference[256] = {0x0d, 0x8f, 0xdf, 0xff, 0xff, 0xff, 0xe2, 0x2f,
-                                   0xfc, 0x38, 0x5e, 0x61, 0xec, 0xa8, 0x00, 0x00,
-                                   0x02, 0x02, 0x10, 0x00, 0x20, 0x05, 0xe6, 0x1e,
-                                   0xca, 0x80, 0x00, 0x00, 0x40, 0x42};
-
-  LIBLTE_BYTE_MSG_STRUCT     byte_buf;
-  LIBLTE_BIT_MSG_STRUCT      bit_buf;
-  LIBLTE_RRC_MCCH_MSG_STRUCT mcch_msg;
-
-  liblte_unpack(known_reference, known_reference_len, bit_buf.msg);
-  bit_buf.N_bits = known_reference_len*8;
-  liblte_rrc_unpack_mcch_msg(&bit_buf, &mcch_msg);
-
-  assert(mcch_msg.commonsf_allocpatternlist_r9_size == 2);
-  assert(mcch_msg.commonsf_allocpatternlist_r9[0].radio_fr_alloc_offset == 4);
-  assert(mcch_msg.commonsf_allocpatternlist_r9[0].radio_fr_alloc_period == LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N32);
-  assert(mcch_msg.commonsf_allocpatternlist_r9[0].subfr_alloc_num_frames == LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ONE);
-  assert(mcch_msg.commonsf_allocpatternlist_r9[0].subfr_alloc == 0x3F);
-  assert(mcch_msg.commonsf_allocpatternlist_r9[1].radio_fr_alloc_offset == 7);
-  assert(mcch_msg.commonsf_allocpatternlist_r9[1].radio_fr_alloc_period == LIBLTE_RRC_RADIO_FRAME_ALLOCATION_PERIOD_N8);
-  assert(mcch_msg.commonsf_allocpatternlist_r9[1].subfr_alloc_num_frames == LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_FOUR);
-  assert(mcch_msg.commonsf_allocpatternlist_r9[1].subfr_alloc == 0xFFFFFF);
-
-  assert(mcch_msg.commonsf_allocperiod_r9 == LIBLTE_RRC_MBSFN_COMMON_SF_ALLOC_PERIOD_R9_RF256);
-
-  assert(mcch_msg.pmch_infolist_r9_size == 2);
-
-  assert(mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size == 1);
-  assert(mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].logicalchannelid_r9 == 1);
-  assert(mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].sessionid_r9_present == true);
-  assert(mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].sessionid_r9 == 1);
-  assert(mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_explicit == true);
-  assert(mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mcc == 0xF987);
-  assert(mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mnc == 0xF654);
-  assert(mcch_msg.pmch_infolist_r9[0].mbms_sessioninfolist_r9[0].tmgi_r9.serviceid_r9 == 1);
-  assert(mcch_msg.pmch_infolist_r9[0].pmch_config_r9.datamcs_r9 == 16);
-  assert(mcch_msg.pmch_infolist_r9[0].pmch_config_r9.mch_schedulingperiod_r9 == LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF1024);
-  assert(mcch_msg.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9 == 1535);
-
-  assert(mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9_size == 1);
-  assert(mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].logicalchannelid_r9 == 2);
-  assert(mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].sessionid_r9_present == true);
-  assert(mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].sessionid_r9 == 2);
-  assert(mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_explicit == true);
-  assert(mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mcc == 0xF987);
-  assert(mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].tmgi_r9.plmn_id_r9.mnc == 0xF654);
-  assert(mcch_msg.pmch_infolist_r9[1].mbms_sessioninfolist_r9[0].tmgi_r9.serviceid_r9 == 2);
-  assert(mcch_msg.pmch_infolist_r9[1].pmch_config_r9.datamcs_r9 == 8);
-  assert(mcch_msg.pmch_infolist_r9[1].pmch_config_r9.mch_schedulingperiod_r9 == LIBLTE_RRC_MCH_SCHEDULING_PERIOD_R9_RF8);
-  assert(mcch_msg.pmch_infolist_r9[1].pmch_config_r9.sf_alloc_end_r9 == 0);
-
+  return 0;
 }
 
 int main(int argc, char **argv)
 {
-  pack_test();
-  unpack_test();
+  TESTASSERT(basic_test() == 0);
+  return 0;
 }
 

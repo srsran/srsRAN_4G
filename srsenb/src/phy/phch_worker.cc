@@ -36,7 +36,8 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
-using namespace std; 
+using namespace std;
+using namespace asn1::rrc;
 
 // Enable this to log SI
 //#define LOG_THIS(a) 1
@@ -225,7 +226,6 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timest
 
 int phch_worker::add_rnti(uint16_t rnti)
 {
-
   if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
     return -1;
   }
@@ -254,12 +254,10 @@ void phch_worker::set_conf_dedicated_ack(uint16_t rnti, bool ack){
   pthread_mutex_unlock(&mutex);
 }
 
-void phch_worker::set_config_dedicated(uint16_t rnti,
-                                       srslte_refsignal_srs_cfg_t *srs_cfg, 
-                                       LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
+void phch_worker::set_config_dedicated(uint16_t rnti, srslte_refsignal_srs_cfg_t* srs_cfg, phys_cfg_ded_s* dedicated)
 {
-  bool pucch_cqi_ack = dedicated->cqi_report_cnfg.report_periodic.simult_ack_nack_and_cqi;
-  bool pucch_ri = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx_present;
+  bool pucch_cqi_ack = dedicated->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi;
+  bool pucch_ri      = dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present;
 
   pthread_mutex_lock(&mutex);
   if (ue_db.count(rnti)) {
@@ -267,26 +265,27 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
     srslte_uci_cfg_t uci_cfg;
     ZERO_OBJECT(uci_cfg);
 
-    if (dedicated->pusch_cnfg_ded_present && dedicated->sched_request_cnfg_present) {
-      uci_cfg.I_offset_ack = dedicated->pusch_cnfg_ded.beta_offset_ack_idx;
-      uci_cfg.I_offset_cqi = dedicated->pusch_cnfg_ded.beta_offset_cqi_idx;
-      uci_cfg.I_offset_ri = dedicated->pusch_cnfg_ded.beta_offset_ri_idx;
+    if (dedicated->pusch_cfg_ded_present && dedicated->sched_request_cfg_present) {
+      uci_cfg.I_offset_ack = dedicated->pusch_cfg_ded.beta_offset_ack_idx;
+      uci_cfg.I_offset_cqi = dedicated->pusch_cfg_ded.beta_offset_cqi_idx;
+      uci_cfg.I_offset_ri  = dedicated->pusch_cfg_ded.beta_offset_ri_idx;
 
       srslte_pucch_sched_t pucch_sched;
       ZERO_OBJECT(pucch_sched);
 
       pucch_sched.N_pucch_1 = phy->pucch_cfg.n1_pucch_an;
-      pucch_sched.n_pucch_2 = dedicated->cqi_report_cnfg.report_periodic.pucch_resource_idx;
-      pucch_sched.n_pucch_sr = dedicated->sched_request_cnfg.sr_pucch_resource_idx;
+      pucch_sched.n_pucch_2  = dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx;
+      pucch_sched.n_pucch_sr = dedicated->sched_request_cfg.setup().sr_pucch_res_idx;
       srslte_enb_ul_cfg_ue(&enb_ul, rnti, &uci_cfg, &pucch_sched, srs_cfg);
 
-      ue_db[rnti].I_sr = dedicated->sched_request_cnfg.sr_cnfg_idx;
+      ue_db[rnti].I_sr    = dedicated->sched_request_cfg.setup().sr_cfg_idx;
       ue_db[rnti].I_sr_en = true;
     }
 
     /* CQI Reporting */
-    if (dedicated->cqi_report_cnfg.report_periodic_setup_present) {
-      ue_db[rnti].pmi_idx = dedicated->cqi_report_cnfg.report_periodic.pmi_cnfg_idx;
+    if (dedicated->cqi_report_cfg.cqi_report_periodic_present and
+        dedicated->cqi_report_cfg.cqi_report_periodic.type() == setup_e::setup) {
+      ue_db[rnti].pmi_idx       = dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx;
       ue_db[rnti].cqi_en = true;
       ue_db[rnti].pucch_cqi_ack = pucch_cqi_ack;
     } else {
@@ -295,34 +294,31 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
     }
 
     /* RI reporting */
-    if (pucch_ri) {
-      ue_db[rnti].ri_idx = dedicated->cqi_report_cnfg.report_periodic.ri_cnfg_idx;
+    if (pucch_ri and dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present) {
+      ue_db[rnti].ri_idx = dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx;
       ue_db[rnti].ri_en = true;
     } else {
       ue_db[rnti].ri_idx = 0;
       ue_db[rnti].ri_en = false;
     }
 
-    if (dedicated->antenna_info_present) {
+    if (dedicated->ant_info_present) {
       /* If default antenna info then follow 3GPP 36.331 clause 9.2.4 Default physical channel configuration */
-      if (dedicated->antenna_info_default_value) {
+      if (dedicated->ant_info.type() == phys_cfg_ded_s::ant_info_c_::types::default_value) {
+        ue_db[rnti].dedicated.ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
         if (enb_dl.cell.nof_ports == 1) {
-          ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode = LIBLTE_RRC_TRANSMISSION_MODE_1;
+          ue_db[rnti].dedicated.ant_info.explicit_value().tx_mode = ant_info_ded_s::tx_mode_e_::tm1;
         } else {
-          ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode = LIBLTE_RRC_TRANSMISSION_MODE_2;
+          ue_db[rnti].dedicated.ant_info.explicit_value().tx_mode = ant_info_ded_s::tx_mode_e_::tm2;
         }
-        ue_db[rnti].dedicated.antenna_info_explicit_value.codebook_subset_restriction_present = false;
-        ue_db[rnti].dedicated.antenna_info_explicit_value.ue_tx_antenna_selection_setup_present = false;
+        ue_db[rnti].dedicated.ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
         ue_db[rnti].ri_idx = 0;
         ue_db[rnti].ri_en = false;
       } else {
         /* Physical channel reconfiguration according to 3GPP 36.331 clause 5.3.10.6 */
-        memcpy(&ue_db[rnti].dedicated.antenna_info_explicit_value,
-               &dedicated->antenna_info_explicit_value,
-               sizeof(LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT));
-        if (dedicated->antenna_info_explicit_value.tx_mode != LIBLTE_RRC_TRANSMISSION_MODE_3 &&
-            dedicated->antenna_info_explicit_value.tx_mode != LIBLTE_RRC_TRANSMISSION_MODE_4 &&
-            ue_db[rnti].ri_en) {
+        ue_db[rnti].dedicated.ant_info.explicit_value() = dedicated->ant_info.explicit_value();
+        if (dedicated->ant_info.explicit_value().tx_mode != ant_info_ded_s::tx_mode_e_::tm3 &&
+            dedicated->ant_info.explicit_value().tx_mode != ant_info_ded_s::tx_mode_e_::tm4 && ue_db[rnti].ri_en) {
           ue_db[rnti].ri_idx = 0;
           ue_db[rnti].ri_en = false;
         }
@@ -330,9 +326,9 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
     }
 
     /* Set PDSCH power allocation */
-    if (dedicated->pdsch_cnfg_ded_present) {
-      ue_db[rnti].dedicated.pdsch_cnfg_ded_present = true;
-      ue_db[rnti].dedicated.pdsch_cnfg_ded = dedicated->pdsch_cnfg_ded;
+    if (dedicated->pdsch_cfg_ded_present) {
+      ue_db[rnti].dedicated.pdsch_cfg_ded_present = true;
+      ue_db[rnti].dedicated.pdsch_cfg_ded         = dedicated->pdsch_cfg_ded;
     }
   } else {
     Error("Setting config dedicated: rnti=0x%x does not exist\n", rnti);
@@ -554,21 +550,23 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch)
       } else if (ue_db[rnti].cqi_en && srslte_cqi_send(ue_db[rnti].pmi_idx, tti_rx)) {
         cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND;
         cqi_enabled = true;
-        if (ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+        if (ue_db[rnti].dedicated.ant_info_present and
+            ue_db[rnti].dedicated.ant_info.type() == phys_cfg_ded_s::ant_info_c_::types::explicit_value and
+            ue_db[rnti].dedicated.ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
           cqi_value.wideband.pmi_present = true;
           cqi_value.wideband.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
         }
       } else if (grants[i].grant.cqi_request) {
         cqi_value.type = SRSLTE_CQI_TYPE_SUBBAND_HL;
-        if (ue_db[rnti].dedicated.antenna_info_present && (
-            ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_3 ||
-            ue_db[rnti].dedicated.antenna_info_explicit_value.tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4
-        )) {
+        if (ue_db[rnti].dedicated.ant_info_present &&
+            (ue_db[rnti].dedicated.ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3 ||
+             ue_db[rnti].dedicated.ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4)) {
           cqi_value.subband_hl.ri_present = true;
         }
         cqi_value.subband_hl.N = (phy->cell.nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(phy->cell.nof_prb) : 0;
         cqi_value.subband_hl.four_antenna_ports = (phy->cell.nof_ports == 4);
-        cqi_value.subband_hl.pmi_present = (ue_db[rnti].dedicated.cqi_report_cnfg.report_mode_aperiodic == LIBLTE_RRC_CQI_REPORT_MODE_APERIODIC_RM31);
+        cqi_value.subband_hl.pmi_present =
+            (ue_db[rnti].dedicated.cqi_report_cfg.cqi_report_mode_aperiodic == cqi_report_mode_aperiodic_e::rm31);
         cqi_value.subband_hl.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
         cqi_enabled = true;
       }
@@ -756,8 +754,14 @@ int phch_worker::decode_pucch()
       srslte_cqi_value_t cqi_value;
       ZERO_OBJECT(cqi_value);
 
-      LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated = &ue_db[rnti].dedicated;
-      LIBLTE_RRC_TRANSMISSION_MODE_ENUM tx_mode = dedicated->antenna_info_explicit_value.tx_mode;
+      phys_cfg_ded_s*            dedicated = &ue_db[rnti].dedicated;
+      ant_info_ded_s::tx_mode_e_ tx_mode;
+      if (dedicated->ant_info.type() == phys_cfg_ded_s::ant_info_c_::types::explicit_value) {
+        tx_mode = dedicated->ant_info.explicit_value().tx_mode;
+      } else {
+        tx_mode.value = ant_info_ded_s::tx_mode_e_::tm2;
+        Warning("Tx mode not yet set\n");
+      }
 
       if (ue_db[rnti].cqi_en && (ue_db[rnti].pucch_cqi_ack || !needs_ack[0] || !needs_ack[1])) {
         if (ue_db[rnti].ri_en && srslte_ri_send(ue_db[rnti].pmi_idx, ue_db[rnti].ri_idx, tti_rx)) {
@@ -768,7 +772,7 @@ int phch_worker::decode_pucch()
           needs_pucch = true;
           needs_cqi = true;
           cqi_value.type = SRSLTE_CQI_TYPE_WIDEBAND;
-          if (tx_mode == LIBLTE_RRC_TRANSMISSION_MODE_4) {
+          if (tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
             cqi_value.wideband.pmi_present = true;
             cqi_value.wideband.rank_is_not_one = phy->ue_db_get_ri(rnti) > 0;
           }
@@ -1013,9 +1017,9 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
 
       /* Set power allocation */
       float rho_a = ((enb_dl.cell.nof_ports == 1) ? 1.0f : sqrtf(2.0f)), rho_b = 1.0f;
-      uint32_t pdsch_cnfg_ded = ue_db[rnti].dedicated.pdsch_cnfg_ded;
-      if (pdsch_cnfg_ded < (uint32_t) LIBLTE_RRC_PDSCH_CONFIG_P_A_N_ITEMS) {
-        float rho_a_db = liblte_rrc_pdsch_config_p_a_num[pdsch_cnfg_ded];
+      pdsch_cfg_ded_s::p_a_e_ pdsch_cnfg_ded = ue_db[rnti].dedicated.pdsch_cfg_ded.p_a;
+      if (pdsch_cnfg_ded < (uint32_t)pdsch_cfg_ded_s::p_a_e_::nof_types) {
+        float rho_a_db = pdsch_cnfg_ded.to_number();
         rho_a *= powf(10.0f, rho_a_db / 20.0f);
       }
       if (phy->pdsch_p_b < 4) {

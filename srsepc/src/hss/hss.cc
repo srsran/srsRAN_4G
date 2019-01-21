@@ -108,8 +108,8 @@ hss::stop(void)
   std::map<uint64_t,hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
   while(it!=m_imsi_to_ue_ctx.end())
     {
-      m_hss_log->info("Deleting UE context in HSS. IMSI: %015lu\n", it->second->imsi);
-      m_hss_log->console("Deleting UE context in HSS. IMSI: %015lu\n", it->second->imsi);
+      m_hss_log->info("Deleting UE context in HSS. IMSI: %015" PRIu64 "\n", it->second->imsi);
+      m_hss_log->console("Deleting UE context in HSS. IMSI: %015" PRIu64 "\n", it->second->imsi);
       delete it->second;
       m_imsi_to_ue_ctx.erase(it++);
     }
@@ -158,7 +158,7 @@ hss::read_db_file(std::string db_filename)
       if(split.size() != column_size)
       {
         m_hss_log->error("Error parsing UE database. Wrong number of columns in .csv\n");
-        m_hss_log->error("Columns: %lu, Expected %d.\n",split.size(),column_size);
+        m_hss_log->error("Columns: %zd, Expected %d.\n", split.size(), column_size);
         return false;
       }
       hss_ue_ctx_t *ue_ctx = new hss_ue_ctx_t;
@@ -184,7 +184,7 @@ hss::read_db_file(std::string db_filename)
       get_uint_vec_from_hex_str(split[5],ue_ctx->amf,2);
       get_uint_vec_from_hex_str(split[6],ue_ctx->sqn,6);
 
-      m_hss_log->debug("Added user from DB, IMSI: %015lu\n", ue_ctx->imsi);
+      m_hss_log->debug("Added user from DB, IMSI: %015" PRIu64 "\n", ue_ctx->imsi);
       m_hss_log->debug_hex(ue_ctx->key, 16, "User Key : ");
       if(ue_ctx->op_configured){
         m_hss_log->debug_hex(ue_ctx->op, 16, "User OP : ");
@@ -486,12 +486,12 @@ hss::gen_update_loc_answer(uint64_t imsi, uint8_t* qci)
   std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if(ue_ctx_it == m_imsi_to_ue_ctx.end())
   {
-    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
-    m_hss_log->console("User not found. IMSI: %015lu\n",imsi);
+    m_hss_log->info("User not found. IMSI: %015" PRIu64 "\n",imsi);
+    m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n",imsi);
     return false;
   }
   hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
-  m_hss_log->info("Found User %015lu\n",imsi);
+  m_hss_log->info("Found User %015" PRIu64 "\n",imsi);
   *qci = ue_ctx->qci;
   return true;
 }
@@ -505,12 +505,12 @@ hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *opc, ui
   std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if(ue_ctx_it == m_imsi_to_ue_ctx.end())
   {
-    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
-    m_hss_log->console("User not found. IMSI: %015lu\n",imsi);
+    m_hss_log->info("User not found. IMSI: %015" PRIu64 "\n",imsi);
+    m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n",imsi);
     return false;
   }
   hss_ue_ctx_t *ue_ctx = ue_ctx_it->second;
-  m_hss_log->info("Found User %015lu\n",imsi);
+  m_hss_log->info("Found User %015" PRIu64 "\n",imsi);
   memcpy(k, ue_ctx->key, 16);
   memcpy(amf, ue_ctx->amf, 2);
   memcpy(opc, ue_ctx->opc, 16);
@@ -618,7 +618,7 @@ hss::increment_ue_sqn(uint64_t imsi)
   }
 
   increment_sqn(ue_ctx->sqn,ue_ctx->sqn);
-  m_hss_log->debug("Incremented SQN (IMSI: %" PRIu64 ")" PRIu64 "\n", imsi);
+  m_hss_log->debug("Incremented SQN  -- IMSI: %015" PRIu64 "\n", imsi);
   m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN: ");
 }
 
@@ -757,7 +757,7 @@ bool hss::get_ue_ctx(uint64_t imsi, hss_ue_ctx_t **ue_ctx)
   std::map<uint64_t,hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if(ue_ctx_it == m_imsi_to_ue_ctx.end())
   {
-    m_hss_log->info("User not found. IMSI: %015lu\n",imsi);
+    m_hss_log->info("User not found. IMSI: %015" PRIu64 "\n",imsi);
     return false;
   }
 

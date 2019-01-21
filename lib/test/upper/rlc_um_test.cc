@@ -34,6 +34,7 @@
 
 using namespace srslte;
 using namespace srsue;
+using namespace asn1::rrc;
 
 class mac_dummy_timers
     :public srslte::mac_interface_timers
@@ -124,11 +125,11 @@ void basic_test()
   rlc1.init(&log1, 3, &tester, &tester, &timers);
   rlc2.init(&log2, 3, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_UM_BI;
-  cnfg.dl_um_bi_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE10;
-  cnfg.ul_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE10;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::um_bi_dir);
+  cnfg.um_bi_dir().dl_um_rlc.t_reordering = t_reordering_e::ms5;
+  cnfg.um_bi_dir().dl_um_rlc.sn_field_len = sn_field_len_e::size10;
+  cnfg.um_bi_dir().ul_um_rlc.sn_field_len = sn_field_len_e::size10;
 
   assert(rlc1.configure(&cnfg) == true);
   assert(rlc2.configure(&cnfg) == true);
@@ -194,11 +195,11 @@ void loss_test()
   rlc1.init(&log1, 3, &tester, &tester, &timers);
   rlc2.init(&log2, 3, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_UM_BI;
-  cnfg.dl_um_bi_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE10;
-  cnfg.ul_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE10;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::um_bi_dir);
+  cnfg.um_bi_dir().dl_um_rlc.t_reordering = t_reordering_e::ms5;
+  cnfg.um_bi_dir().dl_um_rlc.sn_field_len = sn_field_len_e::size10;
+  cnfg.um_bi_dir().ul_um_rlc.sn_field_len = sn_field_len_e::size10;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -338,11 +339,11 @@ void reassmble_test()
   rlc1.init(&log1, 3, &tester, &tester, &timers);
   rlc2.init(&log2, 3, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_UM_BI;
-  cnfg.dl_um_bi_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE5;
-  cnfg.ul_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::um_bi_dir);
+  cnfg.um_bi_dir().dl_um_rlc.t_reordering = t_reordering_e::ms5;
+  cnfg.um_bi_dir().dl_um_rlc.sn_field_len = sn_field_len_e::size5;
+  cnfg.um_bi_dir().ul_um_rlc.sn_field_len = sn_field_len_e::size5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -451,11 +452,11 @@ void reassmble_test2()
   rlc1.init(&log1, 3, &tester, &tester, &timers);
   rlc2.init(&log2, 3, &tester, &tester, &timers);
 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
-  cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_UM_BI;
-  cnfg.dl_um_bi_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS5;
-  cnfg.dl_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE5;
-  cnfg.ul_um_bi_rlc.sn_field_len = LIBLTE_RRC_SN_FIELD_LENGTH_SIZE5;
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::um_bi_dir);
+  cnfg.um_bi_dir().dl_um_rlc.t_reordering = t_reordering_e::ms5;
+  cnfg.um_bi_dir().dl_um_rlc.sn_field_len = sn_field_len_e::size5;
+  cnfg.um_bi_dir().ul_um_rlc.sn_field_len = sn_field_len_e::size5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);

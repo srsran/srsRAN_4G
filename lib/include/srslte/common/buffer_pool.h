@@ -205,15 +205,15 @@ public:
     if (!pool->deallocate(b)) {
       if (log) {
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-        log->error("Deallocating PDU: Addr=0x%lx, name=%s not found in pool\n", (uint64_t) b, b->debug_name);
+        log->error("Deallocating PDU: Addr=0x%p, name=%s not found in pool\n", b, b->debug_name);
 #else
-        log->error("Deallocating PDU: Addr=0x%lx\n", (uint64_t) b);
+        log->error("Deallocating PDU: Addr=0x%p\n", b);
 #endif
       } else {
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-        printf("Error deallocating PDU: Addr=0x%lx, name=%s not found in pool\n", (uint64_t) b, b->debug_name);
+        printf("Error deallocating PDU: Addr=0x%p, name=%s not found in pool\n", b, b->debug_name);
 #else
-        printf("Error deallocating PDU: Addr=0x%lx\n", (uint64_t) b);
+        printf("Error deallocating PDU: Addr=0x%p\n", b);
 #endif
       }
     }

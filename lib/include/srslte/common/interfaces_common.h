@@ -29,7 +29,6 @@
 
 #include "srslte/common/timers.h"
 #include "srslte/common/security.h"
-#include "srslte/asn1/liblte_rrc.h"
 #include <string>
 
 
@@ -38,9 +37,10 @@ namespace srslte {
 class srslte_nas_config_t
 {
 public:
-  srslte_nas_config_t(uint32_t lcid_ = 0, std::string apn_ = "", std::string user_ = "", std::string pass_ = "", bool force_imsi_attach_ = false)
+  srslte_nas_config_t(uint32_t lcid_ = 0, std::string apn_ = "", std::string apn_protocol_ = "", std::string user_ = "", std::string pass_ = "", bool force_imsi_attach_ = false)
     :lcid(lcid_),
      apn(apn_),
+     apn_protocol(apn_protocol_),
      user(user_),
      pass(pass_),
      force_imsi_attach(force_imsi_attach_)
@@ -48,6 +48,7 @@ public:
 
   uint32_t    lcid;
   std::string apn;
+  std::string apn_protocol;
   std::string user;
   std::string pass;
   bool        force_imsi_attach;
@@ -68,12 +69,14 @@ public:
 class srslte_pdcp_config_t
 {
 public:
-  srslte_pdcp_config_t(bool is_control_ = false, bool is_data_ = false, uint8_t direction_ = SECURITY_DIRECTION_UPLINK)
-    :direction(direction_)
+  srslte_pdcp_config_t(uint8_t bearer_id_ = 0, bool is_control_ = false, bool is_data_ = false, uint8_t direction_ = SECURITY_DIRECTION_UPLINK)
+    :bearer_id(bearer_id_)
+    ,direction(direction_)
     ,is_control(is_control_)
     ,is_data(is_data_)
     ,sn_len(12) {}
 
+  uint32_t bearer_id;
   uint8_t  direction;
   bool     is_control;
   bool     is_data;

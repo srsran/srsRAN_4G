@@ -1,6 +1,14 @@
 Change Log for Releases
 ==============================
 
+## 18.12
+  * Add new RRC ASN1 message pack/unpack library
+  * Refactor EPC and add encryption support
+  * Add IPv6 support to srsUE
+  * Fixed compilation issue for ARM and AVX512
+  * Add clang-format file
+  * Many bug-fixes and improved stability and performance in all parts
+
 ## 18.09
   * Improved Turbo Decoder performance
   * Configurable SGi interface name and M1U params

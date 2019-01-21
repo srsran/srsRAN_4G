@@ -44,6 +44,7 @@ public:
     return true;
   }
   void stop() {
+    stop_thread();
     // stop all listeners
     for (uint32_t i=0;i<listeners.size();i++) {
       listeners[i]->stop();

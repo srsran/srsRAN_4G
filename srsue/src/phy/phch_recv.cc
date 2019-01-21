@@ -188,7 +188,7 @@ phy_interface_rrc::cell_search_ret_t phch_recv::cell_search(phy_interface_rrc::p
   pthread_mutex_lock(&rrc_mutex);
 
   // Move state to IDLE
-  Info("Cell Search: Start EARFCN index=%u/%lu\n", cellsearch_earfcn_index, earfcn.size());
+  Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, earfcn.size());
   phy_state.go_idle();
 
   if (current_earfcn != (int) earfcn[cellsearch_earfcn_index]) {
@@ -441,6 +441,7 @@ void phch_recv::run_thread()
                 if (!prach_ptr) {
                   Error("Generating PRACH\n");
                 }
+                set_time_adv_sec(0.0f);
               }
 
               /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
@@ -900,6 +901,11 @@ void phch_recv::search::set_agc_enable(bool enable) {
   if (enable) {
     srslte_rf_info_t *rf_info = p->radio_h->get_info();
     srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync,
+                             callback_set_rx_gain,
+                             rf_info->min_rx_gain,
+                             rf_info->max_rx_gain,
+                             p->radio_h->get_rx_gain());
+    srslte_ue_sync_start_agc(&cs.ue_sync,
                              callback_set_rx_gain,
                              rf_info->min_rx_gain,
                              rf_info->max_rx_gain,
@@ -1616,7 +1622,7 @@ void phch_recv::intra_measure::write(uint32_t tti, cf_t *data, uint32_t nsamples
     }
     if (receiving == true) {
       if (srslte_ringbuffer_write(&ring_buffer, data, nsamples*sizeof(cf_t)) < (int) (nsamples*sizeof(cf_t))) {
-        Warning("Error writting to ringbuffer\n");
+        Warning("Error writing to ringbuffer\n");
         receiving = false;
       } else {
         receive_cnt++;

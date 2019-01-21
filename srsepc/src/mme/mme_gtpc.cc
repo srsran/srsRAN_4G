@@ -91,7 +91,8 @@ mme_gtpc::get_new_ctrl_teid()
 {
   return m_next_ctrl_teid++; //FIXME Use a Id pool?
 }
-void
+
+bool
 mme_gtpc::send_create_session_request(uint64_t imsi)
 {
   m_mme_gtpc_log->info("Sending Create Session Request.\n");
@@ -133,17 +134,13 @@ mme_gtpc::send_create_session_request(uint64_t imsi)
 
   //Check whether this UE is already registed
   std::map<uint64_t, struct gtpc_ctx>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
-  if(it != m_imsi_to_gtpc_ctx.end())
-  {
+  if (it != m_imsi_to_gtpc_ctx.end()) {
     m_mme_gtpc_log->warning("Create Session Request being called for an UE with an active GTP-C connection.\n");
     m_mme_gtpc_log->warning("Deleting previous GTP-C connection.\n");
     std::map<uint32_t, uint64_t>::iterator jt = m_mme_ctr_teid_to_imsi.find(it->second.mme_ctr_fteid.teid);
-    if(jt == m_mme_ctr_teid_to_imsi.end())
-    {
+    if (jt == m_mme_ctr_teid_to_imsi.end()) {
       m_mme_gtpc_log->error("Could not find IMSI from MME Ctrl TEID. MME Ctr TEID: %d\n", it->second.mme_ctr_fteid.teid);
-    }
-    else
-    {
+    } else {
       m_mme_ctr_teid_to_imsi.erase(jt);
     }
     m_imsi_to_gtpc_ctx.erase(it);
@@ -160,33 +157,31 @@ mme_gtpc::send_create_session_request(uint64_t imsi)
   gtpc_ctx.mme_ctr_fteid = cs_req->sender_f_teid;
   m_imsi_to_gtpc_ctx.insert(std::pair<uint64_t,gtpc_ctx_t>(imsi,gtpc_ctx));
   m_spgw->handle_create_session_request(cs_req, &cs_resp_pdu);
-
+  return true;
 }
 
-void
+bool
 mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
 {
   struct srslte::gtpc_create_session_response *cs_resp = & cs_resp_pdu->choice.create_session_response;
   m_mme_gtpc_log->info("Received Create Session Response\n");
   m_mme_gtpc_log->console("Received Create Session Response\n");
-  if (cs_resp_pdu->header.type != srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE)
-  {
+  if (cs_resp_pdu->header.type != srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE) {
      m_mme_gtpc_log->warning("Could not create GTPC session. Not a create session response\n");
      //TODO Handle error
-     return;
+     return false;
   }
-  if (cs_resp->cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED){
+  if (cs_resp->cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED) {
     m_mme_gtpc_log->warning("Could not create GTPC session. Create Session Request not accepted\n");
     //TODO Handle error
-    return;
+    return false;
   }
 
   //Get IMSI from the control TEID
   std::map<uint32_t,uint64_t>::iterator id_it = m_mme_ctr_teid_to_imsi.find(cs_resp_pdu->header.teid);
-  if(id_it == m_mme_ctr_teid_to_imsi.end())
-  {
+  if(id_it == m_mme_ctr_teid_to_imsi.end()) {
     m_mme_gtpc_log->warning("Could not find IMSI from Ctrl TEID.\n");
-    return;
+    return false;
   }
   uint64_t imsi = id_it->second;
 
@@ -200,7 +195,7 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   //Get S-GW S1-u F-TEID
   if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false){
     m_mme_gtpc_log->error("Did not receive SGW S1-U F-TEID in create session response\n");
-    return;
+    return false;
   }
   m_mme_gtpc_log->console("Create Session Response -- SPGW control TEID %d\n", sgw_ctr_fteid.teid);
   m_mme_gtpc_log->info("Create Session Response -- SPGW control TEID %d\n", sgw_ctr_fteid.teid);
@@ -210,36 +205,33 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   m_mme_gtpc_log->info("Create Session Response -- SPGW S1-U Address: %s\n", inet_ntoa(s1u_addr));
 
   //Check UE Ipv4 address was allocated
-  if(cs_resp->paa_present != true)
-  {
+  if (cs_resp->paa_present != true) {
     m_mme_gtpc_log->error("PDN Adress Allocation not present\n");
-    return;
+    return false;
   }
-  if(cs_resp->paa.pdn_type != srslte::GTPC_PDN_TYPE_IPV4)
-  {
+  if (cs_resp->paa.pdn_type != srslte::GTPC_PDN_TYPE_IPV4) {
     m_mme_gtpc_log->error("IPv6 not supported yet\n");
-    return;
+    return false;
   }
 
   //Save create session response info to E-RAB context
-  ue_ctx_t *ue_ctx = m_s1ap->find_ue_ctx_from_imsi(imsi);
-  if(ue_ctx == NULL){
+  nas *nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
+  if(nas_ctx == NULL){
     m_mme_gtpc_log->error("Could not find UE context. IMSI %015lu\n", imsi);
-    return;
+    return false;
   }
-  ue_emm_ctx_t *emm_ctx = &ue_ctx->emm_ctx;
-  ue_ecm_ctx_t *ecm_ctx = &ue_ctx->ecm_ctx;
+  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
 
   //Save UE IP to nas ctxt
   emm_ctx->ue_ip.s_addr = cs_resp->paa.ipv4;
   m_mme_gtpc_log->console("SPGW Allocated IP %s to ISMI %015lu\n",inet_ntoa(emm_ctx->ue_ip),emm_ctx->imsi);
   //Save SGW ctrl F-TEID in GTP-C context
   std::map<uint64_t,struct gtpc_ctx>::iterator it_g = m_imsi_to_gtpc_ctx.find(imsi);
-  if(it_g == m_imsi_to_gtpc_ctx.end())
-  {
+  if(it_g == m_imsi_to_gtpc_ctx.end()) {
     //Could not find GTP-C Context
     m_mme_gtpc_log->error("Could not find GTP-C context\n");
-    return;
+    return false;
   }
   gtpc_ctx_t *gtpc_ctx = &it_g->second;
   gtpc_ctx->sgw_ctr_fteid = sgw_ctr_fteid;
@@ -247,26 +239,24 @@ mme_gtpc::handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu)
   //Set EPS bearer context
   //FIXME default EPS bearer is hard-coded
   int default_bearer=5;
-  erab_ctx_t *erab_ctx = &ecm_ctx->erabs_ctx[default_bearer];
-  erab_ctx->pdn_addr_alloc= cs_resp->paa;
-  erab_ctx->sgw_s1u_fteid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid;
-  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(emm_ctx, ecm_ctx, erab_ctx);
-  return;
+  esm_ctx_t *esm_ctx = &nas_ctx->m_esm_ctx[default_bearer];
+  esm_ctx->pdn_addr_alloc= cs_resp->paa;
+  esm_ctx->sgw_s1u_fteid = cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid;
+  m_s1ap->m_s1ap_ctx_mngmt_proc->send_initial_context_setup_request(nas_ctx, default_bearer);
+  return true;
 }
 
 
-void
-mme_gtpc::send_modify_bearer_request(uint64_t imsi, erab_ctx_t *erab_ctx)
+bool
+mme_gtpc::send_modify_bearer_request(uint64_t imsi, uint16_t erab_to_modify, srslte::gtp_fteid_t *enb_fteid)
 {
   m_mme_gtpc_log->info("Sending GTP-C Modify bearer request\n");
   srslte::gtpc_pdu mb_req_pdu;
-  srslte::gtp_fteid_t *enb_fteid = &erab_ctx->enb_fteid;
 
   std::map<uint64_t,gtpc_ctx_t>::iterator it = m_imsi_to_gtpc_ctx.find(imsi);
-  if(it == m_imsi_to_gtpc_ctx.end())
-  {
+  if (it == m_imsi_to_gtpc_ctx.end()) {
     m_mme_gtpc_log->error("Modify bearer request for UE without GTP-C connection\n");
-    return;
+    return false;
   }
   srslte::gtp_fteid_t sgw_ctr_fteid = it->second.sgw_ctr_fteid; 
 
@@ -276,7 +266,7 @@ mme_gtpc::send_modify_bearer_request(uint64_t imsi, erab_ctx_t *erab_ctx)
   header->type = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_REQUEST;
 
   srslte::gtpc_modify_bearer_request *mb_req = &mb_req_pdu.choice.modify_bearer_request;
-  mb_req->eps_bearer_context_to_modify.ebi = erab_ctx->erab_id;
+  mb_req->eps_bearer_context_to_modify.ebi = erab_to_modify;
   mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.ipv4 = enb_fteid->ipv4;
   mb_req->eps_bearer_context_to_modify.s1_u_enb_f_teid.teid = enb_fteid->teid;
 
@@ -289,7 +279,7 @@ mme_gtpc::send_modify_bearer_request(uint64_t imsi, erab_ctx_t *erab_ctx)
   srslte::gtpc_pdu mb_resp_pdu;
   m_spgw->handle_modify_bearer_request(&mb_req_pdu,&mb_resp_pdu);
   handle_modify_bearer_response(&mb_resp_pdu);
-  return;
+  return true;
 }
 
 void
@@ -297,8 +287,7 @@ mme_gtpc::handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu)
 {
   uint32_t mme_ctrl_teid = mb_resp_pdu->header.teid;
   std::map<uint32_t,uint64_t>::iterator imsi_it = m_mme_ctr_teid_to_imsi.find(mme_ctrl_teid);
-  if(imsi_it == m_mme_ctr_teid_to_imsi.end())
-  {
+  if (imsi_it == m_mme_ctr_teid_to_imsi.end()) {
     m_mme_gtpc_log->error("Could not find IMSI from control TEID\n");
     return;
   }
@@ -310,20 +299,21 @@ mme_gtpc::handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu)
   return;
 }
 
-void
+bool
 mme_gtpc::send_delete_session_request(uint64_t imsi) 
 {
   m_mme_gtpc_log->info("Sending GTP-C Delete Session Request request. IMSI %" PRIu64 "\n",imsi);
   srslte::gtpc_pdu del_req_pdu;
   srslte::gtp_fteid_t sgw_ctr_fteid;
   srslte::gtp_fteid_t mme_ctr_fteid;
+
   //Get S-GW Ctr TEID
   std::map<uint64_t,gtpc_ctx_t>::iterator it_ctx = m_imsi_to_gtpc_ctx.find(imsi);
-  if(it_ctx == m_imsi_to_gtpc_ctx.end())
-  {
+  if (it_ctx == m_imsi_to_gtpc_ctx.end()) {
       m_mme_gtpc_log->error("Could not find GTP-C context to remove\n");
-      return;
+      return false;
   }
+
   sgw_ctr_fteid = it_ctx->second.sgw_ctr_fteid;
   mme_ctr_fteid = it_ctx->second.mme_ctr_fteid;
   srslte::gtpc_header *header = &del_req_pdu.header;
@@ -342,16 +332,13 @@ mme_gtpc::send_delete_session_request(uint64_t imsi)
 
   //Delete GTP-C context
   std::map<uint32_t,uint64_t>::iterator it_imsi = m_mme_ctr_teid_to_imsi.find(mme_ctr_fteid.teid);
-  if(it_imsi == m_mme_ctr_teid_to_imsi.end())
-  {
+  if (it_imsi == m_mme_ctr_teid_to_imsi.end()) {
     m_mme_gtpc_log->error("Could not find IMSI from MME ctr TEID");
-  }
-  else
-  {
+  } else {
     m_mme_ctr_teid_to_imsi.erase(it_imsi);
   }
   m_imsi_to_gtpc_ctx.erase(it_ctx);
-  return;
+  return true;
 }
 
 void

@@ -3380,7 +3380,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_pdcp_sn(
     // Integer - ie->PDCP_SN
     // lb:0, ub:4095
     liblte_align_up_zero(ptr, 8);
-    liblte_value_2_bits(0, ptr, (1*8)-12);
+    liblte_value_2_bits(0, ptr, (2*8)-12);
     liblte_value_2_bits(ie->PDCP_SN, ptr, 12);
     liblte_align_up_zero(ptr, 8);
     err = LIBLTE_SUCCESS;
@@ -3400,7 +3400,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_pdcp_sn(
     // Integer - ie->PDCP_SN
     // lb:0, ub:4095
     liblte_align_up(ptr, 8);
-    ie->PDCP_SN = (uint16_t)liblte_bits_2_value(ptr, 1.0*8);
+    ie->PDCP_SN = (uint16_t)liblte_bits_2_value(ptr, 2*8);
     liblte_align_up(ptr, 8);
     err = LIBLTE_SUCCESS;
   }

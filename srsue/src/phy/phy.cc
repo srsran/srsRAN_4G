@@ -43,10 +43,8 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
-
-
-using namespace std; 
-
+using namespace std;
+using namespace asn1::rrc;
 
 namespace srsue {
 
@@ -219,8 +217,8 @@ void phy::get_metrics(phy_metrics_t &m) {
   workers_common.get_dl_metrics(m.dl);
   workers_common.get_ul_metrics(m.ul);
   workers_common.get_sync_metrics(m.sync);
-  int dl_tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(m.dl.mcs), workers_common.get_nof_prb());
-  int ul_tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(m.ul.mcs), workers_common.get_nof_prb());
+  int dl_tbs     = srslte_ra_tbs_from_idx(srslte_ra_dl_tbs_idx_from_mcs(m.dl.mcs), workers_common.get_nof_prb());
+  int ul_tbs     = srslte_ra_tbs_from_idx(srslte_ra_ul_tbs_idx_from_mcs(m.ul.mcs), workers_common.get_nof_prb());
   m.dl.mabr_mbps = dl_tbs/1000.0; // TBS is bits/ms - convert to mbps
   m.ul.mabr_mbps = ul_tbs/1000.0; // TBS is bits/ms - convert to mbps
   Info("PHY:   MABR estimates. DL: %4.6f Mbps. UL: %4.6f Mbps.\n", m.dl.mabr_mbps, m.ul.mabr_mbps);
@@ -422,12 +420,12 @@ uint32_t phy::tti_to_subf(uint32_t tti) {
 
 void phy::get_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
 {
-  memcpy(phy_cfg, &config, sizeof(phy_cfg_t));
+  *phy_cfg = config;
 }
 
 void phy::set_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
 {
-  memcpy(&config, phy_cfg, sizeof(phy_cfg_t));
+  config = *phy_cfg;
 }
 
 void phy::set_config_64qam_en(bool enable)
@@ -437,47 +435,49 @@ void phy::set_config_64qam_en(bool enable)
 
 void phy::set_config_common(phy_interface_rrc::phy_cfg_common_t* common)
 {
-  memcpy(&config.common, common, sizeof(phy_cfg_common_t));
+  config.common = *common;
 }
 
-void phy::set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
+void phy::set_config_dedicated(phys_cfg_ded_s* dedicated)
 {
-  memcpy(&config.dedicated, dedicated, sizeof(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT));
+  config.dedicated = *dedicated;
 }
 
-void phy::set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT* tdd)
+void phy::set_config_tdd(tdd_cfg_s* tdd)
 {
-  memcpy(&config.common.tdd_cnfg, tdd, sizeof(LIBLTE_RRC_TDD_CONFIG_STRUCT));
+  config.common.tdd_cnfg = *tdd;
 }
 
-void phy::set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2)
+void phy::set_config_mbsfn_sib2(sib_type2_s* sib2)
 {
-  if(sib2->mbsfn_subfr_cnfg_list_size > 1) {
-    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_subfr_cnfg_list_size);
+  if (sib2->mbsfn_sf_cfg_list_present and sib2->mbsfn_sf_cfg_list.size() > 1) {
+    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_sf_cfg_list.size());
   }
-  if(sib2->mbsfn_subfr_cnfg_list_size > 0) {
-    memcpy(&config.mbsfn.mbsfn_subfr_cnfg, &sib2->mbsfn_subfr_cnfg_list[0], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
+  if (sib2->mbsfn_sf_cfg_list_present and sib2->mbsfn_sf_cfg_list.size() > 0) {
+    config.mbsfn.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
     workers_common.build_mch_table();
   }
 }
 
-void phy::set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13)
+void phy::set_config_mbsfn_sib13(sib_type13_r9_s* sib13)
 {
-  memcpy(&config.mbsfn.mbsfn_notification_cnfg, &sib13->mbsfn_notification_config, sizeof(LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT));
-  if(sib13->mbsfn_area_info_list_r9_size > 1) {
-    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9_size);
+  config.mbsfn.mbsfn_notification_cnfg = sib13->notif_cfg_r9;
+  if (sib13->mbsfn_area_info_list_r9.size() > 1) {
+    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9.size());
   }
-  if(sib13->mbsfn_area_info_list_r9_size > 0) {
-    memcpy(&config.mbsfn.mbsfn_area_info, &sib13->mbsfn_area_info_list_r9[0], sizeof(LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT));
+  if (sib13->mbsfn_area_info_list_r9.size() > 0) {
+    config.mbsfn.mbsfn_area_info = sib13->mbsfn_area_info_list_r9[0];
     workers_common.build_mcch_table();
   }
 }
 
-void phy::set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch)
+void phy::set_config_mbsfn_mcch(mcch_msg_s* mcch)
 {
-  memcpy(&config.mbsfn.mcch, mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
-  mac->set_mbsfn_config(config.mbsfn.mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size);
-  workers_common.set_mch_period_stop(config.mbsfn.mcch.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9);
+  config.mbsfn.mcch = *mcch;
+  mac->set_mbsfn_config(
+      config.mbsfn.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9.size());
+  workers_common.set_mch_period_stop(
+      config.mbsfn.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9);
   workers_common.set_mcch(); 
 }
 

@@ -189,17 +189,9 @@ int srslte_ra_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_
 static void ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant) {
   // 8.6.2 First paragraph
   if (dci->mcs_idx <= 28) {
-    /* Table 8.6.1-1 on 36.213 */
-    if (dci->mcs_idx < 11) {
-      grant->mcs.mod = SRSLTE_MOD_QPSK;
-      grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx, grant->L_prb);
-    } else if (dci->mcs_idx < 21) {
-      grant->mcs.mod = SRSLTE_MOD_16QAM;
-      grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx-1, grant->L_prb);
-    } else if (dci->mcs_idx < 29) {
-      grant->mcs.mod = SRSLTE_MOD_64QAM;
-      grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx-2, grant->L_prb);
-    } else {
+    grant->mcs.mod = srslte_ra_ul_mod_from_mcs(dci->mcs_idx);
+    grant->mcs.tbs = srslte_ra_tbs_from_idx(srslte_ra_ul_tbs_idx_from_mcs(dci->mcs_idx), grant->L_prb);
+    if (grant->mcs.mod >= SRSLTE_MOD_LAST || grant->mcs.tbs < 0) {
       fprintf(stderr, "Invalid MCS index %d\n", dci->mcs_idx);
     }
   } else if (dci->mcs_idx == 29 && dci->cqi_request && grant->L_prb <= 4) {
@@ -694,15 +686,26 @@ uint32_t srslte_ra_type2_n_vrb_dl(uint32_t nof_prb, bool ngap_is_1) {
 }
 
 /* Modulation and TBS index table for PDSCH from 3GPP TS 36.213 v10.3.0 table 7.1.7.1-1 */
-int srslte_ra_tbs_idx_from_mcs(uint32_t mcs) {
+int srslte_ra_dl_tbs_idx_from_mcs(uint32_t mcs)
+{
   if(mcs < 29) {
-    return mcs_tbs_idx_table[mcs];
+    return dl_mcs_tbs_idx_table[mcs];
   } else {
     return SRSLTE_ERROR;
   }
 }
 
-srslte_mod_t srslte_ra_mod_from_mcs(uint32_t mcs) {
+int srslte_ra_ul_tbs_idx_from_mcs(uint32_t mcs)
+{
+  if (mcs < 29) {
+    return ul_mcs_tbs_idx_table[mcs];
+  } else {
+    return SRSLTE_ERROR;
+  }
+}
+
+srslte_mod_t srslte_ra_dl_mod_from_mcs(uint32_t mcs)
+{
   if (mcs <= 10 || mcs == 29) {
     return SRSLTE_MOD_QPSK;
   } else if (mcs <= 17 || mcs == 30) {
@@ -712,12 +715,37 @@ srslte_mod_t srslte_ra_mod_from_mcs(uint32_t mcs) {
   } 
 }
 
-int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx) {
-  for (int i=0;i<29;i++) {
-    if (tbs_idx == mcs_tbs_idx_table[i]) {
-      return i; 
+srslte_mod_t srslte_ra_ul_mod_from_mcs(uint32_t mcs)
+{
+  /* Table 8.6.1-1 on 36.213 */
+  if (mcs <= 10) {
+    return SRSLTE_MOD_QPSK;
+  } else if (mcs <= 20) {
+    return SRSLTE_MOD_16QAM;
+  } else if (mcs <= 28) {
+    return SRSLTE_MOD_64QAM;
+  } else {
+    return SRSLTE_MOD_LAST;
+  }
+}
+
+int srslte_ra_dl_mcs_from_tbs_idx(uint32_t tbs_idx)
+{
+  for (int i = 0; i < 29; i++) {
+    if (tbs_idx == dl_mcs_tbs_idx_table[i]) {
+      return i;
     }
-  } 
+  }
+  return SRSLTE_ERROR;
+}
+
+int srslte_ra_ul_mcs_from_tbs_idx(uint32_t tbs_idx)
+{
+  for (int i = 0; i < 29; i++) {
+    if (tbs_idx == ul_mcs_tbs_idx_table[i]) {
+      return i;
+    }
+  }
   return SRSLTE_ERROR;
 }
 

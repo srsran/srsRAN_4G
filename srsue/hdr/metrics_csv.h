@@ -60,6 +60,7 @@ private:
   std::ofstream         file;
   ue_metrics_interface* ue;
   uint32_t              n_reports;
+  pthread_mutex_t       mutex;
 };
 
 } // namespace srsue
