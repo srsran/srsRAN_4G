@@ -34,26 +34,26 @@
 bool config_exists(std::string &filename, std::string default_name)
 {
   std::ifstream conf(filename.c_str(), std::ios::in);
-  if(conf.fail()) {
-    // try to find file in /etc/srslte
+  if (conf.fail()) {
+    // try config folder instead
+    const char* homedir = NULL;
     char full_path[256];
     ZERO_OBJECT(full_path);
-    snprintf(full_path, sizeof(full_path), "/etc/srslte/%s", default_name.c_str());
+    if ((homedir = getenv("HOME")) == NULL) {
+      homedir = getpwuid(getuid())->pw_dir;
+    }
+    if (!homedir) {
+      homedir = ".";
+    }
+    snprintf(full_path, sizeof(full_path), "%s/.config/srslte/%s", homedir, default_name.c_str());
     filename = std::string(full_path);
 
     // try to open again
     conf.open(filename.c_str());
     if (conf.fail()) {
-      // try home folder
-      const char* homedir = NULL;
+      // Last chance, try to find file in /etc/srslte
       ZERO_OBJECT(full_path);
-      if ((homedir = getenv("HOME")) == NULL) {
-        homedir = getpwuid(getuid())->pw_dir;
-      }
-      if (!homedir) {
-        homedir = ".";
-      }
-      snprintf(full_path, sizeof(full_path), "%s/.srs/%s", homedir, default_name.c_str());
+      snprintf(full_path, sizeof(full_path), "/etc/srslte/%s", default_name.c_str());
       filename = std::string(full_path);
 
       // try to open again
