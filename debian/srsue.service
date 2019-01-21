@@ -1,0 +1,11 @@
+[Unit]
+Description=Software Radio Systems's LTE UE implementation
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/srsue /etc/srslte/ue.conf
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

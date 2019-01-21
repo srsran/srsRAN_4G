@@ -1,0 +1,26 @@
+NAME
+  srsUE - A SDR LTE UE application featuring all layers from PHY to IP
+
+SYNOPSIS
+  srsue [options] <config_file>
+
+DESCRIPTION
+
+  srsUE provides a complete SDR LTE UE application featuring all layers from PHY to IP.
+
+  Features:
+
+    - Cell search and synchronization procedure for the UE
+    - Soft USIM supporting Milenage and XOR authentication
+    - Hard USIM support using PCSC framework
+    - Virtual network interface tun_srsue created upon network attach
+    - 150 Mbps DL in 20 MHz MIMO TM3/TM4 configuration in i7 Quad-Core CPU.
+    - 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
+    - 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.
+
+  An example configuration file is available in /usr/share/srslte/ue.conf.example
+
+OPTIONS
+
+  -h/--help       Produce help message
+  -v/--version    Print version information and exit
