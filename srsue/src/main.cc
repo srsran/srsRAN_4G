@@ -587,6 +587,7 @@ int main(int argc, char* argv[])
   }
   ue->switch_off();
   pthread_cancel(input);
+  pthread_join(input, NULL);
   metricshub.stop();
   ue->stop();
   ue->cleanup();

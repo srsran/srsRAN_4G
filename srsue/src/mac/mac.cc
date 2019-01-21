@@ -47,8 +47,10 @@ mac::mac() : timers(64),
              pdu_process_thread(&demux_unit),
              mch_msg(10)
 {
+  tti = 0;
   pcap    = NULL;
   bzero(&metrics, sizeof(mac_metrics_t));
+  bzero(&config, sizeof(mac_cfg_t));
 }
 
 bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)

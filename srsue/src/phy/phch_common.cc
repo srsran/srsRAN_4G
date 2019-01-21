@@ -53,6 +53,7 @@ phch_common::phch_common(uint32_t max_workers) : tx_sem(max_workers)
   rx_gain_offset = 0;
   last_ri = 0;
   last_pmi = 0;
+  avg_noise = NAN;
   //have_mtch_stop = false;
   
   bzero(&dl_metrics, sizeof(dl_metrics_t));

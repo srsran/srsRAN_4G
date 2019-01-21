@@ -67,6 +67,9 @@ phch_worker::phch_worker() : tr_exec(10240)
   cell_initiated  = false; 
   pregen_enabled  = false; 
   trace_enabled   = false;
+
+  pthread_mutex_init(&mutex, NULL);
+
   reset();
 }
 
@@ -83,6 +86,8 @@ phch_worker::~phch_worker()
     srslte_ue_ul_free(&ue_ul);
     mem_initiated = false;
   }
+
+  pthread_mutex_destroy(&mutex);
 }
 
 void phch_worker::reset()
@@ -154,7 +159,6 @@ bool phch_worker::init(uint32_t max_prb, srslte::log *log_h, srslte::log *log_ph
 
   mem_initiated = true;
 
-  pthread_mutex_init(&mutex, NULL);
   return true;
 }
 

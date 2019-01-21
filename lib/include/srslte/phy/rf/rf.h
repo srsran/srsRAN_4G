@@ -39,6 +39,7 @@ typedef struct {
   void *dev;
   
   // The following variables are for threaded RX gain control 
+  bool thread_gain_run;
   pthread_t thread_gain; 
   pthread_cond_t  cond; 
   pthread_mutex_t mutex; 

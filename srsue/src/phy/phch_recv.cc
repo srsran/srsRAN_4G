@@ -49,6 +49,7 @@ double callback_set_rx_gain(void *h, double gain) {
 
 
 phch_recv::phch_recv() {
+  tti = 0;
   dl_freq = -1;
   ul_freq = -1;
   bzero(&cell, sizeof(srslte_cell_t));
@@ -56,6 +57,12 @@ phch_recv::phch_recv() {
   cellsearch_earfcn_index = 0;
   running = false;
   worker_com = NULL;
+  current_sflen = 0;
+  next_offset = 0;
+  nof_rx_antennas = 1;
+  current_srate = 0.0f;
+  time_adv_sec = 0;
+  next_time_adv_sec = 0;
 }
 
 void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_mac, rrc_interface_phy *_rrc,
@@ -1531,6 +1538,28 @@ int phch_recv::meas_stop(uint32_t earfcn, int pci) {
             current_earfcn, earfcn);
   }
   return -1;
+}
+
+phch_recv::intra_measure::intra_measure()
+    : scell() {
+
+  rrc = NULL;
+  common = NULL;
+  search_buffer = NULL;
+  log_h = NULL;
+
+  current_earfcn = 0;
+  current_sflen = 0;
+  measure_tti = 0;
+  receive_cnt = 0;
+
+  running = false;
+  receive_enabled = false;
+  receiving = false;
+
+  ZERO_OBJECT(info);
+  ZERO_OBJECT(ring_buffer);
+  ZERO_OBJECT(primary_cell);
 }
 
 phch_recv::intra_measure::~intra_measure() {

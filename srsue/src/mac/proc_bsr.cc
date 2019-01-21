@@ -38,6 +38,7 @@
     
 bsr_proc::bsr_proc()
 {
+  log_h = NULL;
   initiated = false; 
   last_print = 0; 
   next_tx_tti = 0; 

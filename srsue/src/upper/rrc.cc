@@ -52,7 +52,6 @@ rrc::rrc() :
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
-  serving_cell(NULL),
   rlc_flush_timeout(2000),
   rlc_flush_counter(0)
 {

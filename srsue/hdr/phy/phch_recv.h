@@ -199,6 +199,7 @@ private:
   // Class to perform intra-frequency measurements
   class intra_measure : public thread {
   public:
+    intra_measure();
     ~intra_measure();
     void init(phch_common *common, rrc_interface_phy *rrc, srslte::log *log_h);
     void stop();

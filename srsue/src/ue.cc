@@ -39,8 +39,11 @@ using namespace srslte;
 namespace srsue{
 
 ue::ue()
-    :started(false)
+    :started(false), mac_log()
 {
+  usim = NULL;
+  logger = NULL;
+  args = NULL;
 }
 
 ue::~ue()

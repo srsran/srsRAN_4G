@@ -35,11 +35,14 @@ void srslte_ringbuffer_free(srslte_ringbuffer_t *q)
 
 void srslte_ringbuffer_reset(srslte_ringbuffer_t *q)
 {
-  pthread_mutex_lock(&q->mutex);
-  q->count = 0;
-  q->wpm   = 0;
-  q->rpm   = 0;
-  pthread_mutex_unlock(&q->mutex);
+  // Check first if it is initiated
+  if (q->capacity != 0) {
+    pthread_mutex_lock(&q->mutex);
+    q->count = 0;
+    q->wpm = 0;
+    q->rpm = 0;
+    pthread_mutex_unlock(&q->mutex);
+  }
 }
 
 int srslte_ringbuffer_status(srslte_ringbuffer_t *q)

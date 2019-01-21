@@ -52,6 +52,8 @@ phy::phy() : workers_pool(MAX_WORKERS),
              workers(MAX_WORKERS), 
              workers_common(MAX_WORKERS),nof_coworkers(0)
 {
+  ZERO_OBJECT(config);
+  ZERO_OBJECT(cell);
 }
 
 static void srslte_phy_handler(phy_logger_level_t log_level, void *ctx, char *str) {
