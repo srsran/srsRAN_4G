@@ -437,7 +437,7 @@ void phch_common::set_mch_period_stop(uint32_t stop)
   pthread_mutex_lock(&mtch_mutex);
   have_mtch_stop = true;
   mch_period_stop = stop;
-  pthread_cond_signal(&mtch_cvar);
+  pthread_cond_broadcast(&mtch_cvar);
   pthread_mutex_unlock(&mtch_mutex);
 
 }
