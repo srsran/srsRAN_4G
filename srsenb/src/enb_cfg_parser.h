@@ -475,7 +475,7 @@ public:
     NumType val;
     if (parser::lookupValue(root, name, &val)) {
       store_ptr->from_number(val);
-      return true;
+      return 0;
     } else {
       std::string str_val;
       if (parser::lookupValue(root, name, &str_val)) {
@@ -483,7 +483,7 @@ public:
                 str_val.c_str());
       }
     }
-    return false;
+    return -1;
   }
 };
 

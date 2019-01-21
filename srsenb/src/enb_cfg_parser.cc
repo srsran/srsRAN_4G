@@ -559,32 +559,56 @@ int mbsfn_area_info_list_parser::parse(Setting& root)
 
   field_asn1_enum_str<mbsfn_area_info_r9_s::non_mbsfn_region_len_e_> fieldlen("non_mbsfn_region_length",
                                                                               &mbsfn_item->non_mbsfn_region_len);
-  fieldlen.parse(root["mbsfn_area_info_list"]);
+  if (fieldlen.parse(root["mbsfn_area_info_list"])) {
+    fprintf(stderr, "Error parsing non_mbsfn_region_length\n");
+    return -1;
+  }
 
   field_asn1_enum_str<mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_e_> repeat(
       "mcch_repetition_period", &mbsfn_item->mcch_cfg_r9.mcch_repeat_period_r9);
-  repeat.parse(root["mbsfn_area_info_list"]);
+  if (repeat.parse(root["mbsfn_area_info_list"])) {
+    fprintf(stderr, "Error parsing mcch_repetition_period\n");
+    return -1;
+  }
 
   field_asn1_enum_str<mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_e_> mod(
       "mcch_modification_period", &mbsfn_item->mcch_cfg_r9.mcch_mod_period_r9);
-  mod.parse(root["mbsfn_area_info_list"]);
+  if (mod.parse(root["mbsfn_area_info_list"])) {
+    fprintf(stderr, "Error parsing mcch_modification_period\n");
+    return -1;
+  }
 
   field_asn1_enum_str<mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_e_> sig("signalling_mcs",
                                                                                &mbsfn_item->mcch_cfg_r9.sig_mcs_r9);
-  sig.parse(root["mbsfn_area_info_list"]);
+  if (sig.parse(root["mbsfn_area_info_list"])) {
+    fprintf(stderr, "Error parsing signalling_mcs\n");
+    return -1;
+  }
 
   parser::field<uint8_t> areaid("mbsfn_area_id", &mbsfn_item->mbsfn_area_id_r9);
-  areaid.parse(root["mbsfn_area_info_list"]);
+  if (areaid.parse(root["mbsfn_area_info_list"])) {
+    fprintf(stderr, "Error parsing mbsfn_area_id\n");
+    return -1;
+  }
 
   parser::field<uint8_t> notif_ind("notification_indicator", &mbsfn_item->notif_ind_r9);
-  notif_ind.parse(root["mbsfn_area_info_list"]);
+  if (notif_ind.parse(root["mbsfn_area_info_list"])) {
+    fprintf(stderr, "Error parsing notification_indicator\n");
+    return -1;
+  }
 
   parser::field<uint8_t> offset("mcch_offset", &mbsfn_item->mcch_cfg_r9.mcch_offset_r9);
-  offset.parse(root["mbsfn_area_info_list"]);
+  if (offset.parse(root["mbsfn_area_info_list"])) {
+    fprintf(stderr, "Error parsing mcch_offset\n");
+    return -1;
+  }
 
   field_asn1_bitstring_number<asn1::fixed_bitstring<6>, uint8_t> alloc_info("sf_alloc_info",
                                                                             &mbsfn_item->mcch_cfg_r9.sf_alloc_info_r9);
-  alloc_info.parse(root["mbsfn_area_info_list"]);
+  if (alloc_info.parse(root["mbsfn_area_info_list"])) {
+    fprintf(stderr, "Error parsing mbsfn_area_info_list\n");
+    return -1;
+  }
 
   return 0;
 }
