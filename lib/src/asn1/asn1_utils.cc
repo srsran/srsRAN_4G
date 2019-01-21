@@ -622,7 +622,7 @@ uint64_t octstring_to_number(const uint8_t* ptr, uint32_t nbytes)
   }
   uint64_t val = 0;
   for (uint32_t i = 0; i < nbytes; ++i) {
-    val += ptr[i] << (i * 8);
+    val += ((uint64_t)ptr[nbytes - 1 - i]) << (uint64_t)(i * 8);
   }
   return val;
 }
@@ -634,7 +634,7 @@ void number_to_octstring(uint8_t* ptr, uint64_t number, uint32_t nbytes)
     return;
   }
   for (uint32_t i = 0; i < nbytes; ++i) {
-    ptr[i] = (number >> (i * 8)) & 0xFF;
+    ptr[nbytes - 1 - i] = (number >> (uint64_t)(i * 8u)) & 0xFF;
   }
 }
 
