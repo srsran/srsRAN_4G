@@ -133,7 +133,7 @@ std::string ue_base::get_build_mode()
 
 std::string ue_base::get_build_info()
 {
-  if (std::string(srslte_get_build_info()) == "") {
+  if (std::string(srslte_get_build_info()).find("  ") != std::string::npos) {
     return std::string(srslte_get_version());
   }
   return std::string(srslte_get_build_info());
