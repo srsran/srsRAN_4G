@@ -9,7 +9,7 @@ then
   echo "Please call script with either user or service as first parameter."
   echo ""
   echo "E.g. ./srslte_install_configs.sh user"
-  echo " .. to install all config files to $HOME/.srs"
+  echo " .. to install all config files to $HOME/.config/srslte"
   echo ""
   echo "E.g. ./srslte_install_configs.sh service"
   echo " .. to install all config files to /etc/srslte"
@@ -18,7 +18,7 @@ fi
 
 if [ "$1" == "user" ]
 then
-  dest_folder="$HOME/.srs"
+  dest_folder="$HOME/.config/srslte"
 elif [ "$1" == "service" ]
 then
   dest_folder="/etc/srslte"
@@ -60,7 +60,7 @@ echo "Installing srsLTE configuration files:"
 # Make sure the target directory exists
 if [ ! -d "$dest_folder" ]; then
   echo " - Creating srsLTE config folder $dest_folder"
-  mkdir $dest_folder
+  mkdir -p $dest_folder
   if [ $? -ne 0 ]; then
     exit
   fi
