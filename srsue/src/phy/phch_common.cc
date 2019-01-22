@@ -53,7 +53,7 @@ phch_common::phch_common(uint32_t max_workers) : tx_sem(max_workers)
   rx_gain_offset = 0;
   last_ri = 0;
   last_pmi = 0;
-  avg_noise = NAN;
+  avg_noise         = 0;
   //have_mtch_stop = false;
   
   bzero(&dl_metrics, sizeof(dl_metrics_t));
@@ -364,6 +364,7 @@ void phch_common::reset() {
   avg_rsrp_dbm = 0;
   avg_rsrq_db = 0;
   avg_ri = 0;
+  avg_noise         = 0;
 
   pcell_report_period = 20;
 
