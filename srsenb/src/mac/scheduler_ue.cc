@@ -1083,14 +1083,14 @@ srslte_dci_format_t sched_ue::get_dci_format() {
 
 
 /* Find lowest DCI aggregation level supported by the UE spectral efficiency */
-uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
+uint32_t sched_ue::get_aggr_level(uint32_t nof_bits, uint32_t current_cfi)
 {
   pthread_mutex_lock(&mutex);
   uint32_t l=0;
   float max_coderate = srslte_cqi_to_coderate(dl_cqi);
   float coderate = 99;
   float factor=1.5;
-  uint32_t l_max = 3;
+  uint32_t l_max = current_cfi;
   if (cell.nof_prb == 6) {
     factor = 1.0;
     l_max  = 2;

@@ -698,7 +698,7 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
     srslte_dci_format_t dci_format = user->get_dci_format();
     data[nof_data_elems].dci_format = dci_format;
 
-    uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, cfg.cell.nof_prb, cfg.cell.nof_ports));
+    uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, cfg.cell.nof_prb, cfg.cell.nof_ports), current_cfi);
     if (h) {
       // Try to schedule DCI first 
       if (generate_dci(&data[nof_data_elems].dci_location, 
@@ -945,7 +945,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
 
       // Generate PDCCH except for RAR and non-adaptive retx
       if (needs_pdcch) {
-        uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, cfg.cell.nof_prb, cfg.cell.nof_ports));
+        uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, cfg.cell.nof_prb, cfg.cell.nof_ports), current_cfi);
         if (!generate_dci(&sched_result->pusch[nof_dci_elems].dci_location, 
             user->get_locations(current_cfi, sf_idx),
             aggr_level)) 

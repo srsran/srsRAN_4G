@@ -130,7 +130,7 @@ public:
   int        generate_format0(ul_harq_proc *h, sched_interface::ul_sched_data_t *data, uint32_t tti, bool cqi_request);
 
   srslte_dci_format_t get_dci_format();
-  uint32_t         get_aggr_level(uint32_t nof_bits);
+  uint32_t         get_aggr_level(uint32_t nof_bits, uint32_t current_cfi);
   sched_dci_cce_t *get_locations(uint32_t current_cfi, uint32_t sf_idx);
   
   bool       needs_cqi(uint32_t tti, bool will_send = false); 
