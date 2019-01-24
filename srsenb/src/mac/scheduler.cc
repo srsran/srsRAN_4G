@@ -798,7 +798,7 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
 }
 
 // Uplink sched 
-int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched_result)
+int sched::ul_sched(uint32_t tti, uint32_t sf_cfi, srsenb::sched_interface::ul_sched_res_t* sched_result)
 {
   typedef std::map<uint16_t, sched_ue>::iterator it_t;
 
@@ -830,8 +830,8 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   pthread_mutex_lock(&sched_mutex);
   pthread_rwlock_rdlock(&rwlock);
 
-  // current_cfi is set in dl_sched()
   bzero(sched_result, sizeof(sched_interface::ul_sched_res_t));
+  sched_result->cfi = sf_cfi;
   ul_metric->reset_allocation(cfg.cell.nof_prb);
 
   // Get HARQ process for this TTI 
@@ -947,7 +947,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
       if (needs_pdcch) {
         uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, cfg.cell.nof_prb, cfg.cell.nof_ports));
         if (!generate_dci(&sched_result->pusch[nof_dci_elems].dci_location, 
-            user->get_locations(current_cfi, sf_idx),
+            user->get_locations(sf_cfi, sf_idx),
             aggr_level)) 
         {
           h->reset(0);
@@ -1051,7 +1051,7 @@ void sched::generate_cce_location(srslte_regs_t *regs_, sched_ue::sched_dci_cce_
 bool sched::generate_dci(srslte_dci_location_t *sched_location, sched_ue::sched_dci_cce_t *locations, uint32_t aggr_level, sched_ue *user) 
 {
   if (!locations->nof_loc[aggr_level]) {
-    Error("In generate_dci(): No locations for aggr_level=%d\n", aggr_level);
+    Warning("In generate_dci(): No locations for aggr_level=%d\n", aggr_level);
     return false;
   }
   uint32_t nof_cand  = 0;

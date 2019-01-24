@@ -126,7 +126,7 @@ public:
   int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code); 
     
   int dl_sched(uint32_t tti, dl_sched_res_t *sched_result);  
-  int ul_sched(uint32_t tti, ul_sched_res_t *sched_result); 
+  int ul_sched(uint32_t tti, uint32_t sf_cfi, ul_sched_res_t *sched_result);
 
   /* Custom TPC functions 
    */

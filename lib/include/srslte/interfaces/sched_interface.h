@@ -215,6 +215,7 @@ public:
   } ul_sched_phich_t;
 
   typedef struct {
+    uint32_t cfi;
     uint32_t nof_dci_elems; 
     uint32_t nof_phich_elems; 
     ul_sched_data_t  pusch[MAX_DATA_LIST];
@@ -261,7 +262,7 @@ public:
   
   /* Run Scheduler for this tti */
   virtual int dl_sched(uint32_t tti, dl_sched_res_t *sched_result) = 0; 
-  virtual int ul_sched(uint32_t tti, ul_sched_res_t *sched_result) = 0; 
+  virtual int ul_sched(uint32_t tti, uint32_t sf_cfi, ul_sched_res_t *sched_result) = 0;
     
 };
 

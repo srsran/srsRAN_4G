@@ -793,7 +793,7 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
   // Run scheduler with current info
   sched_interface::ul_sched_res_t sched_result;
   bzero(&sched_result, sizeof(sched_interface::ul_sched_res_t));
-  if (scheduler.ul_sched(tti, &sched_result)<0) {
+  if (scheduler.ul_sched(tti, ul_sched_res->cfi, &sched_result)<0) {
     Error("Running scheduler\n");
     return SRSLTE_ERROR;
   }

@@ -129,7 +129,8 @@ int main(int argc, char *argv[])
   srsenb::sched_interface::ue_cfg_t ue_cfg;
   bzero(&ue_cfg, sizeof(srsenb::sched_interface::ue_cfg_t));
   uint16_t rnti = 30; 
-  
+  uint32_t sf_cfi = 3;
+
   ue_cfg.aperiodic_cqi_period = 40; 
   ue_cfg.maxharq_tx = 5; 
   
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
       running = false; 
     }
     my_sched.dl_sched(tti, &sched_result_dl);
-    my_sched.ul_sched(tti, &sched_result_ul);
+    my_sched.ul_sched(tti, sf_cfi, &sched_result_ul);
     tti = (tti+1)%10240;
     if (tti >= 4) {
       my_sched.ul_crc_info(tti, rnti,  tti%2);

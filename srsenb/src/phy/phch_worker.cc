@@ -420,6 +420,7 @@ void phch_worker::work_imp()
   }
 
   // Get UL scheduling for the TX TTI from MAC
+  ul_grants[t_tx_ul].cfi = dl_grants[t_tx_dl].cfi;
   if (mac->get_ul_sched(tti_tx_ul, &ul_grants[t_tx_ul]) < 0) {
     Error("Getting UL scheduling from MAC\n");
     goto unlock;

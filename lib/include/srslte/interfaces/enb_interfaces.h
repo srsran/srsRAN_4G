@@ -57,7 +57,8 @@ public:
     srslte_enb_ul_pusch_t sched_grants[MAX_GRANTS];
     srslte_enb_dl_phich_t phich[MAX_GRANTS];
     uint32_t nof_grants; 
-    uint32_t nof_phich; 
+    uint32_t nof_phich;
+    uint32_t cfi;
   } ul_sched_t; 
 
   
