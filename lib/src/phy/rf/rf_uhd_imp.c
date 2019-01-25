@@ -434,12 +434,20 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       }
     } else {
       // If args is set and x300 type is specified, make sure master_clock_rate is defined
-      if (strstr(args, "type=x300") && !strstr(args, "master_clock_rate")) {
-        sprintf(args2, "%s,master_clock_rate=184.32e6",args);
-        args = args2;
-        handler->current_master_clock = 184320000;
-        handler->dynamic_rate = false;
-        handler->devname = DEVNAME_X300;
+        if (strstr(args, "type=x300") ){
+          //x300 only has 2 possible master clocks 184.32e6 and 200.0e6
+          if (strstr(args, "master_clock_rate=184.32e6")) {
+            handler->current_master_clock = 184320000;
+          } else if (strstr(args, "master_clock_rate=200.0e6") || strstr(args, "master_clock_rate=200.00e6")){
+            sprintf(args2, "%s,master_clock_rate=184.32e6", args);
+            handler->current_master_clock = 200000000;
+          } else {
+            if (strstr(args, "master_clock_rate")) fprintf(stderr,"No such master_clock_rate for x300\n");
+            sprintf(args2, "%s,master_clock_rate=184.32e6", args);
+            args = args2;
+          }
+          handler->dynamic_rate = false;
+          handler->devname = DEVNAME_X300;
       } else if (strstr(args, "type=n3xx")) {
         sprintf(args2, "%s,master_clock_rate=122.88e6", args);
         args = args2;
