@@ -439,7 +439,6 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
           if (strstr(args, "master_clock_rate=184.32e6")) {
             handler->current_master_clock = 184320000;
           } else if (strstr(args, "master_clock_rate=200.0e6") || strstr(args, "master_clock_rate=200.00e6")){
-            sprintf(args2, "%s,master_clock_rate=184.32e6", args);
             handler->current_master_clock = 200000000;
           } else {
             if (strstr(args, "master_clock_rate")) fprintf(stderr,"No such master_clock_rate for x300\n");
