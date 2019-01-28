@@ -1569,7 +1569,7 @@ bool rrc::ho_prepare() {
     usim->generate_as_keys_ho(mob_ctrl_info->target_pci, phy->get_current_earfcn(), ncc, k_rrc_enc, k_rrc_int, k_up_enc,
                               k_up_int, cipher_algo, integ_algo);
 
-    pdcp->config_security_all(k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+    pdcp->config_security_all(k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
     send_rrc_con_reconfig_complete();
   }
   return true;
@@ -2151,7 +2151,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t* pdu)
       security_is_activated = true;
 
       // Configure PDCP for security
-      pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+      pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
       pdcp->enable_integrity(lcid);
       send_security_mode_complete();
       pdcp->enable_encryption(lcid);
@@ -2668,7 +2668,7 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
   pdcp_cfg.bearer_id = srb_cnfg->srb_id;
   pdcp->add_bearer(srb_cnfg->srb_id, pdcp_cfg);
   if(RB_ID_SRB2 == srb_cnfg->srb_id) {
-    pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+    pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
     pdcp->enable_integrity(srb_cnfg->srb_id);
     pdcp->enable_encryption(srb_cnfg->srb_id);
   }
@@ -2737,7 +2737,7 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
     }
   }
   pdcp->add_bearer(lcid, pdcp_cfg);
-  pdcp->config_security(lcid, k_up_enc, k_up_int, cipher_algo, integ_algo);
+  pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
   pdcp->enable_encryption(lcid);
 
   // Setup RLC
