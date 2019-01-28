@@ -56,8 +56,9 @@ public:
 
   // RRC interface
   virtual void write_sdu(byte_buffer_t *sdu, bool blocking) = 0;
-  virtual void config_security(uint8_t *k_enc_,
-                       uint8_t *k_int_,
+  virtual void config_security(uint8_t *k_rrc_enc_,
+                       uint8_t *k_rrc_int_,
+                       uint8_t *k_up_enc_,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
   virtual void enable_integrity() = 0;

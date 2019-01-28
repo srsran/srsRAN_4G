@@ -200,6 +200,7 @@ public:
                                uint32_t lcid,
                                uint8_t *k_rrc_enc_,
                                uint8_t *k_rrc_int_,
+                               uint8_t *k_up_enc_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
 };

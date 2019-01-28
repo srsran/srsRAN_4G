@@ -804,7 +804,7 @@ void rrc::configure_security(uint16_t rnti,
                              srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   // TODO: add k_up_enc, k_up_int support to PDCP
-  pdcp->config_security(rnti, lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+  pdcp->config_security(rnti, lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
 }
 
 /*******************************************************************************

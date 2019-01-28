@@ -244,12 +244,14 @@ public:
   virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
   virtual void config_security(uint32_t lcid,
-                               uint8_t *k_enc_,
-                               uint8_t *k_int_,
+                               uint8_t *k_rrc_enc_,
+                               uint8_t *k_rrc_int_,
+                               uint8_t *k_up_enc_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
-  virtual void config_security_all(uint8_t *k_enc_,
-                                   uint8_t *k_int_,
+  virtual void config_security_all(uint8_t *k_rrc_enc_,
+                                   uint8_t *k_rrc_int_,
+                                   uint8_t *k_up_enc_,
                                    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
   virtual void enable_integrity(uint32_t lcid) = 0;

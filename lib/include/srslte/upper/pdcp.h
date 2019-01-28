@@ -63,12 +63,14 @@ public:
   void del_bearer(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
   void config_security(uint32_t lcid,
-                       uint8_t *k_enc,
-                       uint8_t *k_int,
+                       uint8_t *k_rrc_enc,
+                       uint8_t *k_rrc_int,
+                       uint8_t *k_up_enc,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
-  void config_security_all(uint8_t *k_enc,
-                           uint8_t *k_int,
+  void config_security_all(uint8_t *k_rrc_enc,
+                           uint8_t *k_rrc_int,
+                           uint8_t *k_up_enc,
                            CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                            INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
   void enable_integrity(uint32_t lcid);
