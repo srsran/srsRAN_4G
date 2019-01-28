@@ -807,6 +807,16 @@ void rrc::configure_security(uint16_t rnti,
   pdcp->config_security(rnti, lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
 }
 
+void rrc::enable_integrity(uint16_t rnti, uint32_t lcid)
+{
+  pdcp->enable_integrity(rnti, lcid);
+}
+
+void rrc::enable_encryption(uint16_t rnti, uint32_t lcid)
+{
+  pdcp->enable_encryption(rnti, lcid);
+}
+
 /*******************************************************************************
   RRC thread
 *******************************************************************************/
@@ -1156,6 +1166,7 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
 void rrc::ue::handle_security_mode_complete(security_mode_complete_s* msg)
 {
   parent->rrc_log->info("SecurityModeComplete transaction ID: %d\n", msg->rrc_transaction_id);
+  parent->enable_encryption(rnti, RB_ID_SRB1);
 }
 
 void rrc::ue::handle_security_mode_failure(security_mode_fail_s* msg)
@@ -1218,6 +1229,8 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
                              k_rrc_enc, k_rrc_int,
                              k_up_enc,  k_up_int,
                              cipher_algo, integ_algo);
+
+  parent->enable_integrity(rnti, RB_ID_SRB1);
 
   parent->rrc_log->info_hex(k_rrc_enc, 32, "RRC Encryption Key (k_rrc_enc)");
   parent->rrc_log->info_hex(k_rrc_int, 32, "RRC Integrity Key (k_rrc_int)");
@@ -1748,6 +1761,9 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   pdcp_cnfg.is_control = true;
   pdcp_cnfg.is_data = false;
   parent->pdcp->add_bearer(rnti, 2, pdcp_cnfg);
+  parent->pdcp->config_security(rnti, 2, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+  parent->pdcp->enable_integrity(rnti, 2);
+  parent->pdcp->enable_encryption(rnti, 2);
 
   // Configure DRB1 in RLC
   parent->rlc->add_bearer(rnti, 3, &conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg);
@@ -1762,7 +1778,9 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
     }
   }
   parent->pdcp->add_bearer(rnti, 3, pdcp_cnfg);
-
+  parent->pdcp->config_security(rnti, 3, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+  parent->pdcp->enable_integrity(rnti, 3);
+  parent->pdcp->enable_encryption(rnti, 3);
   // DRB1 has already been configured in GTPU through bearer setup
 
   // Add NAS Attach accept

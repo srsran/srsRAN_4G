@@ -117,9 +117,21 @@ void pdcp::config_security(uint16_t rnti, uint32_t lcid, uint8_t* k_rrc_enc_, ui
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].pdcp->config_security(lcid, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_);
-    users[rnti].pdcp->enable_integrity(lcid);
-    users[rnti].pdcp->enable_encryption(lcid);
   }
+  pthread_rwlock_unlock(&rwlock);
+}
+
+void pdcp::enable_integrity(uint16_t rnti, uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  users[rnti].pdcp->enable_integrity(lcid);
+  pthread_rwlock_unlock(&rwlock);
+}
+
+void pdcp::enable_encryption(uint16_t rnti, uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  users[rnti].pdcp->enable_encryption(lcid);
   pthread_rwlock_unlock(&rwlock);
 }
 
