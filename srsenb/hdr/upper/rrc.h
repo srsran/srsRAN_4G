@@ -337,7 +337,8 @@ private:
                           uint8_t *k_up_int,
                           srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                           srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
-
+  void enable_integrity(uint16_t rnti, uint32_t lcid);
+  void enable_encryption(uint16_t rnti, uint32_t lcid);
   srslte::byte_buffer_pool* pool;
   srslte::byte_buffer_t     byte_buf_paging;
 

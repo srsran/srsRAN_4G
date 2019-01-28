@@ -203,6 +203,8 @@ public:
                                uint8_t *k_up_enc_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
+  virtual void enable_integrity(uint16_t rnti, uint32_t lcid) = 0;
+  virtual void enable_encryption(uint16_t rnti, uint32_t lcid) = 0;
 };
 
 // PDCP interface for RLC
