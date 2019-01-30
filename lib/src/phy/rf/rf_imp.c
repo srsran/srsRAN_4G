@@ -103,6 +103,7 @@ const char* srslte_rf_get_devname(srslte_rf_t *rf) {
 }
 
 int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_channels) {
+  rf->thread_gain_run = false;
   /* Try to open the device if name is provided */
   if (devname) {
     if (devname[0] != '\0') {
