@@ -83,6 +83,7 @@ uint32_t multiplex_nof_layers = 1;
 uint8_t  mbsfn_sf_mask = 32;
 int mbsfn_area_id = -1;
 char *rf_args = "";
+char *rf_dev = "";
 float rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
 
 float output_file_snr = +INFINITY;
@@ -128,8 +129,9 @@ uint8_t *data_mbms, *data[2], data2[DATA_BUFF_SZ];
 uint8_t data_tmp[DATA_BUFF_SZ];
 
 void usage(char *prog) {
-  printf("Usage: %s [agmfoncvpuxb]\n", prog);
+  printf("Usage: %s [Iagmfoncvpuxb]\n", prog);
 #ifndef DISABLE_RF
+  printf("\t-I RF device [Default %s]\n", rf_dev);
   printf("\t-a RF args [Default %s]\n", rf_args);
   printf("\t-l RF amplitude [Default %.2f]\n", rf_amp);
   printf("\t-g RF TX gain [Default %.2f dB]\n", rf_gain);
@@ -155,9 +157,12 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "aglfmoncpvutxbwMsB")) != -1) {
+  while ((opt = getopt(argc, argv, "IadglfmoncpvutxbwMsB")) != -1) {
 
     switch (opt) {
+    case 'I':
+      rf_dev = argv[optind];
+      break;
     case 'a':
       rf_args = argv[optind];
       break;
@@ -296,7 +301,7 @@ void base_init() {
   } else {
 #ifndef DISABLE_RF
     printf("Opening RF device...\n");
-    if (srslte_rf_open_multi(&rf, rf_args, cell.nof_ports)) {
+    if (srslte_rf_open_devname(&rf, rf_dev, rf_args, cell.nof_ports)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }

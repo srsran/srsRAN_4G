@@ -95,6 +95,7 @@ typedef struct {
   uint32_t file_cell_id;
   bool enable_cfo_ref;
   bool average_subframe;
+  char *rf_dev;
   char *rf_args; 
   uint32_t rf_nof_rx_ant; 
   double rf_freq; 
@@ -123,7 +124,8 @@ void args_default(prog_args_t *args) {
   args->file_nof_ports = 1; 
   args->file_cell_id = 0; 
   args->file_offset_time = 0; 
-  args->file_offset_freq = 0; 
+  args->file_offset_freq = 0;
+  args->rf_dev = "";
   args->rf_args = "";
   args->rf_freq = -1.0;
   args->rf_nof_rx_ant = 1;
@@ -146,8 +148,9 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agpPoOcildFRDnruMNv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [adgpPoOcildFRDnruMNv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_RF
+  printf("\t-I RF dev [Default %s]\n", args->rf_dev);
   printf("\t-a RF args [Default %s]\n", args->rf_args);
   printf("\t-A Number of RX antennas [Default %d]\n", args->rf_nof_rx_ant);
 #ifdef ENABLE_AGC_DEFAULT
@@ -190,7 +193,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDFRnvrfuUsSZyWMNB")) != -1) {
+  while ((opt = getopt(argc, argv, "adAogliIpPcOCtdDFRnvrfuUsSZyWMNB")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -209,6 +212,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'c':
       args->file_cell_id = atoi(argv[optind]);
+      break;
+    case 'I':
+      args->rf_dev = argv[optind];
       break;
     case 'a':
       args->rf_args = argv[optind];
@@ -420,7 +426,7 @@ int main(int argc, char **argv) {
   if (!prog_args.input_file_name) {
     
     printf("Opening RF device with %d RX antennas...\n", prog_args.rf_nof_rx_ant);
-    if (srslte_rf_open_multi(&rf, prog_args.rf_args, prog_args.rf_nof_rx_ant)) {
+    if (srslte_rf_open_devname(&rf, prog_args.rf_dev, prog_args.rf_args, prog_args.rf_nof_rx_ant)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
