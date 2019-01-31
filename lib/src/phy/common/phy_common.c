@@ -117,7 +117,7 @@ bool srslte_N_id_2_isvalid(uint32_t N_id_2) {
 }
 
 bool srslte_N_id_1_isvalid(uint32_t N_id_1) {
-  if (N_id_1 < 169) {
+  if (N_id_1 < 168) {
     return true;
   } else {
     return false;
