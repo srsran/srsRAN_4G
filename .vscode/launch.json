@@ -5,15 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "lldb-mi",
+            "request": "launch",
+            "name": "LLDB Launch",
+            "target": "${workspaceFolder}/build/srsue/src/srsue",
+            "arguments": "/home/cooperq/Code/crocodilehunter/src/ue.conf",
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "debug srsLTE"
+        },
+        {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/srsue/src/srsue",
-            "args": ["~/Code/crocodilehunter/data/ue.conf"],
+            "args": ["~/Code/crocodilehunter/src/ue.conf"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": true,
+            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {
