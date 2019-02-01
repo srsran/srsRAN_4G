@@ -248,6 +248,8 @@ bool rlc::rb_is_um(uint32_t lcid)
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->get_mode() == RLC_MODE_UM;
+  } else {
+    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -264,6 +266,8 @@ bool rlc::has_data(uint32_t lcid)
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     has_data = rlc_array.at(lcid)->has_data();
+  } else {
+    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -277,6 +281,8 @@ uint32_t rlc::get_buffer_state(uint32_t lcid)
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->get_buffer_state();
+  } else {
+    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -288,8 +294,11 @@ uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
   uint32_t ret = 0;
 
   pthread_rwlock_rdlock(&rwlock);
+
   if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->get_buffer_state();
+  } else {
+    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -303,6 +312,8 @@ int rlc::read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->read_pdu(payload, nof_bytes);
+  } else {
+    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -316,6 +327,8 @@ int rlc::read_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->read_pdu(payload, nof_bytes);
+  } else {
+    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -327,6 +340,8 @@ void rlc::write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     rlc_array.at(lcid)->write_pdu(payload, nof_bytes);
+  } else {
+    rlc_log->warning("LCID %d doesn't exist. Dropping PDU.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 }
