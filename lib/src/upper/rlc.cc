@@ -579,7 +579,12 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
     }
     // erase from old position
     rlc_array.erase(it);
-    rlc_log->warning("Changed LCID of RLC bearer from %d to %d\n", old_lcid, new_lcid);
+
+    if (valid_lcid(new_lcid) && not valid_lcid(old_lcid)) {
+      rlc_log->info("Successfully changed LCID of RLC bearer from %d to %d\n", old_lcid, new_lcid);
+    } else {
+      rlc_log->error("Error during LCID change of RLC bearer from %d to %d\n", old_lcid, new_lcid);
+    }
   } else {
     rlc_log->error("Can't change LCID of bearer %s from %d to %d. Bearer doesn't exist or new LCID already occupied.\n", rrc->get_rb_name(old_lcid).c_str(), old_lcid, new_lcid);
   }
