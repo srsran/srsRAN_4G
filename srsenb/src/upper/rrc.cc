@@ -490,10 +490,11 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
   pthread_mutex_unlock(&paging_mutex);
 
   if (paging_rec->paging_record_list.size() > 0) {
-    asn1::bit_ref bref(byte_buf_paging.msg, byte_buf_paging.N_bytes);
+    byte_buf_paging.reset();
+    asn1::bit_ref bref(byte_buf_paging.msg, byte_buf_paging.get_tailroom());
     pcch_msg.pack(bref);
-    uint32_t N_bits         = (uint32_t)bref.distance(byte_buf_paging.msg);
-    byte_buf_paging.N_bytes = (N_bits - 1) / 8 + 1;
+    byte_buf_paging.N_bytes = (uint32_t)bref.distance_bytes();
+    uint32_t N_bits         = (uint32_t)bref.distance();
 
     if (payload_len) {
       *payload_len = byte_buf_paging.N_bytes;
