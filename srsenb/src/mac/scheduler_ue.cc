@@ -36,6 +36,8 @@
 #define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
 
+#define MCS_FIRST_DL 4
+
 /****************************************************** 
  *                  UE class                          *
  ******************************************************/
@@ -498,9 +500,9 @@ int sched_ue::generate_format1(dl_harq_proc *h,
     srslte_ra_dl_dci_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
     uint32_t nof_ctrl_symbols = cfi+(cell.nof_prb<10?1:0);
     uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
-    if(need_conres_ce and cell.nof_prb<10) { // SRB0 Tx. Use a higher MCS for the PRACH to fit in 6 PRBs
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_dl_tbs_idx_from_mcs(4), nof_prb) / 8;
-      mcs = 4;
+    if (need_conres_ce and cell.nof_prb < 10) { // SRB0 Tx. Use a higher MCS for the PRACH to fit in 6 PRBs
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_dl_tbs_idx_from_mcs(MCS_FIRST_DL), nof_prb) / 8;
+      mcs = MCS_FIRST_DL;
     } else if (fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
     } else {
@@ -932,7 +934,10 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
   uint32_t n;
   for (n=0; n < cell.nof_prb && nbytes < req_bytes; ++n) {
     nof_re = srslte_ra_dl_approx_nof_re(cell, n+1, nof_ctrl_symbols);
-    if(fixed_mcs_dl < 0) {
+    if (is_first_dl_tx() && cell.nof_prb < 10) {
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_dl_tbs_idx_from_mcs(MCS_FIRST_DL), n + 1) / 8;
+      Info("get_required_prb: req_bytes=%d, tbs=%d, nof_prb=%d\n", req_bytes, tbs, n);
+    } else if (fixed_mcs_dl < 0) {
       tbs = alloc_tbs_dl(n+1, nof_re, 0, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_dl_tbs_idx_from_mcs(fixed_mcs_dl), n + 1) / 8;
