@@ -612,9 +612,6 @@ bool phch_worker::extract_fft_and_pdcch_llr(subframe_cfg_t sf_cfg) {
 
 bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 {
-  char timestr[64];
-  timestr[0]='\0';
-
   dl_rnti = phy->get_dl_rnti(tti); 
   if (dl_rnti) {
     
@@ -940,9 +937,6 @@ bool phch_worker::decode_phich(bool *ack)
 
 bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
 {
-  char timestr[64];
-  timestr[0]='\0';
-
   phy->reset_pending_ack(TTI_RX_ACK(tti));
 
   srslte_dci_msg_t dci_msg; 

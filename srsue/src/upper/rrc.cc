@@ -1807,7 +1807,6 @@ void rrc::handle_sib1()
                 sib1->si_win_len.to_number(), sib1->sched_info_list[0].si_periodicity.to_number());
 
   // Print SIB scheduling info
-  uint32_t i,j;
   for (uint32_t i = 0; i < sib1->sched_info_list.size(); ++i) {
     sched_info_s::si_periodicity_e_ p = sib1->sched_info_list[i].si_periodicity;
     for (uint32_t j = 0; j < sib1->sched_info_list[i].sib_map_info.size(); ++j) {
