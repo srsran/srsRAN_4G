@@ -137,6 +137,24 @@ bool enb::init(all_args_t *args_)
   phy_cfg_t     phy_cfg;
   rrc_cfg_t     rrc_cfg;
 
+  if (args->rf.dl_freq < 0) {
+    args->rf.dl_freq = 1e6*srslte_band_fd(args->rf.dl_earfcn); 
+    if (args->rf.dl_freq < 0) {
+      fprintf(stderr, "Error getting DL frequency for EARFCN=%d\n", args->rf.dl_earfcn);
+      return false; 
+    }  
+  }
+  if (args->rf.ul_freq < 0) {
+    if (args->rf.ul_earfcn == 0) {
+      args->rf.ul_earfcn = srslte_band_ul_earfcn(args->rf.dl_earfcn);
+    }
+    args->rf.ul_freq = 1e6*srslte_band_fu(args->rf.ul_earfcn); 
+    if (args->rf.ul_freq < 0) {
+      fprintf(stderr, "Error getting UL frequency for EARFCN=%d\n", args->rf.dl_earfcn);
+      return false; 
+    }  
+  }
+
   if (parse_cell_cfg(args, &cell_cfg)) {
     fprintf(stderr, "Error parsing Cell configuration\n");
     return false;
@@ -221,23 +239,6 @@ bool enb::init(all_args_t *args_)
   radio.set_rx_gain(args->rf.rx_gain);
   radio.set_tx_gain(args->rf.tx_gain);    
   
-  if (args->rf.dl_freq < 0) {
-    args->rf.dl_freq = 1e6*srslte_band_fd(args->rf.dl_earfcn); 
-    if (args->rf.dl_freq < 0) {
-      fprintf(stderr, "Error getting DL frequency for EARFCN=%d\n", args->rf.dl_earfcn);
-      return false; 
-    }  
-  }
-  if (args->rf.ul_freq < 0) {
-    if (args->rf.ul_earfcn == 0) {
-      args->rf.ul_earfcn = srslte_band_ul_earfcn(args->rf.dl_earfcn);
-    }
-    args->rf.ul_freq = 1e6*srslte_band_fu(args->rf.ul_earfcn); 
-    if (args->rf.ul_freq < 0) {
-      fprintf(stderr, "Error getting UL frequency for EARFCN=%d\n", args->rf.dl_earfcn);
-      return false; 
-    }  
-  }
   ((srslte::log_filter*) phy_log[0])->console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz\n", args->rf.dl_freq/1e6, args->rf.ul_freq/1e6);
 
   radio.set_tx_freq(args->rf.dl_freq);
