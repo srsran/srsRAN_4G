@@ -40,7 +40,10 @@ typedef enum{
   auth_algo_xor,
 }auth_algo_t;
 
-typedef struct{
+class usim_args_t
+{
+public:
+  usim_args_t() : using_op(false) {}
   std::string mode;
   std::string algo;
   bool using_op;
@@ -51,7 +54,7 @@ typedef struct{
   std::string k;
   std::string pin;
   std::string reader;
-}usim_args_t;
+};
 
 class usim_base
     :public usim_interface_nas

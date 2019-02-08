@@ -92,6 +92,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("nas.user",              bpo::value<string>(&args->nas.apn_user)->default_value(""),  "Username for CHAP authentication")
     ("nas.pass",              bpo::value<string>(&args->nas.apn_pass)->default_value(""),  "Password for CHAP authentication")
     ("nas.force_imsi_attach", bpo::value<bool>(&args->nas.force_imsi_attach)->default_value(false),  "Whether to always perform an IMSI attach")
+    ("nas.eia",               bpo::value<string>(&args->nas.eia)->default_value("1,2"),  "List of integrity algorithms included in UE capabilities")
+    ("nas.eea",               bpo::value<string>(&args->nas.eea)->default_value("0,1,2"),  "List of ciphering algorithms included in UE capabilities")
 
     ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")

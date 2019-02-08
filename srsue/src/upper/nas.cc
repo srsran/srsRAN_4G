@@ -55,13 +55,12 @@ nas::nas()
   plmn_is_selected = false;
   chap_id = 0;
   memset(ipv6_if_id, 0, sizeof(ipv6_if_id));
+  bzero(eia_caps, sizeof(eia_caps));
+  bzero(eea_caps, sizeof(eea_caps));
 }
 
-void nas::init(usim_interface_nas *usim_,
-               rrc_interface_nas *rrc_,
-               gw_interface_nas *gw_,
-               srslte::log *nas_log_,
-               srslte::srslte_nas_config_t cfg_)
+void nas::init(
+    usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, srslte::log* nas_log_, nas_args_t cfg_)
 {
   pool = byte_buffer_pool::get_instance();
   usim = usim_;
@@ -78,6 +77,33 @@ void nas::init(usim_interface_nas *usim_,
     srslte::mcc_to_bytes(mcc, &home_plmn.mcc[0]);
     srslte::mnc_to_bytes(mnc, home_plmn.mnc);
   }
+
+  // parse and sanity check EIA list
+  std::vector<uint8_t> cap_list = split_string(cfg_.eia);
+  if (cap_list.empty()) {
+    nas_log->error("Empty EIA list. Select at least one EIA algorithm.\n");
+  }
+  for (std::vector<uint8_t>::const_iterator it = cap_list.begin(); it != cap_list.end(); ++it) {
+    if (*it != 0 && *it < 3) {
+      eia_caps[*it] = true;
+    } else {
+      nas_log->error("EIA%d is not a valid EIA algorithm.\n", *it);
+    }
+  }
+
+  // parse and sanity check EEA list
+  cap_list = split_string(cfg_.eea);
+  if (cap_list.empty()) {
+    nas_log->error("Empty EEA list. Select at least one EEA algorithm.\n");
+  }
+  for (std::vector<uint8_t>::const_iterator it = cap_list.begin(); it != cap_list.end(); ++it) {
+    if (*it < 3) {
+      eea_caps[*it] = true;
+    } else {
+      nas_log->error("EEA%d is not a valid EEA algorithm.\n", *it);
+    }
+  }
+
   cfg     = cfg_;
 
   if((read_ctxt_file(&ctxt))) {
@@ -1297,7 +1323,7 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
   }
 
   // Set the optional flags
-  if (cfg.apn == "") {
+  if (cfg.apn_name == "") {
     pdn_con_req.esm_info_transfer_flag_present = false;
   } else {
     // request ESM info transfer is APN is specified
@@ -1573,29 +1599,24 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
   esm_info_resp.proc_transaction_id = proc_transaction_id;
   esm_info_resp.eps_bearer_id = 0; // respone shall always have no bearer assigned
 
-  if (cfg.apn == "") {
+  if (cfg.apn_name == "") {
     esm_info_resp.apn_present = false;
   } else {
-    nas_log->debug("Including APN %s in ESM info response\n", cfg.apn.c_str());
+    nas_log->debug("Including APN %s in ESM info response\n", cfg.apn_name.c_str());
     esm_info_resp.apn_present = true;
-    int len = std::min((int)cfg.apn.length(), LIBLTE_STRING_LEN-1);
-    strncpy(esm_info_resp.apn.apn, cfg.apn.c_str(), len);
+    int len                   = std::min((int)cfg.apn_name.length(), LIBLTE_STRING_LEN - 1);
+    strncpy(esm_info_resp.apn.apn, cfg.apn_name.c_str(), len);
     esm_info_resp.apn.apn[len] = '\0';
   }
 
+  if (cfg.apn_user != "" && cfg.apn_user.length() < LIBLTE_STRING_LEN && cfg.apn_pass != "" &&
+      cfg.apn_pass.length() < LIBLTE_STRING_LEN) {
 
-  if (cfg.user != "" && cfg.user.length() < LIBLTE_STRING_LEN &&
-      cfg.pass != "" && cfg.pass.length() < LIBLTE_STRING_LEN) {
-
-    nas_log->debug("Including CHAP authentication for user %s in ESM info response\n", cfg.user.c_str());
+    nas_log->debug("Including CHAP authentication for user %s in ESM info response\n", cfg.apn_user.c_str());
 
     // Generate CHAP challenge
-    uint16_t len = 1 /* CHAP code */ +
-                   1 /* ID */ +
-                   2 /* complete length */ +
-                   1 /* data value size */ +
-                   16 /* data value */ +
-                   cfg.user.length();
+    uint16_t len = 1 /* CHAP code */ + 1 /* ID */ + 2 /* complete length */ + 1 /* data value size */ +
+                   16 /* data value */ + cfg.apn_user.length();
 
     uint8_t challenge[len];
     bzero(challenge, len*sizeof(uint8_t));
@@ -1611,8 +1632,8 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
     }
 
     // add user as name field
-    for (size_t i = 0; i < cfg.user.length(); i++) {
-      const char *name = cfg.user.c_str();
+    for (size_t i = 0; i < cfg.apn_user.length(); i++) {
+      const char* name  = cfg.apn_user.c_str();
       challenge[21 + i] = name[i];
     }
 
@@ -1626,32 +1647,30 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
     response[4] = 16;
 
     // Generate response value
-    uint16_t resp_val_len = 16 /* MD5 len */ +
-                            1 /* ID */ +
-                            cfg.pass.length();
+    uint16_t resp_val_len = 16 /* MD5 len */ + 1 /* ID */ + cfg.apn_pass.length();
     uint8_t resp_val[resp_val_len];
     resp_val[0] = chap_id;
 
     // add secret
-    for (size_t i = 0; i < cfg.pass.length(); i++) {
-      const char* pass = cfg.pass.c_str();
+    for (size_t i = 0; i < cfg.apn_pass.length(); i++) {
+      const char* pass = cfg.apn_pass.c_str();
       resp_val[1 + i] = pass[i];
     }
 
     // copy original challenge behind secret
     uint8_t *chal_val = &challenge[5];
-    memcpy(&resp_val[1+cfg.pass.length()], chal_val, 16);
+    memcpy(&resp_val[1 + cfg.apn_pass.length()], chal_val, 16);
 
     // Compute MD5 of resp_val and add to response
     security_md5(resp_val, resp_val_len, &response[5]);
 
     // add user as name field again
-    for (size_t i = 0; i < cfg.user.length(); i++) {
-      const char *name = cfg.user.c_str();
+    for (size_t i = 0; i < cfg.apn_user.length(); i++) {
+      const char* name = cfg.apn_user.c_str();
       response[21 + i] = name[i];
     }
 
-    // Add challenge and resposne to ESM info response
+    // Add challenge and response to ESM info response
     esm_info_resp.protocol_cnfg_opts_present = true;
     esm_info_resp.protocol_cnfg_opts.opt[0].id = LIBLTE_MME_CONFIGURATION_PROTOCOL_OPTIONS_CHAP;
     memcpy(esm_info_resp.protocol_cnfg_opts.opt[0].contents, challenge, sizeof(challenge));

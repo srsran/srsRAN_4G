@@ -31,29 +31,7 @@
 #include "srslte/common/security.h"
 #include <string>
 
-
 namespace srslte {
-
-class srslte_nas_config_t
-{
-public:
-  srslte_nas_config_t(uint32_t lcid_ = 0, std::string apn_ = "", std::string apn_protocol_ = "", std::string user_ = "", std::string pass_ = "", bool force_imsi_attach_ = false)
-    :lcid(lcid_),
-     apn(apn_),
-     apn_protocol(apn_protocol_),
-     user(user_),
-     pass(pass_),
-     force_imsi_attach(force_imsi_attach_)
-    {}
-
-  uint32_t    lcid;
-  std::string apn;
-  std::string apn_protocol;
-  std::string user;
-  std::string pass;
-  bool        force_imsi_attach;
-};
-
 
 class srslte_gw_config_t
 {

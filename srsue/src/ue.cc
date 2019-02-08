@@ -116,7 +116,6 @@ bool ue::init(all_args_t *args_) {
     phy_log.push_back(NULL);
   }
 
-  
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
@@ -242,9 +241,7 @@ bool ue::init(all_args_t *args_) {
   mac.init(&phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
-
-  srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_protocol, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
-  nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
+  nas.init(usim, &rrc, &gw, &nas_log, args->nas);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
   gw.set_tundevname(args->expert.ip_devname);

@@ -39,13 +39,19 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
-typedef struct {
+class nas_args_t
+{
+public:
+  nas_args_t() : force_imsi_attach(false) {}
+
   std::string apn_name;
   std::string apn_protocol;
   std::string apn_user;
   std::string apn_pass;
   bool        force_imsi_attach;
-} nas_args_t;
+  std::string eia;
+  std::string eea;
+};
 
 // EMM states (3GPP 24.302 v10.0.0)
 typedef enum {
@@ -62,9 +68,6 @@ static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
                                                             "DEREGISTERED INITIATED",
                                                             "TRACKING AREA UPDATE INITIATED"};
 
-static const bool eia_caps[8] = {false, true, true, false, false, false, false, false};
-static const bool eea_caps[8] = {true,  true, true, false, false, false, false, false};
-
 class nas
   : public nas_interface_rrc,
     public nas_interface_ue,
@@ -72,11 +75,11 @@ class nas
 {
 public:
   nas();
-  void init(usim_interface_nas  *usim_,
-            rrc_interface_nas   *rrc_,
-            gw_interface_nas    *gw_,
-            srslte::log         *nas_log_,
-            srslte::srslte_nas_config_t cfg_);
+  void init(usim_interface_nas* usim_,
+            rrc_interface_nas*  rrc_,
+            gw_interface_nas*   gw_,
+            srslte::log*        nas_log_,
+            nas_args_t          args_);
   void stop();
 
   emm_state_t get_state();
@@ -105,7 +108,7 @@ private:
   usim_interface_nas *usim;
   gw_interface_nas *gw;
 
-  srslte::srslte_nas_config_t cfg;
+  nas_args_t cfg;
 
   emm_state_t state;
 
@@ -145,6 +148,8 @@ private:
   uint8_t transaction_id;
 
   // Security
+  bool    eia_caps[8];
+  bool    eea_caps[8];
   uint8_t k_nas_enc[32];
   uint8_t k_nas_int[32];
 
@@ -233,6 +238,20 @@ private:
       return false;
     }
     return true;
+  }
+
+  std::vector<uint8_t> split_string(const std::string input)
+  {
+    std::vector<uint8_t> list;
+    std::stringstream    ss(input);
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      if (not substr.empty()) {
+        list.push_back(atoi(substr.c_str()));
+      }
+    }
+    return list;
   }
 };
 
