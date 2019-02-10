@@ -93,6 +93,7 @@ int basic_test()
   TESTASSERT(meas_list[0].meas_result.rsrq_result == 18);
 
   uint8_t rrc_msg2[rrc_msg_len];
+  bzero(rrc_msg2, rrc_msg_len);
   bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
   ul_dcch_msg.pack(bref2);
   TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));

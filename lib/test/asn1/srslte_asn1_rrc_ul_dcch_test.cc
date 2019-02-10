@@ -33,6 +33,8 @@
 
 using namespace asn1::rrc;
 
+#define PCAP 0
+
 #define TESTASSERT(cond)                                                                                               \
   {                                                                                                                    \
     if (!(cond)) {                                                                                                     \
@@ -41,7 +43,7 @@ using namespace asn1::rrc;
     }                                                                                                                  \
   }
 
-int rrc_ue_cap_info_test(srslte::mac_pcap& pcap)
+int rrc_ue_cap_info_test(srslte::mac_pcap* pcap)
 {
   srslte::log_filter log1("RRC");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -85,17 +87,19 @@ int rrc_ue_cap_info_test(srslte::mac_pcap& pcap)
   cap.feature_group_inds.from_number(args.feature_group);
 
   uint8_t       buf[64];
+  bzero(buf, sizeof(buf));
   asn1::bit_ref bref(buf, sizeof(buf));
   cap.pack(bref);
   bref.align_bytes_zero();
   uint32_t cap_len = (uint32_t)bref.distance_bytes(buf);
+
   info->ue_cap_rat_container_list[0].ue_cap_rat_container.resize(cap_len);
   memcpy(info->ue_cap_rat_container_list[0].ue_cap_rat_container.data(), buf, cap_len);
   log1.debug_hex(buf, cap_len, "UE-Cap (%d/%zd B)\n", cap_len, sizeof(buf));
 
   // pack the message
-  uint8_t byte_buf[16];
-  ZERO_OBJECT(byte_buf);
+  uint8_t byte_buf[32];
+  bzero(byte_buf, sizeof(byte_buf));
   asn1::bit_ref bref3(byte_buf, sizeof(byte_buf));
   ul_dcch_msg.pack(bref3);
   bref3.align_bytes_zero();
@@ -103,7 +107,9 @@ int rrc_ue_cap_info_test(srslte::mac_pcap& pcap)
   uint32_t len = (uint32_t)bref3.distance_bytes(byte_buf);
   log1.debug_hex(byte_buf, len, "UL-DCCH (%d/%zd B)\n", len, sizeof(byte_buf));
 
-  pcap.write_ul_rrc_pdu(byte_buf, len);
+  if (pcap != NULL) {
+    pcap->write_ul_rrc_pdu(byte_buf, len);
+  }
 
   return 0;
 }
@@ -163,12 +169,17 @@ int pack_fail_test()
 
 int main(int argc, char** argv)
 {
+#if PCAP
   srslte::mac_pcap pcap;
   pcap.open("ul_dcch.pcap");
-
-  TESTASSERT(rrc_ue_cap_info_test(pcap) == 0);
+  TESTASSERT(rrc_ue_cap_info_test(&pcap) == 0);
+#else
+  TESTASSERT(rrc_ue_cap_info_test(NULL) == 0);
+#endif
   TESTASSERT(pack_fail_test() == -1);
 
+#if PCAP
   pcap.close();
+#endif
   return 0;
 }

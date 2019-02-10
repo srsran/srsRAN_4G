@@ -144,6 +144,7 @@ int basic_test()
   TESTASSERT(reconf_r8->rr_cfg_ded.phys_cfg_ded.pusch_cfg_ded_present);
 
   uint8_t rrc_msg2[rrc_msg_len];
+  bzero(rrc_msg2, sizeof(rrc_msg2));
   bit_ref bref2(&rrc_msg2[0], rrc_msg_len);
   dl_dcch_msg.pack(bref2);
 

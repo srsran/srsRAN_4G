@@ -123,6 +123,7 @@ int basic_test()
   //log1.info_hex(byte_buf.msg, byte_buf.N_bytes, "MCCH packed message:");
 
   uint8_t       rrc_msg2[known_reference_len];
+  bzero(rrc_msg2, sizeof(rrc_msg2));
   asn1::bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
   mcch_msg.pack(bref2);
   TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));
