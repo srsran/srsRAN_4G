@@ -262,8 +262,6 @@ bool rlc::has_data(uint32_t lcid)
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     has_data = rlc_array.at(lcid)->has_data();
-  } else {
-    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -277,8 +275,6 @@ uint32_t rlc::get_buffer_state(uint32_t lcid)
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->get_buffer_state();
-  } else {
-    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -293,8 +289,6 @@ uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
 
   if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->get_buffer_state();
-  } else {
-    rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 
